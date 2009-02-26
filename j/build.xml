@@ -6,7 +6,7 @@
 
     <property file="build.properties"/>
 
-    <property name="j.version"          value="0.22.0.0-rc0"/>
+    <property name="j.version"          value="0.22.0-rc0"/>
     <property name="build.dir"          value="${basedir}/build"/>
     <property name="build.classes.dir"  value="${build.dir}/classes"/>
     <property name="src.dir"            value="${basedir}/src"/>
@@ -133,6 +133,8 @@
     </target>
 
     <target name="j.jar" depends="j.compile,j.stamp">
+      <unzip dest="${build.classes.dir}"
+             src="${abcl.jar.path}"/>
       <copy todir="${build.classes.dir}">
         <fileset dir="${basedir}/src">
           <patternset refid="j.objects"/>
@@ -143,8 +145,10 @@
            compress="true"
            index="true"
            basedir="${build.classes.dir}">
+        <!--
         <patternset refid="j.objects"/>
         <patternset refid="j.resources.src"/>
+        -->
         <manifest>
           <attribute name="Main-Class" value="Main"/>
           <section name="org/armedbear/j">
@@ -160,9 +164,11 @@
     </target>
 
     <target name="j.dist.bin" depends="j.jar">
-      <mkdir dir="${dist.dir}/j-${j.version}"/>
-      <copy todir="${dist.dir}/j-${j.version}" file="${j.jar.path}"/>
-      <copy todir="${dist.dir}/j-${j.version}">
+      <property name="j.dist.dir" value="${dist.dir}/j-${j.version}"/>
+
+      <mkdir dir="${j.dist.dir}"/>
+      <copy todir="${j.dist.dir}" file="${j.jar.path}"/>
+      <copy todir="${j.dist.dir}">
         <fileset dir="${basedir}">
           <patternset refid="j.resources.top"/>
         </fileset>
