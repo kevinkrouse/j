@@ -821,7 +821,7 @@ public class LispShell extends Shell
               JLisp.runLispCommand("(setq slime::*repl-buffer-name* \"" +
                                    buffer.getTitle() + "\")");
               JLisp.runLispCommand("(slime:slime)");
-              LispThread.remove(Thread.currentThread());
+              //LispThread.remove(Thread.currentThread());
             }
           catch (Throwable t)
             {
@@ -842,7 +842,7 @@ public class LispShell extends Shell
             {
               JLisp.runLispCommand("(slime::disconnect)");
               JLisp.runLispCommand("(setq slime::*repl-buffer* nil)");
-              LispThread.remove(Thread.currentThread());
+              //LispThread.remove(Thread.currentThread());
             }
           catch (Throwable t)
             {

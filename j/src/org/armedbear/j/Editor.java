@@ -428,8 +428,8 @@ public final class Editor extends JPanel implements Constants,
         };
         SwingUtilities.invokeLater(r);
 
-        if (isLispInitialized())
-            LispThread.remove(Thread.currentThread());
+        //if (isLispInitialized())
+        //    LispThread.remove(Thread.currentThread());
 
         Log.debug("leaving main " + when());
     }

@@ -23,7 +23,7 @@
    -- create installation in ${j.install.root}
  j.dist
     -- create binary and source distributions in ${dist.dir}
- j.clean 
+ clean 
     -- remove J intermediate files</echo>
     </target>
 
@@ -38,7 +38,7 @@
 
     <condition property="windows"><os family="windows"/></condition>
 
-    <target name="j.clean">
+    <target name="clean">
       <delete dir="${build.dir}"/>
       <delete dir="${dist.dir}"/>
     </target>
@@ -73,6 +73,8 @@
       <include name="Main.class"/>
       <include name="gnu/regexp/*.class"/>
       <include name="org/armedbear/j/**/*.class"/>
+      <include name="org/armedbear/lisp/j.lisp"/>
+      <include name="org/armedbear/lisp/emacs.lisp"/>
     </patternset>
 
     <patternset id="j.resources.src">

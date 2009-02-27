@@ -93,7 +93,7 @@ public final class JLisp extends LispShell
                     }
                 };
                 SwingUtilities.invokeLater(processExitedRunnable);
-                LispThread.remove(thread);
+                //LispThread.remove(thread);
             }
         };
         thread.setDaemon(true);
