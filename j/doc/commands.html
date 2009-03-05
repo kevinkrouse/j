@@ -59,12 +59,15 @@
     <li><a href="commands.html#cycleIndentSize">cycleIndentSize</a></li>
     <li><a href="commands.html#cyclePaste">cyclePaste</a></li>
     <li><a href="commands.html#cycleTabWidth">cycleTabWidth</a></li>
+    <li><a href="commands.html#darcs">darcs</a></li>
     <li><a href="commands.html#decodeRegion">decodeRegion</a></li>
     <li><a href="commands.html#defaultMode">defaultMode</a></li>
     <li><a href="commands.html#defaultKeyMaps">defaultKeyMaps</a></li>
     <li><a href="commands.html#delete">delete</a></li>
     <li><a href="commands.html#deleteWordLeft">deleteWordLeft</a></li>
     <li><a href="commands.html#deleteWordRight">deleteWordRight</a></li>
+    <li><a href="commands.html#describe">describe</a></li>
+    <li><a href="commands.html#describeBindings">describeBindings</a></li>
     <li><a href="commands.html#describeKey">describeKey</a></li>
     <li><a href="commands.html#detabRegion">detabRegion</a></li>
     <li><a href="commands.html#diff">diff</a></li>
@@ -95,12 +98,16 @@
     <li><a href="commands.html#editRegister">editRegister</a></li>
     <li><a href="commands.html#electricCloseAngleBracket">electricCloseAngleBracket</a></li>
     <li><a href="commands.html#electricCloseBrace">electricCloseBrace</a></li>
+    <li><a href="commands.html#electricCloseParen">electricCloseParen</a></li>
     <li><a href="commands.html#electricColon">electricColon</a></li>
     <li><a href="commands.html#electricOpenBrace">electricOpenBrace</a></li>
     <li><a href="commands.html#electricPound">electricPound</a></li>
+    <li><a href="commands.html#electricQuote">electricQuote</a></li>
     <li><a href="commands.html#electricSemi">electricSemi</a></li>
     <li><a href="commands.html#electricStar">electricStar</a></li>
     <li><a href="commands.html#end">end</a></li>
+    <li><a href="commands.html#endMacro">endMacro</a></li>
+    <li><a href="commands.html#enlargeWindow">enlargeWindow</a></li>
     <li><a href="commands.html#entabRegion">entabRegion</a></li>
     <li><a href="commands.html#eob">eob</a></li>
     <li><a href="commands.html#escape">escape</a></li>
@@ -165,6 +172,7 @@
     <li><a href="commands.html#jumpToColumn">jumpToColumn</a></li>
     <li><a href="commands.html#jumpToLine">jumpToLine</a></li>
     <li><a href="commands.html#jumpToOffset">jumpToOffset</a></li>
+    <li><a href="commands.html#justOneSpace">justOneSpace</a></li>
     <li><a href="commands.html#killAppend">killAppend</a></li>
     <li><a href="commands.html#killBuffer">killBuffer</a></li>
     <li><a href="commands.html#killFrame">killFrame</a></li>
@@ -209,6 +217,7 @@
     <li><a href="commands.html#makeTagFile">makeTagFile</a></li>
     <li><a href="commands.html#man">man</a></li>
     <li><a href="commands.html#manFollowLink">manFollowLink</a></li>
+    <li><a href="commands.html#markSexp">markSexp</a></li>
     <li><a href="commands.html#messageDelete">messageDelete</a></li>
     <li><a href="commands.html#messageFlag">messageFlag</a></li>
     <li><a href="commands.html#messageForward">messageForward</a></li>
@@ -226,6 +235,7 @@
     <li><a href="commands.html#messageToggleWrap">messageToggleWrap</a></li>
     <li><a href="commands.html#messageViewAttachment">messageViewAttachment</a></li>
     <li><a href="commands.html#mode">mode</a></li>
+    <li><a href="commands.html#mouseCopyToInput">mouseCopyToInput</a></li>
     <li><a href="commands.html#mouseFindOccurrence">mouseFindOccurrence</a></li>
     <li><a href="commands.html#mouseFindTag">mouseFindTag</a></li>
     <li><a href="commands.html#mouseMoveDotToPoint">mouseMoveDotToPoint</a></li>
@@ -321,6 +331,7 @@
     <li><a href="commands.html#shellPreviousInput">shellPreviousInput</a></li>
     <li><a href="commands.html#shellPreviousPrompt">shellPreviousPrompt</a></li>
     <li><a href="commands.html#shellTab">shellTab</a></li>
+    <li><a href="commands.html#shrinkWindowIfLargerThanBuffer">shrinkWindowIfLargerThanBuffer</a></li>
     <li><a href="commands.html#showMessage">showMessage</a></li>
     <li><a href="commands.html#sidebarListBuffers">sidebarListBuffers</a></li>
     <li><a href="commands.html#sidebarListTags">sidebarListTags</a></li>
@@ -330,6 +341,7 @@
     <li><a href="commands.html#source">source</a></li>
     <li><a href="commands.html#splitWindow">splitWindow</a></li>
     <li><a href="commands.html#stamp">stamp</a></li>
+    <li><a href="commands.html#startMacro">startMacro</a></li>
     <li><a href="commands.html#tab">tab</a></li>
     <li><a href="commands.html#tempBufferQuit">tempBufferQuit</a></li>
     <li><a href="commands.html#thisError">thisError</a></li>
@@ -861,6 +873,18 @@ setting the next time you open the same file.
 <br><br>
 </dl><!--<hr>-->
 
+<a name="darcs">darcs</a><dl><dd>
+<p>
+Executes an arbitrary darcs command. The darcs command, together with any required
+flags, must be supplied as an argument. The name of the file associated with
+the current buffer is automatically appended to the command line if the command
+is "whatsnew" or "w".  The darcs command is run in the directory of the current
+editor.
+<p>
+<b>Default key mapping:</b> None
+<br><br>
+</dl><!--<hr>-->
+
 <a name="decodeRegion">decodeRegion</a><dl><dd>
 <p>
 Base 64 decodes the selected region (or the line containing the caret if no
@@ -932,6 +956,22 @@ Deletes the word to the right of the caret.
 <b>Default key mapping:</b> Ctrl Delete
 <p>
 <b>See also:</b> <a href="#killWordRight">killWordRight</a>
+<br><br>
+</dl><!--<hr>-->
+
+<a name="describe">describe</a><dl><dd>
+<p>
+In a Lisp shell, runs 'cl:describe' on the symbol under the caret.
+<br><br>
+<b>Default key mapping:</b> Ctrl Alt D in Lisp shell mode
+<br><br>
+</dl><!--<hr>-->
+
+<a name="describeBindings">describeBindings</a><dl><dd>
+<p>
+Displays a list of the key bindings that are in effect in the current buffer.
+<br><br>
+<b>Default key mapping:</b> None
 <br><br>
 </dl><!--<hr>-->
 
@@ -1330,6 +1370,19 @@ and moves the caret to the appropriate column on the new line.
 <br><br>
 </dl><!--<hr>-->
 
+<a name="electricCloseParen">electricCloseParen</a><dl><dd>
+<p>
+Inserts ')' and evaluates the sexp in the lisp shell if complete.
+<p>
+You can add this to your <a href="init.lisp.html">init.lisp</a> with:
+<pre>
+(map-key-for-mode ")" "electricCloseParen" "Lisp Shell")
+</pre>
+<br><br>
+<b>Default key mapping:</b> None.
+<br><br>
+</dl><!--<hr>-->
+
 <a name="electricColon">electricColon</a><dl><dd>
 <p>
 Inserts a colon at the current location of the caret and re-indents the current
@@ -1361,6 +1414,16 @@ Inserts a '#' character at the current location of the caret.  If the line
 contains only whitespace, the '#' will be forced into the first column.
 <br><br>
 <b>Default key mapping:</b> '#' in C and C++ modes
+<br><br>
+</dl><!--<hr>-->
+
+<a name="electricQuote">electricQuote</a><dl><dd>
+<p>
+Inserts a pair of '"' characters at the current location of the caret and
+places the caret between them.  If the cursor is on a '"' character, a newline
+will be inserted and the caret will be indented according to the context.
+<br><br>
+<b>Default key mapping:</b> Ctrl " in Lisp mode
 <br><br>
 </dl><!--<hr>-->
 
@@ -1400,6 +1463,26 @@ behavior is not triggered.
 <b>Default key mapping:</b> End
 <p>
 <b>See also:</b> <a href="#home">home</a>
+<br><br>
+</dl><!--<hr>-->
+
+<a name="endMacro">endMacro</a><dl><dd>
+<p>
+Stop recording keystrokes.
+<p>
+<b>Default key mapping:</b> None
+<p>
+<b>See also:</b> <a href="#startMacro">startMacro</a>, <a href="#recordMacro">recordMacro</a>, <a href="#playbackMacro">
+<br><br>
+</dl><!--<hr>-->
+
+<a name="enlargeWindow">enlargeWindow</a><dl><dd>
+<p>
+Grows the current split window by a line.
+<p>
+<b>Default key mapping:</b> None
+<p>
+<b>See also:</b> <a href="#shrinkWindowIfLargerThanBuffer">shrinkWindowIfLargerThanBuffer</a>
 <br><br>
 </dl><!--<hr>-->
 
@@ -2417,6 +2500,15 @@ The offset can be a simple number ("123"), an arithmetic expression
 <br><br>
 </dl><!--<hr>-->
 
+<a name="justOneSpace">justOneSpace</a><dl><dd>
+<p>
+Replaces all whitespace under the caret, including newlines, with a single
+space character.
+<p>
+<b>Default key mapping:</b> Ctrl Shift Space in Lisp mode
+<br><br>
+</dl><!--<hr>-->
+
 <a name="killAppend">killAppend</a><dl><dd>
 <p>
 Deletes the selected region (or the current line if no region is selected),
@@ -2552,9 +2644,11 @@ already selected, it is extended to the enclosing syntactic expression.)
 
 <a name="listBindings">listBindings</a><dl><dd>
 <p>
-Displays a list of the key bindings that are in effect in the current buffer.
-<br><br>
+Deprecated: Use <a name="describeBindings">describeBindings</a> instead.
+<p>
 <b>Default key mapping:</b> None
+<p>
+<b>See also:</b> <a href="#describeBindings">describeBindings</a>
 <br><br>
 </dl><!--<hr>-->
 
@@ -2953,6 +3047,14 @@ caret or mouse click.
 <br><br>
 </dl><!--<hr>-->
 
+<a name="markSexp">markSexp</a><dl><dd>
+<p>
+Marks the region from the caret position to the end of the containing sexp.
+<p>
+<b>Default key mapping:</b> Ctrl Alt Space in Lisp mode
+<br><br>
+</dl><!--<hr>-->
+
 <a name="messageDelete">messageDelete</a><dl><dd>
 <p>
 Marks the current message deleted and loads the next undeleted message in the
@@ -3140,6 +3242,14 @@ Changes the mode of the current buffer. For example, Alt X, "mode diff", or Alt
 X, "mode lisp".
 <p>
 <b>Default key mapping:</b> None
+<br><br>
+</dl><!--<hr>-->
+
+<a name="mouseCopyToInput">mouseCopyToInput</a><dl><dd>
+<p>
+Copies the current selection or the current sexp to the input line.
+<p>
+<b>Default key mapping:</b> Mouse-2 in Lisp shell mode
 <br><br>
 </dl><!--<hr>-->
 
@@ -3599,7 +3709,7 @@ Plays back previously recorded keystrokes.
 <br><br>
 <b>Default key mapping:</b> F8
 <br><br>
-<b>See also:</b> <a href="#recordMacro">recordMacro</a>
+<b>See also:</b> <a href="#startMacro">startMacro</a>, <a href="#endMacro">endMacro</a>, <a href="#recordMacro">
 <br><br>
 </dl><!--<hr>-->
 
@@ -3719,7 +3829,7 @@ status bar (at the right end, after the column number).
 <br><br>
 <b>Default key mapping:</b> F7
 <br><br>
-<b>See also:</b> <a href="#playbackMacro">playbackMacro</a>
+<b>See also:</b> <a href="#startMacro">startMacro</a>, <a href="#endMacro">endMacro</a>, <a href="#playbackMacro">
 <br><br>
 </dl><!--<hr>-->
 
@@ -4323,6 +4433,17 @@ Completes pending input.
 <br><br>
 </dl><!--<hr>-->
 
+<a name="shrinkWindowIfLargerThanBuffer">shrinkWindowIfLargerThanBuffer</a><dl><dd>
+<p>
+Reduces the size of a split window to the height of the buffer if the
+buffer is smaller than the current split window size.
+<p>
+<b>Default key mapping:</b> None
+<p>
+<b>See also:</b> <a href="#enlargeWindow">enlargeWindow</a>
+<br><br>
+</dl><!--<hr>-->
+
 <a name="showMessage">showMessage</a><dl><dd>
 <p>
 Displays the current compiler or XML parser error message.
@@ -4421,6 +4542,19 @@ The format of the inserted string is controlled by the
 <a href="preferences.html#stampFormat">stampFormat</a> property.
 <p>
 <b>Default key mapping:</b> Shift F2
+<br><br>
+</dl><!--<hr>-->
+
+<a name="startMacro">startMacro</a><dl><dd>
+<p>
+Records keystrokes for later playback.  Recording ends when the
+<a href="endMacro">endMacro</a> command is invoked. While recording is in
+progress, "REC" is displayed in the status bar (at the right end, after the
+column number).
+<p>
+<b>Default key mapping:</b> None
+<p>
+<b>See also:</b> <a href="#endMacro">endMacro</a>, <a href="#recordMacro">recordMacro</a>, <a href="#playbackMacro">
 <br><br>
 </dl><!--<hr>-->
 
