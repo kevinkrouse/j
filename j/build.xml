@@ -6,7 +6,7 @@
 
     <property file="build.properties"/>
 
-    <property name="j.version"          value="0.22.0-rc0"/>
+    <property name="j.version"          value="0.22.0"/>
     <property name="build.dir"          value="${basedir}/build"/>
     <property name="build.classes.dir"  value="${build.dir}/classes"/>
     <property name="src.dir"            value="${basedir}/src"/>
