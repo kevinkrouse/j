@@ -376,7 +376,7 @@ public class CommandTable
             addCommand("shellPreviousPrompt", "CommandInterpreter");
             addCommand("shellTab", "Shell");
             addCommand("showMessage", "CompilationCommands");
-            addCommand("slime", "LispShell");
+            //addCommand("slime", "LispShell");
             addCommand("sortLines", "Sort");
             addCommand("source", "JDKHelp");
             addCommand("startMacro", "Macro");
