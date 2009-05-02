@@ -1,30 +1,27 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project name="j" default="j.compile" basedir=".">
+<project name="j" default="compile" basedir=".">
     <description>Armed Bear J Editor</description>
 
-    <target name="j" depends="j.jar"/>
+    <target name="j" depends="jar"/>
 
     <property file="build.properties"/>
 
     <property name="j.version"          value="0.22.0"/>
     <property name="build.dir"          value="${basedir}/build"/>
     <property name="build.classes.dir"  value="${build.dir}/classes"/>
+    <property name="build.lib.dir"      value="${build.dir}/lib"/>
+    <property name="build.bin.dir"      value="${build.dir}/bin"/>
     <property name="src.dir"            value="${basedir}/src"/>
     <property name="dist.dir"           value="${basedir}/dist"/>
     <property name="j.jar.path"         value="${build.dir}/j.jar"/>
 
-    <target name="help" depends="j.install.properties">
-      <echo>Main Ant targets:
- j.compile  
-   -- compile J to ${build.classes.dir}
- j.jar      
-   -- create packaged ${j.jar.path}
- j.install  
-   -- create installation in ${j.install.root}
- j.dist
-    -- create binary and source distributions in ${dist.dir}
- clean 
-    -- remove J intermediate files</echo>
+    <target name="help" depends="install.properties">
+      <echo>Main Targets:
+ compile  -- compile J to ${build.classes.dir}
+ jar      -- create packaged ${j.jar.path}
+ install  -- create installation in ${j.install.root}
+ dist     -- create binary and source distributions in ${dist.dir}
+ clean    -- remove J intermediate files</echo>
     </target>
 
     <property name="j.version.path"
@@ -37,13 +34,14 @@
     </path>
 
     <condition property="windows"><os family="windows"/></condition>
+    <condition property="unix"><os family="unix"/></condition>
 
-    <target name="clean">
+    <target name="clean" description="-- remove J build and dist files">
       <delete dir="${build.dir}"/>
       <delete dir="${dist.dir}"/>
     </target>
 
-    <target name="j.stamp" depends="j.compile,j.stamp.version">
+    <target name="stamp" depends="compile,stamp.version">
       <tstamp>
         <format property="j.buildtime" pattern="EEE MMM dd yyyy HH:mm:ss zzz"/>
       </tstamp>
@@ -53,7 +51,7 @@
       <echo message="${j.hostname}${line.separator}" file="${j.build.path}" append="yes"/>
     </target>
 
-    <target name="j.stamp.version">
+    <target name="stamp.version">
       <echo message="${j.version}${line.separator}" file="${j.version.path}"/>
     </target>
 
@@ -94,11 +92,10 @@
       <include name="examples/*"/>
     </patternset>
 
-    <target name="j.pre-compile">
+    <target name="pre-compile">
       <!--- antversion fails in ant 1.7.1 <antversion property="ant.version" 
                                                       atleast="1.7"/> -->
       <mkdir dir="${build.dir}"/>
-      <mkdir dir="${build.classes.dir}"/>
 
       <available property="abcl.jar.available" file="${abcl.jar.path}"/>
       <fail message="set abcl.jar.path in build.properties to the path to abcl.jar"
@@ -117,14 +114,16 @@
       <echo>java.version: ${java.version}</echo>
     </target>
     
-    <target name="j.java.warning" 
-            depends="j.pre-compile"
+    <target name="java.warning" 
+            depends="pre-compile"
             unless="j.java.version">
       <echo>WARNING: Java version ${java.version} not recommended.</echo>
     </target>
         
-    <target name="j.compile" 
-            depends="j.pre-compile,j.java.warning">
+    <target name="compile" 
+            depends="pre-compile,java.warning,jpty"
+            description="-- compile J source">
+      <mkdir dir="${build.classes.dir}"/>
       <javac destdir="${build.classes.dir}"
              debug="true"
              target="1.5"
@@ -134,9 +133,10 @@
       </javac>
     </target>
 
-    <target name="j.jar" depends="j.compile,j.stamp">
-      <unzip dest="${build.classes.dir}"
-             src="${abcl.jar.path}"/>
+    <target name="jar" depends="compile,stamp"
+            description="-- create packaged j.jar">
+      <mkdir dir="${build.lib.dir}"/>
+      <copy file="${abcl.jar.path}" tofile="${build.lib.dir}/abcl.jar"/>
       <copy todir="${build.classes.dir}">
         <fileset dir="${basedir}/src">
           <patternset refid="j.objects"/>
@@ -153,6 +153,7 @@
         -->
         <manifest>
           <attribute name="Main-Class" value="Main"/>
+          <attribute name="Class-Path" value="lib/abcl.jar"/>
           <section name="org/armedbear/j">
             <attribute name="Implementation-Title" value="ArmedBear J"/>
             <attribute name="Implementation-Version"  value="${j.version}"/>
@@ -162,19 +163,22 @@
       </jar>
     </target>
 
-    <target name="j.dist" depends="j.dist.bin,j.dist.src">
+    <target name="dist" depends="dist.bin,dist.src"
+            description="-- create binary and source distributions">
     </target>
 
-    <target name="j.dist.bin" depends="j.jar">
+    <target name="dist.bin" depends="jar">
       <property name="j.dist.dir" value="${dist.dir}/j-${j.version}"/>
 
       <mkdir dir="${j.dist.dir}"/>
-      <copy todir="${j.dist.dir}" file="${j.jar.path}"/>
       <copy todir="${j.dist.dir}">
+        <fileset file="${j.jar.path}"/>
         <fileset dir="${basedir}">
           <patternset refid="j.resources.top"/>
         </fileset>
+        <fileset dir="${build.dir}" includes="lib/**,bin/**"/>
       </copy>
+
       <tar tarfile="${dist.dir}/j-${j.version}-bin.tar.gz"
            basedir="${dist.dir}"
            includes="j-${j.version}/"
@@ -186,10 +190,12 @@
       </zip>
     </target>
 
-    <target name="j.dist.src">
+    <target name="dist.src">
       <delete dir="${java.io.tmpdir}/j-${j.version}"/>
       <exec executable="svn">
-        <arg line="export ${basedir} ${java.io.tmpdir}/j-${j.version}"/>
+        <arg value="export"/>
+        <arg file="${basedir}"/>
+        <arg file="${java.io.tmpdir}/j-${j.version}"/>
       </exec>
       <tar tarfile="${dist.dir}/j-${j.version}-src.tar.gz"
            basedir="${java.io.tmpdir}"
@@ -202,7 +208,7 @@
       </zip>
     </target>
 
-    <target name="j.run">
+    <target name="run">
       <java fork="true" spawn="true" classname="Main">
         <classpath>
           <pathelement location="${abcl.jar.path}"/>
@@ -225,26 +231,38 @@
     </target>
     -->
 
-    <target name="j.jpty" depends="j.jpty.compile"/>
+    <target name="jpty" depends="jpty.compile"/>
 
-    <target name="j.jpty.compile" if="unix">
+    <target name="jpty.uptodate" if="unix">
+      <uptodate property="jpty.uptodate"
+                srcfile="${src.dir}/jpty/jpty.c"
+                targetfile="${build.bin.dir}/jpty"/>
+    </target>
+    
+    <target name="jpty.compile" depends="jpty.uptodate"
+            if="unix" unless="jpty.uptodate">
+      <mkdir dir="${build.bin.dir}"/>
+      <echo message="Compiling jpty..."/>
       <exec executable="gcc" dir="${src.dir}/jpty">
-        <arg line="-Wall -O2 jpty.c -o jpty"/>
+        <arg line="-Wall -O2 jpty.c -o ${build.bin.dir}/jpty"/>
       </exec>
     </target>
 
-    <target name="j.install" depends="j.jar,j.install.properties">
+    <target name="install" depends="jar,install.properties"
+            description="-- create installation in ${j.install.root}">
       <property name="j.install.data.dir" value="${j.install.root}/share"/>
       <property name="j.install.bin.dir" value="${j.install.root}/bin"/>
 
       <mkdir dir="${j.install.data.dir}/j"/>
       <copy file="${j.jar.path}" todir="${j.install.data.dir}/j"/>
-      <copy file="${abcl.jar.path}" todir="${j.install.data.dir}/j"/>
+      <mkdir dir="${j.install.data.dir}/j/lib"/>
+      <copy file="${abcl.jar.path}" todir="${j.install.data.dir}/j/lib"/>
       <!-- set via '-Djava.options=JAVA_OPTIONS' or in 'build.properties -->
       <property name="java.options" value=""/>
 
       <path id="j.run.classpath">
-        <fileset dir="${j.install.data.dir}/j" includes="*.jar"/>
+        <fileset dir="${j.install.data.dir}/j" includes="j.jar"/>
+        <fileset dir="${j.install.data.dir}/j/lib" includes="*.jar"/>
       </path>
 
       <copy file="${j.wrapper.file}.in" toFile="${j.install.bin.dir}/${j.wrapper.file}">
@@ -270,7 +288,7 @@
                 value="${j.install.data.dir}/doc/j"/>
       <mkdir dir="${j.install.doc.dir}" />
 
-      <copy file="${basedir}/src/jpty/jpty" 
+      <copy file="${build.bin.dir}/jpty" 
             todir="${j.install.bin.dir}"
             failonerror="false"/>
       <chmod file="${j.install.bin.dir}/jpty" perm="ugo+rx"/>
@@ -279,14 +297,15 @@
       </copy>
     </target>
 
-    <target name="j.install.properties" depends="j.install.unix,j.install.windows"/>
+    <target name="install.properties"
+            depends="install.unix.properties,install.windows.properties"/>
 
-    <target name="j.install.unix" depends="j.jpty" if="unix">
+    <target name="install.unix.properties" if="unix">
       <property name="j.install.root" value="/usr/local"/>
       <property name="j.wrapper.file" value="j"/>
     </target>
 
-    <target name="j.install.windows" depends="j.jpty" if="windows">
+    <target name="install.windows.properties" if="windows">
       <property name="j.install.root" value="c:/j"/>
       <property name="j.wrapper.file" value="j.bat"/>
     </target>

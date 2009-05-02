@@ -1,14 +1,20 @@
 GENERAL INFORMATION
 -------------------
 
-Armed Bear Common Lisp is an implementation of ANSI Common Lisp that runs in a
-Java virtual machine.
+J is a multifile, multiwindow programmer's editor written entirely in Java. It
+features syntax highlighting for Java, C, C++, XML, HTML, CSS, JavaScript,
+Lisp, Perl, PHP, Python, Ruby, Scheme, Tcl/Tk, Verilog, and VHDL, automatic
+indentation, directory buffers, regular expressions, multifile find and
+replace, autosave and crash recovery, undo/redo, and FTP/HTTP support. All
+keyboard mappings can be customized. Themes may be used to customize the
+editor's appearance.
 
+Peter Graves is the original author of J and Armed Bear Common Lisp.
 
 LICENSE
 -------
 
-Armed Bear Common Lisp is distributed under the GNU General Public License
+J is distributed under the GNU General Public License
 (with a special exception described below).
 
 A copy of GNU General Public License (GPL) is included in this distribution, in
@@ -33,53 +39,16 @@ exception statement from your version.
 INSTALLATION
 ------------
 
-To build ABCL, you'll need a 1.4 or 1.5 JDK and a supported Common Lisp
-implementation (SBCL, CMUCL, OpenMCL, Allegro, LispWorks, or CLISP).
+To build J, you'll need JDK 1.5, Ant, and Armed Bear Common Lisp. Once you have
+built ABCL, edit the build.properties found next to this README file and change
+the property values for your local environment.
 
-Edit the file customizations.lisp, in the directory containing this README
-file, to suit your situation, paying attention to the comments in the file.
-
-Start up one of the supported Common Lisp implementations in the directory
-containing this README file.
-
-Load build-abcl.lisp:
-
-    (load "build-abcl.lisp")
-
-Then do:
-
-    (build-abcl:build-abcl :clean t :full t)
-
-Wait for the build to finish and exit the host Lisp.
-
-Use abcl.bat on Windows or ./abcl on Unix to start ABCL. (Note that abcl.bat
-and abcl contain absolute paths, so you'll need to edit the relevant file if
-you move things around after the build.)
-
-If the build fails in the javac stage, you might have better luck with this:
-
-    (build-abcl:build-abcl :clean t :full t :batch nil)
-
-This invokes javac separately for each .java file, which is considerably slower
-but avoids running into limitations on command line length.
+Run 'ant' to compile the source.
+Run 'ant help' to see a list of available targets.
 
 
 BUGS
 ----
-
-ABCL is a very young implementation. You are certain to encounter bugs.
-
-ABCL 0.0.9 fails 54 out of 21344 tests in the GCL ANSI test suite.
-
-ABCL's CLOS does not handle on-the-fly redefinition of classes correctly, and
-in any event is intolerably slow. There is no support for the long form of
-DEFINE-METHOD-COMBINATION, and certain other required CLOS features are also
-missing. Enough CLOS is there to run ASDF and CL-PPCRE, if you're in no hurry.
-
-There is no MOP worth mentioning.
-
-Since this is a very early public release, there might be build problems as
-well as runtime bugs.
 
 Please report problems to the j-devel mailing list:
 
@@ -87,5 +56,5 @@ Please report problems to the j-devel mailing list:
 
 Have fun!
 
-Peter Graves
-October 18, 2005
+Kevin Krouse
+May 02, 2009
