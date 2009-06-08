@@ -24,7 +24,7 @@ package org.armedbear.j;
 import java.util.List;
 import javax.swing.SwingUtilities;
 
-public class Darcs implements Constants
+public class Darcs extends VersionControl implements Constants
 {
   public static void darcs()
   {
@@ -91,14 +91,6 @@ public class Darcs implements Constants
       }
   }
 
-  // Implementation.
-  private static final String command(String cmd, File workingDirectory)
-  {
-    ShellCommand shellCommand = new ShellCommand(cmd, workingDirectory);
-    shellCommand.run();
-    return shellCommand.getOutput();
-  }
-
   private static boolean checkDarcsInstalled()
   {
     if (haveDarcs())
@@ -123,14 +115,4 @@ public class Darcs implements Constants
     return false;
   }
 
-  // Enclose string in quotes if it contains any embedded spaces.
-  private static String maybeQuote(String s)
-  {
-    if (s.indexOf(' ') < 0)
-      return s;
-    FastStringBuffer sb = new FastStringBuffer('"');
-    sb.append(s);
-    sb.append('"');
-    return sb.toString();
-  }
 }

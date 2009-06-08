@@ -1067,14 +1067,6 @@ public class P4 extends VersionControl implements Constants
     return null;
   }
 
-  // Implementation.
-  private static final String command(String cmd, File workingDirectory)
-  {
-    ShellCommand shellCommand = new ShellCommand(cmd, workingDirectory);
-    shellCommand.run();
-    return shellCommand.getOutput();
-  }
-
   private static boolean checkP4Installed()
   {
     if (haveP4())
@@ -1099,14 +1091,4 @@ public class P4 extends VersionControl implements Constants
     return false;
   }
 
-  // Enclose string in quotes if it contains any embedded spaces.
-  private static String maybeQuote(String s)
-  {
-    if (s.indexOf(' ') < 0)
-      return s;
-    FastStringBuffer sb = new FastStringBuffer('"');
-    sb.append(s);
-    sb.append('"');
-    return sb.toString();
-  }
 }

@@ -66,4 +66,23 @@ public class VersionControl implements Constants
           }
       }
   }
+  
+  // Implementation.
+  protected static final String command(String cmd, File workingDirectory)
+  {
+      ShellCommand shellCommand = new ShellCommand(cmd, workingDirectory);
+      shellCommand.run();
+      return shellCommand.getOutput();
+  }
+
+  // Enclose string in quotes if it contains any embedded spaces.
+  protected static String maybeQuote(String s)
+  {
+      if (s.indexOf(' ') < 0)
+          return s;
+      FastStringBuffer sb = new FastStringBuffer('"');
+      sb.append(s);
+      sb.append('"');
+      return sb.toString();
+  }
 }

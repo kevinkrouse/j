@@ -575,14 +575,6 @@ public final class CVS extends VersionControl implements Constants
     editor.setDefaultCursor();
   }
 
-  // Implementation.
-  private static final String command(String cmd, File workingDirectory)
-  {
-    CvsCommand cvsCommand = new CvsCommand(cmd, workingDirectory);
-    cvsCommand.run();
-    return cvsCommand.getOutput();
-  }
-
   private static final class CvsCommand
   {
     final private String cmd;

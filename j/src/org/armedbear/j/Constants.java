@@ -112,6 +112,7 @@ public interface Constants
     int VC_CVS                   = 1;
     int VC_P4                    = 2;
     int VC_DARCS                 = 3;
+    int VC_SVN                   = 4;
 
     String CHECK_SAVE_PROMPT  = "Buffer is modified; save it first?";
 

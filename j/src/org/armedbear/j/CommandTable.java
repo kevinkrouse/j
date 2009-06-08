@@ -381,6 +381,7 @@ public class CommandTable
             addCommand("source", "JDKHelp");
             addCommand("startMacro", "Macro");
             addCommand("ssh", "RemoteShell");
+            addCommand("svn", "SVN", "svn");
             addCommand("tagDown", "ListTagsMode");
             addCommand("tagUp", "ListTagsMode");
             addCommand("telnet", "RemoteShell");

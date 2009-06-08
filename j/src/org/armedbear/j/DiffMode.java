@@ -198,6 +198,7 @@ public final class DiffMode extends AbstractMode implements Constants, Mode
     switch (vcType)
       {
       case VC_CVS:
+      case VC_SVN:
         cvsGotoFile(editor, diffOutputBuffer);
         break;
       case VC_P4:
