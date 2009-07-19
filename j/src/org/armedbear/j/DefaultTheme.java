@@ -170,6 +170,21 @@ public final class DefaultTheme
                     return new Color(0, 0, 0);
                 if (thing == "tag")
                     return new Color(0, 0, 0);
+            } else if (mode == "StatusMode") {
+                if (thing == "added")
+                    return new Color(0, 153, 0);
+                else if (thing == "deleted")
+                    return new Color(176, 130, 130);
+                else if (thing == "changed")
+                    return new Color(0, 0, 255);
+                else if (thing == "conflict")
+                    return new Color(153, 0, 0);
+                else if (thing == "unknown")
+                    return new Color(180, 180, 180);
+                else if (thing == "nochange")
+                    return new Color(0, 0, 0);
+                else if (thing == "ignored")
+                    return new Color(190, 204, 204);
             }
         }
 
@@ -318,6 +333,11 @@ public final class DefaultTheme
             } else if (mode == "MakefileMode") {
                 if (thing == "target")
                     return Font.BOLD;
+            } else if (mode == "StatusMode") {
+                if (thing == "unknown")
+                    return Font.ITALIC;
+                if (thing == "ignored")
+                    return Font.ITALIC;
             }
         }
 

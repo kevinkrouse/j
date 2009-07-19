@@ -199,7 +199,7 @@ public final class DiffMode extends AbstractMode implements Constants, Mode
       {
       case VC_CVS:
       case VC_SVN:
-        cvsGotoFile(editor, diffOutputBuffer);
+        cvsGotoFile2(editor, diffOutputBuffer);
         break;
       case VC_P4:
         p4GotoFile(editor, diffOutputBuffer);
@@ -213,6 +213,85 @@ public final class DiffMode extends AbstractMode implements Constants, Mode
       }
   }
 
+    private static void cvsGotoFile2(Editor editor,
+                                    DiffOutputBuffer diffOutputBuffer)
+    {
+        final Line dotLine = editor.getDotLine();
+        final int dotOffset = editor.getDotOffset();
+
+        int lineNumber;
+        int count = -1;
+        Line line = dotLine;
+        while (true)
+        {
+            if (line == null)
+                return;
+            String lineText = line.getText();
+            if (lineText.startsWith("Index: ") || lineText.startsWith("? "))
+            {
+                String filename = lineText.substring(lineText.indexOf(' ') + 1);
+                File file = File.getInstance(diffOutputBuffer.getDirectory(),
+                                             filename);
+                Buffer buf = Editor.getBuffer(file);
+                if (buf != null)
+                {
+                    if (editor.getOtherEditor() != null)
+                    {
+                        editor.activateInOtherWindow(buf);
+                    }
+                    else
+                    {
+                        editor.makeNext(buf);
+                        editor.activate(buf);
+                    }
+                }
+                return;
+            }
+            else if (lineText.startsWith("@@"))
+            {
+                lineNumber = parseLineNumber(line);
+                break;
+            }
+
+            if (!lineText.startsWith("-"))
+                ++count;
+            line = line.previous();
+        }
+
+        // Our line numbers are zero-based.
+        if (--lineNumber < 0)
+          return;
+        if (count > 0)
+            lineNumber += count;
+        Buffer parentBuffer = diffOutputBuffer.getParentBuffer();
+        File dir;
+        if (parentBuffer != null)
+          dir = parentBuffer.getCurrentDirectory();
+        else
+          dir = diffOutputBuffer.getDirectory();
+
+        line = line.previous();
+        while (line != null && !line.getText().startsWith("Index: "))
+          line = line.previous();
+        if (line == null)
+          return;
+        if (line.getText().startsWith("Index: "))
+          {
+            String filename = line.getText().substring(7);
+            File file = File.getInstance(dir, filename);
+            if (file != null && file.isFile())
+              {
+                Buffer buf = editor.getBuffer(file);
+                if (buf != null)
+                  gotoLocation(editor, buf, lineNumber,
+                               dotOffset > 0 ? dotOffset-1 : 0);
+              }
+          }
+        else
+          Debug.bug();
+    }
+
+  // XXX: remove method once cvsGotoFile2 is well-tested
   private static void cvsGotoFile(Editor editor,
                                   DiffOutputBuffer diffOutputBuffer)
   {
@@ -425,7 +504,7 @@ public final class DiffMode extends AbstractMode implements Constants, Mode
   {
     final Line dotLine = editor.getDotLine();
     String filename1 = null;
-    String filename2 = null;;
+    String filename2 = null;
     for (Line line = dotLine; line != null; line = line.previous())
       {
         String text = line.getText();

@@ -1,8 +1,7 @@
 /*
- * DiffOutputBuffer.java
+ * VersionControlEntry.java
  *
- * Copyright (C) 1998-2003 Peter Graves
- * $Id$
+ * Copyright (C) 2009 Kevin Krouse
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -21,30 +20,30 @@
 
 package org.armedbear.j;
 
-public final class DiffOutputBuffer extends VersionControlBuffer
+public abstract class VersionControlEntry
 {
-    public DiffOutputBuffer(Buffer parentBuffer, String output, int vcType)
+    protected Buffer buffer;
+    protected String revision;
+
+    protected VersionControlEntry(Buffer buffer, String revision)
     {
-        super(parentBuffer, output, vcType);
+        this.buffer = buffer;
+        this.revision = revision;
     }
 
-    public DiffOutputBuffer(File directory, String output, int vcType)
+    public Buffer getBuffer()
     {
-        super(directory, output, vcType);
+        return buffer;
     }
 
-    protected void init()
+    public String getRevision()
     {
-        supportsUndo  = false;
-        type = TYPE_OUTPUT;
-        mode = DiffMode.getMode();
-        formatter = new DiffFormatter(this);
-        lineSeparator = System.getProperty("line.separator");
-        readOnly = true;
-        setProperty(Property.VERTICAL_RULE, 0);
-        setProperty(Property.SHOW_LINE_NUMBERS, false);
-        setTransient(true);
-        setInitialized(true);
+        return revision;
     }
-    
+
+    public abstract int getVersionControl();
+
+    public abstract String getStatusText();
+
+    public abstract String getLongStatusText();
 }

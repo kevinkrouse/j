@@ -60,20 +60,7 @@ public class P4 extends VersionControl implements Constants
       }
     final Editor editor = Editor.currentEditor();
     editor.setWaitCursor();
-    FastStringBuffer sb = new FastStringBuffer("p4 ");
-    for (Iterator it = args.iterator(); it.hasNext();)
-      {
-        String arg = (String) it.next();
-        if (arg.equals("%"))
-          {
-            File file = editor.getBuffer().getFile();
-            if (file != null)
-              arg = file.canonicalPath();
-          }
-        sb.append(maybeQuote(arg));
-        sb.append(' ');
-      }
-    final String cmd = sb.toString().trim();
+    final String cmd = parseArgs("p4", s, true, false);
     final Buffer parentBuffer = editor.getBuffer();
     Runnable commandRunnable = new Runnable()
       {
@@ -123,26 +110,7 @@ public class P4 extends VersionControl implements Constants
     FastStringBuffer sb = new FastStringBuffer("p4 add ");
     sb.append(maybeQuote(name));
     final String cmd = sb.toString();
-    Runnable commandRunnable = new Runnable()
-      {
-        public void run()
-        {
-          final String output = command(cmd, buffer.getCurrentDirectory());
-          Runnable completionRunnable = new Runnable()
-            {
-              public void run()
-              {
-                OutputBuffer buf = OutputBuffer.getOutputBuffer(output);
-                buf.setTitle(cmd);
-                editor.makeNext(buf);
-                editor.activateInOtherWindow(buf);
-                editor.setDefaultCursor();
-              }
-            };
-          SwingUtilities.invokeLater(completionRunnable);
-        }
-      };
-    new Thread(commandRunnable).start();
+    outputBufferCommand(editor, cmd, buffer.getCurrentDirectory());
   }
 
   public static void edit()
@@ -253,7 +221,7 @@ public class P4 extends VersionControl implements Constants
     final File file = buffer.getFile();
     if (file == null)
       return;
-    if (buffer.isModified())
+//    if (buffer.isModified())
       {
         String prompt =
           "Discard changes to " + maybeQuote(file.getName()) + "?";
@@ -730,58 +698,6 @@ public class P4 extends VersionControl implements Constants
           };
         new Thread(commandRunnable).start();
       }
-  }
-
-  private static List getModifiedBuffers()
-  {
-    ArrayList list = null;
-    for (BufferIterator it = new BufferIterator(); it.hasNext();)
-      {
-        Buffer buf = it.nextBuffer();
-        if (!buf.isModified())
-          continue;
-        if (buf.isUntitled())
-          continue;
-        final int modeId = buf.getModeId();
-        if (modeId == SEND_MAIL_MODE)
-          continue;
-        if (modeId == CHECKIN_MODE)
-          continue;
-        if (buf.getFile() != null && buf.getFile().isLocal())
-          {
-            if (list == null)
-              list = new ArrayList();
-            list.add(buf);
-          }
-      }
-    return list;
-  }
-
-  private static boolean saveModifiedBuffers(Editor editor, List list)
-  {
-    editor.setWaitCursor();
-    int numErrors = 0;
-    for (Iterator it = list.iterator(); it.hasNext();)
-      {
-        Buffer buf = (Buffer) it.next();
-        if (buf.getFile() != null && buf.getFile().isLocal())
-          {
-            editor.status("Saving modified buffers...");
-            if (buf.getBooleanProperty(Property.REMOVE_TRAILING_WHITESPACE))
-              buf.removeTrailingWhitespace();
-            if (!buf.save())
-              ++numErrors;
-          }
-      }
-    editor.setDefaultCursor();
-    if (numErrors == 0)
-      {
-        editor.status("Saving modified buffers...done");
-        return true;
-      }
-    // User will already have seen detailed error information from Buffer.save().
-    editor.status("");
-    return false;
   }
 
   public static void replaceComment(final Editor editor, final String comment)

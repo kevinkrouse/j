@@ -84,6 +84,7 @@ public final class ModeList implements Constants
         addEntry(WEB_MODE, WEB_MODE_NAME, "WebMode", false, null);
         addEntry(WORD_MODE, WORD_MODE_NAME, "WordMode", false, null);
         addEntry(XML_MODE, XML_MODE_NAME, "XmlMode", true, ".+\\.x[msu]l|.+\\.dtd");
+        addEntry(VCS_STATUS_MODE, VCS_STATUS_MODE_NAME, "StatusMode", false, null);
     }
 
     public synchronized Mode getMode(int id)

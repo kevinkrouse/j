@@ -1,5 +1,4 @@
 # Default
-# $Id: Default,v 1.1.1.1 2002-09-24 16:10:25 piso Exp $
 
 color.text                    =   0   0   0
 color.background              = 255 255 255
@@ -41,6 +40,14 @@ MakefileMode.color.target     = 255   0 255
 DirectoryMode.color.directory =   0   0   0
 DirectoryMode.color.symlink   =   0   0 255
 DirectoryMode.color.marked    = 255   0   0
+
+StatusMode.color.added          = 0 153 0
+StatusMode.color.deleted        = 176 130 130
+StatusMode.color.changed        = 0 0 255
+StatusMode.color.conflict       = 153 0 0
+StatusMode.color.unknown        = 180 180 180
+StatusMode.color.nochange       = 0 0 0
+StatusMode.color.ignored        = 190 204 204
 
 # Font.PLAIN is 0, Font.BOLD is 1, Font.ITALIC is 2.
 style.text                    = 0

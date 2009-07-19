@@ -1,8 +1,5 @@
 /*
- * DiffOutputBuffer.java
- *
- * Copyright (C) 1998-2003 Peter Graves
- * $Id$
+ * Copyright (C) 2009 Kevin Krouse
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -21,30 +18,28 @@
 
 package org.armedbear.j;
 
-public final class DiffOutputBuffer extends VersionControlBuffer
+public class StatusOutputBuffer extends VersionControlBuffer
 {
-    public DiffOutputBuffer(Buffer parentBuffer, String output, int vcType)
+    public StatusOutputBuffer(Buffer parentBuffer, String output, int vcType)
     {
         super(parentBuffer, output, vcType);
     }
 
-    public DiffOutputBuffer(File directory, String output, int vcType)
+    public StatusOutputBuffer(File directory, String output, int vcType)
     {
         super(directory, output, vcType);
     }
 
     protected void init()
     {
-        supportsUndo  = false;
+        supportsUndo = false;
         type = TYPE_OUTPUT;
-        mode = DiffMode.getMode();
-        formatter = new DiffFormatter(this);
-        lineSeparator = System.getProperty("line.separator");
+        mode = StatusMode.getMode();
+        formatter = new StatusFormatter(this);
         readOnly = true;
         setProperty(Property.VERTICAL_RULE, 0);
         setProperty(Property.SHOW_LINE_NUMBERS, false);
         setTransient(true);
         setInitialized(true);
     }
-    
 }

@@ -31,6 +31,7 @@ public final class XmlFormatter extends Formatter
     private static final byte XML_FORMAT_ATTRIBUTE = 5;
     private static final byte XML_FORMAT_EQUALS    = 6;
     private static final byte XML_FORMAT_QUOTE     = 7;
+    private static final byte XML_FORMAT_CDATA     = 8;
 
     private static final byte STATE_NAMESPACE    = STATE_LAST + 1;
     private static final byte STATE_TAG_STARTING = STATE_LAST + 2;
@@ -72,6 +73,9 @@ public final class XmlFormatter extends Formatter
                 case STATE_QUOTE:
                 case STATE_SINGLEQUOTE:
                     format = XML_FORMAT_QUOTE;
+                    break;
+                case STATE_CDATA:
+                    format = XML_FORMAT_CDATA;
                     break;
                 case STATE_NEUTRAL:
                 default:
@@ -457,6 +461,7 @@ public final class XmlFormatter extends Formatter
             formatTable.addEntryFromPrefs(XML_FORMAT_ATTRIBUTE, "attribute");
             formatTable.addEntryFromPrefs(XML_FORMAT_EQUALS, "equals", "delimiter");
             formatTable.addEntryFromPrefs(XML_FORMAT_QUOTE, "string");
+            formatTable.addEntryFromPrefs(XML_FORMAT_CDATA, "cdata", "text");
         }
         return formatTable;
     }

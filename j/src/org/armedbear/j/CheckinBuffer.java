@@ -21,9 +21,8 @@
 
 package org.armedbear.j;
 
-public final class CheckinBuffer extends Buffer implements Constants
+public class CheckinBuffer extends VersionControlBuffer implements Constants
 {
-    private final int vcType;
     private final boolean editOnly;
 
     private int commentIndex = -1;
@@ -35,10 +34,12 @@ public final class CheckinBuffer extends Buffer implements Constants
 
     public CheckinBuffer(Buffer parentBuffer, int vcType, boolean editOnly)
     {
-        super();
-        this.parentBuffer = parentBuffer;
-        this.vcType = vcType;
+        super(parentBuffer, null, vcType);
         this.editOnly = editOnly;
+    }
+
+    protected void init()
+    {
         initializeUndo();
         type = TYPE_NORMAL;
         isUntitled = true;
@@ -59,18 +60,6 @@ public final class CheckinBuffer extends Buffer implements Constants
         }
         setLoaded(true);
         setInitialized(true);
-    }
-
-    public final File getCurrentDirectory()
-    {
-        if (parentBuffer != null)
-            return parentBuffer.getCurrentDirectory();
-        return Directories.getUserHomeDirectory();
-    }
-
-    public final int getVCType()
-    {
-        return vcType;
     }
 
     public final boolean isEditOnly()
@@ -118,9 +107,12 @@ public final class CheckinBuffer extends Buffer implements Constants
             return;
         }
         commentIndex = index;
-        switch (vcType) {
+        switch (getVCType()) {
             case VC_CVS:
                 CVS.replaceComment(editor, comment);
+                break;
+            case VC_SVN:
+                SVN.replaceComment(editor, comment);
                 break;
             case VC_P4:
                 P4.replaceComment(editor, comment);
@@ -141,6 +133,10 @@ public final class CheckinBuffer extends Buffer implements Constants
                 case VC_CVS:
                     CommentRing.getInstance().appendNew(CVS.extractComment(cb));
                     CVS.finish(editor, cb);
+                    break;
+                case VC_SVN:
+                    CommentRing.getInstance().appendNew(SVN.extractComment(cb));
+                    SVN.finish(editor, cb);
                     break;
                 case VC_P4:
                     CommentRing.getInstance().appendNew(P4.extractComment(cb));

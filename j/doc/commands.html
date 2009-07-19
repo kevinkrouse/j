@@ -95,6 +95,7 @@
     <li><a href="commands.html#downList">downList</a></li>
     <li><a href="commands.html#dropBookmark">dropBookmark</a></li>
     <li><a href="commands.html#dropTemporaryMarker">dropTemporaryMarker</a></li>
+    <li><a href="commands.html#editPrefs">editPrefs</a></li>
     <li><a href="commands.html#editRegister">editRegister</a></li>
     <li><a href="commands.html#electricCloseAngleBracket">electricCloseAngleBracket</a></li>
     <li><a href="commands.html#electricCloseBrace">electricCloseBrace</a></li>
@@ -342,6 +343,15 @@
     <li><a href="commands.html#splitWindow">splitWindow</a></li>
     <li><a href="commands.html#stamp">stamp</a></li>
     <li><a href="commands.html#startMacro">startMacro</a></li>
+    <li><a href="commands.html#svn">svn</a></li>
+    <li><a href="commands.html#svnAdd">svnAdd</a></li>
+    <li><a href="commands.html#svnChangeList">svnChangeList</a></li>
+    <li><a href="commands.html#svnCommit">svnCommit</a></li>
+    <li><a href="commands.html#svnDiff">svnDiff</a></li>
+    <li><a href="commands.html#svnDiffDir">svnDiffDir</a></li>
+    <li><a href="commands.html#svnLog">svnLog</a></li>
+    <li><a href="commands.html#svnRevert">svnRevert</a></li>
+    <li><a href="commands.html#svnStatus">svnStatus</a></li>
     <li><a href="commands.html#tab">tab</a></li>
     <li><a href="commands.html#tempBufferQuit">tempBufferQuit</a></li>
     <li><a href="commands.html#thisError">thisError</a></li>
@@ -755,7 +765,7 @@ or:
 <p>
 <b>Default key mapping:</b> None
 <p>
-<b>See also:</b> <a href="cvs.html">CVS Support</a>
+<b>See also:</b> <a href="vcs.html">Version Control Systems</a>
 <br><br>
 </dl><!--<hr>-->
 
@@ -767,7 +777,7 @@ actually placed in the CVS repository until you use
 <p>
 <b>Default key mapping:</b> None
 <p>
-<b>See also:</b> <a href="cvs.html">CVS Support</a>
+<b>See also:</b> <a href="vcs.html">Version Control Systems</a>
 <br><br>
 </dl><!--<hr>-->
 
@@ -785,7 +795,7 @@ with CVS using <a href="#cvsAdd">cvsAdd</a> or the CVS "add" command.
 <p>
 <b>Default key mapping:</b> None
 <p>
-<b>See also:</b> <a href="cvs.html">CVS Support</a>
+<b>See also:</b> <a href="vcs.html">Version Control Systems</a>
 <br><br>
 </dl><!--<hr>-->
 
@@ -796,7 +806,7 @@ of the file associated with the current buffer and your local copy.
 <p>
 <b>Default key mapping:</b> None
 <p>
-<b>See also:</b> <a href="cvs.html">CVS Support</a>
+<b>See also:</b> <a href="vcs.html">Version Control Systems</a>
 <br><br>
 </dl><!--<hr>-->
 
@@ -808,7 +818,7 @@ subdirectories.
 <p>
 <b>Default key mapping:</b> None
 <p>
-<b>See also:</b> <a href="cvs.html">CVS Support</a>
+<b>See also:</b> <a href="vcs.html">Version Control Systems</a>
 <br><br>
 </dl><!--<hr>-->
 
@@ -819,7 +829,7 @@ output is displayed in a transient output buffer.
 <p>
 <b>Default key mapping:</b> None
 <p>
-<b>See also:</b> <a href="cvs.html">CVS Support</a>
+<b>See also:</b> <a href="vcs.html">Version Control Systems</a>
 <br><br>
 </dl><!--<hr>-->
 
@@ -1329,6 +1339,14 @@ can only have one temporary marker at a time.
 <br><br>
 </dl><!--<hr>-->
 
+<a name="editPrefs">editPrefs</a><dl><dd>
+<p>
+Opens the <a href="preferences.html">preferences</a> file for editing.
+<p>
+<b>Default key mapping:</b> None
+<br><br>
+</dl><!--<hr>-->
+
 <a name="editRegister">editRegister</a><dl><dd>
 <p>
 Prompts for a register name and opens a buffer so you can edit the contents of
@@ -1472,7 +1490,7 @@ Stop recording keystrokes.
 <p>
 <b>Default key mapping:</b> None
 <p>
-<b>See also:</b> <a href="#startMacro">startMacro</a>, <a href="#recordMacro">recordMacro</a>, <a href="#playbackMacro">
+<b>See also:</b> <a href="#startMacro">startMacro</a>, <a href="#recordMacro">recordMacro</a>, <a href="#playbackMacro">playbackMacro</a>
 <br><br>
 </dl><!--<hr>-->
 
@@ -1835,12 +1853,12 @@ derivatives
 
 <a name="finish">finish</a><dl><dd>
 <p>
-Completes the CVS checkin operation, using the contents of the current buffer
-as the checkin comment. This command is only available in CVS checkin buffers.
+Completes the version control checkin operation, using the contents of the current buffer
+as the checkin comment. This command is only available in checkin buffers.
 <p>
-<b>Default key mapping:</b> Ctrl Enter in CVS checkin buffers
+<b>Default key mapping:</b> Ctrl Enter in checkin buffers
 <p>
-<b>See also:</b> <a href="cvs.html">CVS Support</a>
+<b>See also:</b> <a href="vcs.html">Version Control Systems</a>
 <br><br>
 </dl><!--<hr>-->
 
@@ -2006,7 +2024,7 @@ which is <code>true</code> by default.
 Inserts '=' at the current location of the caret.
 <br><br>
 In HTML mode, if the property
-<a href="preferences.html#HtmlMode.attributesRequireQuotes">HtmlMode.attributesRequireQuotes</a>
+<a href="preferences.html#attributesRequireQuotes">attributesRequireQuotes</a>
 is true, and if the '=' immediately follows an attribute name, and if the
 character following the '=' is either whitespace or '>', this command inserts
 a pair of double quotation marks after the '=' and positions the caret between
@@ -2644,7 +2662,7 @@ already selected, it is extended to the enclosing syntactic expression.)
 
 <a name="listBindings">listBindings</a><dl><dd>
 <p>
-Deprecated: Use <a name="describeBindings">describeBindings</a> instead.
+Deprecated: Use <a href="#describeBindings">describeBindings</a> instead.
 <p>
 <b>Default key mapping:</b> None
 <p>
@@ -3400,13 +3418,17 @@ the current buffer).
 
 <a name="nextComment">nextComment</a><dl><dd>
 <p>
-Cycles forwards through the history of CVS checkin comments.
+Cycles forwards through the history of version control checkin comments.
 <p>
-<b>Default key mapping:</b> Ctrl N in CVS checkin buffers
+<b>Default key mapping:</b> Ctrl N in version control checkin buffers
 <p>
-<b>See also:</b> <a href="#previousComment">previousComment</a>,
-<a href="#cvsCommit">cvsCommit</a>, <a href="#finish">finish</a>,
-<a href="cvs.html">CVS Support</a>
+<b>See also:</b>
+<a href="#previousComment">previousComment</a>,
+<a href="#cvsCommit">cvsCommit</a>,
+<a href="#svnCommit">svnCommit</a>,
+<a href="#p4Submit">p4Submit</a>,
+<a href="#finish">finish</a>,
+<a href="vcs.html">Version Control Systems</a>
 <br><br>
 </dl><!--<hr>-->
 
@@ -3541,6 +3563,8 @@ or:
 </pre>
 <p>
 <b>Default key mapping:</b> None
+<p>
+<b>See also:</b> <a href="vcs.html">Version Control Systems</a>
 <br><br>
 </dl><!--<hr>-->
 
@@ -3576,6 +3600,8 @@ Opens a diff output buffer showing the changes between the checked-in version
 and your local copy for all files that are open in Perforce.
 <p>
 <b>Default key mapping:</b> None
+<p>
+<b>See also:</b> <a href="vcs.html">Version Control Systems</a>
 <br><br>
 </dl><!--<hr>-->
 
@@ -3585,6 +3611,8 @@ Runs the Perforce "edit" command on the file associated with the current
 buffer.
 <p>
 <b>Default key mapping:</b> None
+<p>
+<b>See also:</b> <a href="vcs.html">Version Control Systems</a>
 <br><br>
 </dl><!--<hr>-->
 
@@ -3594,6 +3622,8 @@ Runs the Perforce command "filelog -l" on the file associated with the current
 buffer. The output is displayed in a transient output buffer.
 <p>
 <b>Default key mapping:</b> None
+<p>
+<b>See also:</b> <a href="vcs.html">Version Control Systems</a>
 <br><br>
 </dl><!--<hr>-->
 
@@ -3603,6 +3633,8 @@ Runs the Perforce "revert" command on the file associated with the current
 buffer.
 <p>
 <b>Default key mapping:</b> None
+<p>
+<b>See also:</b> <a href="vcs.html">Version Control Systems</a>
 <br><br>
 </dl><!--<hr>-->
 
@@ -3617,6 +3649,8 @@ When your comment is ready, you can use the command
 the checkin buffer, to complete the checkin operation.
 <p>
 <b>Default key mapping:</b> None
+<p>
+<b>See also:</b> <a href="vcs.html">Version Control Systems</a>
 <br><br>
 </dl><!--<hr>-->
 
@@ -3709,7 +3743,7 @@ Plays back previously recorded keystrokes.
 <br><br>
 <b>Default key mapping:</b> F8
 <br><br>
-<b>See also:</b> <a href="#startMacro">startMacro</a>, <a href="#endMacro">endMacro</a>, <a href="#recordMacro">
+<b>See also:</b> <a href="#startMacro">startMacro</a>, <a href="#endMacro">endMacro</a>, <a href="#recordMacro">recordMacro</a>
 <br><br>
 </dl><!--<hr>-->
 
@@ -3747,13 +3781,17 @@ in the current buffer).
 
 <a name="previousComment">previousComment</a><dl><dd>
 <p>
-Cycles backwards through the history of CVS checkin comments.
+Cycles backwards through the history of version control checkin comments.
 <p>
-<b>Default key mapping:</b> Ctrl P in CVS checkin buffers
+<b>Default key mapping:</b> Ctrl P in checkin buffers
 <p>
-<b>See also:</b> <a href="#nextComment">nextComment</a>,
-<a href="#cvsCommit">cvsCommit</a>, <a href="#finish">finish</a>,
-<a href="cvs.html">CVS Support</a>
+<b>See also:</b>
+<a href="#nextComment">nextComment</a>,
+<a href="#cvsCommit">cvsCommit</a>,
+<a href="#svnCommit">svnCommit</a>,
+<a href="#p4Submit">p4Submit</a>,
+<a href="#finish">finish</a>,
+<a href="vcs.html">Version Control Systems</a>
 <br><br>
 </dl><!--<hr>-->
 
@@ -3829,7 +3867,7 @@ status bar (at the right end, after the column number).
 <br><br>
 <b>Default key mapping:</b> F7
 <br><br>
-<b>See also:</b> <a href="#startMacro">startMacro</a>, <a href="#endMacro">endMacro</a>, <a href="#playbackMacro">
+<b>See also:</b> <a href="#startMacro">startMacro</a>, <a href="#endMacro">endMacro</a>, <a href="#playbackMacro">playbackMacro</a>
 <br><br>
 </dl><!--<hr>-->
 
@@ -4548,13 +4586,135 @@ The format of the inserted string is controlled by the
 <a name="startMacro">startMacro</a><dl><dd>
 <p>
 Records keystrokes for later playback.  Recording ends when the
-<a href="endMacro">endMacro</a> command is invoked. While recording is in
+<a href="#endMacro">endMacro</a> command is invoked. While recording is in
 progress, "REC" is displayed in the status bar (at the right end, after the
 column number).
 <p>
 <b>Default key mapping:</b> None
 <p>
-<b>See also:</b> <a href="#endMacro">endMacro</a>, <a href="#recordMacro">recordMacro</a>, <a href="#playbackMacro">
+<b>See also:</b> <a href="#endMacro">endMacro</a>, <a href="#recordMacro">recordMacro</a>, <a href="#playbackMacro">playbackMacro</a>
+<br><br>
+</dl><!--<hr>-->
+
+<a name="svn">svn</a><dl><dd>
+<p>
+Executes an arbitrary Subversion command. The svn command, together with
+any required flags and arguments, must be supplied as an argument to this
+command. You can use "%" to represent the full pathname of the file associated
+with the current buffer. For example:
+<pre>
+        svn proplist %
+</pre>
+<p>
+or:
+<pre>
+        svn diff --cl foo
+</pre>
+<p>
+<b>Default key mapping:</b> None
+<p>
+<b>See also:</b> <a href="vcs.html">Version Control Systems</a>
+<br><br>
+</dl><!--<hr>-->
+
+<a name="svnAdd">svnAdd</a><dl><dd>
+<p>
+Runs the svn "add" command on the file associated with the current buffer.
+<p>
+<b>Default key mapping:</b> None
+<br><br>
+</dl><!--<hr>-->
+
+<a name="svnChangeList">svnChangeList</a><dl><dd>
+<p>
+Runs the svn "changelist" command.  If an argument is given,
+the current file is placed into the changelist named by the
+argument.  If no argument is given, the changelist is removed
+from it's current changelist, if any.
+<p>
+Note: svn version 1.5 is required for this command.
+<p>
+<b>Default key mapping:</b> None
+<p>
+<b>See also:</b> <a href="vcs.html">Version Control Systems</a>
+<br><br>
+</dl><!--<hr>-->
+
+<a name="svnCommit">svnCommit</a><dl><dd>
+<p>
+Opens a checkin buffer in which you can compose a svn checkin comment for the
+file associated with the current buffer.  You may checkin an entire changelist
+by passing the arguments "--cl foo" where 'foo' is the name of the changelist.
+<p>
+When your comment is ready, you can use the command
+<a href="commands.html#finish">finish</a>, mapped by default to Ctrl Enter in
+the checkin buffer, to complete the checkin operation.
+<p>
+The file associated with the current buffer must already have been registered
+with svn using <a href="#svnAdd">svnAdd</a> or the svn "add" command.
+<p>
+<b>Default key mapping:</b> None
+<p>
+<b>See also:</b> <a href="#svnChangeList">svnChangeList</a>,
+<a href="vcs.html">Version Control Systems</a>
+<br><br>
+</dl><!--<hr>-->
+
+<a name="svnDiff">svnDiff</a><dl><dd>
+<p>
+Opens a diff output buffer showing the changes between your local copy of the
+file associated with the current buffer and the version in the Perforce
+repository.
+<p>
+<b>Default key mapping:</b> None
+<p>
+<b>See also:</b> <a href="vcs.html">Version Control Systems</a>
+<br><br>
+</dl><!--<hr>-->
+
+<a name="svnDiffDir">svnDiffDir</a><dl><dd>
+<p>
+Opens a diff output buffer showing the changes between the checked-in version
+and your local copy for all files that are modified in svn.
+<p>
+<b>Default key mapping:</b> None
+<p>
+<b>See also:</b> <a href="vcs.html">Version Control Systems</a>
+<br><br>
+</dl><!--<hr>-->
+
+<a name="svnLog">svnLog</a><dl><dd>
+<p>
+Runs the svn "log" command on the file associated with the current
+buffer. The output is displayed in a transient output buffer.
+<p>
+<b>Default key mapping:</b> None
+<p>
+<b>See also:</b> <a href="vcs.html">Version Control Systems</a>
+<br><br>
+</dl><!--<hr>-->
+
+<a name="svnRevert">svnRevert</a><dl><dd>
+<p>
+Runs the svn "revert" command on the file associated with the current
+buffer.
+<p>
+<b>Default key mapping:</b> None
+<p>
+<b>See also:</b> <a href="vcs.html">Version Control Systems</a>
+<br><br>
+</dl><!--<hr>-->
+
+<a name="svnStatus">svnStatus</a><dl><dd>
+<p>
+Opens a status output buffer showing the changes between the checked-in version
+and your local copy for all the files in the current directory and its
+subdirectories.  In the status output buffer, Enter will open a diff on
+the file for the current line and Ctrl Enter will open the file.
+<p>
+<b>Default key mapping:</b> None
+<p>
+<b>See also:</b> <a href="vcs.html">Version Control Systems</a>
 <br><br>
 </dl><!--<hr>-->
 

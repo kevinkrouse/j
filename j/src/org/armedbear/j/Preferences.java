@@ -39,6 +39,17 @@ public final class Preferences
         return File.getInstance(Directories.getEditorDirectory(), "prefs");
     }
 
+    public static void editPrefs()
+    {
+        File prefs = getPreferencesFile();
+        if (prefs == null)
+            return;
+        final Editor editor = Editor.currentEditor();
+        Buffer buf = editor.openFile(prefs);
+        if (buf != null)
+            editor.activate(buf);
+    }
+
     public synchronized void reload()
     {
         reloadInternal();
@@ -339,4 +350,5 @@ public final class Preferences
             for (int i = 0; i < listeners.size(); i++)
                 ((PreferencesChangeListener)listeners.get(i)).preferencesChanged();
     }
+
 }

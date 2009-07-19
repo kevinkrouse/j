@@ -42,25 +42,10 @@ public final class CVS extends VersionControl implements Constants
       return;
     buffer.setBusy(true);
     editor.setWaitCursor();
-    final String name = buffer.getFile().getName();
-    FastStringBuffer sb = new FastStringBuffer("cvs ");
-    sb.append(args);
+    if (args == null)
+        args = "";
     // "cvs -H" doesn't need a filename.
-    if (!args.trim().startsWith("-H "))
-      {
-        sb.append(' ');
-        if (name.indexOf(' ') >= 0)
-          {
-            // Enclose filename in double quotes since it contains an embedded
-            // space.
-            sb.append('"');
-            sb.append(name);
-            sb.append('"');
-          }
-        else
-          sb.append(name);
-      }
-    final String cmd = sb.toString();
+    final String cmd = parseArgs("cvs", args, true, !args.trim().startsWith("-H"));
     Runnable commandRunnable = new Runnable()
       {
         public void run()
@@ -94,7 +79,7 @@ public final class CVS extends VersionControl implements Constants
         editor.makeNext(buf);
         editor.activateInOtherWindow(buf);
       }
-    buffer.checkCVS();
+    buffer.checkVCS();
     buffer.setBusy(false);
     for (EditorIterator it = new EditorIterator(); it.hasNext();)
       {
@@ -118,16 +103,7 @@ public final class CVS extends VersionControl implements Constants
     editor.setWaitCursor();
     final String name = buffer.getFile().getName();
     FastStringBuffer sb = new FastStringBuffer("cvs add ");
-    if (name.indexOf(' ') >= 0)
-      {
-        // Enclose filename in double quotes since it contains an embedded
-        // space.
-        sb.append('"');
-        sb.append(name);
-        sb.append('"');
-      }
-    else
-      sb.append(name);
+    sb.append(maybeQuote(name));
     final String cmd = sb.toString();
     Runnable commandRunnable = new Runnable()
       {
@@ -155,7 +131,7 @@ public final class CVS extends VersionControl implements Constants
     buf.setTitle(cmd);
     editor.makeNext(buf);
     editor.activateInOtherWindow(buf);
-    buffer.checkCVS();
+    buffer.checkVCS();
     buffer.setBusy(false);
     for (EditorIterator it = new EditorIterator(); it.hasNext();)
       {
@@ -246,16 +222,7 @@ public final class CVS extends VersionControl implements Constants
     FastStringBuffer sb = new FastStringBuffer("cvs diff ");
     sb.append(args);
     sb.append(' ');
-    if (name.indexOf(' ') >= 0)
-      {
-        // Enclose filename in double quotes since it contains an embedded
-        // space.
-        sb.append('"');
-        sb.append(name);
-        sb.append('"');
-      }
-    else
-      sb.append(name);
+    sb.append(maybeQuote(name));
     final String cmd = sb.toString();
     boolean save = false;
     if (parentBuffer.isModified())
@@ -508,7 +475,7 @@ public final class CVS extends VersionControl implements Constants
       }
     // The source file may have been modified by the checkin process.
     editor.reactivate(parentBuffer);
-    parentBuffer.checkCVS();
+    parentBuffer.checkVCS();
     parentBuffer.setBusy(false);
     for (EditorIterator it = new EditorIterator(); it.hasNext();)
       {
@@ -531,48 +498,10 @@ public final class CVS extends VersionControl implements Constants
 
   public static void log(String args)
   {
-    boolean useCurrentFile = true;
-    List list = Utilities.tokenize(args);
-    for (int i = 0; i < list.size(); i++)
-      {
-        String arg = (String) list.get(i);
-        if (arg.charAt(0) != '-')
-          {
-            // Must be a filename.
-            useCurrentFile = false;
-            break;
-          }
-      }
     final Editor editor = Editor.currentEditor();
     final Buffer parentBuffer = editor.getBuffer();
-    FastStringBuffer sb = new FastStringBuffer("cvs log ");
-    sb.append(args);
-    if (useCurrentFile)
-      {
-        if (parentBuffer.getFile() == null)
-          return;
-        final String name = parentBuffer.getFile().getName();
-        if (sb.charAt(sb.length() - 1) != ' ')
-          sb.append(' ');
-        if (name.indexOf(' ') >= 0)
-          {
-            // Enclose filename in double quotes since it contains an
-            // embedded space.
-            sb.append('"');
-            sb.append(name);
-            sb.append('"');
-          }
-        else
-          sb.append(name);
-      }
-    final String cmd = sb.toString();
-    editor.setWaitCursor();
-    final String output = command(cmd, parentBuffer.getCurrentDirectory());
-    OutputBuffer buf = OutputBuffer.getOutputBuffer(output);
-    buf.setTitle(cmd);
-    editor.makeNext(buf);
-    editor.activateInOtherWindow(buf);
-    editor.setDefaultCursor();
+    String cmd = parseArgs("cvs log", args, true, true);
+    outputBufferCommand(editor, cmd, parentBuffer.getCurrentDirectory());
   }
 
   private static final class CvsCommand

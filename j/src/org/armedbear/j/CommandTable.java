@@ -257,6 +257,7 @@ public class CommandTable
             addCommand("dirUnlimit", "Directory");
             addCommand("doShellCommandOnRegion", "RegionCommands");
             addCommand("downList", "LispMode");
+            addCommand("editPrefs", "Preferences");
             addCommand("editRegister", "Registers");
             addCommand("endMacro", "Macro");
             addCommand("entabRegion", "RegionCommands");
@@ -380,8 +381,18 @@ public class CommandTable
             addCommand("sortLines", "Sort");
             addCommand("source", "JDKHelp");
             addCommand("startMacro", "Macro");
+            addCommand("statusDiffFile", "StatusMode", "diffFile");
+            addCommand("statusGotoFile", "StatusMode", "gotoFile");
             addCommand("ssh", "RemoteShell");
             addCommand("svn", "SVN", "svn");
+            addCommand("svnAdd", "SVN", "add");
+            addCommand("svnChangeList", "SVN", "changelist");
+            addCommand("svnCommit", "SVN", "commit");
+            addCommand("svnDiff", "SVN", "diff");
+            addCommand("svnDiffDir", "SVN", "diffDif");
+            addCommand("svnLog", "SVN", "log");
+            addCommand("svnRevert", "SVN", "revert");
+            addCommand("svnStatus", "SVN", "status");
             addCommand("tagDown", "ListTagsMode");
             addCommand("tagUp", "ListTagsMode");
             addCommand("telnet", "RemoteShell");

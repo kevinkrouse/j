@@ -571,8 +571,8 @@ public final class Display extends JComponent implements Constants,
 
         g2d.setColor(editor.getFormatter().getCaretColor());
 
-        // Caret width is 1 pixel.
-        g2d.fillRect(x, y, 1, charAscent + charDescent);
+        // Caret width is 2 pixel.
+        g2d.fillRect(x-1, y, 2, charAscent + charDescent);
     }
 
     public synchronized void setCaretVisible(boolean b)
@@ -731,7 +731,8 @@ public final class Display extends JComponent implements Constants,
 
         if (antialias) {
             paintLineGraphics.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING,
-                                               RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+                                               RenderingHints.VALUE_TEXT_ANTIALIAS_LCD_HRGB);
+                                               //RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
         }
     }
 
@@ -1037,7 +1038,8 @@ public final class Display extends JComponent implements Constants,
         Graphics2D g2d = (Graphics2D) g;
         if (antialias) {
             g2d.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING,
-                                 RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+                                 RenderingHints.VALUE_TEXT_ANTIALIAS_LCD_HRGB);                                
+                                 //RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
         }
         final Rectangle clipBounds = g2d.getClipBounds();
         final int displayWidth = getWidth();
@@ -1983,7 +1985,8 @@ public final class Display extends JComponent implements Constants,
         if (antialias) {
             Graphics2D g2d = (Graphics2D) g;
             g2d.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING,
-                                 RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+                                 RenderingHints.VALUE_TEXT_ANTIALIAS_LCD_HRGB);                                
+                                 //RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
         }
     }
 

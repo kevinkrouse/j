@@ -52,6 +52,11 @@ public final class ShellCommand implements Runnable
         this.input = input;
     }
 
+    public final String getCmdLine()
+    {
+        return cmdline;
+    }
+
     public final String getOutput()
     {
         return output.toString();

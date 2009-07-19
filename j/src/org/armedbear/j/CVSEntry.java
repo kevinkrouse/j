@@ -26,29 +26,55 @@ import java.util.NoSuchElementException;
 import java.util.StringTokenizer;
 import java.util.TimeZone;
 
-public final class CVSEntry
+public final class CVSEntry extends VersionControlEntry
 {
-    private String revision;
     private long checkoutTime;
 
-    private CVSEntry(String revision, long checkoutTime)
+    private CVSEntry(Buffer buffer, String revision, long checkoutTime)
     {
-        this.revision = revision;
+        super(buffer, revision);
         this.checkoutTime = checkoutTime;
     }
 
-    public String getRevision()
-    {
-        return revision;
-    }
-
-    public long getCheckoutTime()
-    {
+    public long getCheckoutTime() {
         return checkoutTime;
     }
 
-    public static CVSEntry parseEntryForFile(File file)
+    public int getVersionControl() {
+        return Constants.VC_CVS;
+    }
+
+    public String getStatusText() {
+        return statusText(true);
+    }
+
+    public String getLongStatusText() {
+        return statusText(false);
+    }
+
+    private String statusText(boolean brief)
     {
+        FastStringBuffer sb = new FastStringBuffer("CVS");
+        final String revision = getRevision();
+        if (revision.equals("0")) {
+            sb.append(brief ? " A" : " (locally added)");
+        } else {
+            if (!brief)
+                sb.append(" revision ");
+            sb.append(revision);
+            final long lastModified = buffer.getLastModified();
+            final long checkout = getCheckoutTime();
+            if (lastModified != checkout) {
+                if (Math.abs(lastModified - checkout) >= 1000)
+                    sb.append(brief ? " M" : " (locally modified)");
+            }
+        }
+        return sb.toString();
+    }
+
+    public static CVSEntry getEntry(Buffer buffer)
+    {
+        final File file = buffer.getFile();
         final String text = getEntryText(file);
         if (text != null) {
             String revision = null;
@@ -66,7 +92,7 @@ public final class CVSEntry
             if (timeString == null || timeString.length() == 0 ||
                 timeString.equals("dummy timestamp") ||
                 timeString.equals("Result of merge"))
-                return new CVSEntry(revision, 0);
+                return new CVSEntry(buffer, revision, 0);
             st = new StringTokenizer(timeString, " :");
             try {
                 // Ignore first token (day of week).
@@ -90,11 +116,11 @@ public final class CVSEntry
             }
             catch (NoSuchElementException e) {}
             catch (NumberFormatException ex) {
-                Log.error("parseEntryForFile NumberFormatException");
+                Log.error("CVS.getEntry NumberFormatException");
                 Log.error("text = |" + text + "|");
             }
             if (revision != null && revision.length() > 0)
-                return new CVSEntry(revision, checkoutTime);
+                return new CVSEntry(buffer, revision, checkoutTime);
         }
         return null;
     }

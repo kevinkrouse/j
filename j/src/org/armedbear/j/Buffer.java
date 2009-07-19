@@ -1020,7 +1020,7 @@ public class Buffer extends SystemBuffer
                     if (toBeLoaded == cache && file != null && !file.isRemote())
                         lastModified = file.lastModified();
                     formatter.parseBuffer();
-                    checkCVS();
+                    checkVCS();
                     sb.append("done");
                     editor.status(sb.toString());
                 } else {
@@ -1455,7 +1455,7 @@ public class Buffer extends SystemBuffer
                 buf.reload();
         }
 
-        checkCVS();
+        checkVCS();
 
         if (repaint) {
             // Force formatters to be re-initialized.
@@ -1733,7 +1733,7 @@ public class Buffer extends SystemBuffer
             saved();
             changeFile(destination);
             setLastModified(getFile().lastModified());
-            checkCVS();
+            checkVCS();
             final String encoding = destination.getEncoding();
             if (encoding != null)
                 saveProperties(); // Remember encoding for next time.
@@ -3048,19 +3048,8 @@ public class Buffer extends SystemBuffer
         if (dot == null)
             return null;
         final FastStringBuffer sb = new FastStringBuffer();
-        if (cvsEntry != null) {
-            sb.append("CVS ");
-            final String revision = cvsEntry.getRevision();
-            if (revision.equals("0")) {
-                sb.append('A');
-            } else {
-                sb.append(revision);
-                final long checkout = cvsEntry.getCheckoutTime();
-                if (lastModified != checkout) {
-                    if (Math.abs(lastModified - checkout) >= 1000)
-                        sb.append(" M");
-                }
-            }
+        if (vcsEntry != null) {
+            sb.append(vcsEntry.getStatusText());
             sb.append("   ");
         }
         if (Editor.preferences().getBooleanProperty(Property.STATUS_BAR_DISPLAY_LINE_SEPARATOR)) {
@@ -3130,16 +3119,16 @@ public class Buffer extends SystemBuffer
         }
     }
 
-    private CVSEntry cvsEntry;
+    private VersionControlEntry vcsEntry;
 
-    public final CVSEntry getCVSEntry()
+    public final VersionControlEntry getVCSEntry()
     {
-        return cvsEntry;
+        return vcsEntry;
     }
 
-    public final void checkCVS()
+    public final void checkVCS()
     {
-        cvsEntry = CVSEntry.parseEntryForFile(getFile());
+        vcsEntry = VersionControl.getEntry(this);
     }
 
     public final boolean isKeyword(String s)

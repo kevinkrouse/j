@@ -3,7 +3,7 @@
 <html>
 
 <head>
-<title>J User's Guide - CVS Support</title>
+<title>J User's Guide - Version Control Systems</title>
 <LINK REL="stylesheet" HREF="j.css" TYPE="text/css">
 </head>
 
@@ -13,26 +13,27 @@
 
 <hr>
 
-<h1>CVS Support</h1>
+<h1>Version Control Systems</h1>
 
 <hr>
 
 <p>
-J provides commands to perform a few common CVS operations that it makes sense
-to do from within an editor.
+J provides commands to perform a few common version control operations that it makes sense
+to do from within an editor.  J supports CVS, Subversion, Perforce, and Darcs.
 <p>
-For these commands to work, CVS must be set up correctly outside of j first. A
-CVS operation won't work within j unless it can be performed successfully from
+For these commands to work, the version control command line tool must be set up
+correctly outside of j first. A
+VCS operation won't work within j unless it can be performed successfully from
 a shell command prompt in the parent directory of the current buffer.
 <p>
-Most CVS-related commands are not mapped to any keystrokes by default, but you
+Most VCS-related commands are not mapped to any keystrokes by default, but you
 can use <a href="commands.html#executeCommand">executeCommand</a>, mapped by
 default to Alt X, and then type in the name of the command (or just type "cvs"
 and then keep hitting Tab until you see the command you want; completion is
 your friend).
 <p>
-CVS revision information for checked-out files is displayed in the status
-bar, to the right of the mode name, like this:
+VCS revision information for checked-out files is displayed in the status
+bar for CVS or Subversion managed files, to the right of the mode name, like this:
 <pre>
     CVS 1.34</pre>
 or
@@ -46,7 +47,10 @@ In this example, "1.34" is the revision; it's followed by an 'M' if the file
 modification time of the local file is different from the checkout time, which
 is often an indication that the local file has been modified since it was
 checked out. "CVS A", with no revision number, means the file has been added
-to CVS but not yet committed.
+to CVS but not yet committed.  For Subversion, the file's changelist and
+most recent author will also be displayed:
+<pre>
+    svn M r1234 (changelist) piso</pre>
 <p>
 If you're working on a file that's registered with CVS, you can use the
 command <a href="commands.html#cvsDiff">cvsDiff</a> to get a diff output
@@ -97,17 +101,57 @@ command-specific help), the filename is not appended. For example:
 <p>
 The output of the command is displayed in a transient output buffer.
 <p>
-The following commands are specifically relevant to CVS support:
+
+The following commands are specifically relevant for version control:
 <ul>
-    <li><a href="commands.html#cvs">cvs</a></li>
-    <li><a href="commands.html#cvsAdd">cvsAdd</a></li>
-    <li><a href="commands.html#cvsCommit">cvsCommit</a></li>
-    <li><a href="commands.html#cvsDiff">cvsDiff</a></li>
-    <li><a href="commands.html#cvsDiffDir">cvsDiffDir</a></li>
-    <li><a href="commands.html#cvsLog">cvsLog</a></li>
-    <li><a href="commands.html#finish">finish</a></li>
-    <li><a href="commands.html#nextComment">nextComment</a></li>
-    <li><a href="commands.html#previousComment">previousComment</a></li>
+    <li>CVS:
+        <ul>
+            <li><a href="commands.html#cvs">cvs</a></li>
+            <li><a href="commands.html#cvsAdd">cvsAdd</a></li>
+            <li><a href="commands.html#cvsCommit">cvsCommit</a></li>
+            <li><a href="commands.html#cvsDiff">cvsDiff</a></li>
+            <li><a href="commands.html#cvsDiffDir">cvsDiffDir</a></li>
+            <li><a href="commands.html#cvsLog">cvsLog</a></li>
+        </ul>
+    </li>
+    <li>SVN:
+        <ul>
+            <li><a href="commands.html#svn">svn</a></li>
+            <li><a href="commands.html#svnAdd">svnAdd</a></li>
+            <li><a href="commands.html#svnChangeList">svnChangeList</a></li>
+            <li><a href="commands.html#svnCommit">svnCommit</a></li>
+            <li><a href="commands.html#svnDiff">svnDiff</a></li>
+            <li><a href="commands.html#svnDiffDir">svnDiffDir</a></li>
+            <li><a href="commands.html#svnLog">svnLog</a></li>
+            <li><a href="commands.html#svnRevert">svnRevert</a></li>
+            <li><a href="commands.html#svnStatus">svnStatus</a></li>
+        </ul>
+    </li>
+    <li>P4:
+        <ul>
+            <li><a href="commands.html#p4">p4</a></li>
+            <li><a href="commands.html#p4Add">p4Add</a></li>
+            <li><a href="commands.html#p4Change">p4Change</a></li>
+            <li><a href="commands.html#p4Diff">p4Diff</a></li>
+            <li><a href="commands.html#p4DiffDir">p4DiffDir</a></li>
+            <li><a href="commands.html#p4Edit">p4Edit</a></li>
+            <li><a href="commands.html#p4Log">p4Log</a></li>
+            <li><a href="commands.html#p4Revert">p4Revert</a></li>
+            <li><a href="commands.html#p4Submit">p4Submit</a></li>
+        </ul>
+    </li>
+    <li>Darcs:
+        <ul>
+            <li><a href="commands.html#darcs">darcs</a></li>
+        </ul>
+    </li>
+    <li>Shared commands:
+        <ul>
+            <li><a href="commands.html#finish">finish</a></li>
+            <li><a href="commands.html#nextComment">nextComment</a></li>
+            <li><a href="commands.html#previousComment">previousComment</a></li>
+        </ul>
+    </li>
 </ul>
 </body>
 </html>

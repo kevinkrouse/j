@@ -188,6 +188,7 @@ public interface Constants
     int WEB_MODE                = 43;   String WEB_MODE_NAME = "Web";
     int WORD_MODE               = 44;   String WORD_MODE_NAME = "Word";
     int XML_MODE                = 45;   String XML_MODE_NAME = "XML";
+    int VCS_STATUS_MODE         = 46;   String VCS_STATUS_MODE_NAME = "Status";
 
     int SUCCESS    =  0;
     int ERROR      = -1;

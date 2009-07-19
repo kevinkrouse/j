@@ -110,28 +110,14 @@ public final class PropertiesDialog extends AbstractDialog implements Constants
             } else
                 Debug.bug();
 
-            buffer.checkCVS();
-            CVSEntry cvsEntry = buffer.getCVSEntry();
-            if (cvsEntry != null) {
-                String revision = cvsEntry.getRevision();
+            buffer.checkVCS();
+            VersionControlEntry vcsEntry = buffer.getVCSEntry();
+            if (vcsEntry != null) {
+                String revision = vcsEntry.getRevision();
                 if (revision != null && revision.length() > 0) {
-                    FastStringBuffer sb = new FastStringBuffer("CVS ");
-                    if (revision.equals("0")) {
-                        sb.append(" (locally added)");
-                    } else {
-                        sb.append(" revision ");
-                        sb.append(revision);
-                        final long last_modified = buffer.getLastModified();
-                        final long checkout = cvsEntry.getCheckoutTime();
-                        if (last_modified != checkout) {
-                            Log.debug("last_modified = " + last_modified);
-                            Log.debug("checkout      = " + checkout);
-                            if (Math.abs(last_modified - checkout) >= 1000)
-                                sb.append(" (locally modified)");
-                        }
-                    }
+                    String status = vcsEntry.getLongStatusText();
                     group.add(Box.createVerticalStrut(6));
-                    group.add(new StaticTextField(sb.toString()));
+                    group.add(new StaticTextField(status));
                 }
             }
 

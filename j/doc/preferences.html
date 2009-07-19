@@ -168,7 +168,7 @@ better, or it may make things look worse.
 <code><a name="attributesRequireQuotes">attributesRequireQuotes</a></code>
 <dl>
 <dd>
-If true, in HTML mode <a href="commands.html#electricEquals">electricEquals</a>
+If true, in HTML mode <a href="commands.html#htmlElectricEquals">htmlElectricEquals</a>
 automatically inserts a pair of quotation marks after the '=' following an
 attribute name, making it possible to enclose attribute values in quotation
 marks without having to type the quotation marks themselves.
@@ -266,8 +266,8 @@ explicitly invoke <a href="commands.html#saveSession">saveSession</a>.
 <code><a name="autoSelectLine">autoSelectLine</a></code>
 <dl>
 <dd>
-If true, <a href="#selectDown">selectDown</a> and
-<a href="#selectUp">selectUp</a>, when invoked with no selection in effect,
+If true, <a href="commands.html#selectDown">selectDown</a> and
+<a href="commands.html#selectUp">selectUp</a>, when invoked with no selection in effect,
 select the current line in its entirety, rather than beginning a stream
 selection at the exact location of the caret.
 <p>
@@ -792,7 +792,7 @@ Name of display font.
 <p>
 <b>Default value:</b> Monospaced
 <p>
-<b>See also:</b> <a href="fontSize">fontSize</a>,
+<b>See also:</b> <a href="#fontSize">fontSize</a>,
 <a href="#dialogFontName">dialogFontName</a>,
 <a href="#gutterFontName">gutterFontName</a>
 </dl>
@@ -804,7 +804,7 @@ Display font size (in points).
 <p>
 <b>Default value:</b> 12
 <p>
-<b>See also:</b> <a href="fontName">fontName</a>,
+<b>See also:</b> <a href="#fontName">fontName</a>,
 <a href="#dialogFontSize">dialogFontSize</a>,
 <a href="#gutterFontSize">gutterFontSize</a>
 </dl>
@@ -1576,6 +1576,62 @@ displayed in the status bar.
 <b>Default value:</b> false
 </dl>
 
+<code><a name="StatusMode.color.added">StatusMode.color.added</a></code>
+<dl>
+<dd>
+Color for files added to version control in status buffers.
+<p>
+<b>Default value:</b> None
+</dl>
+
+<code><a name="StatusMode.color.deleted">StatusMode.color.deleted</a></code>
+<dl>
+<dd>
+Color for files removed from version control in status buffers.
+<p>
+<b>Default value:</b> None
+</dl>
+
+<code><a name="StatusMode.color.changed">StatusMode.color.changed</a></code>
+<dl>
+<dd>
+Color for modified files in status buffers.
+<p>
+<b>Default value:</b> None
+</dl>
+
+<code><a name="StatusMode.color.conflict">StatusMode.color.conflict</a></code>
+<dl>
+<dd>
+Color for files marked as conflicted in status buffers.
+<p>
+<b>Default value:</b> None
+</dl>
+
+<code><a name="StatusMode.color.unkown">StatusMode.color.unkown</a></code>
+<dl>
+<dd>
+Color for files not managed by version control in status buffers.
+<p>
+<b>Default value:</b> None
+</dl>
+
+<code><a name="StatusMode.color.nochange">StatusMode.color.nochange</a></code>
+<dl>
+<dd>
+Color for unmodified files in status buffers.
+<p>
+<b>Default value:</b> None
+</dl>
+
+<code><a name="StatusMode.color.ignored">StatusMode.color.ignored</a></code>
+<dl>
+<dd>
+Color for files marked as ignored in status buffers.
+<p>
+<b>Default value:</b> None
+</dl>
+
 <code><a name="style.comment">style.comment</a></code>
 <dl>
 <dd>
@@ -1837,6 +1893,13 @@ The column where text is wrapped by automatic word wrap and by the commands
 </dl>
 
 <code><a name="XmlMode.color.comment">XmlMode.color.comment</a></code>
+<dl>
+<dd>
+<p>
+<b>Default value:</b> None
+</dl>
+
+<code><a name="XmlMode.color.cdata">XmlMode.color.cdata</a></code>
 <dl>
 <dd>
 <p>
