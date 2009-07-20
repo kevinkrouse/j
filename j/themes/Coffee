@@ -1,0 +1,91 @@
+# Coffee
+# Kevin Krouse
+
+color.text                      = 230 230 230
+color.background                = 42 33 28
+color.caret                     = 135 154 255
+
+# color.errorMark               = 204 68 68
+# color.warningMark             = 184 134 11
+# color.unfocusedCaret
+# color.unfocusedCaretFill
+
+color.selectionBackground       = 82 109 165
+color.matchingBracketBackground = 128 0 0
+color.matchingText              = 181 92 0
+color.preprocessor              = 0 255 192
+color.comment                   = 102 102 102
+color.keyword                   = 66 168 237
+color.brace                     = 136 136 136
+color.number                    = white
+color.currentLineBackground     = 58 49 43
+color.function                  = 168 168 192
+color.string                    = 3 154 10
+color.operator                  = white
+color.disabled                  = 128 128 128
+color.change                    = 255 164   0
+color.savedChange               = 128 128 128
+color.verticalRule              = 92 92 92
+color.lineNumber                = 229 193 56
+color.gutterBorder              = 76 74 65
+ShellMode.color.prompt          = 0 255 255
+ShellMode.color.input           = 255 255 0
+
+XmlMode.color.text              = 0 187 0
+XmlMode.color.attribute         = 191 148 100
+#XmlMode.color.string            = 3 154 10
+XmlMode.color.delimiter         = 255 255 255
+XmlMode.color.namespace         = 255 204 0
+XmlMode.color.tag               = 70 168 237
+XmlMode.color.comment           = 128 128 128
+XmlMode.color.cdata             = 189 174 157
+#XmlMode.color.processing
+#XmlMode.color.entity
+#XmlMode.color.selectionBackground = 32 32 32
+#XmlMode.color.currentLineBackground = 16 16 42
+
+HtmlMode.color.tag              = 255 255 0
+HtmlMode.color.anchor           = 192 192 192
+HtmlMode.color.image            = 128 255 128
+HtmlMode.color.table            = 0 0 255
+HtmlMode.color.tableRow         = 128 128 255
+HtmlMode.color.tableData        = 0 255 255
+HtmlMode.color.comment          = 128 128 128
+HtmlMode.color.script           = 0 255 0
+#HtmlMode.color.selectionBackground = 32 32 32
+#HtmlMode.color.currentLineBackground = 16 16 42
+
+PerlMode.color.scalar           = 0 255 255
+PerlMode.color.list             = 192 255 255
+
+PHPMode.color.var               = 0 255 255
+PHPMode.color.attribute         = 128 192 255
+PHPMode.color.delimiter         = 255 255 255
+PHPMode.color.tag               = 255 255 0
+
+MakefileMode.color.target       = 255 255 255
+
+PropertiesMode.color.section    = 255 255 0
+
+DirectoryMode.color.directory   = 192 255 192
+DirectoryMode.color.symlink     = 192 255 192
+DirectoryMode.color.marked      = 255 255 255
+
+DiffMode.color.file             = 255 255 0
+DiffMode.style.file             = 0
+DiffMode.color.deleted          = 180 180 180
+DiffMode.color.inserted         = 255 153 0
+
+StatusMode.color.added          = 255 153 0
+StatusMode.color.deleted        = 180 180 180
+StatusMode.color.changed        = 168 168 255
+StatusMode.color.conflict       = 240 100 120
+StatusMode.color.unknown        = 153 180 128
+StatusMode.color.nochange       = white
+StatusMode.color.ignored        = 154 154 154
+
+style.keyword                   = 0
+style.function                  = 0
+DirectoryMode.style.directory   = 2
+
+

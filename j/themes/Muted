@@ -61,6 +61,19 @@ DirectoryMode.color.directory   = 192 255 192
 DirectoryMode.color.symlink     = 192 255 192
 DirectoryMode.color.marked      = 255 255 255
 
+DiffMode.color.file             = 255 255 0
+DiffMode.style.file             = 0
+DiffMode.color.deleted          = 180 180 180
+DiffMode.color.inserted         = 255 153 0
+
+StatusMode.color.added          = 255 153 0
+StatusMode.color.deleted        = 180 180 180
+StatusMode.color.changed        = 168 168 255
+StatusMode.color.conflict       = 240 100 120
+StatusMode.color.unknown        = 153 180 128
+StatusMode.color.nochange       = white
+StatusMode.color.ignored        = 154 154 154
+
 style.keyword                   = 0
 style.function                  = 0
 DirectoryMode.style.directory   = 2
