@@ -33,9 +33,9 @@ import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 import org.xml.sax.XMLReader;
 import org.xml.sax.helpers.DefaultHandler;
-import org.xml.sax.helpers.XMLReaderFactory;
+import static org.armedbear.j.ToolBarIcon.*;
 
-public class ToolBar extends JToolBar implements ActionListener, ToolBarConstants
+public class ToolBar extends JToolBar implements ActionListener
 {
     private static final int STYLE_DEFAULT   = 0;
     private static final int STYLE_TEXT_ONLY = 1;
@@ -59,12 +59,19 @@ public class ToolBar extends JToolBar implements ActionListener, ToolBarConstant
         setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, Color.gray));
     }
 
-    public ToolBarButton addButton(String text, String iconFile, String methodName)
+    public ToolBarButton addButton(String text, ToolBarIcon icon, String methodName)
     {
-        return addButton(text, iconFile, methodName, true);
+        return addButton(text, icon, methodName, true);
     }
 
-    public ToolBarButton addButton(String text, String iconFile, String methodName,
+    public ToolBarButton addButton(String text, ToolBarIcon icon, String methodName,
+                                   boolean enabled)
+    {
+        String iconFile = icon.getFile(ToolBar.iconSize());
+        return addButton(text, iconFile, methodName, enabled);
+    }
+
+    private ToolBarButton addButton(String text, String iconFile, String methodName,
                                    boolean enabled)
     {
         ToolBarButton button = new ToolBarButton(frame, methodName, this);
@@ -101,29 +108,34 @@ public class ToolBar extends JToolBar implements ActionListener, ToolBarConstant
         return null;
     }
 
-    public static final boolean isToolBarEnabled()
+    public static boolean isToolBarEnabled()
     {
         return textEnabled() || iconsEnabled();
     }
 
-    private static final boolean textEnabled()
+    private static boolean textEnabled()
     {
         // Defaults to true for j's default look and feel.
         return preferences.getBooleanProperty(Property.TOOL_BAR_SHOW_TEXT,
             Editor.lookAndFeel == null);
     }
 
-    private static final boolean iconsEnabled()
+    private static boolean iconsEnabled()
     {
         // Defaults to true in all cases.
         return preferences.getBooleanProperty(Property.TOOL_BAR_SHOW_ICONS);
     }
 
-    public static final boolean isRolloverEnabled()
+    public static boolean isRolloverEnabled()
     {
         // Defaults to true for j's default look and feel.
         return preferences.getBooleanProperty(Property.TOOL_BAR_IS_ROLLOVER,
             Editor.lookAndFeel == null);
+    }
+
+    public static int iconSize()
+    {
+        return preferences.getIntegerProperty(Property.TOOL_BAR_ICON_SIZE);
     }
 
     public void actionPerformed(ActionEvent e)
@@ -172,7 +184,7 @@ public class ToolBar extends JToolBar implements ActionListener, ToolBarConstant
                 String label = attributes.getValue("", "label");
                 String icon = attributes.getValue("", "icon");
                 String command = attributes.getValue("", "command");
-                toolBar.addButton(label, icon, command);
+                toolBar.addButton(label, icon, command, true);
             } else if (localName.equals("separator") || qName.equals("separator"))
                 toolBar.addSeparator();
         }

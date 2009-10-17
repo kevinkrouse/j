@@ -57,7 +57,10 @@ public final class DefaultLookAndFeel extends DefaultMetalTheme
 
         if (Editor.lookAndFeel != null) {
             // User has indicated a preference.
-            if (Editor.lookAndFeel.equals("Metal")) {
+            if (Editor.lookAndFeel.equals("System")) {
+                lookAndFeelClassName = UIManager.getSystemLookAndFeelClassName();
+            }
+            else if (Editor.lookAndFeel.equals("Metal")) {
                 ; // Default look and feel, but don't do customizations.
             } else if (Editor.lookAndFeel.equals("Motif")) {
                 lookAndFeelClassName =
@@ -72,6 +75,12 @@ public final class DefaultLookAndFeel extends DefaultMetalTheme
                 // actually work) seems to require some further unknown
                 // magic...
                 //System.setProperty("com.apple.macos.useScreenMenuBar", "true");
+            } else if (Editor.lookAndFeel.equals("Nimbus")) {
+                lookAndFeelClassName =
+                    "com.sun.java.swing.plaf.nimbus.NimbusLookAndFeel";
+            } else if (Editor.lookAndFeel.equals("GTK+")) {
+                lookAndFeelClassName =
+                    "com.sun.java.swing.plaf.gtk.GTKLookAndFeel";
             } else {
                 // Not recognized. Revert to default behavior.
                 Editor.lookAndFeel = null;

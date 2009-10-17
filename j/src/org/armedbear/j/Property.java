@@ -215,6 +215,8 @@ public final class Property implements Comparable, Constants
         createProperty("ToolBar.showIcons", true);
     public static final Property TOOL_BAR_SHOW_TEXT =
         createProperty("ToolBar.showText", true);
+    public static final Property TOOL_BAR_ICON_SIZE =
+        createProperty("ToolBar.iconSize", 24);
     public static final Property UNDELETE_ADVANCE_DOT =
         createProperty("undeleteAdvanceDot", true);
     public static final Property UNDERLINE_BOLD =

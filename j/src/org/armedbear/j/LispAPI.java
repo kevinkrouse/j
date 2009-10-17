@@ -386,7 +386,7 @@ public final class LispAPI extends Lisp
         final Position pos = checkMark(arg);
         final Buffer buffer = Editor.currentBuffer();
         int offset = buffer.getAbsoluteOffset(pos);
-        return offset >= 0 ? new Fixnum(offset) : NIL;
+        return offset >= 0 ? Fixnum.getInstance(offset) : NIL;
       }
       public LispObject execute(LispObject first, LispObject second)
         throws ConditionThrowable
@@ -394,7 +394,7 @@ public final class LispAPI extends Lisp
         final Position pos = checkMark(first);
         final Buffer buffer = checkBuffer(second);
         int offset = buffer.getAbsoluteOffset(pos);
-        return offset >= 0 ? new Fixnum(offset) : NIL;
+        return offset >= 0 ? Fixnum.getInstance(offset) : NIL;
       }
     };
 

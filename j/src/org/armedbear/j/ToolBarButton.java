@@ -21,7 +21,7 @@
 
 package org.armedbear.j;
 
-import java.awt.Graphics;
+import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseEvent;
@@ -50,12 +50,20 @@ public final class ToolBarButton extends JButton implements ActionListener,
 
     public void setIconFromFile(String filename)
     {
+        ImageIcon icon;
         if (Utilities.isFilenameAbsolute(filename))
-            setIcon(new ImageIcon(filename));
+            icon = new ImageIcon(filename);
         else {
-            URL url = Editor.class.getResource("images/" + filename);
-            if (url != null)
-                setIcon(new ImageIcon(url));
+            icon = Utilities.getIconFromFile(filename);
+        }
+
+        if (icon != null) {
+            int size = ToolBar.iconSize();
+            if (icon.getIconWidth() > size || icon.getIconHeight() > size) {
+                Image img = icon.getImage().getScaledInstance(size, size, Image.SCALE_SMOOTH);
+                icon = new ImageIcon(img);
+            }
+            setIcon(icon);
         }
     }
 

@@ -23,6 +23,7 @@ package org.armedbear.j.mail;
 
 import org.armedbear.j.Frame;
 import org.armedbear.j.ToolBar;
+import static org.armedbear.j.ToolBarIcon.*;
 
 /*package*/ final class MessageModeToolBar extends ToolBar
 {
@@ -34,7 +35,8 @@ import org.armedbear.j.ToolBar;
         addButton("Save", ICON_SAVE, "saveFile", false);
         addButton("Close", ICON_CLOSE, "killBuffer");
         addSeparator();
-        addButton("Reply", ICON_MAIL_REPLY, "messageReplyToSender");
+        addButton("Reply", ICON_MAIL_REPLY_SENDER, "messageReplyToSender");
+        addButton("Reply All", ICON_MAIL_REPLY_ALL, "messageReplyToGroup");
         addSeparator();
         addButton("Previous", ICON_MAIL_PREVIOUS, "messagePrevious");
         addButton("Next", ICON_MAIL_NEXT, "messageNext");

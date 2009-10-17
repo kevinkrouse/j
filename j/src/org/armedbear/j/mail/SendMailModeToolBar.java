@@ -23,6 +23,7 @@ package org.armedbear.j.mail;
 
 import org.armedbear.j.Frame;
 import org.armedbear.j.ToolBar;
+import static org.armedbear.j.ToolBarIcon.*;
 
 /*package*/ final class SendMailModeToolBar extends ToolBar
 {

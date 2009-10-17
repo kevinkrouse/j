@@ -21,6 +21,8 @@
 
 package org.armedbear.j;
 
+import static org.armedbear.j.ToolBarIcon.*;
+
 public final class DirectoryModeToolBar extends ToolBar
 {
     public DirectoryModeToolBar(Frame frame)

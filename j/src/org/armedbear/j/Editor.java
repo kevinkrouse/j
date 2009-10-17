@@ -7222,9 +7222,9 @@ public final class Editor extends JPanel implements Constants,
                 ExtensionClassLoader loader = new ExtensionClassLoader();
                 extensionClass = loader.loadClass(extension, true);
                 if (extensionClass != null) {
-                    Method method = extensionClass.getMethod("run", new Class[0]);
+                    Method method = extensionClass.getMethod("run");
                     if (method != null)
-                        method.invoke(extensionClass.newInstance(), new Class[0]);
+                        method.invoke(extensionClass.newInstance());
                 } else
                     Log.error("extension " + extension + " not found");
             }
