@@ -31,6 +31,7 @@ public final class Version
     private static String version;
     private static String build;
     private static String hostName;
+    private static String revision;
     private static String snapshot;
 
     private static boolean initialized;
@@ -40,6 +41,15 @@ public final class Version
     {
         initialize();
         return version;
+    }
+
+    // returns subversion revision number of build, "r12345", or null
+    public static String getRevision()
+    {
+        initialize();
+        if (revision == null && revision.length() > 0)
+            return null;
+        return new FastStringBuffer("r").append(revision).toString();
     }
 
     // "J 0.16.0+"
@@ -54,12 +64,19 @@ public final class Version
         return sb.toString();
     }
 
-    // "J 0.16.0+ (built Fri Jul 26 2002 07:03:12 PDT on merlin)"
+    // "J 0.16.0+ (r12345 built Fri Jul 26 2002 07:03:12 PDT on merlin)"
     public static String getLongVersionString()
     {
         FastStringBuffer sb = new FastStringBuffer(getShortVersionString());
-        if (build != null && build.length() > 0) {
-            sb.append(" (built ");
+        String rev = getRevision();
+        if ((build != null && build.length() > 0) || (rev != null))
+        {
+            sb.append(" (");
+            if (rev != null) {
+                sb.append(rev);
+                sb.append(" ");
+            }
+            sb.append("built ");
             sb.append(build);
             if (hostName != null && hostName.length() > 0) {
                 sb.append(" on ");
@@ -115,6 +132,7 @@ public final class Version
                         new BufferedReader(new InputStreamReader(inputStream));
                     build = reader.readLine();
                     hostName = reader.readLine();
+                    revision = reader.readLine();
                     reader.close();
                 }
                 catch (IOException e) {

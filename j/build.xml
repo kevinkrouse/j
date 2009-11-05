@@ -46,9 +46,15 @@
         <format property="j.buildtime" pattern="EEE MMM dd yyyy HH:mm:ss zzz"/>
       </tstamp>
       <exec executable="hostname" outputproperty="j.hostname"/>
+      <exec executable="svn" output="${build.dir}/svn.properties" failifexecutionfails="false">
+        <arg value="info"/>
+      </exec>
+      <touch file="${build.dir}/svn.properties"/>
+      <property file="${build.dir}/svn.properties" prefix="svn"/>
 
       <echo message="${j.buildtime}${line.separator}" file="${j.build.path}"/>
       <echo message="${j.hostname}${line.separator}" file="${j.build.path}" append="yes"/>
+      <echo message="${svn.Revision}${line.separator}" file="${j.build.path}" append="yes"/>
     </target>
 
     <target name="stamp.version">
