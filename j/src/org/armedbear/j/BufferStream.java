@@ -21,7 +21,7 @@
 
 package org.armedbear.j;
 
-import org.armedbear.lisp.ConditionThrowable;
+import org.armedbear.lisp.ControlTransfer;
 import org.armedbear.lisp.LispObject;
 import org.armedbear.lisp.Stream;
 import org.armedbear.lisp.Symbol;
@@ -55,14 +55,14 @@ public final class BufferStream extends Stream
 //     }
 
     // FIXME
-    public LispObject typep(LispObject typeSpecifier) throws ConditionThrowable
+    public LispObject typep(LispObject typeSpecifier) throws ControlTransfer
     {
         if (typeSpecifier == LispAPI.BUFFER_STREAM)
             return T;
         return super.typep(typeSpecifier);
     }
 
-    public void _writeChar(char c) throws ConditionThrowable
+    public void _writeChar(char c) throws ControlTransfer
     {
         try {
             buffer.lockWrite();
@@ -98,12 +98,12 @@ public final class BufferStream extends Stream
     }
 
     public void _writeChars(char[] chars, int start, int end)
-        throws ConditionThrowable
+        throws ControlTransfer
     {
         _writeString(new String(chars, start, end - start));
     }
 
-    public void _writeString(String s) throws ConditionThrowable
+    public void _writeString(String s) throws ControlTransfer
     {
         try {
             buffer.lockWrite();
@@ -123,7 +123,7 @@ public final class BufferStream extends Stream
         }
     }
 
-    public void _writeLine(String s) throws ConditionThrowable
+    public void _writeLine(String s) throws ControlTransfer
     {
         try {
             buffer.lockWrite();

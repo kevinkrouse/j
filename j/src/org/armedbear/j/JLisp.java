@@ -26,7 +26,7 @@ import java.io.OutputStreamWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
 import javax.swing.SwingUtilities;
-import org.armedbear.lisp.ConditionThrowable;
+import org.armedbear.lisp.ControlTransfer;
 import org.armedbear.lisp.Interpreter;
 import org.armedbear.lisp.Lisp;
 import org.armedbear.lisp.LispObject;
@@ -206,7 +206,7 @@ public final class JLisp extends LispShell
         editor.setDefaultCursor();
     }
 
-    public static void runStartupScript(File file) throws ConditionThrowable
+    public static void runStartupScript(File file) throws ControlTransfer
     {
         if (!Editor.isLispInitialized()) {
             Interpreter.initializeJLisp();
@@ -229,7 +229,7 @@ public final class JLisp extends LispShell
     }
 
     public static LispObject runLispCommand(String command)
-        throws ConditionThrowable
+        throws ControlTransfer
     {
         if (!Editor.isLispInitialized()) {
             Interpreter.initializeJLisp();

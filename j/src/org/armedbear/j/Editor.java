@@ -67,7 +67,7 @@ import javax.swing.undo.CompoundEdit;
 import org.armedbear.j.mail.MailCommands;
 import org.armedbear.j.mail.MailboxURL;
 import org.armedbear.lisp.Condition;
-import org.armedbear.lisp.ConditionThrowable;
+import org.armedbear.lisp.ControlTransfer;
 import org.armedbear.lisp.Interpreter;
 import org.armedbear.lisp.Lisp;
 import org.armedbear.lisp.LispObject;
@@ -6349,9 +6349,9 @@ public final class Editor extends JPanel implements Constants,
             }
             catch (Throwable t) {
                 String message = null;
-                if (t instanceof ConditionThrowable) {
+                if (t instanceof ControlTransfer) {
                     try {
-                        LispObject obj = ((ConditionThrowable)t).getCondition();
+                        LispObject obj = ((ControlTransfer)t).getCondition();
                         if (obj instanceof Condition) {
                             try {
                                 message = ((Condition)obj).getConditionReport();
