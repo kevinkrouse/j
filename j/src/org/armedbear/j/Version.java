@@ -47,7 +47,7 @@ public final class Version
     public static String getRevision()
     {
         initialize();
-        if (revision == null && revision.length() > 0)
+        if (revision == null || revision.length() == 0)
             return null;
         return new FastStringBuffer("r").append(revision).toString();
     }
