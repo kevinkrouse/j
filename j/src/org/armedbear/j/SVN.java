@@ -24,6 +24,9 @@ package org.armedbear.j;
 import java.util.List;
 import java.util.Collections;
 import javax.swing.SwingUtilities;
+import gnu.regexp.RE;
+import gnu.regexp.REMatch;
+import gnu.regexp.REException;
 
 public class SVN extends VersionControl implements Constants
 {
@@ -310,6 +313,10 @@ public class SVN extends VersionControl implements Constants
     {
         if (!checkSVNInstalled())
             return;
+        if (!have15()) {
+            MessageDialog.showMessageDialog("svn 1.5 is required to use changelists.", "Error");
+            return;
+        }
         final Editor editor = Editor.currentEditor();
         final Buffer parentBuffer = editor.getBuffer();
         final File directory = parentBuffer.getCurrentDirectory();
@@ -396,18 +403,21 @@ public class SVN extends VersionControl implements Constants
     {
         List list = Utilities.tokenize(args);
         if (list.size() == 2)
-          {
+        {
             String arg = (String) list.get(0);
             if (arg.equals("--cl") || arg.equals("--changelist"))
-              {
+            {
                 arg = (String) list.get(1);
                 _commit(arg);
-              }
-          }
-        FastStringBuffer sb = new FastStringBuffer("Unrecognized argument \"");
-        sb.append(args.trim());
-        sb.append('"');
-        MessageDialog.showMessageDialog(sb.toString(), "Error");
+            }
+        }
+        else
+        {
+            FastStringBuffer sb = new FastStringBuffer("Unrecognized argument \"");
+            sb.append(args.trim());
+            sb.append('"');
+            MessageDialog.showMessageDialog(sb.toString(), "Error");
+        }
     }
 
     private static void _commit(String changelist)
@@ -423,14 +433,18 @@ public class SVN extends VersionControl implements Constants
           parentBuffer = buffer;
         FastStringBuffer sb = new FastStringBuffer("svn commit");
         if (changelist != null)
-          {
+        {
+            if (!have15()) {
+                MessageDialog.showMessageDialog("svn 1.5 is required to use changelists.", "Error");
+                return;
+            }
             sb.append(" --changelist ");
             sb.append(changelist);
-          }
+        }
         else
-          {
+        {
             sb.append(parentBuffer.getFile().getName());
-          }
+        }
         final String title = sb.toString();
         boolean save = false;
         List list = null;
@@ -584,16 +598,55 @@ public class SVN extends VersionControl implements Constants
         return false;
     }
 
-    private static int haveSVN = -1;
+    private static int[] version = null;
 
     private static boolean haveSVN()
     {
-        if (haveSVN > 0)
+        if (version != null)
             return true;
         if (Utilities.have("svn")) {
-            haveSVN = 1;
+            version = new int[3];
+            String versionInfo = Utilities.exec("svn", "--version");
+            if (versionInfo != null && versionInfo.length() > 0) {
+                try
+                {
+                    RE versionRE = new RE("svn, version (\\d+)\\.(\\d+)\\.(\\d+)");
+                    REMatch match = versionRE.getMatch(versionInfo);
+                    if (match != null) {
+                        try {
+                            for (int i = 0; i < 3; i++) {
+                                String sub = match.toString(i+1);
+                                version[i] = Integer.parseInt(sub);
+                            }
+                        }
+                        catch (NumberFormatException nfe) {
+                            Log.error(nfe);
+                        }
+                        Log.info("svn version: " + version[0] + "." + version[1] + "." + version[2]);
+                    }
+                }
+                catch (REException rex) {
+                    Log.error(rex);
+                }
+            }
             return true;
         }
         return false;
     }
+    
+    public static boolean have14()
+    {
+        return haveSVN() && version[0] >= 1 && version[1] >= 4;
+    }
+    
+    public static boolean have15()
+    {
+        return haveSVN() && version[0] >= 1 && version[1] >= 5;
+    }
+    
+    public static boolean have16()
+    {
+        return haveSVN() && version[0] >= 1 && version[1] >= 6;
+    }
+    
 }

@@ -73,7 +73,7 @@ public final class StatusMode extends AbstractMode
               svnFileAction(editor, outputBuffer, useDiff);
               break;
           default:
-              throw new IllegalStateException("statusGotoFile/statusGotoDiff not supported for this version type: " + vcType);
+              throw new IllegalStateException("statusGotoFile/statusDiffFile not supported for this version type: " + vcType);
         }
     }
 
@@ -84,7 +84,9 @@ public final class StatusMode extends AbstractMode
         if (dotLine == null || dotLine.length() == 0)
             return;
         char c = dotLine.charAt(0);
-        String filename = dotLine.substring(7);
+        // "svn status" output added a column in 1.6
+        int filenameIndex = SVN.have16() ? 8 : 7;
+        String filename = dotLine.substring(filenameIndex);
         Buffer buf = null;
 
         if (c == 'D') {
