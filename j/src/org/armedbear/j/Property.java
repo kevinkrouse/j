@@ -141,6 +141,8 @@ public final class Property implements Comparable, Constants
         createProperty("extendEnd", false);
     public static final Property EXTEND_HOME =
         createProperty("extendHome", false);
+    public static final Property FILENAME_COMPLETIONS_EXCLUDE_PATTERN =
+        createProperty("filenameCompletionsExcludePattern", "^(CVS|RCS|SCCS|_darcs|(\\.(svn|hg|darcs|git))|(.+(~|\\.(class|cls|abcl|bak|sw[op]|a|o|obj|exe))))$");
     public static final Property FILENAME_COMPLETIONS_IGNORE_CASE =
         createProperty("filenameCompletionsIgnoreCase", true);
     public static final Property FIX_CASE =

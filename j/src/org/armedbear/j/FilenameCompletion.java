@@ -21,24 +21,30 @@
 
 package org.armedbear.j;
 
+import gnu.regexp.RE;
+import gnu.regexp.REException;
+
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Collections;
 
 public final class FilenameCompletion
 {
     private final File currentDirectory;
     private final String sourcePath;
+    private final String excludesPattern;
     private final boolean ignoreCase;
 
     private String prefix;
     private ArrayList list;
 
     public FilenameCompletion(File directory, String prefix,
-        String sourcePath, boolean ignoreCase)
+        String sourcePath, String excludesPattern, boolean ignoreCase)
     {
         currentDirectory = directory;
         this.prefix = prefix;
         this.sourcePath = sourcePath;
+        this.excludesPattern = excludesPattern;
         this.ignoreCase = ignoreCase;
         initialize();
     }
@@ -51,18 +57,26 @@ public final class FilenameCompletion
 
     private void initialize()
     {
+        RE excludesRE = null;
+        if (excludesPattern != null) {
+            try {
+                excludesRE = new RE(excludesPattern, ignoreCase ? RE.REG_ICASE : 0);
+            } catch (REException e) {
+                Log.error(e);
+            }
+        }
         list = new ArrayList();
         if (Utilities.isFilenameAbsolute(prefix)) {
             File file = File.getInstance(currentDirectory, prefix);
             if (file == null)
                 return;
             if (file.isDirectory() && prefix.endsWith(LocalFile.getSeparator()))
-                addCompletionsFromDirectory(list, file, null);
+                addCompletionsFromDirectory(list, file, null, excludesRE);
             else {
                 File directory = file.getParentFile();
                 if (directory != null) {
                     prefix = file.getName();
-                    addCompletionsFromDirectory(list, directory, prefix);
+                    addCompletionsFromDirectory(list, directory, prefix, excludesRE);
                 }
             }
         } else if (prefix.indexOf(LocalFile.getSeparatorChar()) >= 0) {
@@ -79,7 +93,7 @@ public final class FilenameCompletion
             // First try relative to current directory.
             File dir = File.getInstance(currentDirectory, dirName);
             if (dir != null && dir.isDirectory()) {
-                addCompletionsFromDirectory(list, dir, prefix);
+                addCompletionsFromDirectory(list, dir, prefix, excludesRE);
             } else {
                 // No such directory relative to current directory.
                 // Look in source path.
@@ -90,14 +104,14 @@ public final class FilenameCompletion
                             File.getInstance((String) sourcePathDirectories.get(i));
                         dir = File.getInstance(sourcePathDirectory, dirName);
                         if (dir != null && dir.isDirectory())
-                            addCompletionsFromDirectory(list, dir, prefix);
+                            addCompletionsFromDirectory(list, dir, prefix, excludesRE);
                     }
                 }
             }
         } else {
             // Short name.
             // Current directory.
-            addCompletionsFromDirectory(list, currentDirectory, prefix);
+            addCompletionsFromDirectory(list, currentDirectory, prefix, excludesRE);
             // Source path.
             if (sourcePath != null) {
                 List sourcePathDirectories = Utilities.getDirectoriesInPath(sourcePath);
@@ -106,14 +120,15 @@ public final class FilenameCompletion
                         File.getInstance((String) sourcePathDirectories.get(i));
                     if (sourcePathDirectory != null)
                         addCompletionsFromDirectory(list, sourcePathDirectory,
-                            prefix);
+                            prefix, excludesRE);
                 }
             }
+            Collections.sort(list);
         }
     }
 
     private void addCompletionsFromDirectory(List list, File directory,
-        String prefix)
+        String prefix, RE excludesRE)
     {
         File[] files = directory.listFiles();
         if (files != null) {
@@ -123,18 +138,29 @@ public final class FilenameCompletion
                 for (int i = 0; i < limit; i++) {
                     final File file = files[i];
                     final String name = file.getName();
-                    final boolean isMatch;
+                    boolean isMatch;
                     if (ignoreCase)
                         isMatch = name.regionMatches(true, 0, prefix, 0,
                             prefixLength);
                     else
                         isMatch = name.startsWith(prefix);
+                    if (isMatch && excludesRE != null)
+                        isMatch = !excludesRE.isMatch(name);
                     if (isMatch)
                         list.add(file);
                 }
             } else {
                 for (int i = 0; i < limit; i++)
-                    list.add(files[i]);
+                {
+                    boolean isMatch = true;
+                    if (excludesRE != null) {
+                        final File file = files[i];
+                        final String name = file.getName();
+                        isMatch = !excludesRE.isMatch(name);
+                    }
+                    if (isMatch)
+                        list.add(files[i]);
+                }
             }
         }
     }

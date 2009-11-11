@@ -24,6 +24,8 @@ package org.armedbear.j;
 import gnu.regexp.RE;
 import gnu.regexp.REMatch;
 import gnu.regexp.UncheckedRE;
+import gnu.regexp.REException;
+
 import java.awt.Component;
 import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
@@ -464,8 +466,10 @@ public final class OpenFileTextFieldHandler extends DefaultTextFieldHandler
         boolean ignoreCase = Platform.isPlatformWindows() ||
             Editor.preferences().getBooleanProperty(
                 Property.FILENAME_COMPLETIONS_IGNORE_CASE);
+        String excludes = Editor.preferences().getStringProperty(
+            Property.FILENAME_COMPLETIONS_EXCLUDE_PATTERN);
         FilenameCompletion completion =
-            new FilenameCompletion(dir, prefix, sourcePath, ignoreCase);
+            new FilenameCompletion(dir, prefix, sourcePath, excludes, ignoreCase);
         final File currentDirectory = getCurrentDirectory();
         List files = completion.listFiles();
         if (files != null) {
@@ -477,8 +481,6 @@ public final class OpenFileTextFieldHandler extends DefaultTextFieldHandler
                                   ignoreCase);
                     continue;
                 }
-                if (isExcluded(name))
-                    continue;
                 addCompletion(completions, name, ignoreCase);
             }
         }

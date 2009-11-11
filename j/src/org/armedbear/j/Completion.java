@@ -62,8 +62,10 @@ public final class Completion
             }
             ignoreCase = true;
         }
+        String excludes = Editor.preferences().getStringProperty(
+            Property.FILENAME_COMPLETIONS_EXCLUDE_PATTERN);
         FilenameCompletion c = new FilenameCompletion(dir, toBeCompleted, null,
-            ignoreCase);
+            excludes, ignoreCase);
         List files = c.listFiles();
         if (files != null) {
             String home = Utilities.getUserHome() + "/";

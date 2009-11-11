@@ -775,6 +775,15 @@ its <code>public void run</code> method is invoked.
 <b>Default value:</b> None
 </dl>
 
+<code><a name="filenameCompletionsExcludePattern">filenameCompletionsExcludePattern</a></code>
+<dl>
+<dd>
+If true, filename completions (in the Open File dialog, for example) will
+exclude any files or directories that match the regular expression pattern.
+<p>
+<b>Default value:</b> ^(CVS|RCS|SCCS|_darcs|(\\.(svn|hg|darcs|git))|(.+(~|\\.(class|cls|abcl|bak|sw[op]|a|o|obj|exe))))$
+</dl>
+
 <code><a name="filenameCompletionsIgnoreCase">filenameCompletionsIgnoreCase</a></code>
 <dl>
 <dd>
