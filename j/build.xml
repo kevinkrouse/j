@@ -4,6 +4,7 @@
 
     <target name="j" depends="jar"/>
 
+    <property environment="env"/>
     <property file="build.properties"/>
 
     <property name="j.version"          value="0.22.0"/>
@@ -86,7 +87,7 @@
       <include name="org/armedbear/j/version"/>
       <include name="org/armedbear/j/build"/>
       <include name="org/armedbear/j/snapshot"/>
-      <include name="org/armedbear/j/images/*.png"/>
+      <include name="org/armedbear/j/images/**/*.png"/>
       <include name="gnu/regexp/MessagesBundle.properties"/>
     </patternset>
 
@@ -216,6 +217,8 @@
 
     <target name="run">
       <java fork="true" spawn="true" classname="Main">
+        <!-- put jpty on the PATH -->
+        <env key="PATH" path="${build.bin.dir}:${env.PATH}"/>
         <classpath>
           <pathelement location="${abcl.jar.path}"/>
           <pathelement location="${build.classes.dir}"/>
@@ -223,6 +226,11 @@
           <pathelement path="${extensions}"/>
           <pathelement path="${jdk}/lib/tools.jar"/>
         </classpath>
+        <arg value="--debug"/>
+        <arg value="--force-new-instance"/>
+        <arg value="--no-session"/>
+        <arg value="--no-server"/>
+        <arg value="--no-restore"/>
       </java>
     </target>
 
