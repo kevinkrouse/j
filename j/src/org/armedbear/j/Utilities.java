@@ -1164,7 +1164,9 @@ public final class Utilities implements Constants
 
     public static final void setUserHome(String s)
     {
-        Debug.bugIfNot(userHome == null); // We only want to do this once!
+        Log.debug("setting userHome = " + s);
+        Debug.dumpStack();
+        Debug.bugIfNot(userHome == null, "userHome already set to '" + userHome + "'"); // We only want to do this once!
         userHome = s;
     }
 
@@ -1178,18 +1180,18 @@ public final class Utilities implements Constants
                     output = output.trim();
                     if (output.length() > 0) {
                         if (output.indexOf('/') >= 0)
-                            userHome = uncygnify(output);
+                            setUserHome(uncygnify(output));
                         else
-                            userHome = output;
+                            setUserHome(output);
                     }
                 }
             }
             if (userHome == null) {
-                userHome = System.getProperty("user.home");
+                setUserHome(System.getProperty("user.home"));
                 // Expand links.
                 File home = File.getInstance(userHome);
                 if (home != null)
-                    userHome = home.canonicalPath();
+                    setUserHome(home.canonicalPath());
             }
         }
         return userHome;
@@ -1209,7 +1211,7 @@ public final class Utilities implements Constants
         return converted != null ? converted : s;
     }
 
-    public static String exec(String[] cmdarray)
+    public static String exec(String... cmdarray)
     {
         try {
             Process process = Runtime.getRuntime().exec(cmdarray);
