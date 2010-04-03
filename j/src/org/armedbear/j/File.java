@@ -31,6 +31,7 @@ import java.io.InputStreamReader;
 import java.io.RandomAccessFile;
 import java.util.ArrayList;
 import java.util.StringTokenizer;
+import org.armedbear.lisp.Pathname;
 
 public class File implements Comparable
 {
@@ -96,6 +97,11 @@ public class File implements Comparable
         hostName = host;
         canonicalPath = path;
         this.protocol = protocol;
+    }
+
+    public static File getInstance(Pathname p)
+    {
+        return getInstance(p.getNamestring());
     }
 
     public static File getInstance(String name)

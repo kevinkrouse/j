@@ -49,7 +49,8 @@ public final class Debug
     // Does not throw an exception.
     public static void bug(String s)
     {
-        Log.error("BUG! " + s);
+        if (s != null)
+            Log.error("BUG! " + s);
         bug();
     }
 
@@ -62,14 +63,24 @@ public final class Debug
     // A kinder, gentler form of assertion.
     public static void bugIfNot(boolean b)
     {
+        bugIfNot(b, null);
+    }
+    
+    public static void bugIfNot(boolean b, String s)
+    {
         if (!b)
-            bug();
+            bug(s);
     }
 
     public static void bugIf(boolean b)
     {
+        bugIf(b, null);
+    }
+
+    public static void bugIf(boolean b, String s)
+    {
         if (b)
-            bug();
+            bug(s);
     }
 
     public static void dumpStack()

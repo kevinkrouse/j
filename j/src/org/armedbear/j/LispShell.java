@@ -26,6 +26,7 @@ import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.util.List;
 import javax.swing.SwingUtilities;
+import org.armedbear.lisp.Pathname;
 import org.armedbear.lisp.Site;
 import org.armedbear.lisp.LispThread;
 
@@ -901,7 +902,7 @@ public class LispShell extends Shell
                 sb.append(" -Xmx256M");
                 if (Platform.isPlatformUnix())
                   {
-                    String lispHome = org.armedbear.lisp.Site.getLispHome();
+                    Pathname lispHome = org.armedbear.lisp.Site.getLispHome();
                     if (lispHome != null)
                       {
                         sb.append(" -Xrs -Djava.library.path=");

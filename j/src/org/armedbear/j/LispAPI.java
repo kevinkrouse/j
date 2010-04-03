@@ -46,7 +46,9 @@ import org.armedbear.lisp.TypeError;
 import org.armedbear.lisp.UndefinedFunction;
 import org.armedbear.lisp.WrongNumberOfArgumentsException;
 
-public final class LispAPI extends Lisp
+import static org.armedbear.lisp.Lisp.*;
+
+public final class LispAPI
 {
   private static final Preferences preferences = Editor.preferences();
 
@@ -1741,7 +1743,7 @@ public final class LispAPI extends Lisp
     {
       public LispObject execute(LispObject arg) throws ControlTransfer
       {
-        final Pathname pathname = Pathname.coerceToPathname(arg);
+        final Pathname pathname = coerceToPathname(arg);
         final String namestring = pathname.getNamestring();
         if (namestring != null)
           {

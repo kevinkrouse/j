@@ -25,6 +25,7 @@ import org.armedbear.lisp.ControlTransfer;
 import org.armedbear.lisp.LispObject;
 import org.armedbear.lisp.Stream;
 import org.armedbear.lisp.Symbol;
+import static org.armedbear.lisp.Lisp.T;
 
 public final class BufferStream extends Stream
 {
@@ -32,6 +33,7 @@ public final class BufferStream extends Stream
 
     public BufferStream(Buffer buf)
     {
+        super(LispAPI.BUFFER_STREAM);
         buffer = buf;
         elementType = Symbol.CHARACTER;
         isCharacterStream = true;
