@@ -299,7 +299,7 @@ public final class Directory extends Buffer
                     if (c instanceof DirectoryTree) {
                         DirectoryTree tree = (DirectoryTree) c;
                         DirectoryTreeModel treeModel = tree.getTreeModel();
-                        if (!rescanned) {
+                        if (treeModel != null && !rescanned) {
                             treeModel.rescan(file);
                             rescanned = true;
                         }

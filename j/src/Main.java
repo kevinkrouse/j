@@ -27,10 +27,11 @@ public final class Main
     {
         final String version = System.getProperty("java.version");
         if (version.startsWith("1.0") || version.startsWith("1.1") ||
-            version.startsWith("1.2") || version.startsWith("1.3")) {
+            version.startsWith("1.2") || version.startsWith("1.3") ||
+            version.startsWith("1.4")) {
             System.err.println("");
-            System.err.print("J requires Java 1.4 or later.");
-            System.err.println(" (Java 1.4.2 is recommended.)");
+            System.err.print("J requires Java 1.5 or later.");
+            System.err.println(" (Java 1.6 is recommended.)");
             System.err.println("");
             System.exit(1);
         }

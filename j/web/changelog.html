@@ -8,6 +8,20 @@
 <ul>
 
 <li>
+  <b>Apr 11 2010 - Version 0.23.0</b>
+  <p>
+  This release contains ABCL 0.19.1 along with support for svn and updated icons.  Java 1.5 is now required and 1.6 is suggested.
+  <p>
+  Subversion support has been added in this release and can be used with the svn* commands.  A new StatusMode has been added for version control status output buffers.  Please see the <a href="doc/vcs.html">version control</a> documentation for more information.
+  <p>
+  J's icons have been refreshed to the current Gnome icon set.  In addition, you may now change the size of the toolbar icons to either 16 or 24 (the default) by setting <a href="doc/preferences.html#ToolBar.iconSize">ToolBar.iconSize</a> in your prefs file.
+  <p>
+  When opening files with the location bar or using a shell buffer, the &lt;Tab&gt; key completes the filename.  The completion feature will now ignore any files that match the <a href="doc/preferences.html#filenameCompletionsExcludePattern">filenameCompletionsExcludePattern</a> regular expression.  The <a href="doc/commands.html#findInFiles">find in files</a> dialog has a new <em>default excludes</em> option that will skip files that match the <em>filenameCompletionsExcludePattern</em> regex which is very useful when searching across files that would have included the .svn metadata directories.
+  <p>
+  To quickly locate and edit the prefs file, a new <a href="doc/commands.html#editPrefs">editPrefs</a> command has been added.
+</li>
+
+<li>
   <b>Mar 24 2009 - Version 0.22.0</b>
   <p>
   First release in years!

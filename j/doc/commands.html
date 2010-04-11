@@ -1692,6 +1692,9 @@ For example, if the file specification is <code>*.c;/usr/src/emacs-20.3/src/*.c;
 the search will examine <code>.c</code> files in the current directory and
 <code>.c</code> and <code>.h</code> files in <code>/usr/src/emacs-20.3/src</code>.
 <p>
+If the "Default excludes" checkbox is checked, the search will ignore files that
+match the <a href="preferences.html#filenameCompletionsExcludePattern">filenameCompletionsExcludePattern</a>.
+<p>
 The search is case-insensitive if the "Ignore case" checkbox is checked.
 <p>
 When the "Whole words only" checkbox is checked, a match is returned only if it

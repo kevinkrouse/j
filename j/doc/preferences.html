@@ -1271,7 +1271,7 @@ Class name of XML parser to use. For example:
         org.xml.sax.driver = org.apache.xerces.parsers.SAXParser
 </pre>
 If this property is not specified, the XML parser provided as part of the Java
-1.4 runtime library will be used.
+runtime library will be used.
 <p>
 <b>Default value:</b> None
 <p>
@@ -1550,7 +1550,7 @@ separator character, which is a colon for Unix and a semicolon for Windows.
 Controls the format of the date/time string inserted by the
 <a href="commands.html#stamp">stamp</a> command. The specified pattern is used
 to construct a
-<a href="http://java.sun.com/j2se/1.4/docs/api/java/text/SimpleDateFormat.html">
+<a href="http://java.sun.com/javase/6/docs/api/java/text/SimpleDateFormat.html">
 SimpleDateFormat</a> object that formats the output string.
 <p>
 <b>Default value:</b> "MMM d yyyy h:mm a"
@@ -1729,6 +1729,14 @@ Distance between tab stops, in columns, for display purposes.
 Regular expression to match prompts in a telnet buffer.
 <p>
 <b>Default value:</b> "^[^#$%>]*[#$%>] *|^: *"
+</dl>
+
+<code><a name="ToolBar.iconSize">ToolBar.iconSize</a></code>
+<dl>
+<dd>
+Size of the toolbar icons.  Currently, only sizes 24 and 16 are supported.
+<p>
+<b>Default value:</b> 24
 </dl>
 
 <code><a name="ToolBar.isRollover">ToolBar.isRollover</a></code>

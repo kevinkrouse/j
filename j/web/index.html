@@ -31,12 +31,12 @@
     <a href="http://www.gnu.org/copyleft/gpl.html">GNU General Public
     License</a>.
     <p>
-    J runs on platforms that support Java 1.4, including Linux,
+    J runs on platforms that support Java 1.5, including Linux,
     Windows, and Mac OS X.
     <p>
     J is free software and comes with ABSOLUTELY NO WARRANTY.
     <p>
-    The latest version is 0.22.0, released March 24, 2009.
+    The latest version is 0.23.0, released April 3, 2010.
   </dd>
 </dl>
 
@@ -45,10 +45,17 @@
   <b>Screenshots</b>
 </font>
 <dl>
-  <dd>J 0.14.0 in Java mode, with line numbers and change marks turned on:
+  <dd>J 0.23.0 with svn support and updated icons using Coffe theme:
     <br><br>
     <dl>
-      <dd><a href="http://armedbear-j.sourceforge.net/j-0.14.0.png">j-0.14.0.png</a> (91816 bytes)</dd>
+      <dd><a href="http://armedbear-j.sourceforge.net/j-0.23.0.png">j-0.23.0.png</a> (98938 bytes)</dd>
+    </dl>
+  </dd>
+  <p>
+  <dd>J 0.19.0 in the Java debugger:
+    <br><br>
+    <dl>
+      <dd><a href="http://armedbear-j.sourceforge.net/j-0.19.0.png">j-0.19.0.png</a> (111165 bytes)</dd>
     </dl>
   </dd>
   <p>
@@ -59,10 +66,10 @@
     </dl>
   </dd>
   <p>
-  <dd>J 0.19.0 in the Java debugger:
+  <dd>J 0.14.0 in Java mode, with line numbers and change marks turned on:
     <br><br>
     <dl>
-      <dd><a href="http://armedbear-j.sourceforge.net/j-0.19.0.png">j-0.19.0.png</a> (111165 bytes)</dd>
+      <dd><a href="http://armedbear-j.sourceforge.net/j-0.14.0.png">j-0.14.0.png</a> (91816 bytes)</dd>
     </dl>
   </dd>
 </dl>
@@ -115,6 +122,20 @@
   <b>What's New</b>
 </font>
 <dl>
+  <dd>
+  <b>Apr 11 2010 - Version 0.23.0</b>
+  <p>
+  This release contains ABCL 0.19.1 along with support for svn and updated icons.  Java 1.5 is now required and 1.6 is suggested.
+  <p>
+  Subversion support has been added in this release and can be used with the svn* commands.  A new StatusMode has been added for version control status output buffers.  Please see the <a href="doc/vcs.html">version control</a> documentation for more information.
+  <p>
+  J's icons have been refreshed to the current Gnome icon set.  In addition, you may now change the size of the toolbar icons to either 16 or 24 (the default) by setting <a href="doc/preferences.html#ToolBar.iconSize">ToolBar.iconSize</a> in your prefs file.
+  <p>
+  When opening files with the location bar or using a shell buffer, the &lt;Tab&gt; key completes the filename.  The completion feature will now ignore any files that match the <a href="doc/preferences.html#filenameCompletionsExcludePattern">filenameCompletionsExcludePattern</a> regular expression.  The <a href="doc/commands.html#findInFiles">find in files</a> dialog has a new <em>default excludes</em> option that will skip files that match the <em>filenameCompletionsExcludePattern</em> regex which is very useful when searching across files that would have included the .svn metadata directories.
+  <p>
+  To quickly locate and edit the prefs file, a new <a href="doc/commands.html#editPrefs">editPrefs</a> command has been added.
+  </dd>
+
   <dd>
   <b>Mar 24 2009 - Version 0.22.0</b>
   <p>
@@ -285,27 +306,22 @@
 </font>
 <dl>
   <dd>
-    Java 1.4 or later is required. Java 1.5 is recommended.
+    Java 1.5 or later is required. Java 1.6 is recommended.
     <p>
-    <a href="http://java.sun.com/j2se/1.5.0/download.jsp">Sun Java 1.5</a> or
-    <a href="http://www.blackdown.org/java-linux/java2-status/jdk1.4-status.html">Blackdown Java 1.4.2-01</a>
-    is recommended for Linux.
+    <a href="http://java.sun.com/javase/downloads/index.jsp">Sun Java</a>
     <p>
-    <a href="http://java.sun.com/j2se/1.5.0/download.jsp">Sun Java 1.5</a> is recommended for
-    Windows.
-    <p>
-    Simply untar or unzip the binary distribution, cd into the j-0.21.0
+    Simply untar or unzip the binary distribution, cd into the j-0.23.0
     directory, and run the jar file:
     <pre>
-        $ tar xvfz j-0.21.0-binary.tar.gz
-        $ cd j-0.21.0
+        $ tar xvfz j-0.23.0-binary.tar.gz
+        $ cd j-0.23.0
         $ java -jar j.jar</pre>
     <p>
     Or for Windows:
     <pre>
-        C:\&gt; unzip j-0.21.0-binary.zip
-        C:\&gt; cd j-0.21.0
-        C:\j-0.21.0&gt; java -jar j.jar</pre>
+        C:\&gt; unzip j-0.23.0-binary.zip
+        C:\&gt; cd j-0.23.0
+        C:\j-0.23.0&gt; java -jar j.jar</pre>
   </dd>
 </dl>
 <p>
@@ -319,4 +335,16 @@
     distribution. </dd>
 </dl>
 <A href="http://sourceforge.net"> <IMG src="http://sourceforge.net/sflogo.php?group_id=55057" width="105" height="31" border="0" alt="SourceForge Logo" align="right"></A>
+<!-- Piwik -->
+<script type="text/javascript">
+var pkBaseURL = (("https:" == document.location.protocol) ? "https://sourceforge.net/apps/piwik/armedbear-j/" : "http://sourceforge.net/apps/piwik/armedbear-j/");
+document.write(unescape("%3Cscript src='" + pkBaseURL + "piwik.js' type='text/javascript'%3E%3C/script%3E"));
+</script><script type="text/javascript">
+try {
+var piwikTracker = Piwik.getTracker(pkBaseURL + "piwik.php", 1);
+piwikTracker.trackPageView();
+piwikTracker.enableLinkTracking();
+} catch( err ) {}
+</script><noscript><p><img src="http://sourceforge.net/apps/piwik/armedbear-j/piwik.php?idsite=1" style="border:0" alt=""/></p></noscript>
+<!-- End Piwik Tag -->
 </body> </html>

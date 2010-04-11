@@ -7,7 +7,7 @@
     <property environment="env"/>
     <property file="build.properties"/>
 
-    <property name="j.version"          value="0.22.0"/>
+    <property name="j.version"          value="0.23.0"/>
     <property name="build.dir"          value="${basedir}/build"/>
     <property name="build.classes.dir"  value="${build.dir}/classes"/>
     <property name="build.lib.dir"      value="${build.dir}/lib"/>
@@ -152,7 +152,6 @@
       </copy>
       <jar destfile="${j.jar.path}" 
            compress="true"
-           index="true"
            basedir="${build.classes.dir}">
         <!--
         <patternset refid="j.objects"/>

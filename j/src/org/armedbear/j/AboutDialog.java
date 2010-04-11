@@ -45,7 +45,7 @@ public class AboutDialog extends AbstractDialog
     if (snapshotInformation != null)
       addStaticText(panel, snapshotInformation);
     addStaticText(panel,
-                  "Copyright (C) 1998-2005 Peter Graves (peter@armedbear.org)");
+                  "Copyright (C) 1998-2010 Peter Graves (peter@armedbear.org)");
     addStaticText(panel,
                   "J is free software; see the source for copying conditions.");
     addStaticText(panel, "There is ABSOLUTELY NO WARRANTY.");

@@ -21,6 +21,9 @@
 
 package org.armedbear.j;
 
+import gnu.regexp.RE;
+import gnu.regexp.REException;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -49,6 +52,7 @@ public final class FindInFiles extends Replacement implements Constants,
     private final Frame frame;
     private String files;
 
+    private boolean defaultExcludes = true;
     private boolean includeSubdirs;
     private boolean searchFilesInMemory = true;
     private ListOccurrencesInFiles outputBuffer;
@@ -76,6 +80,16 @@ public final class FindInFiles extends Replacement implements Constants,
         this.frame = editor.getFrame();
         encoding =
             Editor.preferences().getStringProperty(Property.DEFAULT_ENCODING);
+    }
+
+    public final boolean getDefaultExcludes()
+    {
+        return defaultExcludes;
+    }
+
+    public final void setDefaultExcludes(boolean b)
+    {
+        defaultExcludes = b;
     }
 
     public final boolean getIncludeSubdirs()
@@ -223,6 +237,16 @@ public final class FindInFiles extends Replacement implements Constants,
     private void runInternal()
     {
         frame.setWaitCursor();
+        RE excludesRE = null;
+        if (defaultExcludes) {
+            try {
+                String excludesPattern = Editor.preferences().getStringProperty(
+                    Property.FILENAME_COMPLETIONS_EXCLUDE_PATTERN);
+                excludesRE = new RE(excludesPattern, 0);
+            } catch (REException e) {
+                Log.error(e);
+            }
+        }
         for (Iterator it = filters.iterator(); it.hasNext();) {
             Filter filter = (Filter) it.next();
             File dir = null;
@@ -234,7 +258,7 @@ public final class FindInFiles extends Replacement implements Constants,
             }
             if (dir == null)
                 dir = getEditor().getCurrentDirectory();
-            searchDirectory(dir, filter);
+            searchDirectory(dir, filter, excludesRE);
             // Did the user cancel?
             if (cancelled)
                 break;
@@ -288,7 +312,7 @@ public final class FindInFiles extends Replacement implements Constants,
         cancelled = true;
     }
 
-    private void searchDirectory(File dir, Filter filter)
+    private void searchDirectory(File dir, Filter filter, RE excludesRE)
     {
         String[] files = dir.list();
         if (files == null)
@@ -297,9 +321,11 @@ public final class FindInFiles extends Replacement implements Constants,
             if (cancelled)
                 return;
             File file = File.getInstance(dir, files[i]);
+            if (excludesRE != null && excludesRE.isMatch(files[i]))
+                continue;
             if (file.isDirectory()) {
                 if (includeSubdirs)
-                    searchDirectory(file, filter); // Recurse!
+                    searchDirectory(file, filter, excludesRE); // Recurse!
                 continue;
             }
             if (!filter.accepts(files[i]))

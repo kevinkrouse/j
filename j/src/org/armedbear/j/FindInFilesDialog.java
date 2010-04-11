@@ -44,6 +44,7 @@ public class FindInFilesDialog extends AbstractDialog implements Constants,
     private static final String patternKey             = "find.pattern";
     private static final String replacementKey         = "replace.replacement";
     private static final String filesKey               = "findInFiles.files";
+    private static final String defaultExcludesKey     = "findInFiles.defaultExcludes";
     private static final String wholeWordsOnlyKey      = "findInFiles.wholeWordsOnly";
     private static final String regExpKey              = "findInFiles.regularExpression";
     private static final String includeSubdirsKey      = "findInFiles.includeSubdirs";
@@ -66,6 +67,7 @@ public class FindInFilesDialog extends AbstractDialog implements Constants,
     private History replacementHistory;
     private History filesHistory;
 
+    private CheckBox defaultExcludesCheckBox;
     private CheckBox ignoreCaseCheckBox;
     private CheckBox wholeWordsOnlyCheckBox;
     private CheckBox regExpCheckBox;
@@ -130,6 +132,11 @@ public class FindInFilesDialog extends AbstractDialog implements Constants,
         addLabelAndTextField(label, filesControl);
 
         filesControl.addFocusListener(this);
+
+        defaultExcludesCheckBox = new CheckBox("Default excludes",
+            sessionProperties.getBooleanProperty(defaultExcludesKey, true));
+        defaultExcludesCheckBox.setMnemonic('D');
+        addCheckBox(defaultExcludesCheckBox);
 
         addVerticalStrut();
 
@@ -241,6 +248,7 @@ public class FindInFilesDialog extends AbstractDialog implements Constants,
             replacementHistory.save();
         }
 
+        findInFiles.setDefaultExcludes(defaultExcludesCheckBox.isSelected());
         findInFiles.setIgnoreCase(ignoreCaseCheckBox.isSelected());
         findInFiles.setWholeWordsOnly(wholeWordsOnlyCheckBox.isSelected());
         findInFiles.setRegularExpression(regExpCheckBox.isSelected());
@@ -261,6 +269,8 @@ public class FindInFilesDialog extends AbstractDialog implements Constants,
         patternHistory.append(findInFiles.getPattern());
         patternHistory.save();
 
+        sessionProperties.setBooleanProperty(defaultExcludesKey,
+            findInFiles.getDefaultExcludes());
         sessionProperties.setBooleanProperty(wholeWordsOnlyKey,
             findInFiles.wholeWordsOnly());
         sessionProperties.setBooleanProperty(regExpKey,
