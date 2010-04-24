@@ -1584,6 +1584,26 @@ public final class Display extends JComponent implements Constants,
         }
     }
 
+    public void windowLeft(int characters)
+    {
+        int absCaretCol = getShift() + getCaretCol();
+        if (getShift() - characters < 0)
+            characters = getShift();
+        setShift(getShift() - characters);
+        setCaretCol(absCaretCol - getShift());
+        repaint();
+        editor.updateScrollBars();
+    }
+
+    public void windowRight(final int characters)
+    {
+        int absCaretCol = getShift() + getCaretCol();
+        setShift(getShift() + characters);
+        setCaretCol(absCaretCol - getShift());
+        repaint();
+        editor.updateScrollBars();
+    }
+
     public void setUpdateFlag(int mask)
     {
         updateFlag |= mask;
