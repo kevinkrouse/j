@@ -110,11 +110,11 @@ public class LispShell extends Shell
           }
         else
           {
-            File lispHome = File.getInstance(Site.getLispHome());
+            Pathname lispHome = (Pathname)Site.getLispHome();
             if (lispHome == null)
               return null; // FIXME Error message?
-            File swankLoader = File.getInstance(lispHome,
-                                                "swank-loader.lisp");
+            File swankLoader = File.getInstance(
+                Pathname.mergePathnames(lispHome, new Pathname("swank-loader.lisp")));
             if (swankLoader == null)
               return null; // FIXME Error message?
             if (shellCommand.indexOf("sbcl") >= 0
@@ -902,7 +902,7 @@ public class LispShell extends Shell
                 sb.append(" -Xmx256M");
                 if (Platform.isPlatformUnix())
                   {
-                    Pathname lispHome = org.armedbear.lisp.Site.getLispHome();
+                    Pathname lispHome = (Pathname)org.armedbear.lisp.Site.getLispHome();
                     if (lispHome != null)
                       {
                         sb.append(" -Xrs -Djava.library.path=");
