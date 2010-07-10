@@ -125,7 +125,7 @@ public final class SVNEntry extends VersionControlEntry
         public String status = null;
 
         public void startElement(String uri, String localName, String qName, Attributes attributes) throws SAXException {
-            stack.push(localName);
+            stack.addFirst(localName);
             if (localName.equals("changelist")) {
                 changelist = attributes.getValue("", "name");
             }
@@ -147,7 +147,7 @@ public final class SVNEntry extends VersionControlEntry
         }
 
         public void endElement(String uri, String localName, String qName) throws SAXException {
-            stack.pop();
+            stack.removeFirst();
             // since we only expect a single <entry>, we'll just ignore end elements
         }
     }
