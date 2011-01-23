@@ -31,6 +31,7 @@ import java.io.InputStreamReader;
 import java.io.RandomAccessFile;
 import java.util.ArrayList;
 import java.util.StringTokenizer;
+
 import org.armedbear.lisp.Pathname;
 
 public class File implements Comparable
@@ -311,7 +312,7 @@ public class File implements Comparable
 
     public static File[] listRoots()
     {
-        java.io.File[] files = (java.io.File[]) java.io.File.listRoots();
+        java.io.File[] files = java.io.File.listRoots();
         File[] list = new File[files.length];
         for (int i = 0; i < files.length; i++) {
             list[i] = new File();
@@ -524,6 +525,26 @@ public class File implements Comparable
     {
         if (canonicalPath == null || canonicalPath.equals(""))
             canonicalPath = s;
+    }
+
+    public final String shellEscaped()
+    {
+        String path = canonicalPath();
+
+        FastStringBuffer sb = new FastStringBuffer();
+        if (Platform.isPlatformWindows()) {
+            String cp = path;
+            final int limit = cp.length();
+            for (int i = 0; i < limit; i++) {
+                char c = cp.charAt(i);
+                if (c == '\\')
+                    sb.append('\\'); // Double backslash.
+                sb.append(c);
+            }
+        } else
+            sb.append(path);
+
+        return sb.toString();
     }
 
     public String netPath()

@@ -1143,7 +1143,7 @@ public class LispMode extends AbstractMode implements Constants, Mode
             }
             if (!save || buffer.save()) {
                 CommandInterpreter lisp = (CommandInterpreter) ed.getBuffer();
-                String path = editor.getBuffer().getFile().canonicalPath();
+                String path = editor.getBuffer().getFile().shellEscaped();
                 if (path != null) {
                     Position end = lisp.getEnd();
                     end.getLine().setFlags(STATE_INPUT);
@@ -1184,7 +1184,7 @@ public class LispMode extends AbstractMode implements Constants, Mode
             }
             if (!save || buffer.save()) {
                 CommandInterpreter lisp = (CommandInterpreter) ed.getBuffer();
-                String path = editor.getBuffer().getFile().canonicalPath();
+                String path = editor.getBuffer().getFile().shellEscaped();
                 if (path != null) {
                     Position end = lisp.getEnd();
                     end.getLine().setFlags(STATE_INPUT);
@@ -1225,7 +1225,7 @@ public class LispMode extends AbstractMode implements Constants, Mode
             }
             if (!save || buffer.save()) {
                 CommandInterpreter lisp = (CommandInterpreter) ed.getBuffer();
-                String path = editor.getBuffer().getFile().canonicalPath();
+                String path = editor.getBuffer().getFile().shellEscaped();
                 if (path != null) {
                     Position end = lisp.getEnd();
                     end.getLine().setFlags(STATE_INPUT);

@@ -57,14 +57,14 @@ public final class BufferStream extends Stream
 //     }
 
     // FIXME
-    public LispObject typep(LispObject typeSpecifier) throws ControlTransfer
+    public LispObject typep(LispObject typeSpecifier)
     {
         if (typeSpecifier == LispAPI.BUFFER_STREAM)
             return T;
         return super.typep(typeSpecifier);
     }
 
-    public void _writeChar(char c) throws ControlTransfer
+    public void _writeChar(char c)
     {
         try {
             buffer.lockWrite();
@@ -100,12 +100,11 @@ public final class BufferStream extends Stream
     }
 
     public void _writeChars(char[] chars, int start, int end)
-        throws ControlTransfer
     {
         _writeString(new String(chars, start, end - start));
     }
 
-    public void _writeString(String s) throws ControlTransfer
+    public void _writeString(String s)
     {
         try {
             buffer.lockWrite();
@@ -125,7 +124,7 @@ public final class BufferStream extends Stream
         }
     }
 
-    public void _writeLine(String s) throws ControlTransfer
+    public void _writeLine(String s)
     {
         try {
             buffer.lockWrite();

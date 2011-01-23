@@ -26,11 +26,9 @@ import java.io.OutputStreamWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
 import javax.swing.SwingUtilities;
-import org.armedbear.lisp.ControlTransfer;
 import org.armedbear.lisp.Interpreter;
 import org.armedbear.lisp.Lisp;
 import org.armedbear.lisp.LispObject;
-import org.armedbear.lisp.LispThread;
 
 public final class JLisp extends LispShell
 {
@@ -206,30 +204,19 @@ public final class JLisp extends LispShell
         editor.setDefaultCursor();
     }
 
-    public static void runStartupScript(File file) throws ControlTransfer
+    public static void runStartupScript(File file)
     {
         if (!Editor.isLispInitialized()) {
             Interpreter.initializeJLisp();
             Editor.setLispInitialized(true);
         }
         FastStringBuffer sb = new FastStringBuffer("(load \"");
-        if (Platform.isPlatformWindows()) {
-            String cp = file.canonicalPath();
-            final int limit = cp.length();
-            for (int i = 0; i < limit; i++) {
-                char c = cp.charAt(i);
-                if (c == '\\')
-                    sb.append('\\'); // Double backslash.
-                sb.append(c);
-            }
-        } else
-            sb.append(file.canonicalPath());
+        sb.append(file.shellEscaped());
         sb.append("\")");
         Interpreter.evaluate(sb.toString());
     }
 
     public static LispObject runLispCommand(String command)
-        throws ControlTransfer
     {
         if (!Editor.isLispInitialized()) {
             Interpreter.initializeJLisp();
