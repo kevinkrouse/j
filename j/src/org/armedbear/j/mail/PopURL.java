@@ -26,15 +26,35 @@ import org.armedbear.j.FastStringBuffer;
 
 public final class PopURL extends MailboxURL
 {
-    private static final int DEFAULT_PORT = 110;
+    static final int DEFAULT_PORT = 110;
+    static final int DEFAULT_SSL_PORT = 995;
+    
+    private boolean urlScheme = false;
+
+    public PopURL(String user, String host, int port, boolean ssl, boolean tls, boolean validateCert, boolean debug, boolean urlScheme)
+    {
+        super(user, host, port, ssl, tls, validateCert, debug);
+    }
+
+    public PopURL(String user, String host, int port, boolean ssl, boolean tls, boolean validateCert, boolean debug)
+    {
+        this(user, host, port, ssl, tls, validateCert, debug, false);
+    }
 
     // RFC 2384 pop://user@host:port
-    public PopURL(String s) throws MalformedURLException
+    public static PopURL parseURL(String s) throws MalformedURLException
     {
+        if (s.startsWith("{"))
+            return (PopURL)parseRemote(s, "pop3");
+
+        String host, user;
+        int port = DEFAULT_PORT;
+        boolean ssl;
+
         if (!s.startsWith("pop://"))
-            throw new MalformedURLException();
+            throw new MalformedURLException("POP mailbox URL must start with 'pop://'");
         s = s.substring(6);
-        port = DEFAULT_PORT;
+
         // The user name may be enclosed in quotes.
         if (s.length() > 0 && s.charAt(0) == '"') {
             int index = s.indexOf('"', 1);
@@ -47,7 +67,7 @@ public final class PopURL extends MailboxURL
             if (s.length() == 0) {
                 // No host specified.
                 host = "127.0.0.1";
-                return;
+                return new PopURL(user, host, port, false, false, true, true, false);
             }
             if (s.charAt(0) != '@')
                 throw new MalformedURLException();
@@ -84,6 +104,9 @@ public final class PopURL extends MailboxURL
                 host = "127.0.0.1";
             }
         }
+
+        ssl = port == DEFAULT_SSL_PORT;
+        return new PopURL(user, host, port, ssl, ssl, true, true, false);
     }
 
     public boolean equals(Object object)
@@ -130,18 +153,31 @@ public final class PopURL extends MailboxURL
 
     public String getCanonicalName()
     {
-        FastStringBuffer sb = new FastStringBuffer("pop://");
-        String s = user != null ? user : System.getProperty("user.name");
-        if (s.indexOf('@') >= 0) {
-            sb.append('"');
-            sb.append(s);
-            sb.append('"');
-        } else
-            sb.append(s);
-        sb.append('@');
-        sb.append(host);
-        sb.append(':');
-        sb.append(port);
-        return sb.toString();
+        if (urlScheme)
+        {
+            FastStringBuffer sb = new FastStringBuffer("pop://");
+            String s = user != null ? user : System.getProperty("user.name");
+            if (s.indexOf('@') >= 0) {
+                sb.append('"');
+                sb.append(s);
+                sb.append('"');
+            } else
+                sb.append(s);
+            sb.append('@');
+            sb.append(host);
+            sb.append(':');
+            sb.append(port);
+            return sb.toString();
+        }
+        else
+        {
+            return baseCanonicalURL().toString();
+        }
+    }
+
+    @Override
+    protected int getDefaultPort(boolean ssl)
+    {
+        return ssl ? DEFAULT_SSL_PORT : DEFAULT_PORT;
     }
 }

@@ -25,6 +25,8 @@ import java.net.ConnectException;
 import java.net.NoRouteToHostException;
 import java.net.Socket;
 import java.net.UnknownHostException;
+import javax.net.SocketFactory;
+import javax.net.ssl.SSLSocketFactory;
 
 public final class SocketConnection
 {
@@ -33,15 +35,17 @@ public final class SocketConnection
     private final int timeout; // milliseconds
     private final int checkInterval; // milliseconds
     private final Cancellable client;
+    private final boolean ssl;
 
     private Socket socket;
     private String errorText;
 
-    public SocketConnection(String hostName, int port, int timeout,
-        int checkInterval, Cancellable client)
+    public SocketConnection(String hostName, int port, boolean ssl,
+        int timeout, int checkInterval, Cancellable client)
     {
         this.hostName = hostName;
         this.port = port;
+        this.ssl = ssl;
         this.timeout = timeout;
         this.checkInterval = checkInterval;
         this.client = client;
@@ -87,7 +91,8 @@ public final class SocketConnection
         public void run()
         {
             try {
-                socket = new Socket(hostName, port);
+                SocketFactory factory = ssl ? SSLSocketFactory.getDefault() : SocketFactory.getDefault();
+                socket = factory.createSocket(hostName, port);
             }
             catch (NoRouteToHostException e) {
                 setErrorText("No route to host " + hostName);

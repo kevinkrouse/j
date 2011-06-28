@@ -277,8 +277,8 @@ public final class RFC822Date implements Serializable
             tz = TimeZone.getTimeZone("GMT+0000");
         if (month < 0 || dayOfMonth < 0 || year < 0 || hour < 0 || minute < 0)
             return new RFC822Date();
-        Calendar cal = Calendar.getInstance();
-        cal.setTimeZone(tz);
+        Calendar cal = Calendar.getInstance(tz);
+        cal.clear();
         cal.set(year, month, dayOfMonth, hour, minute);
         if (second >= 0)
             cal.set(Calendar.SECOND, second);

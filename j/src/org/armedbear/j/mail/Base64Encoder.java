@@ -51,6 +51,11 @@ public final class Base64Encoder
         return encode(newBuffer);
     }
 
+    public static String encode(String s)
+    {
+        return encode(s.getBytes());
+    }
+
     private static String encode(byte[] input)
     {
         FastStringBuffer encoded = new FastStringBuffer();

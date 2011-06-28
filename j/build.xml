@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project name="j" default="compile" basedir=".">
+<project name="j" default="build" basedir=".">
     <description>Armed Bear J Editor</description>
 
     <target name="j" depends="jar"/>
@@ -10,29 +10,56 @@
     <property name="j.version"          value="0.23.0"/>
     <property name="build.dir"          value="${basedir}/build"/>
     <property name="build.classes.dir"  value="${build.dir}/classes"/>
+    <property name="build.test.dir"     value="${build.dir}/test"/>
     <property name="build.lib.dir"      value="${build.dir}/lib"/>
     <property name="build.bin.dir"      value="${build.dir}/bin"/>
-    <property name="src.dir"            value="${basedir}/src"/>
-    <property name="dist.dir"           value="${basedir}/dist"/>
     <property name="j.jar.path"         value="${build.dir}/j.jar"/>
+    <property name="src.dir"            value="${basedir}/src"/>
+    <property name="test.dir"           value="${basedir}/test/src"/>
+    <property name="dist.dir"           value="${basedir}/dist"/>
+    <property name="ext.dir"            value="${basedir}/ext"/>
+    <property name="abcl.jar.path"      value="${basedir}/ext/abcl.jar"/>
+    <property name="junit.jar.path"     value="${basedir}/ext/junit-4.8.2.jar"/>
 
+    <target name="usage" depends="help" />
     <target name="help" depends="install.properties">
       <echo>Main Targets:
- compile  -- compile J to ${build.classes.dir}
+ build    -- build J to ${build.classes.dir}
  jar      -- create packaged ${j.jar.path}
  install  -- create installation in ${j.install.root}
  dist     -- create binary and source distributions in ${dist.dir}
- clean    -- remove J intermediate files</echo>
+ clean    -- remove J intermediate files
+ test     -- build and run unit tests</echo>
     </target>
 
     <property name="j.version.path"
               value="${build.classes.dir}/org/armedbear/j/version"/>
     <property name="j.build.path"
               value="${build.classes.dir}/org/armedbear/j/build"/>
+
     <path id="j.build.classpath">
       <pathelement path="${build.classes.dir}"/>
       <pathelement path="${abcl.jar.path}"/>
     </path>
+
+    <path id="j.run.classpath">
+      <path refid="j.build.classpath" />
+      <pathelement location="${src.dir}"/>
+      <pathelement path="${extensions}"/>
+      <pathelement path="${jdk}/lib/tools.jar"/>
+    </path>
+
+    <path id="test.build.classpath">
+      <path refid="j.build.classpath"/>
+      <pathelement path="${junit.jar.path}"/>
+    </path>
+
+    <path id="test.run.classpath">
+      <path refid="j.run.classpath"/>
+      <pathelement path="${junit.jar.path}"/>
+      <pathelement path="${build.test.dir}" />
+    </path>
+
 
     <condition property="windows"><os family="windows"/></condition>
     <condition property="unix"><os family="unix"/></condition>
@@ -42,7 +69,7 @@
       <delete dir="${dist.dir}"/>
     </target>
 
-    <target name="stamp" depends="compile,stamp.version">
+    <target name="stamp" depends="build,stamp.version">
       <tstamp>
         <format property="j.buildtime" pattern="EEE MMM dd yyyy HH:mm:ss zzz"/>
       </tstamp>
@@ -99,15 +126,55 @@
       <include name="examples/*"/>
     </patternset>
 
-    <target name="pre-compile">
+    <target name="abcl.jar.check">
+      <available property="abcl.jar.available" file="${abcl.jar.path}"/>
+    </target>
+
+    <target name="abcl.jar.fetch" depends="abcl.jar.check" unless="abcl.jar.available">
+      <echo message="Fetching abcl.jar ..."/>
+      <mkdir dir="${ext.dir}"/>
+      <get src="http://common-lisp.net/project/armedbear/releases/0.25.0/abcl-bin-0.25.0.zip"
+           usetimestamp="true"
+           dest="${ext.dir}/abcl-bin-0.25.0.zip" />
+      <unzip src="${ext.dir}/abcl-bin-0.25.0.zip"
+             dest="${ext.dir}">
+        <patternset>
+          <include name="**/abcl.jar" />
+        </patternset>
+        <flattenmapper />
+      </unzip>
+      <available property="abcl.jar.available" file="${abcl.jar.path}"/>
+    </target>
+
+    <target name="abcl.jar" depends="abcl.jar.fetch">
+      <fail message="failed to find abcl.jar dependency" unless="abcl.jar.available" />
+      <echo message="using abcl.jar: ${abcl.jar.path}"/>
+    </target>
+
+    <target name="junit.jar.check">
+      <available property="junit.jar.available" file="${junit.jar.path}"/>
+    </target>
+
+    <target name="junit.jar.fetch" depends="junit.jar.check" unless="junit.jar.available">
+      <echo message="Fetching junit.jar ..."/>
+      <mkdir dir="${ext.dir}"/>
+      <get src="http://cloud.github.com/downloads/KentBeck/junit/junit-4.8.2.jar"
+           usetimestamp="true"
+           dest="${junit.jar.path}" />
+      <available property="junit.jar.available" file="${junit.jar.path}"/>
+    </target>
+
+    <target name="junit.jar" depends="junit.jar.fetch">
+      <fail message="failed to find junit.jar dependency" unless="junit.jar.available" />
+      <echo message="using junit.jar: ${junit.jar.path}"/>
+    </target>
+
+    <target name="dependencies.check" depends="abcl.jar,junit.jar" />
+
+    <target name="pre-build" depends="dependencies.check">
       <!--- antversion fails in ant 1.7.1 <antversion property="ant.version" 
                                                       atleast="1.7"/> -->
       <mkdir dir="${build.dir}"/>
-
-      <available property="abcl.jar.available" file="${abcl.jar.path}"/>
-      <fail message="set abcl.jar.path in build.properties to the path to abcl.jar"
-            unless="abcl.jar.available"/>
-      <echo message="using abcl.jar: ${abcl.jar.path}"/>
 
       <property name="java.path"
                 value="${java.home}/bin/java"/>
@@ -115,21 +182,21 @@
       <condition property="j.java.version">
         <or>
           <matches string="${java.version}" pattern="1\.5"/>
-          <matches string="${java.version}" pattern="1\.6\.0_1[0-9]"/>
+          <matches string="${java.version}" pattern="1\.6\.0_[12][0-9]"/>
         </or>  
       </condition>
       <echo>java.version: ${java.version}</echo>
     </target>
     
     <target name="java.warning" 
-            depends="pre-compile"
+            depends="pre-build"
             unless="j.java.version">
       <echo>WARNING: Java version ${java.version} not recommended.</echo>
     </target>
         
-    <target name="compile" 
-            depends="pre-compile,java.warning,jpty"
-            description="-- compile J source">
+    <target name="build" 
+            depends="pre-build,java.warning,jpty"
+            description="-- build J source">
       <mkdir dir="${build.classes.dir}"/>
       <javac destdir="${build.classes.dir}"
              debug="true"
@@ -140,7 +207,7 @@
       </javac>
     </target>
 
-    <target name="jar" depends="compile,stamp"
+    <target name="jar" depends="build,stamp"
             description="-- create packaged j.jar">
       <mkdir dir="${build.lib.dir}"/>
       <copy file="${abcl.jar.path}" tofile="${build.lib.dir}/abcl.jar"/>
@@ -220,19 +287,35 @@
         <jvmarg value="-Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=5005"/>
         <!-- put jpty on the PATH -->
         <env key="PATH" path="${build.bin.dir}:${env.PATH}"/>
-        <classpath>
-          <pathelement location="${abcl.jar.path}"/>
-          <pathelement location="${build.classes.dir}"/>
-          <pathelement location="${src.dir}"/>
-          <pathelement path="${extensions}"/>
-          <pathelement path="${jdk}/lib/tools.jar"/>
-        </classpath>
+        <classpath refid="j.run.classpath" />
         <arg value="--debug"/>
         <arg value="--force-new-instance"/>
         <arg value="--no-session"/>
         <arg value="--no-server"/>
         <arg value="--no-restore"/>
       </java>
+    </target>
+
+    <target name="test.build" depends="pre-build,java.warning">
+      <mkdir dir="${build.test.dir}"/>
+      <javac destdir="${build.test.dir}"
+             debug="true"
+             classpathref="test.build.classpath">
+        <src path="${test.dir}"/>
+      </javac>
+    </target>
+
+    <target name="test" depends="build,test.build" description="-- build and run tests">
+      <mkdir dir="${build.dir}/testresults"/>
+      <junit fork="yes">
+        <classpath refid="test.run.classpath" />
+        <batchtest todir="${build.dir}/testresults">
+          <fileset dir="${test.dir}">
+            <include name="**/*.java" />
+          </fileset>
+        </batchtest>
+        <formatter type="plain" />
+      </junit>
     </target>
 
     <!--
@@ -246,7 +329,7 @@
     </target>
     -->
 
-    <target name="jpty" depends="jpty.compile"/>
+    <target name="jpty" depends="jpty.build"/>
 
     <target name="jpty.uptodate" if="unix">
       <uptodate property="jpty.uptodate"
@@ -254,7 +337,7 @@
                 targetfile="${build.bin.dir}/jpty"/>
     </target>
     
-    <target name="jpty.compile" depends="jpty.uptodate"
+    <target name="jpty.build" depends="jpty.uptodate"
             if="unix" unless="jpty.uptodate">
       <mkdir dir="${build.bin.dir}"/>
       <echo message="Compiling jpty..."/>
@@ -275,7 +358,7 @@
       <!-- set via '-Djava.options=JAVA_OPTIONS' or in 'build.properties -->
       <property name="java.options" value=""/>
 
-      <path id="j.run.classpath">
+      <path id="j.install.run.classpath">
         <fileset dir="${j.install.data.dir}/j" includes="j.jar"/>
         <fileset dir="${j.install.data.dir}/j/lib" includes="*.jar"/>
       </path>
@@ -287,7 +370,7 @@
           <filter token="JAVA_OPTIONS" 
                   value="${java.options}"/>
           <filter token="CLASSPATH"
-                  value="${toString:j.run.classpath}"/>
+                  value="${toString:j.install.run.classpath}"/>
         </filterset>
       </copy>
       <chmod file="${j.install.bin.dir}/j" perm="ugo+rx"/>

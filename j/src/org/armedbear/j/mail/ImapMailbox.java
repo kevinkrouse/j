@@ -735,13 +735,13 @@ public final class ImapMailbox extends Mailbox
     {
         if (input.startsWith("{")) {
             try {
-                ImapURL targetUrl = new ImapURL(input);
-                if (!url.getHost().equals(targetUrl.getHost())) {
+                MailboxURL targetUrl = MailboxURL.parseRemote(input, "imap");
+                if (!(targetUrl instanceof ImapURL) || !url.getHost().equals(targetUrl.getHost())) {
                     // We don't support operations involving folders on other
                     // servers.
                     return null;
                 }
-                String name = targetUrl.getFolderName();
+                String name = ((ImapURL)targetUrl).getFolderName();
                 Log.debug("folder name = |" + name + "|");
                 return name;
             }
@@ -1118,8 +1118,9 @@ public final class ImapMailbox extends Mailbox
 
     private void addEntry(List list, String s, int uidBegin, boolean recent)
     {
-        ImapMailboxEntry entry = ImapMailboxEntry.parseEntry(this, s);
+        ImapMailboxEntry entry = ImapMailboxEntry.parseEntry(s);
         if (entry != null) {
+            entry.setMailbox(this);
             if (entry.getUid() >= uidBegin) {
                 if (recent)
                     entry.setFlags(entry.getFlags() | MailboxEntry.RECENT);

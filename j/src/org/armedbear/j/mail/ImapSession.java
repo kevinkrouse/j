@@ -36,7 +36,6 @@ import org.armedbear.j.Utilities;
 
 public final class ImapSession
 {
-    private static final int DEFAULT_PORT = 143;
 
     // States.
     private static final int DISCONNECTED     = 0;
@@ -53,10 +52,9 @@ public final class ImapSession
 
     public static final int UNKNOWN = -1;
 
-    private final String host;
+    private final ImapURL url;
     private final String user;
     private final String password;
-    private final int port;
 
     private String tunnelHost;
     private int tunnelPort = -1;
@@ -77,9 +75,9 @@ public final class ImapSession
 
     private ImapSession(ImapURL url, String user, String password)
     {
-        this.host = url.getHost();
+        this.url = url;
         this.folderName = url.getFolderName();
-        this.port = url.getPort();
+        this.echo = url.isDebug();
         this.user = user;
         this.password = password;
     }
@@ -98,12 +96,12 @@ public final class ImapSession
 
     public final String getHost()
     {
-        return host;
+        return url.getHost();
     }
 
     public final int getPort()
     {
-        return port;
+        return url.getPort();
     }
 
     public final String getUser()
@@ -178,7 +176,7 @@ public final class ImapSession
         if (url.getHost() == null || url.getFolderName() == null)
             return null;
         String user = url.getUser();
-        if (user == null)
+        if (user == null || user.length() == 0)
             user = System.getProperty("user.name");
         return getSession(url, user);
     }
@@ -224,15 +222,18 @@ public final class ImapSession
         errorText = null;
         final String h; // Host.
         final int p; // Port.
+        final boolean ssl;
         if (tunnelHost != null && tunnelPort > 0) {
             h = tunnelHost;
             p = tunnelPort;
+            ssl = p == ImapURL.DEFAULT_SSL_PORT;
             Log.debug("connect using tunnel h = " + h + " p = " + p);
         } else {
-            h = host;
-            p = port;
+            h = getHost();
+            p = getPort();
+            ssl = url.isSSL();
         }
-        SocketConnection sc = new SocketConnection(h, p, 30000, 200, null);
+        SocketConnection sc = new SocketConnection(h, p, ssl, 30000, 200, null);
         Log.debug("connecting to " + h + " on port " + p);
         socket = sc.connect();
         if (socket == null) {
@@ -240,7 +241,7 @@ public final class ImapSession
             Log.error(errorText);
             return false;
         }
-        Log.debug("connected to " + host);
+        Log.debug("connected to " + h);
         boolean succeeded = false;
         boolean oldEcho = echo;
         if (Editor.isDebugEnabled())
@@ -379,7 +380,7 @@ public final class ImapSession
 
     public void logout()
     {
-        Log.debug("ImapSession.logout " + host);
+        Log.debug("ImapSession.logout " + getHost());
         if (state > DISCONNECTED) {
             if (writeTagged("logout"))
                 getResponse();
@@ -603,7 +604,7 @@ public final class ImapSession
 
     protected void finalize() throws Throwable
     {
-        Log.debug("ImapSession.finalize " + host);
+        Log.debug("ImapSession.finalize " + getHost());
         super.finalize();
     }
 }

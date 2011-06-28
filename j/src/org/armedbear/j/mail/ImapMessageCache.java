@@ -34,6 +34,8 @@ import java.util.Enumeration;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Properties;
+
+import org.armedbear.j.Debug;
 import org.armedbear.j.Directories;
 import org.armedbear.j.File;
 import org.armedbear.j.FastStringBuffer;
@@ -252,7 +254,8 @@ public final class ImapMessageCache
                 if (key.indexOf('@') < 0 || key.indexOf(':') < 0) {
                     // Obsolete format (i.e. not canonical mailbox name).
                     try {
-                        ImapURL url = new ImapURL(key);
+                        MailboxURL url = MailboxURL.parseRemote(key, "imap");
+                        Debug.bugIfNot(url instanceof ImapURL, "url in cache not parsed as ImapURL: " + key);
                         temp.put(url.getCanonicalName(), value);
                     }
                     catch (MalformedURLException e) {
