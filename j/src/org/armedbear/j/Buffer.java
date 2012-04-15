@@ -161,6 +161,11 @@ public class Buffer extends SystemBuffer
         return isSecondary() || getSecondary() != null;
     }
 
+    public boolean isPairedTo(Buffer other)
+    {
+        return other.equals(getPrimary()) || other.equals(getSecondary());
+    }
+
     public Buffer getPrimary()
     {
         return null;

@@ -94,7 +94,7 @@
         Documentation is included in both source and binary distributions.
         <p>
         You can also view the documentation for the current release
-        <a href="http://armedbear-j.sourceforge.net/doc/contents.html">online</a>.
+        <a href="doc/contents.html">online</a>.
     </dd>
 </dl>
 
@@ -104,8 +104,7 @@
 </font>
 <dl>
   <dd>J's mailing list page on SourceForge is <a href="http://sourceforge.net/mail/?group_id=55057">here</a>.
-    (<a href="http://news.gmane.org/thread.php?group=gmane.editors.j.devel">Gmane</a> or
-     <a href="http://n2.nabble.com/ArmedBear-Common-Lisp---J-editor-f2124457.html">Nabble</a>)
+    (<a href="http://news.gmane.org/thread.php?group=gmane.editors.j.devel">Gmane</a>)
   </dd>
 </dl>
 
@@ -122,6 +121,27 @@
   <b>What's New</b>
 </font>
 <dl>
+  <dd>
+  <b>Development Version</b>
+  <p>
+  This release adds support for multiple horizontal and vertical splits.
+  <p>
+  New commands have been added to create splits and navigate the windows:<br>
+  <a href="doc/commands.html#nextWindow">nextWindow</a> - Switch to the next window in the frame (Mapped to Alt O).  Accepts an integer argument.
+  <a href="doc/commands.html#previousWindow">previousWindow</a> - Switch to the previous window in the frame (Mapped to Alt Shift O).  Accepts an integer argument.
+  <a href="doc/commands.html#priorWindow">priorWindow</a> - Switch to the most recent window (Unmapped).
+  <a href="doc/commands.html#unsplitAllWindows">unsplitAllWindows</a> - Closes all windows except for the current one (Mapped to Ctrl Alt Shift F10.  Aliased as 'killOtherWindows')
+  <a href="doc/commands.html#vsplitWindow">vsplitWindow</a> - Splits the current window into two using a vertical split (Mapped to Ctrl F10).
+  <p>
+  Changed commands:<br>
+  <a href="doc/commands.html#otherWindow">otherWindow</a> - Used to focus on the window across the split.  Now <code>otherWindow</code> will navigate to the paired, parent, or prior window.  (Used to be mapped to Alt O, now is Ctrl Alt O)
+  <p>
+  Thanks to the <a href="http://swingx.java.net/">SwingX</a> JXMultiSplitPane component which is used to provide the splitting cabailities.
+  See <a href="terms.html">terms</a>.
+  <p>
+  You may now use the mouse wheel to scroll a window horizontally by holding down shift.
+  </dd>
+
   <dd>
   <b>Apr 11 2010 - Version 0.23.0</b>
   <p>
@@ -147,19 +167,19 @@
   Darcs is now supported and the p4 commands have had many bug fixes.
   <p>
   New commands:<br>
-  <a href="http://armedbear-j.sourceforge.net/doc/commands.html#electricQuote">electricQuote</a><br>
-  <a href="http://armedbear-j.sourceforge.net/doc/commands.html#enlargeWindow">enlargeWindow</a><br>
-  <a href="http://armedbear-j.sourceforge.net/doc/commands.html#justOneSpace">justOneSpace</a><br>
-  <a href="http://armedbear-j.sourceforge.net/doc/commands.html#shrinkWindowIfLargerThanBuffer">shrinkWindowIfLargerThanBuffer</a><br>
-  <a href="http://armedbear-j.sourceforge.net/doc/commands.html#tempBufferQuit">tempBufferQuit</a><br>
-  <a href="http://armedbear-j.sourceforge.net/doc/commands.html#darcs">darcs</a><br>
-  <a href="http://armedbear-j.sourceforge.net/doc/commands.html#describe">describe</a><br>
-  <a href="http://armedbear-j.sourceforge.net/doc/commands.html#describeBindings">describeBindings</a><br>
-  <a href="http://armedbear-j.sourceforge.net/doc/commands.html#endMacro">endMacro</a><br>
-  <a href="http://armedbear-j.sourceforge.net/doc/commands.html#electricCloseParen">electricCloseParen</a><br>
-  <a href="http://armedbear-j.sourceforge.net/doc/commands.html#markSexp">markSexp</a><br>
-  <a href="http://armedbear-j.sourceforge.net/doc/commands.html#mouseCopyToInput">mouseCopyToInput</a><br>
-  <a href="http://armedbear-j.sourceforge.net/doc/commands.html#startMacro">startMacro</a><br>
+  <a href="doc/commands.html#electricQuote">electricQuote</a><br>
+  <a href="doc/commands.html#enlargeWindow">enlargeWindow</a><br>
+  <a href="doc/commands.html#justOneSpace">justOneSpace</a><br>
+  <a href="doc/commands.html#shrinkWindowIfLargerThanBuffer">shrinkWindowIfLargerThanBuffer</a><br>
+  <a href="doc/commands.html#tempBufferQuit">tempBufferQuit</a><br>
+  <a href="doc/commands.html#darcs">darcs</a><br>
+  <a href="doc/commands.html#describe">describe</a><br>
+  <a href="doc/commands.html#describeBindings">describeBindings</a><br>
+  <a href="doc/commands.html#endMacro">endMacro</a><br>
+  <a href="doc/commands.html#electricCloseParen">electricCloseParen</a><br>
+  <a href="doc/commands.html#markSexp">markSexp</a><br>
+  <a href="doc/commands.html#mouseCopyToInput">mouseCopyToInput</a><br>
+  <a href="doc/commands.html#startMacro">startMacro</a><br>
   </dd>
 
   <dd>
@@ -170,18 +190,18 @@
   <p>
   It is now possible to use drag/drop in the sidebar buffer list to reorder the
   buffers, so that navigating between buffers using
-  <a href="http://armedbear-j.sourceforge.net/doc/commands.html#nextBuffer">nextBuffer</a> and
-  <a href="http://armedbear-j.sourceforge.net/doc/commands.html#prevBuffer">prevBuffer</a> (mapped by default to
+  <a href="doc/commands.html#nextBuffer">nextBuffer</a> and
+  <a href="doc/commands.html#prevBuffer">prevBuffer</a> (mapped by default to
   Alt Right and Alt Left, respectively) is more efficient. Thanks to Mike
   Rutter for providing the code to do this.
   <p>
   By request, the command
-  <a href="http://armedbear-j.sourceforge.net/doc/commands.html#wrapParagraphsInRegion">wrapParagraphsInRegion</a>
+  <a href="doc/commands.html#wrapParagraphsInRegion">wrapParagraphsInRegion</a>
   has been added. It is mapped by default to Ctrl Shift F12 in plain text and
   mail composition buffers.
-  <a href="http://armedbear-j.sourceforge.net/doc/commands.html#wrapParagraphsInRegion">wrapParagraphsInRegion</a>
+  <a href="doc/commands.html#wrapParagraphsInRegion">wrapParagraphsInRegion</a>
   walks through the region (or the whole buffer if no region is selected) and,
-  in effect, calls <a href="http://armedbear-j.sourceforge.net/doc/commands.html#wrapParagraph">wrapParagraph</a>
+  in effect, calls <a href="doc/commands.html#wrapParagraph">wrapParagraph</a>
   on each paragraph.
   <p>
   The wrap commands should now do a better job of handling lines that break on
@@ -192,33 +212,33 @@
   "wrap- paragraph", with a bogus extra space after the hyphen.
   <p>
   The commands
-  <a href="http://armedbear-j.sourceforge.net/doc/commands.html#pageUpOtherWindow">pageUpOtherWindow</a> and
-  <a href="http://armedbear-j.sourceforge.net/doc/commands.html#pageDownOtherWindow">pageDownOtherWindow</a> have
+  <a href="doc/commands.html#pageUpOtherWindow">pageUpOtherWindow</a> and
+  <a href="doc/commands.html#pageDownOtherWindow">pageDownOtherWindow</a> have
   been added. They are mapped by default to Alt Page Down and Alt Page Up,
   respectively, in all modes. These commands are helpful in a split-window
   situation when you want to scroll the other window without switching to it.
   <p>
   The commmand
-  <a href="http://armedbear-j.sourceforge.net/doc/commands.html#findOccurrenceAtDotAndKillList">findOccurrenceAtDotAndKillList</a>
+  <a href="doc/commands.html#findOccurrenceAtDotAndKillList">findOccurrenceAtDotAndKillList</a>
   has been added. It is mapped by default to Ctrl Enter in List Occurrences
   buffers. It works like
-  <a href="http://armedbear-j.sourceforge.net/doc/commands.html#findOccurrenceAtDot">findOccurrenceAtDot</a>, but
+  <a href="doc/commands.html#findOccurrenceAtDot">findOccurrenceAtDot</a>, but
   in addition it closes the List Occurrences buffer.
   <p>
-  The commands <a href="http://armedbear-j.sourceforge.net/doc/commands.html#shellNextPrompt">shellNextPrompt</a>
-  and <a href="http://armedbear-j.sourceforge.net/doc/commands.html#shellPreviousPrompt">shellPreviousPrompt</a>
+  The commands <a href="doc/commands.html#shellNextPrompt">shellNextPrompt</a>
+  and <a href="doc/commands.html#shellPreviousPrompt">shellPreviousPrompt</a>
   have been added. They are mapped by default to Ctrl Alt N and Ctrl Alt P,
   respectively, in shell buffers and their derivatives (including Lisp shells),
   and they help you find the next or previous prompt, starting from the current
   location of the caret.
   <p>
-  The command <a href="http://armedbear-j.sourceforge.net/doc/commands.html#p4Log">p4Log</a> has been added. It
+  The command <a href="doc/commands.html#p4Log">p4Log</a> has been added. It
   runs the Perforce command "filelog -l" on the file associated with the
   current buffer.
   <p>
-  The command <a href="http://armedbear-j.sourceforge.net/doc/commands.html#p4Diff">p4Diff</a> now runs the
+  The command <a href="doc/commands.html#p4Diff">p4Diff</a> now runs the
   Perforce command "p4 diff -f -du", instead of "p4 diff -du". This change
-  means that <a href="http://armedbear-j.sourceforge.net/doc/commands.html#p4Diff">p4Diff</a> will display
+  means that <a href="doc/commands.html#p4Diff">p4Diff</a> will display
   potentially useful output even if the file associated with the current buffer
   has not, in Perforce's opinion, been officially opened for editing.
   <p>
@@ -331,7 +351,7 @@
 <dl>
   <dd>
     Instructions are provided in the file
-    <a href="http://armedbear-j.sourceforge.net/doc/building.html">building.html</a> in the doc directory of the
+    <a href="doc/building.html">building.html</a> in the doc directory of the
     distribution. </dd>
 </dl>
 <A href="http://sourceforge.net"> <IMG src="http://sourceforge.net/sflogo.php?group_id=55057" width="105" height="31" border="0" alt="SourceForge Logo" align="right"></A>

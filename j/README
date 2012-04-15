@@ -5,9 +5,9 @@ J is a multifile, multiwindow programmer's editor written entirely in Java. It
 features syntax highlighting for Java, C, C++, XML, HTML, CSS, JavaScript,
 Lisp, Perl, PHP, Python, Ruby, Scheme, Tcl/Tk, Verilog, and VHDL, automatic
 indentation, directory buffers, regular expressions, multifile find and
-replace, autosave and crash recovery, undo/redo, and FTP/HTTP support. All
-keyboard mappings can be customized. Themes may be used to customize the
-editor's appearance.
+replace, autosave and crash recovery, undo/redo, FTP/HTTP support, email,
+and multiple horizontal/vertical splits. All keyboard mappings can be
+customized. Themes may be used to customize the editor's appearance.
 
 Peter Graves is the original author of J and Armed Bear Common Lisp.
 

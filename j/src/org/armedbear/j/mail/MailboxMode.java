@@ -137,7 +137,9 @@ public class MailboxMode extends AbstractMode implements Constants, Mode
             menu.add(groupByThread);
             menu.addSeparator();
             menu.add(editor, "Split Window", 'W', "splitWindow");
+            menu.add(editor, "Vertical Split Window", 'V', "vsplitWindow");
             menu.add(editor, "Unsplit Window", 'U', "unsplitWindow");
+            menu.add(editor, "Unsplit All", '\0', "unsplitAllWindows");
             menu.add(editor, "Close Window", 'C', "killWindow");
         } else
             super.populateMenu(editor, menu);

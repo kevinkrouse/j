@@ -374,9 +374,13 @@ public final class KeyMap implements Constants
         mapKey(KeyEvent.VK_T, CTRL_MASK | SHIFT_MASK, "sidebarListTags");
 
         mapKey(KeyEvent.VK_F10, 0, "splitWindow");
+        mapKey(KeyEvent.VK_F10, CTRL_MASK, "vsplitWindow");
         mapKey(KeyEvent.VK_F10, SHIFT_MASK, "unsplitWindow");
         mapKey(KeyEvent.VK_F10, CTRL_MASK | SHIFT_MASK, "killWindow");
-        mapKey(KeyEvent.VK_O, ALT_MASK, "otherWindow");
+        mapKey(KeyEvent.VK_F10, CTRL_MASK | ALT_MASK | SHIFT_MASK, "unsplitAllWindows");
+        mapKey(KeyEvent.VK_O, ALT_MASK, "nextWindow");
+        mapKey(KeyEvent.VK_O, SHIFT_MASK | ALT_MASK, "previousWindow");
+        mapKey(KeyEvent.VK_O, CTRL_MASK | ALT_MASK, "otherWindow");
 
         if (Editor.preferences().getBooleanProperty(Property.ENABLE_EXPERIMENTAL_FEATURES))
             mapKey(KeyEvent.VK_F9, ALT_MASK, "shell");

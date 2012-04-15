@@ -115,7 +115,7 @@
       <condition property="j.java.version">
         <or>
           <matches string="${java.version}" pattern="1\.5"/>
-          <matches string="${java.version}" pattern="1\.6\.0_1[0-9]"/>
+          <matches string="${java.version}" pattern="1\.6\.0_[0-9]*"/>
         </or>  
       </condition>
       <echo>java.version: ${java.version}</echo>

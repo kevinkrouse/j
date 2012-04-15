@@ -129,7 +129,10 @@ public class CommandTable
             addCommand("killBuffer");
             addCommand("killFrame");
             addCommand("killLine");
+            // synonym for unsplitAllWindows
+            addCommand("killOtherWindows", "Editor", "unsplitAllWindows");
             addCommand("killRegion");
+            addCommand("killWindow");
             addCommand("killWordLeft");
             addCommand("killWordRight");
             addCommand("left");
@@ -141,10 +144,13 @@ public class CommandTable
             addCommand("newlineAndIndent");
             addCommand("nextBuffer");
             addCommand("nextFrame");
+            addCommand("nextWindow");
             addCommand("offset");
             addCommand("openFile");
             addCommand("openFileInOtherWindow");
             addCommand("otherWindow");
+            addCommand("previousWindow");
+            addCommand("priorWindow");
             addCommand("pageDown");
             addCommand("pageDownOtherWindow");
             addCommand("pageUp");
@@ -198,10 +204,12 @@ public class CommandTable
             addCommand("undo");
             addCommand("unfold");
             addCommand("unfoldAll");
+            addCommand("unsplitAllWindows");
             addCommand("unsplitWindow");
             addCommand("unwrapParagraph");
             addCommand("up");
             addCommand("visibleTabs");
+            addCommand("vsplitWindow");
             addCommand("whatChar");
             addCommand("windowDown");
             addCommand("windowUp");

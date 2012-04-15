@@ -1187,11 +1187,12 @@ public final class Utilities implements Constants
                 }
             }
             if (userHome == null) {
-                setUserHome(System.getProperty("user.home"));
+                String homeProperty = System.getProperty("user.home");
                 // Expand links.
-                File home = File.getInstance(userHome);
+                File home = File.getInstance(homeProperty);
                 if (home != null)
-                    setUserHome(home.canonicalPath());
+                    homeProperty = home.canonicalPath();
+                setUserHome(homeProperty);
             }
         }
         return userHome;

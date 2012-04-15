@@ -253,6 +253,7 @@
     <li><a href="commands.html#nextComment">nextComment</a></li>
     <li><a href="commands.html#nextError">nextError</a></li>
     <li><a href="commands.html#nextFrame">nextFrame</a></li>
+    <li><a href="commands.html#nextWindow">nextWindow</a></li>
     <li><a href="commands.html#offset">offset</a></li>
     <li><a href="commands.html#openFile">openFile</a></li>
     <li><a href="commands.html#openFileInOtherFrame">openFileInOtherFrame</a></li>
@@ -281,7 +282,9 @@
     <li><a href="commands.html#previousChange">previousChange</a></li>
     <li><a href="commands.html#previousComment">previousComment</a></li>
     <li><a href="commands.html#previousError">previousError</a></li>
+    <li><a href="commands.html#previousWindow">previousWindow</a></li>
     <li><a href="commands.html#print">print</a></li>
+    <li><a href="commands.html#priorWindow">priorWindow</a></li>
     <li><a href="commands.html#properties">properties</a></li>
     <li><a href="commands.html#pushPosition">pushPosition</a></li>
     <li><a href="commands.html#quit">quit</a></li>
@@ -365,11 +368,13 @@
     <li><a href="commands.html#undo">undo</a></li>
     <li><a href="commands.html#unfold">unfold</a></li>
     <li><a href="commands.html#unfoldAll">unfoldAll</a></li>
+    <li><a href="commands.html#unsplitAllWindows">unsplitAllWindows</a></li>
     <li><a href="commands.html#unsplitWindow">unsplitWindow</a></li>
     <li><a href="commands.html#unwrapParagraph">unwrapParagraph</a></li>
     <li><a href="commands.html#up">up</a></li>
     <li><a href="commands.html#upperCaseRegion">upperCaseRegion</a></li>
     <li><a href="commands.html#visibleTabs">visibleTabs</a></li>
+    <li><a href="commands.html#vsplitWindow">vsplitWindow</a></li>
     <li><a href="commands.html#whatChar">whatChar</a></li>
     <li><a href="commands.html#whereIs">whereIs</a></li>
     <li><a href="commands.html#windowDown">windowDown</a></li>
@@ -2586,14 +2591,16 @@ with the command <a href="#pasteColumn">pasteColumn</a>.
 
 <a name="killWindow">killWindow</a><dl><dd>
 <p>
-If the current frame contains two edit windows, closes the current edit window,
-so that the other edit window fills the frame. Equivalent to
+If the current frame contains a split window, closes the current edit window,
+and gives focus to the other edit window. Equivalent to
 <a href="#otherWindow">otherWindow</a> followed by
 <a href="#unsplitWindow">unsplitWindow</a>.
+The last window in a frame can't be closed.
 <p>
 <b>Default key mapping:</b> Ctrl Shift F10
 <p>
-<b>See also:</b> <a href="#unsplitWindow">unsplitWindow</a>
+<b>See also:</b> <a href="#unsplitWindow">unsplitWindow</a>,
+<a href="#unsplitAllWindows">unsplitAllWindows</a>
 <br><br>
 </dl><!--<hr>-->
 
@@ -2728,7 +2735,8 @@ Multi-line selections are not supported.
 Lists the contents of all registers in use.
 <p>
 Register names must be lower case letters (a-z). The contents of registers
-persist automatically from one j session to the next.
+persist automatically from one j session to the next.  To edit the contents
+of a register, press Enter after positioning the cursor on the register.
 <p>
 <b>Default key mapping:</b> None
 <p>
@@ -3456,6 +3464,19 @@ Activates the next frame (top-level editor window).
 <br><br>
 </dl><!--<hr>-->
 
+<a name="nextWindow">nextWindow</a><dl><dd>
+<p>
+Selects the next window in the current frame.  After the rightmost and
+bottommost window, it goes back to the one at the upper left corner. A numeric
+argument means to move several steps in the cyclic order of windows. A negative
+argument moves around the cycle in the opposite order.
+<p>
+<b>Default key mapping:</b> Alt O
+<p>
+<b>See also:</b> <a href="#previousWindow">previousWindow</a>, <a href="#otherWindow">otherWindow</a>
+<br><br>
+</dl><!--<hr>-->
+
 <a name="offset">offset</a><dl><dd>
 <p>
 Reports the current location of the caret as an absolute offset (the number of
@@ -3544,9 +3565,12 @@ For example:
 
 <a name="otherWindow">otherWindow</a><dl><dd>
 <p>
-Selects the other window in the current frame.
-<br><br>
-<b>Default key mapping:</b> Alt O
+Go to the paired window or parent window for the current editor.
+If neither exist, go to the most recently accessed window in the current frame.
+<p>
+<b>Default key mapping:</b> Ctrl Alt O
+<p>
+<b>See also:</b> <a href="#nextWindow">nextWindow</a>, <a href="#previousWindow">previousWindow</a>
 <br><br>
 </dl><!--<hr>-->
 
@@ -3811,11 +3835,32 @@ compilation error.
 <br><br>
 </dl><!--<hr>-->
 
+<a name="previousWindow">previousWindow</a><dl><dd>
+<p>
+Selects the previous window in the current frame.  After the leftmost and
+topmost window, it goes back to the one at the bottom right corner. A numeric
+argument means to move several steps in the cyclic order of windows. A negative
+argument moves around the cycle in the opposite order.
+<p>
+<b>Default key mapping:</b> Alt Shift O
+<p>
+<b>See also:</b> <a href="#nextWindow">nextWindow</a>, <a href="#otherWindow">otherWindow</a>
+<br><br>
+</dl><!--<hr>-->
+
 <a name="print">print</a><dl><dd>
 <p>
 Prints the selected region, or the current buffer if no region is selected.
 <p>
 <b>Default key mapping:</b> Ctrl P
+<br><br>
+</dl><!--<hr>-->
+
+<a name="priorWindow">priorWindow</a><dl><dd>
+<p>
+Selects the previously focused window in the current frame.
+<p>
+<b>See also:</b> <a href="#otherWindow">otherWindow</a>
 <br><br>
 </dl><!--<hr>-->
 
@@ -4568,10 +4613,16 @@ source on your system by adding a line like this to your
 
 <a name="splitWindow">splitWindow</a><dl><dd>
 <p>
-Splits the current window horizontally. Only one split per frame is currently
-supported.
+Splits the current window horizontally and moves focus to the new window.
+Multiple splits are supported.
 <p>
 <b>Default key mapping:</b> F10
+<p>
+<b>See also:</b>
+<a href="#vsplitWindow">vsplitWindow</a>,
+<a href="#unsplitWindow">unsplitWindow</a>,
+<a href="#killWindow">killWindow</a>,
+<a href="#otherWindow">otherWindow</a>
 <br><br>
 </dl><!--<hr>-->
 
@@ -4861,10 +4912,26 @@ Unfolds all the folds in the current buffer.
 <br><br>
 </dl><!--<hr>-->
 
+<a name="unsplitAllWindows">unsplitAllWindows</a><dl><dd>
+<p>
+Closes all windows except for the current edit window.
+The last window in a frame can't be closed.
+<p>
+<b>Default key mapping:</b> Ctrl Alt Shift F10
+<p>
+<b>Abbreviations:</b> killOtherWindows
+<p>
+<b>See also:</b>
+<a href="#closeOthers">closeOthers</a>,
+<a href="#unsplitWindow">unsplitWindow</a>,
+<a href="#killWindow">killWindow</a>
+<br><br>
+</dl><!--<hr>-->
+
 <a name="unsplitWindow">unsplitWindow</a><dl><dd>
 <p>
-Makes the current window fill its frame, closing the other window in the
-current frame.
+Closes the window(s) on the opposite side of the split
+from the current window.
 <br><br>
 <b>Default key mapping:</b> Shift F10
 <br><br>
@@ -4906,6 +4973,21 @@ characters, as you would expect. When you turn on visible tabs, tab characters
 are indicated by the character '^'.
 <br><br>
 <b>Default key mapping:</b> Ctrl Alt T
+<br><br>
+</dl><!--<hr>-->
+
+<a name="vsplitWindow">vsplitWindow</a><dl><dd>
+<p>
+Splits the current window vertically and moves focus to the new window.
+Multiple splits are supported.
+<p>
+<b>Default key mapping:</b> Ctrl F10
+<p>
+<b>See also:</b>
+<a href="#splitWindow">splitWindow</a>,
+<a href="#unsplitWindow">unsplitWindow</a>,
+<a href="#killWindow">killWindow</a>,
+<a href="#otherWindow">otherWindow</a>
 <br><br>
 </dl><!--<hr>-->
 

@@ -21,7 +21,6 @@
 
 package org.armedbear.j;
 
-import java.awt.Color;
 import javax.swing.BorderFactory;
 import javax.swing.BoxLayout;
 import javax.swing.JComponent;
@@ -164,8 +163,8 @@ public final class Sidebar extends JComponent implements Constants
         if (bottomComponent != null) {
             Editor editor = frame.getCurrentEditor();
             Buffer buffer = editor.getBuffer();
-            if (frame.getEditorCount() == 2 && buffer.isTransient()) {
-                editor = frame.getOtherEditor();
+            if (frame.getEditorCount() > 1 && buffer.isTransient()) {
+                editor = editor.getOtherEditor();
                 buffer = editor.getBuffer();
             }
             if (isTaggable(buffer) && bottomComponent instanceof SidebarTagList) {

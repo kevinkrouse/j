@@ -34,6 +34,10 @@ import java.awt.event.KeyEvent;
 import java.awt.event.WindowEvent;
 import java.awt.event.WindowListener;
 import java.awt.event.WindowStateListener;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
 import javax.swing.JButton;
 import javax.swing.JComponent;
 import javax.swing.JFrame;
@@ -42,8 +46,10 @@ import javax.swing.SwingUtilities;
 public final class Frame extends JFrame implements Constants, ComponentListener,
     FocusListener, WindowListener, WindowStateListener
 {
-    private Editor[] editors = new Editor[2];
+    private EditorPane editorPane;
+    private EditorList editors = new EditorList();
     private Editor currentEditor;
+    private Editor priorEditor;
     private ToolBar toolbar;
     private boolean showToolbar;
     private AdjustPlacementRunnable adjustPlacementRunnable;
@@ -64,13 +70,16 @@ public final class Frame extends JFrame implements Constants, ComponentListener,
         final SessionProperties sessionProperties =
             Editor.getSessionProperties();
         showToolbar = sessionProperties.getShowToolbar(this);
-        currentEditor = editors[0] = editor;
+        editorPane = new EditorPane(editor);
+        editors.add(editor);
+        currentEditor = editor;
+        priorEditor = null;
         if (sessionProperties.getShowSidebar(this)) {
             sidebar = new Sidebar(this);
             sidebarSplitPane = createSidebarSplitPane();
             getContentPane().add(sidebarSplitPane, "Center");
         } else
-            getContentPane().add(editors[0], "Center");
+            getContentPane().add(editorPane, "Center");
         titleChanged();
     }
 
@@ -114,19 +123,19 @@ public final class Frame extends JFrame implements Constants, ComponentListener,
             super.processEvent(e);
     }
 
-    public int getEditorCount()
+    public boolean hasSplit()
     {
-        int count = 0;
-        if (editors[0] != null)
-            ++count;
-        if (editors[1] != null)
-            ++count;
-        return count;
+        return editors.size() > 1;
     }
 
-    public Editor getEditor()
+    public int getEditorCount()
     {
-        return editors[0];
+        return editors.size();
+    }
+
+    public final Iterable<Editor> getEditors()
+    {
+        return editors;
     }
 
     public final Editor getCurrentEditor()
@@ -135,44 +144,157 @@ public final class Frame extends JFrame implements Constants, ComponentListener,
     }
 
     // May return null.
-    public final Editor getOtherEditor()
+    public final Editor getNextEditor()
     {
-        return currentEditor == editors[0] ? editors[1] : editors[0];
+        return getNextEditor(currentEditor, 1);
+    }
+
+    public final Editor getNextEditor(int count)
+    {
+        return getNextEditor(currentEditor, count);
+    }
+
+    public final Editor getNextEditor(Editor ed, int count)
+    {
+        int size = editors.size();
+        Debug.bugIf(size == 0, "editor list shouldn't be empty");
+        if (size == 0)
+            return null;
+
+        Debug.bugIf(count == 0, "count must be >0 to get next editor, or <0 to get previous editor");
+        if (count == 0)
+            return currentEditor;
+
+        if (ed == null || size == 1)
+            return editors.get(0);  // return null ?
+
+        int index = editors.indexOf(ed);
+        index += count;
+
+        if (index < 0)
+            index = size + (index % size);
+        else
+            index = index % size;
+
+        return editors.get(index);
+    }
+
+    public final Editor getPriorEditor()
+    {
+        return getPriorEditor(currentEditor);
+    }
+
+    // get most recent editor
+    private final Editor getPriorEditor(Editor editor)
+    {
+        // If no other editor, return null
+        if (editor == null || editors.size() == 1)
+            return null;
+
+        return priorEditor;
     }
 
     public final void setCurrentEditor(Editor editor)
     {
         Debug.assertTrue(editor != null);
-        Debug.assertTrue(editor == editors[0] || editor == editors[1]);
-        currentEditor = editor;
+        Debug.assertTrue(editors.contains(editor));
+        if (currentEditor != editor)
+        {
+            // currentEditor may be closing and no longer in the editors list
+            if (editors.contains(currentEditor))
+                priorEditor = currentEditor;
+            else
+                priorEditor = getNextEditor(editor, -1);
+            Debug.assertTrue(priorEditor == null || editors.contains(priorEditor));
+
+            currentEditor = editor;
+        }
     }
 
-    public final Editor getPrimaryEditor()
+    // Get the paired or parent editor for the given editor
+    public final Editor getPairedEditor(Editor editor)
     {
-        return editors[0];
+        if (editors.size() < 2)
+            return null;
+
+        // shortcut
+        if (editors.size() == 2) {
+            if (editors.get(0) == editor)
+                return editors.get(1);
+            else
+                return editors.get(0);
+        }
+
+        // find paired or parent editor
+        Buffer buf = editor.getBuffer();
+        Buffer other = null;
+        if (buf.isPaired()) {
+            if (buf.isPrimary())
+                other = buf.getSecondary();
+            else
+                other = buf.getPrimary();
+        }
+        else if (buf.getParentBuffer() != null) {
+            other = buf.getParentBuffer();
+        }
+
+        if (other != null)
+        {
+            Editor ed = findEditor(other);
+            if (ed != currentEditor)
+                return ed;
+        }
+
+        return null;
     }
 
-    public final Editor getSecondaryEditor()
+    // If more than one Editor is open, get the paired or parent Editor
+    // or the most recent Editor.  May return null.
+    public final Editor getOtherEditor(Editor editor)
     {
-        return editors[1];
+        Editor paired = getPairedEditor(editor);
+        if (paired != null)
+            return paired;
+
+        return getPriorEditor(editor);
     }
 
-    public final boolean isPrimaryEditor(Editor ed)
+    public final List<Editor> getPrimaryEditors()
     {
-        return ed != null && ed == editors[0];
+        List<Editor> ret = new ArrayList<Editor>(editors.size());
+        for (Editor ed : editors)
+            if (ed.getBuffer().isPrimary())
+                ret.add(ed);
+        return ret;
     }
 
     public final boolean contains(Editor ed)
     {
-        return ed != null && (ed == editors[0] || ed == editors[1]);
+        return ed != null && editors.contains(ed);
+    }
+
+    // get the Editor showing Buffer
+    public final Editor findEditor(final Buffer buf)
+    {
+        for (Editor ed : editors)
+            if (ed.getBuffer() == buf)
+                return ed;
+        return null;
+    }
+
+    // check buf is in the list of editors
+    private static final boolean hasBuffer(final List<Editor> editors, final Buffer buf)
+    {
+        for (Editor ed : editors)
+            if (ed.getBuffer() == buf)
+                return true;
+        return false;
     }
 
     public void updateTitle()
     {
-        if (editors[0] != null)
-            editors[0].updateLocation();
-        if (editors[1] != null)
-            editors[1].updateLocation();
+        for (Editor ed : editors)
+            ed.updateLocation();
     }
 
     private Sidebar sidebar;
@@ -213,14 +335,9 @@ public final class Frame extends JFrame implements Constants, ComponentListener,
         sidebar.setUpdateFlag(SIDEBAR_ALL);
     }
 
-    private JComponent editorPane;
-
-    public final JComponent getEditorPane()
+    public final EditorPane getEditorPane()
     {
-        if (editorPane != null)
-            return editorPane;
-        else
-            return editors[0];
+        return editorPane;
     }
 
     public void frameToggleSidebar()
@@ -239,9 +356,8 @@ public final class Frame extends JFrame implements Constants, ComponentListener,
             getContentPane().add(getEditorPane(), "Center");
         }
         validate();
-        editors[0].updateScrollBars();
-        if (editors[1] != null)
-            editors[1].updateScrollBars();
+        for (Editor ed : editors)
+            ed.updateScrollBars();
         currentEditor.setFocusToDisplay();
     }
 
@@ -382,7 +498,7 @@ public final class Frame extends JFrame implements Constants, ComponentListener,
     {
         final SessionProperties sessionProperties =
             Editor.getSessionProperties();
-        if (editors[0] == Editor.getEditor(0)) {
+        if (editors.get(0) == Editor.getEditor(0)) {
             // Initial window placement.
             Rectangle desired = sessionProperties.getWindowPlacement(0);
             if (desired.width == 0 || desired.height == 0) {
@@ -420,40 +536,86 @@ public final class Frame extends JFrame implements Constants, ComponentListener,
 
     public void splitWindow()
     {
-        if (editors[1] == null) {
-            Editor.getSessionProperties().saveSidebarState(this);
-            final int height = editors[0].getHeight();
-            editors[0].saveView();
-            editors[1] = new Editor(this);
-            editors[1].activate(editors[0].getBuffer());
-            editors[1].updateLocation();
-            SplitPane sp = new SplitPane(SplitPane.VERTICAL_SPLIT,
-                                         editors[0], editors[1]);
-            sp.setBorder(null);
-            sp.setDividerLocation(height / 2);
-            editorPane = sp;
-            if (sidebar != null) {
-                sidebarSplitPane.setRightComponent(editorPane);
-                int dividerLocation =
-                    Editor.getSessionProperties().getSidebarWidth(this);
-                sidebarSplitPane.setDividerLocation(dividerLocation);
-            } else {
-                // No sidebar.
-                getContentPane().remove(editors[0]);
-                getContentPane().add(editorPane, "Center");
-            }
-            validate();
-            editors[0].setUpdateFlag(REFRAME);
-            editors[1].updateDisplay();
-            restoreFocus();
-            updateControls();
-        }
+        splitWindow(currentEditor, false, true);
     }
 
-    public void switchToBuffer(final Buffer buf)
+    public void vsplitWindow()
     {
+        splitWindow(currentEditor, true, true);
+    }
+
+    private void splitWindow(Editor ed, boolean vertical, boolean focusNewEditor)
+    {
+        if (!contains(ed))
+            return;
+
+        splitWindow(ed, ed.getBuffer(), ed.getBuffer(), 0.5f, vertical, focusNewEditor);
+    }
+
+    // Split the Editor into two and set the buffers for the current and new Editors.
+    // UNDONE: Set divider location
+    private void splitWindow(Editor ed, Buffer primary, Buffer secondary, float split, boolean vertical, boolean switchWindows)
+    {
+        Editor.getSessionProperties().saveSidebarState(this);
+//        final int height = ed.getHeight();
+        ed.saveView();
+        ed.activate(primary);
+        Editor newEditor = new Editor(this);
+        editors.addAfter(newEditor, ed);
+        newEditor.activate(secondary);
+        newEditor.updateLocation();
+
+        editorPane.split(ed, newEditor, vertical);
+        
+//            int dividerLocation =
+//                (int)(height * (1 - split) - sp.getDividerSize());
+//            sp.setDividerLocation(dividerLocation);
+
+        validate();
+        Editor.setCurrentEditor(switchWindows ? newEditor : ed);
+        ed.setUpdateFlag(REFRAME | REPAINT);
+        newEditor.updateDisplay();
+        restoreFocus();
+        updateControls();
+    }
+
+    public final boolean isEditorSibling(Editor ed, Editor other)
+    {
+        if (ed == other)
+            return false;
+
+        List<Editor> siblings = editorPane.getSiblings(ed);
+        return siblings.contains(other);
+    }
+
+    // returns true if 'ed' is top-left of 'other'.
+    public final boolean isEditorTopLeftOf(Editor ed, Editor other)
+    {
+        if (ed == other)
+            return false;
+
+        // If the 'ed' editor is found before 'other' editor, 'ed' is either to the top or to the left.
+        List<Editor> siblings = editorPane.getSiblings(ed);
+        for (Editor sibling : siblings)
+        {
+            if (sibling == ed)
+                return true;
+            if (sibling == other)
+                return false;
+        }
+
+        // we should always find ed in it's own sibling list
+        Debug.bug("editor wasn't found in it's own sibling list");
+        return false;
+    }
+
+
+    public void switchToBuffer(final Editor fromEditor, final Buffer buf)
+    {
+        // We're either switching in a paired buffer or switching out
+        // a paired buffer (or both).
         Debug.bugIfNot(buf.isPaired() ||
-            (getEditorCount() == 2 && editors[0].getBuffer().isPaired()));
+            (getEditorCount() > 1 && fromEditor.getBuffer().isPaired()));
         final Buffer primary;
         final Buffer secondary;
         if (buf.isPrimary()) {
@@ -465,16 +627,48 @@ public final class Frame extends JFrame implements Constants, ComponentListener,
             Debug.bugIfNot(primary != null);
             secondary = buf;
         }
-        if (getEditorCount() == 2) {
+
+        if (getEditorCount() > 1) {
             // Window is already split.
+            // Get other editor and determine which are primary and secondary editors.
+            Editor otherEditor = fromEditor.getOtherEditor();
+            if (Editor.isDebugEnabled()) {
+                Debug.bugIf(otherEditor == null);
+                Debug.bugIf(fromEditor == otherEditor);
+                Debug.bugIfNot(isEditorSibling(fromEditor, otherEditor));
+            }
+
+            // the primary editor is ether the primary buffer's editor or the top-left most editor
+            Editor primaryEditor, secondaryEditor;
+            if (fromEditor.getBuffer().isPairedTo(otherEditor.getBuffer())) {
+                // editor buffers are paired
+                if (fromEditor.getBuffer().isPrimary()) {
+                    primaryEditor = fromEditor;
+                    secondaryEditor = otherEditor;
+                } else {
+                    primaryEditor = otherEditor;
+                    secondaryEditor = fromEditor;
+                }
+            } else {
+                // editor buffers are not paired: consider the top-left most editor the 'primary' editor
+                if (isEditorTopLeftOf(fromEditor, otherEditor)) {
+                    primaryEditor = fromEditor;
+                    secondaryEditor = otherEditor;
+                } else {
+                    primaryEditor = otherEditor;
+                    secondaryEditor = fromEditor;
+                }
+            }
+
             if (secondary != null) {
-                // Activate primary in editor 0.
-                // Activate secondary in editor 1.
-                if (editors[0].getBuffer() != primary)
-                    editors[0].activate(primary);
-                if (editors[1].getBuffer() != secondary)
-                    editors[1].activate(secondary);
-                // Adjust split pane divider location.
+                // Activate primary buffer in primary editor.
+                // Activate secondary buffer in secondary editor.
+                if (primaryEditor.getBuffer() != primary)
+                    primaryEditor.activate(primary);
+                if (secondaryEditor.getBuffer() != secondary)
+                    secondaryEditor.activate(secondary);
+                // UNDONE: Adjust split pane divider location.
+                /*
                 if (editorPane instanceof SplitPane) {
                     SplitPane sp = (SplitPane) editorPane;
                     int height = sp.getHeight();
@@ -483,119 +677,79 @@ public final class Frame extends JFrame implements Constants, ComponentListener,
                         (int)(height * (1 - split) - sp.getDividerSize());
                     sp.setDividerLocation(dividerLocation);
                 }
-                Editor.setCurrentEditor(buf == primary ? editors[0] : editors[1]);
-                editors[0].updateDisplay();
-                editors[1].updateDisplay();
+                */
+                Editor.setCurrentEditor(buf == primary ? primaryEditor : secondaryEditor);
+                primaryEditor.updateDisplay();
+                secondaryEditor.updateDisplay();
             } else {
                 // No secondary.
                 Debug.bugIfNot(secondary == null);
-                // We don't need a split window. Close editor 1.
-                Editor keep = editors[0];
-                Editor kill = editors[1];
+                // We don't need a split window. Close secondary editor.
                 // Save information about the buffer in the editor that we're
                 // going to close.
-                final Buffer b = kill.getBuffer();
-                if (b != null) {
-                    b.autosave();
-                    kill.saveView();
-                    RecentFiles.getInstance().bufferDeactivated(b,
-                        kill.getDot());
-                    b.windowClosing();
-                }
-                unsplitInternal(keep, kill);
-                // Activate primary in editor 0.
-                Debug.bugIfNot(editors[0] == keep);
-                keep.activate(primary);
+                secondaryEditor.deactivate();
+                unsplitInternal(primaryEditor, secondaryEditor);
+                // Activate primary buffer in primary editor.
+                primaryEditor.activate(primary);
             }
         } else {
             // Window is not split.
             Debug.bugIfNot(getEditorCount() == 1);
             if (secondary != null) {
-                // Split the window, activate primary in editor 0, activate
-                // secondary in editor 1.
-                splitWindow(primary, secondary, secondary.getSplit());
-                Editor.setCurrentEditor(buf == primary ? editors[0] : editors[1]);
-                editors[0].updateDisplay();
-                editors[1].updateDisplay();
-                restoreFocus();
+                // Split the editor, activate primary in fromEditor and secondary in the new editor window.
+                // Focus on the selected buffer.
+                // CONSIDER: Add option to specify preferred split direction
+                boolean switchWindows = buf == secondary;
+                splitWindow(fromEditor, primary, secondary, secondary.getSplit(), false, switchWindows);
             } else {
                 // Only one editor, no secondary.
-                Debug.bugIfNot(editors[0] != null);
-                Debug.bugIfNot(editors[1] == null);
+                Debug.bugIfNot(editors.get(0) != fromEditor);
+                Debug.bugIfNot(editors.get(0) != null);
+                Debug.bugIfNot(editors.get(1) == null);
                 Debug.bugIfNot(secondary == null);
                 // Activate primary in editor 0.
-                editors[0].activate(primary);
+                fromEditor.activate(primary);
             }
         }
+
         buf.setLastActivated(System.currentTimeMillis());
         if (Editor.isDebugEnabled()) {
             if (buf.isPrimary()) {
-                Debug.bugIfNot(getPrimaryEditor().getBuffer() == buf);
+                Debug.bugIfNot(hasBuffer(getPrimaryEditors(), buf), "Editor not found for primary buffer");
             } else {
                 Debug.bugIfNot(buf.isSecondary());
                 Buffer bufPrimary = buf.getPrimary();
                 Debug.bugIfNot(primary != null);
-                Debug.bugIfNot(getPrimaryEditor().getBuffer() == bufPrimary);
+                Debug.bugIfNot(hasBuffer(getPrimaryEditors(), bufPrimary), "Editor not found for primary buffer");
             }
         }
     }
 
-    public void splitWindow(Buffer buf1, Buffer buf2, float split)
-    {
-        if (editors[1] == null) {
-            final SessionProperties sessionProperties =
-                Editor.getSessionProperties();
-            sessionProperties.saveSidebarState(this);
-            final int height = editors[0].getHeight();
-            editors[0].saveView();
-            editors[0].activate(buf1);
-            editors[1] = new Editor(this);
-            editors[1].activate(buf2);
-            editors[1].updateLocation();
-            SplitPane sp = new SplitPane(SplitPane.VERTICAL_SPLIT,
-                                         editors[0], editors[1]);
-            sp.setBorder(null);
-            int dividerLocation =
-                (int)(height * (1 - split) - sp.getDividerSize());
-            sp.setDividerLocation(dividerLocation);
-            editorPane = sp;
-            if (sidebar != null) {
-                sidebarSplitPane.setRightComponent(editorPane);
-                dividerLocation = sessionProperties.getSidebarWidth(this);
-                sidebarSplitPane.setDividerLocation(dividerLocation);
-            } else {
-                // No sidebar.
-                getContentPane().remove(editors[0]);
-                getContentPane().add(editorPane, "Center");
-            }
-            validate();
-            editors[0].setUpdateFlag(REFRAME | REPAINT);
-            editors[1].setUpdateFlag(REFRAME | REPAINT);
-            updateControls();
-        }
-    }
-
+    // UNDONE: enlarge window by N lines.
     public void enlargeWindow(Editor editor, int n)
     {
+        /*
         if (editorPane instanceof SplitPane) {
             final SplitPane sp = (SplitPane) editorPane;
             final int charHeight = Display.getCharHeight();
             int dividerLocation = sp.getDividerLocation();
-            if (editor == editors[0])
+            if (editor == editors.get(0))
                 dividerLocation += charHeight;
             else
                 dividerLocation -= charHeight;
             sp.setDividerLocation(dividerLocation);
         }
+        */
     }
 
-    // Set window height to N lines.
+    // UNDONE: Set window height to N lines.
     public void setWindowHeight(Editor editor, int n)
     {
+        /*
       if (editorPane instanceof SplitPane)
         {
           SplitPane sp = (SplitPane) editorPane;
-          Editor otherEditor = (editor == editors[0]) ? editors[1] : editors[0];
+          Editor otherEditor = (editor == editors.get(0)) ? editors.get(1) : editors.get(0);
           int charHeight = Display.getCharHeight();
           HorizontalScrollBar scrollBar = editor.getHorizontalScrollBar();
           int scrollBarHeight = (scrollBar != null) ? scrollBar.getHeight() : 0;
@@ -606,11 +760,12 @@ public final class Frame extends JFrame implements Constants, ComponentListener,
           int requestedHeight =
             editor.getLocationBarHeight() + charHeight * n + scrollBarHeight;
           int height = Math.min(requestedHeight, availableHeight);
-          if (editor == editors[0])
+          if (editor == editors.get(0))
             sp.setDividerLocation(height);
-          else if (editor == editors[1])
+          else if (editor == editors.get(1))
             sp.setDividerLocation(sp.getHeight() - sp.getDividerSize() - height);
         }
+        */
     }
 
     public final Editor activateInOtherWindow(Editor editor, Buffer buffer)
@@ -632,42 +787,27 @@ public final class Frame extends JFrame implements Constants, ComponentListener,
         return openInOtherWindow(editor, buffer, 0.5F, false);
     }
 
+    // UNDONE: Set divider location
     private Editor openInOtherWindow(Editor editor, Buffer buffer, float split,
         boolean switchWindows)
     {
         editor.saveView();
-        Editor otherEditor = null;
-        if (editors[1] == null) {
-            Debug.assertTrue(editor == editors[0]);
-            editors[1] = new Editor(this);
-            editors[1].activate(buffer);
-            editors[1].updateLocation();
-            SplitPane sp = new SplitPane(SplitPane.VERTICAL_SPLIT,
-                                         editor, editors[1]);
-            sp.setBorder(null);
-            int dividerLocation =
-                (int)(editor.getHeight() * (1 - split) - sp.getDividerSize());
-            sp.setDividerLocation(dividerLocation);
-            editorPane = sp;
-            if (sidebar != null) {
-                sidebarSplitPane.setRightComponent(editorPane);
-                sidebarSplitPane.setDividerLocation(
-                    Editor.getSessionProperties().getSidebarWidth(this));
-            } else {
-                // No sidebar.
-                getContentPane().remove(editor);
-                getContentPane().add(editorPane, "Center");
-            }
+        Editor otherEditor = getOtherEditor(editor);
+        if (otherEditor == null) {
+            Debug.assertTrue(!hasSplit() && editor == editors.get(0));
+            otherEditor = new Editor(this);
+            editors.addAfter(otherEditor, editor);
+            otherEditor.activate(buffer);
+            otherEditor.updateLocation();
+
+            editorPane.splitHoriz(editor, otherEditor);
+            
+//            int dividerLocation =
+//                (int)(editor.getHeight() * (1 - split) - sp.getDividerSize());
+//            sp.setDividerLocation(dividerLocation);
             validate();
-            otherEditor = editors[1];
         } else {
             // Second window is already open.
-            if (editor == editors[0])
-                otherEditor = editors[1];
-            else if (editor == editors[1])
-                otherEditor = editors[0];
-            else
-                Debug.assertTrue(false);
             otherEditor.activate(buffer);
             otherEditor.updateLocation();
         }
@@ -676,10 +816,10 @@ public final class Frame extends JFrame implements Constants, ComponentListener,
             setMenu();
             setToolbar();
         }
-        editors[0].setUpdateFlag(REFRAME | REPAINT);
-        editors[0].updateDisplay();
-        editors[1].setUpdateFlag(REFRAME | REPAINT);
-        editors[1].updateDisplay();
+        editor.setUpdateFlag(REFRAME | REPAINT);
+        editor.updateDisplay();
+        otherEditor.setUpdateFlag(REFRAME | REPAINT);
+        otherEditor.updateDisplay();
         currentEditor.setFocusToDisplay();
         restoreFocus();
         updateControls();
@@ -688,93 +828,108 @@ public final class Frame extends JFrame implements Constants, ComponentListener,
 
     public void closeEditor(Editor editor)
     {
-        if (editors[1] == null)
+        if (!hasSplit())
             return;
-        if (editor != editors[0] && editor != editors[1])
+        if (!contains(editor))
             return;
         promoteSecondaryBuffers();
-        Editor keep = editor == editors[0] ? editors[1] : editors[0];
+        Editor keep = getOtherEditor(editor);
         Editor kill = editor;
         unsplitInternal(keep, kill);
     }
 
     public void unsplitWindow()
     {
-        if (editors[1] == null)
+        if (!hasSplit())
             return;
         promoteSecondaryBuffers();
         Editor keep = currentEditor;
-        Editor kill = getOtherEditor();
+        Editor kill = getOtherEditor(currentEditor);
         unsplitInternal(keep, kill);
     }
 
     public void unsplitWindowKeepOther()
     {
-        if (editors[1] == null)
-            return;
-        promoteSecondaryBuffers();
-        Editor keep = getOtherEditor();
-        Editor kill = currentEditor;
-        unsplitInternal(keep, kill);
+        closeEditor(currentEditor);
     }
 
     public void promoteSecondaryBuffers()
     {
-        Buffer buffer = editors[0].getBuffer();
-        if (buffer.isSecondary())
-            buffer.promote();
-        if (editors[1] != null) {
-            buffer = editors[1].getBuffer();
+        for (Editor editor : editors) {
+            Buffer buffer = editor.getBuffer();
             if (buffer.isSecondary())
                 buffer.promote();
         }
     }
 
+    public void unsplitAll(final Editor keep)
+    {
+        if (!hasSplit())
+            return;
+        if (!contains(keep))
+            return;
+        Editor.getSessionProperties().saveSidebarState(this);
+        editorPane.root(keep);
+        validate();
+        List<Editor> kill = new ArrayList<Editor>(editors);
+        kill.remove(keep);
+        unsplitInternal(keep, kill);
+    }
+
     private void unsplitInternal(final Editor keep, final Editor kill)
     {
-      Editor.getSessionProperties().saveSidebarState(this);
-      if (sidebar != null)
-        {
-          sidebarSplitPane.setRightComponent(keep);
-          int dividerLocation =
-            Editor.getSessionProperties().getSidebarWidth(this);
-          sidebarSplitPane.setDividerLocation(dividerLocation);
+        Editor.getSessionProperties().saveSidebarState(this);
+        editorPane.unsplit(kill);
+        validate();
+        unsplitInternal(keep, Collections.singletonList(kill));
+    }
+
+    private void unsplitInternal(final Editor keep, final Collection<Editor> kill)
+    {
+        Editor.removeEditors(kill);
+        editors.removeAll(kill);
+        Debug.bugIfNot(editors.contains(keep));
+        Buffer buffer = keep.getBuffer();
+        if (buffer.isSecondary())
+            buffer.promote();
+        if (keep.getLocationBar() == null)
+            keep.addLocationBar();
+        Editor.setCurrentEditor(keep);
+        keep.setUpdateFlag(REFRAME);
+        keep.reframe();
+        restoreFocus();
+        statusBar.repaint();
+        updateControls();
+    }
+
+    // Unsplit if any two Editor siblings are showing the exactly same thing.
+    public void coalesceEditors(Editor editor)
+    {
+        if (editors.size() < 2)
+            return;
+        
+        Position p = editor.getDot();
+        Position m = editor.getMark();
+
+        List<Editor> siblings = getEditorPane().getSiblings(editor);
+        for (Editor sibling : siblings) {
+            if (sibling == editor)
+                continue;
+            if (p != null && p.equals(sibling.getDot())) {
+                if (m == null && sibling.getMark() == null)
+                    unsplitInternal(editor, sibling);
+                else if (m != null && m.equals(sibling.getMark()))
+                    unsplitInternal(editor, sibling);
+            }
         }
-      else
-        {
-          // No sidebar.
-          getContentPane().remove(editorPane);
-          getContentPane().add(keep, "Center");
-        }
-      validate();
-      editorPane = null;
-      Editor.removeEditor(kill);
-      editors[0] = keep;
-      editors[1] = null;
-      Buffer buffer = keep.getBuffer();
-      if (buffer.isSecondary())
-        buffer.promote();
-      if (keep.getLocationBar() == null)
-        keep.addLocationBar();
-      Editor.setCurrentEditor(keep);
-      keep.setUpdateFlag(REFRAME);
-      keep.reframe();
-      restoreFocus();
-      statusBar.repaint();
-      updateControls();
+
     }
 
     public void updateControls()
     {
-        boolean enable = editors[1] != null;
-        LocationBar locationBar = editors[0].getLocationBar();
-        if (locationBar != null) {
-            JButton closeButton = locationBar.getCloseButton();
-            if (closeButton != null)
-                closeButton.setEnabled(enable);
-        }
-        if (editors[1] != null) {
-            locationBar = editors[1].getLocationBar();
+        boolean enable = editors.size() > 1;
+        for (Editor ed : editors) {
+            LocationBar locationBar = ed.getLocationBar();
             if (locationBar != null) {
                 JButton closeButton = locationBar.getCloseButton();
                 if (closeButton != null)
@@ -828,9 +983,8 @@ public final class Frame extends JFrame implements Constants, ComponentListener,
     {
         active = false;
         // Show/hide caret.
-        editors[0].repaint();
-        if (editors[1] != null)
-            editors[1].repaint();
+        for (Editor editor : editors)
+            editor.repaint();
     }
 
     public void windowOpened(WindowEvent e)
@@ -843,7 +997,7 @@ public final class Frame extends JFrame implements Constants, ComponentListener,
 
     public void windowClosing(WindowEvent e)
     {
-        editors[0].killFrame();
+        editors.get(0).killFrame();
     }
 
     public void windowClosed(WindowEvent e)
@@ -881,8 +1035,7 @@ public final class Frame extends JFrame implements Constants, ComponentListener,
             focusedComponent = c;
             // Update display of current line (show/hide caret) in all
             // windows, as required.
-            for (int i = 0; i < editors.length; i++) {
-                Editor editor = editors[i];
+            for (Editor editor : editors) {
                 if (editor != null && editor.getDot() != null) {
                     Display display = editor.getDisplay();
                     if (display == focusedComponent || display == lastFocusedComponent) {
@@ -905,17 +1058,15 @@ public final class Frame extends JFrame implements Constants, ComponentListener,
     public final void setWaitCursor()
     {
         setCursor(waitCursor);
-        editors[0].setWaitCursor();
-        if (editors[1] != null)
-            editors[1].setWaitCursor();
+        for (Editor ed : editors)
+            ed.setWaitCursor();
     }
 
     public final void setDefaultCursor()
     {
         setCursor(Cursor.getDefaultCursor());
-        editors[0].setDefaultCursor();
-        if (editors[1] != null)
-            editors[1].setDefaultCursor();
+        for (Editor ed : editors)
+            ed.setDefaultCursor();
     }
 
     public void resetDisplay()
@@ -925,8 +1076,7 @@ public final class Frame extends JFrame implements Constants, ComponentListener,
             toolbar = null;
         }
         defaultToolBar = null;
-        for (int i = 0; i < editors.length; i++) {
-            Editor editor = editors[i];
+        for (Editor editor : editors) {
             if (editor != null) {
                 editor.removeLocationBar();
                 editor.removeVerticalScrollBar();
@@ -970,8 +1120,7 @@ public final class Frame extends JFrame implements Constants, ComponentListener,
             getContentPane().add(sidebarSplitPane, "Center");
             sidebar.setUpdateFlag(SIDEBAR_ALL);
         }
-        for (int i = 0; i < editors.length; i++) {
-            Editor editor = editors[i];
+        for (Editor editor : editors) {
             if (editor != null) {
                 editor.addLocationBar();
                 editor.updateLocation();

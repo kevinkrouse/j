@@ -50,6 +50,7 @@ import java.net.ConnectException;
 import java.net.Socket;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Date;
 import java.util.Hashtable;
 import java.util.List;
@@ -72,6 +73,7 @@ import org.armedbear.lisp.Interpreter;
 import org.armedbear.lisp.Lisp;
 import org.armedbear.lisp.LispObject;
 import org.armedbear.lisp.LispThread;
+import org.jdesktop.swingx.MultiSplitLayout;
 
 public final class Editor extends JPanel implements Constants,
     ComponentListener, MouseWheelListener
@@ -573,14 +575,28 @@ public final class Editor extends JPanel implements Constants,
         }
     }
 
-    public boolean isPrimaryEditor()
+    private MultiSplitLayout.Leaf layoutLeaf;
+
+    /** The LayoutLeaf is used by the EditorPane to locate each Editor in the MultiSplitLayout. */
+    MultiSplitLayout.Leaf getLayoutLeaf()
     {
-        return frame.isPrimaryEditor(this);
+        return layoutLeaf;
     }
 
+    void setLayoutLeaf(MultiSplitLayout.Leaf layoutLeaf)
+    {
+        this.layoutLeaf = layoutLeaf;
+    }
+
+    // XXX: check usages. semantics changed from 'get the editor across the split' to 'get the paired editor or parent editor or null'
     public final Editor getOtherEditor()
     {
-        return isPrimaryEditor() ? frame.getSecondaryEditor() : frame.getPrimaryEditor();
+        return frame.getOtherEditor(this);
+    }
+
+    public final Editor getPairedEditor()
+    {
+        return frame.getPairedEditor(this);
     }
 
     public static int indexOf(Editor editor)
@@ -611,6 +627,11 @@ public final class Editor extends JPanel implements Constants,
     public static final void removeEditor(Editor editor)
     {
         editorList.remove(editor);
+    }
+
+    public static final void removeEditors(Collection<Editor> editors)
+    {
+        editorList.removeAll(editors);
     }
 
     public final Frame getFrame()
@@ -2664,7 +2685,7 @@ public final class Editor extends JPanel implements Constants,
 
     public void pageDownOtherWindow()
     {
-        final Editor ed = frame.getOtherEditor();
+        final Editor ed = getOtherEditor();
         if (ed != null) {
             ed.pageDown();
             ed.updateDisplay();
@@ -2706,7 +2727,7 @@ public final class Editor extends JPanel implements Constants,
 
     public void pageUpOtherWindow()
     {
-        final Editor ed = frame.getOtherEditor();
+        final Editor ed = getOtherEditor();
         if (ed != null) {
             ed.pageUp();
             ed.updateDisplay();
@@ -4381,10 +4402,8 @@ public final class Editor extends JPanel implements Constants,
             frames.remove(frame);
             frame.dispose();
 
-            Editor ed = frame.getSecondaryEditor();
-            if (ed != null)
+            for (Editor ed : frame.getEditors())
                 removeEditor(ed);
-            removeEditor(this);
             setCurrentEditor(getEditor(0));
         }
     }
@@ -4464,7 +4483,7 @@ public final class Editor extends JPanel implements Constants,
                 // We're either switching in a paired buffer or switching out
                 // a paired buffer (or both). Delegate to our frame, since we
                 // may end up closing this editor.
-                frame.switchToBuffer(buf);
+                frame.switchToBuffer(this, buf);
             }
             Sidebar sidebar = getSidebar();
             if (sidebar != null)
@@ -4503,7 +4522,7 @@ public final class Editor extends JPanel implements Constants,
     public void openFileInOtherWindow()
     {
       saveView();
-      boolean alreadySplit = (getOtherEditor() != null);
+      boolean alreadySplit = frame.hasSplit();
       if (!alreadySplit)
         splitWindow();
       final Editor ed = getOtherEditor();
@@ -5913,22 +5932,10 @@ public final class Editor extends JPanel implements Constants,
             }
             // Normal buffer.
             maybeKillBuffer(buffer);
-            // If we're left with two editors showing exactly the same thing,
+            // If we're left with two editors next to each other showing exactly the same thing,
             // unsplit the window.
             Frame frame = currentEditor.getFrame();
-            if (frame.getEditorCount() == 2) {
-                Editor p = frame.getPrimaryEditor();
-                Editor s = frame.getSecondaryEditor();
-                boolean unsplit = false;
-                if (p.getDot() != null && p.getDot().equals(s.getDot())) {
-                    if (p.getMark() == null && s.getMark() == null)
-                        unsplit = true;
-                    else if (p.getMark() != null && p.getMark().equals(s.getMark()))
-                        unsplit = true;
-                }
-                if (unsplit)
-                    unsplitWindow();
-            }
+            frame.coalesceEditors(frame.getCurrentEditor());
         }
         finally {
             Sidebar.refreshSidebarInAllFrames();
@@ -5973,6 +5980,16 @@ public final class Editor extends JPanel implements Constants,
         }
     }
 
+    // Save information about buffer being deactivated.
+    public void deactivate()
+    {
+        Debug.bugIfNot(buffer != null && bufferList.contains(buffer));
+        buffer.autosave();
+        saveView();
+        RecentFiles.getInstance().bufferDeactivated(buffer, dot);
+        buffer.windowClosing();
+    }
+
     public void activate(Buffer buf)
     {
         if (buf == null)
@@ -5984,10 +6001,7 @@ public final class Editor extends JPanel implements Constants,
             buf.initialize();
         clearStatusText();
         if (buffer != null && bufferList.contains(buffer)) {
-            // Save information about buffer being deactivated.
-            buffer.autosave();
-            saveView();
-            RecentFiles.getInstance().bufferDeactivated(buffer, dot);
+            deactivate();
         }
 
         // Read-only status may have changed. (We could be switching back from
@@ -7337,7 +7351,7 @@ public final class Editor extends JPanel implements Constants,
         int modeId = getModeList().getModeIdFromModeName(modeName);
         if (modeId < 0) {
             MessageDialog.showMessageDialog("Unknown mode \"" + modeName + '"',
-                "Error");
+                    "Error");
         } else if (modeId != buffer.getMode().getId()) {
             if (buffer.isModified() && modeId == BINARY_MODE ) {
                 String prompt =
@@ -7388,9 +7402,24 @@ public final class Editor extends JPanel implements Constants,
         }
     }
 
+    public boolean isSibling(Editor other)
+    {
+        return frame.isEditorSibling(this, other);
+    }
+
+    public boolean isTopLeftOf(Editor other)
+    {
+        return frame.isEditorTopLeftOf(this, other);
+    }
+
     public void splitWindow()
     {
         currentEditor.getFrame().splitWindow();
+    }
+
+    public void vsplitWindow()
+    {
+        currentEditor.getFrame().vsplitWindow();
     }
 
     public void unsplitWindow()
@@ -7409,9 +7438,85 @@ public final class Editor extends JPanel implements Constants,
         }
     }
 
+    // Close all other windows except for this Editor window.
+    // Also aliased as 'killOtherWindows' in CommandTable
+    public void unsplitAllWindows()
+    {
+        frame.unsplitAll(this);
+    }
+
+    // Switch to the Editor that is paired with this Editor's buffer
+    // or to this Editor's parent buffer.  If neither exist, switch
+    // to the most recent Editor or the previous primary buffer.
     public void otherWindow()
     {
-        final Editor ed = frame.getOtherEditor();
+        final Editor ed = getOtherEditor();
+        if (ed != null)
+            switchWindow(ed);
+    }
+
+    // Switch to most recent Editor or the previous Editor.
+    public void priorWindow()
+    {
+        Editor ed = frame.getPriorEditor();
+        if (ed == null || ed == currentEditor)
+            ed = frame.getNextEditor(-1);
+
+        switchWindow(ed);
+    }
+
+    public void nextWindow()
+    {
+        _nextWindow(1);
+    }
+
+    public void nextWindow(String arg)
+    {
+        int count = 1;
+        if (arg != null)
+            try {
+                count = Integer.parseInt(arg);
+            }
+            catch (NumberFormatException e) {
+                MessageDialog.showMessageDialog(
+                    "Invalid number \"" + arg + '"',
+                    "Error");
+                return;
+            }
+
+        _nextWindow(count);
+    }
+
+    public void previousWindow()
+    {
+        _nextWindow(-1);
+    }
+
+    public void previousWindow(String arg)
+    {
+        int count = 1;
+        if (arg != null)
+            try {
+                count = Integer.parseInt(arg);
+            }
+            catch (NumberFormatException e) {
+                MessageDialog.showMessageDialog(
+                    "Invalid number \"" + arg + '"',
+                    "Error");
+                return;
+            }
+
+        _nextWindow(-1*count);
+    }
+
+    private void _nextWindow(int count)
+    {
+        final Editor ed = frame.getNextEditor(count);
+        switchWindow(ed);
+    }
+
+    private void switchWindow(Editor ed)
+    {
         if (ed != null) {
             saveView();
             setCurrentEditor(ed);
