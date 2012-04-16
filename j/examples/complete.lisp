@@ -1,7 +1,6 @@
 ;;; complete.lisp
 ;;;
 ;;; Copyright (C) 2004 Peter Graves
-;;; $Id: complete.lisp,v 1.2 2004-09-05 00:12:25 piso Exp $
 ;;;
 ;;; This program is free software; you can redistribute it and/or
 ;;; modify it under the terms of the GNU General Public License

@@ -1,7 +1,6 @@
 # -*- Mode: Properties -*-
 # Freefloater
 # Mikol Graves
-# $Id: Freefloater,v 1.5 2003-02-21 21:21:05 piso Exp $
 
 color.background                        =  51  77 102
 color.disabled                          = 102 128 153

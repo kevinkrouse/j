@@ -1,6 +1,5 @@
 # -*- Mode: Properties -*-
 # Anokha Classic
-# $Id: AnokhaClassic,v 1.4 2003-02-05 04:04:54 piso Exp $
 
 color.text                              = 255 255 255
 color.background                        = 0   51  51

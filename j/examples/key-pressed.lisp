@@ -1,7 +1,6 @@
 ;;; key-pressed.lisp
 ;;;
 ;;; Copyright (C) 2003-2005 Peter Graves
-;;; $Id: key-pressed.lisp,v 1.8 2005-11-18 01:47:25 piso Exp $
 ;;;
 ;;; This program is free software; you can redistribute it and/or
 ;;; modify it under the terms of the GNU General Public License

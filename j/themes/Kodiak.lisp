@@ -1,6 +1,5 @@
 ;;; -*- Mode: Lisp -*-
 ;;; Kodiak 4/14/2000-11/1/2000
-;;; $Id: Kodiak.lisp,v 1.4 2005-11-19 18:50:42 piso Exp $
 
 (unless (find-package '#:kodiak)
   (defpackage #:kodiak (:use #:cl #:j)))

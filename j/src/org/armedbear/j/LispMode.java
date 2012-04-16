@@ -2,7 +2,6 @@
  * LispMode.java
  *
  * Copyright (C) 1998-2007 Peter Graves
- * $Id$
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License

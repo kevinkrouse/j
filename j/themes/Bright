@@ -1,6 +1,5 @@
 # Bright
 # Jason Corbett
-# $Id: Bright,v 1.1.1.1 2002-09-24 16:10:24 piso Exp $
 
 color.text                    = 0   0   0
 color.background              = 255 255 255

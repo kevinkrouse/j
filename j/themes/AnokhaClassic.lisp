@@ -1,6 +1,5 @@
 ;;; -*- Mode: Lisp -*-
 ;;; Anokha Classic
-;;; $Id: AnokhaClassic.lisp,v 1.4 2005-11-19 18:50:49 piso Exp $
 
 (unless (find-package '#:anokha-classic)
   (defpackage #:anokha-classic (:use #:cl #:j)))
