@@ -33,6 +33,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
+import java.net.MalformedURLException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -51,10 +52,12 @@ import org.armedbear.j.Expansion;
 import org.armedbear.j.File;
 import org.armedbear.j.FastStringBuffer;
 import org.armedbear.j.Headers;
+import org.armedbear.j.InputDialog;
 import org.armedbear.j.Line;
 import org.armedbear.j.Log;
 import org.armedbear.j.MessageDialog;
 import org.armedbear.j.OpenFileDialog;
+import org.armedbear.j.PasswordDialog;
 import org.armedbear.j.Platform;
 import org.armedbear.j.Position;
 import org.armedbear.j.Preferences;
@@ -578,14 +581,48 @@ public final class SendMail extends Buffer
             if (!confirmSend())
                 return;
         }
+
+        final String server = smtp != null ? smtp : Editor.preferences().getStringProperty(Property.SMTP);
+        final SmtpURL url;
+        try {
+            url = SmtpURL.parseURL(server);
+        }
+        catch (MalformedURLException e) {
+            Log.error(e);
+            FastStringBuffer sb = new FastStringBuffer();
+            sb.append("Unable to parse SMTP server name \"");
+            sb.append(server);
+            sb.append('"');
+            MessageDialog.showMessageDialog(sb.toString(), "Error");
+            return;
+        }
+
+
         Runnable sendRunnable = new Runnable() {
             public void run()
             {
+                final Editor editor = Editor.currentEditor();
                 boolean succeeded = false;
-                if (smtp != null)
-                    session = SmtpSession.getSession(smtp);
-                else
-                    session = SmtpSession.getDefaultSession();
+                session = SmtpSession.getSession(url);
+
+                if (session == null) {
+                    String user = url.getUser();
+                    if (user == null || user.length() == 0) {
+                        user = InputDialog.showInputDialog(editor, "Login:",
+                                "Login on " + url.getHost());
+                        if (user == null || user.length() == 0)
+                            return;
+                        session = SmtpSession.getSession(url, user);
+                    }
+                    if (session == null) {
+                        String password = PasswordDialog.showPasswordDialog(editor,
+                                "Password:", "Password");
+                        if (password == null || password.length() == 0)
+                            return;
+                        session = SmtpSession.getSession(url, user, password);
+                    }
+                }
+
                 if (session != null) {
                     File messageFile = Utilities.getTempFile();
                     try {

@@ -298,7 +298,7 @@ public final class HttpLoadProcess extends LoadProcess implements BackgroundProc
         Log.debug("Connecting to " + hostName + " on port " + port + "...");
         if (progressNotifier != null)
             progressNotifier.setText("Connecting to " + hostName + " on port " + port + "...");
-        SocketConnection sc = new SocketConnection(hostName, port, 30000, 200, this);
+        SocketConnection sc = new SocketConnection(hostName, port, false, 30000, 200, this);
         socket = sc.connect();
         if (socket != null) {
             if (progressNotifier != null)

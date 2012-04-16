@@ -192,7 +192,7 @@ public final class MailCommands implements Constants
             ImapSession session = ImapSession.getSession(imapUrl);
             if (session == null) {
                 String user = imapUrl.getUser();
-                if (user == null) {
+                if (user == null || user.length() == 0) {
                     user = InputDialog.showInputDialog(editor, "Login:",
                         "Login on " + imapUrl.getHost());
                     if (user == null || user.length() == 0)
@@ -222,7 +222,7 @@ public final class MailCommands implements Constants
             PopSession session = PopSession.getSession(popUrl);
             if (session == null) {
                 String user = popUrl.getUser();
-                if (user == null) {
+                if (user == null || user.length() == 0) {
                     user = InputDialog.showInputDialog(editor, "Login:",
                         "Login on " + popUrl.getHost());
                     if (user == null || user.length() == 0)

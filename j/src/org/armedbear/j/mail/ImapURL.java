@@ -28,69 +28,24 @@ import org.armedbear.j.FastStringBuffer;
 
 public final class ImapURL extends MailboxURL
 {
-    private static final int DEFAULT_PORT = 143;
+    static final int DEFAULT_PORT = 143;
+    static final int DEFAULT_SSL_PORT = 993;
 
     private String folderName;
 
-    public ImapURL(String s) throws MalformedURLException
+    public ImapURL(String folderName, String user, String host, int port,
+                   boolean ssl, boolean tls, boolean validateCert, boolean debug)
     {
-        if (!s.startsWith("{"))
-            throw new MalformedURLException();
-        int index = s.indexOf('}');
-        if (index < 0)
-            throw new MalformedURLException();
-        folderName = s.substring(index + 1);
-        s = s.substring(1, index);
-        port = DEFAULT_PORT;
-        // The user name may be enclosed in quotes.
-        if (s.length() > 0 && s.charAt(0) == '"') {
-            index = s.indexOf('"', 1);
-            if (index >= 0) {
-                user = s.substring(1, index);
-                s = s.substring(index + 1);
-            } else
-                throw new MalformedURLException();
-            // We've got the user name.
-            if (s.length() == 0) {
-                // No host specified.
-                host = "127.0.0.1";
-                return;
-            }
-            if (s.charAt(0) != '@')
-                throw new MalformedURLException();
-            s = s.substring(1); // Skip '@'.
-            index = s.indexOf(':');
-            if (index >= 0) {
-                try {
-                    port = Integer.parseInt(s.substring(index + 1));
-                }
-                catch (Exception e) {
-                    throw new MalformedURLException();
-                }
-                s = s.substring(0, index);
-            }
-            // What's left is the host name.
-            host = s;
-        } else {
-            index = s.indexOf(':');
-            if (index >= 0) {
-                try {
-                    port = Integer.parseInt(s.substring(index + 1));
-                }
-                catch (Exception e) {
-                    throw new MalformedURLException();
-                }
-                s = s.substring(0, index);
-            }
-            index = s.indexOf('@');
-            if (index >= 0) {
-                user = s.substring(0, index);
-                host = s.substring(index + 1);
-            } else
-                host = s;
-        }
-        if (folderName.equalsIgnoreCase("inbox"))
-            folderName = "inbox";
+        super(user, host, port, ssl, tls, validateCert, debug);
+        this.folderName = folderName;
+
+        if ("inbox".equalsIgnoreCase(this.folderName))
+            this.folderName = "inbox";
+    }
+
+    public static ImapURL parseURL(String s) throws MalformedURLException
+    {
+        return (ImapURL)MailboxURL.parseRemote(s, "imap");
     }
 
     public final String getFolderName()
@@ -98,9 +53,9 @@ public final class ImapURL extends MailboxURL
         return folderName;
     }
 
-    public final List getFolderPathComponents()
+    public final List<String> getFolderPathComponents()
     {
-        ArrayList list = new ArrayList();
+        ArrayList<String> list = new ArrayList<String>();
         int begin = 0;
         while (true) {
             int index = folderName.indexOf('/', begin);
@@ -142,6 +97,12 @@ public final class ImapURL extends MailboxURL
         }
         if (port != url.port)
             return false;
+        if (ssl != url.ssl)
+            return false;
+        if (tls != url.tls)
+            return false;
+        if (validateCert != url.validateCert)
+            return false;
         return true;
     }
 
@@ -164,17 +125,14 @@ public final class ImapURL extends MailboxURL
 
     public String getCanonicalName()
     {
-        FastStringBuffer sb = new FastStringBuffer('{');
-        if (user != null)
-            sb.append(user);
-        else
-            sb.append(System.getProperty("user.name"));
-        sb.append('@');
-        sb.append(host);
-        sb.append(':');
-        sb.append(port);
-        sb.append('}');
+        FastStringBuffer sb = baseCanonicalURL();
         sb.append(folderName);
         return sb.toString();
+    }
+
+    @Override
+    protected int getDefaultPort(boolean ssl)
+    {
+        return ssl ? DEFAULT_SSL_PORT : DEFAULT_PORT;
     }
 }

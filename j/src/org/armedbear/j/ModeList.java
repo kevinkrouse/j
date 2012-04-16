@@ -41,7 +41,7 @@ public final class ModeList implements Constants
     {
         list = new ArrayList();
         addEntry(ARCHIVE_MODE, ARCHIVE_MODE_NAME, "ArchiveMode", false, null);
-        addEntry(ASM_MODE, ASM_MODE_NAME, "AsmMode", true, ".+\\.asm|.+\\inc");
+        addEntry(ASM_MODE, ASM_MODE_NAME, "AsmMode", true, ".+\\.asm|.+\\.inc");
         addEntry(AUTOCONF_MODE, AUTOCONF_MODE_NAME, "AutoconfMode", true, "configure.ac|configure.in|aclocal.m4");
         addEntry(BINARY_MODE, BINARY_MODE_NAME, "BinaryMode", true, null);
         addEntry(CHECKIN_MODE, CHECKIN_MODE_NAME, "CheckinMode", false, null);

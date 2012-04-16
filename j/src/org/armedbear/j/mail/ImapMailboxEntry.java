@@ -27,9 +27,10 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.TimeZone;
 import org.armedbear.j.FastStringBuffer;
+import org.armedbear.j.Headers;
+import org.armedbear.j.IntStringPair;
 import org.armedbear.j.Log;
 import org.armedbear.j.StringPair;
-import org.armedbear.j.Utilities;
 
 /*package*/ final class ImapMailboxEntry extends MailboxEntry implements Serializable
 {
@@ -68,212 +69,345 @@ import org.armedbear.j.Utilities;
     return arrival;
   }
 
+  private static final String UID_START = "UID ";
   private static final String INTERNALDATE_START = "INTERNALDATE ";
   private static final String RFC822_SIZE_START = "RFC822.SIZE ";
-  private static final String ENVELOPE_START = "ENVELOPE (";
-  private static final String REFERENCES_START = "BODY[HEADER.FIELDS (\"REFERENCES\")]";
+  private static final String FLAGS_START = "FLAGS ";
+  private static final String ENVELOPE_START = "ENVELOPE ";
+  private static final String BODY_START = "BODY[";
 
-  public static ImapMailboxEntry parseEntry(ImapMailbox mailbox, final String s)
-  {
-    ImapMailboxEntry entry = new ImapMailboxEntry();
-    entry.mailbox = mailbox;
-    entry.messageNumber = parseMessageNumber(s);
-    if (entry.messageNumber < 1)
-      {
-        Log.error("can't parse message number");
+    public static ImapMailboxEntry parseEntry(String s)
+    {
+        ImapMailboxEntry entry = new ImapMailboxEntry();
+        entry.messageNumber = parseMessageNumber(s);
+        if (entry.messageNumber < 1) {
+            Log.error("can't parse message number");
+            return null;
+        }
+
+        int index = s.indexOf('(');
+        s = s.substring(index+1);
+        while (s != null && s.length() > 0)
+        {
+            s = skipWhitespace(s);
+            if (test(s, ")"))
+                break;
+
+            if (test(s, UID_START)) {
+                s = readUid(entry, s);
+            }
+            else if (test(s, RFC822_SIZE_START)) {
+                s = readRFC822Size(entry, s);
+            }
+            else if (test(s, INTERNALDATE_START)) {
+                s = readInternalDate(entry, s);
+            }
+            else if (test(s, FLAGS_START)) {
+                s = readFlags(entry, s);
+            }
+            else if (test(s, ENVELOPE_START)) {
+                s = readEnvelope(entry, s);
+            }
+            else if (test(s, BODY_START)) {
+                s = readBodyHeaders(entry, s);
+            }
+            else {
+                Log.error("Unexpected text: " + s);
+                break;
+            }
+        }
+
+        // The read functions return null if parsing failed. Error has already been logged.
+        if (s == null)
+            return null;
+
+        if (entry.uid <= 0) {
+            Log.error("didn't find UID");
+            return null;
+        }
+
+        if (entry.arrival == null) {
+            Log.error("didn't find INTERNALDATE");
+            return null;
+        }
+
+        if (entry.size <= 0) {
+            Log.error("didn't find RFC822.SIZE");
+            return null;
+        }
+
+        if (entry.date == null) {
+            Log.error("didn't find ENVELOPE date");
+            return null;
+        }
+
+        if (entry.subject == null) {
+            Log.error("didn't find ENVELOPE subject");
+            return null;
+        }
+
+        return entry;
+    }
+
+    private static String skipWhitespace(String s)
+    {
+        int i;
+        for (i = 0; i < s.length(); i++)
+            if (!Character.isWhitespace(s.charAt(i)))
+                break;
+        return s.substring(i);
+    }
+
+    // Case-insensitive prefix match
+    private static boolean test(String s, String test)
+    {
+        if (s.length() < test.length())
+            return false;
+
+        for (int i = 0; i < test.length(); i++) {
+            if (Character.toUpperCase(s.charAt(i)) != Character.toUpperCase(test.charAt(i)))
+                return false;
+        }
+
+        return true;
+    }
+
+    private static String match(String s, String test)
+    {
+        if (test(s, test)) {
+            return s.substring(test.length());
+        }
+
+        Log.error("failed to match '" + test + "'");
         return null;
-      }
-    entry.uid = parseUid(s);
-    if (entry.uid < 1)
-      {
-        Log.error("can't parse uid");
-        return null;
-      }
-    entry.flags = parseFlags(s);
-    int index = s.indexOf(INTERNALDATE_START);
-    if (index < 0)
-      {
-        Log.error("can't find INTERNALDATE");
-        return null;
-      }
-    StringPair p =
-      parseQuoted(s.substring(index + INTERNALDATE_START.length()));
-    if (p == null)
-      {
-        Log.error("can't parse INTERNALDATE");
-        return null;
-      }
-    entry.arrival = entry.parseInternalDate(p.first.trim());
-    String remaining = p.second;
-    index = remaining.indexOf(RFC822_SIZE_START);
-    if (index < 0)
-      {
-        Log.error("can't find RFC822.SIZE");
-        return null;
-      }
-    remaining = remaining.substring(index + RFC822_SIZE_START.length());
-    entry.size = -1;
-    try
-      {
-        entry.size = Utilities.parseInt(remaining);
-      }
-    catch(NumberFormatException e)
-      {
-        Log.error("can't parse RFC822.SIZE");
-        Log.error("|" + remaining + "|");
-        Log.error(e);
-        return null;
-      }
-    index = remaining.indexOf(ENVELOPE_START);
-    if (index < 0)
-      {
-        Log.error("can't find ENVELOPE");
-        return null;
-      }
-    remaining = remaining.substring(index + ENVELOPE_START.length());
-    // Next field is date (quoted string).
-    p = parseQuoted(remaining);
-    if (p == null)
-      {
-        Log.error("can't parse date");
-        return null;
-      }
-    entry.date = RFC822Date.parseDate(p.first);
-    remaining = p.second;
-    // Next field is subject (quoted string).
-    p = parseQuoted(remaining);
-    if (p == null)
-      {
-        Log.error("can't parse subject");
-        return null;
-      }
-    entry.subject = p.first == null ? "" : RFC2047.decode(p.first);
-    if (entry.subject.indexOf('\\') >= 0)
-      {
-        // strip out escape chars
-        String temp = entry.subject;
-        final int limit = temp.length();
-        FastStringBuffer sb = new FastStringBuffer();
-        boolean escaped = false;
-        for (int i = 0; i < limit; i++)
-          {
-            char c = temp.charAt(i);
-            if (escaped)
-              {
-                sb.append(c);
-                escaped =false;
-              }
-            else
-              {
-                // not escaped
-                if (c == '\\')
-                  escaped = true;
-                else
-                  sb.append(c);
-              }
-          }
-        entry.subject = sb.toString();
-      }
-    remaining = p.second;
-    // Next field is "From" (parenthesized list).
-    p = parseParenthesizedList(remaining);
-    if (p == null)
-      {
-        Log.error("can't parse \"From\" list");
-        return null;
-      }
-    if (p.first != null)
-      entry.from = parseAddressList(p.first);
-    remaining = p.second;
-    do
-      {
+    }
+
+    private static String readUid(ImapMailboxEntry entry, String s)
+    {
+        IntStringPair p = _parseUid(s);
+        if (p == null || p.first < 1) {
+            Log.error("can't parse UID");
+            return null;
+        }
+        entry.uid = p.first;
+        return p.second;
+    }
+
+    private static String readRFC822Size(ImapMailboxEntry entry, String s)
+    {
+        s = match(s, RFC822_SIZE_START);
+        IntStringPair p = parseNumber(s);
+        if (p == null || p.first < 1) {
+            Log.error("can't parse RFC822.SIZE");
+            return null;
+        }
+        entry.size = p.first;
+        return p.second;
+    }
+
+    private static String readInternalDate(ImapMailboxEntry entry, String s)
+    {
+        s = match(s, INTERNALDATE_START);
+        StringPair p = parseQuoted(s);
+        if (p == null || p.first.length() == 0) {
+            Log.error("can't parse INTERNALDATE");
+            return null;
+        }
+        entry.arrival = parseInternalDate(p.first.trim());
+        return p.second;
+    }
+
+    private static String readFlags(ImapMailboxEntry entry, String s)
+    {
+        s = match(s, FLAGS_START);
+        IntStringPair p = _parseFlags(s);
+        if (p == null) {
+            Log.error("can't parse FLAGS");
+            return null;
+        }
+        entry.flags = p.first;
+        return p.second;
+    }
+
+    private static String readEnvelope(ImapMailboxEntry entry, String s)
+    {
+        String remaining = match(s, ENVELOPE_START);
+
+        // Next field is date (quoted string).
+        StringPair p = parseQuoted(remaining);
+        if (p == null) {
+            Log.error("can't parse date");
+            return null;
+        }
+        entry.date = RFC822Date.parseDate(p.first);
+        remaining = p.second;
+
+        // Next field is subject (quoted string).
+        p = parseQuoted(remaining);
+        if (p == null) {
+            Log.error("can't parse subject");
+            return null;
+        }
+        entry.subject = parseSubject(p.first);
+        remaining = p.second;
+
+        // Next field is "From" (parenthesized list).
+        p = parseParenthesizedList(remaining);
+        if (p == null) {
+            Log.error("can't parse \"From\" list");
+            return null;
+        }
+        if (p.first != null)
+            entry.from = parseAddressList(p.first);
+        remaining = p.second;
+
         // Sender
         p = parseParenthesizedList(remaining);
-        if (p == null)
-          {
+        if (p == null) {
             Log.error("can't parse \"Sender\" list");
-            break;
-          }
+            return null;
+        }
         remaining = p.second;
+
         // Reply-To
         p = parseParenthesizedList(remaining);
-        if (p == null)
-          {
+        if (p == null) {
             Log.error("can't parse \"Reply-To\" list");
-            break;
-          }
+            return null;
+        }
         if (p.first != null)
-          entry.replyTo = parseAddressList(p.first);
+            entry.replyTo = parseAddressList(p.first);
         remaining = p.second;
+
         // To
         p = parseParenthesizedList(remaining);
-        if (p == null)
-          {
+        if (p == null) {
             Log.error("can't parse \"To\" list");
-            break;
-          }
+            return null;
+        }
         if (p.first != null)
-          entry.to = parseAddressList(p.first);
+            entry.to = parseAddressList(p.first);
         remaining = p.second;
+
         // Cc
         p = parseParenthesizedList(remaining);
-        if (p == null)
-          {
+        if (p == null) {
             Log.error("can't parse \"Cc\" list");
-            break;
-          }
+            return null;
+        }
         if (p.first != null)
-          entry.cc = parseAddressList(p.first);
+            entry.cc = parseAddressList(p.first);
         remaining = p.second;
+
         // Bcc
         p = parseParenthesizedList(remaining);
-        if (p == null)
-          {
+        if (p == null) {
             Log.error("can't parse \"Bcc\" list");
-            break;
-          }
+            return null;
+        }
         remaining = p.second;
+
         // In-Reply-To (quoted string)
         p = parseQuoted(remaining);
-        if (p == null)
-          {
+        if (p == null) {
             Log.error("can't parse \"In-Reply-To\"");
-            break;
-          }
+            return null;
+        }
         entry.inReplyTo = parseInReplyTo(p.first);
         remaining = p.second;
+
+        // Message-ID
         p = parseQuoted(remaining);
-        if (p == null)
-          {
+        if (p == null) {
             Log.error("can't parse \"Message-ID\"");
-            break;
-          }
+            return null;
+        }
         entry.messageId = p.first;
-      }
-    while (false);
-    if (p == null)
-      return null;
-    remaining = p.second;
-    index = remaining.indexOf(REFERENCES_START);
-    if (index >= 0)
-      {
-        remaining = remaining.substring(index + REFERENCES_START.length());
-        p = parseQuoted(remaining);
-        if (p != null)
-          {
-            String refs = p.first.trim();
-            if (refs.length() > 0)
-              entry.references = parseReferences(refs);
-          }
-      }
-    if (entry.subject != null)
-      return entry;
-    Log.error("skipping entry");
-    return null;
-  }
+        remaining = p.second;
+
+        // final closing ')'
+        return match(remaining, ")");
+    }
+
+    private static String readBodyHeaders(ImapMailboxEntry entry, String s)
+    {
+        String remaining = match(s, BODY_START);
+        int end = remaining.indexOf("]");
+        StringPair p = parseQuoted(remaining.substring(end + "]".length()));
+        if (p == null) {
+            Log.error("can't parse BODY headers");
+            return null;
+        }
+
+        Headers headers = Headers.parse(p.first);
+        if (headers != null) {
+            String refs = headers.getValue(Headers.REFERENCES);
+            if (refs != null)
+                entry.references = parseReferences(refs.trim());
+        }
+
+        // final closing ')'
+        return match(p.second, ")");
+    }
+
+    private static IntStringPair parseNumber(String s)
+    {
+        final int limit = s.length();
+        int i;
+        for (i = 0; i < limit; i++) {
+            if (!Character.isDigit(s.charAt(i)))
+                break;
+        }
+        if (i == 0) // No digit found.
+            return null;
+
+        try
+        {
+            int num = Integer.parseInt(s.substring(0, i));
+            return new IntStringPair(num, s.substring(i));
+        }
+        catch (NumberFormatException e) {
+            Log.error(e);
+            return null;
+        }
+    }
+
+    private static String parseSubject(String subject)
+    {
+        subject = subject == null ? "" : RFC2047.decode(subject);
+        if (subject.indexOf('\\') >= 0)
+        {
+            // strip out escape chars
+            String temp = subject;
+            final int limit = temp.length();
+            FastStringBuffer sb = new FastStringBuffer();
+            boolean escaped = false;
+            for (int i = 0; i < limit; i++)
+            {
+                char c = temp.charAt(i);
+                if (escaped)
+                {
+                    sb.append(c);
+                    escaped =false;
+                }
+                else
+                {
+                    // not escaped
+                    if (c == '\\')
+                        escaped = true;
+                    else
+                        sb.append(c);
+                }
+            }
+            subject = sb.toString();
+        }
+        return subject;
+    }
 
   private static int parseMessageNumber(String s)
   {
+    if (s == null)
+      return 0; // Error.
     final int length = s.length();
     if (length < 2)
       return 0; // Error.
@@ -300,66 +434,77 @@ import org.armedbear.j.Utilities;
       }
   }
 
-  public static int parseUid(String s)
-  {
-    final int length = s.length();
-    if (length < 2)
-      return 0; // Error.
-    // String must start with "* ".
-    if (s.charAt(0) != '*' || s.charAt(1) != ' ')
-      return 0; // Error.
-    int index = s.indexOf("UID ");
-    if (index < 0)
-      return 0;
-    FastStringBuffer sb = new FastStringBuffer();
-    for (int i = index + 4; i < length; i++)
-      {
-        char c = s.charAt(i);
-        if (c >= '0' && c <= '9')
-          sb.append(c);
-        else
-          break;
-      }
-    try
-      {
-        return Integer.parseInt(sb.toString());
-      }
-    catch (NumberFormatException e)
-      {
-        Log.error(e);
-        return 0;
-      }
-  }
+    public static int parseUid(String s)
+    {
+        final int length = s.length();
+        if (length < 2)
+            return 0; // Error.
+        // String must start with "* ".
+        if (s.charAt(0) != '*' || s.charAt(1) != ' ')
+            return 0; // Error.
+        IntStringPair p = _parseUid(s);
+        if (p == null)
+            return 0;
+        return p.first;
+    }
 
-  private static final String FLAGS_START = "FLAGS (";
+    private static IntStringPair _parseUid(String s)
+    {
+        int index = s.indexOf(UID_START);
+        if (index < 0)
+            return null;
+        return parseNumber(s.substring(index + UID_START.length()));
+    }
 
-  public static int parseFlags(String s)
-  {
-    int flags = 0;
-    final int index = s.indexOf(FLAGS_START);
-    if (index >= 0)
-      {
-        StringPair p = parseParenthesized(s.substring(index));
-        if (p != null && p.first != null)
-          {
+    public static int parseFlags(String s)
+    {
+        if (s == null || s.length() == 0)
+            return 0;
+
+        int flags = 0;
+        final int index = s.indexOf(FLAGS_START);
+        if (index >= 0) {
+            IntStringPair p = _parseFlags(s.substring(index));
+            if (p != null)
+                return p.first;
+        }
+        return flags;
+    }
+
+    private static IntStringPair _parseFlags(String s)
+    {
+        StringPair p = parseParenthesized(s);
+        if (p == null)
+            return null;
+
+        int flags = 0;
+        if (p.first != null)
+        {
             String flagsList = p.first.toLowerCase();
             if (flagsList.length() > 0)
-              {
+            {
                 if (flagsList.indexOf("seen") >= 0)
-                  flags |= SEEN;
+                    flags |= SEEN;
                 if (flagsList.indexOf("answered") >= 0)
-                  flags |= ANSWERED;
+                    flags |= ANSWERED;
                 if (flagsList.indexOf("recent") >= 0)
-                  flags |= RECENT;
+                    flags |= RECENT;
                 if (flagsList.indexOf("deleted") >= 0)
-                  flags |= DELETED;
+                    flags |= DELETED;
                 if (flagsList.indexOf("flagged") >= 0)
-                  flags |= FLAGGED;
-              }
-          }
-      }
-    return flags;
-  }
+                    flags |= FLAGGED;
+                if (flagsList.indexOf("draft") >= 0)
+                    flags |= DRAFT;
+                if (flagsList.indexOf("nonjunk") >= 0 || flagsList.indexOf("notjunk") >= 0 ||
+                    flagsList.indexOf("nonspam") >= 0 || flagsList.indexOf("notspam") >= 0)
+                    flags |= NON_JUNK;
+                else if (flagsList.indexOf("junk") >= 0 || flagsList.indexOf("spam") >= 0)
+                    flags |= JUNK;
+            }
+        }
+        return new IntStringPair(flags, p.second);
+    }
+
 
   private static StringPair parseQuoted(String s)
   {
@@ -455,7 +600,7 @@ import org.armedbear.j.Utilities;
         char c = s.charAt(i);
         if (inQuote)
           {
-            if (c == quoteChar)
+            if (c == quoteChar && s.charAt(i-1) != '\\')
               inQuote = false;
           }
         else
@@ -497,8 +642,8 @@ import org.armedbear.j.Utilities;
         char c = s.charAt(i);
         if (in_quote)
           {
-            if (c == quote_char)
-              in_quote = false;
+            if (c == quote_char && s.charAt(i-1) != '\\')
+                in_quote = false;
           }
         else
           {
@@ -609,5 +754,12 @@ import org.armedbear.j.Utilities;
           }
       }
     return new RFC822Date(date);
+  }
+
+  /** Exposes private methods for testing. */
+  static final class TestHelper {
+      static int parseMessageNumber(String s) {
+          return ImapMailboxEntry.parseMessageNumber(s);
+      }
   }
 }

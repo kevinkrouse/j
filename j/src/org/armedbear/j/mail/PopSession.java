@@ -31,8 +31,6 @@ import org.armedbear.j.SocketConnection;
 
 public final class PopSession
 {
-    private static final int DEFAULT_PORT = 110;
-
     // States.
     private static final int DISCONNECTED  = 0;
     private static final int AUTHORIZATION = 1;
@@ -42,12 +40,12 @@ public final class PopSession
     public static final int OK  = 0;
     public static final int ERR = 1;
 
+    private final PopURL url;
+
     private int state;
-    private boolean echo = false;
-    private String host;
+    private boolean echo;
     private final String user;
     private String password;
-    private int port;
     private Socket socket;
     private MailReader reader;
     private OutputStreamWriter writer;
@@ -55,20 +53,20 @@ public final class PopSession
 
     private PopSession(PopURL url, String user, String password)
     {
-        this.host = url.getHost();
-        this.port = url.getPort();
+        this.url = url;
         this.user = user;
         this.password = password;
+        this.echo = url.isDebug();
     }
 
     public final String getHost()
     {
-        return host;
+        return url.getHost();
     }
 
     public final int getPort()
     {
-        return port;
+        return url.getPort();
     }
 
     public final String getUser()
@@ -106,7 +104,7 @@ public final class PopSession
         if (url.getHost() == null)
             return null;
         String user = url.getUser();
-        if (user == null)
+        if (user == null || user.length() == 0)
             user = System.getProperty("user.name");
         String password = Netrc.getPassword(url.getHost(), user);
         if (password == null)
@@ -132,8 +130,9 @@ public final class PopSession
         setEcho(true);
         socket = null;
         errorText = null;
+        boolean ssl = url.isSSL() || getPort() == PopURL.DEFAULT_SSL_PORT;
         SocketConnection sc =
-            new SocketConnection(host, port, 30000, 200, null);
+            new SocketConnection(getHost(), getPort(), ssl, 30000, 200, null);
         socket = sc.connect();
         if (socket == null) {
             errorText = sc.getErrorText();

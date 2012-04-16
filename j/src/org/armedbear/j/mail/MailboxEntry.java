@@ -43,12 +43,15 @@ public abstract class MailboxEntry implements Serializable
         Editor.preferences().getBooleanProperty(Property.SHOW_MESSAGE_NUMBERS);
 
     // Bit flags.
-    public static final int SEEN     = 0x01;
-    public static final int RECENT   = 0x02;
-    public static final int ANSWERED = 0x04;
-    public static final int DELETED  = 0x08;
-    public static final int FLAGGED  = 0x10;
-    public static final int TAGGED   = 0x20; // Not persistent.
+    public static final int SEEN     = 0x001;
+    public static final int RECENT   = 0x002;
+    public static final int ANSWERED = 0x004;
+    public static final int DELETED  = 0x008;
+    public static final int FLAGGED  = 0x010;
+    public static final int TAGGED   = 0x020; // Not persistent.
+    public static final int JUNK     = 0x040;
+    public static final int NON_JUNK = 0x080;
+    public static final int DRAFT    = 0x100;
 
     protected static final String STRING_DEFAULT = " ";
     protected static final String STRING_DELETED = "D";
@@ -255,6 +258,16 @@ public abstract class MailboxEntry implements Serializable
     public final boolean isUnread()
     {
         return (flags & (SEEN | DELETED)) == 0;
+    }
+
+    public final boolean isNonJunk()
+    {
+        return (flags & NON_JUNK) != 0;
+    }
+
+    public final boolean isJunk()
+    {
+        return (flags & JUNK) != 0;
     }
 
     public final void tag()
@@ -484,6 +497,9 @@ public abstract class MailboxEntry implements Serializable
 
     protected static String[] parseReferences(String s)
     {
+        if (s == null || s.length() == 0)
+            return null;
+
         ArrayList list = null;
         int begin = 0;
         while (true) {

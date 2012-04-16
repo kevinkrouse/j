@@ -656,7 +656,7 @@ public class FtpSession implements Constants
         currentDirectory = null;
         errorText = null;
 
-        SocketConnection sc = new SocketConnection(host, port, 30000, 200, progressNotifier);
+        SocketConnection sc = new SocketConnection(host, port, false, 30000, 200, progressNotifier);
         controlSocket = sc.connect();
         if (controlSocket == null) {
             errorText = sc.getErrorText();

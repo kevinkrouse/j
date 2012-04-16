@@ -1,8 +1,5 @@
 /*
- * LocalMailboxURL.java
- *
- * Copyright (C) 2002 Peter Graves
- * $Id$
+ * Copyright (C) 2010 Kevin Krouse
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -22,49 +19,33 @@
 package org.armedbear.j.mail;
 
 import java.net.MalformedURLException;
-import org.armedbear.j.File;
 
-public final class LocalMailboxURL extends MailboxURL
+// SMTP URL isn't really a mailbox URL, but they share most properties
+public class SmtpURL extends MailboxURL
 {
-    private final File file;
+    private static final int DEFAULT_PORT = 25;
+    private static final int DEFAULT_SSL_PORT = 465;
 
-    public static LocalMailboxURL parseURL(String s) throws MalformedURLException
+    public SmtpURL(String user, String host, int port,
+                   boolean ssl, boolean tls, boolean validateCert, boolean debug)
     {
-        if (s.startsWith("mailbox:"))
-            s = s.substring(8);
-        File file = File.getInstance(s);
-        if (file == null)
-            throw new MalformedURLException();
-
-        return new LocalMailboxURL(file);
+        super(user, host, port, ssl, tls, validateCert, debug);
     }
 
-    public LocalMailboxURL(File file)
+    public static SmtpURL parseURL(String s) throws MalformedURLException
     {
-        this.file = file;
-        setBaseName("mailbox:" + file.canonicalPath());
+        return (SmtpURL)MailboxURL.parseRemote(s, "smtp");
     }
-
-    public final File getFile()
-    {
-        return file;
-    }
-
-    public boolean equals(Object object)
-    {
-        if (!(object instanceof LocalMailboxURL))
-            return false;
-        return file.equals(((LocalMailboxURL)object).getFile());
-    }
-
+    
+    @Override
     public String getCanonicalName()
     {
-        return file.canonicalPath();
+        return baseCanonicalURL().toString();
     }
 
     @Override
     protected int getDefaultPort(boolean ssl)
     {
-        return -1;
+        return ssl ? DEFAULT_SSL_PORT : DEFAULT_PORT;
     }
 }
