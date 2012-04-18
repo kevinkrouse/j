@@ -8,6 +8,7 @@
     <property file="build.properties"/>
 
     <property name="j.version"          value="0.23.0"/>
+    <property name="abcl.version"       value="1.0.1"/>
     <property name="build.dir"          value="${basedir}/build"/>
     <property name="build.classes.dir"  value="${build.dir}/classes"/>
     <property name="build.test.dir"     value="${build.dir}/test"/>
@@ -133,10 +134,14 @@
     <target name="abcl.jar.fetch" depends="abcl.jar.check" unless="abcl.jar.available">
       <echo message="Fetching abcl.jar ..."/>
       <mkdir dir="${ext.dir}"/>
-      <get src="http://common-lisp.net/project/armedbear/releases/0.25.0/abcl-bin-0.25.0.zip"
+      <!-- remove any old versions lying around -->
+      <delete>
+        <fileset dir="${ext.dir}" includes="abcl-bin-*.zip" excludes="abcl-bin-${abcl.version}.zip" />
+      </delete>
+      <get src="http://common-lisp.net/project/armedbear/releases/${abcl.version}/abcl-bin-${abcl.version}.zip"
            usetimestamp="true"
-           dest="${ext.dir}/abcl-bin-0.25.0.zip" />
-      <unzip src="${ext.dir}/abcl-bin-0.25.0.zip"
+           dest="${ext.dir}/abcl-bin-${abcl.version}.zip" />
+      <unzip src="${ext.dir}/abcl-bin-${abcl.version}.zip"
              dest="${ext.dir}">
         <patternset>
           <include name="**/abcl.jar" />

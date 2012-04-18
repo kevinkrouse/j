@@ -94,7 +94,7 @@ public final class LispAPI
       }
     catch (ClassCastException e)
       {
-        error(new TypeError("The value " + obj.writeToString() +
+        error(new TypeError("The value " + obj.printObject() +
                             " is not an editor."));
         // Not reached.
         return null;
@@ -113,7 +113,7 @@ public final class LispAPI
       }
     catch (ClassCastException e)
       {
-        error(new TypeError("The value " + obj.writeToString() +
+        error(new TypeError("The value " + obj.printObject() +
                             " is not a buffer."));
         // Not reached.
         return null;
@@ -130,7 +130,7 @@ public final class LispAPI
       }
     catch (ClassCastException e)
       {
-        error(new TypeError("The value " + obj.writeToString() +
+        error(new TypeError("The value " + obj.printObject() +
                             " is not a keymap."));
         // Not reached.
         return null;
@@ -147,7 +147,7 @@ public final class LispAPI
       }
     catch (ClassCastException e)
       {
-        error(new TypeError("The value " + obj.writeToString() +
+        error(new TypeError("The value " + obj.printObject() +
                             " is not a mark."));
         // Not reached.
         return null;
@@ -164,7 +164,7 @@ public final class LispAPI
       }
     catch (ClassCastException e)
       {
-        error(new TypeError("The value " + obj.writeToString() +
+        error(new TypeError("The value " + obj.printObject() +
                             " is not a line."));
         // Not reached.
         return null;
@@ -1043,7 +1043,7 @@ public final class LispAPI
                   }
                 catch (NumberFormatException e)
                   {
-                    return error(new LispError(second.writeToString() +
+                    return error(new LispError(second.printObject() +
                                                " cannot be converted to a Java integer."));
                   }
                 preferences.setProperty(property, value);
@@ -1073,12 +1073,12 @@ public final class LispAPI
         final Mode mode
           = Editor.getModeList().getModeFromModeName(third.getStringValue());
         if (mode == null)
-          return error(new LispError(third.writeToString() +
+          return error(new LispError(third.printObject() +
                                      " does not designate any mode."));
         Property property = Property.findProperty(key);
         if (property == null)
           // Not an advertised property.
-          return error(new LispError(first.writeToString() +
+          return error(new LispError(first.printObject() +
                                      " does not designate any property."));
         if (property.isBooleanProperty())
           {
@@ -1101,7 +1101,7 @@ public final class LispAPI
                   }
                 catch (NumberFormatException e)
                   {
-                    return error(new LispError(second.writeToString() +
+                    return error(new LispError(second.printObject() +
                                                " cannot be converted to a Java integer."));
                   }
                 mode.setProperty(property, value);
@@ -1138,7 +1138,7 @@ public final class LispAPI
         if (property == null)
           {
             // Not an advertised property.
-            return error(new LispError(first.writeToString() +
+            return error(new LispError(first.printObject() +
                                        " does not designate any property."));
           }
         final Buffer buffer = checkBuffer(third);
@@ -1163,7 +1163,7 @@ public final class LispAPI
                   }
                 catch (NumberFormatException e)
                   {
-                    return error(new LispError(second.writeToString() +
+                    return error(new LispError(second.printObject() +
                                                " cannot be converted to a Java integer."));
                   }
                 buffer.setProperty(property, value);
@@ -1191,7 +1191,7 @@ public final class LispAPI
         if (property == null)
           {
             // Not an advertised property.
-            return error(new LispError(arg.writeToString() +
+            return error(new LispError(arg.printObject() +
                                        " does not designate a property."));
           }
         if (property.isBooleanProperty())
@@ -1220,7 +1220,7 @@ public final class LispAPI
         if (property == null)
           {
             // Not an advertised property.
-            return error(new LispError(first.writeToString() +
+            return error(new LispError(first.printObject() +
                                        " does not designate any property."));
           }
         final Buffer buffer = checkBuffer(second);
@@ -1381,7 +1381,7 @@ public final class LispAPI
           }
         catch (ClassCastException e)
           {
-            return error(new LispError(arg.writeToString() +
+            return error(new LispError(arg.printObject() +
                                        " does not designate a compound edit."));
           }
       }
@@ -1525,7 +1525,7 @@ public final class LispAPI
       {
         if (arg instanceof BufferStream)
           return new JavaObject(((BufferStream)arg).getBuffer());
-        return error(new LispError(arg.writeToString() +
+        return error(new LispError(arg.printObject() +
                                    "does not designate a buffer stream."));
       }
     };
@@ -1661,7 +1661,7 @@ public final class LispAPI
         else if (direction.getName().equals("FORWARD"))
           backward = false;
         else
-          return error(new LispError("Invalid direction " + direction.writeToString()));
+          return error(new LispError("Invalid direction " + direction.printObject()));
         final Buffer buffer = checkBuffer(args[3]);
         final Position start;
         if (args[4] == NIL)
