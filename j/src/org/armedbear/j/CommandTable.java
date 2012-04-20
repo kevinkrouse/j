@@ -2,7 +2,6 @@
  * CommandTable.java
  *
  * Copyright (C) 1998-2005 Peter Graves
- * $Id$
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -284,6 +283,7 @@ public class CommandTable
             addCommand("finish", "CheckinBuffer");
             addCommand("followContext", "FollowContextTask");
             addCommand("forwardSexp", "LispMode");
+            addCommand("git", "Git", "git");
             addCommand("google", "WebMode");
             addCommand("gotoFile", "GotoFile");
             addCommand("help", "Help");

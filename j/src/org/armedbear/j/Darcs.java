@@ -2,7 +2,6 @@
  * Darcs.java
  *
  * Copyright (C) 2005-2006 Peter Graves
- * $Id$
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -78,17 +77,19 @@ public class Darcs extends VersionControl implements Constants
   private static void darcsCompleted(Editor editor, Buffer parentBuffer,
                                      String cmd, String output)
   {
-    if (output != null && output.length() > 0)
-      {
-        Buffer buf;
-        if (cmd.startsWith("darcs whatsnew"))
-          buf = new DiffOutputBuffer(parentBuffer, output, VC_DARCS);
-        else
-          buf = OutputBuffer.getOutputBuffer(output);
-        buf.setTitle(cmd);
-        editor.makeNext(buf);
-        editor.activateInOtherWindow(buf);
+    vcsCompleted(editor, parentBuffer, cmd.startsWith("darcs whatsnew"), cmd, output, VC_DARCS, false);
+  }
+
+  public static File findRoot(File dir)
+  {
+      while (dir != null) {
+          File file = File.getInstance(dir, "_darcs");
+          if (file != null && file.isDirectory())
+              return dir;
+          dir = dir.getParentFile();
       }
+      // Not found.
+      return null;
   }
 
   private static boolean checkDarcsInstalled()

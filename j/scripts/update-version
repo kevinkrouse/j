@@ -1,7 +1,5 @@
 #!/bin/sh
 
-# $Id: update-version,v 1.2 2003-10-23 01:00:43 piso Exp $
-
 # Usage: update-version old-version new-version
 
 if [[ -z $1 || -z $2 ]]; then

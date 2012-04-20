@@ -1,7 +1,6 @@
 ;;; update-check-enabled.lisp
 ;;;
 ;;; Copyright (C) 2003-2006 Peter Graves
-;;; $Id: update-check-enabled.lisp,v 1.2 2006-03-03 14:26:59 piso Exp $
 ;;;
 ;;; This program is free software; you can redistribute it and/or
 ;;; modify it under the terms of the GNU General Public License

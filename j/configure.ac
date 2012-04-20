@@ -1,7 +1,6 @@
 dnl  Process this file with autoconf to produce a configure script.
 dnl
 dnl  Copyright (C) 1998-2004 Peter Graves
-dnl  $Id: configure.ac,v 1.77 2005-12-19 15:57:07 piso Exp $
 dnl
 dnl  This program is free software; you can redistribute it and/or
 dnl  modify it under the terms of the GNU General Public License

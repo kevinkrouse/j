@@ -2,7 +2,6 @@
  * Constants.java
  *
  * Copyright (C) 2002-2005 Peter Graves
- * $Id$
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -113,6 +112,7 @@ public interface Constants
     int VC_P4                    = 2;
     int VC_DARCS                 = 3;
     int VC_SVN                   = 4;
+    int VC_GIT                   = 5;
 
     String CHECK_SAVE_PROMPT  = "Buffer is modified; save it first?";
 

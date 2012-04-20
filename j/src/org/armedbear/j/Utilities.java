@@ -2,7 +2,6 @@
  * Utilities.java
  *
  * Copyright (C) 1998-2005 Peter Graves
- * $Id$
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -1394,9 +1393,9 @@ public final class Utilities implements Constants
     }
 
     // Does not handle embedded single-quoted strings.
-    public static List tokenize(String s)
+    public static List<String> tokenize(String s)
     {
-        ArrayList list = new ArrayList();
+        ArrayList<String> list = new ArrayList<String>();
         if (s != null) {
             FastStringBuffer sb = new FastStringBuffer();
             boolean inQuote = false;

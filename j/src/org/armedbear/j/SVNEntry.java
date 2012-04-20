@@ -86,7 +86,7 @@ public final class SVNEntry extends VersionControlEntry
     }
 
     public static SVNEntry getEntry(Buffer buffer) {
-        if (!SVN.checkSVNInstalled())
+        if (!SVN.haveSVN())
             return null;
 
         final File file = buffer.getFile();

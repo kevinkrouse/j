@@ -2,7 +2,6 @@
  * SVN.java
  *
  * Copyright (C) 2009 Kevin Krouse
- * $Id$
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -77,29 +76,7 @@ public class SVN extends VersionControl implements Constants
     private static void svnCompleted(Editor editor, Buffer buffer,
                                      String cmd, String output)
     {
-        if (output != null && output.length() > 0)
-        {
-            Buffer buf;
-            if (cmd.startsWith("svn diff"))
-                buf = new DiffOutputBuffer(buffer, output, VC_SVN);
-            else
-                buf = OutputBuffer.getOutputBuffer(output);
-            buf.setTitle(cmd);
-            editor.makeNext(buf);
-            editor.activateInOtherWindow(buf);
-        }
-        buffer.checkVCS();
-        buffer.setBusy(false);
-        for (EditorIterator it = new EditorIterator(); it.hasNext();)
-          {
-            Editor ed = it.nextEditor();
-            if (ed.getBuffer() == buffer)
-              {
-                ed.setDefaultCursor();
-                // Update SVN information in status bar.
-                ed.getFrame().repaintStatusBar();
-              }
-          }
+        vcsCompleted(editor, buffer, cmd.startsWith("svn diff"), cmd, output, VC_SVN, true);
     }
 
     public static void add()
@@ -600,7 +577,7 @@ public class SVN extends VersionControl implements Constants
 
     private static int[] version = null;
 
-    private static boolean haveSVN()
+    protected static boolean haveSVN()
     {
         if (version != null)
             return true;

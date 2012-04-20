@@ -2,7 +2,6 @@
  * CVS.java
  *
  * Copyright (C) 1998-2005 Peter Graves
- * $Id$
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -68,29 +67,7 @@ public final class CVS extends VersionControl implements Constants
   private static void cvsCompleted(Editor editor, Buffer buffer, String cmd,
                                    String output)
   {
-    if (output != null && output.length() > 0)
-      {
-        Buffer buf;
-        if (cmd.startsWith("cvs diff"))
-          buf = new DiffOutputBuffer(buffer, output, VC_CVS);
-        else
-          buf = OutputBuffer.getOutputBuffer(output);
-        buf.setTitle(cmd);
-        editor.makeNext(buf);
-        editor.activateInOtherWindow(buf);
-      }
-    buffer.checkVCS();
-    buffer.setBusy(false);
-    for (EditorIterator it = new EditorIterator(); it.hasNext();)
-      {
-        Editor ed = it.nextEditor();
-        if (ed.getBuffer() == buffer)
-          {
-            ed.setDefaultCursor();
-            // Update CVS information in status bar.
-            ed.getFrame().repaintStatusBar();
-          }
-      }
+    vcsCompleted(editor, buffer, cmd.startsWith("cvs diff"), cmd, output, VC_CVS, true);
   }
 
   public static void add()
