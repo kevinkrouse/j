@@ -83,17 +83,7 @@ public class P4 extends VersionControl implements Constants
   private static void p4Completed(Editor editor, Buffer parentBuffer,
                                   String cmd, String output)
   {
-    if (output != null && output.length() > 0)
-      {
-        Buffer buf;
-        if (cmd.startsWith("p4 diff"))
-          buf = new DiffOutputBuffer(parentBuffer, output, VC_P4);
-        else
-          buf = OutputBuffer.getOutputBuffer(output);
-        buf.setTitle(cmd);
-        editor.makeNext(buf);
-        editor.activateInOtherWindow(buf);
-      }
+    vcsCompleted(editor, parentBuffer, cmd.startsWith("p4 diff"), cmd, output, VC_P4, false);
   }
 
   public static void add()

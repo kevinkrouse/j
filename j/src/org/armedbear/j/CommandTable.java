@@ -275,6 +275,7 @@ public class CommandTable
             addCommand("finish", "CheckinBuffer");
             addCommand("followContext", "FollowContextTask");
             addCommand("forwardSexp", "LispMode");
+            addCommand("git", "Git", "git");
             addCommand("google", "WebMode");
             addCommand("gotoFile", "GotoFile");
             addCommand("help", "Help");

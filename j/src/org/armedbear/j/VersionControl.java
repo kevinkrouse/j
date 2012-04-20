@@ -45,6 +45,7 @@ public abstract class VersionControl implements Constants
           case VC_SVN:   return SVNEntry.getEntry(buffer);
 //          case VC_P4:    return P4Entry.getEntry(buffer);
 //          case VC_DARCS: return DarcsEntry.getEntry(buffer);
+          case VC_GIT:   return GitEntry.getEntry(buffer);
           default:       return null;
       }
   }
@@ -60,14 +61,16 @@ public abstract class VersionControl implements Constants
       File dir = null;
       if (null != (dir = File.getInstance(parentDir, "CVS")) && dir.isDirectory())
           return VC_CVS;
-      if (null != (dir = File.getInstance(parentDir, ".svn")) && dir.isDirectory())
-          return VC_SVN;
       if (System.getenv("P4CONFIG") != null || System.getenv("P4PORT") != null)
           return VC_P4;
       do {
           assert parentDir != null;
+          if (null != (dir = File.getInstance(parentDir, ".svn")) && dir.isDirectory())
+              return VC_SVN;
           if (null != (dir = File.getInstance(parentDir, "_darcs")) && dir.isDirectory())
               return VC_DARCS;
+          if (null != (dir = File.getInstance(parentDir, ".git")) && dir.isDirectory())
+              return VC_GIT;
           parentDir = parentDir.getParentFile();
       }
       while (parentDir != null || parentDir == Directories.getUserHomeDirectory());
@@ -115,6 +118,38 @@ public abstract class VersionControl implements Constants
             ed.setTopLine(buffer.getFirstLine());
             ed.setUpdateFlag(REPAINT);
             ed.updateDisplay();
+          }
+      }
+  }
+
+  protected static void vcsCompleted(Editor editor, Buffer buffer,
+                                     boolean diff, String title, String output, int vcType, boolean checkVCS)
+  {
+      if (output != null && output.length() > 0)
+      {
+          Buffer buf;
+          if (diff)
+              buf = new DiffOutputBuffer(buffer, output, vcType);
+          else
+              buf = OutputBuffer.getOutputBuffer(output);
+          buf.setTitle(title);
+          editor.makeNext(buf);
+          editor.activateInOtherWindow(buf);
+      }
+
+      if (checkVCS)
+      {
+          buffer.checkVCS();
+          buffer.setBusy(false);
+          for (EditorIterator it = new EditorIterator(); it.hasNext();)
+          {
+              Editor ed = it.nextEditor();
+              if (ed.getBuffer() == buffer)
+              {
+                  ed.setDefaultCursor();
+                  // Update version information in status bar.
+                  ed.getFrame().repaintStatusBar();
+              }
           }
       }
   }

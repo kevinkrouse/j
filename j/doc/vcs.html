@@ -19,7 +19,7 @@
 
 <p>
 J provides commands to perform a few common version control operations that it makes sense
-to do from within an editor.  J supports CVS, Subversion, Perforce, and Darcs.
+to do from within an editor.  J supports CVS, Subversion, Perforce, Git, and Darcs.
 <p>
 For these commands to work, the version control command line tool must be set up
 correctly outside of j first. A
@@ -51,6 +51,10 @@ to CVS but not yet committed.  For Subversion, the file's changelist and
 most recent author will also be displayed:
 <pre>
     svn M r1234 (changelist) piso</pre>
+<p>
+For Git, the file's status is displayed in 'git status' short format:
+<pre>
+    git AM</pre>
 <p>
 If you're working on a file that's registered with CVS, you can use the
 command <a href="commands.html#cvsDiff">cvsDiff</a> to get a diff output
@@ -138,6 +142,11 @@ The following commands are specifically relevant for version control:
             <li><a href="commands.html#p4Log">p4Log</a></li>
             <li><a href="commands.html#p4Revert">p4Revert</a></li>
             <li><a href="commands.html#p4Submit">p4Submit</a></li>
+        </ul>
+    </li>
+    <li>Git:
+        <ul>
+            <li><a href="commands.html#git">git</a></li>
         </ul>
     </li>
     <li>Darcs:

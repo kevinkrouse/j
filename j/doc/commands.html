@@ -133,6 +133,7 @@
     <li><a href="commands.html#foldMethods">foldMethods</a></li>
     <li><a href="commands.html#foldRegion">foldRegion</a></li>
     <li><a href="commands.html#forwardSexp">forwardSexp</a></li>
+    <li><a href="commands.html#git">git</a></li>
     <li><a href="commands.html#gotoBookmark">gotoBookmark</a></li>
     <li><a href="commands.html#gotoTemporaryMarker">gotoTemporaryMarker</a></li>
     <li><a href="commands.html#gotoFile">gotoFile</a></li>
@@ -1909,6 +1910,18 @@ Moves forward across one balanced syntactic expression, if possible.
 <p>
 <b>See also:</b> <a href="#backwardSexp">backwardSexp</a>,
 <a href="#downList">downList</a>, <a href="#backwardUpList">backwardUpList</a>
+<br><br>
+</dl><!--<hr>-->
+
+<a name="git">git</a><dl><dd>
+<p>
+Executes an arbitrary git command. The git command, together with any required
+flags, must be supplied as an argument.  The name of the file associated with
+the current buffer is automatically appended to the command line if the command
+is "diff".  The git command is run in the directory of the current
+editor.
+<p>
+<b>Default key mapping:</b> None
 <br><br>
 </dl><!--<hr>-->
 
