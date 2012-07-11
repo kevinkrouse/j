@@ -20,17 +20,16 @@
 
 package org.armedbear.j;
 
-import gnu.regexp.RE;
-import gnu.regexp.REMatch;
-import gnu.regexp.UncheckedRE;
+import java.util.regex.Pattern;
+import java.util.regex.Matcher;
 import java.util.ArrayList;
 
 public final class VHDLTagger extends Tagger
 {
     // We trim before matching, so "entity" will appear without any preceding
     // whitespace.
-    private static final RE entityRE =
-        new UncheckedRE("^entity\\s+([a-z][a-z0-9_]*[a-z0-9])", RE.REG_ICASE);
+    private static final Pattern entityRE =
+        Pattern.compile("^entity\\s+([a-z][a-z0-9_]*[a-z0-9])", Pattern.CASE_INSENSITIVE);
 
     public VHDLTagger(SystemBuffer buffer)
     {
@@ -46,10 +45,9 @@ public final class VHDLTagger extends Tagger
             if (s != null && s.length() > 0) {
                 char c = s.charAt(0);
                 if (c == 'e' || c == 'E') {
-                    REMatch match = entityRE.getMatch(s);
-                    if (match != null) {
-                        String name = s.substring(match.getSubStartIndex(1),
-                            match.getSubEndIndex(1));
+                    Matcher matcher = entityRE.matcher(s);
+                    if (matcher.find()) {
+                        String name = matcher.group(1);
                         tags.add(new LocalTag(name, line));
                     }
                 }

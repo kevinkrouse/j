@@ -20,10 +20,9 @@
 
 package org.armedbear.j;
 
-import gnu.regexp.RE;
-import gnu.regexp.REException;
-import gnu.regexp.REMatch;
-import gnu.regexp.UncheckedRE;
+import java.util.regex.Pattern;
+import java.util.regex.PatternSyntaxException;
+import java.util.regex.Matcher;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.util.ArrayList;
@@ -666,8 +665,8 @@ public final class SshSession implements Constants
             passwordPrompt = check;
             return PASSPHRASE;
         }
-        RE promptRE = getPromptRE();
-        if (promptRE.getMatch(lower) != null)
+        Pattern promptRE = getPromptRE();
+        if (promptRE.matcher(lower).find())
             return AUTHENTICATED;
         return TRY_AGAIN;
     }
@@ -711,26 +710,26 @@ public final class SshSession implements Constants
         if (prompt == null)
             prompt = s;
         Log.debug("prompt = |" + reveal(prompt) + "|");
-        RE promptRE = getPromptRE();
+        Pattern promptRE = getPromptRE();
         Debug.assertTrue(promptRE != null);
-        REMatch match = promptRE.getMatch(prompt);
-        if (match != null)
+        Matcher matcher = promptRE.matcher(prompt);
+        if (matcher.find())
             return YES;
         return TRY_AGAIN;
     }
 
-    private RE _promptRE;
+    private Pattern _promptRE;
 
-    public RE getPromptRE()
+    public Pattern getPromptRE()
     {
         if (_promptRE == null) {
             try {
-                _promptRE = new RE(Editor.preferences().
+                _promptRE = Pattern.compile(Editor.preferences().
                     getStringProperty(Property.SSH_PROMPT_PATTERN));
             }
-            catch (REException e) {
+            catch (PatternSyntaxException e) {
                 Log.error(e);
-                _promptRE = new UncheckedRE(DEFAULT_SHELL_PROMPT_PATTERN);
+                _promptRE = Pattern.compile(DEFAULT_SHELL_PROMPT_PATTERN);
             }
         }
         Debug.assertTrue(_promptRE != null);
@@ -869,7 +868,7 @@ public final class SshSession implements Constants
         return s;
     }
 
-    private static final RE totalRE = new UncheckedRE("\\n?[^0-9]+ [0-9]+");
+    private static final Pattern totalRE = Pattern.compile("\\n?[^0-9]+ [0-9]+");
 
     private synchronized String lsla()
     {
@@ -889,13 +888,13 @@ public final class SshSession implements Constants
                 return null;
             }
             s = output.toString();
-            REMatch match = totalRE.getMatch(s);
+            Matcher match = totalRE.matcher(s);
             Log.debug("match = |" + match + "|");
             if (match == null) {
                 Log.error("lsla no \"total\" line");
                 continue;
             }
-            s = s.substring(match.getEndIndex());
+            s = s.substring(match.end());
             int index = s.indexOf('\n');
             if (index < 0) {
                 // Shouldn't happen.

@@ -20,9 +20,8 @@
 
 package org.armedbear.j;
 
-import gnu.regexp.RE;
-import gnu.regexp.REMatch;
-import gnu.regexp.UncheckedRE;
+import java.util.regex.Pattern;
+import java.util.regex.Matcher;
 
 public final class LispFormatter extends Formatter
 {
@@ -51,18 +50,18 @@ public final class LispFormatter extends Formatter
     private static final int LISP_FORMAT_SUBSTITUTION      = 8;
     private static final int LISP_FORMAT_SECONDARY_KEYWORD = 9;
 
-    private static final RE condRE =
-        new UncheckedRE("\\([ \t]*cond[ \t]*\\(\\(");
+    private static final Pattern condRE =
+        Pattern.compile("\\([ \t]*cond[ \t]*\\(\\(");
 
-    private static final RE dolistRE =
-        new UncheckedRE("\\([ \t]*dolist[ \t]*\\(");
+    private static final Pattern dolistRE =
+        Pattern.compile("\\([ \t]*dolist[ \t]*\\(");
 
     // Matches e.g. "(do () ((endp list1))".
-    private static final RE doRE =
-        new UncheckedRE("\\([ \t]*do\\*?[ \t]*\\(.*\\)[ \t]\\(\\(");
+    private static final Pattern doRE =
+        Pattern.compile("\\([ \t]*do\\*?[ \t]*\\(.*\\)[ \t]\\(\\(");
 
-    private static final RE letOrDoRE =
-        new UncheckedRE("\\([ \t]*(let|do)\\*?[ \t]*\\(\\(");
+    private static final Pattern letOrDoRE =
+        Pattern.compile("\\([ \t]*(let|do)\\*?[ \t]*\\(\\(");
 
     private final Mode mode;
 
@@ -169,12 +168,12 @@ public final class LispFormatter extends Formatter
                             return true;
                     }
                 }
-                REMatch m = condRE.getMatch(text);
-                if (m != null && m.getEndIndex() == offset) {
+                Matcher m = condRE.matcher(text);
+                if (m.find() && m.end() == offset) {
                     return true;
                 }
-                m = doRE.getMatch(text);
-                if (m != null && m.getEndIndex() == offset)
+                m = doRE.matcher(text);
+                if (m.find() && m.end() == offset)
                     return true;
                 return false;
             }
@@ -185,9 +184,9 @@ public final class LispFormatter extends Formatter
                     LispMode.findContainingSexp(new Position(line, 0));
                 if (pos != null) {
                     if (pos.lookingAt("((")) {
-                        REMatch m =
-                            letOrDoRE.getMatch(pos.getLine().getText());
-                        if (m != null && m.getEndIndex() == pos.getOffset() + 2)
+                        Matcher m =
+                            letOrDoRE.matcher(pos.getLine().getText());
+                        if (m.find() && m.end() == pos.getOffset() + 2)
                             return false;
                     } else {
                         // Skip '('.
@@ -211,8 +210,8 @@ public final class LispFormatter extends Formatter
                 // Not first non-whitespace on line.
                 if (text.startsWith("(defknown "))
                     return false;
-                REMatch m = dolistRE.getMatch(text);
-                if (m != null && m.getEndIndex() == offset)
+                Matcher m = dolistRE.matcher(text);
+                if (m.find() && m.end() == offset)
                     return false;
             }
         }

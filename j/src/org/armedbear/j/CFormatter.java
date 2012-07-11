@@ -20,9 +20,7 @@
 
 package org.armedbear.j;
 
-import gnu.regexp.RE;
-import gnu.regexp.UncheckedRE;
-import java.util.HashSet;
+import java.util.regex.Pattern;
 
 public final class CFormatter extends Formatter implements Constants
 {
@@ -38,7 +36,7 @@ public final class CFormatter extends Formatter implements Constants
     private static final int C_FORMAT_PREPROCESSOR =  9;
     private static final int C_FORMAT_DISABLED     = 10;
 
-    private static final RE lynxArgsRE = new UncheckedRE("ARGS[0-9][0-9]?");
+    private static final Pattern lynxArgsRE = Pattern.compile("ARGS[0-9][0-9]?");
 
     private final Mode mode;
 
@@ -247,7 +245,7 @@ public final class CFormatter extends Formatter implements Constants
                     if (segment != null) {
                         final String segmentText = segment.getText();
                         if (segmentText.startsWith("ARGS") &&
-                            lynxArgsRE.isMatch(segmentText)) {
+                            lynxArgsRE.matcher(segmentText).matches()) {
                             // Lynx source "ARGSnn" macro.
                             ;
                         } else if (!isPreprocessorLine && isKeyword(segmentText)) {
@@ -263,7 +261,7 @@ public final class CFormatter extends Formatter implements Constants
                                 segment.setFormat(C_FORMAT_FUNCTION);
                             } else if (c == 'A' && text.regionMatches(j, "ARGS", 0, 4)) {
                                 // Lynx "ARGSnn" macro.
-                                if (lynxArgsRE.getMatch(text.substring(j)) != null)
+                                if (lynxArgsRE.matcher(text.substring(j)).find())
                                     segment.setFormat(C_FORMAT_FUNCTION);
                             } else if (c == 'N' && text.regionMatches(j, "NOARGS", 0, 6)) {
                                 // Lynx macro.

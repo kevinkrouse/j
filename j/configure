@@ -1608,7 +1608,7 @@ else
 fi
 
 
-                                                                                                                        ac_config_files="$ac_config_files Makefile src/Makefile src/jpty/Makefile src/gnu/regexp/Makefile src/org/armedbear/j/Makefile src/org/armedbear/j/version src/org/armedbear/j/mail/Makefile src/org/armedbear/j/jdb/Makefile src/org/armedbear/lisp/Makefile src/org/armedbear/lisp/java/awt/Makefile j abcl"
+                                                                                                                        ac_config_files="$ac_config_files Makefile src/Makefile src/jpty/Makefile src/org/armedbear/j/Makefile src/org/armedbear/j/version src/org/armedbear/j/mail/Makefile src/org/armedbear/j/jdb/Makefile src/org/armedbear/lisp/Makefile src/org/armedbear/lisp/java/awt/Makefile j abcl"
 
 
           ac_config_commands="$ac_config_commands chmod"
@@ -2171,7 +2171,6 @@ do
   "Makefile" ) CONFIG_FILES="$CONFIG_FILES Makefile" ;;
   "src/Makefile" ) CONFIG_FILES="$CONFIG_FILES src/Makefile" ;;
   "src/jpty/Makefile" ) CONFIG_FILES="$CONFIG_FILES src/jpty/Makefile" ;;
-  "src/gnu/regexp/Makefile" ) CONFIG_FILES="$CONFIG_FILES src/gnu/regexp/Makefile" ;;
   "src/org/armedbear/j/Makefile" ) CONFIG_FILES="$CONFIG_FILES src/org/armedbear/j/Makefile" ;;
   "src/org/armedbear/j/version" ) CONFIG_FILES="$CONFIG_FILES src/org/armedbear/j/version" ;;
   "src/org/armedbear/j/mail/Makefile" ) CONFIG_FILES="$CONFIG_FILES src/org/armedbear/j/mail/Makefile" ;;

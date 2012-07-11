@@ -20,9 +20,9 @@
 
 package org.armedbear.j;
 
-import gnu.regexp.RE;
-import gnu.regexp.REException;
-import gnu.regexp.REMatch;
+import java.util.regex.Pattern;
+import java.util.regex.PatternSyntaxException;
+import java.util.regex.Matcher;
 
 public final class SshFile extends File
 {
@@ -139,10 +139,10 @@ public final class SshFile extends File
                     try {
                         String pattern =
                             "\\n[d\\-][^\\n]+ " + getName() + "\\n";
-                        RE re = new RE(pattern);
-                        REMatch match = re.getMatch(listing);
-                        if (match != null) {
-                            String s = match.toString();
+                        Pattern re = Pattern.compile(pattern);
+                        Matcher matcher = re.matcher(listing);
+                        if (matcher.find()) {
+                            String s = matcher.group();
                             if (s.length() > 1) {
                                 char c = s.charAt(1);
                                 if (c == 'd')
@@ -153,7 +153,7 @@ public final class SshFile extends File
                             }
                         }
                     }
-                    catch (REException e) {
+                    catch (PatternSyntaxException e) {
                         Log.error(e);
                     }
                 }

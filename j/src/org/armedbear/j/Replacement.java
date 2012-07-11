@@ -20,7 +20,7 @@
 
 package org.armedbear.j;
 
-import gnu.regexp.REMatch;
+import java.util.regex.Matcher;
 
 public class Replacement extends Search
 {
@@ -99,7 +99,7 @@ public class Replacement extends Search
                 editor.addUndoDeleteRegion(r);
                 // Sets buffer modified flag.
                 r.delete();
-                final String toBeReplaced = getMatch().toString();
+                final String toBeReplaced = getMatch().group();
                 final String toBeInserted = getReplacementText(toBeReplaced);
                 editor.addUndo(SimpleEdit.INSERT_STRING);
                 buffer.insertString(editor.getDot(), toBeInserted);
@@ -120,7 +120,7 @@ public class Replacement extends Search
                 String toBeReplaced;
                 if (isRegularExpression()) {
                     Debug.assertTrue(getMatch() != null);
-                    toBeReplaced = getMatch().toString();
+                    toBeReplaced = getMatch().group();
                 } else {
                     toBeReplaced = dotLine.substring(dotOffset,
                         dotOffset + getPatternLength());
@@ -157,7 +157,7 @@ public class Replacement extends Search
         String toBeReplaced;
         if (isRegularExpression()) {
             Debug.assertTrue(getMatch() != null);
-            toBeReplaced = getMatch().toString();
+            toBeReplaced = getMatch().group();
         } else
             toBeReplaced = line.substring(offset, offset + getPatternLength());
         final String tail = line.substring(offset + toBeReplaced.length());
@@ -205,7 +205,7 @@ public class Replacement extends Search
         return replacementText;
     }
 
-    private String substituteInto(REMatch match, String input)
+    private String substituteInto(Matcher match, String input)
     {
         FastStringBuffer sb = new FastStringBuffer();
         int i;
@@ -214,10 +214,10 @@ public class Replacement extends Search
             if (c == '\\') {
                 c = input.charAt(++i);
                 if (c == '&') {
-                    sb.append(match.toString());
+                    sb.append(match.group());
                 } else if (c >= '1' && c <= '9') {
                     int val = Character.digit(c, 10);
-                    sb.append(match.toString(val));
+                    sb.append(match.group(val));
                 } else if (isMultilinePattern() && c == 'n') {
                     sb.append('\n');
                 } else {

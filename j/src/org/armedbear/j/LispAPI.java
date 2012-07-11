@@ -20,7 +20,7 @@
 
 package org.armedbear.j;
 
-import gnu.regexp.REException;
+import java.util.regex.PatternSyntaxException;
 import javax.swing.SwingUtilities;
 import javax.swing.undo.CompoundEdit;
 import org.armedbear.lisp.AbstractString;
@@ -1678,7 +1678,7 @@ public final class LispAPI
               {
                 search.setREFromPattern();
               }
-            catch (REException e)
+            catch (PatternSyntaxException e)
               {
                 return error(new LispError("Invalid regular expression: \"" +
                                            pattern + '"'));

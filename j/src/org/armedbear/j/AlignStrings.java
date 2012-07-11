@@ -20,9 +20,9 @@
 
 package org.armedbear.j;
 
-import gnu.regexp.RE;
-import gnu.regexp.REException;
-import gnu.regexp.REMatch;
+import java.util.regex.Pattern;
+import java.util.regex.PatternSyntaxException;
+import java.util.regex.Matcher;
 import javax.swing.undo.CompoundEdit;
 
 public final class AlignStrings
@@ -52,11 +52,11 @@ public final class AlignStrings
         if (region.getEndLineNumber() - region.getBeginLineNumber() < 2)
             return;
         s = unquote(s);
-        RE re;
+        Pattern re;
         try {
-            re = new RE(s);
+            re = Pattern.compile(s);
         }
-        catch (REException e) {
+        catch (PatternSyntaxException e) {
             MessageDialog.showMessageDialog(editor, e.getMessage(), "Error");
             return;
         }
@@ -77,16 +77,16 @@ public final class AlignStrings
     }
 
     private static void _alignStrings(Editor editor, Buffer buffer,
-        Region region, RE re)
+        Region region, Pattern re)
     {
         int maxCol = -1;
         for (Line line = region.getBeginLine(); line != region.getEndLine();
             line = line.next()) {
             String text = line.getText();
             if (text != null) {
-                REMatch match = re.getMatch(text);
-                if (match != null) {
-                    int offset = match.getStartIndex();
+                Matcher matcher = re.matcher(text);
+                if (matcher.find()) {
+                    int offset = matcher.start();
                     int col = buffer.getCol(line, offset);
                     if (col > maxCol)
                         maxCol = col;
@@ -101,9 +101,9 @@ public final class AlignStrings
             line = line.next()) {
             String text = line.getText();
             if (text != null) {
-                REMatch match = re.getMatch(text);
-                if (match != null) {
-                    int offset = match.getStartIndex();
+                Matcher matcher = re.matcher(text);
+                if (matcher.find()) {
+                    int offset = matcher.start();
                     int col = buffer.getCol(line, offset);
                     if (col < maxCol) {
                         editor.addUndo(SimpleEdit.MOVE);

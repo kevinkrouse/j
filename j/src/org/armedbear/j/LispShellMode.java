@@ -20,8 +20,8 @@
 
 package org.armedbear.j;
 
-import gnu.regexp.RE;
-import gnu.regexp.REMatch;
+import java.util.regex.Pattern;
+import java.util.regex.Matcher;
 import java.awt.AWTEvent;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseEvent;
@@ -188,11 +188,11 @@ public final class LispShellMode extends LispMode implements Constants, Mode
         int offset = pos.getOffset();
         String s = line.getText();
         String prompt = null;
-        RE promptRE = lisp.getPromptRE();
+        Pattern promptRE = lisp.getPromptRE();
         if (promptRE != null) {
-            REMatch match = promptRE.getMatch(s);
-            if (match != null) {
-                int end = match.getEndIndex();
+            Matcher matcher = promptRE.matcher(s);
+            if (matcher.find()) {
+                int end = matcher.end();
                 prompt = s.substring(0, end);
                 s = s.substring(end);
                 offset -= end;
@@ -271,11 +271,11 @@ public final class LispShellMode extends LispMode implements Constants, Mode
                     int offset = pos.getOffset();
                     String s = pos.getLine().getText();
                     final LispShell lisp = (LispShell) buffer;
-                    RE promptRE = lisp.getPromptRE();
+                    Pattern promptRE = lisp.getPromptRE();
                     if (promptRE != null) {
-                        REMatch match = promptRE.getMatch(s);
-                        if (match != null) {
-                            final int endIndex = match.getEndIndex();
+                        Matcher matcher = promptRE.matcher(s);
+                        if (matcher.find()) {
+                            final int endIndex = matcher.regionEnd();
                             s = s.substring(endIndex);
                             offset -= endIndex;
                         }

@@ -20,8 +20,7 @@
 
 package org.armedbear.j;
 
-import gnu.regexp.RE;
-import gnu.regexp.UncheckedRE;
+import java.util.regex.Pattern;
 import java.awt.event.KeyEvent;
 
 public final class PerlMode extends AbstractMode implements Constants, Mode
@@ -214,11 +213,11 @@ public final class PerlMode extends AbstractMode implements Constants, Mode
         return null;
     }
 
-    private static RE labelRE = new UncheckedRE("^\\s*[A-Za-z0-9_]+:\\s*$");
+    private static Pattern labelRE = Pattern.compile("^\\s*[A-Za-z0-9_]+:\\s*$");
 
     private static boolean isLabel(Line line)
     {
-        return labelRE.getMatch(line.getText()) != null;
+        return labelRE.matcher(line.getText()).find();
     }
 
     // Scan backwards from starting position, looking for unmatched opening

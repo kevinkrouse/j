@@ -20,7 +20,7 @@
 
 package org.armedbear.j;
 
-import gnu.regexp.REMatch;
+import java.util.regex.Matcher;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.util.List;
@@ -291,7 +291,7 @@ public class LispShell extends Shell
         return; // For now.
       }
     final Line promptLine = endOfOutput.getLine();
-    final boolean atPrompt = (promptRE.getMatch(promptLine.getText()) != null);
+    final boolean atPrompt = (promptRE.matcher(promptLine.getText()).find());
     if (atPrompt)
       {
         Annotation a = new Annotation(endOfOutput.getOffset());
@@ -360,7 +360,7 @@ public class LispShell extends Shell
     if (dot.isBefore(endOfOutput))
       return;
     final Line promptLine = endOfOutput.getLine();
-    final boolean atPrompt = (promptRE.getMatch(promptLine.getText()) != null);
+    final boolean atPrompt = (promptRE.matcher(promptLine.getText()).find());
     Position end = getEnd();
     if (dot.isBefore(end))
       return;
@@ -449,11 +449,11 @@ public class LispShell extends Shell
       prompt = s.substring(index + 1);
     else
       prompt = s;
-    final REMatch match = promptRE.getMatch(prompt);
-    if (match != null)
+    final Matcher matcher = promptRE.matcher(prompt);
+    if (matcher.find())
       {
         // Last line of output looks like a prompt.
-        String m = match.toString();
+        String m = matcher.group();
         if (prompt.startsWith(m))
           {
             if (prompt.substring(m.length()).startsWith(m))
@@ -478,7 +478,7 @@ public class LispShell extends Shell
           if (output.length() > 0)
             {
               appendString(output);
-              if (match != null)
+              if (matcher.find())
                 {
                   Line lineBeforeLastPrompt =
                     getEnd().getLine().previous();

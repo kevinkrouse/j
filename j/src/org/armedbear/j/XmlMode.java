@@ -20,10 +20,9 @@
 
 package org.armedbear.j;
 
-import gnu.regexp.RE;
-import gnu.regexp.REException;
-import gnu.regexp.REMatch;
-import gnu.regexp.UncheckedRE;
+import java.util.regex.Pattern;
+import java.util.regex.PatternSyntaxException;
+import java.util.regex.Matcher;
 import java.awt.event.KeyEvent;
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -47,10 +46,10 @@ public final class XmlMode extends AbstractMode implements Constants, Mode
 
     private static XmlErrorBuffer errorBuffer;
 
-    private static RE tagNameRE;
-    private static RE attributeNameRE;
-    private static RE quotedValueRE;
-    private static RE unquotedValueRE;
+    private static Pattern tagNameRE;
+    private static Pattern attributeNameRE;
+    private static Pattern quotedValueRE;
+    private static Pattern unquotedValueRE;
 
     private XmlMode()
     {
@@ -148,12 +147,12 @@ public final class XmlMode extends AbstractMode implements Constants, Mode
                 int end = s.indexOf("?>");
                 if (end >= 0) {
                     s = s.substring(5, end);
-                    RE re = new UncheckedRE("encoding[ \t]*=[ \t]*");
-                    REMatch match = re.getMatch(s);
-                    if (match != null) {
+                    Pattern re = Pattern.compile("encoding[ \t]*=[ \t]*");
+                    Matcher match = re.matcher(s);
+                    if (match.find()) {
                         // First char after match will be single or double
                         // quote.
-                        s = s.substring(match.getEndIndex());
+                        s = s.substring(match.end());
                         if (s.length() > 0) {
                             char quoteChar = s.charAt(0);
                             // Find matching quote char.
@@ -591,10 +590,10 @@ public final class XmlMode extends AbstractMode implements Constants, Mode
         if (pos != null) {
             int index = pos.getOffset();
             String text = pos.getLine().getText();
-            REMatch match = tagNameRE.getMatch(text, index);
-            if (match == null)
+            Matcher matcher = tagNameRE.matcher(text);
+            if (!matcher.find(index))
                 return c;
-            if (match.getEndIndex() >= editor.getDotOffset()) {
+            if (matcher.end() >= editor.getDotOffset()) {
                 // Tag name.
                 if (buffer.getBooleanProperty(Property.UPPER_CASE_TAG_NAMES))
                     return Character.toUpperCase(c);
@@ -602,25 +601,25 @@ public final class XmlMode extends AbstractMode implements Constants, Mode
                     return Character.toLowerCase(c);
             }
             while (true) {
-                index = match.getEndIndex();
-                match = attributeNameRE.getMatch(text, index);
-                if (match == null)
+                index = matcher.end();
+                matcher = attributeNameRE.matcher(text);
+                if (!matcher.find(index))
                     return c;
-                if (match.getEndIndex() >= editor.getDotOffset()) {
+                if (matcher.end() >= editor.getDotOffset()) {
                     // Attribute name.
                     if (buffer.getBooleanProperty(Property.UPPER_CASE_ATTRIBUTE_NAMES))
                         return Character.toUpperCase(c);
                     else
                         return Character.toLowerCase(c);
                 }
-                index = match.getEndIndex();
-                match = quotedValueRE.getMatch(text, index);
-                if (match == null) {
-                    match = unquotedValueRE.getMatch(text, index);
-                    if (match == null)
+                index = matcher.end();
+                matcher = quotedValueRE.matcher(text);
+                if (!matcher.find()) {
+                    matcher = unquotedValueRE.matcher(text);
+                    if (!matcher.find(index))
                         return c;
                 }
-                if (match.getEndIndex() >= editor.getDotOffset()) {
+                if (matcher.end() >= editor.getDotOffset()) {
                     // Attribute value.
                     return c;
                 }
@@ -664,12 +663,12 @@ public final class XmlMode extends AbstractMode implements Constants, Mode
     {
         if (tagNameRE == null) {
             try {
-                tagNameRE = new RE("</?[A-Za-z0-9]*");
-                attributeNameRE = new RE("\\s+[A-Za-z0-9]*");
-                quotedValueRE = new RE("\\s*=\\s*\"[^\"]*");
-                unquotedValueRE = new RE("\\s*=\\s*\\S*");
+                tagNameRE = Pattern.compile("</?[A-Za-z0-9]*");
+                attributeNameRE = Pattern.compile("\\s+[A-Za-z0-9]*");
+                quotedValueRE = Pattern.compile("\\s*=\\s*\"[^\"]*");
+                unquotedValueRE = Pattern.compile("\\s*=\\s*\\S*");
             }
-            catch (REException e) {
+            catch (PatternSyntaxException e) {
                 tagNameRE = null;
                 return false;
             }

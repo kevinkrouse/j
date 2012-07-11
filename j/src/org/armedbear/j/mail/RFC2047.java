@@ -20,9 +20,8 @@
 
 package org.armedbear.j.mail;
 
-import gnu.regexp.RE;
-import gnu.regexp.REMatch;
-import gnu.regexp.UncheckedRE;
+import java.util.regex.Pattern;
+import java.util.regex.Matcher;
 import java.io.UnsupportedEncodingException;
 import org.armedbear.j.FastStringBuffer;
 import org.armedbear.j.Log;
@@ -30,7 +29,7 @@ import org.armedbear.j.Utilities;
 
 public final class RFC2047
 {
-    private static final RE prefixRE = new UncheckedRE("=\\?[^?]+\\?[bq]\\?");
+    private static final Pattern prefixRE = Pattern.compile("=\\?[^?]+\\?[bq]\\?");
 
     public static String decode(String encoded)
     {
@@ -39,14 +38,14 @@ public final class RFC2047
         // Fail fast.
         if (encoded.indexOf("=?") < 0)
             return encoded;
-        REMatch match = prefixRE.getMatch(encoded.toLowerCase());
-        if (match == null) {
+        Matcher matcher = prefixRE.matcher(encoded.toLowerCase());
+        if (!matcher.find()) {
             Log.error("RFC2047.decode prefix is null");
             Log.error("encoded = |" + encoded + "|");
             return encoded;
         }
-        String prefix = match.toString();
-        int index = match.getStartIndex();
+        String prefix = matcher.group();
+        int index = matcher.start();
         String charset = prefix.substring(2, prefix.length()-3);
         String encoding = Utilities.getEncodingFromCharset(charset);
         FastStringBuffer sb = new FastStringBuffer();

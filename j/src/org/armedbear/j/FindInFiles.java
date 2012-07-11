@@ -20,8 +20,8 @@
 
 package org.armedbear.j;
 
-import gnu.regexp.RE;
-import gnu.regexp.REException;
+import java.util.regex.Pattern;
+import java.util.regex.PatternSyntaxException;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -59,7 +59,7 @@ public final class FindInFiles extends Replacement implements Constants,
 
     private Mode mode;
 
-    private Vector results = new Vector();
+    private Vector<File> results = new Vector<File>();
 
     private boolean cancelled;
 
@@ -236,13 +236,13 @@ public final class FindInFiles extends Replacement implements Constants,
     private void runInternal()
     {
         frame.setWaitCursor();
-        RE excludesRE = null;
+        Pattern excludesRE = null;
         if (defaultExcludes) {
             try {
                 String excludesPattern = Editor.preferences().getStringProperty(
                     Property.FILENAME_COMPLETIONS_EXCLUDE_PATTERN);
-                excludesRE = new RE(excludesPattern, 0);
-            } catch (REException e) {
+                excludesRE = Pattern.compile(excludesPattern, 0);
+            } catch (PatternSyntaxException e) {
                 Log.error(e);
             }
         }
@@ -311,7 +311,7 @@ public final class FindInFiles extends Replacement implements Constants,
         cancelled = true;
     }
 
-    private void searchDirectory(File dir, Filter filter, RE excludesRE)
+    private void searchDirectory(File dir, Filter filter, Pattern excludesRE)
     {
         String[] files = dir.list();
         if (files == null)
@@ -320,7 +320,7 @@ public final class FindInFiles extends Replacement implements Constants,
             if (cancelled)
                 return;
             File file = File.getInstance(dir, files[i]);
-            if (excludesRE != null && excludesRE.isMatch(files[i]))
+            if (excludesRE != null && excludesRE.matcher(files[i]).matches())
                 continue;
             if (file.isDirectory()) {
                 if (includeSubdirs)

@@ -20,7 +20,7 @@
 
 package org.armedbear.j;
 
-import gnu.regexp.REMatch;
+import java.util.regex.Matcher;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.util.List;
@@ -301,11 +301,11 @@ public class Shell extends CommandInterpreter implements Constants
             return;
         final Line dotLine = editor.getDotLine();
         final String dotLineText = dotLine.getText();
-        final REMatch match = promptRE.getMatch(dotLineText);
-        if (match == null)
+        final Matcher matcher = promptRE.matcher(dotLineText);
+        if (!matcher.find())
             return; // Not at prompt.
-        final String prompt = match.toString();
-        final String userInput  = dotLineText.substring(match.getEndIndex());
+        final String prompt = matcher.group();
+        final String userInput  = dotLineText.substring(matcher.end());
         if (userInput.length() == 0)
             return; // Nothing to complete.
         final ShellTokenizer st = new ShellTokenizer(userInput);
@@ -508,8 +508,8 @@ public class Shell extends CommandInterpreter implements Constants
     protected void stdErrUpdate(final String s)
     {
         if (promptIsStderr) {
-            REMatch match = promptRE.getMatch(s);
-            if (match != null) {
+            Matcher matcher = promptRE.matcher(s);
+            if (matcher.find()) {
                 // This looks like the prompt.
                 // Give stdout a chance to finish.
                 try {
@@ -553,8 +553,8 @@ public class Shell extends CommandInterpreter implements Constants
         if (nextToLast != null && nextToLast.getText().startsWith("| ")) {
             // Next-to-last line looks like first line of 2-line prompt.
             // See if the last line looks like the second line of the prompt.
-            REMatch match = promptRE.getMatch(last.getText());
-            if (match != null)
+            Matcher match = promptRE.matcher(last.getText());
+            if (match.find())
                 nextToLast.setFlags(STATE_PROMPT);
         }
     }

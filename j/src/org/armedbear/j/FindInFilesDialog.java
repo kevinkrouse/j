@@ -20,8 +20,8 @@
 
 package org.armedbear.j;
 
-import gnu.regexp.RE;
-import gnu.regexp.REException;
+import java.util.regex.Pattern;
+import java.util.regex.PatternSyntaxException;
 import java.awt.Dimension;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -285,12 +285,12 @@ public class FindInFilesDialog extends AbstractDialog implements Constants,
         if (findInFiles.isRegularExpression()) {
             if (findInFiles.getRE() == null) {
                 try {
-                    int flags = RE.REG_MULTILINE;
+                    int flags = Pattern.MULTILINE;
                     if (findInFiles.ignoreCase())
-                        flags |= RE.REG_ICASE;
-                    findInFiles.setRE(new RE(findInFiles.getPattern(), flags));
+                        flags |= Pattern.CASE_INSENSITIVE;
+                    findInFiles.setRE(Pattern.compile(findInFiles.getPattern(), flags));
                 }
-                catch (REException e) {
+                catch (PatternSyntaxException e) {
                     findInFiles = null;
                     MessageDialog.showMessageDialog(editor,
                         e.getMessage(), "Error");

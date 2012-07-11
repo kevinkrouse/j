@@ -20,9 +20,8 @@
 
 package org.armedbear.j;
 
-import gnu.regexp.RE;
-import gnu.regexp.REMatch;
-import gnu.regexp.UncheckedRE;
+import java.util.regex.Pattern;
+import java.util.regex.Matcher;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Graphics;
@@ -507,10 +506,10 @@ public final class Utilities implements Constants
             return null;
         if (s.charAt(0) != '#')
             return null;
-        REMatch match = includeRE.getMatch(s);
-        if (match == null)
+        Matcher matcher = includeRE.matcher(s);
+        if (!matcher.find())
             return null;
-        s = s.substring(match.getEndIndex()).trim();
+        s = s.substring(matcher.end()).trim();
         if (s.length() < 2)
             return null;
         char c = s.charAt(0);
@@ -524,7 +523,7 @@ public final class Utilities implements Constants
         return s.substring(0, lastIndex+1);
     }
 
-    private static final RE includeRE = new UncheckedRE("#[ \t]*include[ \t]");
+    private static final Pattern includeRE = Pattern.compile("#[ \t]*include[ \t]");
 
     /**
      * Finds an include file (C or C++).

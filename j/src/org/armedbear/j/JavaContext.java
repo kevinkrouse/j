@@ -20,9 +20,8 @@
 
 package org.armedbear.j;
 
-import gnu.regexp.RE;
-import gnu.regexp.REMatch;
-import gnu.regexp.UncheckedRE;
+import java.util.regex.Pattern;
+import java.util.regex.Matcher;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Stack;
@@ -31,13 +30,13 @@ public final class JavaContext implements Constants
 {
     private static final boolean DEBUG = false;
 
-    private static final RE parameterRE =
-        new UncheckedRE("^(\\w+\\s+\\w+\\s*,?)");
-    private static final RE declarationRE =
-        new UncheckedRE("^(\\w+\\s+\\w+\\s*;|\\w+\\s+\\w+\\s*=[^=])");
+    private static final Pattern parameterRE =
+        Pattern.compile("^(\\w+\\s+\\w+\\s*,?)");
+    private static final Pattern declarationRE =
+        Pattern.compile("^(\\w+\\s+\\w+\\s*;|\\w+\\s+\\w+\\s*=[^=])");
 
     // "return foo;"
-    private static final RE returnRE = new UncheckedRE("^return[ \t]");
+    private static final Pattern returnRE = Pattern.compile("^return[ \t]");
 
     private final Editor editor;
     private final Stack stack = new Stack();
@@ -186,10 +185,10 @@ public final class JavaContext implements Constants
                     return;
                 } else {
                     final String text = pos.getLine().substring(pos.getOffset());
-                    final REMatch match = declarationRE.getMatch(text);
-                    if (match != null) {
-                        String s = match.toString();
-                        if (returnRE.getMatch(s) != null) {
+                    final Matcher matcher = declarationRE.matcher(text);
+                    if (matcher.find()) {
+                        String s = matcher.group();
+                        if (returnRE.matcher(s).find()) {
                             if (DEBUG)
                                 Log.debug("skipping |" + s + "|");
                         } else
@@ -246,9 +245,9 @@ public final class JavaContext implements Constants
             while (true) {
                 if (DEBUG)
                     Log.debug("parameters = |" + parameters + "|");
-                REMatch match = parameterRE.getMatch(parameters);
-                if (match != null) {
-                    String s = match.toString();
+                Matcher matcher = parameterRE.matcher(parameters);
+                if (matcher.find()) {
+                    String s = matcher.group();
                     addParameter(s);
                     parameters = parameters.substring(s.length()).trim();
                 } else

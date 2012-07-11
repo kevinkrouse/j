@@ -20,9 +20,8 @@
 
 package org.armedbear.j;
 
-import gnu.regexp.RE;
-import gnu.regexp.REMatch;
-import gnu.regexp.UncheckedRE;
+import java.util.regex.Pattern;
+import java.util.regex.Matcher;
 import java.io.IOException;
 
 public final class BrowseFile implements Constants
@@ -84,21 +83,25 @@ public final class BrowseFile implements Constants
             return new Region(editor).toString();
         }
         if (editor.getModeId() == HTML_MODE) {
-            RE re = new UncheckedRE("(href|src)=\"([^\"]+)\"", RE.REG_ICASE);
-            REMatch match = null;
-            final String text = editor.getDotLine().getText();
-            final int dotOffset = editor.getDotOffset();
-            REMatch m;
-            int index = 0;
-            while ((m = re.getMatch(text, index)) != null) {
-                match = m;
-                if (match.getEndIndex() > dotOffset)
-                    break; // All subsequent matches will be further away.
-                index = match.getEndIndex();
-            }
-            if (match != null)
-                return match.toString(2);
+            String href = getHref(editor.getDotLine().getText(), editor.getDotOffset());
+            if (href != null)
+                return href;
         }
         return editor.getFilenameAtDot();
+    }
+
+    static String getHref(String text, int dotOffset)
+    {
+        Pattern re = Pattern.compile("(href|src)=\"([^\"]+)\"", Pattern.CASE_INSENSITIVE);
+        Matcher m = re.matcher(text);
+        int index = 0;
+        String href = null;
+        while (m.find(index)) {
+            href = m.group(2);
+            if (m.end() > dotOffset)
+                break; // All subsequent matches will be further away.
+            index = m.end();
+        }
+        return href;
     }
 }

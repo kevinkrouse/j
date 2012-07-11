@@ -20,9 +20,8 @@
 
 package org.armedbear.j;
 
-import gnu.regexp.RE;
-import gnu.regexp.REMatch;
-import gnu.regexp.UncheckedRE;
+import java.util.regex.Pattern;
+import java.util.regex.Matcher;
 import javax.swing.undo.CompoundEdit;
 import org.armedbear.j.mail.SendMail;
 
@@ -596,12 +595,12 @@ public final class WrapText implements Constants
         return new Position(endLine, endLine.length());
     }
 
-    private static final RE prefixRE = new UncheckedRE("^>[> ]*");
+    private static final Pattern prefixRE = Pattern.compile("^>[> ]*");
 
     private static String getPrefix(Line line)
     {
-        REMatch match = prefixRE.getMatch(line.getText());
-        return match != null ? match.toString() : null;
+        Matcher match = prefixRE.matcher(line.getText());
+        return match.find() ? match.group() : null;
     }
 
     private static Position findStartOfQuotedText(Position pos, String prefix,

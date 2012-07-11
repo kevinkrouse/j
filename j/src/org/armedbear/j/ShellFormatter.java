@@ -20,8 +20,8 @@
 
 package org.armedbear.j;
 
-import gnu.regexp.RE;
-import gnu.regexp.REMatch;
+import java.util.regex.Pattern;
+import java.util.regex.Matcher;
 
 public final class ShellFormatter extends Formatter
 {
@@ -42,13 +42,13 @@ public final class ShellFormatter extends Formatter
             addSegment("", SHELL_FORMAT_TEXT);
             return segmentList;
         }
-        final RE promptRE = ((Shell)buffer).getPromptRE();
+        final Pattern promptRE = ((Shell)buffer).getPromptRE();
         final String text = getDetabbedText(line);
         final int flags = line.flags();
         if (flags == STATE_PROMPT) {
-            REMatch match = promptRE.getMatch(text);
-            if (match != null) {
-                final int end = match.getEndIndex();
+            Matcher matcher = promptRE.matcher(text);
+            if (matcher.find()) {
+                final int end = matcher.end();
                 addSegment(text, 0, end, SHELL_FORMAT_PROMPT);
                 addSegment(text, end, SHELL_FORMAT_INPUT);
             } else
@@ -65,9 +65,9 @@ public final class ShellFormatter extends Formatter
         }
         if (promptRE != null) {
             if (flags == STATE_INPUT) {
-                REMatch match = promptRE.getMatch(text);
-                if (match != null) {
-                    final int end = match.getEndIndex();
+                Matcher matcher = promptRE.matcher(text);
+                if (matcher.find()) {
+                    final int end = matcher.end();
                     addSegment(text, 0, end, SHELL_FORMAT_PROMPT);
                     addSegment(text, end, SHELL_FORMAT_INPUT);
                 } else {
@@ -79,10 +79,10 @@ public final class ShellFormatter extends Formatter
             Line next = line.next();
             if (next == null) {
                 // Last line of buffer. Check for prompt.
-                REMatch match = promptRE.getMatch(text);
-                if (match != null) {
+                Matcher matcher = promptRE.matcher(text);
+                if (matcher.find()) {
                     line.setFlags(STATE_PROMPT);
-                    final int end = match.getEndIndex();
+                    final int end = matcher.end();
                     addSegment(text, 0, end, SHELL_FORMAT_PROMPT);
                     addSegment(text, end, SHELL_FORMAT_INPUT);
                 } else

@@ -20,9 +20,8 @@
 
 package org.armedbear.j;
 
-import gnu.regexp.RE;
-import gnu.regexp.REMatch;
-import gnu.regexp.UncheckedRE;
+import java.util.regex.Pattern;
+import java.util.regex.Matcher;
 import java.awt.AWTEvent;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseEvent;
@@ -36,8 +35,8 @@ import java.util.zip.ZipInputStream;
 public final class ArchiveMode extends AbstractMode implements Constants, Mode
 {
     private static final ArchiveMode mode = new ArchiveMode();
-    private static final RE moveToFilenameRegExp =
-        new UncheckedRE(":[0-5][0-9] ");
+    private static final Pattern moveToFilenameRegExp =
+        Pattern.compile(":[0-5][0-9] ");
 
     private ArchiveMode()
     {
@@ -66,8 +65,8 @@ public final class ArchiveMode extends AbstractMode implements Constants, Mode
 
     private static String getName(String s)
     {
-        REMatch match = moveToFilenameRegExp.getMatch(s);
-        return match == null ? null : s.substring(match.getEndIndex());
+        Matcher matcher = moveToFilenameRegExp.matcher(s);
+        return matcher.find() ? s.substring(matcher.end()) : null;
     }
 
     public static void openFileAtDot(Editor editor)

@@ -20,7 +20,7 @@
 
 package org.armedbear.j;
 
-import gnu.regexp.REMatch;
+import java.util.regex.Matcher;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
@@ -102,9 +102,9 @@ public final class DirectoryEntry
         int end = s.indexOf(" -> ");
         if (end >= 0)
             s = s.substring(0, end);
-        REMatch match = Directory.getNativeMoveToFilenameRegExp().getMatch(s);
-        if (match != null)
-            return s.substring(match.getEndIndex());
+        Matcher matcher = Directory.getNativeMoveToFilenameRegExp().matcher(s);
+        if (matcher.find())
+            return s.substring(matcher.end());
         Log.error("DirectoryEntry.getName returning null s = |" + s + "|");
         return null;
     }
@@ -115,9 +115,9 @@ public final class DirectoryEntry
         int end = s.indexOf(" -> ");
         if (end >= 0)
             s = s.substring(0, end);
-        REMatch match = Directory.getNativeMoveToFilenameRegExp().getMatch(s);
-        if (match != null)
-            return match.getEndIndex();
+        Matcher matcher = Directory.getNativeMoveToFilenameRegExp().matcher(s);
+        if (matcher.find())
+            return matcher.end();
         return 0;
     }
 

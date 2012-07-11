@@ -20,8 +20,7 @@
 
 package org.armedbear.j;
 
-import gnu.regexp.RE;
-import gnu.regexp.UncheckedRE;
+import java.util.regex.Pattern;
 import java.awt.event.KeyEvent;
 
 public final class VHDLMode extends AbstractMode implements Constants, Mode
@@ -84,9 +83,9 @@ public final class VHDLMode extends AbstractMode implements Constants, Mode
         return false;
     }
 
-    private static final RE beginRE = new UncheckedRE("^begin\\s");
-    private static final RE thenRE = new UncheckedRE("\\s+then$");
-    private static final RE loopRE = new UncheckedRE("\\s+loop$");
+    private static final Pattern beginRE = Pattern.compile("^begin\\s");
+    private static final Pattern thenRE = Pattern.compile("\\s+then$");
+    private static final Pattern loopRE = Pattern.compile("\\s+loop$");
 
     public int getCorrectIndentation(Line line, Buffer buffer)
     {
@@ -97,15 +96,15 @@ public final class VHDLMode extends AbstractMode implements Constants, Mode
         final int modelIndent = buffer.getIndentation(model);
         final String modelTrim = trimSyntacticWhitespace(model);
 
-        if (modelTrim.equals("begin") || beginRE.getMatch(modelTrim) != null) {
+        if (modelTrim.equals("begin") || beginRE.matcher(modelTrim).find()) {
             // Model starts with "begin".
             return modelIndent + indentSize;
         }
-        if (modelTrim.equals("then") || thenRE.getMatch(modelTrim) != null) {
+        if (modelTrim.equals("then") || thenRE.matcher(modelTrim).find()) {
             // Model ends with "then".
             return modelIndent + indentSize;
         }
-        if (modelTrim.equals("loop") || loopRE.getMatch(modelTrim) != null) {
+        if (modelTrim.equals("loop") || loopRE.matcher(modelTrim).find()) {
             // Model ends with "loop".
             return modelIndent + indentSize;
         }

@@ -96,7 +96,6 @@
       <include name="**/*.java"/>
       <!--
       <include name="Main.java"/>
-      <include name="gnu/regexp/*.java"/>
       <include name="org/armedbear/j/**/*.java"/>
       <!- - Assumed to need the org.armedbear.lisp.awt.* classes as ABCL
            itself doesn't seem to need them. - ->
@@ -106,7 +105,6 @@
 
     <patternset id="j.objects">
       <include name="Main.class"/>
-      <include name="gnu/regexp/*.class"/>
       <include name="org/armedbear/j/**/*.class"/>
       <include name="org/armedbear/lisp/j.lisp"/>
       <include name="org/armedbear/lisp/emacs.lisp"/>
@@ -118,7 +116,6 @@
       <include name="org/armedbear/j/build"/>
       <include name="org/armedbear/j/snapshot"/>
       <include name="org/armedbear/j/images/**/*.png"/>
-      <include name="gnu/regexp/MessagesBundle.properties"/>
     </patternset>
 
     <patternset id="j.resources.top">

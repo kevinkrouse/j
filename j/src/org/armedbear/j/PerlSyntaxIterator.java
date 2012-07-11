@@ -20,9 +20,8 @@
 
 package org.armedbear.j;
 
-import gnu.regexp.RE;
-import gnu.regexp.REMatch;
-import gnu.regexp.UncheckedRE;
+import java.util.regex.Pattern;
+import java.util.regex.Matcher;
 
 // Supports movement through the syntactically important text of a buffer,
 // i.e. skipping whitespace and comments.
@@ -33,7 +32,7 @@ public class PerlSyntaxIterator extends DefaultSyntaxIterator
     private static final int STATE_REGEXP  = 2;
     private static final int STATE_SUBST   = 3;
 
-    private static RE matchRE = new UncheckedRE("(=~|!~)[ \t]+m[^a-zA-Z0-9]");
+    private static Pattern matchRE = Pattern.compile("(=~|!~)[ \t]+m[^a-zA-Z0-9]");
 
     public PerlSyntaxIterator(Position pos)
     {
@@ -82,9 +81,9 @@ public class PerlSyntaxIterator extends DefaultSyntaxIterator
                     delimiter = '/';
                 }
             } else if (c == '=' || c == '!') {
-                REMatch match = matchRE.getMatch(s.substring(i));
-                if (match != null) {
-                    final String m = match.toString();
+                Matcher matcher = matchRE.matcher(s.substring(i));
+                if (matcher.find()) {
+                    final String m = matcher.group();
                     final int len = m.length();
                     delimiter = m.charAt(len - 1);
                     if (delimiter == '{')

@@ -83,7 +83,7 @@ public final class ListOccurrencesFormatter extends Formatter
                 addSegment(text, startCol, matchCol, FORMAT_TEXT);
             int length;
             if (search.getMatch() != null)
-                length = search.getMatch().toString().length();
+                length = search.getMatch().group().length();
             else
                 length = search.getPatternLength();
             startCol = buffer.getCol(pos.getLine(), pos.getOffset() + length);
