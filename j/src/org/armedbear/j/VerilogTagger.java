@@ -20,19 +20,18 @@
 
 package org.armedbear.j;
 
-import gnu.regexp.RE;
-import gnu.regexp.REMatch;
-import gnu.regexp.UncheckedRE;
+import java.util.regex.Pattern;
+import java.util.regex.Matcher;
 import java.util.ArrayList;
 
 public final class VerilogTagger extends Tagger
 {
     // We trim before matching, so "module" or "primitive" will appear without
     // any preceding whitespace.
-    private static final RE moduleRE =
-        new UncheckedRE("^module\\s+([a-zA-Z_][a-zA-Z0-9_$]*)");
-    private static final RE primitiveRE =
-        new UncheckedRE("^primitive\\s+([a-zA-Z_][a-zA-Z0-9_$]*)");
+    private static final Pattern moduleRE =
+        Pattern.compile("^module\\s+([a-zA-Z_][a-zA-Z0-9_$]*)");
+    private static final Pattern primitiveRE =
+        Pattern.compile("^primitive\\s+([a-zA-Z_][a-zA-Z0-9_$]*)");
 
     public VerilogTagger(SystemBuffer buffer)
     {
@@ -46,16 +45,13 @@ public final class VerilogTagger extends Tagger
         while (line != null) {
             String s = line.trim();
             if (s != null) {
-                REMatch match;
+                Matcher matcher = null;
                 if (s.startsWith("module"))
-                    match = moduleRE.getMatch(s);
+                    matcher = moduleRE.matcher(s);
                 else if (s.startsWith("primitive"))
-                    match = primitiveRE.getMatch(s);
-                else
-                    match = null;
-                if (match != null) {
-                    String name = s.substring(match.getSubStartIndex(1),
-                        match.getSubEndIndex(1));
+                    matcher = primitiveRE.matcher(s);
+                if (matcher != null && matcher.find()) {
+                    String name = matcher.group(1);
                     tags.add(new LocalTag(name, line));
                 }
             }

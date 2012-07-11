@@ -20,8 +20,7 @@
 
 package org.armedbear.j.mail;
 
-import gnu.regexp.RE;
-import gnu.regexp.UncheckedRE;
+import java.util.regex.Pattern;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Debug;
 import org.armedbear.j.DiffFormatter;
@@ -46,10 +45,10 @@ public final class MessageFormatter extends Formatter
     private static final byte MESSAGE_FORMAT_SIGNATURE    = MESSAGE_FORMAT_FIRST + 5;
     private static final byte MESSAGE_FORMAT_DIFF         = MESSAGE_FORMAT_FIRST + 6;
 
-    private static final RE quoteRE = new UncheckedRE("^[a-zA-Z]*>");
+    private static final Pattern quoteRE = Pattern.compile("^[a-zA-Z]*>");
 
     // Includes '/' for "Parts/Attachments".
-    private static final RE headerRE = new UncheckedRE("^ *[a-zA-Z\\-/]+:");
+    private static final Pattern headerRE = Pattern.compile("^ *[a-zA-Z\\-/]+:");
 
     private Line startOfBody;
 
@@ -81,7 +80,7 @@ public final class MessageFormatter extends Formatter
             // We're in the message headers.
             if (text.length() > 0) {
                 int i = text.indexOf(':');
-                if (i >= 0 && headerRE.getMatch(text) != null) {
+                if (i >= 0 && headerRE.matcher(text).find()) {
                     String headerName = text.substring(0, i).trim();
                     if (isKeyword(headerName)) {
                         addSegment(text, 0, i+1, MESSAGE_FORMAT_HEADER_NAME);
@@ -108,7 +107,7 @@ public final class MessageFormatter extends Formatter
             }
             return segmentList;
         }
-        if (quoteRE.getMatch(text) != null) {
+        if (quoteRE.matcher(text).find()) {
             addSegment(text, MESSAGE_FORMAT_QUOTE);
             return segmentList;
         }
@@ -139,7 +138,7 @@ public final class MessageFormatter extends Formatter
                     startOfBody = line.next();
                 else {
                     int i = text.indexOf(':');
-                    if (i >= 0 && headerRE.getMatch(text) != null) {
+                    if (i >= 0 && headerRE.matcher(text).find()) {
                         String headerName = text.substring(0, i).trim();
                         if (isKeyword(headerName))
                             line.setFlags(MESSAGE_FORMAT_HEADER_VALUE);

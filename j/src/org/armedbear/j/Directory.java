@@ -20,10 +20,8 @@
 
 package org.armedbear.j;
 
-import gnu.regexp.RE;
-import gnu.regexp.REMatch;
-import gnu.regexp.RESyntax;
-import gnu.regexp.UncheckedRE;
+import java.util.regex.Pattern;
+import java.util.regex.Matcher;
 import java.awt.AWTEvent;
 import java.awt.event.MouseEvent;
 import java.io.BufferedReader;
@@ -59,14 +57,14 @@ public final class Directory extends Buffer
 
     private DirectoryHistory history = new DirectoryHistory();
 
-    private static final RE nativeMoveToFilenameRegExp;
-    private static final RE internalMoveToFilenameRegExp;
+    private static final Pattern nativeMoveToFilenameRegExp;
+    private static final Pattern internalMoveToFilenameRegExp;
 
     private boolean loadError;
 
     static {
         // Letters.
-        final String letter = "[[:alpha:]]";
+        final String letter = "\\p{Alpha}";
 
         // Month is 2 or more letters, possibly padded on the right with spaces.
         final String month = letter + letter + "+";
@@ -87,9 +85,6 @@ public final class Directory extends Buffer
         // Time or year.
         final String timeOrYear =
             "(" + HHMM + "|" + " " + yyyy + "|" + yyyy + " " + ")";
-
-        RESyntax syntax = new RESyntax(RESyntax.RE_SYNTAX_PERL5);
-        syntax.set(RESyntax.RE_CHAR_CLASSES);
 
         String traditional = "[0-9]+" + " " + monthAndDay + timeOrYear + " ";
 
@@ -112,19 +107,17 @@ public final class Directory extends Buffer
         String osx = "[0-9]+" + " " + dd + " " + month + " " + timeOrYear + " ";
 
         nativeMoveToFilenameRegExp =
-            new UncheckedRE("(" + traditional + ")|(" + iso + ")|(" + osx + ")",
-                            0,
-                            syntax);
+            Pattern.compile("(" + traditional + ")|(" + iso + ")|(" + osx + ")");
 
-        internalMoveToFilenameRegExp = new UncheckedRE(":[0-5][0-9]" + " ");
+        internalMoveToFilenameRegExp = Pattern.compile(":[0-5][0-9]" + " ");
     }
 
-    public static final RE getNativeMoveToFilenameRegExp()
+    public static final Pattern getNativeMoveToFilenameRegExp()
     {
         return nativeMoveToFilenameRegExp;
     }
 
-    public static final RE getInternalMoveToFilenameRegExp()
+    public static final Pattern getInternalMoveToFilenameRegExp()
     {
         return internalMoveToFilenameRegExp;
     }
@@ -786,10 +779,10 @@ public final class Directory extends Buffer
             }
             String text = entry.getString();
             if (endOffset < 0) {
-                REMatch match = nativeMoveToFilenameRegExp.getMatch(text);
-                if (match != null) {
+                Matcher matcher = nativeMoveToFilenameRegExp.matcher(text);
+                if (matcher.find()) {
                     // The file size is followed by a single space.
-                    endOffset = text.indexOf(' ', match.getStartIndex());
+                    endOffset = text.indexOf(' ', matcher.start());
                 }
                 if (endOffset < 0)
                     endOffset = 42;
@@ -801,10 +794,10 @@ public final class Directory extends Buffer
                     end = endOffset;
                 } else {
                     // Encountered unexpected char at endOffset.
-                    REMatch match = nativeMoveToFilenameRegExp.getMatch(text);
-                    if (match == null)
+                    Matcher matcher = nativeMoveToFilenameRegExp.matcher(text);
+                    if (!matcher.find())
                         return totalSize = -1;
-                    end = text.indexOf(' ', match.getStartIndex());
+                    end = text.indexOf(' ', matcher.start());
                     if (end < endOffset) {
                         // Correct anomaly.
                         endOffset = end;
@@ -1877,15 +1870,15 @@ public final class Directory extends Buffer
         if (end >= 0)
             s = s.substring(0, end);
 
-        REMatch match;
+        Matcher matcher;
 
         if (usingNativeFormat)
-            match = nativeMoveToFilenameRegExp.getMatch(s);
+            matcher = nativeMoveToFilenameRegExp.matcher(s);
         else
-            match = internalMoveToFilenameRegExp.getMatch(s);
+            matcher = internalMoveToFilenameRegExp.matcher(s);
 
-        if (match != null)
-            return s.substring(match.getEndIndex());
+        if (matcher.find())
+            return s.substring(matcher.end());
 
         return null;
     }
@@ -1894,9 +1887,9 @@ public final class Directory extends Buffer
     {
         if (usingNativeFormat) {
             try {
-                REMatch match = nativeMoveToFilenameRegExp.getMatch(s);
-                if (match != null) {
-                    String toBeParsed = s.substring(match.getStartIndex());
+                Matcher matcher = nativeMoveToFilenameRegExp.matcher(s);
+                if (matcher.find()) {
+                    String toBeParsed = s.substring(matcher.start());
                     int index = toBeParsed.indexOf(' ');
                     if (index >= 0) {
                         toBeParsed = toBeParsed.substring(0, index);
@@ -2046,13 +2039,13 @@ public final class Directory extends Buffer
     private int getNameOffset(Line line)
     {
         if (line != null) {
-            REMatch match;
+            Matcher matcher;
             if (usingNativeFormat)
-                match = nativeMoveToFilenameRegExp.getMatch(line.getText());
+                matcher = nativeMoveToFilenameRegExp.matcher(line.getText());
             else
-                match = internalMoveToFilenameRegExp.getMatch(line.getText());
-            if (match != null)
-                return match.getEndIndex();
+                matcher = internalMoveToFilenameRegExp.matcher(line.getText());
+            if (matcher.find())
+                return matcher.end();
         }
         return 0;
     }
@@ -2067,13 +2060,13 @@ public final class Directory extends Buffer
         Line line = getFirstLine();
         if (line != null) {
             final String text = line.getText();
-            REMatch match;
+            Matcher matcher;
             if (usingNativeFormat)
-                match = nativeMoveToFilenameRegExp.getMatch(text);
+                matcher = nativeMoveToFilenameRegExp.matcher(text);
             else
-                match = internalMoveToFilenameRegExp.getMatch(text);
-            if (match != null) {
-                int start = match.getStartIndex();
+                matcher = internalMoveToFilenameRegExp.matcher(text);
+            if (matcher.find()) {
+                int start = matcher.start();
                 // The file size is followed by a single space.
                 return text.indexOf(' ', start);
             }

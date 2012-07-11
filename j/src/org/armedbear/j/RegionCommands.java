@@ -20,9 +20,8 @@
 
 package org.armedbear.j;
 
-import gnu.regexp.RE;
-import gnu.regexp.REMatch;
-import gnu.regexp.UncheckedRE;
+import java.util.regex.Pattern;
+import java.util.regex.Matcher;
 import java.io.IOException;
 import java.io.OutputStream;
 import javax.swing.undo.CompoundEdit;
@@ -416,16 +415,16 @@ public final class RegionCommands
 
     private static int findNumber(String text, Mode mode)
     {
-        RE re = new UncheckedRE("[0-9]+");
+        Pattern re = Pattern.compile("[0-9]+");
         int index = 0;
         int limit = text.length();
+        Matcher match = re.matcher(text);
         while (index <= limit) {
-            REMatch match = re.getMatch(text, index);
-            if (match == null)
+            if (match.find(index))
                 return -1;
-            if (isDelimited(text, match.getStartIndex(), match.toString().length(), mode))
-                return match.getStartIndex();
-            index = match.getStartIndex() + 1;
+            if (isDelimited(text, match.start(), match.group().length(), mode))
+                return match.start();
+            index = match.start() + 1;
         }
         return -1;
     }

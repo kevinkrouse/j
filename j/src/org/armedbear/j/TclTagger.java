@@ -20,14 +20,13 @@
 
 package org.armedbear.j;
 
-import gnu.regexp.RE;
-import gnu.regexp.REMatch;
-import gnu.regexp.UncheckedRE;
+import java.util.regex.Pattern;
+import java.util.regex.Matcher;
 import java.util.ArrayList;
 
 public final class TclTagger extends Tagger
 {
-    private static final RE procRE = new UncheckedRE("^proc\\s+(\\S+)");
+    private static final Pattern procRE = Pattern.compile("^proc\\s+(\\S+)");
 
     public TclTagger(SystemBuffer buffer)
     {
@@ -41,14 +40,11 @@ public final class TclTagger extends Tagger
         while (line != null) {
             String s = line.trim();
             if (s != null) {
-                REMatch match;
+                Matcher matcher = null;
                 if (s.startsWith("proc"))
-                    match = procRE.getMatch(s);
-                else
-                    match = null;
-                if (match != null) {
-                    String name = s.substring(match.getSubStartIndex(1),
-                        match.getSubEndIndex(1));
+                    matcher = procRE.matcher(s);
+                if (matcher != null && matcher.find()) {
+                    String name = matcher.group(1);
                     tags.add(new LocalTag(name, line));
                 }
             }

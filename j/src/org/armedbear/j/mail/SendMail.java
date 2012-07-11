@@ -20,9 +20,8 @@
 
 package org.armedbear.j.mail;
 
-import gnu.regexp.RE;
-import gnu.regexp.REMatch;
-import gnu.regexp.UncheckedRE;
+import java.util.regex.Pattern;
+import java.util.regex.Matcher;
 import java.io.BufferedInputStream;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -1617,10 +1616,10 @@ public final class SendMail extends Buffer
             return super.getExpansion(dot);
     }
 
-    private static final RE dateRE =
-        new UncheckedRE("[A-Za-z]+, [0-9][0-9]? [A-Za-z]+ [0-9][0-9][0-9][0-9]");
-    private static final RE timeRE =
-        new UncheckedRE("[0-9:]+ ([+-][0-9][0-9][0-9][0-9]|[A-Z][A-Z][A-Z]+)");
+    private static final Pattern dateRE =
+        Pattern.compile("[A-Za-z]+, [0-9][0-9]? [A-Za-z]+ [0-9][0-9][0-9][0-9]");
+    private static final Pattern timeRE =
+        Pattern.compile("[0-9:]+ ([+-][0-9][0-9][0-9][0-9]|[A-Z][A-Z][A-Z]+)");
 
     private static String getAttribution(MessageBuffer messageBuffer)
     {
@@ -1648,14 +1647,14 @@ public final class SendMail extends Buffer
                         if (message == null)
                             return null;
                         String dateTime = message.getHeaderValue(Headers.DATE);
-                        REMatch m1 = dateRE.getMatch(dateTime);
-                        if (m1 != null) {
-                            REMatch m2 =
-                                timeRE.getMatch(dateTime.substring(m1.getEndIndex()));
-                            if (m2 != null) {
-                                sb.append(m1.toString());
+                        Matcher m1 = dateRE.matcher(dateTime);
+                        if (m1.find()) {
+                            Matcher m2 =
+                                timeRE.matcher(dateTime.substring(m1.end()));
+                            if (m2.find()) {
+                                sb.append(m1.group());
                                 sb.append(" at ");
-                                sb.append(m2.toString());
+                                sb.append(m2.group());
                             }
                         }
                         break;

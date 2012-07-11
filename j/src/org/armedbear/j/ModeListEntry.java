@@ -20,8 +20,8 @@
 
 package org.armedbear.j;
 
-import gnu.regexp.RE;
-import gnu.regexp.REException;
+import java.util.regex.Pattern;
+import java.util.regex.PatternSyntaxException;
 import java.lang.reflect.Method;
 
 public final class ModeListEntry
@@ -86,25 +86,25 @@ public final class ModeListEntry
             return false;
         final String key = className.concat(".").concat(Property.FILES.key());
         final String userFiles = Editor.preferences().getStringProperty(key);
-        RE filesRE = null;
+        Pattern filesRE = null;
         if (userFiles != null) {
             if (userFiles.trim().length() == 0)
                 return false;
             try {
-                filesRE = new RE(userFiles, RE.REG_ICASE);
+                filesRE = Pattern.compile(userFiles, Pattern.CASE_INSENSITIVE);
             }
-            catch (REException e) {
+            catch (PatternSyntaxException e) {
                 Log.error(e);
             }
         } else {
             try {
-                filesRE = new RE(defaultFiles, RE.REG_ICASE);
+                filesRE = Pattern.compile(defaultFiles, Pattern.CASE_INSENSITIVE);
             }
-            catch (REException e) {
+            catch (PatternSyntaxException e) {
                 Log.error(e);
             }
         }
-        if (filesRE != null && filesRE.isMatch(filename))
+        if (filesRE != null && filesRE.matcher(filename).matches())
             return true;
         else
             return false;

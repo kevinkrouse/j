@@ -528,14 +528,14 @@ public final class Help
                             }
                         }
                     } else if (filename.toLowerCase().endsWith("build/classes")) {
-                        // "~/j/build/classes"
+                        // "~/src/j/build/classes"
                         File classesDir = f.isAbsolute() ? f : File.getInstance(userDir, filename);
                         if (classesDir != null && classesDir.isDirectory()) {
                             File buildDir = classesDir.getParentFile(); // "~/src/j/build"
                             if (buildDir != null && buildDir.isDirectory()) {
                                 File parentDir = buildDir.getParentFile(); // "~/src/j"
                                 if (parentDir != null && parentDir.isDirectory()) {
-                                    File docDir = File.getInstance(parentDir, "doc"); // "~/j/doc"
+                                    File docDir = File.getInstance(parentDir, "doc"); // "~/src/j/doc"
                                     if (isDocDir(docDir))
                                         return docDir;
                                 }

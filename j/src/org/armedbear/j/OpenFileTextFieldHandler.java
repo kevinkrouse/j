@@ -20,10 +20,8 @@
 
 package org.armedbear.j;
 
-import gnu.regexp.RE;
-import gnu.regexp.REMatch;
-import gnu.regexp.UncheckedRE;
-import gnu.regexp.REException;
+import java.util.regex.Pattern;
+import java.util.regex.Matcher;
 
 import java.awt.Component;
 import java.awt.event.InputEvent;
@@ -717,19 +715,16 @@ public final class OpenFileTextFieldHandler extends DefaultTextFieldHandler
                             textField.getCaret().setVisible(false);
                         }
                     } else {
-                        RE re = new UncheckedRE("[\\/]".concat(originalText),
-                                                ignoreCase ? RE.REG_ICASE : 0);
-                        REMatch lastMatch = null;
+                        Pattern re = Pattern.compile("[\\/]".concat(originalText),
+                                                ignoreCase ? Pattern.CASE_INSENSITIVE : 0);
+                        boolean found = false;
                         int index = 0;
-                        while (true) {
-                            REMatch match = re.getMatch(completion, index);
-                            if (match != null) {
-                                lastMatch = match;
-                                index = match.getEndIndex();
-                            } else
-                                break;
+                        Matcher matcher = re.matcher(completion);
+                        while (matcher.find(index)) {
+                            index = matcher.end();
+                            found = true;
                         }
-                        if (lastMatch != null) {
+                        if (found) {
                             textField.setCaretPosition(index);
                             textField.moveCaretPosition(completion.length());
                             textField.getCaret().setVisible(false);

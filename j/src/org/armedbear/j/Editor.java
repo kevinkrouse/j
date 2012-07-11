@@ -20,9 +20,8 @@
 
 package org.armedbear.j;
 
-import gnu.regexp.RE;
-import gnu.regexp.REMatch;
-import gnu.regexp.UncheckedRE;
+import java.util.regex.Pattern;
+import java.util.regex.Matcher;
 import java.awt.AWTEvent;
 import java.awt.BorderLayout;
 import java.awt.Cursor;
@@ -4884,10 +4883,10 @@ public final class Editor extends JPanel implements Constants,
     public void markFoundPattern(Search search)
     {
         if (search.isRegularExpression() && search.isMultilinePattern()) {
-            REMatch match = search.getMatch();
-            if (match != null) {
-                setDot(buffer.getPosition(match.getStartIndex()));
-                setMark(buffer.getPosition(match.getEndIndex()));
+            Matcher matcher = search.getMatch();
+            if (matcher != null) {
+                setDot(buffer.getPosition(matcher.start()));
+                setMark(buffer.getPosition(matcher.end()));
                 final Line markLine = getMarkLine();
                 for (Line line = getDotLine(); line != null; line = line.next()) {
                     update(line);
@@ -4903,7 +4902,7 @@ public final class Editor extends JPanel implements Constants,
             // Move dot to end of found pattern.
             int length;
             if (search.getMatch() != null)
-                length = search.getMatch().toString().length();
+                length = search.getMatch().group().length();
             else
                 length = search.getPatternLength();
 
@@ -5114,10 +5113,10 @@ public final class Editor extends JPanel implements Constants,
                 }
                 sb.setLength(length);
 
-                RE re = new UncheckedRE(" line [0-9]+");
-                REMatch match = re.getMatch(line.getText().substring(offset));
-                if (match != null && match.getStartIndex() == 0)
-                    sb.append(match.toString());
+                Pattern re = Pattern.compile(" line [0-9]+");
+                Matcher matcher = re.matcher(line.getText().substring(offset));
+                if (matcher.find() && matcher.start() == 0)
+                    sb.append(matcher.group());
             }
         }
         return sb.toString();
@@ -7777,13 +7776,13 @@ public final class Editor extends JPanel implements Constants,
         unhideDotInAllFrames(buffer);
     }
 
-    private static RE labelRE = new UncheckedRE("^\\s*\\w+:");
+    private static Pattern labelRE = Pattern.compile("^\\s*\\w+:");
 
     private boolean isLabelLine(Line line)
     {
         Mode mode = getMode();
         if (mode instanceof JavaMode || mode instanceof PerlMode)
-            return labelRE.getMatch(line.getText()) != null;
+            return labelRE.matcher(line.getText()).find();
         return false;
     }
 

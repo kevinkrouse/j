@@ -20,17 +20,16 @@
 
 package org.armedbear.j;
 
-import gnu.regexp.RE;
-import gnu.regexp.REMatch;
-import gnu.regexp.UncheckedRE;
+import java.util.regex.Pattern;
+import java.util.regex.Matcher;
 import java.util.ArrayList;
 
 public final class PHPTagger extends Tagger
 {
     // We trim before matching, so "function" will appear without any preceding
     // whitespace.
-    private static final RE functionRE =
-        new UncheckedRE("^function\\s+&?([a-zA-Z_\u007f-\u00ff][a-zA-Z0-9_\u007f-\u00ff]*)\\s*\\(");
+    private static final Pattern functionRE =
+        Pattern.compile("^function\\s+&?([a-zA-Z_\u007f-\u00ff][a-zA-Z0-9_\u007f-\u00ff]*)\\s*\\(");
 
     public PHPTagger(SystemBuffer buffer)
     {
@@ -44,10 +43,9 @@ public final class PHPTagger extends Tagger
         while (line != null) {
             String s = line.trim();
             if (s != null && s.startsWith("function")) {
-                REMatch match = functionRE.getMatch(s);
-                if (match != null) {
-                    String token = s.substring(match.getSubStartIndex(1),
-                        match.getSubEndIndex(1));
+                Matcher matcher = functionRE.matcher(s);
+                if (matcher.find()) {
+                    String token = matcher.group(1);
                     tags.add(new LocalTag(token, line));
                 }
             }

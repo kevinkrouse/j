@@ -20,9 +20,8 @@
 
 package org.armedbear.j;
 
-import gnu.regexp.RE;
-import gnu.regexp.REMatch;
-import gnu.regexp.UncheckedRE;
+import java.util.regex.Pattern;
+import java.util.regex.Matcher;
 import java.util.List;
 import javax.swing.undo.CompoundEdit;
 
@@ -260,11 +259,11 @@ public final class GlobalTag extends Tag
     // We did not find an exact match. The signature may have changed.
     // Look for a substring containing the function name and argument list
     // only.
-    RE re = new UncheckedRE("\\w+\\s*\\(.*\\)");
-    REMatch match = re.getMatch(signature);
-    if (match != null)
+    Pattern re = Pattern.compile("\\w+\\s*\\(.*\\)");
+    Matcher matcher = re.matcher(signature);
+    if (matcher.find())
       {
-        String sub = match.toString();
+        String sub = matcher.group();
         for (int i = 0; i < limit; i++)
           {
             LocalTag localTag = (LocalTag) localTags.get(i);

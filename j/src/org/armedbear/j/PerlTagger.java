@@ -20,17 +20,16 @@
 
 package org.armedbear.j;
 
-import gnu.regexp.RE;
-import gnu.regexp.REMatch;
-import gnu.regexp.UncheckedRE;
+import java.util.regex.Pattern;
+import java.util.regex.Matcher;
 import java.util.ArrayList;
 
 public final class PerlTagger extends Tagger
 {
     // We trim before matching, so "sub" will appear without any preceding
     // whitespace.
-    private static final RE subRE =
-        new UncheckedRE("^sub\\s+([a-zA-Z0-9_]+(::[a-zA-Z0-9_]+)*)");
+    private static final Pattern subRE =
+        Pattern.compile("^sub\\s+([a-zA-Z0-9_]+(::[a-zA-Z0-9_]+)*)");
 
     public PerlTagger(SystemBuffer buffer)
     {
@@ -46,10 +45,9 @@ public final class PerlTagger extends Tagger
             if (s != null && s.startsWith("sub")) {
                 // Tag definitions but not declarations.
                 if (s.charAt(s.length()-1) != ';') {
-                    REMatch match = subRE.getMatch(s);
-                    if (match != null) {
-                        String token = s.substring(match.getSubStartIndex(1),
-                            match.getSubEndIndex(1));
+                    Matcher matcher = subRE.matcher(s);
+                    if (matcher.find()) {
+                        String token = matcher.group(1);
                         tags.add(new PerlTag(token, line));
                     }
                 }

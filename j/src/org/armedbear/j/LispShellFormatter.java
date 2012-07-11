@@ -20,9 +20,8 @@
 
 package org.armedbear.j;
 
-import gnu.regexp.RE;
-import gnu.regexp.REMatch;
-import gnu.regexp.UncheckedRE;
+import java.util.regex.Pattern;
+import java.util.regex.Matcher;
 
 public final class LispShellFormatter extends Formatter
 {
@@ -32,8 +31,8 @@ public final class LispShellFormatter extends Formatter
   private static final byte FORMAT_PROMPT  = 2;
   private static final byte FORMAT_INPUT   = 3;
 
-  private final RE defaultPromptRE =
-    new UncheckedRE("^[^>\\*\\]]*[>\\*\\]] *");
+  private final Pattern defaultPromptRE =
+    Pattern.compile("^[^>\\*\\]]*[>\\*\\]] *");
 
   public LispShellFormatter(Buffer buffer)
   {
@@ -113,14 +112,14 @@ public final class LispShellFormatter extends Formatter
       return 2;
     if (text.startsWith("* "))
       return 2;
-    final RE promptRE;
+    final Pattern promptRE;
     if (buffer instanceof CommandInterpreter)
       promptRE = ((CommandInterpreter)buffer).getPromptRE();
     else
       promptRE = defaultPromptRE;
-    REMatch match = promptRE.getMatch(text);
-    if (match != null)
-      return match.getEndIndex();
+    Matcher match = promptRE.matcher(text);
+    if (match.find())
+      return match.end();
     return 0;
   }
 

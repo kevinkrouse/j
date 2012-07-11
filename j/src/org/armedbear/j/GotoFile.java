@@ -20,9 +20,8 @@
 
 package org.armedbear.j;
 
-import gnu.regexp.RE;
-import gnu.regexp.REMatch;
-import gnu.regexp.UncheckedRE;
+import java.util.regex.Pattern;
+import java.util.regex.Matcher;
 import java.awt.AWTEvent;
 import java.awt.event.MouseEvent;
 
@@ -137,19 +136,9 @@ public final class GotoFile implements Constants
         }
         final int modeId = editor.getModeId();
         if (modeId == HTML_MODE) {
-            RE re = new UncheckedRE("(href|src)=\"([^\"]+)\"", RE.REG_ICASE);
-            REMatch match = null;
-            final String text = dotLine.getText();
-            int index = 0;
-            REMatch m;
-            while ((m = re.getMatch(text, index)) != null) {
-                match = m;
-                if (match.getEndIndex() > dotOffset)
-                    break; // All subsequent matches will be further away.
-                index = match.getEndIndex();
-            }
-            if (match != null)
-                return match.toString(2);
+            String href = BrowseFile.getHref(dotLine.getText(), dotOffset);
+            if (href != null)
+                return href;
         } else if (modeId == JAVA_MODE) {
             String fileName =
                 getFileNameFromImport(editor.getBuffer(), dotLine.getText());
@@ -161,9 +150,9 @@ public final class GotoFile implements Constants
                 return fileName;
         } else if (editor.getBuffer().getType() == Buffer.TYPE_SHELL) {
             String s = dotLine.getText().trim();
-            REMatch match = Directory.getNativeMoveToFilenameRegExp().getMatch(s);
-            if (match != null)
-                return s.substring(match.getEndIndex());
+            Matcher matcher = Directory.getNativeMoveToFilenameRegExp().matcher(s);
+            if (matcher.find())
+                return s.substring(matcher.end());
         }
         return editor.getFilenameAtDot();
     }
@@ -192,15 +181,15 @@ public final class GotoFile implements Constants
         return file != null ? file.canonicalPath() : null;
     }
 
-    private static final RE includeRE =
-        new UncheckedRE("[ \t]*#[ \t]*include[ \t]");
+    private static final Pattern includeRE =
+        Pattern.compile("[ \t]*#[ \t]*include[ \t]");
 
     private static final String getFileNameFromInclude(String s)
     {
-        REMatch match = includeRE.getMatch(s);
-        if (match == null)
+        Matcher matcher = includeRE.matcher(s);
+        if (!matcher.find())
             return null;
-        s = s.substring(match.getEndIndex()).trim();
+        s = s.substring(matcher.end()).trim();
         // Need at least one char plus quotes or angle brackets.
         if (s.length() < 3)
             return null;

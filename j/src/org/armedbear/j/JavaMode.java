@@ -20,9 +20,8 @@
 
 package org.armedbear.j;
 
-import gnu.regexp.RE;
-import gnu.regexp.REMatch;
-import gnu.regexp.UncheckedRE;
+import java.util.regex.Pattern;
+import java.util.regex.Matcher;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseEvent;
 import javax.swing.JMenuItem;
@@ -505,8 +504,8 @@ public class JavaMode extends AbstractMode implements Constants, Mode
       }
     if (buffer.getModeId() == JAVA_MODE)
       {
-        RE re = new UncheckedRE("\\s+new\\s+");
-        if (re.getMatch(pos.getLine().getText().substring(0, pos.getOffset())) != null)
+        Pattern re = Pattern.compile("\\s+new\\s+");
+        if (re.matcher(pos.getLine().getText().substring(0, pos.getOffset())).find())
           indent = true;
       }
     int modelIndent =
@@ -1339,21 +1338,21 @@ loop:
     if (posExpr == null)
       {
         // Not exact, or no identifier there.  Try to be smart.
-        RE re = new UncheckedRE("([A-Za-z_$]+[A-Za-z_$0-9]*)\\s*\\(");
+        Pattern re = Pattern.compile("([A-Za-z_$]+[A-Za-z_$0-9]*)\\s*\\(");
         final String text = editor.getDotLine().getText();
         int index = 0;
-        REMatch  match;
-        while ((match = re.getMatch(text, index)) != null)
+        Matcher  matcher = re.matcher(text);
+        while (matcher.find(index))
           {
-            String identifier = match.toString(1);
+            String identifier = matcher.group(1);
             if (!isKeyword(identifier))
               {
-                posExpr = new Position(line, match.getStartIndex());
+                posExpr = new Position(line, matcher.start());
                 // If we've found a match to the right of dot, we're done.
-                if (match.getEndIndex() > offset)
+                if (matcher.end() > offset)
                   break;
               }
-            index = match.getEndIndex();
+            index = matcher.end();
           }
       }
     if (posExpr == null)

@@ -20,7 +20,7 @@
 
 package org.armedbear.j;
 
-import gnu.regexp.REMatch;
+import java.util.regex.Matcher;
 
 public final class DirectoryFormatter extends Formatter
 {
@@ -77,12 +77,12 @@ public final class DirectoryFormatter extends Formatter
 
     private int getNameOffset(String text)
     {
-        REMatch match;
+        Matcher matcher;
         if (directory.isUsingNativeFormat())
-            match = Directory.getNativeMoveToFilenameRegExp().getMatch(text);
+            matcher = Directory.getNativeMoveToFilenameRegExp().matcher(text);
         else
-            match = Directory.getInternalMoveToFilenameRegExp().getMatch(text);
-        return (match != null) ? match.getEndIndex() : text.length();
+            matcher = Directory.getInternalMoveToFilenameRegExp().matcher(text);
+        return matcher.find() ? matcher.end() : text.length();
     }
 
     public FormatTable getFormatTable()

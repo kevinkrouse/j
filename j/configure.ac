@@ -257,7 +257,6 @@ AC_CONFIG_FILES([
 Makefile
 src/Makefile
 src/jpty/Makefile
-src/gnu/regexp/Makefile
 src/org/armedbear/j/Makefile
 src/org/armedbear/j/version
 src/org/armedbear/j/mail/Makefile

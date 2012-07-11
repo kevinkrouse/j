@@ -20,7 +20,7 @@
 
 package org.armedbear.j;
 
-import gnu.regexp.REException;
+import java.util.regex.PatternSyntaxException;
 import java.awt.Dimension;
 import java.awt.Point;
 import java.awt.event.ActionEvent;
@@ -236,7 +236,7 @@ public final class ReplaceDialog extends AbstractDialog implements Constants,
             try {
                 replacement.setREFromPattern();
             }
-            catch (REException e) {
+            catch (PatternSyntaxException e) {
                 MessageDialog.showMessageDialog(editor,
                     e.getMessage(), "Error");
                 patternControl.requestFocus();

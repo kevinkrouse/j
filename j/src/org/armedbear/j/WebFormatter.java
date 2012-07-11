@@ -20,15 +20,14 @@
 
 package org.armedbear.j;
 
-import gnu.regexp.RE;
-import gnu.regexp.UncheckedRE;
+import java.util.regex.Pattern;
 import java.awt.Color;
 import java.awt.Font;
 
 public final class WebFormatter extends Formatter implements WebConstants
 {
     // Includes '/' for "Parts/Attachments".
-    private static final RE headerRE = new UncheckedRE("^ *[a-zA-Z\\-/]+:");
+    private static final Pattern headerRE = Pattern.compile("^ *[a-zA-Z\\-/]+:");
 
     public WebFormatter(Buffer buffer)
     {
@@ -50,7 +49,7 @@ public final class WebFormatter extends Formatter implements WebConstants
         if (line instanceof MessageHeaderLine) {
             if (text.length() > 0) {
                 int i = text.indexOf(':');
-                if (i >= 0 && headerRE.getMatch(text) != null) {
+                if (i >= 0 && headerRE.matcher(text).find()) {
                     addSegment(text, 0, i+1, FORMAT_HEADER_NAME);
                     addSegment(text, i+1, FORMAT_HEADER_VALUE);
                     return segmentList;

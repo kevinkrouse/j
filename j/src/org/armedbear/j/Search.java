@@ -20,9 +20,9 @@
 
 package org.armedbear.j;
 
-import gnu.regexp.RE;
-import gnu.regexp.REException;
-import gnu.regexp.REMatch;
+import java.util.regex.Pattern;
+import java.util.regex.PatternSyntaxException;
+import java.util.regex.Matcher;
 
 public class Search implements Cloneable
 {
@@ -30,8 +30,8 @@ public class Search implements Cloneable
     private String lowerCasePattern;
     private int patternLength;
 
-    private RE re;
-    private REMatch match;
+    private Pattern re;
+    private Matcher match;
 
     private boolean ignoreCase;
     private boolean wholeWordsOnly;
@@ -87,17 +87,17 @@ public class Search implements Cloneable
         return lowerCasePattern;
     }
 
-    public final RE getRE()
+    public final Pattern getRE()
     {
         return re;
     }
 
-    public final void setRE(RE re)
+    public final void setRE(Pattern re)
     {
         this.re = re;
     }
 
-    public final REMatch getMatch()
+    public final Matcher getMatch()
     {
         return match;
     }
@@ -381,14 +381,14 @@ public class Search implements Cloneable
             return findRegExp(buffer.getMode(), start);
     }
 
-    public void setREFromPattern() throws REException
+    public void setREFromPattern() throws PatternSyntaxException
     {
         int cflags = 0;
         if (isMultilinePattern)
-            cflags |= RE.REG_MULTILINE;
+            cflags |= Pattern.MULTILINE;
         if (ignoreCase)
-            cflags |= RE.REG_ICASE;
-        re = new RE(pattern, cflags);
+            cflags |= Pattern.CASE_INSENSITIVE;
+        re = Pattern.compile(pattern, cflags);
     }
 
     // Search is restricted to region if restrictToSelection is true and
@@ -416,11 +416,11 @@ public class Search implements Cloneable
             if (!wholeWordsOnly)
                 break;
             if (Utilities.isDelimited(buffer.getMode(), s,
-                match.getStartIndex(), match.getEndIndex()))
+                match.start(), match.end()))
                 break;
-            startIndex = match.getStartIndex() + 1;
+            startIndex = match.start() + 1;
         }
-        return buffer.getPosition(match.getStartIndex());
+        return buffer.getPosition(match.start());
     }
 
     private Position reverseFindMultilineRegExp(Buffer buffer, Position start)
@@ -437,7 +437,7 @@ public class Search implements Cloneable
         int startIndex = 0;
         int endIndex = buffer.getAbsoluteOffset(start);
         final String s = buffer.getText().substring(0, endIndex);
-        REMatch lastMatch = null;
+        Matcher lastMatch = null;
         while (true) {
             match = findMatch(s, startIndex, -1);
             if (match == null)
@@ -445,25 +445,25 @@ public class Search implements Cloneable
             if (!wholeWordsOnly)
                 lastMatch = match;
             else if (Utilities.isDelimited(buffer.getMode(), s,
-                                             match.getStartIndex(),
-                                             match.getEndIndex()))
+                                             match.start(),
+                                             match.end()))
                 lastMatch = match;
-            startIndex = match.getStartIndex() + 1;
+            startIndex = match.start() + 1;
         }
         if (lastMatch == null)
             return null;
         match = lastMatch;
-        return buffer.getPosition(match.getStartIndex());
+        return buffer.getPosition(match.start());
     }
 
     // Search is restricted to region if endIndex >= 0.
-    private REMatch findMatch(String s, int startIndex, int endIndex)
+    private Matcher findMatch(String s, int startIndex, int endIndex)
     {
-        REMatch m = re.getMatch(s, startIndex);
-        if (m == null)
+        Matcher m = re.matcher(s);
+        int end = endIndex >= 0 ? endIndex : s.length();
+        m.region(startIndex, end);
+        if (!m.find())
             return null; // Not found at all.
-        if (endIndex >= 0 && m.getEndIndex() > endIndex)
-            return null; // Match extends past end of selected region.
         return m;
     }
 
@@ -512,14 +512,16 @@ public class Search implements Cloneable
             toBeSearched = line.getText();
         int index = begin;
         int limit = toBeSearched.length();
+        match = re.matcher(toBeSearched);
         while (index <= limit) {
-            match = re.getMatch(toBeSearched, index);
-            if (match == null)
+            if (!match.find(index)) {
+                match = null;
                 break;
-            Position pos = new Position(line, match.getStartIndex());
-            if (!wholeWordsOnly || Utilities.isDelimited(mode, pos, match.toString().length()))
+            }
+            Position pos = new Position(line, match.start());
+            if (!wholeWordsOnly || Utilities.isDelimited(mode, pos, match.group().length()))
                 return pos;
-            index = match.getStartIndex() + 1;
+            index = match.start() + 1;
         }
         return null;
     }
@@ -528,13 +530,15 @@ public class Search implements Cloneable
     {
         int index = 0;
         int limit = toBeSearched.length();
+        match = re.matcher(toBeSearched);
         while (index <= limit) {
-            match = re.getMatch(toBeSearched, index);
-            if (match == null)
+            if (!match.find(index)) {
+                match = null;
                 break;
-            if (!wholeWordsOnly || Utilities.isDelimited(toBeSearched, match.getStartIndex(), match.toString().length()))
+            }
+            if (!wholeWordsOnly || Utilities.isDelimited(toBeSearched, match.start(), match.group().length()))
                 return true;
-            index = match.getStartIndex() + 1;
+            index = match.start() + 1;
         }
         return false;
     }
@@ -544,13 +548,15 @@ public class Search implements Cloneable
         Debug.assertTrue(wholeWordsOnly);
         int index = 0;
         int limit = s.length();
+        match = re.matcher(s);
         while (index <= limit) {
-            match = re.getMatch(s, index);
-            if (match == null)
+            if (!match.find(index)) {
+                match = null;
                 break;
-            if (Utilities.isDelimited(s, match.getStartIndex(), match.toString().length(), mode))
+            }
+            if (Utilities.isDelimited(s, match.start(), match.group().length(), mode))
                 return true;
-            index = match.getStartIndex() + 1;
+            index = match.start() + 1;
         }
         return false;
     }
@@ -560,7 +566,7 @@ public class Search implements Cloneable
     {
         if (re == null) {
             try {
-                re = new RE(pattern, ignoreCase ? RE.REG_ICASE : 0);
+                re = Pattern.compile(pattern, ignoreCase ? Pattern.CASE_INSENSITIVE : 0);
             }
             catch (Throwable t) {
                 Log.error(t);
@@ -585,15 +591,16 @@ public class Search implements Cloneable
     private Position reverseFindRegExpInLine(Buffer buffer, Line line, int begin, int end)
     {
         int index = end;
+        match = re.matcher(line.getText());
         while (index >= begin) {
-            match = re.getMatch(line.getText(), index);
-            if (match != null && match.getStartIndex() <= end) {
-                Position pos = new Position(line, match.getStartIndex());
-                if (!wholeWordsOnly || Utilities.isDelimited(buffer, pos, match.toString().length()))
+            if (match.find(index) && match.start() <= end) {
+                Position pos = new Position(line, match.start());
+                if (!wholeWordsOnly || Utilities.isDelimited(buffer, pos, match.group().length()))
                     return pos;
             }
             --index;
         }
+        match = null;
         return null;
     }
 

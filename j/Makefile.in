@@ -49,7 +49,7 @@ config.status: configure
 
 classes:
 	set -e; \
-	for i in src/gnu/regexp \
+	for i in \
 	  src/org/armedbear/j/mail \
 	  src/org/armedbear/j/jdb \
 	  src/org/armedbear/j \
@@ -79,7 +79,6 @@ j.jar: classes.stamp fasls
 	  $(JAR) cmf manifest ../j.jar Main.class org/armedbear/j/*.class && \
 	  $(JAR) uf ../j.jar org/armedbear/j/version org/armedbear/j/build \
 	  org/armedbear/j/images/*.png && \
-	  $(JAR) uf ../j.jar gnu/regexp/*.class gnu/regexp/MessagesBundle.properties && \
 	  $(JAR) uf ../j.jar org/armedbear/j/mail/*.class && \
 	  $(JAR) uf ../j.jar org/armedbear/j/jdb/*.class && \
 	  $(JAR) uf ../j.jar org/armedbear/j/*.keywords && \
@@ -125,9 +124,6 @@ distdir:
 	mkdir $(distdir)/src/org/armedbear/lisp/java
 	mkdir $(distdir)/src/org/armedbear/lisp/java/awt
 	-cp -p  src/org/armedbear/lisp/java/awt/Makefile.in src/org/armedbear/lisp/java/awt/*.java $(distdir)/src/org/armedbear/lisp/java/awt
-	mkdir $(distdir)/src/gnu
-	mkdir $(distdir)/src/gnu/regexp
-	-cp -p  src/gnu/regexp/Makefile.in src/gnu/regexp/*.java  src/gnu/regexp/MessagesBundle.properties $(distdir)/src/gnu/regexp
 	mkdir $(distdir)/doc
 	cp -p  doc/*.html $(distdir)/doc
 	cp -p  doc/*.css $(distdir)/doc
@@ -224,7 +220,6 @@ clean:
 	-rm -f src/org/armedbear/lisp/libabcl.so
 	-rm -f src/org/armedbear/lisp/java/awt/*.class
 	-rm -f src/org/armedbear/lisp/build
-	-rm -f src/gnu/regexp/*.class
 	-rm -rf $(distdir)
 	-rm -f classes.stamp
 
@@ -232,7 +227,6 @@ distclean: clean
 	-rm -f config.status config.log config.cache Makefile j abcl
 	-rm -f src/Makefile
 	-rm -f src/jpty/Makefile
-	-rm -f src/gnu/regexp/Makefile
 	-rm -f src/org/armedbear/j/Makefile
 	-rm -f src/org/armedbear/j/version
 	-rm -f src/org/armedbear/j/mail/Makefile
@@ -266,7 +260,6 @@ j.zip:
 		src/org/armedbear/lisp/java/awt/Makefile.in \
 		src/org/armedbear/lisp/java/awt/*.java \
 		src/org/armedbear/lisp/tests/*.lisp src/org/armedbear/lisp/tests/*.cl \
-		src/gnu/regexp/Makefile.in src/gnu/regexp/*.java src/gnu/regexp/MessagesBundle.properties \
 		doc/*.html doc/*.css \
 		themes/* \
 		examples/* \

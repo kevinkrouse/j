@@ -22,6 +22,7 @@ package org.armedbear.j;
 
 import java.awt.Cursor;
 import java.awt.Dimension;
+import java.awt.Image;
 import java.awt.Insets;
 import java.awt.Rectangle;
 import java.awt.Toolkit;
@@ -34,9 +35,6 @@ import java.awt.event.WindowEvent;
 import java.awt.event.WindowListener;
 import java.awt.event.WindowStateListener;
 import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
 import javax.swing.JButton;
 import javax.swing.JComponent;
 import javax.swing.JFrame;
@@ -80,6 +78,7 @@ public final class Frame extends JFrame implements Constants, ComponentListener,
         } else
             getContentPane().add(editorPane, "Center");
         titleChanged();
+        setIconImages();
     }
 
     public void titleChanged()
@@ -99,6 +98,20 @@ public final class Frame extends JFrame implements Constants, ComponentListener,
             sb.append(System.getProperty("java.vendor"));
         }
         setTitle(sb.toString());
+    }
+
+    private void setIconImages()
+    {
+        String[] imageNames = new String[] { "icons/j-512.png", "icons/j-128.png", "icons/j-32.png", "icons/j-16.png" };
+        ArrayList<Image> images = new ArrayList<Image>(imageNames.length);
+        for (int i = 0; i < imageNames.length; i++)
+        {
+            Image image = Utilities.getImageFromFile(imageNames[i]);
+            if (image != null)
+                images.add(image);
+        }
+
+        setIconImages(images);
     }
 
     public void storeExtendedState(int state)

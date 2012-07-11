@@ -20,9 +20,8 @@
 
 package org.armedbear.j;
 
-import gnu.regexp.RE;
-import gnu.regexp.REMatch;
-import gnu.regexp.UncheckedRE;
+import java.util.regex.Pattern;
+import java.util.regex.Matcher;
 
 public final class PerlFormatter extends Formatter
 {
@@ -52,7 +51,7 @@ public final class PerlFormatter extends Formatter
 
     private String endOfText;
 
-    private static RE matchRE = new UncheckedRE("(=~|!~)[ \t]+m[^a-zA-Z0-9]");
+    private static Pattern matchRE = Pattern.compile("(=~|!~)[ \t]+m[^a-zA-Z0-9]");
 
     public PerlFormatter(Buffer buffer)
     {
@@ -224,9 +223,9 @@ public final class PerlFormatter extends Formatter
                 continue;
             }
             if (c == '=' || c == '!') {
-                REMatch match = matchRE.getMatch(text.substring(i));
-                if (match != null && match.getStartIndex() == 0) {
-                    final String s = match.toString();
+                Matcher match = matchRE.matcher(text.substring(i));
+                if (match.find() && match.start() == 0) {
+                    final String s = match.group();
                     final int length = s.length();
                     // End the previous token.
                     endToken(state);

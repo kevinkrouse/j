@@ -20,9 +20,8 @@
 
 package org.armedbear.j;
 
-import gnu.regexp.RE;
-import gnu.regexp.REMatch;
-import gnu.regexp.UncheckedRE;
+import java.util.regex.Pattern;
+import java.util.regex.Matcher;
 
 public final class MakefileFormatter extends Formatter
 {
@@ -37,10 +36,10 @@ public final class MakefileFormatter extends Formatter
   private FastStringBuffer sb = new FastStringBuffer();
   private int tokStart;
 
-  private static final RE targetRE = new UncheckedRE("^\\S+.*:");
-  private static final RE assignmentRE = new UncheckedRE("^\\S+\\s*:?=");
-  private static final RE conditionalRE =
-    new UncheckedRE("^( *ifn?(eq|def)\\s)|^( *else\\s+(ifn?(eq|def))?)|^( *else\\s*)|^( *endif\\s*)");
+  private static final Pattern targetRE = Pattern.compile("^\\S+.*:");
+  private static final Pattern assignmentRE = Pattern.compile("^\\S+\\s*:?=");
+  private static final Pattern conditionalRE =
+    Pattern.compile("^( *ifn?(eq|def)\\s)|^( *else\\s+(ifn?(eq|def))?)|^( *else\\s*)|^( *endif\\s*)");
 
   public MakefileFormatter(Buffer buffer)
   {
@@ -99,27 +98,27 @@ public final class MakefileFormatter extends Formatter
         return;
       }
     // Try some regexps at the beginning of the line.
-    REMatch match = conditionalRE.getMatch(text);
-    if (match != null) 
+    Matcher matcher = conditionalRE.matcher(text);
+    if (matcher.find())
       {
-        addToken(match.toString(), MAKEFILE_FORMAT_KEYWORD);
-        i += match.toString().length();
+        addToken(matcher.group(), MAKEFILE_FORMAT_KEYWORD);
+        i += matcher.group().length();
       } 
     else 
       {
-        match = assignmentRE.getMatch(text);
-        if (match != null) 
+        matcher = assignmentRE.matcher(text);
+        if (matcher.find())
           {
-            addToken(match.toString(), MAKEFILE_FORMAT_TEXT);
-            i += match.toString().length();
+            addToken(matcher.group(), MAKEFILE_FORMAT_TEXT);
+            i += matcher.group().length();
           } 
         else 
           {
-            match = targetRE.getMatch(text);
-            if (match != null) 
+            matcher = targetRE.matcher(text);
+            if (matcher.find())
               {
-                addToken(match.toString(), MAKEFILE_FORMAT_TARGET);
-                i += match.toString().length();
+                addToken(matcher.group(), MAKEFILE_FORMAT_TARGET);
+                i += matcher.group().length();
               }
           }
       }

@@ -20,8 +20,7 @@
 
 package org.armedbear.j;
 
-import gnu.regexp.RE;
-import gnu.regexp.UncheckedRE;
+import java.util.regex.Pattern;
 import java.util.ArrayList;
 
 public class CTagger extends JavaTagger
@@ -31,7 +30,7 @@ public class CTagger extends JavaTagger
   private static final int METHOD_NAME    = 1;
   private static final int PARAMETER_LIST = 2;
 
-  private static RE lynxArgsMacroRE = new UncheckedRE("ARGS[0-9][0-9]?");
+  private static Pattern lynxArgsMacroRE = Pattern.compile("ARGS[0-9][0-9]?");
 
   private CMode mode = (CMode) CMode.getMode();
 
@@ -129,7 +128,7 @@ public class CTagger extends JavaTagger
           {
             tokenStart = pos.copy();
             String s = gatherToken(pos);
-            if (s.startsWith("ARGS") && lynxArgsMacroRE.isMatch(s))
+            if (s.startsWith("ARGS") && lynxArgsMacroRE.matcher(s).matches())
               {
                 // Lynx "ARGSnn" macro.
                 ;

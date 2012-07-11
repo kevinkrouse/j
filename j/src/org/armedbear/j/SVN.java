@@ -23,9 +23,9 @@ package org.armedbear.j;
 import java.util.List;
 import java.util.Collections;
 import javax.swing.SwingUtilities;
-import gnu.regexp.RE;
-import gnu.regexp.REMatch;
-import gnu.regexp.REException;
+import java.util.regex.Pattern;
+import java.util.regex.Matcher;
+import java.util.regex.PatternSyntaxException;
 
 public class SVN extends VersionControl implements Constants
 {
@@ -587,12 +587,12 @@ public class SVN extends VersionControl implements Constants
             if (versionInfo != null && versionInfo.length() > 0) {
                 try
                 {
-                    RE versionRE = new RE("svn, version (\\d+)\\.(\\d+)\\.(\\d+)");
-                    REMatch match = versionRE.getMatch(versionInfo);
-                    if (match != null) {
+                    Pattern versionRE = Pattern.compile("svn, version (\\d+)\\.(\\d+)\\.(\\d+)");
+                    Matcher match = versionRE.matcher(versionInfo);
+                    if (match.find()) {
                         try {
                             for (int i = 0; i < 3; i++) {
-                                String sub = match.toString(i+1);
+                                String sub = match.group(i+1);
                                 version[i] = Integer.parseInt(sub);
                             }
                         }
@@ -602,8 +602,8 @@ public class SVN extends VersionControl implements Constants
                         Log.info("svn version: " + version[0] + "." + version[1] + "." + version[2]);
                     }
                 }
-                catch (REException rex) {
-                    Log.error(rex);
+                catch (PatternSyntaxException pse) {
+                    Log.error(pse);
                 }
             }
             return true;

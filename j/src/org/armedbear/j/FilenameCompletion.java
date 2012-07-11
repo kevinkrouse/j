@@ -20,8 +20,8 @@
 
 package org.armedbear.j;
 
-import gnu.regexp.RE;
-import gnu.regexp.REException;
+import java.util.regex.Pattern;
+import java.util.regex.PatternSyntaxException;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -35,7 +35,7 @@ public final class FilenameCompletion
     private final boolean ignoreCase;
 
     private String prefix;
-    private ArrayList list;
+    private ArrayList<File> list;
 
     public FilenameCompletion(File directory, String prefix,
         String sourcePath, String excludesPattern, boolean ignoreCase)
@@ -49,22 +49,22 @@ public final class FilenameCompletion
     }
 
     // Returns list of File objects.
-    public List listFiles()
+    public List<File> listFiles()
     {
         return list;
     }
 
     private void initialize()
     {
-        RE excludesRE = null;
+        Pattern excludesRE = null;
         if (excludesPattern != null) {
             try {
-                excludesRE = new RE(excludesPattern, ignoreCase ? RE.REG_ICASE : 0);
-            } catch (REException e) {
+                excludesRE = Pattern.compile(excludesPattern, ignoreCase ? Pattern.CASE_INSENSITIVE : 0);
+            } catch (PatternSyntaxException e) {
                 Log.error(e);
             }
         }
-        list = new ArrayList();
+        list = new ArrayList<File>();
         if (Utilities.isFilenameAbsolute(prefix)) {
             File file = File.getInstance(currentDirectory, prefix);
             if (file == null)
@@ -126,8 +126,8 @@ public final class FilenameCompletion
         }
     }
 
-    private void addCompletionsFromDirectory(List list, File directory,
-        String prefix, RE excludesRE)
+    private void addCompletionsFromDirectory(List<File> list, File directory,
+        String prefix, Pattern excludesRE)
     {
         File[] files = directory.listFiles();
         if (files != null) {
@@ -144,7 +144,7 @@ public final class FilenameCompletion
                     else
                         isMatch = name.startsWith(prefix);
                     if (isMatch && excludesRE != null)
-                        isMatch = !excludesRE.isMatch(name);
+                        isMatch = !excludesRE.matcher(name).matches();
                     if (isMatch)
                         list.add(file);
                 }
@@ -155,7 +155,7 @@ public final class FilenameCompletion
                     if (excludesRE != null) {
                         final File file = files[i];
                         final String name = file.getName();
-                        isMatch = !excludesRE.isMatch(name);
+                        isMatch = !excludesRE.matcher(name).matches();
                     }
                     if (isMatch)
                         list.add(files[i]);

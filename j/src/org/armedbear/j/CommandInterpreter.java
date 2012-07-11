@@ -20,10 +20,9 @@
 
 package org.armedbear.j;
 
-import gnu.regexp.RE;
-import gnu.regexp.REException;
-import gnu.regexp.REMatch;
-import gnu.regexp.UncheckedRE;
+import java.util.regex.Pattern;
+import java.util.regex.PatternSyntaxException;
+import java.util.regex.Matcher;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStreamWriter;
@@ -33,7 +32,7 @@ import javax.swing.undo.CompoundEdit;
 
 public class CommandInterpreter extends Buffer
 {
-    protected RE promptRE = new UncheckedRE(DEFAULT_SHELL_PROMPT_PATTERN);
+    protected Pattern promptRE = Pattern.compile(DEFAULT_SHELL_PROMPT_PATTERN);
     protected OutputStreamWriter stdin;
     protected ReaderThread stdoutThread;
     protected ReaderThread stderrThread;
@@ -71,7 +70,7 @@ public class CommandInterpreter extends Buffer
         history = new History(null, 30);
     }
 
-    public final RE getPromptRE()
+    public final Pattern getPromptRE()
     {
         return promptRE;
     }
@@ -79,9 +78,9 @@ public class CommandInterpreter extends Buffer
     protected final void setPromptRE(String pattern)
     {
         try {
-            promptRE = new RE(pattern);
+            promptRE = Pattern.compile(pattern);
         }
-        catch (REException e) {
+        catch (PatternSyntaxException e) {
             Log.error(e);
         }
     }
@@ -96,7 +95,7 @@ public class CommandInterpreter extends Buffer
             return posEndOfOutput;
         }
         // The original end-of-output line has been removed from the buffer.
-        RE promptRE = getPromptRE();
+        Pattern promptRE = getPromptRE();
         if (promptRE != null) {
             Position eob = getEnd();
             if (eob == null)
@@ -105,9 +104,9 @@ public class CommandInterpreter extends Buffer
             while (line != null) {
                 int flags = line.flags();
                 if (flags == 0 || flags == STATE_PROMPT || flags == STATE_INPUT) {
-                    final REMatch match = promptRE.getMatch(line.getText());
-                    if (match != null && match.getStartIndex() == 0) {
-                        return new Position(line, match.getEndIndex());
+                    final Matcher matcher = promptRE.matcher(line.getText());
+                    if (matcher.find() && matcher.start() == 0) {
+                        return new Position(line, matcher.end());
                     }
                 }
                 line = line.previous();
@@ -188,9 +187,9 @@ public class CommandInterpreter extends Buffer
             editor.eob();
             dotLine = editor.getDotLine();
             // Keep the prompt, but throw away anything after it.
-            final REMatch match = promptRE.getMatch(dotLine.getText());
-            if (match != null)
-                dotLine.setText(dotLine.substring(0, match.getEndIndex()));
+            final Matcher matcher = promptRE.matcher(dotLine.getText());
+            if (matcher.find())
+                dotLine.setText(dotLine.substring(0, matcher.end()));
             // Append s.
             dotLine.setText(dotLine.getText() + s);
         }
@@ -224,15 +223,15 @@ public class CommandInterpreter extends Buffer
     protected String stripPrompt(String s)
     {
         if (promptRE != null) {
-            REMatch match = promptRE.getMatch(s);
-            if (match != null)
-                return s.substring(match.getEndIndex());
+            Matcher matcher = promptRE.matcher(s);
+            if (matcher.find())
+                return s.substring(matcher.end());
         }
         // Look for login name or password prompt.
-        RE re = new UncheckedRE(".*: ?");
-        REMatch match = re.getMatch(s);
-        if (match != null)
-            return s.substring(match.getEndIndex());
+        Pattern re = Pattern.compile(".*: ?");
+        Matcher matcher = re.matcher(s);
+        if (matcher.find())
+            return s.substring(matcher.end());
         return s;
     }
 
@@ -271,9 +270,9 @@ public class CommandInterpreter extends Buffer
         if (promptRE != null) {
             Line dotLine = editor.getDotLine();
             if (dotLine.next() == null || dotLine.flags() == STATE_INPUT) {
-                REMatch match = promptRE.getMatch(dotLine.getText());
-                if (match != null)
-                    offset = match.getEndIndex();
+                Matcher matcher = promptRE.matcher(dotLine.getText());
+                if (matcher.find())
+                    offset = matcher.end();
             }
         }
         // If we're already at the prompt or to the left of it, go to column 0.
@@ -296,9 +295,9 @@ public class CommandInterpreter extends Buffer
         } else{
             String text = editor.getDotLine().getText();
             if (promptRE != null) {
-                REMatch match = promptRE.getMatch(text);
-                if (match != null) {
-                    if (editor.getDotOffset() <= match.getEndIndex())
+                Matcher matcher = promptRE.matcher(text);
+                if (matcher.find()) {
+                    if (editor.getDotOffset() <= matcher.end())
                         ok = false;
                 }
             }
@@ -580,14 +579,14 @@ public class CommandInterpreter extends Buffer
             if (dot != null) {
                 Line line =
                     direction > 0 ? dot.getLine().next() : dot.getLine().previous();
-                RE promptRE = ((CommandInterpreter)buffer).getPromptRE();
+                Pattern promptRE = ((CommandInterpreter)buffer).getPromptRE();
                 if (promptRE != null) {
                     while (line != null) {
                         int flags = line.flags();
                         if (flags == STATE_PROMPT || flags == STATE_INPUT) {
-                            final REMatch match = promptRE.getMatch(line.getText());
-                            if (match != null && match.getStartIndex() == 0) {
-                                Position pos = new Position(line, match.getEndIndex());
+                            final Matcher matcher = promptRE.matcher(line.getText());
+                            if (matcher.find() && matcher.start() == 0) {
+                                Position pos = new Position(line, matcher.end());
                                 editor.moveDotTo(pos);
                                 return;
                             }

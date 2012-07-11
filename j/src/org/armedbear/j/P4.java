@@ -20,11 +20,8 @@
 
 package org.armedbear.j;
 
-import gnu.regexp.RE;
-import gnu.regexp.REMatch;
-import gnu.regexp.UncheckedRE;
-import java.util.ArrayList;
-import java.util.Iterator;
+import java.util.regex.Pattern;
+import java.util.regex.Matcher;
 import java.util.List;
 import javax.swing.SwingUtilities;
 import javax.swing.undo.CompoundEdit;
@@ -774,10 +771,10 @@ public class P4 extends VersionControl implements Constants
   {
     String s = buffer.getText();
     String lookFor = "\nDescription:\n\t";
-    RE re = new UncheckedRE(lookFor);
-    REMatch match = re.getMatch(s);
-    if (match != null)
-      return buffer.getPosition(match.getStartIndex() + lookFor.length());
+    Pattern re = Pattern.compile(lookFor);
+    Matcher match = re.matcher(s);
+    if (match.find())
+      return buffer.getPosition(match.start() + lookFor.length());
     return null;
   }
 
@@ -785,15 +782,15 @@ public class P4 extends VersionControl implements Constants
   {
     String s = buffer.getText();
     String lookFor = "\n\nFiles:\n\t";
-    RE re = new UncheckedRE(lookFor);
+    Pattern re = Pattern.compile(lookFor);
     int offset = -1;
     if (start != null)
       offset = buffer.getAbsoluteOffset(start);
     if (offset < 0)
       offset = 0;
-    REMatch match = re.getMatch(s, offset);
-    if (match != null)
-      return buffer.getPosition(match.getStartIndex());
+    Matcher match = re.matcher(s);
+    if (match.find(offset))
+      return buffer.getPosition(match.start());
     return null;
   }
 
