@@ -516,8 +516,9 @@ public final class Help
             if (array != null) {
                 for (int i = 0; i < array.length; i++) {
                     String filename = array[i];
+                    File f = File.getInstance(filename);
                     if (filename.toLowerCase().endsWith("j.jar")) {
-                        File jarFile = File.getInstance(userDir, filename);
+                        File jarFile = f.isAbsolute() ? f : File.getInstance(userDir, filename);
                         if (jarFile != null && jarFile.isFile()) {
                             File jarDir = jarFile.getParentFile();
                             if (jarDir != null && jarDir.isDirectory()) {
@@ -526,9 +527,23 @@ public final class Help
                                     return docDir;
                             }
                         }
+                    } else if (filename.toLowerCase().endsWith("build/classes")) {
+                        // "~/src/j/build/classes"
+                        File classesDir = f.isAbsolute() ? f : File.getInstance(userDir, filename);
+                        if (classesDir != null && classesDir.isDirectory()) {
+                            File buildDir = classesDir.getParentFile(); // "~/src/j/build"
+                            if (buildDir != null && buildDir.isDirectory()) {
+                                File parentDir = buildDir.getParentFile(); // "~/src/j"
+                                if (parentDir != null && parentDir.isDirectory()) {
+                                    File docDir = File.getInstance(parentDir, "doc"); // "~/src/j/doc"
+                                    if (isDocDir(docDir))
+                                        return docDir;
+                                }
+                            }
+                        }
                     } else if (filename.toLowerCase().endsWith("src")) {
                         // "~/j/src"
-                        File srcDir = File.getInstance(userDir, filename);
+                        File srcDir = f.isAbsolute() ? f : File.getInstance(userDir, filename);
                         if (srcDir != null && srcDir.isDirectory()) {
                             File parentDir = srcDir.getParentFile(); // "~/j"
                             if (parentDir != null && parentDir.isDirectory()) {

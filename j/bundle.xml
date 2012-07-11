@@ -1,0 +1,6 @@
+<app name="J">
+    <jar name="j.jar" main-class="Main"/>
+    <jar name="abcl.jar"/>
+    <icon name="src/org/armedbear/j/images/icons/j.icns" />
+    <icon name="src/org/armedbear/j/images/icons/j-32.png" />
+</app>

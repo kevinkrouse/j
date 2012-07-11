@@ -27,6 +27,7 @@ import java.awt.Color;
 import java.awt.Component;
 import java.awt.Graphics;
 import java.awt.event.KeyEvent;
+import java.awt.image.BufferedImage;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
@@ -45,6 +46,7 @@ import java.util.Properties;
 import java.util.StringTokenizer;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.ZipInputStream;
+import javax.imageio.ImageIO;
 import javax.swing.BorderFactory;
 import javax.swing.BoxLayout;
 import javax.swing.ImageIcon;
@@ -1242,6 +1244,22 @@ public final class Utilities implements Constants
         if (url == null)
             return null;
         return new ImageIcon(url);
+    }
+
+    public static BufferedImage getImageFromFile(String iconFile)
+    {
+        InputStream is = Editor.class.getResourceAsStream("images/".concat(iconFile));
+        if (is == null)
+            return null;
+        try
+        {
+            return ImageIO.read(is);
+        }
+        catch (IOException e)
+        {
+            Log.error(e);
+            return null;
+        }
     }
 
     // Parses integer from string. Parsing stops when we encounter a non-digit.

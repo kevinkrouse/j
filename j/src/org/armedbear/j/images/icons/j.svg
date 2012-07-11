@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   width="512"
+   height="512"
+   id="svg4383"
+   version="1.1"
+   inkscape:version="0.48.2 r9819"
+   sodipodi:docname="j.svg"
+   inkscape:export-filename="/Users/kevink/src/armedbear/j/j/resources/icons/j-16.png"
+   inkscape:export-xdpi="2.8125"
+   inkscape:export-ydpi="2.8125">
+  <defs
+     id="defs4385">
+    <linearGradient
+       id="linearGradient5750">
+      <stop
+         id="stop5752"
+         offset="0"
+         style="stop-color:#ffffff;stop-opacity:1;" />
+      <stop
+         style="stop-color:#ffffff;stop-opacity:0.49803922;"
+         offset="0.50932634"
+         id="stop5756" />
+      <stop
+         id="stop5754"
+         offset="1"
+         style="stop-color:#ffffff;stop-opacity:1;" />
+    </linearGradient>
+    <filter
+       id="filter5758"
+       inkscape:label="Feather"
+       inkscape:menu="ABCs"
+       inkscape:menu-tooltip="Blurred mask on the edge without altering the contents"
+       color-interpolation-filters="sRGB">
+      <feGaussianBlur
+         id="feGaussianBlur5760"
+         result="result6"
+         stdDeviation="5" />
+      <feComposite
+         id="feComposite5762"
+         in2="result6"
+         operator="atop"
+         in="SourceGraphic"
+         result="result91" />
+      <feComposite
+         id="feComposite5764"
+         in2="result91"
+         operator="in"
+         result="result92" />
+      <feComposite
+         id="feComposite5766"
+         in2="result92"
+         operator="in" />
+    </filter>
+  </defs>
+  <sodipodi:namedview
+     id="base"
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     inkscape:pageopacity="0.0"
+     inkscape:pageshadow="2"
+     inkscape:zoom="0.49497475"
+     inkscape:cx="230.35279"
+     inkscape:cy="251.02247"
+     inkscape:document-units="px"
+     inkscape:current-layer="layer1"
+     showgrid="false"
+     inkscape:window-width="1254"
+     inkscape:window-height="827"
+     inkscape:window-x="24"
+     inkscape:window-y="31"
+     inkscape:window-maximized="0" />
+  <metadata
+     id="metadata4388">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:title></dc:title>
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <g
+     inkscape:label="Layer 1"
+     inkscape:groupmode="layer"
+     id="layer1"
+     transform="translate(0,-540.36218)">
+    <path
+       style="fill:#078ff0;fill-opacity:1;stroke:#ea9000;stroke-width:45;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       d="m 256,576.28711 c 121.92157,0 220.07504,98.15347 220.07504,220.07504 0,121.92158 -98.15347,220.07505 -220.07504,220.07505 -121.92158,0 -220.075047,-98.15347 -220.075047,-220.07505 0,-121.92157 98.153467,-220.07504 220.075047,-220.07504 z"
+       id="rect2985-0" />
+    <g
+       style="font-size:443.03796386999999868px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;text-align:center;line-height:100%;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:middle;fill:#ffffff;stroke:#ffffff;stroke-width:10;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none;font-family:Roadgeek 2005 Series C;-inkscape-font-specification:Roadgeek 2005 Series C;fill-opacity:1"
+       id="text3757-1"
+       transform="matrix(0.93678726,0,0,0.93678726,-13.179493,95.423854)">
+      <path
+         inkscape:connector-curvature="0"
+         style="line-height:100%;fill:#ffffff;fill-opacity:1;stroke:#ffffff;stroke-width:10;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none;font-family:Roadgeek 2005 Series D;-inkscape-font-specification:Roadgeek 2005 Series D"
+         id="path4559-6"
+         d="m 382.15335,811.28624 c -2e-4,14.17729 -2.36307,27.02538 -7.08861,38.5443 -4.72592,11.51903 -11.37149,21.56121 -19.93671,30.12658 -8.56556,8.27006 -18.9031,14.76794 -31.01266,19.49367 -12.10983,4.43038 -25.40095,6.64557 -39.87341,6.64557 -13.58659,0 -26.87771,-2.65823 -39.87342,-7.97468 -12.70047,-5.31645 -24.07177,-12.70041 -34.11392,-22.1519 -3.24897,-3.24892 -6.05488,-6.49786 -8.41772,-9.74683 -2.36289,-3.24891 -5.46415,-7.97464 -9.3038,-14.17722 l 42.97468,-19.93671 c 7.08855,9.45154 14.47251,16.24478 22.1519,20.37975 7.67924,3.83971 16.53999,5.75954 26.58228,5.75949 16.24461,5e-5 28.64966,-4.87337 37.21519,-14.62025 8.56525,-10.04213 12.84795,-23.92397 12.8481,-41.64557 l 0,-198.03797 47.8481,0 0,207.34177 0,0" />
+    </g>
+  </g>
+</svg>
