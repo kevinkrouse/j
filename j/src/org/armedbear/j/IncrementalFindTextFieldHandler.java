@@ -20,6 +20,8 @@
 
 package org.armedbear.j;
 
+import org.armedbear.j.util.Utilities;
+
 import java.awt.Color;
 import java.awt.event.KeyEvent;
 import javax.swing.SwingUtilities;

@@ -20,7 +20,7 @@
 
 package org.armedbear.j.mail;
 
-import org.armedbear.j.FastStringBuffer;
+import org.armedbear.j.util.FastStringBuffer;
 
 public final class AddressBookEntry
 {

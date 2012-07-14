@@ -65,6 +65,18 @@ import javax.swing.SwingUtilities;
 import javax.swing.undo.CompoundEdit;
 import org.armedbear.j.mail.MailCommands;
 import org.armedbear.j.mail.MailboxURL;
+import org.armedbear.j.mode.c.CMode;
+import org.armedbear.j.mode.compilation.CompilationBuffer;
+import org.armedbear.j.mode.dir.DirectoryBuffer;
+import org.armedbear.j.mode.dir.DirectoryTree;
+import org.armedbear.j.mode.image.ImageBuffer;
+import org.armedbear.j.mode.java.JavaMode;
+import org.armedbear.j.mode.lisp.JLisp;
+import org.armedbear.j.mode.list.ListOccurrencesInFiles;
+import org.armedbear.j.mode.perl.PerlMode;
+import org.armedbear.j.util.FastStringBuffer;
+import org.armedbear.j.util.Utilities;
+import org.armedbear.j.vcs.p4.P4;
 import org.armedbear.lisp.Condition;
 import org.armedbear.lisp.ControlTransfer;
 import org.armedbear.lisp.Interpreter;
@@ -192,7 +204,8 @@ public final class Editor extends JPanel implements Constants,
 
     static boolean isMenuSelected = false;
 
-    DirectoryTree localDirectoryTree;
+    // UNDONE: cache localDirectoryTree somewhere else
+    public DirectoryTree localDirectoryTree;
 
     private static ModeList modeList;
 
@@ -410,7 +423,7 @@ public final class Editor extends JPanel implements Constants,
         }
 
         if (toBeActivated == null)
-            toBeActivated = new Directory(currentDir);
+            toBeActivated = new DirectoryBuffer(currentDir);
 
         currentEditor.activate(toBeActivated);
 
@@ -2300,14 +2313,14 @@ public final class Editor extends JPanel implements Constants,
 
         for (BufferIterator it = new BufferIterator(); it.hasNext();) {
             Buffer buf = it.nextBuffer();
-            if (buf instanceof Directory && buf.getFile().equals(getCurrentDirectory())) {
+            if (buf instanceof DirectoryBuffer && buf.getFile().equals(getCurrentDirectory())) {
                 toBeActivated = buf;
                 break;
             }
         }
 
         if (toBeActivated == null)
-            toBeActivated = new Directory(getCurrentDirectory());
+            toBeActivated = new DirectoryBuffer(getCurrentDirectory());
 
         setWaitCursor();
 
@@ -4418,7 +4431,7 @@ public final class Editor extends JPanel implements Constants,
         if (file.isRemote())
             return Buffer.createBuffer(file);
         if (file.isDirectory())
-            return new Directory(file);
+            return new DirectoryBuffer(file);
         if (file.isFile()) {
             if (!file.canRead()) {
                 MessageDialog.showMessageDialog("File is not readable",
@@ -5218,8 +5231,8 @@ public final class Editor extends JPanel implements Constants,
 
     public void copyPath()
     {
-        if (buffer instanceof Directory) {
-            String path = ((Directory) buffer).getPathAtDot();
+        if (buffer instanceof DirectoryBuffer) {
+            String path = ((DirectoryBuffer) buffer).getPathAtDot();
             if (path != null) {
                 killRing.appendNew(path);
                 killRing.copyLastKillToSystemClipboard();
@@ -5948,7 +5961,7 @@ public final class Editor extends JPanel implements Constants,
         }
 
         // Don't kill the last buffer if it's a directory.
-        if (bufferList.size() == 1 && toBeKilled instanceof Directory)
+        if (bufferList.size() == 1 && toBeKilled instanceof DirectoryBuffer)
             return;
 
         // Cancel background process if any.
@@ -6633,20 +6646,20 @@ public final class Editor extends JPanel implements Constants,
 
     public void dirHome()
     {
-        if (buffer instanceof Directory)
-            ((Directory) buffer).home();
+        if (buffer instanceof DirectoryBuffer)
+            ((DirectoryBuffer) buffer).home();
     }
 
     public void dirTagFile()
     {
-        if (buffer instanceof Directory)
-            ((Directory) buffer).tagFileAtDot();
+        if (buffer instanceof DirectoryBuffer)
+            ((DirectoryBuffer) buffer).tagFileAtDot();
     }
 
     public void dirBrowseFile()
     {
-        if (buffer instanceof Directory && !buffer.getFile().isRemote()) {
-            Directory d = (Directory) buffer;
+        if (buffer instanceof DirectoryBuffer && !buffer.getFile().isRemote()) {
+            DirectoryBuffer d = (DirectoryBuffer) buffer;
             d.browseFileAtDot();
         }
     }
@@ -6659,38 +6672,38 @@ public final class Editor extends JPanel implements Constants,
                 "Delete Files");
             return;
         }
-        if (buffer instanceof Directory) {
+        if (buffer instanceof DirectoryBuffer) {
             if (buffer.getFile() instanceof SshFile) {
                 MessageDialog.showMessageDialog(this, "Deletions are not yet supported in ssh directory buffers.", "Error");
                 return;
             }
-            ((Directory)buffer).deleteFiles();
+            ((DirectoryBuffer)buffer).deleteFiles();
         }
     }
 
     public void dirCopyFile()
     {
-        if (buffer instanceof Directory && buffer.getFile().isLocal())
-            ((Directory) buffer).copyFileAtDot();
+        if (buffer instanceof DirectoryBuffer && buffer.getFile().isLocal())
+            ((DirectoryBuffer) buffer).copyFileAtDot();
     }
 
     public void dirGetFile()
     {
-        if (buffer instanceof Directory && buffer.getFile() instanceof FtpFile)
-            ((Directory) buffer).getFileAtDot();
+        if (buffer instanceof DirectoryBuffer && buffer.getFile() instanceof FtpFile)
+            ((DirectoryBuffer) buffer).getFileAtDot();
     }
 
     public void dirMoveFile()
     {
-        if (buffer instanceof Directory && buffer.getFile().isLocal())
-            ((Directory) buffer).moveFileAtDot();
+        if (buffer instanceof DirectoryBuffer && buffer.getFile().isLocal())
+            ((DirectoryBuffer) buffer).moveFileAtDot();
     }
 
     public void dirRescan()
     {
-        if (buffer instanceof Directory) {
+        if (buffer instanceof DirectoryBuffer) {
             setWaitCursor();
-            ((Directory) buffer).rescan();
+            ((DirectoryBuffer) buffer).rescan();
             setDefaultCursor();
         }
     }
@@ -6698,9 +6711,9 @@ public final class Editor extends JPanel implements Constants,
     public void dirHomeDir()
     {
         File homeDir = File.getInstance(Utilities.getUserHome());
-        if (buffer instanceof Directory) {
+        if (buffer instanceof DirectoryBuffer) {
             if (!buffer.getFile().equals(homeDir))
-                ((Directory) buffer).changeDirectory(homeDir);
+                ((DirectoryBuffer) buffer).changeDirectory(homeDir);
         } else {
             Buffer buf = getBuffer(homeDir);
             if (buf != null) {
@@ -6712,8 +6725,8 @@ public final class Editor extends JPanel implements Constants,
 
     public void dirUpDir()
     {
-        if (buffer instanceof Directory)
-            ((Directory) buffer).upDir();
+        if (buffer instanceof DirectoryBuffer)
+            ((DirectoryBuffer) buffer).upDir();
     }
 
     public void setFocusToTextField()
@@ -7952,10 +7965,7 @@ public final class Editor extends JPanel implements Constants,
         Mode mode = getMode();
         while (line != null) {
             String s = line.trim();
-            if (mode instanceof PerlMode)
-                s = PerlMode.trimSyntacticWhitespace(s);
-            else if (mode instanceof JavaMode)
-                s = JavaMode.trimSyntacticWhitespace(s);
+            s = mode.trimSyntacticWhitespace(s);
             if (s.endsWith("{"))
                 break;
             line = line.next();

@@ -20,6 +20,8 @@
 
 package org.armedbear.j;
 
+import org.armedbear.j.util.FastStringBuffer;
+
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;

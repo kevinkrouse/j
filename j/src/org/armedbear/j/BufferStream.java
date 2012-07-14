@@ -20,7 +20,7 @@
 
 package org.armedbear.j;
 
-import org.armedbear.lisp.ControlTransfer;
+import org.armedbear.j.util.FastStringBuffer;
 import org.armedbear.lisp.LispObject;
 import org.armedbear.lisp.Stream;
 import org.armedbear.lisp.Symbol;

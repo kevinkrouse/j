@@ -24,9 +24,10 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import org.armedbear.j.Debug;
-import org.armedbear.j.FastStringReader;
+import org.armedbear.j.util.FastStringReader;
 import org.armedbear.j.Log;
-import org.armedbear.j.Utilities;
+import org.armedbear.j.util.FastStringReader;
+import org.armedbear.j.util.Utilities;
 
 public final class Base64Decoder
 {

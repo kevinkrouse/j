@@ -29,8 +29,8 @@ import javax.swing.Icon;
 import javax.swing.SwingUtilities;
 import org.armedbear.j.Editor;
 import org.armedbear.j.EditorIterator;
-import org.armedbear.j.FastStringBuffer;
-import org.armedbear.j.FastStringReader;
+import org.armedbear.j.util.FastStringBuffer;
+import org.armedbear.j.util.FastStringReader;
 import org.armedbear.j.File;
 import org.armedbear.j.InputDialog;
 import org.armedbear.j.Line;
@@ -39,7 +39,8 @@ import org.armedbear.j.MessageDialog;
 import org.armedbear.j.Position;
 import org.armedbear.j.ProgressNotifier;
 import org.armedbear.j.StatusBarProgressNotifier;
-import org.armedbear.j.Utilities;
+import org.armedbear.j.util.FastStringReader;
+import org.armedbear.j.util.Utilities;
 import org.armedbear.j.View;
 
 public final class NewsGroupSummary extends Mailbox

@@ -20,6 +20,8 @@
 
 package org.armedbear.j;
 
+import org.armedbear.j.mode.web.WebBuffer;
+
 import java.util.regex.Pattern;
 import java.util.regex.Matcher;
 import java.io.IOException;

@@ -20,8 +20,9 @@
 
 package org.armedbear.j;
 
+import org.armedbear.j.util.FastStringBuffer;
+
 import java.util.Iterator;
-import java.util.StringTokenizer;
 
 public final class FileHistoryEntry
 {

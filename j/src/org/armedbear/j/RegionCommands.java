@@ -26,6 +26,9 @@ import java.io.IOException;
 import java.io.OutputStream;
 import javax.swing.undo.CompoundEdit;
 import org.armedbear.j.mail.Base64Decoder;
+import org.armedbear.j.util.ByteBuffer;
+import org.armedbear.j.util.FastStringBuffer;
+import org.armedbear.j.util.Utilities;
 
 public final class RegionCommands
 {

@@ -21,10 +21,11 @@
 package org.armedbear.j.mail;
 
 import java.awt.event.KeyEvent;
+
 import org.armedbear.j.AbstractMode;
+import org.armedbear.j.Mode;
 import org.armedbear.j.Constants;
 import org.armedbear.j.KeyMap;
-import org.armedbear.j.Mode;
 import org.armedbear.j.Property;
 
 public final class NewsGroupsMode extends AbstractMode implements Constants,

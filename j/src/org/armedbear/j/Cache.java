@@ -20,6 +20,9 @@
 
 package org.armedbear.j;
 
+import org.armedbear.j.util.Tuple2;
+import org.armedbear.j.util.Utilities;
+
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.IOException;
@@ -82,7 +85,7 @@ public final class Cache
     public File get(String netPath)
     {
         for (int i = catalog.size()-1; i >= 0; i--) {
-            StringPair pair = (StringPair) catalog.get(i);
+            Tuple2<String, String> pair = (Tuple2<String, String>) catalog.get(i);
             if (pair.second.equals(netPath))
                 return File.getInstance(cacheDir, pair.first);
         }
@@ -115,7 +118,7 @@ public final class Cache
             file = null;
         }
         if (file != null) {
-            catalog.add(new StringPair(file.getName(), netPath));
+            catalog.add(new Tuple2<String, String>(file.getName(), netPath));
             saveCatalog();
         }
         return file;
@@ -132,7 +135,7 @@ public final class Cache
                 while ((s = reader.readLine()) != null) {
                     int index = s.indexOf(' ');
                     if (index >= 0)
-                        v.add(new StringPair(s.substring(0, index), s.substring(index+1)));
+                        v.add(new Tuple2<String, String>(s.substring(0, index), s.substring(index+1)));
                 }
             }
             catch (IOException e) {
@@ -148,7 +151,7 @@ public final class Cache
             BufferedWriter writer = new BufferedWriter(
                 new OutputStreamWriter(catalogFile.getOutputStream()));
             for (int i = 0; i < catalog.size(); i++) {
-                StringPair pair = (StringPair) catalog.get(i);
+                Tuple2<String, String> pair = (Tuple2<String, String>) catalog.get(i);
                 writer.write(pair.first);
                 writer.write(' ');
                 writer.write(pair.second);

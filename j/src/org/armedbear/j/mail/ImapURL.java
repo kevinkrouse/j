@@ -23,7 +23,7 @@ package org.armedbear.j.mail;
 import java.net.MalformedURLException;
 import java.util.ArrayList;
 import java.util.List;
-import org.armedbear.j.FastStringBuffer;
+import org.armedbear.j.util.FastStringBuffer;
 
 public final class ImapURL extends MailboxURL
 {

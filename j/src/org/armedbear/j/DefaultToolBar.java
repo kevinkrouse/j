@@ -41,7 +41,7 @@ public final class DefaultToolBar extends ToolBar
         addButton("Find", ICON_FIND, "find");
         addButton("Replace", ICON_REPLACE, "replace");
         addSeparator();
-        addButton("Directory", ICON_DIRECTORY, "dir");
+        addButton("DirectoryBuffer", ICON_DIRECTORY, "dir");
         addButton("Home", ICON_HOME, "dirHomeDir");
         maybeAddInboxButton();
         addSeparator();

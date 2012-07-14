@@ -20,6 +20,8 @@
 
 package org.armedbear.j;
 
+import org.armedbear.j.util.FastStringBuffer;
+
 public final class OccurrenceLine extends TextLine
 {
     private Line sourceLine;

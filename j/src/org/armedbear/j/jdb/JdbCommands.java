@@ -22,7 +22,7 @@ package org.armedbear.j.jdb;
 
 import com.sun.jdi.Bootstrap;
 import org.armedbear.j.Help;
-import org.armedbear.j.JavaMode;
+import org.armedbear.j.mode.java.JavaMode;
 import org.armedbear.j.Log;
 import org.armedbear.j.MessageDialog;
 

@@ -20,6 +20,9 @@
 
 package org.armedbear.j;
 
+import org.armedbear.j.mode.dir.DirectoryBuffer;
+import org.armedbear.j.mode.image.ImageBuffer;
+
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.IOException;
@@ -76,7 +79,7 @@ public final class RecentFiles implements Constants
     {
         if (buffer.isTransient())
             return true;
-        if (buffer instanceof Directory)
+        if (buffer instanceof DirectoryBuffer)
             return true;
         if (buffer instanceof RemoteBuffer)
             return true;

@@ -22,7 +22,10 @@ package org.armedbear.j.mail;
 
 import java.awt.event.KeyEvent;
 import javax.swing.JCheckBoxMenuItem;
+
 import org.armedbear.j.AbstractMode;
+import org.armedbear.j.Line;
+import org.armedbear.j.Mode;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Constants;
 import org.armedbear.j.Dispatcher;
@@ -30,9 +33,7 @@ import org.armedbear.j.Editor;
 import org.armedbear.j.Formatter;
 import org.armedbear.j.Frame;
 import org.armedbear.j.KeyMap;
-import org.armedbear.j.Line;
 import org.armedbear.j.Menu;
-import org.armedbear.j.Mode;
 import org.armedbear.j.NavigationComponent;
 import org.armedbear.j.Position;
 import org.armedbear.j.Property;

@@ -22,7 +22,7 @@ package org.armedbear.j.mail;
 
 import java.awt.AWTEvent;
 import java.awt.event.MouseEvent;
-import java.util.List;
+
 import org.armedbear.j.Buffer;
 import org.armedbear.j.BufferIterator;
 import org.armedbear.j.Constants;
@@ -31,7 +31,7 @@ import org.armedbear.j.Directories;
 import org.armedbear.j.Editor;
 import org.armedbear.j.File;
 import org.armedbear.j.Frame;
-import org.armedbear.j.FastStringBuffer;
+import org.armedbear.j.util.FastStringBuffer;
 import org.armedbear.j.History;
 import org.armedbear.j.IdleThread;
 import org.armedbear.j.InputDialog;

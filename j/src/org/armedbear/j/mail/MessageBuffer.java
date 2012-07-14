@@ -28,7 +28,6 @@ import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Vector;
 import javax.swing.Icon;
 import javax.swing.SwingUtilities;
 import org.armedbear.j.Annotation;
@@ -39,10 +38,10 @@ import org.armedbear.j.Display;
 import org.armedbear.j.Editor;
 import org.armedbear.j.EditorIterator;
 import org.armedbear.j.File;
-import org.armedbear.j.FastStringBuffer;
-import org.armedbear.j.FastStringReader;
+import org.armedbear.j.util.FastStringBuffer;
+import org.armedbear.j.util.FastStringReader;
 import org.armedbear.j.Headers;
-import org.armedbear.j.ImageLine;
+import org.armedbear.j.mode.image.ImageLine;
 import org.armedbear.j.ImageLoader;
 import org.armedbear.j.Line;
 import org.armedbear.j.LineSequence;
@@ -56,11 +55,11 @@ import org.armedbear.j.SaveFileDialog;
 import org.armedbear.j.Sidebar;
 import org.armedbear.j.SystemBuffer;
 import org.armedbear.j.TextLine;
-import org.armedbear.j.Utilities;
-import org.armedbear.j.WebBuffer;
-import org.armedbear.j.WebFormatter;
-import org.armedbear.j.WebLine;
-import org.armedbear.j.WebLoader;
+import org.armedbear.j.util.FastStringReader;
+import org.armedbear.j.util.Utilities;
+import org.armedbear.j.mode.web.WebBuffer;
+import org.armedbear.j.mode.web.WebFormatter;
+import org.armedbear.j.mode.web.WebLoader;
 
 public class MessageBuffer extends Buffer
 {

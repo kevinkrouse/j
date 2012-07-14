@@ -37,10 +37,10 @@ import java.util.Properties;
 import org.armedbear.j.Debug;
 import org.armedbear.j.Directories;
 import org.armedbear.j.File;
-import org.armedbear.j.FastStringBuffer;
+import org.armedbear.j.util.FastStringBuffer;
 import org.armedbear.j.Headers;
 import org.armedbear.j.Log;
-import org.armedbear.j.Utilities;
+import org.armedbear.j.util.Utilities;
 
 public final class ImapMessageCache
 {

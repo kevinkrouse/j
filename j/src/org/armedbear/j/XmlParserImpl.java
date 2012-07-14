@@ -29,6 +29,10 @@ import java.util.Stack;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeModel;
 import javax.swing.tree.TreeModel;
+
+import org.armedbear.j.mode.xml.XmlTreeElement;
+import org.armedbear.j.util.FastStringBuffer;
+import org.armedbear.j.util.Utilities;
 import org.xml.sax.Attributes;
 import org.xml.sax.ContentHandler;
 import org.xml.sax.EntityResolver;

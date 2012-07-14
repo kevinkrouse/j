@@ -24,6 +24,8 @@ import java.util.regex.Pattern;
 import java.util.regex.Matcher;
 import javax.swing.undo.CompoundEdit;
 import org.armedbear.j.mail.SendMail;
+import org.armedbear.j.util.FastStringBuffer;
+import org.armedbear.j.util.Utilities;
 
 public final class WrapText implements Constants
 {

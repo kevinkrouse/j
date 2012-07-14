@@ -44,12 +44,12 @@ import org.armedbear.j.Editor;
 import org.armedbear.j.Directories;
 import org.armedbear.j.EditorIterator;
 import org.armedbear.j.File;
-import org.armedbear.j.FastStringBuffer;
+import org.armedbear.j.util.FastStringBuffer;
 import org.armedbear.j.Log;
 import org.armedbear.j.PasswordDialog;
 import org.armedbear.j.Property;
 import org.armedbear.j.StatusBarProgressNotifier;
-import org.armedbear.j.Utilities;
+import org.armedbear.j.util.Utilities;
 import org.armedbear.j.View;
 
 public final class PopMailbox extends LocalMailbox

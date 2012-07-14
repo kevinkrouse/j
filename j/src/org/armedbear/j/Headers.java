@@ -20,6 +20,8 @@
 
 package org.armedbear.j;
 
+import org.armedbear.j.util.FastStringBuffer;
+
 public final class Headers
 {
     // These are indexes into the array of values. We only store values for the

@@ -20,6 +20,17 @@
 
 package org.armedbear.j;
 
+import org.armedbear.j.mode.dir.DirectoryBuffer;
+import org.armedbear.j.mode.image.ImageBuffer;
+import org.armedbear.j.mode.image.ImageLine;
+import org.armedbear.j.mode.text.PlainTextMode;
+import org.armedbear.j.mode.web.WebBuffer;
+import org.armedbear.j.util.FastStringBuffer;
+import org.armedbear.j.util.FastStringReader;
+import org.armedbear.j.util.Utilities;
+import org.armedbear.j.vcs.VersionControl;
+import org.armedbear.j.vcs.VersionControlEntry;
+
 import java.awt.Cursor;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
@@ -34,7 +45,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
-import java.util.zip.ZipEntry;
 import javax.swing.Icon;
 import javax.swing.SwingUtilities;
 import javax.swing.undo.CannotRedoException;
@@ -267,7 +277,7 @@ public class Buffer extends SystemBuffer
         }
         if (file instanceof SshFile) {
             SshFile sshFile = (SshFile) file;
-            SshSession session = SshSession.getSession(sshFile);
+            RemoteSession session = SshSession.getSession(sshFile);
             if (session == null)
                 return null;
             if (!session.isLocked()) {
@@ -288,11 +298,13 @@ public class Buffer extends SystemBuffer
             return new RemoteBuffer(file);
         }
         // Special case for unsent messages.
-        File dir = file.getParentFile();
-        if (dir != null && dir.equals(Directories.getDraftsFolder())) {
-            Mode sendMailMode = Editor.getModeList().getMode(SEND_MAIL_MODE);
-            if (sendMailMode != null)
-                return sendMailMode.createBuffer(file);
+        if (file != null) {
+            File dir = file.getParentFile();
+            if (dir != null && dir.equals(Directories.getDraftsFolder())) {
+                Mode sendMailMode = Editor.getModeList().getMode(SEND_MAIL_MODE);
+                if (sendMailMode != null)
+                    return sendMailMode.createBuffer(file);
+            }
         }
         // Local file.
         return createBuffer(file, null, null);
@@ -386,7 +398,7 @@ public class Buffer extends SystemBuffer
                     fileType = FILETYPE_BINARY; // Something went wrong.
             }
         }
-        mode = getDefaultMode();
+        mode = getDefaultMode(); // should use cache file?
         formatter = mode.getFormatter(this);
         if (fileType == FILETYPE_ZIP) {
             supportsUndo = false;
@@ -427,7 +439,7 @@ public class Buffer extends SystemBuffer
 
     public Mode getDefaultMode()
     {
-        final File file = getFile();
+        final File file = cache != null ? cache : getFile();
         final ModeList modeList = Editor.getModeList();
         switch (fileType) {
             case FILETYPE_XML:
@@ -1235,7 +1247,7 @@ public class Buffer extends SystemBuffer
             }
         }
         if (buf == null)
-            buf = new Directory(getCurrentDirectory());
+            buf = new DirectoryBuffer(getCurrentDirectory());
         // Copy editor list since switchToBuffer() may close an editor.
         ArrayList editors = new ArrayList();
         for (EditorIterator it = new EditorIterator(); it.hasNext();)
@@ -2358,7 +2370,7 @@ public class Buffer extends SystemBuffer
             compoundEdit.end();
     }
 
-    protected void setText(String text)
+    public void setText(String text)
     {
         try {
             lockWrite();

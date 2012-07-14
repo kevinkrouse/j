@@ -20,6 +20,10 @@
 
 package org.armedbear.j;
 
+import org.armedbear.j.mode.diff.DiffOutputBuffer;
+import org.armedbear.j.util.FastStringBuffer;
+import org.armedbear.j.util.Utilities;
+
 import javax.swing.undo.CompoundEdit;
 
 public final class ChangeMarks implements Constants
@@ -249,23 +253,9 @@ public final class ChangeMarks implements Constants
             return;
         if (buffer.writeFile(tempFile)) {
             FastStringBuffer sb = new FastStringBuffer("diff -u ");
-            // Enclose filenames in double quotes if they contain embedded
-            // spaces.
-            String name1 = file.canonicalPath();
-            if (name1.indexOf(' ') >= 0) {
-                sb.append('"');
-                sb.append(name1);
-                sb.append('"');
-            } else
-                sb.append(name1);
+            sb.append(Utilities.maybeQuote(file.canonicalPath()));
             sb.append(' ');
-            String name2 = tempFile.canonicalPath();
-            if (name2.indexOf(' ') >= 0) {
-                sb.append('"');
-                sb.append(name2);
-                sb.append('"');
-            } else
-                sb.append(name2);
+            sb.append(Utilities.maybeQuote(tempFile.canonicalPath()));
             final String cmd = sb.toString();
             ShellCommand shellCommand = new ShellCommand(cmd);
             shellCommand.run();

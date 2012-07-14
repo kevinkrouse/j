@@ -20,6 +20,11 @@
 
 package org.armedbear.j;
 
+import org.armedbear.j.mode.properties.PropertiesFormatter;
+import org.armedbear.j.util.FastStringBuffer;
+import org.armedbear.j.vcs.VersionControlEntry;
+import org.armedbear.j.vcs.p4.P4;
+
 import java.awt.Cursor;
 import java.awt.Dimension;
 import java.util.ArrayList;

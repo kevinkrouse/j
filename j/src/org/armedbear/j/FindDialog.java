@@ -20,6 +20,9 @@
 
 package org.armedbear.j;
 
+import org.armedbear.j.mode.list.ListOccurrences;
+import org.armedbear.j.util.Utilities;
+
 import java.util.regex.PatternSyntaxException;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;

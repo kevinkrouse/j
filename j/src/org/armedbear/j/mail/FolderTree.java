@@ -38,7 +38,7 @@ import org.armedbear.j.Display;
 import org.armedbear.j.Editor;
 import org.armedbear.j.Frame;
 import org.armedbear.j.NavigationComponent;
-import org.armedbear.j.Utilities;
+import org.armedbear.j.util.Utilities;
 
 public final class FolderTree extends JTree implements NavigationComponent,
     MouseListener

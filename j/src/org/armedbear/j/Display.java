@@ -20,6 +20,9 @@
 
 package org.armedbear.j;
 
+import org.armedbear.j.mode.image.ImageBuffer;
+import org.armedbear.j.mode.image.ImageLine;
+
 import java.awt.Color;
 import java.awt.Font;
 import java.awt.FontMetrics;
@@ -900,16 +903,8 @@ public final class Display extends JComponent implements Constants,
             int start = i;
             while (formatArray[i] == format && i < length)
                 ++i;
-            int style;
-            FormatTableEntry entry = formatter.getFormatTableEntry(format);
-            if (entry != null) {
-                g2d.setColor(entry.getColor());
-                style = entry.getStyle();
-            } else {
-                // Web mode.
-                g2d.setColor(formatter.getColor(format));
-                style = formatter.getStyle(format);
-            }
+            g2d.setColor(formatter.getColor(format));
+            int style = formatter.getStyle(format);
             Font font;
             switch (style) {
                 case Font.BOLD:

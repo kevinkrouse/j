@@ -20,6 +20,10 @@
 
 package org.armedbear.j;
 
+import org.armedbear.j.mode.shell.ShellTokenizer;
+import org.armedbear.j.util.FastStringBuffer;
+import org.armedbear.j.util.Utilities;
+
 import java.util.regex.Matcher;
 import java.io.IOException;
 import java.io.OutputStreamWriter;

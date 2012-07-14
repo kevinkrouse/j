@@ -20,6 +20,8 @@
 
 package org.armedbear.j;
 
+import org.armedbear.j.util.Utilities;
+
 import java.awt.Color;
 import java.awt.Font;
 
@@ -119,10 +121,12 @@ public abstract class Formatter implements Constants
         return Font.PLAIN;
     }
 
-    public FormatTableEntry getFormatTableEntry(int format)
+    /*
+    protected FormatTableEntry getFormatTableEntry(int format)
     {
         return getFormatTable().lookup(format);
     }
+    */
 
     public boolean getUnderline(int format)
     {

@@ -21,6 +21,7 @@
 package org.armedbear.j;
 
 import org.armedbear.j.mail.MailboxEntry;
+import org.armedbear.j.mode.dir.DirectoryTree;
 
 public final class View implements Cloneable
 {

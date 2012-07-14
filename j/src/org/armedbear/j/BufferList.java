@@ -20,6 +20,10 @@
 
 package org.armedbear.j;
 
+import org.armedbear.j.mode.web.WebBuffer;
+import org.armedbear.j.util.FastStringBuffer;
+import org.armedbear.j.util.Utilities;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;

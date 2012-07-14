@@ -20,6 +20,8 @@
 
 package org.armedbear.j;
 
+import org.armedbear.j.util.FastStringBuffer;
+
 public final class Directories
 {
     private static File userHomeDirectory;      // ~

@@ -20,6 +20,10 @@
 
 package org.armedbear.j;
 
+import org.armedbear.j.util.FastStringBuffer;
+import org.armedbear.j.util.ReaderThread;
+import org.armedbear.j.util.Utilities;
+
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 import java.util.regex.Matcher;
@@ -29,7 +33,7 @@ import java.util.ArrayList;
 import java.util.List;
 import javax.swing.SwingUtilities;
 
-public final class SshSession implements Constants
+public final class SshSession implements Constants, RemoteSession
 {
     public static final int DEFAULT_PORT = 22;
 
@@ -42,7 +46,7 @@ public final class SshSession implements Constants
 
     private static final String PROMPT = "$ ";
 
-    private static ArrayList sessionList;
+    private static ArrayList<SshSession> sessionList;
 
     private static CleanupThread cleanupThread;
 
@@ -102,7 +106,7 @@ public final class SshSession implements Constants
     private static synchronized void register(SshSession session)
     {
         if (sessionList == null)
-            sessionList = new ArrayList();
+            sessionList = new ArrayList<SshSession>();
         sessionList.add(session);
         if (cleanupThread == null) {
             cleanupThread = new CleanupThread(cleanupRunnable);
@@ -154,7 +158,7 @@ public final class SshSession implements Constants
     {
         if (sessionList != null) {
             for (int i = sessionList.size(); i-- > 0;) {
-                SshSession session = (SshSession) sessionList.get(i);
+                SshSession session = sessionList.get(i);
                 if (session.getUserName().equals(file.getUserName())) {
                     if (session.getHostName().equals(file.getHostName())) {
                         if (session.getPort() == file.getPort()) {
@@ -174,7 +178,7 @@ public final class SshSession implements Constants
     {
         if (sessionList != null) {
             for (int i = sessionList.size(); i-- > 0;) {
-                SshSession session = (SshSession) sessionList.get(i);
+                SshSession session = sessionList.get(i);
                 if (session.getUserName().equals(file.getUserName())) {
                     if (session.getHostName().equals(file.getHostName())) {
                         if (session.getPort() == file.getPort()) {
@@ -289,6 +293,11 @@ public final class SshSession implements Constants
         }
     }
 
+    public boolean isFile(String canonicalPath)
+    {
+        throw new RuntimeException("NYI");
+    }
+
     private String stat(String canonicalPath)
     {
         FastStringBuffer sb = new FastStringBuffer("stat -t \"");
@@ -306,9 +315,9 @@ public final class SshSession implements Constants
     private static int getType(String s)
     {
         if (s != null) {
-            List tokens = Utilities.tokenize(s);
+            List<String> tokens = Utilities.tokenize(s);
             if (tokens.size() == 14) {
-                String token = (String) tokens.get(2);
+                String token = tokens.get(2);
                 Log.debug("token = |" + token + "|");
                 try {
                     int n = Integer.parseInt(token, 16);
@@ -441,8 +450,9 @@ public final class SshSession implements Constants
         return null;
     }
 
-    public synchronized boolean chmod(SshFile file, int permissions)
+    public synchronized boolean chmod(File file, int permissions)
     {
+        Debug.bugIfNot(file instanceof SshFile);
         if (permissions != 0 && connect()) {
             FastStringBuffer sb = new FastStringBuffer("chmod ");
             sb.append(Integer.toString(permissions, 8));
@@ -1049,7 +1059,7 @@ public final class SshSession implements Constants
         SwingUtilities.invokeLater(r);
     }
 
-    public void checkLogin()
+    public boolean checkLogin()
     {
         if (userName == null)
             userName = System.getProperty("user.name");
@@ -1067,6 +1077,10 @@ public final class SshSession implements Constants
                 }
             }
         }
+
+        if (userName == null || userName.length() == 0 || password == null || password.length() == 0)
+            return false;
+        return true;
     }
 
     private static synchronized void cleanup()
@@ -1078,7 +1092,7 @@ public final class SshSession implements Constants
         }
         if (sessionList != null) {
             for (int i = sessionList.size(); i-- > 0;) {
-                SshSession session = (SshSession) sessionList.get(i);
+                SshSession session = sessionList.get(i);
                 if (session.isLocked())
                     continue;
                 String hostName = session.getHostName();

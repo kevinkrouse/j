@@ -27,11 +27,11 @@ import java.net.Socket;
 import java.net.SocketException;
 import org.armedbear.j.Debug;
 import org.armedbear.j.Editor;
-import org.armedbear.j.FastStringBuffer;
+import org.armedbear.j.util.FastStringBuffer;
 import org.armedbear.j.Log;
 import org.armedbear.j.Netrc;
 import org.armedbear.j.SocketConnection;
-import org.armedbear.j.Utilities;
+import org.armedbear.j.util.Utilities;
 
 public final class ImapSession
 {

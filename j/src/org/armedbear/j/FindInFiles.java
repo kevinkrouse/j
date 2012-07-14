@@ -20,6 +20,10 @@
 
 package org.armedbear.j;
 
+import org.armedbear.j.mode.list.ListOccurrencesInFiles;
+import org.armedbear.j.util.FastStringBuffer;
+import org.armedbear.j.vcs.p4.P4;
+
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
@@ -33,8 +37,6 @@ import java.util.List;
 import java.util.StringTokenizer;
 import java.util.Vector;
 import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-import java.util.regex.PatternSyntaxException;
 import javax.swing.SwingUtilities;
 import javax.swing.undo.CompoundEdit;
 

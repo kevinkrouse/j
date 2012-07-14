@@ -20,6 +20,8 @@
 
 package org.armedbear.j;
 
+import org.armedbear.j.util.Utilities;
+
 import java.awt.Dimension;
 import java.awt.Rectangle;
 import java.awt.Toolkit;

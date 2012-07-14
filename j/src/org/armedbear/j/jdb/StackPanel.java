@@ -40,8 +40,8 @@ import org.armedbear.j.Buffer;
 import org.armedbear.j.Editor;
 import org.armedbear.j.EditorIterator;
 import org.armedbear.j.File;
-import org.armedbear.j.FastStringBuffer;
-import org.armedbear.j.JavaSource;
+import org.armedbear.j.util.FastStringBuffer;
+import org.armedbear.j.mode.java.JavaSource;
 import org.armedbear.j.Log;
 
 public final class StackPanel implements ContextListener, MouseListener

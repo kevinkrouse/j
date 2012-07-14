@@ -18,14 +18,26 @@
 <hr>
 
 <p>
-Java 1.5 or later is required,
-but <a href="http://java.sun.com/javase/downloads/index.jsp">Sun Java 1.6</a>
+To compile from source, refer to the <a href="building.html">building</a> documentation.
+<p>
+Java 1.6 or later is required,
+but <a href="http://www.oracle.com/technetwork/java/javase/downloads/index.html">Oracle Java 1.6</a>
 is recommended.
 <p>
 Support for platforms other than Linux and Windows is purely accidental.
+
+<h2>Windows</h2>
+<p>
+Download the j-0.23.0-win.zip archive, unzip, and double-click the J.exe.
+
+<h2>Mac OS X</h2>
+<p>
+Download the j-0.23.0-mac.zip archive, unzip, and double-click the J.app.
+
+<h2>Other platforms</h2>
 <p>
 Simply untar or unzip the binary distribution, cd into the j directory, and
-run the jar file:
+execute the jar file using java:
 <pre>
     $ tar xvfz j-0.23.0-bin.tar.gz
     $ cd j-0.23.0
@@ -48,6 +60,11 @@ where the documentation is located:
 the directory containing j's HTML documentation (including the file you're
 reading now). On Windows, you'll need to use double backslashes in your
 filenames, as shown.
+<p>
+To use the <a href="jdb.html">jdb debugger</a>, you'll need to include
+<code>tools.jar</code> from the JDK on the classpath.  Read the
+<a href="jdb.html">debugger</a> documentation for more information.
+</p>
 
 </body>
 </html>

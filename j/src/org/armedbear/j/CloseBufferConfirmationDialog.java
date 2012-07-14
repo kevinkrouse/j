@@ -20,6 +20,9 @@
 
 package org.armedbear.j;
 
+import org.armedbear.j.util.FastStringBuffer;
+import org.armedbear.j.util.Utilities;
+
 public final class CloseBufferConfirmationDialog extends ConfirmDialog
 {
     private final Editor editor;

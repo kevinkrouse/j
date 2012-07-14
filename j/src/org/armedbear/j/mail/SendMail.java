@@ -48,7 +48,7 @@ import org.armedbear.j.Editor;
 import org.armedbear.j.EditorIterator;
 import org.armedbear.j.Expansion;
 import org.armedbear.j.File;
-import org.armedbear.j.FastStringBuffer;
+import org.armedbear.j.util.FastStringBuffer;
 import org.armedbear.j.Headers;
 import org.armedbear.j.InputDialog;
 import org.armedbear.j.Line;
@@ -63,7 +63,7 @@ import org.armedbear.j.Property;
 import org.armedbear.j.Region;
 import org.armedbear.j.Sidebar;
 import org.armedbear.j.SimpleEdit;
-import org.armedbear.j.Utilities;
+import org.armedbear.j.util.Utilities;
 import org.armedbear.j.Version;
 
 public final class SendMail extends Buffer

@@ -33,7 +33,7 @@ import org.armedbear.j.Dispatcher;
 import org.armedbear.j.Display;
 import org.armedbear.j.Editor;
 import org.armedbear.j.EditorIterator;
-import org.armedbear.j.FastStringBuffer;
+import org.armedbear.j.util.FastStringBuffer;
 import org.armedbear.j.History;
 import org.armedbear.j.InputDialog;
 import org.armedbear.j.Line;
@@ -44,7 +44,7 @@ import org.armedbear.j.ProgressNotifier;
 import org.armedbear.j.Property;
 import org.armedbear.j.PropertyList;
 import org.armedbear.j.Sidebar;
-import org.armedbear.j.Utilities;
+import org.armedbear.j.util.Utilities;
 import org.armedbear.j.View;
 
 public abstract class Mailbox extends Buffer
