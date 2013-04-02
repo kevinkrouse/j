@@ -25,7 +25,7 @@ import java.util.regex.Matcher;
 import java.io.IOException;
 import java.io.OutputStream;
 import javax.swing.undo.CompoundEdit;
-import org.armedbear.j.mail.Base64Decoder;
+import org.armedbear.j.util.Base64Decoder;
 import org.armedbear.j.util.ByteBuffer;
 import org.armedbear.j.util.FastStringBuffer;
 import org.armedbear.j.util.Utilities;

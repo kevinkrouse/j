@@ -36,6 +36,7 @@ import java.util.List;
 import org.armedbear.j.Debug;
 import org.armedbear.j.Editor;
 import org.armedbear.j.File;
+import org.armedbear.j.util.Base64Encoder;
 import org.armedbear.j.util.FastStringBuffer;
 import org.armedbear.j.Log;
 import org.armedbear.j.MessageDialog;

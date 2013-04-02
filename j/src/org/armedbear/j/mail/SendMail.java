@@ -48,6 +48,7 @@ import org.armedbear.j.Editor;
 import org.armedbear.j.EditorIterator;
 import org.armedbear.j.Expansion;
 import org.armedbear.j.File;
+import org.armedbear.j.util.Base64Encoder;
 import org.armedbear.j.util.FastStringBuffer;
 import org.armedbear.j.Headers;
 import org.armedbear.j.InputDialog;

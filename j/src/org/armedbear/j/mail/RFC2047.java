@@ -23,6 +23,8 @@ package org.armedbear.j.mail;
 import java.util.regex.Pattern;
 import java.util.regex.Matcher;
 import java.io.UnsupportedEncodingException;
+
+import org.armedbear.j.util.Base64Decoder;
 import org.armedbear.j.util.FastStringBuffer;
 import org.armedbear.j.Log;
 import org.armedbear.j.util.Utilities;

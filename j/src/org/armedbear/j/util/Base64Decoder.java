@@ -18,7 +18,7 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
  */
 
-package org.armedbear.j.mail;
+package org.armedbear.j.util;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
