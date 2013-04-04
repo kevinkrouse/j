@@ -76,7 +76,7 @@ public final class SendMail extends Buffer
 
     private boolean reply;
     private List group;
-    private Mailbox mailbox;
+    private MailboxBuffer mailbox;
     private MailboxEntry entryRepliedTo;
     private String boundary;
     private String smtp;
@@ -307,9 +307,9 @@ public final class SendMail extends Buffer
         boolean result = super.save();
         for (BufferIterator it = new BufferIterator(); it.hasNext();) {
             Buffer buf = it.nextBuffer();
-            if (buf instanceof Drafts) {
-                Drafts drafts = (Drafts) buf;
-                drafts.reload();
+            if (buf instanceof DraftsBuffer) {
+                DraftsBuffer draftsBuffer = (DraftsBuffer) buf;
+                draftsBuffer.reload();
                 break;
             }
         }
@@ -781,9 +781,9 @@ public final class SendMail extends Buffer
                 file.delete();
                 for (BufferIterator it = new BufferIterator(); it.hasNext();) {
                     Buffer buf = it.nextBuffer();
-                    if (buf instanceof Drafts) {
-                        Drafts drafts = (Drafts) buf;
-                        drafts.reload();
+                    if (buf instanceof DraftsBuffer) {
+                        DraftsBuffer draftsBuffer = (DraftsBuffer) buf;
+                        draftsBuffer.reload();
                         break;
                     }
                 }
@@ -1626,8 +1626,8 @@ public final class SendMail extends Buffer
     {
         if (messageBuffer == null)
             return null;
-        Mailbox mailbox = messageBuffer.getMailbox();
-        if (mailbox == null)
+        MailboxBuffer mailboxBuffer = messageBuffer.getMailbox();
+        if (mailboxBuffer == null)
             return null;
         MailboxEntry entry = messageBuffer.getMailboxEntry();
         if (entry == null)

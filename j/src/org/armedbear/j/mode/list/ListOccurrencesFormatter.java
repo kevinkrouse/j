@@ -46,8 +46,8 @@ public final class ListOccurrencesFormatter extends Formatter
     public ListOccurrencesFormatter(Buffer buffer)
     {
         this.buffer = buffer;
-        search = (Search) ((ListOccurrences)buffer).getSearch().clone();
-        parentMode = ((ListOccurrences)buffer).getParentMode();
+        search = (Search) ((ListOccurrencesBuffer)buffer).getSearch().clone();
+        parentMode = ((ListOccurrencesBuffer)buffer).getParentMode();
     }
 
     public LineSegmentList formatLine(Line line)

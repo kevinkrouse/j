@@ -32,11 +32,11 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.StringTokenizer;
 
-public final class Man extends Buffer
+public final class ManBuffer extends Buffer
 {
     private boolean apropos;
 
-    public Man(String topic, File tempFile)
+    public ManBuffer(String topic, File tempFile)
     {
         super();
         // Check for -k switch.

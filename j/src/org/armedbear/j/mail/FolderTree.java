@@ -73,12 +73,12 @@ public final class FolderTree extends JTree implements NavigationComponent,
         int row = -1;
         final Buffer buf = frame.getCurrentEditor().getBuffer();
         MailboxURL url = null;
-        if (buf instanceof Mailbox)
-            url = ((Mailbox)buf).getUrl();
+        if (buf instanceof MailboxBuffer)
+            url = ((MailboxBuffer)buf).getUrl();
         else if (buf instanceof MessageBuffer) {
-            Mailbox mailbox = ((MessageBuffer)buf).getMailbox();
-            if (mailbox != null)
-                url = mailbox.getUrl();
+            MailboxBuffer mailboxBuffer = ((MessageBuffer)buf).getMailbox();
+            if (mailboxBuffer != null)
+                url = mailboxBuffer.getUrl();
         }
         if (url != null) {
             DefaultMutableTreeNode root =

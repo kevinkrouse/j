@@ -52,7 +52,7 @@ import org.armedbear.j.StatusBarProgressNotifier;
 import org.armedbear.j.util.Utilities;
 import org.armedbear.j.View;
 
-public final class PopMailbox extends LocalMailbox
+public final class PopMailboxBuffer extends LocalMailboxBuffer
 {
     private final PopSession session;
 
@@ -61,7 +61,7 @@ public final class PopMailbox extends LocalMailbox
     private boolean cancelled;
     private Thread backgroundThread;
 
-    public PopMailbox(PopURL url, PopSession session)
+    public PopMailboxBuffer(PopURL url, PopSession session)
     {
         super(url);
         this.session = session;
@@ -100,7 +100,7 @@ public final class PopMailbox extends LocalMailbox
             return LOAD_PENDING;
         }
         // Not loaded, lock() failed. Shouldn't happen.
-        Debug.bug("PopMailbox.load can't lock mailbox");
+        Debug.bug("PopMailboxBuffer.load can't lock mailbox");
         return LOAD_FAILED;
     }
 
@@ -112,7 +112,7 @@ public final class PopMailbox extends LocalMailbox
             try {
                 setBusy(true);
                 cancelled = false;
-                progressNotifier = new StatusBarProgressNotifier(PopMailbox.this);
+                progressNotifier = new StatusBarProgressNotifier(PopMailboxBuffer.this);
                 progressNotifier.progressStart();
                 setBackgroundProcess(this);
                 readMailboxFile(progressNotifier); // Error handling?
@@ -153,8 +153,8 @@ public final class PopMailbox extends LocalMailbox
                                 Editor ed = it.nextEditor();
                                 View view = new View();
                                 view.setDotEntry(getInitialEntry());
-                                ed.setView(PopMailbox.this, view);
-                                if (ed.getBuffer() == PopMailbox.this) {
+                                ed.setView(PopMailboxBuffer.this, view);
+                                if (ed.getBuffer() == PopMailboxBuffer.this) {
                                     ed.bufferActivated(true);
                                     ed.updateDisplay();
                                 }
@@ -209,9 +209,9 @@ public final class PopMailbox extends LocalMailbox
         // dialog.
         if (session.getPassword() == null)
             return;
-        Log.debug("PopMailbox.getNewMessages " + userInitiated);
+        Log.debug("PopMailboxBuffer.getNewMessages " + userInitiated);
         setBusy(true);
-        Log.debug("PopMailbox.getNewMessages back from setBusy(true)");
+        Log.debug("PopMailboxBuffer.getNewMessages back from setBusy(true)");
         if (userInitiated)
             saveDisplayState();
         Debug.assertTrue(backgroundThread == null);
@@ -236,7 +236,7 @@ public final class PopMailbox extends LocalMailbox
                 if (userInitiated)
                     changed = clearRecent();
                 cancelled = false;
-                progressNotifier = new StatusBarProgressNotifier(PopMailbox.this);
+                progressNotifier = new StatusBarProgressNotifier(PopMailboxBuffer.this);
                 progressNotifier.progressStart();
                 setBackgroundProcess(this);
                 int oldSize = entries.size();
@@ -263,7 +263,7 @@ public final class PopMailbox extends LocalMailbox
                 backgroundThread = null;
                 setLastCheckMillis(System.currentTimeMillis());
                 unlock();
-                Editor.updateDisplayLater(PopMailbox.this);
+                Editor.updateDisplayLater(PopMailboxBuffer.this);
             }
         }
 
@@ -283,7 +283,7 @@ public final class PopMailbox extends LocalMailbox
 
     private boolean retrieveNewMessages()
     {
-        Log.debug("PopMailbox.retrieveNewMessages");
+        Log.debug("PopMailboxBuffer.retrieveNewMessages");
         if (!connect())
             return false;
         File outputFile = null;
@@ -635,7 +635,7 @@ public final class PopMailbox extends LocalMailbox
         {
             try {
                 setBackgroundProcess(this);
-                progressNotifier = new StatusBarProgressNotifier(PopMailbox.this);
+                progressNotifier = new StatusBarProgressNotifier(PopMailboxBuffer.this);
                 progressNotifier.progressStart();
                 cancelled = false;
                 expungeInternal();
@@ -920,7 +920,7 @@ public final class PopMailbox extends LocalMailbox
 
     public void dispose()
     {
-        Log.debug("PopMailbox.dispose");
+        Log.debug("PopMailboxBuffer.dispose");
         Runnable disposeRunnable = new Runnable() {
             public void run()
             {
@@ -953,7 +953,7 @@ public final class PopMailbox extends LocalMailbox
 
     protected void finalize() throws Throwable
     {
-        Log.debug("PopMailbox.finalize");
+        Log.debug("PopMailboxBuffer.finalize");
         super.finalize();
     }
 

@@ -24,9 +24,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.Properties;
-import org.armedbear.j.mail.ImapMailbox;
-import org.armedbear.j.mail.LocalMailbox;
-import org.armedbear.j.mail.PopMailbox;
+import org.armedbear.j.mail.ImapMailboxBuffer;
+import org.armedbear.j.mail.LocalMailboxBuffer;
+import org.armedbear.j.mail.PopMailboxBuffer;
 
 public final class Aliases implements PreferencesChangeListener
 {
@@ -100,12 +100,12 @@ public final class Aliases implements PreferencesChangeListener
         if (isSystemAlias(alias))
             return;
         String value = null;
-        if (buffer instanceof ImapMailbox)
-            value = ((ImapMailbox) buffer).getUrl().toString();
-        else if (buffer instanceof PopMailbox)
-            value = ((PopMailbox) buffer).getUrl().toString();
-        else if (buffer instanceof LocalMailbox)
-            value = "mailbox:" + ((LocalMailbox) buffer).getMailboxFile().netPath();
+        if (buffer instanceof ImapMailboxBuffer)
+            value = ((ImapMailboxBuffer) buffer).getUrl().toString();
+        else if (buffer instanceof PopMailboxBuffer)
+            value = ((PopMailboxBuffer) buffer).getUrl().toString();
+        else if (buffer instanceof LocalMailboxBuffer)
+            value = "mailbox:" + ((LocalMailboxBuffer) buffer).getMailboxFile().netPath();
         else if (buffer.getFile() != null)
             value = buffer.getFile().netPath();
         if (value != null)

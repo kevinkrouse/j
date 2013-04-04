@@ -27,7 +27,6 @@ import java.util.StringTokenizer;
 import org.armedbear.j.AbstractMode;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.BufferIterator;
-import org.armedbear.j.CommandInterpreter;
 import org.armedbear.j.ConfirmDialog;
 import org.armedbear.j.Constants;
 import org.armedbear.j.Debug;
@@ -123,7 +122,7 @@ public class LispMode extends AbstractMode implements Constants, Mode
 
     public void populateModeMenu(Editor editor, Menu menu)
     {
-        boolean enabled = LispShell.findLisp(null) != null;
+        boolean enabled = LispShellBuffer.findLisp(null) != null;
         if (isSlimeLoaded()) {
             menu.add(editor, "Eval Region", 'R', "(slime:slime-eval-region)", enabled);
             menu.add(editor, "Eval Defun", 'D', "(slime:slime-eval-defun)", enabled);
@@ -1005,13 +1004,13 @@ public class LispMode extends AbstractMode implements Constants, Mode
         Editor ed = editor.getOtherEditor();
         if (ed != null) {
             Buffer b = ed.getBuffer();
-            if (b instanceof LispShell) {
-                LispShell shell = (LispShell) b;
+            if (b instanceof LispShellBuffer) {
+                LispShellBuffer shell = (LispShellBuffer) b;
                 Debug.bugIfNot(shell.isLisp());
                 return ed;
             }
         }
-        LispShell lisp = LispShell.findLisp(null);
+        LispShellBuffer lisp = LispShellBuffer.findLisp(null);
         if (lisp == null) {
             MessageDialog.showMessageDialog("No Lisp shell is running", "Error");
             return null;
@@ -1079,7 +1078,7 @@ public class LispMode extends AbstractMode implements Constants, Mode
             return;
         Editor ed = getLispShellEditor(editor);
         if (ed != null) {
-            LispShell lisp = (LispShell) ed.getBuffer();
+            LispShellBuffer lisp = (LispShellBuffer) ed.getBuffer();
             String defun = getCurrentDefun(editor);
             if (defun != null) {
                 String name = getDefunName(defun);
@@ -1103,7 +1102,7 @@ public class LispMode extends AbstractMode implements Constants, Mode
             return;
         Editor ed = getLispShellEditor(editor);
         if (ed != null) {
-            LispShell lisp = (LispShell) ed.getBuffer();
+            LispShellBuffer lisp = (LispShellBuffer) ed.getBuffer();
             String defun = getCurrentDefun(editor);
             if (defun != null) {
                 String name = getDefunName(defun);
@@ -1133,7 +1132,7 @@ public class LispMode extends AbstractMode implements Constants, Mode
         }
         Editor ed = getLispShellEditor(editor);
         if (ed != null) {
-            LispShell lisp = (LispShell) ed.getBuffer();
+            LispShellBuffer lisp = (LispShellBuffer) ed.getBuffer();
             Position bufEnd = lisp.getEnd();
             bufEnd.getLine().setFlags(STATE_INPUT);
             lisp.insertString(bufEnd, ";;; Evaluating region ...\n");
@@ -1170,7 +1169,7 @@ public class LispMode extends AbstractMode implements Constants, Mode
                 editor.repaintNow();
             }
             if (!save || buffer.save()) {
-                LispShell lisp = (LispShell) ed.getBuffer();
+                LispShellBuffer lisp = (LispShellBuffer) ed.getBuffer();
                 String path = editor.getBuffer().getFile().shellEscaped();
                 if (path != null) {
                     Position end = lisp.getEnd();
@@ -1211,7 +1210,7 @@ public class LispMode extends AbstractMode implements Constants, Mode
                 editor.repaintNow();
             }
             if (!save || buffer.save()) {
-                LispShell lisp = (LispShell) ed.getBuffer();
+                LispShellBuffer lisp = (LispShellBuffer) ed.getBuffer();
                 String path = editor.getBuffer().getFile().shellEscaped();
                 if (path != null) {
                     Position end = lisp.getEnd();
@@ -1252,7 +1251,7 @@ public class LispMode extends AbstractMode implements Constants, Mode
                 editor.repaintNow();
             }
             if (!save || buffer.save()) {
-                LispShell lisp = (LispShell) ed.getBuffer();
+                LispShellBuffer lisp = (LispShellBuffer) ed.getBuffer();
                 String path = editor.getBuffer().getFile().shellEscaped();
                 if (path != null) {
                     Position end = lisp.getEnd();

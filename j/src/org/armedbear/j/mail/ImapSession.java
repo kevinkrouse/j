@@ -57,7 +57,7 @@ public final class ImapSession
 
     private String tunnelHost;
     private int tunnelPort = -1;
-    private ImapMailbox mailbox;
+    private ImapMailboxBuffer mailbox;
     private int state;
     private boolean echo;
     private Socket socket;
@@ -81,7 +81,7 @@ public final class ImapSession
         this.password = password;
     }
 
-    public final void setMailbox(ImapMailbox mb)
+    public final void setMailbox(ImapMailboxBuffer mb)
     {
         if (mailbox != null)
             Debug.bug();

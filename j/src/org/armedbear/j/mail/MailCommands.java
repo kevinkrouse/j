@@ -110,7 +110,7 @@ public final class MailCommands implements Constants
             }
         }
         if (url instanceof ImapURL || url instanceof PopURL) {
-            Mailbox mb = getMailbox(editor, url);
+            MailboxBuffer mb = getMailbox(editor, url);
             if (mb != null) {
                 if (mb.isLoaded()) {
                     if (filter != null && mb.getLimitFilter() == null) {
@@ -132,7 +132,7 @@ public final class MailCommands implements Constants
                 IdleThread idleThread = IdleThread.getInstance();
                 if (idleThread != null) {
                     idleThread.maybeAddTask(CheckMailTask.getInstance());
-                    if (mb instanceof PopMailbox)
+                    if (mb instanceof PopMailboxBuffer)
                         idleThread.maybeAddTask(
                             RewriteMailboxesTask.getInstance());
                 }
@@ -141,17 +141,17 @@ public final class MailCommands implements Constants
             // Local mailbox (or local drafts folder).
             Debug.assertTrue(url instanceof LocalMailboxURL);
             final File file = ((LocalMailboxURL)url).getFile();
-            Mailbox mb = null;
+            MailboxBuffer mb = null;
             for (BufferIterator it = new BufferIterator(); it.hasNext();) {
                 Buffer buf = it.nextBuffer();
-                if (buf instanceof LocalMailbox) {
-                    if (((LocalMailbox)buf).getMailboxFile().equals(file)) {
-                        mb = (LocalMailbox) buf;
+                if (buf instanceof LocalMailboxBuffer) {
+                    if (((LocalMailboxBuffer)buf).getMailboxFile().equals(file)) {
+                        mb = (LocalMailboxBuffer) buf;
                         break;
                     }
-                } else if (buf instanceof Drafts) {
-                    if (((Drafts)buf).getDirectory().equals(file)) {
-                        mb = (Drafts) buf;
+                } else if (buf instanceof DraftsBuffer) {
+                    if (((DraftsBuffer)buf).getDirectory().equals(file)) {
+                        mb = (DraftsBuffer) buf;
                         break;
                     }
                 }
@@ -159,9 +159,9 @@ public final class MailCommands implements Constants
             if (mb == null) {
                 // Not found.
                 if (file.equals(Directories.getDraftsFolder()))
-                    mb = new Drafts((LocalMailboxURL)url);
+                    mb = new DraftsBuffer((LocalMailboxURL)url);
                 else
-                    mb = new LocalMailbox((LocalMailboxURL)url);
+                    mb = new LocalMailboxBuffer((LocalMailboxURL)url);
             }
             mb.setLimitFilter(filter);
             mb.setLimitPattern(limitPattern);
@@ -175,14 +175,14 @@ public final class MailCommands implements Constants
         return getMailbox(editor, url);
     }
 
-    public static Mailbox getMailbox(Editor editor, MailboxURL url)
+    public static MailboxBuffer getMailbox(Editor editor, MailboxURL url)
     {
         if (url instanceof ImapURL) {
             // IMAP.
             for (BufferIterator it = new BufferIterator(); it.hasNext();) {
                 Buffer buf = it.nextBuffer();
-                if (buf instanceof ImapMailbox) {
-                    ImapMailbox mb = (ImapMailbox) buf;
+                if (buf instanceof ImapMailboxBuffer) {
+                    ImapMailboxBuffer mb = (ImapMailboxBuffer) buf;
                     if (mb.getUrl().equals(url))
                         return mb;
                 }
@@ -207,12 +207,12 @@ public final class MailCommands implements Constants
                 }
             }
             if (session != null)
-                return new ImapMailbox(imapUrl, session);
+                return new ImapMailboxBuffer(imapUrl, session);
         } else if (url instanceof PopURL) {
             for (BufferIterator it = new BufferIterator(); it.hasNext();) {
                 Buffer buf = it.nextBuffer();
-                if (buf instanceof PopMailbox) {
-                    PopMailbox mb = (PopMailbox) buf;
+                if (buf instanceof PopMailboxBuffer) {
+                    PopMailboxBuffer mb = (PopMailboxBuffer) buf;
                     if (mb.getUrl().equals(url))
                         return mb;
                 }
@@ -237,7 +237,7 @@ public final class MailCommands implements Constants
                 }
             }
             if (session != null)
-                return new PopMailbox(popUrl, session);
+                return new PopMailboxBuffer(popUrl, session);
         }
         return null;
     }
@@ -465,14 +465,14 @@ public final class MailCommands implements Constants
         final Buffer buffer = editor.getBuffer();
         if (buffer instanceof MessageBuffer) {
             MessageBuffer messageBuffer = (MessageBuffer) buffer;
-            Mailbox mailbox = messageBuffer.getMailbox();
-            if (mailbox == null)
+            MailboxBuffer mailboxBuffer = messageBuffer.getMailbox();
+            if (mailboxBuffer == null)
                 return;
             for (BufferIterator it = new BufferIterator(); it.hasNext();) {
                 Buffer buf = it.nextBuffer();
-                if (buf == mailbox) {
+                if (buf == mailboxBuffer) {
                     final Line line =
-                        mailbox.getLineForEntry(messageBuffer.getMailboxEntry());
+                        mailboxBuffer.getLineForEntry(messageBuffer.getMailboxEntry());
                     if (editor == Editor.currentEditor()) {
                         Editor otherEditor = editor.getOtherEditor();
                         if (otherEditor != null && messageBuffer.isTransient()) {
@@ -482,7 +482,7 @@ public final class MailCommands implements Constants
                             editor = Editor.currentEditor();
                         }
                     }
-                    editor.activate(mailbox);
+                    editor.activate(mailboxBuffer);
                     messageBuffer.kill();
                     Sidebar.refreshSidebarInAllFrames();
                     if (line != null) {
@@ -501,7 +501,7 @@ public final class MailCommands implements Constants
     {
         final Editor editor = Editor.currentEditor();
         final Buffer buffer = editor.getBuffer();
-        if (buffer instanceof Mailbox) {
+        if (buffer instanceof MailboxBuffer) {
             if (editor.getDot() != null) {
                 Position end = buffer.getEnd();
                 if (end != null) {
@@ -515,22 +515,22 @@ public final class MailCommands implements Constants
     public static void mailboxGetNewMessages()
     {
         final Buffer buffer = Editor.currentEditor().getBuffer();
-        if (buffer instanceof Mailbox)
-            ((Mailbox)buffer).getNewMessages();
+        if (buffer instanceof MailboxBuffer)
+            ((MailboxBuffer)buffer).getNewMessages();
     }
 
     public static void mailboxLimit()
     {
         final Buffer buffer = Editor.currentEditor().getBuffer();
-        if (buffer instanceof Mailbox)
-            ((Mailbox)buffer).limit();
+        if (buffer instanceof MailboxBuffer)
+            ((MailboxBuffer)buffer).limit();
     }
 
     public static void mailboxUnlimit()
     {
         final Buffer buffer = Editor.currentEditor().getBuffer();
-        if (buffer instanceof Mailbox)
-            ((Mailbox)buffer).unlimit();
+        if (buffer instanceof MailboxBuffer)
+            ((MailboxBuffer)buffer).unlimit();
     }
 
     public static void mailboxReadMessage()
@@ -547,116 +547,116 @@ public final class MailCommands implements Constants
     {
         final Editor editor = Editor.currentEditor();
         final Buffer buffer = editor.getBuffer();
-        if (buffer instanceof Mailbox && editor.getDot() != null) {
+        if (buffer instanceof MailboxBuffer && editor.getDot() != null) {
             // If this method is invoked via a mouse event mapping, move dot to
             // location of mouse click first.
             AWTEvent e = editor.getDispatcher().getLastEvent();
             if (e instanceof MouseEvent)
                 editor.mouseMoveDotToPoint((MouseEvent) e);
             if (useOtherWindow)
-                ((Mailbox)buffer).readMessageOtherWindow(editor.getDotLine());
+                ((MailboxBuffer)buffer).readMessageOtherWindow(editor.getDotLine());
             else
-                ((Mailbox)buffer).readMessage(editor.getDotLine());
+                ((MailboxBuffer)buffer).readMessage(editor.getDotLine());
         }
     }
 
     public static void mailboxCreateFolder()
     {
         final Buffer buffer = Editor.currentEditor().getBuffer();
-        if (buffer instanceof Mailbox)
-            ((Mailbox)buffer).createFolder();
+        if (buffer instanceof MailboxBuffer)
+            ((MailboxBuffer)buffer).createFolder();
     }
 
     public static void mailboxDeleteFolder()
     {
         final Buffer buffer = Editor.currentEditor().getBuffer();
-        if (buffer instanceof Mailbox)
-            ((Mailbox)buffer).deleteFolder();
+        if (buffer instanceof MailboxBuffer)
+            ((MailboxBuffer)buffer).deleteFolder();
     }
 
     public static void mailboxSaveToFolder()
     {
         final Buffer buffer = Editor.currentEditor().getBuffer();
-        if (buffer instanceof Mailbox)
-            ((Mailbox)buffer).saveToFolder();
+        if (buffer instanceof MailboxBuffer)
+            ((MailboxBuffer)buffer).saveToFolder();
     }
 
     public static void mailboxMoveToFolder()
     {
         final Buffer buffer = Editor.currentEditor().getBuffer();
-        if (buffer instanceof Mailbox)
-            ((Mailbox)buffer).moveToFolder();
+        if (buffer instanceof MailboxBuffer)
+            ((MailboxBuffer)buffer).moveToFolder();
     }
 
     public static void mailboxDelete()
     {
         final Buffer buffer = Editor.currentEditor().getBuffer();
-        if (buffer instanceof Mailbox)
-            ((Mailbox)buffer).delete();
+        if (buffer instanceof MailboxBuffer)
+            ((MailboxBuffer)buffer).delete();
     }
 
     public static void mailboxUndelete()
     {
         final Buffer buffer = Editor.currentEditor().getBuffer();
-        if (buffer instanceof Mailbox)
-            ((Mailbox)buffer).undelete();
+        if (buffer instanceof MailboxBuffer)
+            ((MailboxBuffer)buffer).undelete();
     }
 
     public static void mailboxMarkRead()
     {
         final Buffer buffer = Editor.currentEditor().getBuffer();
-        if (buffer instanceof Mailbox)
-            ((Mailbox)buffer).markRead();
+        if (buffer instanceof MailboxBuffer)
+            ((MailboxBuffer)buffer).markRead();
     }
 
     public static void mailboxMarkUnread()
     {
         final Buffer buffer = Editor.currentEditor().getBuffer();
-        if (buffer instanceof Mailbox)
-            ((Mailbox)buffer).markUnread();
+        if (buffer instanceof MailboxBuffer)
+            ((MailboxBuffer)buffer).markUnread();
     }
 
     public static void mailboxFlag()
     {
         final Buffer buffer = Editor.currentEditor().getBuffer();
-        if (buffer instanceof Mailbox)
-            ((Mailbox)buffer).flag();
+        if (buffer instanceof MailboxBuffer)
+            ((MailboxBuffer)buffer).flag();
     }
 
     public static void mailboxTag()
     {
         final Editor editor = Editor.currentEditor();
         final Buffer buffer = editor.getBuffer();
-        if (buffer instanceof Mailbox)
-            ((Mailbox)buffer).tag(editor, editor.getDotLine());
+        if (buffer instanceof MailboxBuffer)
+            ((MailboxBuffer)buffer).tag(editor, editor.getDotLine());
     }
 
     public static void mailboxTagPattern()
     {
         final Buffer buffer = Editor.currentEditor().getBuffer();
-        if (buffer instanceof Mailbox)
-            ((Mailbox)buffer).tagPattern();
+        if (buffer instanceof MailboxBuffer)
+            ((MailboxBuffer)buffer).tagPattern();
     }
 
     public static void mailboxUntagAll()
     {
         final Buffer buffer = Editor.currentEditor().getBuffer();
-        if (buffer instanceof Mailbox)
-            ((Mailbox)buffer).untagAll();
+        if (buffer instanceof MailboxBuffer)
+            ((MailboxBuffer)buffer).untagAll();
     }
 
     public static void mailboxToggleRaw()
     {
         final Buffer buffer = Editor.currentEditor().getBuffer();
-        if (buffer instanceof Mailbox)
-            ((Mailbox)buffer).toggleRaw();
+        if (buffer instanceof MailboxBuffer)
+            ((MailboxBuffer)buffer).toggleRaw();
     }
 
     public static void mailboxExpunge()
     {
         final Buffer buffer = Editor.currentEditor().getBuffer();
-        if (buffer instanceof Mailbox)
-            ((Mailbox)buffer).expunge();
+        if (buffer instanceof MailboxBuffer)
+            ((MailboxBuffer)buffer).expunge();
     }
 
     public static final void mailboxStop()
@@ -705,8 +705,8 @@ public final class MailCommands implements Constants
     {
         final Editor editor = Editor.currentEditor();
         final Buffer buffer = editor.getBuffer();
-        if (buffer instanceof Mailbox)
-            ((Mailbox)buffer).bounce();
+        if (buffer instanceof MailboxBuffer)
+            ((MailboxBuffer)buffer).bounce();
         else if (buffer instanceof MessageBuffer)
             ((MessageBuffer)buffer).bounce();
     }
@@ -735,23 +735,23 @@ public final class MailCommands implements Constants
     public static void toggleGroupByThread()
     {
         final Buffer buffer = Editor.currentEditor().getBuffer();
-        if (buffer instanceof Mailbox)
-            ((Mailbox)buffer).toggleGroupByThread();
+        if (buffer instanceof MailboxBuffer)
+            ((MailboxBuffer)buffer).toggleGroupByThread();
     }
 
     public static void foldThread()
     {
         final Editor editor = Editor.currentEditor();
         final Buffer buffer = editor.getBuffer();
-        if (buffer instanceof Mailbox)
-            ((Mailbox)buffer).foldThread(editor.getDotLine());
+        if (buffer instanceof MailboxBuffer)
+            ((MailboxBuffer)buffer).foldThread(editor.getDotLine());
     }
 
     public static void foldThreads()
     {
         final Editor editor = Editor.currentEditor();
         final Buffer buffer = editor.getBuffer();
-        if (buffer instanceof Mailbox)
-            ((Mailbox)buffer).foldThreads();
+        if (buffer instanceof MailboxBuffer)
+            ((MailboxBuffer)buffer).foldThreads();
     }
 }

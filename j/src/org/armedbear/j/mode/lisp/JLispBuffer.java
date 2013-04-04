@@ -40,7 +40,7 @@ import org.armedbear.lisp.Interpreter;
 import org.armedbear.lisp.Lisp;
 import org.armedbear.lisp.LispObject;
 
-public final class JLisp extends LispShell
+public final class JLispBuffer extends LispShellBuffer
 {
     private Thread thread;
     private final File initialDir;
@@ -49,7 +49,7 @@ public final class JLisp extends LispShell
     private Socket socket;
     private Interpreter interpreter;
 
-    private JLisp(File initialDir)
+    private JLispBuffer(File initialDir)
     {
         super();
         this.initialDir = initialDir;
@@ -77,7 +77,7 @@ public final class JLisp extends LispShell
 
     protected void startProcess()
     {
-        thread = new Thread("JLisp interpreter") {
+        thread = new Thread("JLispBuffer interpreter") {
             public void run()
             {
                 try {
@@ -124,7 +124,7 @@ public final class JLisp extends LispShell
             socket = new Socket("localhost", port);
             stdin  = new OutputStreamWriter(socket.getOutputStream());
             stdoutThread = new StdoutThread(socket.getInputStream());
-            stdoutThread.setName("JLisp reader");
+            stdoutThread.setName("JLispBuffer reader");
             stdoutThread.setDaemon(true);
             stdoutThread.start();
         }
@@ -155,10 +155,10 @@ public final class JLisp extends LispShell
 
     public synchronized void dispose()
     {
-        Thread disposeThread = new Thread("JLisp dispose") {
+        Thread disposeThread = new Thread("JLispBuffer dispose") {
             public void run()
             {
-                Log.debug("JLisp.dispose");
+                Log.debug("JLispBuffer.dispose");
                 if (interpreter != null)
                     interpreter.kill(0);
                 if (socket != null) {
@@ -188,7 +188,7 @@ public final class JLisp extends LispShell
         // Look for existing jlisp buffer.
         for (BufferIterator it = new BufferIterator(); it.hasNext();) {
             Buffer buf = it.nextBuffer();
-            if (buf instanceof JLisp) {
+            if (buf instanceof JLispBuffer) {
                 editor.makeNext(buf);
                 editor.activateInOtherWindow(buf);
                 return;
@@ -199,7 +199,7 @@ public final class JLisp extends LispShell
         File initialDir = editor.getCurrentDirectory();
         if (initialDir == null || initialDir.isRemote())
             initialDir = Directories.getUserHomeDirectory();
-        JLisp jlisp = new JLisp(initialDir);
+        JLispBuffer jlisp = new JLispBuffer(initialDir);
         jlisp.startProcess();
         editor.makeNext(jlisp);
         Editor ed;

@@ -33,9 +33,9 @@ public final class NewsCommands
         final Editor editor = Editor.currentEditor();
         NntpSession session = NntpSession.getSession();
         if (session != null) {
-            News news = new News(session);
-            editor.makeNext(news);
-            editor.activate(news);
+            NewsBuffer newsBuffer = new NewsBuffer(session);
+            editor.makeNext(newsBuffer);
+            editor.activate(newsBuffer);
         }
     }
 
@@ -46,9 +46,9 @@ public final class NewsCommands
         final Editor editor = Editor.currentEditor();
         NntpSession session = NntpSession.getSession(host);
         if (session != null) {
-            News news = new News(session);
-            editor.makeNext(news);
-            editor.activate(news);
+            NewsBuffer newsBuffer = new NewsBuffer(session);
+            editor.makeNext(newsBuffer);
+            editor.activate(newsBuffer);
         }
     }
 
@@ -56,11 +56,11 @@ public final class NewsCommands
     {
         final Editor editor = Editor.currentEditor();
         final Buffer buffer = editor.getBuffer();
-        if (buffer instanceof News && editor.getDot() != null) {
+        if (buffer instanceof NewsBuffer && editor.getDot() != null) {
             String groupName = editor.getDotLine().getText();
             NntpSession session =
-                NntpSession.getSession(((News)buffer).getHost());
-            NewsGroupSummary summary = new NewsGroupSummary(session, groupName);
+                NntpSession.getSession(((NewsBuffer)buffer).getHost());
+            NewsGroupSummaryBuffer summary = new NewsGroupSummaryBuffer(session, groupName);
             editor.makeNext(summary);
             editor.activate(summary);
         }
@@ -77,7 +77,7 @@ public final class NewsCommands
             return;
         editor.repaintNow();
         NntpSession session = NntpSession.getSession();
-        NewsGroupSummary summary = new NewsGroupSummary(session, groupName);
+        NewsGroupSummaryBuffer summary = new NewsGroupSummaryBuffer(session, groupName);
         editor.makeNext(summary);
         editor.activate(summary);
     }
@@ -96,8 +96,8 @@ public final class NewsCommands
     {
         final Editor editor = Editor.currentEditor();
         final Buffer buffer = editor.getBuffer();
-        if (buffer instanceof NewsGroupSummary && editor.getDot() != null)
-            ((NewsGroupSummary)buffer).readArticle(editor,
+        if (buffer instanceof NewsGroupSummaryBuffer && editor.getDot() != null)
+            ((NewsGroupSummaryBuffer)buffer).readArticle(editor,
                 editor.getDotLine(), useOtherWindow);
     }
 }

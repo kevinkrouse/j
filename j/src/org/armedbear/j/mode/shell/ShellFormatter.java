@@ -25,7 +25,7 @@ import org.armedbear.j.FormatTable;
 import org.armedbear.j.Formatter;
 import org.armedbear.j.Line;
 import org.armedbear.j.LineSegmentList;
-import org.armedbear.j.Shell;
+import org.armedbear.j.ShellBuffer;
 
 import java.util.regex.Pattern;
 import java.util.regex.Matcher;
@@ -49,7 +49,7 @@ public final class ShellFormatter extends Formatter
             addSegment("", SHELL_FORMAT_TEXT);
             return segmentList;
         }
-        final Pattern promptRE = ((Shell)buffer).getPromptRE();
+        final Pattern promptRE = ((ShellBuffer)buffer).getPromptRE();
         final String text = getDetabbedText(line);
         final int flags = line.flags();
         if (flags == STATE_PROMPT) {

@@ -67,7 +67,7 @@ public final class MailboxProperties
         return null;
     }
 
-    public static synchronized void saveProperties(Mailbox mb)
+    public static synchronized void saveProperties(MailboxBuffer mb)
     {
         MailboxURL url = mb.getUrl();
         if (url == null) {

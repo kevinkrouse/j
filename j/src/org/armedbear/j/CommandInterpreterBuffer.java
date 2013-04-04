@@ -33,7 +33,7 @@ import javax.swing.Icon;
 import javax.swing.SwingUtilities;
 import javax.swing.undo.CompoundEdit;
 
-public class CommandInterpreter extends Buffer
+public class CommandInterpreterBuffer extends Buffer
 {
     protected Pattern promptRE = Pattern.compile(DEFAULT_SHELL_PROMPT_PATTERN);
     protected OutputStreamWriter stdin;
@@ -46,7 +46,7 @@ public class CommandInterpreter extends Buffer
 
     private Position posEndOfOutput;
 
-    protected CommandInterpreter()
+    protected CommandInterpreterBuffer()
     {
         super();
         initializeUndo();
@@ -524,43 +524,43 @@ public class CommandInterpreter extends Buffer
     public static void shellEnter()
     {
         final Buffer buffer = Editor.currentEditor().getBuffer();
-        if (buffer instanceof CommandInterpreter)
-            ((CommandInterpreter)buffer).enter();
+        if (buffer instanceof CommandInterpreterBuffer)
+            ((CommandInterpreterBuffer)buffer).enter();
     }
 
     public static void shellEscape()
     {
         final Buffer buffer = Editor.currentEditor().getBuffer();
-        if (buffer instanceof CommandInterpreter)
-            ((CommandInterpreter)buffer).escape();
+        if (buffer instanceof CommandInterpreterBuffer)
+            ((CommandInterpreterBuffer)buffer).escape();
     }
 
     public static void shellHome()
     {
         final Buffer buffer = Editor.currentEditor().getBuffer();
-        if (buffer instanceof CommandInterpreter)
-            ((CommandInterpreter)buffer).home();
+        if (buffer instanceof CommandInterpreterBuffer)
+            ((CommandInterpreterBuffer)buffer).home();
     }
 
     public static void shellBackspace()
     {
         final Buffer buffer = Editor.currentEditor().getBuffer();
-        if (buffer instanceof CommandInterpreter)
-            ((CommandInterpreter)buffer).backspace();
+        if (buffer instanceof CommandInterpreterBuffer)
+            ((CommandInterpreterBuffer)buffer).backspace();
     }
 
     public static void shellPreviousInput()
     {
         final Buffer buffer = Editor.currentEditor().getBuffer();
-        if (buffer instanceof CommandInterpreter)
-            ((CommandInterpreter)buffer).previousInput();
+        if (buffer instanceof CommandInterpreterBuffer)
+            ((CommandInterpreterBuffer)buffer).previousInput();
     }
 
     public static void shellNextInput()
     {
         final Buffer buffer = Editor.currentEditor().getBuffer();
-        if (buffer instanceof CommandInterpreter)
-            ((CommandInterpreter)buffer).nextInput();
+        if (buffer instanceof CommandInterpreterBuffer)
+            ((CommandInterpreterBuffer)buffer).nextInput();
     }
 
     public static void shellPreviousPrompt()
@@ -577,12 +577,12 @@ public class CommandInterpreter extends Buffer
     {
         final Editor editor = Editor.currentEditor();
         final Buffer buffer = editor.getBuffer();
-        if (buffer instanceof CommandInterpreter) {
+        if (buffer instanceof CommandInterpreterBuffer) {
             Position dot = editor.getDot();
             if (dot != null) {
                 Line line =
                     direction > 0 ? dot.getLine().next() : dot.getLine().previous();
-                Pattern promptRE = ((CommandInterpreter)buffer).getPromptRE();
+                Pattern promptRE = ((CommandInterpreterBuffer)buffer).getPromptRE();
                 if (promptRE != null) {
                     while (line != null) {
                         int flags = line.flags();

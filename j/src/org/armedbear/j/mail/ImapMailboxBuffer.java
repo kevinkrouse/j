@@ -50,7 +50,7 @@ import org.armedbear.j.StatusBarProgressNotifier;
 import org.armedbear.j.util.Utilities;
 import org.armedbear.j.View;
 
-public final class ImapMailbox extends Mailbox
+public final class ImapMailboxBuffer extends MailboxBuffer
 {
     private static final int DEFAULT_PORT = 143;
 
@@ -64,7 +64,7 @@ public final class ImapMailbox extends Mailbox
     private boolean cancelled;
     private Thread backgroundThread;
 
-    public ImapMailbox(ImapURL url, ImapSession session)
+    public ImapMailboxBuffer(ImapURL url, ImapSession session)
     {
         super(url);
         this.session = session;
@@ -82,7 +82,7 @@ public final class ImapMailbox extends Mailbox
         formatter = mode.getFormatter(this);
         readOnly = true;
         setInitialized(true);
-        Log.debug("ImapMailbox constructor ".concat(url.getCanonicalName()));
+        Log.debug("ImapMailboxBuffer constructor ".concat(url.getCanonicalName()));
     }
 
     public String getFileNameForDisplay()
@@ -232,7 +232,7 @@ public final class ImapMailbox extends Mailbox
             return LOAD_PENDING;
         } else {
             // Not loaded, lock() failed. Shouldn't happen.
-            Debug.bug("ImapMailbox.load can't lock mailbox");
+            Debug.bug("ImapMailboxBuffer.load can't lock mailbox");
             return LOAD_FAILED;
         }
     }
@@ -255,8 +255,8 @@ public final class ImapMailbox extends Mailbox
                                 Editor ed = it.nextEditor();
                                 View view = new View();
                                 view.setDotEntry(getInitialEntry());
-                                ed.setView(ImapMailbox.this, view);
-                                if (ed.getBuffer() == ImapMailbox.this) {
+                                ed.setView(ImapMailboxBuffer.this, view);
+                                if (ed.getBuffer() == ImapMailboxBuffer.this) {
                                     ed.bufferActivated(true);
                                     ed.updateDisplay();
                                 }
@@ -268,7 +268,7 @@ public final class ImapMailbox extends Mailbox
                     completionRunnable = new Runnable() {
                         public void run()
                         {
-                            if (Editor.getBufferList().contains(ImapMailbox.this))
+                            if (Editor.getBufferList().contains(ImapMailboxBuffer.this))
                                 kill();
                             for (EditorIterator it = new EditorIterator(); it.hasNext();)
                                 it.nextEditor().updateDisplay();
@@ -293,7 +293,7 @@ public final class ImapMailbox extends Mailbox
 
     private void abort()
     {
-        Log.debug("ImapMailbox.abort");
+        Log.debug("ImapMailboxBuffer.abort");
         cancelled = true;
         if (backgroundThread != null && backgroundThread.isAlive())
             backgroundThread.interrupt();
@@ -394,7 +394,7 @@ public final class ImapMailbox extends Mailbox
                     setBusy(false);
                     for (EditorIterator it = new EditorIterator(); it.hasNext();) {
                         Editor ed = it.nextEditor();
-                        if (ed != null && ed.getBuffer() == ImapMailbox.this)
+                        if (ed != null && ed.getBuffer() == ImapMailboxBuffer.this)
                             ed.setDefaultCursor();
                     }
                 }
@@ -434,7 +434,7 @@ public final class ImapMailbox extends Mailbox
                 finally {
                     unlock();
                     setBusy(false);
-                    Editor.updateDisplayLater(ImapMailbox.this);
+                    Editor.updateDisplayLater(ImapMailboxBuffer.this);
                     if (succeeded)
                         success("Folder created");
                     else
@@ -478,7 +478,7 @@ public final class ImapMailbox extends Mailbox
                 finally {
                     unlock();
                     setBusy(false);
-                    Editor.updateDisplayLater(ImapMailbox.this);
+                    Editor.updateDisplayLater(ImapMailboxBuffer.this);
                     if (succeeded)
                         success("Folder deleted");
                     else
@@ -1033,7 +1033,7 @@ public final class ImapMailbox extends Mailbox
                 finally {
                     setBusy(false);
                     unlock();
-                    Editor.updateDisplayLater(ImapMailbox.this);
+                    Editor.updateDisplayLater(ImapMailboxBuffer.this);
                 }
             }
         };
@@ -1169,7 +1169,7 @@ public final class ImapMailbox extends Mailbox
             {
                 MessageDialog.showMessageDialog(Editor.currentEditor(),
                     text, title);
-                if (Editor.getBufferList().contains(ImapMailbox.this))
+                if (Editor.getBufferList().contains(ImapMailboxBuffer.this))
                     kill();
             }
         };
@@ -1181,7 +1181,7 @@ public final class ImapMailbox extends Mailbox
         Thread t = new Thread() {
             public void run()
             {
-                mailboxCache = ImapMailboxCache.readCache(ImapMailbox.this);
+                mailboxCache = ImapMailboxCache.readCache(ImapMailboxBuffer.this);
             }
         };
         t.start();
@@ -1516,7 +1516,7 @@ public final class ImapMailbox extends Mailbox
                 finally {
                     setBusy(false);
                     unlock();
-                    Editor.updateDisplayLater(ImapMailbox.this);
+                    Editor.updateDisplayLater(ImapMailboxBuffer.this);
                 }
             }
         };
@@ -1555,7 +1555,7 @@ public final class ImapMailbox extends Mailbox
                 return new Message(rawText);
         }
         if (!isLocked())
-            Debug.bug("ImapMailbox.getMessage mailbox is not locked!");
+            Debug.bug("ImapMailboxBuffer.getMessage mailbox is not locked!");
         if (!session.verifyConnected())
             return null;
         if (progressNotifier != null && progressNotifier.cancelled())
@@ -1709,7 +1709,7 @@ public final class ImapMailbox extends Mailbox
 
     public void dispose()
     {
-        Log.debug("ImapMailbox.dispose " + folderName + " on " +
+        Log.debug("ImapMailboxBuffer.dispose " + folderName + " on " +
             session.getHost());
         Runnable r = new Runnable() {
             public void run()
@@ -1723,7 +1723,7 @@ public final class ImapMailbox extends Mailbox
 
     protected void finalize() throws Throwable
     {
-        Log.debug("ImapMailbox.finalize " + folderName + " on " +
+        Log.debug("ImapMailboxBuffer.finalize " + folderName + " on " +
             session.getHost());
         super.finalize();
     }

@@ -22,7 +22,7 @@ package org.armedbear.j.mode.lisp;
 
 import org.armedbear.j.Annotation;
 import org.armedbear.j.Buffer;
-import org.armedbear.j.CommandInterpreter;
+import org.armedbear.j.CommandInterpreterBuffer;
 import org.armedbear.j.FormatTable;
 import org.armedbear.j.Formatter;
 import org.armedbear.j.Line;
@@ -85,7 +85,7 @@ public final class LispShellFormatter extends Formatter
               addSegment(text, promptEnd, FORMAT_INPUT);
           return segmentList;
         }
-        // LispShell.enter() calls setFlags(STATE_INPUT), so this line
+        // LispShellBuffer.enter() calls setFlags(STATE_INPUT), so this line
         // must be output.
         line.setFlags(STATE_OUTPUT);
         // Fall through...
@@ -121,8 +121,8 @@ public final class LispShellFormatter extends Formatter
     if (text.startsWith("* "))
       return 2;
     final Pattern promptRE;
-    if (buffer instanceof CommandInterpreter)
-      promptRE = ((CommandInterpreter)buffer).getPromptRE();
+    if (buffer instanceof CommandInterpreterBuffer)
+      promptRE = ((CommandInterpreterBuffer)buffer).getPromptRE();
     else
       promptRE = defaultPromptRE;
     Matcher match = promptRE.matcher(text);

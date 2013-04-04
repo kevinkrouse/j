@@ -40,19 +40,19 @@ import org.armedbear.j.SimpleEdit;
 import java.awt.AWTEvent;
 import java.awt.event.MouseEvent;
 
-public class ListOccurrences extends Buffer
+public class ListOccurrencesBuffer extends Buffer
 {
     protected final Search search;
     private final Buffer sourceBuffer;
 
-    protected ListOccurrences(Search search)
+    protected ListOccurrencesBuffer(Search search)
     {
         this.search = search;
         sourceBuffer = null;
         init();
     }
 
-    private ListOccurrences(Search search, Buffer sourceBuffer)
+    private ListOccurrencesBuffer(Search search, Buffer sourceBuffer)
     {
         this.search = search;
         this.sourceBuffer = sourceBuffer;
@@ -110,12 +110,12 @@ public class ListOccurrences extends Buffer
         return null;
     }
 
-    public static ListOccurrences findBuffer(Buffer sourceBuffer, Search search)
+    public static ListOccurrencesBuffer findBuffer(Buffer sourceBuffer, Search search)
     {
         for (BufferIterator it = new BufferIterator(); it.hasNext();) {
             Buffer buf = it.nextBuffer();
-            if (buf instanceof ListOccurrences) {
-                ListOccurrences lo = (ListOccurrences) buf;
+            if (buf instanceof ListOccurrencesBuffer) {
+                ListOccurrencesBuffer lo = (ListOccurrencesBuffer) buf;
                 if (lo.search.equals(search) && lo.sourceBuffer == sourceBuffer)
                     return lo;
             }
@@ -123,14 +123,14 @@ public class ListOccurrences extends Buffer
         return null;
     }
 
-    private static ListOccurrences createBuffer(Buffer sourceBuffer, Search search)
+    private static ListOccurrencesBuffer createBuffer(Buffer sourceBuffer, Search search)
     {
-        ListOccurrences listOccurrences = null;
+        ListOccurrencesBuffer listOccurrences = null;
         Position pos = new Position(sourceBuffer.getFirstLine(), 0);
         int count = 0;
         while ((pos = search.find(sourceBuffer.getMode(), pos)) != null) {
             if (listOccurrences == null)
-                listOccurrences = new ListOccurrences(search, sourceBuffer);
+                listOccurrences = new ListOccurrencesBuffer(search, sourceBuffer);
             listOccurrences.appendOccurrenceLine(pos.getLine());
             ++count;
             Line next = pos.getNextLine();
@@ -154,9 +154,9 @@ public class ListOccurrences extends Buffer
         return listOccurrences;
     }
 
-    public static ListOccurrences getBuffer(Buffer sourceBuffer, Search search)
+    public static ListOccurrencesBuffer getBuffer(Buffer sourceBuffer, Search search)
     {
-        ListOccurrences lo = findBuffer(sourceBuffer, search);
+        ListOccurrencesBuffer lo = findBuffer(sourceBuffer, search);
         if (lo != null)
             return lo;
         else
@@ -325,7 +325,7 @@ public class ListOccurrences extends Buffer
         final Search search = editor.getLastSearch();
         if (search != null) {
             editor.setWaitCursor();
-            ListOccurrences buf = getBuffer(editor.getBuffer(), search);
+            ListOccurrencesBuffer buf = getBuffer(editor.getBuffer(), search);
             editor.setDefaultCursor();
             if (buf != null) {
                 editor.makeNext(buf);
@@ -352,7 +352,7 @@ public class ListOccurrences extends Buffer
         if (search != null) {
             editor.setLastSearch(search);
             editor.setWaitCursor();
-            ListOccurrences buf = getBuffer(editor.getBuffer(), search);
+            ListOccurrencesBuffer buf = getBuffer(editor.getBuffer(), search);
             editor.setDefaultCursor();
             if (buf != null) {
                 editor.makeNext(buf);
@@ -381,27 +381,27 @@ public class ListOccurrences extends Buffer
     {
         final Editor editor = Editor.currentEditor();
         final Buffer buffer = editor.getBuffer();
-        if (buffer instanceof ListOccurrences)
-            ((ListOccurrences)buffer).findOccurrenceAtDot(editor, false);
+        if (buffer instanceof ListOccurrencesBuffer)
+            ((ListOccurrencesBuffer)buffer).findOccurrenceAtDot(editor, false);
     }
 
     public static void findOccurrenceAtDotAndKillList()
     {
         final Editor editor = Editor.currentEditor();
         final Buffer buffer = editor.getBuffer();
-        if (buffer instanceof ListOccurrences)
-            ((ListOccurrences)buffer).findOccurrenceAtDot(editor, true);
+        if (buffer instanceof ListOccurrencesBuffer)
+            ((ListOccurrencesBuffer)buffer).findOccurrenceAtDot(editor, true);
     }
 
     public static void mouseFindOccurrence()
     {
         final Editor editor = Editor.currentEditor();
         final Buffer buffer = editor.getBuffer();
-        if (buffer instanceof ListOccurrences) {
+        if (buffer instanceof ListOccurrencesBuffer) {
             AWTEvent e = editor.getDispatcher().getLastEvent();
             if (e instanceof MouseEvent) {
                 editor.mouseMoveDotToPoint((MouseEvent)e);
-                ((ListOccurrences)buffer).findOccurrenceAtDot(editor, false);
+                ((ListOccurrencesBuffer)buffer).findOccurrenceAtDot(editor, false);
             }
         }
     }

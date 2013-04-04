@@ -51,10 +51,10 @@ import org.armedbear.j.util.Utilities;
 
 public final class NewsGroupMessageBuffer extends MessageBuffer
 {
-    private NewsGroupSummary summary;
+    private NewsGroupSummaryBuffer summary;
     private boolean cancelled;
 
-    public NewsGroupMessageBuffer(NewsGroupSummary summary,
+    public NewsGroupMessageBuffer(NewsGroupSummaryBuffer summary,
         NewsGroupSummaryEntry entry)
     {
         super();
@@ -71,7 +71,7 @@ public final class NewsGroupMessageBuffer extends MessageBuffer
         new Thread(loadProcess).start();
     }
 
-    public NewsGroupSummary getSummary()
+    public NewsGroupSummaryBuffer getSummary()
     {
         return summary;
     }

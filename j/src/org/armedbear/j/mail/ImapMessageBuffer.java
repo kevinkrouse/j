@@ -34,16 +34,16 @@ public final class ImapMessageBuffer extends MessageBuffer
 {
     private boolean cancelled;
 
-    /*package*/ ImapMessageBuffer(ImapMailbox mailbox, ImapMailboxEntry entry)
+    /*package*/ ImapMessageBuffer(ImapMailboxBuffer mailbox, ImapMailboxEntry entry)
     {
         super();
-        // Mailbox is locked in ImapMailbox.readMessage() before this
+        // Mailbox is locked in ImapMailboxBuffer.readMessage() before this
         // constructor is called.
         Debug.assertTrue(mailbox.isLocked());
         init(mailbox, entry);
     }
 
-    /*package*/ ImapMessageBuffer(ImapMailbox mailbox, ImapMailboxEntry entry,
+    /*package*/ ImapMessageBuffer(ImapMailboxBuffer mailbox, ImapMailboxEntry entry,
         String rawText)
     {
         super();
@@ -63,7 +63,7 @@ public final class ImapMessageBuffer extends MessageBuffer
         setLoaded(true);
     }
 
-    private void init(ImapMailbox mailbox, ImapMailboxEntry entry)
+    private void init(ImapMailboxBuffer mailbox, ImapMailboxEntry entry)
     {
         this.mailbox = mailbox;
         showRawText = mailbox.showRawText;
@@ -96,7 +96,7 @@ public final class ImapMessageBuffer extends MessageBuffer
 
         public void run()
         {
-            // Mailbox is locked in ImapMailbox.readMessage() before calling
+            // Mailbox is locked in ImapMailboxBuffer.readMessage() before calling
             // ImapMessageBuffer constructor.
             if (!mailbox.isLocked()) {
                 Debug.bug();
@@ -157,14 +157,14 @@ public final class ImapMessageBuffer extends MessageBuffer
             public void run()
             {
                 try {
-                    ImapSession session = ((ImapMailbox)mailbox).getSession();
-                    String folderName = ((ImapMailbox)mailbox).getFolderName();
+                    ImapSession session = ((ImapMailboxBuffer)mailbox).getSession();
+                    String folderName = ((ImapMailboxBuffer)mailbox).getFolderName();
                     if (session.verifyConnected() && session.verifySelected(folderName)) {
                         if (session.isReadOnly()) {
                             Log.debug("deleteMessage - read-only - reselecting...");
                             session.reselect(folderName);
                             if (session.isReadOnly()) {
-                                ((ImapMailbox)mailbox).readOnlyError();
+                                ((ImapMailboxBuffer)mailbox).readOnlyError();
                                 return;
                             }
                         }
@@ -238,7 +238,7 @@ public final class ImapMessageBuffer extends MessageBuffer
             return;
         if (!s.startsWith("mailbox:")) {
             // Not local. Extract folder name from URL.
-            s = ((ImapMailbox)mailbox).extractFolderName(s);
+            s = ((ImapMailboxBuffer)mailbox).extractFolderName(s);
             if (s == null) {
                 MessageDialog.showMessageDialog(editor, "Invalid destination",
                     "Error");
@@ -254,15 +254,15 @@ public final class ImapMessageBuffer extends MessageBuffer
             public void run()
             {
                 try {
-                    ImapSession session = ((ImapMailbox) mailbox).getSession();
-                    String folderName = ((ImapMailbox) mailbox).getFolderName();
+                    ImapSession session = ((ImapMailboxBuffer) mailbox).getSession();
+                    String folderName = ((ImapMailboxBuffer) mailbox).getFolderName();
                     if (session.verifyConnected() &&
                         session.verifySelected(folderName)) {
                         if (session.isReadOnly()) {
                             Log.debug("moveMessage - read-only - reselecting...");
                             session.reselect(folderName);
                             if (session.isReadOnly()) {
-                                ((ImapMailbox) mailbox).readOnlyError();
+                                ((ImapMailboxBuffer) mailbox).readOnlyError();
                                 return;
                             }
                         }

@@ -71,8 +71,8 @@ import org.armedbear.j.mode.dir.DirectoryBuffer;
 import org.armedbear.j.mode.dir.DirectoryTree;
 import org.armedbear.j.mode.image.ImageBuffer;
 import org.armedbear.j.mode.java.JavaMode;
-import org.armedbear.j.mode.lisp.JLisp;
-import org.armedbear.j.mode.list.ListOccurrencesInFiles;
+import org.armedbear.j.mode.lisp.JLispBuffer;
+import org.armedbear.j.mode.list.ListOccurrencesInFilesBuffer;
 import org.armedbear.j.mode.perl.PerlMode;
 import org.armedbear.j.util.FastStringBuffer;
 import org.armedbear.j.util.Utilities;
@@ -4963,7 +4963,7 @@ public final class Editor extends JPanel implements Constants,
                 markFoundPattern(lastSearch);
                 if (lastSearch instanceof FindInFiles) {
                     if (buffer.getFile() != null) {
-                        ListOccurrencesInFiles buf =
+                        ListOccurrencesInFilesBuffer buf =
                             ((FindInFiles)lastSearch).getOutputBuffer();
                         if (buf != null)
                             buf.follow(buffer.getFile(), getDotLine());
@@ -4974,7 +4974,7 @@ public final class Editor extends JPanel implements Constants,
             if (lastSearch instanceof FindInFiles) {
                 Editor ed = getOtherEditor();
                 if (ed != null) {
-                    ListOccurrencesInFiles buf =
+                    ListOccurrencesInFilesBuffer buf =
                         ((FindInFiles)lastSearch).getOutputBuffer();
                     if (ed.getBuffer() == buf) {
                         buf.findNextOccurrence(ed);
@@ -5005,7 +5005,7 @@ public final class Editor extends JPanel implements Constants,
                 markFoundPattern(lastSearch);
                 if (lastSearch instanceof FindInFiles) {
                     if (buffer.getFile() != null) {
-                        ListOccurrencesInFiles buf =
+                        ListOccurrencesInFilesBuffer buf =
                             ((FindInFiles)lastSearch).getOutputBuffer();
                         if (buf != null)
                             buf.follow(buffer.getFile(), getDotLine());
@@ -5016,7 +5016,7 @@ public final class Editor extends JPanel implements Constants,
             if (lastSearch instanceof FindInFiles) {
                 Editor ed = getOtherEditor();
                 if (ed != null) {
-                    ListOccurrencesInFiles buf =
+                    ListOccurrencesInFilesBuffer buf =
                         ((FindInFiles)lastSearch).getOutputBuffer();
                     if (ed.getBuffer() == buf) {
                         buf.findPreviousOccurrence(ed);
@@ -7289,7 +7289,7 @@ public final class Editor extends JPanel implements Constants,
         if (file != null && file.isFile()) {
             try {
                 long start = System.currentTimeMillis();
-                JLisp.runStartupScript(file);
+                JLispBuffer.runStartupScript(file);
                 long elapsed = System.currentTimeMillis() - start;
                 FastStringBuffer sb = new FastStringBuffer("loaded ");
                 sb.append(file.canonicalPath());
@@ -7308,7 +7308,7 @@ public final class Editor extends JPanel implements Constants,
     public static void runLispCommand(String command)
     {
         try {
-            JLisp.runLispCommand(command);
+            JLispBuffer.runLispCommand(command);
         }
         catch (Throwable t) {
             Log.error(t);

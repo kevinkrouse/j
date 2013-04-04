@@ -39,11 +39,10 @@ import org.armedbear.j.MessageDialog;
 import org.armedbear.j.Position;
 import org.armedbear.j.ProgressNotifier;
 import org.armedbear.j.StatusBarProgressNotifier;
-import org.armedbear.j.util.FastStringReader;
 import org.armedbear.j.util.Utilities;
 import org.armedbear.j.View;
 
-public final class NewsGroupSummary extends Mailbox
+public final class NewsGroupSummaryBuffer extends MailboxBuffer
 {
     private final NntpSession session;
     private final String groupName;
@@ -53,7 +52,7 @@ public final class NewsGroupSummary extends Mailbox
     private String errorText;
     private int numberToGet;
 
-    public NewsGroupSummary(NntpSession session, String groupName)
+    public NewsGroupSummaryBuffer(NntpSession session, String groupName)
     {
         super();
         this.session = session;
@@ -159,7 +158,7 @@ public final class NewsGroupSummary extends Mailbox
             invalidate();
             for (EditorIterator it = new EditorIterator(); it.hasNext();) {
                 Editor ed = it.nextEditor();
-                if (ed.getBuffer() == NewsGroupSummary.this) {
+                if (ed.getBuffer() == NewsGroupSummaryBuffer.this) {
                     ed.setDot(getInitialDotPos());
                     ed.moveCaretToDotCol();
                     ed.setTopLine(getFirstLine());
@@ -177,7 +176,7 @@ public final class NewsGroupSummary extends Mailbox
             editor.setDefaultCursor();
             if (errorText != null)
                 MessageDialog.showMessageDialog(errorText, "Error");
-            if (Editor.getBufferList().contains(NewsGroupSummary.this))
+            if (Editor.getBufferList().contains(NewsGroupSummaryBuffer.this))
                 kill();
             for (EditorIterator it = new EditorIterator(); it.hasNext();)
                 it.nextEditor().updateDisplay();

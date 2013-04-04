@@ -32,7 +32,7 @@ import org.armedbear.j.util.Tuple2;
 
 /*package*/ final class ImapMailboxEntry extends MailboxEntry implements Serializable
 {
-  private transient ImapMailbox mailbox;
+  private transient ImapMailboxBuffer mailbox;
 
   private int uid;
   private RFC822Date arrival;
@@ -47,12 +47,12 @@ import org.armedbear.j.util.Tuple2;
     this.uid = uid;
   }
 
-  public final ImapMailbox getMailbox()
+  public final ImapMailboxBuffer getMailbox()
   {
     return mailbox;
   }
 
-  public final void setMailbox(ImapMailbox mailbox)
+  public final void setMailbox(ImapMailboxBuffer mailbox)
   {
     this.mailbox = mailbox;
   }

@@ -117,8 +117,8 @@ public final class LispShellMode extends LispMode implements Constants, Mode
     {
         // XXX: Why is this block needed?
         /*
-        if (editor.getBuffer() instanceof LispShell) {
-            Position pos = ((LispShell)editor.getBuffer()).getEndOfOutput();
+        if (editor.getBuffer() instanceof LispShellBuffer) {
+            Position pos = ((LispShellBuffer)editor.getBuffer()).getEndOfOutput();
             if (pos != null)
                 pos.getLine().setFlags(STATE_INPUT);
         }
@@ -134,8 +134,8 @@ public final class LispShellMode extends LispMode implements Constants, Mode
             Debug.bug();
             return;
         }
-        if (buffer instanceof LispShell)
-            ((LispShell)buffer).enter();
+        if (buffer instanceof LispShellBuffer)
+            ((LispShellBuffer)buffer).enter();
         else
             Debug.bug();
     }
@@ -148,8 +148,8 @@ public final class LispShellMode extends LispMode implements Constants, Mode
             Debug.bug();
             return;
         }
-        if (buffer instanceof LispShell)
-            ((LispShell)buffer).electricCloseParen();
+        if (buffer instanceof LispShellBuffer)
+            ((LispShellBuffer)buffer).electricCloseParen();
         else
             Debug.bug();
     }
@@ -162,8 +162,8 @@ public final class LispShellMode extends LispMode implements Constants, Mode
             Debug.bug();
             return;
         }
-        if (buffer instanceof LispShell)
-            ((LispShell)buffer).resetLisp();
+        if (buffer instanceof LispShellBuffer)
+            ((LispShellBuffer)buffer).resetLisp();
         else
             Debug.bug();
     }
@@ -181,11 +181,11 @@ public final class LispShellMode extends LispMode implements Constants, Mode
             Debug.bug();
             return;
         }
-        if (!(buffer instanceof LispShell)) {
+        if (!(buffer instanceof LispShellBuffer)) {
             Debug.bug();
             return;
         }
-        LispShell lisp = (LispShell) buffer;
+        LispShellBuffer lisp = (LispShellBuffer) buffer;
         if (s == null) {
             if (editor.getDot() == null)
                 return;
@@ -203,7 +203,7 @@ public final class LispShellMode extends LispMode implements Constants, Mode
         lisp.describe(s, editor);
     }
 
-    public static String getArgumentForDescribe(LispShell lisp, Position pos)
+    public static String getArgumentForDescribe(LispShellBuffer lisp, Position pos)
     {
         final Line line = pos.getLine();
         int offset = pos.getOffset();
@@ -275,7 +275,7 @@ public final class LispShellMode extends LispMode implements Constants, Mode
     {
         final Editor editor = Editor.currentEditor();
         final Buffer buffer = editor.getBuffer();
-        if (!(buffer instanceof LispShell)) {
+        if (!(buffer instanceof LispShellBuffer)) {
             Debug.bug();
             return;
         }
@@ -291,7 +291,7 @@ public final class LispShellMode extends LispMode implements Constants, Mode
                 } else {
                     int offset = pos.getOffset();
                     String s = pos.getLine().getText();
-                    final LispShell lisp = (LispShell) buffer;
+                    final LispShellBuffer lisp = (LispShellBuffer) buffer;
                     Pattern promptRE = lisp.getPromptRE();
                     if (promptRE != null) {
                         Matcher matcher = promptRE.matcher(s);

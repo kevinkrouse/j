@@ -40,11 +40,11 @@ import org.armedbear.j.Line;
 import org.armedbear.j.Log;
 import org.armedbear.j.View;
 
-public final class Drafts extends Mailbox
+public final class DraftsBuffer extends MailboxBuffer
 {
     private final File directory;
 
-    public Drafts(LocalMailboxURL url)
+    public DraftsBuffer(LocalMailboxURL url)
     {
         super();
         this.url = url;
@@ -80,22 +80,22 @@ public final class Drafts extends Mailbox
 
     public void createFolder()
     {
-        notImplemented("Drafts.createFolder");
+        notImplemented("DraftsBuffer.createFolder");
     }
 
     public void deleteFolder()
     {
-        notImplemented("Drafts.deleteFolder");
+        notImplemented("DraftsBuffer.deleteFolder");
     }
 
     public void saveToFolder()
     {
-        notImplemented("Drafts.saveToFolder");
+        notImplemented("DraftsBuffer.saveToFolder");
     }
 
     public void moveToFolder()
     {
-        notImplemented("Drafts.moveToFolder");
+        notImplemented("DraftsBuffer.moveToFolder");
     }
 
     public void delete()
@@ -188,22 +188,22 @@ public final class Drafts extends Mailbox
 
     public void markRead()
     {
-        notImplemented("Drafts.markRead");
+        notImplemented("DraftsBuffer.markRead");
     }
 
     public void markUnread()
     {
-        notImplemented("Drafts.markUnread");
+        notImplemented("DraftsBuffer.markUnread");
     }
 
     public void flag()
     {
-        notImplemented("Drafts.flag");
+        notImplemented("DraftsBuffer.flag");
     }
 
     public void setAnsweredFlag(MailboxEntry entry)
     {
-        notImplemented("Drafts.setAnsweredFlag");
+        notImplemented("DraftsBuffer.setAnsweredFlag");
     }
 
     public void expunge()
@@ -294,8 +294,8 @@ public final class Drafts extends Mailbox
                             Editor ed = it.nextEditor();
                             View view = new View();
                             view.setDotEntry(getInitialEntry());
-                            ed.setView(Drafts.this, view);
-                            if (ed.getBuffer() == Drafts.this) {
+                            ed.setView(DraftsBuffer.this, view);
+                            if (ed.getBuffer() == DraftsBuffer.this) {
                                 ed.bufferActivated(true);
                                 ed.updateDisplay();
                             }

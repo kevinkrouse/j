@@ -55,7 +55,6 @@ import org.armedbear.j.SaveFileDialog;
 import org.armedbear.j.Sidebar;
 import org.armedbear.j.SystemBuffer;
 import org.armedbear.j.TextLine;
-import org.armedbear.j.util.FastStringReader;
 import org.armedbear.j.util.Utilities;
 import org.armedbear.j.mode.web.WebBuffer;
 import org.armedbear.j.mode.web.WebFormatter;
@@ -63,7 +62,7 @@ import org.armedbear.j.mode.web.WebLoader;
 
 public class MessageBuffer extends Buffer
 {
-    protected Mailbox mailbox;
+    protected MailboxBuffer mailbox;
     protected MailboxEntry entry;
     protected Message message;
     protected boolean showFullHeaders;
@@ -270,7 +269,7 @@ public class MessageBuffer extends Buffer
         return entry.getMessageNumber();
     }
 
-    public final Mailbox getMailbox()
+    public final MailboxBuffer getMailbox()
     {
         return mailbox;
     }

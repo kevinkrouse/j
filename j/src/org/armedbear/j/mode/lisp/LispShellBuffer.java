@@ -1,12 +1,12 @@
 /*
- * LispShell.java
+ * LispShellBuffer.java
  *
- * Copyright (C) 2002-2007 Peter Graves
+ * Copyright (C) 2013 Kevin Krouse
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 2 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -14,8 +14,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 package org.armedbear.j.mode.lisp;
@@ -29,12 +28,12 @@ import javax.swing.SwingUtilities;
 import org.armedbear.j.Annotation;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.BufferIterator;
-import org.armedbear.j.CommandInterpreter;
 import org.armedbear.j.Debug;
 import org.armedbear.j.Directories;
 import org.armedbear.j.Display;
 import org.armedbear.j.Editor;
 import org.armedbear.j.EditorIterator;
+import org.armedbear.j.ShellBuffer;
 import org.armedbear.j.util.FastStringBuffer;
 import org.armedbear.j.File;
 import org.armedbear.j.History;
@@ -47,13 +46,12 @@ import org.armedbear.j.Platform;
 import org.armedbear.j.Position;
 import org.armedbear.j.Property;
 import org.armedbear.j.Region;
-import org.armedbear.j.Shell;
 import org.armedbear.j.SimpleEdit;
 import org.armedbear.j.util.Utilities;
 import org.armedbear.lisp.Pathname;
 import org.armedbear.lisp.Site;
 
-public class LispShell extends Shell
+public class LispShellBuffer extends ShellBuffer
 {
   private static final String DEFAULT_PROMPT_PATTERN =
     "^[^:>\\*\\]]*[:>\\*\\]] *";
@@ -87,14 +85,14 @@ public class LispShell extends Shell
   private File currentDirectory;
 
   // For JLisp.java.
-  protected LispShell()
+  protected LispShellBuffer()
   {
     setPromptRE(ARMEDBEAR_PROMPT_PATTERN);
     setResetCommand(":reset");
     slime = false;
   }
 
-  private LispShell(String shellCommand, String title)
+  private LispShellBuffer(String shellCommand, String title)
   {
     super(shellCommand, LispShellMode.getMode());
     this.title = title;
@@ -117,7 +115,7 @@ public class LispShell extends Shell
     exitCommand = s;
   }
 
-  private static Shell createLispShell(String shellCommand, String title,
+  private static ShellBuffer createLispShell(String shellCommand, String title,
                                        boolean startSlime)
   {
     if (startSlime)
@@ -155,7 +153,7 @@ public class LispShell extends Shell
               }
           }
       }
-    LispShell lisp = new LispShell(shellCommand, title);
+    LispShellBuffer lisp = new LispShellBuffer(shellCommand, title);
     lisp.startProcess();
     if (lisp.getProcess() == null)
       {
@@ -706,7 +704,7 @@ public class LispShell extends Shell
         Log.debug("checkProcess returned false");
         return;
       }
-    Thread t = new Thread("LispShell dispose")
+    Thread t = new Thread("LispShellBuffer dispose")
       {
         public void run()
         {
@@ -815,7 +813,7 @@ public class LispShell extends Shell
       if (!Platform.isPlatformWindows5())
         return;
     final Editor editor = Editor.currentEditor();
-    // Look for an existing LispShell buffer with the same shell command.
+    // Look for an existing LispShellBuffer buffer with the same shell command.
     Buffer buf = findLisp(title);
     if (buf == null)
       {
@@ -848,10 +846,10 @@ public class LispShell extends Shell
         {
           try
             {
-              JLisp.runLispCommand("(sys:load-system-file \"slime-loader.lisp\")");
-              JLisp.runLispCommand("(setq slime::*repl-buffer-name* \"" +
+              JLispBuffer.runLispCommand("(sys:load-system-file \"slime-loader.lisp\")");
+              JLispBuffer.runLispCommand("(setq slime::*repl-buffer-name* \"" +
                                    buffer.getTitle() + "\")");
-              JLisp.runLispCommand("(slime:slime)");
+              JLispBuffer.runLispCommand("(slime:slime)");
               //LispThread.remove(Thread.currentThread());
             }
           catch (Throwable t)
@@ -871,8 +869,8 @@ public class LispShell extends Shell
         {
           try
             {
-              JLisp.runLispCommand("(slime::disconnect)");
-              JLisp.runLispCommand("(setq slime::*repl-buffer* nil)");
+              JLispBuffer.runLispCommand("(slime::disconnect)");
+              JLispBuffer.runLispCommand("(setq slime::*repl-buffer* nil)");
               //LispThread.remove(Thread.currentThread());
             }
           catch (Throwable t)
@@ -958,14 +956,14 @@ public class LispShell extends Shell
     return sb.toString();
   }
 
-  public static LispShell findLisp(String title)
+  public static LispShellBuffer findLisp(String title)
   {
     for (BufferIterator it = new BufferIterator(); it.hasNext();)
       {
         Buffer b = it.nextBuffer();
-        if (b instanceof LispShell)
+        if (b instanceof LispShellBuffer)
           {
-            LispShell shell = (LispShell) b;
+            LispShellBuffer shell = (LispShellBuffer) b;
             Debug.bugIfNot(shell.isLisp());
             if (title == null || title.equals(shell.getTitle()))
               return shell;
@@ -974,7 +972,7 @@ public class LispShell extends Shell
     return null;
   }
 
-  private static final LispShell findSlime()
+  private static final LispShellBuffer findSlime()
   {
     return findLisp("slime");
   }

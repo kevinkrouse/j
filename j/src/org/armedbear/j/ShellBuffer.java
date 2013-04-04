@@ -1,12 +1,12 @@
 /*
  * Shell.java
  *
- * Copyright (C) 1998-2005 Peter Graves
+ * Copyright (C) 2013 Kevin Krouse
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 2 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -14,8 +14,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 package org.armedbear.j;
@@ -32,7 +31,7 @@ import java.util.StringTokenizer;
 import javax.swing.SwingUtilities;
 import javax.swing.undo.CompoundEdit;
 
-public class Shell extends CommandInterpreter implements Constants
+public class ShellBuffer extends CommandInterpreterBuffer implements Constants
 {
     protected static final String JPTY_NOT_FOUND =
         "Unable to start shell process (jpty not found in PATH)";
@@ -45,7 +44,7 @@ public class Shell extends CommandInterpreter implements Constants
     private File initialDir;
     private boolean cygnify;
 
-    protected Shell()
+    protected ShellBuffer()
     {
         type = TYPE_SHELL;
         mode = Editor.getModeList().getMode(SHELL_MODE);
@@ -53,7 +52,7 @@ public class Shell extends CommandInterpreter implements Constants
         setInitialized(true);
     }
 
-    protected Shell(String shellCommand)
+    protected ShellBuffer(String shellCommand)
     {
         this();
         this.shellCommand = shellCommand;
@@ -65,7 +64,7 @@ public class Shell extends CommandInterpreter implements Constants
         }
     }
 
-    protected Shell(String shellCommand, Mode mode)
+    protected ShellBuffer(String shellCommand, Mode mode)
     {
         type = TYPE_SHELL;
         this.shellCommand = shellCommand;
@@ -98,13 +97,13 @@ public class Shell extends CommandInterpreter implements Constants
         history = new History("shell.history", 30);
     }
 
-    private static Shell createShell(String shellCommand)
+    private static ShellBuffer createShell(String shellCommand)
     {
         if (shellCommand == null) {
             Debug.bug();
             return null;
         }
-        Shell shell = new Shell(shellCommand);
+        ShellBuffer shell = new ShellBuffer(shellCommand);
         shell.startProcess();
         if (shell.getProcess() == null) {
             Editor.getBufferList().remove(shell);
@@ -133,7 +132,7 @@ public class Shell extends CommandInterpreter implements Constants
             if (initialDir == null || initialDir.isRemote())
                 initialDir = Directories.getUserHomeDirectory();
         }
-        // Shell command may contain a space (e.g. "bash -i").
+        // ShellBuffer command may contain a space (e.g. "bash -i").
         StringTokenizer st = new StringTokenizer(shellCommand);
         String[] cmdArray;
         int i = 0;
@@ -624,15 +623,15 @@ public class Shell extends CommandInterpreter implements Constants
         Buffer buf = null;
         for (BufferIterator it = new BufferIterator(); it.hasNext();) {
             Buffer b = it.nextBuffer();
-            if (b instanceof Shell) {
-                if (shellCommand.equals(((Shell)b).shellCommand)) {
+            if (b instanceof ShellBuffer) {
+                if (shellCommand.equals(((ShellBuffer)b).shellCommand)) {
                     buf = b;
                     break;
                 }
             }
         }
         if (buf != null) {
-            Shell shell = (Shell) buf;
+            ShellBuffer shell = (ShellBuffer) buf;
             if (shell.getProcess() == null)
                 shell.startProcess();
         } else
@@ -647,14 +646,14 @@ public class Shell extends CommandInterpreter implements Constants
     public static void shellTab()
     {
         final Buffer buffer = Editor.currentEditor().getBuffer();
-        if (buffer instanceof Shell && !(buffer instanceof RemoteShell))
-            ((Shell)buffer).tab();
+        if (buffer instanceof ShellBuffer && !(buffer instanceof RemoteShellBuffer))
+            ((ShellBuffer)buffer).tab();
     }
 
     public static void shellInterrupt()
     {
         final Buffer buffer = Editor.currentEditor().getBuffer();
-        if (buffer instanceof Shell)
-            ((Shell)buffer).sendChar(3);
+        if (buffer instanceof ShellBuffer)
+            ((ShellBuffer)buffer).sendChar(3);
     }
 }

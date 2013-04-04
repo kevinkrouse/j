@@ -20,7 +20,7 @@
 
 package org.armedbear.j;
 
-import org.armedbear.j.mode.list.ListOccurrences;
+import org.armedbear.j.mode.list.ListOccurrencesBuffer;
 import org.armedbear.j.util.Utilities;
 
 import java.util.regex.PatternSyntaxException;
@@ -212,7 +212,7 @@ public final class FindDialog extends AbstractDialog implements ActionListener,
             return;
         editor.setLastSearch(search);
         if (d.getListOccurrences()) {
-            ListOccurrences.listOccurrences(editor);
+            ListOccurrencesBuffer.listOccurrences(editor);
         } else {
             editor.setWaitCursor();
             final Position start;

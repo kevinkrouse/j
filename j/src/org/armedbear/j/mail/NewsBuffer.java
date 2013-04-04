@@ -36,7 +36,7 @@ import org.armedbear.j.MessageDialog;
 import org.armedbear.j.ProgressNotifier;
 import org.armedbear.j.StatusBarProgressNotifier;
 
-public final class News extends Buffer
+public final class NewsBuffer extends Buffer
 {
     private static final File newsDir =
         File.getInstance(Directories.getEditorDirectory(), "news");
@@ -44,7 +44,7 @@ public final class News extends Buffer
     private final NntpSession session;
     private boolean error;
 
-    public News(NntpSession session)
+    public NewsBuffer(NntpSession session)
     {
         this.session = session;
         supportsUndo = false;
@@ -179,7 +179,7 @@ public final class News extends Buffer
             invalidate();
             for (EditorIterator it = new EditorIterator(); it.hasNext();) {
                 Editor ed = it.nextEditor();
-                if (ed.getBuffer() == News.this) {
+                if (ed.getBuffer() == NewsBuffer.this) {
                     ed.setDot(getFirstLine(), 0);
                     ed.moveCaretToDotCol();
                     ed.setTopLine(getFirstLine());

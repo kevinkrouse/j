@@ -1,12 +1,12 @@
 /*
- * RemoteShell.java
+ * RemoteShellBuffer.java
  *
- * Copyright (C) 2000-2004 Peter Graves
+ * Copyright (C) 2013 Kevin Krouse
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 2 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -14,8 +14,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 package org.armedbear.j;
@@ -26,11 +25,11 @@ import org.armedbear.j.util.Utilities;
 import java.io.OutputStreamWriter;
 import javax.swing.SwingUtilities;
 
-public class RemoteShell extends Shell
+public class RemoteShellBuffer extends ShellBuffer
 {
     private String host;
 
-    private RemoteShell(int type, String host)
+    private RemoteShellBuffer(int type, String host)
     {
         super();
         if (type != TYPE_TELNET && type != TYPE_SSH)
@@ -49,7 +48,7 @@ public class RemoteShell extends Shell
         title = shellCommand + " " + host;
     }
 
-    // Called in Shell constructor, so we override it here.
+    // Called in ShellBuffer constructor, so we override it here.
     protected void initializeHistory()
     {
         history = new History("remoteShell.history");
@@ -106,9 +105,9 @@ public class RemoteShell extends Shell
         }
     }
 
-    private static RemoteShell createRemoteShell(int type, String host)
+    private static RemoteShellBuffer createRemoteShell(int type, String host)
     {
-        RemoteShell remoteShell = new RemoteShell(type, host);
+        RemoteShellBuffer remoteShell = new RemoteShellBuffer(type, host);
         remoteShell.startProcess();
         if (remoteShell.getProcess() == null) {
             Editor.getBufferList().remove(remoteShell);
@@ -134,14 +133,14 @@ public class RemoteShell extends Shell
         return remoteShell;
     }
 
-    private static RemoteShell findRemoteShell(int type, String host)
+    private static RemoteShellBuffer findRemoteShell(int type, String host)
     {
         if (host == null)
             return null;
         for (BufferIterator it = new BufferIterator(); it.hasNext();) {
             Buffer buf = it.nextBuffer();
-            if (buf instanceof RemoteShell) {
-                RemoteShell remoteShell = (RemoteShell) buf;
+            if (buf instanceof RemoteShellBuffer) {
+                RemoteShellBuffer remoteShell = (RemoteShellBuffer) buf;
                 if (type == remoteShell.getType())
                     if (host.equals(remoteShell.getHost()))
                         return remoteShell;
@@ -286,7 +285,7 @@ public class RemoteShell extends Shell
             if (Editor.preferences().getStringProperty(Property.TELNET) == null)
                 return;
         }
-        RemoteShell remoteShell = findRemoteShell(TYPE_TELNET, host);
+        RemoteShellBuffer remoteShell = findRemoteShell(TYPE_TELNET, host);
         if (remoteShell != null) {
             if (remoteShell.getProcess() == null)
                 remoteShell.startProcess();
@@ -321,12 +320,12 @@ public class RemoteShell extends Shell
             if (Editor.preferences().getStringProperty(Property.SSH) == null)
                 return;
         }
-        RemoteShell remoteShell = RemoteShell.findRemoteShell(TYPE_SSH, host);
+        RemoteShellBuffer remoteShell = RemoteShellBuffer.findRemoteShell(TYPE_SSH, host);
         if (remoteShell != null) {
             if (remoteShell.getProcess() == null)
                 remoteShell.startProcess();
         } else
-            remoteShell = RemoteShell.createRemoteShell(TYPE_SSH, host);
+            remoteShell = RemoteShellBuffer.createRemoteShell(TYPE_SSH, host);
         if (remoteShell != null) {
             final Editor editor = Editor.currentEditor();
             editor.makeNext(remoteShell);

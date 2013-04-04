@@ -25,7 +25,7 @@ import org.armedbear.j.BufferIterator;
 import org.armedbear.j.Constants;
 import org.armedbear.j.Editor;
 import org.armedbear.j.EditorIterator;
-import org.armedbear.j.mode.lisp.JLisp;
+import org.armedbear.j.mode.lisp.JLispBuffer;
 import org.armedbear.j.util.FastStringBuffer;
 import org.armedbear.j.File;
 import org.armedbear.j.Log;
@@ -133,7 +133,7 @@ public final class CompilationBuffer extends CompilationErrorBuffer
             sb.append(" ))");
             try {
                 org.armedbear.lisp.LispObject result =
-                    JLisp.runLispCommand(sb.toString());
+                    JLispBuffer.runLispCommand(sb.toString());
                 appendLater(result.getStringValue());
             }
             catch (Throwable t) {

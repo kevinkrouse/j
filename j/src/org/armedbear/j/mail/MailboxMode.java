@@ -130,7 +130,7 @@ public class MailboxMode extends AbstractMode implements Constants, Mode
             groupByThread.setMnemonic('G');
             groupByThread.setActionCommand("toggleGroupByThread");
             groupByThread.addActionListener(dispatcher);
-            if (editor.getBuffer() instanceof Mailbox) {
+            if (editor.getBuffer() instanceof MailboxBuffer) {
                 groupByThread.setSelected(editor.getBuffer().
                     getBooleanProperty(Property.GROUP_BY_THREAD));
             }

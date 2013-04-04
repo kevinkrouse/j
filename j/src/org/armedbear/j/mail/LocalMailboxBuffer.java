@@ -49,11 +49,11 @@ import org.armedbear.j.Sidebar;
 import org.armedbear.j.util.Utilities;
 import org.armedbear.j.View;
 
-public class LocalMailbox extends Mailbox
+public class LocalMailboxBuffer extends MailboxBuffer
 {
     private File mailboxFile;
 
-    public LocalMailbox(MailboxURL url)
+    public LocalMailboxBuffer(MailboxURL url)
     {
         super(url);
         if (url instanceof LocalMailboxURL)
@@ -123,7 +123,7 @@ public class LocalMailbox extends Mailbox
             raf.seek(offset);
             String text = raf.readLine();
             if (!text.startsWith("From ")) {
-                Log.debug("LocalMailbox.getMessage expected \"From \"");
+                Log.debug("LocalMailboxBuffer.getMessage expected \"From \"");
                 Log.debug("text = |" + text + "|");
                 Log.debug("offset = " + offset);
                 Debug.assertTrue(false);
@@ -173,27 +173,27 @@ public class LocalMailbox extends Mailbox
 
     public void getNewMessages()
     {
-        Log.error("LocalMailbox.getNewMessages is not implemented");
+        Log.error("LocalMailboxBuffer.getNewMessages is not implemented");
     }
 
     public void createFolder()
     {
-        Log.error("LocalMailbox.createFolder is not implemented");
+        Log.error("LocalMailboxBuffer.createFolder is not implemented");
     }
 
     public void deleteFolder()
     {
-        Log.error("LocalMailbox.deleteFolder is not implemented");
+        Log.error("LocalMailboxBuffer.deleteFolder is not implemented");
     }
 
     public void saveToFolder()
     {
-        Log.error("LocalMailbox.saveToFolder is not implemented");
+        Log.error("LocalMailboxBuffer.saveToFolder is not implemented");
     }
 
     public void moveToFolder()
     {
-        Log.error("LocalMailbox.moveToFolder is not implemented");
+        Log.error("LocalMailboxBuffer.moveToFolder is not implemented");
     }
 
     public void delete()
@@ -387,7 +387,7 @@ public class LocalMailbox extends Mailbox
 
     public void expunge()
     {
-        Log.error("LocalMailbox.expunge is not implemented");
+        Log.error("LocalMailboxBuffer.expunge is not implemented");
     }
 
     public int load()
@@ -418,8 +418,8 @@ public class LocalMailbox extends Mailbox
                             Editor ed = it.nextEditor();
                             View view = new View();
                             view.setDotEntry(getInitialEntry());
-                            ed.setView(LocalMailbox.this, view);
-                            if (ed.getBuffer() == LocalMailbox.this) {
+                            ed.setView(LocalMailboxBuffer.this, view);
+                            if (ed.getBuffer() == LocalMailboxBuffer.this) {
                                 ed.bufferActivated(true);
                                 ed.updateDisplay();
                             }
@@ -433,7 +433,7 @@ public class LocalMailbox extends Mailbox
 
     protected void readMailboxFile(ProgressNotifier progressNotifier)
     {
-        Log.debug("LocalMailbox.readMailboxFile");
+        Log.debug("LocalMailboxBuffer.readMailboxFile");
         long start = System.currentTimeMillis();
         Mbox mbox = Mbox.getInstance(mailboxFile);
         if (mbox == null)
@@ -612,7 +612,7 @@ public class LocalMailbox extends Mailbox
 
     public void dispose()
     {
-        Log.debug("LocalMailbox.dispose");
+        Log.debug("LocalMailboxBuffer.dispose");
         Mbox.cleanup();
         MailboxProperties.saveProperties(this);
         if (isOwned()) {
@@ -650,7 +650,7 @@ public class LocalMailbox extends Mailbox
 
     protected void finalize() throws Throwable
     {
-        Log.debug("LocalMailbox.finalize");
+        Log.debug("LocalMailboxBuffer.finalize");
         super.finalize();
     }
 

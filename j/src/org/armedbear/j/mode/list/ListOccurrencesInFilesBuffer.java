@@ -33,12 +33,12 @@ import org.armedbear.j.Position;
 import org.armedbear.j.Search;
 import org.armedbear.j.util.Utilities;
 
-public final class ListOccurrencesInFiles extends ListOccurrences
+public final class ListOccurrencesInFilesBuffer extends ListOccurrencesBuffer
 {
     private Position lastDotPos;
 
     // Find in files.
-    public ListOccurrencesInFiles(Search search)
+    public ListOccurrencesInFilesBuffer(Search search)
     {
         super(search);
         if (search instanceof FindInFiles) {

@@ -60,7 +60,7 @@ public final class ImapMessageCache
         return uidValidity;
     }
 
-    public static ImapMessageCache getMessageCache(ImapMailbox mb)
+    public static ImapMessageCache getMessageCache(ImapMailboxBuffer mb)
     {
         File cacheDirectory = getCacheDirectory(mb);
         if (cacheDirectory == null)
@@ -218,7 +218,7 @@ public final class ImapMessageCache
         Log.debug("ImapMessageCache.removeDeletedEntries " + elapsed + " ms");
     }
 
-    private static synchronized File getCacheDirectory(ImapMailbox mb)
+    private static synchronized File getCacheDirectory(ImapMailboxBuffer mb)
     {
         final File parentDirectory =
             File.getInstance(Directories.getMailDirectory(), "imap/cache");

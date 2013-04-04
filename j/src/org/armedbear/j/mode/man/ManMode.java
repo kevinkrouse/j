@@ -69,7 +69,7 @@ public final class ManMode extends AbstractMode implements Constants, Mode
     {
         if (buffer.getType() != Buffer.TYPE_MAN)
             return null;
-        return new ManFormatter(buffer, ((Man)buffer).isApropos());
+        return new ManFormatter(buffer, ((ManBuffer)buffer).isApropos());
     }
 
     protected void setKeyMapDefaults(KeyMap km)
@@ -93,9 +93,9 @@ public final class ManMode extends AbstractMode implements Constants, Mode
     private static void followLink(Editor editor)
     {
         if (editor.getBuffer().getType() == Buffer.TYPE_MAN) {
-            final Man man = (Man) editor.getBuffer();
+            final ManBuffer manBuffer = (ManBuffer) editor.getBuffer();
             final Line line = editor.getDotLine();
-            if (man.isApropos()) {
+            if (manBuffer.isApropos()) {
                 String topic = null;
                 String section = null;
                 String text = line.getText();
@@ -118,7 +118,7 @@ public final class ManMode extends AbstractMode implements Constants, Mode
                         man(editor, topic);
                 }
             } else {
-                LineSegmentList segmentList = man.getFormatter().formatLine(line);
+                LineSegmentList segmentList = manBuffer.getFormatter().formatLine(line);
                 int col = editor.getDotCol();
                 int startCol = 0;
                 for (int i = 0; i < segmentList.size(); i++) {
@@ -200,11 +200,11 @@ public final class ManMode extends AbstractMode implements Constants, Mode
                 Log.error(e);
             }
             if (tempFile.isFile() && tempFile.length() > 0) {
-                Man man = new Man(topic, tempFile);
-                man.load();
+                ManBuffer manBuffer = new ManBuffer(topic, tempFile);
+                manBuffer.load();
                 tempFile.delete();
-                editor.makeNext(man);
-                editor.switchToBuffer(man);
+                editor.makeNext(manBuffer);
+                editor.switchToBuffer(manBuffer);
             } else
                 editor.status("No entry");
         }

@@ -47,7 +47,7 @@ import org.armedbear.j.Sidebar;
 import org.armedbear.j.util.Utilities;
 import org.armedbear.j.View;
 
-public abstract class Mailbox extends Buffer
+public abstract class MailboxBuffer extends Buffer
 {
     public static final int SORT_BY_DATE_SENT = 0;
 
@@ -69,11 +69,11 @@ public abstract class Mailbox extends Buffer
 
     private MessageBuffer previewBuffer;
 
-    protected Mailbox()
+    protected MailboxBuffer()
     {
     }
 
-    protected Mailbox(MailboxURL url)
+    protected MailboxBuffer(MailboxURL url)
     {
         this.url = url;
         PropertyList props = MailboxProperties.getProperties(url);
@@ -822,8 +822,8 @@ public abstract class Mailbox extends Buffer
                     Editor ed = it.nextEditor();
                     View view = new View();
                     view.setDotEntry(currentEntry != null ? currentEntry : getInitialEntry());
-                    ed.setView(Mailbox.this, view);
-                    if (ed.getBuffer() == Mailbox.this) {
+                    ed.setView(MailboxBuffer.this, view);
+                    if (ed.getBuffer() == MailboxBuffer.this) {
                         ed.bufferActivated(true);
                         ed.updateDisplay();
                     }
@@ -1109,7 +1109,7 @@ public abstract class Mailbox extends Buffer
             {
                 for (int i = 0; i < Editor.getFrameCount(); i++) {
                     Editor ed = Editor.getFrame(i).getCurrentEditor();
-                    if (ed.getBuffer() == Mailbox.this)
+                    if (ed.getBuffer() == MailboxBuffer.this)
                         ed.status(s);
                 }
             }
@@ -1205,7 +1205,7 @@ public abstract class Mailbox extends Buffer
             invalidate();
             for (EditorIterator it = new EditorIterator(); it.hasNext();) {
                 Editor ed = it.nextEditor();
-                if (ed.getBuffer() == Mailbox.this) {
+                if (ed.getBuffer() == MailboxBuffer.this) {
                     View view = ed.getView(ed.getBuffer());
                     if (view.getDotEntry() != null) {
                         try {
@@ -1284,7 +1284,7 @@ public abstract class Mailbox extends Buffer
             {
                 for (EditorIterator it = new EditorIterator(); it.hasNext();) {
                     Editor ed = it.nextEditor();
-                    if (ed.getBuffer() == Mailbox.this) {
+                    if (ed.getBuffer() == MailboxBuffer.this) {
                         if (ed.getDot() != null) {
                             ed.update(ed.getDotLine());
                             ed.getDot().moveTo(line, 0);

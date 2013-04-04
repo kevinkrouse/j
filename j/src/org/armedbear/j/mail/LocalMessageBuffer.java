@@ -24,7 +24,7 @@ import org.armedbear.j.Editor;
 
 /*package*/ final class LocalMessageBuffer extends MessageBuffer
 {
-    /*package*/ LocalMessageBuffer(LocalMailbox mailbox, MailboxEntry entry)
+    /*package*/ LocalMessageBuffer(LocalMailboxBuffer mailbox, MailboxEntry entry)
     {
         super();
         this.mailbox = mailbox;

@@ -41,7 +41,7 @@ public final class ImapMailboxCache implements Serializable
 {
     private static Properties catalog;
 
-    private transient ImapMailbox mailbox;
+    private transient ImapMailboxBuffer mailbox;
     private final String mailboxName;
     private final int uidValidity;
     private final ArrayList entries;
@@ -49,7 +49,7 @@ public final class ImapMailboxCache implements Serializable
     // Force serialization to be dependent on ImapMailboxEntry.
     private final ImapMailboxEntry dummy = new ImapMailboxEntry(0);
 
-    public ImapMailboxCache(ImapMailbox mailbox)
+    public ImapMailboxCache(ImapMailboxBuffer mailbox)
     {
         this.mailbox = mailbox;
         mailboxName = mailbox.getName();
@@ -57,7 +57,7 @@ public final class ImapMailboxCache implements Serializable
         entries = new ArrayList(mailbox.getEntries());
     }
 
-    private final void setMailbox(ImapMailbox mailbox)
+    private final void setMailbox(ImapMailboxBuffer mailbox)
     {
         this.mailbox = mailbox;
     }
@@ -98,7 +98,7 @@ public final class ImapMailboxCache implements Serializable
         }
     }
 
-    public static ImapMailboxCache readCache(ImapMailbox mb)
+    public static ImapMailboxCache readCache(ImapMailboxBuffer mb)
     {
         File file = ImapMailboxCache.getCacheFile(mb);
         if (file == null || !file.isFile())
@@ -140,7 +140,7 @@ public final class ImapMailboxCache implements Serializable
         return uidValidity == mailbox.getSession().getUidValidity();
     }
 
-    private static synchronized File getCacheFile(ImapMailbox mb)
+    private static synchronized File getCacheFile(ImapMailboxBuffer mb)
     {
         File directory =
             File.getInstance(Directories.getMailDirectory(), "imap");
