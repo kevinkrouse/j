@@ -20,6 +20,9 @@
 
 package org.armedbear.j;
 
+import org.armedbear.j.util.FastStringBuffer;
+import org.armedbear.j.util.Utilities;
+
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import javax.swing.Box;

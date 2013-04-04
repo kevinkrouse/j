@@ -20,7 +20,8 @@
 
 package org.armedbear.j.mail;
 
-import org.armedbear.j.ByteBuffer;
+import org.armedbear.j.util.ByteBuffer;
+import org.armedbear.j.util.ByteBuffer;
 
 public final class QuotedPrintableDecoder
 {

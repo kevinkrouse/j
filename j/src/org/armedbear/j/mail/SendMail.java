@@ -48,7 +48,8 @@ import org.armedbear.j.Editor;
 import org.armedbear.j.EditorIterator;
 import org.armedbear.j.Expansion;
 import org.armedbear.j.File;
-import org.armedbear.j.FastStringBuffer;
+import org.armedbear.j.util.Base64Encoder;
+import org.armedbear.j.util.FastStringBuffer;
 import org.armedbear.j.Headers;
 import org.armedbear.j.InputDialog;
 import org.armedbear.j.Line;
@@ -63,7 +64,7 @@ import org.armedbear.j.Property;
 import org.armedbear.j.Region;
 import org.armedbear.j.Sidebar;
 import org.armedbear.j.SimpleEdit;
-import org.armedbear.j.Utilities;
+import org.armedbear.j.util.Utilities;
 import org.armedbear.j.Version;
 
 public final class SendMail extends Buffer
@@ -75,7 +76,7 @@ public final class SendMail extends Buffer
 
     private boolean reply;
     private List group;
-    private Mailbox mailbox;
+    private MailboxBuffer mailbox;
     private MailboxEntry entryRepliedTo;
     private String boundary;
     private String smtp;
@@ -306,9 +307,9 @@ public final class SendMail extends Buffer
         boolean result = super.save();
         for (BufferIterator it = new BufferIterator(); it.hasNext();) {
             Buffer buf = it.nextBuffer();
-            if (buf instanceof Drafts) {
-                Drafts drafts = (Drafts) buf;
-                drafts.reload();
+            if (buf instanceof DraftsBuffer) {
+                DraftsBuffer draftsBuffer = (DraftsBuffer) buf;
+                draftsBuffer.reload();
                 break;
             }
         }
@@ -780,9 +781,9 @@ public final class SendMail extends Buffer
                 file.delete();
                 for (BufferIterator it = new BufferIterator(); it.hasNext();) {
                     Buffer buf = it.nextBuffer();
-                    if (buf instanceof Drafts) {
-                        Drafts drafts = (Drafts) buf;
-                        drafts.reload();
+                    if (buf instanceof DraftsBuffer) {
+                        DraftsBuffer draftsBuffer = (DraftsBuffer) buf;
+                        draftsBuffer.reload();
                         break;
                     }
                 }
@@ -1625,8 +1626,8 @@ public final class SendMail extends Buffer
     {
         if (messageBuffer == null)
             return null;
-        Mailbox mailbox = messageBuffer.getMailbox();
-        if (mailbox == null)
+        MailboxBuffer mailboxBuffer = messageBuffer.getMailbox();
+        if (mailboxBuffer == null)
             return null;
         MailboxEntry entry = messageBuffer.getMailboxEntry();
         if (entry == null)

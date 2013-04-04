@@ -30,7 +30,8 @@ import org.armedbear.j.Directories;
 import org.armedbear.j.File;
 import org.armedbear.j.Headers;
 import org.armedbear.j.Log;
-import org.armedbear.j.Utilities;
+import org.armedbear.j.util.Base64Decoder;
+import org.armedbear.j.util.Utilities;
 
 public class MimePart
 {

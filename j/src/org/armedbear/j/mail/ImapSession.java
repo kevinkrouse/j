@@ -27,11 +27,11 @@ import java.net.Socket;
 import java.net.SocketException;
 import org.armedbear.j.Debug;
 import org.armedbear.j.Editor;
-import org.armedbear.j.FastStringBuffer;
+import org.armedbear.j.util.FastStringBuffer;
 import org.armedbear.j.Log;
 import org.armedbear.j.Netrc;
 import org.armedbear.j.SocketConnection;
-import org.armedbear.j.Utilities;
+import org.armedbear.j.util.Utilities;
 
 public final class ImapSession
 {
@@ -57,7 +57,7 @@ public final class ImapSession
 
     private String tunnelHost;
     private int tunnelPort = -1;
-    private ImapMailbox mailbox;
+    private ImapMailboxBuffer mailbox;
     private int state;
     private boolean echo;
     private Socket socket;
@@ -81,7 +81,7 @@ public final class ImapSession
         this.password = password;
     }
 
-    public final void setMailbox(ImapMailbox mb)
+    public final void setMailbox(ImapMailboxBuffer mb)
     {
         if (mailbox != null)
             Debug.bug();

@@ -20,6 +20,11 @@
 
 package org.armedbear.j;
 
+import org.armedbear.j.mode.java.JavaSource;
+import org.armedbear.j.mode.web.WebBuffer;
+import org.armedbear.j.util.FastStringBuffer;
+import org.armedbear.j.util.Utilities;
+
 import java.awt.AWTEvent;
 import java.awt.event.MouseEvent;
 import java.util.List;

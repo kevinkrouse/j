@@ -20,6 +20,8 @@
 
 package org.armedbear.j;
 
+import org.armedbear.j.util.FastStringBuffer;
+
 public final class Position implements Constants
 {
     private Line line;

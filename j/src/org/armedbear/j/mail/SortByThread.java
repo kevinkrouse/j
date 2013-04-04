@@ -289,13 +289,13 @@ public final class SortByThread
 
     private int sequenceNumber;
 
-    public void addEntries(Mailbox mb, MailboxFilter filter)
+    public void addEntries(MailboxBuffer mb, MailboxFilter filter)
     {
         sequenceNumber = 1;
         addEntriesForNode(root, mb, filter, 0);
     }
 
-    private void addEntriesForNode(Node node, Mailbox mb, MailboxFilter filter,
+    private void addEntriesForNode(Node node, MailboxBuffer mb, MailboxFilter filter,
         int depth)
     {
         if (node != root) {

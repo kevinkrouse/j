@@ -22,8 +22,9 @@ package org.armedbear.j.mail;
 
 import java.util.Stack;
 import org.armedbear.j.Debug;
-import org.armedbear.j.FastStringReader;
+import org.armedbear.j.util.FastStringReader;
 import org.armedbear.j.Log;
+import org.armedbear.j.util.FastStringReader;
 
 public abstract class MailboxFilter
 {

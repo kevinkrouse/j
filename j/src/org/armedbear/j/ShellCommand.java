@@ -20,6 +20,10 @@
 
 package org.armedbear.j;
 
+import org.armedbear.j.util.FastStringBuffer;
+import org.armedbear.j.util.ReaderThread;
+import org.armedbear.j.util.Utilities;
+
 import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.InputStream;

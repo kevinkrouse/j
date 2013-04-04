@@ -34,7 +34,7 @@ import org.armedbear.j.File;
 import org.armedbear.j.History;
 import org.armedbear.j.HistoryTextField;
 import org.armedbear.j.MessageDialog;
-import org.armedbear.j.Utilities;
+import org.armedbear.j.util.Utilities;
 
 public final class JdbDialog extends AbstractDialog
 {

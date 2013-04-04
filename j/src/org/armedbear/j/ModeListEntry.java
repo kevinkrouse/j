@@ -20,6 +20,11 @@
 
 package org.armedbear.j;
 
+import org.armedbear.j.Editor;
+import org.armedbear.j.Log;
+import org.armedbear.j.Mode;
+import org.armedbear.j.Property;
+
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 import java.lang.reflect.Method;
@@ -41,6 +46,14 @@ public final class ModeListEntry
         this.className = className;
         this.selectable = selectable;
         this.defaultFiles = defaultFiles;
+        if (className != null && Editor.isDebugEnabled()) {
+            try {
+                Class clazz = Class.forName("org.armedbear.j." + className);
+            }
+            catch (ClassNotFoundException e) {
+                Log.debug(e.getMessage());
+            }
+        }
     }
 
     public final int getId()

@@ -20,6 +20,10 @@
 
 package org.armedbear.j;
 
+import org.armedbear.j.mode.list.ListRegistersBuffer;
+import org.armedbear.j.util.FastStringBuffer;
+import org.armedbear.j.util.Utilities;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -83,6 +87,11 @@ public final class Registers
     public static final void insertRegister(String name)
     {
         final Editor editor = Editor.currentEditor();
+        insertRegister(name, editor);
+    }
+
+    public static final void insertRegister(String name, Editor editor)
+    {
         if (!editor.checkReadOnly())
             return;
         if (editor.getDot() == null)
@@ -214,13 +223,13 @@ public final class Registers
         return false;
     }
 
-    /*package*/ static final String getText(String name)
+    public static final String getText(String name)
     {
         return getText(name, 0);
     }
 
     // If maxLines > 0, return at most maxLines lines of text.
-    /*package*/ static final String getText(String name, int maxLines)
+    public static final String getText(String name, int maxLines)
     {
         File file =
             File.getInstance(Directories.getRegistersDirectory(), name);

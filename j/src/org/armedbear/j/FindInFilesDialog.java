@@ -20,6 +20,9 @@
 
 package org.armedbear.j;
 
+import org.armedbear.j.mode.dir.DirectoryBuffer;
+import org.armedbear.j.util.Utilities;
+
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 import java.awt.Dimension;
@@ -93,7 +96,7 @@ public class FindInFilesDialog extends AbstractDialog implements Constants,
 
         // Pre-fill pattern control.
         String s;
-        if (editor.getBuffer() instanceof Directory)
+        if (editor.getBuffer() instanceof DirectoryBuffer)
             // It's not very likely that we want to search for the text at dot
             // in a directory buffer.
             s = null;

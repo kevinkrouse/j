@@ -20,6 +20,8 @@
 
 package org.armedbear.j;
 
+import org.armedbear.j.util.FastStringBuffer;
+
 import java.awt.print.Book;
 import java.awt.print.PrinterException;
 import java.awt.print.PrinterJob;

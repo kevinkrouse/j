@@ -23,6 +23,8 @@ package org.armedbear.j;
 import java.util.regex.PatternSyntaxException;
 import javax.swing.SwingUtilities;
 import javax.swing.undo.CompoundEdit;
+
+import org.armedbear.j.mode.lisp.LispMode;
 import org.armedbear.lisp.AbstractString;
 import org.armedbear.lisp.Fixnum;
 import org.armedbear.lisp.Function;

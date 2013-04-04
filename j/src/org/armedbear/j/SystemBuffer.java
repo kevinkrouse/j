@@ -20,6 +20,11 @@
 
 package org.armedbear.j;
 
+import org.armedbear.j.mode.binary.BinaryLine;
+import org.armedbear.j.util.ByteBuffer;
+import org.armedbear.j.util.FastStringBuffer;
+import org.armedbear.j.util.Utilities;
+
 import java.io.BufferedOutputStream;
 import java.io.IOException;
 import java.io.InputStream;

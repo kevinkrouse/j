@@ -20,10 +20,10 @@
 
 package org.armedbear.j;
 
+import org.armedbear.j.util.Utilities;
+
 import java.awt.Color;
 import java.awt.Font;
-import java.awt.FontMetrics;
-import java.awt.Toolkit;
 import javax.swing.BorderFactory;
 import javax.swing.UIDefaults;
 import javax.swing.UIManager;

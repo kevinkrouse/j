@@ -62,16 +62,16 @@ import org.armedbear.j.Editor;
 import org.armedbear.j.EditorIterator;
 import org.armedbear.j.EditorList;
 import org.armedbear.j.File;
-import org.armedbear.j.FastStringBuffer;
-import org.armedbear.j.JavaMode;
-import org.armedbear.j.JavaSource;
+import org.armedbear.j.util.FastStringBuffer;
+import org.armedbear.j.mode.java.JavaMode;
+import org.armedbear.j.mode.java.JavaSource;
 import org.armedbear.j.Line;
 import org.armedbear.j.Log;
 import org.armedbear.j.Platform;
 import org.armedbear.j.Position;
-import org.armedbear.j.ReaderThread;
+import org.armedbear.j.util.ReaderThread;
 import org.armedbear.j.SimpleEdit;
-import org.armedbear.j.Utilities;
+import org.armedbear.j.util.Utilities;
 
 public final class Jdb extends Buffer implements JdbConstants
 {

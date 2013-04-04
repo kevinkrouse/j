@@ -20,6 +20,9 @@
 
 package org.armedbear.j;
 
+import org.armedbear.j.mode.text.PlainTextFormatter;
+import org.armedbear.j.mode.text.PlainTextMode;
+
 public final class OutputBuffer extends Buffer
 {
   private OutputBuffer()

@@ -20,6 +20,10 @@
 
 package org.armedbear.j;
 
+import org.armedbear.j.mode.list.ListOccurrencesInFilesBuffer;
+import org.armedbear.j.util.FastStringBuffer;
+import org.armedbear.j.vcs.p4.P4;
+
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
@@ -33,8 +37,6 @@ import java.util.List;
 import java.util.StringTokenizer;
 import java.util.Vector;
 import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-import java.util.regex.PatternSyntaxException;
 import javax.swing.SwingUtilities;
 import javax.swing.undo.CompoundEdit;
 
@@ -54,7 +56,7 @@ public final class FindInFiles extends Replacement implements Constants,
     private boolean defaultExcludes = true;
     private boolean includeSubdirs;
     private boolean searchFilesInMemory = true;
-    private ListOccurrencesInFiles outputBuffer;
+    private ListOccurrencesInFilesBuffer outputBuffer;
     private boolean listEachOccurrence;
 
     private Mode mode;
@@ -121,12 +123,12 @@ public final class FindInFiles extends Replacement implements Constants,
         this.mode = mode;
     }
 
-    public final ListOccurrencesInFiles getOutputBuffer()
+    public final ListOccurrencesInFilesBuffer getOutputBuffer()
     {
         return outputBuffer;
     }
 
-    public final void setOutputBuffer(ListOccurrencesInFiles buf)
+    public final void setOutputBuffer(ListOccurrencesInFilesBuffer buf)
     {
         outputBuffer = buf;
     }
@@ -893,7 +895,7 @@ public final class FindInFiles extends Replacement implements Constants,
                 buf.kill();
         }
         findInFiles = d.getFindInFiles();
-        findInFiles.setOutputBuffer(new ListOccurrencesInFiles(findInFiles));
+        findInFiles.setOutputBuffer(new ListOccurrencesInFilesBuffer(findInFiles));
         new Thread(findInFiles).start();
         Buffer outputBuffer = findInFiles.getOutputBuffer();
         if (outputBuffer != null) {

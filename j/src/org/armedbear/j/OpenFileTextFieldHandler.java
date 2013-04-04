@@ -28,7 +28,6 @@ import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
-import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 import javax.swing.JList;
@@ -38,6 +37,10 @@ import javax.swing.MenuElement;
 import javax.swing.MenuSelectionManager;
 import javax.swing.SwingUtilities;
 import org.armedbear.j.mail.MailCommands;
+import org.armedbear.j.mode.web.WebBuffer;
+import org.armedbear.j.mode.web.WebMode;
+import org.armedbear.j.util.FastStringBuffer;
+import org.armedbear.j.util.Utilities;
 
 public final class OpenFileTextFieldHandler extends DefaultTextFieldHandler
     implements Constants, MouseListener

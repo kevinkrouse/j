@@ -20,6 +20,9 @@
 
 package org.armedbear.j;
 
+import org.armedbear.j.util.FastStringBuffer;
+import org.armedbear.j.util.Utilities;
+
 import java.awt.event.KeyEvent;
 
 // A keyboard or mouse event, from j's point of view.

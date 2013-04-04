@@ -20,6 +20,11 @@
 
 package org.armedbear.j;
 
+import org.armedbear.j.mode.list.ListOccurrencesBuffer;
+import org.armedbear.j.mode.list.ListOccurrencesInFilesBuffer;
+import org.armedbear.j.util.FastStringBuffer;
+import org.armedbear.j.util.Utilities;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -38,7 +43,7 @@ public final class IList implements BackgroundProcess, Constants
     private final String path;
     private final File currentDirectory;
 
-    private ListOccurrencesInFiles outputBuffer;
+    private ListOccurrencesInFilesBuffer outputBuffer;
     private boolean cancelled;
 
     public IList(Editor editor, Search search, boolean verbose)
@@ -56,14 +61,14 @@ public final class IList implements BackgroundProcess, Constants
         return sourceBuffer;
     }
 
-    private ListOccurrences getOutputBuffer()
+    private ListOccurrencesBuffer getOutputBuffer()
     {
         return outputBuffer;
     }
 
-    private ListOccurrencesInFiles createOutputBuffer()
+    private ListOccurrencesInFilesBuffer createOutputBuffer()
     {
-        ListOccurrencesInFiles buf = new ListOccurrencesInFiles(search);
+        ListOccurrencesInFilesBuffer buf = new ListOccurrencesInFilesBuffer(search);
         FastStringBuffer sb = new FastStringBuffer(sourceBuffer.getFile().getName());
         sb.append(" \"");
         sb.append(search.getPattern());

@@ -23,13 +23,11 @@ package org.armedbear.j.mail;
 import java.util.regex.Pattern;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Debug;
-import org.armedbear.j.DiffFormatter;
-import org.armedbear.j.Editor;
+import org.armedbear.j.mode.diff.DiffFormatter;
 import org.armedbear.j.FormatTable;
 import org.armedbear.j.Formatter;
 import org.armedbear.j.Line;
 import org.armedbear.j.LineSegmentList;
-import org.armedbear.j.Utilities;
 
 public final class MessageFormatter extends Formatter
 {

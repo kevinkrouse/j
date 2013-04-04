@@ -20,6 +20,8 @@
 
 package org.armedbear.j;
 
+import org.armedbear.j.util.Utilities;
+
 import javax.swing.SwingUtilities;
 
 public final class FtpLoadProcess extends LoadProcess implements BackgroundProcess,
@@ -78,7 +80,7 @@ public final class FtpLoadProcess extends LoadProcess implements BackgroundProce
         if (session.isDirectory(file.canonicalPath())) {
             // Directory.
             fileIsDirectory = true;
-            listing = session.getDirectoryListing((FtpFile)file);
+            listing = session.retrieveDirectoryListing((FtpFile) file);
             if (listing != null)
                 result = SUCCESS;
         } else if (session.isFile(file.canonicalPath())) {

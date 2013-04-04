@@ -20,6 +20,9 @@
 
 package org.armedbear.j;
 
+import org.armedbear.j.util.FastStringBuffer;
+import org.armedbear.j.util.Utilities;
+
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 import java.util.regex.Matcher;
@@ -120,7 +123,7 @@ public final class SshFile extends File
         if (type == TYPE_LINK) {
             if (DirectoryCache.getDirectoryCache().getListing(this) != null)
                 return true;
-            SshSession session = SshSession.getSession(this);
+            RemoteSession session = SshSession.getSession(this);
             if (session != null) {
                 Debug.assertTrue(session.isLocked());
                 boolean result = session.isDirectory(canonicalPath());
@@ -158,7 +161,7 @@ public final class SshFile extends File
                     }
                 }
             }
-            SshSession session = SshSession.getSession(this);
+            RemoteSession session = SshSession.getSession(this);
             if (session != null) {
                 Debug.assertTrue(session.isLocked());
                 if (session.isDirectory(canonicalPath()))
@@ -176,7 +179,7 @@ public final class SshFile extends File
 
     public boolean exists()
     {
-        SshSession session = SshSession.getSession(this);
+        RemoteSession session = SshSession.getSession(this);
         if (session == null)
             return false;
         Debug.assertTrue(session.isLocked());
@@ -198,7 +201,7 @@ public final class SshFile extends File
             if (listing != null)
                 return listing;
         }
-        SshSession session = SshSession.getSession(this);
+        RemoteSession session = SshSession.getSession(this);
         if (session == null)
             return null;
         if (!session.isLocked()) {

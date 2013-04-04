@@ -33,9 +33,8 @@ import java.util.List;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.BufferIterator;
 import org.armedbear.j.Debug;
-import org.armedbear.j.Editor;
 import org.armedbear.j.File;
-import org.armedbear.j.FastStringBuffer;
+import org.armedbear.j.util.FastStringBuffer;
 import org.armedbear.j.Log;
 import org.armedbear.j.Mutex;
 import org.armedbear.j.ProgressNotifier;
@@ -88,14 +87,14 @@ public final class Mbox
         }
     }
 
-    private static Mailbox findMailbox(Mbox mbox)
+    private static MailboxBuffer findMailbox(Mbox mbox)
     {
         File file = mbox.getFile();
         BufferIterator iter = new BufferIterator();
         while (iter.hasNext()) {
             Buffer buf = iter.nextBuffer();
-            if (buf instanceof LocalMailbox) {
-                LocalMailbox mb = (LocalMailbox) buf;
+            if (buf instanceof LocalMailboxBuffer) {
+                LocalMailboxBuffer mb = (LocalMailboxBuffer) buf;
                 if (mb.getMailboxFile().equals(file))
                     return mb;
             }
@@ -338,8 +337,8 @@ public final class Mbox
             return;
         for (BufferIterator it = new BufferIterator(); it.hasNext();) {
             Buffer buf = it.nextBuffer();
-            if (buf instanceof LocalMailbox) {
-                LocalMailbox mb = (LocalMailbox) buf;
+            if (buf instanceof LocalMailboxBuffer) {
+                LocalMailboxBuffer mb = (LocalMailboxBuffer) buf;
                 if (mb.getMailboxFile().equals(file)) {
                     if (mb.lock()){
                         try {

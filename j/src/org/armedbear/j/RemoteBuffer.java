@@ -20,6 +20,9 @@
 
 package org.armedbear.j;
 
+import org.armedbear.j.mode.dir.DirectoryBuffer;
+import org.armedbear.j.mode.web.WebBuffer;
+
 import javax.swing.SwingUtilities;
 
 public final class RemoteBuffer extends Buffer implements Constants
@@ -114,7 +117,7 @@ public final class RemoteBuffer extends Buffer implements Constants
             File file = ftpLoadProcess.getFile();
             String listing = ftpLoadProcess.getListing();
             if (ftpLoadProcess.fileIsDirectory()) {
-                buffer = new Directory(file, listing);
+                buffer = new DirectoryBuffer(file, listing);
                 buffer.load();
             } else {
                 File cache = ftpLoadProcess.getCache();
@@ -189,7 +192,7 @@ public final class RemoteBuffer extends Buffer implements Constants
             File file = sshLoadProcess.getFile();
             String listing = sshLoadProcess.getListing();
             if (sshLoadProcess.fileIsDirectory()) {
-                buffer = new Directory(file, listing);
+                buffer = new DirectoryBuffer(file, listing);
                 buffer.load();
             } else {
                 File cache = sshLoadProcess.getCache();

@@ -20,6 +20,9 @@
 
 package org.armedbear.j;
 
+import org.armedbear.j.util.FastStringBuffer;
+import org.armedbear.j.util.Utilities;
+
 import java.awt.Graphics;
 import java.awt.print.Printable;
 import java.awt.print.PrinterException;

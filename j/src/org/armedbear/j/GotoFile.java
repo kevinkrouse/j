@@ -20,6 +20,11 @@
 
 package org.armedbear.j;
 
+import org.armedbear.j.mode.dir.DirectoryBuffer;
+import org.armedbear.j.mode.java.JavaSource;
+import org.armedbear.j.util.FastStringBuffer;
+import org.armedbear.j.util.Utilities;
+
 import java.util.regex.Pattern;
 import java.util.regex.Matcher;
 import java.awt.AWTEvent;
@@ -150,7 +155,7 @@ public final class GotoFile implements Constants
                 return fileName;
         } else if (editor.getBuffer().getType() == Buffer.TYPE_SHELL) {
             String s = dotLine.getText().trim();
-            Matcher matcher = Directory.getNativeMoveToFilenameRegExp().matcher(s);
+            Matcher matcher = DirectoryBuffer.getNativeMoveToFilenameRegExp().matcher(s);
             if (matcher.find())
                 return s.substring(matcher.end());
         }

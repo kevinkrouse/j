@@ -23,6 +23,10 @@
     <property name="abcl.jar.path"      value="${basedir}/deps/abcl.jar"/>
     <property name="junit.jar.path"     value="${basedir}/deps/junit-4.8.2.jar"/>
 
+    <property name="jdk"                value="${env.JAVA_HOME}"/>
+    <property name="javac"              value="${jdk}/bin/javac"/>
+    <property name="tools.jar.path"     value="${jdk}/lib/tools.jar"/>
+
     <target name="usage" depends="help" />
     <target name="help" depends="install.properties">
       <echo>Main Targets:
@@ -42,13 +46,14 @@
     <path id="j.build.classpath">
       <pathelement path="${build.classes.dir}"/>
       <pathelement path="${abcl.jar.path}"/>
+      <pathelement path="${tools.jar.path}"/>
     </path>
 
     <path id="j.run.classpath">
       <path refid="j.build.classpath" />
       <pathelement location="${src.dir}"/>
       <pathelement path="${extensions}"/>
-      <pathelement path="${jdk}/lib/tools.jar"/>
+      <pathelement path="${tools.jar.path}"/>
     </path>
 
     <path id="test.build.classpath">
@@ -77,15 +82,11 @@
         <format property="j.buildtime" pattern="EEE MMM dd yyyy HH:mm:ss zzz"/>
       </tstamp>
       <exec executable="hostname" outputproperty="j.hostname"/>
-      <exec executable="svn" output="${build.dir}/svn.properties" failifexecutionfails="false">
-        <arg value="info"/>
-      </exec>
-      <touch file="${build.dir}/svn.properties"/>
-      <property file="${build.dir}/svn.properties" prefix="svn"/>
 
       <echo message="${j.buildtime}${line.separator}" file="${j.build.path}"/>
       <echo message="${j.hostname}${line.separator}" file="${j.build.path}" append="yes"/>
-      <echo message="${svn.Revision}${line.separator}" file="${j.build.path}" append="yes"/>
+      <!-- UNDONE: get git version string -->
+      <!--echo message="${git.revision}${line.separator}" file="${j.build.path}" append="yes"/-->
     </target>
 
     <target name="stamp.version">
@@ -178,36 +179,44 @@
     <target name="dependencies.check" depends="abcl.jar,junit.jar" />
 
     <target name="pre-build" depends="dependencies.check">
-      <!--- antversion fails in ant 1.7.1 <antversion property="ant.version" 
-                                                      atleast="1.7"/> -->
-      <mkdir dir="${build.dir}"/>
+      <property name="ant.version.min" value="1.8.4" />
+      <antversion property="ant.version.check" atleast="${ant.version.min}"/>
+      <fail message="Ant ${ant.version.min} or greater is required." unless="ant.version.check" />
 
-      <property name="java.path"
-                value="${java.home}/bin/java"/>
 
-      <condition property="j.java.version">
+      <exec executable="${javac}"
+            outputproperty="javac.version">
+        <arg value="-version"/>
+      </exec>
+      <fail message="Failed to get javac version" unless="javac.version"/>
+      <echo>javac.version: ${javac.version}</echo>
+      <condition property="j.javac.version">
         <or>
-          <matches string="${java.version}" pattern="1\.5"/>
-          <matches string="${java.version}" pattern="1\.6\.0_[0-9]*"/>
-        </or>  
+          <matches string="${javac.version}" pattern="1\.6"/>
+          <matches string="${javac.version}" pattern="1\.7"/>
+        </or>
       </condition>
-      <echo>java.version: ${java.version}</echo>
+
+      <mkdir dir="${build.dir}"/>
     </target>
     
-    <target name="java.warning" 
+    <target name="javac.warning" 
             depends="pre-build"
-            unless="j.java.version">
-      <echo>WARNING: Java version ${java.version} not recommended.</echo>
+            unless="j.javac.version">
+      <echo>WARNING: javac version ${javac.version} not recommended.</echo>
     </target>
         
     <target name="build" 
-            depends="pre-build,java.warning,jpty"
+            depends="pre-build,javac.warning,jpty"
             description="-- build J source">
       <mkdir dir="${build.classes.dir}"/>
       <javac destdir="${build.classes.dir}"
              debug="true"
              source="1.6"
              target="1.6"
+             fork="true"
+             executable="${javac}"
+             includeantruntime="false"
              classpathref="j.build.classpath">
         <src path="${src.dir}"/>
         <patternset refid="j.source"/>
@@ -243,15 +252,17 @@
       </jar>
     </target>
 
-    <target name="dist" depends="dist.bin,dist.win,dist.mac,dist.src"
+    <target name="dist" depends="dist.bin, dist.win, dist.mac, dist.src"
             description="-- create binary and source distributions">
     </target>
 
     <target name="dist.bin" depends="jar">
-      <property name="j.dist.dir" value="${dist.dir}/j-${j.version}"/>
+      <property name="j.dist.bin.name" value="j-${j.version}-bin"/>
+      <property name="j.dist.bin.dir" value="${dist.dir}/${j.dist.bin.name}"/>
 
-      <mkdir dir="${j.dist.dir}"/>
-      <copy todir="${j.dist.dir}">
+      <delete dir="${j.dist.bin.dir}"/>
+      <mkdir dir="${j.dist.bin.dir}"/>
+      <copy todir="${j.dist.bin.dir}">
         <fileset file="${j.jar.path}"/>
         <fileset dir="${basedir}">
           <patternset refid="j.resources.top"/>
@@ -259,14 +270,14 @@
         <fileset dir="${build.dir}" includes="lib/**,bin/**"/>
       </copy>
 
-      <tar tarfile="${dist.dir}/j-${j.version}-bin.tar.gz"
+      <tar tarfile="${dist.dir}/${j.dist.bin.name}.tar.gz"
            basedir="${dist.dir}"
-           includes="j-${j.version}/"
+           includes="${j.dist.bin.name}/"
            compression="gzip">
       </tar>
-      <zip zipfile="${dist.dir}/j-${j.version}-bin.zip"
+      <zip zipfile="${dist.dir}/${j.dist.bin.name}.zip"
            basedir="${dist.dir}"
-           includes="j-${j.version}/">
+           includes="${j.dist.bin.name}/">
       </zip>
     </target>
 
@@ -275,67 +286,72 @@
       classpath="${tools.dir}/AppBundler/AppBundler.jar;${tools.dir}/AppBundler/XMLLib.jar"/>
 
     <target name="dist.win" depends="jar">
-      <property name="j.dist.dir" value="${dist.dir}/j-${j.version}"/>
-      <mkdir dir="${j.dist.dir}"/>
+      <property name="j.dist.win.name" value="j-${j.version}-win"/>
+      <property name="j.dist.win.dir" value="${dist.dir}/${j.dist.win.name}"/>
+      <delete dir="${j.dist.win.dir}"/>
+
       <appbundler
         bundle="bundle.xml"
         target="win"
-        destdir="${j.dist.dir}"
+        destdir="${dist.dir}"
         libdir="${build.dir};${deps.dir}" />
 
-      <copy todir="${j.dist.dir}/win">
+      <copy todir="${dist.dir}/win">
         <fileset dir="${basedir}">
           <patternset refid="j.resources.top"/>
         </fileset>
         <fileset dir="${build.dir}" includes="bin/**"/>
       </copy>
+      <move file="${dist.dir}/win" tofile="${j.dist.win.dir}" />
 
-      <zip zipfile="${dist.dir}/j-${j.version}-win.zip"
+      <zip zipfile="${dist.dir}/${j.dist.win.name}.zip"
            basedir="${dist.dir}"
-           includes="j-${j.version}/win">
+           includes="${j.dist.win.name}/">
       </zip>
     </target>
 
     <target name="dist.mac" depends="jar">
-      <property name="j.dist.dir" value="${dist.dir}/j-${j.version}"/>
-      <mkdir dir="${j.dist.dir}"/>
+      <property name="j.dist.mac.name" value="j-${j.version}-mac"/>
+      <property name="j.dist.mac.dir" value="${dist.dir}/${j.dist.mac.name}"/>
+      <delete dir="${j.dist.mac.dir}"/>
 
       <appbundler
         bundle="bundle.xml"
         target="mac"
-        destdir="${j.dist.dir}"
+        destdir="${dist.dir}"
         libdir="${build.dir};${deps.dir}" />
 
-      <copy todir="${j.dist.dir}/mac/J.app/Contents/Resources/Java">
+      <copy todir="${dist.dir}/mac/J.app/Contents/Resources/Java">
         <fileset dir="${basedir}">
           <patternset refid="j.resources.top"/>
         </fileset>
         <fileset dir="${build.dir}" includes="bin/**"/>
       </copy>
+      <move file="${dist.dir}/mac" tofile="${j.dist.mac.dir}" />
 
       <!-- UNDONE: Create a .dmg disk image instead of zip -->
-      <zip zipfile="${dist.dir}/j-${j.version}-mac.zip"
+      <zip zipfile="${dist.dir}/${j.dist.mac.name}.zip"
            basedir="${dist.dir}"
-           includes="j-${j.version}/mac">
+           includes="${j.dist.mac.name}/">
       </zip>
     </target>
 
-    <target name="dist.src">
-      <delete dir="${java.io.tmpdir}/j-${j.version}"/>
-      <exec executable="svn">
-        <arg value="export"/>
-        <arg file="${basedir}"/>
-        <arg file="${java.io.tmpdir}/j-${j.version}"/>
+    <target name="dist.src" depends="git.check" if="git.available">
+      <property name="j.dist.src.name" value="j-${j.version}-src"/>
+      <property name="j.dist.src.dir" value="${dist.dir}/${j.dist.src.name}"/>
+
+      <exec executable="git">
+        <arg value="archive"/>
+        <arg value="--output=${dist.dir}/${j.dist.src.name}.zip"/>
+        <arg value="--prefix=${j.dist.src.name}/"/>
+        <arg value="HEAD"/>
       </exec>
-      <tar tarfile="${dist.dir}/j-${j.version}-src.tar.gz"
-           basedir="${java.io.tmpdir}"
-           includes="j-${j.version}/"
-           compression="gzip">
-      </tar>
-      <zip zipfile="${dist.dir}/j-${j.version}-src.zip"
-           basedir="${java.io.tmpdir}"
-           includes="j-${j.version}/">
-      </zip>
+      <exec executable="git">
+        <arg value="archive"/>
+        <arg value="--output=${dist.dir}/${j.dist.src.name}.tar.gz"/>
+        <arg value="--prefix=${j.dist.src.name}/"/>
+        <arg value="HEAD"/>
+      </exec>
     </target>
 
     <target name="run">
@@ -353,10 +369,13 @@
       </java>
     </target>
 
-    <target name="test.build" depends="pre-build,java.warning">
+    <target name="test.build" depends="pre-build,javac.warning">
       <mkdir dir="${build.test.dir}"/>
       <javac destdir="${build.test.dir}"
              debug="true"
+             fork="true"
+             executable="${javac}"
+             includeantruntime="false"
              classpathref="test.build.classpath">
         <src path="${test.dir}"/>
       </javac>
@@ -389,7 +408,7 @@
     <target name="jpty" depends="jpty.build"/>
 
     <target name="jpty.uptodate" if="unix">
-      <exec executable="gcc" resultproperty="has.gcc"
+      <exec executable="gcc" resultproperty="has.gcc" outputproperty="gcc.version"
             failonerror="false" failifexecutionfails="false">
           <arg line="--version" />
       </exec>
@@ -464,13 +483,28 @@
             depends="install.unix.properties,install.windows.properties"/>
 
     <target name="install.unix.properties" if="unix">
+      <property name="java.path"      value="${java.home}/bin/java"/>
       <property name="j.install.root" value="/usr/local"/>
       <property name="j.wrapper.file" value="j"/>
     </target>
 
     <target name="install.windows.properties" if="windows">
+      <property name="java.path"      value="${java.home}\\bin\\java"/>
       <property name="j.install.root" value="c:/j"/>
       <property name="j.wrapper.file" value="j.bat"/>
+    </target>
+
+    <target name="git.check">
+      <condition property="git.available">
+        <and>
+          <available file="${basedir}/../.git" type="dir" />
+          <available file="git" type="file">
+            <filepath>
+              <pathelement path="${env.PATH}"/>
+            </filepath>
+          </available>
+        </and>
+      </condition>
     </target>
 
 </project>

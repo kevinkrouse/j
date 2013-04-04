@@ -20,6 +20,8 @@
 
 package org.armedbear.j;
 
+import org.armedbear.j.util.FastStringBuffer;
+
 import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.Iterator;

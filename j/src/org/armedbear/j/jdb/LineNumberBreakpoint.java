@@ -25,16 +25,16 @@ import com.sun.jdi.ReferenceType;
 import com.sun.jdi.request.EventRequest;
 import com.sun.jdi.request.EventRequestManager;
 import java.util.List;
-import org.armedbear.j.Annotation;
+
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Debug;
 import org.armedbear.j.Editor;
 import org.armedbear.j.File;
-import org.armedbear.j.FastStringBuffer;
-import org.armedbear.j.JavaSource;
+import org.armedbear.j.util.FastStringBuffer;
+import org.armedbear.j.mode.java.JavaSource;
 import org.armedbear.j.Line;
 import org.armedbear.j.Log;
-import org.armedbear.j.Utilities;
+import org.armedbear.j.util.Utilities;
 
 public final class LineNumberBreakpoint extends ResolvableBreakpoint
 {

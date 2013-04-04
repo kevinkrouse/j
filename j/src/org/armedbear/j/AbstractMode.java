@@ -26,6 +26,11 @@ import java.util.List;
 import javax.swing.JCheckBoxMenuItem;
 import javax.swing.JMenuItem;
 import javax.swing.JPopupMenu;
+
+import org.armedbear.j.mode.dir.DirectoryBuffer;
+import org.armedbear.j.util.FastStringBuffer;
+import org.armedbear.j.mode.text.PlainTextFormatter;
+import org.armedbear.j.util.Utilities;
 import org.armedbear.lisp.Interpreter;
 import org.armedbear.lisp.JavaObject;
 import org.armedbear.lisp.LispObject;
@@ -286,10 +291,10 @@ public abstract class AbstractMode implements Constants, Mode
                  FindInFiles.getFindInFiles() != null);
         menu.addSeparator();
         final boolean isNotReadOnly = !editor.getBuffer().isReadOnly();
-        if (!(editor.getBuffer() instanceof Directory))
+        if (!(editor.getBuffer() instanceof DirectoryBuffer))
             menu.add(editor, "Replace...", 'P', "replace", isNotReadOnly);
         menu.add(editor, "Replace in Files...", 'E', "replaceInFiles", local);
-        if (!(editor.getBuffer() instanceof Directory)) {
+        if (!(editor.getBuffer() instanceof DirectoryBuffer)) {
             menu.addSeparator();
             menu.add(editor, "Find Tag...", 'A', "findTag");
         }
@@ -434,7 +439,7 @@ public abstract class AbstractMode implements Constants, Mode
         addContextMenuItem("Unfold all", "unfoldAll", popup, dispatcher);
 
         // Properties.
-        if (buffer.getFile() != null && !(buffer instanceof Directory)) {
+        if (buffer.getFile() != null && !(buffer instanceof DirectoryBuffer)) {
             popup.addSeparator();
             addContextMenuItem("Properties", "properties", popup, dispatcher);
         }
@@ -914,5 +919,10 @@ public abstract class AbstractMode implements Constants, Mode
             start = offset;
         }
         return new Position(line, start);
+    }
+
+    public String trimSyntacticWhitespace(String s)
+    {
+        return s;
     }
 }

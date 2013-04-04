@@ -20,6 +20,11 @@
 
 package org.armedbear.j;
 
+import org.armedbear.j.mode.text.PlainTextFormatter;
+import org.armedbear.j.mode.text.PlainTextMode;
+import org.armedbear.j.util.ReaderThread;
+import org.armedbear.j.util.Utilities;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;

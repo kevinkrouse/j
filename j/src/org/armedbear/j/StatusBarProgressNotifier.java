@@ -20,6 +20,8 @@
 
 package org.armedbear.j;
 
+import org.armedbear.j.util.FastStringBuffer;
+
 import javax.swing.SwingUtilities;
 
 public class StatusBarProgressNotifier implements Cancellable, ProgressNotifier, Runnable

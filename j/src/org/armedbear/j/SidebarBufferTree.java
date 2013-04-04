@@ -20,6 +20,8 @@
 
 package org.armedbear.j;
 
+import org.armedbear.j.util.FastStringBuffer;
+
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Cursor;

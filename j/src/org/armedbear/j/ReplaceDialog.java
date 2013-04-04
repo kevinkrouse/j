@@ -20,6 +20,8 @@
 
 package org.armedbear.j;
 
+import org.armedbear.j.util.FastStringBuffer;
+
 import java.util.regex.PatternSyntaxException;
 import java.awt.Dimension;
 import java.awt.Point;

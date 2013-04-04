@@ -20,6 +20,8 @@
 
 package org.armedbear.j;
 
+import org.armedbear.j.util.FastStringBuffer;
+
 import java.awt.event.FocusEvent;
 import java.awt.event.FocusListener;
 

@@ -31,6 +31,10 @@ import java.io.RandomAccessFile;
 import java.util.ArrayList;
 import java.util.StringTokenizer;
 
+import org.armedbear.j.mode.dir.DirectoryEntry;
+import org.armedbear.j.util.FastStringBuffer;
+import org.armedbear.j.util.FastStringReader;
+import org.armedbear.j.util.Utilities;
 import org.armedbear.lisp.Pathname;
 
 public class File implements Comparable

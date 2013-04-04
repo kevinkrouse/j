@@ -35,6 +35,18 @@ public final class Command
         this.name = name;
         this.className = className;
         this.methodName = methodName;
+        if (className != null && Editor.isDebugEnabled()) {
+            try {
+                Class clazz = Class.forName("org.armedbear.j." + className);
+                clazz.getMethod(methodName);
+            }
+            catch (ClassNotFoundException e) {
+                Log.debug("Command class not found: " + e.getMessage());
+            }
+            catch (NoSuchMethodException e) {
+                Log.debug("Command method not found: " + e.getMessage());
+            }
+        }
     }
 
     // Constructor for commands that are implemented by a method of the same

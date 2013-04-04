@@ -43,7 +43,7 @@ public interface Mode
      * be defined in <code>Constants</code>.
      *
      * @return  the unique identifier for this mode
-     * @see     Constants
+     * @see     org.armedbear.j.Constants
      */
     public int getId();
 
@@ -52,7 +52,7 @@ public interface Mode
      * defined in <code>Constants</code>.
      *
      * @return  the display name of this mode
-     * @see     Constants
+     * @see     org.armedbear.j.Constants
      */
     public String getDisplayName();
 
@@ -74,7 +74,7 @@ public interface Mode
      * <code>KeyMap</code> is returned.
      *
      * @return  a non-null KeyMap
-     * @see     KeyMapping
+     * @see     org.armedbear.j.KeyMapping
      */
     public KeyMap getKeyMap();
 
@@ -86,7 +86,7 @@ public interface Mode
      *          none.
      * @see     #getKeyMap
      * @see     KeyMap
-     * @see     KeyMapping
+     * @see     org.armedbear.j.KeyMapping
      */
     public File getKeyMapFile();
 
@@ -98,7 +98,7 @@ public interface Mode
      * Returns an identifier for the <code>MenuBar</code> that is to
      * be used for this mode.
      * Override this method to return a unique name if you override
-     * {@link #createMenuBar(Frame) createMenuBar} to have a
+     * {@link #createMenuBar(org.armedbear.j.Frame) createMenuBar} to have a
      * custom menu.
      *
      * @return  an identifier for the <code>MenuBar</code> that is returned
@@ -209,7 +209,7 @@ public interface Mode
      * Returns whether or not this mode will potentially perform context
      * sensitive indentation on a given <code>Line</code> in a given
      * <code>Buffer</code>.  This returns <code>true</code> if
-     * {@link #getCorrectIndentation(Line, Buffer) getCorrectIndentation()}
+     * {@link #getCorrectIndentation(org.armedbear.j.Line, Buffer) getCorrectIndentation()}
      * might return something other than zero, <code>false</code> otherwise.
      *
      * @return  <code>true</code> if this mode supports context-sensitive
@@ -222,7 +222,7 @@ public interface Mode
      * Returns whether or not this mode will potentially perform context
      * sensitive indentation for a paste operation.  This returns
      * <code>true</code> if
-     * {@link #getCorrectIndentation(Line, Buffer) getCorrectIndentation()}
+     * {@link #getCorrectIndentation(org.armedbear.j.Line, Buffer) getCorrectIndentation()}
      * might return something other than zero, <code>false</code> otherwise.
      *
      * @return  <code>true<code> if this mode supports context-sensitive
@@ -550,4 +550,13 @@ public interface Mode
      * @since           0.16.1
      */
     public Position findIdentifierStart(Line line, int offset);
+
+    /**
+     * Replaces syntactic whitespace (quotes and comments) with actual space
+     * characters, then returns trimmed string.
+     *
+     * @param s         the string to be trimmed
+     * @return          the trimmed string
+     */
+    public String trimSyntacticWhitespace(String s);
 }

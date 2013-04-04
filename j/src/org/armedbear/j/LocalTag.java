@@ -20,6 +20,8 @@
 
 package org.armedbear.j;
 
+import org.armedbear.j.util.Utilities;
+
 import java.awt.Component;
 import java.awt.Graphics;
 import javax.swing.Icon;
@@ -32,14 +34,14 @@ public class LocalTag extends Tag implements Constants
     private final int type;
     private int flags;
 
-    protected LocalTag(String name, Line line)
+    public LocalTag(String name, Line line)
     {
         super(name, line.getText());
         pos = new Position(line, 0);
         type = TAG_METHOD;
     }
 
-    protected LocalTag(String name, Position pos)
+    public LocalTag(String name, Position pos)
     {
         super(name, pos.getLine().getText());
         this.pos = new Position(pos);

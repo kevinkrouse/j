@@ -26,7 +26,6 @@ import org.armedbear.j.BufferIterator;
 import org.armedbear.j.BufferList;
 import org.armedbear.j.Editor;
 import org.armedbear.j.IdleThreadTask;
-import org.armedbear.j.Log;
 import org.armedbear.j.Property;
 
 public final class CheckMailTask extends IdleThreadTask
@@ -65,13 +64,13 @@ public final class CheckMailTask extends IdleThreadTask
                 synchronized (bufferList) {
                     for (BufferIterator it = new BufferIterator(); it.hasNext();) {
                         Buffer buf = it.nextBuffer();
-                        if (buf instanceof ImapMailbox || buf instanceof PopMailbox)
+                        if (buf instanceof ImapMailboxBuffer || buf instanceof PopMailboxBuffer)
                             mailboxes.add(buf);
                     }
                 }
                 // Now check the mailboxes in the list.
                 for (int i = 0; i < mailboxes.size(); i++) {
-                    Mailbox mb = (Mailbox) mailboxes.get(i);
+                    MailboxBuffer mb = (MailboxBuffer) mailboxes.get(i);
                     if (bufferList.contains(mb))
                         check(mb);
                 }
@@ -80,7 +79,7 @@ public final class CheckMailTask extends IdleThreadTask
         }
     };
 
-    private void check(final Mailbox mb)
+    private void check(final MailboxBuffer mb)
     {
         // Avoid locking unnecessarily.
         if (!mb.getBooleanProperty(Property.CHECK_ENABLED))

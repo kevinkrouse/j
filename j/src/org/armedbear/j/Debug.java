@@ -20,6 +20,10 @@
 
 package org.armedbear.j;
 
+import org.armedbear.j.util.FastStringBuffer;
+import org.armedbear.j.util.FastStringReader;
+import org.armedbear.j.util.Utilities;
+
 import javax.swing.SwingUtilities;
 
 public final class Debug

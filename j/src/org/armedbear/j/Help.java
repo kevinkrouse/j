@@ -30,7 +30,9 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Collections;
 import java.util.List;
-import org.armedbear.lisp.Closure;
+
+import org.armedbear.j.mode.web.WebBuffer;
+import org.armedbear.j.util.FastStringBuffer;
 import org.armedbear.lisp.LispObject;
 
 public final class Help

@@ -20,6 +20,8 @@
 
 package org.armedbear.j;
 
+import org.armedbear.j.mode.image.ImageLine;
+
 import java.awt.event.AdjustmentEvent;
 import java.awt.event.AdjustmentListener;
 import javax.swing.JScrollBar;

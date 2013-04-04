@@ -20,6 +20,11 @@
 
 package org.armedbear.j;
 
+import org.armedbear.j.mode.java.JavaSource;
+import org.armedbear.j.mode.java.JavaTag;
+import org.armedbear.j.mode.list.ListTagsBuffer;
+import org.armedbear.j.util.Utilities;
+
 import java.awt.AWTEvent;
 import java.awt.event.MouseEvent;
 import java.util.ArrayList;
@@ -277,7 +282,7 @@ public final class TagCommands implements Constants
         editor.setWaitCursor();
         boolean succeeded = false;
         File file = JavaSource.findSource(editor.getBuffer(), className,
-            false);
+                false);
         if (file != null) {
             Buffer buf = Editor.getBuffer(file);
             if (buf != null) {

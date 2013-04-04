@@ -27,10 +27,10 @@ import java.net.Socket;
 import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.util.StringTokenizer;
-import javax.swing.SwingUtilities;
+
 import org.armedbear.j.Debug;
 import org.armedbear.j.Editor;
-import org.armedbear.j.FastStringBuffer;
+import org.armedbear.j.util.FastStringBuffer;
 import org.armedbear.j.Log;
 import org.armedbear.j.ProgressNotifier;
 import org.armedbear.j.Property;

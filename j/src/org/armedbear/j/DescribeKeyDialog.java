@@ -20,6 +20,8 @@
 
 package org.armedbear.j;
 
+import org.armedbear.j.util.FastStringBuffer;
+
 import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
 import javax.swing.JLabel;

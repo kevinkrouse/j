@@ -20,7 +20,7 @@
 
 package org.armedbear.j.jdb;
 
-import org.armedbear.j.FastStringBuffer;
+import org.armedbear.j.util.FastStringBuffer;
 import org.armedbear.j.Log;
 import org.xml.sax.Attributes;
 

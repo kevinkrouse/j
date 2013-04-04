@@ -24,12 +24,11 @@ import java.io.Serializable;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Locale;
-import org.armedbear.j.Debug;
+
 import org.armedbear.j.Editor;
-import org.armedbear.j.FastStringBuffer;
-import org.armedbear.j.Log;
+import org.armedbear.j.util.FastStringBuffer;
 import org.armedbear.j.Property;
-import org.armedbear.j.Utilities;
+import org.armedbear.j.util.Utilities;
 
 public abstract class MailboxEntry implements Serializable
 {
@@ -476,7 +475,7 @@ public abstract class MailboxEntry implements Serializable
         if (orphan)
             sb.append("- ");
         else if (depth > 1)
-            sb.append(Utilities.spaces((depth-1)*2));
+            sb.append(Utilities.spaces((depth - 1) * 2));
         sb.append(formatSubject());
         return sb.toString();
     }

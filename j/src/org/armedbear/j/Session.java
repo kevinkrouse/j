@@ -27,12 +27,15 @@ import java.io.OutputStreamWriter;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+
+import org.armedbear.j.mode.dir.DirectoryBuffer;
+import org.armedbear.j.mode.web.WebBuffer;
+import org.armedbear.j.util.Utilities;
 import org.xml.sax.Attributes;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 import org.xml.sax.XMLReader;
 import org.xml.sax.helpers.DefaultHandler;
-import org.xml.sax.helpers.XMLReaderFactory;
 
 public final class Session extends DefaultHandler implements Constants
 {
@@ -222,7 +225,7 @@ public final class Session extends DefaultHandler implements Constants
                     if (buf != null) {
                         // do nothing, we already have a buffer
                     } else if (file.isDirectory()) {
-                        buf = new Directory(file);
+                        buf = new DirectoryBuffer(file);
                     } else if (file.isFile() && file.canRead()) {
                         if (entry.getModeId() == WEB_MODE)
                             buf = WebBuffer.createWebBuffer(file, null, null);

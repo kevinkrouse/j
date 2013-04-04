@@ -34,10 +34,10 @@ import org.armedbear.j.Buffer;
 import org.armedbear.j.Directories;
 import org.armedbear.j.Editor;
 import org.armedbear.j.EditorIterator;
-import org.armedbear.j.FastStringBuffer;
+import org.armedbear.j.util.FastStringBuffer;
 import org.armedbear.j.File;
 import org.armedbear.j.Headers;
-import org.armedbear.j.ImageLine;
+import org.armedbear.j.mode.image.ImageLine;
 import org.armedbear.j.ImageLoader;
 import org.armedbear.j.Line;
 import org.armedbear.j.Log;
@@ -47,14 +47,14 @@ import org.armedbear.j.Property;
 import org.armedbear.j.Sidebar;
 import org.armedbear.j.StatusBarProgressNotifier;
 import org.armedbear.j.TextLine;
-import org.armedbear.j.Utilities;
+import org.armedbear.j.util.Utilities;
 
 public final class NewsGroupMessageBuffer extends MessageBuffer
 {
-    private NewsGroupSummary summary;
+    private NewsGroupSummaryBuffer summary;
     private boolean cancelled;
 
-    public NewsGroupMessageBuffer(NewsGroupSummary summary,
+    public NewsGroupMessageBuffer(NewsGroupSummaryBuffer summary,
         NewsGroupSummaryEntry entry)
     {
         super();
@@ -71,7 +71,7 @@ public final class NewsGroupMessageBuffer extends MessageBuffer
         new Thread(loadProcess).start();
     }
 
-    public NewsGroupSummary getSummary()
+    public NewsGroupSummaryBuffer getSummary()
     {
         return summary;
     }

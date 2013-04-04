@@ -20,6 +20,8 @@
 
 package org.armedbear.j;
 
+import org.armedbear.j.util.Utilities;
+
 import java.util.ArrayList;
 import java.util.List;
 import javax.swing.undo.CompoundEdit;

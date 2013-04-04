@@ -18,42 +18,93 @@
 <hr>
 
 <p>
-<b>Using configure and make</b>
+To install pre-built binary packages, refer to the <a href="install.html">install</a> documentation.
 <p>
-This is the recommended build system on Unix platforms. On Windows, you are
-more likely to succeed with Ant; see <a href="#Using_Ant">below</a>.
+<h2>Prerequisites</h2>
 <p>
-For Linux:
+You will need the following to build j.
+<ul>
+  <li>JDK 1.6 or greater (<a href="http://www.oracle.com/technetwork/java/index.html">Oracle JDK</a> recommended.)
+  <li><a href="http://ant.apache.org/">Apache Ant</a> 1.8.4 or greater.
+  <li>The j-0.23.0-src.tar.gz or .zip archive.
+</ul>
 
+<h2>Building</h2>
+<p>
+Change into the root directory of the j source distribution and edit the file
+build.properties to suit your situation. Then:
 <pre>
-    $ ./configure --with-jdk=DIR
-    $ make
-    $ make install
+    C:\j> ant jar
 </pre>
+This will build download required dependencies and build j.jar that you can use to
+launch j.  Run <code>ant help</code> for a list of commonly used ant targets.
+<p>
+To compile against a different JDK version, edit the build.properties file
+or use the <code>jdk</code> property on the command line:
+<pre>
+    C:\j> ant jar -Djdk=/System/Library/Java/JavaVirtualMachines/1.6.0.jdk/Contents/Home
+</pre>
+The <code>jdk</code> property is used to find the javac compiler and the tools.jar.
+The tools.jar is required to build the debugger and some JDKs distribute the tools.jar
+in different locations.  To tell the ant where javac compiler or tools.jar are located,
+edit build.properties or set the <code>javac</code> or <code>tools.jar.path</code>
+properties on the command line.
 
-The <code>--with-jdk</code> option is <b>always</b> required,
-in order to specify which JDK to use (give the full path of its top-level directory).
+<h2>Extending Classpath</h2>
 <p>
-On Mac OS X, the --with-jdk option should be specified like this:
-<pre>
-    --with-jdk=/System/Library/Frameworks/JavaVM.framework
-</pre>
-<p>
-You can use the <code>--with-extensions</code> option to specify extensions to
+You can use the <code>extensions</code> property to specify extensions to
 the <code>CLASSPATH</code>. For example, you may want to build j with support
 for an external XML parser:
 <pre>
-    $ ./configure ... --with-extensions=/usr/share/java/xerces.jar
+    $ ant jar -Dextensions=/usr/share/java/xerces.jar
 </pre>
 Extensions specified in this way are added to the <code>CLASSPATH</code> both
 during the build process and at runtime.
 <p>
 <a name="jpty"></a>If you want to use certain experimental features such as
-shell and ssh buffers, you should specify the <code>--enable-jpty</code> option
+shell and ssh buffers, you should specify the <code>jpty</code> property
 (you will also need to set <code>enableExperimentalFeatures=true</code> in your
 <a href="preferences.html">preferences</a> file).
+
+<h2>Building and Running Tests</h2>
 <p>
-By default, j will be installed in /usr/local/bin.
+To build and run the tests, run:
+<pre>
+    $ ant test
+</pre>
+
+<h2>Building Distributions</h2>
+<p>
+To build native packages for distribution, run:
+<pre>
+    $ ant dist
+</pre>
+or for a single platform,
+<pre>
+    $ ant dist.win
+    $ ant dist.mac
+    $ ant dist.bin
+    $ ant dist.src
+</pre>
+
+<h2>Running From Source</h2>
+<p>
+For testing purposes, you may run j directly from the build directory:
+<pre>
+    $ ant run
+</pre>
+This will launch j with arguments <code>--debug --force-new-instance --no-session --no-server --no-restore</code>
+and allow a java debugger to attach on port 5005.
+
+<h2>Installing From Source</h2>
+<p>
+For unix platforms, the binary distribution is the recommended way or running j.
+Alternatively, you may install j into /usr/local on unix or C:\\ on windows.
+To install, run:
+<pre>
+    $ ant install
+</pre>
+To change the installation location, edit the build.properties file before running ant.
 <p>
 After you've built and installed j, you should be able to invoke it from the
 command line by just typing
@@ -62,17 +113,9 @@ command line by just typing
 </pre>
 if /usr/local/bin is in your path.
 <p>
-<b><a name="Using_Ant">Using Ant</a></b>
+
+<h2>Using configure and make</h2>
 <p>
-<a href="http://jakarta.apache.org/ant">Ant</a> is the recommended build system
-on Windows. Version 1.4.1 or later of Ant is required.
-<p>
-Change into the root directory of the j source distribution and edit the file
-build.properties to suit your situation. Then:
-<pre>
-    C:\j-0.21.0> ant all
-</pre>
-This will build j.jar and generate a batch file, j.bat, that you can use to
-launch j.
+The old configure and make build system is deprecated.  Building with Ant is now required.
 </body>
 </html>

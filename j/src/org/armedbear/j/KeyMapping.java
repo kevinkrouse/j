@@ -20,6 +20,9 @@
 
 package org.armedbear.j;
 
+import org.armedbear.j.util.FastStringBuffer;
+import org.armedbear.j.util.Utilities;
+
 import javax.swing.KeyStroke;
 
 public class KeyMapping implements Constants

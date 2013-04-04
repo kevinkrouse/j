@@ -20,6 +20,9 @@
 
 package org.armedbear.j;
 
+import org.armedbear.j.mode.dir.DirectoryEntry;
+import org.armedbear.j.util.FastStringBuffer;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -31,15 +34,16 @@ import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketException;
+import java.util.ArrayList;
 import java.util.Random;
 import java.util.StringTokenizer;
 import java.util.Vector;
 import javax.swing.SwingUtilities;
 
-public class FtpSession implements Constants
+public class FtpSession implements Constants, RemoteSession
 {
     private static final boolean echo = true;
-    private static final Vector sessionList = new Vector();
+    private static final ArrayList<FtpSession> sessionList = new ArrayList<FtpSession>();
 
     private static CleanupThread cleanupThread;
 
@@ -105,9 +109,24 @@ public class FtpSession implements Constants
         return session;
     }
 
-    public final String getHost()
+    public final String getHostName()
     {
         return host;
+    }
+
+    public String getUserName()
+    {
+        return user;
+    }
+
+    public String getPassword()
+    {
+        return password;
+    }
+
+    public int getPort()
+    {
+        return port;
     }
 
     public final String getErrorText()
@@ -222,20 +241,21 @@ public class FtpSession implements Constants
         return fileSize;
     }
 
-    boolean deleteFile(String remotePath)
+    public boolean deleteFile(String remotePath)
     {
         command("DELE " + remotePath);
         return getReply() == 250;
     }
 
-    boolean removeDirectory(String remotePath)
+    public boolean removeDirectory(String remotePath)
     {
         command("RMD " + remotePath);
         return getReply() == 250;
     }
 
-    public boolean chmod(FtpFile file, int permissions)
+    public boolean chmod(File file, int permissions)
     {
+        Debug.bugIfNot(file instanceof FtpFile);
         if (permissions != 0) {
             FastStringBuffer sb = new FastStringBuffer("SITE CHMOD ");
             sb.append(Integer.toString(permissions, 8));
@@ -331,7 +351,7 @@ public class FtpSession implements Constants
         return status;
     }
 
-    public String getDirectoryListing(File file)
+    public String retrieveDirectoryListing(File file)
     {
         if (!(file instanceof FtpFile)) {
             Debug.bug();
@@ -347,7 +367,7 @@ public class FtpSession implements Constants
         return listing;
     }
 
-    public String getDirectoryListing(String dirname)
+    String getDirectoryListing(String dirname)
     {
         Debug.assertTrue(isLocked());
         String listing = null;
@@ -372,7 +392,7 @@ public class FtpSession implements Constants
         return listing;
     }
 
-    public String getDirectoryListingForFile(String filename)
+    String getDirectoryListingForFile(String filename)
     {
         String listing = null;
         if (connected) {
@@ -629,6 +649,11 @@ public class FtpSession implements Constants
             return ERROR;
     }
 
+    public synchronized boolean isConnected()
+    {
+        return connected;
+    }
+
     public synchronized boolean verifyConnected()
     {
         if (connected) {
@@ -644,7 +669,7 @@ public class FtpSession implements Constants
         return connected;
     }
 
-    private synchronized void connect()
+    public synchronized boolean connect()
     {
         if (progressNotifier != null)
             progressNotifier.setText("Connecting to " + host);
@@ -659,7 +684,7 @@ public class FtpSession implements Constants
         controlSocket = sc.connect();
         if (controlSocket == null) {
             errorText = sc.getErrorText();
-            return;
+            return false;
         }
 
         try {
@@ -670,7 +695,7 @@ public class FtpSession implements Constants
         catch (IOException e) {
             Log.error(e);
             disconnect();
-            return;
+            return false;
         }
         getReplyString();
         command("USER " + user);
@@ -695,7 +720,7 @@ public class FtpSession implements Constants
                     errorText = "Unable to connect to " + host;
             }
             disconnect();
-            return;
+            return false;
         }
 
         // Determine login directory.
@@ -713,11 +738,12 @@ public class FtpSession implements Constants
         if (code != 200) {
             Log.error("connect didn't get 200");
             disconnect();
-            return;
+            return false;
         }
 
         connected = true;
         Log.debug("connected!");
+        return true;
     }
 
     private void command(String s)
@@ -1009,8 +1035,8 @@ public class FtpSession implements Constants
         if (sessionList.size() == 0)
             return; // Nothing to do.
         for (int i = sessionList.size(); i-- > 0;) {
-            FtpSession session = (FtpSession) sessionList.get(i);
-            String host = session.getHost();
+            FtpSession session = sessionList.get(i);
+            String host = session.getHostName();
             boolean inUse = false;
             for (BufferIterator it = new BufferIterator(); it.hasNext();) {
                 Buffer buf = it.nextBuffer();
@@ -1041,7 +1067,7 @@ public class FtpSession implements Constants
         }
     };
 
-    public synchronized void disconnect()
+    private synchronized void disconnect()
     {
         Log.debug("disconnect");
         if (controlSocket != null) {
@@ -1185,10 +1211,10 @@ public class FtpSession implements Constants
         return null;
     }
 
-    // Make sure the login is comnplete. Get the user to enter the username
+    // Make sure the login is complete. Get the user to enter the username
     // and/or password if missing. Don't look in .netrc or preferences; we may
     // be here because the information in .netrc or preferences didn't work.
-    private boolean checkLogin()
+    public boolean checkLogin()
     {
         final Editor editor = Editor.currentEditor();
         if (user == null) {
@@ -1214,10 +1240,10 @@ public class FtpSession implements Constants
         return true;
     }
 
-    private static FtpSession lockSession(String host, int port)
+    private static synchronized FtpSession lockSession(String host, int port)
     {
         for (int i = 0; i < sessionList.size(); i++) {
-            FtpSession session = (FtpSession) sessionList.get(i);
+            FtpSession session = sessionList.get(i);
             if (session.host.equals(host) && session.port == port) {
                 if (session.lock())
                     return session;
@@ -1226,10 +1252,10 @@ public class FtpSession implements Constants
         return null;
     }
 
-    private static FtpSession findSession(String host, int port)
+    private static synchronized FtpSession findSession(String host, int port)
     {
         for (int i = 0; i < sessionList.size(); i++) {
-            FtpSession session = (FtpSession) sessionList.get(i);
+            FtpSession session = sessionList.get(i);
             if (session.host.equals(host) && session.port == port)
                 return session;
         }
