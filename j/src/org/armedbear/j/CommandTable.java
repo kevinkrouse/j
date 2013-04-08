@@ -275,8 +275,8 @@ public class CommandTable
             addCommand("expand", "Expansion");
             addCommand("find", "FindDialog");
             addCommand("findInFiles", "FindInFiles");
-            addCommand("findOccurrenceAtDot", "mode.list.ListOccurrences");
-            addCommand("findOccurrenceAtDotAndKillList", "mode.list.ListOccurrences");
+            addCommand("findOccurrenceAtDot", "mode.list.ListOccurrencesBuffer");
+            addCommand("findOccurrenceAtDotAndKillList", "mode.list.ListOccurrencesBuffer");
             addCommand("findTag", "TagCommands");
             addCommand("findTagAtDot", "TagCommands");
             addCommand("findTagAtDotOtherWindow", "TagCommands");
@@ -318,8 +318,8 @@ public class CommandTable
             addCommand("listIncludes", "mode.checkpath.CheckPath");
             addCommand("listMatchingTags", "TagCommands");
             addCommand("listMatchingTagsAtDot", "TagCommands");
-            addCommand("listOccurrences", "mode.list.ListOccurrences");
-            addCommand("listOccurrencesOfPatternAtDot", "mode.list.ListOccurrences");
+            addCommand("listOccurrences", "mode.list.ListOccurrencesBuffer");
+            addCommand("listOccurrencesOfPatternAtDot", "mode.list.ListOccurrencesBuffer");
             addCommand("listProperties", "PropertiesDialog");
             addCommand("listRegisters", "Registers");
             addCommand("listTags", "mode.list.ListTagsDialog");
@@ -332,7 +332,7 @@ public class CommandTable
             addCommand("manFollowLink", "mode.man.ManMode");
             addCommand("markSexp", "mode.lisp.LispMode");
             addCommand("mouseCopyToInput", "mode.lisp.LispShellMode");
-            addCommand("mouseFindOccurrence", "mode.list.ListOccurrences");
+            addCommand("mouseFindOccurrence", "mode.list.ListOccurrencesBuffer");
             addCommand("mouseFindTag", "TagCommands");
             addCommand("mouseJumpToTag", "mode.list.ListTagsMode");
             addCommand("nextChange", "ChangeMarks");
