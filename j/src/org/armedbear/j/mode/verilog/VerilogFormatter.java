@@ -371,14 +371,14 @@ public final class VerilogFormatter extends Formatter implements Constants
         return false;
     }
 
-    private static HashSet compilerDirectiveHashSet;
+    private static HashSet<String> compilerDirectiveHashSet;
 
-    private static HashSet getCompilerDirectives()
+    private static HashSet<String> getCompilerDirectives()
     {
         if (compilerDirectiveHashSet == null) {
             String[] array = compilerDirectives;
             int count = array.length;
-            compilerDirectiveHashSet = new HashSet(Math.max(2 * count, 11));
+            compilerDirectiveHashSet = new HashSet<String>(Math.max(2 * count, 11));
             for (int i = count - 1; i >= 0; i--)
                 compilerDirectiveHashSet.add(array[i]);
         }

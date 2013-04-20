@@ -26,11 +26,11 @@ import java.util.ArrayList;
 
 public final class EventSequence
 {
-    private ArrayList events;
+    private ArrayList<JEvent> events;
 
     public EventSequence()
     {
-        events = new ArrayList();
+        events = new ArrayList<JEvent>();
     }
 
     public int size()
@@ -53,7 +53,7 @@ public final class EventSequence
 
     public JEvent getEvent(int index)
     {
-        return (JEvent) events.get(index);
+        return events.get(index);
     }
 
     public String getStatusText()
@@ -72,8 +72,8 @@ public final class EventSequence
     {
         FastStringBuffer sb = new FastStringBuffer();
         sb.append("begin EventSequence\n");
-        for (int i = 0; i < events.size(); i++) {
-            sb.append(getEvent(i).toString());
+        for (JEvent event : events) {
+            sb.append(event.toString());
             sb.append('\n');
         }
         sb.append("end EventSequence");

@@ -38,7 +38,7 @@ import org.armedbear.j.vcs.cvs.CVSEntry;
 import org.armedbear.j.vcs.git.GitEntry;
 import org.armedbear.j.vcs.svn.SVNEntry;
 
-import javax.swing.*;
+import javax.swing.SwingUtilities;
 import java.util.List;
 import java.util.Iterator;
 import java.util.ArrayList;
@@ -116,7 +116,7 @@ public abstract class VersionControl implements Constants
         parentBuffer.setBusy(false);
         for (EditorIterator it = new EditorIterator(); it.hasNext();)
           {
-            Editor ed = it.nextEditor();
+            Editor ed = it.next();
             if (ed.getBuffer() == parentBuffer)
               ed.setDefaultCursor();
           }
@@ -129,7 +129,7 @@ public abstract class VersionControl implements Constants
     buffer.setBusy(false);
     for (EditorIterator it = new EditorIterator(); it.hasNext();)
       {
-        Editor ed = it.nextEditor();
+        Editor ed = it.next();
         if (ed.getBuffer() == buffer)
           {
             ed.setDot(buffer.getFirstLine(), 0);
@@ -161,7 +161,7 @@ public abstract class VersionControl implements Constants
           buffer.setBusy(false);
           for (EditorIterator it = new EditorIterator(); it.hasNext();)
           {
-              Editor ed = it.nextEditor();
+              Editor ed = it.next();
               if (ed.getBuffer() == buffer)
               {
                   ed.setDefaultCursor();
@@ -190,11 +190,10 @@ public abstract class VersionControl implements Constants
         boolean hasFilename = false;
         if (args != null)
             cmd = cmd + ' ' + args;
-        List tokens = Utilities.tokenize(cmd);
+        List<String> tokens = Utilities.tokenize(cmd);
         FastStringBuffer sb = new FastStringBuffer();
         if (replaceFileTokens) {
-            for (Iterator it = tokens.iterator(); it.hasNext();) {
-                String arg = (String) it.next();
+            for (String arg : tokens) {
                 if (arg.equals("%")) {
                     hasFilename = true;
                     if (file != null)
@@ -205,8 +204,7 @@ public abstract class VersionControl implements Constants
             }
         }
         else {
-            for (int i = 0; i < tokens.size(); i++) {
-                String arg = (String) tokens.get(i);
+            for (String arg : tokens) {
                 if (arg.charAt(0) != '-') {
                     // assume filename.
                     hasFilename = true;
@@ -259,12 +257,12 @@ public abstract class VersionControl implements Constants
       new Thread(commandRunnable).start();
   }
 
-  protected static List getModifiedBuffers()
+  protected static List<Buffer> getModifiedBuffers()
   {
-    ArrayList list = null;
+    ArrayList<Buffer> list = null;
     for (BufferIterator it = new BufferIterator(); it.hasNext();)
       {
-        Buffer buf = it.nextBuffer();
+        Buffer buf = it.next();
         if (!buf.isModified())
           continue;
         if (buf.isUntitled())
@@ -277,29 +275,26 @@ public abstract class VersionControl implements Constants
         if (buf.getFile() != null && buf.getFile().isLocal())
           {
             if (list == null)
-              list = new ArrayList();
+              list = new ArrayList<Buffer>();
             list.add(buf);
           }
       }
     return list;
   }
 
-  protected static boolean saveModifiedBuffers(Editor editor, List list)
+  protected static boolean saveModifiedBuffers(Editor editor, List<Buffer> list)
   {
     editor.setWaitCursor();
     int numErrors = 0;
-    for (Iterator it = list.iterator(); it.hasNext();)
-      {
-        Buffer buf = (Buffer) it.next();
-        if (buf.getFile() != null && buf.getFile().isLocal())
-          {
+    for (Buffer buf : list) {
+        if (buf.getFile() != null && buf.getFile().isLocal()) {
             editor.status("Saving modified buffers...");
             if (buf.getBooleanProperty(Property.REMOVE_TRAILING_WHITESPACE))
-              buf.removeTrailingWhitespace();
+                buf.removeTrailingWhitespace();
             if (!buf.save())
-              ++numErrors;
-          }
-      }
+                ++numErrors;
+        }
+    }
     editor.setDefaultCursor();
     if (numErrors == 0)
       {

@@ -64,10 +64,10 @@ public class SVN extends VersionControl implements Constants
     {
         if (!checkSVNInstalled())
             return;
-        List args = Utilities.tokenize(s);
+        List<String> args = Utilities.tokenize(s);
         if (args.size() == 0)
             return;
-        String command = (String) args.get(0);
+        String command = args.get(0);
         if (command.equals("commit"))
           {
             MessageDialog.showMessageDialog("Use \"svnCommit\".", "Error");
@@ -209,7 +209,7 @@ public class SVN extends VersionControl implements Constants
             // Kill existing diff output buffer if any for same parent buffer.
             for (BufferIterator it = new BufferIterator(); it.hasNext();)
               {
-                Buffer b = it.nextBuffer();
+                Buffer b = it.next();
                 if (b instanceof DiffOutputBuffer)
                   {
                     if (b.getParentBuffer() == parentBuffer)
@@ -252,7 +252,7 @@ public class SVN extends VersionControl implements Constants
         // Kill existing diff output buffer if any for same directory.
         for (BufferIterator it = new BufferIterator(); it.hasNext();)
           {
-            Buffer b = it.nextBuffer();
+            Buffer b = it.next();
             if (b instanceof DiffOutputBuffer)
               {
                 if (directory.equals(((DiffOutputBuffer) b).getDirectory()))
@@ -359,7 +359,7 @@ public class SVN extends VersionControl implements Constants
         // Kill existing status output buffer if any for same directory.
         for (BufferIterator it = new BufferIterator(); it.hasNext();)
           {
-            Buffer b = it.nextBuffer();
+            Buffer b = it.next();
             if (b instanceof VersionControlBuffer)
               {
                 if (directory.equals(((VersionControlBuffer) b).getDirectory()))
@@ -401,13 +401,13 @@ public class SVN extends VersionControl implements Constants
 
     public static void commit(String args)
     {
-        List list = Utilities.tokenize(args);
+        List<String> list = Utilities.tokenize(args);
         if (list.size() == 2)
         {
-            String arg = (String) list.get(0);
+            String arg = list.get(0);
             if (arg.equals("--cl") || arg.equals("--changelist"))
             {
-                arg = (String) list.get(1);
+                arg = list.get(1);
                 _commit(arg);
             }
         }
@@ -447,7 +447,7 @@ public class SVN extends VersionControl implements Constants
         }
         final String title = sb.toString();
         boolean save = false;
-        List list = null;
+        List<Buffer> list = null;
         if (changelist != null)
             list = getModifiedBuffers();
         else if (parentBuffer.isModified())
@@ -476,7 +476,7 @@ public class SVN extends VersionControl implements Constants
             SVNCheckinBuffer checkinBuffer = null;
             for (BufferIterator it = new BufferIterator(); it.hasNext();)
               {
-                Buffer buf = it.nextBuffer();
+                Buffer buf = it.next();
                 if (buf instanceof SVNCheckinBuffer)
                   {
                     if (buf.getParentBuffer() == parentBuffer)
@@ -573,7 +573,7 @@ public class SVN extends VersionControl implements Constants
                 parentBuffer.setBusy(false);
                 for (EditorIterator it = new EditorIterator(); it.hasNext();)
                   {
-                    Editor ed = it.nextEditor();
+                    Editor ed = it.next();
                     if (ed.getBuffer().isBusy())
                       ed.setWaitCursor();
                     else

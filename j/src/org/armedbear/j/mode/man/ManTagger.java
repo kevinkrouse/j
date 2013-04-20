@@ -43,7 +43,7 @@ public final class ManTagger extends Tagger
 
   public void run()
   {
-    List tags = new ArrayList();
+    List<LocalTag> tags = new ArrayList<LocalTag>();
     Line line = buffer.getFirstLine();
     int stop = 0;
     while (line != null)

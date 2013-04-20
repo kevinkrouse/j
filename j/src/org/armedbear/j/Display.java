@@ -72,7 +72,7 @@ public final class Display extends JComponent implements Constants,
     private static Font gutterFont;
     private static int gutterCharWidth;
 
-    private final HashMap changedLines = new HashMap();
+    private final HashMap<Line, Line> changedLines = new HashMap<Line, Line>();
 
     private final Editor editor;
 
@@ -1988,7 +1988,7 @@ public final class Display extends JComponent implements Constants,
             return; // Not initialized yet. Nothing to do.
         initializeStaticValues();
         for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-            Display display = it.nextEditor().getDisplay();
+            Display display = it.next().getDisplay();
             display.initialize();
             display.repaint();
         }

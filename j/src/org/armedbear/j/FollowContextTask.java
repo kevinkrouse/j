@@ -74,11 +74,11 @@ public class FollowContextTask extends IdleThreadTask implements Constants
 
     private static Tag findMatchingTag(Editor editor, Expression expression)
     {
-        List list =
+        List<? extends Tag> list =
             TagCommands.findMatchingTags(editor.getBuffer(), expression);
         if (list != null && list.size() == 1) {
             // Exactly one match.
-            return (Tag) list.get(0);
+            return list.get(0);
         }
         return null;
     }

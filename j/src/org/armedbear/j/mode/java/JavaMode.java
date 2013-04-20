@@ -29,6 +29,7 @@ import org.armedbear.j.Display;
 import org.armedbear.j.Editor;
 import org.armedbear.j.Expression;
 import org.armedbear.j.Mode;
+import org.armedbear.j.jdb.Jdb;
 import org.armedbear.j.util.FastStringBuffer;
 import org.armedbear.j.Formatter;
 import org.armedbear.j.KeyMap;
@@ -74,7 +75,7 @@ public class JavaMode extends AbstractMode implements Constants, Mode
     };
 
   private static Mode mode;
-  private static Object jdb;
+  private static Jdb jdb;
 
   protected String[] conditionals;
 
@@ -99,12 +100,12 @@ public class JavaMode extends AbstractMode implements Constants, Mode
     return mode;
   }
 
-  public static final Object getJdb()
+  public static final Jdb getJdb()
   {
     return jdb;
   }
 
-  public static final void setJdb(Object obj)
+  public static final void setJdb(Jdb obj)
   {
     jdb = obj;
   }

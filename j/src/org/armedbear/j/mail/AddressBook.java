@@ -41,11 +41,11 @@ public final class AddressBook
     private static File file;
     private static File backupFile;
 
-    private Vector entries;
+    private Vector<AddressBookEntry> entries;
 
     private AddressBook()
     {
-        entries = new Vector();
+        entries = new Vector<AddressBookEntry>();
     }
 
     public static AddressBook getGlobalAddressBook()
@@ -173,6 +173,6 @@ public final class AddressBook
 
     public final AddressBookEntry getEntry(int i)
     {
-        return (AddressBookEntry) entries.get(i);
+        return entries.get(i);
     }
 }

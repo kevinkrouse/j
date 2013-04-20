@@ -25,8 +25,8 @@ import org.armedbear.j.util.Utilities;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.util.Enumeration;
 import java.util.Properties;
+import java.util.Set;
 
 public final class Autosave implements Constants
 {
@@ -128,9 +128,8 @@ public final class Autosave implements Constants
         catch (IOException e) {
             Log.error(e);
         }
-        Enumeration e = catalog.propertyNames();
-        while (e.hasMoreElements()) {
-            String netPath = (String) e.nextElement();
+        Set<String> keySet = catalog.stringPropertyNames();
+        for (String netPath : keySet) {
             String alias = catalog.getProperty(netPath);
             if (alias != null)
                 queryRecoverFile(netPath, alias);

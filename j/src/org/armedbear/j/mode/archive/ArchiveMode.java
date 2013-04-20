@@ -102,7 +102,7 @@ public final class ArchiveMode extends AbstractMode implements Constants, Mode
         }
         String title = name + " " + source;
         for (BufferIterator it = new BufferIterator(); it.hasNext();) {
-            Buffer maybe = it.nextBuffer();
+            Buffer maybe = it.next();
             if (title.equals(maybe.getTitle())) {
                 editor.makeNext(maybe);
                 editor.activate(maybe);

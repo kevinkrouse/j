@@ -33,7 +33,7 @@ public final class Completion
     private boolean ignoreCase;
     private boolean cygnify;
 
-    private ArrayList list = new ArrayList();
+    private ArrayList<String> list = new ArrayList<String>();
 
     public Completion(File dir, String input, String shellCommand)
     {
@@ -68,15 +68,14 @@ public final class Completion
             Property.FILENAME_COMPLETIONS_EXCLUDE_PATTERN);
         FilenameCompletion c = new FilenameCompletion(dir, toBeCompleted, null,
             excludes, ignoreCase);
-        List files = c.listFiles();
+        List<File> files = c.listFiles();
         if (files != null) {
             String home = Utilities.getUserHome() + "/";
             String prefix = dir.canonicalPath() + LocalFile.getSeparator();
             int skip = prefix.length();
             String toBeAdded;
             int limit = files.size();
-            for (int i = 0; i < limit; i++) {
-                File file = (File) files.get(i);
+            for (File file : files) {
                 toBeAdded = file.getAbsolutePath();
                 if (!Utilities.isFilenameAbsolute(toBeCompleted)) {
                     if (toBeAdded.startsWith(prefix)) {
@@ -137,7 +136,7 @@ public final class Completion
         return '/';
     }
 
-    public final List getCompletions()
+    public final List<String> getCompletions()
     {
         return list;
     }
@@ -152,16 +151,16 @@ public final class Completion
         String s = input;
         if (list.size() != 0) {
             if (list.size() == 1) {
-                s = (String) list.get(0);
+                s = list.get(0);
             } else {
-                String first = (String) list.get(0);
+                String first = list.get(0);
                 int length = toBeCompleted.length() + 1;
                 while (true) {
                     if (length > first.length())
                         return s;
                     String maybe = first.substring(0, length);
                     for (int i = 1; i < list.size(); i++) {
-                        String toBeChecked = (String) list.get(i);
+                        String toBeChecked = list.get(i);
                         if (!maybe.regionMatches(ignoreCase, 0, toBeChecked, 0, length)) {
                             if (cygnify)
                                 s = Utilities.cygnify(s);
@@ -181,7 +180,7 @@ public final class Completion
     public String toString()
     {
         if (isUnique()) {
-            String s = (String) list.get(0);
+            String s = list.get(0);
             // Directories have file separator already appended.
             if (!s.endsWith("/") && !s.endsWith("\\"))
                 s += ' ';

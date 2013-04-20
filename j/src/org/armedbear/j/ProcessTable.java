@@ -28,7 +28,7 @@ import java.util.StringTokenizer;
 
 public final class ProcessTable
 {
-    private ArrayList entries = new ArrayList();
+    private ArrayList<ProcessTableEntry> entries = new ArrayList<ProcessTableEntry>();
 
     private ProcessTable()
     {
@@ -58,28 +58,26 @@ public final class ProcessTable
         return table;
     }
 
-    public List findMatchingEntries(String command)
+    public List<ProcessTableEntry> findMatchingEntries(String command)
     {
-        ArrayList results = new ArrayList();
+        ArrayList<ProcessTableEntry> results = new ArrayList<ProcessTableEntry>();
         if (command != null && command.length() > 0){
             // First char of command might be replaced with '-', so we look
             // for that pattern too.
             String alternate = "-".concat(command.substring(1));
-            for (int i = 0; i < entries.size(); i++) {
-                ProcessTableEntry entry = (ProcessTableEntry) entries.get(i);
+            for (ProcessTableEntry entry : entries) {
                 if (entry.command.indexOf(command) >= 0 ||
-                    entry.command.indexOf(alternate) >= 0)
+                        entry.command.indexOf(alternate) >= 0)
                     results.add(entry);
             }
         }
         return results;
     }
 
-    public List findChildren(int pid)
+    public List<ProcessTableEntry> findChildren(int pid)
     {
-        ArrayList results = new ArrayList();
-        for (int i = 0; i < entries.size(); i++) {
-            ProcessTableEntry entry = (ProcessTableEntry) entries.get(i);
+        ArrayList<ProcessTableEntry> results = new ArrayList<ProcessTableEntry>();
+        for (ProcessTableEntry entry : entries) {
             if (entry.ppid == pid)
                 results.add(entry);
         }

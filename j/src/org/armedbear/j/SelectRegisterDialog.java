@@ -31,21 +31,18 @@ public final class SelectRegisterDialog extends InputDialog
     setHistory(new History("selectRegister.register"));
   }
 
-  protected List getCompletions(String prefix)
+  protected List<String> getCompletions(String prefix)
   {
     String lower = prefix.toLowerCase();
     String[] names = null;
     File directory = Directories.getRegistersDirectory();
     if (directory != null)
       names = directory.list();
-    ArrayList list = new ArrayList();
-    final int limit = names.length;
-    for (int i = 0; i < limit; i++)
-      {
-        String name = names[i];
+    ArrayList<String> list = new ArrayList<String>();
+    for (String name : names) {
         if (name.toLowerCase().startsWith(lower))
-          list.add(name);
-      }
+            list.add(name);
+    }
     return list;
   }
 }

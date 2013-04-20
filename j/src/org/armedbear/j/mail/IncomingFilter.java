@@ -31,7 +31,7 @@ public final class IncomingFilter
     public static final int BOUNCE            = 2;
     public static final int BOUNCE_AND_DELETE = 3;
 
-    private static ArrayList filterList;
+    private static ArrayList<IncomingFilter> filterList;
 
     private final String mailbox;
     private final String pattern;
@@ -101,7 +101,7 @@ public final class IncomingFilter
             return;
         }
         if (filterList == null)
-            filterList = new ArrayList();
+            filterList = new ArrayList<IncomingFilter>();
         filterList.add(new IncomingFilter(mailbox, pattern, filter, action,
             parameter));
     }
@@ -111,8 +111,8 @@ public final class IncomingFilter
         filterList = null;
     }
 
-    public static synchronized final List getFilterList()
+    public static synchronized final List<? extends IncomingFilter> getFilterList()
     {
-        return filterList == null ? null : new ArrayList(filterList);
+        return filterList == null ? null : new ArrayList<IncomingFilter>(filterList);
     }
 }

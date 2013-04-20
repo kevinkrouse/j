@@ -102,18 +102,17 @@ public final class DraftsBuffer extends MailboxBuffer
     {
         final Editor editor = Editor.currentEditor();
         boolean advanceDot = false;
-        List list = getTaggedEntries();
+        List<MailboxEntry> list = getTaggedEntries();
         if (list == null) {
             Line line = editor.getDotLine();
             if (!(line instanceof MailboxLine))
                 return;
             advanceDot = true;
-            list = new ArrayList();
+            list = new ArrayList<MailboxEntry>();
             list.add(((MailboxLine)line).getMailboxEntry());
         }
-        Iterator iter = list.iterator();
-        while (iter.hasNext()) {
-            DraftsEntry entry = (DraftsEntry) iter.next();
+        for (MailboxEntry aList : list) {
+            DraftsEntry entry = (DraftsEntry) aList;
             if (entry == null)
                 continue;
             File file = entry.getFile();
@@ -125,13 +124,13 @@ public final class DraftsBuffer extends MailboxBuffer
             if (name.endsWith(".deleted"))
                 continue; // Already deleted.
             File deleted =
-                File.getInstance(directory, name.concat(".deleted"));
+                    File.getInstance(directory, name.concat(".deleted"));
             if (deleted.isFile()) {
                 Debug.bug();
                 return;
             }
             Log.debug("delete renaming " + file.getName() + " to " +
-                deleted.getName());
+                    deleted.getName());
             if (file.renameTo(deleted)) {
                 entry.setFile(deleted);
                 entry.setFlags(entry.getFlags() | MailboxEntry.DELETED);
@@ -146,18 +145,17 @@ public final class DraftsBuffer extends MailboxBuffer
     {
         final Editor editor = Editor.currentEditor();
         boolean advanceDot = false;
-        List list = getTaggedEntries();
+        List<MailboxEntry> list = getTaggedEntries();
         if (list == null) {
             Line line = editor.getDotLine();
             if (!(line instanceof MailboxLine))
                 return;
             advanceDot = true;
-            list = new ArrayList();
+            list = new ArrayList<MailboxEntry>();
             list.add(((MailboxLine)line).getMailboxEntry());
         }
-        Iterator iter = list.iterator();
-        while (iter.hasNext()) {
-            DraftsEntry entry = (DraftsEntry) iter.next();
+        for (MailboxEntry aList : list) {
+            DraftsEntry entry = (DraftsEntry) aList;
             if (entry == null)
                 continue;
             File file = entry.getFile();
@@ -169,13 +167,13 @@ public final class DraftsBuffer extends MailboxBuffer
             if (!name.endsWith(".deleted"))
                 continue; // Not deleted.
             File undeleted = File.getInstance(directory,
-                name.substring(0, name.length()-8));
+                    name.substring(0, name.length() - 8));
             if (undeleted.isFile()) {
                 Debug.bug();
                 return;
             }
             Log.debug("undelete renaming " + file.getName() + " to " +
-                undeleted.getName());
+                    undeleted.getName());
             if (file.renameTo(undeleted)) {
                 entry.setFile(undeleted);
                 entry.setFlags(entry.getFlags() & ~MailboxEntry.DELETED);
@@ -211,7 +209,7 @@ public final class DraftsBuffer extends MailboxBuffer
         if (lock()) {
             setBusy(true);
             for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-                Editor ed = it.nextEditor();
+                Editor ed = it.next();
                 if (ed.getBuffer() == this)
                     ed.saveView();
             }
@@ -238,11 +236,10 @@ public final class DraftsBuffer extends MailboxBuffer
     private boolean expungeInternal()
     {
         boolean result = false;
-        entries = new ArrayList();
+        entries = new ArrayList<MailboxEntry>();
         String[] names = directory.list();
         if (names != null) {
-            for (int i = 0; i < names.length; i++) {
-                final String name = names[i];
+            for (final String name : names) {
                 if (name.indexOf(".deleted") >= 0) {
                     File file = File.getInstance(directory, name);
                     Log.debug("deleting " + file);
@@ -270,7 +267,7 @@ public final class DraftsBuffer extends MailboxBuffer
         if (lock()) {
             setBusy(true);
             for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-                Editor ed = it.nextEditor();
+                Editor ed = it.next();
                 if (ed.getBuffer() == this)
                     ed.saveView();
             }
@@ -291,7 +288,7 @@ public final class DraftsBuffer extends MailboxBuffer
                     public void run()
                     {
                         for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-                            Editor ed = it.nextEditor();
+                            Editor ed = it.next();
                             View view = new View();
                             view.setDotEntry(getInitialEntry());
                             ed.setView(DraftsBuffer.this, view);
@@ -323,13 +320,12 @@ public final class DraftsBuffer extends MailboxBuffer
 
     private void loadInternal()
     {
-        entries = new ArrayList();
+        entries = new ArrayList<MailboxEntry>();
         String[] names = directory.list();
         if (names != null) {
-            for (int i = 0; i < names.length; i++) {
-                final String name = names[i];
+            for (final String name : names) {
                 DraftsEntry entry =
-                    DraftsEntry.parseEntry(directory, name);
+                        DraftsEntry.parseEntry(directory, name);
                 if (entry != null) {
                     if (name.endsWith(".deleted"))
                         entry.setFlags(entry.getFlags() | MailboxEntry.DELETED);
@@ -375,7 +371,7 @@ public final class DraftsBuffer extends MailboxBuffer
             return;
         Buffer buf = null;
         for (BufferIterator it = new BufferIterator(); it.hasNext();) {
-            Buffer b = it.nextBuffer();
+            Buffer b = it.next();
             if (b instanceof SendMail) {
                 if (file.equals(b.getFile())) {
                     buf = b;

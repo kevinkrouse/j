@@ -24,6 +24,7 @@ import org.armedbear.j.Debug;
 import org.armedbear.j.Mode;
 import org.armedbear.j.util.FastStringBuffer;
 import org.armedbear.j.Line;
+import org.armedbear.j.LocalTag;
 import org.armedbear.j.Position;
 import org.armedbear.j.SystemBuffer;
 import org.armedbear.j.Tagger;
@@ -39,7 +40,7 @@ public final class LispTagger extends Tagger
 
     private static final Mode mode = LispMode.getMode();
 
-    private ArrayList tags;
+    private ArrayList<LocalTag> tags;
 
     public LispTagger(SystemBuffer buffer)
     {
@@ -48,7 +49,7 @@ public final class LispTagger extends Tagger
 
     public synchronized void run()
     {
-        tags = new ArrayList();
+        tags = new ArrayList<LocalTag>();
         Position pos = new Position(buffer.getFirstLine(), 0);
         int state = NEUTRAL;
         String definer = null;

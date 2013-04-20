@@ -45,8 +45,8 @@ public final class CheckPath implements Constants
     private FastStringBuffer sb = new FastStringBuffer(16384);
     private String path;
     private File currentDirectory;
-    private HashSet checkedFiles = new HashSet(256);
-    private Stack stack = new Stack();
+    private HashSet<File> checkedFiles = new HashSet<File>(256);
+    private Stack<File> stack = new Stack<File>();
     private int depthDisplayed;
 
     private CheckPath(Editor editor, boolean showAll)
@@ -143,7 +143,7 @@ public final class CheckPath implements Constants
                     } else if (result == NOT_FOUND) {
                         while (depthDisplayed < stack.size()) {
                             sb.append(spaces(depthDisplayed));
-                            sb.append(getDisplayName((File)stack.get(depthDisplayed)));
+                            sb.append(getDisplayName(stack.get(depthDisplayed)));
                             sb.append(" -->\n");
                             ++depthDisplayed;
                         }

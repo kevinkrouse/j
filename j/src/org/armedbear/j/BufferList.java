@@ -29,9 +29,9 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.Iterator;
 
-public final class BufferList implements Constants, PreferencesChangeListener
+public final class BufferList implements Constants, PreferencesChangeListener, Iterable<Buffer>
 {
-    private final ArrayList list = new ArrayList();
+    private final ArrayList<Buffer> list = new ArrayList<Buffer>();
 
     private boolean alpha; // Sort alphabetically?
     private boolean reorder;
@@ -51,7 +51,7 @@ public final class BufferList implements Constants, PreferencesChangeListener
             Debug.bug();
     }
 
-    public synchronized Iterator iterator()
+    public synchronized Iterator<Buffer> iterator()
     {
         if (alpha && modified)
             sort();
@@ -102,7 +102,7 @@ public final class BufferList implements Constants, PreferencesChangeListener
         if (list.size() > 0) {
             if (alpha && modified)
                 sort();
-            return (Buffer) list.get(0);
+            return list.get(0);
         }
         return null;
     }
@@ -125,7 +125,7 @@ public final class BufferList implements Constants, PreferencesChangeListener
                 ++index;
             else
                 index = 0;
-            Buffer buf = (Buffer) list.get(index);
+            Buffer buf = list.get(index);
             if (buf == buffer)
                 break;
             if (buf.isPrimary())
@@ -152,7 +152,7 @@ public final class BufferList implements Constants, PreferencesChangeListener
                 --index;
             else
                 index = size() - 1;
-            Buffer buf = (Buffer) list.get(index);
+            Buffer buf = list.get(index);
             if (buf == buffer)
                 break;
             if (buf.isPrimary())
@@ -165,7 +165,7 @@ public final class BufferList implements Constants, PreferencesChangeListener
     {
         if (f != null) {
             for (int i = list.size(); i-- > 0;) {
-                Buffer buf = (Buffer) list.get(i);
+                Buffer buf = list.get(i);
                 if (buf instanceof WebBuffer)
                     continue;
                 if (f.equals(buf.getFile()))
@@ -191,7 +191,7 @@ public final class BufferList implements Constants, PreferencesChangeListener
         remove(nextBuffer);
         try {
             for (int i = 0; i < list.size(); i++) {
-                Buffer buf = (Buffer) list.get(i);
+                Buffer buf = list.get(i);
                 if (buf == currentBuffer) {
                     list.add(i+1, nextBuffer);
                     return;
@@ -214,7 +214,7 @@ public final class BufferList implements Constants, PreferencesChangeListener
         Debug.assertTrue(list.contains(o));
         Debug.assertTrue(list.contains(n));
         for (EditorIterator iter = new EditorIterator(); iter.hasNext();) {
-            Editor ed = iter.nextEditor();
+            Editor ed = iter.next();
             if (ed.getBuffer() == o)
                 ed.activate(n);
             ed.views.remove(o);
@@ -267,8 +267,8 @@ public final class BufferList implements Constants, PreferencesChangeListener
         boolean qualify = false;
         Debug.assertTrue(file != null);
         Debug.assertTrue(file.isLocal());
-        for (Iterator it = list.iterator(); it.hasNext();) {
-            Buffer b = (Buffer) it.next();
+        for (Iterator<Buffer> it = list.iterator(); it.hasNext();) {
+            Buffer b = it.next();
             if (b == buf)
                 continue;
             if (b.getFile() != null && b.getFile().getName().equals(name)) {
@@ -302,14 +302,14 @@ public final class BufferList implements Constants, PreferencesChangeListener
         return -1;
     }
 
-    private static Comparator comparator;
+    private static Comparator<Buffer> comparator;
 
     private void sort()
     {
         if (alpha) {
             if (comparator == null) {
-                comparator = new Comparator() {
-                    public int compare(Object o1, Object o2)
+                comparator = new Comparator<Buffer>() {
+                    public int compare(Buffer o1, Buffer o2)
                     {
                         return o1.toString().compareToIgnoreCase(o2.toString());
                     }

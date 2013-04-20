@@ -45,7 +45,7 @@ public class SaveFileDialog extends JDialog implements FocusListener, KeyListene
     protected History history;
 
     private final String prompt;
-    private Vector completions;
+    private Vector<String> completions;
     private int index;
     private boolean completionsIgnoreCase;
     private boolean allowDirectory;
@@ -273,16 +273,16 @@ public class SaveFileDialog extends JDialog implements FocusListener, KeyListene
     {
         if (completions != null) {
             if (index < completions.size())
-                return (String) completions.get(index++);
+                return completions.get(index++);
             index = 0;
             if (index < completions.size())
-                return (String) completions.get(index++);
+                return completions.get(index++);
             return null;
         }
         completions = getCompletions(prefix);
         index = 0;
         if (completions.size() > 0)
-            return (String) completions.get(index++);
+            return completions.get(index++);
         return null;
     }
 
@@ -293,15 +293,15 @@ public class SaveFileDialog extends JDialog implements FocusListener, KeyListene
                 index -= 2;
                 if (index < 0)
                     index += completions.size();
-                return (String) completions.get(index++);
+                return completions.get(index++);
             }
         }
         return null;
     }
 
-    private Vector getCompletions(String prefix)
+    private Vector<String> getCompletions(String prefix)
     {
-        Vector v = new Vector();
+        Vector<String> v = new Vector<String>();
         File currentDir = editor.getCurrentDirectory();
         File dir  = null;
         boolean isShortName = false;
@@ -316,20 +316,20 @@ public class SaveFileDialog extends JDialog implements FocusListener, KeyListene
         }
         String[] names = dir.list();
         if (names != null) {
-            for (int i = 0; i < names.length; i++) {
+            for (String name : names) {
                 boolean matches = false;
                 if (completionsIgnoreCase)
-                    matches = names[i].regionMatches(true, 0, prefix, 0, prefix.length());
+                    matches = name.regionMatches(true, 0, prefix, 0, prefix.length());
                 else
-                    matches = names[i].startsWith(prefix);
+                    matches = name.startsWith(prefix);
                 if (matches) {
-                    File file = File.getInstance(dir, names[i]);
-                    String name = dir == currentDir ? file.getName() : file.getAbsolutePath();
+                    File file = File.getInstance(dir, name);
+                    String s = dir == currentDir ? file.getName() : file.getAbsolutePath();
                     if (file.isDirectory()) {
-                        v.add(name + LocalFile.getSeparator());
+                        v.add(s + LocalFile.getSeparator());
                         continue;
                     }
-                    v.add(name);
+                    v.add(s);
                 }
             }
         }

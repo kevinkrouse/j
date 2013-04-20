@@ -23,6 +23,7 @@ package org.armedbear.j.mode.objc;
 import org.armedbear.j.Mode;
 import org.armedbear.j.util.FastStringBuffer;
 import org.armedbear.j.mode.java.JavaTagger;
+import org.armedbear.j.LocalTag;
 import org.armedbear.j.Position;
 import org.armedbear.j.SystemBuffer;
 import org.armedbear.j.mode.c.CMode;
@@ -47,7 +48,7 @@ public final class ObjCTagger extends JavaTagger
 
     public void run()
     {
-        ArrayList tags = new ArrayList();
+        ArrayList<LocalTag> tags = new ArrayList<LocalTag>();
         pos = new Position(buffer.getFirstLine(), 0);
         token = null;
         tokenStart = null;

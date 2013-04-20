@@ -38,7 +38,7 @@ public class HistoryTextField extends JTextField implements FocusListener,
 {
     private History history;
 
-    private Object owner;
+    private OpenFileDialog owner;
 
     // Only one text listener is supported.
     private TextListener textListener;
@@ -76,12 +76,12 @@ public class HistoryTextField extends JTextField implements FocusListener,
         return size;
     }
 
-    public final Object getOwner()
+    public final OpenFileDialog getOwner()
     {
         return owner;
     }
 
-    public final void setOwner(Object owner)
+    public final void setOwner(OpenFileDialog owner)
     {
         this.owner = owner;
     }

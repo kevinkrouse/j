@@ -185,7 +185,7 @@ public class ImageBuffer extends Buffer implements Constants
         originalImage = null;
         load();
         for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-            Editor ed = it.nextEditor();
+            Editor ed = it.next();
             if (ed.getBuffer() == ImageBuffer.this) {
                 ed.getDisplay().repaint();
                 ed.updateDisplay();
@@ -349,7 +349,7 @@ public class ImageBuffer extends Buffer implements Constants
             currentWidth = img.getWidth(null);
             currentHeight = img.getHeight(null);
             for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-                Editor ed = it.nextEditor();
+                Editor ed = it.next();
                 if (ed.getBuffer() == this) {
                     ed.getDisplay().repaint();
                     status(ed);
@@ -366,7 +366,7 @@ public class ImageBuffer extends Buffer implements Constants
         if (isLoaded() && file.lastModified() != getLastModified()) {
             reload();
             for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-                Editor ed = it.nextEditor();
+                Editor ed = it.next();
                 if (ed.getBuffer() == this) {
                     ed.getDisplay().repaint();
                     status(ed);

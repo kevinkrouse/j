@@ -43,7 +43,7 @@ public final class ListTagsBuffer extends Buffer
     private String lastFileName;
     private String lastClassName;
 
-    public ListTagsBuffer(Editor editor, String command, String name, List tags)
+    public ListTagsBuffer(Editor editor, String command, String name, List<? extends Tag> tags)
     {
         super();
         this.name = name;
@@ -73,7 +73,7 @@ public final class ListTagsBuffer extends Buffer
         return new Position(getFirstLine(), 0);
     }
 
-    private void load(List tags)
+    private void load(List<? extends Tag> tags)
     {
         try {
             lockWrite();
@@ -85,9 +85,7 @@ public final class ListTagsBuffer extends Buffer
         try {
             lastFileName = lastClassName = null;
             appendLine("Tag: \"" + name + '"');
-            Iterator iter = tags.iterator();
-            while (iter.hasNext()) {
-                Tag tag = (Tag) iter.next();
+            for (Tag tag : tags) {
                 appendTag(tag);
             }
             renumber();

@@ -59,7 +59,7 @@ public class SystemBuffer implements Constants
     private Line lastLine;
     private File file;
     private String loadEncoding;
-    private List tags;
+    private List<LocalTag> tags;
 
     public SystemBuffer()
     {
@@ -130,12 +130,12 @@ public class SystemBuffer implements Constants
         return mode == null ? null : mode.toString();
     }
 
-    public synchronized final List getTags()
+    public synchronized final List<LocalTag> getTags()
     {
         return tags;
     }
 
-    public synchronized final void setTags(List tags)
+    public synchronized final void setTags(List<LocalTag> tags)
     {
         this.tags = tags;
     }
@@ -552,8 +552,7 @@ public class SystemBuffer implements Constants
             if ((bytes[0] == (byte) 0xfe && bytes[1] == (byte) 0xff) ||
                 (bytes[0] == (byte) 0xff && bytes[1] == (byte) 0xfe)) {
                 byte[] sepBytes = new byte[bytes.length-2];
-                for (int i = 0; i < sepBytes.length; i++)
-                    sepBytes[i] = bytes[i+2];
+                System.arraycopy(bytes, 2, sepBytes, 0, sepBytes.length);
                 return sepBytes;
             }
         }

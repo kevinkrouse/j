@@ -68,13 +68,13 @@ public class Server implements Runnable
                 Socket sock = socket.accept(); // Blocks.
                 // Process request.
                 BufferedReader in = new BufferedReader(new InputStreamReader(sock.getInputStream()));
-                Vector v = null;
+                Vector<String> v = null;
                 while (true) {
                     String s = in.readLine();
                     if (s == null)
                         break;
                     if (v == null)
-                        v = new Vector();
+                        v = new Vector<String>();
                     v.add(s);
                 }
                 in.close();
@@ -92,10 +92,10 @@ public class Server implements Runnable
 
     class Messenger implements Runnable
     {
-        Vector v = null;
+        Vector<String> v = null;
 
         // If this constructor is private, we run into jikes 1.15 bug #2256.
-        Messenger(Vector v)
+        Messenger(Vector<String> v)
         {
             this.v = v;
         }

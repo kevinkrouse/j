@@ -20,13 +20,14 @@
 
 package org.armedbear.j;
 
+import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Set;
 
 public final class PropertyList
 {
-    private HashMap map;
+    private HashMap<Property, Object> map;
 
     public PropertyList()
     {
@@ -39,10 +40,10 @@ public final class PropertyList
         return null;
     }
 
-    public void setProperty(Property property, Object value)
+    public void setProperty(Property property, Serializable value)
     {
         if (map == null)
-            map = new HashMap();
+            map = new HashMap<Property, Object>();
         map.put(property, value);
     }
 
@@ -111,14 +112,14 @@ public final class PropertyList
         return (String) value;
     }
 
-    public Iterator keyIterator()
+    public Iterator<Property> keyIterator()
     {
         if (map != null)
             return map.keySet().iterator();
         return null;
     }
 
-    public Set keySet()
+    public Set<Property> keySet()
     {
         if (map != null)
             return map.keySet();
@@ -134,7 +135,7 @@ public final class PropertyList
     {
         if (other.map != null && other.map.size() > 0) {
             if (map == null)
-                map = new HashMap();
+                map = new HashMap<Property, Object>();
             map.putAll(other.map);
         }
     }

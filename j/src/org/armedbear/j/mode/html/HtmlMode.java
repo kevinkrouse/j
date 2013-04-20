@@ -55,7 +55,7 @@ import javax.swing.undo.CompoundEdit;
 public final class HtmlMode extends AbstractMode implements Constants, Mode
 {
     private static final Mode mode = new HtmlMode();
-    private static List elements;
+    private static List<HtmlElement> elements;
     private static Pattern tagNameRE;
     private static Pattern attributeNameRE;
     private static Pattern quotedValueRE;
@@ -317,7 +317,7 @@ public final class HtmlMode extends AbstractMode implements Constants, Mode
         return null;
     }
 
-    public static List elements()
+    public static List<HtmlElement> elements()
     {
         if (elements == null)
             loadElementList();
@@ -331,8 +331,7 @@ public final class HtmlMode extends AbstractMode implements Constants, Mode
             loadElementList();
         if (elements != null) {
             final int limit = elements.size();
-            for (int i = 0; i < limit; i++) {
-                HtmlElement element = (HtmlElement) elements.get(i);
+            for (HtmlElement element : elements) {
                 if (element.getName().equals(elementName))
                     return element.wantsEndTag();
             }
@@ -380,8 +379,7 @@ public final class HtmlMode extends AbstractMode implements Constants, Mode
                         String value = s.substring(index + 1).trim();
                         boolean wantsEndTag = value.equals("1") || value.equals("true");
                         boolean found = false;
-                        for (int i = 0; i < elements.size(); i++) {
-                            HtmlElement element = (HtmlElement) elements.get(i);
+                        for (HtmlElement element : elements) {
                             if (element.getName().equals(name)) {
                                 element.setWantsEndTag(wantsEndTag);
                                 found = true;

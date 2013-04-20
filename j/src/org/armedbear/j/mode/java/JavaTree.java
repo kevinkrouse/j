@@ -27,6 +27,7 @@ import org.armedbear.j.Editor;
 import org.armedbear.j.File;
 import org.armedbear.j.Frame;
 import org.armedbear.j.Line;
+import org.armedbear.j.LocalTag;
 import org.armedbear.j.LocationBar;
 import org.armedbear.j.NavigationComponent;
 import org.armedbear.j.Position;
@@ -77,7 +78,7 @@ public final class JavaTree extends SidebarTree implements Constants,
 
     private final Editor editor;
     private final Frame frame;
-    private List tags;
+    private List<LocalTag> tags;
     private boolean arrangedByType;
     private boolean sorted;
 
@@ -131,7 +132,7 @@ public final class JavaTree extends SidebarTree implements Constants,
     public void refresh(boolean force)
     {
         final Buffer buffer = editor.getBuffer();
-        final List bufferTags = buffer.getTags();
+        final List<LocalTag> bufferTags = buffer.getTags();
         if (!force)
             if (tags != null && tags == bufferTags)
                 return; // Nothing to do.
@@ -146,14 +147,14 @@ public final class JavaTree extends SidebarTree implements Constants,
         thread.start();
     }
 
-    private void refreshInternal(Buffer buffer, List bufferTags)
+    private void refreshInternal(Buffer buffer, List<LocalTag> bufferTags)
     {
         if (bufferTags == null)
             bufferTags = buffer.getTags(true); // Runs tagger synchronously.
         if (bufferTags != null) {
             final TreeModel model =
                 getDefaultModel(bufferTags, arrangeByType, sort);
-            final List finalBufferTags = bufferTags;
+            final List<LocalTag> finalBufferTags = bufferTags;
             Runnable completionRunnable = new Runnable() {
                 public void run()
                 {
@@ -170,11 +171,11 @@ public final class JavaTree extends SidebarTree implements Constants,
     }
 
     // Never returns null!
-    private static TreeModel getDefaultModel(List bufferTags,
+    private static TreeModel getDefaultModel(List<LocalTag> bufferTags,
         boolean arrangeByType, boolean sort)
     {
         DefaultMutableTreeNode rootNode = new DefaultMutableTreeNode();
-        List list;
+        List<LocalTag> list;
         if (sort)
             list = sort(bufferTags);
         else
@@ -195,10 +196,10 @@ public final class JavaTree extends SidebarTree implements Constants,
     }
 
     // Doesn't modify passed-in list.
-    private static List sort(List list)
+    private static List<LocalTag> sort(List<LocalTag> list)
     {
-        List methodsAndFields = new ArrayList();
-        List allTags  = new ArrayList();
+        List<JavaTag> methodsAndFields = new ArrayList<JavaTag>();
+        List<LocalTag> allTags  = new ArrayList<LocalTag>();
         for (int i = 0; i < list.size(); i++) {
             JavaTag t = (JavaTag) list.get(i);
             switch (t.getType()) {

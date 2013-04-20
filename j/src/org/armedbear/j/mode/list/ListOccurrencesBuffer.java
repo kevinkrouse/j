@@ -113,7 +113,7 @@ public class ListOccurrencesBuffer extends Buffer
     public static ListOccurrencesBuffer findBuffer(Buffer sourceBuffer, Search search)
     {
         for (BufferIterator it = new BufferIterator(); it.hasNext();) {
-            Buffer buf = it.nextBuffer();
+            Buffer buf = it.next();
             if (buf instanceof ListOccurrencesBuffer) {
                 ListOccurrencesBuffer lo = (ListOccurrencesBuffer) buf;
                 if (lo.search.equals(search) && lo.sourceBuffer == sourceBuffer)
@@ -186,7 +186,7 @@ public class ListOccurrencesBuffer extends Buffer
             return;
         Buffer buf = null;
         for (BufferIterator it = new BufferIterator(); it.hasNext();) {
-            Buffer b = it.nextBuffer();
+            Buffer b = it.next();
             if (b == sourceBuffer) {
                 buf = b;
                 break;

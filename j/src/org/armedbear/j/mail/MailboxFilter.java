@@ -24,7 +24,6 @@ import java.util.Stack;
 import org.armedbear.j.Debug;
 import org.armedbear.j.util.FastStringReader;
 import org.armedbear.j.Log;
-import org.armedbear.j.util.FastStringReader;
 
 public abstract class MailboxFilter
 {
@@ -45,15 +44,15 @@ public abstract class MailboxFilter
 
     private static MailboxFilter parse(FastStringReader reader) throws Exception
     {
-        Stack stack = new Stack();
+        Stack<MailboxFilter> stack = new Stack<MailboxFilter>();
         while (parseNextTerm(reader, stack))
             ;
         Debug.assertTrue(stack.size() == 1);
-        return (MailboxFilter) stack.pop();
+        return stack.pop();
     }
 
     // Returns false if end of input is reached, true otherwise.
-    private static boolean parseNextTerm(FastStringReader reader, Stack stack)
+    private static boolean parseNextTerm(FastStringReader reader, Stack<MailboxFilter> stack)
         throws Exception
     {
         reader.skipWhitespace();
@@ -63,7 +62,7 @@ public abstract class MailboxFilter
                 MailboxFilter filter = parseTilde(reader);
                 if (filter != null) {
                     if (stack.size() > 0) {
-                        MailboxFilter existing = (MailboxFilter) stack.pop();
+                        MailboxFilter existing = stack.pop();
                         if (existing instanceof AndTerm) {
                             ((AndTerm) existing).add(filter);
                             stack.push(existing);
@@ -78,7 +77,7 @@ public abstract class MailboxFilter
                 MailboxFilter filter = parseNot(reader);
                 if (filter != null) {
                     if (stack.size() > 0) {
-                        MailboxFilter existing = (MailboxFilter) stack.pop();
+                        MailboxFilter existing = stack.pop();
                         if (existing instanceof AndTerm) {
                             ((AndTerm) existing).add(filter);
                             stack.push(existing);
@@ -99,7 +98,7 @@ public abstract class MailboxFilter
                 MailboxFilter filter = parseOr(reader);
                 if (filter != null) {
                     if (stack.size() > 0) {
-                        MailboxFilter existing = (MailboxFilter) stack.pop();
+                        MailboxFilter existing = stack.pop();
                         if (existing instanceof OrTerm) {
                             ((OrTerm) existing).add(filter);
                             stack.push(existing);

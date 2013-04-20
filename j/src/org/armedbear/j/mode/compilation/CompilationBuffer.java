@@ -112,7 +112,7 @@ public final class CompilationBuffer extends CompilationErrorBuffer
             unlockWrite();
         }
         for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-            Editor ed = it.nextEditor();
+            Editor ed = it.next();
             if (ed.getBuffer() == this) {
                 ed.setDot(getFirstLine(), 0);
                 ed.setTopLine(getFirstLine());
@@ -186,14 +186,14 @@ public final class CompilationBuffer extends CompilationErrorBuffer
             if (Platform.isPlatformWindows()) {
                 String cmd = "cd /d \"" + currentDir.canonicalPath() +
                     "\" && " + expandedCommand;
-                ArrayList list = new ArrayList();
+                ArrayList<String> list = new ArrayList<String>();
                 list.add("cmd.exe");
                 list.add("/c");
                 list.addAll(Utilities.tokenize(cmd));
                 final int size = list.size();
                 String[] cmdarray = new String[size];
                 for (int i = 0; i < size; i++)
-                    cmdarray[i] = (String) list.get(i);
+                    cmdarray[i] = list.get(i);
                 process = Runtime.getRuntime().exec(cmdarray);
             } else {
                 // Not Windows. Assume Unix.
@@ -287,7 +287,7 @@ public final class CompilationBuffer extends CompilationErrorBuffer
     public static void killCompilation()
     {
         for (BufferIterator it = new BufferIterator(); it.hasNext();) {
-            Buffer buf = it.nextBuffer();
+            Buffer buf = it.next();
             if (buf instanceof CompilationBuffer) {
                 ((CompilationBuffer)buf).killProcess();
                 break;
@@ -324,7 +324,7 @@ public final class CompilationBuffer extends CompilationErrorBuffer
                 if (needsRenumbering())
                     renumber();
                 for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-                    Editor ed = it.nextEditor();
+                    Editor ed = it.next();
                     if (ed.getBuffer() == CompilationBuffer.this) {
                         ed.eob();
                         ed.getDisplay().setReframe(-2);

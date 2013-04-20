@@ -197,7 +197,7 @@ public final class WebMode extends AbstractMode implements Constants, Mode
             Buffer buf = null;
             // Look for existing buffer.
             for (BufferIterator it = new BufferIterator(); it.hasNext();) {
-                Buffer b = it.nextBuffer();
+                Buffer b = it.next();
                 if (b instanceof WebBuffer && b.getFile().equals(file)) {
                     buf = b;
                     break;

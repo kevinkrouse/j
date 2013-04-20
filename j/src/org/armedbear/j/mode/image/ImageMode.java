@@ -114,7 +114,7 @@ public final class ImageMode extends AbstractMode implements Constants, Mode
         if (buffer instanceof ImageBuffer) {
             ((ImageBuffer)buffer).cycleBackground();
             for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-                Editor ed = it.nextEditor();
+                Editor ed = it.next();
                 if (ed.getBuffer() == buffer)
                     ed.getDisplay().repaint();
             }

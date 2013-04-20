@@ -27,7 +27,7 @@ import java.util.StringTokenizer;
 
 public final class Netrc
 {
-    private static Vector logins;
+    private static Vector<Login> logins;
     private static long lastModified;
 
     public static Login getLogin(String host)
@@ -38,8 +38,7 @@ public final class Netrc
         if (logins == null)
             return null;
         final int limit = logins.size();
-        for (int i = 0; i < limit; i++) {
-            Login login = (Login) logins.get(i);
+        for (Login login : logins) {
             if (host.equals(login.host))
                 return login;
         }
@@ -54,8 +53,7 @@ public final class Netrc
         if (logins == null)
             return null;
         final int limit = logins.size();
-        for (int i = 0; i < limit; i++) {
-            Login login = (Login) logins.get(i);
+        for (Login login : logins) {
             if (host.equals(login.host)) {
                 if (user == null || user.equals(login.user))
                     return login.password;
@@ -93,7 +91,7 @@ public final class Netrc
             String host = null;
             String user = null;
             String password = null;
-            logins = new Vector();
+            logins = new Vector<Login>();
             while (st.hasMoreTokens()) {
                 String token = st.nextToken();
                 if (token.equals("machine")) {

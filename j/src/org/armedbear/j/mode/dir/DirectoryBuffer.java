@@ -89,7 +89,7 @@ public final class DirectoryBuffer extends Buffer
 
     private String limitPattern;
 
-    private ArrayList entries = new ArrayList();
+    private ArrayList<DirectoryEntry> entries = new ArrayList<DirectoryEntry>();
 
     private int numMarked = 0;
 
@@ -299,7 +299,7 @@ public final class DirectoryBuffer extends Buffer
             else
                 pos = getInitialDotPos();
             for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-                Editor ed = it.nextEditor();
+                Editor ed = it.next();
                 if (ed.getBuffer() == this) {
                     ed.setTopLine(getFirstLine());
                     ed.setDot(pos);
@@ -322,7 +322,7 @@ public final class DirectoryBuffer extends Buffer
             return;
         boolean rescanned = false;
         for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-            Editor ed = it.nextEditor();
+            Editor ed = it.next();
             if (ed.getBuffer() == this) {
                 if (ed.getSidebar() != null) {
                     NavigationComponent c = ed.getSidebar().getBottomComponent();
@@ -342,19 +342,19 @@ public final class DirectoryBuffer extends Buffer
 
     public synchronized void reload()
     {
-        ArrayList editors = new ArrayList();
+        ArrayList<Editor> editors = new ArrayList<Editor>();
 
         // Remember the name of the current file in every editor.
-        ArrayList names = new ArrayList();
+        ArrayList<String> names = new ArrayList<String>();
 
         // Remember the line number in every editor.
-        ArrayList lineNumbers = new ArrayList();
+        ArrayList<Integer> lineNumbers = new ArrayList<Integer>();
 
         // Remember the top line of the display in every editor.
-        ArrayList topLineNumbers = new ArrayList();
+        ArrayList<Integer> topLineNumbers = new ArrayList<Integer>();
 
         for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-            Editor ed = it.nextEditor();
+            Editor ed = it.next();
             String name = null;
             int lineNumber = 0;
             int topLineNumber = 0;
@@ -378,12 +378,12 @@ public final class DirectoryBuffer extends Buffer
 
         // Restore the status quo in every window.
         for (int i = 0; i < editors.size(); i++) {
-            final Editor ed = (Editor) editors.get(i);
+            final Editor ed = editors.get(i);
             if (ed.getBuffer() == this) {
-                Line dotLine = findName((String)names.get(i));
+                Line dotLine = findName(names.get(i));
                 if (dotLine == null) {
                     dotLine =
-                        getLine(((Integer)lineNumbers.get(i)).intValue());
+                        getLine(lineNumbers.get(i).intValue());
                     if (dotLine == null) {
                         if (getFirstLine() == null) {
                             Debug.bug();
@@ -401,7 +401,7 @@ public final class DirectoryBuffer extends Buffer
                 display.moveCaretToDotCol();
 
                 Line line =
-                    getLine(((Integer)topLineNumbers.get(i)).intValue());
+                    getLine(topLineNumbers.get(i).intValue());
                 if (line == null) {
                     Debug.assertTrue(getFirstLine() != null);
                     line = getFirstLine();
@@ -423,7 +423,7 @@ public final class DirectoryBuffer extends Buffer
         numMarked = 0;
         load();
         for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-            Editor ed = it.nextEditor();
+            Editor ed = it.next();
             if (ed.getBuffer() == this) {
                 final Line line = getFirstLine();
                 ed.setDot(line, getNameOffset(line));
@@ -476,8 +476,7 @@ public final class DirectoryBuffer extends Buffer
 
     private synchronized DirectoryEntry findEntry(String name)
     {
-        for (int i = 0; i < entries.size(); i++) {
-            DirectoryEntry entry = (DirectoryEntry) entries.get(i);
+        for (DirectoryEntry entry : entries) {
             if (name.equals(entry.getName()))
                 return entry;
         }
@@ -486,8 +485,7 @@ public final class DirectoryBuffer extends Buffer
 
     private synchronized DirectoryEntry findNativeEntry(String string)
     {
-        for (int i = 0; i < entries.size(); i++) {
-            DirectoryEntry entry = (DirectoryEntry) entries.get(i);
+        for (DirectoryEntry entry : entries) {
             if (string.equals(entry.getString()))
                 return entry;
         }
@@ -512,11 +510,11 @@ public final class DirectoryBuffer extends Buffer
     private void sortByName()
     {
         Debug.assertTrue(!usingNativeFormat);
-        Comparator comparator = new Comparator() {
-            public int compare(Object o1, Object o2)
+        Comparator<DirectoryEntry> comparator = new Comparator<DirectoryEntry>() {
+            public int compare(DirectoryEntry o1, DirectoryEntry o2)
             {
-                String name1 = ((DirectoryEntry)o1).getName();
-                String name2 = ((DirectoryEntry)o2).getName();
+                String name1 = o1.getName();
+                String name2 = o2.getName();
                 return name1.compareToIgnoreCase(name2);
             }
         };
@@ -525,12 +523,12 @@ public final class DirectoryBuffer extends Buffer
 
     // Called only from sort().
     private void sortByDate() {
-        Comparator comparator = new Comparator() {
-            public int compare(Object o1, Object o2)
+        Comparator<DirectoryEntry> comparator = new Comparator<DirectoryEntry>() {
+            public int compare(DirectoryEntry o1, DirectoryEntry o2)
             {
                 // Most recent dates first.
-                long date1 = ((DirectoryEntry)o1).getDate();
-                long date2 = ((DirectoryEntry)o2).getDate();
+                long date1 = o1.getDate();
+                long date2 = o2.getDate();
                 if (date1 > date2)
                     return -1;
                 if (date1 < date2)
@@ -544,12 +542,12 @@ public final class DirectoryBuffer extends Buffer
     // Called only from sort().
     private void sortBySize()
     {
-        Comparator comparator = new Comparator() {
-            public int compare(Object o1, Object o2)
+        Comparator<DirectoryEntry> comparator = new Comparator<DirectoryEntry>() {
+            public int compare(DirectoryEntry o1, DirectoryEntry o2)
             {
                 // Biggest files first.
-                long size1 = ((DirectoryEntry)o1).getSize();
-                long size2 = ((DirectoryEntry)o2).getSize();
+                long size1 = o1.getSize();
+                long size2 = o2.getSize();
                 if (size1 > size2)
                     return -1;
                 if (size1 < size2)
@@ -566,19 +564,16 @@ public final class DirectoryBuffer extends Buffer
         final int size = entries.size();
         if (preferences.getBooleanProperty(Property.DIR_SORT_DIRECTORIES_FIRST, !usingNativeFormat)) {
             // Add lines to the buffer in two passes so directories will always be on top.
-            for (int i = 0; i < size; i++) {
-                DirectoryEntry entry = (DirectoryEntry) entries.get(i);
+            for (DirectoryEntry entry : entries) {
                 if (entry.isDirectory())
                     appendLine(entry);
             }
-            for (int i = 0; i < size; i++) {
-                DirectoryEntry entry = (DirectoryEntry) entries.get(i);
+            for (DirectoryEntry entry : entries) {
                 if (!entry.isDirectory())
                     appendLine(entry);
             }
         } else {
-            for (int i = 0; i < size; i++) {
-                DirectoryEntry entry = (DirectoryEntry) entries.get(i);
+            for (DirectoryEntry entry : entries) {
                 appendLine(entry);
             }
         }
@@ -639,7 +634,7 @@ public final class DirectoryBuffer extends Buffer
                 unlockWrite();
             }
             for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-                Editor ed = it.nextEditor();
+                Editor ed = it.next();
                 if (ed.getBuffer() == this) {
                     ed.setDot(getFirstLine(), 0);
                     ed.setMark(null);
@@ -740,16 +735,16 @@ public final class DirectoryBuffer extends Buffer
                 String[] names = file.list();
                 if (names != null) {
                     if (dff == null) {
-                        for (int i = 0; i < names.length; i++)
-                            addEntry(names[i]);
+                        for (String name : names)
+                            addEntry(name);
                     } else {
-                        for (int i = 0; i < names.length; i++) {
-                            if (dff.accepts(names[i]))
-                                addEntry(names[i]);
+                        for (String name : names) {
+                            if (dff.accepts(name))
+                                addEntry(name);
                             else {
-                                File f = File.getInstance(file, names[i]);
+                                File f = File.getInstance(file, name);
                                 if (f != null && f.isDirectory())
-                                    addEntry(names[i]);
+                                    addEntry(name);
                             }
                         }
                     }
@@ -808,8 +803,7 @@ public final class DirectoryBuffer extends Buffer
         long totalSize = 0;
         int endOffset = -1;
         final int limit = entries.size();
-        for (int i = 0; i < limit; i++) {
-            DirectoryEntry entry = (DirectoryEntry) entries.get(i);
+        for (DirectoryEntry entry : entries) {
             long size = entry.getSize();
             if (size >= 0) {
                 totalSize += size;
@@ -924,7 +918,7 @@ public final class DirectoryBuffer extends Buffer
         reload();
         Line line = findName(name);
         for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-            Editor ed = it.nextEditor();
+            Editor ed = it.next();
             if (ed.getBuffer() == this) {
                 if (line != null)
                     ed.setDot(line, getNameOffset(line));
@@ -1061,7 +1055,7 @@ public final class DirectoryBuffer extends Buffer
                 numMarked = 0;
                 setListing(null);
                 for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-                    Editor ed = it.nextEditor();
+                    Editor ed = it.next();
                     if (ed.getBuffer() == this) {
                         ed.setTopLine(null);
                         ed.setDot(null);
@@ -1078,7 +1072,7 @@ public final class DirectoryBuffer extends Buffer
                             {
                                 setBusy(false);
                                 for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-                                    Editor ed = it.nextEditor();
+                                    Editor ed = it.next();
                                     if (ed.getBuffer() == DirectoryBuffer.this) {
                                         ed.setTopLine(getFirstLine());
                                         ed.setDot(getInitialDotPos());
@@ -1157,7 +1151,7 @@ public final class DirectoryBuffer extends Buffer
             setFile(f);
             load();
             for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-                Editor ed = it.nextEditor();
+                Editor ed = it.next();
                 if (ed.getBuffer() == this) {
                     ed.setTopLine(getFirstLine());
                     ed.setDot(getInitialDotPos());
@@ -1182,7 +1176,7 @@ public final class DirectoryBuffer extends Buffer
         load();
         Line line = findName(entry.name);
         for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-            Editor ed = it.nextEditor();
+            Editor ed = it.next();
             if (ed.getBuffer() == this) {
                 ed.getDisplay().setTopLine(getFirstLine());
                 ed.setUpdateFlag(REPAINT);
@@ -1309,8 +1303,7 @@ public final class DirectoryBuffer extends Buffer
             return;
         boolean directoryWasDeleted = false;
         FtpSession session = null;
-        for (int i = 0; i < entries.size(); i++) {
-            DirectoryEntry entry = (DirectoryEntry) entries.get(i);
+        for (DirectoryEntry entry : entries) {
             if (!entry.isMarked())
                 continue;
             String name = entry.extractName();
@@ -1329,13 +1322,12 @@ public final class DirectoryBuffer extends Buffer
             if (file.isRemote()) {
                 displayName += " on " + file.getHostName();
                 isDirectory = entry.isDirectory();
-            }
-            else
+            } else
                 isDirectory = file.isDirectory();
             boolean succeeded = false;
             if (file instanceof FtpFile) {
                 if (session == null)
-                    session = FtpSession.getSession((FtpFile)file);
+                    session = FtpSession.getSession((FtpFile) file);
                 if (session != null) {
                     if (isDirectory)
                         succeeded = session.removeDirectory(file.canonicalPath());
@@ -1357,10 +1349,10 @@ public final class DirectoryBuffer extends Buffer
                 // Deletion failed.
                 if (isDirectory) {
                     confirmed = editor.confirm("Delete Files",
-                        "Unable to remove directory " + displayName + ".  Continue?");
+                            "Unable to remove directory " + displayName + ".  Continue?");
                 } else {
                     confirmed = editor.confirm("Delete Files",
-                        "Unable to delete " + displayName + ".  Continue?");
+                            "Unable to delete " + displayName + ".  Continue?");
                 }
                 if (!confirmed)
                     break;
@@ -1464,14 +1456,14 @@ public final class DirectoryBuffer extends Buffer
 
     private void doShellCommand(Editor editor)
     {
-        List names = getMarkedNames();
+        List<String> names = getMarkedNames();
         if (names == null) {
-            names = new ArrayList();
+            names = new ArrayList<String>();
             names.add(getName(editor.getDotLine()));
         }
         String prompt = null;
         if (names.size() == 1)
-            prompt = "Command (on " + (String) names.get(0) + "):";
+            prompt = "Command (on " + names.get(0) + "):";
         else if (names.size() > 1)
             prompt = "Command (on " + names.size() + " tagged files):";
         else
@@ -1489,19 +1481,16 @@ public final class DirectoryBuffer extends Buffer
         editor.setWaitCursor();
         editor.repaintNow();
         String output = null;
-        if (names != null) {
-            if (command.indexOf('*') >= 0) {
-                output = doCommandOnMultipleFiles(command, names);
-            } else {
-                FastStringBuffer sb = new FastStringBuffer();
-                for (int i = 0; i < names.size(); i++) {
-                    String filename = (String) names.get(i);
-                    String s = doCommandOnFile(command, filename);
-                    if (s != null && s.length() > 0)
-                        sb.append(s);
-                }
-                output = sb.toString();
+        if (command.indexOf('*') >= 0) {
+            output = doCommandOnMultipleFiles(command, names);
+        } else {
+            FastStringBuffer sb = new FastStringBuffer();
+            for (String filename : names) {
+                String s = doCommandOnFile(command, filename);
+                if (s != null && s.length() > 0)
+                    sb.append(s);
             }
+            output = sb.toString();
         }
         reload();
         if (output != null && output.length() > 0) {
@@ -1525,7 +1514,7 @@ public final class DirectoryBuffer extends Buffer
         return shellCommand.getOutput();
     }
 
-    private String doCommandOnMultipleFiles(String command, List files)
+    private String doCommandOnMultipleFiles(String command, List<String> files)
     {
         if (files.size() < 1)
             return null;
@@ -1543,9 +1532,9 @@ public final class DirectoryBuffer extends Buffer
             return null;
         }
         FastStringBuffer sb = new FastStringBuffer(before);
-        for (int i = 0; i < files.size(); i++) {
+        for (String file : files) {
             sb.append(' ');
-            String filename = (String) files.get(i);
+            String filename = file;
             sb.append(Utilities.maybeQuote(filename));
         }
         if (after.length() > 0) {
@@ -1557,13 +1546,12 @@ public final class DirectoryBuffer extends Buffer
         return shellCommand.getOutput();
     }
 
-    private synchronized List getMarkedNames()
+    private synchronized List<String> getMarkedNames()
     {
         if (numMarked > 0) {
-            ArrayList names = new ArrayList(numMarked);
+            ArrayList<String> names = new ArrayList<String>(numMarked);
             final int size = entries.size();
-            for (int i = 0; i < size; i++) {
-                DirectoryEntry de = (DirectoryEntry) entries.get(i);
+            for (DirectoryEntry de : entries) {
                 if (de.isMarked()) {
                     String name = de.extractName();
                     if (name != null)
@@ -1585,13 +1573,12 @@ public final class DirectoryBuffer extends Buffer
         moveFiles();
     }
 
-    private List getSourceFiles(Editor editor)
+    private List<File> getSourceFiles(Editor editor)
     {
-        ArrayList sources = new ArrayList();
+        ArrayList<File> sources = new ArrayList<File>();
         if (numMarked > 0) {
-            List names = getMarkedNames();
-            for (int i = 0; i < names.size(); i++) {
-                String name = (String) names.get(i);
+            List<String> names = getMarkedNames();
+            for (String name : names) {
                 if (name != null)
                     sources.add(File.getInstance(getFile(), name));
             }
@@ -1603,23 +1590,23 @@ public final class DirectoryBuffer extends Buffer
         return sources;
     }
 
-    private File getDestinationForCopy(Editor editor, List sources)
+    private File getDestinationForCopy(Editor editor, List<File> sources)
     {
         return getDestination(editor, sources, "Copy");
     }
 
-    private File getDestinationForMove(Editor editor, List sources)
+    private File getDestinationForMove(Editor editor, List<File> sources)
     {
         return getDestination(editor, sources, "Move");
     }
 
-    private File getDestination(Editor editor, List sources, String operation)
+    private File getDestination(Editor editor, List<File> sources, String operation)
     {
         String title = operation + " File";
         String prompt = operation + " ";
         String name = null;
         if (sources.size() == 1) {
-            File source = (File) sources.get(0);
+            File source = sources.get(0);
             name = source.getName();
             prompt += name;
         } else
@@ -1635,7 +1622,7 @@ public final class DirectoryBuffer extends Buffer
     private void copyFiles()
     {
         final Editor editor = Editor.currentEditor();
-        List sources = getSourceFiles(editor);
+        List<File> sources = getSourceFiles(editor);
         File destination = getDestinationForCopy(editor, sources);
         if (destination == null)
             return;
@@ -1646,7 +1633,7 @@ public final class DirectoryBuffer extends Buffer
             MessageDialog.showMessageDialog(editor, "Destination must be local!", title);
     }
 
-    private void copyLocalToLocal(List sources, File destination, Editor editor, String title)
+    private void copyLocalToLocal(List<File> sources, File destination, Editor editor, String title)
     {
         int numFilesCopied = 0;
         boolean mustConfirm = true;
@@ -1654,7 +1641,7 @@ public final class DirectoryBuffer extends Buffer
         final int limit = sources.size();
         File destDir = destination.isDirectory() ? destination : destination.getParentFile();
         for (int i = 0; i < limit; i++) {
-            File from = (File) sources.get(i);
+            File from = sources.get(i);
             File to;
             if (destination.isDirectory())
                 to = File.getInstance(destination, from.getName());
@@ -1705,7 +1692,7 @@ public final class DirectoryBuffer extends Buffer
         statusText += " copied";
         editor.status(statusText);
         for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-            Editor ed = it.nextEditor();
+            Editor ed = it.next();
             if (destDir.equals(ed.getBuffer().getFile())) {
                 ((DirectoryBuffer)ed.getBuffer()).reload();
                 if (ed != Editor.currentEditor())
@@ -1717,7 +1704,7 @@ public final class DirectoryBuffer extends Buffer
     private void moveFiles()
     {
         final Editor editor = Editor.currentEditor();
-        List sources = getSourceFiles(editor);
+        List<File> sources = getSourceFiles(editor);
         File destination = getDestinationForMove(editor, sources);
         if (destination == null)
             return;
@@ -1728,9 +1715,7 @@ public final class DirectoryBuffer extends Buffer
             return;
         }
         final int count = sources.size();
-        for (int i = 0; i < count; i++) {
-            File source = (File) sources.get(i);
-
+        for (File source : sources) {
             // Move.
             boolean success = source.renameTo(destination);
 
@@ -1741,18 +1726,16 @@ public final class DirectoryBuffer extends Buffer
                     Log.debug("copyFile succeeded, deleting source...");
                     source.delete();
                     success = !source.exists();
-                }
-                else
+                } else
                     Log.error("copyFile failed");
-            }
-            else
+            } else
                 Log.debug("renameTo succeeded");
 
             if (success) {
                 // Change file information for any buffers (there should only
                 // be one!) associated with moved file.
-                for (BufferIterator it = new BufferIterator(); it.hasNext();) {
-                    Buffer buf = it.nextBuffer();
+                for (BufferIterator it = new BufferIterator(); it.hasNext(); ) {
+                    Buffer buf = it.next();
                     if (source.equals(buf.getFile()))
                         buf.changeFile(destination);
                 }
@@ -1831,7 +1814,7 @@ public final class DirectoryBuffer extends Buffer
                 if (cache != null)
                     Utilities.deleteRename(cache, destination);
                 for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-                    Editor ed = it.nextEditor();
+                    Editor ed = it.next();
                     if (ed.getBuffer() == DirectoryBuffer.this)
                         ed.setDefaultCursor();
                 }
@@ -1844,7 +1827,7 @@ public final class DirectoryBuffer extends Buffer
                 if (cache != null && cache.isFile())
                     cache.delete();
                 for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-                    Editor ed = it.nextEditor();
+                    Editor ed = it.next();
                     if (ed.getBuffer() == DirectoryBuffer.this)
                         ed.setDefaultCursor();
                 }
@@ -2004,7 +1987,7 @@ public final class DirectoryBuffer extends Buffer
                     public void run()
                     {
                         for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-                            Editor ed = it.nextEditor();
+                            Editor ed = it.next();
                             if (ed.getBuffer() == directory)
                                 ed.setDefaultCursor();
                         }
@@ -2015,7 +1998,7 @@ public final class DirectoryBuffer extends Buffer
                     {
                         directory.setBusy(true);
                         for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-                            Editor ed = it.nextEditor();
+                            Editor ed = it.next();
                             if (ed.getBuffer() == directory)
                                 ed.setWaitCursor();
                         }
@@ -2036,7 +2019,7 @@ public final class DirectoryBuffer extends Buffer
                     public void run()
                     {
                         for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-                            Editor ed = it.nextEditor();
+                            Editor ed = it.next();
                             if (ed.getBuffer() == directory)
                                 ed.setDefaultCursor();
                         }
@@ -2047,7 +2030,7 @@ public final class DirectoryBuffer extends Buffer
                     {
                         directory.setBusy(true);
                         for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-                            Editor ed = it.nextEditor();
+                            Editor ed = it.next();
                             if (ed.getBuffer() == directory)
                                 ed.setWaitCursor();
                         }
@@ -2110,13 +2093,13 @@ public final class DirectoryBuffer extends Buffer
                 name = name.toLowerCase();
                 for (Line line = getFirstLine(); line != null; line = line.next()) {
                     String text = line.getText().toLowerCase();
-                    if (text.indexOf(name) >= 0) // Performance!
+                    if (text.contains(name)) // Performance!
                         if (name.equalsIgnoreCase(getName(line)))
                             return line;
                 }
             } else {
                 for (Line line = getFirstLine(); line != null; line = line.next()) {
-                    if (line.getText().indexOf(name) >= 0) // Performance!
+                    if (line.getText().contains(name)) // Performance!
                         if (name.equals(getName(line)))
                             return line;
                 }
@@ -2157,7 +2140,7 @@ public final class DirectoryBuffer extends Buffer
 
 class DirectoryHistory
 {
-    private Vector v = new Vector();
+    private Vector<DirectoryHistoryEntry> v = new Vector<DirectoryHistoryEntry>();
     private int index = -1;
 
     DirectoryHistory()
@@ -2187,7 +2170,7 @@ class DirectoryHistory
         if (index == -1)
             index = v.size();
         if (index > 0)
-            return (DirectoryHistoryEntry) v.get(--index);
+            return v.get(--index);
         return null;
     }
 
@@ -2198,7 +2181,7 @@ class DirectoryHistory
         if (index == -1)
             return null;
         if (index < v.size()-1)
-            return (DirectoryHistoryEntry) v.get(++index);
+            return v.get(++index);
         return null;
     }
 

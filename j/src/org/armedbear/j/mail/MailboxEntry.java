@@ -498,7 +498,7 @@ public abstract class MailboxEntry implements Serializable
         if (s == null || s.length() == 0)
             return null;
 
-        ArrayList list = null;
+        ArrayList<String> list = null;
         int begin = 0;
         while (true) {
             begin = s.indexOf('<', begin);
@@ -508,13 +508,13 @@ public abstract class MailboxEntry implements Serializable
             if (end < 0)
                 break;
             if (list == null)
-                list = new ArrayList();
+                list = new ArrayList<String>();
             list.add(s.substring(begin, ++end));
             begin = end;
         }
         if (list == null)
             return null;
         String[] array = new String[list.size()];
-        return (String[]) list.toArray(array);
+        return list.toArray(array);
     }
 }

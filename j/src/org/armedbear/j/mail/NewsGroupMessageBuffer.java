@@ -96,7 +96,7 @@ public final class NewsGroupMessageBuffer extends MessageBuffer
         if (nextEntry != null) {
             empty();
             for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-                Editor ed = it.nextEditor();
+                Editor ed = it.next();
                 if (ed.getBuffer() == this) {
                     ed.setDot(null);
                     ed.setMark(null);
@@ -118,7 +118,7 @@ public final class NewsGroupMessageBuffer extends MessageBuffer
         if (prevEntry != null) {
             empty();
             for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-                Editor ed = it.nextEditor();
+                Editor ed = it.next();
                 if (ed.getBuffer() == this) {
                     ed.setDot(null);
                     ed.setMark(null);
@@ -189,7 +189,7 @@ public final class NewsGroupMessageBuffer extends MessageBuffer
                 setBusy(false);
                 if (rawText != null) {
                     for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-                        Editor ed = it.nextEditor();
+                        Editor ed = it.next();
                         if (ed.getBuffer() == NewsGroupMessageBuffer.this) {
                             ed.setDot(getFirstLine(), 0);
                             ed.moveCaretToDotCol();
@@ -433,7 +433,7 @@ public final class NewsGroupMessageBuffer extends MessageBuffer
         setText();
         formatter.parseBuffer();
         for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-            Editor ed = it.nextEditor();
+            Editor ed = it.next();
             if (ed.getBuffer() == this) {
                 ed.setDot(getFirstLine(), 0);
                 ed.setTopLine(ed.getDotLine());
@@ -450,7 +450,7 @@ public final class NewsGroupMessageBuffer extends MessageBuffer
         setText();
         formatter.parseBuffer();
         for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-            Editor ed = it.nextEditor();
+            Editor ed = it.next();
             if (ed.getBuffer() == this) {
                 ed.setDot(getFirstLine(), 0);
                 ed.setTopLine(ed.getDotLine());
@@ -472,7 +472,7 @@ public final class NewsGroupMessageBuffer extends MessageBuffer
         if (contentType != null && contentType.startsWith("image/"))
             super.setText();
         else {
-            List parts = message.getParts();
+            List<MimePart> parts = message.getParts();
             if (parts != null && parts.size() > 0) {
                 super.setText();
             } else {

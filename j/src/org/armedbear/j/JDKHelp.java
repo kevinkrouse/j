@@ -46,7 +46,7 @@ public final class JDKHelp implements Constants
             Editor.preferences().getStringProperty(Property.JDK_DOC_PATH);
         if (jdkDocPath == null)
             return;
-        final List dirnames = getDirectoriesInPath(jdkDocPath);
+        final List<String> dirnames = getDirectoriesInPath(jdkDocPath);
         if (dirnames == null)
             return;
         final Editor editor = Editor.currentEditor();
@@ -55,24 +55,23 @@ public final class JDKHelp implements Constants
         frame.setWaitCursor();
         final String[] imports = JavaSource.getImports(buffer);
         final int size = dirnames.size();
-        for (int i = 0; i < size; i++) {
-            final String dirname = (String) dirnames.get(i);
+        for (final String dirname : dirnames) {
             final File dir = File.getInstance(dirname);
             File file = JavaSource.findImport(className, imports, dir,
-                ".html");
+                    ".html");
             if (file == null || !file.isFile()) {
                 // Not found. Look in "api" subdirectory if it exists.
                 final File apiDir = File.getInstance(dir, "api");
                 if (apiDir != null && apiDir.isDirectory()) {
                     file = JavaSource.findImport(className, imports, apiDir,
-                        ".html");
+                            ".html");
                 }
             }
             if (file != null && file.isFile()) {
                 Buffer buf = null;
                 // Look for existing buffer.
-                for (BufferIterator it = new BufferIterator(); it.hasNext();) {
-                    Buffer b = it.nextBuffer();
+                for (BufferIterator it = new BufferIterator(); it.hasNext(); ) {
+                    Buffer b = it.next();
                     if (b instanceof WebBuffer && b.getFile().equals(file)) {
                         buf = b;
                         break;
@@ -114,7 +113,7 @@ public final class JDKHelp implements Constants
             Buffer buf = null;
             // Look for existing buffer.
             for (BufferIterator it = new BufferIterator(); it.hasNext();) {
-                Buffer b = it.nextBuffer();
+                Buffer b = it.next();
                 if (file.equals(b.getFile())) {
                     buf = b;
                     break;
@@ -134,16 +133,15 @@ public final class JDKHelp implements Constants
         }
     }
 
-    private static List getDirectoriesInPath(String path)
+    private static List<String> getDirectoriesInPath(String path)
     {
-        final List dirNames = Utilities.getDirectoriesInPath(path);
+        final List<String> dirNames = Utilities.getDirectoriesInPath(path);
         final int size = dirNames.size();
         if (size == 0) {
             MessageDialog.showMessageDialog("Empty path", "Error");
             return null;
         }
-        for (int i = 0; i < size; i++) {
-            final String dirName = (String) dirNames.get(i);
+        for (final String dirName : dirNames) {
             final File dir = File.getInstance(dirName);
             if (!dir.isDirectory()) {
                 FastStringBuffer sb = new FastStringBuffer("Directory \"");

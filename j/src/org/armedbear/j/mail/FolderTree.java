@@ -58,11 +58,11 @@ public final class FolderTree extends JTree implements NavigationComponent,
 
     public static FolderTree getInstance(Frame frame)
     {
-        Object obj = frame.getFolderTree();
-        if (obj instanceof FolderTree)
-            return (FolderTree) obj;
-        FolderTree tree = new FolderTree(frame);
-        frame.setFolderTree(tree);
+        FolderTree tree = frame.getFolderTree();
+        if (tree == null) {
+            tree = new FolderTree(frame);
+            frame.setFolderTree(tree);
+        }
         return tree;
     }
 

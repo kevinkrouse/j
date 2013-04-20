@@ -34,9 +34,9 @@ import org.armedbear.j.Log;
 public final class VMConnection
 {
     private final Connector connector;
-    private final Map map;
+    private final Map<String,Connector.Argument> map;
 
-    public VMConnection(Connector connector, Map map)
+    public VMConnection(Connector connector, Map<String,Connector.Argument> map)
     {
         this.connector = connector;
         this.map = map;
@@ -46,11 +46,11 @@ public final class VMConnection
     {
         VirtualMachineManager vmm = Bootstrap.virtualMachineManager();
         LaunchingConnector connector = vmm.defaultConnector();
-        Map map = connector.defaultArguments();
+        Map<String,Connector.Argument> map = connector.defaultArguments();
         String javaHome = jdb.getJavaHome();
-        ((Connector.Argument)map.get("home")).setValue(javaHome);
+        (map.get("home")).setValue(javaHome);
         String javaExecutable = jdb.getJavaExecutable();
-        ((Connector.Argument)map.get("vmexec")).setValue(javaExecutable);
+        (map.get("vmexec")).setValue(javaExecutable);
 
         // Command line.
         FastStringBuffer sb = new FastStringBuffer(jdb.getMainClass());
@@ -59,7 +59,7 @@ public final class VMConnection
             sb.append(' ');
             sb.append(mainClassArgs);
         }
-        ((Connector.Argument)map.get("main")).setValue(sb.toString());
+        (map.get("main")).setValue(sb.toString());
 
         // CLASSPATH and VM options.
         sb.setLength(0);
@@ -79,9 +79,9 @@ public final class VMConnection
                 sb.append(classPath);
             }
         }
-        ((Connector.Argument)map.get("options")).setValue(sb.toString());
+        (map.get("options")).setValue(sb.toString());
 
-        ((Connector.Argument)map.get("suspend")).setValue("true");
+        (map.get("suspend")).setValue("true");
         return new VMConnection(connector, map);
     }
 

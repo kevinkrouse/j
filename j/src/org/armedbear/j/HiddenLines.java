@@ -25,12 +25,12 @@ import java.util.ArrayList;
 public final class HiddenLines
 {
     private final Buffer buffer;
-    private final ArrayList list;
+    private final ArrayList<HiddenLinesEntry> list;
 
     public HiddenLines(Editor editor)
     {
         buffer = editor.getBuffer();
-        list = new ArrayList();
+        list = new ArrayList<HiddenLinesEntry>();
         int count = 0;
         int hidden = -1;
         for (Line line = buffer.getFirstLine(); line != null; line = line.next()) {
@@ -50,8 +50,7 @@ public final class HiddenLines
     public void restore()
     {
         Line line = buffer.getFirstLine();
-        for (int i = 0; i < list.size(); i++) {
-            HiddenLinesEntry entry = (HiddenLinesEntry) list.get(i);
+        for (HiddenLinesEntry entry : list) {
             for (int j = 0; j < entry.getCount(); j++) {
                 line.setHidden(entry.getHidden());
                 line = line.next();

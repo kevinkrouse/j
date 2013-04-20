@@ -45,7 +45,7 @@ public final class UndoManager extends javax.swing.undo.UndoManager
     {
         if (edits.size() > 0) {
             UndoFold undoFold = new UndoFold(editor);
-            UndoableEdit lastEdit = (UndoableEdit) edits.remove(edits.size()-1);
+            UndoableEdit lastEdit = edits.remove(edits.size()-1);
             CompoundEdit compoundEdit = new CompoundEdit();
             compoundEdit.addEdit(lastEdit);
             compoundEdit.addEdit(undoFold);

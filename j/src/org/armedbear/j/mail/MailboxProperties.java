@@ -48,7 +48,7 @@ public final class MailboxProperties
     private static final String lineSeparator =
         System.getProperty("line.separator");
 
-    private static ArrayList list;
+    private static ArrayList<Entry> list;
 
     private MailboxProperties()
     {
@@ -60,7 +60,7 @@ public final class MailboxProperties
             initialize();
         String name = url.getCanonicalName();
         for (int i = list.size()-1; i >= 0; i--) {
-            Entry entry = (Entry) list.get(i);
+            Entry entry = list.get(i);
             if (entry.name.equals(name))
                 return entry.properties;
         }
@@ -93,7 +93,7 @@ public final class MailboxProperties
         Entry newEntry = new Entry(name, properties);
         final int limit = list.size();
         for (int i = 0; i < limit; i++) {
-            Entry entry = (Entry) list.get(i);
+            Entry entry = list.get(i);
             if (entry.name.equals(name)) {
                 if (i == 0) {
                     list.set(0, newEntry);
@@ -113,7 +113,7 @@ public final class MailboxProperties
     {
         if (list == null) {
             Editor.protect(MailboxProperties.class);
-            list = new ArrayList();
+            list = new ArrayList<Entry>();
             File file = getFile();
             if (file.isFile()) {
                 XMLReader xmlReader = Utilities.getDefaultXMLReader();
@@ -155,7 +155,7 @@ public final class MailboxProperties
             writer.newLine();
             final int limit = Math.min(list.size(), MAX_ENTRIES);
             for (int i = 0; i < limit; i++) {
-                Entry entry = (Entry) list.get(i);
+                Entry entry = list.get(i);
                 writer.write(entry.toXml());
                 writer.newLine();
             }
@@ -209,10 +209,10 @@ public final class MailboxProperties
             sb.append(">");
             sb.append(lineSeparator);
             if (properties != null) {
-                Iterator it = properties.keyIterator();
+                Iterator<Property> it = properties.keyIterator();
                 if (it != null) {
                     while (it.hasNext()) {
-                        Property property = (Property) it.next();
+                        Property property = it.next();
                         Object value = properties.getProperty(property);
                         if (value != null) {
                             sb.append(propertyToXml(property.getDisplayName(),

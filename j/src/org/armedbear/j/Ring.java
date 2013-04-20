@@ -25,7 +25,7 @@ import java.util.ArrayList;
 public class Ring
 {
     private final int capacity;
-    private final ArrayList list;
+    private final ArrayList<String> list;
     private int index;
     private int indexOfNextPop = -1;
     private String lastPop;
@@ -33,7 +33,7 @@ public class Ring
     public Ring(int capacity)
     {
         this.capacity = capacity;
-        list = new ArrayList(capacity);
+        list = new ArrayList<String>(capacity);
     }
 
     public synchronized final int size()
@@ -44,7 +44,7 @@ public class Ring
     public String get(int i)
     {
         if (i >= 0 && i < list.size())
-            return (String) list.get(i);
+            return list.get(i);
         else
             return null;
     }
@@ -54,7 +54,7 @@ public class Ring
         if (list.size() == 0)
             list.add(s);
         else {
-            String existing = (String) list.get(list.size() - 1);
+            String existing = list.get(list.size() - 1);
             list.set(list.size() - 1, existing.concat(s));
         }
     }
@@ -64,7 +64,7 @@ public class Ring
         final int size = list.size();
         // See if we already have the string in question.
         for (int i = size-1; i >= 0; i--) {
-            String existing = (String) list.get(i);
+            String existing = list.get(i);
             if (existing.equals(s)) {
                 // Found it! If it's not already the last element, promote it.
                 if (i != size-1) {
@@ -87,7 +87,7 @@ public class Ring
     {
         if (list.size() == 0)
             return null;
-        return (String) list.get(list.size() - 1);
+        return list.get(list.size() - 1);
     }
 
     public synchronized String pop()
@@ -95,7 +95,7 @@ public class Ring
         indexOfNextPop = list.size() - 2;
         if (list.size() == 0)
             return null;
-        return lastPop = (String) list.get(list.size() - 1);
+        return lastPop = list.get(list.size() - 1);
     }
 
     public synchronized String popNext()
@@ -103,7 +103,7 @@ public class Ring
         if (indexOfNextPop < 0)
             return null;
         Debug.assertTrue(indexOfNextPop < list.size());
-        lastPop = (String) list.get(indexOfNextPop);
+        lastPop = list.get(indexOfNextPop);
         if (--indexOfNextPop < 0)
             indexOfNextPop = list.size() - 1;
         return lastPop;
@@ -118,7 +118,7 @@ public class Ring
     private void promote(String s)
     {
         for (int i = list.size()-1; i >= 0; i--) {
-            String existing = (String) list.get(i);
+            String existing = list.get(i);
             if (existing.equals(s)) {
                 if (i != list.size()-1) {
                     list.remove(i);

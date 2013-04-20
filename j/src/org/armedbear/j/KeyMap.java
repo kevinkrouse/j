@@ -42,7 +42,7 @@ public final class KeyMap implements Constants
     private static KeyMap globalOverrides;
     private static File globalKeyMapFile;
 
-    private ArrayList mappings = new ArrayList();
+    private ArrayList<KeyMapping> mappings = new ArrayList<KeyMapping>();
 
     public KeyMap()
     {
@@ -102,7 +102,7 @@ public final class KeyMap implements Constants
     public synchronized KeyMapping[] getMappings()
     {
         KeyMapping[] array = new KeyMapping[mappings.size()];
-        return (KeyMapping[]) mappings.toArray(array);
+        return mappings.toArray(array);
     }
 
     public synchronized boolean load(File file)
@@ -447,7 +447,7 @@ public final class KeyMap implements Constants
             // This is the keyTyped() case. Ignore keyCode and modifiers;
             // keyChar must match the mapping.
             for (int i = mappings.size(); i-- > 0;) {
-                KeyMapping mapping = (KeyMapping) mappings.get(i);
+                KeyMapping mapping = mappings.get(i);
                 if (keyChar == mapping.getKeyChar())
                     return mapping;
             }
@@ -456,7 +456,7 @@ public final class KeyMap implements Constants
                 // This is the keyPressed() case. keyCode and modifiers must
                 // match the mapping. mapping.getKeyChar() must be zero, but
                 // we ignore the keyChar argument.
-                KeyMapping mapping = (KeyMapping) mappings.get(i);
+                KeyMapping mapping = mappings.get(i);
                 if (mapping.getKeyChar() == 0 &&
                     keyCode == mapping.getKeyCode() &&
                     modifiers == mapping.getModifiers())
@@ -475,26 +475,25 @@ public final class KeyMap implements Constants
     public synchronized final KeyMapping getKeyMapping(String command)
     {
         command = command.intern();
-        for (int i = 0, limit = mappings.size(); i < limit; i++) {
-            KeyMapping mapping = (KeyMapping) mappings.get(i);
+        for (KeyMapping mapping : mappings) {
             if (command == mapping.getCommand())
                 return mapping;
         }
         return null;
     }
 
-    public synchronized List listKeys(String command)
+    public synchronized List<String> listKeys(String command)
     {
         command = command.intern();
-        ArrayList list = new ArrayList();
+        ArrayList<String> list = new ArrayList<String>();
         _listKeys(command, "", list);
         return list;
     }
 
-    private void _listKeys(String command, String prefix, ArrayList list)
+    private void _listKeys(String command, String prefix, ArrayList<String> list)
     {
         for (int i = mappings.size(); i-- > 0;) {
-            KeyMapping mapping = (KeyMapping) mappings.get(i);
+            KeyMapping mapping = mappings.get(i);
             if (command == mapping.getCommand())
                 list.add(mapping.getKeyText());
             if (mapping.getCommand() instanceof KeyMap) {
@@ -518,8 +517,7 @@ public final class KeyMap implements Constants
         command = command.intern();
         final KeyMapping[] sourceMappings = source.getMappings();
         final int limit = sourceMappings.length;
-        for (int i = 0; i < limit; i++) {
-            KeyMapping mapping = sourceMappings[i];
+        for (KeyMapping mapping : sourceMappings) {
             if (command == mapping.getCommand())
                 mappings.add(mapping);
         }
@@ -529,7 +527,7 @@ public final class KeyMap implements Constants
     {
         // See if we already have a mapping for this keystroke.
         for (int i = 0; i < mappings.size(); i++) {
-            KeyMapping mapping = (KeyMapping) mappings.get(i);
+            KeyMapping mapping = mappings.get(i);
             if (keyCode == mapping.getKeyCode() && modifiers == mapping.getModifiers()) {
                 mappings.set(i, new KeyMapping(keyCode, modifiers, command));
                 return;
@@ -543,7 +541,7 @@ public final class KeyMap implements Constants
     {
         // See if we already have a mapping for this keystroke.
         for (int i = 0; i < mappings.size(); i++) {
-            KeyMapping mapping = (KeyMapping) mappings.get(i);
+            KeyMapping mapping = mappings.get(i);
             if (keyChar == mapping.getKeyChar()) {
                 mappings.set(i, new KeyMapping(keyChar, command));
                 return;
@@ -578,7 +576,7 @@ public final class KeyMap implements Constants
             // This is the keyTyped() case. Ignore keyCode and modifiers;
             // keyChar must match the mapping.
             for (int i = mappings.size(); i-- > 0;) {
-                KeyMapping mapping = (KeyMapping) mappings.get(i);
+                KeyMapping mapping = mappings.get(i);
                 if (keyChar == mapping.getKeyChar()) {
                     mappings.set(i, new KeyMapping(keyChar, command));
                     return true;
@@ -591,7 +589,7 @@ public final class KeyMap implements Constants
                 // This is the keyPressed() case. keyCode and modifiers must
                 // match the mapping. mapping.getKeyChar() must be zero, but
                 // we ignore the keyChar argument.
-                KeyMapping mapping = (KeyMapping) mappings.get(i);
+                KeyMapping mapping = mappings.get(i);
                 if (mapping.getKeyChar() == 0 &&
                     keyCode == mapping.getKeyCode() &&
                     modifiers == mapping.getModifiers()) {
@@ -609,7 +607,7 @@ public final class KeyMap implements Constants
     public synchronized void unmapKey(char keyChar)
     {
         for (int i = 0; i < mappings.size(); i++) {
-            KeyMapping mapping = (KeyMapping) mappings.get(i);
+            KeyMapping mapping = mappings.get(i);
             if (keyChar == mapping.getKeyChar()) {
                 mappings.remove(i);
                 return;
@@ -620,7 +618,7 @@ public final class KeyMap implements Constants
     public synchronized void unmapKey(int keyCode, int modifiers)
     {
         for (int i = 0; i < mappings.size(); i++) {
-            KeyMapping mapping = (KeyMapping) mappings.get(i);
+            KeyMapping mapping = mappings.get(i);
             if (keyCode == mapping.getKeyCode() && modifiers == mapping.getModifiers()) {
                 mappings.remove(i);
                 return;
@@ -641,7 +639,7 @@ public final class KeyMap implements Constants
                 // This is the keyTyped() case. Ignore keyCode and modifiers;
                 // keyChar must match the mapping.
                 for (int i = mappings.size(); i-- > 0;) {
-                    KeyMapping mapping = (KeyMapping) mappings.get(i);
+                    KeyMapping mapping = mappings.get(i);
                     if (keyChar == mapping.getKeyChar()) {
                         mappings.remove(i);
                         return true;
@@ -652,7 +650,7 @@ public final class KeyMap implements Constants
                     // This is the keyPressed() case. keyCode and modifiers must
                     // match the mapping. mapping.getKeyChar() must be zero, but
                     // we ignore the keyChar argument.
-                    KeyMapping mapping = (KeyMapping) mappings.get(i);
+                    KeyMapping mapping = mappings.get(i);
                     if (mapping.getKeyChar() == 0 &&
                         keyCode == mapping.getKeyCode() &&
                         modifiers == mapping.getModifiers()) {
@@ -669,8 +667,8 @@ public final class KeyMap implements Constants
     {
         try {
             PrintWriter out = new PrintWriter(file.getOutputStream());
-            for (int i = 0; i < mappings.size(); i++)
-                out.println(mappings.get(i).toString());
+            for (KeyMapping mapping : mappings)
+                out.println(mapping.toString());
             out.close();
         }
         catch (IOException e) {
@@ -687,8 +685,7 @@ public final class KeyMap implements Constants
     public static void defaultKeyMaps()
     {
         useGlobalDefaults();
-        for (Iterator it = Editor.getModeList().iterator(); it.hasNext();) {
-            ModeListEntry entry = (ModeListEntry) it.next();
+        for (ModeListEntry entry : Editor.getModeList()) {
             Mode mode = entry.getMode(false);
             if (mode != null)
                 mode.useDefaultKeyMap();
@@ -698,8 +695,7 @@ public final class KeyMap implements Constants
     public static void reloadKeyMaps()
     {
         deleteGlobalKeyMap();
-        for (Iterator it = Editor.getModeList().iterator(); it.hasNext();) {
-            ModeListEntry entry = (ModeListEntry) it.next();
+        for (ModeListEntry entry : Editor.getModeList()) {
             Mode mode = entry.getMode(false);
             if (mode != null)
                 mode.deleteKeyMap();

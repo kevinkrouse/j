@@ -42,7 +42,7 @@ public final class Cache
     private static Cache cache;
 
     private File catalogFile;
-    private Vector catalog;
+    private Vector<Tuple2<String, String>> catalog;
 
     private Cache()
     {
@@ -85,7 +85,7 @@ public final class Cache
     public File get(String netPath)
     {
         for (int i = catalog.size()-1; i >= 0; i--) {
-            Tuple2<String, String> pair = (Tuple2<String, String>) catalog.get(i);
+            Tuple2<String, String> pair = catalog.get(i);
             if (pair.second.equals(netPath))
                 return File.getInstance(cacheDir, pair.first);
         }
@@ -113,7 +113,7 @@ public final class Cache
         }
         catch (IOException e) {
             Log.error(e);
-            if (file.exists())
+            if (file != null && file.exists())
                 file.delete();
             file = null;
         }
@@ -124,9 +124,9 @@ public final class Cache
         return file;
     }
 
-    private Vector loadCatalog()
+    private Vector<Tuple2<String, String>> loadCatalog()
     {
-        Vector v = new Vector();
+        Vector<Tuple2<String, String>> v = new Vector<Tuple2<String, String>>();
         if (catalogFile.exists()) {
             try {
                 BufferedReader reader = new BufferedReader(
@@ -151,7 +151,7 @@ public final class Cache
             BufferedWriter writer = new BufferedWriter(
                 new OutputStreamWriter(catalogFile.getOutputStream()));
             for (int i = 0; i < catalog.size(); i++) {
-                Tuple2<String, String> pair = (Tuple2<String, String>) catalog.get(i);
+                Tuple2<String, String> pair = catalog.get(i);
                 writer.write(pair.first);
                 writer.write(' ');
                 writer.write(pair.second);

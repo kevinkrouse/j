@@ -31,7 +31,7 @@ public class Expansion implements Constants
     protected String prefix;
     protected int prefixOffset; // Offset of prefix on current line.
 
-    protected List candidates;
+    protected List<Object> candidates;
     protected int last = -1;
 
     private static Expansion lastExpansion;
@@ -96,9 +96,9 @@ public class Expansion implements Constants
         candidates = list(pos);
     }
 
-    private List list(Position pos)
+    private List<Object> list(Position pos)
     {
-        List list = new ArrayList();
+        List<Object> list = new ArrayList<Object>();
         if (prefix != null) {
             final boolean ignoreCase = Utilities.isLowerCase(prefix);
             String s = null;
@@ -138,7 +138,7 @@ public class Expansion implements Constants
         return list;
     }
 
-    private void maybeAddCandidate(List list, Position where)
+    private void maybeAddCandidate(List<Object> list, Position where)
     {
         final Line line = where.getLine();
         final int offset = where.getOffset();
@@ -148,7 +148,7 @@ public class Expansion implements Constants
         }
     }
 
-    private void maybeAddCandidate(List list, String candidate)
+    private void maybeAddCandidate(List<Object> list, String candidate)
     {
         // We don't want what we started with.
         if (candidate.equals(current))
@@ -165,7 +165,7 @@ public class Expansion implements Constants
         list.add(candidate);
     }
 
-    public void appendCandidates(List list)
+    public void appendCandidates(List<Object> list)
     {
         final int size = list.size();
         for (int i = 0; i < size; i++)
@@ -198,7 +198,7 @@ public class Expansion implements Constants
         return current;
     }
 
-    public final List getCandidates()
+    public final List<Object> getCandidates()
     {
         return candidates;
     }

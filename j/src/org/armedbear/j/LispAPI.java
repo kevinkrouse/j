@@ -269,7 +269,7 @@ public final class LispAPI
             BufferIterator iterator = new BufferIterator();
             while (iterator.hasNext())
               {
-                Buffer buffer = iterator.nextBuffer();
+                Buffer buffer = iterator.next();
                 if (buffer.getTitle().equals(name))
                   return new JavaObject(buffer);
               }

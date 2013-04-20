@@ -27,9 +27,9 @@ import org.armedbear.j.KeyMap;
 import org.armedbear.j.Line;
 import org.armedbear.j.vcs.svn.SVN;
 
+import java.awt.AWTEvent;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseEvent;
-import java.awt.*;
 
 public final class StatusMode extends AbstractMode
 {

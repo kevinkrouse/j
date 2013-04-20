@@ -94,9 +94,9 @@ public final class LineNumberBreakpoint extends ResolvableBreakpoint
         throws Exception
     {
         Location location = null;
-        List locations = refType.locationsOfLine(lineNumber);
+        List<Location> locations = refType.locationsOfLine(lineNumber);
         if (locations.size() > 0) {
-            location = (Location) locations.get(0);
+            location = locations.get(0);
             if (location.method() != null)
                 return location;
         }

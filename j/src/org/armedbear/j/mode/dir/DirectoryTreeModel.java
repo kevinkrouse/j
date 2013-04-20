@@ -35,7 +35,7 @@ public class DirectoryTreeModel extends DefaultTreeModel
     private static final boolean ignoreCase = Platform.isPlatformWindows();
 
     private static DirectoryTreeModel localTreeModel;
-    private static Vector remoteModels;
+    private static Vector<DirectoryTreeModel> remoteModels;
 
     private File rootFile; // Will be null for local tree.
 
@@ -69,8 +69,8 @@ public class DirectoryTreeModel extends DefaultTreeModel
         DirectoryTreeModel model;
         File rootFile = file.getRoot();
         if (remoteModels != null) {
-            for (int i = 0; i < remoteModels.size(); i++) {
-                model = (DirectoryTreeModel) remoteModels.get(i);
+            for (DirectoryTreeModel remoteModel : remoteModels) {
+                model = remoteModel;
                 if (rootFile.equals(model.getRootFile()))
                     return model;
             }
@@ -80,7 +80,7 @@ public class DirectoryTreeModel extends DefaultTreeModel
         model = new DirectoryTreeModel(root, rootFile);
         addChildren(rootFile, root);
         if (remoteModels == null)
-            remoteModels = new Vector();
+            remoteModels = new Vector<DirectoryTreeModel>();
         remoteModels.add(model);
         return model;
     }
@@ -105,12 +105,12 @@ public class DirectoryTreeModel extends DefaultTreeModel
             File[] roots = File.listRoots();
             if (roots != null) {
                 root = new DefaultMutableTreeNode("Local");
-                for (int i = 0; i < roots.length; i++) {
+                for (File f : roots) {
                     DefaultMutableTreeNode child =
-                        new DefaultMutableTreeNode(new DirectoryTreeElement(roots[i]));
+                            new DefaultMutableTreeNode(new DirectoryTreeElement(f));
                     root.insert(child, root.getChildCount());
-                    if (roots[i].equals(file.getRoot()))
-                        addChildren(roots[i], child);
+                    if (f.equals(file.getRoot()))
+                        addChildren(f, child);
                 }
             } else {
                 root = new DefaultMutableTreeNode(new DirectoryTreeElement(file.getRoot()));
@@ -132,11 +132,10 @@ public class DirectoryTreeModel extends DefaultTreeModel
             return;
         Arrays.sort(list,
             ignoreCase ? ciFileNameComparator : csFileNameComparator);
-        for (int i = 0; i < list.length; i++) {
-            File f = list[i];
+        for (File f : list) {
             if (f.isDirectory() && !f.isLink()) {
                 DefaultMutableTreeNode child =
-                    new DefaultMutableTreeNode(new DirectoryTreeElement(f));
+                        new DefaultMutableTreeNode(new DirectoryTreeElement(f));
                 node.insert(child, node.getChildCount());
             }
         }
@@ -211,21 +210,21 @@ public class DirectoryTreeModel extends DefaultTreeModel
     }
 
     // Case-sensitive filename comparator (Unix).
-    private final static Comparator csFileNameComparator = new Comparator() {
-        public int compare(Object o1, Object o2)
+    private final static Comparator<File> csFileNameComparator = new Comparator<File>() {
+        public int compare(File o1, File o2)
         {
-            String name1 = ((File)o1).getName();
-            String name2 = ((File)o2).getName();
+            String name1 = o1.getName();
+            String name2 = o2.getName();
             return name1.compareTo(name2);
         }
     };
 
     // Case-insensitive filename comparator (Windows).
-    private final static Comparator ciFileNameComparator = new Comparator() {
-        public int compare(Object o1, Object o2)
+    private final static Comparator<File> ciFileNameComparator = new Comparator<File>() {
+        public int compare(File o1, File o2)
         {
-            String name1 = ((File)o1).getName();
-            String name2 = ((File)o2).getName();
+            String name1 = o1.getName();
+            String name2 = o2.getName();
             return name1.compareToIgnoreCase(name2);
         }
     };

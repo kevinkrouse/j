@@ -28,7 +28,7 @@ import org.armedbear.j.MessageDialog;
 import org.armedbear.j.util.Utilities;
 import org.armedbear.j.vcs.VersionControl;
 
-import javax.swing.*;
+import javax.swing.SwingUtilities;
 import java.util.List;
 
 public class Git extends VersionControl implements Constants
@@ -42,10 +42,10 @@ public class Git extends VersionControl implements Constants
     {
         if (!checkGitInstalled())
             return;
-        List args = Utilities.tokenize(s);
+        List<String> args = Utilities.tokenize(s);
         if (args.size() == 0)
             return;
-        String command = (String) args.get(0);
+        String command = args.get(0);
         final Editor editor = Editor.currentEditor();
         editor.setWaitCursor();
         // Append current file name for diff

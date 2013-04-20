@@ -198,9 +198,9 @@ public final class JdbDialog extends AbstractDialog
         mainClassArgsHistory.append(mainClassArgs);
         mainClassArgsHistory.save();
         String classPath = classPathTextField.getText();
-        List list = Utilities.getDirectoriesInPath(classPath);
-        for (Iterator it = list.iterator(); it.hasNext();) {
-            String s = (String) it.next();
+        List<String> list = Utilities.getDirectoriesInPath(classPath);
+        for (Iterator<String> it = list.iterator(); it.hasNext();) {
+            String s = it.next();
             File file = File.getInstance(s);
             if (file == null){
                 classPathTextField.requestFocus();
@@ -231,8 +231,8 @@ public final class JdbDialog extends AbstractDialog
         vmArgsHistory.save();
         String sourcePath = sourcePathTextField.getText();
         list = Utilities.getDirectoriesInPath(sourcePath);
-        for (Iterator it = list.iterator(); it.hasNext();) {
-            String s = (String) it.next();
+        for (Iterator<String> it = list.iterator(); it.hasNext();) {
+            String s = it.next();
             File file = File.getInstance(s);
             if (file == null){
                 sourcePathTextField.requestFocus();

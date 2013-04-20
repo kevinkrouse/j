@@ -21,6 +21,7 @@
 package org.armedbear.j.mode.perl;
 
 import org.armedbear.j.Line;
+import org.armedbear.j.LocalTag;
 import org.armedbear.j.SystemBuffer;
 import org.armedbear.j.Tagger;
 
@@ -42,7 +43,7 @@ public final class PerlTagger extends Tagger
 
     public void run()
     {
-        ArrayList tags = new ArrayList();
+        ArrayList<LocalTag> tags = new ArrayList<LocalTag>();
         Line line = buffer.getFirstLine();
         while (line != null) {
             String s = line.trim();

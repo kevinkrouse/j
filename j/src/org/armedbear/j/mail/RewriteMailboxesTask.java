@@ -55,7 +55,7 @@ public final class RewriteMailboxesTask extends IdleThreadTask
             if (lastRun == 0 || now - lastRun > REWRITE_MAILBOXES_IDLE) {
                 synchronized (Editor.getBufferList()) {
                     for (BufferIterator it = new BufferIterator(); it.hasNext();) {
-                        Buffer buf = it.nextBuffer();
+                        Buffer buf = it.next();
                         if (buf instanceof PopMailboxBuffer) {
                             final PopMailboxBuffer mb = (PopMailboxBuffer) buf;
                             // User must be idle for 5 minutes if mailbox is in

@@ -32,7 +32,7 @@ public final class TagFileCatalog
 {
     private File tagfileDir;
     private File catalogFile;
-    private ArrayList entries = new ArrayList();
+    private ArrayList<CatalogEntry> entries = new ArrayList<CatalogEntry>();
 
     public TagFileCatalog(File tagfileDir)
     {
@@ -165,7 +165,7 @@ public final class TagFileCatalog
 
     private final CatalogEntry getEntry(int i)
     {
-        return (CatalogEntry) entries.get(i);
+        return entries.get(i);
     }
 
     private static class CatalogEntry

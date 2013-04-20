@@ -93,7 +93,7 @@ public final class ShellCommand implements Runnable
                         process = Runtime.getRuntime().exec(cmdarray);
                     }
                 } else if (Platform.isPlatformWindows()) {
-                    ArrayList list = new ArrayList();
+                    ArrayList<String> list = new ArrayList<String>();
                     list.add("cmd.exe");
                     list.add("/c");
                     if (workingDirectory != null) {
@@ -107,7 +107,7 @@ public final class ShellCommand implements Runnable
                     final int size = list.size();
                     String[] cmdarray = new String[size];
                     for (int i = 0; i < size; i++)
-                        cmdarray[i] = (String) list.get(i);
+                        cmdarray[i] = list.get(i);
                     process = Runtime.getRuntime().exec(cmdarray);
                 }
             }

@@ -46,7 +46,7 @@ public final class XmlErrorBuffer extends CompilationErrorBuffer
         this.file = file;
         setText(text);
         for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-            Editor ed = it.nextEditor();
+            Editor ed = it.next();
             if (ed.getBuffer() == this) {
                 ed.setMark(null);
                 ed.setDot(getFirstLine(), 0);

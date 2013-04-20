@@ -22,11 +22,11 @@ package org.armedbear.j.mode.shell;
 
 import org.armedbear.j.util.FastStringBuffer;
 
-import java.util.Vector;
+import java.util.ArrayList;
 
 public final class ShellTokenizer
 {
-    private Vector v = new Vector();
+    private ArrayList<String> l = new ArrayList<String>();
     private int index;
 
     public ShellTokenizer(String s)
@@ -51,34 +51,34 @@ public final class ShellTokenizer
                 quoteChar = c;
             } else if (c == ' ' || c == '\t' || c == '=') {
                 if (sb.length() > 0) {
-                    v.add(sb.toString());
+                    l.add(sb.toString());
                     sb.setLength(0);
                 }
             } else
                 sb.append(c);
         }
         if (sb.length() > 0)
-            v.add(sb.toString());
+            l.add(sb.toString());
     }
 
     public boolean hasMoreTokens()
     {
-        return index < v.size();
+        return index < l.size();
     }
 
     public String nextToken()
     {
         String token = null;
-        if (index < v.size())
-            token = (String) v.get(index++);
+        if (index < l.size())
+            token = l.get(index++);
         return token;
     }
 
     public String lastToken()
     {
         String token = null;
-        if (v.size() > 0)
-            token = (String) v.get(v.size()-1);
+        if (l.size() > 0)
+            token = l.get(l.size()-1);
         return token;
     }
 }

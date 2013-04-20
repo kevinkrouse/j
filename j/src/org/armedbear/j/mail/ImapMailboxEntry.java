@@ -669,7 +669,7 @@ import org.armedbear.j.util.Tuple2;
   {
     if (list == null)
       return null;
-    ArrayList addresses = new ArrayList();
+    ArrayList<MailAddress> addresses = new ArrayList<MailAddress>();
     String remaining = list.substring(1, list.length() - 1);
     while (remaining.length() > 0)
       {
@@ -695,7 +695,7 @@ import org.armedbear.j.util.Tuple2;
     if (addresses.size() == 0)
       return null;
     MailAddress[] array = new MailAddress[addresses.size()];
-    return (MailAddress[]) addresses.toArray(array);
+    return addresses.toArray(array);
   }
 
   private static MailAddress parseAddress(String s)

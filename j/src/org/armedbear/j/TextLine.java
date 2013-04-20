@@ -22,7 +22,7 @@ package org.armedbear.j;
 
 import java.io.UnsupportedEncodingException;
 
-public class TextLine extends AbstractLine implements Line
+public class TextLine extends AbstractLine
 {
     private static final int SAVED = 0x0001;
     private static final int NEW   = 0x0002;

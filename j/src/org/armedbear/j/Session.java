@@ -43,7 +43,7 @@ public final class Session extends DefaultHandler implements Constants
 
     private final File file;
 
-    private List bufferEntries;
+    private List<SessionBufferEntry> bufferEntries;
     private SessionBufferEntry currentBufferEntry;
 
     private Session()
@@ -149,7 +149,7 @@ public final class Session extends DefaultHandler implements Constants
         }
         final Editor editor = Editor.currentEditor();
         for (BufferIterator it = new BufferIterator(); it.hasNext();) {
-            if (!editor.okToClose(it.nextBuffer()))
+            if (!editor.okToClose(it.next()))
                 return;
         }
         // Load new session.
@@ -171,9 +171,9 @@ public final class Session extends DefaultHandler implements Constants
         editor.setWaitCursor();
         // Close all the existing buffers.
         for (BufferIterator iter = new BufferIterator(); iter.hasNext();) {
-            Buffer buf = iter.nextBuffer();
+            Buffer buf = iter.next();
             for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-                Editor ed = it.nextEditor();
+                Editor ed = it.next();
                 ed.views.remove(buf);
             }
             buf.deleteAutosaveFile();
@@ -184,9 +184,9 @@ public final class Session extends DefaultHandler implements Constants
         Buffer toBeActivated = session.createBuffers();
         // Make sure read-only status is correct for each buffer.
         for (BufferIterator it = new BufferIterator(); it.hasNext();)
-            editor.reactivate(it.nextBuffer());
+            editor.reactivate(it.next());
         for (EditorIterator it = new EditorIterator(); it.hasNext();)
-            it.nextEditor().activate(toBeActivated);
+            it.next().activate(toBeActivated);
         Sidebar.setUpdateFlagInAllFrames(SIDEBAR_BUFFER_LIST_CHANGED);
         Sidebar.refreshSidebarInAllFrames();
         Editor.setSessionName(name);
@@ -213,9 +213,7 @@ public final class Session extends DefaultHandler implements Constants
         long start = System.currentTimeMillis();
         Buffer toBeActivated = null;
         long lastActivated = 0;
-        Iterator iter = bufferEntries.iterator();
-        while (iter.hasNext()) {
-            SessionBufferEntry entry = (SessionBufferEntry) iter.next();
+        for (SessionBufferEntry entry : bufferEntries) {
             if (entry != null) {
                 File file = File.getInstance(entry.getPath());
                 if (file != null && file.isLocal()) {
@@ -235,7 +233,7 @@ public final class Session extends DefaultHandler implements Constants
                     if (buf != null) {
                         buf.setLastView(new View(entry));
                         if (toBeActivated == null ||
-                            entry.getLastActivated() > lastActivated) {
+                                entry.getLastActivated() > lastActivated) {
                             toBeActivated = buf;
                             lastActivated = entry.getLastActivated();
                         }
@@ -269,7 +267,7 @@ public final class Session extends DefaultHandler implements Constants
             writer.newLine();
             int index = 0;
             for (BufferIterator it = new BufferIterator(); it.hasNext();) {
-                Buffer buf = it.nextBuffer();
+                Buffer buf = it.next();
                 // Skip shell, compilation, HTTP buffers etc.
                 if (!buf.canBeRestored())
                     continue;
@@ -321,9 +319,7 @@ public final class Session extends DefaultHandler implements Constants
         if (bufferEntries == null)
             return false;
         // Make sure we can open at least one buffer.
-        Iterator iter = bufferEntries.iterator();
-        while (iter.hasNext()) {
-            SessionBufferEntry entry = (SessionBufferEntry) iter.next();
+        for (SessionBufferEntry entry : bufferEntries) {
             if (entry != null) {
                 File file = File.getInstance(entry.getPath());
                 Debug.assertTrue(file.isLocal());
@@ -370,7 +366,7 @@ public final class Session extends DefaultHandler implements Constants
     {
         if (localName.equals("buffer") || qName.equals("buffer")) {
             if (bufferEntries == null)
-                bufferEntries = new ArrayList();
+                bufferEntries = new ArrayList<SessionBufferEntry>();
             bufferEntries.add(currentBufferEntry);
         }
     }

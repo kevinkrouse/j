@@ -136,10 +136,10 @@ public final class SessionBufferEntry
         if (properties.size() > 0) {
             sb.append(">");
             sb.append(lineSeparator);
-            Iterator it = properties.keyIterator();
+            Iterator<Property> it = properties.keyIterator();
             if (it != null) {
                 while (it.hasNext()) {
-                    Property property = (Property) it.next();
+                    Property property = it.next();
                     Object value = properties.getProperty(property);
                     sb.append(propertyToXml(property.getDisplayName(),
                         value.toString()));

@@ -131,7 +131,7 @@ public final class CVS extends VersionControl implements Constants
     buffer.setBusy(false);
     for (EditorIterator it = new EditorIterator(); it.hasNext();)
       {
-        Editor ed = it.nextEditor();
+        Editor ed = it.next();
         if (ed.getBuffer() == buffer)
           {
             ed.setDefaultCursor();
@@ -178,7 +178,7 @@ public final class CVS extends VersionControl implements Constants
         CheckinBuffer checkinBuffer = null;
         for (BufferIterator it = new BufferIterator(); it.hasNext();)
           {
-            Buffer buf = it.nextBuffer();
+            Buffer buf = it.next();
             if (buf instanceof CheckinBuffer)
               {
                 if (buf.getParentBuffer() == parentBuffer)
@@ -244,7 +244,7 @@ public final class CVS extends VersionControl implements Constants
         // Kill existing diff output buffer if any for same parent buffer.
         for (BufferIterator it = new BufferIterator(); it.hasNext();)
           {
-            Buffer b = it.nextBuffer();
+            Buffer b = it.next();
             if (b instanceof DiffOutputBuffer)
               {
                 if (b.getParentBuffer() == parentBuffer)
@@ -285,7 +285,7 @@ public final class CVS extends VersionControl implements Constants
     // Kill existing diff output buffer if any for same directory.
     for (BufferIterator it = new BufferIterator(); it.hasNext();)
       {
-        Buffer b = it.nextBuffer();
+        Buffer b = it.next();
         if (b instanceof DiffOutputBuffer)
           {
             if (directory.equals(((DiffOutputBuffer)b).getDirectory()))
@@ -367,7 +367,7 @@ public final class CVS extends VersionControl implements Constants
     final Position end = buffer.getEnd();
     for (EditorIterator it = new EditorIterator(); it.hasNext();)
       {
-        Editor ed = it.nextEditor();
+        Editor ed = it.next();
         if (ed.getBuffer() == buffer)
           {
             ed.setTopLine(buffer.getFirstLine());
@@ -449,7 +449,7 @@ public final class CVS extends VersionControl implements Constants
         // longer correct.
         for (BufferIterator it = new BufferIterator(); it.hasNext();)
           {
-            Buffer b = it.nextBuffer();
+            Buffer b = it.next();
             if (b instanceof DiffOutputBuffer)
               {
                 if (b.getParentBuffer() == parentBuffer)
@@ -475,7 +475,7 @@ public final class CVS extends VersionControl implements Constants
     parentBuffer.setBusy(false);
     for (EditorIterator it = new EditorIterator(); it.hasNext();)
       {
-        Editor ed = it.nextEditor();
+        Editor ed = it.next();
         if (ed.getBuffer().isBusy())
           ed.setWaitCursor();
         else

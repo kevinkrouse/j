@@ -22,6 +22,7 @@ package org.armedbear.j;
 
 import org.armedbear.j.util.FastStringBuffer;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.Iterator;
@@ -29,7 +30,7 @@ import java.util.List;
 
 public final class Property implements Comparable, Constants
 {
-    private static final Hashtable ht = new Hashtable();
+    private static final Hashtable<String, Property> ht = new Hashtable<String, Property>();
 
     // Integer properties.
     public static final Property ADJUST_ASCENT =
@@ -362,7 +363,7 @@ public final class Property implements Comparable, Constants
 
     private final String displayName;
     private final String key;
-    private Class type;
+    private Class<? extends Serializable> type;
     private Object defaultValue;
 
     private Property(String key)
@@ -442,10 +443,10 @@ public final class Property implements Comparable, Constants
 
     public static Property findProperty(String key)
     {
-      Property property = (Property) ht.get(key.toLowerCase());
+      Property property = ht.get(key.toLowerCase());
       if (property != null)
         return property;
-      return (Property) ht.get(convertLispNameToJavaName(key));
+      return ht.get(convertLispNameToJavaName(key));
     }
 
     public String getDisplayName()
@@ -525,19 +526,19 @@ public final class Property implements Comparable, Constants
         return displayName.compareToIgnoreCase(p.displayName);
     }
 
-    public static List apropos(String s)
+    public static List<String> apropos(String s)
     {
         String lower = s.toLowerCase();
-        ArrayList list = new ArrayList();
-        for (Iterator it = ht.values().iterator(); it.hasNext();) {
-            String displayName = ((Property)it.next()).getDisplayName();
-            if (displayName.toLowerCase().indexOf(lower) >= 0)
+        ArrayList<String> list = new ArrayList<String>();
+        for (Property property : ht.values()) {
+            String displayName = property.getDisplayName();
+            if (displayName.toLowerCase().contains(lower))
                 list.add(displayName);
         }
         return list;
     }
 
-    public static Iterator iterator()
+    public static Iterator<Property> iterator()
     {
         return ht.values().iterator();
     }

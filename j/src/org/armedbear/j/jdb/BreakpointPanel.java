@@ -34,15 +34,15 @@ public final class BreakpointPanel implements BreakpointListener, KeyListener
 {
     private final Jdb jdb;
     private final JdbControlDialog dialog;
-    private final JList list;
+    private final JList<ResolvableBreakpoint> list;
     private final JScrollPane scrollPane;
 
     public BreakpointPanel(Jdb jdb, JdbControlDialog dialog)
     {
         this.jdb = jdb;
         this.dialog = dialog;
-        Vector v = new Vector(jdb.getBreakpoints());
-        list = new JList(v);
+        Vector<ResolvableBreakpoint> v = new Vector<ResolvableBreakpoint>(jdb.getBreakpoints());
+        list = new JList<ResolvableBreakpoint>(v);
         scrollPane = new JScrollPane(list);
         jdb.addBreakpointListener(this);
         list.addKeyListener(this);
@@ -55,7 +55,7 @@ public final class BreakpointPanel implements BreakpointListener, KeyListener
 
     public void breakpointChanged()
     {
-        list.setListData(new Vector(jdb.getBreakpoints()));
+        list.setListData(new Vector<ResolvableBreakpoint>(jdb.getBreakpoints()));
         list.setSelectedIndex(-1);
     }
 
@@ -69,23 +69,20 @@ public final class BreakpointPanel implements BreakpointListener, KeyListener
         if (keyCode == KeyEvent.VK_DELETE) {
             int index = list.getSelectedIndex();
             if (index >= 0) {
-                Object obj = jdb.getBreakpoints().get(index);
-                if (obj instanceof ResolvableBreakpoint) {
-                    ResolvableBreakpoint bp = (ResolvableBreakpoint) obj;
-                    jdb.log("clear " + bp.getLocationString());
-                    jdb.deleteBreakpoint(bp);
-                    File file = bp.getFile();
-                    if (file != null) {
-                        Buffer buffer = Editor.getBufferList().findBuffer(file);
-                        if (buffer != null)
-                            buffer.repaint();
-                    }
-                    jdb.saveSession();
-                    jdb.fireBreakpointChanged();
-                    if (index >= list.getModel().getSize())
-                        --index;
-                    list.setSelectedIndex(index);
+                ResolvableBreakpoint bp = jdb.getBreakpoints().get(index);
+                jdb.log("clear " + bp.getLocationString());
+                jdb.deleteBreakpoint(bp);
+                File file = bp.getFile();
+                if (file != null) {
+                    Buffer buffer = Editor.getBufferList().findBuffer(file);
+                    if (buffer != null)
+                        buffer.repaint();
                 }
+                jdb.saveSession();
+                jdb.fireBreakpointChanged();
+                if (index >= list.getModel().getSize())
+                    --index;
+                list.setSelectedIndex(index);
             }
         }
     }

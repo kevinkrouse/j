@@ -29,10 +29,9 @@ import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
-import java.util.Enumeration;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Properties;
+import java.util.Set;
 
 import org.armedbear.j.Debug;
 import org.armedbear.j.Directories;
@@ -198,16 +197,15 @@ public final class ImapMessageCache
         }
     }
 
-    public void removeDeletedEntries(List mailboxEntries)
+    public void removeDeletedEntries(List<MailboxEntry> mailboxEntries)
     {
         Log.debug("ImapMessageCache.removeDeletedEntries");
         long start = System.currentTimeMillis();
-        Iterator it = mailboxEntries.iterator();
-        while (it.hasNext()) {
-            ImapMailboxEntry entry = (ImapMailboxEntry) it.next();
-            if (entry.isDeleted()) {
+        for (MailboxEntry entry : mailboxEntries) {
+            ImapMailboxEntry imapEntry = (ImapMailboxEntry)entry;
+            if (imapEntry.isDeleted()) {
                 File file = File.getInstance(cacheDirectory,
-                    String.valueOf(entry.getUid()));
+                        String.valueOf(imapEntry.getUid()));
                 if (file != null && file.isFile()) {
                     Log.debug("deleting " + file.netPath());
                     file.delete();
@@ -246,10 +244,9 @@ public final class ImapMessageCache
             }
             // Update obsolete catalog entries.
             Properties temp = new Properties();
-            Enumeration keys = catalog.keys();
-            while (keys.hasMoreElements()) {
-                String key = (String) keys.nextElement();
-                String value = (String) catalog.get(key);
+            Set<String> keys = catalog.stringPropertyNames();
+            for (String key : keys) {
+                String value = (String)catalog.get(key);
                 if (key.indexOf('@') < 0 || key.indexOf(':') < 0) {
                     // Obsolete format (i.e. not canonical mailbox name).
                     try {

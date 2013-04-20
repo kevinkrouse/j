@@ -93,7 +93,7 @@ public final class Macro implements Constants
     }
 
     private final Editor editor;
-    private ArrayList list = new ArrayList();
+    private ArrayList<Object> list = new ArrayList<Object>();
 
     private Macro(Editor editor)
     {
@@ -148,10 +148,8 @@ public final class Macro implements Constants
         }
         try {
             CompoundEdit compoundEdit = buffer.beginCompoundEdit();
-            final int size = list.size();
-            for (int i = 0; i < size; i++) {
+            for (Object object : list) {
                 editor.setCurrentCommand(COMMAND_NOTHING);
-                Object object = list.get(i);
                 if (object instanceof String) {
                     editor.executeCommand((String)object);
                 } else if (object instanceof LispObject) {

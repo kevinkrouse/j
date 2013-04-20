@@ -93,10 +93,10 @@ public final class Jdb extends Buffer implements JdbConstants
     private String sourcePath;
     private JdbControlDialog controlDialog;
     private Position posEndOfBuffer;
-    private ArrayList breakpointListeners = new ArrayList();
-    private ArrayList contextListeners = new ArrayList();
+    private ArrayList<BreakpointListener> breakpointListeners = new ArrayList<BreakpointListener>();
+    private ArrayList<ContextListener> contextListeners = new ArrayList<ContextListener>();
     private int lastCommand;
-    private final List breakpoints = new ArrayList();
+    private final List<ResolvableBreakpoint> breakpoints = new ArrayList<ResolvableBreakpoint>();
 
     public static synchronized void jdb()
     {
@@ -243,7 +243,7 @@ public final class Jdb extends Buffer implements JdbConstants
         return currentStackFrame;
     }
 
-    public List getBreakpoints()
+    public List<ResolvableBreakpoint> getBreakpoints()
     {
         return breakpoints;
     }
@@ -258,9 +258,8 @@ public final class Jdb extends Buffer implements JdbConstants
     public void fireBreakpointChanged()
     {
         synchronized(breakpointListeners) {
-            Iterator iter = breakpointListeners.iterator();
-            while (iter.hasNext())
-                ((BreakpointListener)iter.next()).breakpointChanged();
+            for (BreakpointListener listener : breakpointListeners)
+                listener.breakpointChanged();
         }
     }
 
@@ -275,8 +274,8 @@ public final class Jdb extends Buffer implements JdbConstants
         public void run()
         {
             synchronized (contextListeners) {
-                for (Iterator it = contextListeners.iterator(); it.hasNext();)
-                    ((ContextListener)it.next()).contextChanged();
+                for (ContextListener listener : contextListeners)
+                    listener.contextChanged();
             }
         }
     };
@@ -519,7 +518,7 @@ public final class Jdb extends Buffer implements JdbConstants
             unlockWrite();
         }
         for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-            Editor ed = it.nextEditor();
+            Editor ed = it.next();
             if (ed.getBuffer() == this) {
                 ed.eob();
                 ed.getDisplay().setReframe(-2);
@@ -548,7 +547,6 @@ public final class Jdb extends Buffer implements JdbConstants
             if (method.isNative()) {
                 sb.append("native method");
             } else {
-                String sourceName = location.sourceName();
                 sb.append(location.sourceName());
                 int lineNumber = location.lineNumber();
                 if (lineNumber > 0) {
@@ -740,15 +738,14 @@ public final class Jdb extends Buffer implements JdbConstants
             isSuspended = true;
             log("VM suspended");
             ThreadReference threadRef = null;
-            List threads = vm.allThreads();
-            for (int i = 0; i < threads.size(); i++) {
-                ThreadReference tr = (ThreadReference) threads.get(i);
+            List<ThreadReference> threads = vm.allThreads();
+            for (ThreadReference tr : threads) {
                 if ("main".equals(tr.name()))
                     threadRef = tr;
             }
             if (threadRef == null) {
                 if (threads.size() > 0)
-                    threadRef = (ThreadReference) threads.get(0);
+                    threadRef = threads.get(0);
             }
             setCurrentThread(threadRef);
             fireContextChanged();
@@ -758,7 +755,7 @@ public final class Jdb extends Buffer implements JdbConstants
 
     public static Jdb findJdb()
     {
-        return (Jdb) JavaMode.getJdb();
+        return JavaMode.getJdb();
     }
 
     public void startProcess()
@@ -790,20 +787,14 @@ public final class Jdb extends Buffer implements JdbConstants
                 ThreadDeathRequest tdr = mgr.createThreadDeathRequest();
                 tdr.enable();
                 if (breakpoints.size() > 0) {
-                    Iterator iter = breakpoints.iterator();
-                    while (iter.hasNext()) {
-                        Object obj = iter.next();
-                        if (obj instanceof ResolvableBreakpoint) {
-                            ResolvableBreakpoint bp =
-                                (ResolvableBreakpoint) obj;
-                            String className = bp.getClassName();
-                            if (className != null) {
-                                Log.debug("adding class prepare request for |" + className + "|");
-                                ClassPrepareRequest cpr =
+                    for (ResolvableBreakpoint bp : breakpoints) {
+                        String className = bp.getClassName();
+                        if (className != null) {
+                            Log.debug("adding class prepare request for |" + className + "|");
+                            ClassPrepareRequest cpr =
                                     mgr.createClassPrepareRequest();
-                                cpr.addClassFilter(className);
-                                cpr.enable();
-                            }
+                            cpr.addClassFilter(className);
+                            cpr.enable();
                         }
                     }
                 } else {
@@ -827,9 +818,7 @@ public final class Jdb extends Buffer implements JdbConstants
     public void resolveDeferredRequests(ClassPrepareEvent event)
     {
         synchronized (breakpoints) {
-            Iterator iter = breakpoints.iterator();
-            while (iter.hasNext()) {
-                ResolvableBreakpoint bp = (ResolvableBreakpoint) iter.next();
+            for (ResolvableBreakpoint bp : breakpoints) {
                 if (!bp.isResolved()) {
                     try {
                         Log.debug("bp.getClassName() = " + bp.getClassName());
@@ -870,20 +859,17 @@ public final class Jdb extends Buffer implements JdbConstants
     private void initializeBreakpoints()
     {
         breakpoints.clear();
-        List breakpointSpecifications = session.getBreakpointSpecifications();
+        List<BreakpointSpecification> breakpointSpecifications = session.getBreakpointSpecifications();
         if (breakpointSpecifications != null) {
-            Iterator iter = breakpointSpecifications.iterator();
-            while (iter.hasNext()) {
-                BreakpointSpecification spec =
-                    (BreakpointSpecification) iter.next();
+            for (BreakpointSpecification spec : breakpointSpecifications) {
                 Log.debug(spec.toString());
                 int lineNumber = spec.getLineNumber();
-                if (spec.getLineNumber() > 0){
+                if (spec.getLineNumber() > 0) {
                     File file = File.getInstance(spec.getFileName());
                     if (file != null && file.isFile()) {
                         LineNumberBreakpoint bp =
-                            new LineNumberBreakpoint(this, spec.getClassName(),
-                                file, lineNumber);
+                                new LineNumberBreakpoint(this, spec.getClassName(),
+                                        file, lineNumber);
                         breakpoints.add(bp);
                     }
                 } else {
@@ -891,7 +877,7 @@ public final class Jdb extends Buffer implements JdbConstants
                     String methodName = spec.getMethodName();
                     if (className != null && methodName != null) {
                         MethodBreakpoint bp =
-                            new MethodBreakpoint(this, className, methodName);
+                                new MethodBreakpoint(this, className, methodName);
                         breakpoints.add(bp);
                     }
                 }
@@ -1008,22 +994,16 @@ public final class Jdb extends Buffer implements JdbConstants
 
     private void removeAnnotations()
     {
-        if (breakpoints != null) {
-            for (Iterator it = breakpoints.iterator(); it.hasNext();) {
-                Object obj = it.next();
-                if (obj instanceof ResolvableBreakpoint) {
-                    ResolvableBreakpoint bp = (ResolvableBreakpoint) obj;
-                    Line line = bp.getLine();
-                    if (line != null)
-                        line.setAnnotation(null);
-                }
-            }
-            // Repaint editors with buffers in Java mode.
-            for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-                Editor ed = it.nextEditor();
-                if (ed.getModeId() == JAVA_MODE)
-                    ed.repaint();
-            }
+        for (ResolvableBreakpoint bp : breakpoints) {
+            Line line = bp.getLine();
+            if (line != null)
+                line.setAnnotation(null);
+        }
+        // Repaint editors with buffers in Java mode.
+        for (EditorIterator it = new EditorIterator(); it.hasNext();) {
+            Editor ed = it.next();
+            if (ed.getModeId() == JAVA_MODE)
+                ed.repaint();
         }
     }
 
@@ -1032,12 +1012,11 @@ public final class Jdb extends Buffer implements JdbConstants
         killVM();
         removeAnnotations();
         // Copy editor list since unsplitWindow() may close an editor.
-        ArrayList editors = new ArrayList();
+        ArrayList<Editor> editors = new ArrayList<Editor>();
         for (EditorIterator it = new EditorIterator(); it.hasNext();)
             editors.add(it.next());
         EditorList editorList = Editor.getEditorList();
-        for (Iterator it = editors.iterator(); it.hasNext();) {
-            Editor ed = (Editor) it.next();
+        for (Editor ed : editors) {
             if (editorList.contains(ed)) {
                 if (ed.getBuffer() == this) {
                     Editor other = ed.getOtherEditor();
@@ -1187,14 +1166,13 @@ public final class Jdb extends Buffer implements JdbConstants
         if (file != null && file.isFile())
             return file;
         // Look for match in buffer list.
-        List dirs = Utilities.getDirectoriesInPath(sourcePath);
+        List<String> dirs = Utilities.getDirectoriesInPath(sourcePath);
         for (BufferIterator iter = new BufferIterator(); iter.hasNext();) {
-            Buffer b = iter.nextBuffer();
+            Buffer b = iter.next();
             file = b.getFile();
             if (file.getName().equals(fileName)) {
                 File rootDir = JavaSource.getPackageRootDirectory(b);
-                for (Iterator it = dirs.iterator(); it.hasNext();) {
-                    String dirname = (String) it.next();
+                for (String dirname : dirs) {
                     if (dirname.equals(rootDir.canonicalPath()))
                         return file;
                 }
@@ -1202,8 +1180,7 @@ public final class Jdb extends Buffer implements JdbConstants
             if (Platform.isPlatformWindows()) {
                 if (file.getName().equalsIgnoreCase(fileName)) {
                     File rootDir = JavaSource.getPackageRootDirectory(b);
-                    for (Iterator it = dirs.iterator(); it.hasNext();) {
-                        String dirname = (String) it.next();
+                    for (String dirname : dirs) {
                         if (dirname.equalsIgnoreCase(rootDir.canonicalPath()))
                             return file;
                     }
@@ -1271,7 +1248,7 @@ public final class Jdb extends Buffer implements JdbConstants
             doClearMethodBreakpoint(arg);
         // Repaint editors with buffers in Java mode.
         for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-            Editor ed = it.nextEditor();
+            Editor ed = it.next();
             if (ed.getModeId() == JAVA_MODE)
                 ed.repaint();
         }
@@ -1280,10 +1257,8 @@ public final class Jdb extends Buffer implements JdbConstants
     private void doClearAll()
     {
         // Disable resolved breakpoints.
-        for (Iterator it = breakpoints.iterator(); it.hasNext();) {
-            Object obj = it.next();
-            if (obj instanceof ResolvableBreakpoint)
-                ((ResolvableBreakpoint)obj).clear();
+        for (ResolvableBreakpoint bp : breakpoints) {
+            bp.clear();
         }
         // Clear the list.
         breakpoints.clear();
@@ -1307,8 +1282,7 @@ public final class Jdb extends Buffer implements JdbConstants
             log("Invalid breakpoint");
             return;
         }
-        for (Iterator it = breakpoints.iterator(); it.hasNext();) {
-            Object obj = it.next();
+        for (ResolvableBreakpoint obj : breakpoints) {
             if (obj instanceof LineNumberBreakpoint) {
                 LineNumberBreakpoint bp = (LineNumberBreakpoint) obj;
                 File file = bp.getFile();
@@ -1338,8 +1312,7 @@ public final class Jdb extends Buffer implements JdbConstants
             className = null;
             methodName = arg;
         }
-        for (Iterator it = breakpoints.iterator(); it.hasNext();) {
-            Object obj = it.next();
+        for (ResolvableBreakpoint obj : breakpoints) {
             if (obj instanceof MethodBreakpoint) {
                 MethodBreakpoint bp = (MethodBreakpoint) obj;
                 if (className != null) {
@@ -1385,7 +1358,7 @@ public final class Jdb extends Buffer implements JdbConstants
                 return; // No change.
             EventRequestManager mgr = vm.eventRequestManager();
             if (catchMode != CATCH_NONE) {
-                List list = mgr.exceptionRequests();
+                List<? extends ExceptionRequest> list = mgr.exceptionRequests();
                 Log.debug("exception request count = " + list.size());
                 mgr.deleteEventRequests(list);
             }
@@ -1574,14 +1547,12 @@ public final class Jdb extends Buffer implements JdbConstants
             StackFrame stackFrame = currentStackFrame;
             if (stackFrame == null && currentThread.frameCount() > 0)
                 stackFrame = currentThread.frame(0);
-            List variables = stackFrame.visibleVariables();
-            Map map = stackFrame.getValues(variables);
-            Set entrySet = map.entrySet();
-            Iterator iter = entrySet.iterator();
-            while (iter.hasNext()) {
-                Map.Entry entry = (Map.Entry) iter.next();
-                LocalVariable variable = (LocalVariable) entry.getKey();
-                Value value = (Value) entry.getValue();
+            List<LocalVariable> variables = stackFrame.visibleVariables();
+            Map<LocalVariable, Value> map = stackFrame.getValues(variables);
+            Set<Map.Entry<LocalVariable, Value>> entrySet = map.entrySet();
+            for (Map.Entry<LocalVariable, Value> entry : entrySet) {
+                LocalVariable variable = entry.getKey();
+                Value value = entry.getValue();
                 FastStringBuffer sb = new FastStringBuffer(variable.typeName());
                 sb.append(' ');
                 sb.append(variable.name());
@@ -1591,14 +1562,14 @@ public final class Jdb extends Buffer implements JdbConstants
                     ;
                 } else if (value instanceof ArrayReference) {
                     String s = getStringValueOfArray(variable.name(),
-                        (ArrayReference)value);
+                            (ArrayReference) value);
                     if (s.length() > 0) {
                         sb.append('\n');
                         sb.append(s);
                     }
                 } else if (value instanceof ObjectReference) {
-                    String s = getStringValueOfObject((ObjectReference)value,
-                        currentThread);
+                    String s = getStringValueOfObject((ObjectReference) value,
+                            currentThread);
                     if (s != null) {
                         sb.append(' ');
                         sb.append(s);
@@ -1629,11 +1600,11 @@ public final class Jdb extends Buffer implements JdbConstants
     {
         try {
             // Get index of current stack frame so we can restore it later.
-            List frames = threadRef.frames();
+            List<StackFrame> frames = threadRef.frames();
             int index = -1;
             if (frames.size() > 0) {
                 for (int i = 0; i < frames.size(); i++) {
-                    StackFrame frame = (StackFrame) frames.get(i);
+                    StackFrame frame = frames.get(i);
                     if (frame != null && frame.equals(currentStackFrame)) {
                         index = i;
                         break;
@@ -1642,16 +1613,16 @@ public final class Jdb extends Buffer implements JdbConstants
             }
 
             ReferenceType refType = objRef.referenceType();
-            List methods =
+            List<Method> methods =
                 refType.methodsByName("toString", "()Ljava/lang/String;");
-            Method method = (Method) methods.get(0);
+            Method method = methods.get(0);
             Value value = objRef.invokeMethod(threadRef, method,
-                new ArrayList(), ObjectReference.INVOKE_SINGLE_THREADED);
+                new ArrayList<Value>(), ObjectReference.INVOKE_SINGLE_THREADED);
 
             // Restore current stack frame if possible.
             frames = threadRef.frames();
             if (frames != null && index >= 0 && index < frames.size())
-                currentStackFrame = (StackFrame) frames.get(index);
+                currentStackFrame = frames.get(index);
 
             if (value != null)
                 return value.toString();
@@ -1683,10 +1654,8 @@ public final class Jdb extends Buffer implements JdbConstants
     private void clearStepForThread(ThreadReference threadRef)
     {
         EventRequestManager erm = vm.eventRequestManager();
-        List requests = erm.stepRequests();
-        Iterator iter = requests.iterator();
-        while (iter.hasNext()) {
-            StepRequest request = (StepRequest) iter.next();
+        List<StepRequest> requests = erm.stepRequests();
+        for (StepRequest request : requests) {
             if (request.thread().equals(threadRef)) {
                 erm.deleteEventRequest(request);
                 break; // There should be only one!

@@ -22,6 +22,7 @@ package org.armedbear.j;
 
 import org.armedbear.j.util.FastStringBuffer;
 
+import java.io.Serializable;
 import java.util.Iterator;
 
 public final class FileHistoryEntry
@@ -57,10 +58,10 @@ public final class FileHistoryEntry
         sb.append("\"");
         sb.append(">");
         sb.append(lineSeparator);
-        Iterator it = properties.keyIterator();
+        Iterator<Property> it = properties.keyIterator();
         if (it != null) {
             while (it.hasNext()) {
-                Property property = (Property) it.next();
+                Property property = it.next();
                 Object value = properties.getProperty(property);
                 sb.append(propertyToXml(property.getDisplayName(),
                     value.toString()));
@@ -78,7 +79,7 @@ public final class FileHistoryEntry
         sb.append(value);
         sb.append("\"/>");
         sb.append(lineSeparator);
-        return new String(sb.toString());
+        return sb.toString();
     }
 
     public final PropertyList getProperties()
@@ -126,7 +127,7 @@ public final class FileHistoryEntry
         this.when = when;
     }
 
-    public void setProperty(Property property, Object value)
+    public void setProperty(Property property, Serializable value)
     {
         properties.setProperty(property, value);
     }

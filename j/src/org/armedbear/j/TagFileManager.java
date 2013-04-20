@@ -40,7 +40,7 @@ public final class TagFileManager extends Thread
     private final File tagFileDir;
     private final TagFileCatalog catalog;
 
-    private Vector queue = new Vector();
+    private Vector<QueueEntry> queue = new Vector<QueueEntry>();
     private boolean enabled = true;
 
     private TagFileCache cache;
@@ -118,7 +118,7 @@ public final class TagFileManager extends Thread
                 Log.error(e);
             }
         }
-        return (QueueEntry) queue.remove(0);
+        return queue.remove(0);
     }
 
     private final File getTagFile(File dir, Mode mode)
@@ -142,8 +142,8 @@ public final class TagFileManager extends Thread
                             tagfile.getOutputStream()));
                     writer.write(VERSION);
                     writer.write('\n');
-                    for (int i = 0; i < files.length; i++) {
-                        File file = File.getInstance(dir, files[i]);
+                    for (String s : files) {
+                        File file = File.getInstance(dir, s);
                         if (mode.accepts(file.getName()) && file.isFile()) {
                             SystemBuffer buf = new SystemBuffer(file);
                             buf.load();
@@ -225,7 +225,7 @@ public final class TagFileManager extends Thread
         catalog.update();
     }
 
-    public List getTags(File directory, Mode mode)
+    public List<GlobalTag> getTags(File directory, Mode mode)
     {
         File tagFile = getTagFile(directory, mode);
         if (tagFile == null) {
@@ -236,7 +236,7 @@ public final class TagFileManager extends Thread
             Log.debug("getTags tag file doesn't exist");
             return null;
         }
-        List tags = null;
+        List<GlobalTag> tags = null;
         // First checked cached tag files.
         if (cache != null)
             tags = cache.getTags(tagFile);
@@ -246,7 +246,7 @@ public final class TagFileManager extends Thread
                     new BufferedReader(new InputStreamReader(tagFile.getInputStream()));
                 String s = reader.readLine();
                 if (s != null && s.equals(VERSION)) {
-                    tags = new ArrayList();
+                    tags = new ArrayList<GlobalTag>();
                     while ((s = reader.readLine()) != null) {
                         GlobalTag tag = GlobalTag.makeGlobalTag(s);
                         if (tag != null)
@@ -304,22 +304,19 @@ public final class TagFileManager extends Thread
     {
         private static final int MAX_FILES = 5;
 
-        private ArrayList list = new ArrayList(MAX_FILES);
+        private ArrayList<CacheEntry> list = new ArrayList<CacheEntry>(MAX_FILES);
 
         TagFileCache() {}
 
-        synchronized List getTags(File tagFile)
+        synchronized List<GlobalTag> getTags(File tagFile)
         {
-            Iterator iter = list.iterator();
-            while (iter.hasNext()) {
-                CacheEntry entry = (CacheEntry) iter.next();
+            for (CacheEntry entry : list) {
                 if (entry.tagFile.equals(tagFile)) {
                     entry.lastAccess = System.currentTimeMillis();
                     // Move entry to top of list.
-                    ArrayList newList = new ArrayList(MAX_FILES);
+                    ArrayList<CacheEntry> newList = new ArrayList<CacheEntry>(MAX_FILES);
                     newList.add(entry);
-                    for (int i = 0; i < list.size(); i++) {
-                        CacheEntry e = (CacheEntry) list.get(i);
+                    for (CacheEntry e : list) {
                         if (e != entry)
                             newList.add(e);
                     }
@@ -333,14 +330,14 @@ public final class TagFileManager extends Thread
         }
 
         synchronized void add(File directory, String modeName,
-            File tagFile, List tags)
+            File tagFile, List<GlobalTag> tags)
         {
             CacheEntry entry = new CacheEntry(directory, modeName, tagFile, tags);
-            ArrayList newList = new ArrayList(MAX_FILES);
+            ArrayList<CacheEntry> newList = new ArrayList<CacheEntry>(MAX_FILES);
             newList.add(entry);
             int count = 1;
             for (int i = 0; i < list.size() && count < MAX_FILES; i++) {
-                CacheEntry e = (CacheEntry) list.get(i);
+                CacheEntry e = list.get(i);
                 if (!e.tagFile.equals(tagFile)) {
                     newList.add(e);
                     ++count;
@@ -352,9 +349,9 @@ public final class TagFileManager extends Thread
 
         synchronized void remove(File tagFile)
         {
-            Iterator iter = list.iterator();
+            Iterator<CacheEntry> iter = list.iterator();
             while (iter.hasNext()) {
-                CacheEntry entry = (CacheEntry) iter.next();
+                CacheEntry entry = iter.next();
                 if (entry.tagFile.equals(tagFile)) {
                     iter.remove();
                     checkOrder();
@@ -370,8 +367,8 @@ public final class TagFileManager extends Thread
         {
             if (Editor.isDebugEnabled()) {
                 for (int i = 0; i < list.size()-1; i++) {
-                    CacheEntry entry1 = (CacheEntry) list.get(i);
-                    CacheEntry entry2 = (CacheEntry) list.get(i+1);
+                    CacheEntry entry1 = list.get(i);
+                    CacheEntry entry2 = list.get(i+1);
                     if (entry1.lastAccess < entry2.lastAccess)
                         Debug.bug();
                 }
@@ -392,11 +389,11 @@ public final class TagFileManager extends Thread
         final File directory; // Needed for debugging only!
         final String modeName; // Needed for debugging only!
         final File tagFile;
-        List tags;
+        List<GlobalTag> tags;
         long lastAccess; // Needed for debugging only!
 
         CacheEntry(File directory, String modeName, File tagFile,
-            List tags)
+            List<GlobalTag> tags)
         {
             this.directory = directory;
             this.modeName = modeName;

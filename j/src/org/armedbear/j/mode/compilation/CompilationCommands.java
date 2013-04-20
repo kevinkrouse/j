@@ -128,7 +128,7 @@ public final class CompilationCommands implements Constants
             // Is it visible?
             EditorIterator it = new EditorIterator();
             while (it.hasNext()) {
-                Editor ed = it.nextEditor();
+                Editor ed = it.next();
                 if (ed.getBuffer() == cb) {
                     ed.updateLocation();
                     ed.repaintNow();
@@ -233,7 +233,7 @@ public final class CompilationCommands implements Constants
         // Find editor displaying error buffer (if any).
         Editor ed = null;
         for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-            ed = it.nextEditor();
+            ed = it.next();
             if (ed.getBuffer() == errorBuffer)
                 break;
         }
@@ -298,7 +298,7 @@ public final class CompilationCommands implements Constants
         int numModified = 0;
         int numErrors = 0;
         for (BufferIterator it = new BufferIterator(); it.hasNext();) {
-            Buffer buf = it.nextBuffer();
+            Buffer buf = it.next();
             if (!buf.isModified())
                 continue;
             if (buf.isUntitled())

@@ -123,7 +123,7 @@ public final class FolderTreeModel extends DefaultTreeModel
                 parent = new DefaultMutableTreeNode(url.getHost());
                 ((DefaultMutableTreeNode) root).add(parent);
             }
-            List list = ((ImapURL)url).getFolderPathComponents();
+            List<String> list = ((ImapURL)url).getFolderPathComponents();
             for (int i = 0; i < list.size()-1; i++) {
                 boolean add = true;
                 nodes = parent.children();
@@ -148,7 +148,7 @@ public final class FolderTreeModel extends DefaultTreeModel
                 }
             }
             // Last component.
-            parent.add(new DefaultMutableTreeNode(new Folder((String)list.get(list.size()-1), url)));
+            parent.add(new DefaultMutableTreeNode(new Folder(list.get(list.size()-1), url)));
         } else
             ((DefaultMutableTreeNode)root).add(new DefaultMutableTreeNode(new Folder(url.toString(), url)));
         reload();

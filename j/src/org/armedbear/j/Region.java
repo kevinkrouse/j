@@ -232,7 +232,7 @@ public final class Region implements Constants
     {
         if (Editor.getEditorCount() > 1) {
             for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-                Editor ed = it.nextEditor();
+                Editor ed = it.next();
                 if (ed == Editor.currentEditor())
                     continue;
                 if (ed.getBuffer() == buffer) {
@@ -248,7 +248,7 @@ public final class Region implements Constants
                     }
                 } else {
                     // Not presently displayed, but possibly in a stored view...
-                    View view = (View) ed.views.get(buffer);
+                    View view = ed.views.get(buffer);
                     if (view != null) {
                         adjustMarker(view.dot);
                         if (adjustMarker(view.mark))
@@ -262,9 +262,9 @@ public final class Region implements Constants
                 }
             }
         }
-        List markers = Marker.getAllMarkers();
+        List<Marker> markers = Marker.getAllMarkers();
         for (int i = markers.size(); i-- > 0;) {
-            Marker m = (Marker) markers.get(i);
+            Marker m = markers.get(i);
             if (m != null && m.getBuffer() == buffer)
                 adjustMarker(m.getPosition());
         }

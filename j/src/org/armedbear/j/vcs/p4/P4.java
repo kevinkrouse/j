@@ -61,10 +61,10 @@ public class P4 extends VersionControl implements Constants
   {
     if (!checkP4Installed())
       return;
-    List args = Utilities.tokenize(s);
+    List<String> args = Utilities.tokenize(s);
     if (args.size() == 0)
       return;
-    String command = (String) args.get(0);
+    String command = args.get(0);
     if (command.equals("submit"))
       {
         MessageDialog.showMessageDialog("Use \"p4Submit\".", "Error");
@@ -172,7 +172,7 @@ public class P4 extends VersionControl implements Constants
     EditorIterator iter = new EditorIterator();
     while (iter.hasNext())
       {
-        Editor ed = iter.nextEditor();
+        Editor ed = iter.next();
         if (ed.getBuffer() == buffer)
           ed.setDefaultCursor();
       }
@@ -308,7 +308,7 @@ public class P4 extends VersionControl implements Constants
         // Kill existing diff output buffer if any for same parent buffer.
         for (BufferIterator it = new BufferIterator(); it.hasNext();)
           {
-            Buffer b = it.nextBuffer();
+            Buffer b = it.next();
             if (b instanceof DiffOutputBuffer)
               {
                 if (b.getParentBuffer() == parentBuffer)
@@ -351,7 +351,7 @@ public class P4 extends VersionControl implements Constants
     // Kill existing diff output buffer if any for same directory.
     for (BufferIterator it = new BufferIterator(); it.hasNext();)
       {
-        Buffer b = it.nextBuffer();
+        Buffer b = it.next();
         if (b instanceof DiffOutputBuffer)
           {
             if (directory.equals(((DiffOutputBuffer) b).getDirectory()))
@@ -395,10 +395,10 @@ public class P4 extends VersionControl implements Constants
     final Editor editor = Editor.currentEditor();
     final Buffer parentBuffer = editor.getBuffer();
     boolean useCurrentFile = true;
-    List list = Utilities.tokenize(args);
+    List<String> list = Utilities.tokenize(args);
     for (int i = 0; i < list.size(); i++)
       {
-        String arg = (String) list.get(i);
+        String arg = list.get(i);
         if (arg.charAt(0) != '-')
           {
             // Must be a filename. Use its canonical path.
@@ -416,11 +416,10 @@ public class P4 extends VersionControl implements Constants
     final String baseCmd = "p4 filelog -l ";
     final String title;
     FastStringBuffer sb = new FastStringBuffer(baseCmd);
-    for (int i = 0; i < list.size(); i++)
-      {
-        sb.append((String)list.get(i));
+    for (String s : list) {
+        sb.append(s);
         sb.append(' ');
-      }
+    }
     if (useCurrentFile)
       {
         File file = parentBuffer.getFile();
@@ -504,7 +503,7 @@ public class P4 extends VersionControl implements Constants
     Buffer buf = null;
     for (BufferIterator it = new BufferIterator(); it.hasNext();)
       {
-        buf = it.nextBuffer();
+        buf = it.next();
         if (buf instanceof CheckinBuffer)
           if (title.equals(buf.getTitle()))
             break;
@@ -546,7 +545,7 @@ public class P4 extends VersionControl implements Constants
                   mark = findEndOfComment(checkinBuffer, dot);
                 checkinBuffer.setBusy(false);
                 for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-                  Editor ed = it.nextEditor();
+                  Editor ed = it.next();
                   if (ed.getBuffer() == checkinBuffer) {
                     ed.setTopLine(checkinBuffer.getFirstLine());
                     ed.setDot(dot);
@@ -566,13 +565,13 @@ public class P4 extends VersionControl implements Constants
   public static void submit(String args)
   {
     String message = null;
-    List list = Utilities.tokenize(args);
+    List<String> list = Utilities.tokenize(args);
     if (list.size() == 2)
       {
-        String arg = (String) list.get(0);
+        String arg = list.get(0);
         if (arg.equals("-c"))
           {
-            arg = (String) list.get(1);
+            arg = list.get(1);
             try
               {
                 Integer.parseInt(arg);
@@ -621,7 +620,7 @@ public class P4 extends VersionControl implements Constants
       }
     final String title = sb.toString();
     boolean save = false;
-    List list = getModifiedBuffers();
+    List<Buffer> list = getModifiedBuffers();
     if (list != null && list.size() > 0)
       {
         int response =
@@ -646,7 +645,7 @@ public class P4 extends VersionControl implements Constants
         Buffer buf = null;
         for (BufferIterator it = new BufferIterator(); it.hasNext();)
           {
-            buf = it.nextBuffer();
+            buf = it.next();
             if (buf instanceof CheckinBuffer)
               if (title.equals(buf.getTitle()))
                 break;
@@ -689,7 +688,7 @@ public class P4 extends VersionControl implements Constants
                         mark = findEndOfComment(checkinBuffer, dot);
                     checkinBuffer.setBusy(false);
                     for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-                      Editor ed = it.nextEditor();
+                      Editor ed = it.next();
                       if (ed.getBuffer() == checkinBuffer) {
                         ed.setTopLine(checkinBuffer.getFirstLine());
                         ed.setDot(dot);
@@ -777,7 +776,7 @@ public class P4 extends VersionControl implements Constants
     final Position end = findEndOfComment(buffer, null);
     for (EditorIterator it = new EditorIterator(); it.hasNext();)
       {
-        Editor ed = it.nextEditor();
+        Editor ed = it.next();
         if (ed.getBuffer() == buffer) {
           ed.setTopLine(buffer.getFirstLine());
           ed.setDot(end.copy()); // No undo.
@@ -881,7 +880,7 @@ public class P4 extends VersionControl implements Constants
           {
             for (BufferIterator it = new BufferIterator(); it.hasNext();)
               {
-                Buffer b = it.nextBuffer();
+                Buffer b = it.next();
                 if (b instanceof DiffOutputBuffer)
                   {
                     if (b.getParentBuffer() == parentBuffer) {
@@ -900,7 +899,7 @@ public class P4 extends VersionControl implements Constants
           }
         for (BufferIterator it = new BufferIterator(); it.hasNext();)
           {
-            Buffer b = it.nextBuffer();
+            Buffer b = it.next();
             if (b instanceof OutputBuffer)
               {
                 if (title.equals(b.getTitle()))
@@ -921,7 +920,7 @@ public class P4 extends VersionControl implements Constants
     // Re-use existing output buffer if possible.
     for (BufferIterator it = new BufferIterator(); it.hasNext();)
       {
-        Buffer b = it.nextBuffer();
+        Buffer b = it.next();
         if (b instanceof OutputBuffer)
           {
             if (title.equals(b.getTitle()))

@@ -34,7 +34,7 @@ public final class Keywords
     private final Mode mode;
     private final boolean ignoreCase;
 
-    private HashSet hashSet;
+    private HashSet<String> hashSet;
 
     public Keywords(Mode mode)
     {
@@ -58,7 +58,7 @@ public final class Keywords
 
     private void load()
     {
-        ArrayList list = new ArrayList(256);
+        ArrayList<String> list = new ArrayList<String>(256);
         InputStream inputStream = null;
         String className = mode.getClass().getName();
         int index = className.lastIndexOf('.');
@@ -108,7 +108,7 @@ public final class Keywords
             }
         } else
             Log.error("no resource " + key);
-        hashSet = new HashSet(list);
+        hashSet = new HashSet<String>(list);
     }
 
     public boolean isKeyword(String s)

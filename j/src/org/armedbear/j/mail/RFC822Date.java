@@ -61,7 +61,7 @@ public final class RFC822Date implements Serializable
         if (input == null || input.length() == 0)
             return new RFC822Date();
         final StringTokenizer st = new StringTokenizer(input, " ,");
-        final ArrayList tokens = new ArrayList();
+        final ArrayList<String> tokens = new ArrayList<String>();
         while (st.hasMoreTokens())
             tokens.add(st.nextToken());
         final int tokenCount = tokens.size();
@@ -72,7 +72,7 @@ public final class RFC822Date implements Serializable
         int minute = -1;
         int second = -1;
         for (int i = 0; i < tokenCount; i++) {
-            String token = (String) tokens.get(i);
+            String token = tokens.get(i);
             switch (token.charAt(0)) {
                 case 'J':
                     if (token.equals("Jan"))
@@ -118,7 +118,7 @@ public final class RFC822Date implements Serializable
             if (month >= 0) {
                 tokens.set(i, null);
                 if (i > 0) {
-                    String before = (String) tokens.get(i-1);
+                    String before = tokens.get(i-1);
                     try {
                         dayOfMonth = Integer.parseInt(before);
                     }
@@ -129,7 +129,7 @@ public final class RFC822Date implements Serializable
                     }
                 }
                 if (i < tokenCount - 1) {
-                    String after = (String) tokens.get(i+1);
+                    String after = tokens.get(i+1);
                     try {
                         dayOfMonth = Integer.parseInt(after);
                     }
@@ -141,7 +141,7 @@ public final class RFC822Date implements Serializable
         }
         // Year.
         for (int i = 0; i < tokenCount; i++) {
-            String token = (String) tokens.get(i);
+            String token = tokens.get(i);
             if (token == null)
                 continue;
             try {
@@ -157,7 +157,7 @@ public final class RFC822Date implements Serializable
         if (year == -1) {
             // Be slightly more permissive.
             for (int i = 0; i < tokenCount; i++) {
-                String token = (String) tokens.get(i);
+                String token = tokens.get(i);
                 if (token == null)
                     continue;
                 try {
@@ -175,7 +175,7 @@ public final class RFC822Date implements Serializable
         }
         // Time.
         for (int i = 0; i < tokenCount; i++) {
-            String token = (String) tokens.get(i);
+            String token = tokens.get(i);
             if (token == null)
                 continue;
             int index = token.indexOf(':');
@@ -214,7 +214,7 @@ public final class RFC822Date implements Serializable
         // Time zone.
         TimeZone tz = null;
         for (int i = 0; i < tokenCount; i++) {
-            String token = (String) tokens.get(i);
+            String token = tokens.get(i);
             if (token == null)
                 continue;
             if (token.length() == 5) {
@@ -236,7 +236,7 @@ public final class RFC822Date implements Serializable
         }
         if (tz == null) {
             for (int i = 0; i < tokenCount; i++) {
-                String token = (String) tokens.get(i);
+                String token = tokens.get(i);
                 if (token == null)
                     continue;
                 if (token.length() == 3) {

@@ -598,9 +598,9 @@ public final class Utilities implements Constants
     }
 
     // Returns a list of strings.
-    public static List getDirectoriesInPath(String path)
+    public static List<String> getDirectoriesInPath(String path)
     {
-        ArrayList list = new ArrayList();
+        ArrayList<String> list = new ArrayList<String>();
         if (path != null) {
             final char sep = LocalFile.getPathSeparatorChar();
             int begin = 0;

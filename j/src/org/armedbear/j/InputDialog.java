@@ -39,7 +39,7 @@ public class InputDialog extends JDialog implements KeyListener
     private String defaultValue;
     private History history;
     private String input;
-    private List completions;
+    private List<String> completions;
     private int index;
 
     public InputDialog(Editor editor, String prompt, String title,
@@ -173,7 +173,7 @@ public class InputDialog extends JDialog implements KeyListener
         } else if (index >= completions.size())
             index = 0; // Start over.
         if (index < completions.size())
-            return (String) completions.get(index++);
+            return completions.get(index++);
         return null;
     }
 
@@ -184,7 +184,7 @@ public class InputDialog extends JDialog implements KeyListener
                 index -= 2;
                 if (index < 0)
                     index += completions.size();
-                return (String) completions.get(index++);
+                return completions.get(index++);
             }
         }
         return null;
@@ -192,7 +192,7 @@ public class InputDialog extends JDialog implements KeyListener
 
     // Derived classes can override this method to provide completion
     // functionality.
-    protected List getCompletions(String prefix)
+    protected List<String> getCompletions(String prefix)
     {
         return null;
     }

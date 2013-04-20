@@ -48,17 +48,17 @@ public final class StackPanel implements ContextListener, MouseListener
 {
     private final Jdb jdb;
     private final JdbControlDialog dialog;
-    private final JList list;
+    private final JList<String> list;
     private final JScrollPane scrollPane;
 
-    private List frames;
+    private List<StackFrame> frames;
 
     public StackPanel(Jdb jdb, JdbControlDialog dialog)
     {
         this.jdb = jdb;
         this.dialog = dialog;
-        Vector v = new Vector();
-        list = new JList(v);
+        Vector<String> v = new Vector<String>();
+        list = new JList<String>(v);
         scrollPane = new JScrollPane(list);
         jdb.addContextListener(this);
         list.addMouseListener(this);
@@ -75,18 +75,16 @@ public final class StackPanel implements ContextListener, MouseListener
         if (threadRef != null) {
             try {
                 frames = threadRef.frames();
-                final Vector v = new Vector();
+                final Vector<String> v = new Vector<String>();
                 int selectedIndex = -1;
                 if (frames.size() > 0) {
                     StackFrame currentStackFrame = jdb.getCurrentStackFrame();
                     if (currentStackFrame == null) {
-                        currentStackFrame = (StackFrame) frames.get(0);
+                        currentStackFrame = frames.get(0);
                         jdb.setCurrentStackFrame(currentStackFrame);
                     }
                     int index = 1;
-                    Iterator iter = frames.iterator();
-                    while (iter.hasNext()) {
-                        StackFrame frame = (StackFrame) iter.next();
+                    for (StackFrame frame : frames) {
                         if (frame != null && frame.equals(currentStackFrame))
                             selectedIndex = index - 1;
                         Location location = frame.location();
@@ -106,7 +104,7 @@ public final class StackPanel implements ContextListener, MouseListener
                             try {
                                 sourceName = location.sourceName();
                             }
-                            catch (AbsentInformationException ignored) {}
+                            catch (AbsentInformationException ignored) { }
                             int lineNumber = location.lineNumber();
                             if (sourceName != null && sourceName.length() > 0) {
                                 sb.append(" (");
@@ -126,7 +124,7 @@ public final class StackPanel implements ContextListener, MouseListener
                 Runnable r = new Runnable() {
                     public void run()
                     {
-                        list.setListData(v);
+                        list.setListData((Vector)v);
                         list.setSelectedIndex(finalSelectedIndex);
                     }
                 };
@@ -163,7 +161,7 @@ public final class StackPanel implements ContextListener, MouseListener
             list.paintImmediately(0, 0, list.getWidth(), list.getHeight());
             int index = list.getSelectedIndex();
             if (frames != null && index >= 0 && index < frames.size()) {
-                StackFrame stackFrame = (StackFrame) frames.get(index);
+                StackFrame stackFrame = frames.get(index);
                 jdb.setCurrentStackFrame(stackFrame);
                 Location location = stackFrame.location();
                 Method method = location.method();
@@ -179,7 +177,7 @@ public final class StackPanel implements ContextListener, MouseListener
                         if (buffer != null) {
                             Editor editor = null;
                             for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-                                Editor ed = it.nextEditor();
+                                Editor ed = it.next();
                                 if (ed.getBuffer() instanceof Jdb) {
                                     editor = ed;
                                     break;

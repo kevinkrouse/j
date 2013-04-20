@@ -187,7 +187,7 @@ public final class JLispBuffer extends LispShellBuffer
         final Editor editor = Editor.currentEditor();
         // Look for existing jlisp buffer.
         for (BufferIterator it = new BufferIterator(); it.hasNext();) {
-            Buffer buf = it.nextBuffer();
+            Buffer buf = it.next();
             if (buf instanceof JLispBuffer) {
                 editor.makeNext(buf);
                 editor.activateInOtherWindow(buf);

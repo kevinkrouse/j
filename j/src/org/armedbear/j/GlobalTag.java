@@ -248,16 +248,14 @@ public final class GlobalTag extends Tag
   private static Position findSignatureInCurrentBuffer(Buffer buffer,
                                                        String signature)
   {
-    final List localTags = buffer.getTags(true);
+    final List<LocalTag> localTags = buffer.getTags(true);
     if (localTags == null)
       return null;
     final int limit = localTags.size();
-    for (int i = 0; i < limit; i++)
-      {
-        LocalTag localTag = (LocalTag) localTags.get(i);
+    for (LocalTag localTag : localTags) {
         if (localTag.getSignature().equals(signature))
-          return localTag.getPosition();
-      }
+            return localTag.getPosition();
+    }
     // We did not find an exact match. The signature may have changed.
     // Look for a substring containing the function name and argument list
     // only.
@@ -266,12 +264,10 @@ public final class GlobalTag extends Tag
     if (matcher.find())
       {
         String sub = matcher.group();
-        for (int i = 0; i < limit; i++)
-          {
-            LocalTag localTag = (LocalTag) localTags.get(i);
-            if (localTag.getSignature().indexOf(sub) >= 0)
-              return localTag.getPosition();
-          }
+        for (LocalTag localTag : localTags) {
+            if (localTag.getSignature().contains(sub))
+                return localTag.getPosition();
+        }
       }
     return null;
   }

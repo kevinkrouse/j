@@ -24,11 +24,11 @@ import java.util.ArrayList;
 
 public final class AndTerm extends MailboxFilter
 {
-    private final ArrayList filters;
+    private final ArrayList<MailboxFilter> filters;
 
     public AndTerm(MailboxFilter first, MailboxFilter second)
     {
-        filters = new ArrayList();
+        filters = new ArrayList<MailboxFilter>();
         filters.add(first);
         filters.add(second);
     }
@@ -40,8 +40,7 @@ public final class AndTerm extends MailboxFilter
 
     public final boolean accept(MailboxEntry entry)
     {
-        for (int i = 0; i < filters.size(); i++) {
-            MailboxFilter filter = (MailboxFilter) filters.get(i);
+        for (MailboxFilter filter : filters) {
             if (!filter.accept(entry))
                 return false;
         }

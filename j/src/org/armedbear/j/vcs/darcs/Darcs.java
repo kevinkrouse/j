@@ -45,12 +45,12 @@ public class Darcs extends VersionControl implements Constants
       return;
     final Editor editor = Editor.currentEditor();
     editor.setWaitCursor();
-    List args = Utilities.tokenize(s);
+    List<String> args = Utilities.tokenize(s);
     String arg;
     FastStringBuffer sb = new FastStringBuffer("darcs ");
     for (int i = 0; i < args.size(); i++)
       {
-        arg = (String) args.get(i);
+        arg = args.get(i);
         if (i == 0 && arg.equals("w"))
           arg = "whatsnew";
         sb.append(Utilities.maybeQuote(arg));

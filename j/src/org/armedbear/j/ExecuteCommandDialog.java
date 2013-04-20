@@ -34,7 +34,7 @@ public final class ExecuteCommandDialog extends InputDialog
         setDefaultValue(history.getPrevious());
     }
 
-    protected final List getCompletions(String prefix)
+    protected final List<String> getCompletions(String prefix)
     {
         return CommandTable.getCompletionsForPrefix(prefix);
     }
@@ -64,21 +64,21 @@ public final class ExecuteCommandDialog extends InputDialog
         // If it's a known command, use its canonical name.
         Command command = CommandTable.getCommand(s);
         final String commandName = command != null ? command.getName() : s;
-        List list = KeyMap.getGlobalKeyMap().listKeys(commandName);
+        List<String> list = KeyMap.getGlobalKeyMap().listKeys(commandName);
         list.addAll(buffer.getKeyMapForMode().listKeys(commandName));
         FastStringBuffer sb = new FastStringBuffer(commandName);
         if (list.size() == 0) {
             sb.append(" is not mapped");
         } else if (list.size() == 1) {
             sb.append(" is mapped to ");
-            sb.append((String)list.get(0));
+            sb.append(list.get(0));
         } else {
             sb.append(" is mapped to:");
             sb.append(System.getProperty("line.separator"));
-            for (int i = 0; i < list.size(); i++) {
+            for (String key : list) {
                 sb.append(System.getProperty("line.separator"));
                 sb.append("    ");
-                sb.append((String) list.get(i));
+                sb.append(key);
             }
         }
         editor.setDefaultCursor();

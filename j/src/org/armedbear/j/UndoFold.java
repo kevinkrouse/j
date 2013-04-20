@@ -108,7 +108,7 @@ public final class UndoFold extends AbstractUndoableEdit
             // Update any other windows displaying this buffer.
             if (Editor.getEditorCount() > 1) {
                 for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-                    Editor ed = it.nextEditor();
+                    Editor ed = it.next();
                     if (ed.getBuffer() == editor.getBuffer()) {
                         // Make sure dot is visible.
                         if (ed.getDot().isHidden()) {

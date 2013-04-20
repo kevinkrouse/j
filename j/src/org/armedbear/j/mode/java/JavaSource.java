@@ -41,13 +41,12 @@ public final class JavaSource implements Constants
 
     public static File findSource(String className, String sourcePath)
     {
-        final List dirNames = Utilities.getDirectoriesInPath(sourcePath);
+        final List<String> dirNames = Utilities.getDirectoriesInPath(sourcePath);
         if (dirNames != null) {
             String fileName =
                 className.replace('.', SEPARATOR_CHAR).concat(".java");
-            Iterator iter = dirNames.iterator();
-            while (iter.hasNext()) {
-                File dir = File.getInstance((String)iter.next());
+            for (String dirName : dirNames) {
+                File dir = File.getInstance(dirName);
                 if (dir != null) {
                     File file = File.getInstance(dir, fileName);
                     if (file != null && file.isFile())
@@ -59,9 +58,8 @@ public final class JavaSource implements Constants
             if (index >= 0) {
                 String shortName = fileName.substring(index+1);
                 Log.debug("shortName = |" + shortName + "|");
-                iter = dirNames.iterator();
-                while (iter.hasNext()) {
-                    File dir = File.getInstance((String)iter.next());
+                for (String dirName : dirNames) {
+                    File dir = File.getInstance(dirName);
                     if (dir != null) {
                         File file = File.getInstance(dir, shortName);
                         if (file != null && file.isFile()) {
@@ -95,11 +93,11 @@ public final class JavaSource implements Constants
         final String jdkSourcePath =
             buffer.getStringProperty(Property.JDK_SOURCE_PATH);
         if (jdkSourcePath != null) {
-            final List dirNames = Utilities.getDirectoriesInPath(jdkSourcePath);
+            final List<String> dirNames = Utilities.getDirectoriesInPath(jdkSourcePath);
             if (dirNames != null) {
                 // Tell the user if the JDK source path is bogus.
-                for (Iterator it = dirNames.iterator(); it.hasNext();) {
-                    String name = (String) it.next();
+                for (Iterator<String> it = dirNames.iterator(); it.hasNext();) {
+                    String name = it.next();
                     File dir = File.getInstance(name);
                     String message = null;
                     if (dir == null) {
@@ -111,9 +109,9 @@ public final class JavaSource implements Constants
                     if (message != null)
                         MessageDialog.showMessageDialog(message, "Error");
                 }
-                for (int i = 0; i < candidates.length; i++) {
-                    File file = findImport(candidates[i], imports, dirNames,
-                        ".java");
+                for (String candidate : candidates) {
+                    File file = findImport(candidate, imports, dirNames,
+                            ".java");
                     if (file != null)
                         return file;
                 }
@@ -123,9 +121,9 @@ public final class JavaSource implements Constants
         // Look for import relative to package root directory.
         File packageRootDir = JavaSource.getPackageRootDirectory(buffer);
         if (packageRootDir != null) {
-            for (int i = 0; i < candidates.length; i++) {
-                File file = findImport(candidates[i], imports, packageRootDir,
-                    ".java");
+            for (String candidate : candidates) {
+                File file = findImport(candidate, imports, packageRootDir,
+                        ".java");
                 if (file != null)
                     return file;
             }
@@ -133,9 +131,9 @@ public final class JavaSource implements Constants
 
         // Look in current directory (i.e. current package).
         File currentDir = buffer.getCurrentDirectory();
-        for (int i = 0; i < candidates.length; i++) {
+        for (String candidate : candidates) {
             File file =
-                File.getInstance(currentDir, candidates[i].concat(".java"));
+                    File.getInstance(currentDir, candidate.concat(".java"));
             if (file != null && file.isFile())
                 return file;
         }
@@ -145,7 +143,7 @@ public final class JavaSource implements Constants
 
     private static String[] getCandidates(String s)
     {
-        ArrayList list = new ArrayList();
+        ArrayList<String> list = new ArrayList<String>();
         int index = s.indexOf('.');
         while (index >= 0) {
             list.add(s.substring(0, index));
@@ -153,7 +151,7 @@ public final class JavaSource implements Constants
         }
         list.add(s);
         String[] array = new String[list.size()];
-        return (String[]) list.toArray(array);
+        return list.toArray(array);
     }
 
     public static String getPackageName(Buffer buffer)
@@ -211,7 +209,7 @@ public final class JavaSource implements Constants
     {
         if (buffer.getModeId() != JAVA_MODE)
             return null;
-        ArrayList list = new ArrayList();
+        ArrayList<String> list = new ArrayList<String>();
         list.add("java.lang.*");
         for (Line line = buffer.getFirstLine(); line != null; line = line.next()) {
             String trim = line.trim();
@@ -233,17 +231,15 @@ public final class JavaSource implements Constants
             list.add(sb.toString());
         }
         String[] array = new String[list.size()];
-        return (String[]) list.toArray(array);
+        return list.toArray(array);
     }
 
     // Returns null if file not found.
     private static File findImport(String className, String[] imports,
-        List dirNames, String extension)
+        List<String> dirNames, String extension)
     {
         // Iterate through directories.
-        final int size = dirNames.size();
-        for (int i = 0; i < size; i++) {
-            final String dirName = (String) dirNames.get(i);
+        for (final String dirName : dirNames) {
             final File dir = File.getInstance(dirName);
             if (dir != null) {
                 File file = findImport(className, imports, dir, ".java");
@@ -269,12 +265,11 @@ public final class JavaSource implements Constants
         }
         if (imports != null) {
             String suffix = ".".concat(className);
-            for (int i = 0; i < imports.length; i++) {
-                String s = imports[i];
+            for (String s : imports) {
                 if (s.endsWith(suffix)) {
                     // Found it!
                     String fileName =
-                        s.replace('.', SEPARATOR_CHAR).concat(extension);
+                            s.replace('.', SEPARATOR_CHAR).concat(extension);
                     File file = File.getInstance(dir, fileName);
                     return (file != null && file.isFile()) ? file : null;
                 }
@@ -282,8 +277,8 @@ public final class JavaSource implements Constants
                     String prefix = s.substring(0, s.length() - 1);
                     String canonicalName = prefix.concat(className);
                     String filename =
-                        canonicalName.replace('.',
-                            SEPARATOR_CHAR).concat(extension);
+                            canonicalName.replace('.',
+                                    SEPARATOR_CHAR).concat(extension);
                     File file = File.getInstance(dir, filename);
                     if (file != null && file.isFile())
                         return file;

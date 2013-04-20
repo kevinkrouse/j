@@ -33,19 +33,18 @@ public final class ChooseSessionDialog extends InputDialog
         editor.centerDialog(this);
     }
 
-    protected List getCompletions(String prefix)
+    protected List<String> getCompletions(String prefix)
     {
-        ArrayList list = null;
+        ArrayList<String> list = null;
         if (prefix != null) {
             final int prefixLength = prefix.length();
             File dir = Session.getSessionDirectory();
             if (dir != null) {
                 String[] names = dir.list();
-                for (int i = 0; i < names.length; i++) {
-                    String name = names[i];
+                for (String name : names) {
                     if (name.regionMatches(true, 0, prefix, 0, prefixLength)) {
                         if (list == null)
-                            list = new ArrayList();
+                            list = new ArrayList<String>();
                         list.add(name);
                     }
                 }

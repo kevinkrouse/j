@@ -97,7 +97,7 @@ public class FtpSaveProcess implements BackgroundProcess, Constants
         Debug.assertTrue(buffer.isLocked());
         buffer.setBusy(true);
         for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-            Editor ed = it.nextEditor();
+            Editor ed = it.next();
             if (ed.getBuffer() == buffer)
                 ed.setWaitCursor();
         }
@@ -239,7 +239,7 @@ public class FtpSaveProcess implements BackgroundProcess, Constants
         {
             buffer.setBusy(false);
             for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-                Editor ed = it.nextEditor();
+                Editor ed = it.next();
                 if (ed.getBuffer() == buffer) {
                     ed.status("Transfer cancelled");
                     ed.setDefaultCursor();

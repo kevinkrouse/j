@@ -38,7 +38,7 @@ public class MimePart
     protected String raw;
     protected Headers headers;
 
-    private Vector parts;
+    private Vector<MimePart> parts;
 
     public MimePart(String raw)
     {
@@ -190,7 +190,7 @@ public class MimePart
         return null;
     }
 
-    public Vector getParts()
+    public Vector<MimePart> getParts()
     {
         return parts;
     }
@@ -203,16 +203,15 @@ public class MimePart
             return null;
         if (i >= parts.size())
             return null;
-        return (MimePart) parts.get(i);
+        return parts.get(i);
     }
 
-    protected void addParts(Vector v)
+    protected void addParts(Vector<MimePart> v)
     {
         v.add(this);
         // Recurse.
         if (parts != null) {
-            for (int i = 0; i < parts.size(); i++) {
-                MimePart part = (MimePart) parts.get(i);
+            for (MimePart part : parts) {
                 String contentType = part.getContentType();
                 if (contentType != null && contentType.startsWith("multipart/"))
                     part.addParts(v);
@@ -436,8 +435,7 @@ public class MimePart
             }
             parts = parseParts(boundary);
             if (parts != null) {
-                for (int i = 0; i < parts.size(); i++) {
-                    MimePart part = (MimePart) parts.get(i);
+                for (MimePart part : parts) {
                     part.parse();
                 }
             }
@@ -445,13 +443,13 @@ public class MimePart
         }
         final String disposition = getDisposition();
         if (disposition != null && disposition.equalsIgnoreCase("attachment")) {
-            parts = new Vector();
+            parts = new Vector<MimePart>();
             MimePart part = new MimePart(raw);
             parts.add(part);
         }
     }
 
-    private Vector parseParts(String boundary)
+    private Vector<MimePart> parseParts(String boundary)
     {
         final String marker = "--" + boundary;
         final String endMarker = marker + "--";
@@ -459,7 +457,7 @@ public class MimePart
         int start = raw.indexOf(marker);
         if (start < 0)
             return null;
-        Vector v = new Vector();
+        Vector<MimePart> v = new Vector<MimePart>();
         while (true) {
             start += marker.length();
             if (raw.charAt(start) == '\r')

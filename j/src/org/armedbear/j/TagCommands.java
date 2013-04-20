@@ -28,7 +28,6 @@ import org.armedbear.j.util.Utilities;
 import java.awt.AWTEvent;
 import java.awt.event.MouseEvent;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 import javax.swing.SwingUtilities;
 import javax.swing.undo.CompoundEdit;
@@ -40,13 +39,11 @@ public final class TagCommands implements Constants
         final Editor editor = Editor.currentEditor();
         final Position dot = editor.getDot();
         if (dot != null) {
-            final List tags = editor.getBuffer().getTags();
+            final List<LocalTag> tags = editor.getBuffer().getTags();
             if (tags != null) {
                 // Find the next tag after dot.
                 final int dotLineNumber = dot.lineNumber();
-                final int limit = tags.size();
-                for (int i = 0; i < limit; i++) {
-                    LocalTag tag = (LocalTag) tags.get(i);
+                for (LocalTag tag : tags) {
                     if (tag.lineNumber() > dotLineNumber) {
                         editor.moveDotTo(tag.getPosition());
                         return;
@@ -61,12 +58,12 @@ public final class TagCommands implements Constants
         final Editor editor = Editor.currentEditor();
         final Position dot = editor.getDot();
         if (dot != null) {
-            final List tags = editor.getBuffer().getTags();
+            final List<LocalTag> tags = editor.getBuffer().getTags();
             if (tags != null) {
                 // Find the last tag before dot.
                 final int dotLineNumber = dot.lineNumber();
                 for (int i = tags.size()-1; i >= 0; i--) {
-                    LocalTag tag = (LocalTag) tags.get(i);
+                    LocalTag tag = tags.get(i);
                     if (tag.lineNumber() < dotLineNumber) {
                         editor.moveDotTo(tag.getPosition());
                         return;
@@ -100,12 +97,12 @@ public final class TagCommands implements Constants
     private static boolean findTag(Editor editor, Expression expression,
         boolean useOtherWindow)
     {
-        List tags = findMatchingTags(editor.getBuffer(), expression);
+        List<? extends Tag> tags = findMatchingTags(editor.getBuffer(), expression);
         if (tags == null || tags.size() == 0)
             return false;
         if (tags.size() == 1) {
             // One match.
-            Tag tag = (Tag) tags.get(0);
+            Tag tag = tags.get(0);
             editor.pushPosition();
             if (tag instanceof LocalTag)
                 gotoLocalTag(editor, (LocalTag)tag, useOtherWindow);
@@ -131,48 +128,50 @@ public final class TagCommands implements Constants
         return true;
     }
 
-    public static List findMatchingTags(Buffer buffer, Expression expression)
+    public static List<? extends Tag> findMatchingTags(Buffer buffer, Expression expression)
     {
         final Mode mode = buffer.getMode();
         if (!mode.isTaggable())
             return null;
+
         // We'll start by looking in the current buffer. If we find an exact
         // match there, we're done.
-        List list = findMatchingTagsInBuffer(buffer, expression);
-        if (list == null) {
-            // No exact match in the current buffer. Look in the current
-            // directory.
-            final File currentDirectory = buffer.getCurrentDirectory();
-            list = findMatchingTagsInDirectory(expression, currentDirectory,
-                                               mode);
-            if (list == null) {
-                // Look at all the directories in the buffer's tag path.
-                List dirs = getDirectoriesInTagPath(buffer);
-                if (dirs != null) {
-                    for (int i = 0; i < dirs.size(); i++) {
-                        String dir = (String) dirs.get(i);
-                        File directory =
+        List<LocalTag> localTags = findMatchingTagsInBuffer(buffer, expression);
+        if (localTags != null && !localTags.isEmpty())
+            return localTags;
+
+        // No exact match in the current buffer. Look in the current
+        // directory.
+        final File currentDirectory = buffer.getCurrentDirectory();
+        List<GlobalTag> globalTags = findMatchingTagsInDirectory(expression, currentDirectory,
+                                           mode);
+        if (globalTags == null) {
+            // Look at all the directories in the buffer's tag path.
+            List<String> dirs = getDirectoriesInTagPath(buffer);
+            if (dirs != null) {
+                for (String dir : dirs) {
+                    File directory =
                             File.getInstance(currentDirectory, dir);
-                        if (directory == null)
-                            continue;
-                        if (directory.equals(currentDirectory))
-                            continue;
-                        List tagsInDir =
+                    if (directory == null)
+                        continue;
+                    if (directory.equals(currentDirectory))
+                        continue;
+                    List<GlobalTag> tagsInDir =
                             findMatchingTagsInDirectory(expression, directory,
-                                                        mode);
-                        if (tagsInDir != null) {
-                            if (list == null)
-                                list = new ArrayList();
-                            list.addAll(tagsInDir);
-                        }
+                                    mode);
+                    if (tagsInDir != null) {
+                        if (globalTags == null)
+                            globalTags = new ArrayList<GlobalTag>();
+                        globalTags.addAll(tagsInDir);
                     }
                 }
             }
         }
-        return list;
+
+        return globalTags;
     }
 
-    private static List findMatchingTagsInBuffer(Buffer buffer,
+    private static List<LocalTag> findMatchingTagsInBuffer(Buffer buffer,
         Expression expression)
     {
         if (buffer.getTags() == null) {
@@ -180,16 +179,15 @@ public final class TagCommands implements Constants
             if (tagger != null)
                 tagger.run();
         }
-        List list = null;
-        final List localTags = buffer.getTags();
+
+        List<LocalTag> list = null;
+        final List<LocalTag> localTags = buffer.getTags();
         if (localTags != null) {
             // Look through all the local tags.
-            Iterator iter = localTags.iterator();
-            while (iter.hasNext()) {
-                LocalTag localTag = (LocalTag) iter.next();
+            for (LocalTag localTag : localTags) {
                 if (expression.matches(localTag)) {
                     if (list == null)
-                        list = new ArrayList();
+                        list = new ArrayList<LocalTag>();
                     list.add(localTag);
                 }
             }
@@ -197,23 +195,22 @@ public final class TagCommands implements Constants
         return list;
     }
 
-    public static List findMatchingTagsInDirectory(Expression expression,
+    public static List<GlobalTag> findMatchingTagsInDirectory(Expression expression,
         File directory, Mode mode)
     {
         if (!mode.isTaggable())
             return null;
         final String name = expression.getName();
         final int arity = expression.getArity();
-        List tags = Editor.getTagFileManager().getTags(directory, mode);
+        List<GlobalTag> tags = Editor.getTagFileManager().getTags(directory, mode);
         if (tags == null) {
             if (!directory.isRemote())
                 Editor.getTagFileManager().addToQueue(directory, mode);
             return null;
         }
-        List list = null;
-        Iterator iter = tags.iterator();
-        while (iter.hasNext()) {
-            GlobalTag tag = (GlobalTag) iter.next();
+
+        List<GlobalTag> list = null;
+        for (GlobalTag tag : tags) {
             String methodName = tag.getMethodName();
             if (methodName != null && methodName.equals(name)) {
                 if (arity >= 0) {
@@ -222,29 +219,28 @@ public final class TagCommands implements Constants
                         continue;
                 }
                 if (list == null)
-                    list = new ArrayList();
+                    list = new ArrayList<GlobalTag>();
                 list.add(tag);
             }
         }
         return list;
     }
 
-    public static List findMatchingTagsInDirectory(String name,
+    public static List<GlobalTag> findMatchingTagsInDirectory(String name,
         File directory, Mode mode, int arity, boolean ignoreCase)
     {
         if (!mode.isTaggable())
             return null;
-        List tags = Editor.getTagFileManager().getTags(directory, mode);
+        List<GlobalTag> tags = Editor.getTagFileManager().getTags(directory, mode);
         if (tags == null) {
             if (!directory.isRemote())
                 Editor.getTagFileManager().addToQueue(directory, mode);
             return null;
         }
+
         boolean isQualified = mode.isQualifiedName(name);
-        List list = new ArrayList();
-        Iterator iter = tags.iterator();
-        while (iter.hasNext()) {
-            GlobalTag tag = (GlobalTag) iter.next();
+        List<GlobalTag> list = new ArrayList<GlobalTag>();
+        for (GlobalTag tag : tags) {
             String tagName = tag.getName();
             if ((ignoreCase && tagName.equalsIgnoreCase(name)) || tagName.equals(name)) {
                 if (arity >= 0) {
@@ -294,11 +290,11 @@ public final class TagCommands implements Constants
                 ed.makeNext(buf);
                 ed.activate(buf);
                 ed.repaintDisplay();
-                List localTags = buf.getTags(true);
+                List<LocalTag> localTags = buf.getTags(true);
                 if (localTags != null) {
                     Position pos = null;
-                    for (int i = 0; i < localTags.size(); i++) {
-                        JavaTag tag = (JavaTag) localTags.get(i);
+                    for (LocalTag localTag : localTags) {
+                        JavaTag tag = (JavaTag) localTag;
                         int type = tag.getType();
                         if (type == TAG_CLASS || type == TAG_INTERFACE) {
                             String name = tag.getMethodName();
@@ -357,7 +353,7 @@ public final class TagCommands implements Constants
             editor.repaintNow();
             editor.setWaitCursor();
             final Buffer buffer = editor.getBuffer();
-            List tags = findMatchingTagsInDirectory(name,
+            List<? extends Tag> tags = findMatchingTagsInDirectory(name,
                 buffer.getCurrentDirectory(), buffer.getMode(), -1,
                 Utilities.isLowerCase(name));
             editor.setDefaultCursor();
@@ -392,7 +388,7 @@ public final class TagCommands implements Constants
     public static void gotoGlobalTag(Editor editor, GlobalTag globalTag,
         boolean useOtherWindow)
     {
-        Buffer buf = editor.getBuffer(File.getInstance(globalTag.getFileName()));
+        Buffer buf = Editor.getBuffer(File.getInstance(globalTag.getFileName()));
         Editor ed;
         if (useOtherWindow)
             ed = editor.displayInOtherWindow(buf);
@@ -401,7 +397,7 @@ public final class TagCommands implements Constants
         globalTag.gotoTag(ed);
     }
 
-    public static List getDirectoriesInTagPath(Buffer buffer)
+    public static List<String> getDirectoriesInTagPath(Buffer buffer)
     {
         String tagPath = buffer.getStringProperty(Property.TAG_PATH);
         if (tagPath == null)
@@ -417,15 +413,13 @@ public final class TagCommands implements Constants
     public static void centerTag(Editor editor)
     {
         final Buffer buffer = editor.getBuffer();
-        final List tags = buffer.getTags();
+        final List<LocalTag> tags = buffer.getTags();
         if (tags == null)
             return;
-        final int size = tags.size();
         int dotLineNumber = editor.getDotLineNumber();
         Line begin = null;
         Line end = null;
-        for (int i = 0; i < size; i++) {
-            LocalTag tag = (LocalTag) tags.get(i);
+        for (LocalTag tag : tags) {
             if (tag.lineNumber() <= dotLineNumber) {
                 begin = tag.getLine();
             } else {

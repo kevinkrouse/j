@@ -787,7 +787,7 @@ public class File implements Comparable
             if (listing == null)
                 return null;
             FastStringReader reader = new FastStringReader(listing);
-            ArrayList list = new ArrayList();
+            ArrayList<String> list = new ArrayList<String>();
             String s;
             while ((s = reader.readLine()) != null) {
                 String name = DirectoryEntry.getName(s);
@@ -818,7 +818,7 @@ public class File implements Comparable
                 return null;
             long start = System.currentTimeMillis();
             FastStringReader reader = new FastStringReader(listing);
-            ArrayList list = new ArrayList();
+            ArrayList<File> list = new ArrayList<File>();
             int nameColumn = -1;
             String s;
             while ((s = reader.readLine()) != null) {

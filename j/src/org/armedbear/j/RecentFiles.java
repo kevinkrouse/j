@@ -38,7 +38,7 @@ public final class RecentFiles implements Constants
     // Singleton.
     private static RecentFiles instance;
 
-    private final ArrayList entries = new ArrayList();
+    private final ArrayList<RecentFilesEntry> entries = new ArrayList<RecentFilesEntry>();
     private final File file;
     private int version;
     private boolean changed;
@@ -57,7 +57,7 @@ public final class RecentFiles implements Constants
         return instance;
     }
 
-    public synchronized final List getEntries()
+    public synchronized final List<RecentFilesEntry> getEntries()
     {
         return entries;
     }
@@ -66,8 +66,7 @@ public final class RecentFiles implements Constants
     {
         if (file != null) {
             final int limit = entries.size();
-            for (int i = 0; i < limit; i++) {
-                RecentFilesEntry entry = (RecentFilesEntry) entries.get(i);
+            for (RecentFilesEntry entry : entries) {
                 if (entry.matches(file))
                     return entry;
             }
@@ -141,7 +140,7 @@ public final class RecentFiles implements Constants
         Debug.assertTrue(newEntry != null);
         final int limit = entries.size();
         for (int i = 0; i < limit; i++) {
-            RecentFilesEntry entry = (RecentFilesEntry) entries.get(i);
+            RecentFilesEntry entry = entries.get(i);
             if (entry.equals(newEntry)) {
                 if (i == 0) {
                     entries.set(0, newEntry);
@@ -210,7 +209,7 @@ public final class RecentFiles implements Constants
             if (limit > MAX_ENTRIES)
                 limit = MAX_ENTRIES;
             for (int i = 0; i < limit; i++) {
-                RecentFilesEntry entry = (RecentFilesEntry) entries.get(i);
+                RecentFilesEntry entry = entries.get(i);
                 writer.write(entry.toString());
                 writer.newLine();
             }

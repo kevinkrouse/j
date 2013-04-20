@@ -23,7 +23,7 @@ package org.armedbear.j;
 import java.util.ArrayList;
 import java.util.Iterator;
 
-public final class ModeList implements Constants
+public final class ModeList implements Constants, Iterable<ModeListEntry>
 {
     private static ModeList modeList;
 
@@ -34,11 +34,11 @@ public final class ModeList implements Constants
         return modeList;
     }
 
-    private ArrayList list;
+    private ArrayList<ModeListEntry> list;
 
     private ModeList()
     {
-        list = new ArrayList();
+        list = new ArrayList<ModeListEntry>();
         addEntry(ARCHIVE_MODE, ARCHIVE_MODE_NAME, "mode.archive.ArchiveMode", false, null);
         addEntry(ASM_MODE, ASM_MODE_NAME, "mode.asm.AsmMode", true, ".+\\.asm|.+\\.inc");
         addEntry(AUTOCONF_MODE, AUTOCONF_MODE_NAME, "mode.autoconf.AutoconfMode", true, "configure.ac|configure.in|aclocal.m4");
@@ -106,7 +106,7 @@ public final class ModeList implements Constants
     {
         if (modeName != null) {
             for (int i = list.size(); i-- > 0;) {
-                ModeListEntry entry = (ModeListEntry) list.get(i);
+                ModeListEntry entry = list.get(i);
                 if (modeName.equalsIgnoreCase(entry.getDisplayName()))
                     return entry.getMode(true);
             }
@@ -124,7 +124,7 @@ public final class ModeList implements Constants
     {
         if (modeName != null) {
             for (int i = list.size(); i-- > 0;) {
-                ModeListEntry entry = (ModeListEntry) list.get(i);
+                ModeListEntry entry = list.get(i);
                 if (modeName.equalsIgnoreCase(entry.getDisplayName()))
                     return entry.getId();
             }
@@ -148,7 +148,7 @@ public final class ModeList implements Constants
     {
         if (fileName != null) {
             for (int i = list.size(); i-- > 0;) {
-                ModeListEntry entry = (ModeListEntry) list.get(i);
+                ModeListEntry entry = list.get(i);
                 if (entry.accepts(fileName))
                     return entry.getId();
             }
@@ -166,7 +166,7 @@ public final class ModeList implements Constants
         return null;
     }
 
-    public synchronized final Iterator iterator()
+    public synchronized final Iterator<ModeListEntry> iterator()
     {
         return list.iterator();
     }
@@ -181,7 +181,7 @@ public final class ModeList implements Constants
     private final ModeListEntry getEntry(int id)
     {
         for (int i = list.size(); i-- > 0;) {
-            ModeListEntry entry = (ModeListEntry) list.get(i);
+            ModeListEntry entry = list.get(i);
             if (entry.getId() == id) {
                 // Found entry.
                 return entry;

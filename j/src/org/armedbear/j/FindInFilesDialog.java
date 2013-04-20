@@ -79,7 +79,7 @@ public class FindInFilesDialog extends AbstractDialog implements Constants,
     private CheckBox listOccurrencesCheckBox;
 
     private Label modeLabel;
-    private JComboBox modeComboBox;
+    private JComboBox<? extends ModeListEntry> modeComboBox;
 
     private ModeListEntry[] permissibleModes;
 
@@ -154,7 +154,7 @@ public class FindInFilesDialog extends AbstractDialog implements Constants,
         addCheckBox(wholeWordsOnlyCheckBox);
 
         // Mode combo box.
-        modeComboBox = new JComboBox(getPermissibleModes());
+        modeComboBox = new JComboBox<ModeListEntry>(getPermissibleModes());
         Dimension dim = modeComboBox.getPreferredSize();
         modeComboBox.setMinimumSize(dim);
         modeComboBox.setMaximumSize(dim);
@@ -218,17 +218,15 @@ public class FindInFilesDialog extends AbstractDialog implements Constants,
     {
         if (permissibleModes == null) {
             ModeList modeList = Editor.getModeList();
-            ArrayList list = new ArrayList();
+            ArrayList<ModeListEntry> list = new ArrayList<ModeListEntry>();
             synchronized (modeList) {
-                Iterator it = modeList.iterator();
-                while (it.hasNext()) {
-                    ModeListEntry entry = (ModeListEntry) it.next();
+                for (ModeListEntry entry : modeList) {
                     if (entry.isSelectable() && entry.getId() != BINARY_MODE)
                         list.add(entry);
                 }
             }
             permissibleModes =
-                (ModeListEntry[]) list.toArray(new ModeListEntry[list.size()]);
+                list.toArray(new ModeListEntry[list.size()]);
         }
         return permissibleModes;
     }

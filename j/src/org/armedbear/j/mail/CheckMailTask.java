@@ -59,11 +59,11 @@ public final class CheckMailTask extends IdleThreadTask
             if (System.currentTimeMillis() - lastRun > 10000) {
                 // Make a list of mailboxes to check. We don't want to keep the
                 // buffer list locked while we do the actual check!
-                ArrayList mailboxes = new ArrayList();
+                ArrayList<Buffer> mailboxes = new ArrayList<Buffer>();
                 BufferList bufferList = Editor.getBufferList();
                 synchronized (bufferList) {
                     for (BufferIterator it = new BufferIterator(); it.hasNext();) {
-                        Buffer buf = it.nextBuffer();
+                        Buffer buf = it.next();
                         if (buf instanceof ImapMailboxBuffer || buf instanceof PopMailboxBuffer)
                             mailboxes.add(buf);
                     }

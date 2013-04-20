@@ -33,12 +33,12 @@ import org.armedbear.j.Log;
 
 public final class SortByThread
 {
-    private final List entries;
+    private final List<MailboxEntry> entries;
 
     private final Node root = new Node();
-    private final Map idMap = new HashMap();
+    private final Map<String, Node> idMap = new HashMap<String, Node>();
 
-    public SortByThread(List entries)
+    public SortByThread(List<? extends MailboxEntry> entries)
     {
         this.entries = Collections.unmodifiableList(entries);
     }
@@ -47,9 +47,8 @@ public final class SortByThread
     {
         final int count = entries.size();
         // Create all the nodes and populate the ID map.
-        ArrayList nodes = new ArrayList(count);
-        for (int i = 0; i < count; i++) {
-            final MailboxEntry entry = (MailboxEntry) entries.get(i);
+        ArrayList<Node> nodes = new ArrayList<Node>(count);
+        for (final MailboxEntry entry : entries) {
             Node node = new Node(entry);
             nodes.add(node);
             String messageId = entry.getMessageId();
@@ -59,8 +58,7 @@ public final class SortByThread
                 Debug.bug();
         }
 
-        for (int i = 0; i < count; i++) {
-            final MailboxEntry entry = (MailboxEntry) entries.get(i);
+        for (final MailboxEntry entry : entries) {
             // References.
             String[] references = entry.getReferences();
             if (references != null) {
@@ -68,7 +66,7 @@ public final class SortByThread
                     String reference = references[j];
                     if (reference == null || reference.length() == 0)
                         continue;
-                    Node node = (Node) idMap.get(reference);
+                    Node node = idMap.get(reference);
                     if (node == null) {
                         node = new Node(reference, entry.getBaseSubject());
                         idMap.put(reference, node);
@@ -79,7 +77,7 @@ public final class SortByThread
             // In-Reply-To.
             String inReplyTo = entry.getInReplyTo();
             if (inReplyTo != null && inReplyTo.length() > 0) {
-                Node node = (Node) idMap.get(inReplyTo);
+                Node node = idMap.get(inReplyTo);
                 if (node == null) {
                     node = new Node(inReplyTo, entry.getBaseSubject());
                     idMap.put(inReplyTo, node);
@@ -88,9 +86,7 @@ public final class SortByThread
             }
         }
 
-        Iterator iter = nodes.iterator();
-        while (iter.hasNext()) {
-            Node node = (Node) iter.next();
+        for (Node node : nodes) {
             if (node.getParent() == null) {
                 Node parent = findParentForNode(node);
                 if (parent != null)
@@ -143,7 +139,7 @@ public final class SortByThread
 
     private void groupMessagesBySubject()
     {
-        HashMap subjectMap = createSubjectMap();
+        HashMap<String, Node> subjectMap = createSubjectMap();
 
         // Iterate through top-level nodes.
         for (int i = root.getChildCount(); i-- > 0; ) {
@@ -158,7 +154,7 @@ public final class SortByThread
             final String baseSubject = entry.getBaseSubject();
             if (baseSubject == null || baseSubject.length() == 0)
                 continue;
-            Node oldNode = (Node) subjectMap.get(baseSubject);
+            Node oldNode = subjectMap.get(baseSubject);
             if (oldNode == node)
                 continue;
 
@@ -218,9 +214,9 @@ public final class SortByThread
         subjectMap = null;
     }
 
-    private HashMap createSubjectMap()
+    private HashMap<String, Node> createSubjectMap()
     {
-        HashMap subjectMap = new HashMap();
+        HashMap<String, Node> subjectMap = new HashMap<String, Node>();
         for (int i = 0, limit = root.getChildCount(); i < limit; i++) {
             final Node node = (Node) root.getChildAt(i);
             MailboxEntry entry = node.getMailboxEntry();
@@ -236,7 +232,7 @@ public final class SortByThread
             if (entry != null) {
                 String baseSubject = entry.getBaseSubject();
                 if (baseSubject != null && baseSubject.length() > 0) {
-                    Node oldNode = (Node) subjectMap.get(baseSubject);
+                    Node oldNode = subjectMap.get(baseSubject);
                     if (oldNode == null) {
                         subjectMap.put(baseSubject, node);
                     } else {
@@ -270,7 +266,7 @@ public final class SortByThread
             return null;
         final String inReplyTo = entry.getInReplyTo();
         if (inReplyTo != null) {
-            Node parent = (Node) idMap.get(inReplyTo);
+            Node parent = idMap.get(inReplyTo);
             if (parent != null)
                 if (!parent.isNodeAncestor(node))
                     return parent;
@@ -278,7 +274,7 @@ public final class SortByThread
         final String[] references = entry.getReferences();
         if (references != null) {
             for (int i = references.length; i-- > 0;) {
-                Node parent = (Node) idMap.get(references[i]);
+                Node parent = idMap.get(references[i]);
                 if (parent != null)
                     if (!parent.isNodeAncestor(node))
                         return parent;
@@ -393,7 +389,7 @@ class Node extends DefaultMutableTreeNode
         }
     };
 
-    private static final void sortEntriesByDate(List list)
+    private static final void sortEntriesByDate(List<? extends Object> list)
     {
         Collections.sort(list, comparator);
     }

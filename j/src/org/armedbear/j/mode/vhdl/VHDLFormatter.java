@@ -271,14 +271,14 @@ public final class VHDLFormatter extends Formatter implements Constants
         return getTypes().contains(s.toLowerCase());
     }
 
-    private static HashSet typeHashSet;
+    private static HashSet<String> typeHashSet;
 
-    private static HashSet getTypes()
+    private static HashSet<String> getTypes()
     {
         if (typeHashSet == null) {
             String[] array = types;
             int count = array.length;
-            typeHashSet = new HashSet(Math.max(2 * count, 11));
+            typeHashSet = new HashSet<String>(Math.max(2 * count, 11));
             for (int i = count - 1; i >= 0; i--)
                 typeHashSet.add(array[i]);
         }

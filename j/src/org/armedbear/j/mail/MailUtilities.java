@@ -26,19 +26,19 @@ import org.armedbear.j.util.Utilities;
 
 public class MailUtilities
 {
-    public static String constructAddressHeader(String prefix, List list)
+    public static String constructAddressHeader(String prefix, List<MailAddress> list)
     {
         return constructAddressHeader(prefix, list, 8);
     }
 
-    public static String constructAddressHeader(String prefix, List list,
+    public static String constructAddressHeader(String prefix, List<MailAddress> list,
         int indent)
     {
         FastStringBuffer sb = new FastStringBuffer(prefix);
         int length = prefix.length();
         if (list != null) {
             for (int i = 0; i < list.size(); i++) {
-                MailAddress a = (MailAddress) list.get(i);
+                MailAddress a = list.get(i);
                 String s = a.toEncodedString();
                 if (i > 0 && length + s.length() > 74) {
                     // Won't fit on current line.

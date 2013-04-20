@@ -29,11 +29,12 @@ import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.Iterator;
 import java.util.Properties;
+import java.util.Set;
 
 public final class Preferences
 {
     private Properties properties = new Properties();
-    private ArrayList listeners;
+    private ArrayList<PreferencesChangeListener> listeners;
 
     public static final File getPreferencesFile()
     {
@@ -110,16 +111,17 @@ public final class Preferences
     // FIXME This is far from ideal (but it does work).
     public synchronized void killTheme()
     {
-        Iterator it = properties.keySet().iterator();
+        Set k = properties.keySet();
+        Iterator<String> it = ((Set<String>)k).iterator();
         while (it.hasNext()) {
-            String key = (String) it.next();
+            String key = it.next();
             if (key.startsWith("color."))
                 it.remove();
-            else if (key.indexOf(".color.") >= 0)
+            else if (key.contains(".color."))
                 it.remove();
             else if (key.startsWith("style."))
                 it.remove();
-            else if (key.indexOf(".style.") >= 0)
+            else if (key.contains(".style."))
                 it.remove();
         }
     }
@@ -157,8 +159,8 @@ public final class Preferences
             Path path = new Path(stripQuotes(themePath));
             String[] array = path.list();
             if (array != null) {
-                for (int i = 0; i < array.length; i++) {
-                    File dir = File.getInstance(array[i]);
+                for (String part : array) {
+                    File dir = File.getInstance(part);
                     if (dir != null && dir.isDirectory()) {
                         File themeFile = File.getInstance(dir, themeName);
                         if (themeFile != null && themeFile.isFile())
@@ -176,11 +178,10 @@ public final class Preferences
             if (array == null)
                 return null;
             final File userDir = File.getInstance(System.getProperty("user.dir"));
-            for (int i = 0; i < array.length; i++) {
-                String pathComponent = array[i];
-                if (pathComponent.endsWith("src")) {
+            for (String part : array) {
+                if (part.endsWith("src")) {
                     // "~/j/src"
-                    File srcDir = File.getInstance(pathComponent);
+                    File srcDir = File.getInstance(part);
                     if (srcDir != null && srcDir.isDirectory()) {
                         File parentDir = srcDir.getParentFile(); // "~/j"
                         if (parentDir != null && parentDir.isDirectory()) {
@@ -194,9 +195,9 @@ public final class Preferences
                     }
                 } else {
                     String suffix = "j.jar";
-                    if (pathComponent.endsWith(suffix)) {
+                    if (part.endsWith(suffix)) {
                         // "/usr/local/share/j/j.jar"
-                        String prefix = pathComponent.substring(0, pathComponent.length() - suffix.length());
+                        String prefix = part.substring(0, part.length() - suffix.length());
                         // "/usr/local/share/j/"
                         File prefixDir;
                         if (prefix.length() == 0) {
@@ -341,15 +342,15 @@ public final class Preferences
     public synchronized void addPreferencesChangeListener(PreferencesChangeListener listener)
     {
         if (listeners == null)
-            listeners = new ArrayList();
+            listeners = new ArrayList<PreferencesChangeListener>();
         listeners.add(listener);
     }
 
     public synchronized void firePreferencesChanged()
     {
         if (listeners != null)
-            for (int i = 0; i < listeners.size(); i++)
-                ((PreferencesChangeListener)listeners.get(i)).preferencesChanged();
+            for (PreferencesChangeListener listener : listeners)
+                listener.preferencesChanged();
     }
 
 }

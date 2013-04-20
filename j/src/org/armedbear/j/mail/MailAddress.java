@@ -219,7 +219,7 @@ public final class MailAddress implements Serializable
         input = input.trim();
         if (input.length() == 0)
             return null;
-        ArrayList addresses = new ArrayList();
+        ArrayList<MailAddress> addresses = new ArrayList<MailAddress>();
         FastStringBuffer sb = new FastStringBuffer();
         boolean inQuote = false;
         final int limit = input.length();
@@ -262,6 +262,6 @@ public final class MailAddress implements Serializable
         if (addresses.size() == 0)
             return null;
         MailAddress[] array = new MailAddress[addresses.size()];
-        return (MailAddress[]) addresses.toArray(array);
+        return addresses.toArray(array);
     }
 }

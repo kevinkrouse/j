@@ -39,7 +39,7 @@ public abstract class Tagger implements Constants, Runnable
     {
         if (buffer == null)
             return;
-        List tags = buffer.getTags();
+        List<LocalTag> tags = buffer.getTags();
         if (tags == null)
             return;
         File file = buffer.getFile();
@@ -47,8 +47,7 @@ public abstract class Tagger implements Constants, Runnable
             return;
         final String canonicalPath = file.canonicalPath();
         try {
-            for (int i = 0, limit = tags.size(); i < limit; i++) {
-                LocalTag localTag = (LocalTag) tags.get(i);
+            for (LocalTag localTag : tags) {
                 if (localTag != null) {
                     switch (localTag.getType()) {
                         case TAG_INTERFACE:
@@ -65,7 +64,7 @@ public abstract class Tagger implements Constants, Runnable
                             writer.write(separatorChar);
                             writer.write(localTag.getLine().getText());
                             final String canonicalSignature =
-                                localTag.getCanonicalSignature();
+                                    localTag.getCanonicalSignature();
                             if (canonicalSignature != null) {
                                 writer.write(separatorChar);
                                 writer.write(canonicalSignature);

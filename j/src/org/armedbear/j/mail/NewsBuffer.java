@@ -178,7 +178,7 @@ public final class NewsBuffer extends Buffer
             setBusy(false);
             invalidate();
             for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-                Editor ed = it.nextEditor();
+                Editor ed = it.next();
                 if (ed.getBuffer() == NewsBuffer.this) {
                     ed.setDot(getFirstLine(), 0);
                     ed.moveCaretToDotCol();

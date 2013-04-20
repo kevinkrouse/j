@@ -99,10 +99,10 @@ public final class FilenameCompletion
                 // No such directory relative to current directory.
                 // Look in source path.
                 if (sourcePath != null) {
-                    List sourcePathDirectories = Utilities.getDirectoriesInPath(sourcePath);
+                    List<String> sourcePathDirectories = Utilities.getDirectoriesInPath(sourcePath);
                     for (int i = 0; i < sourcePathDirectories.size(); i++) {
                         File sourcePathDirectory =
-                            File.getInstance((String) sourcePathDirectories.get(i));
+                            File.getInstance(sourcePathDirectories.get(i));
                         dir = File.getInstance(sourcePathDirectory, dirName);
                         if (dir != null && dir.isDirectory())
                             addCompletionsFromDirectory(list, dir, prefix, excludesRE);
@@ -115,10 +115,10 @@ public final class FilenameCompletion
             addCompletionsFromDirectory(list, currentDirectory, prefix, excludesRE);
             // Source path.
             if (sourcePath != null) {
-                List sourcePathDirectories = Utilities.getDirectoriesInPath(sourcePath);
+                List<String> sourcePathDirectories = Utilities.getDirectoriesInPath(sourcePath);
                 for (int i = 0; i < sourcePathDirectories.size(); i++) {
                     File sourcePathDirectory =
-                        File.getInstance((String) sourcePathDirectories.get(i));
+                        File.getInstance(sourcePathDirectories.get(i));
                     if (sourcePathDirectory != null)
                         addCompletionsFromDirectory(list, sourcePathDirectory,
                             prefix, excludesRE);

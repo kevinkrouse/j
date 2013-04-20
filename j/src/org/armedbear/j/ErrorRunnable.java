@@ -39,7 +39,7 @@ public class ErrorRunnable implements Runnable
     public void run()
     {
         for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-            Editor ed = it.nextEditor();
+            Editor ed = it.next();
             ed.setDefaultCursor();
             ed.updateLocation();
             ed.status("");

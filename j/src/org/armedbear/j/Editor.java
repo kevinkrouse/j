@@ -165,7 +165,7 @@ public final class Editor extends JPanel implements Constants,
     private Selection selection;
     private boolean isColumnSelection;
 
-    Hashtable views = new Hashtable();
+    Hashtable<SystemBuffer, View> views = new Hashtable<SystemBuffer, View>();
 
     // BUG! This stuff should be factored somehow...
     private int currentCommand = COMMAND_NOTHING;
@@ -241,7 +241,7 @@ public final class Editor extends JPanel implements Constants,
         boolean startServer = true;
         int quick = 0;
         File userHomeDir = null;
-        List files = null;
+        List<String> files = null;
 
         // Process command line.
         for (int i = 0; i < args.length; i++) {
@@ -323,7 +323,7 @@ public final class Editor extends JPanel implements Constants,
             } else {
                 // It's a file to be opened.
                 if (files == null)
-                    files = new ArrayList();
+                    files = new ArrayList<String>();
                 files.add(arg);
             }
         }
@@ -355,7 +355,7 @@ public final class Editor extends JPanel implements Constants,
                     out.newLine();
                     if (files != null) {
                         for (int i = 0; i < files.size(); i++) {
-                            out.write((String)files.get(i));
+                            out.write(files.get(i));
                             out.newLine();
                         }
                     }
@@ -411,7 +411,7 @@ public final class Editor extends JPanel implements Constants,
         }
 
         if (files != null) {
-            ArrayList list = new ArrayList();
+            ArrayList<String> list = new ArrayList<String>();
             list.add(currentDir.canonicalPath());
             for (int i = 0; i < files.size(); i++)
                 list.add(files.get(i));
@@ -661,7 +661,7 @@ public final class Editor extends JPanel implements Constants,
         frame.setWindowHeight(this, n);
     }
 
-    static Vector frames = new Vector();
+    static Vector<Frame> frames = new Vector<Frame>();
 
     public static int indexOf(Frame frame)
     {
@@ -681,7 +681,7 @@ public final class Editor extends JPanel implements Constants,
     public static final Frame getFrame(int i)
     {
         if (i >= 0 && i < frames.size())
-            return (Frame) frames.get(i);
+            return frames.get(i);
         return null;
     }
 
@@ -864,13 +864,13 @@ public final class Editor extends JPanel implements Constants,
 
     public View getCurrentView()
     {
-        return (View) views.get(buffer);
+        return views.get(buffer);
     }
 
     // Might return null.
     public final View getView(SystemBuffer buf)
     {
-        return (View) views.get(buf);
+        return views.get(buf);
     }
 
     public final void setView(SystemBuffer buf, View view)
@@ -886,7 +886,7 @@ public final class Editor extends JPanel implements Constants,
     // Find or create a view of buf.
     private View findOrCreateView(Buffer buf)
     {
-        View view = (View) views.get(buf);
+        View view = views.get(buf);
         if (view == null) {
             view = buf.getLastView();
             if (view == null)
@@ -1096,7 +1096,7 @@ public final class Editor extends JPanel implements Constants,
                 }
             } else {
                 // Not presently displayed, but possibly in a stored view.
-                View view = (View) ed.views.get(buffer);
+                View view = ed.views.get(buffer);
                 if (view != null) {
                     if (view.dot != null && view.dot.getLine() == line)
                         view.dot.moveTo(pos);
@@ -2254,7 +2254,7 @@ public final class Editor extends JPanel implements Constants,
         int numModified = 0;
         int numErrors = 0;
         for (BufferIterator it = new BufferIterator(); it.hasNext();) {
-            Buffer buf = it.nextBuffer();
+            Buffer buf = it.next();
             if (buf.getModeId() == CHECKIN_MODE)
                 continue;
             if (buf.isUntitled()) {
@@ -2303,7 +2303,7 @@ public final class Editor extends JPanel implements Constants,
         repaintNow();
 
         for (BufferIterator it = new BufferIterator(); it.hasNext();) {
-            if (!okToClose(it.nextBuffer()))
+            if (!okToClose(it.next()))
                 return;
         }
 
@@ -2312,7 +2312,7 @@ public final class Editor extends JPanel implements Constants,
         Buffer toBeActivated = null;
 
         for (BufferIterator it = new BufferIterator(); it.hasNext();) {
-            Buffer buf = it.nextBuffer();
+            Buffer buf = it.next();
             if (buf instanceof DirectoryBuffer && buf.getFile().equals(getCurrentDirectory())) {
                 toBeActivated = buf;
                 break;
@@ -2330,10 +2330,10 @@ public final class Editor extends JPanel implements Constants,
         }
 
         for (BufferIterator iter = new BufferIterator(); iter.hasNext();) {
-            Buffer buf = iter.nextBuffer();
+            Buffer buf = iter.next();
             if (buf != toBeActivated) {
                 for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-                    Editor ed = it.nextEditor();
+                    Editor ed = it.next();
                     ed.views.remove(buf);
                 }
                 buf.deleteAutosaveFile();
@@ -2356,14 +2356,14 @@ public final class Editor extends JPanel implements Constants,
         Buffer toBeActivated = buffer;
 
         for (BufferIterator it = new BufferIterator(); it.hasNext();) {
-            Buffer buf = it.nextBuffer();
+            Buffer buf = it.next();
             if (buf != buffer && !okToClose(buf))
                 return;
         }
 
-        List markers = Marker.getAllMarkers();
+        List<Marker> markers = Marker.getAllMarkers();
         for (int i = 0; i < markers.size(); i++) {
-            Marker m = (Marker) markers.get(i);
+            Marker m = markers.get(i);
             if (m != null && m.getBuffer() != buffer)
                 m.invalidate();
         }
@@ -2371,13 +2371,13 @@ public final class Editor extends JPanel implements Constants,
         setWaitCursor();
 
         for (EditorIterator it = new EditorIterator(); it.hasNext();)
-            it.nextEditor().activate(toBeActivated);
+            it.next().activate(toBeActivated);
 
         for (BufferIterator iter = new BufferIterator(); iter.hasNext();) {
-            Buffer buf = iter.nextBuffer();
+            Buffer buf = iter.next();
             if (buf != buffer) {
                 for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-                    Editor ed = it.nextEditor();
+                    Editor ed = it.next();
                     ed.views.remove(buf);
                 }
                 buf.deleteAutosaveFile();
@@ -2461,7 +2461,7 @@ public final class Editor extends JPanel implements Constants,
                     // Class name was provided.
                     className = commandName.substring(0, index);
                     methodName = commandName.substring(index+1);
-                    Class c = null;
+                    Class<? extends Object> c = null;
                     try {
                         c = Class.forName("org.armedbear.j." + className);
                     }
@@ -4175,7 +4175,7 @@ public final class Editor extends JPanel implements Constants,
             return; // Not supported.
         Debug.assertTrue(SwingUtilities.isEventDispatchThread());
         for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-            Editor ed = it.nextEditor();
+            Editor ed = it.next();
             if (ed.getBuffer() == buf)
                 ed.saveView();
         }
@@ -4356,7 +4356,7 @@ public final class Editor extends JPanel implements Constants,
         int numModifiedBuffers = 0;
 
         for (BufferIterator it = new BufferIterator(); it.hasNext();) {
-            if (it.nextBuffer().isModified())
+            if (it.next().isModified())
                 ++numModifiedBuffers;
         }
 
@@ -4378,13 +4378,13 @@ public final class Editor extends JPanel implements Constants,
 
         // Delete all autosave files.
         for (BufferIterator iter = new BufferIterator(); iter.hasNext();)
-            iter.nextBuffer().deleteAutosaveFile();
+            iter.next().deleteAutosaveFile();
 
         Autosave.deleteCatalogFile();
 
         // Call dispose on all buffers.
         for (BufferIterator it = new BufferIterator(); it.hasNext();)
-            it.nextBuffer().dispose();
+            it.next().dispose();
 
         // Clean up temporary directory.
         Directories.cleanTempDirectory();
@@ -4575,7 +4575,7 @@ public final class Editor extends JPanel implements Constants,
         return null;
     }
 
-    public Buffer openFiles(List list)
+    public Buffer openFiles(List<String> list)
     {
         if (list == null)
             return null;
@@ -4584,12 +4584,12 @@ public final class Editor extends JPanel implements Constants,
             return null;
         Buffer toBeActivated = null;
         // First string is directory.
-        String dirname = (String) list.get(0);
+        String dirname = list.get(0);
         File directory = File.getInstance(dirname);
         History openFileHistory = new History("openFile.file");
         int lineNumber = -1;
         for (int i = 1; i < listSize; i++) {
-            String s = (String) list.get(i);
+            String s = list.get(i);
             if (s == null || s.length() == 0)
                 continue;
             if (s.charAt(0) == '+') {
@@ -4685,7 +4685,7 @@ public final class Editor extends JPanel implements Constants,
                             } else
                                 dot.moveTo(line, 0);
                             saveView();
-                            View view = (View) views.get(buffer);
+                            View view = views.get(buffer);
                             if (view != null) {
                                 view.shift = 0;
                                 view.caretCol = getDotCol();
@@ -6952,7 +6952,7 @@ public final class Editor extends JPanel implements Constants,
     {
         if (line != null) {
             for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-                Editor ed = it.nextEditor();
+                Editor ed = it.next();
                 if (ed.getBuffer() == currentEditor.getBuffer())
                     ed.getDisplay().lineChanged(line);
             }
@@ -6970,7 +6970,7 @@ public final class Editor extends JPanel implements Constants,
     {
         if (line != null) {
             for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-                Editor ed = it.nextEditor();
+                Editor ed = it.next();
                 if (ed.getBuffer() == buffer)
                     ed.getDisplay().lineChanged(line);
             }
@@ -7271,7 +7271,7 @@ public final class Editor extends JPanel implements Constants,
 
     private static Class loadExtensionClass(String className)
     {
-        Class c = null;
+        Class<? extends Object> c = null;
         try {
             ExtensionClassLoader loader = new ExtensionClassLoader();
             c = loader.loadClass(className, true);
@@ -7935,13 +7935,13 @@ public final class Editor extends JPanel implements Constants,
         Mode mode = getMode();
         if (mode instanceof JavaMode || mode instanceof PerlMode) {
             setWaitCursor();
-            List tags = buffer.getTags();
+            List<LocalTag> tags = buffer.getTags();
             if (tags != null) {
                 addUndo(SimpleEdit.FOLD);
                 for (Line line = buffer.getFirstLine(); line != null; line = line.next())
                     line.show();
                 for (int i = 0; i < tags.size(); i++) {
-                    LocalTag tag = (LocalTag) tags.get(i);
+                    LocalTag tag = tags.get(i);
                     if (tag.getType() == TAG_METHOD)
                         foldMethod(tag.getLine());
                 }
@@ -8079,7 +8079,7 @@ public final class Editor extends JPanel implements Constants,
         }
     }
 
-    private static final ArrayList protectList = new ArrayList();
+    private static final ArrayList<Object> protectList = new ArrayList<Object>();
 
     // Add reference to global list to protect obj from garbage collection.
     public static synchronized void protect(Object obj)
@@ -8106,9 +8106,9 @@ public final class Editor extends JPanel implements Constants,
     }
 
     // Position stack.
-    private static Stack positionStack = new Stack();
+    private static Stack<Marker> positionStack = new Stack<Marker>();
 
-    public static List getPositionStack()
+    public static List<Marker> getPositionStack()
     {
         return positionStack;
     }
@@ -8124,7 +8124,7 @@ public final class Editor extends JPanel implements Constants,
         if (positionStack.empty()) {
             status("Position stack is empty");
         } else {
-            Marker m = (Marker) positionStack.pop();
+            Marker m = positionStack.pop();
             if (m != null)
                 m.gotoMarker(this);
         }
@@ -8143,13 +8143,13 @@ public final class Editor extends JPanel implements Constants,
             return;
         // Force formatters to be re-initialized.
         for (BufferIterator it = new BufferIterator(); it.hasNext();) {
-            Buffer buf = it.nextBuffer();
+            Buffer buf = it.next();
             if (buf.getFormatter() != null)
                 buf.getFormatter().reset();
         }
         Display.initializeStaticValues();
         for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-            Display display = it.nextEditor().getDisplay();
+            Display display = it.next().getDisplay();
             display.initialize();
             display.repaint();
         }

@@ -143,7 +143,7 @@ public final class MailCommands implements Constants
             final File file = ((LocalMailboxURL)url).getFile();
             MailboxBuffer mb = null;
             for (BufferIterator it = new BufferIterator(); it.hasNext();) {
-                Buffer buf = it.nextBuffer();
+                Buffer buf = it.next();
                 if (buf instanceof LocalMailboxBuffer) {
                     if (((LocalMailboxBuffer)buf).getMailboxFile().equals(file)) {
                         mb = (LocalMailboxBuffer) buf;
@@ -180,7 +180,7 @@ public final class MailCommands implements Constants
         if (url instanceof ImapURL) {
             // IMAP.
             for (BufferIterator it = new BufferIterator(); it.hasNext();) {
-                Buffer buf = it.nextBuffer();
+                Buffer buf = it.next();
                 if (buf instanceof ImapMailboxBuffer) {
                     ImapMailboxBuffer mb = (ImapMailboxBuffer) buf;
                     if (mb.getUrl().equals(url))
@@ -210,7 +210,7 @@ public final class MailCommands implements Constants
                 return new ImapMailboxBuffer(imapUrl, session);
         } else if (url instanceof PopURL) {
             for (BufferIterator it = new BufferIterator(); it.hasNext();) {
-                Buffer buf = it.nextBuffer();
+                Buffer buf = it.next();
                 if (buf instanceof PopMailboxBuffer) {
                     PopMailboxBuffer mb = (PopMailboxBuffer) buf;
                     if (mb.getUrl().equals(url))
@@ -469,7 +469,7 @@ public final class MailCommands implements Constants
             if (mailboxBuffer == null)
                 return;
             for (BufferIterator it = new BufferIterator(); it.hasNext();) {
-                Buffer buf = it.nextBuffer();
+                Buffer buf = it.next();
                 if (buf == mailboxBuffer) {
                     final Line line =
                         mailboxBuffer.getLineForEntry(messageBuffer.getMailboxEntry());

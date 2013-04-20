@@ -53,7 +53,7 @@ public class JavaTagger extends Tagger implements Constants
   protected String token;
   protected Position tokenStart;
 
-  private ArrayList tags;
+  private ArrayList<LocalTag> tags;
   private JavaClass currentClass;
   private int visibility; // TAG_PUBLIC, TAG_PRIVATE, TAG_PROTECTED
 
@@ -67,12 +67,12 @@ public class JavaTagger extends Tagger implements Constants
     pos = new Position(buffer.getFirstLine(), 0);
     token = null;
     tokenStart = null;
-    tags = new ArrayList();
+    tags = new ArrayList<LocalTag>();
     currentClass = null;
     visibility = 0;
     final boolean beanShell = buffer.getModeId() == BEANSHELL_MODE;
     final boolean javaScript = buffer.getModeId() == JAVASCRIPT_MODE;
-    final Stack stack = new Stack();
+    final Stack<JavaClass> stack = new Stack<JavaClass>();
     int state = NEUTRAL;
     while (!pos.atEnd())
       {
@@ -256,7 +256,7 @@ public class JavaTagger extends Tagger implements Constants
         if (c == '}')
           {
             if (!stack.empty())
-              currentClass = (JavaClass) stack.pop();
+              currentClass = stack.pop();
             else
               currentClass = null;
             pos.next();

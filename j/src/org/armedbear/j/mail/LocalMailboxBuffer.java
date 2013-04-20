@@ -203,18 +203,17 @@ public class LocalMailboxBuffer extends MailboxBuffer
             try {
                 editor.setWaitCursor();
                 boolean advanceDot = false;
-                List toBeDeleted = getTaggedEntries();
+                List<MailboxEntry> toBeDeleted = getTaggedEntries();
                 if (toBeDeleted == null) {
                     Line line = editor.getDotLine();
                     if (!(line instanceof MailboxLine))
                         return;
-                    toBeDeleted = new Vector();
+                    toBeDeleted = new Vector<MailboxEntry>();
                     toBeDeleted.add(((MailboxLine) line).getMailboxEntry());
                     advanceDot = true;
                 }
                 int size = toBeDeleted.size();
-                for (int i = 0; i < size; i++) {
-                    MailboxEntry entry = (MailboxEntry) toBeDeleted.get(i);
+                for (MailboxEntry entry : toBeDeleted) {
                     if (!entry.isDeleted()) {
                         entry.setFlags(entry.getFlags() | MailboxEntry.DELETED);
                         dirty = true;
@@ -241,19 +240,18 @@ public class LocalMailboxBuffer extends MailboxBuffer
             try {
                 editor.setWaitCursor();
                 boolean advanceDot = false;
-                List toBeUndeleted = getTaggedEntries();
+                List<MailboxEntry> toBeUndeleted = getTaggedEntries();
                 if (toBeUndeleted == null) {
                     Line line = editor.getDotLine();
                     if (!(line instanceof MailboxLine))
                         return;
-                    toBeUndeleted = new Vector();
+                    toBeUndeleted = new Vector<MailboxEntry>();
                     toBeUndeleted.add(((MailboxLine) line).getMailboxEntry());
                     if (getBooleanProperty(Property.UNDELETE_ADVANCE_DOT))
                         advanceDot = true;
                 }
                 int size = toBeUndeleted.size();
-                for (int i = 0; i < size; i++) {
-                    MailboxEntry entry = (MailboxEntry) toBeUndeleted.get(i);
+                for (MailboxEntry entry : toBeUndeleted) {
                     if (entry.isDeleted()) {
                         entry.setFlags(entry.getFlags() & ~MailboxEntry.DELETED);
                         dirty = true;
@@ -279,17 +277,16 @@ public class LocalMailboxBuffer extends MailboxBuffer
         if (lock()) {
             try {
                 boolean advanceDot = false;
-                List list = getTaggedEntries();
+                List<MailboxEntry> list = getTaggedEntries();
                 if (list == null) {
                     Line line = editor.getDotLine();
                     if (!(line instanceof MailboxLine))
                         return;
-                    list = new Vector();
+                    list = new Vector<MailboxEntry>();
                     list.add(((MailboxLine) line).getMailboxEntry());
                     advanceDot = true;
                 }
-                for (int i = 0; i < list.size(); i++) {
-                    MailboxEntry entry = (MailboxEntry) list.get(i);
+                for (MailboxEntry entry : list) {
                     if ((entry.getFlags() & MailboxEntry.SEEN) == 0) {
                         entry.setFlags(entry.getFlags() | MailboxEntry.SEEN);
                         dirty = true;
@@ -315,19 +312,18 @@ public class LocalMailboxBuffer extends MailboxBuffer
         if (lock()) {
             try {
                 boolean advanceDot = false;
-                List list = getTaggedEntries();
+                List<MailboxEntry> list = getTaggedEntries();
                 if (list == null) {
                     Line line = editor.getDotLine();
                     if (!(line instanceof MailboxLine))
                         return;
-                    list = new Vector();
+                    list = new Vector<MailboxEntry>();
                     list.add(((MailboxLine) line).getMailboxEntry());
                     advanceDot = true;
                 }
-                for (int i = 0; i < list.size(); i++) {
-                    MailboxEntry entry = (MailboxEntry) list.get(i);
+                for (MailboxEntry entry : list) {
                     if ((entry.getFlags() & MailboxEntry.SEEN) == MailboxEntry.SEEN) {
-                        entry.setFlags(entry.getFlags() &  ~MailboxEntry.SEEN);
+                        entry.setFlags(entry.getFlags() & ~MailboxEntry.SEEN);
                         dirty = true;
                         updateEntry(entry);
                     }
@@ -351,17 +347,16 @@ public class LocalMailboxBuffer extends MailboxBuffer
         if (lock()) {
             try {
                 boolean advanceDot = false;
-                List list = getTaggedEntries();
+                List<MailboxEntry> list = getTaggedEntries();
                 if (list == null) {
                     Line line = editor.getDotLine();
                     if (!(line instanceof MailboxLine))
                         return;
-                    list = new ArrayList();
+                    list = new ArrayList<MailboxEntry>();
                     list.add(((MailboxLine)line).getMailboxEntry());
                     advanceDot = true;
                 }
-                for (int i = 0; i < list.size(); i++) {
-                    MailboxEntry entry = (MailboxEntry) list.get(i);
+                for (MailboxEntry entry : list) {
                     entry.toggleFlag();
                     updateEntry(entry);
                     dirty = true;
@@ -415,7 +410,7 @@ public class LocalMailboxBuffer extends MailboxBuffer
                     public void run()
                     {
                         for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-                            Editor ed = it.nextEditor();
+                            Editor ed = it.next();
                             View view = new View();
                             view.setDotEntry(getInitialEntry());
                             ed.setView(LocalMailboxBuffer.this, view);
@@ -461,7 +456,7 @@ public class LocalMailboxBuffer extends MailboxBuffer
         MailboxEntry entry = ((MailboxLine)line).getMailboxEntry();
         Buffer buf = null;
         for (BufferIterator it = new BufferIterator(); it.hasNext();) {
-            Buffer b = it.nextBuffer();
+            Buffer b = it.next();
             if (b instanceof MessageBuffer) {
                 if (((MessageBuffer)b).getMailboxEntry() == entry) {
                     buf = b;
@@ -498,7 +493,7 @@ public class LocalMailboxBuffer extends MailboxBuffer
                     break;
                 if (text.startsWith("From ")) {
                     if (purge)
-                        skip = ((MailboxEntry) entries.get(i)).isDeleted();
+                        skip = entries.get(i).isDeleted();
                     else
                         skip = false;
                     if (skip)
@@ -561,9 +556,9 @@ public class LocalMailboxBuffer extends MailboxBuffer
                 }
                 if (purge) {
                     // Copy entries to new list, skipping deleted entries.
-                    Vector v = new Vector(entries.size(), 10);
+                    Vector<MailboxEntry> v = new Vector<MailboxEntry>(entries.size(), 10);
                     for (i = 0; i < entries.size(); i++) {
-                        MailboxEntry entry = (MailboxEntry) entries.get(i);
+                        MailboxEntry entry = entries.get(i);
                         if (!entry.isDeleted())
                             v.add(entry);
                     }
@@ -598,7 +593,7 @@ public class LocalMailboxBuffer extends MailboxBuffer
 
     private final int getMessageStatus(int i)
     {
-        return ((MailboxEntry) entries.get(i)).getFlags();
+        return entries.get(i).getFlags();
     }
 
     private static String localPrefix;

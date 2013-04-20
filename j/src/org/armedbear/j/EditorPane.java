@@ -27,7 +27,7 @@ import org.jdesktop.swingx.MultiSplitLayout.Leaf;
 import org.jdesktop.swingx.MultiSplitLayout.Node;
 import org.jdesktop.swingx.MultiSplitLayout.Split;
 
-import java.awt.*;
+import java.awt.Component;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;

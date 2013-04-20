@@ -140,9 +140,9 @@ public final class SidebarBufferTree extends SidebarTree implements Constants,
     // again to repopulate the tree.
     private void initializeTreeStructure()
     {
-        final ArrayList arrayList = new ArrayList();
+        final ArrayList<Buffer> arrayList = new ArrayList<Buffer>();
         for (BufferIterator it = new BufferIterator(); it.hasNext();) {
-            Buffer buf = it.nextBuffer();
+            Buffer buf = it.next();
             if (buf.isPrimary()) {
                 arrayList.add(buf);
                 // Add secondary buffer (if any) right after the corresponding
@@ -167,15 +167,11 @@ public final class SidebarBufferTree extends SidebarTree implements Constants,
             reorder = p.getIntegerProperty(Property.REORDER_BUFFERS) > 1;
     }
 
-    private void buildTreeFromList(DefaultMutableTreeNode node, List buffers)
+    private void buildTreeFromList(DefaultMutableTreeNode node, List<Buffer> buffers)
     {
-        Iterator iter = buffers.iterator();
-        while (iter.hasNext()) {
-            Object next = iter.next();
-            if (next instanceof Buffer) {
-                Buffer buffer = (Buffer) next;
-                node.add(new DefaultMutableTreeNode(buffer));
-            }
+        for (Buffer next : buffers) {
+            Buffer buffer = next;
+            node.add(new DefaultMutableTreeNode(buffer));
         }
     }
 
@@ -229,8 +225,9 @@ public final class SidebarBufferTree extends SidebarTree implements Constants,
         Buffer[] buffers = new Buffer[numSelected];
         // Grab active buffers
         TreePath[] paths = getSelectionPaths();
-        for (int i = 0; i < paths.length; i++)
-            buffers[i] = getBufferFromPath(paths[i]);
+        if (paths != null)
+            for (int i = 0; i < paths.length; i++)
+                buffers[i] = getBufferFromPath(paths[i]);
         return buffers;
     }
 
@@ -295,7 +292,7 @@ public final class SidebarBufferTree extends SidebarTree implements Constants,
         int modified = 0;
         for (BufferIterator it = new BufferIterator(); it.hasNext();) {
             ++total;
-            if (it.nextBuffer().isModified())
+            if (it.next().isModified())
                 ++modified;
         }
         FastStringBuffer sb = new FastStringBuffer("Buffers");
@@ -350,14 +347,14 @@ public final class SidebarBufferTree extends SidebarTree implements Constants,
         }
     }
 
-    private void closeBuffers(Buffer[] array)
+    private void closeBuffers(Buffer[] buffers)
     {
         Editor editor = sidebar.getEditor();
-        for (int i = 0; i < array.length; i++)
-            editor.maybeKillBuffer(array[i]);
+        for (Buffer buffer : buffers)
+            editor.maybeKillBuffer(buffer);
         EditorIterator iter = new EditorIterator();
         while (iter.hasNext())
-            iter.nextEditor().updateDisplay();
+            iter.next().updateDisplay();
         for (int i = 0; i < Editor.getFrameCount(); i++) {
             Frame frame = Editor.getFrame(i);
             Sidebar sidebar = frame.getSidebar();
@@ -460,7 +457,7 @@ public final class SidebarBufferTree extends SidebarTree implements Constants,
         }
     }
 
-    private DefaultMutableTreeNode findNodeForObject(Object userObj)
+    private DefaultMutableTreeNode findNodeForObject(Buffer userObj)
     {
         if (rootNode != null) {
             Enumeration enumeration = rootNode.breadthFirstEnumeration();
@@ -951,20 +948,20 @@ public final class SidebarBufferTree extends SidebarTree implements Constants,
 
     private class BufferSelection implements Transferable
     {
-        private List fileList = null;
+        private List<java.io.File> fileList = null;
         private final DataFlavor[] flavors = new DataFlavor[] {
             DataFlavor.javaFileListFlavor
         };
 
         public BufferSelection(java.io.File file)
         {
-            fileList = new ArrayList(1);
+            fileList = new ArrayList<java.io.File>(1);
             fileList.add(file);
         }
 
         public Object getTransferData(DataFlavor flavor)
         {
-            List retList = new ArrayList(1);
+            List<java.io.File> retList = new ArrayList<java.io.File>(1);
             if (flavor == DataFlavor.javaFileListFlavor)
                 retList.add(fileList.get(0));
             return retList;

@@ -779,7 +779,7 @@ public abstract class AbstractMode implements Constants, Mode
 
     public String getContextString(Editor editor, boolean verbose)
     {
-        final List tags = editor.getBuffer().getTags();
+        final List<LocalTag> tags = editor.getBuffer().getTags();
         if (tags != null) {
             Position pos = editor.getDot();
             if (pos != null) {
@@ -787,8 +787,7 @@ public abstract class AbstractMode implements Constants, Mode
                 // Find the tag before the cursor position.
                 final int target = pos.lineNumber();
                 final int limit = tags.size();
-                for (int i = 0; i < limit; i++) {
-                    LocalTag nextTag = (LocalTag) tags.get(i);
+                for (LocalTag nextTag : tags) {
                     if (nextTag.lineNumber() > target)
                         break;
                     else

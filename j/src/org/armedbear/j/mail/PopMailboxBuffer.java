@@ -139,7 +139,7 @@ public final class PopMailboxBuffer extends LocalMailboxBuffer
                         {
                             kill();
                             for (EditorIterator it = new EditorIterator(); it.hasNext();)
-                                it.nextEditor().updateDisplay();
+                                it.next().updateDisplay();
                         }
                     };
                     SwingUtilities.invokeLater(r);
@@ -150,7 +150,7 @@ public final class PopMailboxBuffer extends LocalMailboxBuffer
                         {
                             setBusy(false);
                             for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-                                Editor ed = it.nextEditor();
+                                Editor ed = it.next();
                                 View view = new View();
                                 view.setDotEntry(getInitialEntry());
                                 ed.setView(PopMailboxBuffer.this, view);
@@ -298,7 +298,7 @@ public final class PopMailboxBuffer extends LocalMailboxBuffer
                 return true; // No messages on the server.
             if (Thread.currentThread().isInterrupted() || cancelled)
                 return true;
-            List serverMessageList = getServerMessageList(count);
+            List<MessageListEntry> serverMessageList = getServerMessageList(count);
             if (serverMessageList == null)
                 return false; // Error.
             if (Thread.currentThread().isInterrupted() || cancelled)
@@ -310,7 +310,7 @@ public final class PopMailboxBuffer extends LocalMailboxBuffer
                 return true;
             // Remove messages from the server message list if we already have
             // them or if they've been expunged locally.
-            List messagesToBeRetrieved =
+            List<MessageListEntry> messagesToBeRetrieved =
                 getMessagesToBeRetrieved(serverMessageList);
             if (Thread.currentThread().isInterrupted() || cancelled)
                 return true;
@@ -419,7 +419,7 @@ public final class PopMailboxBuffer extends LocalMailboxBuffer
         return count;
     }
 
-    private List getServerMessageList(int count)
+    private List<MessageListEntry> getServerMessageList(int count)
     {
         long start = System.currentTimeMillis();
         session.write("uidl");
@@ -429,7 +429,7 @@ public final class PopMailboxBuffer extends LocalMailboxBuffer
             Log.error(response);
             return null;
         }
-        List list = new ArrayList(count);
+        List<MessageListEntry> list = new ArrayList<MessageListEntry>(count);
         while (true) {
             String s = session.readLine();
             if (s == null)
@@ -449,24 +449,22 @@ public final class PopMailboxBuffer extends LocalMailboxBuffer
         return list;
     }
 
-    private List getMessagesToBeRetrieved(List serverMessageList)
+    private List<MessageListEntry> getMessagesToBeRetrieved(List<MessageListEntry> serverMessageList)
     {
         long start = System.currentTimeMillis();
-        HashSet hashSet = null;
+        HashSet<String> hashSet = null;
         if (entries != null) {
             int size = entries.size();
-            hashSet = new HashSet(size);
+            hashSet = new HashSet<String>(size);
             for (int i = 0; i < size; i++) {
                 LocalMailboxEntry mailboxEntry =
                     (LocalMailboxEntry) entries.get(i);
                 hashSet.add(mailboxEntry.getUidl());
             }
         }
-        List toBeReturned = new ArrayList();
+        List<MessageListEntry> toBeReturned = new ArrayList<MessageListEntry>();
         int size = serverMessageList.size();
-        for (int i = 0; i < size; i++) {
-            MessageListEntry messageListEntry =
-                (MessageListEntry) serverMessageList.get(i);
+        for (MessageListEntry messageListEntry : serverMessageList) {
             String uidl = messageListEntry.uidl;
             if (isExpunged(uidl))
                 continue;
@@ -478,7 +476,7 @@ public final class PopMailboxBuffer extends LocalMailboxBuffer
         return toBeReturned;
     }
 
-    private boolean retrieveMessages(List messageList, MailboxFileWriter writer)
+    private boolean retrieveMessages(List<MessageListEntry> messageList, MailboxFileWriter writer)
     {
         Log.debug("entering retrieveMessages");
         long start = System.currentTimeMillis();
@@ -488,7 +486,7 @@ public final class PopMailboxBuffer extends LocalMailboxBuffer
                 progressNotifier.setText(text); // Make sure the user sees this.
             else
                 progressNotifier.progress(text);
-            MessageListEntry entry = (MessageListEntry) messageList.get(i);
+            MessageListEntry entry = messageList.get(i);
             if (!retrieveMessage(entry.messageNumber, entry.uidl, writer)) {
                 Log.error("retrieveMessages error retrieving message " + entry.messageNumber);
                 return false;
@@ -600,12 +598,10 @@ public final class PopMailboxBuffer extends LocalMailboxBuffer
         }
     }
 
-    private boolean deleteMessagesOnServer(List serverMessageList)
+    private boolean deleteMessagesOnServer(List<MessageListEntry> serverMessageList)
     {
         Log.debug("deleteMessagesOnServer need to delete " + serverMessageList.size() + " messages");
-        for (int i = 0; i < serverMessageList.size(); i++) {
-            MessageListEntry messageListEntry =
-                (MessageListEntry) serverMessageList.get(i);
+        for (MessageListEntry messageListEntry : serverMessageList) {
             session.write("dele " + messageListEntry.messageNumber);
             String response = session.readLine();
             if (response == null || !response.startsWith("+OK")) {
@@ -695,9 +691,8 @@ public final class PopMailboxBuffer extends LocalMailboxBuffer
             if (count < 0)
                 return; // Error.
             if (count > 0) {
-                List serverMessageList = getServerMessageList(count);
-                for (int i = 0; i < entries.size(); i++) {
-                    MailboxEntry entry = (MailboxEntry) entries.get(i);
+                List<MessageListEntry> serverMessageList = getServerMessageList(count);
+                for (MailboxEntry entry : entries) {
                     if (entry.isDeleted()) {
                         String uidl = entry.getUidl();
                         if (!expungeUidl(uidl, serverMessageList))
@@ -710,9 +705,7 @@ public final class PopMailboxBuffer extends LocalMailboxBuffer
                 }
                 if (expungedUidlsList != null) {
                     // Expunge on the server messages that were previously expunged locally.
-                    Iterator it = expungedUidlsList.iterator();
-                    while (it.hasNext()) {
-                        String uidl = (String) it.next();
+                    for (String uidl : expungedUidlsList) {
                         if (!expungeUidl(uidl, serverMessageList))
                             return; // Error!
                         if (cancelled) {
@@ -736,11 +729,11 @@ public final class PopMailboxBuffer extends LocalMailboxBuffer
         }
     }
 
-    private boolean expungeUidl(String uidl, List serverMessageList)
+    private boolean expungeUidl(String uidl, List<MessageListEntry> serverMessageList)
     {
         if (uidl != null) {
             for (int j = serverMessageList.size() - 1; j >= 0; j--) {
-                MessageListEntry messageListEntry = (MessageListEntry) serverMessageList.get(j);
+                MessageListEntry messageListEntry = serverMessageList.get(j);
                 if (uidl.equals(messageListEntry.uidl)) {
                     if (progressNotifier != null) {
                         FastStringBuffer sb = new FastStringBuffer("Deleting message ");
@@ -764,7 +757,7 @@ public final class PopMailboxBuffer extends LocalMailboxBuffer
         return true;
     }
 
-    private HashSet expungedUidlsList;
+    private HashSet<String> expungedUidlsList;
 
     private final boolean isExpunged(String uidl)
     {
@@ -776,13 +769,13 @@ public final class PopMailboxBuffer extends LocalMailboxBuffer
     private final void addToExpungedUidlsList(String uidl)
     {
         if (expungedUidlsList == null)
-            expungedUidlsList = new HashSet();
+            expungedUidlsList = new HashSet<String>();
         expungedUidlsList.add(uidl);
     }
 
     // Prune our list of expunged uidls, removing entries that no longer exist
     // on the server.
-    private void pruneExpungedUidlsList(List serverMessageList)
+    private void pruneExpungedUidlsList(List<MessageListEntry> serverMessageList)
     {
         Log.debug("pruneExpungedUidlsList");
         if (expungedUidlsList == null)
@@ -790,14 +783,13 @@ public final class PopMailboxBuffer extends LocalMailboxBuffer
         boolean changed = false;
         long start = System.currentTimeMillis();
         int size = serverMessageList.size();
-        HashSet serverUidls = new HashSet(size);
-        for (int i = 0; i < size; i++) {
-            MessageListEntry entry = (MessageListEntry) serverMessageList.get(i);
+        HashSet<String> serverUidls = new HashSet<String>(size);
+        for (MessageListEntry entry : serverMessageList) {
             serverUidls.add(entry.uidl);
         }
-        Iterator it = expungedUidlsList.iterator();
+        Iterator<String> it = expungedUidlsList.iterator();
         while (it.hasNext()) {
-            String uidl = (String) it.next();
+            String uidl = it.next();
             if (!serverUidls.contains(uidl)) {
                 Log.warn("removing uidl " + uidl + " (no longer exists on server)");
                 it.remove();
@@ -822,7 +814,7 @@ public final class PopMailboxBuffer extends LocalMailboxBuffer
             String s;
             while ((s = reader.readLine()) != null) {
                 if (expungedUidlsList == null)
-                    expungedUidlsList = new HashSet();
+                    expungedUidlsList = new HashSet<String>();
                 expungedUidlsList.add(s);
             }
             reader.close();
@@ -851,9 +843,8 @@ public final class PopMailboxBuffer extends LocalMailboxBuffer
         }
         try {
             BufferedWriter writer = new BufferedWriter(new FileWriter(filename));
-            Iterator it = expungedUidlsList.iterator();
-            while (it.hasNext()) {
-                writer.write((String) it.next());
+            for (String uidl : expungedUidlsList) {
+                writer.write(uidl);
                 writer.newLine();
             }
             writer.flush();

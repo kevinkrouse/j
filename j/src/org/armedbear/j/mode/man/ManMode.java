@@ -182,7 +182,7 @@ public final class ManMode extends AbstractMode implements Constants, Mode
         try {
             final String title = ManMode.getTitle(topic);
             for (BufferIterator it = new BufferIterator(); it.hasNext();) {
-                Buffer buf = it.nextBuffer();
+                Buffer buf = it.next();
                 if (buf.getModeId() == MAN_MODE && title.equals(buf.getTitle())) {
                     editor.makeNext(buf);
                     editor.switchToBuffer(buf);

@@ -29,7 +29,7 @@ public final class DirectoryCache
 
     private static DirectoryCache cache;
 
-    private Vector entries = new Vector();
+    private Vector<DirectoryCacheEntry> entries = new Vector<DirectoryCacheEntry>();
 
     public static synchronized DirectoryCache getDirectoryCache()
     {
@@ -46,7 +46,7 @@ public final class DirectoryCache
     {
         String netPath = file.netPath();
         for (int i = entries.size(); i-- > 0;) {
-            DirectoryCacheEntry entry = (DirectoryCacheEntry) entries.get(i);
+            DirectoryCacheEntry entry = entries.get(i);
             if (entry.getFile().netPath().equals(netPath)) {
                 if (entry.getWhen() + timeout < System.currentTimeMillis()) {
                     Log.debug("removing cache entry for " + entry.getFile().netPath());
@@ -63,7 +63,7 @@ public final class DirectoryCache
     {
         String netPath = file.netPath();
         for (int i = entries.size(); i-- > 0;) {
-            DirectoryCacheEntry entry = (DirectoryCacheEntry) entries.get(i);
+            DirectoryCacheEntry entry = entries.get(i);
             if (entry.getFile().netPath().equals(netPath)) {
                 entries.remove(i);
                 break;
@@ -78,7 +78,7 @@ public final class DirectoryCache
     public synchronized void purge(String hostname)
     {
         for (int i = entries.size(); i-- > 0;) {
-            DirectoryCacheEntry entry = (DirectoryCacheEntry) entries.get(i);
+            DirectoryCacheEntry entry = entries.get(i);
             if (entry.getFile().getHostName().equals(hostname)) {
                 Log.debug("removing cache entry for " + entry.getFile().netPath());
                 entries.remove(i);
@@ -90,7 +90,7 @@ public final class DirectoryCache
     {
         String netPath = file.netPath();
         for (int i = entries.size(); i-- > 0;) {
-            DirectoryCacheEntry entry = (DirectoryCacheEntry) entries.get(i);
+            DirectoryCacheEntry entry = entries.get(i);
             if (entry.getFile().netPath().equals(netPath)) {
                 Log.debug("removing cache entry for " + netPath);
                 entries.remove(i);
@@ -125,10 +125,10 @@ public final class DirectoryCache
                 if (System.currentTimeMillis() - lastRun > 300000) {
                     long now = System.currentTimeMillis();
                     synchronized (cache) {
-                        Iterator it = cache.entries.iterator();
+                        Iterator<DirectoryCacheEntry> it = cache.entries.iterator();
                         while (it.hasNext()) {
                             DirectoryCacheEntry entry =
-                                (DirectoryCacheEntry) it.next();
+                                it.next();
                             if (entry.getWhen() + timeout < now)
                                 it.remove();
                         }

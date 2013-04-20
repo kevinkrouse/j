@@ -64,7 +64,7 @@ public final class WebBuffer extends Buffer implements WebConstants
 {
     private String ref;
     private WebHistory history;
-    private Hashtable refs;
+    private Hashtable<String, Integer> refs;
     private String contentType;
     private String errorText;
 
@@ -139,7 +139,7 @@ public final class WebBuffer extends Buffer implements WebConstants
         Buffer buf = null;
         // Look for existing buffer.
         for (BufferIterator it = new BufferIterator(); it.hasNext();) {
-            Buffer b = it.nextBuffer();
+            Buffer b = it.next();
             if (b instanceof WebBuffer && b.getFile().equals(file)) {
                 buf = b;
                 break;
@@ -159,13 +159,11 @@ public final class WebBuffer extends Buffer implements WebConstants
     public Position findRef(String ref)
     {
         if (ref != null && refs != null) {
-            Object obj = refs.get(ref);
-            if (obj instanceof Integer) {
-                Position pos = getPosition(((Integer) obj).intValue());
-                if (pos != null)
-                    pos.skipWhitespace();
-                return pos;
-            }
+            Integer i = refs.get(ref);
+            Position pos = getPosition(i.intValue());
+            if (pos != null)
+                pos.skipWhitespace();
+            return pos;
         }
         return null;
     }
@@ -181,7 +179,7 @@ public final class WebBuffer extends Buffer implements WebConstants
             return;
         Buffer buf = null;
         for (BufferIterator it = new BufferIterator(); it.hasNext();) {
-            Buffer b = it.nextBuffer();
+            Buffer b = it.next();
             if (b instanceof WebBuffer && file.equals(b.getFile())) {
                 buf = b;
                 break;
@@ -418,7 +416,7 @@ public final class WebBuffer extends Buffer implements WebConstants
                         wb.update(pos);
                     }
                     for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-                        Editor ed = it.nextEditor();
+                        Editor ed = it.next();
                         if (ed != null && ed.getBuffer() == wb)
                             ed.setDefaultCursor();
                     }
@@ -562,7 +560,7 @@ public final class WebBuffer extends Buffer implements WebConstants
         renumber();
         Debug.assertTrue(dotLine != null);
         for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-            Editor ed = it.nextEditor();
+            Editor ed = it.next();
             if (ed.getBuffer() == this) {
                 ed.getDot().moveTo(dotLine, 0);
                 ed.setMark(null); // Enforce sanity.
@@ -775,7 +773,7 @@ public final class WebBuffer extends Buffer implements WebConstants
                         if (empty && Editor.getBufferList().contains(WebBuffer.this))
                             kill();
                         for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-                            Editor ed = it.nextEditor();
+                            Editor ed = it.next();
                             if (empty || ed.getBuffer() == WebBuffer.this) {
                                 ed.updateLocation();
                                 ed.updateDisplay();
@@ -849,7 +847,7 @@ public final class WebBuffer extends Buffer implements WebConstants
                 if (empty && Editor.getBufferList().contains(WebBuffer.this))
                     kill();
                 for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-                    Editor ed = it.nextEditor();
+                    Editor ed = it.next();
                     if (ed != null && ed.getBuffer() == WebBuffer.this) {
                         ed.status("Transfer cancelled");
                         ed.setDefaultCursor();
@@ -894,7 +892,7 @@ public final class WebBuffer extends Buffer implements WebConstants
     private void update(Position pos)
     {
         for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-            Editor ed = it.nextEditor();
+            Editor ed = it.next();
             if (ed.getBuffer() == this) {
                 ed.setDot(pos.copy());
                 ed.setMark(null);

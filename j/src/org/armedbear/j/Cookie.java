@@ -27,7 +27,7 @@ import java.net.URL;
 
 public final class Cookie
 {
-    private static Vector cookies;
+    private static Vector<Cookie> cookies;
 
     private String name;
     private String value;
@@ -91,7 +91,7 @@ public final class Cookie
         String path = index >= 0 ? file.substring(0, index) : file;
         FastStringBuffer sb = new FastStringBuffer(256);
         for (int i = cookies.size()-1; i >= 0; i--) {
-            Cookie cookie = (Cookie) cookies.get(i);
+            Cookie cookie = cookies.get(i);
             if (cookie.domain != null && host.endsWith(cookie.domain)) {
                 if (cookie.path != null && path.startsWith(cookie.path)) {
                     if (sb.length() > 0)
@@ -116,7 +116,7 @@ public final class Cookie
     {
         if (cookies != null) {
             for (int i = cookies.size()-1; i >= 0; i--) {
-                Cookie c = (Cookie) cookies.get(i);
+                Cookie c = cookies.get(i);
                 if (c.domain.equals(cookie.domain) &&
                     c.path.equals(cookie.path) &&
                     c.name.equals(cookie.name)) {
@@ -127,7 +127,7 @@ public final class Cookie
                 }
             }
         } else
-            cookies = new Vector();
+            cookies = new Vector<Cookie>();
         cookies.add(cookie);
     }
 

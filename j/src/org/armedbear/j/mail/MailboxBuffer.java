@@ -61,7 +61,7 @@ public abstract class MailboxBuffer extends Buffer
     protected int unreadMessageCount;
     protected int newMessageCount;
 
-    protected List entries;
+    protected List<MailboxEntry> entries;
 
     private long lastCheckMillis;
 
@@ -108,7 +108,7 @@ public abstract class MailboxBuffer extends Buffer
 
     public abstract String getName();
 
-    public synchronized final void setEntries(List entries)
+    public synchronized final void setEntries(List<MailboxEntry> entries)
     {
         this.entries = entries;
     }
@@ -215,8 +215,7 @@ public abstract class MailboxBuffer extends Buffer
         boolean changed = false;
         if (entries != null) {
             final int size = entries.size();
-            for (int i = 0; i < size; i++) {
-                MailboxEntry entry = (MailboxEntry) entries.get(i);
+            for (MailboxEntry entry : entries) {
                 if ((entry.getFlags() & MailboxEntry.RECENT) != 0) {
                     entry.setFlags(entry.getFlags() & ~MailboxEntry.RECENT);
                     changed = true;
@@ -309,20 +308,19 @@ public abstract class MailboxBuffer extends Buffer
         Editor.currentEditor().status("Raw mode " + (showRawText ? "on" : "off"));
     }
 
-    public List getEntries()
+    public List<MailboxEntry> getEntries()
     {
         return entries;
     }
 
-    public List getTaggedEntries()
+    public List<MailboxEntry> getTaggedEntries()
     {
-        ArrayList taggedEntries = null;
+        ArrayList<MailboxEntry> taggedEntries = null;
         final int size = entries.size();
-        for (int i = 0; i < size; i++) {
-            MailboxEntry entry = (MailboxEntry) entries.get(i);
+        for (MailboxEntry entry : entries) {
             if (entry.isTagged()) {
                 if (taggedEntries == null)
-                    taggedEntries = new ArrayList();
+                    taggedEntries = new ArrayList<MailboxEntry>();
                 taggedEntries.add(entry);
             }
         }
@@ -462,7 +460,7 @@ public abstract class MailboxBuffer extends Buffer
             return null;
         if (entries != null) {
             for (int i = entries.size()-1; i >= 0; i--) {
-                MailboxEntry entry = (MailboxEntry) entries.get(i);
+                MailboxEntry entry = entries.get(i);
                 if (entry != null) {
                     if (messageId.equals(entry.getMessageId()))
                         return entry;
@@ -476,15 +474,15 @@ public abstract class MailboxBuffer extends Buffer
     {
         Debug.assertTrue(SwingUtilities.isEventDispatchThread());
         final Editor editor = Editor.currentEditor();
-        List list = getTaggedEntries();
+        List<MailboxEntry> list = getTaggedEntries();
         if (list == null) {
             MailboxEntry entry = getEntryAtDot(editor);
             if (entry == null)
                 return;
-            list = new ArrayList(1);
+            list = new ArrayList<MailboxEntry>(1);
             list.add(entry);
         }
-        final List toBeBounced = list;
+        final List<MailboxEntry> toBeBounced = list;
         // Get bounce addresses from user.
         final MailAddress[] to = MailCommands.bounceGetTo(editor, toBeBounced.size());
         if (to == null)
@@ -533,15 +531,14 @@ public abstract class MailboxBuffer extends Buffer
             editor.status("Mailbox is locked");
     }
 
-    private boolean bounceMessages(List toBeBounced, MailAddress[] to)
+    private boolean bounceMessages(List<MailboxEntry> toBeBounced, MailAddress[] to)
     {
         Log.debug("bounceMessages initializing SMTP session...");
         SmtpSession smtp = SmtpSession.getDefaultSession();
         if (smtp == null)
             return false;
         try {
-            for (int i = 0; i < toBeBounced.size(); i++) {
-                MailboxEntry entry = (MailboxEntry) toBeBounced.get(i);
+            for (MailboxEntry entry : toBeBounced) {
                 if (!Mail.bounceMessage(getMessage(entry, null), to, smtp))
                     return false;
             }
@@ -662,7 +659,7 @@ public abstract class MailboxBuffer extends Buffer
         }
         invalidate();
         for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-            Editor ed = it.nextEditor();
+            Editor ed = it.next();
             if (ed.getBuffer() == this) {
                 ed.updateLocation();
                 Display display = ed.getDisplay();
@@ -819,7 +816,7 @@ public abstract class MailboxBuffer extends Buffer
             public void run()
             {
                 for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-                    Editor ed = it.nextEditor();
+                    Editor ed = it.next();
                     View view = new View();
                     view.setDotEntry(currentEntry != null ? currentEntry : getInitialEntry());
                     ed.setView(MailboxBuffer.this, view);
@@ -939,9 +936,9 @@ public abstract class MailboxBuffer extends Buffer
         } else {
             Debug.assertTrue(sortBy == SORT_BY_DATE_SENT);
             // Don't change order of entries!
-            ArrayList temp = new ArrayList(entries);
+            ArrayList<MailboxEntry> temp = new ArrayList<MailboxEntry>(entries);
             sortEntriesByDate(temp);
-            List matchingEntries = getMatchingEntries(temp, limitFilter);
+            List<MailboxEntry> matchingEntries = getMatchingEntries(temp, limitFilter);
             try {
                 lockWrite();
             }
@@ -953,8 +950,8 @@ public abstract class MailboxBuffer extends Buffer
                 synchronized (this) {
                     empty();
                     final int size = matchingEntries.size();
-                    for (int i = 0; i < size; i++)
-                        appendLine(((MailboxEntry)matchingEntries.get(i)));
+                    for (MailboxEntry matchingEntry : matchingEntries)
+                        appendLine(matchingEntry);
                     renumber();
                     countMessages();
                     setLoaded(true);
@@ -967,16 +964,15 @@ public abstract class MailboxBuffer extends Buffer
     }
 
     // Never returns null.
-    private static List getMatchingEntries(List list, MailboxFilter filter)
+    private static List<MailboxEntry> getMatchingEntries(List<MailboxEntry> list, MailboxFilter filter)
     {
         if (list == null)
-            return new ArrayList();
+            return new ArrayList<MailboxEntry>();
         if (filter == null)
-            return new ArrayList(list);
-        ArrayList matchingEntries = new ArrayList();
+            return new ArrayList<MailboxEntry>(list);
+        ArrayList<MailboxEntry> matchingEntries = new ArrayList<MailboxEntry>();
         final int size = list.size();
-        for (int i = 0; i < size; i++) {
-            MailboxEntry entry = (MailboxEntry) list.get(i);
+        for (MailboxEntry entry : list) {
             if (filter.accept(entry))
                 matchingEntries.add(entry);
         }
@@ -993,25 +989,22 @@ public abstract class MailboxBuffer extends Buffer
         appendLine(new MailboxLine(entry, depth));
     }
 
-    private static void sortEntriesByDate(List list)
+    private static void sortEntriesByDate(List<MailboxEntry> list)
     {
-        Comparator c = new Comparator() {
-            public int compare(Object o1, Object o2)
+        Comparator<MailboxEntry> c = new Comparator<MailboxEntry>() {
+            public int compare(MailboxEntry o1, MailboxEntry o2)
             {
-                return RFC822Date.compare(((MailboxEntry)o1).getDate(),
-                    ((MailboxEntry)o2).getDate());
+                return RFC822Date.compare(o1.getDate(), o2.getDate());
             }
         };
         Collections.sort(list, c);
         int sequenceNumber = 1;
-        Iterator iter = list.iterator();
-        while (iter.hasNext()) {
-            MailboxEntry entry = (MailboxEntry) iter.next();
+        for (MailboxEntry entry : list) {
             entry.setSequenceNumber(sequenceNumber++);
         }
     }
 
-    protected void addEntriesToAddressBook(List list)
+    protected void addEntriesToAddressBook(List<MailboxEntry> list)
     {
         if (list == null)
             return;
@@ -1128,7 +1121,7 @@ public abstract class MailboxBuffer extends Buffer
     public boolean isChildVisible()
     {
         for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-            Buffer buffer = it.nextEditor().getBuffer();
+            Buffer buffer = it.next().getBuffer();
             if (buffer instanceof MessageBuffer)
                 if (((MessageBuffer)buffer).getMailbox() == this)
                     return true;
@@ -1188,7 +1181,7 @@ public abstract class MailboxBuffer extends Buffer
     protected void saveDisplayState()
     {
         for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-            Editor ed = it.nextEditor();
+            Editor ed = it.next();
             if (ed.getBuffer() == this)
                 ed.saveView();
         }
@@ -1204,7 +1197,7 @@ public abstract class MailboxBuffer extends Buffer
         {
             invalidate();
             for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-                Editor ed = it.nextEditor();
+                Editor ed = it.next();
                 if (ed.getBuffer() == MailboxBuffer.this) {
                     View view = ed.getView(ed.getBuffer());
                     if (view.getDotEntry() != null) {
@@ -1283,7 +1276,7 @@ public abstract class MailboxBuffer extends Buffer
             public void run()
             {
                 for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-                    Editor ed = it.nextEditor();
+                    Editor ed = it.next();
                     if (ed.getBuffer() == MailboxBuffer.this) {
                         if (ed.getDot() != null) {
                             ed.update(ed.getDotLine());

@@ -58,7 +58,7 @@ public final class XmlParserImpl extends DefaultHandler implements Runnable,
     private Reader reader;
     private XMLReader xmlReader;
     private TreeModel treeModel;
-    private Stack stack;
+    private Stack<DefaultMutableTreeNode> stack;
     private Exception exception;
     private DefaultMutableTreeNode current;
     private Locator locator;
@@ -213,7 +213,7 @@ public final class XmlParserImpl extends DefaultHandler implements Runnable,
                 inputSource.setSystemId("file://".concat(file.canonicalPath()));
         }
         treeModel = null;
-        stack = new Stack();
+        stack = new Stack<DefaultMutableTreeNode>();
 
         if (xmlReader != null) {
             xmlReader.setContentHandler(this);
@@ -333,7 +333,7 @@ public final class XmlParserImpl extends DefaultHandler implements Runnable,
         if (stack.empty())
             current = null;
         else
-            current = (DefaultMutableTreeNode) stack.pop();
+            current = stack.pop();
     }
 
     public void warning(SAXParseException e)

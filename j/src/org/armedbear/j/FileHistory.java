@@ -40,7 +40,7 @@ public final class FileHistory extends DefaultHandler implements ContentHandler
     // Singleton.
     private static FileHistory fileHistory;
 
-    private ArrayList list = new ArrayList();
+    private ArrayList<FileHistoryEntry> list = new ArrayList<FileHistoryEntry>();
 
     private File file;
 
@@ -62,9 +62,7 @@ public final class FileHistory extends DefaultHandler implements ContentHandler
 
     public synchronized FileHistoryEntry findEntry(String canonicalPath)
     {
-        final int limit = list.size();
-        for (int i = 0; i < limit; i++) {
-            FileHistoryEntry entry = (FileHistoryEntry) list.get(i);
+        for (FileHistoryEntry entry : list) {
             if (entry.getName().equals(canonicalPath))
                 return entry;
         }
@@ -77,7 +75,7 @@ public final class FileHistory extends DefaultHandler implements ContentHandler
         Debug.assertTrue(newEntry.getName() != null);
         final int limit = list.size();
         for (int i = 0; i < limit; i++) {
-            FileHistoryEntry entry = (FileHistoryEntry) list.get(i);
+            FileHistoryEntry entry = list.get(i);
             if (entry.getName().equals(newEntry.getName())) {
                 if (i == 0) {
                     list.set(0, newEntry);
@@ -156,7 +154,7 @@ public final class FileHistory extends DefaultHandler implements ContentHandler
             writer.newLine();
             final int limit = Math.min(list.size(), MAX_ENTRIES);
             for (int i = 0; i < limit; i++) {
-                FileHistoryEntry entry = (FileHistoryEntry) list.get(i);
+                FileHistoryEntry entry = list.get(i);
                 writer.write(entry.toXml());
                 writer.newLine();
             }

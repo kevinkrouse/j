@@ -81,7 +81,7 @@ public final class Help
                 buf = editor.getBuffer();
             else {
                 for (BufferIterator it = new BufferIterator(); it.hasNext();) {
-                    Buffer b = it.nextBuffer();
+                    Buffer b = it.next();
                     if (isHelpBuffer(b)) {
                         buf = b;
                         break;
@@ -188,7 +188,7 @@ public final class Help
             } else {
                 Buffer buf = null;
                 for (BufferIterator it = new BufferIterator(); it.hasNext();) {
-                    Buffer b = it.nextBuffer();
+                    Buffer b = it.next();
                     if (isListBindingsBuffer(b)) {
                         buf = b;
                         break;
@@ -231,9 +231,8 @@ public final class Help
         final String sanitizedPrefix =
             (prefixLength > 0) ? sanitize(prefix) : null;
         final int spaces = 32 - prefixLength;
-        ArrayList submappings = null;
-        for (int i = 0; i < count; i++) {
-            KeyMapping mapping = mappings[i];
+        ArrayList<KeyMapping> submappings = null;
+        for (KeyMapping mapping : mappings) {
             FastStringBuffer sb = new FastStringBuffer();
             if (sanitizedPrefix != null)
                 sb.append(sanitizedPrefix);
@@ -267,16 +266,15 @@ public final class Help
                 sb.append(mapping.getKeyText());
                 sb.append(" prefix command");
                 if (submappings == null)
-                    submappings = new ArrayList();
+                    submappings = new ArrayList<KeyMapping>();
                 submappings.add(mapping);
             }
             sb.append("<br>\n");
             writer.write(sb.toString());
         }
         if (submappings != null) {
-            for (int i = 0; i < submappings.size(); i++) {
+            for (KeyMapping mapping : submappings) {
                 writer.write("<br>\n");
-                KeyMapping mapping = (KeyMapping) submappings.get(i);
                 String keytext = mapping.getKeyText();
                 KeyMap submap = (KeyMap) mapping.getCommand();
                 FastStringBuffer sb = new FastStringBuffer();
@@ -375,7 +373,7 @@ public final class Help
             File helpFile = File.getInstance(dir, "commands.html");
             if (helpFile != null && !helpFile.isFile())
                 helpFile = null;
-            List commands = CommandTable.apropos(arg);
+            List<String> commands = CommandTable.apropos(arg);
             sort(commands);
             addAproposEntries(commands, helpFile, writer);
             writer.write("<br>");
@@ -385,7 +383,7 @@ public final class Help
             helpFile = File.getInstance(dir, "preferences.html");
             if (helpFile != null && !helpFile.isFile())
                 helpFile = null;
-            List properties = Property.apropos(arg);
+            List<String> properties = Property.apropos(arg);
             sort(properties);
             addAproposEntries(properties, helpFile, writer);
             writer.write("</body>\n</html>\n");
@@ -398,7 +396,7 @@ public final class Help
             } else {
                 Buffer buf = null;
                 for (BufferIterator it = new BufferIterator(); it.hasNext();) {
-                    Buffer b = it.nextBuffer();
+                    Buffer b = it.next();
                     if (isAproposBuffer(b)) {
                         buf = b;
                         break;
@@ -443,30 +441,16 @@ public final class Help
         }
     }
 
-    private static Comparator comparator;
-
-    private static void sort(List list)
+    private static void sort(List<String> list)
     {
-        if (comparator == null) {
-            comparator = new Comparator() {
-                public int compare(Object o1, Object o2)
-                {
-                    return o1.toString().compareToIgnoreCase(o2.toString());
-                }
-            };
-        }
-        Collections.sort(list, comparator);
+        Collections.sort(list, String.CASE_INSENSITIVE_ORDER);
     }
 
-    private static void addAproposEntries(List list, File helpFile,
+    private static void addAproposEntries(List<String> list, File helpFile,
         Writer writer) throws IOException
     {
-        int size = 0;
-        if (list != null)
-            size = list.size();
-        if (size > 0) {
-            for (int i = 0; i < size; i++) {
-                String s = (String) list.get(i);
+        if (list != null && !list.isEmpty()) {
+            for (String s : list) {
                 if (helpFile != null) {
                     writer.write("&nbsp;&nbsp;<a href=\"");
                     writer.write(helpFile.canonicalPath());
@@ -502,8 +486,8 @@ public final class Help
             Path path = new Path(s);
             String[] array = path.list();
             if (array != null) {
-                for (int i = 0; i < array.length; i++) {
-                    File dir = File.getInstance(array[i]);
+                for (String part : array) {
+                    File dir = File.getInstance(part);
                     if (isDocDir(dir))
                         return dir;
                 }
@@ -516,8 +500,7 @@ public final class Help
             Path path = new Path(s);
             String[] array = path.list();
             if (array != null) {
-                for (int i = 0; i < array.length; i++) {
-                    String filename = array[i];
+                for (String filename : array) {
                     File f = File.getInstance(filename);
                     if (filename.toLowerCase().endsWith("j.jar")) {
                         File jarFile = f.isAbsolute() ? f : File.getInstance(userDir, filename);
@@ -561,7 +544,7 @@ public final class Help
                             File dataDir = File.getInstance(filename.substring(0, filename.length() - suffix.length())); // "/usr/local/share"
                             File docDir = File.getInstance(dataDir, "doc" + LocalFile.getSeparator() + "j"); // "/usr/local/share/doc/j"
                             if (isDocDir(docDir))
-                                 return docDir;
+                                return docDir;
                         }
                     }
                 }

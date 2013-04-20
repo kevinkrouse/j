@@ -68,7 +68,7 @@ public final class FindInFiles extends Replacement implements Constants,
     private int numFilesExamined;
     private int numFilesModified;
 
-    private List filters;
+    private List<Filter> filters;
 
     private SaveException saveException;
     private ConfirmReplacementDialog confirmDialog;
@@ -148,7 +148,7 @@ public final class FindInFiles extends Replacement implements Constants,
         if (outputBuffer != null && editor.getBuffer() != outputBuffer) {
             Buffer buf = null;
             for (BufferIterator it = new BufferIterator(); it.hasNext();) {
-                Buffer b = it.nextBuffer();
+                Buffer b = it.next();
                 if (b == outputBuffer) {
                     buf = b;
                     break;
@@ -177,7 +177,7 @@ public final class FindInFiles extends Replacement implements Constants,
 
     public void setFiles(String files) throws Exception
     {
-        ArrayList list = new ArrayList();
+        ArrayList<Filter> list = new ArrayList<Filter>();
         StringTokenizer st = new StringTokenizer(files, ";");
         // We start in the editor's current directory.
         File currentDir = getEditor().getCurrentDirectory();
@@ -248,8 +248,7 @@ public final class FindInFiles extends Replacement implements Constants,
                 Log.error(e);
             }
         }
-        for (Iterator it = filters.iterator(); it.hasNext();) {
-            Filter filter = (Filter) it.next();
+        for (Filter filter : filters) {
             File dir = null;
             File spec = File.getInstance(filter.getOriginalPattern());
             if (spec != null) {
@@ -289,7 +288,7 @@ public final class FindInFiles extends Replacement implements Constants,
                         outputBuffer.setBusy(false);
                         EditorIterator iter = new EditorIterator();
                         while (iter.hasNext()) {
-                            Editor ed = iter.nextEditor();
+                            Editor ed = iter.next();
                             if (ed.getBuffer() == outputBuffer) {
                                 ed.setTopLine(outputBuffer.getFirstLine());
                                 ed.setDot(outputBuffer.getInitialDotPos());
@@ -318,18 +317,18 @@ public final class FindInFiles extends Replacement implements Constants,
         String[] files = dir.list();
         if (files == null)
             return;
-        for (int i = 0; i < files.length; i++) {
+        for (String f : files) {
             if (cancelled)
                 return;
-            File file = File.getInstance(dir, files[i]);
-            if (excludesRE != null && excludesRE.matcher(files[i]).matches())
+            File file = File.getInstance(dir, f);
+            if (excludesRE != null && excludesRE.matcher(f).matches())
                 continue;
             if (file.isDirectory()) {
                 if (includeSubdirs)
                     searchDirectory(file, filter, excludesRE); // Recurse!
                 continue;
             }
-            if (!filter.accepts(files[i]))
+            if (!filter.accepts(f))
                 continue;
             if (isBinaryFile(file))
                 continue;
@@ -451,7 +450,7 @@ public final class FindInFiles extends Replacement implements Constants,
         {
             Position end = null;
             for (EditorIterator iter = new EditorIterator(); iter.hasNext();) {
-                Editor ed = iter.nextEditor();
+                Editor ed = iter.next();
                 if (ed.getBuffer() == outputBuffer) {
                     if (end == null) {
                         end = outputBuffer.getEnd();
@@ -486,8 +485,7 @@ public final class FindInFiles extends Replacement implements Constants,
     {
         final Editor editor = getEditor();
         final Buffer oldBuffer = editor.getBuffer();
-        for (int i = 0; i < results.size(); i++) {
-            File file = (File) results.get(i);
+        for (File file : results) {
             try {
                 replaceInFile(file);
             }
@@ -655,7 +653,7 @@ public final class FindInFiles extends Replacement implements Constants,
             if (getReplacementCount() > oldReplacementCount)
                 ++numFilesModified;
             for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-                Editor ed = it.nextEditor();
+                Editor ed = it.next();
                 if (ed.getBuffer() == buffer) {
                     if (ed.getDotOffset() > ed.getDotLine().length()) {
                         ed.getDot().setOffset(ed.getDotLine().length());
@@ -774,7 +772,7 @@ public final class FindInFiles extends Replacement implements Constants,
             if (SwingUtilities.isEventDispatchThread()) {
                 Position end = null;
                 for (EditorIterator iter = new EditorIterator(); iter.hasNext();) {
-                    Editor ed = iter.nextEditor();
+                    Editor ed = iter.next();
                     if (ed.getBuffer() == outputBuffer) {
                         if (end == null)
                             end = outputBuffer.getEnd();
@@ -850,7 +848,7 @@ public final class FindInFiles extends Replacement implements Constants,
             outputBuffer.appendStatusLine(sb.toString());
             outputBuffer.renumber();
             for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-                Editor ed = it.nextEditor();
+                Editor ed = it.next();
                 if (ed.getBuffer() == outputBuffer) {
                     ed.setTopLine(outputBuffer.getFirstLine());
                     ed.setDot(outputBuffer.getEnd());

@@ -252,7 +252,7 @@ public final class ImapMailboxBuffer extends MailboxBuffer
                         {
                             setBusy(false);
                             for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-                                Editor ed = it.nextEditor();
+                                Editor ed = it.next();
                                 View view = new View();
                                 view.setDotEntry(getInitialEntry());
                                 ed.setView(ImapMailboxBuffer.this, view);
@@ -271,7 +271,7 @@ public final class ImapMailboxBuffer extends MailboxBuffer
                             if (Editor.getBufferList().contains(ImapMailboxBuffer.this))
                                 kill();
                             for (EditorIterator it = new EditorIterator(); it.hasNext();)
-                                it.nextEditor().updateDisplay();
+                                it.next().updateDisplay();
                         }
                     };
                 }
@@ -393,7 +393,7 @@ public final class ImapMailboxBuffer extends MailboxBuffer
                 } else {
                     setBusy(false);
                     for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-                        Editor ed = it.nextEditor();
+                        Editor ed = it.next();
                         if (ed != null && ed.getBuffer() == ImapMailboxBuffer.this)
                             ed.setDefaultCursor();
                     }
@@ -498,16 +498,16 @@ public final class ImapMailboxBuffer extends MailboxBuffer
     {
         final Editor editor = Editor.currentEditor();
         boolean advanceDot = false;
-        List list = getTaggedEntries();
+        List<MailboxEntry> list = getTaggedEntries();
         if (list == null) {
             Line line = editor.getDotLine();
             if (!(line instanceof MailboxLine))
                 return;
             advanceDot = true;
-            list = new ArrayList();
+            list = new ArrayList<MailboxEntry>();
             list.add(((MailboxLine)line).getMailboxEntry());
         }
-        final List toBeCopied = list;
+        final List<MailboxEntry> toBeCopied = list;
         final int count = toBeCopied.size();
         String title;
         if (count > 1)
@@ -576,16 +576,16 @@ public final class ImapMailboxBuffer extends MailboxBuffer
     {
         final Editor editor = Editor.currentEditor();
         boolean advanceDot = false;
-        List list = getTaggedEntries();
+        List<MailboxEntry> list = getTaggedEntries();
         if (list == null) {
             Line line = editor.getDotLine();
             if (!(line instanceof MailboxLine))
                 return;
             advanceDot = true;
-            list = new ArrayList();
+            list = new ArrayList<MailboxEntry>();
             list.add(((MailboxLine)line).getMailboxEntry());
         }
-        final List toBeMoved = list;
+        final List<MailboxEntry> toBeMoved = list;
         final int count = toBeMoved.size();
         String title;
         if (count > 1)
@@ -643,7 +643,7 @@ public final class ImapMailboxBuffer extends MailboxBuffer
         }
     }
 
-    private boolean moveToFolder(List toBeMoved, String destination) throws MailException
+    private boolean moveToFolder(List<MailboxEntry> toBeMoved, String destination) throws MailException
     {
         if (destination == null)
             return false;
@@ -694,7 +694,7 @@ public final class ImapMailboxBuffer extends MailboxBuffer
         return succeeded;
     }
 
-    private boolean saveLocal(List toBeSaved, String destination, boolean delete)
+    private boolean saveLocal(List<MailboxEntry> toBeSaved, String destination, boolean delete)
     {
         File file = File.getInstance(destination.substring(8));
         if (file == null)
@@ -758,16 +758,16 @@ public final class ImapMailboxBuffer extends MailboxBuffer
     {
         final Editor editor = Editor.currentEditor();
         boolean advanceDot = false;
-        List list = getTaggedEntries();
+        List<MailboxEntry> list = getTaggedEntries();
         if (list == null) {
             Line line = editor.getDotLine();
             if (!(line instanceof MailboxLine))
                 return;
             advanceDot = true;
-            list = new ArrayList();
+            list = new ArrayList<MailboxEntry>();
             list.add(((MailboxLine)line).getMailboxEntry());
         }
-        final List toBeDeleted = list;
+        final List<MailboxEntry> toBeDeleted = list;
         final Line dotLine = advanceDot ? editor.getDotLine() : null;
         Runnable deleteRunnable = new Runnable() {
             public void run()
@@ -802,7 +802,7 @@ public final class ImapMailboxBuffer extends MailboxBuffer
         }
     }
 
-    private boolean delete(List toBeDeleted) throws MailException
+    private boolean delete(List<MailboxEntry> toBeDeleted) throws MailException
     {
         boolean succeeded = false;
         if (session.verifyConnected() && session.verifySelected(folderName)) {
@@ -850,7 +850,7 @@ public final class ImapMailboxBuffer extends MailboxBuffer
     {
         final Editor editor = Editor.currentEditor();
         boolean advanceDot = false;
-        List list = getTaggedEntries();
+        List<MailboxEntry> list = getTaggedEntries();
         if (list == null) {
             Line line = editor.getDotLine();
             if (!(line instanceof MailboxLine))
@@ -859,10 +859,10 @@ public final class ImapMailboxBuffer extends MailboxBuffer
                 advanceDot = getBooleanProperty(Property.UNDELETE_ADVANCE_DOT);
             else
                 advanceDot = true;
-            list = new ArrayList();
+            list = new ArrayList<MailboxEntry>();
             list.add(((MailboxLine)line).getMailboxEntry());
         }
-        final List entriesToBeProcessed = list;
+        final List<MailboxEntry> entriesToBeProcessed = list;
         final Line dotLine = advanceDot ? editor.getDotLine() : null;
         Runnable storeFlagsRunnable = new Runnable() {
             public void run()
@@ -938,19 +938,18 @@ public final class ImapMailboxBuffer extends MailboxBuffer
     {
         final Editor editor = Editor.currentEditor();
         boolean advanceDot = false;
-        List list = getTaggedEntries();
+        List<MailboxEntry> list = getTaggedEntries();
         if (list == null) {
             Line line = editor.getDotLine();
             if (!(line instanceof MailboxLine))
                 return;
             advanceDot = true;
-            list = new ArrayList();
+            list = new ArrayList<MailboxEntry>();
             list.add(((MailboxLine)line).getMailboxEntry());
         }
-        final List entriesToBeSet = new ArrayList();
-        final List entriesToBeCleared = new ArrayList();
-        for (int i = 0; i < list.size(); i++) {
-            MailboxEntry entry = (MailboxEntry) list.get(i);
+        final List<MailboxEntry> entriesToBeSet = new ArrayList<MailboxEntry>();
+        final List<MailboxEntry> entriesToBeCleared = new ArrayList<MailboxEntry>();
+        for (MailboxEntry entry : list) {
             if (entry.isFlagged())
                 entriesToBeCleared.add(entry);
             else
@@ -975,8 +974,7 @@ public final class ImapMailboxBuffer extends MailboxBuffer
                         if (entriesToBeSet.size() > 0) {
                             session.uidStore(getMessageSet(entriesToBeSet), "+flags.silent (\\flagged)");
                             if (session.getResponse() == ImapSession.OK) {
-                                for (int i = 0; i < entriesToBeSet.size(); i++) {
-                                    MailboxEntry entry = (MailboxEntry) entriesToBeSet.get(i);
+                                for (MailboxEntry entry : entriesToBeSet) {
                                     entry.flag();
                                     updateEntry(entry);
                                 }
@@ -986,8 +984,7 @@ public final class ImapMailboxBuffer extends MailboxBuffer
                         if (!error && entriesToBeCleared.size() > 0) {
                             session.uidStore(getMessageSet(entriesToBeCleared), "-flags.silent (\\flagged)");
                             if (session.getResponse() == ImapSession.OK) {
-                                for (int i = 0; i < entriesToBeCleared.size(); i++) {
-                                    MailboxEntry entry = (MailboxEntry) entriesToBeCleared.get(i);
+                                for (MailboxEntry entry : entriesToBeCleared) {
                                     entry.unflag();
                                     updateEntry(entry);
                                 }
@@ -1043,7 +1040,7 @@ public final class ImapMailboxBuffer extends MailboxBuffer
         }
     }
 
-    private List retrieveMessageHeaders(int uidBegin, int uidEnd,
+    private List<MailboxEntry> retrieveMessageHeaders(int uidBegin, int uidEnd,
         boolean recent)
     {
         Log.debug("retrieveMessageHeaders " + folderName + " " + uidBegin +
@@ -1051,7 +1048,7 @@ public final class ImapMailboxBuffer extends MailboxBuffer
         long start = System.currentTimeMillis();
         uidValidity = session.getUidValidity();
         messageCount = session.getMessageCount();
-        ArrayList list = new ArrayList();
+        ArrayList<MailboxEntry> list = new ArrayList<MailboxEntry>();
         FastStringBuffer sbCommand = new FastStringBuffer("uid fetch ");
         sbCommand.append(uidBegin);
         sbCommand.append(':');
@@ -1115,7 +1112,7 @@ public final class ImapMailboxBuffer extends MailboxBuffer
         return list;
     }
 
-    private void addEntry(List list, String s, int uidBegin, boolean recent)
+    private void addEntry(List<MailboxEntry> list, String s, int uidBegin, boolean recent)
     {
         ImapMailboxEntry entry = ImapMailboxEntry.parseEntry(s);
         if (entry != null) {
@@ -1201,28 +1198,27 @@ public final class ImapMailboxBuffer extends MailboxBuffer
                 fatal(session.getErrorText(), "Error");
             return false;
         }
-        if (t != null) {
-            try {
-                t.join();
-            }
-            catch (InterruptedException e) {
-                Log.error(e);
-            }
+
+        try {
+            t.join();
         }
+        catch (InterruptedException e) {
+            Log.error(e);
+        }
+
         entries = null;
         uidLast = 0;
         if (mailboxCache != null && mailboxCache.isValid()) {
             Log.debug("mailboxCache is valid");
-            List cachedEntries = mailboxCache.getEntries();
+            List<MailboxEntry> cachedEntries = mailboxCache.getEntries();
             Log.debug("cachedEntries.size() = " + cachedEntries.size());
             updateCachedEntries(cachedEntries);
             int size = cachedEntries.size();
-            entries = new ArrayList(size);
+            entries = new ArrayList<MailboxEntry>(size);
             // Add entries from cache, skipping any that have been nulled out.
-            for (int i = 0; i < size; i++) {
-                Object o = cachedEntries.get(i);
-                if (o != null)
-                    entries.add(o);
+            for (MailboxEntry entry : cachedEntries) {
+                if (entry != null)
+                    entries.add(entry);
             }
             Log.debug("entries.size() = " + entries.size());
             // We don't need the cache any more.
@@ -1236,20 +1232,20 @@ public final class ImapMailboxBuffer extends MailboxBuffer
         // Get any new entries from the server. Set the recent flag on these
         // entries unless we're retrieving the whole mailbox (uidLast == 0).
         boolean recent = uidLast > 0;
-        final List newEntries = retrieveMessageHeaders(uidLast+1, -1, recent);
+        final List<MailboxEntry> newEntries = retrieveMessageHeaders(uidLast+1, -1, recent);
         if (newEntries != null && newEntries.size() > 0) {
             addEntriesToAddressBook(newEntries);
             processIncomingFilters(newEntries);
             if (entries != null)
                 entries.addAll(newEntries);
             else
-                entries = new ArrayList(newEntries);
+                entries = new ArrayList<MailboxEntry>(newEntries);
         }
         uidValidity = session.getUidValidity();
         if (entries == null)
-            entries = new ArrayList();
+            entries = new ArrayList<MailboxEntry>();
         else if (entries instanceof ArrayList)
-            ((ArrayList)entries).trimToSize();
+            ((ArrayList<MailboxEntry>)entries).trimToSize();
         new ImapMailboxCache(this).writeCache();
         updateLastUid();
         return true;
@@ -1257,23 +1253,23 @@ public final class ImapMailboxBuffer extends MailboxBuffer
 
     private boolean getNewMessageHeaders()
     {
-        List newEntries = retrieveMessageHeaders(uidLast+1, -1, true);
+        List<MailboxEntry> newEntries = retrieveMessageHeaders(uidLast+1, -1, true);
         if (newEntries == null || newEntries.size() == 0)
             return false;
         addEntriesToAddressBook(newEntries);
         processIncomingFilters(newEntries);
         entries.addAll(newEntries);
         if (entries instanceof ArrayList)
-            ((ArrayList)entries).trimToSize();
+            ((ArrayList<MailboxEntry>)entries).trimToSize();
         new ImapMailboxCache(this).writeCache();
         updateLastUid();
         return true;
     }
 
-    private void processIncomingFilters(List entryList)
+    private void processIncomingFilters(List<MailboxEntry> entryList)
     {
         Log.debug("processIncomingFilters");
-        final List filterList = IncomingFilter.getFilterList();
+        final List<? extends IncomingFilter> filterList = IncomingFilter.getFilterList();
         if (filterList == null || filterList.size() == 0)
             return;
         // For now, we just process incoming filters for the user's inbox.
@@ -1299,8 +1295,7 @@ public final class ImapMailboxBuffer extends MailboxBuffer
             // Don't process deleted entries.
             if (entry.isDeleted())
                 continue;
-            for (int j = 0; j < filterList.size(); j++) {
-                IncomingFilter incomingFilter = (IncomingFilter) filterList.get(j);
+            for (IncomingFilter incomingFilter : filterList) {
                 if (incomingFilter != null) {
                     MailboxFilter mf = incomingFilter.getFilter();
                     if (mf != null && mf.accept(entry)) {
@@ -1348,7 +1343,7 @@ public final class ImapMailboxBuffer extends MailboxBuffer
     {
         if (destination != null) {
             Log.debug("destination = |" + destination + "|");
-            ArrayList list = new ArrayList(1);
+            ArrayList<MailboxEntry> list = new ArrayList<MailboxEntry>(1);
             list.add(entry);
             try {
                 Log.debug("processMove calling moveToFolder");
@@ -1381,7 +1376,7 @@ public final class ImapMailboxBuffer extends MailboxBuffer
 
     private void processDelete(ImapMailboxEntry entry)
     {
-        ArrayList list  = new ArrayList(1);
+        ArrayList<MailboxEntry> list  = new ArrayList<MailboxEntry>(1);
         list.add(entry);
         try {
             delete(list);
@@ -1391,7 +1386,7 @@ public final class ImapMailboxBuffer extends MailboxBuffer
         }
     }
 
-    private void updateCachedEntries(List cachedEntries)
+    private void updateCachedEntries(List<MailboxEntry> cachedEntries)
     {
         if (cachedEntries == null)
             return;
@@ -1400,14 +1395,12 @@ public final class ImapMailboxBuffer extends MailboxBuffer
             return;
         long start = System.currentTimeMillis();
         session.writeTagged("uid fetch 1:* (uid flags)");
-        HashMap map = new HashMap(size);
-        Iterator iter = cachedEntries.iterator();
-        while (iter.hasNext()) {
-            ImapMailboxEntry entry = (ImapMailboxEntry) iter.next();
-            map.put(new Integer(entry.getUid()), entry);
+        HashMap<Integer, ImapMailboxEntry> map = new HashMap<Integer, ImapMailboxEntry>(size);
+        for (MailboxEntry cachedEntry : cachedEntries) {
+            ImapMailboxEntry entry = (ImapMailboxEntry) cachedEntry;
+            map.put(entry.getUid(), entry);
         }
         Log.debug("built map " + (System.currentTimeMillis() - start) + " ms");
-        iter = null;
         final String endPrefix = session.lastTag() + " ";
         // Set mailbox field and update flags for all messages on server.
         while (true) {
@@ -1424,7 +1417,7 @@ public final class ImapMailboxBuffer extends MailboxBuffer
                 continue;
             }
             ImapMailboxEntry entry =
-                (ImapMailboxEntry) map.get(new Integer(uid));
+                map.get(new Integer(uid));
             if (entry != null) {
                 Debug.assertTrue(entry.getMailbox() == null);
                 entry.setMailbox(this);
@@ -1461,7 +1454,7 @@ public final class ImapMailboxBuffer extends MailboxBuffer
             (ImapMailboxEntry) ((MailboxLine)line).getMailboxEntry();
         Buffer buf = null;
         for (BufferIterator it = new BufferIterator(); it.hasNext();) {
-            Buffer b = it.nextBuffer();
+            Buffer b = it.next();
             if (b instanceof ImapMessageBuffer) {
                 ImapMessageBuffer mb = (ImapMessageBuffer) b;
                 if (mb.getMailboxEntry() == entry) {
@@ -1740,7 +1733,7 @@ public final class ImapMailboxBuffer extends MailboxBuffer
     }
 
     // Package scope for testing.
-    /*package*/ static String getMessageSet(List list)
+    /*package*/ static String getMessageSet(List<MailboxEntry> list)
     {
         FastStringBuffer sb = new FastStringBuffer();
         int limit = list.size();

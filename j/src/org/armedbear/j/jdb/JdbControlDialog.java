@@ -154,7 +154,7 @@ public final class JdbControlDialog extends JDialog implements JdbConstants,
             // First time.
             Editor editor = null;
             for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-                Editor ed = it.nextEditor();
+                Editor ed = it.next();
                 if (ed.getBuffer() == jdb) {
                     editor = ed;
                     break;
@@ -272,7 +272,7 @@ public final class JdbControlDialog extends JDialog implements JdbConstants,
             Expansion expansion = new Expansion(jdb, prefix, prefix);
             EditorIterator iter = new EditorIterator();
             while (iter.hasNext()) {
-                Editor ed = iter.nextEditor();
+                Editor ed = iter.next();
                 if (ed.getModeId() == JAVA_MODE) {
                     Expansion exp =
                         new Expansion(ed.getBuffer(), prefix, prefix, ed.getDot());

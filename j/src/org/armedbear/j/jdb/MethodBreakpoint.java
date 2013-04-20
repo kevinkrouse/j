@@ -73,9 +73,7 @@ public final class MethodBreakpoint extends ResolvableBreakpoint
     // BUG! Overloads are not handled correctly.
     private Method findMatchingMethod(ReferenceType refType)
     {
-        Iterator iter = refType.methods().iterator();
-        while (iter.hasNext()) {
-            Method method = (Method) iter.next();
+        for (Method method : refType.methods()) {
             if (method.name().equals(methodName))
                 return method;
         }
@@ -96,7 +94,7 @@ public final class MethodBreakpoint extends ResolvableBreakpoint
             buf.initialize();
         if (!buf.isLoaded())
             buf.load();
-        List tags = buf.getTags(true);
+        List<LocalTag> tags = buf.getTags(true);
         if (tags == null)
             return;
         String lookFor = refType.name();
@@ -110,12 +108,12 @@ public final class MethodBreakpoint extends ResolvableBreakpoint
         Line begin = null;
         Line end = null;
         for (int i = 0; i < tags.size(); i++) {
-            LocalTag tag = (LocalTag) tags.get(i);
+            LocalTag tag = tags.get(i);
             if (tag.getName() != null) {
                 if (tag.getName().equals(lookFor)) {
                     begin = tag.getLine();
                     if (++i < tags.size()) {
-                        tag = (LocalTag) tags.get(i);
+                        tag = tags.get(i);
                         end = tag.getLine();
                     }
                     break;

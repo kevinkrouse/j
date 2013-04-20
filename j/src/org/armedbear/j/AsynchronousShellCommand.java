@@ -101,17 +101,15 @@ public final class AsynchronousShellCommand implements Constants, Runnable
     private void killProcess()
     {
         if (processTable != null) {
-            List entries = processTable.findMatchingEntries(cmdline);
+            List<ProcessTableEntry> entries = processTable.findMatchingEntries(cmdline);
             if (entries != null && entries.size() > 0) {
                 // We want the last matching entry.
                 ProcessTableEntry parent =
-                    (ProcessTableEntry) entries.get(entries.size()-1);
+                    entries.get(entries.size()-1);
                 if (parent != null) {
-                    List children = processTable.findChildren(parent.pid);
+                    List<ProcessTableEntry> children = processTable.findChildren(parent.pid);
                     if (children != null) {
-                        for (int i = 0; i < children.size(); i++) {
-                            ProcessTableEntry entry =
-                                (ProcessTableEntry) children.get(i);
+                        for (ProcessTableEntry entry : children) {
                             Utilities.kill(entry.pid);
                         }
                     }
@@ -136,7 +134,7 @@ public final class AsynchronousShellCommand implements Constants, Runnable
                     outputBuffer.renumber();
                 outputBuffer.enforceOutputLimit(Property.SHELL_OUTPUT_LIMIT);
                 for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-                    Editor ed = it.nextEditor();
+                    Editor ed = it.next();
                     if (ed.getBuffer() == outputBuffer) {
                         ed.eob();
                         ed.getDisplay().setReframe(-2);

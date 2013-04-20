@@ -50,14 +50,14 @@ public final class PropertiesDialog extends AbstractDialog implements Constants
     private final Editor editor;
     private final Buffer buffer;
 
-    private JComboBox modeComboBox;
+    private JComboBox<String> modeComboBox;
     private JTextField tabWidthTextField;
     private JTextField indentSizeTextField;
     private JTextField wrapColumnTextField;
     private CheckBox useTabsCheckBox;
     private CheckBox indentBeforeBraceCheckBox;
     private CheckBox indentAfterBraceCheckBox;
-    private JComboBox lineSeparatorComboBox;
+    private JComboBox<String> lineSeparatorComboBox;
 
     public PropertiesDialog()
     {
@@ -155,7 +155,7 @@ public final class PropertiesDialog extends AbstractDialog implements Constants
 
         if (modeId != IMAGE_MODE && modeId != WEB_MODE){
             // Mode combo box.
-            modeComboBox = new JComboBox(getPermissibleModes());
+            modeComboBox = new JComboBox<String>(getPermissibleModes());
             Dimension dim = modeComboBox.getPreferredSize();
             modeComboBox.setMinimumSize(dim);
             modeComboBox.setMaximumSize(dim);
@@ -259,11 +259,11 @@ public final class PropertiesDialog extends AbstractDialog implements Constants
                 addVerticalStrut();
 
                 // Line separator combo box.
-                Vector v = new Vector();
+                Vector<String> v = new Vector<String>();
                 v.add(TEXT_LF);
                 v.add(TEXT_CRLF);
                 v.add(TEXT_CR);
-                lineSeparatorComboBox = new JComboBox(v);
+                lineSeparatorComboBox = new JComboBox<String>(v);
                 dim = lineSeparatorComboBox.getPreferredSize();
                 lineSeparatorComboBox.setMinimumSize(dim);
                 lineSeparatorComboBox.setMaximumSize(dim);
@@ -338,16 +338,14 @@ public final class PropertiesDialog extends AbstractDialog implements Constants
             }
             return array;
         }
-        ArrayList list = new ArrayList();
+        ArrayList<String> list = new ArrayList<String>();
         synchronized (modeList) {
-            Iterator it = modeList.iterator();
-            while (it.hasNext()) {
-                ModeListEntry entry = (ModeListEntry) it.next();
+            for (ModeListEntry entry : modeList) {
                 if (entry.isSelectable())
                     list.add(entry.getDisplayName());
             }
         }
-        return (String[]) list.toArray(new String[list.size()]);
+        return list.toArray(new String[list.size()]);
     }
 
     private boolean save()
@@ -487,14 +485,12 @@ public final class PropertiesDialog extends AbstractDialog implements Constants
         FastStringBuffer sb = new FastStringBuffer();
         PropertyList properties = buffer.getProperties();
         if (properties != null) {
-            Set keySet = properties.keySet();
+            Set<Property> keySet = properties.keySet();
             if (keySet != null) {
                 // Sort keys.
-                ArrayList keys = new ArrayList(keySet);
+                ArrayList<Property> keys = new ArrayList<Property>(keySet);
                 Collections.sort(keys);
-                Iterator it = keys.iterator();
-                while (it.hasNext()) {
-                    Property property = (Property) it.next();
+                for (Property property : keys) {
                     Object value = properties.getProperty(property);
                     sb.append(property.getDisplayName());
                     sb.append(" = ");

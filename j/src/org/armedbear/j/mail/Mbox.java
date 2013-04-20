@@ -41,13 +41,13 @@ import org.armedbear.j.ProgressNotifier;
 
 public final class Mbox
 {
-    private static ArrayList mboxList;
+    private static ArrayList<Mbox> mboxList;
 
     private final Mutex mutex = new Mutex();
     private final File file;
 
     private long lastModified;
-    private ArrayList entries;
+    private ArrayList<LocalMailboxEntry> entries;
 
     private Mbox(File file)
     {
@@ -58,10 +58,10 @@ public final class Mbox
     public static synchronized Mbox getInstance(File file)
     {
         if (mboxList == null)
-            mboxList = new ArrayList();
+            mboxList = new ArrayList<Mbox>();
         else {
             for (int i = mboxList.size()-1; i >= 0; i--) {
-                Mbox mbox = (Mbox) mboxList.get(i);
+                Mbox mbox = mboxList.get(i);
                 if (mbox.getFile().equals(file))
                     return mbox;
             }
@@ -77,9 +77,9 @@ public final class Mbox
         Log.debug("Mbox.cleanup");
         if (mboxList == null || mboxList.size() == 0)
             return;
-        Iterator iter = mboxList.iterator();
+        Iterator<Mbox> iter = mboxList.iterator();
         while (iter.hasNext()) {
-            Mbox mbox = (Mbox) iter.next();
+            Mbox mbox = iter.next();
             if (findMailbox(mbox) == null) {
                 Log.debug("removing Mbox for " + mbox.getFile());
                 iter.remove();
@@ -92,7 +92,7 @@ public final class Mbox
         File file = mbox.getFile();
         BufferIterator iter = new BufferIterator();
         while (iter.hasNext()) {
-            Buffer buf = iter.nextBuffer();
+            Buffer buf = iter.next();
             if (buf instanceof LocalMailboxBuffer) {
                 LocalMailboxBuffer mb = (LocalMailboxBuffer) buf;
                 if (mb.getMailboxFile().equals(file))
@@ -108,7 +108,7 @@ public final class Mbox
     }
 
     // Return a copy.
-    public synchronized final List getEntries(ProgressNotifier progressNotifier)
+    public synchronized final List<MailboxEntry> getEntries(ProgressNotifier progressNotifier)
     {
         Log.debug("Mbox.getEntries");
         Debug.assertTrue(isLocked());
@@ -138,7 +138,7 @@ public final class Mbox
                 read(progressNotifier);
             }
         }
-        return new ArrayList(entries);
+        return new ArrayList<MailboxEntry>(entries);
     }
 
     public synchronized boolean lock()
@@ -168,7 +168,7 @@ public final class Mbox
         Log.debug("entering Mbox.read");
         long start = System.currentTimeMillis();
         Debug.assertTrue(isLocked());
-        entries = new ArrayList(1000);
+        entries = new ArrayList<LocalMailboxEntry>(1000);
         long messageStart = 0;
         MailReader reader = null;
         try {
@@ -185,7 +185,7 @@ public final class Mbox
                     Log.debug("read - end of file");
                     if (entries.size() > 0) {
                         LocalMailboxEntry entry =
-                            (LocalMailboxEntry) entries.get(entries.size()-1);
+                            entries.get(entries.size()-1);
                         entry.setSize((int)(here - messageStart));
                         entry.setNextMessageStart(here);
                     }
@@ -195,7 +195,7 @@ public final class Mbox
                 if (text.startsWith("From ")) {
                     if (entries.size() > 0) {
                         LocalMailboxEntry entry =
-                            (LocalMailboxEntry) entries.get(entries.size()-1);
+                            entries.get(entries.size()-1);
                         entry.setSize((int)(here - messageStart));
                         entry.setNextMessageStart(here);
                         messageStart = here;
@@ -336,14 +336,14 @@ public final class Mbox
         if (entries == null)
             return;
         for (BufferIterator it = new BufferIterator(); it.hasNext();) {
-            Buffer buf = it.nextBuffer();
+            Buffer buf = it.next();
             if (buf instanceof LocalMailboxBuffer) {
                 LocalMailboxBuffer mb = (LocalMailboxBuffer) buf;
                 if (mb.getMailboxFile().equals(file)) {
                     if (mb.lock()){
                         try {
                             mb.saveDisplayState();
-                            mb.setEntries(new ArrayList(entries));
+                            mb.setEntries(new ArrayList<MailboxEntry>(entries));
                             mb.refreshBuffer();
                             mb.updateDisplay();
                         }

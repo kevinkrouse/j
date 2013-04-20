@@ -20,6 +20,7 @@
 
 package org.armedbear.j.mail;
 
+import java.util.Collections;
 import java.util.regex.Pattern;
 import java.util.regex.Matcher;
 import java.io.BufferedInputStream;
@@ -75,7 +76,7 @@ public final class SendMail extends Buffer
     private static Preferences preferences;
 
     private boolean reply;
-    private List group;
+    private List<MailAddress> group;
     private MailboxBuffer mailbox;
     private MailboxEntry entryRepliedTo;
     private String boundary;
@@ -177,13 +178,13 @@ public final class SendMail extends Buffer
         try {
             appendFrom();
             // Get senders.
-            List senders = null;
+            List<MailAddress> senders = null;
             if (replyTo != null && replyTo.length > 0) {
-                senders = new ArrayList();
+                senders = new ArrayList<MailAddress>();
                 for (int i = 0; i < replyTo.length; i++)
                     senders.add(replyTo[i]);
             } else if (from != null && from.length > 0) {
-                senders = new ArrayList();
+                senders = new ArrayList<MailAddress>();
                 for (int i = 0; i < from.length; i++)
                     senders.add(from[i]);
             }
@@ -191,7 +192,7 @@ public final class SendMail extends Buffer
                 Debug.assertTrue(senders.size() > 0);
                 // Remove user's address from list of senders.
                 for (int i = senders.size(); i-- > 0;) {
-                    MailAddress a = (MailAddress) senders.get(i);
+                    MailAddress a = senders.get(i);
                     if (a.addressMatches(Mail.getUserMailAddress()))
                         senders.remove(i);
                 }
@@ -207,7 +208,7 @@ public final class SendMail extends Buffer
                 appendAddressHeader("To: ", senders);
             }
             // Gather addresses for reply to group.
-            group = new ArrayList();
+            group = new ArrayList<MailAddress>();
             if (!skipTo && to != null) {
                 for (int i = 0;  i < to.length; i++) {
                     MailAddress a = to[i];
@@ -226,9 +227,9 @@ public final class SendMail extends Buffer
             if (senders != null) {
                 // Make sure we don't duplicate entries in the "To:" header.
                 for (int i = senders.size(); i-- > 0;) {
-                    MailAddress toAddress = (MailAddress) senders.get(i);
+                    MailAddress toAddress = senders.get(i);
                     for (int j = group.size(); j-- > 0;) {
-                        MailAddress a = (MailAddress) group.get(j);
+                        MailAddress a = group.get(j);
                         if (a.equals(toAddress)) {
                             // It's a duplicate. Remove it from the group.
                             group.remove(j);
@@ -306,7 +307,7 @@ public final class SendMail extends Buffer
     {
         boolean result = super.save();
         for (BufferIterator it = new BufferIterator(); it.hasNext();) {
-            Buffer buf = it.nextBuffer();
+            Buffer buf = it.next();
             if (buf instanceof DraftsBuffer) {
                 DraftsBuffer draftsBuffer = (DraftsBuffer) buf;
                 draftsBuffer.reload();
@@ -321,14 +322,14 @@ public final class SendMail extends Buffer
         return hasBeenSent;
     }
 
-    private static void removeDuplicateAddresses(List list)
+    private static void removeDuplicateAddresses(List<MailAddress> list)
     {
         // Remove duplicate entries from list.
         for (int i = list.size(); i-- > 0;) {
-            MailAddress ma = (MailAddress) list.get(i);
+            MailAddress ma = list.get(i);
             String addr = ma.getAddress();
             for (int j = i-1; j >= 0; j--) {
-                MailAddress ma2 = (MailAddress) list.get(j);
+                MailAddress ma2 = list.get(j);
                 if (ma.equals(ma2)) {
                     list.remove(i);
                     break;
@@ -349,7 +350,7 @@ public final class SendMail extends Buffer
         }
     }
 
-    private void appendAddressHeader(String prefix, List list)
+    private void appendAddressHeader(String prefix, List<MailAddress> list)
     {
         if (list == null)
             return;
@@ -408,7 +409,7 @@ public final class SendMail extends Buffer
         repaint();
     }
 
-    private void replaceBcc(List bccList)
+    private void replaceBcc(List<MailAddress> bccList)
     {
         final Editor editor = Editor.currentEditor();
         final Position savedDot = editor.getDotCopy();
@@ -661,11 +662,10 @@ public final class SendMail extends Buffer
         if (from != null)
             replaceFrom(from);
         if (d.bccAddSender() || d.bccAddOther()) {
-            List bccList = new ArrayList();
+            List<MailAddress> bccList = new ArrayList<MailAddress>();
             MailAddress[] bcc = MailAddress.parseAddresses(getBcc());
             if (bcc != null) {
-                for (int i = 0; i < bcc.length; i++)
-                    bccList.add(bcc[i]);
+                Collections.addAll(bccList, bcc);
             }
             if (d.bccAddSender() && from != null)
                 bccList.add(MailAddress.parseAddress(from));
@@ -780,7 +780,7 @@ public final class SendMail extends Buffer
                 Log.debug("deleting draft " + file);
                 file.delete();
                 for (BufferIterator it = new BufferIterator(); it.hasNext();) {
-                    Buffer buf = it.nextBuffer();
+                    Buffer buf = it.next();
                     if (buf instanceof DraftsBuffer) {
                         DraftsBuffer draftsBuffer = (DraftsBuffer) buf;
                         draftsBuffer.reload();
@@ -792,7 +792,7 @@ public final class SendMail extends Buffer
             kill();
             EditorIterator iter = new EditorIterator();
             while (iter.hasNext())
-                iter.nextEditor().updateDisplay();
+                iter.next().updateDisplay();
         }
     };
 
@@ -818,7 +818,7 @@ public final class SendMail extends Buffer
             Line line;
             // Headers.
             boolean inBcc = false;
-            List attachments = null;
+            List<String> attachments = null;
             for (line = getFirstLine(); line != null; line = line.next()) {
                 String text = line.getText();
                 if (text.length() == 0) {
@@ -918,8 +918,7 @@ public final class SendMail extends Buffer
             }
             // Attachments.
             if (attachments != null) {
-                for (int i = 0; i < attachments.size(); i++) {
-                    String fullPath = (String) attachments.get(i);
+                for (String fullPath : attachments) {
                     File file = File.getInstance(fullPath);
                     String contentType = getContentTypeForFile(file);
                     Log.debug("contentType = " + contentType);
@@ -1040,16 +1039,15 @@ public final class SendMail extends Buffer
         if (group == null)
             return;
         // Entries from the original group will come first in the new list.
-        List newList = new ArrayList(group);
+        List<MailAddress> newList = new ArrayList<MailAddress>(group);
         // Add the entries from the existing "Cc:" header (if any) back in.
         MailAddress[] cc = MailAddress.parseAddresses(getCc());
         if (cc != null) {
-            for (int i = 0; i < cc.length; i++) {
-                MailAddress oldAddress = cc[i];
+            for (MailAddress oldAddress : cc) {
                 // Skip entries that are already in the list.
                 boolean isDuplicate = false;
-                for (int j = newList.size()-1; j >= 0; j--) {
-                    MailAddress a = (MailAddress) newList.get(j);
+                for (int j = newList.size() - 1; j >= 0; j--) {
+                    MailAddress a = newList.get(j);
                     if (oldAddress.equals(a)) {
                         isDuplicate = true;
                         break;
@@ -1065,10 +1063,10 @@ public final class SendMail extends Buffer
             for (int i = to.length-1; i >= 0; i--) {
                 MailAddress toAddress = to[i];
                 for (int j = newList.size()-1; j >= 0; j--) {
-                    MailAddress a = (MailAddress) newList.get(j);
+                    MailAddress a = newList.get(j);
                     if (a.equals(toAddress)) {
                         // It's a duplicate. Remove it from the new list.
-                        Log.debug("removing " + (MailAddress)newList.get(j));
+                        Log.debug("removing " + newList.get(j));
                         newList.remove(j);
                         break;
                     }
@@ -1190,18 +1188,18 @@ public final class SendMail extends Buffer
         }
     }
 
-    public List getAddressees()
+    public List<String> getAddressees()
     {
-        ArrayList list = new ArrayList();
+        ArrayList<String> list = new ArrayList<String>();
         appendAddressesFromString(list, getTo());
         appendAddressesFromString(list, getCc());
         appendAddressesFromString(list, getBcc());
-        for (int i = 0; i < list.size(); i++)
-            Log.debug("|" + (String) list.get(i) + "|");
+        for (String aList : list)
+            Log.debug("|" + aList + "|");
         return list;
     }
 
-    private static void appendAddressesFromString(List list, String s)
+    private static void appendAddressesFromString(List<String> list, String s)
     {
         if (s == null)
             return;
@@ -1309,9 +1307,9 @@ public final class SendMail extends Buffer
         return new Position(getFirstLine(), 0);
     }
 
-    private List parseAttachments()
+    private List<String> parseAttachments()
     {
-        ArrayList attachments = null;
+        ArrayList<String> attachments = null;
         for (Line line = getFirstLine(); line != null; line = line.next()) {
             if (line.getText().equals(HEADER_SEPARATOR))
                 break;
@@ -1319,7 +1317,7 @@ public final class SendMail extends Buffer
                 String filename = line.getText().substring(11).trim();
                 if (filename.length() > 0) {
                     if (attachments == null)
-                        attachments = new ArrayList();
+                        attachments = new ArrayList<String>();
                     attachments.add(filename);
                 }
             }

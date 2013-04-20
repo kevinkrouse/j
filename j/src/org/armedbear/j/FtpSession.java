@@ -37,7 +37,6 @@ import java.net.SocketException;
 import java.util.ArrayList;
 import java.util.Random;
 import java.util.StringTokenizer;
-import java.util.Vector;
 import javax.swing.SwingUtilities;
 
 public class FtpSession implements Constants, RemoteSession
@@ -218,10 +217,7 @@ public class FtpSession implements Constants, RemoteSession
 
     public boolean exists(String remotePath)
     {
-        if (isDirectory(remotePath))
-            return true;
-        else
-            return isFile(remotePath);
+        return isDirectory(remotePath) || isFile(remotePath);
     }
 
     private long getFileSize(String remotePath)
@@ -1039,7 +1035,7 @@ public class FtpSession implements Constants, RemoteSession
             String host = session.getHostName();
             boolean inUse = false;
             for (BufferIterator it = new BufferIterator(); it.hasNext();) {
-                Buffer buf = it.nextBuffer();
+                Buffer buf = it.next();
                 if (buf.getFile() instanceof FtpFile) {
                     if (host.equals(buf.getFile().getHostName())) {
                          inUse = true;
@@ -1242,8 +1238,7 @@ public class FtpSession implements Constants, RemoteSession
 
     private static synchronized FtpSession lockSession(String host, int port)
     {
-        for (int i = 0; i < sessionList.size(); i++) {
-            FtpSession session = sessionList.get(i);
+        for (FtpSession session : sessionList) {
             if (session.host.equals(host) && session.port == port) {
                 if (session.lock())
                     return session;
@@ -1254,8 +1249,7 @@ public class FtpSession implements Constants, RemoteSession
 
     private static synchronized FtpSession findSession(String host, int port)
     {
-        for (int i = 0; i < sessionList.size(); i++) {
-            FtpSession session = sessionList.get(i);
+        for (FtpSession session : sessionList) {
             if (session.host.equals(host) && session.port == port)
                 return session;
         }

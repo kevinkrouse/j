@@ -58,7 +58,7 @@ public final class Ssh
         }
         String userName = remote.getUserName();
         password = remote.getPassword();
-        ArrayList list = new ArrayList();
+        ArrayList<String> list = new ArrayList<String>();
         list.add("jpty");
         list.add("scp");
         list.add("-q");
@@ -89,7 +89,7 @@ public final class Ssh
         sb.append(escape(destination.canonicalPath()));
         list.add(sb.toString());
         String[] array = new String[list.size()];
-        cmdarray = (String[]) list.toArray(array);
+        cmdarray = list.toArray(array);
         run();
         return succeeded;
     }

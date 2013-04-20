@@ -34,8 +34,8 @@ import javax.swing.SwingUtilities;
 
 public final class IList implements BackgroundProcess, Constants
 {
-    private final HashSet searchedFiles = new HashSet(256);
-    private final Stack stack = new Stack();
+    private final HashSet<File> searchedFiles = new HashSet<File>(256);
+    private final Stack<File> stack = new Stack<File>();
     private final Editor editor;
     private final Buffer sourceBuffer;
     private final Search search;

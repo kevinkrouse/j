@@ -26,10 +26,11 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.util.ArrayList;
-import java.util.Enumeration;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Properties;
+import java.util.Set;
+
 import org.armedbear.j.Directories;
 import org.armedbear.j.File;
 import org.armedbear.j.Log;
@@ -43,8 +44,8 @@ import org.xml.sax.helpers.DefaultHandler;
 
 public final class JdbSession extends Properties
 {
-    private List breakpointSpecifications;
-    private List breakpoints;
+    private List<BreakpointSpecification> breakpointSpecifications;
+    private List<ResolvableBreakpoint> breakpoints;
 
     public JdbSession()
     {
@@ -190,9 +191,8 @@ public final class JdbSession extends Properties
             writer.newLine();
             writer.write("<session version=\"" + getVersion() + "\">");
             writer.newLine();
-            Enumeration propertyNames = propertyNames();
-            while (propertyNames.hasMoreElements()) {
-                String name = (String) propertyNames.nextElement();
+            Set<String> propertyNames = stringPropertyNames();
+            for (String name : propertyNames) {
                 String value = getProperty(name);
                 writer.write("  ");
                 writer.write(Utilities.propertyToXml(name, value));
@@ -214,7 +214,7 @@ public final class JdbSession extends Properties
             try {
                 writer.write("  <breakpoints>");
                 writer.newLine();
-                Iterator iter = breakpoints.iterator();
+                Iterator<ResolvableBreakpoint> iter = breakpoints.iterator();
                 while (iter.hasNext()) {
                     Object obj = iter.next();
                     if (obj instanceof MethodBreakpoint) {
@@ -252,12 +252,12 @@ public final class JdbSession extends Properties
         }
     }
 
-    public List getBreakpointSpecifications()
+    public List<BreakpointSpecification> getBreakpointSpecifications()
     {
         return breakpointSpecifications;
     }
 
-    public void setBreakpoints(List breakpoints)
+    public void setBreakpoints(List<ResolvableBreakpoint> breakpoints)
     {
         this.breakpoints = breakpoints;
     }
@@ -282,7 +282,7 @@ public final class JdbSession extends Properties
                 String value = attributes.getValue("value");
                 setProperty(propertyName, value);
             } else if (localName.equals("breakpoints") || qName.equals("breakpoints")) {
-                breakpointSpecifications = new ArrayList();
+                breakpointSpecifications = new ArrayList<BreakpointSpecification>();
             } else if (localName.equals("breakpoint") || qName.equals("breakpoint")) {
                 BreakpointSpecification spec =
                     new BreakpointSpecification(attributes);

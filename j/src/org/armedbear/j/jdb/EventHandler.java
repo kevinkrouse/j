@@ -93,9 +93,9 @@ public final class EventHandler implements Runnable
                         if (threadRef != null) {
                             jdb.setCurrentThread(threadRef);
                             try {
-                                List frames = threadRef.frames();
+                                List<StackFrame> frames = threadRef.frames();
                                 if (frames.size() > 0)
-                                    jdb.setCurrentStackFrame((StackFrame)frames.get(0));
+                                    jdb.setCurrentStackFrame(frames.get(0));
                             }
                             catch (IncompatibleThreadStateException e) {
                                 Log.error(e);
@@ -206,8 +206,8 @@ public final class EventHandler implements Runnable
         EventRequest er = evt.request();
         if (er instanceof BreakpointRequest) {
             BreakpointRequest br = (BreakpointRequest) er;
-            for (Iterator it = jdb.getBreakpoints().iterator(); it.hasNext();) {
-                ResolvableBreakpoint bp = (ResolvableBreakpoint) it.next();
+            for (Iterator<ResolvableBreakpoint> it = jdb.getBreakpoints().iterator(); it.hasNext();) {
+                ResolvableBreakpoint bp = it.next();
                 if (bp.getEventRequest() == br) {
                     if (bp.isTemporary()) {
                         jdb.deleteBreakpoint(bp);

@@ -26,6 +26,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.StringReader;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import javax.swing.Icon;
@@ -235,7 +236,7 @@ public class MessageBuffer extends Buffer
             {
                 setBusy(false);
                 for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-                    Editor ed = it.nextEditor();
+                    Editor ed = it.next();
                     if (ed.getBuffer() == MessageBuffer.this) {
                         ed.setDot(getFirstLine(), 0);
                         ed.setUpdateFlag(REFRAME);
@@ -353,14 +354,13 @@ public class MessageBuffer extends Buffer
         String references = message.getHeaderValue(Headers.REFERENCES);
         Log.debug("references = |" + references + "|");
         if (references != null) {
-            List list = extractAllMessageIds(references);
+            List<String> list = extractAllMessageIds(references);
             if (list != null) {
-                for (int i = 0; i < list.size(); i++) {
-                    String msgId = (String) list.get(i);
+                for (String msgId : list) {
                     if (msgId != null) {
                         Log.debug("msgId = |" + msgId + "|");
                         MailboxEntry parentEntry =
-                            mailbox.getEntryForMessageId(msgId);
+                                mailbox.getEntryForMessageId(msgId);
                         if (parentEntry != null) {
                             load(editor, parentEntry);
                             return;
@@ -385,11 +385,11 @@ public class MessageBuffer extends Buffer
         return s.substring(begin, end + 1);
     }
 
-    private static List extractAllMessageIds(String s)
+    private static List<String> extractAllMessageIds(String s)
     {
         if (s == null)
             return null;
-        ArrayList list = null;
+        ArrayList<String> list = null;
         while (s.length() > 2) {
             int begin = s.indexOf('<');
             if (begin < 0)
@@ -399,7 +399,7 @@ public class MessageBuffer extends Buffer
                 break;
             String msgId = s.substring(begin, end + 1);
             if (list == null)
-                list = new ArrayList();
+                list = new ArrayList<String>();
             Log.debug("adding |" + msgId + "|");
             list.add(msgId);
             s = s.substring(end+1);
@@ -561,33 +561,31 @@ public class MessageBuffer extends Buffer
         if (message == null)
             return "";
         Headers headers = Headers.parse(message.getRawHeaders());
-        ArrayList names = new ArrayList(); // Header names.
+        ArrayList<String> names = new ArrayList<String>(); // Header names.
         names.add("From");
         names.add("To");
         names.add("Cc");
         names.add("Subject");
         names.add("Date");
         int width = 0;
-        for (Iterator it = names.iterator(); it.hasNext();) {
-            int w = ((String)it.next()).length();
+        for (String name : names) {
+            int w = name.length();
             if (w > width)
                 width = w;
         }
         FastStringBuffer sb = new FastStringBuffer();
-        for (Iterator it = names.iterator(); it.hasNext();) {
-            String name = (String) it.next();
+        for (String name : names) {
             String value = headers.getValue(name);
             if (value != null) {
-                if (name == "From" || name== "To" || name == "Cc") {
+                if (name == "From" || name == "To" || name == "Cc") {
                     MailAddress[] array =
-                        MailAddress.parseAddresses(RFC2047.decode(value));
-                    ArrayList list = new ArrayList();
-                    for (int i = 0; i < array.length; i++)
-                        list.add(array[i]);
+                            MailAddress.parseAddresses(RFC2047.decode(value));
+                    ArrayList<MailAddress> list = new ArrayList<MailAddress>();
+                    Collections.addAll(list, array);
                     String prefix =
-                        Utilities.rightJustify(name, width).concat(": ");
+                            Utilities.rightJustify(name, width).concat(": ");
                     sb.append(MailUtilities.constructAddressHeader(prefix,
-                        list, prefix.length()));
+                            list, prefix.length()));
                 } else {
                     // Subject, date.
                     sb.append(Utilities.rightJustify(name, width));
@@ -655,7 +653,7 @@ public class MessageBuffer extends Buffer
             Buffer buf = null;
             // See if we already have this attachment open in a buffer.
             for (BufferIterator it = new BufferIterator(); it.hasNext();) {
-                Buffer b = it.nextBuffer();
+                Buffer b = it.next();
                 if (b instanceof MessageBuffer) {
                     MessageBuffer mb = (MessageBuffer) b;
                     Message m = mb.getMessage();
@@ -760,7 +758,7 @@ public class MessageBuffer extends Buffer
         setText();
         formatter.parseBuffer();
         for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-            Editor ed = it.nextEditor();
+            Editor ed = it.next();
             if (ed.getBuffer() == this) {
                 ed.setDot(getFirstLine(), 0);
                 ed.moveCaretToDotCol();
@@ -776,14 +774,13 @@ public class MessageBuffer extends Buffer
         if (mimeBody != null)
             Debug.bug();
         message.parse();
-        List parts = message.getParts();
+        List<MimePart> parts = message.getParts();
         if (parts == null || parts.size() == 0) {
             // Not multipart.
             mimeBody = message.getDecodedBody();
             return;
         }
-        for (Iterator it = parts.iterator(); it.hasNext();) {
-            MimePart part = (MimePart) it.next();
+        for (MimePart part : parts) {
             final String contentType = part.getContentType();
             if (contentType == null || contentType.equals("text/plain")) {
                 selectedPart = part;
@@ -791,8 +788,7 @@ public class MessageBuffer extends Buffer
                 return;
             }
         }
-        for (Iterator it = parts.iterator(); it.hasNext();) {
-            MimePart part = (MimePart) it.next();
+        for (MimePart part : parts) {
             final String contentType = part.getContentType();
             if (contentType == null || contentType.equals("text/html")) {
                 selectedPart = part;
@@ -803,21 +799,21 @@ public class MessageBuffer extends Buffer
         mimeBody = "";
     }
 
-    private List getAttachmentLines()
+    private List<Line> getAttachmentLines()
     {
-        List parts = message.getParts();
+        List<MimePart> parts = message.getParts();
         if (parts == null || parts.size() == 0) {
             // Not multipart.
             return null;
         }
         int shown = -1;
-        ArrayList list = new ArrayList();
+        ArrayList<Line> list = new ArrayList<Line>();
         list.add(new MessageHeaderLine("Parts/Attachments:"));
         for (int i = 0; i < parts.size(); i++) {
             FastStringBuffer sb = new FastStringBuffer();
             sb.append("   ");
             sb.append(i+1);
-            MimePart part = (MimePart) parts.get(i);
+            MimePart part = parts.get(i);
             final String contentType = part.getContentType();
             if (part == selectedPart) {
                 sb.append(" Shown");
@@ -942,13 +938,13 @@ public class MessageBuffer extends Buffer
         }
         appendHeaderLines(headers);
         headerLineCount = Utilities.countLines(headers);
-        List attachmentLines = getAttachmentLines();
+        List<Line> attachmentLines = getAttachmentLines();
         if (attachmentLines != null) {
             appendHeaderLine("");
             ++headerLineCount;
-            Iterator iter = attachmentLines.iterator();
+            Iterator<Line> iter = attachmentLines.iterator();
             while (iter.hasNext()) {
-                Line line = (Line) iter.next();
+                Line line = iter.next();
                 if (!(line instanceof MessageHeaderLine))
                     Debug.bug();
                 appendLine(line);
@@ -979,10 +975,10 @@ public class MessageBuffer extends Buffer
         }
         // Don't try to display images inline if the message is too big.
         if (message.getSize() < 1024 * 1024) {
-            List parts = message.getParts();
+            List<MimePart> parts = message.getParts();
             if (parts != null) {
                 for (int i = 0; i < parts.size(); i++) {
-                    MimePart part = (MimePart) parts.get(i);
+                    MimePart part = parts.get(i);
                     String partContentType = part.getContentType();
                     if (partContentType == null)
                         continue;

@@ -48,17 +48,17 @@ public final class ThreadPanel implements ContextListener, MouseListener
 {
     private final Jdb jdb;
     private final JdbControlDialog dialog;
-    private final JList list;
+    private final JList<String> list;
     private final JScrollPane scrollPane;
 
-    private List threads;
+    private List<ThreadReference> threads;
 
     public ThreadPanel(Jdb jdb, JdbControlDialog dialog)
     {
         this.jdb = jdb;
         this.dialog = dialog;
-        Vector v = new Vector();
-        list = new JList(v);
+        Vector<String> v = new Vector<String>();
+        list = new JList<String>(v);
         scrollPane = new JScrollPane(list);
         jdb.addContextListener(this);
         list.addMouseListener(this);
@@ -71,13 +71,12 @@ public final class ThreadPanel implements ContextListener, MouseListener
 
     public void contextChanged()
     {
-        final Vector v = new Vector();
+        final Vector<String> v = new Vector<String>();
         int index = -1;
         VirtualMachine vm = jdb.getVM();
         if (vm != null) {
             threads = vm.allThreads();
-            for (Iterator iter = threads.iterator(); iter.hasNext();) {
-                ThreadReference threadRef = (ThreadReference) iter.next();
+            for (ThreadReference threadRef : threads) {
                 FastStringBuffer sb = new FastStringBuffer();
                 sb.append(threadRef.name());
                 sb.append(" (id=");
@@ -116,7 +115,7 @@ public final class ThreadPanel implements ContextListener, MouseListener
         Runnable r = new Runnable() {
             public void run()
             {
-                list.setListData(v);
+                list.setListData((Vector)v);
                 list.setSelectedIndex(finalIndex);
             }
         };
@@ -136,10 +135,10 @@ public final class ThreadPanel implements ContextListener, MouseListener
             list.paintImmediately(0, 0, list.getWidth(), list.getHeight());
             int index = list.getSelectedIndex();
             if (threads != null && index >= 0 && index < threads.size()) {
-                ThreadReference threadRef = (ThreadReference) threads.get(index);
+                ThreadReference threadRef = threads.get(index);
                 jdb.setCurrentThread(threadRef);
                 try {
-                    List frames = threadRef.frames();
+                    List<? extends StackFrame> frames = threadRef.frames();
                     if (frames.size() > 0) {
                         StackFrame stackFrame = threadRef.frame(0);
                         Location location = stackFrame.location();
@@ -155,7 +154,7 @@ public final class ThreadPanel implements ContextListener, MouseListener
                                 if (buffer != null) {
                                     Editor editor = null;
                                     for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-                                        Editor ed = it.nextEditor();
+                                        Editor ed = it.next();
                                         if (ed.getBuffer() instanceof Jdb) {
                                             editor = ed;
                                             break;

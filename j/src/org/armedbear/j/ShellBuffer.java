@@ -57,9 +57,9 @@ public class ShellBuffer extends CommandInterpreterBuffer implements Constants
         this();
         this.shellCommand = shellCommand;
         if (shellCommand != null) {
-            if (shellCommand.indexOf("tcsh") >= 0)
+            if (shellCommand.contains("tcsh"))
                 promptIsStderr = false;
-            else if (shellCommand.indexOf("cmd.exe") >= 0)
+            else if (shellCommand.contains("cmd.exe"))
                 promptIsStderr = false;
         }
     }
@@ -123,7 +123,7 @@ public class ShellBuffer extends CommandInterpreterBuffer implements Constants
             return;
         }
         if (Platform.isPlatformWindows())
-            if (shellCommand.toLowerCase().indexOf("cmd.exe") < 0)
+            if (!shellCommand.toLowerCase().contains("cmd.exe"))
                 cygnify = true;
         // Only set initialDir the first time we run, so that if we restart
         // this shell, it will start up in the same directory each time.
@@ -168,7 +168,7 @@ public class ShellBuffer extends CommandInterpreterBuffer implements Constants
         if (getProcess() == null)
             return; // Process exited.
         if (Platform.isPlatformWindows() &&
-            shellCommand.toLowerCase().indexOf("cmd.exe") >= 0)
+                shellCommand.toLowerCase().contains("cmd.exe"))
             setPromptRE(DEFAULT_CMD_EXE_PROMPT_PATTERN);
         else
             setPromptRE(Editor.preferences().getStringProperty(Property.SHELL_PROMPT_PATTERN));
@@ -237,7 +237,7 @@ public class ShellBuffer extends CommandInterpreterBuffer implements Constants
             if (command.equals("cd")) {
                 if (arg == null) {
                     // for cmd.exe, "cd" == "pwd"
-                    if (shellCommand.indexOf("cmd.exe") < 0)
+                    if (!shellCommand.contains("cmd.exe"))
                         changeDirectory(Utilities.getUserHome());
                 } else if (arg.equals("-")) {
                     if (oldDir != null)
@@ -336,17 +336,16 @@ public class ShellBuffer extends CommandInterpreterBuffer implements Constants
             endCompoundEdit(compoundEdit);
             Editor.updateInAllEditors(dotLine);
         } else {
-            final List completions = completion.getCompletions();
+            final List<String> completions = completion.getCompletions();
             final int size = completions.size();
             if (size > 0) {
                 dotLine.setFlags(STATE_INPUT);
                 editor.insertLineSeparator();
-                for (int i = 0; i < size; i++) {
-                    String s = (String) completions.get(i);
+                for (String s : completions) {
                     s = unescape(s);
-                    int index = s.lastIndexOf('/', s.length()-2);
+                    int index = s.lastIndexOf('/', s.length() - 2);
                     if (index >= 0)
-                        s = s.substring(index+1);
+                        s = s.substring(index + 1);
                     editor.insertStringInternal(s);
                     editor.getDotLine().setFlags(STATE_OUTPUT);
                     editor.insertLineSeparator();
@@ -399,7 +398,7 @@ public class ShellBuffer extends CommandInterpreterBuffer implements Constants
                 }
             } else {
                 // s.length() == 0
-                if (shellCommand.indexOf("cmd.exe") < 0)
+                if (!shellCommand.contains("cmd.exe"))
                     s = Utilities.getUserHome();
             }
             if (cygnify) {
@@ -409,11 +408,11 @@ public class ShellBuffer extends CommandInterpreterBuffer implements Constants
             if (s.length() > 0) {
                 File dir = File.getInstance(currentDir, s);
                 if (dir != null && dir.isDirectory()) {
-                    if (shellCommand.indexOf("cmd.exe") < 0)
+                    if (!shellCommand.contains("cmd.exe"))
                         oldDir = currentDir;
                     currentDir = dir;
                     for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-                        Editor ed = it.nextEditor();
+                        Editor ed = it.next();
                         if (ed.getBuffer() == this)
                             ed.updateLocation();
                     }
@@ -622,7 +621,7 @@ public class ShellBuffer extends CommandInterpreterBuffer implements Constants
         // Look for existing shell buffer.
         Buffer buf = null;
         for (BufferIterator it = new BufferIterator(); it.hasNext();) {
-            Buffer b = it.nextBuffer();
+            Buffer b = it.next();
             if (b instanceof ShellBuffer) {
                 if (shellCommand.equals(((ShellBuffer)b).shellCommand)) {
                     buf = b;

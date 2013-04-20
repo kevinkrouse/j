@@ -29,14 +29,14 @@ public final class FormatTable
     private static final Preferences preferences = Editor.preferences();
 
     private String modeName;
-    private ArrayList list;
+    private ArrayList<FormatTableEntry> list;
     private FormatTableEntry[] array;
     private boolean initialized;
 
     public FormatTable(String modeName)
     {
         this.modeName = modeName;
-        list = new ArrayList();
+        list = new ArrayList<FormatTableEntry>();
     }
 
     public synchronized final void setModeName(String s)
@@ -60,7 +60,7 @@ public final class FormatTable
             boolean ok = true;
             int largest = -1;
             for (int i = list.size()-1; i >= 0; i--) {
-                final FormatTableEntry entry = (FormatTableEntry) list.get(i);
+                final FormatTableEntry entry = list.get(i);
                 final int f = entry.getFormat();
                 if (f < 0) {
                     ok = false;
@@ -72,7 +72,7 @@ public final class FormatTable
             if (ok && largest < 128) {
                 array = new FormatTableEntry[largest+1];
                 for (int i = list.size()-1; i >= 0; i--) {
-                    FormatTableEntry entry = (FormatTableEntry) list.get(i);
+                    FormatTableEntry entry = list.get(i);
                     array[entry.getFormat()] = entry;
                 }
                 list = null; // We don't need it any more.
@@ -88,7 +88,7 @@ public final class FormatTable
         }
         if (list != null) {
             for (int i = list.size()-1; i >= 0; i--) {
-                FormatTableEntry entry = (FormatTableEntry) list.get(i);
+                FormatTableEntry entry = list.get(i);
                 if (entry.getFormat() == format)
                     return entry;
             }
@@ -193,7 +193,7 @@ public final class FormatTable
     private int indexOf(int format)
     {
         for (int i = 0; i < list.size(); i++) {
-            FormatTableEntry entry = (FormatTableEntry) list.get(i);
+            FormatTableEntry entry = list.get(i);
             if (entry.getFormat() == format)
                 return i;
         }

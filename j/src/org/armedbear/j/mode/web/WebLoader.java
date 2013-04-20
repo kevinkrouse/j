@@ -50,15 +50,15 @@ public final class WebLoader implements WebConstants
 {
     private PushbackReader reader;
     private final FastStringBuffer textBuffer = new FastStringBuffer();
-    private final Stack indentStack = new Stack();
-    private final Stack tableStack = new Stack();
+    private final Stack<String> indentStack = new Stack<String>();
+    private final Stack<Table> tableStack = new Stack<Table>();
     private Table currentTable;
     private int sourceOffset;
     private int offset;
     private final int maxChars = 80;
     private LineSegmentList segments;
     private LineSequence lines;
-    private final Hashtable refs = new Hashtable();
+    private final Hashtable<String, Integer> refs = new Hashtable<String, Integer>();
     private int indentLevel;
     private File file;
 
@@ -75,7 +75,7 @@ public final class WebLoader implements WebConstants
         this.reader = new PushbackReader(new BufferedReader(reader));
     }
 
-    public final Hashtable getRefs()
+    public final Hashtable<String, Integer> getRefs()
     {
         return refs;
     }
@@ -214,7 +214,7 @@ public final class WebLoader implements WebConstants
             return;
         }
         if (tagName == "input") {
-            List attributes = getAttributes(tag);
+            List<Tuple2<String, String>> attributes = getAttributes(tag);
             String type = getAttribute(attributes, "type");
             if (type != null) {
                 if (type.equalsIgnoreCase("submit")) {
@@ -384,7 +384,7 @@ public final class WebLoader implements WebConstants
         if (tagName == "/blockquote") {
             newLine();
             if (!indentStack.empty()) {
-                String s = (String) indentStack.pop();
+                String s = indentStack.pop();
                 --indentLevel;
                 if (!s.equals("blockquote"))
                     Log.error("**** /blockquote: stack imbalance");
@@ -402,7 +402,7 @@ public final class WebLoader implements WebConstants
             newLine();
             // Handle unbalanced <dt> and/or <dd> tags.
             while (!indentStack.empty()) {
-                String s = (String) indentStack.peek();
+                String s = indentStack.peek();
                 if (s.equals("dd")) {
                     indentStack.pop();
                     --indentLevel;
@@ -420,7 +420,7 @@ public final class WebLoader implements WebConstants
         if (tagName == "dd") {
             flushLine();
             if (!indentStack.empty()) {
-                String s = (String) indentStack.peek();
+                String s = indentStack.peek();
                 if (s.equals("dl"))
                     ;
                 else if (s.equals("dd")) {
@@ -438,7 +438,7 @@ public final class WebLoader implements WebConstants
         if (tagName == "dt") {
             flushLine();
             if (!indentStack.empty()) {
-                String s = (String) indentStack.peek();
+                String s = indentStack.peek();
                 if (s.equals("dd")) {
                     indentStack.pop(); // <dt> terminating <dd> (javadoc)
                     --indentLevel;
@@ -511,7 +511,7 @@ public final class WebLoader implements WebConstants
         if (tagName == "/table") {
             flushLine();
             if (!tableStack.empty())
-                currentTable = (Table) tableStack.pop();
+                currentTable = tableStack.pop();
             else
                 Log.error("**** /table: table stack imbalance source offset = " + sourceOffset);
             return;
@@ -577,7 +577,7 @@ public final class WebLoader implements WebConstants
                 if (encoding.equals("UnicodeBig") || encoding.equals("UnicodeLittle"))
                     return;
             }
-            List attributes = getAttributes(tag);
+            List<Tuple2<String, String>> attributes = getAttributes(tag);
             String httpEquiv = getAttribute(attributes, "http-equiv");
             if (httpEquiv != null) {
                 if (httpEquiv.toLowerCase().equals("content-type")) {
@@ -638,10 +638,9 @@ public final class WebLoader implements WebConstants
     private void processAnchor(String tag)
     {
         flushSegment();
-        List attributes = getAttributes(tag);
+        List<Tuple2<String, String>> attributes = getAttributes(tag);
         if (attributes != null) {
-            for (int i = 0; i < attributes.size(); i++) {
-                Tuple2<String, String> pair = (Tuple2<String, String>) attributes.get(i);
+            for (Tuple2<String, String> pair : attributes) {
                 if (pair.first.equals("href"))
                     link = new Link(pair.second.trim());
                 else if (pair.first.equals("name"))
@@ -668,7 +667,7 @@ public final class WebLoader implements WebConstants
     private void processImg(String tag)
     {
         flushSegment();
-        List attributes = getAttributes(tag);
+        List<Tuple2<String, String>> attributes = getAttributes(tag);
         String alt = getAttribute(attributes, "alt");
         String src = getAttribute(attributes, "src");
         String width = getAttribute(attributes, "width");
@@ -742,11 +741,11 @@ public final class WebLoader implements WebConstants
         return getAttribute(getAttributes(tag), attributeName);
     }
 
-    private static String getAttribute(List attributes, String attributeName)
+    private static String getAttribute(List<Tuple2<String, String>> attributes, String attributeName)
     {
         if (attributes != null) {
             for (int i = attributes.size()-1; i >= 0; i--) {
-                Tuple2<String, String> pair = (Tuple2<String, String>) attributes.get(i);
+                Tuple2<String, String> pair = attributes.get(i);
                 if (pair.first.equals(attributeName))
                     return pair.second;
             }
@@ -754,7 +753,7 @@ public final class WebLoader implements WebConstants
         return null;
     }
 
-    private static List getAttributes(String tag)
+    private static List<Tuple2<String, String>> getAttributes(String tag)
     {
         final int NEUTRAL         = 0;
         final int ATTRIBUTE_NAME  = 1;
@@ -766,7 +765,7 @@ public final class WebLoader implements WebConstants
         FastStringBuffer sb = new FastStringBuffer();
         String name = null;
         String value = null;
-        ArrayList attributes = null;
+        ArrayList<Tuple2<String, String>> attributes = null;
         char delim = 0;
 
         final int limit = tag.length();
@@ -816,7 +815,7 @@ public final class WebLoader implements WebConstants
                         sb.setLength(0);
                         state = NEUTRAL;
                         if (attributes == null)
-                            attributes = new ArrayList();
+                            attributes = new ArrayList<Tuple2<String, String>>();
                         attributes.add(new Tuple2<String, String>(name, ""));
                         name = value = null;
                     }
@@ -842,7 +841,7 @@ public final class WebLoader implements WebConstants
                             sb.setLength(0);
                             state = NEUTRAL;
                             if (attributes == null)
-                                attributes = new ArrayList();
+                                attributes = new ArrayList<Tuple2<String, String>>();
                             attributes.add(new Tuple2<String, String>(name, value));
                             name = value = null;
                         } else if (c == '&') {
@@ -872,7 +871,7 @@ public final class WebLoader implements WebConstants
                             sb.setLength(0);
                             state = NEUTRAL;
                             if (attributes == null)
-                                attributes = new ArrayList();
+                                attributes = new ArrayList<Tuple2<String, String>>();
                             attributes.add(new Tuple2<String, String>(name, value));
                             name = value = null;
                         } else if (c == '&') {

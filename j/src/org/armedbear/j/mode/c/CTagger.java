@@ -22,6 +22,7 @@ package org.armedbear.j.mode.c;
 
 import org.armedbear.j.util.FastStringBuffer;
 import org.armedbear.j.mode.java.JavaTagger;
+import org.armedbear.j.LocalTag;
 import org.armedbear.j.Position;
 import org.armedbear.j.SystemBuffer;
 
@@ -46,7 +47,7 @@ public class CTagger extends JavaTagger
 
   public void run()
   {
-    ArrayList tags = new ArrayList();
+    ArrayList<LocalTag> tags = new ArrayList<LocalTag>();
     pos = new Position(buffer.getFirstLine(), 0);
     token = null;
     tokenStart = null;

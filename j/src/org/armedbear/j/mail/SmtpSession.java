@@ -152,7 +152,7 @@ public final class SmtpSession extends Writer
 
     public boolean sendMessage(SendMail sm, File messageFile)
     {
-        List addressees = sm.getAddressees();
+        List<String> addressees = sm.getAddressees();
         if (addressees == null || addressees.size() == 0)
             return false;
         if (!connect())
@@ -165,8 +165,7 @@ public final class SmtpSession extends Writer
             writeLine(sb.toString());
             if (getResponse() != 250)
                 return false;
-            for (int i = 0; i < addressees.size(); i++) {
-                String addressee = (String) addressees.get(i);
+            for (String addressee : addressees) {
                 String addr = sm.getAddress(addressee);
                 if (addr == null) {
                     errorText = "Invalid addressee \"" + addressee + "\"";
@@ -204,8 +203,7 @@ public final class SmtpSession extends Writer
         }
         // Add addressees to address book.
         AddressBook addressBook = AddressBook.getGlobalAddressBook();
-        for (int i = 0; i < addressees.size(); i++) {
-            String addressee = (String) addressees.get(i);
+        for (String addressee : addressees) {
             MailAddress a = MailAddress.parseAddress(addressee);
             if (a != null) {
                 addressBook.maybeAddMailAddress(a);

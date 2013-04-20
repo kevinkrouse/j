@@ -35,7 +35,7 @@ public class SidebarTagList extends SidebarList implements Constants,
 {
     private Editor editor;
     private Buffer buffer;
-    private List tags;
+    private List<LocalTag> tags;
 
     public SidebarTagList(Sidebar sidebar, Editor editor)
     {
@@ -155,7 +155,7 @@ public class SidebarTagList extends SidebarList implements Constants,
         Line lastTagLine = null;
         final int size = tags.size();
         for (int i = 0; i < size; i++) {
-            LocalTag t = (LocalTag) tags.get(i);
+            LocalTag t = tags.get(i);
             if (t.getPosition().isAfter(dot)) {
                 if (t.getLine() == dotLine && t.getLine() != lastTagLine) {
                     index = i;
@@ -184,7 +184,7 @@ public class SidebarTagList extends SidebarList implements Constants,
             return;
         int index = getSelectedIndex();
         if (index >= 0 && index < tags.size()) {
-            LocalTag tag = (LocalTag) tags.get(index);
+            LocalTag tag = tags.get(index);
             tag.gotoTag(editor);
         }
         editor.setFocusToDisplay();
@@ -195,7 +195,7 @@ public class SidebarTagList extends SidebarList implements Constants,
         if (tags != null) {
             int index = locationToIndex(e.getPoint());
             if (index >= 0 && index < tags.size()) {
-                LocalTag t = (LocalTag) tags.get(index);
+                LocalTag t = tags.get(index);
                 return t.getToolTipText();
             }
         }

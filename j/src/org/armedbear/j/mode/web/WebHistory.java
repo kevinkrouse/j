@@ -26,7 +26,7 @@ import java.util.Vector;
 
 public final class WebHistory
 {
-    private Vector v = new Vector();
+    private Vector<WebHistoryEntry> v = new Vector<WebHistoryEntry>();
     private int index = -1;
 
     public WebHistory()
@@ -56,7 +56,7 @@ public final class WebHistory
         if (index < 0)
             index = v.size();
         if (index > 0)
-            return (WebHistoryEntry) v.get(--index);
+            return v.get(--index);
         return null;
     }
 
@@ -67,14 +67,14 @@ public final class WebHistory
         if (index < 0)
             return null;
         if (index < v.size()-1)
-            return (WebHistoryEntry) v.get(++index);
+            return v.get(++index);
         return null;
     }
 
     public WebHistoryEntry getCurrent()
     {
         if (index >= 0 && index < v.size())
-            return (WebHistoryEntry) v.get(index);
+            return v.get(index);
         return null;
     }
 

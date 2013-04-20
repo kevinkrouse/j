@@ -48,7 +48,7 @@ public final class PythonTagger extends Tagger
 
     public void run()
     {
-        ArrayList tags = new ArrayList();
+        ArrayList<LocalTag> tags = new ArrayList<LocalTag>();
         Position pos = new Position(buffer.getFirstLine(), 0);
         int state = STATE_NEUTRAL;
         while (!pos.atEnd()) {

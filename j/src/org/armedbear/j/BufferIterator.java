@@ -22,16 +22,16 @@ package org.armedbear.j;
 
 import java.util.Iterator;
 
-public final class BufferIterator implements Iterator
+public final class BufferIterator implements Iterator<Buffer>
 {
-    private Iterator it;
+    private Iterator<Buffer> it;
 
     public BufferIterator()
     {
         this(Editor.getBufferList().iterator());
     }
 
-    public BufferIterator(Iterator it)
+    public BufferIterator(Iterator<Buffer> it)
     {
         Debug.assertTrue(it != null);
         Debug.assertFalse(it instanceof BufferIterator);
@@ -43,14 +43,9 @@ public final class BufferIterator implements Iterator
         return it.hasNext();
     }
 
-    public Object next()
+    public Buffer next()
     {
         return it.next();
-    }
-
-    public Buffer nextBuffer()
-    {
-        return (Buffer) it.next();
     }
 
     public void remove()

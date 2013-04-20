@@ -67,7 +67,7 @@ public final class ListRegistersBuffer extends Buffer
     public void reload()
     {
         for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-            Editor ed = it.nextEditor();
+            Editor ed = it.next();
             if (ed.getBuffer() == this) {
                 ed.setWaitCursor();
                 ed.saveView();
@@ -76,7 +76,7 @@ public final class ListRegistersBuffer extends Buffer
         empty();
         loadInternal();
         for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-            Editor ed = it.nextEditor();
+            Editor ed = it.next();
             if (ed.getBuffer() == this) {
                 View view = ed.getView(this);
                 if (view != null) {
@@ -120,8 +120,7 @@ public final class ListRegistersBuffer extends Buffer
             if (names != null && names.length > 0) {
                 Arrays.sort(names);
                 final int MAX_LINES = 100;
-                for (int i = 0; i < names.length; i++) {
-                    final String name = names[i];
+                for (final String name : names) {
                     FastStringBuffer sb = new FastStringBuffer();
                     sb.append("Register ");
                     sb.append(name);
@@ -130,7 +129,7 @@ public final class ListRegistersBuffer extends Buffer
                         continue;
                     int lineCount = Utilities.countLines(text);
                     appendLine(
-                        new ListRegistersLine(sb.toString(), name));
+                            new ListRegistersLine(sb.toString(), name));
                     append(text);
                     if (lineCount == MAX_LINES)
                         appendLine(new ListRegistersLine("[...]", name));

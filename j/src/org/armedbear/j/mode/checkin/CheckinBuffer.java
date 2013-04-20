@@ -169,7 +169,7 @@ public class CheckinBuffer extends VersionControlBuffer implements Constants
         if (parentBuffer != null && e.getPrefix() != null) {
             // Look for diff output buffer for same parent buffer.
             for (BufferIterator it = new BufferIterator(); it.hasNext();) {
-                Buffer b = it.nextBuffer();
+                Buffer b = it.next();
                 if (b instanceof DiffOutputBuffer) {
                     if (((DiffOutputBuffer)b).getParentBuffer() == parentBuffer) {
                         // Add candidates from diff output buffer.

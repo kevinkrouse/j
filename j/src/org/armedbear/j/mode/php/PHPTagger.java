@@ -43,7 +43,7 @@ public final class PHPTagger extends Tagger
 
     public void run()
     {
-        ArrayList tags = new ArrayList();
+        ArrayList<LocalTag> tags = new ArrayList<LocalTag>();
         Line line = buffer.getFirstLine();
         while (line != null) {
             String s = line.trim();

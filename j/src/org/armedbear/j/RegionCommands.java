@@ -56,7 +56,7 @@ public final class RegionCommands
         int[] markCol = new int[count];
         int i = 0;
         for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-            Editor ed = it.nextEditor();
+            Editor ed = it.next();
             editors[i] = ed;
             if (ed.getBuffer() == buffer) {
                 dotCol[i] = ed.getDotCol();

@@ -41,7 +41,6 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.lang.ref.SoftReference;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
@@ -629,7 +628,7 @@ public class Buffer extends SystemBuffer
     public boolean isVisible()
     {
         for (EditorIterator it = new EditorIterator(); it.hasNext();)
-            if (it.nextEditor().getBuffer() == this)
+            if (it.next().getBuffer() == this)
                 return true;
 
         return false;
@@ -638,7 +637,7 @@ public class Buffer extends SystemBuffer
     public void setWaitCursor()
     {
         for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-            Editor ed = it.nextEditor();
+            Editor ed = it.next();
             if (ed.getBuffer() == this)
                 ed.setWaitCursor();
         }
@@ -647,7 +646,7 @@ public class Buffer extends SystemBuffer
     public void setDefaultCursor()
     {
         for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-            Editor ed = it.nextEditor();
+            Editor ed = it.next();
             if (ed.getBuffer() == this)
                 ed.setDefaultCursor();
         }
@@ -861,7 +860,7 @@ public class Buffer extends SystemBuffer
         Editor.getBufferList().modified();
         Sidebar.setUpdateFlagInAllFrames(SIDEBAR_BUFFER_LIST_CHANGED);
         for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-            Editor editor = it.nextEditor();
+            Editor editor = it.next();
             if (editor.getBuffer() == this) {
                 editor.updateLocation();
                 editor.getDisplay().repaint();
@@ -932,7 +931,7 @@ public class Buffer extends SystemBuffer
             formatter.parseBuffer();
 
             for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-                Editor ed = it.nextEditor();
+                Editor ed = it.next();
                 if (ed.getBuffer() == this) {
                     if (reloading) {
                         ed.setDot(getFirstLine(), 0);
@@ -1066,7 +1065,7 @@ public class Buffer extends SystemBuffer
         Debug.assertTrue(!rwlock.isWriteLocked());
         Debug.assertTrue(SwingUtilities.isEventDispatchThread());
         for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-            Editor ed = it.nextEditor();
+            Editor ed = it.next();
             if (ed.getBuffer() != this)
                 continue;
             View view = ed.getView(this);
@@ -1249,11 +1248,10 @@ public class Buffer extends SystemBuffer
         if (buf == null)
             buf = new DirectoryBuffer(getCurrentDirectory());
         // Copy editor list since switchToBuffer() may close an editor.
-        ArrayList editors = new ArrayList();
+        ArrayList<Editor> editors = new ArrayList<Editor>();
         for (EditorIterator it = new EditorIterator(); it.hasNext();)
             editors.add(it.next());
-        for (Iterator it = editors.iterator(); it.hasNext();) {
-            Editor ed = (Editor) it.next();
+        for (Editor ed : editors) {
             // Skip editor if it has been closed.
             if (Editor.getEditorList().contains(ed)) {
                 if (ed.getBuffer() == this)
@@ -1305,9 +1303,9 @@ public class Buffer extends SystemBuffer
     }
 
     // Runs tagger if tags == null.
-    public List getTags(boolean update)
+    public List<LocalTag> getTags(boolean update)
     {
-        List tags = getTags();
+        List<LocalTag> tags = getTags();
         if (tags != null)
             return tags;
         if (mode != null) {
@@ -1431,8 +1429,7 @@ public class Buffer extends SystemBuffer
             if (Editor.preferences().getBooleanProperty(Property.AUTO_RELOAD_KEY_MAPS)) {
                 // Reload mode-specific keymap(s) if modified.
                 synchronized (modeList) {
-                    for (Iterator it = modeList.iterator(); it.hasNext();) {
-                        ModeListEntry entry = (ModeListEntry) it.next();
+                    for (ModeListEntry entry : modeList) {
                         Mode mode = entry.getMode(false);
                         if (mode != null) {
                             if (file.equals(mode.getKeyMapFile()))
@@ -1476,7 +1473,7 @@ public class Buffer extends SystemBuffer
         if (repaint) {
             // Force formatters to be re-initialized.
             for (BufferIterator it = new BufferIterator(); it.hasNext();) {
-                Buffer buf = it.nextBuffer();
+                Buffer buf = it.next();
                 if (buf.getFormatter() != null)
                     buf.getFormatter().reset();
             }
@@ -1619,7 +1616,7 @@ public class Buffer extends SystemBuffer
                 saved();
                 setListing(saveProcess.getListing());
                 for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-                    Editor ed = it.nextEditor();
+                    Editor ed = it.next();
                     if (ed.getBuffer() == Buffer.this)
                         ed.setDefaultCursor();
                 }
@@ -1803,7 +1800,7 @@ public class Buffer extends SystemBuffer
                 setListing(saveProcess.getListing());
                 Sidebar.setUpdateFlagInAllFrames(SIDEBAR_REPAINT_BUFFER_LIST);
                 for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-                    Editor ed = it.nextEditor();
+                    Editor ed = it.next();
                     if (ed.getBuffer() == Buffer.this)
                         ed.setDefaultCursor();
                 }
@@ -1897,7 +1894,7 @@ public class Buffer extends SystemBuffer
             public void run()
             {
                 for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-                    Editor ed = it.nextEditor();
+                    Editor ed = it.next();
                     if (ed.getBuffer() == Buffer.this)
                         ed.setDefaultCursor();
                 }
@@ -1959,7 +1956,7 @@ public class Buffer extends SystemBuffer
         }
         if (bufferChanged) {
             for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-                Editor ed = it.nextEditor();
+                Editor ed = it.next();
                 if (ed.getBuffer() == this) {
                     if (ed.getDotOffset() > ed.getDotLine().length()) {
                         ed.getDot().setOffset(ed.getDotLine().length());
@@ -2111,7 +2108,7 @@ public class Buffer extends SystemBuffer
         if (lastView != null)
             lastView.invalidate();
         for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-            Editor ed = it.nextEditor();
+            Editor ed = it.next();
             View view = ed.getView(this);
             if (view != null)
                 view.invalidate();
@@ -2523,7 +2520,7 @@ public class Buffer extends SystemBuffer
     public final void repaint()
     {
         for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-            Editor ed = it.nextEditor();
+            Editor ed = it.next();
             if (ed.getBuffer() == this)
                 ed.repaintDisplay();
         }
@@ -2774,7 +2771,7 @@ public class Buffer extends SystemBuffer
         if (cache != null && cache.isFile()) {
             // Only delete the cache file if no other buffer is using it.
             for (BufferIterator it = new BufferIterator(); it.hasNext();) {
-                Buffer buf = it.nextBuffer();
+                Buffer buf = it.next();
                 if (buf != this && buf.getCache() == cache)
                     return;
             }
@@ -2848,13 +2845,13 @@ public class Buffer extends SystemBuffer
     }
 
     // Cache for getText().
-    private SoftReference srText;
+    private SoftReference<String> srText;
 
     // Never returns null.
     public synchronized String getText()
     {
         if (srText != null) {
-            final String text = (String) srText.get();
+            final String text = srText.get();
             if (text != null)
                 return text;
         }
@@ -2875,7 +2872,7 @@ public class Buffer extends SystemBuffer
             }
         }
         final String text = sb.toString();
-        srText = new SoftReference(text);
+        srText = new SoftReference<String>(text);
         return text;
     }
 
@@ -2955,7 +2952,7 @@ public class Buffer extends SystemBuffer
         return maxCols != oldMaxCols;
     }
 
-    public void setProperty(Property property, Object value)
+    public void setProperty(Property property, String value)
     {
         properties.setProperty(property, value);
     }

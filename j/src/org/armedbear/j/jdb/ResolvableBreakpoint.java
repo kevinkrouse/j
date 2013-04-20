@@ -101,9 +101,9 @@ public abstract class ResolvableBreakpoint
     public EventRequest resolveAgainstPreparedClasses() throws Exception
     {
         Log.debug("resolveAgainstPreparedClasses className = |" + className + "|");
-        Iterator iter = jdb.getVM().allClasses().iterator();
+        Iterator<ReferenceType> iter = jdb.getVM().allClasses().iterator();
         while (eventRequest == null && iter.hasNext()) {
-            ReferenceType refType = (ReferenceType) iter.next();
+            ReferenceType refType = iter.next();
             if (refType.isPrepared() && refType.name().equals(className)) {
                 eventRequest = resolveEventRequest(refType);
                 if (eventRequest != null) {

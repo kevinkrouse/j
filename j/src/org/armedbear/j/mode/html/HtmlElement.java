@@ -20,6 +20,7 @@
 
 package org.armedbear.j.mode.html;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Vector;
 
@@ -49,9 +50,9 @@ public final class HtmlElement
         wantsEndTag = b;
     }
 
-    public static List getDefaultElements()
+    public static List<HtmlElement> getDefaultElements()
     {
-        Vector v = new Vector();
+        ArrayList<HtmlElement> v = new ArrayList<HtmlElement>();
         v.add(new HtmlElement("a", true));
         v.add(new HtmlElement("address", true));
         v.add(new HtmlElement("applet", true));

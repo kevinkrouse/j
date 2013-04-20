@@ -55,14 +55,14 @@ public final class Sort
 
     private static void sortLinesInternal(Editor editor, Buffer buffer, Region region)
     {
-        ArrayList arrayList = new ArrayList();
+        ArrayList<String> arrayList = new ArrayList<String>();
         for (Line line = region.getBeginLine(); line != region.getEndLine(); line = line.next())
             arrayList.add(line.getText());
         Collections.sort(arrayList, new SortLinesComparator());
         CompoundEdit compoundEdit = null;
         int i = 0;
         for (Line line = region.getBeginLine(); line != region.getEndLine(); line = line.next(), i++) {
-            String newText = (String) arrayList.get(i);
+            String newText = arrayList.get(i);
             if (!newText.equals(line.getText())) {
                 if (compoundEdit == null) {
                     compoundEdit = new CompoundEdit();
@@ -82,13 +82,13 @@ public final class Sort
         buffer.repaint();
     }
 
-    private static class SortLinesComparator implements Comparator
+    private static class SortLinesComparator implements Comparator<String>
     {
         SortLinesComparator() {}
 
-        public final int compare(Object o1, Object o2)
+        public final int compare(String s1, String s2)
         {
-            return ((String)o1).compareTo((String)o2);
+            return s1.compareTo(s2);
         }
     }
 }

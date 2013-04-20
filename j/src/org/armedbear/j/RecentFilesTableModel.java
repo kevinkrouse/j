@@ -46,7 +46,7 @@ public final class RecentFilesTableModel extends AbstractTableModel
     private static SimpleDateFormat fullDateFormat =
         new SimpleDateFormat("MMM d yyyy h:mm a");
 
-    private final List data = RecentFiles.getInstance().getEntries();
+    private final List<RecentFilesEntry> data = RecentFiles.getInstance().getEntries();
 
     private int[] indexes;
 
@@ -111,7 +111,7 @@ public final class RecentFilesTableModel extends AbstractTableModel
     public RecentFilesEntry getEntryAtRow(int row)
     {
         int i = indexes[row];
-        return (RecentFilesEntry) data.get(i);
+        return data.get(i);
     }
 
     public int getRowForEntry(RecentFilesEntry entry)
@@ -127,7 +127,7 @@ public final class RecentFilesTableModel extends AbstractTableModel
     public Object getValueAt(int row, int col)
     {
         int i = indexes[row];
-        RecentFilesEntry entry = (RecentFilesEntry) data.get(i);
+        RecentFilesEntry entry = data.get(i);
         if (entry != null) {
             switch (col) {
                 case NAME:
@@ -231,8 +231,8 @@ public final class RecentFilesTableModel extends AbstractTableModel
 
     private int compareByColumn(int i, int j, int column)
     {
-        RecentFilesEntry entry1 = (RecentFilesEntry) data.get(i);
-        RecentFilesEntry entry2 = (RecentFilesEntry) data.get(j);
+        RecentFilesEntry entry1 = data.get(i);
+        RecentFilesEntry entry2 = data.get(j);
         switch (column) {
             case NAME:
                 return entry1.name.compareTo(entry2.name);
@@ -263,7 +263,7 @@ public final class RecentFilesTableModel extends AbstractTableModel
         indexes[j] = tmp;
     }
 
-    public Class getColumnClass(int col)
+    public Class<String> getColumnClass(int col)
     {
         return String.class;
     }

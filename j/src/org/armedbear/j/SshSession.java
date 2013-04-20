@@ -1046,7 +1046,7 @@ public final class SshSession implements Constants, RemoteSession
                     buf.unlockWrite();
                 }
                 for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-                    Editor ed = it.nextEditor();
+                    Editor ed = it.next();
                     if (ed.getBuffer() == buf) {
                         ed.setDot(buf.getEnd());
                         ed.moveCaretToDotCol();
@@ -1065,7 +1065,7 @@ public final class SshSession implements Constants, RemoteSession
             userName = System.getProperty("user.name");
         if (password == null) {
             for (BufferIterator it = new BufferIterator(); it.hasNext();) {
-                Buffer buf = it.nextBuffer();
+                Buffer buf = it.next();
                 if (buf.getFile() instanceof SshFile) {
                     SshFile f = (SshFile) buf.getFile();
                     if (f.hostName != null && f.hostName.equals(hostName)) {
@@ -1098,7 +1098,7 @@ public final class SshSession implements Constants, RemoteSession
                 String hostName = session.getHostName();
                 boolean inUse = false;
                 for (BufferIterator it = new BufferIterator(); it.hasNext();) {
-                    Buffer buf = it.nextBuffer();
+                    Buffer buf = it.next();
                     if (buf.getFile() instanceof SshFile) {
                         if (hostName.equals(buf.getFile().getHostName())) {
                             inUse = true;

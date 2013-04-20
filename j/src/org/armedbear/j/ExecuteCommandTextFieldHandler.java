@@ -61,7 +61,7 @@ public final class ExecuteCommandTextFieldHandler extends DefaultTextFieldHandle
         return true;
     }
 
-    public final List getCompletions(String prefix)
+    public final List<String> getCompletions(String prefix)
     {
         return CommandTable.getCompletionsForPrefix(prefix);
     }

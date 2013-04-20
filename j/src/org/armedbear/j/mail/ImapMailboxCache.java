@@ -28,9 +28,10 @@ import java.io.ObjectOutputStream;
 import java.io.OutputStream;
 import java.io.Serializable;
 import java.util.ArrayList;
-import java.util.Enumeration;
 import java.util.List;
 import java.util.Properties;
+import java.util.Set;
+
 import org.armedbear.j.Debug;
 import org.armedbear.j.Directories;
 import org.armedbear.j.File;
@@ -44,7 +45,7 @@ public final class ImapMailboxCache implements Serializable
     private transient ImapMailboxBuffer mailbox;
     private final String mailboxName;
     private final int uidValidity;
-    private final ArrayList entries;
+    private final ArrayList<MailboxEntry> entries;
 
     // Force serialization to be dependent on ImapMailboxEntry.
     private final ImapMailboxEntry dummy = new ImapMailboxEntry(0);
@@ -54,7 +55,7 @@ public final class ImapMailboxCache implements Serializable
         this.mailbox = mailbox;
         mailboxName = mailbox.getName();
         uidValidity = mailbox.getUidValidity();
-        entries = new ArrayList(mailbox.getEntries());
+        entries = new ArrayList<MailboxEntry>(mailbox.getEntries());
     }
 
     private final void setMailbox(ImapMailboxBuffer mailbox)
@@ -62,7 +63,7 @@ public final class ImapMailboxCache implements Serializable
         this.mailbox = mailbox;
     }
 
-    public final List getEntries()
+    public final List<MailboxEntry> getEntries()
     {
         return entries;
     }
@@ -168,10 +169,9 @@ public final class ImapMailboxCache implements Serializable
             }
             // Remove obsolete entries from catalog.
             Properties temp = new Properties();
-            Enumeration keys = catalog.keys();
-            while (keys.hasMoreElements()) {
-                String key = (String) keys.nextElement();
-                String value = (String) catalog.get(key);
+            Set<String> keys = catalog.stringPropertyNames();
+            for (String key : keys) {
+                String value = catalog.getProperty(key);
                 // Make sure key is canonical name.
                 if (key.indexOf('@') < 0 || key.indexOf(':') < 0) {
                     Log.debug("removing obsolete entry " + key + '=' + value);

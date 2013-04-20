@@ -31,7 +31,7 @@ public interface TextFieldHandler extends KeyListener
     public boolean wantTab();
     public void tab();
     public void shiftTab();
-    public List getCompletions(String prefix);
+    public List<String> getCompletions(String prefix);
     public void resetCompletions();
     public Expansion getExpansion(String prefix);
     public void keyPressed(KeyEvent e);

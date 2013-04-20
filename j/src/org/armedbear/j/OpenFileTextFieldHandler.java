@@ -60,7 +60,7 @@ public final class OpenFileTextFieldHandler extends DefaultTextFieldHandler
     private String encoding;
 
     private JPopupMenu popup;
-    private JList listbox;
+    private JList<String> listbox;
 
     private String originalText;
     private String originalPrefix;
@@ -180,7 +180,7 @@ public final class OpenFileTextFieldHandler extends DefaultTextFieldHandler
         // buffers.
         if (checkBuffers) {
             for (BufferIterator it = new BufferIterator(); it.hasNext();) {
-                Buffer buf = it.nextBuffer();
+                Buffer buf = it.next();
                 if (buf.getFile() == null)
                     continue;
                 boolean found;
@@ -270,9 +270,9 @@ public final class OpenFileTextFieldHandler extends DefaultTextFieldHandler
 
     private void done()
     {
-        Object owner = textField.getOwner();
+        OpenFileDialog owner = textField.getOwner();
         if (owner instanceof OpenFileDialog) {
-            OpenFileDialog dialog = (OpenFileDialog) owner;
+            OpenFileDialog dialog = owner;
             dialog.setResult(returned);
             dialog.ok();
             return;
@@ -307,7 +307,7 @@ public final class OpenFileTextFieldHandler extends DefaultTextFieldHandler
                         } else {
                             // Look for existing buffer.
                             for (BufferIterator it = new BufferIterator(); it.hasNext();) {
-                                Buffer b = it.nextBuffer();
+                                Buffer b = it.next();
                                 if (b instanceof WebBuffer && b.getFile().equals(file)) {
                                     buf = b;
                                     break;
@@ -356,9 +356,9 @@ public final class OpenFileTextFieldHandler extends DefaultTextFieldHandler
             popup.setVisible(false);
             popup = null;
         }
-        Object owner = textField.getOwner();
+        OpenFileDialog owner = textField.getOwner();
         if (owner instanceof OpenFileDialog) {
-            OpenFileDialog dialog = (OpenFileDialog) owner;
+            OpenFileDialog dialog = owner;
             dialog.cancel();
         } else {
             // Using location bar.
@@ -418,7 +418,7 @@ public final class OpenFileTextFieldHandler extends DefaultTextFieldHandler
                 originalText = textField.getText();
                 originalPrefix = prefix;
                 if (completions.size() == 1) {
-                    String s = (String) completions.get(0);
+                    String s = completions.get(0);
                     textField.setText(s);
                     Runnable r = new Runnable() {
                         public void run()
@@ -457,10 +457,10 @@ public final class OpenFileTextFieldHandler extends DefaultTextFieldHandler
         editor.setDefaultCursor();
     }
 
-    public List getCompletions(String prefix)
+    public List<String> getCompletions(String prefix)
     {
         final File dir = editor.getCompletionDirectory();
-        ArrayList completions = new ArrayList();
+        ArrayList<String> completions = new ArrayList<String>();
         final String sourcePath = checkSourcePath ? getSourcePath() : null;
         prefix = File.normalize(prefix);
         boolean ignoreCase = Platform.isPlatformWindows() ||
@@ -471,14 +471,13 @@ public final class OpenFileTextFieldHandler extends DefaultTextFieldHandler
         FilenameCompletion completion =
             new FilenameCompletion(dir, prefix, sourcePath, excludes, ignoreCase);
         final File currentDirectory = getCurrentDirectory();
-        List files = completion.listFiles();
+        List<File> files = completion.listFiles();
         if (files != null) {
-            for (int i = 0, limit = files.size(); i < limit; i++) {
-                final File file = (File) files.get(i);
+            for (final File file : files) {
                 final String name = getNameForFile(file, currentDirectory);
                 if (file.isDirectory()) {
                     addCompletion(completions, name.concat(file.getSeparator()),
-                                  ignoreCase);
+                            ignoreCase);
                     continue;
                 }
                 addCompletion(completions, name, ignoreCase);
@@ -493,11 +492,11 @@ public final class OpenFileTextFieldHandler extends DefaultTextFieldHandler
         return completions;
     }
 
-    private void addCompletionsFromBufferList(List list, String prefix,
+    private void addCompletionsFromBufferList(List<String> list, String prefix,
         File currentDirectory, boolean ignoreCase)
     {
         for (BufferIterator it = new BufferIterator(); it.hasNext();) {
-            Buffer buf = it.nextBuffer();
+            Buffer buf = it.next();
             if (buf.getType() != Buffer.TYPE_NORMAL)
                 continue;
             if (buf == editor.getBuffer())
@@ -545,14 +544,14 @@ public final class OpenFileTextFieldHandler extends DefaultTextFieldHandler
     }
 
     // Add string to list if it's not already there.
-    private void addCompletion(List list, String s, boolean ignoreCase)
+    private void addCompletion(List<String> list, String s, boolean ignoreCase)
     {
         if (s != null) {
             for (int i = list.size(); i-- > 0;) {
                 if (ignoreCase) {
-                    if (s.equalsIgnoreCase((String)list.get(i)))
+                    if (s.equalsIgnoreCase(list.get(i)))
                         return;
-                } else if (s.equals((String)list.get(i)))
+                } else if (s.equals(list.get(i)))
                     return;
             }
             // Didn't find it.
@@ -601,7 +600,7 @@ public final class OpenFileTextFieldHandler extends DefaultTextFieldHandler
 
     private String getSourcePath()
     {
-        ArrayList dirs = new ArrayList();
+        ArrayList<String> dirs = new ArrayList<String>();
         // We want to search the mode-specific source path first.
         String sourcePathForMode =
             editor.getBuffer().getStringProperty(Property.SOURCE_PATH);
@@ -611,17 +610,16 @@ public final class OpenFileTextFieldHandler extends DefaultTextFieldHandler
         String globalSourcePath =
             Editor.preferences().getStringProperty(Property.SOURCE_PATH);
         if (globalSourcePath != null) {
-            List list = Utilities.getDirectoriesInPath(globalSourcePath);
-            for (int i = 0; i < list.size(); i++) {
-                String s = (String) list.get(i);
+            List<String> list = Utilities.getDirectoriesInPath(globalSourcePath);
+            for (String s : list) {
                 if (!dirs.contains(s))
                     dirs.add(s);
             }
         }
         // Reconstruct source path string.
         FastStringBuffer sb = new FastStringBuffer();
-        for (int i = 0; i < dirs.size(); i++) {
-            sb.append((String)dirs.get(i));
+        for (String dir : dirs) {
+            sb.append(dir);
             sb.append(LocalFile.getPathSeparatorChar());
         }
         // Remove extra path separator at end of string.
@@ -644,7 +642,7 @@ public final class OpenFileTextFieldHandler extends DefaultTextFieldHandler
         popup = new JPopupMenu();
         popup.add(new CompletionsList(array));
         popup.show(textField, 0, textField.getHeight());
-        final String completion = (String) completions.get(0);
+        final String completion = completions.get(0);
         Runnable r = new Runnable() {
             public void run()
             {
@@ -675,7 +673,7 @@ public final class OpenFileTextFieldHandler extends DefaultTextFieldHandler
         if (i != index) {
             listbox.setSelectedIndex(i);
             listbox.ensureIndexIsVisible(i);
-            String completion = (String) listbox.getSelectedValue();
+            String completion = listbox.getSelectedValue();
             updateTextField(completion);
         }
     }
@@ -799,7 +797,7 @@ public final class OpenFileTextFieldHandler extends DefaultTextFieldHandler
     {
         public CompletionsList(String[] completions)
         {
-            super(listbox = new JList(completions));
+            super(listbox = new JList<String>(completions));
             listbox.setFont(textField.getFont());
             if (completions.length < 8)
                 listbox.setVisibleRowCount(completions.length);
@@ -903,7 +901,7 @@ public final class OpenFileTextFieldHandler extends DefaultTextFieldHandler
             int modifiers = e.getModifiers() & 0x1f;
             if (modifiers == InputEvent.BUTTON1_MASK || modifiers == InputEvent.BUTTON2_MASK) {
                 listbox.setSelectedIndex(listbox.locationToIndex(e.getPoint()));
-                String s = (String) listbox.getSelectedValue();
+                String s = listbox.getSelectedValue();
                 textField.setText(s);
             }
         }

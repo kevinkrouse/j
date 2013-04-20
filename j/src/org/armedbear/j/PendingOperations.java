@@ -24,7 +24,7 @@ import java.util.ArrayList;
 
 public final class PendingOperations implements Runnable
 {
-    private ArrayList operations;
+    private ArrayList<Object> operations;
 
     public PendingOperations()
     {
@@ -33,7 +33,7 @@ public final class PendingOperations implements Runnable
     public synchronized void add(Object object)
     {
         if (operations == null)
-            operations = new ArrayList();
+            operations = new ArrayList<Object>();
         operations.add(object);
     }
 

@@ -138,7 +138,7 @@ public class RemoteShellBuffer extends ShellBuffer
         if (host == null)
             return null;
         for (BufferIterator it = new BufferIterator(); it.hasNext();) {
-            Buffer buf = it.nextBuffer();
+            Buffer buf = it.next();
             if (buf instanceof RemoteShellBuffer) {
                 RemoteShellBuffer remoteShell = (RemoteShellBuffer) buf;
                 if (type == remoteShell.getType())

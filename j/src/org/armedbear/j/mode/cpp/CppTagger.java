@@ -49,9 +49,9 @@ public final class CppTagger extends CTagger implements Constants
 
   public void run()
   {
-    ArrayList tags = new ArrayList();
+    ArrayList<LocalTag> tags = new ArrayList<LocalTag>();
     String className = null;
-    Stack classNames = new Stack();
+    Stack<String> classNames = new Stack<String>();
     pos = new Position(buffer.getFirstLine(), 0);
     token = null;
     tokenStart = null;
@@ -191,7 +191,7 @@ public final class CppTagger extends CTagger implements Constants
             if (classNames.empty())
               className = null;
             else
-              className = (String) classNames.pop();
+              className = classNames.pop();
             pos.next();
             continue;
           }

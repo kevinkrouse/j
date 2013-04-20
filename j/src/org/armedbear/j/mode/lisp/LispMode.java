@@ -295,7 +295,7 @@ public class LispMode extends AbstractMode implements Constants, Mode
         return true;
     }
 
-    private static final HashMap definers = new HashMap();
+    private static final HashMap<String, String> definers = new HashMap<String, String>();
 
     static {
         String[] strings = new String[] {
@@ -320,7 +320,7 @@ public class LispMode extends AbstractMode implements Constants, Mode
     public static final String translateDefiner(String s)
     {
         if (s.length() >= 5 && s.startsWith("def"))
-            return (String) definers.get(s);
+            return definers.get(s);
         return null;
     }
 
@@ -1025,7 +1025,7 @@ public class LispMode extends AbstractMode implements Constants, Mode
     {
         Editor ed = null;
         for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-            ed = it.nextEditor();
+            ed = it.next();
             if (ed.getBuffer() == buf)
                 return ed;
         }
@@ -1266,7 +1266,7 @@ public class LispMode extends AbstractMode implements Constants, Mode
         }
     }
 
-    private static HashMap map;
+    private static HashMap<String, String> map;
 
     public static void hyperspec()
     {
@@ -1310,7 +1310,7 @@ public class LispMode extends AbstractMode implements Constants, Mode
             buf.load();
             if (!buf.isLoaded())
                 return;
-            map = new HashMap();
+            map = new HashMap<String, String>();
             Line line = buf.getFirstLine();
             while (true) {
                 String key = line.trim().toLowerCase();
@@ -1327,7 +1327,7 @@ public class LispMode extends AbstractMode implements Constants, Mode
                     break;
             }
         }
-        String filename = (String) map.get(s.toLowerCase());
+        String filename = map.get(s.toLowerCase());
         if (filename == null) {
             editor.status("No entry for \"" + s + '"');
             return;
@@ -1343,7 +1343,7 @@ public class LispMode extends AbstractMode implements Constants, Mode
         }
         if (buf == null) {
             for (BufferIterator it = new BufferIterator(); it.hasNext();) {
-                Buffer b = it.nextBuffer();
+                Buffer b = it.next();
                 if (b instanceof WebBuffer) {
                     if (b.getFile().canonicalPath().startsWith(rootPath)) {
                         buf = (WebBuffer) b;

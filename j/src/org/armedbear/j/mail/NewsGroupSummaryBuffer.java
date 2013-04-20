@@ -23,8 +23,8 @@ package org.armedbear.j.mail;
 import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
+import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Vector;
 import javax.swing.Icon;
 import javax.swing.SwingUtilities;
 import org.armedbear.j.Editor;
@@ -46,7 +46,7 @@ public final class NewsGroupSummaryBuffer extends MailboxBuffer
 {
     private final NntpSession session;
     private final String groupName;
-    private final HashMap map = new HashMap();
+    private final HashMap<String, String> map = new HashMap<String, String>();
 
     private ProgressNotifier progressNotifier;
     private String errorText;
@@ -157,7 +157,7 @@ public final class NewsGroupSummaryBuffer extends MailboxBuffer
             setBusy(false);
             invalidate();
             for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-                Editor ed = it.nextEditor();
+                Editor ed = it.next();
                 if (ed.getBuffer() == NewsGroupSummaryBuffer.this) {
                     ed.setDot(getInitialDotPos());
                     ed.moveCaretToDotCol();
@@ -179,7 +179,7 @@ public final class NewsGroupSummaryBuffer extends MailboxBuffer
             if (Editor.getBufferList().contains(NewsGroupSummaryBuffer.this))
                 kill();
             for (EditorIterator it = new EditorIterator(); it.hasNext();)
-                it.nextEditor().updateDisplay();
+                it.next().updateDisplay();
         }
     };
 
@@ -197,7 +197,7 @@ public final class NewsGroupSummaryBuffer extends MailboxBuffer
     public String getArticle(int articleNumber, ProgressNotifier progressNotifier)
     {
         String key = String.valueOf(articleNumber);
-        String filename = (String) map.get(key);
+        String filename = map.get(key);
         if (filename != null) {
             File file = File.getInstance(filename);
             if (file != null) {
@@ -281,7 +281,7 @@ public final class NewsGroupSummaryBuffer extends MailboxBuffer
             return;
         if (last - first > numberToGet)
             first = last - numberToGet;
-        entries = new Vector();
+        entries = new ArrayList<MailboxEntry>();
         if (session.writeLine("XOVER " + first + "-" + last)) {
             String s = session.readLine();
             if (s.startsWith("224")) {

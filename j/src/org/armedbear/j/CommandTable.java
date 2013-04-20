@@ -31,7 +31,7 @@ public class CommandTable
     // accommodate 450 entries without rehashing.
     private static final int INITIAL_CAPACITY = 600;
 
-    private static HashMap map;
+    private static HashMap<String, Command> map;
 
     public static final Command getCommand(String name)
     {
@@ -39,13 +39,13 @@ public class CommandTable
             return null;
         if (map == null)
             init();
-        return (Command) map.get(name.toLowerCase());
+        return map.get(name.toLowerCase());
     }
 
     private static synchronized void init()
     {
         if (map == null) {
-            map = new HashMap(INITIAL_CAPACITY);
+            map = new HashMap<String, Command>(INITIAL_CAPACITY);
 
             // Commands implemented in Editor.java.
             addCommand("backspace");
@@ -539,27 +539,24 @@ public class CommandTable
         map.put(commandName.toLowerCase(), new Command(commandName, className, methodName));
     }
 
-    public static List getCompletionsForPrefix(String prefix)
+    public static List<String> getCompletionsForPrefix(String prefix)
     {
         String lower = prefix.toLowerCase();
-        Iterator it = map.values().iterator();
-        ArrayList list = new ArrayList();
-        while (it.hasNext()) {
-            Command command = (Command) it.next();
+        ArrayList<String> list = new ArrayList<String>();
+        for (Command command : map.values()) {
             if (command.getName().toLowerCase().startsWith(lower))
                 list.add(command.getName());
         }
         return list;
     }
 
-    public static List apropos(String s)
+    public static List<String> apropos(String s)
     {
         String lower = s.toLowerCase();
-        Iterator it = map.values().iterator();
-        ArrayList list = new ArrayList();
-        while (it.hasNext()) {
-            String name = ((Command)it.next()).getName();
-            if (name.toLowerCase().indexOf(lower) >= 0)
+        ArrayList<String> list = new ArrayList<String>();
+        for (Command command : map.values()) {
+            String name = command.getName();
+            if (name.toLowerCase().contains(lower))
                 list.add(name);
         }
         return list;

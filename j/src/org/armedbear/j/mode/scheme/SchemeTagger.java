@@ -29,7 +29,7 @@ import org.armedbear.j.SystemBuffer;
 import org.armedbear.j.Tagger;
 import org.armedbear.j.mode.lisp.LispTag;
 
-import java.util.Vector;
+import java.util.ArrayList;
 
 public final class SchemeTagger extends Tagger
 {
@@ -50,7 +50,7 @@ public final class SchemeTagger extends Tagger
 
     public void run()
     {
-        Vector tags = new Vector();
+        ArrayList<LocalTag> tags = new ArrayList<LocalTag>();
         pos = new Position(buffer.getFirstLine(), 0);
         token = null;
         tokenStart = null;

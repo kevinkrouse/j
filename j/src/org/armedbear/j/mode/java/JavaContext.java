@@ -24,6 +24,7 @@ import org.armedbear.j.Constants;
 import org.armedbear.j.Editor;
 import org.armedbear.j.util.FastStringBuffer;
 import org.armedbear.j.Line;
+import org.armedbear.j.LocalTag;
 import org.armedbear.j.Log;
 import org.armedbear.j.Position;
 
@@ -46,7 +47,7 @@ public final class JavaContext implements Constants
     private static final Pattern returnRE = Pattern.compile("^return[ \t]");
 
     private final Editor editor;
-    private final Stack stack = new Stack();
+    private final Stack<Scope> stack = new Stack<Scope>();
 
     public JavaContext(Editor editor)
     {
@@ -55,15 +56,15 @@ public final class JavaContext implements Constants
 
     public void parseContext(Position dot)
     {
-        final List tags = editor.getBuffer().getTags();
+        final List<LocalTag> tags = editor.getBuffer().getTags();
         if (tags != null) {
             Scope scope = new Scope(new Position(editor.getBuffer().getFirstLine(), 0));
             stack.push(scope);
             // BUG! We should only consider the current top-level class (and
             // its inner classes if any), not all the tags in the file.
             final int size = tags.size();
-            for (int i = 0; i < size; i++) {
-                JavaTag tag = (JavaTag) tags.get(i);
+            for (LocalTag tag1 : tags) {
+                JavaTag tag = (JavaTag) tag1;
                 if (tag.getType() == TAG_FIELD)
                     scope.addField(tag.getSignature());
             }
@@ -104,7 +105,7 @@ public final class JavaContext implements Constants
             // It's a member of the current class.
             name = name.substring(index+1);
             if (stack.size() > 0) {
-                Scope scope = (Scope) stack.get(0);
+                Scope scope = stack.get(0);
                 for (int j = 0; j < scope.list.size(); j++) {
                     JavaVariable var = scope.getVariable(j);
                     if (name.equals(var.getName()))
@@ -116,7 +117,7 @@ public final class JavaContext implements Constants
         // It's a simple name. A local variable hides a class member with the
         // same name.
         for (int i = stack.size()-1; i >= 0; i--) {
-            Scope scope = (Scope) stack.get(i);
+            Scope scope = stack.get(i);
             for (int j = 0; j < scope.list.size(); j++) {
                 JavaVariable var = scope.getVariable(j);
                 if (name.equals(var.getName()))
@@ -129,7 +130,7 @@ public final class JavaContext implements Constants
     private Position findStartOfMethod(Position dot)
     {
         if (dot != null) {
-            final List tags = editor.getBuffer().getTags();
+            final List<LocalTag> tags = editor.getBuffer().getTags();
             if (tags != null) {
                 JavaTag tag = null;
                 // Find the last tag before dot.
@@ -151,7 +152,7 @@ public final class JavaContext implements Constants
 
     private final class Scope
     {
-        final ArrayList list = new ArrayList();
+        final ArrayList<JavaVariable> list = new ArrayList<JavaVariable>();
 
         final Position start;
         final Position pos;
@@ -282,7 +283,7 @@ public final class JavaContext implements Constants
 
         JavaVariable getVariable(int index)
         {
-            return (JavaVariable) list.get(index);
+            return list.get(index);
         }
 
         int getVariableCount()
@@ -294,8 +295,8 @@ public final class JavaContext implements Constants
         void dump()
         {
             Log.debug("scope at " + start);
-            for (int i = 0; i < list.size(); i++)
-                Log.debug(((JavaVariable)list.get(i)).getName());
+            for (JavaVariable jv : list)
+                Log.debug(jv.getName());
         }
     }
 
@@ -312,7 +313,7 @@ public final class JavaContext implements Constants
     // For debugging.
     private void dump()
     {
-        for (int i = 0; i < stack.size(); i++)
-            ((Scope)stack.get(i)).dump();
+        for (Scope s : stack)
+            s.dump();
     }
 }

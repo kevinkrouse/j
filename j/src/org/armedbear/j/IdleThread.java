@@ -25,7 +25,7 @@ import javax.swing.SwingUtilities;
 
 public class IdleThread extends Thread
 {
-    private Vector tasks = new Vector();
+    private Vector<IdleThreadTask> tasks = new Vector<IdleThreadTask>();
 
     private static IdleThread idleThread;
 
@@ -88,7 +88,7 @@ public class IdleThread extends Thread
     {
         if (index < 0 || index >= tasks.size())
             return null;
-        return (IdleThreadTask) tasks.get(index);
+        return tasks.get(index);
     }
 
     private synchronized void addTask(IdleThreadTask task)
@@ -150,7 +150,7 @@ public class IdleThread extends Thread
         {
             synchronized (Editor.getBufferList()) {
                 for (BufferIterator iter = new BufferIterator(); iter.hasNext();) {
-                    Buffer buf = iter.nextBuffer();
+                    Buffer buf = iter.next();
                     if (!buf.needsParsing())
                         continue;
                     boolean changed = false;
@@ -181,7 +181,7 @@ public class IdleThread extends Thread
         public void run()
         {
             for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-                Editor ed = it.nextEditor();
+                Editor ed = it.next();
                 if (ed.getHorizontalScrollBar() != null) {
                     Buffer buf = ed.getBuffer();
                     if (buf != null) {

@@ -234,10 +234,10 @@ public final class Marker implements Constants
 
   public static void invalidateAllMarkers()
   {
-    List markers = getAllMarkers();
+    List<Marker> markers = getAllMarkers();
     for (int i = markers.size(); i-- > 0;)
       {
-        Marker m = (Marker) markers.get(i);
+        Marker m = markers.get(i);
         if (m != null)
           m.invalidate();
       }
@@ -245,19 +245,19 @@ public final class Marker implements Constants
 
   public static void invalidateMarkers(Buffer buf)
   {
-    List markers = getAllMarkers();
+    List<Marker> markers = getAllMarkers();
     for (int i = markers.size(); i-- > 0;) {
-      Marker m = (Marker) markers.get(i);
+      Marker m = markers.get(i);
       if (m != null && m.getBuffer() == buf)
         m.invalidate();
     }
   }
 
-  public static List getAllMarkers()
+  public static List<Marker> getAllMarkers()
   {
     Marker[] bookmarks = Editor.getBookmarks();
-    List positionStack = Editor.getPositionStack();
-    ArrayList list = new ArrayList(bookmarks.length + positionStack.size());
+    List<Marker> positionStack = Editor.getPositionStack();
+    ArrayList<Marker> list = new ArrayList<Marker>(bookmarks.length + positionStack.size());
     for (int i = bookmarks.length; i-- > 0;) {
       Marker m = bookmarks[i];
       if (m != null)

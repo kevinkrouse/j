@@ -228,7 +228,7 @@ public class LispShellBuffer extends ShellBuffer
     File initialDirectory = Editor.currentEditor().getCurrentDirectory();
     if (initialDirectory == null || initialDirectory.isRemote())
       initialDirectory = Directories.getUserHomeDirectory();
-    List tokens = Utilities.tokenize(shellCommand);
+    List<String> tokens = Utilities.tokenize(shellCommand);
     final int tokenCount = tokens.size();
     String[] cmdArray;
     int i = 0;
@@ -239,8 +239,8 @@ public class LispShellBuffer extends ShellBuffer
       }
     else
       cmdArray = new String[tokenCount];
-    for (int j = 0; j < tokenCount; j++)
-      cmdArray[i++] = (String) tokens.get(j);
+      for (String token : tokens)
+          cmdArray[i++] = token;
     Process p = null;
     try
       {
@@ -691,7 +691,7 @@ public class LispShellBuffer extends ShellBuffer
     setBusy(true);
     for (EditorIterator it = new EditorIterator(); it.hasNext();)
       {
-        Editor ed = it.nextEditor();
+        Editor ed = it.next();
         if (ed.getBuffer() == this)
           ed.setWaitCursor();
       }
@@ -960,7 +960,7 @@ public class LispShellBuffer extends ShellBuffer
   {
     for (BufferIterator it = new BufferIterator(); it.hasNext();)
       {
-        Buffer b = it.nextBuffer();
+        Buffer b = it.next();
         if (b instanceof LispShellBuffer)
           {
             LispShellBuffer shell = (LispShellBuffer) b;

@@ -37,7 +37,7 @@ public class DefaultTextFieldHandler implements Constants, TextFieldHandler
     protected final Editor editor;
     protected final HistoryTextField textField;
 
-    protected List completions;
+    protected List<String> completions;
     protected int index;
 
     private Expansion expansion;
@@ -124,7 +124,7 @@ public class DefaultTextFieldHandler implements Constants, TextFieldHandler
             return null;
         if (index >= completions.size())
             index = 0;
-        return (String) completions.get(index++);
+        return completions.get(index++);
     }
 
     private String getPreviousCompletion()
@@ -133,12 +133,12 @@ public class DefaultTextFieldHandler implements Constants, TextFieldHandler
             index -= 2;
             if (index < 0)
                 index += completions.size();
-            return (String) completions.get(index++);
+            return completions.get(index++);
         }
         return null;
     }
 
-    public List getCompletions(String prefix)
+    public List<String> getCompletions(String prefix)
     {
         return null;
     }

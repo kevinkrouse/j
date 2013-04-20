@@ -176,7 +176,7 @@ public final class Dispatcher implements Constants, KeyListener, MouseListener,
 
         // Update all editors displaying buffer.
         for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-            Editor ed = it.nextEditor();
+            Editor ed = it.next();
             if (ed == editor) {
                 ed.getDisplay().setCaretVisible(true);
                 ed.updateDisplay();

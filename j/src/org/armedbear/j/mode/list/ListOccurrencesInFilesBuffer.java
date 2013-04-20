@@ -152,7 +152,7 @@ public final class ListOccurrencesInFilesBuffer extends ListOccurrencesBuffer
     {
         if (line instanceof OccurrenceLine) {
             for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-                Editor ed = it.nextEditor();
+                Editor ed = it.next();
                 if (ed.getBuffer() == this) {
                     ed.moveDotTo(line, 0);
                     ed.updateDisplay();
@@ -198,7 +198,7 @@ public final class ListOccurrencesInFilesBuffer extends ListOccurrencesBuffer
         if (line == null)
             return;
         for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-            Editor ed = it.nextEditor();
+            Editor ed = it.next();
             if (ed.getBuffer() == this) {
                 ed.moveDotTo(line, 0);
                 ed.updateDisplay();

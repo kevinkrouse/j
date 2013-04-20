@@ -42,11 +42,11 @@ import javax.swing.JScrollPane;
 public final class ListTagsDialog extends AbstractDialog implements MouseListener
 {
     private Editor editor;
-    private List tags;
-    private JList list;
+    private List<LocalTag> tags;
+    private JList<String> list;
     private Tag tag;
 
-    public ListTagsDialog(String title, List tags)
+    public ListTagsDialog(String title, List<LocalTag> tags)
     {
         super(Editor.currentEditor(), title, true);
         editor = Editor.currentEditor();
@@ -54,7 +54,7 @@ public final class ListTagsDialog extends AbstractDialog implements MouseListene
         init();
     }
 
-    public ListTagsDialog(Editor editor, String title, List tags)
+    public ListTagsDialog(Editor editor, String title, List<LocalTag> tags)
     {
         super(editor, title, true);
         this.editor = editor;
@@ -80,11 +80,11 @@ public final class ListTagsDialog extends AbstractDialog implements MouseListene
                 }
             }
             if (tags == null)
-                tags = new ArrayList();
+                tags = new ArrayList<LocalTag>();
             // We want to set the selection to the next tag after the cursor
             // position in the current editor.
             for (int i = 0; i < tags.size(); i++) {
-                LocalTag t = (LocalTag) tags.get(i);
+                LocalTag t = tags.get(i);
                 if (t.lineNumber() > editor.getDotLineNumber())
                     break;
                 index = i;
@@ -93,10 +93,10 @@ public final class ListTagsDialog extends AbstractDialog implements MouseListene
         final int size = tags.size();
         String[] array = new String[size];
         for (int i = size-1; i >= 0; i--) {
-            Tag t = (Tag) tags.get(i);
+            Tag t = tags.get(i);
             array[i] = t.getLongName();
         }
-        list = new JList(array);
+        list = new JList<String>(array);
         int h = Editor.preferences().getIntegerProperty(Property.JLIST_FIXED_CELL_HEIGHT);
         if (h > 0)
             list.setFixedCellHeight(h);
@@ -136,7 +136,7 @@ public final class ListTagsDialog extends AbstractDialog implements MouseListene
         dispose();
         int index = list.getSelectedIndex();
         if (tags != null && index >= 0 && tags.size() > index)
-            tag = (Tag) tags.get(index);
+            tag = tags.get(index);
     }
 
     public void mouseClicked(MouseEvent e)

@@ -20,6 +20,7 @@
 
 package org.armedbear.j;
 
+import org.armedbear.j.mail.FolderTree;
 import org.armedbear.j.util.FastStringBuffer;
 import org.armedbear.j.util.Utilities;
 
@@ -110,9 +111,8 @@ public final class Frame extends JFrame implements Constants, ComponentListener,
     {
         String[] imageNames = new String[] { "icons/j-512.png", "icons/j-128.png", "icons/j-32.png", "icons/j-16.png" };
         ArrayList<Image> images = new ArrayList<Image>(imageNames.length);
-        for (int i = 0; i < imageNames.length; i++)
-        {
-            Image image = Utilities.getImageFromFile(imageNames[i]);
+        for (String imageName : imageNames) {
+            Image image = Utilities.getImageFromFile(imageName);
             if (image != null)
                 images.add(image);
         }
@@ -969,7 +969,7 @@ public final class Frame extends JFrame implements Constants, ComponentListener,
             return;
         boolean changed = false;
         for (BufferIterator it = new BufferIterator(); it.hasNext();) {
-            if (currentEditor.reactivate(it.nextBuffer()))
+            if (currentEditor.reactivate(it.next()))
                 changed = true;
         }
         if (changed) {
@@ -1156,16 +1156,16 @@ public final class Frame extends JFrame implements Constants, ComponentListener,
         Editor.restoreFocus();
     }
 
-    private Object folderTree;
+    private FolderTree folderTree;
 
-    public final Object getFolderTree()
+    public final FolderTree getFolderTree()
     {
         return folderTree;
     }
 
-    public final void setFolderTree(Object obj)
+    public final void setFolderTree(FolderTree folderTree)
     {
-        folderTree = obj;
+        this.folderTree = folderTree;
     }
 
     public void componentResized(ComponentEvent e)

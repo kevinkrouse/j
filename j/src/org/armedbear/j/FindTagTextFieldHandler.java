@@ -63,22 +63,21 @@ public final class FindTagTextFieldHandler extends DefaultTextFieldHandler
     private void findTag(String pattern)
     {
         final Buffer buffer = editor.getBuffer();
-        List tags = findMatchingTags(buffer, pattern);
+        List<? extends Tag> tags = findMatchingTags(buffer, pattern);
         if (tags != null) {
             if (tags.size() > 1) {
                 // Can we get a unique match if we just consider defuns etc.
                 // and explicit tags?
-                ArrayList shortList = new ArrayList();
-                for (Iterator it = tags.iterator(); it.hasNext();) {
-                    Tag tag = (Tag) it.next();
+                ArrayList<Tag> shortList = new ArrayList<Tag>();
+                for (Tag tag : tags) {
                     if (tag instanceof LocalTag) {
-                        int type = ((LocalTag)tag).getType();
+                        int type = ((LocalTag) tag).getType();
                         // Java etc.
                         if (type == TAG_METHOD || type == TAG_EXPLICIT)
                             shortList.add(tag);
                         // Lisp.
                         if (type == TAG_DEFUN || type == TAG_GENERIC_FUNCTION ||
-                            type == TAG_MACRO)
+                                type == TAG_MACRO)
                             shortList.add(tag);
                     }
                 }
@@ -99,7 +98,7 @@ public final class FindTagTextFieldHandler extends DefaultTextFieldHandler
                 ed.updateDisplay();
             } else if (tags.size() == 1) {
                 // Exactly one match.
-                Tag tag = (Tag) tags.get(0);
+                Tag tag = tags.get(0);
                 editor.pushPosition();
                 if (tag instanceof LocalTag)
                     TagCommands.gotoLocalTag(editor, (LocalTag) tag, false);
@@ -112,44 +111,46 @@ public final class FindTagTextFieldHandler extends DefaultTextFieldHandler
             editor.status("Tag \"".concat(pattern).concat("\" not found"));
     }
 
-    private static List findMatchingTags(Buffer buffer, String pattern)
+    private static List<? extends Tag> findMatchingTags(Buffer buffer, String pattern)
     {
         boolean ignoreCase = Utilities.isLowerCase(pattern);
         final Mode mode = buffer.getMode();
+
         // We'll start by looking in the current buffer. If we find an exact
         // match there, we're done.
-        List list = findMatchingTagsInBuffer(buffer, pattern, ignoreCase);
-        if (list == null) {
-            // No exact match in the current buffer. Look in the current
-            // directory.
-            list =
-                TagCommands.findMatchingTagsInDirectory(pattern,
-                    buffer.getCurrentDirectory(), mode, -1, ignoreCase);
-            if (list == null) {
-                // Look at all the directories in the buffer's tag path.
-                List dirs = TagCommands.getDirectoriesInTagPath(buffer);
-                if (dirs != null) {
-                    for (int i = 0; i < dirs.size(); i++) {
-                        String dir = (String) dirs.get(i);
-                        File directory = File.getInstance(dir);
-                        if (directory.equals(buffer.getCurrentDirectory()))
-                            continue;
-                        List tagsInDir =
+        List<LocalTag> localTags = findMatchingTagsInBuffer(buffer, pattern, ignoreCase);
+        if (localTags != null && localTags.size() > 0)
+            return localTags;
+
+        // No exact match in the current buffer. Look in the current
+        // directory.
+        List<GlobalTag> globalTags =
+            TagCommands.findMatchingTagsInDirectory(pattern,
+                buffer.getCurrentDirectory(), mode, -1, ignoreCase);
+        if (globalTags == null) {
+            // Look at all the directories in the buffer's tag path.
+            List<String> dirs = TagCommands.getDirectoriesInTagPath(buffer);
+            if (dirs != null) {
+                for (String dir : dirs) {
+                    File directory = File.getInstance(dir);
+                    if (directory.equals(buffer.getCurrentDirectory()))
+                        continue;
+                    List<GlobalTag> tagsInDir =
                             TagCommands.findMatchingTagsInDirectory(pattern,
-                                directory, mode, -1, ignoreCase);
-                        if (tagsInDir != null) {
-                            if (list == null)
-                                list = new ArrayList();
-                            list.addAll(tagsInDir);
-                        }
+                                    directory, mode, -1, ignoreCase);
+                    if (tagsInDir != null) {
+                        if (globalTags == null)
+                            globalTags = new ArrayList<GlobalTag>();
+                        globalTags.addAll(tagsInDir);
                     }
                 }
             }
         }
-        return (list != null && list.size() > 0) ? list : null;
+
+        return (globalTags != null && globalTags.size() > 0) ? globalTags : null;
     }
 
-    private static List findMatchingTagsInBuffer(Buffer buffer, String pattern,
+    private static List<LocalTag> findMatchingTagsInBuffer(Buffer buffer, String pattern,
         boolean ignoreCase)
     {
         if (buffer.getTags() == null) {
@@ -158,13 +159,11 @@ public final class FindTagTextFieldHandler extends DefaultTextFieldHandler
                 tagger.run();
         }
         boolean isQualified = buffer.getMode().isQualifiedName(pattern);
-        List list = new ArrayList();
-        final List localTags = buffer.getTags();
+        List<LocalTag> list = new ArrayList<LocalTag>();
+        final List<LocalTag> localTags = buffer.getTags();
         if (localTags != null) {
             // Look through all the local tags.
-            Iterator iter = localTags.iterator();
-            while (iter.hasNext()) {
-                LocalTag localTag = (LocalTag) iter.next();
+            for (LocalTag localTag : localTags) {
                 if (isQualified) {
                     String tagName = localTag.getName();
                     if ((ignoreCase && tagName.equalsIgnoreCase(pattern)) || tagName.equals(pattern)) {
@@ -181,22 +180,21 @@ public final class FindTagTextFieldHandler extends DefaultTextFieldHandler
                 }
             }
         }
-        return (list != null && list.size() > 0) ? list : null;
+        return list.size() > 0 ? list : null;
     }
 
-    public List getCompletions(final String prefix)
+    public List<String> getCompletions(final String prefix)
     {
-        List list = getCompletionsInCurrentBuffer(prefix);
+        List<String> list = getCompletionsInCurrentBuffer(prefix);
         Mode mode = editor.getMode();
-        List tags =
+        List<GlobalTag> tags =
             Editor.getTagFileManager().getTags(editor.getCurrentDirectory(),
                 mode);
         if (tags != null) {
             boolean prefixIsQualified = mode.isQualifiedName(prefix);
             boolean ignoreCase = Utilities.isLowerCase(prefix);
             int prefixLength = prefix.length();
-            for (int i = 0; i < tags.size(); i++) {
-                GlobalTag tag = (GlobalTag) tags.get(i);
+            for (GlobalTag tag : tags) {
                 if (tag.getName().regionMatches(ignoreCase, 0, prefix, 0, prefixLength)) {
                     String toBeAdded;
                     if (prefixIsQualified)
@@ -223,15 +221,15 @@ public final class FindTagTextFieldHandler extends DefaultTextFieldHandler
         return list;
     }
 
-    private List getCompletionsInCurrentBuffer(String prefix)
+    private List<String> getCompletionsInCurrentBuffer(String prefix)
     {
-        List list = new ArrayList();
-        List tags = editor.getBuffer().getTags();
+        List<String> list = new ArrayList<String>();
+        List<LocalTag> tags = editor.getBuffer().getTags();
         if (tags != null) {
             boolean ignoreCase = Utilities.isLowerCase(prefix);
             int prefixLength = prefix.length();
-            for (int i = 0; i < tags.size(); i++) {
-                Tag tag = (Tag) tags.get(i);
+            for (LocalTag tag1 : tags) {
+                Tag tag = tag1;
                 if (tag.getMethodName().regionMatches(ignoreCase, 0, prefix, 0, prefixLength))
                     maybeAdd(list, tag.getMethodName());
             }
@@ -240,7 +238,7 @@ public final class FindTagTextFieldHandler extends DefaultTextFieldHandler
     }
 
     // Add name if it's not already in the list.
-    private void maybeAdd(List list, String name)
+    private void maybeAdd(List<String> list, String name)
     {
         if (name != null) {
             for (int i = list.size(); i-- > 0;)

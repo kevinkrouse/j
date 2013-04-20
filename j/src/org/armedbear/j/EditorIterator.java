@@ -21,18 +21,17 @@
 package org.armedbear.j;
 
 import java.util.Iterator;
-import java.util.NoSuchElementException;
 
-public final class EditorIterator implements Iterator
+public final class EditorIterator implements Iterator<Editor>
 {
-    private Iterator it;
+    private Iterator<? extends Editor> it;
 
     public EditorIterator()
     {
         this(Editor.getEditorList().iterator());
     }
 
-    public EditorIterator(Iterator it)
+    public EditorIterator(Iterator<Editor> it)
     {
         Debug.assertTrue(it != null);
         Debug.assertFalse(it instanceof EditorIterator);
@@ -44,14 +43,9 @@ public final class EditorIterator implements Iterator
         return it.hasNext();
     }
 
-    public Object next()
+    public Editor next()
     {
         return it.next();
-    }
-
-    public Editor nextEditor()
-    {
-        return (Editor) it.next();
     }
 
     public void remove()

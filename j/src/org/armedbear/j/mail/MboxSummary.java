@@ -34,20 +34,20 @@ import org.armedbear.j.util.Utilities;
 
 public final class MboxSummary implements Serializable
 {
-    private final ArrayList entries;
+    private final ArrayList<LocalMailboxEntry> entries;
     private final String path;
     private long lastModified;
     private long length;
 
-    public MboxSummary(File mailboxFile, List entries)
+    public MboxSummary(File mailboxFile, List<LocalMailboxEntry> entries)
     {
-        this.entries = new ArrayList(entries);
+        this.entries = new ArrayList<LocalMailboxEntry>(entries);
         path = mailboxFile.canonicalPath();
         lastModified = mailboxFile.lastModified();
         length = mailboxFile.length();
     }
 
-    public synchronized ArrayList getEntries()
+    public synchronized ArrayList<LocalMailboxEntry> getEntries()
     {
         return entries;
     }
