@@ -1,0 +1,129 @@
+# -*- Mode: Properties -*-
+# Solarized - Dark
+
+# SOLARIZED HEX     RGB
+# --------- ------- -----------
+# base03    #002b36   0  43  54
+# base02    #073642   7  54  66
+# base01    #586e75  88 110 117
+# base00    #657b83 101 123 131
+
+# base0     #839496 131 148 150
+# base1     #93a1a1 147 161 161
+# base2     #eee8d5 238 232 213
+# base3     #fdf6e3 253 246 227
+
+# yellow    #b58900 181 137   0
+# orange    #cb4b16 203  75  22
+# red       #dc322f 220  50  47
+# magenta   #d33682 211  54 130
+# violet    #6c71c4 108 113 196
+# blue      #268bd2  38 139 210
+# cyan      #2aa198  42 161 152
+# green     #859900 133 153   0
+
+color.text                              = 101 123 131
+color.background                        = 253 246 227
+color.currentLineBackground             = 238 232 213
+color.selectionBackground               =   7  54  66
+color.matchingBracketBackground         = 147 161 161
+color.caret                             = 181 137   0
+color.preprocessor                      = 181 137   0
+color.comment                           =  88 110 117
+color.keyword                           = 133 153   0
+color.brace                             = 131 148 150
+color.number                            = 131 148 150
+color.function                          =  38 139 210
+color.string                            =  42 161 152
+color.operator                          = 131 148 150
+color.disabled                          = 153 153 153
+color.verticalRule                      = 101 123 131
+color.lineNumber                        = 101 123 131
+color.gutterBorder                      =   7  54  66
+color.change                            = 203  75  22
+color.savedChange                       = 133 153   0
+color.headerValue                       = 133 153   0
+color.matchingText                      = 203  75  22
+color.headerName                        = 133 153   0
+color.signature                         = 204 204 153
+
+MailboxMode.color.deleted               = 153 153 102
+MailboxMode.color.to                    = 255 255 0
+MailboxMode.color.flags                 = 255 255 204
+MailboxMode.color.date                  = 204 204 153
+MailboxMode.color.from                  = 255 153 0
+MailboxMode.color.size                  = 204 204 153
+MailboxMode.color.subject               = 255 255 255
+MailboxMode.style.subject               = 1
+
+MailboxMode.color.flaggedTo             = 255 204 0
+MailboxMode.style.flaggedTo             = 1
+MailboxMode.color.flaggedSubject        = 255 204 0
+MailboxMode.style.flaggedSubject        = 1
+MailboxMode.color.flaggedFrom           = 255 204 0
+MailboxMode.style.flaggedFrom           = 1
+
+PerlMode.color.scalar                   = 255 255 204
+PerlMode.color.list                     = 204 204 153
+
+LispMode.color.substitution             = 255 204 102
+LispMode.color.parenthesis              = 153 153 102
+LispMode.color.punctuation              = 153 153 102
+LispMode.color.secondaryKeyword         = 153 102 51
+
+PHPMode.color.var                       = 255 255 204
+PHPMode.color.attribute                 = 204 204 153
+PHPMode.color.equals                    = 255 255 0
+PHPMode.color.delimiter                 = 255 255 0
+PHPMode.color.tag                       = 255 153 0
+
+color.prompt                            = 153 204 153
+color.input                             = 255 153 0
+
+XmlMode.color.attribute                 =  38 139 210
+XmlMode.color.equals                    = 181 137   0
+XmlMode.color.delimiter                 = 133 153   0
+XmlMode.color.namespace                 =  88 110 117
+XmlMode.color.tag                       = 133 153   0
+
+HtmlMode.color.tag                      = 153 204 153
+HtmlMode.color.anchor                   = 255 204 0
+HtmlMode.color.image                    = 255 153 0
+HtmlMode.color.table                    = 153 153 102
+HtmlMode.color.tableRow                 = 204 204 153
+HtmlMode.color.tableData                = 255 255 204
+HtmlMode.color.comment                  = 102 153 153
+HtmlMode.color.script                   = 255 0   0
+
+MakefileMode.color.target               = 255 153 0
+
+PropertiesMode.color.section            = 255 153 0
+
+DirectoryMode.color.directory           =  42 161 152
+DirectoryMode.color.symlink             = 211  54 130
+color.marked                            = 181 137   0
+
+DiffMode.color.file                     =  88 110 117
+DiffMode.style.file                     =   0
+DiffMode.color.deleted                  = 220  50  47
+DiffMode.color.inserted                 = 133 153   0
+
+# List Registers mode
+color.registerHeader                    = 255 153 0
+style.registerHeader                    =   0
+color.registerName                      = 255 255 0
+style.registerName                      =   0
+
+# Font.PLAIN is 0, Font.BOLD is 1, Font.ITALIC is 2.
+style.comment                           = 2
+style.function                          = 1
+style.keyword                           = 1
+style.text                              = 0
+DirectoryMode.style.directory           = 1
+DirectoryMode.style.marked              = 2
+XmlMode.style.delimiter                 = 1
+XmlMode.style.tag                       = 1
+PythonMode.style.function               = 1
+ShellMode.style.prompt                  = 0
+PHPMode.style.delimiter                 = 0
+PHPMode.style.tag                       = 0
