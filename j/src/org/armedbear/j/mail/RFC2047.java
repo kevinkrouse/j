@@ -25,7 +25,7 @@ import java.util.regex.Matcher;
 import java.io.UnsupportedEncodingException;
 
 import org.armedbear.j.util.Base64Decoder;
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 import org.armedbear.j.Log;
 import org.armedbear.j.util.Utilities;
 
@@ -50,7 +50,7 @@ public final class RFC2047
         int index = matcher.start();
         String charset = prefix.substring(2, prefix.length()-3);
         String encoding = Utilities.getEncodingFromCharset(charset);
-        FastStringBuffer sb = new FastStringBuffer();
+        StringBuilder sb = new StringBuilder();
         sb.append(encoded.substring(0, index));
         String remaining = encoded.substring(index);
         while (true) {

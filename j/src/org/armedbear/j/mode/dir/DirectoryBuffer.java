@@ -31,7 +31,7 @@ import org.armedbear.j.Editor;
 import org.armedbear.j.EditorIterator;
 import org.armedbear.j.ErrorRunnable;
 import org.armedbear.j.RemoteSession;
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 import org.armedbear.j.File;
 import org.armedbear.j.FtpFile;
 import org.armedbear.j.FtpLoadProcess;
@@ -777,7 +777,7 @@ public final class DirectoryBuffer extends Buffer
                     int begin = end - s.length();
                     if (begin < 0)
                         begin = 0;
-                    FastStringBuffer sb =  new FastStringBuffer(80);
+                    StringBuilder sb =  new StringBuilder(80);
                     sb.append(Utilities.spaces(begin));
                     for (int i = s.length(); i > 0; i--)
                         sb.append('-');
@@ -1484,7 +1484,7 @@ public final class DirectoryBuffer extends Buffer
         if (command.indexOf('*') >= 0) {
             output = doCommandOnMultipleFiles(command, names);
         } else {
-            FastStringBuffer sb = new FastStringBuffer();
+            StringBuilder sb = new StringBuilder();
             for (String filename : names) {
                 String s = doCommandOnFile(command, filename);
                 if (s != null && s.length() > 0)
@@ -1506,7 +1506,7 @@ public final class DirectoryBuffer extends Buffer
 
     private String doCommandOnFile(String command, String filename)
     {
-        FastStringBuffer sb = new FastStringBuffer(command);
+        StringBuilder sb = new StringBuilder(command);
         sb.append(' ');
         sb.append(Utilities.maybeQuote(filename));
         ShellCommand shellCommand = new ShellCommand(sb.toString(), getFile());
@@ -1531,7 +1531,7 @@ public final class DirectoryBuffer extends Buffer
             showMessageDialog("No command specified");
             return null;
         }
-        FastStringBuffer sb = new FastStringBuffer(before);
+        StringBuilder sb = new StringBuilder(before);
         for (String file : files) {
             sb.append(' ');
             String filename = file;
@@ -1957,7 +1957,7 @@ public final class DirectoryBuffer extends Buffer
             if (protocol != File.PROTOCOL_FTP && protocol != File.PROTOCOL_SSH)
                 return;
         }
-        FastStringBuffer sb = new FastStringBuffer("Change mode of ");
+        StringBuilder sb = new StringBuilder("Change mode of ");
         sb.append(file.getName());
         sb.append(" to:");
         final String input =
@@ -2112,7 +2112,7 @@ public final class DirectoryBuffer extends Buffer
     {
         File file = getFile();
         if (file.isRemote()) {
-            FastStringBuffer sb = new FastStringBuffer(file.canonicalPath());
+            StringBuilder sb = new StringBuilder(file.canonicalPath());
             sb.append(" [");
             sb.append(file.netPath());
             sb.append(']');

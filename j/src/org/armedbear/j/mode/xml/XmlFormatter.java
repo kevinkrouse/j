@@ -21,7 +21,7 @@
 package org.armedbear.j.mode.xml;
 
 import org.armedbear.j.Buffer;
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 import org.armedbear.j.FormatTable;
 import org.armedbear.j.Formatter;
 import org.armedbear.j.Line;
@@ -46,7 +46,7 @@ public final class XmlFormatter extends Formatter
     private static final byte STATE_ATTRIBUTE    = STATE_LAST + 4;
     private static final byte STATE_EQUALS       = STATE_LAST + 5;
 
-    private FastStringBuffer sb = new FastStringBuffer();
+    private StringBuilder sb = new StringBuilder();
 
     public XmlFormatter(Buffer buffer)
     {

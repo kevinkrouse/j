@@ -20,7 +20,7 @@
 
 package org.armedbear.j;
 
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 
 public final class Headers
 {
@@ -136,7 +136,7 @@ public final class Headers
     public static Headers parse(String s)
     {
         Headers headers = new Headers();
-        FastStringBuffer sb = new FastStringBuffer();
+        StringBuilder sb = new StringBuilder();
         String name = null;
         int begin = 0;
         int end;

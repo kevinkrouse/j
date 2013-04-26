@@ -21,7 +21,7 @@
 package org.armedbear.j;
 
 import org.armedbear.j.mail.FolderTree;
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 import org.armedbear.j.util.Utilities;
 
 import java.awt.Cursor;
@@ -90,8 +90,8 @@ public final class Frame extends JFrame implements Constants, ComponentListener,
 
     public void titleChanged()
     {
-        FastStringBuffer sb =
-            new FastStringBuffer(Version.getShortVersionString());
+        StringBuilder sb =
+            new StringBuilder(Version.getShortVersionString());
         String sessionName = Editor.getSessionName();
         if (sessionName != null) {
             sb.append(" [");

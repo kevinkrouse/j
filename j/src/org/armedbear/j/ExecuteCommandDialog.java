@@ -20,7 +20,7 @@
 
 package org.armedbear.j;
 
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 
 import java.util.List;
 
@@ -66,7 +66,7 @@ public final class ExecuteCommandDialog extends InputDialog
         final String commandName = command != null ? command.getName() : s;
         List<String> list = KeyMap.getGlobalKeyMap().listKeys(commandName);
         list.addAll(buffer.getKeyMapForMode().listKeys(commandName));
-        FastStringBuffer sb = new FastStringBuffer(commandName);
+        StringBuilder sb = new StringBuilder(commandName);
         if (list.size() == 0) {
             sb.append(" is not mapped");
         } else if (list.size() == 1) {

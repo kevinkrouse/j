@@ -20,7 +20,7 @@
 
 package org.armedbear.j.mode.lisp;
 
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 import org.armedbear.j.LocalTag;
 import org.armedbear.j.Position;
 
@@ -60,7 +60,8 @@ public final class LispTag extends LocalTag
 
         s = s.substring(end).trim();
         end = s.length();
-        FastStringBuffer sb = new FastStringBuffer('(');
+        StringBuilder sb = new StringBuilder();
+        sb.append('(');
         sb.append(d);
         sb.append(' ');
         for (int i = 0; i < end; i++) {

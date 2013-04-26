@@ -40,7 +40,7 @@ import org.armedbear.j.Constants;
 import org.armedbear.j.Debug;
 import org.armedbear.j.Editor;
 import org.armedbear.j.Mode;
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 import org.armedbear.j.File;
 import org.armedbear.j.Formatter;
 import org.armedbear.j.History;
@@ -292,7 +292,7 @@ public final class XmlMode extends AbstractMode implements Constants, Mode
         String s = line.trim();
         if (!s.startsWith("</"))
             return null;
-        FastStringBuffer sb = new FastStringBuffer();
+        StringBuilder sb = new StringBuilder();
         for (int i = 2; i < s.length(); i++) {
             char c = s.charAt(i);
             if (c <= ' ')
@@ -520,7 +520,7 @@ public final class XmlMode extends AbstractMode implements Constants, Mode
     {
         if (s == null || s.length() == 0 || s.charAt(0) != '<')
             return null;
-        FastStringBuffer sb = new FastStringBuffer();
+        StringBuilder sb = new StringBuilder();
         final int limit = s.length();
         char quoteChar = 0;
         for (int i = 0; i < limit; i++) {
@@ -546,7 +546,8 @@ public final class XmlMode extends AbstractMode implements Constants, Mode
     {
         if (pos == null || pos.getChar() != '<')
             return null;
-        FastStringBuffer sb = new FastStringBuffer('<');
+        StringBuilder sb = new StringBuilder();
+        sb.append('<');
         char quoteChar = 0;
         while (pos.next()) {
             char c = pos.getChar();
@@ -877,7 +878,7 @@ public final class XmlMode extends AbstractMode implements Constants, Mode
                     if (currentNode != null) {
                         TreeNode[] array = currentNode.getPath();
                         if (array != null) {
-                            FastStringBuffer sb = new FastStringBuffer();
+                            StringBuilder sb = new StringBuilder();
                             for (int i = 0; i < array.length; i++) {
                                 DefaultMutableTreeNode node =
                                     (DefaultMutableTreeNode) array[i];
@@ -993,7 +994,8 @@ public final class XmlMode extends AbstractMode implements Constants, Mode
         editor.fillToCaret();
         final int offset = editor.getDotOffset();
         editor.addUndo(SimpleEdit.INSERT_STRING);
-        FastStringBuffer sb = new FastStringBuffer('<');
+        StringBuilder sb = new StringBuilder();
+        sb.append('<');
         sb.append(tagName);
         sb.append(extra);
         sb.append("/>");

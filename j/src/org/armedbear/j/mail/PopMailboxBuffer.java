@@ -44,7 +44,7 @@ import org.armedbear.j.Editor;
 import org.armedbear.j.Directories;
 import org.armedbear.j.EditorIterator;
 import org.armedbear.j.File;
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 import org.armedbear.j.Log;
 import org.armedbear.j.PasswordDialog;
 import org.armedbear.j.Property;
@@ -73,7 +73,7 @@ public final class PopMailboxBuffer extends LocalMailboxBuffer
 
     public String getFileNameForDisplay()
     {
-        FastStringBuffer sb = new FastStringBuffer(64);
+        StringBuilder sb = new StringBuilder(64);
         sb.append(url.toString());
         String limitPattern = getLimitPattern();
         if (limitPattern != null) {
@@ -531,7 +531,7 @@ public final class PopMailboxBuffer extends LocalMailboxBuffer
             writer.write(getDateTimeStamp());
             writer.write('\n');
             // Headers.
-            FastStringBuffer sb = new FastStringBuffer(2048);
+            StringBuilder sb = new StringBuilder(2048);
             while (true) {
                 String s = session.readLine();
                 if (s == null)
@@ -736,7 +736,7 @@ public final class PopMailboxBuffer extends LocalMailboxBuffer
                 MessageListEntry messageListEntry = serverMessageList.get(j);
                 if (uidl.equals(messageListEntry.uidl)) {
                     if (progressNotifier != null) {
-                        FastStringBuffer sb = new FastStringBuffer("Deleting message ");
+                        StringBuilder sb = new StringBuilder("Deleting message ");
                         sb.append(messageListEntry.messageNumber);
                         sb.append(" on server");
                         progressNotifier.progress(sb.toString());
@@ -952,7 +952,7 @@ public final class PopMailboxBuffer extends LocalMailboxBuffer
     {
         int newMessageCount = getNewMessageCount();
         if (newMessageCount > 0) {
-            FastStringBuffer sb = new FastStringBuffer(url.toString());
+            StringBuilder sb = new StringBuilder(url.toString());
             sb.append(" (");
             sb.append(newMessageCount);
             sb.append(" new)");

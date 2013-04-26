@@ -28,7 +28,7 @@ import javax.swing.JMenuItem;
 import javax.swing.JPopupMenu;
 
 import org.armedbear.j.mode.dir.DirectoryBuffer;
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 import org.armedbear.j.mode.text.PlainTextFormatter;
 import org.armedbear.j.util.Utilities;
 import org.armedbear.lisp.Interpreter;
@@ -90,7 +90,7 @@ public abstract class AbstractMode implements Constants, Mode
             if (Editor.isLispInitialized()) {
                 String functionName =
                     displayName.toLowerCase().replace(' ', '-').concat("-mode-map");
-                FastStringBuffer sb = new FastStringBuffer("(ignore-errors (");
+                StringBuilder sb = new StringBuilder("(ignore-errors (");
                 sb.append("j::");
                 sb.append(functionName);
                 sb.append("))");
@@ -699,7 +699,7 @@ public abstract class AbstractMode implements Constants, Mode
 
     protected String getFullKey(String key)
     {
-        FastStringBuffer sb = new FastStringBuffer(this.getClass().getName());
+        StringBuilder sb = new StringBuilder(this.getClass().getName());
         sb.append('.');
         sb.append(key);
         final String fullKey = sb.toString().toLowerCase();
@@ -892,7 +892,8 @@ public abstract class AbstractMode implements Constants, Mode
                 // Now we're looking at the first character of the identifier.
                 c = line.charAt(offset);
                 if (isIdentifierStart(c)) {
-                    FastStringBuffer sb = new FastStringBuffer(c);
+                    StringBuilder sb = new StringBuilder();
+                    sb.append(c);
                     while (++offset < limit) {
                         c = line.charAt(offset);
                         if (isIdentifierPart(c))

@@ -27,7 +27,7 @@ import org.armedbear.j.Compression;
 import org.armedbear.j.Constants;
 import org.armedbear.j.Editor;
 import org.armedbear.j.Mode;
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 import org.armedbear.j.File;
 import org.armedbear.j.Formatter;
 import org.armedbear.j.mode.image.ImageBuffer;
@@ -227,7 +227,7 @@ public final class ArchiveMode extends AbstractMode implements Constants, Mode
 
     private static void appendLine(Buffer buffer, ZipEntry ze)
     {
-        FastStringBuffer sb = new FastStringBuffer();
+        StringBuilder sb = new StringBuilder();
         String sizeString = String.valueOf(ze.getSize());
         for (int i = 9 - sizeString.length(); i >= 0; i--)
             sb.append(' ');

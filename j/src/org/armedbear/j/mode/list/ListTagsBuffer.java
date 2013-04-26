@@ -23,7 +23,7 @@ package org.armedbear.j.mode.list;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Debug;
 import org.armedbear.j.Editor;
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 import org.armedbear.j.GlobalTag;
 import org.armedbear.j.Line;
 import org.armedbear.j.Log;
@@ -32,7 +32,6 @@ import org.armedbear.j.Position;
 import org.armedbear.j.Tag;
 import org.armedbear.j.TagLine;
 
-import java.util.Iterator;
 import java.util.List;
 
 public final class ListTagsBuffer extends Buffer
@@ -56,7 +55,7 @@ public final class ListTagsBuffer extends Buffer
         readOnly = true;
         setTransient(true);
         load(tags);
-        FastStringBuffer sb = new FastStringBuffer(command);
+        StringBuilder sb = new StringBuilder(command);
         sb.append(" \"");
         sb.append(name);
         sb.append('"');

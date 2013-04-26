@@ -21,7 +21,7 @@
 package org.armedbear.j.mode.man;
 
 import org.armedbear.j.Buffer;
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 import org.armedbear.j.FormatTable;
 import org.armedbear.j.Formatter;
 import org.armedbear.j.Line;
@@ -38,7 +38,7 @@ public class ManFormatter extends Formatter
     private static final int MAN_FORMAT_BOLD      = 1;
     private static final int MAN_FORMAT_UNDERLINE = 2;
 
-    private final FastStringBuffer sb = new FastStringBuffer();
+    private final StringBuilder sb = new StringBuilder();
     private final boolean apropos;
 
     public ManFormatter(Buffer buffer, boolean apropos)

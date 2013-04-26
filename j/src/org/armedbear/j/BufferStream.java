@@ -20,7 +20,7 @@
 
 package org.armedbear.j;
 
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 import org.armedbear.lisp.LispObject;
 import org.armedbear.lisp.Stream;
 import org.armedbear.lisp.Symbol;
@@ -85,8 +85,8 @@ public final class BufferStream extends Stream
                 default: {
                     Line line = buffer.getLastLine();
                     int offset = line.length();
-                    FastStringBuffer sb =
-                        new FastStringBuffer(line.getText());
+                    StringBuilder sb =
+                        new StringBuilder(line.getText());
                     sb.append(c);
                     line.setText(sb.toString());
                     buffer.modified();

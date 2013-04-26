@@ -26,7 +26,7 @@ import org.armedbear.j.BufferIterator;
 import org.armedbear.j.Constants;
 import org.armedbear.j.Editor;
 import org.armedbear.j.Mode;
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 import org.armedbear.j.Formatter;
 import org.armedbear.j.Frame;
 import org.armedbear.j.History;
@@ -184,7 +184,7 @@ public final class WebMode extends AbstractMode implements Constants, Mode
              (s.charAt(0) == '\'' && s.charAt(length-1) == '\''))) {
             s = s.substring(1, length-1).trim();
         }
-        FastStringBuffer sb = new FastStringBuffer(prefix);
+        StringBuilder sb = new StringBuilder(prefix);
         StringTokenizer st = new StringTokenizer(s);
         final int count = st.countTokens();
         for (int i = 0; i < count; i++) {

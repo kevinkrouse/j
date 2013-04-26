@@ -20,7 +20,7 @@
 
 package org.armedbear.j;
 
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 
 import javax.swing.SwingUtilities;
 
@@ -122,7 +122,7 @@ public class StatusBarProgressNotifier implements Cancellable, ProgressNotifier,
     {
         if (elapsed == 0)
             return null;
-        FastStringBuffer sb = new FastStringBuffer(prefix);
+        StringBuilder sb = new StringBuilder(prefix);
         if (fileSize > 0) {
             final long percent = (totalBytes * 100) / fileSize;
             if (percent >= 100)

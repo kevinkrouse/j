@@ -332,7 +332,7 @@ public final class Utilities implements Constants
         // The length may have changed when we detabbed the string.
         limit = s.length();
 
-        FastStringBuffer sb = new FastStringBuffer(limit);
+        StringBuilder sb = new StringBuilder(limit);
         int i = 0;
         while (i < limit) {
             char c = s.charAt(i);
@@ -373,7 +373,7 @@ public final class Utilities implements Constants
         if (limit == 0)
             return s;
         final char tabChar = '^';
-        FastStringBuffer sb = new FastStringBuffer(limit);
+        StringBuilder sb = new StringBuilder(limit);
         int col = 0;
         for (int i = 0; i < limit; i++) {
             char c = s.charAt(i);
@@ -394,7 +394,7 @@ public final class Utilities implements Constants
 
     public static String wrap(String s, int wrapCol, int tabWidth)
     {
-        FastStringBuffer sb = new FastStringBuffer();
+        StringBuilder sb = new StringBuilder();
         int i = 0;
         final int limit = s.length();
         int startOffs = 0;
@@ -685,7 +685,7 @@ public final class Utilities implements Constants
         File parent = file.getParentFile();
         if (parent != null && parent.isDirectory())
             return true;
-        FastStringBuffer sb = new FastStringBuffer("Invalid path \"");
+        StringBuilder sb = new StringBuilder("Invalid path \"");
         sb.append(file.netPath());
         sb.append('"');
         MessageDialog.showMessageDialog(sb.toString(), context);
@@ -726,7 +726,7 @@ public final class Utilities implements Constants
     private static String getStringFromUnicodeBytes(byte[] bytes, int start,
         int length, boolean isLittleEndian)
     {
-        FastStringBuffer sb = new FastStringBuffer(length);
+        StringBuilder sb = new StringBuilder(length);
         int i = start;
         int limit = start + length;
         while (i < limit - 1) {
@@ -1093,7 +1093,8 @@ public final class Utilities implements Constants
     {
         if (s.indexOf(' ') < 0)
             return s;
-        FastStringBuffer sb = new FastStringBuffer('"');
+        StringBuilder sb = new StringBuilder();
+        sb.append('"');
         sb.append(s);
         sb.append('"');
         return sb.toString();
@@ -1243,7 +1244,7 @@ public final class Utilities implements Constants
             Process process = Runtime.getRuntime().exec(cmdarray);
             BufferedReader reader =
                 new BufferedReader(new InputStreamReader(process.getInputStream()));
-            FastStringBuffer sb = new FastStringBuffer();
+            StringBuilder sb = new StringBuilder();
             String s;
             while ((s = reader.readLine()) != null) {
                 if (s.length() > 0) {
@@ -1307,7 +1308,7 @@ public final class Utilities implements Constants
         int pad = fieldWidth - s.length();
         if (pad <= 0)
             return s;
-        FastStringBuffer sb = new FastStringBuffer(spaces(pad));
+        StringBuilder sb = new StringBuilder(spaces(pad));
         sb.append(s);
         return sb.toString();
     }
@@ -1317,7 +1318,7 @@ public final class Utilities implements Constants
         int pad = fieldWidth - s.length();
         if (pad <= 0)
             return s;
-        FastStringBuffer sb = new FastStringBuffer(spaces(pad));
+        StringBuilder sb = new StringBuilder(spaces(pad));
         sb.append(s);
         return sb.toString();
     }
@@ -1355,7 +1356,7 @@ public final class Utilities implements Constants
         else if (count <= SPACES_LENGTH)
             return SPACES.substring(0, count);
         else {
-            FastStringBuffer sb =  new FastStringBuffer(count);
+            StringBuilder sb =  new StringBuilder(count);
             for (int i = 0; i < count; i++)
                 sb.append(' ');
             return sb.toString();
@@ -1370,7 +1371,7 @@ public final class Utilities implements Constants
         if (index < 0)
             return null;
         String s = contentType.substring(index + 8);
-        FastStringBuffer sb = new FastStringBuffer();
+        StringBuilder sb = new StringBuilder();
         boolean inQuote = false;
         for (int i = 0; i < s.length(); i++) {
             char c = s.charAt(i);
@@ -1439,7 +1440,7 @@ public final class Utilities implements Constants
     {
         ArrayList<String> list = new ArrayList<String>();
         if (s != null) {
-            FastStringBuffer sb = new FastStringBuffer();
+            StringBuilder sb = new StringBuilder();
             boolean inQuote = false;
             final int limit = s.length();
             for (int i = 0; i < limit; i++) {
@@ -1476,7 +1477,7 @@ public final class Utilities implements Constants
 
     public static String getFirstIdentifier(String s, Mode mode)
     {
-        FastStringBuffer sb = new FastStringBuffer();
+        StringBuilder sb = new StringBuilder();
         int length = s.length();
         if (length > 0) {
             char c = s.charAt(0);
@@ -1559,7 +1560,7 @@ public final class Utilities implements Constants
 
     public static String getKeyText(char keyChar, int keyCode, int modifiers)
     {
-        FastStringBuffer sb = new FastStringBuffer();
+        StringBuilder sb = new StringBuilder();
         if (keyChar >= ' ' && keyChar != 0xffff) {
             // Mapping is defined by character.
             if (keyChar >= 'A' && keyChar <= 'Z') {
@@ -1695,7 +1696,7 @@ public final class Utilities implements Constants
 
     public static String propertyToXml(String name, String value)
     {
-        FastStringBuffer sb = new FastStringBuffer("<property name=\"");
+        StringBuilder sb = new StringBuilder("<property name=\"");
         sb.append(name);
         sb.append("\" value=\"");
         sb.append(value);

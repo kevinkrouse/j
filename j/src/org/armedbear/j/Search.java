@@ -20,7 +20,7 @@
 
 package org.armedbear.j;
 
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 import org.armedbear.j.util.Utilities;
 
 import java.util.regex.Pattern;
@@ -609,7 +609,7 @@ public class Search implements Cloneable
 
     public void notFound(Editor editor)
     {
-        FastStringBuffer sb = new FastStringBuffer();
+        StringBuilder sb = new StringBuilder();
         if (regularExpression)
             sb.append("Regular expression ");
         sb.append('"');

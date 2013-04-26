@@ -20,7 +20,7 @@
 
 package org.armedbear.j.mode.objc;
 
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 import org.armedbear.j.LocalTag;
 import org.armedbear.j.Position;
 
@@ -55,7 +55,7 @@ public final class ObjCTag extends LocalTag
 
     private String parseCanonicalSignatureForMethod()
     {
-        FastStringBuffer sb = new FastStringBuffer();
+        StringBuilder sb = new StringBuilder();
         Position pos = getPosition().copy();
         pos.setOffset(0);
         while (Character.isWhitespace(pos.getChar()))

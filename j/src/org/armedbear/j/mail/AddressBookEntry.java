@@ -20,7 +20,7 @@
 
 package org.armedbear.j.mail;
 
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 
 public final class AddressBookEntry
 {
@@ -132,7 +132,7 @@ public final class AddressBookEntry
 
     public String toString()
     {
-        FastStringBuffer sb = new FastStringBuffer();
+        StringBuilder sb = new StringBuilder();
         if (personal != null) {
             sb.append(personal);
             sb.append(' ');

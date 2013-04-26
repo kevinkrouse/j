@@ -20,7 +20,7 @@
 
 package org.armedbear.j;
 
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 import org.armedbear.j.util.Utilities;
 
 import javax.swing.KeyStroke;
@@ -119,7 +119,7 @@ public class KeyMapping implements Constants
 
     public String toString()
     {
-        FastStringBuffer sb = new FastStringBuffer(64);
+        StringBuilder sb = new StringBuilder(64);
         sb.append(Utilities.getKeyText(keyChar, keyCode, modifiers));
         if (command != null) {
             while (sb.length() < 32)

@@ -20,7 +20,7 @@
 
 package org.armedbear.j;
 
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 import org.armedbear.j.util.Utilities;
 
 import java.io.InputStream;
@@ -44,7 +44,7 @@ public final class HttpLoadProcess extends LoadProcess implements BackgroundProc
 
     private int redirectionCount;
 
-    private FastStringBuffer sbHeaders = new FastStringBuffer();
+    private StringBuilder sbHeaders = new StringBuilder();
 
     public HttpLoadProcess(Buffer buffer, HttpFile file)
     {
@@ -145,7 +145,7 @@ public final class HttpLoadProcess extends LoadProcess implements BackgroundProc
         try {
             InputStream in = socket.getInputStream();
             OutputStreamWriter writer = new OutputStreamWriter(socket.getOutputStream());
-            FastStringBuffer sb = new FastStringBuffer(1024);
+            StringBuilder sb = new StringBuilder(1024);
             sb.append("GET ");
             sb.append(usingProxy ? file.netPath() : file.canonicalPath());
             sb.append(" HTTP/1.0\r\n");

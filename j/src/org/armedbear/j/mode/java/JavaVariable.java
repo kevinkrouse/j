@@ -20,7 +20,7 @@
 
 package org.armedbear.j.mode.java;
 
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 
 import java.util.StringTokenizer;
 
@@ -38,7 +38,7 @@ public final class JavaVariable
     public JavaVariable(String s, int what)
     {
         StringTokenizer st = new StringTokenizer(s);
-        FastStringBuffer sb = new FastStringBuffer();
+        StringBuilder sb = new StringBuilder();
         while (st.hasMoreTokens()) {
             sb.append(st.nextToken());
             sb.append(' ');
@@ -72,7 +72,7 @@ public final class JavaVariable
 
     public String toString()
     {
-        FastStringBuffer sb = new FastStringBuffer(type);
+        StringBuilder sb = new StringBuilder(type);
         sb.append(' ');
         sb.append(name);
         sb.append(" (");

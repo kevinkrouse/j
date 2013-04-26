@@ -20,7 +20,7 @@
 
 package org.armedbear.j;
 
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 import org.armedbear.j.util.FastStringReader;
 import org.armedbear.j.util.Utilities;
 
@@ -114,11 +114,12 @@ public final class Debug
         int threadCount = Thread.currentThread().activeCount();
         Thread[] threads = new Thread[threadCount];
         threadCount = Thread.currentThread().enumerate(threads);
-        FastStringBuffer sb = new FastStringBuffer();
+        StringBuilder sb = new StringBuilder();
         Log.debug("----- listThreads -----");
         for (int i = 0; i < threadCount; i++) {
             Thread thread = threads[i];
-            sb.setText(thread.getName());
+            sb.setLength(0);
+            sb.append(thread.getName());
             sb.append(' '); // Follow with at least one space.
             while (sb.length() < 24)
                 sb.append(' ');
@@ -150,7 +151,8 @@ public final class Debug
                 }
             }
         }
-        sb.setText("listThreads: ");
+        sb.setLength(0);
+        sb.append("listThreads: ");
         sb.append(threadCount);
         sb.append(" Java threads");
         if (processCount > 0) {

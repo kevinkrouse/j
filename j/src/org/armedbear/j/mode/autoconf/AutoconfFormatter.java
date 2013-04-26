@@ -22,7 +22,7 @@ package org.armedbear.j.mode.autoconf;
 
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Editor;
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 import org.armedbear.j.FormatTable;
 import org.armedbear.j.Formatter;
 import org.armedbear.j.Line;
@@ -47,7 +47,7 @@ public final class AutoconfFormatter extends Formatter
     private static Set<String> keywords;
     private static Set<String> functions;
 
-    private FastStringBuffer sb = new FastStringBuffer();
+    private StringBuilder sb = new StringBuilder();
     private String token;
 
     public AutoconfFormatter(Buffer buffer)

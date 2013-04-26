@@ -31,7 +31,7 @@ import org.armedbear.j.Directories;
 import org.armedbear.j.Editor;
 import org.armedbear.j.File;
 import org.armedbear.j.Frame;
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 import org.armedbear.j.History;
 import org.armedbear.j.IdleThread;
 import org.armedbear.j.InputDialog;
@@ -713,7 +713,7 @@ public final class MailCommands implements Constants
 
     public static MailAddress[] bounceGetTo(Editor editor, int count)
     {
-        FastStringBuffer sb = new FastStringBuffer("Bounce ");
+        StringBuilder sb = new StringBuilder("Bounce ");
         sb.append(count);
         sb.append(" message");
         if (count > 1)

@@ -26,7 +26,7 @@ import org.armedbear.j.Constants;
 import org.armedbear.j.Editor;
 import org.armedbear.j.EditorIterator;
 import org.armedbear.j.mode.lisp.JLispBuffer;
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 import org.armedbear.j.File;
 import org.armedbear.j.Log;
 import org.armedbear.j.Platform;
@@ -126,7 +126,7 @@ public final class CompilationBuffer extends CompilationErrorBuffer
         long start = System.currentTimeMillis();
         if (expandedCommand.startsWith("(")) {
             // Lisp.
-            FastStringBuffer sb = new FastStringBuffer();
+            StringBuilder sb = new StringBuilder();
             sb.append("(with-output-to-string (s) ");
             sb.append("(let ((*standard-output* s)) ");
             sb.append(expandedCommand);
@@ -158,7 +158,7 @@ public final class CompilationBuffer extends CompilationErrorBuffer
                     stdoutThread.join();
                     stderrThread.join();
                     long elapsed = System.currentTimeMillis() - start;
-                    FastStringBuffer sb = new FastStringBuffer();
+                    StringBuilder sb = new StringBuilder();
                     sb.append("\nCompilation ");
                     if (exitValue == 0) {
                         sb.append("finished (");
@@ -199,7 +199,7 @@ public final class CompilationBuffer extends CompilationErrorBuffer
                 // Not Windows. Assume Unix.
                 if (Utilities.haveJpty()) {
                     exitValueFile = Utilities.getTempFile();
-                    FastStringBuffer sb = new FastStringBuffer();
+                    StringBuilder sb = new StringBuilder();
                     sb.append("(\\cd \"");
                     sb.append(currentDir.canonicalPath());
                     sb.append("\" && ");
@@ -226,7 +226,7 @@ public final class CompilationBuffer extends CompilationErrorBuffer
     private String expandCommand(String s)
     {
         int length = s.length();
-        FastStringBuffer sb = new FastStringBuffer();
+        StringBuilder sb = new StringBuilder();
         boolean inQuote = false;
         for (int i = 0; i < length; i++) {
             char c = s.charAt(i);

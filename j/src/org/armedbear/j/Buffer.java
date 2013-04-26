@@ -25,7 +25,7 @@ import org.armedbear.j.mode.image.ImageBuffer;
 import org.armedbear.j.mode.image.ImageLine;
 import org.armedbear.j.mode.text.PlainTextMode;
 import org.armedbear.j.mode.web.WebBuffer;
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 import org.armedbear.j.util.FastStringReader;
 import org.armedbear.j.util.Utilities;
 import org.armedbear.j.vcs.VersionControl;
@@ -1011,7 +1011,7 @@ public class Buffer extends SystemBuffer
                 final File toBeLoaded = cache != null ? cache : file;
                 if (toBeLoaded.isFile()) {
                     Editor editor = Editor.currentEditor();
-                    FastStringBuffer sb = new FastStringBuffer("Loading");
+                    StringBuilder sb = new StringBuilder("Loading");
                     if (compression != null) {
                         if (compression.getType() == COMPRESSION_ZIP) {
                             String entryName = compression.getEntryName();
@@ -1496,16 +1496,16 @@ public class Buffer extends SystemBuffer
         final Editor editor = Editor.currentEditor();
         // Do this before saving changes to cache!
         if (!maybeWriteBackupFromCache()) {
-            FastStringBuffer sb =
-                new FastStringBuffer("Unable to write backup file for ");
+            StringBuilder sb =
+                new StringBuilder("Unable to write backup file for ");
             sb.append(file.getName());
             sb.append(". Save anyway?");
             if (!editor.confirm(dialogTitle, sb.toString()))
                 return false;
         }
         if (!saveToCache()) {
-            FastStringBuffer sb =
-                new FastStringBuffer("Unable to write temporary file for ");
+            StringBuilder sb =
+                new StringBuilder("Unable to write temporary file for ");
             sb.append(file.getName());
             MessageDialog.showMessageDialog(sb.toString(), dialogTitle);
             return false;
@@ -2406,7 +2406,7 @@ public class Buffer extends SystemBuffer
             return;
         }
         try {
-            FastStringBuffer sb = new FastStringBuffer();
+            StringBuilder sb = new StringBuilder();
             final int limit = s.length();
             boolean skipLF = false;
             for (int i = 0; i < limit; i++) {
@@ -2448,7 +2448,7 @@ public class Buffer extends SystemBuffer
         final int length = s.length();
         if (length > 0) {
             String text = pos.getLine().getText();
-            FastStringBuffer sb = new FastStringBuffer(text.length() + length);
+            StringBuilder sb = new StringBuilder(text.length() + length);
             sb.append(text.substring(0, pos.getOffset()));
             sb.append(s);
             sb.append(text.substring(pos.getOffset()));
@@ -2564,7 +2564,7 @@ public class Buffer extends SystemBuffer
             return file.netPath();
         if (file.isRemote()) {
             // SSH, FTP.
-            FastStringBuffer sb = new FastStringBuffer(file.getName());
+            StringBuilder sb = new StringBuilder(file.getName());
             sb.append(" [");
             sb.append(file.netPath());
             sb.append(']');
@@ -2642,7 +2642,7 @@ public class Buffer extends SystemBuffer
             String remainder = line.substring(i);
             if (indent > 0) {
                 // Put required indentation into stringbuffer.
-                FastStringBuffer sb = getCorrectIndentationString(indent);
+                StringBuilder sb = getCorrectIndentationString(indent);
                 sb.append(remainder);
                 line.setText(sb.toString());
             } else
@@ -2651,9 +2651,9 @@ public class Buffer extends SystemBuffer
             line.setText("");
     }
 
-    public FastStringBuffer getCorrectIndentationString(int indent)
+    public StringBuilder getCorrectIndentationString(int indent)
     {
-        FastStringBuffer sb = new FastStringBuffer(256);
+        StringBuilder sb = new StringBuilder(256);
         if (getUseTabs()) {
             final int tabWidth = getTabWidth();
             int col = 0;
@@ -2855,7 +2855,7 @@ public class Buffer extends SystemBuffer
             if (text != null)
                 return text;
         }
-        FastStringBuffer sb = new FastStringBuffer(16384);
+        StringBuilder sb = new StringBuilder(16384);
         Line line = getFirstLine();
         if (line != null) {
             String text = line.getText();
@@ -3060,7 +3060,7 @@ public class Buffer extends SystemBuffer
         Position dot = editor.getDotCopy();
         if (dot == null)
             return null;
-        final FastStringBuffer sb = new FastStringBuffer();
+        final StringBuilder sb = new StringBuilder();
         if (vcsEntry != null) {
             sb.append(vcsEntry.getStatusText());
             sb.append("   ");

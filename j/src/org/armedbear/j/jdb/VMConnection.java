@@ -28,7 +28,7 @@ import com.sun.jdi.connect.Connector;
 import com.sun.jdi.connect.LaunchingConnector;
 import java.util.Map;
 import org.armedbear.j.Debug;
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 import org.armedbear.j.Log;
 
 public final class VMConnection
@@ -53,7 +53,7 @@ public final class VMConnection
         (map.get("vmexec")).setValue(javaExecutable);
 
         // Command line.
-        FastStringBuffer sb = new FastStringBuffer(jdb.getMainClass());
+        StringBuilder sb = new StringBuilder(jdb.getMainClass());
         String mainClassArgs = jdb.getMainClassArgs();
         if (mainClassArgs != null && mainClassArgs.length() > 0) {
             sb.append(' ');

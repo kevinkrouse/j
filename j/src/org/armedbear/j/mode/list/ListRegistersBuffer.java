@@ -25,7 +25,7 @@ import org.armedbear.j.Debug;
 import org.armedbear.j.Directories;
 import org.armedbear.j.Editor;
 import org.armedbear.j.EditorIterator;
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 import org.armedbear.j.File;
 import org.armedbear.j.Line;
 import org.armedbear.j.Log;
@@ -121,7 +121,7 @@ public final class ListRegistersBuffer extends Buffer
                 Arrays.sort(names);
                 final int MAX_LINES = 100;
                 for (final String name : names) {
-                    FastStringBuffer sb = new FastStringBuffer();
+                    StringBuilder sb = new StringBuilder();
                     sb.append("Register ");
                     sb.append(name);
                     String text = Registers.getText(name, MAX_LINES);

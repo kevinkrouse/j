@@ -31,7 +31,7 @@ import javax.swing.tree.DefaultTreeModel;
 import javax.swing.tree.TreeModel;
 
 import org.armedbear.j.mode.xml.XmlTreeElement;
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 import org.armedbear.j.util.Utilities;
 import org.xml.sax.Attributes;
 import org.xml.sax.ContentHandler;
@@ -62,7 +62,7 @@ public final class XmlParserImpl extends DefaultHandler implements Runnable,
     private Exception exception;
     private DefaultMutableTreeNode current;
     private Locator locator;
-    private FastStringBuffer output;
+    private StringBuilder output;
 
     public XmlParserImpl(Buffer buffer)
     {
@@ -167,7 +167,7 @@ public final class XmlParserImpl extends DefaultHandler implements Runnable,
         }
 
         exception = null;
-        output = new FastStringBuffer();
+        output = new StringBuilder();
 
         final boolean validating = isValidating();
 
@@ -356,7 +356,7 @@ public final class XmlParserImpl extends DefaultHandler implements Runnable,
 
     private void appendMessage(String what, SAXParseException e)
     {
-        FastStringBuffer sb = new FastStringBuffer();
+        StringBuilder sb = new StringBuilder();
         final String systemId = e.getSystemId();
         final int lineNumber = e.getLineNumber();
         if (systemId.startsWith("file://")) {

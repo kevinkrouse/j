@@ -22,7 +22,7 @@ package org.armedbear.j.vcs.svn;
 
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Constants;
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 import org.armedbear.j.File;
 import org.armedbear.j.Log;
 import org.armedbear.j.ShellCommand;
@@ -63,7 +63,7 @@ public final class SVNEntry extends VersionControlEntry
     }
 
     private String statusText(boolean brief) {
-        FastStringBuffer sb = new FastStringBuffer("svn");
+        StringBuilder sb = new StringBuilder("svn");
         if (status != null) {
             if (brief) {
                 if (status.equals("added"))

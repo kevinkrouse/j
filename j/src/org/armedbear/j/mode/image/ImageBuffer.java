@@ -27,7 +27,7 @@ import org.armedbear.j.Display;
 import org.armedbear.j.Editor;
 import org.armedbear.j.EditorIterator;
 import org.armedbear.j.ErrorRunnable;
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 import org.armedbear.j.File;
 import org.armedbear.j.FtpFile;
 import org.armedbear.j.FtpLoadProcess;
@@ -408,7 +408,7 @@ public class ImageBuffer extends Buffer implements Constants
 
     public String getStatusText(Editor editor)
     {
-        FastStringBuffer sb = new FastStringBuffer(String.valueOf(getImageWidth()));
+        StringBuilder sb = new StringBuilder(String.valueOf(getImageWidth()));
         sb.append('x');
         sb.append(String.valueOf(getImageHeight()));
         sb.append(" pixels");

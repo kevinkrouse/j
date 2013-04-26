@@ -21,7 +21,7 @@
 package org.armedbear.j.mode.web;
 
 import org.armedbear.j.AbstractLine;
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 import org.armedbear.j.Line;
 import org.armedbear.j.LineSegmentList;
 import org.armedbear.j.mode.html.HtmlLineSegment;
@@ -63,7 +63,7 @@ public class WebLine extends AbstractLine implements Line
     {
         if (text == null) {
             if (segmentList != null) {
-                FastStringBuffer sb = new FastStringBuffer(256);
+                StringBuilder sb = new StringBuilder(256);
                 for (int i = 0; i < segmentList.size(); i++)
                     sb.append(segmentList.getSegment(i).getText());
                 text = sb.toString();

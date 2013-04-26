@@ -20,7 +20,7 @@
 
 package org.armedbear.j.mode.xml;
 
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 import org.xml.sax.Attributes;
 import org.xml.sax.helpers.AttributesImpl;
 
@@ -54,13 +54,13 @@ public final class XmlTreeElement
 
     public String getStatusText()
     {
-        FastStringBuffer sb = new FastStringBuffer(name);
+        StringBuilder sb = new StringBuilder(name);
         for (int i = 0; i < attributes.getLength(); i++)
             appendNameAndValue(sb, attributes.getQName(i), attributes.getValue(i));
         return sb.toString();
     }
 
-    private void appendNameAndValue(FastStringBuffer sb, String name, String value)
+    private void appendNameAndValue(StringBuilder sb, String name, String value)
     {
         sb.append(' ');
         sb.append(name);

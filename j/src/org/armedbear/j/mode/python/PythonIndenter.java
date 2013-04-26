@@ -21,7 +21,7 @@
 package org.armedbear.j.mode.python;
 
 import org.armedbear.j.Buffer;
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 import org.armedbear.j.Line;
 import org.armedbear.j.util.Utilities;
 
@@ -131,7 +131,7 @@ public final class PythonIndenter
     // Never returns null.
     private static String getFirstIdentifier(String s)
     {
-        FastStringBuffer sb = new FastStringBuffer();
+        StringBuilder sb = new StringBuilder();
         final int length = s.length();
         int i = 0;
         while (i < length && !mode.isIdentifierStart(s.charAt(i)))

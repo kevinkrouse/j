@@ -22,7 +22,7 @@ package org.armedbear.j.mode.java;
 
 import org.armedbear.j.Constants;
 import org.armedbear.j.Editor;
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 import org.armedbear.j.Line;
 import org.armedbear.j.LocalTag;
 import org.armedbear.j.Position;
@@ -351,7 +351,7 @@ public class JavaTagger extends Tagger implements Constants
   {
     if (currentClass != null)
       {
-        FastStringBuffer sb = new FastStringBuffer(currentClass.getName());
+        StringBuilder sb = new StringBuilder(currentClass.getName());
         sb.append('.');
         sb.append(token);
         tags.add(new JavaTag(sb.toString(), tokenStart, type, visibility, currentClass));
@@ -397,7 +397,7 @@ public class JavaTagger extends Tagger implements Constants
             pos.skip(index + explicitTag.length());
             pos.skipWhitespace();
             // Now we're looking at the first character of the tag.
-            FastStringBuffer sb = new FastStringBuffer();
+            StringBuilder sb = new StringBuilder();
             char c = pos.getChar();
             if (c == '"')
               {
@@ -442,7 +442,7 @@ public class JavaTagger extends Tagger implements Constants
   private void gatherToken(boolean canonical)
   {
     tokenStart = new Position(pos);
-    FastStringBuffer sb = new FastStringBuffer();
+    StringBuilder sb = new StringBuilder();
     char c;
     if (canonical)
       {

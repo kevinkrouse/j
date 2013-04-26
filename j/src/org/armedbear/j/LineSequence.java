@@ -20,7 +20,7 @@
 
 package org.armedbear.j;
 
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 
 public final class LineSequence
 {
@@ -79,7 +79,7 @@ public final class LineSequence
 
     public String toString()
     {
-        FastStringBuffer sb = new FastStringBuffer();
+        StringBuilder sb = new StringBuilder();
         for (Line line = first; line != null; line = line.next()) {
             sb.append(line.getText());
             sb.append('\n');

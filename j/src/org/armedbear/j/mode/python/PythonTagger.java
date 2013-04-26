@@ -20,7 +20,7 @@
 
 package org.armedbear.j.mode.python;
 
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 import org.armedbear.j.LocalTag;
 import org.armedbear.j.Position;
 import org.armedbear.j.SystemBuffer;
@@ -146,7 +146,7 @@ public final class PythonTagger extends Tagger
 
     private static String gatherToken(Position pos)
     {
-        FastStringBuffer sb = new FastStringBuffer();
+        StringBuilder sb = new StringBuilder();
         char c;
         while (mode.isIdentifierPart(c = pos.getChar())) {
             sb.append(c);

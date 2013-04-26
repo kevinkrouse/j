@@ -20,7 +20,7 @@
 
 package org.armedbear.j;
 
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 
 public abstract class AbstractLine implements Line
 {
@@ -238,7 +238,7 @@ public abstract class AbstractLine implements Line
 
     public final String toString()
     {
-        FastStringBuffer sb = new FastStringBuffer();
+        StringBuilder sb = new StringBuilder();
         sb.append("line ");
         sb.append(lineNumber()+1);
         String s = getText();

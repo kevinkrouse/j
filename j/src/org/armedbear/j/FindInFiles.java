@@ -21,7 +21,7 @@
 package org.armedbear.j;
 
 import org.armedbear.j.mode.list.ListOccurrencesInFilesBuffer;
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 import org.armedbear.j.vcs.p4.P4;
 
 import java.util.regex.Pattern;
@@ -32,7 +32,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 import java.util.StringTokenizer;
 import java.util.Vector;
@@ -274,8 +273,8 @@ public final class FindInFiles extends Replacement implements Constants,
                             getEditor().status("Search cancelled");
                         else
                             getEditor().status("Search completed");
-                        FastStringBuffer sb =
-                            new FastStringBuffer("Pattern found in ");
+                        StringBuilder sb =
+                            new StringBuilder("Pattern found in ");
                         sb.append(results.size());
                         sb.append(" of ");
                         sb.append(numFilesExamined);
@@ -812,7 +811,7 @@ public final class FindInFiles extends Replacement implements Constants,
 
     private void checkFileError(File file, String reason) throws CheckFileException
     {
-        FastStringBuffer sb = new FastStringBuffer("Can't process ");
+        StringBuilder sb = new StringBuilder("Can't process ");
         sb.append(file.netPath());
         sb.append(" (");
         sb.append(reason);
@@ -824,7 +823,7 @@ public final class FindInFiles extends Replacement implements Constants,
     // Completion message for replace in files only.
     private void completed()
     {
-        FastStringBuffer sb = new FastStringBuffer();
+        StringBuilder sb = new StringBuilder();
         int replacementCount = getReplacementCount();
         if (replacementCount == 0) {
             sb.append("No occurrences replaced");
@@ -937,7 +936,7 @@ public final class FindInFiles extends Replacement implements Constants,
 
         private boolean processFilter(String s)
         {
-            FastStringBuffer sb = new FastStringBuffer();
+            StringBuilder sb = new StringBuilder();
             for (int i = 0; i < s.length(); i++) {
                 char c = s.charAt(i);
                 switch (c) {

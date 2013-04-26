@@ -30,7 +30,7 @@ import org.armedbear.j.Buffer;
 import org.armedbear.j.Debug;
 import org.armedbear.j.Editor;
 import org.armedbear.j.File;
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 import org.armedbear.j.mode.java.JavaSource;
 import org.armedbear.j.Line;
 import org.armedbear.j.Log;
@@ -130,7 +130,7 @@ public final class LineNumberBreakpoint extends ResolvableBreakpoint
 
     public String getLocationString()
     {
-        FastStringBuffer sb = new FastStringBuffer();
+        StringBuilder sb = new StringBuilder();
         if (file != null) {
             sb.append(file.getName());
             sb.append(':');
@@ -143,7 +143,7 @@ public final class LineNumberBreakpoint extends ResolvableBreakpoint
 
     public String toString()
     {
-        FastStringBuffer sb = new FastStringBuffer();
+        StringBuilder sb = new StringBuilder();
         if (file != null) {
             sb.append(file.getName());
             sb.append(':');
@@ -160,7 +160,7 @@ public final class LineNumberBreakpoint extends ResolvableBreakpoint
     {
         int indent = 4;
         final String separator = System.getProperty("line.separator");
-        FastStringBuffer sb = new FastStringBuffer(Utilities.spaces(indent));
+        StringBuilder sb = new StringBuilder(Utilities.spaces(indent));
         sb.append("<breakpoint");
         sb.append(separator);
         if (className == null)

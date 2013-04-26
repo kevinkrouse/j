@@ -21,7 +21,7 @@
 package org.armedbear.j.mode.cpp;
 
 import org.armedbear.j.Constants;
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 import org.armedbear.j.LocalTag;
 import org.armedbear.j.Position;
 import org.armedbear.j.SystemBuffer;
@@ -224,7 +224,7 @@ public final class CppTagger extends CTagger implements Constants
   private void gatherToken()
   {
     tokenStart = new Position(pos);
-    FastStringBuffer sb = new FastStringBuffer();
+    StringBuilder sb = new StringBuilder();
     char c;
     while (isIdentifierPart(c = pos.getChar()))
       {
@@ -242,7 +242,7 @@ public final class CppTagger extends CTagger implements Constants
   {
     pos.skipWhitespace();
     tokenStart = new Position(pos);
-    FastStringBuffer sb = new FastStringBuffer();
+    StringBuilder sb = new StringBuilder();
     char c;
     while ((c = pos.getChar()) != '(')
       {

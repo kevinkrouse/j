@@ -74,7 +74,7 @@ import org.armedbear.j.mode.java.JavaMode;
 import org.armedbear.j.mode.lisp.JLispBuffer;
 import org.armedbear.j.mode.list.ListOccurrencesInFilesBuffer;
 import org.armedbear.j.mode.perl.PerlMode;
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 import org.armedbear.j.util.Utilities;
 import org.armedbear.j.vcs.p4.P4;
 import org.armedbear.lisp.Condition;
@@ -1181,7 +1181,7 @@ public final class Editor extends JPanel implements Constants,
             if (dotLine.length() == 0) {
                 adjustMarkers(dotLine);
                 // Save original text.
-                FastStringBuffer sb = new FastStringBuffer();
+                StringBuilder sb = new StringBuilder();
                 if (dotLine.getOriginalText() != null)
                     sb.append(dotLine.getOriginalText());
                 sb.append('\n');
@@ -1207,7 +1207,7 @@ public final class Editor extends JPanel implements Constants,
                 // Append the next line's text to end of this line.
                 dotLine.setText(dotLine.getText() + nextLine.getText());
                 // Save original text.
-                FastStringBuffer sb = new FastStringBuffer();
+                StringBuilder sb = new StringBuilder();
                 if (dotLine.getOriginalText() != null)
                     sb.append(dotLine.getOriginalText());
                 else
@@ -2093,7 +2093,7 @@ public final class Editor extends JPanel implements Constants,
         // Line is not blank. Figure out current indentation.
         final int oldIndent = buffer.getIndentation(dotLine);
 
-        FastStringBuffer sb = null;
+        StringBuilder sb = null;
 
         if (indent == oldIndent) {
             boolean ok = false;
@@ -3843,7 +3843,7 @@ public final class Editor extends JPanel implements Constants,
 
         // For sanity, only use actual tab chars at beginning of line!
         if (buffer.getUseTabs() && line.length() == 0) {
-            FastStringBuffer sb = new FastStringBuffer(width);
+            StringBuilder sb = new StringBuilder(width);
             int col = 0;
             final int tabWidth = buffer.getTabWidth();
             while (col + tabWidth <= width) {
@@ -3895,8 +3895,8 @@ public final class Editor extends JPanel implements Constants,
         try {
             addUndo(SimpleEdit.LINE_EDIT);
             fillToCaret();
-            FastStringBuffer sb =
-                new FastStringBuffer(dotLine.substring(0, getDotOffset()));
+            StringBuilder sb =
+                new StringBuilder(dotLine.substring(0, getDotOffset()));
             sb.append(c);
             sb.append(dotLine.substring(getDotOffset()));
             dotLine.setText(sb.toString());
@@ -4361,7 +4361,7 @@ public final class Editor extends JPanel implements Constants,
         }
 
         if (numModifiedBuffers > 0) {
-            FastStringBuffer sb = new FastStringBuffer("Really exit with ");
+            StringBuilder sb = new StringBuilder("Really exit with ");
             sb.append(numModifiedBuffers);
             sb.append(" modifed buffer");
             if (numModifiedBuffers > 1)
@@ -5083,7 +5083,7 @@ public final class Editor extends JPanel implements Constants,
         int offset = pos.getOffset();
         if (offset == limit)
             --offset;
-        FastStringBuffer sb = new FastStringBuffer();
+        StringBuilder sb = new StringBuilder();
         if (offset >= 0 && offset < limit) {
             char c = line.charAt(offset);
             if (Utilities.isFilenameChar(c)) {
@@ -5859,7 +5859,7 @@ public final class Editor extends JPanel implements Constants,
             final String head = text.substring(0, col);
             final String tail = text.substring(col);
             addUndo(SimpleEdit.LINE_EDIT);
-            FastStringBuffer sb = new FastStringBuffer(head);
+            StringBuilder sb = new StringBuilder(head);
             sb.append(s);
             sb.append(tail);
             dotLine.setText(sb.toString());
@@ -6401,7 +6401,7 @@ public final class Editor extends JPanel implements Constants,
                 if (message == null || message.length() == 0)
                     message = t.getMessage();
                 if (message != null && message.length() > 0) {
-                    FastStringBuffer sb = new FastStringBuffer(message);
+                    StringBuilder sb = new StringBuilder(message);
                     sb.setCharAt(0, Character.toUpperCase(sb.charAt(0)));
                     message = sb.toString();
                 } else
@@ -6441,7 +6441,7 @@ public final class Editor extends JPanel implements Constants,
                                 String statusText = statusBar.getText();
                                 boolean append =
                                     statusText != null && statusText.length() > 0;
-                                FastStringBuffer sb = new FastStringBuffer();
+                                StringBuilder sb = new StringBuilder();
                                 if (append) {
                                     sb.append(statusText);
                                     sb.append("          ");
@@ -6460,8 +6460,8 @@ public final class Editor extends JPanel implements Constants,
                         }
                     }
                     catch (NoSuchMethodException e) {
-                        FastStringBuffer sb =
-                            new FastStringBuffer("Unknown command \"");
+                        StringBuilder sb =
+                            new StringBuilder("Unknown command \"");
                         sb.append(command);
                         sb.append('"');
                         MessageDialog.showMessageDialog(Editor.this,
@@ -7202,7 +7202,7 @@ public final class Editor extends JPanel implements Constants,
     {
         if (dot.getOffset() < dot.getLineLength()) {
             char c = getDotChar();
-            FastStringBuffer sb = new FastStringBuffer(Integer.toString(c));
+            StringBuilder sb = new StringBuilder(Integer.toString(c));
             sb.append("  0x");
             sb.append(Integer.toHexString(c));
             if (c >= ' ' && c < 0x7f) {
@@ -7291,7 +7291,7 @@ public final class Editor extends JPanel implements Constants,
                 long start = System.currentTimeMillis();
                 JLispBuffer.runStartupScript(file);
                 long elapsed = System.currentTimeMillis() - start;
-                FastStringBuffer sb = new FastStringBuffer("loaded ");
+                StringBuilder sb = new StringBuilder("loaded ");
                 sb.append(file.canonicalPath());
                 sb.append(" (");
                 sb.append(elapsed);
@@ -7334,7 +7334,7 @@ public final class Editor extends JPanel implements Constants,
 
     public static void invokeHook(String hook, String args)
     {
-        FastStringBuffer sb = new FastStringBuffer("(invoke-hook '");
+        StringBuilder sb = new StringBuilder("(invoke-hook '");
         sb.append(hook);
         if (args != null && args.length() > 0) {
             sb.append(' ');
@@ -7385,8 +7385,8 @@ public final class Editor extends JPanel implements Constants,
         Mode mode = buffer.getDefaultMode();
         if (mode != null && mode != buffer.getMode()) {
             if (buffer.isModified()) {
-                FastStringBuffer sb =
-                    new FastStringBuffer("Buffer will be reloaded in ");
+                StringBuilder sb =
+                    new StringBuilder("Buffer will be reloaded in ");
                 sb.append(mode.toString());
                 sb.append(" mode; discard changes?");
                 if (!confirm("Change Mode", sb.toString()))
@@ -8070,8 +8070,8 @@ public final class Editor extends JPanel implements Constants,
                 file.setEncoding(encoding);
                 buffer.saveProperties();
             } else {
-                FastStringBuffer sb =
-                    new FastStringBuffer("Unsupported encoding \"");
+                StringBuilder sb =
+                    new StringBuilder("Unsupported encoding \"");
                 sb.append(encoding);
                 sb.append('"');
                 MessageDialog.showMessageDialog(this, sb.toString(), "Error");

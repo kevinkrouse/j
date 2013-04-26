@@ -20,7 +20,7 @@
 
 package org.armedbear.j;
 
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 
 public final class Directories
 {
@@ -38,7 +38,7 @@ public final class Directories
             // Home directory was not specified on the command line.
             if (Platform.isPlatformWindows()) {
                 // Look for existing .j directory.
-                FastStringBuffer sb = new FastStringBuffer("C:\\");
+                StringBuilder sb = new StringBuilder("C:\\");
                 for (char c = 'C'; c <= 'Z'; c++) {
                     sb.setCharAt(0, c);
                     File dir = File.getInstance(sb.toString());

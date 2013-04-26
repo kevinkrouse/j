@@ -34,7 +34,7 @@ import org.armedbear.j.Display;
 import org.armedbear.j.Editor;
 import org.armedbear.j.EditorIterator;
 import org.armedbear.j.ShellBuffer;
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 import org.armedbear.j.File;
 import org.armedbear.j.History;
 import org.armedbear.j.Line;
@@ -913,7 +913,7 @@ public class LispShellBuffer extends ShellBuffer
               classPath = file.canonicalPath();
           }
       }
-    FastStringBuffer sb = new FastStringBuffer();
+    StringBuilder sb = new StringBuilder();
     if (java != null)
       {
         sb.append('"');

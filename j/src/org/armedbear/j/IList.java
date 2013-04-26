@@ -22,7 +22,7 @@ package org.armedbear.j;
 
 import org.armedbear.j.mode.list.ListOccurrencesBuffer;
 import org.armedbear.j.mode.list.ListOccurrencesInFilesBuffer;
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 import org.armedbear.j.util.Utilities;
 
 import java.io.BufferedReader;
@@ -69,7 +69,7 @@ public final class IList implements BackgroundProcess, Constants
     private ListOccurrencesInFilesBuffer createOutputBuffer()
     {
         ListOccurrencesInFilesBuffer buf = new ListOccurrencesInFilesBuffer(search);
-        FastStringBuffer sb = new FastStringBuffer(sourceBuffer.getFile().getName());
+        StringBuilder sb = new StringBuilder(sourceBuffer.getFile().getName());
         sb.append(" \"");
         sb.append(search.getPattern());
         sb.append('"');

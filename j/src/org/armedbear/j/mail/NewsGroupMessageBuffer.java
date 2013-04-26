@@ -34,7 +34,7 @@ import org.armedbear.j.Buffer;
 import org.armedbear.j.Directories;
 import org.armedbear.j.Editor;
 import org.armedbear.j.EditorIterator;
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 import org.armedbear.j.File;
 import org.armedbear.j.Headers;
 import org.armedbear.j.mode.image.ImageLine;
@@ -262,7 +262,7 @@ public final class NewsGroupMessageBuffer extends MessageBuffer
                     File decoded =
                         Utilities.getTempFile(Directories.getTempDirectory(),
                                               extension);
-                    FastStringBuffer sb = new FastStringBuffer("begin 644 ");
+                    StringBuilder sb = new StringBuilder("begin 644 ");
                     sb.append(decoded.getName());
                     BufferedWriter writer = new BufferedWriter(
                         new OutputStreamWriter(encoded.getOutputStream(),
@@ -301,8 +301,8 @@ public final class NewsGroupMessageBuffer extends MessageBuffer
                     BufferedWriter writer = new BufferedWriter(
                         new OutputStreamWriter(encoded.getOutputStream(),
                             "ISO-8859-1"));
-                    FastStringBuffer sb =
-                        new FastStringBuffer(s.substring(0, index));
+                    StringBuilder sb =
+                        new StringBuilder(s.substring(0, index));
                     sb.append(decoded.getName());
                     writer.write(sb.toString());
                     writer.write('\n');
@@ -344,7 +344,7 @@ public final class NewsGroupMessageBuffer extends MessageBuffer
 
     private boolean decode(File encoded, String decodeCommand)
     {
-        FastStringBuffer sb = new FastStringBuffer("(\\cd \"");
+        StringBuilder sb = new StringBuilder("(\\cd \"");
         sb.append(Directories.getTempDirectory().canonicalPath());
         sb.append("\" && ");
         sb.append(decodeCommand);

@@ -21,7 +21,7 @@
 package org.armedbear.j;
 
 import org.armedbear.j.mode.properties.PropertiesFormatter;
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 import org.armedbear.j.vcs.VersionControlEntry;
 import org.armedbear.j.vcs.p4.P4;
 
@@ -30,7 +30,6 @@ import java.awt.Dimension;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
-import java.util.Iterator;
 import java.util.Set;
 import java.util.Vector;
 import javax.swing.BorderFactory;
@@ -92,7 +91,7 @@ public final class PropertiesDialog extends AbstractDialog implements Constants
                 }
             } else if (file.isLocal()) {
                 Date date = new Date(file.lastModified());
-                FastStringBuffer sb = new FastStringBuffer();
+                StringBuilder sb = new StringBuilder();
                 if (buffer.isModified())
                     sb.append("Modified:");
                 else
@@ -356,7 +355,7 @@ public final class PropertiesDialog extends AbstractDialog implements Constants
                 Mode newMode = Editor.getModeList().getModeFromModeName(modeName);
                 if (buffer.getModeId() == BINARY_MODE || newMode.getId() == BINARY_MODE) {
                     if (buffer.isModified()) {
-                        FastStringBuffer sb = new FastStringBuffer("Buffer will be reloaded in ");
+                        StringBuilder sb = new StringBuilder("Buffer will be reloaded in ");
                         if (newMode.getId() == BINARY_MODE)
                             sb.append("binary");
                         else
@@ -482,7 +481,7 @@ public final class PropertiesDialog extends AbstractDialog implements Constants
     {
         final Editor editor = Editor.currentEditor();
         final Buffer buffer = editor.getBuffer();
-        FastStringBuffer sb = new FastStringBuffer();
+        StringBuilder sb = new StringBuilder();
         PropertyList properties = buffer.getProperties();
         if (properties != null) {
             Set<Property> keySet = properties.keySet();
@@ -504,7 +503,8 @@ public final class PropertiesDialog extends AbstractDialog implements Constants
             OutputBuffer buf = OutputBuffer.getOutputBuffer(output);
             buf.setFormatter(new PropertiesFormatter(buf));
             if (buf != null) {
-                sb.setText("listProperties");
+                sb.setLength(0);
+                sb.append("listProperties");
                 if (buffer.getFile() != null) {
                     sb.append(' ');
                     sb.append(buffer.getFile().getName());

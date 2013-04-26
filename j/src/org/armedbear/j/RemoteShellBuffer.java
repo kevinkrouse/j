@@ -19,7 +19,7 @@
 
 package org.armedbear.j;
 
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 import org.armedbear.j.util.Utilities;
 
 import java.io.OutputStreamWriter;
@@ -206,7 +206,7 @@ public class RemoteShellBuffer extends ShellBuffer
     protected void stdOutUpdate(final String s)
     {
         // Filter to prevent two carriage returns in a row.
-        final FastStringBuffer sb = new FastStringBuffer(s.length());
+        final StringBuilder sb = new StringBuilder(s.length());
         boolean skipCR = false;
         final int limit = s.length();
         for (int i = 0; i < limit; i++) {

@@ -26,7 +26,7 @@ import org.armedbear.j.Constants;
 import org.armedbear.j.Debug;
 import org.armedbear.j.Editor;
 import org.armedbear.j.Mode;
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 import org.armedbear.j.Formatter;
 import org.armedbear.j.InsertTagDialog;
 import org.armedbear.j.mode.js.JavaScriptMode;
@@ -173,7 +173,7 @@ public final class HtmlMode extends AbstractMode implements Constants, Mode
         String s = line.trim();
         if (!s.startsWith("</"))
             return null;
-        FastStringBuffer sb = new FastStringBuffer();
+        StringBuilder sb = new StringBuilder();
         for (int i = 2; i < s.length(); i++) {
             char c = s.charAt(i);
             if (c <= ' ')
@@ -487,7 +487,7 @@ public final class HtmlMode extends AbstractMode implements Constants, Mode
 
             if (pos.getChar() == '<') {
                 if (pos.next()) {
-                    FastStringBuffer sb = new FastStringBuffer();
+                    StringBuilder sb = new StringBuilder();
                     char c;
                     while (!Character.isWhitespace(c = pos.getChar()) && c != '>') {
                         sb.append(c);
@@ -587,7 +587,8 @@ public final class HtmlMode extends AbstractMode implements Constants, Mode
         if (c <= ' ')
             dot.next();
         Position start = dot.copy();
-        FastStringBuffer sb = new FastStringBuffer(dot.getChar());
+        StringBuilder sb = new StringBuilder();
+        sb.append(dot.getChar());
         dot.next();
         while ((c = dot.getChar()) > ' ' && c != '>') {
             sb.append(c);

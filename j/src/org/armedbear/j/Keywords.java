@@ -20,7 +20,7 @@
 
 package org.armedbear.j;
 
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -64,7 +64,7 @@ public final class Keywords
         int index = className.lastIndexOf('.');
         if (index >= 0)
             className = className.substring(index+1);
-        FastStringBuffer sb = new FastStringBuffer(className);
+        StringBuilder sb = new StringBuilder(className);
         sb.append('.');
         sb.append("keywords");
         final String key = sb.toString();

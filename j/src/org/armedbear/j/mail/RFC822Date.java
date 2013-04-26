@@ -28,7 +28,7 @@ import java.util.Date;
 import java.util.Locale;
 import java.util.StringTokenizer;
 import java.util.TimeZone;
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 import org.armedbear.j.util.Utilities;
 
 public final class RFC822Date implements Serializable
@@ -379,7 +379,7 @@ public final class RFC822Date implements Serializable
 
     public static String getDateTimeString(Calendar calendar)
     {
-        FastStringBuffer sb = new FastStringBuffer(48);
+        StringBuilder sb = new StringBuilder(48);
         sb.append(df.format(calendar.getTime()));
         int offset = calendar.get(Calendar.ZONE_OFFSET) + calendar.get(Calendar.DST_OFFSET);
         if (offset == 0) {

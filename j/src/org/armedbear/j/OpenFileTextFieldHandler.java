@@ -39,7 +39,7 @@ import javax.swing.SwingUtilities;
 import org.armedbear.j.mail.MailCommands;
 import org.armedbear.j.mode.web.WebBuffer;
 import org.armedbear.j.mode.web.WebMode;
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 import org.armedbear.j.util.Utilities;
 
 public final class OpenFileTextFieldHandler extends DefaultTextFieldHandler
@@ -104,8 +104,8 @@ public final class OpenFileTextFieldHandler extends DefaultTextFieldHandler
             saveHistory();
         entry = preprocess(entry);
         if (encoding != null && !Utilities.isSupportedEncoding(encoding)) {
-            FastStringBuffer sb =
-                new FastStringBuffer("Unsupported encoding \"");
+            StringBuilder sb =
+                new StringBuilder("Unsupported encoding \"");
             sb.append(encoding);
             sb.append('"');
             error(sb.toString());
@@ -261,7 +261,7 @@ public final class OpenFileTextFieldHandler extends DefaultTextFieldHandler
         File parentDir = file.getParentFile();
         if (parentDir != null && parentDir.isDirectory())
             return true;
-        FastStringBuffer sb = new FastStringBuffer("Invalid path \"");
+        StringBuilder sb = new StringBuilder("Invalid path \"");
         sb.append(file.canonicalPath());
         sb.append('"');
         MessageDialog.showMessageDialog(sb.toString(), context);
@@ -617,7 +617,7 @@ public final class OpenFileTextFieldHandler extends DefaultTextFieldHandler
             }
         }
         // Reconstruct source path string.
-        FastStringBuffer sb = new FastStringBuffer();
+        StringBuilder sb = new StringBuilder();
         for (String dir : dirs) {
             sb.append(dir);
             sb.append(LocalFile.getPathSeparatorChar());
@@ -1001,8 +1001,8 @@ public final class OpenFileTextFieldHandler extends DefaultTextFieldHandler
                     originalText = null;
                     originalPrefix = null;
                 } else {
-                    FastStringBuffer sb =
-                        new FastStringBuffer(text.substring(0,
+                    StringBuilder sb =
+                        new StringBuilder(text.substring(0,
                             textField.getSelectionStart()));
                     sb.append(text.substring(textField.getSelectionEnd()));
                     text = sb.toString();
@@ -1011,7 +1011,7 @@ public final class OpenFileTextFieldHandler extends DefaultTextFieldHandler
             }
             // Insert (or append) typed char.
             final int pos = Math.min(textField.getCaretPosition(), text.length());
-            FastStringBuffer sb = new FastStringBuffer(text.substring(0, pos));
+            StringBuilder sb = new StringBuilder(text.substring(0, pos));
             sb.append(c);
             if (pos < text.length())
                 sb.append(text.substring(pos));

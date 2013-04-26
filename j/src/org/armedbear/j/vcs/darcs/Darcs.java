@@ -23,7 +23,7 @@ package org.armedbear.j.vcs.darcs;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Constants;
 import org.armedbear.j.Editor;
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 import org.armedbear.j.File;
 import org.armedbear.j.MessageDialog;
 import org.armedbear.j.util.Utilities;
@@ -47,7 +47,7 @@ public class Darcs extends VersionControl implements Constants
     editor.setWaitCursor();
     List<String> args = Utilities.tokenize(s);
     String arg;
-    FastStringBuffer sb = new FastStringBuffer("darcs ");
+    StringBuilder sb = new StringBuilder("darcs ");
     for (int i = 0; i < args.size(); i++)
       {
         arg = args.get(i);

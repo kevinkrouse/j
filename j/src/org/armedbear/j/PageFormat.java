@@ -20,7 +20,7 @@
 
 package org.armedbear.j;
 
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 
 import java.awt.Color;
 import java.awt.Font;
@@ -53,7 +53,7 @@ public final class PageFormat extends java.awt.print.PageFormat
             if (header.length() > 60)
                 header = buffer.getFile().getName();
             if (region != null) {
-                FastStringBuffer sb = new FastStringBuffer(header);
+                StringBuilder sb = new StringBuilder(header);
                 sb.append(" (lines ");
                 sb.append(region.getBeginLine().lineNumber() + 1);
                 sb.append('-');
@@ -125,7 +125,7 @@ public final class PageFormat extends java.awt.print.PageFormat
             y += lineHeight * 2;
         y += lineHeight * (linesPerPage + 2);
         g2d.drawString(date, x, y);
-        FastStringBuffer sb = new FastStringBuffer("Page ");
+        StringBuilder sb = new StringBuilder("Page ");
         sb.append(pageIndex + 1);
         if (pageCount != 0) {
             sb.append(" of ");

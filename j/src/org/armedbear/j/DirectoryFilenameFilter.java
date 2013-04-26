@@ -20,7 +20,7 @@
 
 package org.armedbear.j;
 
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -36,7 +36,7 @@ public final class DirectoryFilenameFilter
         ignoreCase = Platform.isPlatformWindows();
         if (ignoreCase)
             s = s.toLowerCase();
-        FastStringBuffer sb = new FastStringBuffer();
+        StringBuilder sb = new StringBuilder();
         for (int i = 0; i < s.length(); i++) {
             char c = s.charAt(i);
             switch (c) {

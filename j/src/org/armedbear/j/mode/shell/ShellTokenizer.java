@@ -20,7 +20,7 @@
 
 package org.armedbear.j.mode.shell;
 
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 
 import java.util.ArrayList;
 
@@ -31,7 +31,7 @@ public final class ShellTokenizer
 
     public ShellTokenizer(String s)
     {
-        FastStringBuffer sb = new FastStringBuffer();
+        StringBuilder sb = new StringBuilder();
         char quoteChar = 0;
         int limit = s.length();
         for (int i = 0; i < limit; i++) {

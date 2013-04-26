@@ -23,7 +23,7 @@ package org.armedbear.j.vcs.svn;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.BufferIterator;
 import org.armedbear.j.mode.text.PlainTextFormatter;
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 import org.armedbear.j.util.Utilities;
 import org.armedbear.j.vcs.StatusOutputBuffer;
 import org.armedbear.j.vcs.VersionControl;
@@ -321,7 +321,7 @@ public class SVN extends VersionControl implements Constants
         final Buffer parentBuffer = editor.getBuffer();
         final File directory = parentBuffer.getCurrentDirectory();
 
-        final FastStringBuffer sb = new FastStringBuffer();
+        final StringBuilder sb = new StringBuilder();
         sb.append("svn changelist -q ");
         if (changelist != null)
             sb.append(changelist);
@@ -413,7 +413,7 @@ public class SVN extends VersionControl implements Constants
         }
         else
         {
-            FastStringBuffer sb = new FastStringBuffer("Unrecognized argument \"");
+            StringBuilder sb = new StringBuilder("Unrecognized argument \"");
             sb.append(args.trim());
             sb.append('"');
             MessageDialog.showMessageDialog(sb.toString(), "Error");
@@ -431,7 +431,7 @@ public class SVN extends VersionControl implements Constants
           parentBuffer = buffer.getParentBuffer();
         else
           parentBuffer = buffer;
-        FastStringBuffer sb = new FastStringBuffer("svn commit");
+        StringBuilder sb = new StringBuilder("svn commit");
         if (changelist != null)
         {
             if (!have15()) {

@@ -26,7 +26,7 @@ import org.armedbear.j.Debug;
 import org.armedbear.j.Display;
 import org.armedbear.j.Editor;
 import org.armedbear.j.Mode;
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 import org.armedbear.j.Formatter;
 import org.armedbear.j.KeyMap;
 import org.armedbear.j.Line;
@@ -254,7 +254,8 @@ public final class LispShellMode extends LispMode implements Constants, Mode
         c = s.charAt(offset);
         if (c == ' ')
             return null;
-        FastStringBuffer sb = new FastStringBuffer(c);
+        StringBuilder sb = new StringBuilder();
+        sb.append(c);
         while (++offset < limit) {
             c = s.charAt(offset);
             if (c == '(' || c == ')')

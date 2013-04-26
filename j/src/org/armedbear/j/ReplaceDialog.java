@@ -20,7 +20,7 @@
 
 package org.armedbear.j;
 
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 
 import java.util.regex.PatternSyntaxException;
 import java.awt.Dimension;
@@ -357,8 +357,8 @@ public final class ReplaceDialog extends AbstractDialog implements Constants,
         if (replacementCount == 0) {
             editor.undo();
         } else {
-            FastStringBuffer sb =
-                new FastStringBuffer(String.valueOf(replacementCount));
+            StringBuilder sb =
+                new StringBuilder(String.valueOf(replacementCount));
             sb.append(" occurrence");
             if (replacementCount > 1)
                 sb.append('s');

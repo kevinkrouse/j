@@ -20,7 +20,7 @@
 
 package org.armedbear.j;
 
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 import org.armedbear.j.util.Utilities;
 
 public final class FtpFile extends File
@@ -165,7 +165,7 @@ public final class FtpFile extends File
 
     public String netPath()
     {
-        FastStringBuffer sb = new FastStringBuffer(256);
+        StringBuilder sb = new StringBuilder(256);
         sb.append(PREFIX_FTP);
         sb.append(hostName);
         if (port != 21) {

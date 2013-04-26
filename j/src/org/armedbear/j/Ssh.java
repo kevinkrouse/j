@@ -20,7 +20,7 @@
 
 package org.armedbear.j;
 
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -66,7 +66,7 @@ public final class Ssh
             list.add("-P");
             list.add(String.valueOf(remote.getPort()));
         }
-        FastStringBuffer sb = new FastStringBuffer();
+        StringBuilder sb = new StringBuilder();
         if (source instanceof SshFile) {
             if (userName != null) {
                 sb.append(userName);
@@ -101,7 +101,7 @@ public final class Ssh
     private static final String escape(String s)
     {
         final int length = s.length();
-        FastStringBuffer sb = new FastStringBuffer(length * 2);
+        StringBuilder sb = new StringBuilder(length * 2);
         for (int i = 0; i < length; i++) {
             char c = s.charAt(i);
             if (safeChars.indexOf(c) < 0)
@@ -185,7 +185,7 @@ public final class Ssh
 
         public void run()
         {
-            FastStringBuffer sb = new FastStringBuffer();
+            StringBuilder sb = new StringBuilder();
             while (true) {
                 final String s = read();
                 if (s == null) {
@@ -208,7 +208,7 @@ public final class Ssh
 
         private String read()
         {
-            FastStringBuffer sb = new FastStringBuffer();
+            StringBuilder sb = new StringBuilder();
             try {
                 do {
                     int numChars = reader.read(buf, 0, buf.length); // Blocks.

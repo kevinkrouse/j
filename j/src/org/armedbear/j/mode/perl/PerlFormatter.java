@@ -23,7 +23,7 @@ package org.armedbear.j.mode.perl;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Debug;
 import org.armedbear.j.Editor;
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 import org.armedbear.j.FormatTable;
 import org.armedbear.j.Formatter;
 import org.armedbear.j.Line;
@@ -60,7 +60,7 @@ public final class PerlFormatter extends Formatter
 
     private static Set<String> functions;
 
-    private FastStringBuffer sb = new FastStringBuffer();
+    private StringBuilder sb = new StringBuilder();
 
     private String endOfText;
 

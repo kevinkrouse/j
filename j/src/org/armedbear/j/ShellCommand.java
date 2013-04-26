@@ -20,7 +20,7 @@
 
 package org.armedbear.j;
 
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 import org.armedbear.j.util.ReaderThread;
 import org.armedbear.j.util.Utilities;
 
@@ -82,7 +82,7 @@ public final class ShellCommand implements Runnable
             if (cmdline != null) {
                 if (Platform.isPlatformUnix()) {
                     if (workingDirectory != null) {
-                        FastStringBuffer sb = new FastStringBuffer("\\cd \"");
+                        StringBuilder sb = new StringBuilder("\\cd \"");
                         sb.append(workingDirectory.canonicalPath());
                         sb.append("\" && ");
                         sb.append(cmdline);
@@ -97,7 +97,7 @@ public final class ShellCommand implements Runnable
                     list.add("cmd.exe");
                     list.add("/c");
                     if (workingDirectory != null) {
-                        FastStringBuffer sb = new FastStringBuffer("cd /d \"");
+                        StringBuilder sb = new StringBuilder("cd /d \"");
                         sb.append(workingDirectory.canonicalPath());
                         sb.append("\" && ");
                         sb.append(cmdline);

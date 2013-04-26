@@ -20,7 +20,7 @@
 
 package org.armedbear.j;
 
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 
 import java.util.Iterator;
 
@@ -116,7 +116,7 @@ public final class SessionBufferEntry
 
     public String toXml()
     {
-        FastStringBuffer sb = new FastStringBuffer();
+        StringBuilder sb = new StringBuilder();
         sb.append("    <buffer");
         sb.append(" path=\"");
         sb.append(path);
@@ -153,7 +153,7 @@ public final class SessionBufferEntry
 
     private static String propertyToXml(String name, String value)
     {
-        FastStringBuffer sb = new FastStringBuffer("      <property name=\"");
+        StringBuilder sb = new StringBuilder("      <property name=\"");
         sb.append(name);
         sb.append("\" value=\"");
         sb.append(value);

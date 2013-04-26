@@ -25,7 +25,7 @@ import org.armedbear.j.Buffer;
 import org.armedbear.j.ConfirmDialog;
 import org.armedbear.j.Constants;
 import org.armedbear.j.Mode;
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 import org.armedbear.j.util.Utilities;
 import org.armedbear.j.vcs.darcs.Darcs;
 import org.armedbear.j.Debug;
@@ -104,7 +104,7 @@ public final class DiffMode extends AbstractMode implements Constants, Mode
             editor.setWaitCursor();
             if (!save || buffer.save())
               {
-                FastStringBuffer sb = new FastStringBuffer("-u \"");
+                StringBuilder sb = new StringBuilder("-u \"");
                 sb.append(patchFile.canonicalPath());
                 sb.append("\" \"");
                 sb.append(file.canonicalPath());
@@ -165,7 +165,7 @@ public final class DiffMode extends AbstractMode implements Constants, Mode
           }
       }
     editor.setWaitCursor();
-    FastStringBuffer sb = new FastStringBuffer("diff ");
+    StringBuilder sb = new StringBuilder("diff ");
     if (defaultOptions != null)
       sb.append(defaultOptions);
     for (int i = 0; i < argList.size(); i++)

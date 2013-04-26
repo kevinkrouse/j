@@ -39,7 +39,7 @@ import org.armedbear.j.Display;
 import org.armedbear.j.Editor;
 import org.armedbear.j.EditorIterator;
 import org.armedbear.j.File;
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 import org.armedbear.j.util.FastStringReader;
 import org.armedbear.j.Headers;
 import org.armedbear.j.mode.image.ImageLine;
@@ -171,7 +171,7 @@ public class MessageBuffer extends Buffer
         Debug.assertTrue(entry != null);
         reset();
         this.entry = entry;
-        FastStringBuffer sb = new FastStringBuffer();
+        StringBuilder sb = new StringBuilder();
         sb.append(mailbox.getLineNumberForEntry(entry) + 1);
         sb.append('/');
         sb.append(mailbox.getLineCount());
@@ -442,7 +442,7 @@ public class MessageBuffer extends Buffer
         }
         String wrapped = wrap(toBeQuoted, wrapCol-2, 8);
         FastStringReader reader = new FastStringReader(wrapped);
-        FastStringBuffer sb = new FastStringBuffer(4096);
+        StringBuilder sb = new StringBuilder(4096);
         String s;
         while ((s = reader.readLine()) != null) {
             sb.append('>');
@@ -458,7 +458,7 @@ public class MessageBuffer extends Buffer
     private static final String wrap(String s, int wrapCol, int tabWidth)
     {
         FastStringReader reader = new FastStringReader(s);
-        FastStringBuffer sb = new FastStringBuffer(4096);
+        StringBuilder sb = new StringBuilder(4096);
         java.io.StringWriter writer = new java.io.StringWriter();
         String line;
         while ((line = reader.readLine()) != null) {
@@ -573,7 +573,7 @@ public class MessageBuffer extends Buffer
             if (w > width)
                 width = w;
         }
-        FastStringBuffer sb = new FastStringBuffer();
+        StringBuilder sb = new StringBuilder();
         for (String name : names) {
             String value = headers.getValue(name);
             if (value != null) {
@@ -600,7 +600,7 @@ public class MessageBuffer extends Buffer
 
     protected String getDefaultHeaders(String s)
     {
-        FastStringBuffer sb = new FastStringBuffer();
+        StringBuilder sb = new StringBuilder();
         if (s.length() > 0) {
             BufferedReader reader = new BufferedReader(new StringReader(s));
             boolean maybeContinuation = false;
@@ -732,7 +732,7 @@ public class MessageBuffer extends Buffer
         if (mailbox != null)
             mailbox.showRawText = showRawText;
         reloadInternal();
-        FastStringBuffer sb = new FastStringBuffer("Raw mode ");
+        StringBuilder sb = new StringBuilder("Raw mode ");
         sb.append(showRawText ? "on" : "off");
         Editor.currentEditor().status(sb.toString());
     }
@@ -748,7 +748,7 @@ public class MessageBuffer extends Buffer
     {
         wrap = !wrap;
         reloadInternal();
-        FastStringBuffer sb = new FastStringBuffer("Wrap ");
+        StringBuilder sb = new StringBuilder("Wrap ");
         sb.append(wrap ? "on" : "off");
         Editor.currentEditor().status(sb.toString());
     }
@@ -810,7 +810,7 @@ public class MessageBuffer extends Buffer
         ArrayList<Line> list = new ArrayList<Line>();
         list.add(new MessageHeaderLine("Parts/Attachments:"));
         for (int i = 0; i < parts.size(); i++) {
-            FastStringBuffer sb = new FastStringBuffer();
+            StringBuilder sb = new StringBuilder();
             sb.append("   ");
             sb.append(i+1);
             MimePart part = parts.get(i);
@@ -1054,8 +1054,8 @@ public class MessageBuffer extends Buffer
         if (!containsDiff)
             return Utilities.wrap(body, wrapCol, tabWidth);
         // Buffer contains diff.
-        FastStringBuffer out = new FastStringBuffer();
-        FastStringBuffer in = new FastStringBuffer();
+        StringBuilder out = new StringBuilder();
+        StringBuilder in = new StringBuilder();
         for (Line line = buf.getFirstLine(); line != null; line = line.next()) {
             if (line.flags() == IN_DIFF) {
                 if (in.length() > 0) {

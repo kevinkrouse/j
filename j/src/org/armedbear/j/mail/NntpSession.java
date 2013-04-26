@@ -30,7 +30,7 @@ import java.util.StringTokenizer;
 
 import org.armedbear.j.Debug;
 import org.armedbear.j.Editor;
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 import org.armedbear.j.Log;
 import org.armedbear.j.ProgressNotifier;
 import org.armedbear.j.Property;
@@ -148,7 +148,7 @@ public final class NntpSession
         echo = false;
         if (progressNotifier != null)
             progressNotifier.progressStart();
-        FastStringBuffer sb = new FastStringBuffer(1024);
+        StringBuilder sb = new StringBuilder(1024);
         while (true) {
             String s = readLine();
             if (s == null)

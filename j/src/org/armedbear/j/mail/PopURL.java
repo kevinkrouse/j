@@ -21,7 +21,7 @@
 package org.armedbear.j.mail;
 
 import java.net.MalformedURLException;
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 
 public final class PopURL extends MailboxURL
 {
@@ -132,7 +132,7 @@ public final class PopURL extends MailboxURL
 
     public String toString()
     {
-        FastStringBuffer sb = new FastStringBuffer("pop://");
+        StringBuilder sb = new StringBuilder("pop://");
         if (user != null) {
             if (user.indexOf('@') >= 0) {
                 sb.append('"');
@@ -154,7 +154,7 @@ public final class PopURL extends MailboxURL
     {
         if (urlScheme)
         {
-            FastStringBuffer sb = new FastStringBuffer("pop://");
+            StringBuilder sb = new StringBuilder("pop://");
             String s = user != null ? user : System.getProperty("user.name");
             if (s.indexOf('@') >= 0) {
                 sb.append('"');

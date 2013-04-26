@@ -50,7 +50,7 @@ import org.armedbear.j.EditorIterator;
 import org.armedbear.j.Expansion;
 import org.armedbear.j.File;
 import org.armedbear.j.util.Base64Encoder;
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 import org.armedbear.j.Headers;
 import org.armedbear.j.InputDialog;
 import org.armedbear.j.Line;
@@ -459,7 +459,7 @@ public final class SendMail extends Buffer
     {
         if (entryRepliedTo != null) {
             final String prefix = "References: ";
-            FastStringBuffer sb = new FastStringBuffer(prefix);
+            StringBuilder sb = new StringBuilder(prefix);
             int length = prefix.length();
             String[] oldReferences = entryRepliedTo.getReferences();
             final String[] references;
@@ -512,7 +512,7 @@ public final class SendMail extends Buffer
                 ".signature");
         if (file == null || !file.isFile())
             return;
-        FastStringBuffer sb = new FastStringBuffer();
+        StringBuilder sb = new StringBuilder();
         try {
             BufferedReader reader =
                 new BufferedReader(new InputStreamReader(file.getInputStream()));
@@ -589,7 +589,7 @@ public final class SendMail extends Buffer
         }
         catch (MalformedURLException e) {
             Log.error(e);
-            FastStringBuffer sb = new FastStringBuffer();
+            StringBuilder sb = new StringBuilder();
             sb.append("Unable to parse SMTP server name \"");
             sb.append(server);
             sb.append('"');
@@ -1107,7 +1107,7 @@ public final class SendMail extends Buffer
             }
             // Insert new "Cc:" header.
             editor.addUndo(SimpleEdit.INSERT_STRING);
-            FastStringBuffer sb = new FastStringBuffer();
+            StringBuilder sb = new StringBuilder();
             sb.append(MailUtilities.constructAddressHeader("Cc: ", newList));
             sb.append(lineSeparator);
             insertString(editor.getDot(), sb.toString());
@@ -1207,7 +1207,7 @@ public final class SendMail extends Buffer
         int length = s.length();
         if (length == 0)
             return;
-        FastStringBuffer sb = new FastStringBuffer(64);
+        StringBuilder sb = new StringBuilder(64);
         boolean inQuote = false;
         for (int i = 0; i < length; i++) {
             char c = s.charAt(i);
@@ -1253,14 +1253,14 @@ public final class SendMail extends Buffer
         String key = headerName.toLowerCase() + ':';
         if (key.equals("to:") || key.equals("cc:") || key.equals("bcc:"))
             combine = true;
-        FastStringBuffer sb = null;
+        StringBuilder sb = null;
         for (Line line = getFirstLine(); line != null; line = line.next()) {
             String text = line.getText();
             if (text.equals(HEADER_SEPARATOR))
                 break;
             if (text.toLowerCase().startsWith(key)) {
                 if (sb == null) {
-                    sb = new FastStringBuffer();
+                    sb = new StringBuilder();
                 } else {
                     // Make sure there's a proper separator when we're
                     // combining address headers.
@@ -1327,7 +1327,7 @@ public final class SendMail extends Buffer
 
     private String generateMimeHeaders(String separator)
     {
-        FastStringBuffer sb = new FastStringBuffer();
+        StringBuilder sb = new StringBuilder();
         sb.append("MIME-Version: 1.0");
         sb.append(separator);
         sb.append("Content-Type: multipart/mixed; boundary=\"");
@@ -1340,7 +1340,7 @@ public final class SendMail extends Buffer
     private String getBoundary()
     {
         if (boundary == null) {
-            FastStringBuffer sb = new FastStringBuffer(16);
+            StringBuilder sb = new StringBuilder(16);
             Random random = new Random();
             char[] chars = getBoundaryChars();
             for (int i = 0; i < 16; i++) {
@@ -1633,7 +1633,7 @@ public final class SendMail extends Buffer
         String template = preferences.getStringProperty(Property.ATTRIBUTION);
         if (template == null || template.length() == 0)
             return null;
-        FastStringBuffer sb = new FastStringBuffer();
+        StringBuilder sb = new StringBuilder();
         final int limit = template.length();
         for (int i = 0; i < limit; i++) {
             char c = template.charAt(i);

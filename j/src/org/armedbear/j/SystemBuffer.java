@@ -22,7 +22,7 @@ package org.armedbear.j;
 
 import org.armedbear.j.mode.binary.BinaryLine;
 import org.armedbear.j.util.ByteBuffer;
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 import org.armedbear.j.util.Utilities;
 
 import java.io.BufferedOutputStream;
@@ -214,7 +214,7 @@ public class SystemBuffer implements Constants
             }
             boolean skipLF = false;
             if (isUnicode) {
-                FastStringBuffer sb = new FastStringBuffer(256);
+                StringBuilder sb = new StringBuilder(256);
                 int i = 2;
                 while (bytesRead > 0) {
                     while (i < bytesRead - 1) {

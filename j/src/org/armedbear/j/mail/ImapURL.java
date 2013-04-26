@@ -23,7 +23,7 @@ package org.armedbear.j.mail;
 import java.net.MalformedURLException;
 import java.util.ArrayList;
 import java.util.List;
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 
 public final class ImapURL extends MailboxURL
 {
@@ -107,7 +107,8 @@ public final class ImapURL extends MailboxURL
 
     public String toString()
     {
-        FastStringBuffer sb = new FastStringBuffer('{');
+        StringBuilder sb = new StringBuilder();
+        sb.append('{');
         if (user != null) {
             sb.append(user);
             sb.append('@');
@@ -124,7 +125,7 @@ public final class ImapURL extends MailboxURL
 
     public String getCanonicalName()
     {
-        FastStringBuffer sb = baseCanonicalURL();
+        StringBuilder sb = baseCanonicalURL();
         sb.append(folderName);
         return sb.toString();
     }

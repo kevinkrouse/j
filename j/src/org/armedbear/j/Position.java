@@ -20,7 +20,7 @@
 
 package org.armedbear.j;
 
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 
 public final class Position implements Constants
 {
@@ -308,7 +308,7 @@ public final class Position implements Constants
 
     public String toString()
     {
-        FastStringBuffer sb = new FastStringBuffer("line ");
+        StringBuilder sb = new StringBuilder("line ");
         if (line != null)
             sb.append(line.lineNumber() + 1);
         else

@@ -20,7 +20,7 @@
 
 package org.armedbear.j;
 
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 
 import java.awt.Color;
 import java.awt.Dimension;
@@ -86,7 +86,7 @@ public final class StatusBar extends JComponent
         final Buffer buffer = editor.getBuffer();
         if (buffer == null)
              return "";
-        FastStringBuffer sb = new FastStringBuffer();
+        StringBuilder sb = new StringBuilder();
         String emulation = buffer.getStringProperty(Property.EMULATION);
         if (emulation != null && emulation.length() > 0) {
             sb.append('[');

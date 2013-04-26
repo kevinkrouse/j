@@ -21,7 +21,7 @@
 package org.armedbear.j;
 
 import org.armedbear.j.mode.diff.DiffOutputBuffer;
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 import org.armedbear.j.util.Utilities;
 
 import javax.swing.undo.CompoundEdit;
@@ -252,7 +252,7 @@ public final class ChangeMarks implements Constants
         if (tempFile == null)
             return;
         if (buffer.writeFile(tempFile)) {
-            FastStringBuffer sb = new FastStringBuffer("diff -u ");
+            StringBuilder sb = new StringBuilder("diff -u ");
             sb.append(Utilities.maybeQuote(file.canonicalPath()));
             sb.append(' ');
             sb.append(Utilities.maybeQuote(tempFile.canonicalPath()));

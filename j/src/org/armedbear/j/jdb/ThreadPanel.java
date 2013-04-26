@@ -30,7 +30,6 @@ import java.awt.Component;
 import java.awt.event.InputEvent;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Vector;
 import javax.swing.JList;
@@ -40,7 +39,7 @@ import org.armedbear.j.Buffer;
 import org.armedbear.j.Editor;
 import org.armedbear.j.EditorIterator;
 import org.armedbear.j.File;
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 import org.armedbear.j.mode.java.JavaSource;
 import org.armedbear.j.Log;
 
@@ -77,7 +76,7 @@ public final class ThreadPanel implements ContextListener, MouseListener
         if (vm != null) {
             threads = vm.allThreads();
             for (ThreadReference threadRef : threads) {
-                FastStringBuffer sb = new FastStringBuffer();
+                StringBuilder sb = new StringBuilder();
                 sb.append(threadRef.name());
                 sb.append(" (id=");
                 sb.append(threadRef.uniqueID());

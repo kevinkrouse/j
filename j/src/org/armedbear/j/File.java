@@ -32,7 +32,7 @@ import java.util.ArrayList;
 import java.util.StringTokenizer;
 
 import org.armedbear.j.mode.dir.DirectoryEntry;
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 import org.armedbear.j.util.FastStringReader;
 import org.armedbear.j.util.Utilities;
 import org.armedbear.lisp.Pathname;
@@ -403,7 +403,7 @@ public class File implements Comparable
                 array[count++] = token;
         }
 
-        FastStringBuffer sb = new FastStringBuffer(256);
+        StringBuilder sb = new StringBuilder(256);
         if (prefix != null)
             sb.append(prefix);
         if (count == 0)
@@ -534,7 +534,7 @@ public class File implements Comparable
     {
         String path = canonicalPath();
 
-        FastStringBuffer sb = new FastStringBuffer();
+        StringBuilder sb = new StringBuilder();
         if (Platform.isPlatformWindows()) {
             String cp = path;
             final int limit = cp.length();
@@ -863,11 +863,12 @@ public class File implements Comparable
         String[] names = file.list();
         if (names == null)
             return null;
-        final FastStringBuffer sb = new FastStringBuffer();
+        final StringBuilder sb = new StringBuilder();
         final String path = getAbsolutePath();
         File[] files = new File[names.length];
         for (int i = 0; i < names.length; i++) {
-            sb.setText(path);
+            sb.setLength(0);
+            sb.append(path);
             sb.append(LocalFile.getSeparator());
             sb.append(names[i]);
             files[i] = new File(sb.toString());

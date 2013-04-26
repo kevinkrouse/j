@@ -20,7 +20,7 @@
 
 package org.armedbear.j;
 
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 
 import java.util.regex.Pattern;
 import java.util.regex.Matcher;
@@ -137,7 +137,8 @@ public final class GlobalTag extends Tag
           }
         String definer = s.substring(0, end);
         s = s.substring(end).trim();
-        FastStringBuffer sb = new FastStringBuffer('(');
+        StringBuilder sb = new StringBuilder();
+        sb.append('(');
         sb.append(definer);
         sb.append(' ');
         if (definer.equals("defgeneric") || definer.equals("defmethod"))

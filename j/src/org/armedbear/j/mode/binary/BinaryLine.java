@@ -22,7 +22,7 @@ package org.armedbear.j.mode.binary;
 
 import org.armedbear.j.AbstractLine;
 import org.armedbear.j.Debug;
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 import org.armedbear.j.Line;
 
 public final class BinaryLine extends AbstractLine implements Line
@@ -48,7 +48,7 @@ public final class BinaryLine extends AbstractLine implements Line
     public final String getText()
     {
         Debug.assertTrue(bytes != null);
-        FastStringBuffer sb = new FastStringBuffer(256);
+        StringBuilder sb = new StringBuilder(256);
         String s = Long.toHexString(0x100000000L + start);
         s = s.substring(1, s.length());
         sb.append(s + "  ");

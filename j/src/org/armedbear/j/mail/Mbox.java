@@ -34,7 +34,7 @@ import org.armedbear.j.Buffer;
 import org.armedbear.j.BufferIterator;
 import org.armedbear.j.Debug;
 import org.armedbear.j.File;
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 import org.armedbear.j.Log;
 import org.armedbear.j.Mutex;
 import org.armedbear.j.ProgressNotifier;
@@ -175,7 +175,7 @@ public final class Mbox
             if (!file.isFile())
                 return;
             reader = new MailReader(file.getInputStream());
-            FastStringBuffer sb = new FastStringBuffer(1024);
+            StringBuilder sb = new StringBuilder(1024);
             boolean complete = false;
             while (true) {
                 long here = reader.getOffset();
@@ -271,7 +271,7 @@ public final class Mbox
             writer.write(dateString);
             writer.write('\n');
             // Headers.
-            FastStringBuffer sb = new FastStringBuffer(2048);
+            StringBuilder sb = new StringBuilder(2048);
             while (true) {
                 String s = reader.readLine();
                 if (s == null)

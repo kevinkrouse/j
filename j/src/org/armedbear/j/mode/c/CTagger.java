@@ -20,7 +20,7 @@
 
 package org.armedbear.j.mode.c;
 
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 import org.armedbear.j.mode.java.JavaTagger;
 import org.armedbear.j.LocalTag;
 import org.armedbear.j.Position;
@@ -196,7 +196,7 @@ public class CTagger extends JavaTagger
 
   private String gatherToken(Position pos)
   {
-    FastStringBuffer sb = new FastStringBuffer();
+    StringBuilder sb = new StringBuilder();
     char c;
     while (mode.isIdentifierPart(c = pos.getChar()))
       {
@@ -229,7 +229,7 @@ public class CTagger extends JavaTagger
 
   protected static String gatherDefunName(Position pos)
   {
-    FastStringBuffer sb = new FastStringBuffer();
+    StringBuilder sb = new StringBuilder();
     while (true)
       {
         char c = pos.getChar();

@@ -20,7 +20,7 @@
 
 package org.armedbear.j;
 
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 import org.armedbear.j.util.Utilities;
 
 import java.util.regex.Pattern;
@@ -89,7 +89,7 @@ public final class SshFile extends File
 
     public String netPath()
     {
-        FastStringBuffer sb = new FastStringBuffer(256);
+        StringBuilder sb = new StringBuilder(256);
         sb.append(PREFIX_SSH);
         if (userName != null) {
             sb.append(userName);

@@ -36,7 +36,7 @@ import java.util.Set;
 import org.armedbear.j.Debug;
 import org.armedbear.j.Directories;
 import org.armedbear.j.File;
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 import org.armedbear.j.Headers;
 import org.armedbear.j.Log;
 import org.armedbear.j.util.Utilities;
@@ -150,8 +150,8 @@ public final class ImapMessageCache
                 return null;
             if (!file.isFile())
                 return null;
-            FastStringBuffer sb =
-                new FastStringBuffer((int) (file.length() * 1.1));
+            StringBuilder sb =
+                new StringBuilder((int) (file.length() * 1.1));
             try {
                 BufferedReader reader =
                     new BufferedReader(new InputStreamReader(file.getInputStream()));

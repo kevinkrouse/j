@@ -20,7 +20,7 @@
 
 package org.armedbear.j;
 
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 
 import java.awt.event.FocusEvent;
 import java.awt.event.FocusListener;
@@ -115,7 +115,7 @@ public final class AliasDialog extends AbstractDialog implements FocusListener
     {
         final Editor editor = Editor.currentEditor();
         args = args.trim();
-        final FastStringBuffer sb = new FastStringBuffer();
+        final StringBuilder sb = new StringBuilder();
         int i = 0;
         for (; i < args.length(); i++) {
             char c = args.charAt(i);

@@ -37,7 +37,7 @@ import org.armedbear.j.Debug;
 import org.armedbear.j.Editor;
 import org.armedbear.j.File;
 import org.armedbear.j.util.Base64Encoder;
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 import org.armedbear.j.Log;
 import org.armedbear.j.MessageDialog;
 import org.armedbear.j.Netrc;
@@ -107,7 +107,7 @@ public final class SmtpSession extends Writer
         }
         catch (MalformedURLException e) {
             Log.error(e);
-            FastStringBuffer sb = new FastStringBuffer();
+            StringBuilder sb = new StringBuilder();
             sb.append("Unable to parse SMTP server name \"");
             sb.append(server);
             sb.append('"');
@@ -159,7 +159,7 @@ public final class SmtpSession extends Writer
             return false;
         try {
             setEcho(true);
-            FastStringBuffer sb = new FastStringBuffer("mail from:<");
+            StringBuilder sb = new StringBuilder("mail from:<");
             sb.append(sm.getFromAddress());
             sb.append('>');
             writeLine(sb.toString());
@@ -171,7 +171,8 @@ public final class SmtpSession extends Writer
                     errorText = "Invalid addressee \"" + addressee + "\"";
                     return false;
                 }
-                sb.setText("rcpt to:<");
+                sb.setLength(0);
+                sb.append("rcpt to:<");
                 sb.append(addr);
                 sb.append('>');
                 writeLine(sb.toString());
@@ -315,7 +316,7 @@ public final class SmtpSession extends Writer
 
         // Send the credentials
         if (response == 334) {
-            FastStringBuffer sb = new FastStringBuffer();
+            StringBuilder sb = new StringBuilder();
             sb.append('\0');
             sb.append(user);
             sb.append('\0');

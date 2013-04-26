@@ -26,11 +26,10 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 import javax.swing.KeyStroke;
 
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 import org.armedbear.j.util.Utilities;
 import org.armedbear.lisp.Interpreter;
 import org.armedbear.lisp.JavaObject;
@@ -499,7 +498,7 @@ public final class KeyMap implements Constants
             if (mapping.getCommand() instanceof KeyMap) {
                 // A submap.
                 KeyMap submap = (KeyMap) mapping.getCommand();
-                FastStringBuffer sb = new FastStringBuffer();
+                StringBuilder sb = new StringBuilder();
                 if (prefix.length() > 0) {
                     sb.append(prefix);
                     sb.append(' ');

@@ -22,7 +22,7 @@ package org.armedbear.j.mode.scheme;
 
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Editor;
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 import org.armedbear.j.FormatTable;
 import org.armedbear.j.Formatter;
 import org.armedbear.j.Line;
@@ -40,7 +40,7 @@ public final class SchemeFormatter extends Formatter
     private static final int SCHEME_FORMAT_FUNCTION = 4;
     private static final int SCHEME_FORMAT_NUMBER   = 5;
 
-    private FastStringBuffer sb = new FastStringBuffer();
+    private StringBuilder sb = new StringBuilder();
     private int tokStart;
 
     public SchemeFormatter(Buffer buffer)

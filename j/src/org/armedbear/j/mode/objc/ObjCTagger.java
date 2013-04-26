@@ -21,7 +21,7 @@
 package org.armedbear.j.mode.objc;
 
 import org.armedbear.j.Mode;
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 import org.armedbear.j.mode.java.JavaTagger;
 import org.armedbear.j.LocalTag;
 import org.armedbear.j.Position;
@@ -157,7 +157,7 @@ public final class ObjCTagger extends JavaTagger
 
     private String gatherToken(Position pos)
     {
-        FastStringBuffer sb = new FastStringBuffer();
+        StringBuilder sb = new StringBuilder();
         char c;
         while (isIdentifierPart(c = pos.getChar()) || c == ':') {
             sb.append(c);

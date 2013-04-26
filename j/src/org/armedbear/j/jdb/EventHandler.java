@@ -51,7 +51,7 @@ import java.util.List;
 import javax.swing.SwingUtilities;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Editor;
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 import org.armedbear.j.File;
 import org.armedbear.j.Log;
 import org.armedbear.j.Platform;
@@ -248,7 +248,7 @@ public final class EventHandler implements Runnable
     {
         MethodEntryEvent evt = (MethodEntryEvent) event;
         Method method = evt.method();
-        FastStringBuffer sb = new FastStringBuffer("Method entered: ");
+        StringBuilder sb = new StringBuilder("Method entered: ");
         sb.append(method.declaringType().name());
         sb.append('.');
         sb.append(method.name());
@@ -260,7 +260,7 @@ public final class EventHandler implements Runnable
     {
         MethodExitEvent evt = (MethodExitEvent) event;
         Method method = evt.method();
-        FastStringBuffer sb = new FastStringBuffer("Method exited: ");
+        StringBuilder sb = new StringBuilder("Method exited: ");
         sb.append(method.declaringType().name());
         sb.append('.');
         sb.append(method.name());

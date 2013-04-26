@@ -20,7 +20,7 @@
 
 package org.armedbear.j;
 
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 import org.armedbear.j.util.Utilities;
 
 import java.awt.Graphics;
@@ -81,7 +81,7 @@ public final class PrintPainter implements Printable
                 break;
             String s = Utilities.detab(line.getText(), buffer.getTabWidth());
             if (printLineNumbers) {
-                FastStringBuffer sb = new FastStringBuffer(Utilities.rightJustify(line.lineNumber() + 1, fieldWidth));
+                StringBuilder sb = new StringBuilder(Utilities.rightJustify(line.lineNumber() + 1, fieldWidth));
                 sb.append(' ');
                 sb.append(s);
                 s = sb.toString();

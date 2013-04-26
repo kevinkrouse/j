@@ -38,7 +38,7 @@ import org.armedbear.j.Directories;
 import org.armedbear.j.Editor;
 import org.armedbear.j.EditorIterator;
 import org.armedbear.j.File;
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 import org.armedbear.j.Headers;
 import org.armedbear.j.Line;
 import org.armedbear.j.LocalFile;
@@ -117,7 +117,7 @@ public class LocalMailboxBuffer extends MailboxBuffer
 
     private String getMessageHeader(MailboxEntry entry, RandomAccessFile raf)
     {
-        FastStringBuffer sb = new FastStringBuffer(8192);
+        StringBuilder sb = new StringBuilder(8192);
         try {
             long offset = ((LocalMailboxEntry) entry).getMessageStart();
             raf.seek(offset);
@@ -660,7 +660,7 @@ public class LocalMailboxBuffer extends MailboxBuffer
             name = mailboxFile.netPath();
         final int newMessageCount = getNewMessageCount();
         if (newMessageCount > 0) {
-            FastStringBuffer sb = new FastStringBuffer(name);
+            StringBuilder sb = new StringBuilder(name);
             sb.append(" (");
             sb.append(newMessageCount);
             sb.append(" new)");

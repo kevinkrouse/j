@@ -20,7 +20,7 @@
 
 package org.armedbear.j;
 
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 
 public final class HttpFile extends File
 {
@@ -170,7 +170,7 @@ public final class HttpFile extends File
 
     public String netPath()
     {
-        FastStringBuffer sb = new FastStringBuffer(256);
+        StringBuilder sb = new StringBuilder(256);
         if (protocol == PROTOCOL_HTTP) {
             sb.append(PREFIX_HTTP);
         } else if (protocol == PROTOCOL_HTTPS) {

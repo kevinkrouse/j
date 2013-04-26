@@ -22,7 +22,7 @@ package org.armedbear.j.mode.java;
 
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Constants;
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 import org.armedbear.j.File;
 import org.armedbear.j.Line;
 import org.armedbear.j.LocalFile;
@@ -171,7 +171,7 @@ public final class JavaSource implements Constants
             final int length = trim.length();
             if (length == 0)
                 continue;
-            FastStringBuffer sb = new FastStringBuffer();
+            StringBuilder sb = new StringBuilder();
             for (int i = 0; i < length; i++) {
                 c = trim.charAt(i);
                 if (c == ' ' || c == '\t' || c == ';')
@@ -221,7 +221,7 @@ public final class JavaSource implements Constants
             if (trim.charAt(0) != ' ' && trim.charAt(0) != '\t')
                 continue;
             trim = trim.trim();
-            FastStringBuffer sb = new FastStringBuffer();
+            StringBuilder sb = new StringBuilder();
             for (int i = 0; i < trim.length(); i++) {
                 char c = trim.charAt(i);
                 if (c == ' ' || c == '\t' || c == ';')

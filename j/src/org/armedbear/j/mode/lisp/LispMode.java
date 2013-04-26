@@ -33,7 +33,7 @@ import org.armedbear.j.Debug;
 import org.armedbear.j.Editor;
 import org.armedbear.j.EditorIterator;
 import org.armedbear.j.Mode;
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 import org.armedbear.j.File;
 import org.armedbear.j.Formatter;
 import org.armedbear.j.KeyMap;
@@ -237,7 +237,8 @@ public class LispMode extends AbstractMode implements Constants, Mode
                 return null;
             // Now we're looking at the first character of the identifier.
             c = line.charAt(offset);
-            FastStringBuffer sb = new FastStringBuffer(c);
+            StringBuilder sb = new StringBuilder();
+            sb.append(c);
             if (c == '#') {
                 if (++offset < limit) {
                     c = line.charAt(offset);
@@ -583,7 +584,7 @@ public class LispMode extends AbstractMode implements Constants, Mode
     private String gatherToken(Position start)
     {
         Position pos = start.copy();
-        FastStringBuffer sb = new FastStringBuffer();
+        StringBuilder sb = new StringBuilder();
         while (true) {
             char c = pos.getChar();
             if (Character.isWhitespace(c))

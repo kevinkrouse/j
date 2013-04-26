@@ -21,7 +21,7 @@
 package org.armedbear.j.mode.scheme;
 
 import org.armedbear.j.Mode;
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 import org.armedbear.j.Line;
 import org.armedbear.j.LocalTag;
 import org.armedbear.j.Position;
@@ -103,7 +103,7 @@ public final class SchemeTagger extends Tagger
     private void gatherToken()
     {
         tokenStart = new Position(pos);
-        FastStringBuffer sb = new FastStringBuffer();
+        StringBuilder sb = new StringBuilder();
         char c;
         while (schemeMode.isIdentifierPart(c = pos.getChar())) {
             sb.append(c);

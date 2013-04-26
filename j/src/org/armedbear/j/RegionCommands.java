@@ -27,7 +27,7 @@ import java.io.OutputStream;
 import javax.swing.undo.CompoundEdit;
 import org.armedbear.j.util.Base64Decoder;
 import org.armedbear.j.util.ByteBuffer;
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 import org.armedbear.j.util.Utilities;
 
 public final class RegionCommands
@@ -109,7 +109,7 @@ public final class RegionCommands
             final String toBeChanged = oldText.substring(beginOffset,
                 endOffset);
             final String tail = oldText.substring(endOffset);
-            FastStringBuffer sb = new FastStringBuffer(head);
+            StringBuilder sb = new StringBuilder(head);
             if (entab)
                 sb.append(Utilities.entab(toBeChanged, tabWidth, startCol));
             else
@@ -126,7 +126,7 @@ public final class RegionCommands
             String oldText = beginLine.getText();
             final String head = oldText.substring(0, beginOffset);
             String toBeChanged = oldText.substring(beginOffset);
-            FastStringBuffer sb = new FastStringBuffer(head);
+            StringBuilder sb = new StringBuilder(head);
             if (entab)
                 sb.append(Utilities.entab(toBeChanged, tabWidth, startCol));
             else
@@ -365,7 +365,7 @@ public final class RegionCommands
                 final String text = line.getText();
                 int index = findNumber(text, buffer.getMode());
                 if (index >= 0) {
-                    FastStringBuffer sb = new FastStringBuffer();
+                    StringBuilder sb = new StringBuilder();
                     while (index < text.length()) {
                         char c = text.charAt(index++);
                         if (c >= '0' && c <= '9')
@@ -391,7 +391,7 @@ public final class RegionCommands
             int index = findNumber(text, buffer.getMode());
             if (index < 0)
                 continue;
-            FastStringBuffer sb = new FastStringBuffer(text.substring(0, index));
+            StringBuilder sb = new StringBuilder(text.substring(0, index));
             while (index < text.length() && Character.isDigit(text.charAt(index)))
                 ++index;
             sb.append(start++);

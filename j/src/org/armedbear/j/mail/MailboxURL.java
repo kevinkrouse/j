@@ -22,7 +22,7 @@ package org.armedbear.j.mail;
 
 import java.net.MalformedURLException;
 
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 import org.armedbear.j.Log;
 
 public abstract class MailboxURL
@@ -316,9 +316,10 @@ public abstract class MailboxURL
 
     public abstract String getCanonicalName();
 
-    protected FastStringBuffer baseCanonicalURL()
+    protected StringBuilder baseCanonicalURL()
     {
-        FastStringBuffer sb = new FastStringBuffer('{');
+        StringBuilder sb = new StringBuilder();
+        sb.append('{');
         if (user != null)
             sb.append(user);
         else

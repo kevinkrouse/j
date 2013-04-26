@@ -20,7 +20,7 @@
 
 package org.armedbear.j;
 
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 
 public final class OccurrenceLine extends TextLine
 {
@@ -30,7 +30,7 @@ public final class OccurrenceLine extends TextLine
     public OccurrenceLine(Line sourceLine)
     {
         super();
-        FastStringBuffer sb = new FastStringBuffer();
+        StringBuilder sb = new StringBuilder();
         sb.append(sourceLine.lineNumber()+1);
         sb.append(':');
         sb.append(sourceLine.getText());
@@ -44,7 +44,7 @@ public final class OccurrenceLine extends TextLine
     public OccurrenceLine(String s, int sourceLineNumber)
     {
         super();
-        FastStringBuffer sb = new FastStringBuffer();
+        StringBuilder sb = new StringBuilder();
         sb.append(sourceLineNumber);
         sb.append(':');
         sb.append(s);

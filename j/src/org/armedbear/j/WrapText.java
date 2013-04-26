@@ -24,7 +24,7 @@ import java.util.regex.Pattern;
 import java.util.regex.Matcher;
 import javax.swing.undo.CompoundEdit;
 import org.armedbear.j.mail.SendMail;
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 import org.armedbear.j.util.Utilities;
 
 public final class WrapText implements Constants
@@ -271,7 +271,7 @@ public final class WrapText implements Constants
         if (s.charAt(s.length() - 1) == '\n')
             s = s.substring(0, s.length() - 1);
 
-        FastStringBuffer sb = new FastStringBuffer();
+        StringBuilder sb = new StringBuilder();
 
         if (prefix != null) {
             prefix = Utilities.detab(prefix, tabWidth);

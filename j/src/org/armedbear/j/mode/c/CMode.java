@@ -25,7 +25,7 @@ import org.armedbear.j.Mode;
 import org.armedbear.j.mode.compilation.CompilationCommands;
 import org.armedbear.j.Constants;
 import org.armedbear.j.Editor;
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 import org.armedbear.j.Formatter;
 import org.armedbear.j.mode.java.JavaMode;
 import org.armedbear.j.KeyMap;
@@ -141,7 +141,7 @@ public class CMode extends JavaMode implements Constants, Mode
             if (c != ' ' && c != '\t')
                 break;
         }
-        FastStringBuffer sb = new FastStringBuffer();
+        StringBuilder sb = new StringBuilder();
         for (; i < limit; i++) {
             char c = s.charAt(i);
             if (c >= 'a' && c <='z')

@@ -21,7 +21,7 @@
 package org.armedbear.j;
 
 import org.armedbear.j.mode.web.WebBuffer;
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 import org.armedbear.j.util.Utilities;
 
 import java.util.ArrayList;
@@ -277,7 +277,7 @@ public final class BufferList implements Constants, PreferencesChangeListener, I
             }
         }
         if (qualify) {
-            FastStringBuffer sb = new FastStringBuffer(name);
+            StringBuilder sb = new StringBuilder(name);
             sb.append(" [");
             String dir = file.getParent();
             if (userHome != null && userHome.length() > 0) {

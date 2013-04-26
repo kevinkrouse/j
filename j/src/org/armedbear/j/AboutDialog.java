@@ -20,7 +20,7 @@
 
 package org.armedbear.j;
 
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 import org.armedbear.j.util.Utilities;
 
 import java.text.SimpleDateFormat;
@@ -59,7 +59,7 @@ public class AboutDialog extends AbstractDialog
     panel = Utilities.createPanel("System Information");
     addVerticalStrut();
     mainPanel.add(panel);
-    FastStringBuffer sb = new FastStringBuffer("Java ");
+    StringBuilder sb = new StringBuilder("Java ");
     sb.append(System.getProperty("java.version"));
     sb.append(' ');
     sb.append(System.getProperty("java.vendor"));
@@ -115,7 +115,7 @@ public class AboutDialog extends AbstractDialog
     remainder = remainder % millisecondsPerHour;
     int minutes = remainder / millisecondsPerMinute;
 
-    FastStringBuffer sb = new FastStringBuffer(dateString);
+    StringBuilder sb = new StringBuilder(dateString);
     sb.append("   up ");
     if (uptime < millisecondsPerHour)
       {

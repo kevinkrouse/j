@@ -20,7 +20,7 @@
 
 package org.armedbear.j;
 
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 import org.armedbear.j.util.Utilities;
 
 import java.util.regex.Matcher;
@@ -130,7 +130,7 @@ public class Replacement extends Search
                 }
                 String tail = dotLine.substring(dotOffset + toBeReplaced.length());
                 String toBeInserted = getReplacementText(toBeReplaced);
-                FastStringBuffer sb = new FastStringBuffer(head);
+                StringBuilder sb = new StringBuilder(head);
                 sb.append(toBeInserted);
                 sb.append(tail);
                 dotLine.setText(sb.toString());
@@ -165,7 +165,7 @@ public class Replacement extends Search
             toBeReplaced = line.substring(offset, offset + getPatternLength());
         final String tail = line.substring(offset + toBeReplaced.length());
         final String toBeInserted = getReplacementText(toBeReplaced);
-        FastStringBuffer sb = new FastStringBuffer(head);
+        StringBuilder sb = new StringBuilder(head);
         sb.append(toBeInserted);
         sb.append(tail);
         line.setText(sb.toString());
@@ -198,7 +198,7 @@ public class Replacement extends Search
                     // letter too.
                     c = replacementText.charAt(0);
                     if (Character.isLowerCase(c)) {
-                        FastStringBuffer sb = new FastStringBuffer(replacementText);
+                        StringBuilder sb = new StringBuilder(replacementText);
                         sb.setCharAt(0, Character.toUpperCase(c));
                         replacementText = sb.toString();
                     }
@@ -210,7 +210,7 @@ public class Replacement extends Search
 
     private String substituteInto(Matcher match, String input)
     {
-        FastStringBuffer sb = new FastStringBuffer();
+        StringBuilder sb = new StringBuilder();
         int i;
         for (i = 0; i < input.length()-1; i++) {
             char c = input.charAt(i);

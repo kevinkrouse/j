@@ -27,12 +27,11 @@ import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.Collections;
 import java.util.List;
 
 import org.armedbear.j.mode.web.WebBuffer;
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 import org.armedbear.lisp.LispObject;
 
 public final class Help
@@ -233,7 +232,7 @@ public final class Help
         final int spaces = 32 - prefixLength;
         ArrayList<KeyMapping> submappings = null;
         for (KeyMapping mapping : mappings) {
-            FastStringBuffer sb = new FastStringBuffer();
+            StringBuilder sb = new StringBuilder();
             if (sanitizedPrefix != null)
                 sb.append(sanitizedPrefix);
             final String keytext = mapping.getKeyText();
@@ -277,7 +276,7 @@ public final class Help
                 writer.write("<br>\n");
                 String keytext = mapping.getKeyText();
                 KeyMap submap = (KeyMap) mapping.getCommand();
-                FastStringBuffer sb = new FastStringBuffer();
+                StringBuilder sb = new StringBuilder();
                 if (prefixLength > 0) {
                     sb.append(prefix);
                     sb.append(' ');
@@ -291,28 +290,28 @@ public final class Help
 
     private static String sanitize(String s)
     {
-        FastStringBuffer sb = null;
+        StringBuilder sb = null;
         final int limit = s.length();
         for (int i = 0; i < limit; i++) {
             char c = s.charAt(i);
             switch (c) {
                 case '<':
                     if (sb == null) {
-                        sb = new FastStringBuffer();
+                        sb = new StringBuilder();
                         sb.append(s.substring(0, i));
                     }
                     sb.append("&lt;");
                     break;
                 case '>':
                     if (sb == null) {
-                        sb = new FastStringBuffer();
+                        sb = new StringBuilder();
                         sb.append(s.substring(0, i));
                     }
                     sb.append("&gt;");
                     break;
                 case '&':
                     if (sb == null) {
-                        sb = new FastStringBuffer();
+                        sb = new StringBuilder();
                         sb.append(s.substring(0, i));
                     }
                     sb.append("&amp;");

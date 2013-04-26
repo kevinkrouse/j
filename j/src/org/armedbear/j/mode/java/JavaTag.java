@@ -21,7 +21,7 @@
 package org.armedbear.j.mode.java;
 
 import org.armedbear.j.Editor;
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 import org.armedbear.j.LocalTag;
 import org.armedbear.j.Position;
 import org.armedbear.j.TagCommands;
@@ -130,7 +130,7 @@ public final class JavaTag extends LocalTag
         // the canonical signature.
         StringTokenizer st = new StringTokenizer(s);
         int count = st.countTokens();
-        FastStringBuffer sb = new FastStringBuffer();
+        StringBuilder sb = new StringBuilder();
         for (int i = 0; i < count-1; i++) {
             sb.append(st.nextToken());
             sb.append(' ');
@@ -141,7 +141,7 @@ public final class JavaTag extends LocalTag
 
     private String parseCanonicalSignatureForMethod()
     {
-        FastStringBuffer sb = new FastStringBuffer();
+        StringBuilder sb = new StringBuilder();
         Position pos = getPosition().copy();
         pos.setOffset(0);
         while (Character.isWhitespace(pos.getChar()))

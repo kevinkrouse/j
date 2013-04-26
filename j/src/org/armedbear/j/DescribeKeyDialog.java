@@ -20,7 +20,7 @@
 
 package org.armedbear.j;
 
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 
 import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
@@ -91,7 +91,8 @@ public final class DescribeKeyDialog extends AbstractDialog
             if (modifiers == 0 || modifiers == InputEvent.SHIFT_MASK) {
                 // Ignore whitespace key chars (e.g. Space, Shift Tab).
                 if (c > ' ') {
-                    FastStringBuffer sb = new FastStringBuffer('\'');
+                    StringBuilder sb = new StringBuilder();
+                    sb.append('\'');
                     sb.append(c);
                     sb.append('\'');
                     if (keyStrokeText == null)
@@ -174,7 +175,7 @@ public final class DescribeKeyDialog extends AbstractDialog
 
     private void report(Object command)
     {
-        final FastStringBuffer sb = new FastStringBuffer();
+        final StringBuilder sb = new StringBuilder();
         sb.append(keyStrokeText);
         sb.append(" is mapped to ");
         sb.append(command);

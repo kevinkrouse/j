@@ -20,7 +20,7 @@
 
 package org.armedbear.j;
 
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 import org.armedbear.j.util.Utilities;
 
 import java.awt.event.KeyEvent;
@@ -106,7 +106,7 @@ public final class JEvent
 
     public String toString()
     {
-        FastStringBuffer sb = new FastStringBuffer();
+        StringBuilder sb = new StringBuilder();
         switch (id) {
             case KEY_PRESSED:
                 sb.append("KEY_PRESSED ");

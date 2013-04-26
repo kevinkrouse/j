@@ -29,12 +29,11 @@ import java.util.Calendar;
 import org.armedbear.j.Directories;
 import org.armedbear.j.Editor;
 import org.armedbear.j.File;
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 import org.armedbear.j.util.FastStringReader;
 import org.armedbear.j.Headers;
 import org.armedbear.j.Log;
 import org.armedbear.j.Property;
-import org.armedbear.j.util.FastStringReader;
 import org.armedbear.j.util.Utilities;
 
 public final class Mail
@@ -224,7 +223,7 @@ public final class Mail
             hostName = "unknown"; // Avoid NPE below.
         SimpleDateFormat df = new SimpleDateFormat ("yyyyMMddHHmmss");
         Calendar cal = Calendar.getInstance();
-        FastStringBuffer sb = new FastStringBuffer(128);
+        StringBuilder sb = new StringBuilder(128);
         sb.append('<');
         sb.append(df.format(cal.getTime()));
         sb.append('.');

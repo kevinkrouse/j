@@ -25,7 +25,6 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.Date;
-import java.util.Iterator;
 import java.util.List;
 import javax.swing.SwingUtilities;
 import org.armedbear.j.Buffer;
@@ -34,7 +33,7 @@ import org.armedbear.j.Debug;
 import org.armedbear.j.Editor;
 import org.armedbear.j.EditorIterator;
 import org.armedbear.j.File;
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 import org.armedbear.j.Headers;
 import org.armedbear.j.Line;
 import org.armedbear.j.Log;
@@ -419,7 +418,7 @@ public final class DraftsBuffer extends MailboxBuffer
         {
             File file = File.getInstance(directory, fileName);
             if (file != null && file.isFile()) {
-                FastStringBuffer sb = new FastStringBuffer();
+                StringBuilder sb = new StringBuilder();
                 try {
                     BufferedReader reader =
                         new BufferedReader(new InputStreamReader(file.getInputStream()));

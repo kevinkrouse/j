@@ -21,7 +21,7 @@
 package org.armedbear.j.mail;
 
 import java.io.UnsupportedEncodingException;
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 import org.armedbear.j.Log;
 
 public final class QuotedPrintableEncoder
@@ -39,7 +39,7 @@ public final class QuotedPrintableEncoder
             Log.error(e);
             bytes = input.getBytes();
         }
-        FastStringBuffer sb = new FastStringBuffer();
+        StringBuilder sb = new StringBuilder();
         int outputLength = 0;
         for (int i = 0; i < bytes.length; i++) {
             byte b = bytes[i];
@@ -90,7 +90,8 @@ public final class QuotedPrintableEncoder
         int n = b;
         if (n < 0)
             n += 256;
-        FastStringBuffer sb = new FastStringBuffer('=');
+        StringBuilder sb = new StringBuilder();
+        sb.append('=');
         sb.append(Integer.toString(n, 16));
         return sb.toString().toUpperCase();
     }

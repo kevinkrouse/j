@@ -28,7 +28,7 @@ import org.armedbear.j.Line;
 import org.armedbear.j.Log;
 import org.armedbear.j.OutputBuffer;
 import org.armedbear.j.Property;
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 import org.armedbear.j.util.Utilities;
 
 import java.io.BufferedReader;
@@ -42,7 +42,7 @@ public final class CheckPath implements Constants
     private final Editor editor;
     private final boolean showAll;
     private final Buffer buffer;
-    private FastStringBuffer sb = new FastStringBuffer(16384);
+    private StringBuilder sb = new StringBuilder(16384);
     private String path;
     private File currentDirectory;
     private HashSet<File> checkedFiles = new HashSet<File>(256);
@@ -198,7 +198,7 @@ public final class CheckPath implements Constants
         editor.setDefaultCursor();
         Buffer buf = OutputBuffer.getOutputBuffer(cp.getOutput());
         buf.setFormatter(new CheckPathFormatter(buf));
-        FastStringBuffer sb = new FastStringBuffer();
+        StringBuilder sb = new StringBuilder();
         if (showAll)
             sb.append("listIncludes ");
         else

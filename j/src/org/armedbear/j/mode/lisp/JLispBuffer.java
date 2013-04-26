@@ -30,7 +30,7 @@ import org.armedbear.j.Buffer;
 import org.armedbear.j.BufferIterator;
 import org.armedbear.j.Directories;
 import org.armedbear.j.Editor;
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 import org.armedbear.j.File;
 import org.armedbear.j.Frame;
 import org.armedbear.j.History;
@@ -220,7 +220,7 @@ public final class JLispBuffer extends LispShellBuffer
             Interpreter.initializeJLisp();
             Editor.setLispInitialized(true);
         }
-        FastStringBuffer sb = new FastStringBuffer("(load \"");
+        StringBuilder sb = new StringBuilder("(load \"");
         sb.append(file.shellEscaped());
         sb.append("\")");
         Interpreter.evaluate(sb.toString());

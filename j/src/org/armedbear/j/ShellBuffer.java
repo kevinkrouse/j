@@ -20,7 +20,7 @@
 package org.armedbear.j;
 
 import org.armedbear.j.mode.shell.ShellTokenizer;
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 import org.armedbear.j.util.Utilities;
 
 import java.util.regex.Matcher;
@@ -426,7 +426,7 @@ public class ShellBuffer extends CommandInterpreterBuffer implements Constants
         // Is '\' an escape character?
         boolean backslashIsEscape = Platform.isPlatformUnix() || cygnify;
 
-        FastStringBuffer sb = new FastStringBuffer(s.length());
+        StringBuilder sb = new StringBuilder(s.length());
         char quoteChar = 0;
         final int limit = s.length();
         for (int i = 0; i < limit; i++) {
@@ -473,7 +473,7 @@ public class ShellBuffer extends CommandInterpreterBuffer implements Constants
         if (s.indexOf(0x1b) >= 0) {
             // Strip escape sequences used for ls colorization.
             int limit = s.length();
-            FastStringBuffer sb = new FastStringBuffer(limit);
+            StringBuilder sb = new StringBuilder(limit);
             int i = 0;
             while (i < limit) {
                 char c = s.charAt(i++);

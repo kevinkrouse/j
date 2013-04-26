@@ -20,7 +20,7 @@
 
 package org.armedbear.j;
 
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 import org.armedbear.j.util.ReaderThread;
 import org.armedbear.j.util.Utilities;
 
@@ -64,7 +64,7 @@ public final class SshSession implements Constants, RemoteSession
     private StdoutThread stdoutThread;
     private StderrThread stderrThread;
 
-    private FastStringBuffer output = new FastStringBuffer();
+    private StringBuilder output = new StringBuilder();
 
     private boolean connected;
 
@@ -300,7 +300,7 @@ public final class SshSession implements Constants, RemoteSession
 
     private String stat(String canonicalPath)
     {
-        FastStringBuffer sb = new FastStringBuffer("stat -t \"");
+        StringBuilder sb = new StringBuilder("stat -t \"");
         sb.append(canonicalPath);
         sb.append('"');
         String cmd = sb.toString();
@@ -338,7 +338,7 @@ public final class SshSession implements Constants, RemoteSession
     // Throws an exception if we don't recognize the response.
     private boolean changeDirectory(String canonicalPath) throws Exception
     {
-        FastStringBuffer sb = new FastStringBuffer(cd);
+        StringBuilder sb = new StringBuilder(cd);
         sb.append(" \"");
         sb.append(canonicalPath);
         sb.append('"');
@@ -454,7 +454,7 @@ public final class SshSession implements Constants, RemoteSession
     {
         Debug.bugIfNot(file instanceof SshFile);
         if (permissions != 0 && connect()) {
-            FastStringBuffer sb = new FastStringBuffer("chmod ");
+            StringBuilder sb = new StringBuilder("chmod ");
             sb.append(Integer.toString(permissions, 8));
             sb.append(' ');
             sb.append(file.canonicalPath());
@@ -480,7 +480,7 @@ public final class SshSession implements Constants, RemoteSession
             Log.debug("SshSession.connect(): already connected");
             return true;
         }
-        FastStringBuffer sb = new FastStringBuffer("jpty ssh ");
+        StringBuilder sb = new StringBuilder("jpty ssh ");
         if (userName != null && userName.length() > 0) {
             sb.append("-l ");
             sb.append(userName);
@@ -536,7 +536,7 @@ public final class SshSession implements Constants, RemoteSession
         echo = true;
         String response = command("exec /bin/sh");
         Log.debug("response = |" + response + "|");
-        FastStringBuffer sb = new FastStringBuffer("PS1='");
+        StringBuilder sb = new StringBuilder("PS1='");
         sb.append(PROMPT);
         sb.append('\'');
         response = command(sb.toString());
@@ -936,7 +936,7 @@ public final class SshSession implements Constants, RemoteSession
     {
         Debug.assertTrue(path != null);
         Debug.assertTrue(path.length() != 0);
-        FastStringBuffer sb = new FastStringBuffer("\\ls -ld \"");
+        StringBuilder sb = new StringBuilder("\\ls -ld \"");
         sb.append(path);
         sb.append('"');
         sb.append('\n');
@@ -991,7 +991,7 @@ public final class SshSession implements Constants, RemoteSession
             stdin.write("\n");
             stdin.flush();
             if (outputBuffer != null) {
-                FastStringBuffer sb = new FastStringBuffer("==> ");
+                StringBuilder sb = new StringBuilder("==> ");
                 for (int i = pass.length(); i-- > 0;)
                     sb.append('*');
                 sb.append('\n');
@@ -1153,7 +1153,7 @@ public final class SshSession implements Constants, RemoteSession
 
     private static String reveal(String s)
     {
-        FastStringBuffer sb = new FastStringBuffer();
+        StringBuilder sb = new StringBuilder();
         final int length = s.length();
         for (int i = 0; i < length; i++) {
             char c = s.charAt(i);

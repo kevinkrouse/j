@@ -26,7 +26,7 @@ import java.util.ArrayList;
 import java.util.Locale;
 
 import org.armedbear.j.Editor;
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 import org.armedbear.j.Property;
 import org.armedbear.j.util.Utilities;
 
@@ -175,7 +175,7 @@ public abstract class MailboxEntry implements Serializable
         // subject of the message being replied to, which is the whole point
         // here. So we strip out all LWSP chars before returning the base
         // subject.
-        FastStringBuffer sb = new FastStringBuffer();
+        StringBuilder sb = new StringBuilder();
         for (int i = 0, limit = s.length(); i < limit; i++) {
             char c = s.charAt(i);
             if (c != ' ' && c != '\t')
@@ -320,7 +320,7 @@ public abstract class MailboxEntry implements Serializable
                 }
             }
             if (k < 10) {
-                FastStringBuffer sb = new FastStringBuffer();
+                StringBuilder sb = new StringBuilder();
                 sb.append(String.valueOf(k));
                 sb.append('.');
                 sb.append(String.valueOf(h));
@@ -457,7 +457,7 @@ public abstract class MailboxEntry implements Serializable
 
     public String toString(int depth)
     {
-        FastStringBuffer sb = new FastStringBuffer(128);
+        StringBuilder sb = new StringBuilder(128);
         if (SHOW_MESSAGE_NUMBERS) {
             sb.append(Utilities.rightJustify(sequenceNumber, 5));
             sb.append(' ');

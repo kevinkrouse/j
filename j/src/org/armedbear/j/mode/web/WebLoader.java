@@ -22,7 +22,7 @@ package org.armedbear.j.mode.web;
 
 import org.armedbear.j.Debug;
 import org.armedbear.j.Editor;
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 import org.armedbear.j.File;
 import org.armedbear.j.ImageLink;
 import org.armedbear.j.Line;
@@ -49,7 +49,7 @@ import java.util.Stack;
 public final class WebLoader implements WebConstants
 {
     private PushbackReader reader;
-    private final FastStringBuffer textBuffer = new FastStringBuffer();
+    private final StringBuilder textBuffer = new StringBuilder();
     private final Stack<String> indentStack = new Stack<String>();
     private final Stack<Table> tableStack = new Stack<Table>();
     private Table currentTable;
@@ -603,7 +603,7 @@ public final class WebLoader implements WebConstants
 
     private void processTitle()
     {
-        FastStringBuffer sb = new FastStringBuffer();
+        StringBuilder sb = new StringBuilder();
         try {
             int c;
             while ((c = reader.read()) >= 0) {
@@ -697,7 +697,7 @@ public final class WebLoader implements WebConstants
             }
         }
         if (imageLink != null) {
-            FastStringBuffer sb = new FastStringBuffer("[IMAGE");
+            StringBuilder sb = new StringBuilder("[IMAGE");
             if (width != null && height != null) {
                 sb.append(' ');
                 sb.append(width);
@@ -719,7 +719,7 @@ public final class WebLoader implements WebConstants
             // We don't need to add a space at the beginning of the line.
             return;
         }
-        FastStringBuffer sb = new FastStringBuffer();
+        StringBuilder sb = new StringBuilder();
         for (int i = 0; i < segments.size(); i++) {
             HtmlLineSegment segment = (HtmlLineSegment) segments.getSegment(i);
             sb.append(segment.getText());
@@ -762,7 +762,7 @@ public final class WebLoader implements WebConstants
         final int ATTRIBUTE_VALUE = 4;
 
         int state = NEUTRAL;
-        FastStringBuffer sb = new FastStringBuffer();
+        StringBuilder sb = new StringBuilder();
         String name = null;
         String value = null;
         ArrayList<Tuple2<String, String>> attributes = null;
@@ -845,7 +845,7 @@ public final class WebLoader implements WebConstants
                             attributes.add(new Tuple2<String, String>(name, value));
                             name = value = null;
                         } else if (c == '&') {
-                            FastStringBuffer sbEntity = new FastStringBuffer();
+                            StringBuilder sbEntity = new StringBuilder();
                             sbEntity.append('&');
                             for (++i; i < limit; i++) {
                                 c = tag.charAt(i);
@@ -875,7 +875,7 @@ public final class WebLoader implements WebConstants
                             attributes.add(new Tuple2<String, String>(name, value));
                             name = value = null;
                         } else if (c == '&') {
-                            FastStringBuffer sbEntity = new FastStringBuffer();
+                            StringBuilder sbEntity = new StringBuilder();
                             sbEntity.append('&');
                             for (++i; i < limit; i++) {
                                 c = tag.charAt(i);
@@ -934,7 +934,7 @@ public final class WebLoader implements WebConstants
         final int BANG            = 7;
         final int INVALID         = 8;
 
-        FastStringBuffer sb = new FastStringBuffer(256);
+        StringBuilder sb = new StringBuilder(256);
         sb.append('<');
         int length = 1;
         int state = TAG_NAME;
@@ -1079,7 +1079,8 @@ public final class WebLoader implements WebConstants
 
     private String gatherEntity()
     {
-        FastStringBuffer sb = new FastStringBuffer('&');
+        StringBuilder sb = new StringBuilder();
+        sb.append('&');
         try {
             int c;
             while ((c = reader.read()) >= 0) {
@@ -1200,7 +1201,7 @@ public final class WebLoader implements WebConstants
 
     private void skipComment()
     {
-        FastStringBuffer sb = new FastStringBuffer();
+        StringBuilder sb = new StringBuilder();
         try {
             int c;
             while ((c = reader.read()) >= 0) {
@@ -1257,7 +1258,8 @@ public final class WebLoader implements WebConstants
     {
         final String s = "</script>";
         final int length = s.length();
-        FastStringBuffer sb = new FastStringBuffer('<');
+        StringBuilder sb = new StringBuilder();
+        sb.append('<');
         try {
             int c;
             while ((c = reader.read()) >= 0) {

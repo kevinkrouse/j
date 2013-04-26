@@ -22,7 +22,7 @@ package org.armedbear.j.mode.xml;
 
 import org.armedbear.j.Editor;
 import org.armedbear.j.EditorIterator;
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 import org.armedbear.j.File;
 import org.armedbear.j.mode.compilation.CompilationErrorBuffer;
 
@@ -58,7 +58,7 @@ public final class XmlErrorBuffer extends CompilationErrorBuffer
     public String toString()
     {
         if (file != null) {
-            FastStringBuffer sb = new FastStringBuffer();
+            StringBuilder sb = new StringBuilder();
             sb.append(file.getName());
             sb.append(" (errors)");
             return sb.toString();

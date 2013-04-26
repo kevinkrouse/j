@@ -22,7 +22,7 @@ package org.armedbear.j.util;
 
 import java.io.InputStream;
 import java.io.IOException;
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 
 public final class Base64Encoder
 {
@@ -57,7 +57,7 @@ public final class Base64Encoder
 
     private static String encode(byte[] input)
     {
-        FastStringBuffer encoded = new FastStringBuffer();
+        StringBuilder encoded = new StringBuilder();
         for (int i = 0; i < input.length; i += 3)
             encoded.append(encodeThreeBytes(input, i));
         return encoded.toString();

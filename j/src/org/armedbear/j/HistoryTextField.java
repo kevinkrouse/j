@@ -20,7 +20,7 @@
 
 package org.armedbear.j;
 
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 
 import java.awt.Dimension;
 import java.awt.Font;
@@ -132,7 +132,7 @@ public class HistoryTextField extends JTextField implements FocusListener,
     {
         String s = super.getText();
         int length = s.length();
-        FastStringBuffer sb = new FastStringBuffer(length);
+        StringBuilder sb = new StringBuilder(length);
         // Copy string, stripping control characters if any.
         for (int i = 0; i < length; i++) {
             char c = s.charAt(i);

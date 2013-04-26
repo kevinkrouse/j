@@ -22,7 +22,7 @@ package org.armedbear.j.vcs.git;
 
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Constants;
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 import org.armedbear.j.File;
 import org.armedbear.j.Log;
 import org.armedbear.j.ShellCommand;
@@ -61,7 +61,7 @@ public class GitEntry extends VersionControlEntry
 
     private String statusText(boolean brief)
     {
-        FastStringBuffer sb = new FastStringBuffer("git");
+        StringBuilder sb = new StringBuilder("git");
         if (status != null) {
             sb.append(" ").append(brief ? xy : status);
         }

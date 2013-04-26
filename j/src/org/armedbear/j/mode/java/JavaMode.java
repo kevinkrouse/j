@@ -30,7 +30,7 @@ import org.armedbear.j.Editor;
 import org.armedbear.j.Expression;
 import org.armedbear.j.Mode;
 import org.armedbear.j.jdb.Jdb;
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 import org.armedbear.j.Formatter;
 import org.armedbear.j.KeyMap;
 import org.armedbear.j.Keywords;
@@ -1318,7 +1318,7 @@ loop:
             c = line.charAt(offset);
             if (isIdentifierStart(c))
               {
-                FastStringBuffer sb = new FastStringBuffer();
+                StringBuilder sb = new StringBuilder();
                 sb.append(c);
                 while (++offset < limit)
                   {
@@ -1398,7 +1398,7 @@ loop:
       return null;
     Position pos = posExpr.copy();
     // Gather up method name.
-    FastStringBuffer sb = new FastStringBuffer();
+    StringBuilder sb = new StringBuilder();
     while (true)
       {
         char c = pos.getChar();

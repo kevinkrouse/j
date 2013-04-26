@@ -20,7 +20,7 @@
 
 package org.armedbear.j;
 
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 
 import java.awt.print.Book;
 import java.awt.print.PrinterException;
@@ -55,7 +55,7 @@ public final class PrintCommands
         Region r = new Region(editor);
         int lineCount = r.getEndLine().lineNumber() - r.getBeginLine().lineNumber();
         final String title = "Print Region";
-        FastStringBuffer sb = new FastStringBuffer("Print selected region (");
+        StringBuilder sb = new StringBuilder("Print selected region (");
         sb.append(lineCount);
         sb.append(" line");
         if (lineCount > 1)
@@ -90,7 +90,7 @@ public final class PrintCommands
         final Buffer buffer = editor.getBuffer();
         final String title = "Print Buffer";
         int lineCount = buffer.getLineCount();
-        FastStringBuffer sb = new FastStringBuffer("Print current buffer in its entirety (");
+        StringBuilder sb = new StringBuilder("Print current buffer in its entirety (");
         sb.append(lineCount);
         sb.append(" line");
         if (lineCount > 1)

@@ -27,7 +27,7 @@ import org.armedbear.j.Constants;
 import org.armedbear.j.Debug;
 import org.armedbear.j.Editor;
 import org.armedbear.j.EditorIterator;
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 import org.armedbear.j.File;
 import org.armedbear.j.Log;
 import org.armedbear.j.MessageDialog;
@@ -98,7 +98,7 @@ public final class CVS extends VersionControl implements Constants
     buffer.setBusy(true);
     editor.setWaitCursor();
     final String name = buffer.getFile().getName();
-    FastStringBuffer sb = new FastStringBuffer("cvs add ");
+    StringBuilder sb = new StringBuilder("cvs add ");
     sb.append(Utilities.maybeQuote(name));
     final String cmd = sb.toString();
     Runnable commandRunnable = new Runnable()
@@ -215,7 +215,7 @@ public final class CVS extends VersionControl implements Constants
     final String name = parentBuffer.getFile().getName();
     if (args == null)
       args = "-u";
-    FastStringBuffer sb = new FastStringBuffer("cvs diff ");
+    StringBuilder sb = new StringBuilder("cvs diff ");
     sb.append(args);
     sb.append(' ');
     sb.append(Utilities.maybeQuote(name));
@@ -393,7 +393,7 @@ public final class CVS extends VersionControl implements Constants
                                         "Error");
         return;
       }
-    FastStringBuffer sb = new FastStringBuffer("cvs commit -F ");
+    StringBuilder sb = new StringBuilder("cvs commit -F ");
     // Enclose both filenames in double quotes in case they contain
     // embedded spaces.
     sb.append('"');

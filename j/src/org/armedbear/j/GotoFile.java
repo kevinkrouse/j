@@ -22,7 +22,7 @@ package org.armedbear.j;
 
 import org.armedbear.j.mode.dir.DirectoryBuffer;
 import org.armedbear.j.mode.java.JavaSource;
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 import org.armedbear.j.util.Utilities;
 
 import java.util.regex.Pattern;
@@ -175,7 +175,7 @@ public final class GotoFile implements Constants
         if (s.charAt(0) != ' ' && s.charAt(0) != '\t')
             return null;
         s = s.trim();
-        FastStringBuffer sb = new FastStringBuffer();
+        StringBuilder sb = new StringBuilder();
         for (int i = 0; i < s.length(); i++) {
             char c = s.charAt(i);
             if (c == ' ' || c == '\t' || c == ';')

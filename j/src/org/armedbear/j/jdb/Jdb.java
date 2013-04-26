@@ -47,7 +47,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -62,7 +61,7 @@ import org.armedbear.j.Editor;
 import org.armedbear.j.EditorIterator;
 import org.armedbear.j.EditorList;
 import org.armedbear.j.File;
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 import org.armedbear.j.mode.java.JavaMode;
 import org.armedbear.j.mode.java.JavaSource;
 import org.armedbear.j.Line;
@@ -445,7 +444,7 @@ public final class Jdb extends Buffer implements JdbConstants
 
     private void logCommand(String command, String remainder)
     {
-        FastStringBuffer sb = new FastStringBuffer(prompt);
+        StringBuilder sb = new StringBuilder(prompt);
         sb.append(command);
         if (remainder != null && remainder.length() > 0) {
             sb.append(' ');
@@ -535,7 +534,7 @@ public final class Jdb extends Buffer implements JdbConstants
 
     public void printCurrentLocation(ThreadReference threadRef, Location location)
     {
-        FastStringBuffer sb = new FastStringBuffer("[");
+        StringBuilder sb = new StringBuilder("[");
         sb.append(threadRef.name());
         sb.append("] ");
         sb.append(location.declaringType().name());
@@ -582,7 +581,7 @@ public final class Jdb extends Buffer implements JdbConstants
     private void addBreakpoint(ResolvableBreakpoint bp)
     {
         breakpoints.add(bp);
-        FastStringBuffer sb = new FastStringBuffer();
+        StringBuilder sb = new StringBuilder();
         if (bp.isTemporary())
             sb.append("Temporary b");
         else
@@ -598,7 +597,7 @@ public final class Jdb extends Buffer implements JdbConstants
     {
         bp.clear();
         breakpoints.remove(bp);
-        FastStringBuffer sb = new FastStringBuffer();
+        StringBuilder sb = new StringBuilder();
         if (bp.isTemporary())
             sb.append("Temporary b");
         else
@@ -649,7 +648,7 @@ public final class Jdb extends Buffer implements JdbConstants
         final File file = buffer.getFile();
         if (file != null && file.getName().toLowerCase().endsWith(".java")) {
             final Line line = editor.getDotLine();
-            FastStringBuffer sb = new FastStringBuffer();
+            StringBuilder sb = new StringBuilder();
             if (temporary)
                 sb.append('t');
             sb.append("break ");
@@ -1553,7 +1552,7 @@ public final class Jdb extends Buffer implements JdbConstants
             for (Map.Entry<LocalVariable, Value> entry : entrySet) {
                 LocalVariable variable = entry.getKey();
                 Value value = entry.getValue();
-                FastStringBuffer sb = new FastStringBuffer(variable.typeName());
+                StringBuilder sb = new StringBuilder(variable.typeName());
                 sb.append(' ');
                 sb.append(variable.name());
                 sb.append(" = ");
@@ -1635,7 +1634,7 @@ public final class Jdb extends Buffer implements JdbConstants
 
     private static String getStringValueOfArray(String name, ArrayReference ar)
     {
-        FastStringBuffer sb = new FastStringBuffer();
+        StringBuilder sb = new StringBuilder();
         final int limit = ar.length();
         for (int i = 0; i < limit; i++) {
             sb.append("    ");

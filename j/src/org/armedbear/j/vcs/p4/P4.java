@@ -27,7 +27,7 @@ import org.armedbear.j.Constants;
 import org.armedbear.j.Debug;
 import org.armedbear.j.Editor;
 import org.armedbear.j.EditorIterator;
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 import org.armedbear.j.File;
 import org.armedbear.j.Log;
 import org.armedbear.j.MessageDialog;
@@ -114,7 +114,7 @@ public class P4 extends VersionControl implements Constants
       return;
     editor.setWaitCursor();
     final String name = buffer.getFile().getName();
-    FastStringBuffer sb = new FastStringBuffer("p4 add ");
+    StringBuilder sb = new StringBuilder("p4 add ");
     sb.append(Utilities.maybeQuote(name));
     final String cmd = sb.toString();
     outputBufferCommand(editor, cmd, buffer.getCurrentDirectory());
@@ -131,7 +131,7 @@ public class P4 extends VersionControl implements Constants
       return;
     buffer.setBusy(true);
     editor.setWaitCursor();
-    FastStringBuffer sb = new FastStringBuffer("p4 edit ");
+    StringBuilder sb = new StringBuilder("p4 edit ");
     sb.append(Utilities.maybeQuote(file.getName()));
     final String cmd = sb.toString();
     Runnable commandRunnable = new Runnable()
@@ -188,7 +188,7 @@ public class P4 extends VersionControl implements Constants
     String output = _autoEdit(file);
     if (output == null)
       return false;
-    FastStringBuffer sb = new FastStringBuffer("p4 edit ");
+    StringBuilder sb = new StringBuilder("p4 edit ");
     sb.append(Utilities.maybeQuote(file.getName()));
     editCompleted(editor, buffer, sb.toString(), output);
     return !buffer.isReadOnly();
@@ -214,7 +214,7 @@ public class P4 extends VersionControl implements Constants
       return null;
     if (!haveP4())
       return null;
-    FastStringBuffer sb = new FastStringBuffer("p4 edit ");
+    StringBuilder sb = new StringBuilder("p4 edit ");
     sb.append(Utilities.maybeQuote(file.getName()));
     return command(sb.toString(), buffer.getCurrentDirectory());
   }
@@ -415,7 +415,7 @@ public class P4 extends VersionControl implements Constants
       }
     final String baseCmd = "p4 filelog -l ";
     final String title;
-    FastStringBuffer sb = new FastStringBuffer(baseCmd);
+    StringBuilder sb = new StringBuilder(baseCmd);
     for (String s : list) {
         sb.append(s);
         sb.append(' ');
@@ -493,7 +493,7 @@ public class P4 extends VersionControl implements Constants
       return;
     if (parentBuffer.getFile() == null)
       return;
-    FastStringBuffer sb = new FastStringBuffer("p4 change");
+    StringBuilder sb = new StringBuilder("p4 change");
     if (arg != null)
       {
         sb.append(' ');
@@ -521,7 +521,8 @@ public class P4 extends VersionControl implements Constants
     checkinBuffer.setBusy(true);
     editor.makeNext(checkinBuffer);
     editor.activate(checkinBuffer);
-    sb.setText("p4 change -o");
+    sb.setLength(0);
+    sb.append("p4 change -o");
     if (arg != null)
       {
         sb.append(' ');
@@ -587,7 +588,7 @@ public class P4 extends VersionControl implements Constants
       }
     if (message == null)
       {
-        FastStringBuffer sb = new FastStringBuffer("Unrecognized argument \"");
+        StringBuilder sb = new StringBuilder("Unrecognized argument \"");
         sb.append(args.trim());
         sb.append('"');
         message = sb.toString();
@@ -612,7 +613,7 @@ public class P4 extends VersionControl implements Constants
       parentBuffer = buffer.getParentBuffer();
     else
       parentBuffer = buffer;
-    FastStringBuffer sb = new FastStringBuffer("p4 submit");
+    StringBuilder sb = new StringBuilder("p4 submit");
     if (arg != null)
       {
         sb.append(" -c ");
@@ -664,7 +665,8 @@ public class P4 extends VersionControl implements Constants
         checkinBuffer.setBusy(true);
         editor.makeNext(checkinBuffer);
         editor.activate(checkinBuffer);
-        sb.setText("p4 change -o");
+        sb.setLength(0);
+        sb.append("p4 change -o");
         if (arg != null)
           {
             sb.append(' ');
@@ -951,7 +953,7 @@ public class P4 extends VersionControl implements Constants
 
     if (file != null && haveP4())
       {
-        FastStringBuffer sb = null;
+        StringBuilder sb = null;
         String output =
           command("p4 fstat ".concat(file.getName()), buffer.getCurrentDirectory());
         String HAVE_REV = "... haveRev ";
@@ -963,7 +965,7 @@ public class P4 extends VersionControl implements Constants
             if (end > begin)
               {
                 if (sb == null)
-                  sb = new FastStringBuffer("Perforce");
+                  sb = new StringBuilder("Perforce");
                 sb.append(" revision ");
                 sb.append(output.substring(begin, end).trim());
               }
@@ -977,7 +979,7 @@ public class P4 extends VersionControl implements Constants
             if (end > begin)
               {
                 if (sb == null)
-                  sb = new FastStringBuffer("Perforce");
+                  sb = new StringBuilder("Perforce");
                 sb.append(" (opened for ");
                 sb.append(output.substring(begin, end).trim());
                 sb.append(')');

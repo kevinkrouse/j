@@ -20,7 +20,7 @@
 
 package org.armedbear.j;
 
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -50,14 +50,14 @@ public final class Version
         initialize();
         if (revision == null || revision.length() == 0)
             return null;
-        return new FastStringBuffer("r").append(revision).toString();
+        return new StringBuilder("r").append(revision).toString();
     }
 
     // "J 0.16.0+"
     public static String getShortVersionString()
     {
         initialize();
-        FastStringBuffer sb = new FastStringBuffer("J");
+        StringBuilder sb = new StringBuilder("J");
         if (version != null && version.length() > 0) {
             sb.append(' ');
             sb.append(version);
@@ -68,7 +68,7 @@ public final class Version
     // "J 0.16.0+ (r12345 built Fri Jul 26 2002 07:03:12 PDT on merlin)"
     public static String getLongVersionString()
     {
-        FastStringBuffer sb = new FastStringBuffer(getShortVersionString());
+        StringBuilder sb = new StringBuilder(getShortVersionString());
         String rev = getRevision();
         if ((build != null && build.length() > 0) || (rev != null))
         {
@@ -100,8 +100,8 @@ public final class Version
     {
         if (version != null && version.endsWith("+") && snapshot != null) {
             if (!snapshot.equals(build)) {
-                FastStringBuffer sb =
-                    new FastStringBuffer("(built from development snapshot created ");
+                StringBuilder sb =
+                    new StringBuilder("(built from development snapshot created ");
                 sb.append(snapshot);
                 sb.append(')');
                 return sb.toString();

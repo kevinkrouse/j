@@ -21,7 +21,7 @@
 package org.armedbear.j.mode.man;
 
 import org.armedbear.j.AbstractLine;
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 import org.armedbear.j.Line;
 
 import java.io.UnsupportedEncodingException;
@@ -51,7 +51,7 @@ public final class ManLine extends AbstractLine implements Line
     public final String getText()
     {
         if (text == null) {
-            FastStringBuffer sb = new FastStringBuffer(256);
+            StringBuilder sb = new StringBuilder(256);
             final int limit = rawText.length();
             for (int i = 0; i < limit; i++) {
                 char c = rawText.charAt(i);

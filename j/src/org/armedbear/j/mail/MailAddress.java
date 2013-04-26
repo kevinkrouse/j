@@ -22,7 +22,7 @@ package org.armedbear.j.mail;
 
 import java.io.Serializable;
 import java.util.ArrayList;
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 
 public final class MailAddress implements Serializable
 {
@@ -92,7 +92,7 @@ public final class MailAddress implements Serializable
 
     public String toString()
     {
-        FastStringBuffer sb = new FastStringBuffer();
+        StringBuilder sb = new StringBuilder();
         if (personal != null && personal.length() > 0) {
             if (personal.indexOf(',') >= 0 || personal.indexOf('.') >= 0) {
                 sb.append('"');
@@ -114,7 +114,7 @@ public final class MailAddress implements Serializable
     {
         if (encodedPersonal == null || encodedPersonal.length() == 0)
             return toString();
-        FastStringBuffer sb = new FastStringBuffer();
+        StringBuilder sb = new StringBuilder();
         if (encodedPersonal.indexOf(',') >= 0 || encodedPersonal.indexOf('.') >= 0) {
             sb.append('"');
             sb.append(encodedPersonal);
@@ -220,7 +220,7 @@ public final class MailAddress implements Serializable
         if (input.length() == 0)
             return null;
         ArrayList<MailAddress> addresses = new ArrayList<MailAddress>();
-        FastStringBuffer sb = new FastStringBuffer();
+        StringBuilder sb = new StringBuilder();
         boolean inQuote = false;
         final int limit = input.length();
         for (int i = 0; i < limit; i++) {

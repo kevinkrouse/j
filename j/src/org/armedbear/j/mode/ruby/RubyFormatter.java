@@ -24,7 +24,7 @@ package org.armedbear.j.mode.ruby;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Debug;
 import org.armedbear.j.Editor;
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 import org.armedbear.j.FormatTable;
 import org.armedbear.j.Formatter;
 import org.armedbear.j.Line;
@@ -358,7 +358,8 @@ public final class RubyFormatter extends Formatter
             return true;
 
         // Last non-whitespace character is a valid identifier character.
-        FastStringBuffer sb = new FastStringBuffer(c);
+        StringBuilder sb = new StringBuilder();
+        sb.append(c);
         for (int j = s.length()-2; j >= 0; j--) {
             c = s.charAt(j);
             if (mode.isIdentifierPart(c))

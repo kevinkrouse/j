@@ -21,7 +21,7 @@
 package org.armedbear.j;
 
 import org.armedbear.j.mode.dir.DirectoryEntry;
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -253,7 +253,7 @@ public class FtpSession implements Constants, RemoteSession
     {
         Debug.bugIfNot(file instanceof FtpFile);
         if (permissions != 0) {
-            FastStringBuffer sb = new FastStringBuffer("SITE CHMOD ");
+            StringBuilder sb = new StringBuilder("SITE CHMOD ");
             sb.append(Integer.toString(permissions, 8));
             sb.append(' ');
             sb.append(file.canonicalPath());
@@ -848,7 +848,7 @@ public class FtpSession implements Constants, RemoteSession
         if (!usePassiveMode)
             acceptConnectionFromServer();
         byte[] buf = new byte[16384];
-        FastStringBuffer sb = new FastStringBuffer();
+        StringBuilder sb = new StringBuilder();
         try {
             while (true) {
                 int bytesRead = dataIn.read(buf); // Blocks.

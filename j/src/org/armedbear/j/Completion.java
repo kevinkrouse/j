@@ -20,7 +20,7 @@
 
 package org.armedbear.j;
 
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 import org.armedbear.j.util.Utilities;
 
 import java.util.List;
@@ -119,7 +119,7 @@ public final class Completion
     private static final String escapeSpaces(String s)
     {
         final int length = s.length();
-        FastStringBuffer sb = new FastStringBuffer(length * 2);
+        StringBuilder sb = new StringBuilder(length * 2);
         for (int i = 0; i < length; i++) {
             char c = s.charAt(i);
             if (c == ' ')

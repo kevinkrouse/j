@@ -20,7 +20,7 @@
 
 package org.armedbear.j;
 
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 
 import java.util.ArrayList;
 
@@ -58,7 +58,7 @@ public final class EventSequence
 
     public String getStatusText()
     {
-        FastStringBuffer sb = new FastStringBuffer();
+        StringBuilder sb = new StringBuilder();
         for (int i = 0; i < events.size(); i++) {
             JEvent event = getEvent(i);
             if (i > 0)
@@ -70,7 +70,7 @@ public final class EventSequence
 
     public String toString()
     {
-        FastStringBuffer sb = new FastStringBuffer();
+        StringBuilder sb = new StringBuilder();
         sb.append("begin EventSequence\n");
         for (JEvent event : events) {
             sb.append(event.toString());

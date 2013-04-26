@@ -20,7 +20,7 @@
 
 package org.armedbear.j;
 
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -263,7 +263,7 @@ public final class Log
         String snapshotInformation = Version.getSnapshotInformation();
         if (snapshotInformation != null)
             info(snapshotInformation);
-        FastStringBuffer sb = new FastStringBuffer("Java ");
+        StringBuilder sb = new StringBuilder("Java ");
         sb.append(System.getProperty("java.version"));
         sb.append(' ');
         sb.append(System.getProperty("java.vendor"));
@@ -274,7 +274,8 @@ public final class Log
         String vm = System.getProperty("java.vm.name");
         if (vm != null)
             info(vm);
-        sb.setText(System.getProperty("os.name"));
+        sb.setLength(0);
+        sb.append(System.getProperty("os.name"));
         sb.append(' ');
         sb.append(System.getProperty("os.version"));
         info(sb.toString());

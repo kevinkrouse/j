@@ -22,7 +22,7 @@ package org.armedbear.j;
 
 import org.armedbear.j.mode.java.JavaSource;
 import org.armedbear.j.mode.web.WebBuffer;
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 import org.armedbear.j.util.Utilities;
 
 import java.awt.AWTEvent;
@@ -144,7 +144,7 @@ public final class JDKHelp implements Constants
         for (final String dirName : dirNames) {
             final File dir = File.getInstance(dirName);
             if (!dir.isDirectory()) {
-                FastStringBuffer sb = new FastStringBuffer("Directory \"");
+                StringBuilder sb = new StringBuilder("Directory \"");
                 sb.append(dir.canonicalPath());
                 sb.append("\" does not exist");
                 MessageDialog.showMessageDialog(sb.toString(), "Error");
@@ -192,7 +192,7 @@ public final class JDKHelp implements Constants
             return null; // Nothing left.
         // Now we're looking at the first char of the name.
         Debug.assertTrue(Character.isJavaIdentifierStart(line.charAt(offset)));
-        FastStringBuffer sb = new FastStringBuffer();
+        StringBuilder sb = new StringBuilder();
         sb.append(line.charAt(offset));
         while (++offset < limit) {
             c = line.charAt(offset);

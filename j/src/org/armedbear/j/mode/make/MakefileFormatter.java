@@ -22,7 +22,7 @@ package org.armedbear.j.mode.make;
 
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Editor;
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 import org.armedbear.j.FormatTable;
 import org.armedbear.j.Formatter;
 import org.armedbear.j.Line;
@@ -43,7 +43,7 @@ public final class MakefileFormatter extends Formatter
 
   private static final int  STATE_BACKQUOTE = STATE_LAST + 1;
 
-  private FastStringBuffer sb = new FastStringBuffer();
+  private StringBuilder sb = new StringBuilder();
   private int tokStart;
 
   private static final Pattern targetRE = Pattern.compile("^\\S+.*:");

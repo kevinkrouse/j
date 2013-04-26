@@ -20,7 +20,7 @@
 
 package org.armedbear.j;
 
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 
 import java.util.Vector;
 import java.net.URL;
@@ -89,7 +89,7 @@ public final class Cookie
         String file = url.getFile();
         int index = file.lastIndexOf('?');
         String path = index >= 0 ? file.substring(0, index) : file;
-        FastStringBuffer sb = new FastStringBuffer(256);
+        StringBuilder sb = new StringBuilder(256);
         for (int i = cookies.size()-1; i >= 0; i--) {
             Cookie cookie = cookies.get(i);
             if (cookie.domain != null && host.endsWith(cookie.domain)) {

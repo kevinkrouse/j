@@ -21,7 +21,7 @@
 package org.armedbear.j;
 
 import org.armedbear.j.mode.list.ListRegistersBuffer;
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 import org.armedbear.j.util.Utilities;
 
 import java.io.BufferedReader;
@@ -211,7 +211,8 @@ public final class Registers
         }
         if (lenOk && charsOk)
             return true;
-        FastStringBuffer sb = new FastStringBuffer('"');
+        StringBuilder sb = new StringBuilder();
+        sb.append('"');
         sb.append(name);
         sb.append("\" is not a valid register name. ");
         sb.append("Register names must be between 1 and 25 characters long ");
@@ -238,7 +239,7 @@ public final class Registers
         try {
             BufferedReader reader = new BufferedReader(new InputStreamReader(
                 file.getInputStream()));
-            FastStringBuffer sb = new FastStringBuffer();
+            StringBuilder sb = new StringBuilder();
             int lineCount = 0;
             int c;
             while ((c = reader.read()) > 0) {

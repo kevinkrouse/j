@@ -20,7 +20,7 @@
 
 package org.armedbear.j;
 
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 
 import java.io.Serializable;
 import java.util.ArrayList;
@@ -431,7 +431,7 @@ public final class Property implements Comparable, Constants
     private static String convertLispNameToJavaName(String name)
     {
       Debug.assertTrue(name != null);
-      FastStringBuffer sb = new FastStringBuffer();
+      StringBuilder sb = new StringBuilder();
       for (int i = 0, length = name.length(); i < length; i++)
         {
           char c = name.charAt(i);
@@ -508,7 +508,7 @@ public final class Property implements Comparable, Constants
     public String getLispName()
     {
         Debug.assertTrue(displayName != null);
-        FastStringBuffer sb = new FastStringBuffer();
+        StringBuilder sb = new StringBuilder();
         for (int i = 0, length = displayName.length(); i < length; i++) {
             char c = displayName.charAt(i);
             if (Character.isUpperCase(c)) {

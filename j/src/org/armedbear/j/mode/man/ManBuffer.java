@@ -23,7 +23,7 @@ package org.armedbear.j.mode.man;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Directories;
 import org.armedbear.j.Editor;
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 import org.armedbear.j.File;
 import org.armedbear.j.Line;
 import org.armedbear.j.Log;
@@ -125,7 +125,7 @@ public final class ManBuffer extends Buffer
     {
         byte[] buf = new byte[4096];
         int totalBytes = 0;
-        FastStringBuffer sb = new FastStringBuffer(256);
+        StringBuilder sb = new StringBuilder(256);
         boolean skipLF = false;
         int bytesRead;
         try {

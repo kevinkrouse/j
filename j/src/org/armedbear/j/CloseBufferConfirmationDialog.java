@@ -20,7 +20,7 @@
 
 package org.armedbear.j;
 
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 import org.armedbear.j.util.Utilities;
 
 public final class CloseBufferConfirmationDialog extends ConfirmDialog
@@ -45,7 +45,7 @@ public final class CloseBufferConfirmationDialog extends ConfirmDialog
         this.buffer = buffer;
         // Show cancel button.
         cancel = true;
-        FastStringBuffer sb = new FastStringBuffer(buffer.getFile().getName());
+        StringBuilder sb = new StringBuilder(buffer.getFile().getName());
         sb.append(" is modified. Do you want to save your changes before closing the buffer?");
         initialize(Utilities.wrap(sb.toString(), 65, 8), "Close Buffer");
         editor.setDefaultCursor();

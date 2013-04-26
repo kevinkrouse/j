@@ -22,7 +22,7 @@ package org.armedbear.j.mode.java;
 
 import org.armedbear.j.Constants;
 import org.armedbear.j.Expression;
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 import org.armedbear.j.LocalTag;
 
 /**
@@ -85,7 +85,7 @@ public final class JavaExpression extends Expression implements Constants
 
     public String toString()
     {
-        FastStringBuffer sb = new FastStringBuffer();
+        StringBuilder sb = new StringBuilder();
         switch (type) {
             case TAG_UNKNOWN:
                 sb.append("TAG_UNKNOWN ");

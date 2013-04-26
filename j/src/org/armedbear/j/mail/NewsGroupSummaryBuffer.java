@@ -29,7 +29,7 @@ import javax.swing.Icon;
 import javax.swing.SwingUtilities;
 import org.armedbear.j.Editor;
 import org.armedbear.j.EditorIterator;
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 import org.armedbear.j.util.FastStringReader;
 import org.armedbear.j.File;
 import org.armedbear.j.InputDialog;
@@ -204,7 +204,7 @@ public final class NewsGroupSummaryBuffer extends MailboxBuffer
                 try {
                     MailReader reader = new MailReader(file.getInputStream());
                     long length = file.length();
-                    FastStringBuffer sb = new FastStringBuffer((int)length);
+                    StringBuilder sb = new StringBuilder((int)length);
                     String s;
                     while ((s = reader.readLine()) != null) {
                         sb.append(s);

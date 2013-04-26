@@ -20,7 +20,7 @@
 
 package org.armedbear.j.mail;
 
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 import org.armedbear.j.Log;
 import org.armedbear.j.util.Utilities;
 
@@ -120,7 +120,7 @@ public final class NewsGroupSummaryEntry extends MailboxEntry
 
     public String toString(int depth)
     {
-        FastStringBuffer sb = new FastStringBuffer();
+        StringBuilder sb = new StringBuilder();
         if (SHOW_MESSAGE_NUMBERS) {
             sb.append(Utilities.rightJustify(getSequenceNumber(), 4));
             sb.append(' ');

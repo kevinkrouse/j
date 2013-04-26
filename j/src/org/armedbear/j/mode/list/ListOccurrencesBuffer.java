@@ -26,7 +26,7 @@ import org.armedbear.j.Debug;
 import org.armedbear.j.Directories;
 import org.armedbear.j.Editor;
 import org.armedbear.j.Mode;
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 import org.armedbear.j.File;
 import org.armedbear.j.FindInFiles;
 import org.armedbear.j.Line;
@@ -140,7 +140,7 @@ public class ListOccurrencesBuffer extends Buffer
                 break;
         }
         if (count > 0) {
-            FastStringBuffer sb = new FastStringBuffer("Pattern found in ");
+            StringBuilder sb = new StringBuilder("Pattern found in ");
             sb.append(count);
             sb.append(" line");
             if (count > 1)
@@ -271,7 +271,7 @@ public class ListOccurrencesBuffer extends Buffer
 
     protected String getOptions()
     {
-        FastStringBuffer sb = new FastStringBuffer(search.ignoreCase() ? "ignore case" : "case sensitive");
+        StringBuilder sb = new StringBuilder(search.ignoreCase() ? "ignore case" : "case sensitive");
         if (search.wholeWordsOnly())
             sb.append(", whole words only");
         return sb.toString();

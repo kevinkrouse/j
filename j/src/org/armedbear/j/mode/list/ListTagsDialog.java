@@ -23,7 +23,7 @@ package org.armedbear.j.mode.list;
 import org.armedbear.j.AbstractDialog;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Editor;
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 import org.armedbear.j.LocalTag;
 import org.armedbear.j.Property;
 import org.armedbear.j.Tag;
@@ -164,7 +164,7 @@ public final class ListTagsDialog extends AbstractDialog implements MouseListene
     {
         final Editor editor = Editor.currentEditor();
         final Buffer buffer = editor.getBuffer();
-        FastStringBuffer sb = new FastStringBuffer("List Tags");
+        StringBuilder sb = new StringBuilder("List Tags");
         if (buffer.getFile() != null) {
             sb.append("   ");
             sb.append(buffer.getFile().getName());

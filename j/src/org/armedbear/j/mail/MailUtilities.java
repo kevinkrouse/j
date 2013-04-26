@@ -21,7 +21,7 @@
 package org.armedbear.j.mail;
 
 import java.util.List;
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 import org.armedbear.j.util.Utilities;
 
 public class MailUtilities
@@ -34,7 +34,7 @@ public class MailUtilities
     public static String constructAddressHeader(String prefix, List<MailAddress> list,
         int indent)
     {
-        FastStringBuffer sb = new FastStringBuffer(prefix);
+        StringBuilder sb = new StringBuilder(prefix);
         int length = prefix.length();
         if (list != null) {
             for (int i = 0; i < list.size(); i++) {

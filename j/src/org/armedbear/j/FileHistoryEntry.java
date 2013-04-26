@@ -20,7 +20,7 @@
 
 package org.armedbear.j;
 
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 
 import java.io.Serializable;
 import java.util.Iterator;
@@ -42,7 +42,7 @@ public final class FileHistoryEntry
 
     public String toXml()
     {
-        FastStringBuffer sb = new FastStringBuffer("  <file name=\"");
+        StringBuilder sb = new StringBuilder("  <file name=\"");
         sb.append(name);
         sb.append("\"");
         if (encoding != null) {
@@ -73,7 +73,7 @@ public final class FileHistoryEntry
 
     private static String propertyToXml(String name, String value)
     {
-        FastStringBuffer sb = new FastStringBuffer("    <property name=\"");
+        StringBuilder sb = new StringBuilder("    <property name=\"");
         sb.append(name);
         sb.append("\" value=\"");
         sb.append(value);

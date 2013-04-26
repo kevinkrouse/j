@@ -25,7 +25,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.TimeZone;
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 import org.armedbear.j.Headers;
 import org.armedbear.j.Log;
 import org.armedbear.j.util.Tuple2;
@@ -378,7 +378,7 @@ import org.armedbear.j.util.Tuple2;
             // strip out escape chars
             String temp = subject;
             final int limit = temp.length();
-            FastStringBuffer sb = new FastStringBuffer();
+            StringBuilder sb = new StringBuilder();
             boolean escaped = false;
             for (int i = 0; i < limit; i++)
             {
@@ -412,7 +412,7 @@ import org.armedbear.j.util.Tuple2;
     // String must start with "* ".
     if (s.charAt(0) != '*' || s.charAt(1) != ' ')
       return 0; // Error.
-    FastStringBuffer sb = new FastStringBuffer();
+    StringBuilder sb = new StringBuilder();
     for (int i = 2; i < length; i++)
       {
         char c = s.charAt(i);

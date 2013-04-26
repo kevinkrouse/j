@@ -20,7 +20,7 @@
 
 package org.armedbear.j;
 
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 
 import java.awt.Color;
 import java.awt.Component;
@@ -54,7 +54,6 @@ import java.awt.event.MouseListener;
 import java.awt.event.MouseMotionListener;
 import java.util.ArrayList;
 import java.util.Enumeration;
-import java.util.Iterator;
 import java.util.List;
 import javax.swing.JComponent;
 import javax.swing.JLabel;
@@ -295,7 +294,7 @@ public final class SidebarBufferTree extends SidebarTree implements Constants,
             if (it.next().isModified())
                 ++modified;
         }
-        FastStringBuffer sb = new FastStringBuffer("Buffers");
+        StringBuilder sb = new StringBuilder("Buffers");
         sb.append(" (");
         sb.append(total);
         if (modified > 0) {

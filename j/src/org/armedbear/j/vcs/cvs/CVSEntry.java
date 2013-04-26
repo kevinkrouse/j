@@ -22,7 +22,7 @@ package org.armedbear.j.vcs.cvs;
 
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Constants;
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 import org.armedbear.j.File;
 import org.armedbear.j.Line;
 import org.armedbear.j.Log;
@@ -62,7 +62,7 @@ public final class CVSEntry extends VersionControlEntry
 
     private String statusText(boolean brief)
     {
-        FastStringBuffer sb = new FastStringBuffer("CVS");
+        StringBuilder sb = new StringBuilder("CVS");
         final String revision = getRevision();
         if (revision.equals("0")) {
             sb.append(brief ? " A" : " (locally added)");

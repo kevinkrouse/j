@@ -26,7 +26,7 @@ import org.armedbear.j.Constants;
 import org.armedbear.j.Directories;
 import org.armedbear.j.Editor;
 import org.armedbear.j.EditorIterator;
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 import org.armedbear.j.File;
 import org.armedbear.j.MessageDialog;
 import org.armedbear.j.OutputBuffer;
@@ -40,7 +40,6 @@ import org.armedbear.j.vcs.svn.SVNEntry;
 
 import javax.swing.SwingUtilities;
 import java.util.List;
-import java.util.Iterator;
 import java.util.ArrayList;
 
 public abstract class VersionControl implements Constants
@@ -191,7 +190,7 @@ public abstract class VersionControl implements Constants
         if (args != null)
             cmd = cmd + ' ' + args;
         List<String> tokens = Utilities.tokenize(cmd);
-        FastStringBuffer sb = new FastStringBuffer();
+        StringBuilder sb = new StringBuilder();
         if (replaceFileTokens) {
             for (String arg : tokens) {
                 if (arg.equals("%")) {

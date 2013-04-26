@@ -20,7 +20,7 @@
 
 package org.armedbear.j;
 
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 import org.armedbear.j.util.Utilities;
 
 import java.util.List;
@@ -161,7 +161,7 @@ public final class Region implements Constants
         if (beginLine == endLine)
             return beginLine.substring(beginOffset, endOffset);
 
-        FastStringBuffer sb = new FastStringBuffer();
+        StringBuilder sb = new StringBuilder();
         if (isColumnRegion) {
             for (Line line = beginLine; line != null; line = line.next()) {
                 sb.append(getTextInRegion(line));
@@ -286,7 +286,7 @@ public final class Region implements Constants
             if (beginLine == endLine) {
                 beginLine.setText(head.concat(tail));
             } else {
-                FastStringBuffer sb = new FastStringBuffer();
+                StringBuilder sb = new StringBuilder();
                 for (Line line = beginLine; line != null; line = line.next()) {
                     // Skip new lines since we just want the original text.
                     if (line != endLine && !line.isNew()) {

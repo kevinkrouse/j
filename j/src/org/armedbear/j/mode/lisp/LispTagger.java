@@ -22,7 +22,7 @@ package org.armedbear.j.mode.lisp;
 
 import org.armedbear.j.Debug;
 import org.armedbear.j.Mode;
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 import org.armedbear.j.Line;
 import org.armedbear.j.LocalTag;
 import org.armedbear.j.Position;
@@ -190,7 +190,7 @@ public final class LispTagger extends Tagger
     // Advances pos past list.
     private String gatherList(Position pos)
     {
-        FastStringBuffer sb = new FastStringBuffer();
+        StringBuilder sb = new StringBuilder();
         char c = pos.getChar();
         Debug.bugIf(c != '(');
         if (pos.next()) {
@@ -206,7 +206,7 @@ public final class LispTagger extends Tagger
     // Advances pos past token.
     private String gatherToken(Position pos)
     {
-        FastStringBuffer sb = new FastStringBuffer();
+        StringBuilder sb = new StringBuilder();
         char c;
         while (mode.isIdentifierPart(c = pos.getChar()) || c == ':') {
             sb.append(c);

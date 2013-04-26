@@ -27,7 +27,7 @@ import java.net.Socket;
 import java.net.SocketException;
 import org.armedbear.j.Debug;
 import org.armedbear.j.Editor;
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 import org.armedbear.j.Log;
 import org.armedbear.j.Netrc;
 import org.armedbear.j.SocketConnection;
@@ -441,7 +441,7 @@ public final class ImapSession
 
     public void uidStore(int uid, String arg)
     {
-        FastStringBuffer sb = new FastStringBuffer("uid store ");
+        StringBuilder sb = new StringBuilder("uid store ");
         sb.append(uid);
         sb.append(' ');
         sb.append(arg);
@@ -450,7 +450,7 @@ public final class ImapSession
 
     public void uidStore(String messageSet, String arg)
     {
-        FastStringBuffer sb = new FastStringBuffer("uid store ");
+        StringBuilder sb = new StringBuilder("uid store ");
         sb.append(messageSet);
         sb.append(' ');
         sb.append(arg);

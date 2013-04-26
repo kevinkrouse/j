@@ -20,7 +20,7 @@
 
 package org.armedbear.j;
 
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 
 import java.util.StringTokenizer;
 
@@ -111,7 +111,7 @@ public final class RecentFilesEntry
 
     public String toString()
     {
-        FastStringBuffer sb = new FastStringBuffer(name);
+        StringBuilder sb = new StringBuilder(name);
         if (sb.length() == 0)
             sb.append("\"\"");
         sb.append('\t');

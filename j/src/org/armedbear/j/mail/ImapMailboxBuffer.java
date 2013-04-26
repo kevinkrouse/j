@@ -25,7 +25,6 @@ import java.net.MalformedURLException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import javax.swing.SwingUtilities;
 import org.armedbear.j.BackgroundProcess;
@@ -35,7 +34,7 @@ import org.armedbear.j.Debug;
 import org.armedbear.j.Editor;
 import org.armedbear.j.EditorIterator;
 import org.armedbear.j.File;
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 import org.armedbear.j.Frame;
 import org.armedbear.j.Headers;
 import org.armedbear.j.InputDialog;
@@ -87,7 +86,7 @@ public final class ImapMailboxBuffer extends MailboxBuffer
 
     public String getFileNameForDisplay()
     {
-        FastStringBuffer sb = new FastStringBuffer(64);
+        StringBuilder sb = new StringBuilder(64);
         sb.append(url.toString());
         String limitPattern = getLimitPattern();
         if (limitPattern != null) {
@@ -99,7 +98,7 @@ public final class ImapMailboxBuffer extends MailboxBuffer
 
     public String getName()
     {
-        FastStringBuffer sb = new FastStringBuffer();
+        StringBuilder sb = new StringBuilder();
         sb.append('{');
         sb.append(session.getUser());
         sb.append('@');
@@ -514,7 +513,7 @@ public final class ImapMailboxBuffer extends MailboxBuffer
             title = "Save Tagged Messages to Folder";
         else
             title = "Save Message to Folder";
-        FastStringBuffer sb = new FastStringBuffer("Save ");
+        StringBuilder sb = new StringBuilder("Save ");
         sb.append(count);
         sb.append(" message");
         if (count > 1)
@@ -537,7 +536,7 @@ public final class ImapMailboxBuffer extends MailboxBuffer
                         } else {
                             session.setEcho(true);
                             final String messageSet = getMessageSet(toBeCopied);
-                            FastStringBuffer sbuf = new FastStringBuffer("uid copy ");
+                            StringBuilder sbuf = new StringBuilder("uid copy ");
                             sbuf.append(messageSet);
                             sbuf.append(' ');
                             sbuf.append(destination);
@@ -555,7 +554,7 @@ public final class ImapMailboxBuffer extends MailboxBuffer
                     unlock();
                     editor.updateDisplayLater();
                     if (succeeded) {
-                        FastStringBuffer sbuf = new FastStringBuffer("Saved ");
+                        StringBuilder sbuf = new StringBuilder("Saved ");
                         sbuf.append(toBeCopied.size());
                         sbuf.append(" message");
                         if (toBeCopied.size() != 1)
@@ -592,7 +591,7 @@ public final class ImapMailboxBuffer extends MailboxBuffer
             title = "Move Tagged Messages to Folder";
         else
             title = "Move Message to Folder";
-        FastStringBuffer sb = new FastStringBuffer("Move ");
+        StringBuilder sb = new StringBuilder("Move ");
         sb.append(count);
         sb.append(" message");
         if (count > 1)
@@ -626,7 +625,7 @@ public final class ImapMailboxBuffer extends MailboxBuffer
                     unlock();
                     editor.updateDisplayLater();
                     if (succeeded) {
-                        FastStringBuffer sbuf = new FastStringBuffer("Moved ");
+                        StringBuilder sbuf = new StringBuilder("Moved ");
                         sbuf.append(toBeMoved.size());
                         sbuf.append(" message");
                         if (toBeMoved.size() != 1)
@@ -668,7 +667,7 @@ public final class ImapMailboxBuffer extends MailboxBuffer
                 // Destination is an IMAP folder.
                 session.setEcho(true);
                 final String messageSet = getMessageSet(toBeMoved);
-                FastStringBuffer sb = new FastStringBuffer("uid copy ");
+                StringBuilder sb = new StringBuilder("uid copy ");
                 sb.append(messageSet);
                 sb.append(' ');
                 sb.append(destination);
@@ -1049,7 +1048,7 @@ public final class ImapMailboxBuffer extends MailboxBuffer
         uidValidity = session.getUidValidity();
         messageCount = session.getMessageCount();
         ArrayList<MailboxEntry> list = new ArrayList<MailboxEntry>();
-        FastStringBuffer sbCommand = new FastStringBuffer("uid fetch ");
+        StringBuilder sbCommand = new StringBuilder("uid fetch ");
         sbCommand.append(uidBegin);
         sbCommand.append(':');
         if (uidEnd < 0)
@@ -1065,7 +1064,7 @@ public final class ImapMailboxBuffer extends MailboxBuffer
             new StatusBarProgressNotifier(this);
         progressNotifier.progressStart();
         try {
-            FastStringBuffer sb = new FastStringBuffer();
+            StringBuilder sb = new StringBuilder();
             final String endPrefix = session.lastTag() + " ";
             while (true) {
                 String s = session.readLine();
@@ -1582,7 +1581,7 @@ public final class ImapMailboxBuffer extends MailboxBuffer
     private String fetchPart(int uid, String part, String encoding,
         ProgressNotifier progressNotifier)
     {
-        FastStringBuffer sb = new FastStringBuffer("uid fetch ");
+        StringBuilder sb = new StringBuilder("uid fetch ");
         sb.append(uid);
         sb.append(" body[");
         sb.append(part);
@@ -1637,7 +1636,7 @@ public final class ImapMailboxBuffer extends MailboxBuffer
                 Log.error("s = |" + s + "|");
                 return null;
             }
-            sb = new FastStringBuffer(length + 64);
+            sb = new StringBuilder(length + 64);
             while (true) {
                 if (progressNotifier != null && progressNotifier.cancelled()) {
                     session.disconnect();
@@ -1686,7 +1685,7 @@ public final class ImapMailboxBuffer extends MailboxBuffer
     {
         Debug.assertTrue(s.length() > 0);
         Debug.assertTrue(s.charAt(0) == '"');
-        FastStringBuffer sb = new FastStringBuffer();
+        StringBuilder sb = new StringBuilder();
         final int length = s.length();
         for (int i = 1; i < length; i++) {
             char c = s.charAt(i);
@@ -1723,7 +1722,7 @@ public final class ImapMailboxBuffer extends MailboxBuffer
 
     private String getProgressText(int n)
     {
-        FastStringBuffer sb = new FastStringBuffer(32);
+        StringBuilder sb = new StringBuilder(32);
         sb.append("Retrieved ");
         sb.append(n);
         sb.append(" message header");
@@ -1735,7 +1734,7 @@ public final class ImapMailboxBuffer extends MailboxBuffer
     // Package scope for testing.
     /*package*/ static String getMessageSet(List<MailboxEntry> list)
     {
-        FastStringBuffer sb = new FastStringBuffer();
+        StringBuilder sb = new StringBuilder();
         int limit = list.size();
         int begin = -1;
         int end = -1;
@@ -1777,7 +1776,7 @@ public final class ImapMailboxBuffer extends MailboxBuffer
     {
         int newMessageCount = getNewMessageCount();
         if (newMessageCount > 0) {
-            FastStringBuffer sb = new FastStringBuffer(url.toString());
+            StringBuilder sb = new StringBuilder(url.toString());
             sb.append(" (");
             sb.append(newMessageCount);
             sb.append(" new)");

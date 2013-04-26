@@ -25,7 +25,7 @@ import org.armedbear.j.Buffer;
 import org.armedbear.j.Constants;
 import org.armedbear.j.Editor;
 import org.armedbear.j.Mode;
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 import org.armedbear.j.KeyMap;
 import org.armedbear.j.Line;
 import org.armedbear.j.Property;
@@ -66,7 +66,7 @@ public final class BinaryMode extends AbstractMode implements Constants, Mode
             else if (col >= 58 && col < dotLine.length())
                 offset = col - 58;
             if (offset >= 0 && offset < limit) {
-                FastStringBuffer sb = new FastStringBuffer("0x");
+                StringBuilder sb = new StringBuilder("0x");
                 sb.append(dotLine.substring(0, 7));
                 sb.append(Integer.toHexString(offset));
                 int index = 10 + offset * 3;

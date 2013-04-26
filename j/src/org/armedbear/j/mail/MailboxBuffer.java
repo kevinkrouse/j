@@ -23,7 +23,6 @@ package org.armedbear.j.mail;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.Iterator;
 import java.util.List;
 import javax.swing.Icon;
 import javax.swing.SwingUtilities;
@@ -33,7 +32,7 @@ import org.armedbear.j.Dispatcher;
 import org.armedbear.j.Display;
 import org.armedbear.j.Editor;
 import org.armedbear.j.EditorIterator;
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 import org.armedbear.j.History;
 import org.armedbear.j.InputDialog;
 import org.armedbear.j.Line;
@@ -504,7 +503,7 @@ public abstract class MailboxBuffer extends Buffer
                         public void run()
                         {
                             final int size = toBeBounced.size();
-                            FastStringBuffer sb = new FastStringBuffer(String.valueOf(size));
+                            StringBuilder sb = new StringBuilder(String.valueOf(size));
                             sb.append(" message");
                             if (size > 1)
                                 sb.append('s');
@@ -1085,7 +1084,7 @@ public abstract class MailboxBuffer extends Buffer
     protected void newMessagesStatus()
     {
         if (newMessageCount > 0) {
-            FastStringBuffer sb = new FastStringBuffer(32);
+            StringBuilder sb = new StringBuilder(32);
             sb.append(String.valueOf(newMessageCount));
             sb.append(" new message");
             if (newMessageCount > 1)
@@ -1298,7 +1297,7 @@ public abstract class MailboxBuffer extends Buffer
 
     public String getStatusText(Editor editor)
     {
-        FastStringBuffer sb = new FastStringBuffer();
+        StringBuilder sb = new StringBuilder();
         if (editor.getDot() != null) {
             sb.append("Message ");
             sb.append(String.valueOf(editor.getDotLineNumber()+1));

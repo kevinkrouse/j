@@ -20,7 +20,7 @@
 
 package org.armedbear.j.jdb;
 
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 import org.armedbear.j.Log;
 import org.xml.sax.Attributes;
 
@@ -73,15 +73,15 @@ public final class BreakpointSpecification
     public String toString()
     {
         final String separator = System.getProperty("line.separator");
-        FastStringBuffer sb = new FastStringBuffer("BreakpointSpecification: ");
+        StringBuilder sb = new StringBuilder("BreakpointSpecification: ");
         sb.append(separator);
-        sb.append("  className = " + className);
+        sb.append("  className = ").append(className);
         sb.append(separator);
-        sb.append("  methodName = " + methodName);
+        sb.append("  methodName = ").append(methodName);
         sb.append(separator);
-        sb.append("  fileName = " + fileName);
+        sb.append("  fileName = ").append(fileName);
         sb.append(separator);
-        sb.append("  lineNumber = " + lineNumber);
+        sb.append("  lineNumber = ").append(lineNumber);
         return sb.toString();
     }
 }

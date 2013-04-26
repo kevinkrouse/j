@@ -22,7 +22,7 @@ package org.armedbear.j.mode.java;
 
 import org.armedbear.j.Constants;
 import org.armedbear.j.Editor;
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 import org.armedbear.j.Line;
 import org.armedbear.j.LocalTag;
 import org.armedbear.j.Log;
@@ -216,7 +216,7 @@ public final class JavaContext implements Constants
                 if (!pos.next())
                     return;
             }
-            FastStringBuffer sb = new FastStringBuffer();
+            StringBuilder sb = new StringBuilder();
             while (!pos.atEnd()) {
                 char c = pos.getChar();
                 if (c == '\'' || c == '"') {

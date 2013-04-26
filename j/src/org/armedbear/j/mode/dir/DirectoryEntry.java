@@ -21,7 +21,7 @@
 package org.armedbear.j.mode.dir;
 
 import org.armedbear.j.DirectoryFilenameFilter;
-import org.armedbear.j.util.FastStringBuffer;
+import java.lang.StringBuilder;
 import org.armedbear.j.Log;
 
 import java.util.regex.Matcher;
@@ -210,7 +210,7 @@ public final class DirectoryEntry
         if (string != null)
             return marked.concat(string);
         // Construct string for internal format.
-        FastStringBuffer sb = new FastStringBuffer(256);
+        StringBuilder sb = new StringBuilder(256);
         sb.append(marked);
         if (isDirectory) {
             sb.append(DIR);
