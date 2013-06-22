@@ -174,8 +174,8 @@ public class JavaMode extends AbstractMode implements Constants, Mode
 
     if (Editor.checkExperimental())
       {
-        km.mapKey(KeyEvent.VK_SEMICOLON, ALT_MASK, "JavaMode.insertComment");
-        km.mapKey(KeyEvent.VK_ENTER, ALT_MASK, "JavaMode.newlineAndIndentForComment");
+        km.mapKey(KeyEvent.VK_SEMICOLON, ALT_MASK, "mode.java.JavaMode", "insertComment");
+        km.mapKey(KeyEvent.VK_ENTER, ALT_MASK, "mode.java.JavaMode", "newlineAndIndentForComment");
       }
 
     if (Platform.isPlatformLinux())

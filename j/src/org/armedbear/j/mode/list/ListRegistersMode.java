@@ -59,16 +59,16 @@ public class ListRegistersMode extends AbstractMode implements Constants, Mode
 
     protected void setKeyMapDefaults(KeyMap km)
     {
-        km.mapKey(KeyEvent.VK_ENTER, 0, "ListRegistersMode._editRegister");
+        km.mapKey(KeyEvent.VK_ENTER, 0, "mode.list.ListRegistersMode", "_editRegister");
         km.mapKey(KeyEvent.VK_ENTER, CTRL_MASK,
-            "ListRegistersMode._insertRegister");
+            "mode.list.ListRegistersMode", "_insertRegister");
         km.mapKey(KeyEvent.VK_G, CTRL_MASK | SHIFT_MASK,
-            "ListRegistersMode._editRegister");
-        km.mapKey(KeyEvent.VK_DELETE, 0, "ListRegistersMode._clearRegister");
-        km.mapKey(KeyEvent.VK_UP, 0, "ListRegistersMode.registerUp");
-        km.mapKey(KeyEvent.VK_KP_UP, 0, "ListRegistersMode.registerUp");
-        km.mapKey(KeyEvent.VK_DOWN, 0, "ListRegistersMode.registerDown");
-        km.mapKey(KeyEvent.VK_KP_DOWN, 0, "ListRegistersMode.registerDown");
+            "mode.list.ListRegistersMode", "_editRegister");
+        km.mapKey(KeyEvent.VK_DELETE, 0, "mode.list.ListRegistersMode", "_clearRegister");
+        km.mapKey(KeyEvent.VK_UP, 0, "mode.list.ListRegistersMode", "registerUp");
+        km.mapKey(KeyEvent.VK_KP_UP, 0, "mode.list.ListRegistersMode", "registerUp");
+        km.mapKey(KeyEvent.VK_DOWN, 0, "mode.list.ListRegistersMode", "registerDown");
+        km.mapKey(KeyEvent.VK_KP_DOWN, 0, "mode.list.ListRegistersMode", "registerDown");
     }
 
     public static final void _editRegister()

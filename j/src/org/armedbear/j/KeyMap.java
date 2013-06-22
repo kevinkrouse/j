@@ -536,6 +536,21 @@ public final class KeyMap implements Constants
         mappings.add(new KeyMapping(keyCode, modifiers, command));
     }
 
+    public synchronized void mapKey(int keyCode, int modifiers, String className, String methodName)
+    {
+        Command command = new Command(methodName, className, methodName);
+        // See if we already have a mapping for this keystroke.
+        for (int i = 0; i < mappings.size(); i++) {
+            KeyMapping mapping = mappings.get(i);
+            if (keyCode == mapping.getKeyCode() && modifiers == mapping.getModifiers()) {
+                mappings.set(i, new KeyMapping(keyCode, modifiers, command));
+                return;
+            }
+        }
+        // No mapping found.
+        mappings.add(new KeyMapping(keyCode, modifiers, command));
+    }
+
     public synchronized void mapKey(char keyChar, Object command)
     {
         // See if we already have a mapping for this keystroke.

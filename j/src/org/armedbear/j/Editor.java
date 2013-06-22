@@ -2407,52 +2407,23 @@ public final class Editor extends JPanel implements Constants,
             return false;
 
         try {
-            String className = null;
-            String methodName = null;
-            Method method = null;
-
-            Class[] parameterTypes;
-            if (parameters == null)
-                parameterTypes = new Class[0];
-            else {
-                parameterTypes = new Class[1];
-                parameterTypes[0] = Class.forName("java.lang.String");
-            }
-
             Command command = CommandTable.getCommand(commandName);
             if (command != null) {
-                method = command.getMethod();
-                if (method != null) {
-                    try {
-                        invoke(method, parameters);
-                        return true;
-                    }
-                    catch (IllegalArgumentException e) {
-                        // The cached method requires different arguments.
-                        // Fall through.
-                    }
-                }
-                // Method is not cached yet.
-                className = command.getClassName();
-                methodName = command.getMethodName();
-                if (className == null) {
-                    // Special case. Command is implemented in org.armedbear.j.Editor.
-                    method = Editor.class.getMethod(methodName, parameterTypes);
-                } else {
-                    Class c = Class.forName("org.armedbear.j." + className);
-                    if (c != null)
-                        method = c.getMethod(methodName, parameterTypes);
-                }
-                if (method != null) {
-                    // Cache the method for nest time.
-                    command.setMethod(method);
-                    invoke(method, parameters);
-                    return true;
-                }
+                return execute(command, parameters);
             } else {
                 // This is the old code path.
-                Debug.assertTrue(className == null);
-                Debug.assertTrue(methodName == null);
+                String className = null;
+                String methodName = null;
+                Method method = null;
+
+                Class[] parameterTypes;
+                if (parameters == null)
+                    parameterTypes = new Class[0];
+                else {
+                    parameterTypes = new Class[1];
+                    parameterTypes[0] = Class.forName("java.lang.String");
+                }
+
                 int index = commandName.indexOf('.');
                 if (index < 0) {
                     // No class name.  Must be a method in the Editor class.
@@ -2479,6 +2450,59 @@ public final class Editor extends JPanel implements Constants,
                     invoke(method, parameters);
                     return true;
                 }
+            }
+        }
+        catch (NoSuchMethodException e) {
+            throw e;
+        }
+        catch (Throwable t) {
+            Log.error(t);
+        }
+        return false;
+    }
+
+    public boolean execute(Command command, String parameters) throws NoSuchMethodException
+    {
+        try {
+            String className = null;
+            String methodName = null;
+            Method method = null;
+
+            Class[] parameterTypes;
+            if (parameters == null) {
+                parameterTypes = new Class[0];
+            } else {
+                parameterTypes = new Class[1];
+                parameterTypes[0] = Class.forName("java.lang.String");
+            }
+
+            method = command.getMethod();
+            if (method != null) {
+                try {
+                    invoke(method, parameters);
+                    return true;
+                }
+                catch (IllegalArgumentException e) {
+                    // The cached method requires different arguments.
+                    // Fall through.
+                }
+            }
+            // Method is not cached yet.
+            className = command.getClassName();
+            methodName = command.getMethodName();
+            if (className == null) {
+                // Special case. Command is implemented in org.armedbear.j.Editor.
+                method = Editor.class.getMethod(methodName, parameterTypes);
+            } else {
+                Class c = Class.forName("org.armedbear.j." + className);
+                if (c != null)
+                    method = c.getMethod(methodName, parameterTypes);
+            }
+            if (method != null) {
+                // Cache the method for nest time.
+                command.setMethod(method);
+                invoke(method, parameters);
+                return true;
             }
         }
         catch (NoSuchMethodException e) {
@@ -2621,6 +2645,18 @@ public final class Editor extends JPanel implements Constants,
                     }
                     catch (NoSuchMethodException e) {}
                 }
+            } else if (command instanceof Command) {
+                requestedKeyMap = null;
+                currentEventSequence = null;
+                local = false;
+                Command c = (Command)command;
+                try {
+                    execute(c, null);
+                }
+                catch (Throwable t) {
+                    Log.error(t);
+                }
+                return true;
             } else if (command instanceof LispObject) {
                 requestedKeyMap = null;
                 currentEventSequence = null;
@@ -6482,6 +6518,13 @@ public final class Editor extends JPanel implements Constants,
         }
     }
 
+    /**
+     * Parses input line into command and arguments:
+     *   command
+     *   command()
+     *   command args
+     *   command("args")
+     */
     private static String[] parseCommand(String command)
     {
         command = Utilities.trimLeading(command);

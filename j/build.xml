@@ -8,7 +8,7 @@
     <property file="build.properties"/>
 
     <property name="j.version"          value="0.23.0"/>
-    <property name="abcl.version"       value="1.0.1"/>
+    <property name="abcl.version"       value="1.1.1"/>
     <property name="build.dir"          value="${basedir}/build"/>
     <property name="build.classes.dir"  value="${build.dir}/classes"/>
     <property name="build.test.dir"     value="${build.dir}/test"/>

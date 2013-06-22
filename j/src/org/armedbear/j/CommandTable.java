@@ -71,7 +71,6 @@ public class CommandTable
             addCommand("dirBrowseFile");
             addCommand("dirCopyFile");
             addCommand("dirDeleteFiles");
-            addCommand("dirDoShellCommand");
             addCommand("dirGetFile");
             addCommand("dirHome");
             addCommand("dirHomeDir");
@@ -79,7 +78,6 @@ public class CommandTable
             addCommand("dirRescan");
             addCommand("dirTagFile");
             addCommand("dirUpDir");
-            addCommand("doShellCommandOnRegion");
             addCommand("down");
             addCommand("dropBookmark");
             addCommand("dropTemporaryMarker");
@@ -108,7 +106,6 @@ public class CommandTable
             addCommand("foldRegion");
             addCommand("gotoBookmark");
             addCommand("gotoTemporaryMarker");
-            addCommand("help");
             addCommand("home");
             addCommand("httpDeleteCookies");
             addCommand("incrementalFind");

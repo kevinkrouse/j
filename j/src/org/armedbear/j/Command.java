@@ -35,18 +35,7 @@ public final class Command
         this.name = name;
         this.className = className;
         this.methodName = methodName;
-        if (className != null && Editor.isDebugEnabled()) {
-            try {
-                Class clazz = Class.forName("org.armedbear.j." + className);
-                clazz.getMethod(methodName);
-            }
-            catch (ClassNotFoundException e) {
-                Log.debug("Command class not found: " + e.getMessage());
-            }
-            catch (NoSuchMethodException e) {
-                Log.debug("Command method not found: " + e.getMessage());
-            }
-        }
+        checkExists();
     }
 
     // Constructor for commands that are implemented by a method of the same
@@ -54,7 +43,34 @@ public final class Command
     public Command(String name)
     {
         this.name = name;
+        this.className = Editor.class.getSimpleName();
         this.methodName = name;
+        checkExists();
+    }
+
+    private void checkExists()
+    {
+        if (Editor.isDebugEnabled()) {
+            Class clazz = null;
+            try {
+                clazz = Class.forName("org.armedbear.j." + className);
+                clazz.getMethod(methodName);
+            }
+            catch (ClassNotFoundException e) {
+                Log.debug("Command class not found: " + e.getMessage());
+            }
+            catch (NoSuchMethodException e) {
+                if (clazz != null) {
+                    // Attempt to find String version of method.  Editor.insertString() command requires String argument.
+                    try {
+                        clazz.getMethod(methodName, String.class);
+                    }
+                    catch (NoSuchMethodException e1) {
+                        Log.debug("Command method not found: " + e.getMessage());
+                    }
+                }
+            }
+        }
     }
 
     public final String getName()
