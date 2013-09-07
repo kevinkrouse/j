@@ -69,10 +69,18 @@ public final class Version
     public static String getLongVersionString()
     {
         StringBuilder sb = new StringBuilder(getShortVersionString());
+        String longBuild = getLongBuildString();
+        if (longBuild.length() > 0)
+            sb.append(" (").append(longBuild).append(")");
+        return sb.toString();
+    }
+
+    public static String getLongBuildString()
+    {
+        StringBuilder sb = new StringBuilder();
         String rev = getRevision();
         if ((build != null && build.length() > 0) || (rev != null))
         {
-            sb.append(" (");
             if (rev != null) {
                 sb.append(rev);
                 sb.append(" ");
@@ -83,7 +91,6 @@ public final class Version
                 sb.append(" on ");
                 sb.append(hostName);
             }
-            sb.append(")");
         }
         return sb.toString();
     }
