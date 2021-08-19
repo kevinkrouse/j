@@ -112,16 +112,20 @@ public final class Log
 
     private static final void log(int level, String s)
     {
-        if (Editor.isDebugEnabled())
+        if (Editor.isDebugEnabled()) {
             System.err.println(s);
+            System.err.flush();
+        }
         if (logEnabled && level >= minLevel)
             writeLog(level, s);
     }
 
     private static final void forceLog(int level, String s)
     {
-        if (Editor.isDebugEnabled())
+        if (Editor.isDebugEnabled()) {
             System.err.println(s);
+            System.err.flush();
+        }
         writeLog(level, s);
     }
 
