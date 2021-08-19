@@ -11,6 +11,7 @@ config.log
 config.status
 classes.stamp
 j
+!j/
 j.jar
 j.bat
 *.zip

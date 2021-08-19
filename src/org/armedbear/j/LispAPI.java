@@ -28,7 +28,6 @@ import org.armedbear.j.mode.lisp.LispMode;
 import org.armedbear.lisp.AbstractString;
 import org.armedbear.lisp.Fixnum;
 import org.armedbear.lisp.Function;
-import org.armedbear.lisp.GenericFunction;
 import org.armedbear.lisp.JavaObject;
 import org.armedbear.lisp.LispCharacter;
 import org.armedbear.lisp.LispError;
@@ -315,7 +314,7 @@ public final class LispAPI
             if (file.isDirectory())
               if (!s.endsWith(LocalFile.getSeparator()))
                 s = s.concat(LocalFile.getSeparator());
-            return new Pathname(s);
+            return Pathname.create(s);
           }
         return NIL;
       }
@@ -328,7 +327,7 @@ public final class LispAPI
             if (file.isDirectory())
               if (!s.endsWith(LocalFile.getSeparator()))
                 s = s.concat(LocalFile.getSeparator());
-            return new Pathname(s);
+            return Pathname.create(s);
           }
         return NIL;
       }
@@ -1481,7 +1480,7 @@ public final class LispAPI
           fun = arg.getSymbolFunction();
         else
           fun = arg;
-        if (fun instanceof Function || fun instanceof GenericFunction)
+        if (fun instanceof Function)
           {
             Runnable r = new Runnable()
               {

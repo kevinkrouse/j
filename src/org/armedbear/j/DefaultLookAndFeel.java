@@ -120,7 +120,7 @@ public final class DefaultLookAndFeel extends DefaultMetalTheme
         table.put("SplitPaneUI", "javax.swing.plaf.basic.BasicSplitPaneUI");
         table.put("ScrollBarUI", "org.armedbear.j.ScrollBarUI");
         table.put("TreeUI", "javax.swing.plaf.basic.BasicTreeUI");
-        table.put("SplitPane.dividerSize", new Integer(3));
+        table.put("SplitPane.dividerSize", 3);
         table.put("ScrollBar.background", new Color(0xe0e0e0));
         table.put("ScrollBar.foreground", new Color(0xc0c0c0));
         table.put("ScrollBar.track", new Color(0xe0e0e0));
@@ -129,8 +129,8 @@ public final class DefaultLookAndFeel extends DefaultMetalTheme
         table.put("ScrollBar.thumbHighlight", Color.white);
         table.put("ScrollBar.thumbDarkShadow", Color.black);
         table.put("ScrollBar.thumbShadow", new Color(0x808080));
-        table.put("ScrollBar.width", new Integer(16));
-        table.put("Button.textIconGap", new Integer(1));
+        table.put("ScrollBar.width", 16);
+        table.put("Button.textIconGap", 1);
         table.put("ToolTipUI", "org.armedbear.j.ToolTipUI");
     }
 

@@ -232,8 +232,9 @@ public final class Log
                         setLevel(INFO);
                         info("Starting j...");
                         logSystemInformation();
-                        if (Editor.isDebugEnabled())
+                        if (Editor.isDebugEnabled()) {
                             setLevel(DEBUG);
+                        }
                         setRollOverEnabled(true);
                     }
                 }

@@ -340,7 +340,7 @@ public final class HttpLoadProcess extends LoadProcess implements BackgroundProc
             java.lang.reflect.Method createSocket = factory.getClass().getMethod("createSocket", parameterTypes);
             Object[] args = new Object[2];
             args[0] = hostName;
-            args[1] = new Integer(port);
+            args[1] = port;
             Socket socket = (Socket) createSocket.invoke(factory, args);
             return socket;
         }

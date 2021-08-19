@@ -392,7 +392,7 @@ public final class Property implements Comparable, Constants
         displayName = key;
         this.key = key.toLowerCase().intern();
         this.type = Integer.TYPE;
-        this.defaultValue = new Integer(defaultValue);
+        this.defaultValue = defaultValue;
     }
 
     private static Property createProperty(String key)

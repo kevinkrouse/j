@@ -8,7 +8,7 @@
     <property file="build.properties"/>
 
     <property name="j.version"          value="0.23.0"/>
-    <property name="abcl.version"       value="1.1.1"/>
+    <property name="abcl.version"       value="1.8.0"/>
     <property name="build.dir"          value="${basedir}/build"/>
     <property name="build.classes.dir"  value="${build.dir}/classes"/>
     <property name="build.test.dir"     value="${build.dir}/test"/>
@@ -165,7 +165,7 @@
     <target name="junit.jar.fetch" depends="junit.jar.check" unless="junit.jar.available">
       <echo message="Fetching junit.jar ..."/>
       <mkdir dir="${deps.dir}"/>
-      <get src="http://cloud.github.com/downloads/KentBeck/junit/junit-4.8.2.jar"
+      <get src="https://repo1.maven.org/maven2/junit/junit/4.8.2/junit-4.8.2.jar"
            usetimestamp="true"
            dest="${junit.jar.path}" />
       <available property="junit.jar.available" file="${junit.jar.path}"/>
@@ -179,7 +179,7 @@
     <target name="dependencies.check" depends="abcl.jar,junit.jar" />
 
     <target name="pre-build" depends="dependencies.check">
-      <property name="ant.version.min" value="1.8.4" />
+      <property name="ant.version.min" value="1.10.9" />
       <antversion property="ant.version.check" atleast="${ant.version.min}"/>
       <fail message="Ant ${ant.version.min} or greater is required." unless="ant.version.check" />
 
@@ -192,8 +192,8 @@
       <echo>javac.version: ${javac.version}</echo>
       <condition property="j.javac.version">
         <or>
-          <matches string="${javac.version}" pattern="1\.6"/>
-          <matches string="${javac.version}" pattern="1\.7"/>
+          <matches string="${javac.version}" pattern="16\."/>
+          <matches string="${javac.version}" pattern="17\."/>
         </or>
       </condition>
 
@@ -212,8 +212,7 @@
       <mkdir dir="${build.classes.dir}"/>
       <javac destdir="${build.classes.dir}"
              debug="true"
-             source="1.6"
-             target="1.6"
+             release="16"
              fork="true"
              executable="${javac}"
              includeantruntime="false"

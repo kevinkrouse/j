@@ -733,7 +733,7 @@ public final class WebLoader implements WebConstants
 
     private final void addRef(String ref, int offset)
     {
-        refs.put(ref, new Integer(offset));
+        refs.put(ref, offset);
     }
 
     private static final String getAttribute(String tag, String attributeName)

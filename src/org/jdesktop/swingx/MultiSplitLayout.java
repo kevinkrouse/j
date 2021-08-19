@@ -419,7 +419,7 @@ public class MultiSplitLayout implements LayoutManager
     }
     int oldDividerSize = this.dividerSize;
     this.dividerSize = dividerSize;
-    firePCS("dividerSize", new Integer( oldDividerSize ), new Integer( dividerSize ));
+    firePCS("dividerSize", oldDividerSize, dividerSize);
   }
   
   /**
@@ -442,7 +442,7 @@ public class MultiSplitLayout implements LayoutManager
   {
     boolean oldFloatingDividers = this.floatingDividers;
     this.floatingDividers = floatingDividers;
-    firePCS("floatingDividers", new Boolean( oldFloatingDividers ), new Boolean( floatingDividers ));
+    firePCS("floatingDividers", oldFloatingDividers, floatingDividers);
   }
   
   /**
@@ -462,7 +462,7 @@ public class MultiSplitLayout implements LayoutManager
   {
     boolean oldRemoveDividers = this.removeDividers;
     this.removeDividers = removeDividers;
-    firePCS("removeDividers", new Boolean( oldRemoveDividers ), new Boolean( removeDividers ));
+    firePCS("removeDividers", oldRemoveDividers, removeDividers);
   }
   
   /**

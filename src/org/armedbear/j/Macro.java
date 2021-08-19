@@ -132,7 +132,7 @@ public final class Macro implements Constants
 
     private synchronized void record(char c)
     {
-        list.add(new Character(c));
+        list.add(c);
     }
 
     private synchronized void playback()

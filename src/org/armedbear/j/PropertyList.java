@@ -54,7 +54,7 @@ public final class PropertyList
 
     public void setProperty(Property property, int value)
     {
-        setProperty(property, new Integer(value));
+        setProperty(property, Integer.valueOf(value));
     }
 
     public boolean setPropertyFromString(Property property, String value)

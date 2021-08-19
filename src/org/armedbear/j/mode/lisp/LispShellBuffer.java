@@ -135,7 +135,7 @@ public class LispShellBuffer extends ShellBuffer
             if (lispHome == null)
               return null; // FIXME Error message?
             File swankLoader = File.getInstance(
-                Pathname.mergePathnames(lispHome, new Pathname("swank-loader.lisp")));
+                Pathname.mergePathnames(lispHome, Pathname.create("swank-loader.lisp")));
             if (swankLoader == null)
               return null; // FIXME Error message?
             if (shellCommand.indexOf("sbcl") >= 0

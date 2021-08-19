@@ -365,8 +365,8 @@ public final class DirectoryBuffer extends Buffer
             }
             editors.add(ed);
             names.add(name);
-            lineNumbers.add(new Integer(lineNumber));
-            topLineNumbers.add(new Integer(topLineNumber));
+            lineNumbers.add(lineNumber);
+            topLineNumbers.add(topLineNumber);
         }
 
         empty();

@@ -1416,7 +1416,7 @@ public final class ImapMailboxBuffer extends MailboxBuffer
                 continue;
             }
             ImapMailboxEntry entry =
-                map.get(new Integer(uid));
+                map.get(uid);
             if (entry != null) {
                 Debug.assertTrue(entry.getMailbox() == null);
                 entry.setMailbox(this);

@@ -1267,16 +1267,20 @@ public final class Utilities implements Constants
     public static ImageIcon getIconFromFile(String iconFile)
     {
         URL url = Editor.class.getResource("images/".concat(iconFile));
-        if (url == null)
+        if (url == null) {
+            Log.warn("failed to get icon url: " + iconFile);
             return null;
+        }
         return new ImageIcon(url);
     }
 
     public static BufferedImage getImageFromFile(String iconFile)
     {
         InputStream is = Editor.class.getResourceAsStream("images/".concat(iconFile));
-        if (is == null)
+        if (is == null) {
+            Log.warn("failed to get icon url: " + iconFile);
             return null;
+        }
         try
         {
             return ImageIO.read(is);

@@ -251,12 +251,12 @@ public final class Editor extends JPanel implements Constants,
                     usage();
                     System.exit(0);
                 }
-                if (arg.equals("-version")) {
+                if (arg.equals("-version") || arg.equals("--version")) {
                     version();
                     System.exit(0);
                 }
                 if (arg.equals("-d") || arg.equals("--debug")) {
-                    debug = true;
+                    Editor.debug = true;
                     continue;
                 }
                 if (arg.equals("-q")) {
@@ -7191,7 +7191,7 @@ public final class Editor extends JPanel implements Constants,
     public static void loadPreferences()
     {
         prefs.reload();
-        debug = prefs.getBooleanProperty(Property.DEBUG);
+        debug = prefs.getBooleanProperty(Property.DEBUG, Editor.debug);
     }
 
     private boolean insertingKeyText = false;

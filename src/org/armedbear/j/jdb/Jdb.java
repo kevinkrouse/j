@@ -1717,7 +1717,7 @@ public final class Jdb extends Buffer implements JdbConstants
             Log.debug("while loop token = |" + token + "|");
             Object arg;
             try {
-                arg = new Integer(token);
+                arg = token;
             } catch (NumberFormatException e) {
                 arg = token;
             }

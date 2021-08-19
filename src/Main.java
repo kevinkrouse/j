@@ -25,13 +25,9 @@ public final class Main
     public static void main(String[] args)
     {
         final String version = System.getProperty("java.version");
-        if (version.startsWith("1.0") || version.startsWith("1.1") ||
-            version.startsWith("1.2") || version.startsWith("1.3") ||
-            version.startsWith("1.4") || version.startsWith("1.5")) {
-            System.err.println("");
-            System.err.print("J requires Java 1.6 or later.");
-            System.err.println(" (Java 1.6 is recommended.)");
-            System.err.println("");
+        System.out.println("java version: " + version);
+        if (!version.startsWith("16.") && !version.startsWith("17.")) {
+            System.err.println("J requires Java 16 or later.");
             System.exit(1);
         }
         try {
