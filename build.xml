@@ -27,6 +27,15 @@
     <property name="javac"              value="${jdk}/bin/javac"/>
     <property name="tools.jar.path"     value="${jdk}/lib/tools.jar"/>
 
+    <property name="swingexplorer.dir"  value="${deps.dir}/swingexplorer"/>
+    <property name="javassist.jar.path" value="${swingexplorer.dir}/javassist-3.12.1.GA.jar"/>
+    <property name="swing-layout.jar.path" value="${swingexplorer.dir}/swing-layout-1.0.3.jar"/>
+    <property name="swingexplorer-agent.jar.path"
+                                        value="${swingexplorer.dir}/swingexplorer-agent-1.7.0.jar"/>
+    <property name="swingexplorer-core.jar.path"
+                                        value="${swingexplorer.dir}/swingexplorer-core-1.7.0.jar"/>
+
+
     <target name="usage" depends="help" />
     <target name="help" depends="install.properties">
       <echo>Main Targets:
@@ -75,6 +84,10 @@
     <target name="clean" description="-- remove J build and dist files">
       <delete dir="${build.dir}"/>
       <delete dir="${dist.dir}"/>
+    </target>
+
+    <target name="clean.deps" description="-- remove dependencies">
+      <delete dir="${deps.dir}"/>
     </target>
 
     <target name="stamp" depends="build,stamp.version">
@@ -126,7 +139,6 @@
       <include name="themes/*"/>
       <include name="examples/*"/>
     </patternset>
-
 
 
     <target name="abcl.jar.check">
@@ -289,6 +301,7 @@
       <property name="j.dist.win.dir" value="${dist.dir}/${j.dist.win.name}"/>
       <delete dir="${j.dist.win.dir}"/>
 
+      <fail message="swich to jpackage"/>
       <appbundler
         bundle="bundle.xml"
         target="win"
@@ -309,11 +322,12 @@
       </zip>
     </target>
 
-    <target name="dist.mac" depends="jar">
+    <target name="dist.mac" depends="jar" if="mac">
       <property name="j.dist.mac.name" value="j-${j.version}-mac"/>
       <property name="j.dist.mac.dir" value="${dist.dir}/${j.dist.mac.name}"/>
       <delete dir="${j.dist.mac.dir}"/>
 
+      <fail message="swich to jpackage"/>
       <appbundler
         bundle="bundle.xml"
         target="mac"
@@ -367,6 +381,77 @@
         <arg value="--no-restore"/>
       </java>
     </target>
+
+    <target name="swingexplorer.check">
+      <condition property="swingexplorer.available">
+        <and>
+          <available file="${javassist.jar.path}" type="file"/>
+          <available file="${swing-layout.jar.path}" type="file"/>
+          <available file="${swingexplorer-agent.jar.path}" type="file"/>
+          <available file="${swingexplorer-core.jar.path}" type="file"/>
+        </and>
+      </condition>
+    </target>
+
+    <!-- really ought to be using the Ant maven tasks... -->
+    <target name="swingexplorer.fetch" depends="swingexplorer.check" unless="swingexplorer.available">
+      <echo message="Fetching swingexplorer ..."/>
+      <!-- remove any old versions lying around -->
+      <delete dir="${swingexplorer.dir}"/>
+      <mkdir dir="${swingexplorer.dir}"/>
+      <get src="https://repo1.maven.org/maven2/javassist/javassist/3.12.1.GA/javassist-3.12.1.GA.jar"
+           usetimestamp="true"
+           dest="${javassist.jar.path}" />
+      <get src="https://repo1.maven.org/maven2/org/swinglabs/swing-layout/1.0.3/swing-layout-1.0.3.jar"
+           usetimestamp="true"
+           dest="${swing-layout.jar.path}" />
+      <get src="https://repo1.maven.org/maven2/org/swingexplorer/swingexplorer-agent/1.7.0/swingexplorer-agent-1.7.0.jar"
+           usetimestamp="true"
+           dest="${swingexplorer-agent.jar.path}" />
+      <get src="https://repo1.maven.org/maven2/org/swingexplorer/swingexplorer-core/1.7.0/swingexplorer-core-1.7.0.jar"
+           usetimestamp="true"
+           dest="${swingexplorer-core.jar.path}" />
+
+      <condition property="swingexplorer.available">
+        <and>
+          <available file="${javassist.jar.path}" type="file"/>
+          <available file="${swing-layout.jar.path}" type="file"/>
+          <available file="${swingexplorer-agent.jar.path}" type="file"/>
+          <available file="${swingexplorer-core.jar.path}" type="file"/>
+        </and>
+      </condition>
+    </target>
+
+    <target name="swingexplorer" depends="swingexplorer.fetch">
+      <fail message="failed to find swingexplorer dependency" unless="swingexplorer.available" />
+      <echo message="using swingexplorer: ${swingexplorer-core.jar.path}"/>
+    </target>
+
+    <target name="run-swingexplorer" depends="swingexplorer">
+      <java fork="true" spawn="true" classname="org.swingexplorer.Launcher">
+        <jvmarg value="-Xdebug"/>
+        <jvmarg value="-Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=5005"/>
+        <!-- put jpty on the PATH -->
+        <env key="PATH" path="${build.bin.dir}:${env.PATH}"/>
+        <classpath>
+          <pathelement location="${swingexplorer-core.jar.path}" />
+          <pathelement location="${abcl.jar.path}"/>
+          <pathelement location="${build.classes.dir}"/>
+          <pathelement location="${src.dir}"/>
+          <pathelement path="${extensions}"/>
+          <pathelement path="${jdk}/lib/tools.jar"/>
+        </classpath>
+        <jvmarg value="-javaagent:${swingexplorer-agent.jar.path}" />
+        <jvmarg value="-Xbootclasspath/p:${javassist.jar.path}:${swingexplorer-agent.jar.path}" />
+        <arg value="Main"/>
+        <arg value="--debug"/>
+        <arg value="--force-new-instance"/>
+        <arg value="--no-session"/>
+        <arg value="--no-server"/>
+        <arg value="--no-restore"/>
+      </java>
+    </target>
+
 
     <target name="test.build" depends="pre-build,javac.warning">
       <mkdir dir="${build.test.dir}"/>
