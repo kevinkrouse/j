@@ -97,7 +97,9 @@ public final class DefaultLookAndFeel extends DefaultMetalTheme
         catch (Exception e) {}
         // We want to do this in any case.
         UIManager.put("ToolBarUI", "org.armedbear.j.ToolBarUI");
-        UIManager.put("ButtonUI", "org.armedbear.j.ButtonUI");
+        // Using the Metal button on OSX is ugly and shows an red/orange background when pressed that I'm not sure how to get rid of
+        if (!Platform.isPlatformMacOSX())
+            UIManager.put("ButtonUI", "org.armedbear.j.ButtonUI");
         UIManager.put("LabelUI", "org.armedbear.j.LabelUI");
         UIManager.put("SplitPane.dividerSize", 1);
     }
