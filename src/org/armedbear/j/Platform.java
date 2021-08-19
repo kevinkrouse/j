@@ -27,13 +27,13 @@ public final class Platform
     private static final boolean isPlatformSunOS = osName.startsWith("SunOS");
     private static final boolean isPlatformFreeBSD = osName.startsWith("FreeBSD");
     private static final boolean isPlatformUnix =
-        isPlatformLinux || osName.startsWith("Mac OS X") ||
+        isPlatformLinux || osName.contains("OS X") ||
         osName.startsWith("Solaris") || isPlatformSunOS || isPlatformFreeBSD ||
         osName.startsWith("AIX");
     private static final boolean isPlatformWindows =
         osName.startsWith("Windows");
     private static final boolean isPlatformMacOSX =
-        osName.startsWith("Mac OS X");
+        osName.contains("OS X");
     private static final boolean isJava13 =
         System.getProperty("java.version").startsWith("1.3");
     private static final boolean isJava14 =

@@ -39,7 +39,7 @@ exception statement from your version.
 INSTALLATION
 ------------
 
-To build J, you'll need JDK 1.6, Ant, and Armed Bear Common Lisp. Once you have
+To build J, you'll need JDK 16, Ant, and Armed Bear Common Lisp. Once you have
 built ABCL, edit the build.properties found next to this README file and change
 the property values for your local environment.
 

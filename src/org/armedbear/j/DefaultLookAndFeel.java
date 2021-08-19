@@ -69,11 +69,6 @@ public final class DefaultLookAndFeel extends DefaultMetalTheme
                     "com.sun.java.swing.plaf.windows.WindowsLookAndFeel";
             } else if (Editor.lookAndFeel.equals("Aqua")) {
                 lookAndFeelClassName = "com.apple.mrj.swing.MacLookAndFeel";
-                // Jun 21 2002 7:16 AM
-                // Using the menu bar at the top of the screen (and having it
-                // actually work) seems to require some further unknown
-                // magic...
-                //System.setProperty("com.apple.macos.useScreenMenuBar", "true");
             } else if (Editor.lookAndFeel.equals("Nimbus")) {
                 lookAndFeelClassName =
                     "com.sun.java.swing.plaf.nimbus.NimbusLookAndFeel";
@@ -96,6 +91,7 @@ public final class DefaultLookAndFeel extends DefaultMetalTheme
             MetalLookAndFeel.setCurrentTheme(new DefaultMetalTheme());
         }
         try {
+            Log.debug("setting look and feel: " + lookAndFeelClassName);
             UIManager.setLookAndFeel(lookAndFeelClassName);
         }
         catch (Exception e) {}
@@ -103,6 +99,7 @@ public final class DefaultLookAndFeel extends DefaultMetalTheme
         UIManager.put("ToolBarUI", "org.armedbear.j.ToolBarUI");
         UIManager.put("ButtonUI", "org.armedbear.j.ButtonUI");
         UIManager.put("LabelUI", "org.armedbear.j.LabelUI");
+        UIManager.put("SplitPane.dividerSize", 1);
     }
 
     private DefaultLookAndFeel()
@@ -120,7 +117,7 @@ public final class DefaultLookAndFeel extends DefaultMetalTheme
         table.put("SplitPaneUI", "javax.swing.plaf.basic.BasicSplitPaneUI");
         table.put("ScrollBarUI", "org.armedbear.j.ScrollBarUI");
         table.put("TreeUI", "javax.swing.plaf.basic.BasicTreeUI");
-        table.put("SplitPane.dividerSize", 3);
+        table.put("SplitPane.dividerSize", 1);
         table.put("ScrollBar.background", new Color(0xe0e0e0));
         table.put("ScrollBar.foreground", new Color(0xc0c0c0));
         table.put("ScrollBar.track", new Color(0xe0e0e0));

@@ -338,7 +338,8 @@ public abstract class AbstractMode implements Constants, Mode
         menu.add(editor, "Key Bindings", 'B', "describeBindings");
         menu.add(editor, "Describe Key...", 'K', "describeKey");
         menu.add(editor, "Where is...", 'W', "whereIs");
-        menu.add(editor, "About J", 'O', "about");
+        if (!Platform.isPlatformMacOSX())
+            menu.add(editor, "About J", 'O', "about");
     }
 
     public JPopupMenu getContextMenu(Editor editor)

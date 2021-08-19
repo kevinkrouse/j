@@ -25,6 +25,7 @@ import java.util.regex.Matcher;
 import java.awt.AWTEvent;
 import java.awt.BorderLayout;
 import java.awt.Cursor;
+import java.awt.Desktop;
 import java.awt.Dimension;
 import java.awt.Point;
 import java.awt.datatransfer.DataFlavor;
@@ -380,6 +381,7 @@ public final class Editor extends JPanel implements Constants,
         if (quick == 0) {
             runStartupScript();
         }
+        initMacOSX();
         DefaultLookAndFeel.setLookAndFeel();
 
         sessionProperties = new SessionProperties();
@@ -483,6 +485,24 @@ public final class Editor extends JPanel implements Constants,
         usage();
         fatal("Unknown option \"" + arg + "\"");
     }
+
+    private static final void initMacOSX()
+    {
+        if (!Platform.isPlatformMacOSX())
+            return;
+
+        Log.debug("initMacOSX");
+        if (Desktop.isDesktopSupported()) {
+
+            // Use menu bar
+            System.setProperty("apple.laf.useScreenMenuBar", "true");
+
+            var desktop = Desktop.getDesktop();
+            desktop.setAboutHandler(e -> AboutDialog.about());
+            desktop.setQuitHandler((e,r) -> Editor.currentEditor().quit());
+        }
+    }
+
 
     public Editor(Frame f)
     {

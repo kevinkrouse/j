@@ -1266,9 +1266,10 @@ public final class Utilities implements Constants
 
     public static ImageIcon getIconFromFile(String iconFile)
     {
-        URL url = Editor.class.getResource("images/".concat(iconFile));
+        String path = "images/".concat(iconFile);
+        URL url = Editor.class.getResource(path);
         if (url == null) {
-            Log.warn("failed to get icon url: " + iconFile);
+            Log.warn("failed to get icon: " + iconFile);
             return null;
         }
         return new ImageIcon(url);
@@ -1276,9 +1277,10 @@ public final class Utilities implements Constants
 
     public static BufferedImage getImageFromFile(String iconFile)
     {
-        InputStream is = Editor.class.getResourceAsStream("images/".concat(iconFile));
+        String path = "images/".concat(iconFile);
+        InputStream is = Editor.class.getResourceAsStream(path);
         if (is == null) {
-            Log.warn("failed to get icon url: " + iconFile);
+            Log.warn("failed to get icon: " + path);
             return null;
         }
         try

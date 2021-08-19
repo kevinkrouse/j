@@ -30,6 +30,11 @@ public final class Main
             System.err.println("J requires Java 16 or later.");
             System.exit(1);
         }
+
+        // need to set these properties early before AWT is loaded
+        System.setProperty("apple.awt.graphics.EnableQ2DX", "true");
+        System.setProperty("apple.awt.application.name", "J");
+
         try {
             Class c = Class.forName("org.armedbear.j.Editor");
             Class[] parameterTypes = new Class[1];

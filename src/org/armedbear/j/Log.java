@@ -264,22 +264,17 @@ public final class Log
         String snapshotInformation = Version.getSnapshotInformation();
         if (snapshotInformation != null)
             info(snapshotInformation);
-        StringBuilder sb = new StringBuilder("Java ");
-        sb.append(System.getProperty("java.version"));
-        sb.append(' ');
-        sb.append(System.getProperty("java.vendor"));
-        info(sb.toString());
+
+        info("Java " + System.getProperty("java.version") + " " + System.getProperty("java.vendor"));
+
         String fullversion = System.getProperty("java.fullversion");
         if (fullversion != null)
             info(fullversion);
         String vm = System.getProperty("java.vm.name");
         if (vm != null)
             info(vm);
-        sb.setLength(0);
-        sb.append(System.getProperty("os.name"));
-        sb.append(' ');
-        sb.append(System.getProperty("os.version"));
-        info(sb.toString());
+
+        info(System.getProperty("os.name") + " " + System.getProperty("os.version"));
     }
 
     private static final void logUptime()
@@ -300,20 +295,15 @@ public final class Log
     // String returned is always 6 characters long and ends with a space.
     private static final String levelToString(int level)
     {
-        switch (level) {
-            case DEBUG:
-                return "DEBUG ";
-            case INFO:
-                return " INFO ";
-            case WARN:
-                return " WARN ";
-            case ERROR:
-                return "ERROR ";
-            case FATAL:
-                return "FATAL ";
-        }
-        // Shouldn't happen.
-        return "????? ";
+        return switch (level) {
+            case DEBUG -> "DEBUG ";
+            case INFO  -> " INFO ";
+            case WARN  -> " WARN ";
+            case ERROR -> "ERROR ";
+            case FATAL -> "FATAL ";
+            // Shouldn't happen
+            default    -> "????? ";
+        };
     }
 
     private static final void loadPreferences()
