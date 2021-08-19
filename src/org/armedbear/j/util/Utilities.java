@@ -1585,8 +1585,12 @@ public final class Utilities implements Constants
                 sb.append("Shift ");
             if ((modifiers & ALT_MASK) != 0)
                 sb.append("Alt ");
-            if ((modifiers & META_MASK) != 0)
-                sb.append("Meta ");
+            if ((modifiers & META_MASK) != 0) {
+                if (Platform.isPlatformMacOSX())
+                    sb.append("Cmd ");
+                else
+                    sb.append("Meta ");
+            }
             sb.append(getKeyName(keyCode));
         }
         return sb.toString();
