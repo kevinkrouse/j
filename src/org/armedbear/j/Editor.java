@@ -498,8 +498,11 @@ public final class Editor extends JPanel implements Constants,
             System.setProperty("apple.laf.useScreenMenuBar", "true");
 
             var desktop = Desktop.getDesktop();
-            desktop.setAboutHandler(e -> AboutDialog.about());
-            desktop.setQuitHandler((e,r) -> Editor.currentEditor().quit());
+            if (desktop.isSupported(Desktop.Action.APP_ABOUT))
+                desktop.setAboutHandler(e -> AboutDialog.about());
+
+            if (desktop.isSupported(Desktop.Action.APP_QUIT_HANDLER))
+                desktop.setQuitHandler((e,r) -> Editor.currentEditor().quit());
         }
     }
 
