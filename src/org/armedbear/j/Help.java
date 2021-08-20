@@ -32,6 +32,9 @@ import java.util.List;
 
 import org.armedbear.j.mode.web.WebBuffer;
 import java.lang.StringBuilder;
+import java.util.Set;
+
+import org.armedbear.j.util.Utilities;
 import org.armedbear.lisp.LispObject;
 
 public final class Help
@@ -492,63 +495,14 @@ public final class Help
                 }
             }
         }
-        s = System.getProperty("java.class.path");
-        if (s != null) {
-            final File userDir =
-                File.getInstance(System.getProperty("user.dir"));
-            Path path = new Path(s);
-            String[] array = path.list();
-            if (array != null) {
-                for (String filename : array) {
-                    File f = File.getInstance(filename);
-                    if (filename.toLowerCase().endsWith("j.jar")) {
-                        File jarFile = f.isAbsolute() ? f : File.getInstance(userDir, filename);
-                        if (jarFile != null && jarFile.isFile()) {
-                            File jarDir = jarFile.getParentFile();
-                            if (jarDir != null && jarDir.isDirectory()) {
-                                File docDir = File.getInstance(jarDir, "doc");
-                                if (isDocDir(docDir))
-                                    return docDir;
-                            }
-                        }
-                    } else if (filename.toLowerCase().endsWith("build/classes")) {
-                        // "~/src/j/build/classes"
-                        File classesDir = f.isAbsolute() ? f : File.getInstance(userDir, filename);
-                        if (classesDir != null && classesDir.isDirectory()) {
-                            File buildDir = classesDir.getParentFile(); // "~/src/j/build"
-                            if (buildDir != null && buildDir.isDirectory()) {
-                                File parentDir = buildDir.getParentFile(); // "~/src/j"
-                                if (parentDir != null && parentDir.isDirectory()) {
-                                    File docDir = File.getInstance(parentDir, "doc"); // "~/src/j/doc"
-                                    if (isDocDir(docDir))
-                                        return docDir;
-                                }
-                            }
-                        }
-                    } else if (filename.toLowerCase().endsWith("src")) {
-                        // "~/j/src"
-                        File srcDir = f.isAbsolute() ? f : File.getInstance(userDir, filename);
-                        if (srcDir != null && srcDir.isDirectory()) {
-                            File parentDir = srcDir.getParentFile(); // "~/j"
-                            if (parentDir != null && parentDir.isDirectory()) {
-                                File docDir = File.getInstance(parentDir, "doc"); // "~/j/doc"
-                                if (isDocDir(docDir))
-                                    return docDir;
-                            }
-                        }
-                    } else {
-                        String suffix = LocalFile.getSeparator() + "j" + LocalFile.getSeparator() + "j.jar";
-                        if (filename.endsWith(suffix)) {
-                            // "/usr/local/share/j/j.jar"
-                            File dataDir = File.getInstance(filename.substring(0, filename.length() - suffix.length())); // "/usr/local/share"
-                            File docDir = File.getInstance(dataDir, "doc" + LocalFile.getSeparator() + "j"); // "/usr/local/share/doc/j"
-                            if (isDocDir(docDir))
-                                return docDir;
-                        }
-                    }
-                }
-            }
+
+        Set<File> dirs = Utilities.resourceDirs();
+        for (File dir : dirs) {
+            File docDir = File.getInstance(dir, "doc");
+            if (isDocDir(docDir))
+                return docDir;
         }
+
         // As a last resort, a couple of hard-coded possibilities...
         if (Platform.isPlatformUnix()) {
             File dir = File.getInstance("/usr/local/share/doc/j");

@@ -20,6 +20,9 @@
 
 package org.armedbear.j.util;
 
+import java.util.Collections;
+import java.util.LinkedHashSet;
+import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.regex.Matcher;
 import java.awt.Color;
@@ -63,6 +66,7 @@ import org.armedbear.j.LocalFile;
 import org.armedbear.j.Log;
 import org.armedbear.j.MessageDialog;
 import org.armedbear.j.Mode;
+import org.armedbear.j.Path;
 import org.armedbear.j.Platform;
 import org.armedbear.j.Position;
 import org.armedbear.j.Property;
@@ -1129,13 +1133,29 @@ public final class Utilities implements Constants
         }
     }
 
-    private static int haveJpty = -1;
+    private static final String NOT_FOUND = "~nope~";
+
+    private static String jpty = null;
+
+    public static String jptyPath()
+    {
+        if (Utilities.haveJpty())
+            return jpty;
+
+        return null;
+    }
 
     public static boolean haveJpty()
     {
-        if (haveJpty == -1)
-            haveJpty = have("jpty") ? 1 : 0;
-        return haveJpty == 1;
+        if (jpty == null)
+        {
+            String bin = which("jpty");
+            if (bin == null)
+                jpty = NOT_FOUND;
+            else
+                jpty = bin;
+        }
+        return jpty != NOT_FOUND;
     }
 
     private static int haveLs = -1;
@@ -1145,6 +1165,25 @@ public final class Utilities implements Constants
         if (haveLs == -1)
             haveLs = have("ls") ? 1 : 0;
         return haveLs == 1;
+    }
+
+    // Find the binary on the PATH
+    // - on unix and mac, uses "which"
+    // - on windows, uses "where.exe"
+    public static String which(final String s)
+    {
+        String which = "which";
+        if (Platform.isPlatformWindows())
+            which = "where.exe";
+
+        String binary = Utilities.exec(which, s);
+        if (binary == null || binary.isBlank()) {
+            Log.info("which: couldn't find binary on PATH: " + s);
+            return null;
+        }
+
+        Log.debug("which: " + s + " -> " + binary);
+        return binary;
     }
 
     public static boolean have(final String s)
@@ -1238,10 +1277,103 @@ public final class Utilities implements Constants
         return converted != null ? converted : s;
     }
 
+    /**
+     * Find possible resource directories using classpath, relative from 'src' dir or 'j.jar'.
+     */
+    public static Set<File> resourceDirs()
+    {
+        String classPath = System.getProperty("java.class.path");
+        if (classPath == null)
+            return Collections.emptySet();
+
+        Path path = new Path(classPath);
+        String[] array = path.list();
+        if (array == null)
+            return Collections.emptySet();
+
+        Set<File> dirs = new LinkedHashSet<>();
+        final File userDir = File.getInstance(System.getProperty("user.dir"));
+        for (String part : array) {
+            if (part.endsWith("j.jar")) {
+                // "/usr/local/share/j/j.jar" or relative to working dir (e.g. "java -cp j.jar")
+                File jarFile = isFilenameAbsolute(part) ? File.getInstance(part) : File.getInstance(userDir, part);
+                if (jarFile != null && jarFile.isFile()) {
+                    File jarDir = jarFile.getParentFile();
+                    if (jarDir != null && jarDir.isDirectory()) {
+                        dirs.add(jarDir);
+                    }
+                }
+            } else if (part.endsWith("build/classes")) {
+                // "~/code/j/build/classes" -- used when building and running from source
+                File classesDir = isFilenameAbsolute(part) ? File.getInstance(part) : File.getInstance(userDir, part);
+                if (classesDir != null && classesDir.isDirectory()) {
+                    File buildDir = classesDir.getParentFile(); // "~/src/j/build"
+                    if (buildDir != null && buildDir.isDirectory()) {
+                        File parentDir = buildDir.getParentFile(); // "~/src/j"
+                        if (parentDir != null && parentDir.isDirectory()) {
+                            dirs.add(parentDir);
+                        }
+                    }
+                }
+            } else if (part.endsWith("src")) {
+                // "~/j/src" -- used when building and running from source
+                File srcDir = isFilenameAbsolute(part) ? File.getInstance(part) : File.getInstance(userDir, part);
+                if (srcDir != null && srcDir.isDirectory()) {
+                    File parentDir = srcDir.getParentFile(); // "~/j"
+                    if (parentDir != null && parentDir.isDirectory()) {
+                        dirs.add(parentDir);
+                    }
+                }
+            } else {
+                String suffix = LocalFile.getSeparator() + "j" + LocalFile.getSeparator() + "j.jar";
+                if (part.endsWith(suffix)) {
+                    // "/usr/local/share/j/j.jar"
+                    File dataDir = File.getInstance(part.substring(0, part.length() - suffix.length())); // "/usr/local/share"
+                    if (dataDir != null && dataDir.isDirectory()) {
+                        dirs.add(dataDir);
+                    }
+                }
+            }
+        }
+
+        return dirs;
+    }
+
     public static String exec(String... cmdarray)
     {
+        return exec(List.of(cmdarray), null);
+    }
+
+    public static String exec(List<String> cmd, java.io.File dir)
+    {
         try {
-            Process process = Runtime.getRuntime().exec(cmdarray);
+            ProcessBuilder pb = new ProcessBuilder(cmd);
+            if (dir != null) {
+                pb.directory(dir);
+            }
+
+            // include 'bin' from same directory as the j.jar if it exists
+            String path = pb.environment().get("PATH");
+            Log.debug("current PATH is: " + path);
+            if (path != null) {
+                Set<File> dirs = resourceDirs();
+                for (File d : dirs) {
+                    // try "~/j/bin"
+                    File bin = File.getInstance(d, "bin");
+                    if (!bin.isDirectory()) {
+                        // try "~/j/build/bin" -- used when building from source
+                        bin = File.getInstance(d, "build/bin");
+                    }
+
+                    if (bin.isDirectory()) {
+                        path += java.io.File.pathSeparator + bin.canonicalPath();
+                        Log.debug("setting PATH to: " + path);
+                        pb.environment().put("PATH", path);
+                    }
+                }
+            }
+
+            Process process = pb.start();
             BufferedReader reader =
                 new BufferedReader(new InputStreamReader(process.getInputStream()));
             StringBuilder sb = new StringBuilder();

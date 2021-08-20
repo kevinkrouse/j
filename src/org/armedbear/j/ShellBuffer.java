@@ -138,7 +138,7 @@ public class ShellBuffer extends CommandInterpreterBuffer implements Constants
         int i = 0;
         if (Utilities.haveJpty()) {
             cmdArray = new String[st.countTokens() + 1];
-            cmdArray[i++] = "jpty";
+            cmdArray[i++] = Utilities.jptyPath();
         } else
             cmdArray = new String[st.countTokens()];
         while (st.hasMoreTokens())

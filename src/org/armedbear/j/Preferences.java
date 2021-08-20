@@ -25,11 +25,7 @@ import org.armedbear.j.util.Utilities;
 import java.awt.Color;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.Enumeration;
-import java.util.Iterator;
-import java.util.Properties;
-import java.util.Set;
+import java.util.*;
 
 public final class Preferences
 {
@@ -171,56 +167,18 @@ public final class Preferences
         }
 
         // We haven't found it yet.  Look in default locations.
-        String classPath = System.getProperty("java.class.path");
-        if (classPath != null) {
-            Path path = new Path(classPath);
-            String[] array = path.list();
-            if (array == null)
-                return null;
-            final File userDir = File.getInstance(System.getProperty("user.dir"));
-            for (String part : array) {
-                if (part.endsWith("src")) {
-                    // "~/j/src"
-                    File srcDir = File.getInstance(part);
-                    if (srcDir != null && srcDir.isDirectory()) {
-                        File parentDir = srcDir.getParentFile(); // "~/j"
-                        if (parentDir != null && parentDir.isDirectory()) {
-                            File themeDir = File.getInstance(parentDir, "themes"); // "~/j/themes"
-                            if (themeDir != null && themeDir.isDirectory()) {
-                                File themeFile = File.getInstance(themeDir, themeName);
-                                if (themeFile != null && themeFile.isFile())
-                                    return themeFile;
-                            }
-                        }
-                    }
-                } else {
-                    String suffix = "j.jar";
-                    if (part.endsWith(suffix)) {
-                        // "/usr/local/share/j/j.jar"
-                        String prefix = part.substring(0, part.length() - suffix.length());
-                        // "/usr/local/share/j/"
-                        File prefixDir;
-                        if (prefix.length() == 0) {
-                            // j.jar is in working directory ("java -jar j.jar").
-                            prefixDir = userDir;
-                        } else {
-                            // Prefix might be relative to working directory ("java -jar ../j.jar").
-                            prefixDir = File.getInstance(userDir, prefix);
-                        }
-                        if (prefixDir != null && prefixDir.isDirectory()) {
-                            // Look for a "themes" subdirectory under prefix directory.
-                            File themeDir = File.getInstance(prefixDir, "themes");
-                            // "/usr/local/share/j/themes"
-                            if (themeDir != null && themeDir.isDirectory()) {
-                                File themeFile = File.getInstance(themeDir, themeName);
-                                if (themeFile != null && themeFile.isFile())
-                                    return themeFile;
-                            }
-                        }
-                    }
-                }
+        Set<File> dirs = Utilities.resourceDirs();
+        for (File dir : dirs) {
+            // Look for a "themes" subdirectory under prefix directory.
+            File themeDir = File.getInstance(dir, "themes");
+            // "/usr/local/share/j/themes"
+            if (themeDir != null && themeDir.isDirectory()) {
+                File themeFile = File.getInstance(themeDir, themeName);
+                if (themeFile != null && themeFile.isFile())
+                    return themeFile;
             }
         }
+
         return null;
     }
 
