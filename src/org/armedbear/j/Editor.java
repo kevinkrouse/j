@@ -4376,19 +4376,21 @@ public final class Editor extends JPanel implements Constants,
         // See also mouseMoveDotToPoint(MouseEvent).
         setFocusToDisplay();
 
+        int rotation = e.getWheelRotation();
+        int absRotation = Math.abs(rotation);
         if (e.isShiftDown())
         {
-            if (e.getWheelRotation() < 0)
-                display.windowLeft(5);
-            else
-                display.windowRight(5);
+            if (rotation < 0)
+                display.windowLeft(absRotation);
+            else if (rotation > 0)
+                display.windowRight(absRotation);
         }
         else
         {
-            if (e.getWheelRotation() < 0)
-                display.windowUp(5);
-            else
-                display.windowDown(5);
+            if (rotation < 0)
+                display.windowUp(absRotation);
+            else if (rotation > 0)
+                display.windowDown(absRotation);
         }
     }
 
