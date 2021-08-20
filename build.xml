@@ -7,7 +7,7 @@
     <property environment="env"/>
     <property file="build.properties"/>
 
-    <property name="j.version"          value="0.23.0"/>
+    <property name="j.version"          value="1.0.0"/>
     <property name="abcl.version"       value="1.8.0"/>
     <property name="build.dir"          value="${basedir}/build"/>
     <property name="build.classes.dir"  value="${build.dir}/classes"/>
@@ -23,7 +23,9 @@
     <property name="abcl.jar.path"      value="${basedir}/deps/abcl.jar"/>
     <property name="junit.jar.path"     value="${basedir}/deps/junit-4.8.2.jar"/>
 
-    <property name="jdk"                value="${env.JAVA_HOME}"/>
+    <condition property="jdk" value="${env.JAVA_HOME}" else="${java.home}">
+      <isset property="env.JAVA_HOME"/>
+    </condition>
     <property name="javac"              value="${jdk}/bin/javac"/>
     <property name="tools.jar.path"     value="${jdk}/lib/tools.jar"/>
 
@@ -191,7 +193,7 @@
     <target name="dependencies.check" depends="abcl.jar,junit.jar" />
 
     <target name="pre-build" depends="dependencies.check">
-      <property name="ant.version.min" value="1.10.9" />
+      <property name="ant.version.min" value="1.10.5" />
       <antversion property="ant.version.check" atleast="${ant.version.min}"/>
       <fail message="Ant ${ant.version.min} or greater is required." unless="ant.version.check" />
 
@@ -244,7 +246,7 @@
           <patternset refid="j.resources.src"/>
         </fileset>
       </copy>
-      <jar destfile="${j.jar.path}" 
+      <jar destfile="${j.jar.path}"
            compress="true"
            basedir="${build.classes.dir}">
         <!--
@@ -267,28 +269,33 @@
             description="-- create binary and source distributions">
     </target>
 
-    <target name="dist.bin" depends="jar">
-      <property name="j.dist.bin.name" value="j-${j.version}-bin"/>
-      <property name="j.dist.bin.dir" value="${dist.dir}/${j.dist.bin.name}"/>
+    <target name="dist.stage" depends="jar">
+      <property name="j.dist.stage.dir" value="${dist.dir}/j-${j.version}"/>
 
-      <delete dir="${j.dist.bin.dir}"/>
-      <mkdir dir="${j.dist.bin.dir}"/>
-      <copy todir="${j.dist.bin.dir}">
+      <delete dir="${j.dist.stage.dir}"/>
+      <mkdir dir="${j.dist.stage.dir}"/>
+      <copy todir="${j.dist.stage.dir}">
         <fileset file="${j.jar.path}"/>
         <fileset dir="${basedir}">
           <patternset refid="j.resources.top"/>
         </fileset>
         <fileset dir="${build.dir}" includes="lib/**,bin/**"/>
       </copy>
+      <chmod file="${j.dist.stage.dir}/bin/**" perm="ugo+rx"/>
+    </target>
 
+    <target name="dist.bin" depends="dist.stage">
+      <property name="j.dist.bin.name" value="j-${j.version}-bin"/>
+
+      <delete file="${dist.dir}/${j.dist.bin.name}.tar.gz"/>
       <tar tarfile="${dist.dir}/${j.dist.bin.name}.tar.gz"
-           basedir="${dist.dir}"
-           includes="${j.dist.bin.name}/"
+           basedir="${j.dist.stage.dir}"
            compression="gzip">
       </tar>
+
+      <delete file="${dist.dir}/${j.dist.bin.name}.zip"/>
       <zip zipfile="${dist.dir}/${j.dist.bin.name}.zip"
-           basedir="${dist.dir}"
-           includes="${j.dist.bin.name}/">
+           basedir="${j.dist.stage.dir}">
       </zip>
     </target>
 
@@ -322,31 +329,37 @@
       </zip>
     </target>
 
-    <target name="dist.mac" depends="jar" if="mac">
-      <property name="j.dist.mac.name" value="j-${j.version}-mac"/>
+    <target name="dist.mac" depends="dist.stage" if="mac">
+      <property name="j.dist.mac.name" value="J-${j.version}.dmg"/>
       <property name="j.dist.mac.dir" value="${dist.dir}/${j.dist.mac.name}"/>
-      <delete dir="${j.dist.mac.dir}"/>
+      <delete dir="${dist.dir}/${j.dist.mac.name}"/>
 
-      <fail message="swich to jpackage"/>
-      <appbundler
-        bundle="bundle.xml"
-        target="mac"
-        destdir="${dist.dir}"
-        libdir="${build.dir};${deps.dir}" />
+      <delete dir="${dist.dir}/mac-tmp"/>
+      <mkdir dir="${dist.dir}/mac-tmp"/>
 
-      <copy todir="${dist.dir}/mac/J.app/Contents/Resources/Java">
-        <fileset dir="${basedir}">
-          <patternset refid="j.resources.top"/>
-        </fileset>
-        <fileset dir="${build.dir}" includes="bin/**"/>
-      </copy>
-      <move file="${dist.dir}/mac" tofile="${j.dist.mac.dir}" />
+      <exec executable="jpackage">
+        <arg value="--verbose"/>
+        <arg value="--temp"/><arg value="${dist.dir}/mac-tmp"/>
 
-      <!-- UNDONE: Create a .dmg disk image instead of zip -->
-      <zip zipfile="${dist.dir}/${j.dist.mac.name}.zip"
-           basedir="${dist.dir}"
-           includes="${j.dist.mac.name}/">
-      </zip>
+        <arg value="--name"/><arg value="J"/>
+        <arg value="--input"/><arg value="${j.dist.stage.dir}"/>
+        <arg value="--main-jar"/><arg value="j.jar"/>
+        <arg value="--dest"/><arg value="${dist.dir}"/>
+        <arg value="--type"/><arg value="dmg"/>
+        <arg value="--app-version"/><arg value="${j.version}"/>
+        <arg value="--description"/><arg value="ArmedBear J Editor"/>
+
+        <arg value="--icon"/><arg value="src/org/armedbear/j/images/icons/j.icns"/>
+
+        <arg value="--java-options"/><arg value="-Xms512m"/>
+        <arg value="--java-options"/><arg value="-Xmx2049m"/>
+
+        <arg value="--mac-package-name"/><arg value="J"/>
+
+        <!-- TODO: splash image -->
+        <!-- TODO: sign the package -->
+      </exec>
+
     </target>
 
     <target name="dist.src" depends="git.check" if="git.available">
