@@ -20,6 +20,8 @@
 
 package org.armedbear.j;
 
+import org.armedbear.j.util.Utilities;
+
 import java.lang.StringBuilder;
 
 import java.io.IOException;
@@ -59,7 +61,7 @@ public final class Ssh
         String userName = remote.getUserName();
         password = remote.getPassword();
         ArrayList<String> list = new ArrayList<String>();
-        list.add("jpty");
+        list.add(Utilities.jptyPath());
         list.add("scp");
         list.add("-q");
         if (remote.getPort() != SshFile.DEFAULT_PORT) {

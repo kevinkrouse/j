@@ -1,5 +1,6 @@
 build
 deps
+dist
 *.class
 *.cls
 *.abcl

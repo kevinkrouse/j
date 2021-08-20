@@ -208,7 +208,7 @@ public final class CompilationBuffer extends CompilationErrorBuffer
                     sb.append(exitValueFile.canonicalPath());
                     sb.append(')');
                     final String cmd = sb.toString();
-                    String[] cmdarray = {"jpty", "/bin/sh", "-c", cmd};
+                    String[] cmdarray = {Utilities.jptyPath(), "/bin/sh", "-c", cmd};
                     process = Runtime.getRuntime().exec(cmdarray);
                 } else {
                     String cmd = "(\\cd \"" + currentDir.canonicalPath() +
