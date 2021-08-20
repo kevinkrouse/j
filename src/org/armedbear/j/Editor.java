@@ -237,6 +237,8 @@ public final class Editor extends JPanel implements Constants,
     public static void main(String[] args)
     {
         final File currentDir = File.getInstance(System.getProperty("user.dir"));
+        boolean dumpEnv = false;
+        boolean dumpProps = false;
         boolean forceNewInstance = false;
         boolean restoreSession = true;
         boolean startServer = true;
@@ -258,6 +260,14 @@ public final class Editor extends JPanel implements Constants,
                 }
                 if (arg.equals("-d") || arg.equals("--debug")) {
                     Editor.debug = true;
+                    continue;
+                }
+                if (arg.equals("--dump-env")) {
+                    dumpEnv = true;
+                    continue;
+                }
+                if (arg.equals("--dump-props")) {
+                    dumpProps = true;
                     continue;
                 }
                 if (arg.equals("-q")) {
@@ -375,7 +385,7 @@ public final class Editor extends JPanel implements Constants,
         }
 
         loadPreferences();
-        Log.initialize();
+        Log.initialize(dumpEnv, dumpProps);
         Directories.moveUnsentMessagesToDraftsFolder();
         loadExtensions();
         if (quick == 0) {
