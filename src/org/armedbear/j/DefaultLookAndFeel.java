@@ -91,7 +91,6 @@ public final class DefaultLookAndFeel extends DefaultMetalTheme
             MetalLookAndFeel.setCurrentTheme(new DefaultMetalTheme());
         }
         try {
-            Log.debug("setting look and feel: " + lookAndFeelClassName);
             UIManager.setLookAndFeel(lookAndFeelClassName);
         }
         catch (Exception e) {}

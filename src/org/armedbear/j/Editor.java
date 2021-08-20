@@ -491,7 +491,6 @@ public final class Editor extends JPanel implements Constants,
         if (!Platform.isPlatformMacOSX())
             return;
 
-        Log.debug("initMacOSX");
         if (Desktop.isDesktopSupported()) {
 
             // Use menu bar
