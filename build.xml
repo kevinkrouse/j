@@ -299,39 +299,37 @@
       </zip>
     </target>
 
-    <taskdef name="appbundler"
-      classname="com.joshondesign.appbundler.BundlerTask"
-      classpath="${tools.dir}/AppBundler/AppBundler.jar;${tools.dir}/AppBundler/XMLLib.jar"/>
+    <target name="dist.win" depends="dist.stage" if="windows">
+      <property name="j.dist.win.name" value="j-${j.version}.exe"/>
+      <delete dir="${dist.dir}/${j.dist.win.name}"/>
 
-    <target name="dist.win" depends="jar">
-      <property name="j.dist.win.name" value="j-${j.version}-win"/>
-      <property name="j.dist.win.dir" value="${dist.dir}/${j.dist.win.name}"/>
-      <delete dir="${j.dist.win.dir}"/>
+      <delete dir="${dist.dir}/win-tmp"/>
+      <mkdir dir="${dist.dir}/win-tmp"/>
 
-      <fail message="swich to jpackage"/>
-      <appbundler
-        bundle="bundle.xml"
-        target="win"
-        destdir="${dist.dir}"
-        libdir="${build.dir};${deps.dir}" />
+      <exec executable="jpackage">
+        <arg value="--verbose"/>
+        <arg value="--temp"/><arg value="${dist.dir}/win-tmp"/>
 
-      <copy todir="${dist.dir}/win">
-        <fileset dir="${basedir}">
-          <patternset refid="j.resources.top"/>
-        </fileset>
-        <fileset dir="${build.dir}" includes="bin/**"/>
-      </copy>
-      <move file="${dist.dir}/win" tofile="${j.dist.win.dir}" />
+        <arg value="--name"/><arg value="J"/>
+        <arg value="--input"/><arg value="${j.dist.stage.dir}"/>
+        <arg value="--main-jar"/><arg value="j.jar"/>
+        <arg value="--dest"/><arg value="${dist.dir}"/>
+        <arg value="--type"/><arg value="exe"/>
+        <arg value="--app-version"/><arg value="${j.version}"/>
+        <arg value="--description"/><arg value="ArmedBear J Editor"/>
 
-      <zip zipfile="${dist.dir}/${j.dist.win.name}.zip"
-           basedir="${dist.dir}"
-           includes="${j.dist.win.name}/">
-      </zip>
+        <arg value="--icon"/><arg value="src/org/armedbear/j/images/icons/j.icns"/>
+
+        <arg value="--java-options"/><arg value="-Xms512m"/>
+        <arg value="--java-options"/><arg value="-Xmx2050m"/>
+
+        <!-- TODO: splash image -->
+      </exec>
+
     </target>
 
     <target name="dist.mac" depends="dist.stage" if="mac">
       <property name="j.dist.mac.name" value="J-${j.version}.dmg"/>
-      <property name="j.dist.mac.dir" value="${dist.dir}/${j.dist.mac.name}"/>
       <delete dir="${dist.dir}/${j.dist.mac.name}"/>
 
       <delete dir="${dist.dir}/mac-tmp"/>
