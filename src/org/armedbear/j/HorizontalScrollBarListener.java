@@ -37,7 +37,7 @@ public final class HorizontalScrollBarListener implements AdjustmentListener
         if (editor.inScrollBarUpdate)
             return;
         final Display display = editor.getDisplay();
-        int value = e.getValue() / display.getCharWidth();
+        int value = e.getValue() / Display.getCharWidth();
         if (value != display.shift) {
             int absCaretCol = display.getShift() + display.getCaretCol();
             display.setShift(value);

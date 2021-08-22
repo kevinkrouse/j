@@ -31,9 +31,9 @@ public final class Main
             System.exit(1);
         }
 
-        // need to set these properties early before AWT is loaded
-        System.setProperty("apple.awt.graphics.EnableQ2DX", "true");
+        // need to set the app name property before AWT is loaded
         System.setProperty("apple.awt.application.name", "J");
+        System.setProperty("apple.awt.graphics.EnableQ2DX", "true");
 
         try {
             Class c = Class.forName("org.armedbear.j.Editor");

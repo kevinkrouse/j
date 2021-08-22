@@ -62,7 +62,7 @@ public final class Directories
         }
         // Make sure required directories exist and are writable.
         editorDirectory =
-            provideDirectory(File.getInstance(userHomeDirectory, ".j"));
+            provideDirectory(File.getInstance(userHomeDirectory, ".j"), true);
         tempDirectory =
             provideDirectory(File.getInstance(editorDirectory, "temp"));
         mailDirectory =
@@ -77,9 +77,15 @@ public final class Directories
 
     private static File provideDirectory(final File dir)
     {
+        return provideDirectory(dir, false);
+    }
+
+    private static File provideDirectory(final File dir, boolean verbose)
+    {
         if (dir == null)
             return null;
         if (!dir.isDirectory()) {
+            System.out.println("Creating directory: " + dir);
             dir.mkdirs();
             if (!dir.isDirectory())
                 Editor.fatal("Unable to create directory " + dir);

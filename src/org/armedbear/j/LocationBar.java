@@ -60,11 +60,11 @@ public final class LocationBar extends JPanel implements Constants,
     {
         this.editor = editor;
         setLayout(new BoxLayout(this, BoxLayout.X_AXIS));
-        setBorder(BorderFactory.createEmptyBorder(3, 3, 4, 3));
+        setBorder(BorderFactory.createEmptyBorder(1, 1, 2, 1));
         // Make the label wide enough for the widest string that needs to go
         // there.
         label = new Label(getWidestPrompt());
-        label.setBorder(BorderFactory.createEmptyBorder(3, 0, 1, 0));
+        label.setBorder(BorderFactory.createEmptyBorder(2, 0, 1, 0));
         Dimension dim = label.getPreferredSize();
         label.setPreferredSize(dim);
         label.setMinimumSize(dim);

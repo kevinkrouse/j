@@ -27,6 +27,7 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.Map;
 
 public final class Log
 {
@@ -112,16 +113,20 @@ public final class Log
 
     private static final void log(int level, String s)
     {
-        if (Editor.isDebugEnabled())
+        if (Editor.isDebugEnabled()) {
             System.err.println(s);
+            System.err.flush();
+        }
         if (logEnabled && level >= minLevel)
             writeLog(level, s);
     }
 
     private static final void forceLog(int level, String s)
     {
-        if (Editor.isDebugEnabled())
+        if (Editor.isDebugEnabled()) {
             System.err.println(s);
+            System.err.flush();
+        }
         writeLog(level, s);
     }
 
@@ -219,7 +224,7 @@ public final class Log
             "log.".concat(String.valueOf(index)));
     }
 
-    public static final void initialize()
+    public static final void initialize(boolean dumpEnv, boolean dumpProps)
     {
         synchronized(lock) {
             Preferences preferences = Editor.preferences();
@@ -231,7 +236,7 @@ public final class Log
                     if (logWriter != null) {
                         setLevel(INFO);
                         info("Starting j...");
-                        logSystemInformation();
+                        logSystemInformation(dumpEnv, dumpProps);
                         if (Editor.isDebugEnabled()) {
                             setLevel(DEBUG);
                         }
@@ -260,6 +265,11 @@ public final class Log
 
     private static final void logSystemInformation()
     {
+        logSystemInformation();
+    }
+
+    private static final void logSystemInformation(boolean dumpEnv, boolean dumpProps)
+    {
         info(Version.getLongVersionString());
         String snapshotInformation = Version.getSnapshotInformation();
         if (snapshotInformation != null)
@@ -275,6 +285,32 @@ public final class Log
             info(vm);
 
         info(System.getProperty("os.name") + " " + System.getProperty("os.version"));
+
+        if (dumpEnv)
+            dumpEnv();
+
+        if (dumpProps)
+            dumpProps();
+    }
+
+    private static final void dumpEnv()
+    {
+        Log.info("== environment start ==");
+        Map<String,String> map = System.getenv();
+        for (Map.Entry<String,String> entry : map.entrySet()) {
+            Log.info(entry.getKey() + "=" + entry.getValue());
+        }
+        Log.info("== environment end ==");
+    }
+
+    private static final void dumpProps()
+    {
+        Log.info("== properties start ==");
+        Map<Object,Object> map = System.getProperties();
+        for (Map.Entry<Object,Object> entry : map.entrySet()) {
+            Log.info(entry.getKey() + ": " + entry.getValue());
+        }
+        Log.info("== properties end ==");
     }
 
     private static final void logUptime()

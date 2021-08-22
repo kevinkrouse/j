@@ -235,7 +235,7 @@ public class LispShellBuffer extends ShellBuffer
     if (Utilities.haveJpty())
       {
         cmdArray = new String[tokenCount + 1];
-        cmdArray[i++] = "jpty";
+        cmdArray[i++] = Utilities.jptyPath();
       }
     else
       cmdArray = new String[tokenCount];

@@ -58,7 +58,7 @@ public class RemoteShellBuffer extends ShellBuffer
     {
         Process process = null;
         try {
-            process = Runtime.getRuntime().exec("jpty " + shellCommand + " " + host);
+            process = Runtime.getRuntime().exec(Utilities.jptyPath() + " " + shellCommand + " " + host);
             setProcess(process);
         }
         catch (Throwable t) {
@@ -78,18 +78,11 @@ public class RemoteShellBuffer extends ShellBuffer
         // so check the value of getProcess() here.
         if (getProcess() == null)
             return; // Process exited.
-        Property property;
-        switch (type) {
-            case TYPE_TELNET:
-                property = Property.TELNET_PROMPT_PATTERN;
-                break;
-            case TYPE_SSH:
-                property = Property.SSH_PROMPT_PATTERN;
-                break;
-            default:
-                property = null;
-                break;
-        }
+        Property property = switch (type) {
+            case TYPE_TELNET -> Property.TELNET_PROMPT_PATTERN;
+            case TYPE_SSH -> Property.SSH_PROMPT_PATTERN;
+            default -> null;
+        };
         if (property != null)
             setPromptRE(Editor.preferences().getStringProperty(property));
         try {
@@ -111,17 +104,11 @@ public class RemoteShellBuffer extends ShellBuffer
         remoteShell.startProcess();
         if (remoteShell.getProcess() == null) {
             Editor.getBufferList().remove(remoteShell);
-            String program = null;
-            switch (type) {
-                case TYPE_TELNET:
-                    program = "telnet";
-                    break;
-                case TYPE_SSH:
-                    program = "ssh";
-                    break;
-                default:
-                    program = "client"; // A nice generic name.
-            }
+            String program = switch (type) {
+                case TYPE_TELNET -> "telnet";
+                case TYPE_SSH -> "ssh";
+                default -> "client"; // A nice generic name.
+            };
             String message;
             if (Utilities.haveJpty())
                 message = "Unable to start " + program + " process";

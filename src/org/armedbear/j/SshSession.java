@@ -480,7 +480,7 @@ public final class SshSession implements Constants, RemoteSession
             Log.debug("SshSession.connect(): already connected");
             return true;
         }
-        StringBuilder sb = new StringBuilder("jpty ssh ");
+        StringBuilder sb = new StringBuilder(Utilities.jptyPath() + " ssh ");
         if (userName != null && userName.length() > 0) {
             sb.append("-l ");
             sb.append(userName);

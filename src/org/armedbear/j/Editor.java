@@ -237,6 +237,8 @@ public final class Editor extends JPanel implements Constants,
     public static void main(String[] args)
     {
         final File currentDir = File.getInstance(System.getProperty("user.dir"));
+        boolean dumpEnv = false;
+        boolean dumpProps = false;
         boolean forceNewInstance = false;
         boolean restoreSession = true;
         boolean startServer = true;
@@ -258,6 +260,14 @@ public final class Editor extends JPanel implements Constants,
                 }
                 if (arg.equals("-d") || arg.equals("--debug")) {
                     Editor.debug = true;
+                    continue;
+                }
+                if (arg.equals("--dump-env")) {
+                    dumpEnv = true;
+                    continue;
+                }
+                if (arg.equals("--dump-props")) {
+                    dumpProps = true;
                     continue;
                 }
                 if (arg.equals("-q")) {
@@ -375,7 +385,7 @@ public final class Editor extends JPanel implements Constants,
         }
 
         loadPreferences();
-        Log.initialize();
+        Log.initialize(dumpEnv, dumpProps);
         Directories.moveUnsentMessagesToDraftsFolder();
         loadExtensions();
         if (quick == 0) {
@@ -491,15 +501,17 @@ public final class Editor extends JPanel implements Constants,
         if (!Platform.isPlatformMacOSX())
             return;
 
-        Log.debug("initMacOSX");
         if (Desktop.isDesktopSupported()) {
 
             // Use menu bar
             System.setProperty("apple.laf.useScreenMenuBar", "true");
 
             var desktop = Desktop.getDesktop();
-            desktop.setAboutHandler(e -> AboutDialog.about());
-            desktop.setQuitHandler((e,r) -> Editor.currentEditor().quit());
+            if (desktop.isSupported(Desktop.Action.APP_ABOUT))
+                desktop.setAboutHandler(e -> AboutDialog.about());
+
+            if (desktop.isSupported(Desktop.Action.APP_QUIT_HANDLER))
+                desktop.setQuitHandler((e,r) -> Editor.currentEditor().quit());
         }
     }
 
@@ -4364,19 +4376,21 @@ public final class Editor extends JPanel implements Constants,
         // See also mouseMoveDotToPoint(MouseEvent).
         setFocusToDisplay();
 
+        int rotation = e.getWheelRotation();
+        int absRotation = Math.abs(rotation);
         if (e.isShiftDown())
         {
-            if (e.getWheelRotation() < 0)
-                display.windowLeft(5);
-            else
-                display.windowRight(5);
+            if (rotation < 0)
+                display.windowLeft(absRotation);
+            else if (rotation > 0)
+                display.windowRight(absRotation);
         }
         else
         {
-            if (e.getWheelRotation() < 0)
-                display.windowUp(5);
-            else
-                display.windowDown(5);
+            if (rotation < 0)
+                display.windowUp(absRotation);
+            else if (rotation > 0)
+                display.windowDown(absRotation);
         }
     }
 
