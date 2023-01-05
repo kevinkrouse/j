@@ -25,8 +25,10 @@ public final class Main
     public static void main(String[] args)
     {
         final String version = System.getProperty("java.version");
+        final int majorVersion = Integer.parseInt(version.split("\\.")[0]);
         System.out.println("java version: " + version);
-        if (!version.startsWith("16.") && !version.startsWith("17.")) {
+        System.out.println("java major version: " + majorVersion);
+        if (majorVersion < 16) {
             System.err.println("J requires Java 16 or later.");
             System.exit(1);
         }
