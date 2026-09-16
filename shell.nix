@@ -5,7 +5,7 @@ with pkgs;
 let
   inherit (lib) optional optionals;
 
-  jdk = adoptopenjdk-hotspot-bin-16;
+  jdk = jdk25;
 
 in
 

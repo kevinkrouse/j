@@ -9,6 +9,7 @@
 
     <property name="j.version"          value="1.0.0"/>
     <property name="abcl.version"       value="1.8.0"/>
+    <property name="java.version.min"   value="25"/>
     <property name="build.dir"          value="${basedir}/build"/>
     <property name="build.classes.dir"  value="${build.dir}/classes"/>
     <property name="build.test.dir"     value="${build.dir}/test"/>
@@ -204,29 +205,32 @@
       </exec>
       <fail message="Failed to get javac version" unless="javac.version"/>
       <echo>javac.version: ${javac.version}</echo>
-      <condition property="j.javac.version">
-        <or>
-          <matches string="${javac.version}" pattern="16\."/>
-          <matches string="${javac.version}" pattern="17\."/>
-        </or>
-      </condition>
+      <!-- Probe javac for the release instead of parsing its version string -->
+      <exec executable="${javac}"
+            resultproperty="javac.release.result"
+            outputproperty="javac.release.output">
+        <arg value="--release"/>
+        <arg value="${java.version.min}"/>
+        <arg value="-version"/>
+      </exec>
+      <fail message="Java ${java.version.min} or greater is required to build J, but ${javac} (${javac.version}) cannot target release ${java.version.min}.">
+        <condition>
+          <not>
+            <equals arg1="${javac.release.result}" arg2="0"/>
+          </not>
+        </condition>
+      </fail>
 
       <mkdir dir="${build.dir}"/>
     </target>
-    
-    <target name="javac.warning" 
-            depends="pre-build"
-            unless="j.javac.version">
-      <echo>WARNING: javac version ${javac.version} not recommended.</echo>
-    </target>
-        
+
     <target name="build" 
-            depends="pre-build,javac.warning,jpty"
+            depends="pre-build,jpty"
             description="-- build J source">
       <mkdir dir="${build.classes.dir}"/>
       <javac destdir="${build.classes.dir}"
              debug="true"
-             release="16"
+             release="${java.version.min}"
              fork="true"
              executable="${javac}"
              includeantruntime="false"
@@ -464,7 +468,7 @@
     </target>
 
 
-    <target name="test.build" depends="pre-build,javac.warning">
+    <target name="test.build" depends="pre-build">
       <mkdir dir="${build.test.dir}"/>
       <javac destdir="${build.test.dir}"
              debug="true"

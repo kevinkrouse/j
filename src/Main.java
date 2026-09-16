@@ -28,8 +28,8 @@ public final class Main
         final int majorVersion = Integer.parseInt(version.split("\\.")[0]);
         System.out.println("java version: " + version);
         System.out.println("java major version: " + majorVersion);
-        if (majorVersion < 16) {
-            System.err.println("J requires Java 16 or later.");
+        if (majorVersion < 25) {
+            System.err.println("J requires Java 25 or later.");
             System.exit(1);
         }
 
