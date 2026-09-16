@@ -18,13 +18,24 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
  */
 
+/* Feature test macros must be defined before any header is included.
+ * _XOPEN_SOURCE exposes grantpt(), unlockpt() and ptsname(); _DEFAULT_SOURCE
+ * keeps glibc's BSD extensions visible (ECHOCTL, ECHOKE, ECHOPRT, select()),
+ * which _XOPEN_SOURCE would otherwise hide. Other platforms declare all of
+ * these by default. */
+#ifdef __linux__
+#define _XOPEN_SOURCE 600
+#define _DEFAULT_SOURCE
+#endif
+
 #ifndef __CYGWIN__
+#include <errno.h>
 #include <fcntl.h>
 #include <grp.h>
 #include <sys/ioctl.h>
+#include <sys/select.h>
 #include <sys/stat.h>
 #include <termios.h>
-#define __USE_XOPEN
 #endif
 
 #include <signal.h>
@@ -33,6 +44,7 @@
 #include <string.h>
 
 #ifndef __CYGWIN__
+static int  write_all(int fd, const char *buf, size_t count);
 static void set_noecho(int fd);
 static void loop(int fdm);
 static int  open_master_pty(char *name, size_t size);
@@ -139,6 +151,27 @@ static void set_noecho(int fd)
 	exit(1);
 }
 
+/* Write the whole buffer. write() may transfer fewer bytes than requested,
+ * especially on a pty, so keep going until it's all out. Returns 0 on
+ * success, -1 if the write failed. */
+static int write_all(int fd, const char *buf, size_t count)
+{
+    while (count > 0) {
+        ssize_t written = write(fd, buf, count);
+
+        if (written < 0) {
+            if (errno == EINTR)
+                continue;
+            return -1;
+        }
+
+        buf += written;
+        count -= written;
+    }
+
+    return 0;
+}
+
 /* Copy stdin to fdm, copy fdm to stdout. */
 static void loop(int fdm)
 {
@@ -156,18 +189,20 @@ static void loop(int fdm)
         if (FD_ISSET(fdm, &fdset)) {
             int i = read(fdm, buf, sizeof(buf));
 
-            if (i > 0)
-                write(STDOUT_FILENO, buf, i);
-            else
+            if (i > 0) {
+                if (write_all(STDOUT_FILENO, buf, i) < 0)
+                    done = 1;
+            } else
                 done = 1;
         }
 
         if (FD_ISSET(STDIN_FILENO, &fdset)) {
             int i = read(STDIN_FILENO, buf, sizeof(buf));
 
-            if (i > 0)
-                write(fdm, buf, i);
-            else
+            if (i > 0) {
+                if (write_all(fdm, buf, i) < 0)
+                    done = 1;
+            } else
                 done = 1;
         }
     }
