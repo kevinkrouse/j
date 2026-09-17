@@ -68,7 +68,7 @@ public final class MakefileMode extends AbstractMode implements Constants, Mode
     {
         km.mapKey(KeyEvent.VK_ENTER, 0, "newlineAndIndent");
         km.mapKey(KeyEvent.VK_F9, 0, "compile");
-        km.mapKey(KeyEvent.VK_F9, InputEvent.CTRL_MASK, "recompile");
+        km.mapKey(KeyEvent.VK_F9, CTRL_MASK, "recompile");
     }
 
     public int getCorrectIndentation(Line line, Buffer buffer)

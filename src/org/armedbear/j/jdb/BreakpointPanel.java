@@ -20,6 +20,7 @@
 
 package org.armedbear.j.jdb;
 
+import org.armedbear.j.util.Utilities;
 import java.awt.Component;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
@@ -65,8 +66,7 @@ public final class BreakpointPanel implements BreakpointListener, KeyListener
     public void keyPressed(KeyEvent e)
     {
         final int keyCode = e.getKeyCode();
-        // Mask off the bits we don't care about (Java 1.4).
-        final int modifiers = e.getModifiers() & 0x0f;
+        final int modifiers = Utilities.keyModifiers(e);
         if (modifiers != 0)
             return;
         if (keyCode == KeyEvent.VK_DELETE) {

@@ -20,6 +20,7 @@
 
 package org.armedbear.j;
 
+import org.armedbear.j.util.Utilities;
 import java.awt.Dimension;
 import java.awt.Point;
 import java.awt.SystemColor;
@@ -207,7 +208,7 @@ public abstract class AbstractDialog extends JDialog implements ActionListener,
 
     public void keyPressed(KeyEvent e)
     {
-        if (e.getModifiers() == 0) {
+        if (Utilities.isUnmodified(e)) {
             // Special case for combo box.
             if (e.getComponent() instanceof JComboBox) {
                 JComboBox<?> cb = (JComboBox<?>) e.getComponent();

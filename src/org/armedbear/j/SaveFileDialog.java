@@ -144,12 +144,12 @@ public class SaveFileDialog extends JDialog implements FocusListener, KeyListene
     public void keyPressed(KeyEvent e)
     {
         int keyCode   = e.getKeyCode();
-        int modifiers = e.getModifiers();
+        int modifiers = Utilities.keyModifiers(e);
         switch (keyCode) {
             case KeyEvent.VK_TAB: {
                 String s = null;
                 String entry = textField.getText();
-                if (modifiers == InputEvent.SHIFT_MASK)
+                if (modifiers == Constants.SHIFT_MASK)
                     s = previousGuess();
                 else {
                     File dir = editor.getCurrentDirectory();

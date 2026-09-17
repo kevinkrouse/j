@@ -801,7 +801,7 @@ public final class OpenFileTextFieldHandler extends DefaultTextFieldHandler
             MenuSelectionManager manager)
         {
             final int keyCode = e.getKeyCode();
-            final int modifiers = e.getModifiers();
+            final int modifiers = Utilities.keyModifiers(e);
             final int id = e.getID();
             if (id == KeyEvent.KEY_PRESSED) {
                 switch (keyCode) {
@@ -885,9 +885,9 @@ public final class OpenFileTextFieldHandler extends DefaultTextFieldHandler
 
         public void mousePressed(MouseEvent e)
         {
-            // Mask off the bits we don't care about (Java 1.4).
-            int modifiers = e.getModifiers() & 0x1f;
-            if (modifiers == InputEvent.BUTTON1_MASK || modifiers == InputEvent.BUTTON2_MASK) {
+            final int button = e.getButton();
+            final boolean unmodified = Utilities.isUnmodified(e);
+            if ((unmodified && button == MouseEvent.BUTTON1) || (unmodified && button == MouseEvent.BUTTON2)) {
                 listbox.setSelectedIndex(listbox.locationToIndex(e.getPoint()));
                 String s = listbox.getSelectedValue();
                 textField.setText(s);
@@ -904,7 +904,7 @@ public final class OpenFileTextFieldHandler extends DefaultTextFieldHandler
     public void keyPressed(KeyEvent e)
     {
         if (popup != null) {
-            int modifiers = e.getModifiers();
+            int modifiers = Utilities.keyModifiers(e);
             switch (e.getKeyCode()) {
                 case KeyEvent.VK_ENTER:
                     enterPopup();
@@ -973,7 +973,7 @@ public final class OpenFileTextFieldHandler extends DefaultTextFieldHandler
             textField.getCaret().setVisible(true);
             return;
         }
-        if ((e.getModifiers() & (ALT_MASK | CTRL_MASK | META_MASK)) != 0) {
+        if ((Utilities.keyModifiers(e) & (ALT_MASK | CTRL_MASK | META_MASK)) != 0) {
             e.consume();
             return;
         }

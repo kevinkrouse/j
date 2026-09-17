@@ -54,6 +54,7 @@ import java.net.URL;
 import java.util.List;
 import javax.swing.JPopupMenu;
 import javax.swing.SwingUtilities;
+import org.armedbear.j.util.Utilities;
 import javax.swing.ToolTipManager;
 import javax.swing.undo.CompoundEdit;
 
@@ -105,7 +106,6 @@ public final class Dispatcher implements Constants, KeyListener, MouseListener,
         DragGestureRecognizer dgr =
             dragSource.createDefaultDragGestureRecognizer(display,
                 DnDConstants.ACTION_COPY_OR_MOVE, this);
-        dgr.setSourceActions(dgr.getSourceActions() & ~InputEvent.BUTTON3_MASK);
     }
 
     public final AWTEvent getLastEvent()
@@ -224,7 +224,7 @@ public final class Dispatcher implements Constants, KeyListener, MouseListener,
             keycode == KeyEvent.VK_ALT || keycode == KeyEvent.VK_META)
             return false;
 
-        int modifiers = e.getModifiers();
+        int modifiers = Utilities.keyModifiers(e);
 
         char c = e.getKeyChar();
 
@@ -266,12 +266,11 @@ public final class Dispatcher implements Constants, KeyListener, MouseListener,
         if (ignoreKeyTyped)
             return false;
 
-        int modifiers = e.getModifiers();
+        final boolean altGraph =
+            (e.getModifiersEx() & InputEvent.ALT_GRAPH_DOWN_MASK) != 0;
+        int modifiers = Utilities.keyModifiers(e);
 
-        // Mask off the bits we don't care about (Java 1.4).
-        modifiers &= 0x0f;
-
-        if (modifiers != 0 && modifiers != InputEvent.SHIFT_MASK && modifiers != InputEvent.ALT_GRAPH_MASK)
+        if (!altGraph && modifiers != 0 && modifiers != SHIFT_MASK)
             return false;
 
         char c = e.getKeyChar();
@@ -361,9 +360,9 @@ public final class Dispatcher implements Constants, KeyListener, MouseListener,
 
     public void mouseClicked(MouseEvent e)
     {
-        // Mask off the bits we don't care about (Java 1.4).
-        int modifiers = e.getModifiers() & 0x1f;
-        if (modifiers != InputEvent.BUTTON1_MASK)
+        final int modifiers = Utilities.keyModifiers(e);
+        final int button = e.getButton();
+        if (button != MouseEvent.BUTTON1 || modifiers != 0)
             return;
         if (editor.getMark() != null && e.getClickCount() == 1) {
             final Buffer buffer = editor.getBuffer();
@@ -408,17 +407,19 @@ public final class Dispatcher implements Constants, KeyListener, MouseListener,
             if (sidebar != null)
                 sidebar.setUpdateFlag(SIDEBAR_SET_BUFFER);
         }
-        int modifiers = e.getModifiers() & 0x1f;
+        // A plain left click, with no keyboard modifier.
+        final boolean plainButton1 =
+            e.getButton() == MouseEvent.BUTTON1 && Utilities.isUnmodified(e);
         JPopupMenu popup = editor.getPopup();
         if (popup != null) {
             if (popup.isVisible()) {
                 editor.killPopup();
-                if (modifiers != InputEvent.BUTTON1_MASK)
+                if (!plainButton1)
                     return;
             }
             editor.setPopup(null);
         }
-        if (modifiers == InputEvent.BUTTON1_MASK && editor.getMark() != null) {
+        if (plainButton1 && editor.getMark() != null) {
             if (editor.getBuffer().getBooleanProperty(Property.ENABLE_DRAG_TEXT)) {
                 Region r = new Region(editor);
                 if (!r.isColumnRegion()) {
@@ -457,8 +458,8 @@ public final class Dispatcher implements Constants, KeyListener, MouseListener,
         final int x = e.getX();
         final int y = e.getY();
 
-        // Mask off the bits we don't care about (Java 1.4).
-        int modifiers = e.getModifiers() & 0x1f;
+        final int modifiers = Utilities.keyModifiers(e);
+        final int button = e.getButton();
 
         final Mode mode = editor.getMode();
         final Buffer buffer = editor.getBuffer();
@@ -470,13 +471,13 @@ public final class Dispatcher implements Constants, KeyListener, MouseListener,
             if (next != null && next.isHidden()) {
                 editor.unfold(next);
                 return true;
-            } else if (modifiers == InputEvent.BUTTON2_MASK) {
+            } else if (button == MouseEvent.BUTTON2 && modifiers == 0) {
                 // Middle button.
                 editor.foldNearLine(pos.getLine());
                 return true;
             }
             // else fall through...
-        } else if (modifiers == InputEvent.BUTTON2_MASK) {
+        } else if (button == MouseEvent.BUTTON2 && modifiers == 0) {
             Position pos = display.positionFromPoint(x, y);
             if (pos != null && pos.getOffset() < pos.getLine().getIndentation()) {
                 Line next = pos.getLine().next();
@@ -501,34 +502,17 @@ public final class Dispatcher implements Constants, KeyListener, MouseListener,
 
         int keycode = 0;
         final int clickCount = e.getClickCount();
-        if ((modifiers & InputEvent.BUTTON1_MASK) != 0) {
-            modifiers &= ~InputEvent.BUTTON1_MASK;
-            switch (clickCount) {
-                case 1:
-                    keycode = VK_MOUSE_1;
+        if (clickCount == 1 || clickCount == 2) {
+            final boolean doubled = clickCount == 2;
+            switch (button) {
+                case MouseEvent.BUTTON1:
+                    keycode = doubled ? VK_DOUBLE_MOUSE_1 : VK_MOUSE_1;
                     break;
-                case 2:
-                    keycode = VK_DOUBLE_MOUSE_1;
+                case MouseEvent.BUTTON2:
+                    keycode = doubled ? VK_DOUBLE_MOUSE_2 : VK_MOUSE_2;
                     break;
-            }
-        } else if ((modifiers & InputEvent.BUTTON2_MASK) != 0) {
-            modifiers &= ~InputEvent.BUTTON2_MASK;
-            switch (clickCount) {
-                case 1:
-                    keycode = VK_MOUSE_2;
-                    break;
-                case 2:
-                    keycode = VK_DOUBLE_MOUSE_2;
-                    break;
-            }
-        } else if ((modifiers & InputEvent.BUTTON3_MASK) != 0) {
-            modifiers &= ~InputEvent.BUTTON3_MASK;
-            switch (clickCount) {
-                case 1:
-                    keycode = VK_MOUSE_3;
-                    break;
-                case 2:
-                    keycode = VK_DOUBLE_MOUSE_3;
+                case MouseEvent.BUTTON3:
+                    keycode = doubled ? VK_DOUBLE_MOUSE_3 : VK_MOUSE_3;
                     break;
             }
         }
@@ -569,20 +553,15 @@ public final class Dispatcher implements Constants, KeyListener, MouseListener,
         if (dot == null)
             return false;
 
-        // Mask off the bits we don't care about (Java 1.4).
-        final int modifiers = e.getModifiers() & 0x1f;
-
-        // IBM Windows VM reports modifiers are 0 even when the left button is
-        // down. So instead of looking for button 1 to be down, we verify that
-        // buttons 2 and 3 are NOT down.
-        if ((modifiers & InputEvent.BUTTON2_MASK) != 0)
+        // During a drag getModifiersEx reports which buttons are actually
+        // held, so this can ask for button 1 directly.
+        final int ex = e.getModifiersEx();
+        if ((ex & InputEvent.BUTTON1_DOWN_MASK) == 0)
             return false;
-        if ((modifiers & InputEvent.BUTTON3_MASK) != 0)
+        if ((ex & (InputEvent.BUTTON2_DOWN_MASK
+                   | InputEvent.BUTTON3_DOWN_MASK)) != 0)
             return false;
-
-        if ((modifiers & InputEvent.CTRL_MASK) != 0)
-            return false;
-        if ((modifiers & InputEvent.SHIFT_MASK) != 0)
+        if (!Utilities.isUnmodified(e))
             return false;
 
         // No drag select with column selections.

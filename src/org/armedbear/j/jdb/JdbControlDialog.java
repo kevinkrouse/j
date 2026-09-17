@@ -201,8 +201,7 @@ public final class JdbControlDialog extends JDialog implements JdbConstants,
     public void keyPressed(KeyEvent e)
     {
         if (e.getKeyCode() == KeyEvent.VK_ENTER) {
-            // Mask off the bits we don't care about (Java 1.4).
-            if ((e.getModifiers() & 0x0f) == 0) {
+            if (Utilities.isUnmodified(e)) {
                 if (commandTextField.getText().trim().length() > 0) {
                     jdb.doCommand(commandTextField.getText());
                     commandTextField.setText("");

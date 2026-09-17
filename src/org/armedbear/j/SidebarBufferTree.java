@@ -20,6 +20,8 @@
 
 package org.armedbear.j;
 
+import org.armedbear.j.Constants;
+import org.armedbear.j.util.Utilities;
 import java.lang.StringBuilder;
 
 import java.awt.Color;
@@ -136,7 +138,6 @@ public final class SidebarBufferTree extends SidebarTree implements Constants,
             dragSource.createDefaultDragGestureRecognizer(this,
                                                           DnDConstants.ACTION_COPY_OR_MOVE,
                                                           this);
-        dgr.setSourceActions(dgr.getSourceActions() & ~InputEvent.BUTTON3_MASK);
         new DropTarget(this, this);
 
         Preferences p = Editor.preferences();
@@ -545,8 +546,7 @@ public final class SidebarBufferTree extends SidebarTree implements Constants,
     public void keyPressed(KeyEvent e)
     {
         final int keyCode = e.getKeyCode();
-        // Mask off the bits we don't care about (Java 1.4).
-        final int modifiers = e.getModifiers() & 0x0f;
+        final int modifiers = Utilities.keyModifiers(e);
         final Editor editor = sidebar.getEditor();
         switch (keyCode) {
             // Ignore modifier keystrokes.
@@ -558,7 +558,7 @@ public final class SidebarBufferTree extends SidebarTree implements Constants,
             case KeyEvent.VK_ENTER:
                 e.consume();
                 switchToBuffer();
-                if (modifiers == KeyEvent.ALT_MASK)
+                if (modifiers == Constants.ALT_MASK)
                     editor.toggleSidebar();
                 return;
             case KeyEvent.VK_TAB:
@@ -603,16 +603,16 @@ public final class SidebarBufferTree extends SidebarTree implements Constants,
     {
         Editor editor = sidebar.getEditor();
         editor.ensureActive();
-        // Mask off the bits we don't care about (Java 1.4).
-        int modifiers = e.getModifiers() & 0x1f;
+        final int button = e.getButton();
+        final boolean unmodified = Utilities.isUnmodified(e);
         Point p = e.getPoint();
-        if (modifiers == InputEvent.BUTTON1_MASK ||
-            modifiers == InputEvent.BUTTON2_MASK)
+        if ((unmodified && button == MouseEvent.BUTTON1) ||
+            (unmodified && button == MouseEvent.BUTTON2))
         {
             setSelectionRow(getRowForLocation(p.x, p.y));
             paintImmediately(0, 0, getWidth(), getHeight());
             switchToBuffer();
-        } else if (modifiers == InputEvent.BUTTON3_MASK) {
+        } else if ((unmodified && button == MouseEvent.BUTTON3)) {
             //setSelectedIndex(locationToIndex(e.getPoint()));
             setSelectionRow(getRowForLocation(p.x, p.y));
             sidebar.getFrame().setFocus(this);
@@ -628,19 +628,19 @@ public final class SidebarBufferTree extends SidebarTree implements Constants,
 
     public void mouseClicked(MouseEvent e)
     {
-        // Mask off the bits we don't care about (Java 1.4).
-        int modifiers = e.getModifiers() & 0x1f;
+        final int button = e.getButton();
+        final boolean unmodified = Utilities.isUnmodified(e);
         Point p = e.getPoint();
         // If the user clicks with the first or second mouse button while
         // there is a popup menu visible, the tree doesn't get painted
         // properly unless we repaint it here.
-        if (modifiers == InputEvent.BUTTON1_MASK ||
-            modifiers == InputEvent.BUTTON2_MASK)
+        if ((unmodified && button == MouseEvent.BUTTON1) ||
+            (unmodified && button == MouseEvent.BUTTON2))
         {
             setSelectionRow(getRowForLocation(p.x, p.y));
             paintImmediately(0, 0, getWidth(), getHeight());
             switchToBuffer();
-        } else if (e.getModifiers() == InputEvent.BUTTON3_MASK) {
+        } else if ((Utilities.isUnmodified(e) && e.getButton() == MouseEvent.BUTTON3)) {
             showPopup(e.getComponent(), e.getX(), e.getY());
         }
     }

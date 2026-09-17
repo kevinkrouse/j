@@ -126,9 +126,10 @@ public final class FolderTree extends JTree implements NavigationComponent,
     public void mouseClicked(MouseEvent e)
     {
         final Editor editor = frame.getCurrentEditor();
-        final int modifiers = e.getModifiers();
-        if (modifiers != InputEvent.BUTTON1_MASK &&
-            modifiers != InputEvent.BUTTON2_MASK) {
+        final int button = e.getButton();
+        final boolean unmodified = Utilities.isUnmodified(e);
+        if (!(unmodified && button == MouseEvent.BUTTON1) &&
+            !(unmodified && button == MouseEvent.BUTTON2)) {
             e.consume();
             editor.setFocusToDisplay();
             return;

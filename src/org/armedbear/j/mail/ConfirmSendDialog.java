@@ -20,6 +20,7 @@
 
 package org.armedbear.j.mail;
 
+import org.armedbear.j.util.Utilities;
 import java.awt.event.ActionEvent;
 import java.awt.event.KeyEvent;
 import javax.swing.Box;
@@ -202,7 +203,7 @@ public final class ConfirmSendDialog extends AbstractDialog
         // Treat the user's mapping(s) for the send command like Enter.
         KeyMapping mapping =
             editor.getKeyMapping(e.getKeyChar(), e.getKeyCode(),
-                                 e.getModifiers());
+                                 Utilities.keyModifiers(e));
         if (mapping != null && mapping.getCommand() == "send") {
             e.consume();
             enter();

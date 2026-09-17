@@ -20,6 +20,7 @@
 
 package org.armedbear.j;
 
+import org.armedbear.j.util.Utilities;
 import java.awt.Component;
 import java.awt.event.KeyEvent;
 import javax.swing.DefaultFocusManager;
@@ -34,7 +35,7 @@ public final class CustomFocusManager extends DefaultFocusManager
                 KeyMapping km;
                 int keyCode = e.getKeyCode();
                 if (keyCode != 0)
-                    km = new KeyMapping(keyCode, e.getModifiers(), null);
+                    km = new KeyMapping(keyCode, Utilities.keyModifiers(e), null);
                 else
                     km = new KeyMapping(e.getKeyChar(), null);
                 String keyText = km.toString();

@@ -20,6 +20,7 @@
 
 package org.armedbear.j.mode.list;
 
+import org.armedbear.j.util.Utilities;
 import org.armedbear.j.AbstractDialog;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Editor;
@@ -147,7 +148,7 @@ public final class ListTagsDialog extends AbstractDialog implements MouseListene
 
     public void mousePressed(MouseEvent e)
     {
-        if (e.getModifiers() == InputEvent.BUTTON2_MASK) {
+        if ((Utilities.isUnmodified(e) && e.getButton() == MouseEvent.BUTTON2)) {
             int index = list.locationToIndex(e.getPoint());
             list.setSelectedIndex(index);
             ok();

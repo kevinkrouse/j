@@ -20,6 +20,7 @@
 
 package org.armedbear.j;
 
+import org.armedbear.j.util.Utilities;
 import java.lang.StringBuilder;
 
 import java.awt.event.InputEvent;
@@ -68,7 +69,7 @@ public final class DescribeKeyDialog extends AbstractDialog
             keycode == KeyEvent.VK_ALT || keycode == KeyEvent.VK_META)
             return;
         seenKeyPressed = true;
-        final int modifiers = e.getModifiers();
+        final int modifiers = Utilities.keyModifiers(e);
         KeyMapping mapping = new KeyMapping(keycode, modifiers, null);
         lastKeyText = mapping.getKeyText();
         Object command = describeKey(new JEvent(e));
@@ -87,8 +88,8 @@ public final class DescribeKeyDialog extends AbstractDialog
     {
         if (!eventHandled) {
             final char c = e.getKeyChar();
-            final int modifiers = e.getModifiers();
-            if (modifiers == 0 || modifiers == InputEvent.SHIFT_MASK) {
+            final int modifiers = Utilities.keyModifiers(e);
+            if (modifiers == 0 || modifiers == Constants.SHIFT_MASK) {
                 // Ignore whitespace key chars (e.g. Space, Shift Tab).
                 if (c > ' ') {
                     StringBuilder sb = new StringBuilder();
@@ -135,8 +136,9 @@ public final class DescribeKeyDialog extends AbstractDialog
             return null;
         char keyChar = event.getKeyChar();
         int keyCode = event.getKeyCode();
-        int modifiers = event.getModifiers() & 0x0f;
-        if (keyCode == 0 && modifiers == InputEvent.SHIFT_MASK) // Shift only.
+        // A JEvent, so these are already j's own modifier bits.
+        int modifiers = event.getModifiers();
+        if (keyCode == 0 && modifiers == Constants.SHIFT_MASK) // Shift only.
             modifiers = 0; // Ignore modifier.
         KeyMapping mapping = null;
         if (requestedKeyMap != null) {

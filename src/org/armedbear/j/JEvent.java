@@ -56,7 +56,8 @@ public final class JEvent
 
     JEvent(KeyEvent e)
     {
-        this(translateID(e), e.getKeyCode(), e.getKeyChar(), e.getModifiers());
+        this(translateID(e), e.getKeyCode(), e.getKeyChar(),
+             Utilities.keyModifiers(e));
     }
 
     private static int translateID(KeyEvent e)

@@ -20,6 +20,7 @@
 
 package org.armedbear.j;
 
+import org.armedbear.j.util.Utilities;
 import java.awt.Dimension;
 import java.awt.Point;
 import java.awt.event.InputEvent;
@@ -141,7 +142,7 @@ public final class RecentFilesDialog extends AbstractDialog implements MouseList
     {
         if (e.getClickCount() == 2)
             openSelectedFile();
-        else if (e.getModifiers() == InputEvent.BUTTON2_MASK)
+        else if ((Utilities.isUnmodified(e) && e.getButton() == MouseEvent.BUTTON2))
             openFileAtPoint(e.getPoint());
         else if (e.getComponent() == table.getTableHeader()) {
             TableColumnModel columnModel = table.getColumnModel();

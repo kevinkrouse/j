@@ -33,6 +33,7 @@ import java.awt.Graphics;
 import java.awt.Image;
 import java.awt.AlphaComposite;
 import java.awt.Graphics2D;
+import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
 import java.awt.image.BufferedImage;
 import java.io.BufferedInputStream;
@@ -1213,6 +1214,35 @@ public final class Utilities implements Constants
     /**
      * Split arguments and run a command line.
      */
+    /**
+     * The keyboard modifiers held during an event, as j's own bits.
+     *
+     * <p>Read from getModifiersEx() rather than the deprecated getModifiers(),
+     * which cannot tell some of these apart from mouse buttons: it reports the
+     * middle button and Alt as the same bit, and the right button and Meta as
+     * the same bit.
+     */
+    public static int keyModifiers(InputEvent e)
+    {
+        final int ex = e.getModifiersEx();
+        int modifiers = 0;
+        if ((ex & InputEvent.SHIFT_DOWN_MASK) != 0)
+            modifiers |= SHIFT_MASK;
+        if ((ex & InputEvent.CTRL_DOWN_MASK) != 0)
+            modifiers |= CTRL_MASK;
+        if ((ex & InputEvent.META_DOWN_MASK) != 0)
+            modifiers |= META_MASK;
+        if ((ex & InputEvent.ALT_DOWN_MASK) != 0)
+            modifiers |= ALT_MASK;
+        return modifiers;
+    }
+
+    /** True when the event carries no keyboard modifier. */
+    public static boolean isUnmodified(InputEvent e)
+    {
+        return keyModifiers(e) == 0;
+    }
+
     public static Process exec(String command) throws IOException
     {
         StringTokenizer st = new StringTokenizer(command);

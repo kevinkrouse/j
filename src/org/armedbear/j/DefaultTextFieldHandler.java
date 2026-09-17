@@ -20,6 +20,7 @@
 
 package org.armedbear.j;
 
+import org.armedbear.j.util.Utilities;
 import java.awt.Color;
 import java.awt.Container;
 import java.awt.event.ActionEvent;
@@ -198,7 +199,7 @@ public class DefaultTextFieldHandler implements Constants, TextFieldHandler
             Debug.bug();
         final char keyChar = e.getKeyChar();
         final int keyCode = e.getKeyCode();
-        final int modifiers = e.getModifiers();
+        final int modifiers = Utilities.keyModifiers(e);
         switch (keyCode) {
             case KeyEvent.VK_ENTER:
                 resetExpansion();

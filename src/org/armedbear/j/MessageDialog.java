@@ -20,6 +20,7 @@
 
 package org.armedbear.j;
 
+import org.armedbear.j.util.Utilities;
 import java.awt.Graphics;
 import java.awt.event.KeyEvent;
 import java.awt.event.WindowEvent;
@@ -84,7 +85,7 @@ public class MessageDialog extends AbstractDialog
             escape();
             return;
         }
-        if (e.getModifiers() == 0) {
+        if (Utilities.isUnmodified(e)) {
             switch (e.getKeyCode()) {
                 case KeyEvent.VK_ENTER:
                 case KeyEvent.VK_SPACE:

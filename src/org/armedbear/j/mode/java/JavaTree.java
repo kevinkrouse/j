@@ -377,7 +377,7 @@ public final class JavaTree extends SidebarTree implements Constants,
     public void keyPressed(KeyEvent e)
     {
         final int keyCode = e.getKeyCode();
-        final int modifiers = e.getModifiers();
+        final int modifiers = Utilities.keyModifiers(e);
         switch (keyCode) {
             // Ignore modifier keystrokes.
             case KeyEvent.VK_SHIFT:
@@ -396,7 +396,7 @@ public final class JavaTree extends SidebarTree implements Constants,
                         ((JavaTag)obj).gotoTag(editor);
                 }
                 editor.setFocusToDisplay();
-                if (modifiers == KeyEvent.ALT_MASK)
+                if (modifiers == Constants.ALT_MASK)
                     editor.toggleSidebar();
                 return;
             }
@@ -448,8 +448,9 @@ public final class JavaTree extends SidebarTree implements Constants,
     {
         LocationBar.cancelInput();
         editor.ensureActive();
-        final int modifiers = e.getModifiers();
-        if (modifiers != InputEvent.BUTTON1_MASK && modifiers != InputEvent.BUTTON2_MASK) {
+        final int button = e.getButton();
+        final boolean unmodified = Utilities.isUnmodified(e);
+        if (!(unmodified && button == MouseEvent.BUTTON1) && !(unmodified && button == MouseEvent.BUTTON2)) {
             e.consume();
             editor.setFocusToDisplay();
             return;

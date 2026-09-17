@@ -2626,7 +2626,7 @@ public final class Editor extends JPanel implements Constants,
         if (object instanceof JEvent) {
             JEvent e = (JEvent) object;
             if (e.getID() == JEvent.KEY_PRESSED) {
-                if (e.getKeyCode() == 0x47 && e.getModifiers() == 2)
+                if (e.getKeyCode() == 0x47 && e.getModifiers() == CTRL_MASK)
                     return true;
             }
             return false;
@@ -2634,7 +2634,7 @@ public final class Editor extends JPanel implements Constants,
         if (object instanceof KeyEvent) {
             KeyEvent e = (KeyEvent) object;
             if (e.getID() == KeyEvent.KEY_PRESSED) {
-                if (e.getKeyCode() == 0x47 && e.getModifiers() == 2)
+                if (e.getKeyCode() == 0x47 && Utilities.keyModifiers(e) == CTRL_MASK)
                     return true;
             }
             return false;

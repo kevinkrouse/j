@@ -20,6 +20,7 @@
 
 package org.armedbear.j;
 
+import org.armedbear.j.Constants;
 import org.armedbear.j.util.Utilities;
 
 import java.awt.Color;
@@ -105,8 +106,7 @@ public final class IncrementalFindTextFieldHandler extends DefaultTextFieldHandl
     {
         final char keyChar = e.getKeyChar();
         final int keyCode = e.getKeyCode();
-        // Mask off the bits we don't care about (Java 1.4).
-        final int modifiers = e.getModifiers() & 0x0f;
+        final int modifiers = Utilities.keyModifiers(e);
         switch (keyCode) {
             case KeyEvent.VK_ESCAPE:
                 escape();
@@ -264,8 +264,7 @@ public final class IncrementalFindTextFieldHandler extends DefaultTextFieldHandl
 
     public void keyTyped(KeyEvent e)
     {
-        // Mask off the bits we don't care about (Java 1.4).
-        final int modifiers = e.getModifiers() & 0x0f;
+        final int modifiers = Utilities.keyModifiers(e);
         if (modifiers == 0 || modifiers == SHIFT_MASK)
             handleKeyEvent(e);
     }
@@ -273,8 +272,8 @@ public final class IncrementalFindTextFieldHandler extends DefaultTextFieldHandl
     private void handleKeyEvent(KeyEvent e)
     {
         // Mask off bits we don't care about (Java 1.4).
-        int modifiers = e.getModifiers() & 0x0f;
-        if (modifiers != 0 && modifiers != KeyEvent.SHIFT_MASK)
+        int modifiers = Utilities.keyModifiers(e);
+        if (modifiers != 0 && modifiers != Constants.SHIFT_MASK)
             return;
         char c = e.getKeyChar();
         if (c == KeyEvent.CHAR_UNDEFINED)

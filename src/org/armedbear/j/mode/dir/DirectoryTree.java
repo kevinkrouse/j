@@ -27,6 +27,7 @@ import org.armedbear.j.File;
 import org.armedbear.j.LocationBar;
 import org.armedbear.j.NavigationComponent;
 import org.armedbear.j.SidebarTree;
+import org.armedbear.j.Constants;
 import org.armedbear.j.util.Utilities;
 
 import java.awt.Color;
@@ -200,7 +201,7 @@ public final class DirectoryTree extends SidebarTree implements NavigationCompon
     public void keyPressed(KeyEvent e)
     {
         int keyCode = e.getKeyCode();
-        int modifiers = e.getModifiers();
+        int modifiers = Utilities.keyModifiers(e);
 
         switch (keyCode) {
             // Ignore modifier keystrokes.
@@ -223,7 +224,7 @@ public final class DirectoryTree extends SidebarTree implements NavigationCompon
                         editor.setWaitCursor();
                         expandNode(node, file);
                         editor.setDefaultCursor();
-                        if (e.getModifiers() == InputEvent.BUTTON2_MASK)
+                        if (Utilities.keyModifiers(e) == Constants.ALT_MASK)
                             editor.setFocusToDisplay();
                         repaint();
                         ((DirectoryBuffer)editor.getBuffer()).changeDirectory(file);
@@ -231,7 +232,7 @@ public final class DirectoryTree extends SidebarTree implements NavigationCompon
                     }
                 }
                 editor.setFocusToDisplay();
-                if (modifiers == KeyEvent.ALT_MASK)
+                if (modifiers == Constants.ALT_MASK)
                     editor.toggleSidebar();
                 return;
             }
@@ -273,11 +274,12 @@ public final class DirectoryTree extends SidebarTree implements NavigationCompon
         ignoreMouseClicked = false;
         LocationBar.cancelInput();
         editor.ensureActive();
-        int modifiers = e.getModifiers();
-        if (modifiers == InputEvent.BUTTON1_MASK ||
-            modifiers == InputEvent.BUTTON2_MASK) {
+        final int button = e.getButton();
+        final boolean unmodified = Utilities.isUnmodified(e);
+        if ((unmodified && button == MouseEvent.BUTTON1) ||
+            (unmodified && button == MouseEvent.BUTTON2)) {
             Point point = e.getPoint();
-            if (e.getModifiers() == InputEvent.BUTTON2_MASK) {
+            if ((Utilities.isUnmodified(e) && e.getButton() == MouseEvent.BUTTON2)) {
                 int row = getRowForLocation(point.x, point.y);
                 setSelectionRow(row);
             }
@@ -300,9 +302,10 @@ public final class DirectoryTree extends SidebarTree implements NavigationCompon
             editor.setFocusToDisplay();
             return;
         }
-        final int modifiers = e.getModifiers();
-        if (modifiers != InputEvent.BUTTON1_MASK &&
-            modifiers != InputEvent.BUTTON2_MASK) {
+        final int button = e.getButton();
+        final boolean unmodified = Utilities.isUnmodified(e);
+        if (!(unmodified && button == MouseEvent.BUTTON1) &&
+            !(unmodified && button == MouseEvent.BUTTON2)) {
             e.consume();
             editor.setFocusToDisplay();
             return;
@@ -319,8 +322,8 @@ public final class DirectoryTree extends SidebarTree implements NavigationCompon
             expandNode(node, file);
             expandPath(treepath);
             editor.setDefaultCursor();
-            if (modifiers == InputEvent.BUTTON1_MASK ||
-                modifiers == InputEvent.BUTTON2_MASK)
+            if ((unmodified && button == MouseEvent.BUTTON1) ||
+                (unmodified && button == MouseEvent.BUTTON2))
                 editor.setFocusToDisplay();
             repaint();
             ((DirectoryBuffer)editor.getBuffer()).changeDirectory(file);

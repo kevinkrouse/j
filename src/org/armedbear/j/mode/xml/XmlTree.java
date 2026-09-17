@@ -267,7 +267,7 @@ public final class XmlTree extends JTree implements Constants, NavigationCompone
     public void keyPressed(KeyEvent e)
     {
         final int keyCode = e.getKeyCode();
-        final int modifiers = e.getModifiers();
+        final int modifiers = Utilities.keyModifiers(e);
         switch (keyCode) {
             // Ignore modifier keystrokes.
             case KeyEvent.VK_SHIFT:
@@ -285,7 +285,7 @@ public final class XmlTree extends JTree implements Constants, NavigationCompone
                         moveDotToNode(node);
                 }
                 editor.setFocusToDisplay();
-                if (modifiers == KeyEvent.ALT_MASK)
+                if (modifiers == Constants.ALT_MASK)
                     editor.toggleSidebar();
                 return;
             }
@@ -321,11 +321,12 @@ public final class XmlTree extends JTree implements Constants, NavigationCompone
     {
         LocationBar.cancelInput();
         editor.ensureActive();
-        final int modifiers = e.getModifiers();
-        if (modifiers == InputEvent.BUTTON1_MASK ||
-            modifiers == InputEvent.BUTTON2_MASK) {
+        final int button = e.getButton();
+        final boolean unmodified = Utilities.isUnmodified(e);
+        if ((unmodified && button == MouseEvent.BUTTON1) ||
+            (unmodified && button == MouseEvent.BUTTON2)) {
             editor.setFocus(this);
-            if (modifiers == InputEvent.BUTTON2_MASK) {
+            if ((unmodified && button == MouseEvent.BUTTON2)) {
                 int row = getRowForLocation(e.getX(), e.getY());
                 if (row >= 0)
                     setSelectionRow(row);
@@ -340,9 +341,10 @@ public final class XmlTree extends JTree implements Constants, NavigationCompone
 
     public void mouseClicked(MouseEvent e)
     {
-        final int modifiers = e.getModifiers();
-        if (modifiers == InputEvent.BUTTON1_MASK ||
-            modifiers == InputEvent.BUTTON2_MASK) {
+        final int button = e.getButton();
+        final boolean unmodified = Utilities.isUnmodified(e);
+        if ((unmodified && button == MouseEvent.BUTTON1) ||
+            (unmodified && button == MouseEvent.BUTTON2)) {
             Point point = e.getPoint();
             moveDotToNodeAtPoint(point);
         }

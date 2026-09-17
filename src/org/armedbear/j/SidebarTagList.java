@@ -20,6 +20,8 @@
 
 package org.armedbear.j;
 
+import org.armedbear.j.Constants;
+import org.armedbear.j.util.Utilities;
 import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
@@ -199,8 +201,7 @@ public class SidebarTagList extends SidebarList implements Constants,
     public void keyPressed(KeyEvent e)
     {
         int keyCode = e.getKeyCode();
-        int modifiers = e.getModifiers();
-        // Mask off the bits we don't care about (Java 1.4).
+        int modifiers = Utilities.keyModifiers(e);
         modifiers &= 0x0f;
         switch (keyCode) {
             // Ignore modifier keystrokes.
@@ -212,7 +213,7 @@ public class SidebarTagList extends SidebarList implements Constants,
             case KeyEvent.VK_ENTER:
                 e.consume();
                 gotoTag();
-                if (modifiers == KeyEvent.ALT_MASK)
+                if (modifiers == Constants.ALT_MASK)
                     sidebar.getFrame().frameToggleSidebar();
                 return;
             case KeyEvent.VK_TAB:
@@ -249,11 +250,11 @@ public class SidebarTagList extends SidebarList implements Constants,
     {
         LocationBar.cancelInput();
         editor.ensureActive();
-        // Mask off the bits we don't care about (Java 1.4).
-        int modifiers = e.getModifiers() & 0x1f;
-        if (modifiers == InputEvent.BUTTON1_MASK ||
-            modifiers == InputEvent.BUTTON2_MASK) {
-            if (modifiers == InputEvent.BUTTON2_MASK)
+        final int button = e.getButton();
+        final boolean unmodified = Utilities.isUnmodified(e);
+        if ((unmodified && button == MouseEvent.BUTTON1) ||
+            (unmodified && button == MouseEvent.BUTTON2)) {
+            if ((unmodified && button == MouseEvent.BUTTON2))
                 setSelectedIndex(locationToIndex(e.getPoint()));
             paintImmediately(0, 0, getWidth(), getHeight());
             Editor.setCurrentEditor(editor);

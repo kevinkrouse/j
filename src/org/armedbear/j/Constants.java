@@ -210,10 +210,12 @@ public interface Constants
     int ERROR      = -1;
     int CANCELLED  =  1;
 
-    int SHIFT_MASK = InputEvent.SHIFT_MASK;
-    int CTRL_MASK  = InputEvent.CTRL_MASK;
-    int ALT_MASK   = InputEvent.ALT_MASK;
-    int META_MASK  = InputEvent.META_MASK;
+    // j's own modifiers. The values are what AWTKeyStroke uses and aligns
+    // with KeyStroke.getModifiers(). See Utilities.keyModifiers.
+    int SHIFT_MASK = 1 << 0;
+    int CTRL_MASK  = 1 << 1;
+    int META_MASK  = 1 << 2;
+    int ALT_MASK   = 1 << 3;
 
     int RESPONSE_YES        = 0;
     int RESPONSE_NO         = 1;

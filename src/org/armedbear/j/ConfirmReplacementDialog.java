@@ -20,6 +20,7 @@
 
 package org.armedbear.j;
 
+import org.armedbear.j.util.Utilities;
 import java.awt.Dimension;
 import java.awt.Point;
 import java.awt.Rectangle;
@@ -201,8 +202,7 @@ public final class ConfirmReplacementDialog extends AbstractDialog
     {
         if (e.isConsumed())
             return;
-        // Mask off the bits we don't care about (Java 1.4).
-        final int modifiers = e.getModifiers() & 0x0f;
+        final int modifiers = Utilities.keyModifiers(e);
         if (modifiers == 0) {
             int keyCode = e.getKeyCode();
             switch (keyCode) {

@@ -20,6 +20,7 @@
 
 package org.armedbear.j;
 
+import org.armedbear.j.util.Utilities;
 import java.awt.BorderLayout;
 import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
@@ -123,11 +124,11 @@ public class InputDialog extends JDialog implements KeyListener
     public void keyPressed(KeyEvent e)
     {
         final int keyCode = e.getKeyCode();
-        final int modifiers = e.getModifiers();
+        final int modifiers = Utilities.keyModifiers(e);
         switch (keyCode) {
             case KeyEvent.VK_TAB: {
                 String s = null;
-                if (modifiers == InputEvent.SHIFT_MASK)
+                if (modifiers == Constants.SHIFT_MASK)
                     s = previousGuess();
                 else
                     s = guess(textField.getText());

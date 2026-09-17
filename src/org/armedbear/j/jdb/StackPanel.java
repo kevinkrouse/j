@@ -20,6 +20,7 @@
 
 package org.armedbear.j.jdb;
 
+import org.armedbear.j.util.Utilities;
 import com.sun.jdi.AbsentInformationException;
 import com.sun.jdi.Location;
 import com.sun.jdi.Method;
@@ -147,13 +148,12 @@ public final class StackPanel implements ContextListener, MouseListener
     {
         if (!jdb.isSuspended())
             return;
+        final int button = e.getButton();
+        final boolean unmodified = Utilities.isUnmodified(e);
 
-        // Mask off the bits we don't care about (Java 1.4).
-        int modifiers = e.getModifiers() & 0x1f;
-
-        if (modifiers == InputEvent.BUTTON1_MASK ||
-            modifiers == InputEvent.BUTTON2_MASK) {
-            if (modifiers == InputEvent.BUTTON2_MASK)
+        if ((unmodified && button == MouseEvent.BUTTON1) ||
+            (unmodified && button == MouseEvent.BUTTON2)) {
+            if ((unmodified && button == MouseEvent.BUTTON2))
                 list.setSelectedIndex(list.locationToIndex(e.getPoint()));
             list.paintImmediately(0, 0, list.getWidth(), list.getHeight());
             int index = list.getSelectedIndex();
