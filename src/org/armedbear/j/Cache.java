@@ -96,7 +96,7 @@ public final class Cache
     {
         File file = null;
         try {
-            URL url = new URL(netPath);
+            URL url = Utilities.toURL(netPath);
             HttpURLConnection connection =
                 (HttpURLConnection) url.openConnection();
             InputStream in = connection.getInputStream();

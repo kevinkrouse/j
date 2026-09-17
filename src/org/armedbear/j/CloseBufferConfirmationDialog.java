@@ -34,7 +34,7 @@ public final class CloseBufferConfirmationDialog extends ConfirmDialog
     {
         CloseBufferConfirmationDialog d =
             new CloseBufferConfirmationDialog(editor, buffer);
-        d.show();
+        d.setVisible(true);
         return d.confirmed();
     }
 

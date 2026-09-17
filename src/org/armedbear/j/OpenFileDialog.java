@@ -90,7 +90,7 @@ public class OpenFileDialog extends JDialog implements FocusListener
         handler.setCheckBuffers(false);
         handler.setCheckSourcePath(false);
         editor.centerDialog(dialog);
-        dialog.show();
+        dialog.setVisible(true);
         editor.repaintNow();
         if (dialog.result instanceof File)
             return (File) dialog.result;
@@ -129,7 +129,7 @@ public class OpenFileDialog extends JDialog implements FocusListener
         final Editor editor = Editor.currentEditor();
         OpenFileDialog dialog = new OpenFileDialog(editor);
         editor.centerDialog(dialog);
-        dialog.show();
+        dialog.setVisible(true);
         editor.repaintNow();
         Buffer buf = null;
         Object obj = dialog.getResult();

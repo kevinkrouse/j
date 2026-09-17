@@ -34,12 +34,6 @@ public final class Platform
         osName.startsWith("Windows");
     private static final boolean isPlatformMacOSX =
         osName.contains("OS X");
-    private static final boolean isJava13 =
-        System.getProperty("java.version").startsWith("1.3");
-    private static final boolean isJava14 =
-        System.getProperty("java.version").startsWith("1.4");
-    private static final boolean isJava140 =
-        System.getProperty("java.version").startsWith("1.4.0");
 
     public static final boolean isPlatformLinux()
     {
@@ -105,20 +99,5 @@ public final class Platform
             Log.error(e);
             return false;
         }
-    }
-
-    public static final boolean isJava13()
-    {
-        return isJava13;
-    }
-
-    public static final boolean isJava14()
-    {
-        return isJava14;
-    }
-
-    public static final boolean isJava140()
-    {
-        return isJava140;
     }
 }

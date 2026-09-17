@@ -349,7 +349,7 @@ public class SaveFileDialog extends JDialog implements FocusListener, KeyListene
         SaveFileDialog d =
             new SaveFileDialog(editor, dialogTitle, "File:", defaultName);
         editor.centerDialog(d);
-        d.show();
+        d.setVisible(true);
         return d.getDestination();
     }
 
@@ -358,7 +358,7 @@ public class SaveFileDialog extends JDialog implements FocusListener, KeyListene
         final Editor editor = Editor.currentEditor();
         SaveFileDialog d = new SaveFileDialog(editor, "Write Global Key Map");
         editor.centerDialog(d);
-        d.show();
+        d.setVisible(true);
         File file = d.getDestination();
         if (file != null)
             KeyMap.getGlobalKeyMap().writeKeyMap(file);
@@ -369,7 +369,7 @@ public class SaveFileDialog extends JDialog implements FocusListener, KeyListene
         final Editor editor = Editor.currentEditor();
         SaveFileDialog d = new SaveFileDialog(editor, "Write Local Key Map");
         editor.centerDialog(d);
-        d.show();
+        d.setVisible(true);
         File file = d.getDestination();
         if (file != null)
             editor.getBuffer().getKeyMapForMode().writeKeyMap(file);

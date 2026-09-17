@@ -699,7 +699,7 @@ public class MessageBuffer extends Buffer
         if (suggested != null)
             d.setInitialText(suggested.canonicalPath());
         editor.centerDialog(d);
-        d.show();
+        d.setVisible(true);
         File saveAs = d.getDestination();
         if (saveAs == null)
             return;

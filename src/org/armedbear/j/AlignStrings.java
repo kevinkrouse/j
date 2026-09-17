@@ -37,7 +37,7 @@ public final class AlignStrings
                 null);
         d.setHistory(new History("alignStrings"));
         editor.centerDialog(d);
-        d.show();
+        d.setVisible(true);
         String input = d.getInput();
         if (input != null)
             alignStrings(input);

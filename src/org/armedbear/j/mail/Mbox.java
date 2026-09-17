@@ -369,10 +369,4 @@ public final class Mbox
         MboxSummary summary = new MboxSummary(file, entries);
         summary.write(summaryFile);
     }
-
-    protected void finalize() throws Throwable
-    {
-        Log.debug("Mbox.finalize " + file);
-        super.finalize();
-    }
 }

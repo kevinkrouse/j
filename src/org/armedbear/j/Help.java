@@ -341,7 +341,7 @@ public final class Help
         InputDialog d = new InputDialog(editor, "Apropos:", "Apropos", null);
         d.setHistory(new History("apropos"));
         editor.centerDialog(d);
-        d.show();
+        d.setVisible(true);
         String arg = d.getInput();
         if (arg == null)
             return;

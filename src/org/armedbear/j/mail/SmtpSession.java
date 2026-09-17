@@ -32,12 +32,12 @@ import java.net.MalformedURLException;
 import java.net.NoRouteToHostException;
 import java.net.Socket;
 import java.net.UnknownHostException;
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import java.util.List;
 import org.armedbear.j.Debug;
 import org.armedbear.j.Editor;
 import org.armedbear.j.File;
-import org.armedbear.j.util.Base64Encoder;
-import java.lang.StringBuilder;
 import org.armedbear.j.Log;
 import org.armedbear.j.MessageDialog;
 import org.armedbear.j.Netrc;
@@ -322,7 +322,9 @@ public final class SmtpSession extends Writer
             sb.append('\0');
             sb.append(password);
 
-            String b64encoded = Base64Encoder.encode(sb.toString());
+            // RFC 4616: the SASL PLAIN message is UTF-8.
+            String b64encoded = Base64.getEncoder().encodeToString(
+                sb.toString().getBytes(StandardCharsets.UTF_8));
             writeLine(b64encoded);
             if (235 == getResponse())
                 return true;

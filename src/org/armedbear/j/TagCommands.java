@@ -331,7 +331,7 @@ public final class TagCommands implements Constants
         FindTagDialog findTagDialog =
             new FindTagDialog(editor, "List Matching Tags");
         editor.centerDialog(findTagDialog);
-        findTagDialog.show();
+        findTagDialog.setVisible(true);
         listMatchingTags(editor, findTagDialog.getInput());
     }
 

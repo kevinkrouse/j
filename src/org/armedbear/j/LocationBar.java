@@ -20,6 +20,7 @@
 
 package org.armedbear.j;
 
+import org.armedbear.j.util.Utilities;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Font;
@@ -109,7 +110,7 @@ public final class LocationBar extends JPanel implements Constants,
     {
         if (widest == null) {
             Font font = new Label().getFont();
-            FontMetrics fm = Toolkit.getDefaultToolkit().getFontMetrics(font);
+            FontMetrics fm = Utilities.getFontMetrics(font);
             int maxWidth = -1;
             for (int i = 0; i < prompts.length; i++) {
                 int width = fm.stringWidth(prompts[i]);

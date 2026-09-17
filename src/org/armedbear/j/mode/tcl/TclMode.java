@@ -78,8 +78,6 @@ public final class TclMode extends AbstractMode implements Constants, Mode
         // Duplicate mapping for 1.4.
         km.mapKey(KeyEvent.VK_BRACELEFT, CTRL_MASK | SHIFT_MASK, "insertBraces");
         km.mapKey(KeyEvent.VK_F12, 0, "wrapComment");
-        // Duplicate mapping to support IBM 1.3 for Linux.
-        km.mapKey(0xffc9, 0, "wrapComment"); // F12
     }
 
     public boolean isTaggable()

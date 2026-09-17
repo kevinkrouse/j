@@ -718,7 +718,7 @@ public final class FindInFiles extends Replacement implements Constants,
         confirmDialog.setTitle(file.netPath());
 
         // This is modal: carry out all replacements in this file.
-        confirmDialog.show();
+        confirmDialog.setVisible(true);
 
         if (confirmDialog.cancelled())
             cancelled = true;
@@ -881,7 +881,7 @@ public final class FindInFiles extends Replacement implements Constants,
     {
         FindInFilesDialog d = new FindInFilesDialog(editor, replace);
         editor.centerDialog(d);
-        d.show();
+        d.setVisible(true);
         editor.repaintNow();
         if (d.getFindInFiles() == null)
             return;

@@ -28,8 +28,7 @@ import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.net.Socket;
 import java.net.URL;
-import java.security.Provider;
-import java.security.Security;
+import javax.net.ssl.SSLSocketFactory;
 import javax.swing.SwingUtilities;
 
 public final class HttpLoadProcess extends LoadProcess implements BackgroundProcess,
@@ -88,12 +87,6 @@ public final class HttpLoadProcess extends LoadProcess implements BackgroundProc
     private void load()
     {
         boolean usingProxy = false;
-        if (file.getProtocol() == File.PROTOCOL_HTTPS) {
-            if (!findProvider()) {
-                error("No SSL provider found");
-                return;
-            }
-        }
         cache = Utilities.getTempFile();
         if (cache == null) {
             Log.error("HttpLoadProcess.load cache is null");
@@ -159,7 +152,7 @@ public final class HttpLoadProcess extends LoadProcess implements BackgroundProc
                 sb.append("\r\n");
             }
             if (Editor.preferences().getBooleanProperty(Property.HTTP_ENABLE_COOKIES)) {
-                String cookie = Cookie.getCookie(new URL(file.netPath()));
+                String cookie = Cookie.getCookie(Utilities.toURL(file.netPath()));
                 if (cookie != null) {
                     sb.append("Cookie: ");
                     sb.append(cookie);
@@ -235,7 +228,7 @@ public final class HttpLoadProcess extends LoadProcess implements BackgroundProc
                         if (Editor.preferences().getBooleanProperty(Property.HTTP_ENABLE_COOKIES)) {
                             String cookie = headers.getValue(Headers.SET_COOKIE);
                             if (cookie != null)
-                                Cookie.setCookie(new URL(file.netPath()), cookie);
+                                Cookie.setCookie(Utilities.toURL(file.netPath()), cookie);
                         }
                         int offset = index - oldLength + skip;
                         int length = bytesRead - offset;
@@ -308,41 +301,10 @@ public final class HttpLoadProcess extends LoadProcess implements BackgroundProc
             setErrorText(sc.getErrorText());
     }
 
-    private boolean findProvider()
-    {
-        Provider provider = null;
-        try {
-            provider =
-                (Provider) Class.forName("com.sun.net.ssl.internal.ssl.Provider").newInstance();
-        }
-        catch (Exception e) {}
-        if (provider != null) {
-            Security.addProvider(provider);
-            System.setProperty("java.protocol.handler.pkgs",
-                "com.sun.net.ssl.internal.www.protocol");
-            return true;
-        }
-        return false;
-    }
-
     private Socket createSSLSocket(String hostName, int port)
     {
         try {
-            // SSLSocketFactory factory = (SSLSocketFactory) SSLSocketFactory.getDefault();
-            Class SSLSocketFactory = Class.forName("javax.net.ssl.SSLSocketFactory");
-            java.lang.reflect.Method getDefault = SSLSocketFactory.getMethod("getDefault", new Class[0]);
-            Object factory = getDefault.invoke(null, new Object[0]);
-
-            // Socket socket = factory.createSocket(hostName, port);
-            Class[] parameterTypes = new Class[2];
-            parameterTypes[0] = String.class;
-            parameterTypes[1] = Integer.TYPE;
-            java.lang.reflect.Method createSocket = factory.getClass().getMethod("createSocket", parameterTypes);
-            Object[] args = new Object[2];
-            args[0] = hostName;
-            args[1] = port;
-            Socket socket = (Socket) createSocket.invoke(factory, args);
-            return socket;
+            return SSLSocketFactory.getDefault().createSocket(hostName, port);
         }
         catch (Throwable t) {
             Log.error(t);

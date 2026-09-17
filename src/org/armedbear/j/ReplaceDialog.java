@@ -281,7 +281,7 @@ public final class ReplaceDialog extends AbstractDialog implements Constants,
         }
         ReplaceDialog d = new ReplaceDialog();
         editor.centerDialog(d);
-        d.show();
+        d.setVisible(true);
         if (d.cancelled())
             return;
         final Replacement replacement = d.getReplacement();
@@ -314,7 +314,7 @@ public final class ReplaceDialog extends AbstractDialog implements Constants,
             p.translate((parent.width - dialog.width) / 2, 0);
             confirmDialog.setLocation(p);
             // Do all the replacements.
-            confirmDialog.show();
+            confirmDialog.setVisible(true);
             if (replacement.restrictToSelection() && replacement.getRegion() != null) {
                 // Leave selection marked as before.
                 editor.addUndo(SimpleEdit.MOVE);

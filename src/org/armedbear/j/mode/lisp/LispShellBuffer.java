@@ -896,8 +896,6 @@ public class LispShellBuffer extends ShellBuffer
     // If j was invoked via "java -jar j.jar", use the canonical path
     // of j.jar.
     String classPath = System.getProperty("java.class.path");
-    if (classPath.equals("j.jar:.")) // IBM 1.4.0 on Linux
-      classPath = "j.jar";
     if (classPath.indexOf(LocalFile.getPathSeparatorChar()) < 0)
       {
         // Only one component in classpath.
@@ -919,30 +917,15 @@ public class LispShellBuffer extends ShellBuffer
         sb.append('"');
         sb.append(java.canonicalPath());
         sb.append('"');
-        String vendor = System.getProperty("java.vendor");
-        if (vendor != null)
+        sb.append(" -Xmx256M");
+        if (Platform.isPlatformUnix())
           {
-            if (vendor.indexOf("Sun") >= 0 || vendor.indexOf("Blackdown") >= 0)
+            Pathname lispHome = (Pathname)org.armedbear.lisp.Site.getLispHome();
+            if (lispHome != null)
               {
-                String vm = System.getProperty("java.vm.name");
-                if (vm != null && vm.toLowerCase().indexOf("server") >= 0)
-                  sb.append(" -server");
-                sb.append(" -Xmx256M");
-                if (Platform.isPlatformUnix())
-                  {
-                    Pathname lispHome = (Pathname)org.armedbear.lisp.Site.getLispHome();
-                    if (lispHome != null)
-                      {
-                        sb.append(" -Xrs -Djava.library.path=");
-                        sb.append(lispHome);
-                        sb.append(":/usr/local/lib/abcl");
-                      }
-                  }
-              }
-            else if (vendor.indexOf("IBM") >= 0)
-              {
-                sb.append(" -Xss512K");
-                sb.append(" -Xmx128M");
+                sb.append(" -Xrs -Djava.library.path=");
+                sb.append(lispHome);
+                sb.append(":/usr/local/lib/abcl");
               }
           }
       }

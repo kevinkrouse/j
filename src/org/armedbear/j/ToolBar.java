@@ -67,7 +67,7 @@ public class ToolBar extends JToolBar implements ActionListener
     public ToolBarButton addButton(String text, ToolBarIcon icon, String methodName,
                                    boolean enabled)
     {
-        String iconFile = icon.getFile(ToolBar.iconSize());
+        String iconFile = icon.getFile();
         return addButton(text, iconFile, methodName, enabled);
     }
 

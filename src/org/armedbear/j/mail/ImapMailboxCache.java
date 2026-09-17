@@ -199,7 +199,7 @@ public final class ImapMailboxCache implements Serializable
         if (modified) {
             try {
                 OutputStream out = catalogFile.getOutputStream();
-                catalog.save(out, null);
+                catalog.store(out, null);
                 out.flush();
                 out.close();
             }

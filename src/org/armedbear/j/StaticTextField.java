@@ -59,7 +59,7 @@ public final class StaticTextField extends JTextField
         setBackground(UIManager.getColor("control"));
     }
 
-    public boolean isFocusTraversable()
+    public boolean isFocusable()
     {
         return false;
     }

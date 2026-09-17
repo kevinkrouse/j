@@ -283,7 +283,7 @@ public final class RegionCommands
         if (isBinary) {
             SaveFileDialog d = new SaveFileDialog(editor, "Save As");
             editor.centerDialog(d);
-            d.show();
+            d.setVisible(true);
             File saveAs = d.getDestination();
             if (saveAs == null)
                 return;
@@ -459,7 +459,7 @@ public final class RegionCommands
                                         "Do Shell Command On Region", null);
         d.setHistory(new History("doShellCommandOnRegion"));
         editor.centerDialog(d);
-        d.show();
+        d.setVisible(true);
         String command = d.getInput();
         if (command == null || command.length() == 0)
             return;

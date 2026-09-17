@@ -187,7 +187,7 @@ public final class Registers
     {
         SelectRegisterDialog d = new SelectRegisterDialog(editor, "Register:", title, null);
         editor.centerDialog(d);
-        d.show();
+        d.setVisible(true);
         return d.getInput();
     }
 

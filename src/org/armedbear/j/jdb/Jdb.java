@@ -114,7 +114,7 @@ public final class Jdb extends Buffer implements JdbConstants
         }
         JdbDialog d = new JdbDialog(editor);
         editor.centerDialog(d);
-        d.show();
+        d.setVisible(true);
         editor.getFrame().setWaitCursor();
         editor.repaintNow();
         if (!d.cancelled()) {
@@ -318,7 +318,7 @@ public final class Jdb extends Buffer implements JdbConstants
     {
         if (controlDialog == null) {
             controlDialog = new JdbControlDialog(this);
-            controlDialog.show();
+            controlDialog.setVisible(true);
         }
     }
 

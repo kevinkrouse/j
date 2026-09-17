@@ -161,7 +161,7 @@ public final class WebMode extends AbstractMode implements Constants, Mode
         InputDialog d = new InputDialog(editor, "Search for:", "Google Search", null);
         d.setHistory(new History("google.search"));
         editor.centerDialog(d);
-        d.show();
+        d.setVisible(true);
         String s = d.getInput();
         if (s == null || s.length() == 0)
             return;

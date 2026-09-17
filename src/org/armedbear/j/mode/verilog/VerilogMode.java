@@ -67,8 +67,6 @@ public final class VerilogMode extends AbstractMode implements Constants, Mode
         km.mapKey(KeyEvent.VK_T, CTRL_MASK, "findTag");
         km.mapKey(KeyEvent.VK_PERIOD, ALT_MASK, "findTagAtDot");
         km.mapKey(KeyEvent.VK_F12, 0, "wrapComment");
-        // Duplicate mapping to support IBM 1.3 for Linux.
-        km.mapKey(0xffc9, 0, "wrapComment"); // F12
     }
 
     public boolean isTaggable()

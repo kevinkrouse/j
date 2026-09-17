@@ -34,6 +34,7 @@ import java.io.OutputStreamWriter;
 import java.io.Writer;
 import java.net.MalformedURLException;
 import java.text.SimpleDateFormat;
+import java.util.Base64;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
@@ -49,7 +50,6 @@ import org.armedbear.j.Editor;
 import org.armedbear.j.EditorIterator;
 import org.armedbear.j.Expansion;
 import org.armedbear.j.File;
-import org.armedbear.j.util.Base64Encoder;
 import java.lang.StringBuilder;
 import org.armedbear.j.Headers;
 import org.armedbear.j.InputDialog;
@@ -655,7 +655,7 @@ public final class SendMail extends Buffer
         final Editor editor = Editor.currentEditor();
         ConfirmSendDialog d = new ConfirmSendDialog(editor, this);
         editor.centerDialog(d);
-        d.show();
+        d.setVisible(true);
         if (d.cancelled())
             return false;
         String from = d.getFrom();
@@ -953,12 +953,17 @@ public final class SendMail extends Buffer
     {
         if (file == null || !file.isFile() || !file.canRead())
             return;
+        // 57 bytes encode to a 76 character line, the most MIME allows.
+        // readNBytes fills the buffer rather than passing on a short read,
+        // which would have padded a chunk in mid-stream and corrupted the
+        // attachment.
+        final int bytesPerLine = 57;
         try {
             FileInputStream inputStream = file.getInputStream();
-            Base64Encoder encoder = new Base64Encoder(inputStream);
-            String s;
-            while ((s = encoder.encodeLine()) != null) {
-                writer.write(s);
+            Base64.Encoder encoder = Base64.getEncoder();
+            byte[] chunk;
+            while ((chunk = inputStream.readNBytes(bytesPerLine)).length > 0) {
+                writer.write(encoder.encodeToString(chunk));
                 writer.write(separator);
             }
             writer.flush();
@@ -1352,9 +1357,16 @@ public final class SendMail extends Buffer
         return boundary;
     }
 
+    // RFC 2046 bchars, minus the ones that need quoting. The base64 alphabet
+    // happens to qualify, which is why this used to borrow it.
+    private static final char[] boundaryChars =
+        ("ABCDEFGHIJKLMNOPQRSTUVWXYZ" +
+         "abcdefghijklmnopqrstuvwxyz" +
+         "0123456789+/").toCharArray();
+
     private char[] getBoundaryChars()
     {
-        return Base64Encoder.getBase64Chars();
+        return boundaryChars;
     }
 
     private String getContentTypeForFile(File file)

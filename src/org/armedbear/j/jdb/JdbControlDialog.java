@@ -20,6 +20,7 @@
 
 package org.armedbear.j.jdb;
 
+import org.armedbear.j.util.Utilities;
 import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.FontMetrics;
@@ -122,7 +123,7 @@ public final class JdbControlDialog extends JDialog implements JdbConstants,
     {
         StandardButton button = new StandardButton(text);
         Font font = button.getFont();
-        FontMetrics fm = Toolkit.getDefaultToolkit().getFontMetrics(font);
+        FontMetrics fm = Utilities.getFontMetrics(font);
         int width = fm.stringWidth(text);
         Dimension dim = new Dimension(width + 14, StandardButton.DEFAULT_HEIGHT);
         button.setMinimumSize(dim);
@@ -141,8 +142,13 @@ public final class JdbControlDialog extends JDialog implements JdbConstants,
         toolBar.addSeparator();
     }
 
-    public void show()
+    @Override
+    public void setVisible(boolean visible)
     {
+        if (!visible) {
+            super.setVisible(false);
+            return;
+        }
         int width = sessionProperties.getIntegerProperty("jdb.width", 425);
         int height = sessionProperties.getIntegerProperty("jdb.height", 250);
         setSize(width, height);
@@ -170,7 +176,7 @@ public final class JdbControlDialog extends JDialog implements JdbConstants,
             } else
                 Editor.currentEditor().centerDialog(this);
         }
-        super.show();
+        super.setVisible(true);
     }
 
     public void contextChanged()

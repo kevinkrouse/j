@@ -163,7 +163,7 @@ public final class ManMode extends AbstractMode implements Constants, Mode
         final Editor editor = Editor.currentEditor();
         ManDialog d = new ManDialog(editor);
         editor.centerDialog(d);
-        d.show();
+        d.setVisible(true);
         String topic = d.getInput();
         if (topic != null && topic.length() != 0)
             man(topic);

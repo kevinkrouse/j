@@ -59,7 +59,7 @@ public final class CompilationCommands implements Constants
         final Editor editor = Editor.currentEditor();
         CompileDialog d = new CompileDialog(editor);
         editor.centerDialog(d);
-        d.show();
+        d.setVisible(true);
         editor.repaintNow();
         final String command = d.getCommand();
         if (command != null && command.length() > 0)

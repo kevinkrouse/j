@@ -189,7 +189,8 @@ public final class Mail
                 if (!encoding.equalsIgnoreCase("iso-8859-1")) {
                     try {
                         byte[] bytes = body.getBytes(encoding);
-                        body = new String(bytes, 0);
+                        body = new String(bytes,
+                            java.nio.charset.StandardCharsets.ISO_8859_1);
                     }
                     catch (UnsupportedEncodingException e) {
                         Log.error(e);

@@ -305,7 +305,7 @@ public final class ImapMessageCache
             Log.debug("saving modified catalog");
             try {
                 OutputStream out = catalogFile.getOutputStream();
-                catalog.save(out, null);
+                catalog.store(out, null);
                 out.flush();
                 out.close();
             }

@@ -206,7 +206,7 @@ public final class FindDialog extends AbstractDialog implements ActionListener,
             return;
         FindDialog d = new FindDialog(editor);
         editor.centerDialog(d);
-        d.show();
+        d.setVisible(true);
         Search search = d.getSearch();
         if (search == null)
             return;

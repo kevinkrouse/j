@@ -171,7 +171,7 @@ public final class ListTagsDialog extends AbstractDialog implements MouseListene
         }
         ListTagsDialog d = new ListTagsDialog(sb.toString(), null);
         editor.centerDialog(d);
-        d.show();
+        d.setVisible(true);
         Tag tag = d.getTag();
         if (tag instanceof LocalTag)
             TagCommands.gotoLocalTag(editor, (LocalTag) tag, false);

@@ -44,7 +44,6 @@ import org.xml.sax.SAXNotSupportedException;
 import org.xml.sax.SAXParseException;
 import org.xml.sax.XMLReader;
 import org.xml.sax.helpers.DefaultHandler;
-import org.xml.sax.helpers.XMLReaderFactory;
 
 public final class XmlParserImpl extends DefaultHandler implements Runnable,
     ContentHandler, EntityResolver
@@ -78,7 +77,11 @@ public final class XmlParserImpl extends DefaultHandler implements Runnable,
             className = System.getProperty("org.xml.sax.driver");
         if (className != null) {
             try {
-                xmlReader = XMLReaderFactory.createXMLReader(className);
+                // The org.xml.sax.driver preference names a parser class to
+                // use in place of the platform one.
+                xmlReader = (XMLReader)
+                    Class.forName(className).getDeclaredConstructor()
+                        .newInstance();
             }
             catch (Exception e) {
                 Log.debug(e);

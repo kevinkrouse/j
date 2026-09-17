@@ -239,7 +239,7 @@ public final class DirectoryBuffer extends Buffer
                                                  directory.getLimitPattern());
             dialog.setHistory(new History("dirLimit"));
             editor.centerDialog(dialog);
-            dialog.show();
+            dialog.setVisible(true);
             String pattern = dialog.getInput();
             // A null pattern means the user cancelled the input dialog.
             if (pattern != null) {
@@ -1471,7 +1471,7 @@ public final class DirectoryBuffer extends Buffer
         InputDialog d = new InputDialog(editor, prompt, "Shell Command", null);
         d.setHistory(new History("dirDoShellCommand.command"));
         editor.centerDialog(d);
-        d.show();
+        d.setVisible(true);
         String command = d.getInput();
         if (command == null)
             return;
@@ -1614,7 +1614,7 @@ public final class DirectoryBuffer extends Buffer
         prompt += " to: ";
         CopyFileDialog d = new CopyFileDialog(editor, title, prompt, name);
         editor.centerDialog(d);
-        d.show();
+        d.setVisible(true);
         editor.repaintNow();
         return d.getDestination();
     }
@@ -1792,7 +1792,7 @@ public final class DirectoryBuffer extends Buffer
         CopyFileDialog d = new CopyFileDialog(editor, "Get File", "Destination:", name);
         d.setConfirmOverwrite(true);
         editor.centerDialog(d);
-        d.show();
+        d.setVisible(true);
         final File destination = d.getDestination();
         editor.repaintNow();
         if (destination == null)

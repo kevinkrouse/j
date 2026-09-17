@@ -256,7 +256,7 @@ public abstract class MailboxBuffer extends Buffer
         InputDialog d = new InputDialog(editor, "Pattern:", "Tag Pattern", null);
         d.setHistory(new History("mailboxTagPattern"));
         editor.centerDialog(d);
-        d.show();
+        d.setVisible(true);
         String pattern = d.getInput();
         if (pattern == null)
             return;
@@ -568,7 +568,7 @@ public abstract class MailboxBuffer extends Buffer
         InputDialog d = new InputDialog(editor, "Pattern:", "Limit", limitPattern);
         d.setHistory(new History("mailboxLimit"));
         editor.centerDialog(d);
-        d.show();
+        d.setVisible(true);
         String pattern = d.getInput();
         if (pattern == null)
             return; // No change (user cancelled input dialog).

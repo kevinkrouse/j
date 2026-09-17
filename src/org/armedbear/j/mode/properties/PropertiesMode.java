@@ -51,7 +51,5 @@ public final class PropertiesMode extends AbstractMode implements Constants, Mod
     protected void setKeyMapDefaults(KeyMap km)
     {
         km.mapKey(KeyEvent.VK_F12, 0, "wrapComment");
-        // Duplicate mapping to support IBM 1.3 for Linux.
-        km.mapKey(0xffc9, 0, "wrapComment"); // F12
     }
 }

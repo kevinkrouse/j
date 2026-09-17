@@ -53,7 +53,7 @@ public class ConfirmDialog extends MessageDialog implements Constants
         d.initialize(text, title);
         if (editor != null)
             editor.setDefaultCursor();
-        d.show();
+        d.setVisible(true);
         if (editor != null && Editor.getEditorList().contains(editor))
             editor.setFocusToDisplay();
         return d.result;
@@ -67,7 +67,7 @@ public class ConfirmDialog extends MessageDialog implements Constants
         d.initialize(text, title);
         if (editor != null)
             editor.setDefaultCursor();
-        d.show();
+        d.setVisible(true);
         if (editor != null && Editor.getEditorList().contains(editor))
             editor.setFocusToDisplay();
         return d.result;
@@ -82,7 +82,7 @@ public class ConfirmDialog extends MessageDialog implements Constants
         d.initialize(text, title);
         if (editor != null)
             editor.setDefaultCursor();
-        d.show();
+        d.setVisible(true);
         if (editor != null && Editor.getEditorList().contains(editor))
             editor.setFocusToDisplay();
         return d.result;

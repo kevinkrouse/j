@@ -27,6 +27,8 @@ import java.util.regex.Pattern;
 import java.util.regex.Matcher;
 import java.awt.Color;
 import java.awt.Component;
+import java.awt.Font;
+import java.awt.FontMetrics;
 import java.awt.Graphics;
 import java.awt.Image;
 import java.awt.AlphaComposite;
@@ -38,6 +40,10 @@ import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URL;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
@@ -78,7 +84,7 @@ import org.armedbear.j.Property;
 import org.armedbear.j.UIScale;
 import org.armedbear.j.mode.java.JavaMode;
 import org.xml.sax.XMLReader;
-import org.xml.sax.helpers.XMLReaderFactory;
+import javax.xml.parsers.SAXParserFactory;
 
 public final class Utilities implements Constants
 {
@@ -1192,10 +1198,34 @@ public final class Utilities implements Constants
         return binary;
     }
 
+    public static URL toURL(String s) throws MalformedURLException
+    {
+        try {
+            return new URI(s).toURL();
+        }
+        catch (URISyntaxException | IllegalArgumentException e) {
+            MalformedURLException mue = new MalformedURLException(s);
+            mue.initCause(e);
+            throw mue;
+        }
+    }
+
+    /**
+     * Split arguments and run a command line.
+     */
+    public static Process exec(String command) throws IOException
+    {
+        StringTokenizer st = new StringTokenizer(command);
+        String[] args = new String[st.countTokens()];
+        for (int i = 0; i < args.length; i++)
+            args[i] = st.nextToken();
+        return Runtime.getRuntime().exec(args);
+    }
+
     public static boolean have(final String s)
     {
         try {
-            final Process p = Runtime.getRuntime().exec(s);
+            final Process p = exec(s);
             if (p != null) {
                 Thread t = new Thread("Utilities.have(\"" + s + "\") destroy") {
                     public void run()
@@ -2017,41 +2047,38 @@ public final class Utilities implements Constants
         return panel;
     }
 
-    private static String defaultXMLReaderImpl;
-    static {
-        if (Platform.isJava14()) {
-            // Sun/Blackdown 1.4.x.
-            defaultXMLReaderImpl =
-                "org.apache.crimson.parser.XMLReaderImpl";
-        } else {
-            // 1.5
-            defaultXMLReaderImpl =
-                "com.sun.org.apache.xerces.internal.parsers.SAXParser";
+    public static synchronized XMLReader getDefaultXMLReader()
+    {
+        try {
+            SAXParserFactory factory = SAXParserFactory.newInstance();
+            factory.setNamespaceAware(true);
+            return factory.newSAXParser().getXMLReader();
+        }
+        catch (Exception e) {
+            Log.error(e);
+            return null;
         }
     }
 
-    public static synchronized XMLReader getDefaultXMLReader()
+    /**
+     * Metrics for a font, measured the way j paints.
+     *
+     * <p>Replaces Toolkit.getFontMetrics, which is deprecated and measures
+     * against no particular device. This measures on an image with the same
+     * rendering hints the display uses, so the advances it reports are the
+     * ones the text will actually occupy.
+     */
+    public static FontMetrics getFontMetrics(Font font)
     {
-        if (defaultXMLReaderImpl != null) {
-            try {
-                return XMLReaderFactory.createXMLReader(defaultXMLReaderImpl);
-            }
-            catch (Exception e) {
-                // Not available (IBM 1.4.0/1.4.1).
-                Log.debug(defaultXMLReaderImpl + " is not available");
-                // Don't use this code path again!
-                defaultXMLReaderImpl = null;
-                // Fall through...
-            }
-        }
+        BufferedImage image =
+            new BufferedImage(1, 1, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D g = image.createGraphics();
         try {
-            // This should work with IBM 1.4.0/1.4.1.
-            return XMLReaderFactory.createXMLReader();
+            Display.setRenderingHints(g);
+            return g.getFontMetrics(font);
         }
-        catch (Throwable t) {
-            // We've got a real problem...
-            Log.error(t);
-            return null;
+        finally {
+            g.dispose();
         }
     }
 }

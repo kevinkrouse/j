@@ -64,7 +64,7 @@ public final class PasswordDialog extends JDialog implements FocusListener,
     {
         switch (e.getKeyCode()) {
             case KeyEvent.VK_ENTER:
-                input = textField.getText();
+                input = new String(textField.getPassword());
                 dispose();
                 return;
             case KeyEvent.VK_ESCAPE:
@@ -82,7 +82,7 @@ public final class PasswordDialog extends JDialog implements FocusListener,
     {
         PasswordDialog d = new PasswordDialog(editor, prompt, title);
         editor.centerDialog(d);
-        d.show();
+        d.setVisible(true);
         return d.input;
     }
 

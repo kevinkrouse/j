@@ -898,7 +898,7 @@ public final class PopMailboxBuffer extends LocalMailboxBuffer
         catalog.put(mailboxName, file.getName());
         try {
             OutputStream out = catalogFile.getOutputStream();
-            catalog.save(out, null);
+            catalog.store(out, null);
             out.flush();
             out.close();
             return localStore = file;
@@ -940,12 +940,6 @@ public final class PopMailboxBuffer extends LocalMailboxBuffer
         };
         new Thread(disposeRunnable).start();
         MailboxProperties.saveProperties(this);
-    }
-
-    protected void finalize() throws Throwable
-    {
-        Log.debug("PopMailboxBuffer.finalize");
-        super.finalize();
     }
 
     public String toString()

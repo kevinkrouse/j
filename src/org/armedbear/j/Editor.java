@@ -4429,7 +4429,7 @@ public final class Editor extends JPanel implements Constants,
     {
         // Without this, focus ends up in the location bar textfield if you use
         // the mouse wheel in the edit window after using the openFile
-        // completion list to open a file (Blackdown 1.4.1-01).
+        // completion list to open a file.
         // See also mouseMoveDotToPoint(MouseEvent).
         setFocusToDisplay();
 
@@ -7393,7 +7393,8 @@ public final class Editor extends JPanel implements Constants,
                 if (extensionClass != null) {
                     Method method = extensionClass.getMethod("run");
                     if (method != null)
-                        method.invoke(extensionClass.newInstance());
+                        method.invoke(
+                            extensionClass.getDeclaredConstructor().newInstance());
                 } else
                     Log.error("extension " + extension + " not found");
             }
@@ -8189,7 +8190,7 @@ public final class Editor extends JPanel implements Constants,
                     buffer.getSaveEncoding());
             d.setHistory(new History("setEncoding"));
             centerDialog(d);
-            d.show();
+            d.setVisible(true);
             String encoding = d.getInput();
             if (encoding != null)
                 setEncoding(encoding);

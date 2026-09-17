@@ -76,7 +76,7 @@ public final class MailCommands implements Constants
         InputDialog d = new InputDialog(editor, "Mailbox:", "Open Mailbox", null);
         d.setHistory(new History("openMailbox"));
         editor.centerDialog(d);
-        d.show();
+        d.setVisible(true);
         String s = d.getInput();
         if (s == null || s.length() == 0)
             return;
@@ -722,7 +722,7 @@ public final class MailCommands implements Constants
         InputDialog d = new InputDialog(editor, sb.toString(), "Bounce", null);
         d.setHistory(new History("bounceMessage"));
         editor.centerDialog(d);
-        d.show();
+        d.setVisible(true);
         String input = d.getInput();
         if (input == null)
             return null;

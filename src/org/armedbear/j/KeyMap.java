@@ -323,18 +323,9 @@ public final class KeyMap implements Constants
         mapKey(KeyEvent.VK_F11, 0, "commentRegion");
         mapKey(KeyEvent.VK_F11, SHIFT_MASK, "uncommentRegion");
 
-        // Duplicate mappings to support IBM 1.3 for Linux.
-        mapKey(0xffc8, 0, "commentRegion");
-        mapKey(0xffc8, SHIFT_MASK, "uncommentRegion");
-
         mapKey(KeyEvent.VK_F12, 0, "wrapParagraph");
         mapKey(KeyEvent.VK_F12, SHIFT_MASK, "unwrapParagraph");
         mapKey(KeyEvent.VK_F12, CTRL_MASK, "toggleWrap");
-
-        // Duplicate mappings to support IBM 1.3 for Linux.
-        mapKey(0xffc9, 0, "wrapParagraph"); // F12
-        mapKey(0xffc9, SHIFT_MASK, "unwrapParagraph"); // Shift F12
-        mapKey(0xffc9, CTRL_MASK, "toggleWrap"); // Ctrl F12
 
         mapKey(KeyEvent.VK_T, CTRL_MASK | ALT_MASK, "visibleTabs");
 
@@ -396,12 +387,11 @@ public final class KeyMap implements Constants
         mapKey(KeyEvent.VK_TAB, 0, "insertTab");
 
         if (Platform.isPlatformLinux()) {
-            // These mappings work with Blackdown 1.2.2 (and 1.2 pre-release v2).
             mapKey(0x2d, CTRL_MASK, "toCenter"); // Ctrl -
-            mapKey(0x5f, CTRL_MASK | SHIFT_MASK, "toTop"); // Ctrl Shift -
-
-            // IBM 1.3, Sun 1.4.0 beta 2.
-            mapKey(0x2d, CTRL_MASK | SHIFT_MASK, "toTop"); // Ctrl Shift -
+            // Ctrl Shift - arrives as either the underscore or the minus,
+            // depending on the keyboard and the toolkit, so map both.
+            mapKey(0x5f, CTRL_MASK | SHIFT_MASK, "toTop");
+            mapKey(0x2d, CTRL_MASK | SHIFT_MASK, "toTop");
         } else if (Platform.isPlatformWindows()) {
             mapKey(0x2d, CTRL_MASK, "toCenter"); // Ctrl -
             mapKey(0x2d, CTRL_MASK | SHIFT_MASK, "toTop"); // Ctrl Shift -

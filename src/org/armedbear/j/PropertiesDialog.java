@@ -474,7 +474,7 @@ public final class PropertiesDialog extends AbstractDialog implements Constants
             return;
         PropertiesDialog d = new PropertiesDialog();
         editor.centerDialog(d);
-        d.show();
+        d.setVisible(true);
     }
 
     public static void listProperties()

@@ -66,15 +66,8 @@ public final class Cookie
         }
         if (cookie.domain == null)
             cookie.domain = url.getHost();
-        if (cookie.path == null) {
-            // URL.getPath() is only available in Java 1.3!
-            String file = url.getFile();
-            int index = file.lastIndexOf('?');
-            if (index >= 0)
-                cookie.path = file.substring(0, index);
-            else
-                cookie.path = file;
-        }
+        if (cookie.path == null)
+            cookie.path = url.getPath();
         if (cookie.isValid())
             addCookie(cookie);
     }
@@ -85,10 +78,7 @@ public final class Cookie
         if (cookies == null)
             return null;
         String host = url.getHost();
-        // URL.getPath() is only available in Java 1.3!
-        String file = url.getFile();
-        int index = file.lastIndexOf('?');
-        String path = index >= 0 ? file.substring(0, index) : file;
+        String path = url.getPath();
         StringBuilder sb = new StringBuilder(256);
         for (int i = cookies.size()-1; i >= 0; i--) {
             Cookie cookie = cookies.get(i);

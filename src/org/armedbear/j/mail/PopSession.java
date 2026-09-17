@@ -207,11 +207,6 @@ public final class PopSession
         state = DISCONNECTED;
     }
 
-    protected void finalize()
-    {
-        Log.debug("PopSession.finalize");
-    }
-
     public synchronized String readLine()
     {
         try {

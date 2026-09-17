@@ -58,7 +58,7 @@ public class RemoteShellBuffer extends ShellBuffer
     {
         Process process = null;
         try {
-            process = Runtime.getRuntime().exec(Utilities.jptyPath() + " " + shellCommand + " " + host);
+            process = Utilities.exec(Utilities.jptyPath() + " " + shellCommand + " " + host);
             setProcess(process);
         }
         catch (Throwable t) {

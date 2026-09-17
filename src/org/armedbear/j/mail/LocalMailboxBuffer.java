@@ -643,12 +643,6 @@ public class LocalMailboxBuffer extends MailboxBuffer
         new Thread(disposeRunnable).start();
     }
 
-    protected void finalize() throws Throwable
-    {
-        Log.debug("LocalMailboxBuffer.finalize");
-        super.finalize();
-    }
-
     public String toString()
     {
         final String name;

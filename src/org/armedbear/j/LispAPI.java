@@ -904,8 +904,8 @@ public final class LispAPI
         KeyMap keymap = checkKeymap(first);
         if (!(second instanceof LispCharacter ||
               second instanceof AbstractString))
-          return type_error(second, list2(Symbol.OR,
-                                          list2(Symbol.CHARACTER,
+          return type_error(second, list(Symbol.OR,
+                                          list(Symbol.CHARACTER,
                                                 Symbol.STRING)));
         Object command;
         if (third instanceof AbstractString)
@@ -1108,7 +1108,7 @@ public final class LispAPI
                 mode.setProperty(property, value);
                 return second;
               }
-            return type_error(second, list3(Symbol.OR, Symbol.FIXNUM,
+            return type_error(second, list(Symbol.OR, Symbol.FIXNUM,
                                             Symbol.STRING));
           }
         // It must be a string property.
@@ -1170,7 +1170,7 @@ public final class LispAPI
                 buffer.setProperty(property, value);
                 return second;
               }
-            return type_error(second, list3(Symbol.OR, Symbol.FIXNUM,
+            return type_error(second, list(Symbol.OR, Symbol.FIXNUM,
                                             Symbol.STRING));
           }
         // It must be a string property.
@@ -1267,7 +1267,7 @@ public final class LispAPI
                     editor.insertString(obj.getStringValue());
                   }
                 else
-                  return type_error(obj, list3(Symbol.OR, Symbol.CHARACTER,
+                  return type_error(obj, list(Symbol.OR, Symbol.CHARACTER,
                                                Symbol.STRING));
               }
             return NIL;

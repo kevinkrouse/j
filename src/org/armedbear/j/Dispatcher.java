@@ -299,11 +299,8 @@ public final class Dispatcher implements Constants, KeyListener, MouseListener,
         if (handled)
             e.consume();
 
-        // Jun 12 2000 3:06 PM
-        // With IBM 1.3 on Linux, if the user brings up a menu and then
-        // immediately cancels by hitting Escape, the cursor keys don't work
-        // in the edit window. Work around this problem by requesting focus
-        // and making sure the dispatcher is enabled if we see 0x1b here.
+        // Escape cancels a menu, and focus has to come back to the edit
+        // window with it; without this the cursor keys go nowhere.
         if (c == 0x1b) {
             editor.setFocusToDisplay();
             enabled = true;

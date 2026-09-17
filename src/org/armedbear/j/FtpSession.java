@@ -1112,7 +1112,10 @@ public class FtpSession implements Constants, RemoteSession
                     catch (IOException e) {}
                 }
             };
+            // A daemon thread, so a server that never answers QUIT cannot
+            // hold the editor open at exit.
             Thread t = new Thread(r);
+            t.setDaemon(true);
             t.start();
             try {
                 t.join(3000);
@@ -1120,10 +1123,8 @@ public class FtpSession implements Constants, RemoteSession
             catch (InterruptedException e) {
                 Log.error(e);
             }
-            if (t.isAlive()) {
-                Log.debug("stopping QUIT thread");
-                t.stop();
-            }
+            if (t.isAlive())
+                Log.debug("QUIT did not answer; abandoning it");
             disconnect();
             editor.setDefaultCursor();
         }

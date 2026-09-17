@@ -446,7 +446,7 @@ public final class HtmlMode extends AbstractMode implements Constants, Mode
             return;
         InsertTagDialog d = new InsertTagDialog(editor);
         editor.centerDialog(d);
-        d.show();
+        d.setVisible(true);
         _htmlInsertTag(editor, d.getInput());
     }
 

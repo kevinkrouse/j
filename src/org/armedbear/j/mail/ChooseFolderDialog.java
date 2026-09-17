@@ -54,7 +54,7 @@ public final class ChooseFolderDialog extends InputDialog
             ChooseFolderDialog dialog =
                 new ChooseFolderDialog(editor, prompt, title);
             editor.centerDialog(dialog);
-            dialog.show();
+            dialog.setVisible(true);
             editor.repaintNow();
             final String input = dialog.getInput();
             if (input == null || input.length() == 0)

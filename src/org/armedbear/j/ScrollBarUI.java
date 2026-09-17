@@ -134,7 +134,7 @@ public final class ScrollBarUI extends BasicScrollBarUI
             return new Dimension(w, h);
         }
 
-    	public boolean isFocusTraversable()
+    	public boolean isFocusable()
         {
             return false;
 	}

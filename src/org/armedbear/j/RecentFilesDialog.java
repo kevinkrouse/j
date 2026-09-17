@@ -172,6 +172,6 @@ public final class RecentFilesDialog extends AbstractDialog implements MouseList
         final Editor editor = Editor.currentEditor();
         RecentFilesDialog d = new RecentFilesDialog(editor);
         editor.centerDialog(d);
-        d.show();
+        d.setVisible(true);
     }
 }

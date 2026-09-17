@@ -45,7 +45,7 @@ public final class ExecuteCommandDialog extends InputDialog
         ExecuteCommandDialog d =
             new ExecuteCommandDialog(editor, "Where is...", "whereIs.input");
         editor.centerDialog(d);
-        d.show();
+        d.setVisible(true);
         editor.repaintNow();
         String input = d.getInput();
         if (input == null)

@@ -20,6 +20,7 @@
 
 package org.armedbear.j;
 
+import org.armedbear.j.util.Utilities;
 import java.lang.StringBuilder;
 
 import java.awt.Color;
@@ -75,7 +76,7 @@ public final class PageFormat extends java.awt.print.PageFormat
         setPaper(paper);
         int height = (int) getImageableHeight();
         // Adjust for descenders on last line.
-        FontMetrics fm = Toolkit.getDefaultToolkit().getFontMetrics(font);
+        FontMetrics fm = Utilities.getFontMetrics(font);
         height -= fm.getMaxDescent();
         linesPerPage = height / lineHeight;
         if (header != null)
@@ -132,7 +133,7 @@ public final class PageFormat extends java.awt.print.PageFormat
             sb.append(pageCount);
         }
         String s = sb.toString();
-        FontMetrics fm = Toolkit.getDefaultToolkit().getFontMetrics(footerFont);
+        FontMetrics fm = Utilities.getFontMetrics(footerFont);
         x = (int) getImageableX() + (int) getImageableWidth() - fm.stringWidth(s);
         g2d.drawString(s, x, y);
     }

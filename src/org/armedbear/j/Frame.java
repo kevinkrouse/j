@@ -1123,21 +1123,6 @@ public final class Frame extends JFrame implements Constants, ComponentListener,
             sidebarSplitPane = null;
             sidebar = null;
 
-            if (Platform.isJava14()) {
-                // With Sun Java 1.4.0 FCS, if the following 3 lines of code
-                // are removed, focus is lost when this method is called from
-                // Buffer.saveLocal() after the preferences file is saved.
-                // When this happens, focus can be recovered by switching to a
-                // different Sawfish workspace and back again, at which point
-                // any keystrokes that were lost are replayed accurately into
-                // the buffer.
-
-                // Not that it makes any sense to do this... ;)
-                getContentPane().add(getEditorPane(), "Center");
-                currentEditor.getDisplay().requestFocus();
-                getContentPane().remove(getEditorPane());
-            }
-
             sidebar = new Sidebar(this);
             sidebarSplitPane = createSidebarSplitPane();
             getContentPane().add(sidebarSplitPane, "Center");

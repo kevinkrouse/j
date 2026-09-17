@@ -94,15 +94,6 @@ public final class PerlMode extends AbstractMode implements Constants, Mode
 
         km.mapKey(KeyEvent.VK_F12, 0, "wrapComment");
 
-        if (Platform.isPlatformLinux()) {
-            // Blackdown 1.1.7v3, 1.2pre2, IBM 1.1.8.
-            // Duplicate mappings needed for VK_9, VK_0 and VK_OPEN_BRACKET.
-            km.mapKey(0xbb, CTRL_MASK | SHIFT_MASK, "insertBraces");
-
-            // Duplicate mapping to support IBM 1.3 for Linux.
-            km.mapKey(0xffc9, 0, "wrapComment"); // F12
-        }
-
         km.mapKey(KeyEvent.VK_OPEN_BRACKET, CTRL_MASK, "fold");
         km.mapKey(KeyEvent.VK_CLOSE_BRACKET, CTRL_MASK, "unfold");
     }

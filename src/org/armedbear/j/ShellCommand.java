@@ -178,7 +178,7 @@ public final class ShellCommand implements Runnable
             new InputDialog(editor, "Command:", "Shell Command", null);
         d.setHistory(new History("shellCommand.command"));
         editor.centerDialog(d);
-        d.show();
+        d.setVisible(true);
         String command = d.getInput();
         if (command == null)
             return;

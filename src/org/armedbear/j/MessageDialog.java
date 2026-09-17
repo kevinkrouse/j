@@ -46,7 +46,7 @@ public class MessageDialog extends AbstractDialog
         d.initialize(text, title);
         if (editor != null)
             editor.setDefaultCursor();
-        d.show();
+        d.setVisible(true);
     }
 
     public final static void showMessageDialog(String text, String title)

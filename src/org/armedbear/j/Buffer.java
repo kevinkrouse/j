@@ -2783,24 +2783,6 @@ public class Buffer extends SystemBuffer
         }
     }
 
-    protected void finalize() throws Throwable
-    {
-        try {
-            lockWrite();
-        }
-        catch (InterruptedException e) {
-            Log.debug(e);
-            return;
-        }
-        try {
-            empty();
-        }
-        finally {
-            unlockWrite();
-        }
-        super.finalize();
-    }
-
     public final boolean canBeRestored()
     {
         final File file = getFile();

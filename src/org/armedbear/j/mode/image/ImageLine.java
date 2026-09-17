@@ -135,10 +135,4 @@ public final class ImageLine extends AbstractLine implements Line
             image = null;
         }        
     }
-    
-    protected void finalize() throws Throwable
-    {
-        flushImage();
-        super.finalize();
-    }
 }

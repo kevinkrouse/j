@@ -931,7 +931,7 @@ public final class XmlMode extends AbstractMode implements Constants, Mode
             return;
         InsertTagDialog d = new InsertTagDialog(editor);
         editor.centerDialog(d);
-        d.show();
+        d.setVisible(true);
         _xmlInsertTag(editor, d.getInput());
     }
 
@@ -969,7 +969,7 @@ public final class XmlMode extends AbstractMode implements Constants, Mode
             new InputDialog(editor, "Tag:", "Insert Empty Element Tag", null);
         d.setHistory(new History("xmlInsertEmptyElementTag"));
         editor.centerDialog(d);
-        d.show();
+        d.setVisible(true);
         String input = d.getInput();
         if (input == null)
             return;

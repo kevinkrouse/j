@@ -20,6 +20,7 @@
 
 package org.armedbear.j;
 
+import org.armedbear.j.util.Utilities;
 import org.armedbear.j.mode.image.ImageBuffer;
 import org.armedbear.j.mode.image.ImageLine;
 
@@ -141,7 +142,7 @@ public final class Display extends JComponent implements Constants,
         else
             italicFont = plainFont;
 
-        FontMetrics fm = Toolkit.getDefaultToolkit().getFontMetrics(plainFont);
+        FontMetrics fm = Utilities.getFontMetrics(plainFont);
 
         final int plainAscent = fm.getAscent();
         final int plainDescent = fm.getDescent();
@@ -151,7 +152,7 @@ public final class Display extends JComponent implements Constants,
         spaceWidth = fm.charWidth(' ');
         minCharWidth = getMinCharWidth(fm);
 
-        fm = Toolkit.getDefaultToolkit().getFontMetrics(boldFont);
+        fm = Utilities.getFontMetrics(boldFont);
 
         final int boldAscent = fm.getAscent();
         final int boldDescent = fm.getDescent();
@@ -195,7 +196,7 @@ public final class Display extends JComponent implements Constants,
             gutterFontSize = fontSize;
         gutterFont = new Font(gutterFontName, Font.PLAIN, gutterFontSize);
 
-        fm = Toolkit.getDefaultToolkit().getFontMetrics(gutterFont);
+        fm = Utilities.getFontMetrics(gutterFont);
         gutterCharWidth = fm.charWidth('0');
 
         changeMarkWidth =
@@ -226,14 +227,6 @@ public final class Display extends JComponent implements Constants,
                 removeFocusListener(this);
                 setCaretVisible(true);
             }
-        }
-    }
-
-    protected void finalize() throws Throwable
-    {
-        if (timer != null) {
-            timer.stop();
-            timer = null;
         }
     }
 

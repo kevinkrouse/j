@@ -110,7 +110,7 @@ public final class Session extends DefaultHandler implements Constants
         String name = Editor.getSessionName();
         if (name == null) {
             ChooseSessionDialog d = new ChooseSessionDialog("Save Session");
-            d.show();
+            d.setVisible(true);
             name = d.getInput();
         }
         if (name != null)
@@ -131,7 +131,7 @@ public final class Session extends DefaultHandler implements Constants
     public static void loadSession()
     {
         ChooseSessionDialog d = new ChooseSessionDialog("Load Session");
-        d.show();
+        d.setVisible(true);
         String name = d.getInput();
         if (name != null)
             loadSession(name);

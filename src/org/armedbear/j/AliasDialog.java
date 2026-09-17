@@ -108,7 +108,7 @@ public final class AliasDialog extends AbstractDialog implements FocusListener
         final Editor editor = Editor.currentEditor();
         AliasDialog d = new AliasDialog(editor);
         editor.centerDialog(d);
-        d.show();
+        d.setVisible(true);
     }
 
     public static void alias(String args)
@@ -153,7 +153,7 @@ public final class AliasDialog extends AbstractDialog implements FocusListener
             } else {
                 AliasDialog d = new AliasDialog(editor, key);
                 editor.centerDialog(d);
-                d.show();
+                d.setVisible(true);
             }
         } else {
             if (Aliases.isSystemAlias(key))

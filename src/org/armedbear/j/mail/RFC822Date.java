@@ -22,6 +22,8 @@ package org.armedbear.j.mail;
 
 import java.io.Serializable;
 import java.text.SimpleDateFormat;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
@@ -328,21 +330,7 @@ public final class RFC822Date implements Serializable
         }
         if (d.date == null)
             return false;
-        int thisYear = date.getYear();
-        int otherYear = d.date.getYear();
-        if (thisYear < otherYear)
-            return true;
-        if (thisYear > otherYear)
-            return false;
-        // Same year.
-        int thisMonth = date.getMonth();
-        int otherMonth = d.date.getMonth();
-        if (thisMonth < otherMonth)
-            return true;
-        if (thisMonth > otherMonth)
-            return false;
-        // Same year and month.
-        return date.getDate() < d.date.getDate();
+        return day(date).isBefore(day(d.date));
     }
 
     // Compares date only (i.e. ignores hours, minutes, seconds).
@@ -352,21 +340,16 @@ public final class RFC822Date implements Serializable
             return false;
         if (d.date == null)
             return true;
-        int thisYear = date.getYear();
-        int otherYear = d.date.getYear();
-        if (thisYear > otherYear)
-            return true;
-        if (thisYear < otherYear)
-            return false;
-        // Same year.
-        int thisMonth = date.getMonth();
-        int otherMonth = d.date.getMonth();
-        if (thisMonth > otherMonth)
-            return true;
-        if (thisMonth < otherMonth)
-            return false;
-        // Same year and month.
-        return date.getDate() > d.date.getDate();
+        return day(date).isAfter(day(d.date));
+    }
+
+    /**
+     * The calendar day a date falls on, in the local time zone -- which is
+     * the zone Date.getYear() and its siblings used.
+     */
+    private static LocalDate day(Date d)
+    {
+        return d.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
     }
 
     // Used only by getDateTimeString.

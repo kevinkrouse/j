@@ -20,6 +20,7 @@
 
 package org.armedbear.j;
 
+import org.armedbear.j.util.Utilities;
 import java.lang.StringBuilder;
 
 import java.awt.Color;
@@ -59,7 +60,7 @@ public final class StatusBar extends JComponent
         font = new Font("SansSerif", Font.PLAIN, UIScale.scale(12));
         leftMargin = UIScale.scale(2);
         rightMargin = UIScale.scale(2);
-        fm = Toolkit.getDefaultToolkit().getFontMetrics(font);
+        fm = Utilities.getFontMetrics(font);
         charAscent = fm.getAscent();
         charDescent = fm.getDescent();
     }

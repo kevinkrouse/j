@@ -26,10 +26,7 @@ import java.awt.Font;
 import java.awt.FontMetrics;
 import java.awt.Graphics;
 import java.awt.Insets;
-import java.awt.event.KeyEvent;
 import javax.swing.JMenuItem;
-import javax.swing.MenuElement;
-import javax.swing.MenuSelectionManager;
 import javax.swing.UIManager;
 
 public final class MenuItem extends JMenuItem
@@ -55,7 +52,7 @@ public final class MenuItem extends JMenuItem
     {
         Dimension d = super.getPreferredSize();
         if (acceleratorText != null)
-            d.width += getToolkit().getFontMetrics(acceleratorFont).stringWidth(acceleratorText) + 30;
+            d.width += getFontMetrics(acceleratorFont).stringWidth(acceleratorText) + 30;
         return d;
     }
 
@@ -79,16 +76,5 @@ public final class MenuItem extends JMenuItem
                          getWidth() - (fm.stringWidth(acceleratorText) + insets.right + insets.left),
                          getFont().getSize() + (insets.top - 1));
         }
-    }
-
-    private static final boolean consumeKeyEvent =
-        Platform.isJava13() || Platform.isJava140();
-
-    public void processKeyEvent(KeyEvent e, MenuElement path[], MenuSelectionManager manager)
-    {
-        super.processKeyEvent(e, path, manager);
-        if (consumeKeyEvent)
-            if (Character.toUpperCase(e.getKeyChar()) == getMnemonic())
-                e.consume();
     }
 }

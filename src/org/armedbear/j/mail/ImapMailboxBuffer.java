@@ -1713,13 +1713,6 @@ public final class ImapMailboxBuffer extends MailboxBuffer
         MailboxProperties.saveProperties(this);
     }
 
-    protected void finalize() throws Throwable
-    {
-        Log.debug("ImapMailboxBuffer.finalize " + folderName + " on " +
-            session.getHost());
-        super.finalize();
-    }
-
     private String getProgressText(int n)
     {
         StringBuilder sb = new StringBuilder(32);

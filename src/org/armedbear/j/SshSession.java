@@ -493,7 +493,7 @@ public final class SshSession implements Constants, RemoteSession
         }
         sb.append(hostName);
         try {
-            process = Runtime.getRuntime().exec(sb.toString());
+            process = Utilities.exec(sb.toString());
         }
         catch (Throwable t) {
             Log.error(t);

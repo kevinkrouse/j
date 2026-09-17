@@ -208,6 +208,6 @@ public final class DescribeKeyDialog extends AbstractDialog
     {
         DescribeKeyDialog d = new DescribeKeyDialog(Editor.currentEditor());
         d.centerDialog();
-        d.show();
+        d.setVisible(true);
     }
 }

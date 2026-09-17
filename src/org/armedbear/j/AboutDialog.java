@@ -27,24 +27,17 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.text.SimpleDateFormat;
-import java.util.Date;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.Locale;
 
 public class AboutDialog extends AbstractDialog
 {
-    private long totalMemory;
-    private long freeMemory;
-
     public AboutDialog()
     {
         super(Editor.getCurrentFrame(), null, true);
 
         Editor.getCurrentFrame().setWaitCursor();
-
-        memory();
-        Log.debug("total memory " + totalMemory);
-        Log.debug("used " + (totalMemory - freeMemory));
-        Log.debug("free " + freeMemory);
 
         setUndecorated(true);
         setResizable(false);
@@ -115,6 +108,22 @@ public class AboutDialog extends AbstractDialog
         jvmInfoLabel.setFont(plainFont);
         mainPanel.add(jvmInfoLabel, c);
 
+        // spacer
+        c.gridy = 5;
+        mainPanel.add(new JLabel(" "), c);
+
+        c.gridy = 6;
+        c.insets = new Insets(0, 0, 0, 0);
+        JLabel uptimeLabel = new JLabel(getUptimeString());
+        uptimeLabel.setFont(boldFont);
+        mainPanel.add(uptimeLabel, c);
+
+        c.gridy = 7;
+        c.insets = new Insets(0, 0, 0, 0);
+        JLabel memoryLabel = new JLabel(getMemoryString());
+        memoryLabel.setFont(plainFont);
+        mainPanel.add(memoryLabel, c);
+
         c.gridx = 0;
         c.gridy = 0;
         contents.add(mainPanel, c);
@@ -169,45 +178,49 @@ public class AboutDialog extends AbstractDialog
         return sb.toString();
     }
 
-    String getCopyright()
+    /**
+     * The current time, and how long j has been up -- the shape uptime(1)
+     * uses. The uptime is left off for the first minute, when it would say
+     * nothing useful.
+     */
+    static String getUptimeString()
     {
-        return "Copyright (C) 1998-2010 Peter Graves (peter@armedbear.org)";
+        String dateString = LocalDateTime.now().format(
+            DateTimeFormatter.ofPattern("EE MMM d yyyy h:mm a", Locale.US));
+        String uptimeString = formatUptime(System.currentTimeMillis() - Editor.getStartTimeMillis());
+        if (uptimeString.isEmpty())
+            return dateString;
+        return dateString + "   (" + uptimeString + ")";
     }
 
-    private static String getUptimeString()
+    /**
+     * How long j has been up, as "up 2:34". Empty for the first minute,
+     * where it would only say "up 0 minutes".
+     */
+    static String formatUptime(long uptime)
     {
-        final int millisecondsPerMinute = 60 * 1000;
-        final int millisecondsPerHour = 60 * millisecondsPerMinute;
-        final int millisecondsPerDay = 24 * millisecondsPerHour;
+        final long millisecondsPerMinute = 60 * 1000;
+        final long millisecondsPerHour = 60 * millisecondsPerMinute;
+        final long millisecondsPerDay = 24 * millisecondsPerHour;
 
-        long now = System.currentTimeMillis();
-        SimpleDateFormat dateFormatter = new SimpleDateFormat("EEEE MMM d yyyy h:mm a");
-        String dateString = dateFormatter.format(new Date(now));
-        long uptime = now - Editor.getStartTimeMillis();
-
-        // Don't show uptime if less than 1 minute.
         if (uptime < millisecondsPerMinute)
-            return dateString;
+            return "";
 
         int days = (int) (uptime / millisecondsPerDay);
-        int remainder = (int) (uptime % millisecondsPerDay);
-        int hours = remainder / millisecondsPerHour;
+        long remainder = uptime % millisecondsPerDay;
+        int hours = (int) (remainder / millisecondsPerHour);
         remainder = remainder % millisecondsPerHour;
-        int minutes = remainder / millisecondsPerMinute;
+        int minutes = (int) (remainder / millisecondsPerMinute);
 
-        StringBuilder sb = new StringBuilder(dateString);
-        sb.append("   up ");
-        if (uptime < millisecondsPerHour)
-        {
+        StringBuilder sb = new StringBuilder();
+        sb.append("up ");
+        if (uptime < millisecondsPerHour) {
             sb.append(minutes);
             sb.append(" minute");
             if (minutes > 1)
                 sb.append('s');
-        }
-        else
-        {
-            if (days > 0)
-            {
+        } else {
+            if (days > 0) {
                 sb.append(days);
                 sb.append(" day");
                 if (days > 1)
@@ -223,37 +236,38 @@ public class AboutDialog extends AbstractDialog
         return sb.toString();
     }
 
-    private void memory()
+    /**
+     * What the heap is doing right now. Deliberately does not collect first:
+     * the figures are a reading, not a measurement worth stopping the editor
+     * for, and the old dialog froze the event thread for 300ms to get them.
+     */
+    static String getMemoryString()
     {
         Runtime runtime = Runtime.getRuntime();
-        try
-        {
-            runtime.gc();
-            Thread.currentThread().sleep(100);
-            runtime.runFinalization();
-            Thread.currentThread().sleep(100);
-            runtime.gc();
-            Thread.currentThread().sleep(100);
+        long total = runtime.totalMemory();
+        long used = total - runtime.freeMemory();
+        StringBuilder sb = new StringBuilder();
+        sb.append(formatMemory(used));
+        sb.append(" used of ");
+        sb.append(formatMemory(total));
+        long max = runtime.maxMemory();
+        if (max != Long.MAX_VALUE) {
+            sb.append(", ");
+            sb.append(formatMemory(max));
+            sb.append(" maximum");
         }
-        catch (InterruptedException e)
-        {
-            Log.error(e);
-        }
-        totalMemory = runtime.totalMemory();
-        freeMemory = runtime.freeMemory();
+        return sb.toString();
     }
 
-    private String formatMemory(long value)
+    static String formatMemory(long value)
     {
         if (value < 1000)
             return String.valueOf(value) + " bytes";
-        if (value < 1000 * 1024)
-        {
+        if (value < 1000 * 1024) {
             double k = Math.round(value * 10 / (float) 1024) / 10.0;
             return String.valueOf(k) + "K";
         }
-        if (value < 1000 * 1024 * 1024)
-        {
+        if (value < 1000 * 1024 * 1024) {
             double m = Math.round(value * 10 / (float) (1024 * 1024)) / 10.0;
             return String.valueOf(m) + "M";
         }
@@ -261,10 +275,15 @@ public class AboutDialog extends AbstractDialog
         return String.valueOf(g) + "G";
     }
 
+    String getCopyright()
+    {
+        return "Copyright (C) 1998-2010 Peter Graves (peter@armedbear.org)";
+    }
+
     public static void about()
     {
         AboutDialog d = new AboutDialog();
         Editor.currentEditor().centerDialog(d);
-        d.show();
+        d.setVisible(true);
     }
 }

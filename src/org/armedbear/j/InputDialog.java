@@ -65,7 +65,7 @@ public class InputDialog extends JDialog implements KeyListener
     {
         InputDialog d = new InputDialog(editor, prompt, title, defaultValue);
         editor.centerDialog(d);
-        d.show();
+        d.setVisible(true);
         return d.input;
     }
 
@@ -75,14 +75,17 @@ public class InputDialog extends JDialog implements KeyListener
         return showInputDialog(editor, prompt, title, null);
     }
 
-    public void show()
+    
+    public void setVisible(boolean visible)
     {
-        if (defaultValue != null && defaultValue.length() > 0) {
-            textField.setText(defaultValue);
-            textField.selectAll();
+        if (visible) {
+            if (defaultValue != null && defaultValue.length() > 0) {
+                textField.setText(defaultValue);
+                textField.selectAll();
+            }
+            textField.requestFocus();
         }
-        textField.requestFocus();
-        super.show();
+        super.setVisible(visible);
     }
 
     public final void setDefaultValue(String s)
