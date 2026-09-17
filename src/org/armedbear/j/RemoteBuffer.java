@@ -216,14 +216,11 @@ public final class RemoteBuffer extends Buffer implements Constants
                 catch (OutOfMemoryError e) {
                     buffer.kill();
                     RemoteBuffer.this.kill();
-                    Runnable r = new Runnable() {
-                        public void run()
-                        {
-                            MessageDialog.showMessageDialog(
-                                Editor.currentEditor(),
-                                "Insufficient memory to load buffer",
-                                "Error");
-                        }
+                    Runnable r = () -> {
+                        MessageDialog.showMessageDialog(
+                            Editor.currentEditor(),
+                            "Insufficient memory to load buffer",
+                            "Error");
                     };
                     SwingUtilities.invokeLater(r);
                     result = LOAD_FAILED;

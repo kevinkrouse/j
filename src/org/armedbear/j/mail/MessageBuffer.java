@@ -231,25 +231,22 @@ public class MessageBuffer extends Buffer
             mailbox.updateEntry(entry);
             mailbox.countMessages();
         }
-        Runnable r = new Runnable() {
-            public void run()
-            {
-                setBusy(false);
-                for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-                    Editor ed = it.next();
-                    if (ed.getBuffer() == MessageBuffer.this) {
-                        ed.setDot(getFirstLine(), 0);
-                        ed.setUpdateFlag(REFRAME);
-                        ed.moveCaretToDotCol();
-                        ed.setTopLine(getFirstLine());
-                        ed.setMark(null);
-                        ed.setUpdateFlag(REPAINT);
-                        ed.updateDisplay();
-                    } else if (ed.getBuffer() == mailbox)
-                        ed.updateDisplay();
-                }
-                Sidebar.repaintBufferListInAllFrames();
+        Runnable r = () -> {
+            setBusy(false);
+            for (EditorIterator it = new EditorIterator(); it.hasNext();) {
+                Editor ed = it.next();
+                if (ed.getBuffer() == MessageBuffer.this) {
+                    ed.setDot(getFirstLine(), 0);
+                    ed.setUpdateFlag(REFRAME);
+                    ed.moveCaretToDotCol();
+                    ed.setTopLine(getFirstLine());
+                    ed.setMark(null);
+                    ed.setUpdateFlag(REPAINT);
+                    ed.updateDisplay();
+                } else if (ed.getBuffer() == mailbox)
+                    ed.updateDisplay();
             }
+            Sidebar.repaintBufferListInAllFrames();
         };
         SwingUtilities.invokeLater(r);
     }
@@ -412,15 +409,12 @@ public class MessageBuffer extends Buffer
         if (mailbox.lock()) {
             setBusy(true);
             setEntry(nextEntry);
-            Runnable r = new Runnable() {
-                public void run()
-                {
-                    try {
-                        loadMessage(null);
-                    }
-                    finally {
-                        mailbox.unlock();
-                    }
+            Runnable r = () -> {
+                try {
+                    loadMessage(null);
+                }
+                finally {
+                    mailbox.unlock();
                 }
             };
             new Thread(r).start();
@@ -520,36 +514,27 @@ public class MessageBuffer extends Buffer
         final MailAddress[] to = MailCommands.bounceGetTo(editor, 1);
         if (to == null)
             return;
-        Runnable bounceRunnable = new Runnable() {
-            public void run()
-            {
-                Log.debug("MessageBuffer bounceRunnable.run()");
-                boolean succeeded = false;
-                try {
-                    succeeded = Mail.bounceMessage(message, to);
-                }
-                finally {
-                    setBusy(false);
-                    editor.updateDisplayLater();
-                }
-                if (succeeded) {
-                    Runnable successRunnable = new Runnable() {
-                        public void run()
-                        {
-                            editor.status("Message bounced");
-                        }
-                    };
-                    SwingUtilities.invokeLater(successRunnable);
-                } else {
-                    Runnable errorRunnable = new Runnable() {
-                        public void run()
-                        {
-                            MessageDialog.showMessageDialog(editor, "Failed",
-                                "Bounce Message");
-                        }
-                    };
-                    SwingUtilities.invokeLater(errorRunnable);
-                }
+        Runnable bounceRunnable = () -> {
+            Log.debug("MessageBuffer bounceRunnable.run()");
+            boolean succeeded = false;
+            try {
+                succeeded = Mail.bounceMessage(message, to);
+            }
+            finally {
+                setBusy(false);
+                editor.updateDisplayLater();
+            }
+            if (succeeded) {
+                Runnable successRunnable = () -> {
+                    editor.status("Message bounced");
+                };
+                SwingUtilities.invokeLater(successRunnable);
+            } else {
+                Runnable errorRunnable = () -> {
+                    MessageDialog.showMessageDialog(editor, "Failed",
+                        "Bounce Message");
+                };
+                SwingUtilities.invokeLater(errorRunnable);
             }
         };
         setBusy(true);

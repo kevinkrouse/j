@@ -211,22 +211,10 @@ public class DirectoryTreeModel extends DefaultTreeModel
     }
 
     // Case-sensitive filename comparator (Unix).
-    private final static Comparator<File> csFileNameComparator = new Comparator<File>() {
-        public int compare(File o1, File o2)
-        {
-            String name1 = o1.getName();
-            String name2 = o2.getName();
-            return name1.compareTo(name2);
-        }
-    };
+    private final static Comparator<File> csFileNameComparator =
+        (f1, f2) -> f1.getName().compareTo(f2.getName());
 
     // Case-insensitive filename comparator (Windows).
-    private final static Comparator<File> ciFileNameComparator = new Comparator<File>() {
-        public int compare(File o1, File o2)
-        {
-            String name1 = o1.getName();
-            String name2 = o2.getName();
-            return name1.compareToIgnoreCase(name2);
-        }
-    };
+    private final static Comparator<File> ciFileNameComparator =
+        (f1, f2) -> f1.getName().compareToIgnoreCase(f2.getName());
 }

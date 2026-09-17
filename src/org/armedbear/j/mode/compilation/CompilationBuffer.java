@@ -316,24 +316,21 @@ public final class CompilationBuffer extends CompilationErrorBuffer
 
     private void appendLater(final String s)
     {
-        Runnable runnable = new Runnable() {
-            public void run()
-            {
-                Position pos = posEndOfBuffer;
-                insertString(pos, s);
-                if (needsRenumbering())
-                    renumber();
-                for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-                    Editor ed = it.next();
-                    if (ed.getBuffer() == CompilationBuffer.this) {
-                        ed.eob();
-                        ed.getDisplay().setReframe(-2);
-                        ed.setUpdateFlag(Constants.REPAINT);
-                        ed.updateDisplay();
-                    }
+        Runnable runnable = () -> {
+            Position pos = posEndOfBuffer;
+            insertString(pos, s);
+            if (needsRenumbering())
+                renumber();
+            for (EditorIterator it = new EditorIterator(); it.hasNext();) {
+                Editor ed = it.next();
+                if (ed.getBuffer() == CompilationBuffer.this) {
+                    ed.eob();
+                    ed.getDisplay().setReframe(-2);
+                    ed.setUpdateFlag(Constants.REPAINT);
+                    ed.updateDisplay();
                 }
-                resetUndo();
             }
+            resetUndo();
         };
         SwingUtilities.invokeLater(runnable);
     }

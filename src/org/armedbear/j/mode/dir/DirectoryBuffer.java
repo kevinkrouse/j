@@ -511,51 +511,25 @@ public final class DirectoryBuffer extends Buffer
     private void sortByName()
     {
         Debug.assertTrue(!usingNativeFormat);
-        Comparator<DirectoryEntry> comparator = new Comparator<DirectoryEntry>() {
-            public int compare(DirectoryEntry o1, DirectoryEntry o2)
-            {
-                String name1 = o1.getName();
-                String name2 = o2.getName();
-                return name1.compareToIgnoreCase(name2);
-            }
-        };
+        Comparator<DirectoryEntry> comparator =
+            (e1, e2) -> e1.getName().compareToIgnoreCase(e2.getName());
         Collections.sort(entries, comparator);
     }
 
     // Called only from sort().
     private void sortByDate() {
-        Comparator<DirectoryEntry> comparator = new Comparator<DirectoryEntry>() {
-            public int compare(DirectoryEntry o1, DirectoryEntry o2)
-            {
-                // Most recent dates first.
-                long date1 = o1.getDate();
-                long date2 = o2.getDate();
-                if (date1 > date2)
-                    return -1;
-                if (date1 < date2)
-                    return 1;
-                return 0;
-            }
-        };
+        // Most recent dates first.
+        Comparator<DirectoryEntry> comparator =
+            (e1, e2) -> Long.compare(e2.getDate(), e1.getDate());
         Collections.sort(entries, comparator);
     }
 
     // Called only from sort().
     private void sortBySize()
     {
-        Comparator<DirectoryEntry> comparator = new Comparator<DirectoryEntry>() {
-            public int compare(DirectoryEntry o1, DirectoryEntry o2)
-            {
-                // Biggest files first.
-                long size1 = o1.getSize();
-                long size2 = o2.getSize();
-                if (size1 > size2)
-                    return -1;
-                if (size1 < size2)
-                    return 1;
-                return 0;
-            }
-        };
+        // Biggest files first.
+        Comparator<DirectoryEntry> comparator =
+            (e1, e2) -> Long.compare(e2.getSize(), e1.getSize());
         Collections.sort(entries, comparator);
     }
 
@@ -1064,31 +1038,25 @@ public final class DirectoryBuffer extends Buffer
                     }
                 }
                 setFile(newFile);
-                Runnable reloadRunnable = new Runnable() {
-                    public void run()
-                    {
-                        load();
-                        Runnable updateRunnable = new Runnable() {
-                            public void run()
-                            {
-                                setBusy(false);
-                                for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-                                    Editor ed = it.next();
-                                    if (ed.getBuffer() == DirectoryBuffer.this) {
-                                        ed.setTopLine(getFirstLine());
-                                        ed.setDot(getInitialDotPos());
-                                        ed.setMark(null);
-                                        ed.moveCaretToDotCol();
-                                        ed.setUpdateFlag(REPAINT);
-                                        ed.updateDisplay();
-                                        ed.updateLocation();
-                                    }
-                                }
-                                Sidebar.setUpdateFlagInAllFrames(SIDEBAR_ALL);
+                Runnable reloadRunnable = () -> {
+                    load();
+                    Runnable updateRunnable = () -> {
+                        setBusy(false);
+                        for (EditorIterator it = new EditorIterator(); it.hasNext();) {
+                            Editor ed = it.next();
+                            if (ed.getBuffer() == DirectoryBuffer.this) {
+                                ed.setTopLine(getFirstLine());
+                                ed.setDot(getInitialDotPos());
+                                ed.setMark(null);
+                                ed.moveCaretToDotCol();
+                                ed.setUpdateFlag(REPAINT);
+                                ed.updateDisplay();
+                                ed.updateLocation();
                             }
-                        };
-                        SwingUtilities.invokeLater(updateRunnable);
-                    }
+                        }
+                        Sidebar.setUpdateFlagInAllFrames(SIDEBAR_ALL);
+                    };
+                    SwingUtilities.invokeLater(updateRunnable);
                 };
                 new Thread(reloadRunnable).start();
             } else {
@@ -1808,17 +1776,14 @@ public final class DirectoryBuffer extends Buffer
             return;
         final long fileSize = getFileSize(dotLine.getText());
         final FtpLoadProcess loadProcess = new FtpLoadProcess(this, sourceFile, session);
-        final Runnable successRunnable = new Runnable() {
-            public void run()
-            {
-                File cache = loadProcess.getCache();
-                if (cache != null)
-                    Utilities.deleteRename(cache, destination);
-                for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-                    Editor ed = it.next();
-                    if (ed.getBuffer() == DirectoryBuffer.this)
-                        ed.setDefaultCursor();
-                }
+        final Runnable successRunnable = () -> {
+            File cache = loadProcess.getCache();
+            if (cache != null)
+                Utilities.deleteRename(cache, destination);
+            for (EditorIterator it = new EditorIterator(); it.hasNext();) {
+                Editor ed = it.next();
+                if (ed.getBuffer() == DirectoryBuffer.this)
+                    ed.setDefaultCursor();
             }
         };
         final ErrorRunnable errorRunnable = new ErrorRunnable("Operation failed") {
@@ -1984,64 +1949,52 @@ public final class DirectoryBuffer extends Buffer
         } else if (file instanceof FtpFile) {
             final FtpSession session = FtpSession.getSession((FtpFile)file);
             if (session != null) {
-                final Runnable completionRunnable = new Runnable() {
-                    public void run()
-                    {
-                        for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-                            Editor ed = it.next();
-                            if (ed.getBuffer() == directory)
-                                ed.setDefaultCursor();
-                        }
+                final Runnable completionRunnable = () -> {
+                    for (EditorIterator it = new EditorIterator(); it.hasNext();) {
+                        Editor ed = it.next();
+                        if (ed.getBuffer() == directory)
+                            ed.setDefaultCursor();
                     }
                 };
-                final Runnable chmodRunnable = new Runnable() {
-                    public void run()
-                    {
-                        directory.setBusy(true);
-                        for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-                            Editor ed = it.next();
-                            if (ed.getBuffer() == directory)
-                                ed.setWaitCursor();
-                        }
-                        if (session.verifyConnected()) {
-                            session.chmod((FtpFile)file, permissions);
-                            session.unlock();
-                        }
-                        directory.setBusy(false);
-                        SwingUtilities.invokeLater(completionRunnable);
+                final Runnable chmodRunnable = () -> {
+                    directory.setBusy(true);
+                    for (EditorIterator it = new EditorIterator(); it.hasNext();) {
+                        Editor ed = it.next();
+                        if (ed.getBuffer() == directory)
+                            ed.setWaitCursor();
                     }
+                    if (session.verifyConnected()) {
+                        session.chmod((FtpFile)file, permissions);
+                        session.unlock();
+                    }
+                    directory.setBusy(false);
+                    SwingUtilities.invokeLater(completionRunnable);
                 };
                 new Thread(chmodRunnable).start();
             }
         } else if (file instanceof SshFile) {
             final RemoteSession session = SshSession.getSession((SshFile)file);
             if (session != null) {
-                final Runnable completionRunnable = new Runnable() {
-                    public void run()
-                    {
-                        for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-                            Editor ed = it.next();
-                            if (ed.getBuffer() == directory)
-                                ed.setDefaultCursor();
-                        }
+                final Runnable completionRunnable = () -> {
+                    for (EditorIterator it = new EditorIterator(); it.hasNext();) {
+                        Editor ed = it.next();
+                        if (ed.getBuffer() == directory)
+                            ed.setDefaultCursor();
                     }
                 };
-                final Runnable chmodRunnable = new Runnable() {
-                    public void run()
-                    {
-                        directory.setBusy(true);
-                        for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-                            Editor ed = it.next();
-                            if (ed.getBuffer() == directory)
-                                ed.setWaitCursor();
-                        }
-                        if (session.connect()) {
-                            session.chmod((SshFile)file, permissions);
-                            session.unlock();
-                        }
-                        directory.setBusy(false);
-                        SwingUtilities.invokeLater(completionRunnable);
+                final Runnable chmodRunnable = () -> {
+                    directory.setBusy(true);
+                    for (EditorIterator it = new EditorIterator(); it.hasNext();) {
+                        Editor ed = it.next();
+                        if (ed.getBuffer() == directory)
+                            ed.setWaitCursor();
                     }
+                    if (session.connect()) {
+                        session.chmod((SshFile)file, permissions);
+                        session.unlock();
+                    }
+                    directory.setBusy(false);
+                    SwingUtilities.invokeLater(completionRunnable);
                 };
                 new Thread(chmodRunnable).start();
             }

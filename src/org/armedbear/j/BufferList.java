@@ -308,12 +308,8 @@ public final class BufferList implements Constants, PreferencesChangeListener, I
     {
         if (alpha) {
             if (comparator == null) {
-                comparator = new Comparator<Buffer>() {
-                    public int compare(Buffer o1, Buffer o2)
-                    {
-                        return o1.toString().compareToIgnoreCase(o2.toString());
-                    }
-                };
+                comparator =
+                    (b1, b2) -> b1.toString().compareToIgnoreCase(b2.toString());
             }
             Collections.sort(list, comparator);
         }

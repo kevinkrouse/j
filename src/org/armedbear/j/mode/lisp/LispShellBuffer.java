@@ -490,49 +490,43 @@ public class LispShellBuffer extends ShellBuffer
       output = s.substring(0, index + 1) + prompt;
     else
       output = prompt;
-    Runnable r = new Runnable()
+    Runnable r = () ->
       {
-        public void run()
-        {
-          Position pos = getEnd();
-          if (pos != null)
-            pos.getLine().setFlags(0); // This value will propagate.
-          if (output.length() > 0)
-            {
-              appendString(output);
-              if (matcher.find())
-                {
-                  Line lineBeforeLastPrompt =
-                    getEnd().getLine().previous();
-                  if (lineBeforeLastPrompt != null)
-                    {
-                      posBeforeLastPrompt =
-                        new Position(lineBeforeLastPrompt,
-                                     lineBeforeLastPrompt.length());
-                    }
-                }
-            }
-          if (isBusy())
-            setBusy(false);
-          updateDisplayInAllFrames();
-          resetUndo();
-        }
+        Position pos = getEnd();
+        if (pos != null)
+          pos.getLine().setFlags(0); // This value will propagate.
+        if (output.length() > 0)
+          {
+            appendString(output);
+            if (matcher.find())
+              {
+                Line lineBeforeLastPrompt =
+                  getEnd().getLine().previous();
+                if (lineBeforeLastPrompt != null)
+                  {
+                    posBeforeLastPrompt =
+                      new Position(lineBeforeLastPrompt,
+                                   lineBeforeLastPrompt.length());
+                  }
+              }
+          }
+        if (isBusy())
+          setBusy(false);
+        updateDisplayInAllFrames();
+        resetUndo();
       };
     SwingUtilities.invokeLater(r);
   }
 
   protected void stdErrUpdate(final String s)
   {
-    Runnable r = new Runnable()
+    Runnable r = () ->
       {
-        public void run()
-        {
-          appendString(s);
-          if (isBusy())
-            setBusy(false);
-          updateDisplayInAllFrames();
-          resetUndo();
-        }
+        appendString(s);
+        if (isBusy())
+          setBusy(false);
+        updateDisplayInAllFrames();
+        resetUndo();
       };
     SwingUtilities.invokeLater(r);
   }
@@ -840,44 +834,38 @@ public class LispShellBuffer extends ShellBuffer
 
   private static void startSlime(final Buffer buffer)
   {
-    Runnable r = new Runnable()
+    Runnable r = () ->
       {
-        public void run()
-        {
-          try
-            {
-              JLispBuffer.runLispCommand("(sys:load-system-file \"slime-loader.lisp\")");
-              JLispBuffer.runLispCommand("(setq slime::*repl-buffer-name* \"" +
-                                   buffer.getTitle() + "\")");
-              JLispBuffer.runLispCommand("(slime:slime)");
-              //LispThread.remove(Thread.currentThread());
-            }
-          catch (Throwable t)
-            {
-              Log.debug(t);
-            }
-        }
+        try
+          {
+            JLispBuffer.runLispCommand("(sys:load-system-file \"slime-loader.lisp\")");
+            JLispBuffer.runLispCommand("(setq slime::*repl-buffer-name* \"" +
+                                 buffer.getTitle() + "\")");
+            JLispBuffer.runLispCommand("(slime:slime)");
+            //LispThread.remove(Thread.currentThread());
+          }
+        catch (Throwable t)
+          {
+            Log.debug(t);
+          }
       };
     new Thread(r, "startSlime").start();
   }
 
   private static void killSlime()
   {
-    Runnable r = new Runnable()
+    Runnable r = () ->
       {
-        public void run()
-        {
-          try
-            {
-              JLispBuffer.runLispCommand("(slime::disconnect)");
-              JLispBuffer.runLispCommand("(setq slime::*repl-buffer* nil)");
-              //LispThread.remove(Thread.currentThread());
-            }
-          catch (Throwable t)
-            {
-              Log.debug(t);
-            }
-        }
+        try
+          {
+            JLispBuffer.runLispCommand("(slime::disconnect)");
+            JLispBuffer.runLispCommand("(setq slime::*repl-buffer* nil)");
+            //LispThread.remove(Thread.currentThread());
+          }
+        catch (Throwable t)
+          {
+            Log.debug(t);
+          }
       };
     new Thread(r, "killSlime").start();
   }

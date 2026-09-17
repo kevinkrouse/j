@@ -119,23 +119,20 @@ public final class DirectoryCache
             return instance;
         }
 
-        private final Runnable runnable = new Runnable() {
-            public void run()
-            {
-                // Only check every 5 minutes.
-                if (System.currentTimeMillis() - lastRun > 300000) {
-                    long now = System.currentTimeMillis();
-                    synchronized (cache) {
-                        Iterator<DirectoryCacheEntry> it = cache.entries.iterator();
-                        while (it.hasNext()) {
-                            DirectoryCacheEntry entry =
-                                it.next();
-                            if (entry.getWhen() + timeout < now)
-                                it.remove();
-                        }
+        private final Runnable runnable = () -> {
+            // Only check every 5 minutes.
+            if (System.currentTimeMillis() - lastRun > 300000) {
+                long now = System.currentTimeMillis();
+                synchronized (cache) {
+                    Iterator<DirectoryCacheEntry> it = cache.entries.iterator();
+                    while (it.hasNext()) {
+                        DirectoryCacheEntry entry =
+                            it.next();
+                        if (entry.getWhen() + timeout < now)
+                            it.remove();
                     }
-                    lastRun = now;
                 }
+                lastRun = now;
             }
         };
     }

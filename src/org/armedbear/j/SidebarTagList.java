@@ -92,38 +92,32 @@ public class SidebarTagList extends SidebarList implements Constants,
         final Tagger tagger = buf.getMode().getTagger(buf);
         if (tagger == null)
             return;
-        Runnable runTaggerRunnable = new Runnable() {
-            public void run()
-            {
-                boolean locked = false;
+        Runnable runTaggerRunnable = () -> {
+            boolean locked = false;
+            try {
+                buf.lockRead();
+                locked = true;
+            }
+            catch (InterruptedException e) {
+                Log.error(e);
+            }
+            if (locked) {
                 try {
-                    buf.lockRead();
-                    locked = true;
+                    tagger.run();
+                    tags = buf.getTags();
                 }
-                catch (InterruptedException e) {
-                    Log.error(e);
+                finally {
+                    buf.unlockRead();
                 }
-                if (locked) {
-                    try {
-                        tagger.run();
-                        tags = buf.getTags();
-                    }
-                    finally {
-                        buf.unlockRead();
-                    }
-                }
-                if (tags != null) {
-                    final Object[] listData = tags.toArray();
-                    Runnable replaceListDataRunnable = new Runnable() {
-                        public void run()
-                        {
-                            // Make sure user didn't change buffers while we
-                            // were preparing the tag list.
-                            replaceListData(buf, listData);
-                        }
-                    };
-                    SwingUtilities.invokeLater(replaceListDataRunnable);
-                }
+            }
+            if (tags != null) {
+                final Object[] listData = tags.toArray();
+                Runnable replaceListDataRunnable = () -> {
+                    // Make sure user didn't change buffers while we
+                    // were preparing the tag list.
+                    replaceListData(buf, listData);
+                };
+                SwingUtilities.invokeLater(replaceListDataRunnable);
             }
         };
         Thread thread =

@@ -361,9 +361,7 @@ public final class Log
     }
 
     private static final PreferencesChangeListener preferencesChangeListener =
-        new PreferencesChangeListener() {
-        public void preferencesChanged()
-        {
+        () -> {
             boolean logWasEnabled = logEnabled;
             loadPreferences();
             forceLog(DEBUG, "preferencesChanged logEnabled = " + logEnabled);
@@ -395,6 +393,5 @@ public final class Log
                 else
                     setLevel(INFO);
             }
-        }
     };
 }

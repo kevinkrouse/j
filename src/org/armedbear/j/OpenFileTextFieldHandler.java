@@ -420,11 +420,8 @@ public final class OpenFileTextFieldHandler extends DefaultTextFieldHandler
                 if (completions.size() == 1) {
                     String s = completions.get(0);
                     textField.setText(s);
-                    Runnable r = new Runnable() {
-                        public void run()
-                        {
-                            textField.setCaretPosition(textField.getText().length());
-                        }
+                    Runnable r = () -> {
+                        textField.setCaretPosition(textField.getText().length());
                     };
                     SwingUtilities.invokeLater(r);
                 } else if (completions.size() > 1)
@@ -643,11 +640,8 @@ public final class OpenFileTextFieldHandler extends DefaultTextFieldHandler
         popup.add(new CompletionsList(array));
         popup.show(textField, 0, textField.getHeight());
         final String completion = completions.get(0);
-        Runnable r = new Runnable() {
-            public void run()
-            {
-                updateTextField(completion);
-            }
+        Runnable r = () -> {
+            updateTextField(completion);
         };
         SwingUtilities.invokeLater(r);
     }
@@ -753,12 +747,9 @@ public final class OpenFileTextFieldHandler extends DefaultTextFieldHandler
 
     private void end()
     {
-        Runnable r = new Runnable() {
-            public void run()
-            {
-                textField.setCaretPosition(textField.getText().length());
-                textField.getCaret().setVisible(true);
-            }
+        Runnable r = () -> {
+            textField.setCaretPosition(textField.getText().length());
+            textField.getCaret().setVisible(true);
         };
         SwingUtilities.invokeLater(r);
     }
@@ -773,12 +764,9 @@ public final class OpenFileTextFieldHandler extends DefaultTextFieldHandler
         else
             pos = Math.max(0, textField.getCaretPosition() - 1);
         textField.requestFocus();
-        Runnable r = new Runnable() {
-            public void run()
-            {
-                textField.setCaretPosition(pos);
-                textField.getCaret().setVisible(true);
-            }
+        Runnable r = () -> {
+            textField.setCaretPosition(pos);
+            textField.getCaret().setVisible(true);
         };
         SwingUtilities.invokeLater(r);
     }
@@ -1017,18 +1005,15 @@ public final class OpenFileTextFieldHandler extends DefaultTextFieldHandler
                 sb.append(text.substring(pos));
             textField.setText(sb.toString());
             textField.requestFocus();
-            Runnable r = new Runnable() {
-                public void run()
-                {
-                    int caretPos;
-                    final String s = textField.getText();
-                    if (s != null)
-                        caretPos = Math.min(pos + 1, s.length());
-                    else
-                        caretPos = 0;
-                    textField.setCaretPosition(caretPos);
-                    textField.getCaret().setVisible(true);
-                }
+            Runnable r = () -> {
+                int caretPos;
+                final String s = textField.getText();
+                if (s != null)
+                    caretPos = Math.min(pos + 1, s.length());
+                else
+                    caretPos = 0;
+                textField.setCaretPosition(caretPos);
+                textField.getCaret().setVisible(true);
             };
             SwingUtilities.invokeLater(r);
         }

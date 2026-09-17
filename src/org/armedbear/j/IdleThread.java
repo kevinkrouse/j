@@ -135,42 +135,36 @@ public class IdleThread extends Thread
         }
     }
 
-    private Runnable updateSidebarRunnable = new Runnable() {
-        public void run()
-        {
-            Sidebar.refreshSidebarInAllFrames();
-        }
+    private Runnable updateSidebarRunnable = () -> {
+        Sidebar.refreshSidebarInAllFrames();
     };
 
     private IdleThreadTask updateSidebarTask =
         new IdleThreadTask(updateSidebarRunnable, 500, true);
 
-    private Runnable parseBuffersRunnable = new Runnable()
+    private Runnable parseBuffersRunnable = () ->
     {
-        public void run()
-        {
-            synchronized (Editor.getBufferList()) {
-                for (BufferIterator iter = new BufferIterator(); iter.hasNext();) {
-                    Buffer buf = iter.next();
-                    if (!buf.needsParsing())
-                        continue;
-                    boolean changed = false;
-                    try {
-                        buf.lockRead();
-                    }
-                    catch (InterruptedException e) {
-                        Log.error(e);
-                        return;
-                    }
-                    try {
-                        changed = buf.getFormatter().parseBuffer();
-                    }
-                    finally {
-                        buf.unlockRead();
-                    }
-                    if (changed)
-                        buf.repaint();
+        synchronized (Editor.getBufferList()) {
+            for (BufferIterator iter = new BufferIterator(); iter.hasNext();) {
+                Buffer buf = iter.next();
+                if (!buf.needsParsing())
+                    continue;
+                boolean changed = false;
+                try {
+                    buf.lockRead();
                 }
+                catch (InterruptedException e) {
+                    Log.error(e);
+                    return;
+                }
+                try {
+                    changed = buf.getFormatter().parseBuffer();
+                }
+                finally {
+                    buf.unlockRead();
+                }
+                if (changed)
+                    buf.repaint();
             }
         }
     };
@@ -178,17 +172,14 @@ public class IdleThread extends Thread
     private IdleThreadTask parseBuffersTask =
         new IdleThreadTask(parseBuffersRunnable, 500, false);
 
-    private Runnable updateHorizontalScrollBarsRunnable = new Runnable() {
-        public void run()
-        {
-            for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-                Editor ed = it.next();
-                if (ed.getHorizontalScrollBar() != null) {
-                    Buffer buf = ed.getBuffer();
-                    if (buf != null) {
-                        if (buf.validateMaximumColumns())
-                            ed.updateHorizontalScrollBar();
-                    }
+    private Runnable updateHorizontalScrollBarsRunnable = () -> {
+        for (EditorIterator it = new EditorIterator(); it.hasNext();) {
+            Editor ed = it.next();
+            if (ed.getHorizontalScrollBar() != null) {
+                Buffer buf = ed.getBuffer();
+                if (buf != null) {
+                    if (buf.validateMaximumColumns())
+                        ed.updateHorizontalScrollBar();
                 }
             }
         }
@@ -197,16 +188,13 @@ public class IdleThread extends Thread
     private IdleThreadTask updateHorizontalScrollBarsTask =
         new IdleThreadTask(updateHorizontalScrollBarsRunnable, 500, true);
 
-    private Runnable autosaveRunnable = new Runnable() {
-        public void run()
-        {
-            Editor editor = Editor.currentEditor();
-            if (editor == null)
-                return;
-            Buffer buffer = editor.getBuffer();
-            if (buffer != null)
-                buffer.autosave();
-        }
+    private Runnable autosaveRunnable = () -> {
+        Editor editor = Editor.currentEditor();
+        if (editor == null)
+            return;
+        Buffer buffer = editor.getBuffer();
+        if (buffer != null)
+            buffer.autosave();
     };
 
     private IdleThreadTask autosaveTask =

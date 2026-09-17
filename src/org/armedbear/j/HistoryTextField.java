@@ -215,12 +215,9 @@ public class HistoryTextField extends JTextField implements FocusListener,
     {
         final int dot = getCaretPosition();
         final int mark = getCaret().getMark();
-        Runnable r = new Runnable() {
-            public void run()
-            {
-                setCaretPosition(mark);
-                moveCaretPosition(dot);
-            }
+        Runnable r = () -> {
+            setCaretPosition(mark);
+            moveCaretPosition(dot);
         };
         SwingUtilities.invokeLater(r);
     }

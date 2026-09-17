@@ -397,33 +397,27 @@ public class LocalMailboxBuffer extends MailboxBuffer
             return LOAD_FAILED;
     }
 
-    private Runnable loadRunnable = new Runnable() {
-        public void run()
-        {
-            try {
-                readMailboxFile(null);
-                refreshBuffer();
-            }
-            finally {
-                unlock();
-                setBusy(false);
-                Runnable completionRunnable = new Runnable() {
-                    public void run()
-                    {
-                        for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-                            Editor ed = it.next();
-                            View view = new View();
-                            view.setDotEntry(getInitialEntry());
-                            ed.setView(LocalMailboxBuffer.this, view);
-                            if (ed.getBuffer() == LocalMailboxBuffer.this) {
-                                ed.bufferActivated(true);
-                                ed.updateDisplay();
-                            }
-                        }
+    private Runnable loadRunnable = () -> {
+        try {
+            readMailboxFile(null);
+            refreshBuffer();
+        }
+        finally {
+            unlock();
+            setBusy(false);
+            Runnable completionRunnable = () -> {
+                for (EditorIterator it = new EditorIterator(); it.hasNext();) {
+                    Editor ed = it.next();
+                    View view = new View();
+                    view.setDotEntry(getInitialEntry());
+                    ed.setView(LocalMailboxBuffer.this, view);
+                    if (ed.getBuffer() == LocalMailboxBuffer.this) {
+                        ed.bufferActivated(true);
+                        ed.updateDisplay();
                     }
-                };
-                SwingUtilities.invokeLater(completionRunnable);
-            }
+                }
+            };
+            SwingUtilities.invokeLater(completionRunnable);
         }
     };
 
@@ -618,28 +612,25 @@ public class LocalMailboxBuffer extends MailboxBuffer
             Log.debug("mailbox is foreign");
             return;
         }
-        Runnable disposeRunnable = new Runnable() {
-            public void run()
-            {
-                try {
-                    Log.debug("disposeRunnable.run() calling acquire()...");
-                    acquire(); // Blocks, may throw InterruptedException.
-                    Log.debug("disposeRunnable.run() back from acquire()");
-                    clearRecent();
-                    if (dirty) {
-                        final Object pending = new Object();
-                        Editor.getPendingOperations().add(pending);
-                        Log.debug("disposeRunnable.run() calling rewriteMailbox()...");
-                        rewriteMailbox(false);
-                        Log.debug("disposeRunnable.run() back from rewriteMailbox()");
-                        Editor.getPendingOperations().remove(pending);
-                    }
-                    release();
-                    Log.debug("disposeRunnable.run() back from release()");
+        Runnable disposeRunnable = () -> {
+            try {
+                Log.debug("disposeRunnable.run() calling acquire()...");
+                acquire(); // Blocks, may throw InterruptedException.
+                Log.debug("disposeRunnable.run() back from acquire()");
+                clearRecent();
+                if (dirty) {
+                    final Object pending = new Object();
+                    Editor.getPendingOperations().add(pending);
+                    Log.debug("disposeRunnable.run() calling rewriteMailbox()...");
+                    rewriteMailbox(false);
+                    Log.debug("disposeRunnable.run() back from rewriteMailbox()");
+                    Editor.getPendingOperations().remove(pending);
                 }
-                catch (InterruptedException e) {
-                    Log.error(e);
-                }
+                release();
+                Log.debug("disposeRunnable.run() back from release()");
+            }
+            catch (InterruptedException e) {
+                Log.error(e);
             }
         };
         new Thread(disposeRunnable).start();

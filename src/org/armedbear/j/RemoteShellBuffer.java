@@ -210,16 +210,13 @@ public class RemoteShellBuffer extends ShellBuffer
                 skipCR = false;
             }
         }
-        Runnable r = new Runnable() {
-            public void run()
-            {
-                appendString(sb.toString());
-                setEndOfOutput(new Position(getEnd()));
-                updateLineFlags();
-                updateDisplayInAllFrames();
-                resetUndo();
-                checkPasswordPrompt();
-            }
+        Runnable r = () -> {
+            appendString(sb.toString());
+            setEndOfOutput(new Position(getEnd()));
+            updateLineFlags();
+            updateDisplayInAllFrames();
+            resetUndo();
+            checkPasswordPrompt();
         };
         SwingUtilities.invokeLater(r);
     }

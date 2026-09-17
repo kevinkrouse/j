@@ -269,13 +269,10 @@ public final class Jdb extends Buffer implements JdbConstants
         }
     }
 
-    private final Runnable fireContextChangedRunnable = new Runnable() {
-        public void run()
-        {
-            synchronized (contextListeners) {
-                for (ContextListener listener : contextListeners)
-                    listener.contextChanged();
-            }
+    private final Runnable fireContextChangedRunnable = () -> {
+        synchronized (contextListeners) {
+            for (ContextListener listener : contextListeners)
+                listener.contextChanged();
         }
     };
 
@@ -425,11 +422,8 @@ public final class Jdb extends Buffer implements JdbConstants
 
     public void prompt()
     {
-        Runnable r = new Runnable() {
-            public void run()
-            {
-                appendString(prompt, true, JdbFormatter.JDB_FORMAT_PROMPT);
-            }
+        Runnable r = () -> {
+            appendString(prompt, true, JdbFormatter.JDB_FORMAT_PROMPT);
         };
         if (SwingUtilities.isEventDispatchThread())
             r.run();
@@ -465,13 +459,10 @@ public final class Jdb extends Buffer implements JdbConstants
 
     private void log(final String s, final boolean forceNewLine, final int flags)
     {
-        Runnable r = new Runnable() {
-            public void run()
-            {
-                Log.debug(s);
-                appendString(s.concat("\n"), forceNewLine,
-                    flags);
-            }
+        Runnable r = () -> {
+            Log.debug(s);
+            appendString(s.concat("\n"), forceNewLine,
+                flags);
         };
         if (SwingUtilities.isEventDispatchThread())
             r.run();
@@ -565,11 +556,8 @@ public final class Jdb extends Buffer implements JdbConstants
         ReaderThread readerThread = new ReaderThread(inputStream) {
             public void update(final String s)
             {
-                Runnable runnable = new Runnable() {
-                    public void run()
-                    {
-                        appendString(s, false, JdbFormatter.JDB_FORMAT_OUTPUT);
-                    }
+                Runnable runnable = () -> {
+                    appendString(s, false, JdbFormatter.JDB_FORMAT_OUTPUT);
                 };
                 SwingUtilities.invokeLater(runnable);
             }
@@ -759,11 +747,8 @@ public final class Jdb extends Buffer implements JdbConstants
 
     public void startProcess()
     {
-        Runnable r = new Runnable() {
-            public void run()
-            {
-                startProcessInternal();
-            }
+        Runnable r = () -> {
+            startProcessInternal();
         };
         new Thread(r).start();
     }
@@ -898,29 +883,26 @@ public final class Jdb extends Buffer implements JdbConstants
 
     public void source(final Editor editor)
     {
-        Runnable r = new Runnable() {
-            public void run()
-            {
-                if (location == null)
-                    return;
-                Method method = location.method();
-                if (method != null && method.isNative())
-                    return;
-                String className = location.declaringType().name();
-                String sourceName = null;
-                try {
-                    sourceName = location.sourceName();
-                    Log.debug("sourceName = |" + sourceName + "|");
-                }
-                catch (AbsentInformationException e) {
-                    Log.error(e);
-                }
-                int lineNumber = location.lineNumber();
-                Log.debug("lineNumber = " + lineNumber);
-                Log.debug(location.declaringType().name());
-                if (sourceName != null)
-                    follow(editor, className, sourceName, lineNumber - 1);
+        Runnable r = () -> {
+            if (location == null)
+                return;
+            Method method = location.method();
+            if (method != null && method.isNative())
+                return;
+            String className = location.declaringType().name();
+            String sourceName = null;
+            try {
+                sourceName = location.sourceName();
+                Log.debug("sourceName = |" + sourceName + "|");
             }
+            catch (AbsentInformationException e) {
+                Log.error(e);
+            }
+            int lineNumber = location.lineNumber();
+            Log.debug("lineNumber = " + lineNumber);
+            Log.debug(location.declaringType().name());
+            if (sourceName != null)
+                follow(editor, className, sourceName, lineNumber - 1);
         };
         if (SwingUtilities.isEventDispatchThread())
             r.run();

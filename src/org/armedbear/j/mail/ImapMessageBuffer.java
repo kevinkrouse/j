@@ -153,75 +153,69 @@ public final class ImapMessageBuffer extends MessageBuffer
             return;
         }
         final int uid = ((ImapMailboxEntry)entry).getUid();
-        Runnable deleteMessageRunnable = new Runnable() {
-            public void run()
-            {
-                try {
-                    ImapSession session = ((ImapMailboxBuffer)mailbox).getSession();
-                    String folderName = ((ImapMailboxBuffer)mailbox).getFolderName();
-                    if (session.verifyConnected() && session.verifySelected(folderName)) {
+        Runnable deleteMessageRunnable = () -> {
+            try {
+                ImapSession session = ((ImapMailboxBuffer)mailbox).getSession();
+                String folderName = ((ImapMailboxBuffer)mailbox).getFolderName();
+                if (session.verifyConnected() && session.verifySelected(folderName)) {
+                    if (session.isReadOnly()) {
+                        Log.debug("deleteMessage - read-only - reselecting...");
+                        session.reselect(folderName);
                         if (session.isReadOnly()) {
-                            Log.debug("deleteMessage - read-only - reselecting...");
-                            session.reselect(folderName);
-                            if (session.isReadOnly()) {
-                                ((ImapMailboxBuffer)mailbox).readOnlyError();
-                                return;
-                            }
+                            ((ImapMailboxBuffer)mailbox).readOnlyError();
+                            return;
                         }
-                        session.setEcho(true);
+                    }
+                    session.setEcho(true);
+                    switch (action) {
+                        case ACTION_DELETE:
+                            session.uidStore(uid, "+flags.silent (\\deleted)");
+                            break;
+                        case ACTION_FLAG:
+                            // Toggle.
+                            if (entry.isFlagged())
+                                session.uidStore(uid, "-flags.silent (\\flagged)");
+                            else
+                                session.uidStore(uid, "+flags.silent (\\flagged)");
+                            break;
+                        default:
+                            Debug.assertTrue(false);
+                            break;
+                    }
+                    if (session.getResponse() == ImapSession.OK) {
                         switch (action) {
                             case ACTION_DELETE:
-                                session.uidStore(uid, "+flags.silent (\\deleted)");
+                                entry.setFlags(entry.getFlags() | MailboxEntry.DELETED);
                                 break;
                             case ACTION_FLAG:
-                                // Toggle.
-                                if (entry.isFlagged())
-                                    session.uidStore(uid, "-flags.silent (\\flagged)");
-                                else
-                                    session.uidStore(uid, "+flags.silent (\\flagged)");
+                                entry.toggleFlag();
                                 break;
                             default:
                                 Debug.assertTrue(false);
                                 break;
                         }
-                        if (session.getResponse() == ImapSession.OK) {
-                            switch (action) {
-                                case ACTION_DELETE:
-                                    entry.setFlags(entry.getFlags() | MailboxEntry.DELETED);
-                                    break;
-                                case ACTION_FLAG:
-                                    entry.toggleFlag();
-                                    break;
-                                default:
-                                    Debug.assertTrue(false);
-                                    break;
-                            }
-                            mailbox.updateEntry(entry);
-                        }
-                        session.setEcho(false);
-                        MailboxEntry nextEntry = mailbox.getNextUndeleted(entry);
-                        if (nextEntry != null) {
-                            mailbox.setDotEntry(nextEntry);
-                            setEntry(nextEntry);
-                            loadMessage(null);
-                        } else {
-                            Runnable messageIndexRunnable = new Runnable() {
-                                public void run()
-                                {
-                                    MailCommands.messageIndex(editor);
-                                    editor.status("Last undeleted message");
-                                }
-                            };
-                            SwingUtilities.invokeLater(messageIndexRunnable);
-                        }
-                        setBusy(false);
-                        editor.updateDisplayLater();
+                        mailbox.updateEntry(entry);
                     }
-                }
-                finally {
+                    session.setEcho(false);
+                    MailboxEntry nextEntry = mailbox.getNextUndeleted(entry);
+                    if (nextEntry != null) {
+                        mailbox.setDotEntry(nextEntry);
+                        setEntry(nextEntry);
+                        loadMessage(null);
+                    } else {
+                        Runnable messageIndexRunnable = () -> {
+                            MailCommands.messageIndex(editor);
+                            editor.status("Last undeleted message");
+                        };
+                        SwingUtilities.invokeLater(messageIndexRunnable);
+                    }
                     setBusy(false);
-                    mailbox.unlock();
+                    editor.updateDisplayLater();
                 }
+            }
+            finally {
+                setBusy(false);
+                mailbox.unlock();
             }
         };
         setBusy(true);
@@ -250,75 +244,66 @@ public final class ImapMessageBuffer extends MessageBuffer
             return;
         }
         final String destination = s;
-        Runnable moveMessageRunnable = new Runnable() {
-            public void run()
-            {
-                try {
-                    ImapSession session = ((ImapMailboxBuffer) mailbox).getSession();
-                    String folderName = ((ImapMailboxBuffer) mailbox).getFolderName();
-                    if (session.verifyConnected() &&
-                        session.verifySelected(folderName)) {
+        Runnable moveMessageRunnable = () -> {
+            try {
+                ImapSession session = ((ImapMailboxBuffer) mailbox).getSession();
+                String folderName = ((ImapMailboxBuffer) mailbox).getFolderName();
+                if (session.verifyConnected() &&
+                    session.verifySelected(folderName)) {
+                    if (session.isReadOnly()) {
+                        Log.debug("moveMessage - read-only - reselecting...");
+                        session.reselect(folderName);
                         if (session.isReadOnly()) {
-                            Log.debug("moveMessage - read-only - reselecting...");
-                            session.reselect(folderName);
-                            if (session.isReadOnly()) {
-                                ((ImapMailboxBuffer) mailbox).readOnlyError();
-                                return;
-                            }
-                        }
-                        session.setEcho(true);
-                        boolean succeeded = false;
-                        if (destination.startsWith("mailbox:")) {
-                            succeeded = Mail.writeFcc(message, destination,
-                                toBeMoved.getFlags() & ~MailboxEntry.TAGGED);
-                        } else {
-                            session.writeTagged("uid copy " + toBeMoved.getUid() + " " + destination);
-                            succeeded = session.getResponse() == ImapSession.OK;
-                        }
-                        if (succeeded) {
-                            session.writeTagged("uid store " + toBeMoved.getUid() + " +flags.silent (\\deleted)");
-                            if (session.getResponse() == ImapSession.OK) {
-                                toBeMoved.setFlags(toBeMoved.getFlags() | MailboxEntry.DELETED);
-                                mailbox.updateEntry(toBeMoved);
-                            } else
-                                succeeded = false;
-                        }
-                        session.setEcho(false);
-                        if (succeeded) {
-                            MailboxEntry nextEntry = mailbox.getNextUndeleted(entry);
-                            if (nextEntry != null) {
-                                mailbox.setDotEntry(nextEntry);
-                                setEntry(nextEntry);
-                                loadMessage(null);
-                            } else {
-                                Runnable messageIndexRunnable = new Runnable() {
-                                    public void run()
-                                    {
-                                        MailCommands.messageIndex(editor);
-                                        editor.status("Last undeleted message");
-                                    }
-                                };
-                                SwingUtilities.invokeLater(messageIndexRunnable);
-                            }
-                            setBusy(false);
-                            editor.updateDisplayLater();
-                        } else {
-                            setBusy(false);
-                            Runnable reportError = new Runnable() {
-                                public void run()
-                                {
-                                    editor.updateDisplay();
-                                    MessageDialog.showMessageDialog(editor, "Operation failed", "Error");
-                                }
-                            };
-                            SwingUtilities.invokeLater(reportError);
+                            ((ImapMailboxBuffer) mailbox).readOnlyError();
+                            return;
                         }
                     }
+                    session.setEcho(true);
+                    boolean succeeded = false;
+                    if (destination.startsWith("mailbox:")) {
+                        succeeded = Mail.writeFcc(message, destination,
+                            toBeMoved.getFlags() & ~MailboxEntry.TAGGED);
+                    } else {
+                        session.writeTagged("uid copy " + toBeMoved.getUid() + " " + destination);
+                        succeeded = session.getResponse() == ImapSession.OK;
+                    }
+                    if (succeeded) {
+                        session.writeTagged("uid store " + toBeMoved.getUid() + " +flags.silent (\\deleted)");
+                        if (session.getResponse() == ImapSession.OK) {
+                            toBeMoved.setFlags(toBeMoved.getFlags() | MailboxEntry.DELETED);
+                            mailbox.updateEntry(toBeMoved);
+                        } else
+                            succeeded = false;
+                    }
+                    session.setEcho(false);
+                    if (succeeded) {
+                        MailboxEntry nextEntry = mailbox.getNextUndeleted(entry);
+                        if (nextEntry != null) {
+                            mailbox.setDotEntry(nextEntry);
+                            setEntry(nextEntry);
+                            loadMessage(null);
+                        } else {
+                            Runnable messageIndexRunnable = () -> {
+                                MailCommands.messageIndex(editor);
+                                editor.status("Last undeleted message");
+                            };
+                            SwingUtilities.invokeLater(messageIndexRunnable);
+                        }
+                        setBusy(false);
+                        editor.updateDisplayLater();
+                    } else {
+                        setBusy(false);
+                        Runnable reportError = () -> {
+                            editor.updateDisplay();
+                            MessageDialog.showMessageDialog(editor, "Operation failed", "Error");
+                        };
+                        SwingUtilities.invokeLater(reportError);
+                    }
                 }
-                finally {
-                    setBusy(false);
-                    mailbox.unlock();
-                }
+            }
+            finally {
+                setBusy(false);
+                mailbox.unlock();
             }
         };
         setBusy(true);

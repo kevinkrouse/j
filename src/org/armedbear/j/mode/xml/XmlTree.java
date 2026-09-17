@@ -124,31 +124,25 @@ public final class XmlTree extends JTree implements Constants, NavigationCompone
             outOfMemory();
             return;
         }
-        Runnable parseBufferRunnable = new Runnable() {
-            public void run()
-            {
-                try {
-                    parser.run();
-                }
-                catch (OutOfMemoryError e) {
-                    outOfMemory();
-                    return;
-                }
-                if (parser.getException() == null) {
-                    final TreeModel treeModel = parser.getTreeModel();
-                    if (treeModel != null) {
-                        setParserClassName(parser.getParserClassName());
-                        Runnable r = new Runnable() {
-                            public void run()
-                            {
-                                setModel(treeModel);
-                                if (editor.getBuffer() == buffer)
-                                    XmlMode.ensureCurrentNodeIsVisible(editor,
-                                        XmlTree.this);
-                            }
-                        };
-                        SwingUtilities.invokeLater(r);
-                    }
+        Runnable parseBufferRunnable = () -> {
+            try {
+                parser.run();
+            }
+            catch (OutOfMemoryError e) {
+                outOfMemory();
+                return;
+            }
+            if (parser.getException() == null) {
+                final TreeModel treeModel = parser.getTreeModel();
+                if (treeModel != null) {
+                    setParserClassName(parser.getParserClassName());
+                    Runnable r = () -> {
+                        setModel(treeModel);
+                        if (editor.getBuffer() == buffer)
+                            XmlMode.ensureCurrentNodeIsVisible(editor,
+                                XmlTree.this);
+                    };
+                    SwingUtilities.invokeLater(r);
                 }
             }
         };

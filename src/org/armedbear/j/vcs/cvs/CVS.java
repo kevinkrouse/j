@@ -64,21 +64,15 @@ public final class CVS extends VersionControl implements Constants
         args = "";
     // "cvs -H" doesn't need a filename.
     final String cmd = parseArgs("cvs", args, true, !args.trim().startsWith("-H"));
-    Runnable commandRunnable = new Runnable()
+    Runnable commandRunnable = () ->
       {
-        public void run()
-        {
-          final String output =
-            command(cmd, buffer.getCurrentDirectory());
-          Runnable completionRunnable = new Runnable()
-            {
-              public void run()
-              {
-                cvsCompleted(editor, buffer, cmd, output);
-              }
-            };
-          SwingUtilities.invokeLater(completionRunnable);
-        }
+        final String output =
+          command(cmd, buffer.getCurrentDirectory());
+        Runnable completionRunnable = () ->
+          {
+            cvsCompleted(editor, buffer, cmd, output);
+          };
+        SwingUtilities.invokeLater(completionRunnable);
       };
     new Thread(commandRunnable).start();
   }
@@ -101,21 +95,15 @@ public final class CVS extends VersionControl implements Constants
     StringBuilder sb = new StringBuilder("cvs add ");
     sb.append(Utilities.maybeQuote(name));
     final String cmd = sb.toString();
-    Runnable commandRunnable = new Runnable()
+    Runnable commandRunnable = () ->
       {
-        public void run()
-        {
-          final String output =
-            command(cmd, buffer.getCurrentDirectory());
-          Runnable completionRunnable = new Runnable()
-            {
-              public void run()
-              {
-                addCompleted(editor, buffer, cmd, output);
-              }
-            };
-          SwingUtilities.invokeLater(completionRunnable);
-        }
+        final String output =
+          command(cmd, buffer.getCurrentDirectory());
+        Runnable completionRunnable = () ->
+          {
+            addCompleted(editor, buffer, cmd, output);
+          };
+        SwingUtilities.invokeLater(completionRunnable);
       };
     new Thread(commandRunnable).start();
   }
@@ -255,22 +243,16 @@ public final class CVS extends VersionControl implements Constants
               }
           }
         final Buffer finalParentBuffer = parentBuffer;
-        Runnable commandRunnable = new Runnable()
+        Runnable commandRunnable = () ->
           {
-            public void run()
-            {
-              final String output =
-                command(cmd, finalParentBuffer.getCurrentDirectory());
-              Runnable completionRunnable = new Runnable()
-                {
-                  public void run()
-                  {
-                    diffCompleted(editor, finalParentBuffer, cmd,
-                                  output, VC_CVS);
-                  }
-                };
-              SwingUtilities.invokeLater(completionRunnable);
-            }
+            final String output =
+              command(cmd, finalParentBuffer.getCurrentDirectory());
+            Runnable completionRunnable = () ->
+              {
+                diffCompleted(editor, finalParentBuffer, cmd,
+                              output, VC_CVS);
+              };
+            SwingUtilities.invokeLater(completionRunnable);
           };
         new Thread(commandRunnable).start();
       }
@@ -302,20 +284,14 @@ public final class CVS extends VersionControl implements Constants
     Editor ed = editor.activateInOtherWindow(buf);
     ed.setWaitCursor();
     buf.setBusy(true);
-    Runnable commandRunnable = new Runnable()
+    Runnable commandRunnable = () ->
       {
-        public void run()
-        {
-          final String output = command(cmd, directory);
-          Runnable completionRunnable = new Runnable()
-            {
-              public void run()
-              {
-                processCompleted(buf, output);
-              }
-            };
-          SwingUtilities.invokeLater(completionRunnable);
-        }
+        final String output = command(cmd, directory);
+        Runnable completionRunnable = () ->
+          {
+            processCompleted(buf, output);
+          };
+        SwingUtilities.invokeLater(completionRunnable);
       };
     new Thread(commandRunnable).start();
   }
@@ -407,24 +383,18 @@ public final class CVS extends VersionControl implements Constants
     editor.setWaitCursor();
     checkinBuffer.setBusy(true);
     parentBuffer.setBusy(true);
-    Runnable commandRunnable = new Runnable()
+    Runnable commandRunnable = () ->
       {
-        public void run()
-        {
-          final CvsCommand cvsCommand =
-            new CvsCommand(cmd, parentBuffer.getCurrentDirectory());
-          cvsCommand.run();
-          tempFile.delete();
-          Runnable completionRunnable = new Runnable()
-            {
-              public void run()
-              {
-                finishCompleted(editor, checkinBuffer, parentBuffer,
-                                cvsCommand, name, tempFile);
-              }
-            };
-          SwingUtilities.invokeLater(completionRunnable);
-        }
+        final CvsCommand cvsCommand =
+          new CvsCommand(cmd, parentBuffer.getCurrentDirectory());
+        cvsCommand.run();
+        tempFile.delete();
+        Runnable completionRunnable = () ->
+          {
+            finishCompleted(editor, checkinBuffer, parentBuffer,
+                            cvsCommand, name, tempFile);
+          };
+        SwingUtilities.invokeLater(completionRunnable);
       };
     new Thread(commandRunnable).start();
   }

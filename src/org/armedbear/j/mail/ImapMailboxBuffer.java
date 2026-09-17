@@ -138,11 +138,8 @@ public final class ImapMailboxBuffer extends MailboxBuffer
     public void setAlertText(final String s)
     {
         Log.debug("alert = " + s);
-        Runnable r = new Runnable() {
-            public void run()
-            {
-                Editor.currentEditor().status(s);
-            }
+        Runnable r = () -> {
+            Editor.currentEditor().status(s);
         };
         SwingUtilities.invokeLater(r);
     }
@@ -150,11 +147,8 @@ public final class ImapMailboxBuffer extends MailboxBuffer
     public void setStatusText(final String s)
     {
         Log.debug("status = " + s);
-        Runnable r = new Runnable() {
-            public void run()
-            {
-                Editor.currentEditor().status(s);
-            }
+        Runnable r = () -> {
+            Editor.currentEditor().status(s);
         };
         SwingUtilities.invokeLater(r);
     }
@@ -167,49 +161,46 @@ public final class ImapMailboxBuffer extends MailboxBuffer
 
     public void expunge()
     {
-        Runnable expungeRunnable = new Runnable() {
-            public void run()
-            {
-                try {
-                    if (session.verifyConnected() && session.verifySelected(folderName)) {
+        Runnable expungeRunnable = () -> {
+            try {
+                if (session.verifyConnected() && session.verifySelected(folderName)) {
+                    if (session.isReadOnly()) {
+                        Log.debug("expunge - read-only - reselecting...");
+                        session.reselect(folderName);
                         if (session.isReadOnly()) {
-                            Log.debug("expunge - read-only - reselecting...");
-                            session.reselect(folderName);
-                            if (session.isReadOnly()) {
-                                Log.error("expunge - mailbox is read-only");
-                                readOnlyError();
-                                return;
-                            }
+                            Log.error("expunge - mailbox is read-only");
+                            readOnlyError();
+                            return;
                         }
-                        if (messageCache != null)
-                            messageCache.removeDeletedEntries(Collections.unmodifiableList(entries));
-                        if (session.close()) {
-                            Log.debug("expunge back from close(), calling reselect()");
-                            if (session.reselect(folderName)) {
-                                Log.debug("expunge back from reselect()");
-                                getAllMessageHeaders();
-                                refreshBuffer();
-                                setBusy(false);
-                                for (int i = 0; i < Editor.getFrameCount(); i++) {
-                                    Frame frame = Editor.getFrame(i);
-                                    if (frame != null) {
-                                        StatusBar statusBar = frame.getStatusBar();
-                                        if (statusBar != null)
-                                            statusBar.setText(null);
-                                    }
-                                }
-                                updateDisplay();
-                                return;
-                            }
-                        }
-                        // Error!
-                        error("Operation failed", "Expunge");
                     }
+                    if (messageCache != null)
+                        messageCache.removeDeletedEntries(Collections.unmodifiableList(entries));
+                    if (session.close()) {
+                        Log.debug("expunge back from close(), calling reselect()");
+                        if (session.reselect(folderName)) {
+                            Log.debug("expunge back from reselect()");
+                            getAllMessageHeaders();
+                            refreshBuffer();
+                            setBusy(false);
+                            for (int i = 0; i < Editor.getFrameCount(); i++) {
+                                Frame frame = Editor.getFrame(i);
+                                if (frame != null) {
+                                    StatusBar statusBar = frame.getStatusBar();
+                                    if (statusBar != null)
+                                        statusBar.setText(null);
+                                }
+                            }
+                            updateDisplay();
+                            return;
+                        }
+                    }
+                    // Error!
+                    error("Operation failed", "Expunge");
                 }
-                finally {
-                    setBusy(false);
-                    unlock();
-                }
+            }
+            finally {
+                setBusy(false);
+                unlock();
             }
         };
         if (lock()) {
@@ -246,32 +237,26 @@ public final class ImapMailboxBuffer extends MailboxBuffer
                 setBackgroundProcess(this);
                 if (getAllMessageHeaders()) {
                     refreshBuffer();
-                    completionRunnable = new Runnable() {
-                        public void run()
-                        {
-                            setBusy(false);
-                            for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-                                Editor ed = it.next();
-                                View view = new View();
-                                view.setDotEntry(getInitialEntry());
-                                ed.setView(ImapMailboxBuffer.this, view);
-                                if (ed.getBuffer() == ImapMailboxBuffer.this) {
-                                    ed.bufferActivated(true);
-                                    ed.updateDisplay();
-                                }
+                    completionRunnable = () -> {
+                        setBusy(false);
+                        for (EditorIterator it = new EditorIterator(); it.hasNext();) {
+                            Editor ed = it.next();
+                            View view = new View();
+                            view.setDotEntry(getInitialEntry());
+                            ed.setView(ImapMailboxBuffer.this, view);
+                            if (ed.getBuffer() == ImapMailboxBuffer.this) {
+                                ed.bufferActivated(true);
+                                ed.updateDisplay();
                             }
                         }
                     };
                 } else {
                     // Error or user cancelled.
-                    completionRunnable = new Runnable() {
-                        public void run()
-                        {
-                            if (Editor.getBufferList().contains(ImapMailboxBuffer.this))
-                                kill();
-                            for (EditorIterator it = new EditorIterator(); it.hasNext();)
-                                it.next().updateDisplay();
-                        }
+                    completionRunnable = () -> {
+                        if (Editor.getBufferList().contains(ImapMailboxBuffer.this))
+                            kill();
+                        for (EditorIterator it = new EditorIterator(); it.hasNext();)
+                            it.next().updateDisplay();
                     };
                 }
             }
@@ -418,27 +403,24 @@ public final class ImapMailboxBuffer extends MailboxBuffer
         final String name = extractFolderName(input);
         if (name == null)
             return;
-        Runnable createRunnable = new Runnable() {
-            public void run()
-            {
-                boolean succeeded = false;
-                try {
-                    if (session.verifyConnected() && session.verifySelected(folderName)) {
-                        session.setEcho(true);
-                        session.writeTagged("create " + name);
-                        succeeded = session.getResponse() == ImapSession.OK;
-                        session.setEcho(false);
-                    }
+        Runnable createRunnable = () -> {
+            boolean succeeded = false;
+            try {
+                if (session.verifyConnected() && session.verifySelected(folderName)) {
+                    session.setEcho(true);
+                    session.writeTagged("create " + name);
+                    succeeded = session.getResponse() == ImapSession.OK;
+                    session.setEcho(false);
                 }
-                finally {
-                    unlock();
-                    setBusy(false);
-                    Editor.updateDisplayLater(ImapMailboxBuffer.this);
-                    if (succeeded)
-                        success("Folder created");
-                    else
-                        error("Unable to create folder", "Error");
-                }
+            }
+            finally {
+                unlock();
+                setBusy(false);
+                Editor.updateDisplayLater(ImapMailboxBuffer.this);
+                if (succeeded)
+                    success("Folder created");
+                else
+                    error("Unable to create folder", "Error");
             }
         };
         // Even though we're not changing this mailbox per se, we need to lock
@@ -462,27 +444,24 @@ public final class ImapMailboxBuffer extends MailboxBuffer
         String message = "Delete folder \"" + name + "\" on " + session.getHost() + "?";
         if (!editor.confirm("Delete Folder", message))
             return;
-        Runnable deleteFolderRunnable = new Runnable() {
-            public void run()
-            {
-                boolean succeeded = false;
-                try {
-                    if (session.verifyConnected() && session.verifySelected(folderName)) {
-                        session.setEcho(true);
-                        session.writeTagged("delete " + name);
-                        succeeded = session.getResponse() == ImapSession.OK;
-                        session.setEcho(false);
-                    }
+        Runnable deleteFolderRunnable = () -> {
+            boolean succeeded = false;
+            try {
+                if (session.verifyConnected() && session.verifySelected(folderName)) {
+                    session.setEcho(true);
+                    session.writeTagged("delete " + name);
+                    succeeded = session.getResponse() == ImapSession.OK;
+                    session.setEcho(false);
                 }
-                finally {
-                    unlock();
-                    setBusy(false);
-                    Editor.updateDisplayLater(ImapMailboxBuffer.this);
-                    if (succeeded)
-                        success("Folder deleted");
-                    else
-                        error("Unable to delete folder", "Error");
-                }
+            }
+            finally {
+                unlock();
+                setBusy(false);
+                Editor.updateDisplayLater(ImapMailboxBuffer.this);
+                if (succeeded)
+                    success("Folder deleted");
+                else
+                    error("Unable to delete folder", "Error");
             }
         };
         // Even though we're not changing this mailbox per se, we need to lock
@@ -524,45 +503,42 @@ public final class ImapMailboxBuffer extends MailboxBuffer
         if (destination == null)
             return;
         final Line dotLine = advanceDot ? editor.getDotLine() : null;
-        Runnable saveRunnable = new Runnable() {
-            public void run()
-            {
-                boolean succeeded = false;
-                try {
-                    if (session.verifyConnected() && session.verifySelected(folderName)) {
-                        if (destination.startsWith("mailbox:")) {
-                            // Destination is local.
-                            succeeded = saveLocal(toBeCopied, destination, false);
-                        } else {
-                            session.setEcho(true);
-                            final String messageSet = getMessageSet(toBeCopied);
-                            StringBuilder sbuf = new StringBuilder("uid copy ");
-                            sbuf.append(messageSet);
-                            sbuf.append(' ');
-                            sbuf.append(destination);
-                            if (session.writeTagged(sbuf.toString()))
-                                if (session.getResponse() == ImapSession.OK)
-                                    succeeded = true;
-                            session.setEcho(false);
-                        }
+        Runnable saveRunnable = () -> {
+            boolean succeeded = false;
+            try {
+                if (session.verifyConnected() && session.verifySelected(folderName)) {
+                    if (destination.startsWith("mailbox:")) {
+                        // Destination is local.
+                        succeeded = saveLocal(toBeCopied, destination, false);
+                    } else {
+                        session.setEcho(true);
+                        final String messageSet = getMessageSet(toBeCopied);
+                        StringBuilder sbuf = new StringBuilder("uid copy ");
+                        sbuf.append(messageSet);
+                        sbuf.append(' ');
+                        sbuf.append(destination);
+                        if (session.writeTagged(sbuf.toString()))
+                            if (session.getResponse() == ImapSession.OK)
+                                succeeded = true;
+                        session.setEcho(false);
                     }
                 }
-                finally {
-                    if (succeeded && dotLine != null)
-                        advanceDot(dotLine);
-                    setBusy(false);
-                    unlock();
-                    editor.updateDisplayLater();
-                    if (succeeded) {
-                        StringBuilder sbuf = new StringBuilder("Saved ");
-                        sbuf.append(toBeCopied.size());
-                        sbuf.append(" message");
-                        if (toBeCopied.size() != 1)
-                            sbuf.append('s');
-                        success(sbuf.toString());
-                    } else
-                        error("Save failed", "Error");
-                }
+            }
+            finally {
+                if (succeeded && dotLine != null)
+                    advanceDot(dotLine);
+                setBusy(false);
+                unlock();
+                editor.updateDisplayLater();
+                if (succeeded) {
+                    StringBuilder sbuf = new StringBuilder("Saved ");
+                    sbuf.append(toBeCopied.size());
+                    sbuf.append(" message");
+                    if (toBeCopied.size() != 1)
+                        sbuf.append('s');
+                    success(sbuf.toString());
+                } else
+                    error("Save failed", "Error");
             }
         };
         if (lock()) {
@@ -602,38 +578,35 @@ public final class ImapMailboxBuffer extends MailboxBuffer
         if (destination == null)
             return;
         final Line dotLine = advanceDot ? editor.getDotLine() : null;
-        Runnable moveRunnable = new Runnable() {
-            public void run()
-            {
-                boolean succeeded = false;
-                String errorText = "Move failed";
-                try {
-                    succeeded = moveToFolder(toBeMoved, destination);
-                }
-                catch (MailException e) {
-                    errorText = e.getMessage();
-                }
-                finally {
-                    // Update message count in sidebar buffer list. We should
-                    // do this even if there was an error, since some messages
-                    // may have been moved successfully.
-                    countMessages();
-                    Sidebar.repaintBufferListInAllFrames();
-                    if (succeeded && dotLine != null)
-                        advanceDot(dotLine);
-                    setBusy(false);
-                    unlock();
-                    editor.updateDisplayLater();
-                    if (succeeded) {
-                        StringBuilder sbuf = new StringBuilder("Moved ");
-                        sbuf.append(toBeMoved.size());
-                        sbuf.append(" message");
-                        if (toBeMoved.size() != 1)
-                            sbuf.append('s');
-                        success(sbuf.toString());
-                    } else
-                        error(errorText, "Error");
-                }
+        Runnable moveRunnable = () -> {
+            boolean succeeded = false;
+            String errorText = "Move failed";
+            try {
+                succeeded = moveToFolder(toBeMoved, destination);
+            }
+            catch (MailException e) {
+                errorText = e.getMessage();
+            }
+            finally {
+                // Update message count in sidebar buffer list. We should
+                // do this even if there was an error, since some messages
+                // may have been moved successfully.
+                countMessages();
+                Sidebar.repaintBufferListInAllFrames();
+                if (succeeded && dotLine != null)
+                    advanceDot(dotLine);
+                setBusy(false);
+                unlock();
+                editor.updateDisplayLater();
+                if (succeeded) {
+                    StringBuilder sbuf = new StringBuilder("Moved ");
+                    sbuf.append(toBeMoved.size());
+                    sbuf.append(" message");
+                    if (toBeMoved.size() != 1)
+                        sbuf.append('s');
+                    success(sbuf.toString());
+                } else
+                    error(errorText, "Error");
             }
         };
         if (lock()) {
@@ -768,31 +741,28 @@ public final class ImapMailboxBuffer extends MailboxBuffer
         }
         final List<MailboxEntry> toBeDeleted = list;
         final Line dotLine = advanceDot ? editor.getDotLine() : null;
-        Runnable deleteRunnable = new Runnable() {
-            public void run()
-            {
-                boolean succeeded = false;
-                String errorText = "Delete failed";
-                try {
-                    succeeded = delete(toBeDeleted);
+        Runnable deleteRunnable = () -> {
+            boolean succeeded = false;
+            String errorText = "Delete failed";
+            try {
+                succeeded = delete(toBeDeleted);
+            }
+            catch (MailException e) {
+                errorText = e.getMessage();
+            }
+            finally {
+                if (succeeded) {
+                    // Update message count in sidebar buffer list.
+                    countMessages();
+                    Sidebar.repaintBufferListInAllFrames();
+                    if (dotLine != null)
+                        advanceDot(dotLine);
                 }
-                catch (MailException e) {
-                    errorText = e.getMessage();
-                }
-                finally {
-                    if (succeeded) {
-                        // Update message count in sidebar buffer list.
-                        countMessages();
-                        Sidebar.repaintBufferListInAllFrames();
-                        if (dotLine != null)
-                            advanceDot(dotLine);
-                    }
-                    setBusy(false);
-                    unlock();
-                    editor.updateDisplayLater();
-                    if (!succeeded)
-                        error(errorText, "Error");
-                }
+                setBusy(false);
+                unlock();
+                editor.updateDisplayLater();
+                if (!succeeded)
+                    error(errorText, "Error");
             }
         };
         if (lock()) {
@@ -863,68 +833,65 @@ public final class ImapMailboxBuffer extends MailboxBuffer
         }
         final List<MailboxEntry> entriesToBeProcessed = list;
         final Line dotLine = advanceDot ? editor.getDotLine() : null;
-        Runnable storeFlagsRunnable = new Runnable() {
-            public void run()
-            {
-                try {
-                    if (session.verifyConnected() && session.verifySelected(folderName)) {
+        Runnable storeFlagsRunnable = () -> {
+            try {
+                if (session.verifyConnected() && session.verifySelected(folderName)) {
+                    if (session.isReadOnly()) {
+                        Log.debug("storeFlagsInternal - read-only - reselecting...");
+                        session.reselect(folderName);
                         if (session.isReadOnly()) {
-                            Log.debug("storeFlagsInternal - read-only - reselecting...");
-                            session.reselect(folderName);
-                            if (session.isReadOnly()) {
-                                readOnlyError();
-                                return;
-                            }
+                            readOnlyError();
+                            return;
                         }
-                        session.setEcho(true);
-                        final String messageSet = getMessageSet(entriesToBeProcessed);
-                        switch (action) {
-                            case ACTION_UNDELETE:
-                                session.uidStore(messageSet, "-flags.silent (\\deleted)");
-                                break;
-                            case ACTION_MARK_READ:
-                                session.uidStore(messageSet, "+flags.silent (\\seen)");
-                                break;
-                            case ACTION_MARK_UNREAD:
-                                session.uidStore(messageSet, "-flags.silent (\\seen)");
-                                break;
-                            default:
-                                Debug.assertTrue(false);
-                                break;
-                        }
-                        if (session.getResponse() == ImapSession.OK) {
-                            for (int i = 0; i < entriesToBeProcessed.size(); i++) {
-                                ImapMailboxEntry entry = (ImapMailboxEntry) entriesToBeProcessed.get(i);
-                                switch (action) {
-                                    case ACTION_UNDELETE:
-                                        entry.setFlags(entry.getFlags() & ~MailboxEntry.DELETED);
-                                        break;
-                                    case ACTION_MARK_READ:
-                                        entry.setFlags(entry.getFlags() | MailboxEntry.SEEN);
-                                        break;
-                                    case ACTION_MARK_UNREAD:
-                                        entry.setFlags(entry.getFlags() & ~MailboxEntry.SEEN);
-                                        break;
-                                    default:
-                                        Debug.assertTrue(false);
-                                        break;
-                                }
-                                updateEntry(entry);
-                            }
-                            if (dotLine != null)
-                                advanceDot(dotLine);
-                        }
-                        session.setEcho(false);
                     }
-                    countMessages();
+                    session.setEcho(true);
+                    final String messageSet = getMessageSet(entriesToBeProcessed);
+                    switch (action) {
+                        case ACTION_UNDELETE:
+                            session.uidStore(messageSet, "-flags.silent (\\deleted)");
+                            break;
+                        case ACTION_MARK_READ:
+                            session.uidStore(messageSet, "+flags.silent (\\seen)");
+                            break;
+                        case ACTION_MARK_UNREAD:
+                            session.uidStore(messageSet, "-flags.silent (\\seen)");
+                            break;
+                        default:
+                            Debug.assertTrue(false);
+                            break;
+                    }
+                    if (session.getResponse() == ImapSession.OK) {
+                        for (int i = 0; i < entriesToBeProcessed.size(); i++) {
+                            ImapMailboxEntry entry = (ImapMailboxEntry) entriesToBeProcessed.get(i);
+                            switch (action) {
+                                case ACTION_UNDELETE:
+                                    entry.setFlags(entry.getFlags() & ~MailboxEntry.DELETED);
+                                    break;
+                                case ACTION_MARK_READ:
+                                    entry.setFlags(entry.getFlags() | MailboxEntry.SEEN);
+                                    break;
+                                case ACTION_MARK_UNREAD:
+                                    entry.setFlags(entry.getFlags() & ~MailboxEntry.SEEN);
+                                    break;
+                                default:
+                                    Debug.assertTrue(false);
+                                    break;
+                            }
+                            updateEntry(entry);
+                        }
+                        if (dotLine != null)
+                            advanceDot(dotLine);
+                    }
+                    session.setEcho(false);
                 }
-                finally {
-                    setBusy(false);
-                    unlock();
-                    editor.updateDisplayLater();
-                    // Update message count in sidebar buffer list.
-                    Sidebar.repaintBufferListInAllFrames();
-                }
+                countMessages();
+            }
+            finally {
+                setBusy(false);
+                unlock();
+                editor.updateDisplayLater();
+                // Update message count in sidebar buffer list.
+                Sidebar.repaintBufferListInAllFrames();
             }
         };
         if (lock()) {
@@ -955,53 +922,50 @@ public final class ImapMailboxBuffer extends MailboxBuffer
                 entriesToBeSet.add(entry);
         }
         final Line dotLine = advanceDot ? editor.getDotLine() : null;
-        Runnable flagRunnable = new Runnable() {
-            public void run()
-            {
-                try {
-                    if (session.verifyConnected() && session.verifySelected(folderName)) {
+        Runnable flagRunnable = () -> {
+            try {
+                if (session.verifyConnected() && session.verifySelected(folderName)) {
+                    if (session.isReadOnly()) {
+                        Log.debug("storeFlagsInternal - read-only - reselecting...");
+                        session.reselect(folderName);
                         if (session.isReadOnly()) {
-                            Log.debug("storeFlagsInternal - read-only - reselecting...");
-                            session.reselect(folderName);
-                            if (session.isReadOnly()) {
-                                readOnlyError();
-                                return;
-                            }
+                            readOnlyError();
+                            return;
                         }
-                        boolean error = false;
-                        session.setEcho(true);
-                        if (entriesToBeSet.size() > 0) {
-                            session.uidStore(getMessageSet(entriesToBeSet), "+flags.silent (\\flagged)");
-                            if (session.getResponse() == ImapSession.OK) {
-                                for (MailboxEntry entry : entriesToBeSet) {
-                                    entry.flag();
-                                    updateEntry(entry);
-                                }
-                            } else
-                                error = true;
-                        }
-                        if (!error && entriesToBeCleared.size() > 0) {
-                            session.uidStore(getMessageSet(entriesToBeCleared), "-flags.silent (\\flagged)");
-                            if (session.getResponse() == ImapSession.OK) {
-                                for (MailboxEntry entry : entriesToBeCleared) {
-                                    entry.unflag();
-                                    updateEntry(entry);
-                                }
-                            } else
-                                error = true;
-                        }
-                        session.setEcho(false);
-                        if (!error && dotLine != null)
-                            advanceDot(dotLine);
                     }
+                    boolean error = false;
+                    session.setEcho(true);
+                    if (entriesToBeSet.size() > 0) {
+                        session.uidStore(getMessageSet(entriesToBeSet), "+flags.silent (\\flagged)");
+                        if (session.getResponse() == ImapSession.OK) {
+                            for (MailboxEntry entry : entriesToBeSet) {
+                                entry.flag();
+                                updateEntry(entry);
+                            }
+                        } else
+                            error = true;
+                    }
+                    if (!error && entriesToBeCleared.size() > 0) {
+                        session.uidStore(getMessageSet(entriesToBeCleared), "-flags.silent (\\flagged)");
+                        if (session.getResponse() == ImapSession.OK) {
+                            for (MailboxEntry entry : entriesToBeCleared) {
+                                entry.unflag();
+                                updateEntry(entry);
+                            }
+                        } else
+                            error = true;
+                    }
+                    session.setEcho(false);
+                    if (!error && dotLine != null)
+                        advanceDot(dotLine);
                 }
-                finally {
-                    setBusy(false);
-                    unlock();
-                    editor.updateDisplayLater();
-                    // Update message count in sidebar buffer list.
-                    Sidebar.repaintBufferListInAllFrames();
-                }
+            }
+            finally {
+                setBusy(false);
+                unlock();
+                editor.updateDisplayLater();
+                // Update message count in sidebar buffer list.
+                Sidebar.repaintBufferListInAllFrames();
             }
         };
         if (lock()) {
@@ -1012,25 +976,22 @@ public final class ImapMailboxBuffer extends MailboxBuffer
 
     public void setAnsweredFlag(final MailboxEntry entry)
     {
-        Runnable setAnsweredFlagRunnable = new Runnable() {
-            public void run()
-            {
-                try {
-                    if (session.verifyConnected() && session.verifySelected(folderName)) {
-                        session.setEcho(true);
-                        session.uidStore(((ImapMailboxEntry)entry).getUid(), "+flags (\\answered)");
-                        if (session.getResponse() == ImapSession.OK) {
-                            entry.setFlags(entry.getFlags() | MailboxEntry.ANSWERED);
-                            updateEntry(entry);
-                        }
-                        session.setEcho(false);
+        Runnable setAnsweredFlagRunnable = () -> {
+            try {
+                if (session.verifyConnected() && session.verifySelected(folderName)) {
+                    session.setEcho(true);
+                    session.uidStore(((ImapMailboxEntry)entry).getUid(), "+flags (\\answered)");
+                    if (session.getResponse() == ImapSession.OK) {
+                        entry.setFlags(entry.getFlags() | MailboxEntry.ANSWERED);
+                        updateEntry(entry);
                     }
+                    session.setEcho(false);
                 }
-                finally {
-                    setBusy(false);
-                    unlock();
-                    Editor.updateDisplayLater(ImapMailboxBuffer.this);
-                }
+            }
+            finally {
+                setBusy(false);
+                unlock();
+                Editor.updateDisplayLater(ImapMailboxBuffer.this);
             }
         };
         if (lock()) {
@@ -1148,26 +1109,20 @@ public final class ImapMailboxBuffer extends MailboxBuffer
 
     public void readOnlyError()
     {
-        Runnable r = new Runnable() {
-            public void run()
-            {
-                MessageDialog.showMessageDialog("Mailbox is read-only",
-                    "Error");
-            }
+        Runnable r = () -> {
+            MessageDialog.showMessageDialog("Mailbox is read-only",
+                "Error");
         };
         SwingUtilities.invokeLater(r);
     }
 
     private void fatal(final String text, final String title)
     {
-        Runnable r = new Runnable() {
-            public void run()
-            {
-                MessageDialog.showMessageDialog(Editor.currentEditor(),
-                    text, title);
-                if (Editor.getBufferList().contains(ImapMailboxBuffer.this))
-                    kill();
-            }
+        Runnable r = () -> {
+            MessageDialog.showMessageDialog(Editor.currentEditor(),
+                text, title);
+            if (Editor.getBufferList().contains(ImapMailboxBuffer.this))
+                kill();
         };
         SwingUtilities.invokeLater(r);
     }
@@ -1495,21 +1450,18 @@ public final class ImapMailboxBuffer extends MailboxBuffer
 
     private void markRead(final ImapMailboxEntry entry)
     {
-        Runnable markReadRunnable = new Runnable() {
-            public void run()
-            {
-                try {
-                    if (session.verifyConnected() && session.verifySelected(folderName)) {
-                        session.uidStore(entry.getUid(), "+flags.silent (\\seen)");
-                        if (session.getResponse() == ImapSession.OK)
-                            markReadLocal(entry);
-                    }
+        Runnable markReadRunnable = () -> {
+            try {
+                if (session.verifyConnected() && session.verifySelected(folderName)) {
+                    session.uidStore(entry.getUid(), "+flags.silent (\\seen)");
+                    if (session.getResponse() == ImapSession.OK)
+                        markReadLocal(entry);
                 }
-                finally {
-                    setBusy(false);
-                    unlock();
-                    Editor.updateDisplayLater(ImapMailboxBuffer.this);
-                }
+            }
+            finally {
+                setBusy(false);
+                unlock();
+                Editor.updateDisplayLater(ImapMailboxBuffer.this);
             }
         };
         if (lock()) {
@@ -1703,11 +1655,8 @@ public final class ImapMailboxBuffer extends MailboxBuffer
     {
         Log.debug("ImapMailboxBuffer.dispose " + folderName + " on " +
             session.getHost());
-        Runnable r = new Runnable() {
-            public void run()
-            {
-                session.logout();
-            }
+        Runnable r = () -> {
+            session.logout();
         };
         new Thread(r).start();
         MailboxProperties.saveProperties(this);

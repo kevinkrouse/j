@@ -598,53 +598,50 @@ public final class SendMail extends Buffer
         }
 
 
-        Runnable sendRunnable = new Runnable() {
-            public void run()
-            {
-                final Editor editor = Editor.currentEditor();
-                boolean succeeded = false;
-                session = SmtpSession.getSession(url);
+        Runnable sendRunnable = () -> {
+            final Editor editor = Editor.currentEditor();
+            boolean succeeded = false;
+            session = SmtpSession.getSession(url);
 
+            if (session == null) {
+                String user = url.getUser();
+                if (user == null || user.length() == 0) {
+                    user = InputDialog.showInputDialog(editor, "Login:",
+                            "Login on " + url.getHost());
+                    if (user == null || user.length() == 0)
+                        return;
+                    session = SmtpSession.getSession(url, user);
+                }
                 if (session == null) {
-                    String user = url.getUser();
-                    if (user == null || user.length() == 0) {
-                        user = InputDialog.showInputDialog(editor, "Login:",
-                                "Login on " + url.getHost());
-                        if (user == null || user.length() == 0)
-                            return;
-                        session = SmtpSession.getSession(url, user);
-                    }
-                    if (session == null) {
-                        String password = PasswordDialog.showPasswordDialog(editor,
-                                "Password:", "Password");
-                        if (password == null || password.length() == 0)
-                            return;
-                        session = SmtpSession.getSession(url, user, password);
-                    }
+                    String password = PasswordDialog.showPasswordDialog(editor,
+                            "Password:", "Password");
+                    if (password == null || password.length() == 0)
+                        return;
+                    session = SmtpSession.getSession(url, user, password);
                 }
-
-                if (session != null) {
-                    File messageFile = Utilities.getTempFile();
-                    try {
-                        OutputStreamWriter writer =
-                            new OutputStreamWriter(messageFile.getOutputStream());
-                        writeMessageText(writer);
-                        writer.flush();
-                        writer.close();
-                        succeeded = session.sendMessage(SendMail.this,
-                            messageFile);
-                        if (succeeded)
-                            writeFcc(messageFile);
-                        messageFile.delete();
-                    }
-                    catch (IOException e) {
-                        Log.error(e);
-                    }
-                }
-                hasBeenSent = succeeded;
-                SwingUtilities.invokeLater(succeeded ? succeededRunnable :
-                    errorRunnable);
             }
+
+            if (session != null) {
+                File messageFile = Utilities.getTempFile();
+                try {
+                    OutputStreamWriter writer =
+                        new OutputStreamWriter(messageFile.getOutputStream());
+                    writeMessageText(writer);
+                    writer.flush();
+                    writer.close();
+                    succeeded = session.sendMessage(SendMail.this,
+                        messageFile);
+                    if (succeeded)
+                        writeFcc(messageFile);
+                    messageFile.delete();
+                }
+                catch (IOException e) {
+                    Log.error(e);
+                }
+            }
+            hasBeenSent = succeeded;
+            SwingUtilities.invokeLater(succeeded ? succeededRunnable :
+                errorRunnable);
         };
         setBusy(true);
         new Thread(sendRunnable).start();
@@ -769,43 +766,37 @@ public final class SendMail extends Buffer
             subjectLine.setText(text + eom);
     }
 
-    private Runnable succeededRunnable = new Runnable() {
-        public void run()
-        {
-            unmodified();
-            if (reply && mailbox != null && entryRepliedTo != null)
-                mailbox.setAnsweredFlag(entryRepliedTo);
-            File file = getFile();
-            if (file.isFile()) {
-                Log.debug("deleting draft " + file);
-                file.delete();
-                for (BufferIterator it = new BufferIterator(); it.hasNext();) {
-                    Buffer buf = it.next();
-                    if (buf instanceof DraftsBuffer) {
-                        DraftsBuffer draftsBuffer = (DraftsBuffer) buf;
-                        draftsBuffer.reload();
-                        break;
-                    }
+    private Runnable succeededRunnable = () -> {
+        unmodified();
+        if (reply && mailbox != null && entryRepliedTo != null)
+            mailbox.setAnsweredFlag(entryRepliedTo);
+        File file = getFile();
+        if (file.isFile()) {
+            Log.debug("deleting draft " + file);
+            file.delete();
+            for (BufferIterator it = new BufferIterator(); it.hasNext();) {
+                Buffer buf = it.next();
+                if (buf instanceof DraftsBuffer) {
+                    DraftsBuffer draftsBuffer = (DraftsBuffer) buf;
+                    draftsBuffer.reload();
+                    break;
                 }
             }
-            setBusy(false);
-            kill();
-            EditorIterator iter = new EditorIterator();
-            while (iter.hasNext())
-                iter.next().updateDisplay();
         }
+        setBusy(false);
+        kill();
+        EditorIterator iter = new EditorIterator();
+        while (iter.hasNext())
+            iter.next().updateDisplay();
     };
 
-    private Runnable errorRunnable = new Runnable() {
-        public void run()
-        {
-            setBusy(false);
-            final Editor editor = Editor.currentEditor();
-            editor.updateDisplay();
-            MessageDialog.showMessageDialog(editor,
-                session != null ? session.getErrorText() : "Unable to send message",
-                "Send Mail");
-        }
+    private Runnable errorRunnable = () -> {
+        setBusy(false);
+        final Editor editor = Editor.currentEditor();
+        editor.updateDisplay();
+        MessageDialog.showMessageDialog(editor,
+            session != null ? session.getErrorText() : "Unable to send message",
+            "Send Mail");
     };
 
     private void writeMessageText(Writer writer)

@@ -439,13 +439,10 @@ public class CommandInterpreterBuffer extends Buffer
 
     protected void stdOutUpdate(final String s)
     {
-        Runnable r = new Runnable() {
-            public void run()
-            {
-                appendString(s);
-                updateDisplayInAllFrames();
-                resetUndo();
-            }
+        Runnable r = () -> {
+            appendString(s);
+            updateDisplayInAllFrames();
+            resetUndo();
         };
         SwingUtilities.invokeLater(r);
     }
@@ -457,13 +454,10 @@ public class CommandInterpreterBuffer extends Buffer
 
     protected void stdErrUpdate(final String s)
     {
-        Runnable r = new Runnable() {
-            public void run()
-            {
-                appendString(s);
-                updateDisplayInAllFrames();
-                resetUndo();
-            }
+        Runnable r = () -> {
+            appendString(s);
+            updateDisplayInAllFrames();
+            resetUndo();
         };
         SwingUtilities.invokeLater(r);
     }

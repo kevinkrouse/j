@@ -137,11 +137,8 @@ public final class JavaTree extends SidebarTree implements Constants,
         if (!force)
             if (tags != null && tags == bufferTags)
                 return; // Nothing to do.
-        Runnable r = new Runnable() {
-            public void run()
-            {
-                refreshInternal(buffer, bufferTags);
-            }
+        Runnable r = () -> {
+            refreshInternal(buffer, bufferTags);
         };
         Thread thread = new Thread(r, "JavaTree.refresh()");
         thread.setDaemon(true);
@@ -156,16 +153,13 @@ public final class JavaTree extends SidebarTree implements Constants,
             final TreeModel model =
                 getDefaultModel(bufferTags, arrangeByType, sort);
             final List<LocalTag> finalBufferTags = bufferTags;
-            Runnable completionRunnable = new Runnable() {
-                public void run()
-                {
-                    setModel(model);
-                    arrangedByType = arrangeByType;
-                    sorted = sort;
-                    tags = finalBufferTags;
-                    expandRow(0);
-                    updatePosition();
-                }
+            Runnable completionRunnable = () -> {
+                setModel(model);
+                arrangedByType = arrangeByType;
+                sorted = sort;
+                tags = finalBufferTags;
+                expandRow(0);
+                updatePosition();
             };
             SwingUtilities.invokeLater(completionRunnable);
         }
@@ -213,20 +207,12 @@ public final class JavaTree extends SidebarTree implements Constants,
                     break;
             }
         }
-        Collections.sort(methodsAndFields, new MethodComparator());
+        Collections.sort(methodsAndFields,
+            (t1, t2) -> t1.toString().compareTo(t2.toString()));
         allTags.addAll(methodsAndFields);
         return allTags;
     }
 
-    private static class MethodComparator implements Comparator<JavaTag>
-    {
-        MethodComparator() {}
-
-        public int compare(JavaTag t1, JavaTag t2)
-        {
-            return t1.toString().compareTo(t2.toString());
-        }
-    }
 
     private static DefaultMutableTreeNode findParentNodeForTag(JavaTag tag,
         DefaultMutableTreeNode rootNode)

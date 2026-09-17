@@ -206,13 +206,10 @@ public final class Sidebar extends JComponent implements Constants
                 final SidebarBufferTree bufferTree = getBufferTree();
                 if (bufferTree != null && bufferTree != frame.getFocusedComponent())
                     bufferTree.updateBufferList();
-                Buffer.checkVCSForAllBuffers(new Runnable() {
-                    public void run()
-                    {
-                        SidebarBufferTree tree = getBufferTree();
-                        if (tree != null)
-                            tree.repaint();
-                    }
+                Buffer.checkVCSForAllBuffers(() -> {
+                    SidebarBufferTree tree = getBufferTree();
+                    if (tree != null)
+                        tree.repaint();
                 });
             }
             if (bottomComponent == null || bottomComponent != frame.getFocusedComponent()) {

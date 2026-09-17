@@ -475,13 +475,10 @@ public final class Frame extends JFrame implements Constants, ComponentListener,
             toolbar.repaint();
         }
         // Make sure toolbar doesn't steal focus.
-        Runnable r = new Runnable() {
-            public void run()
-            {
-                JComponent c = getFocusedComponent();
-                if (c != null)
-                    c.requestFocus();
-            }
+        Runnable r = () -> {
+            JComponent c = getFocusedComponent();
+            if (c != null)
+                c.requestFocus();
         };
         SwingUtilities.invokeLater(r);
     }
@@ -993,11 +990,8 @@ public final class Frame extends JFrame implements Constants, ComponentListener,
         setFocus(currentEditor.getDisplay());
         repaint();
         // 1.4.0-rc hangs if we call reactivate() directly here.
-        Runnable r = new Runnable() {
-            public void run()
-            {
-                reactivate();
-            }
+        Runnable r = () -> {
+            reactivate();
         };
         SwingUtilities.invokeLater(r);
     }

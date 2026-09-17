@@ -1056,11 +1056,8 @@ public class FtpSession implements Constants, RemoteSession
         }
     }
 
-    private static final Runnable cleanupRunnable = new Runnable() {
-        public void run()
-        {
-            cleanup();
-        }
+    private static final Runnable cleanupRunnable = () -> {
+        cleanup();
     };
 
     private synchronized void disconnect()
@@ -1099,18 +1096,15 @@ public class FtpSession implements Constants, RemoteSession
         if (connected) {
             final Editor editor = Editor.currentEditor();
             editor.setWaitCursor();
-            Runnable r = new Runnable() {
-                public void run()
-                {
-                    try {
-                        if (echo)
-                            Log.debug("==> QUIT");
-                        controlOut.write("QUIT\r\n");
-                        controlOut.flush();
-                        getReply();
-                    }
-                    catch (IOException e) {}
+            Runnable r = () -> {
+                try {
+                    if (echo)
+                        Log.debug("==> QUIT");
+                    controlOut.write("QUIT\r\n");
+                    controlOut.flush();
+                    getReply();
                 }
+                catch (IOException e) {}
             };
             // A daemon thread, so a server that never answers QUIT cannot
             // hold the editor open at exit.

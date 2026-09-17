@@ -64,21 +64,15 @@ public class Darcs extends VersionControl implements Constants
       }
     final String cmd = sb.toString().trim();
     final Buffer parentBuffer = editor.getBuffer();
-    Runnable commandRunnable = new Runnable()
+    Runnable commandRunnable = () ->
       {
-        public void run()
-        {
-          final String output =
-            command(cmd, editor.getCurrentDirectory());
-          Runnable completionRunnable = new Runnable()
-            {
-              public void run()
-              {
-                darcsCompleted(editor, parentBuffer, cmd, output);
-              }
-            };
-          SwingUtilities.invokeLater(completionRunnable);
-        }
+        final String output =
+          command(cmd, editor.getCurrentDirectory());
+        Runnable completionRunnable = () ->
+          {
+            darcsCompleted(editor, parentBuffer, cmd, output);
+          };
+        SwingUtilities.invokeLater(completionRunnable);
       };
     new Thread(commandRunnable).start();
   }

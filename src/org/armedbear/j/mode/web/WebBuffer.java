@@ -371,55 +371,52 @@ public final class WebBuffer extends Buffer implements WebConstants
             final String theRef = ref;
             final HttpLoadProcess httpLoadProcess =
                 new HttpLoadProcess(wb, (HttpFile) destination);
-            Runnable successRunnable = new Runnable() {
-                public void run()
-                {
-                    final String contentType = httpLoadProcess.getContentType();
-                    Log.debug("content-type = " + contentType);
-                    boolean isImage = false;
-                    if (contentType != null && contentType.toLowerCase().startsWith("image/"))
-                        isImage = true;
-                    else {
-                        String extension = Utilities.getExtension(destination);
-                        if (extension != null) {
-                            extension = extension.toLowerCase();
-                            if (extension.equals(".jpg") || extension.equals(".gif") || extension.equals(".png"))
-                                isImage = true;
-                        }
+            Runnable successRunnable = () -> {
+                final String contentType = httpLoadProcess.getContentType();
+                Log.debug("content-type = " + contentType);
+                boolean isImage = false;
+                if (contentType != null && contentType.toLowerCase().startsWith("image/"))
+                    isImage = true;
+                else {
+                    String extension = Utilities.getExtension(destination);
+                    if (extension != null) {
+                        extension = extension.toLowerCase();
+                        if (extension.equals(".jpg") || extension.equals(".gif") || extension.equals(".png"))
+                            isImage = true;
                     }
-                    if (isImage) {
-                        if (theLink instanceof ImageLink) {
-                            ImageLoader loader = new ImageLoader(httpLoadProcess.getCache());
-                            java.awt.Image image = loader.loadImage();
-                            if (image != null)
-                                wb.insertImage(editor, dotLine, theSegment, image);
-                        } else {
-                            // Normal link.
-                            // BUG!! This isn't right either. We should display the image in
-                            // the current buffer.
-                            ImageBuffer buf = ImageBuffer.createImageBuffer(destination, httpLoadProcess.getCache(), null);
-                            editor.makeNext(buf);
-                            editor.activate(buf);
-                            editor.updateDisplay();
-                        }
-                        return;
+                }
+                if (isImage) {
+                    if (theLink instanceof ImageLink) {
+                        ImageLoader loader = new ImageLoader(httpLoadProcess.getCache());
+                        java.awt.Image image = loader.loadImage();
+                        if (image != null)
+                            wb.insertImage(editor, dotLine, theSegment, image);
+                    } else {
+                        // Normal link.
+                        // BUG!! This isn't right either. We should display the image in
+                        // the current buffer.
+                        ImageBuffer buf = ImageBuffer.createImageBuffer(destination, httpLoadProcess.getCache(), null);
+                        editor.makeNext(buf);
+                        editor.activate(buf);
+                        editor.updateDisplay();
                     }
-                    if (wb.loadLocalFile(httpLoadProcess.getCache(), contentType, httpLoadProcess.getCache().getEncoding())) {
-                        wb.saveHistory(historyFile, historyOffset, historyContentType);
-                        wb.setFile(httpLoadProcess.getFile());
-                        wb.setCache(httpLoadProcess.getCache());
-                        Position pos = null;
-                        if (theRef != null)
-                            pos = wb.findRef(theRef);
-                        if (pos == null)
-                            pos = new Position(wb.getFirstLine(), 0);
-                        wb.update(pos);
-                    }
-                    for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-                        Editor ed = it.next();
-                        if (ed != null && ed.getBuffer() == wb)
-                            ed.setDefaultCursor();
-                    }
+                    return;
+                }
+                if (wb.loadLocalFile(httpLoadProcess.getCache(), contentType, httpLoadProcess.getCache().getEncoding())) {
+                    wb.saveHistory(historyFile, historyOffset, historyContentType);
+                    wb.setFile(httpLoadProcess.getFile());
+                    wb.setCache(httpLoadProcess.getCache());
+                    Position pos = null;
+                    if (theRef != null)
+                        pos = wb.findRef(theRef);
+                    if (pos == null)
+                        pos = new Position(wb.getFirstLine(), 0);
+                    wb.update(pos);
+                }
+                for (EditorIterator it = new EditorIterator(); it.hasNext();) {
+                    Editor ed = it.next();
+                    if (ed != null && ed.getBuffer() == wb)
+                        ed.setDefaultCursor();
                 }
             };
             ErrorRunnable errorRunnable = new ErrorRunnable("Operation failed") {
@@ -767,22 +764,19 @@ public final class WebBuffer extends Buffer implements WebConstants
                 setLastModified(destination.lastModified());
             } else {
                 // Error!
-                Runnable errorRunnable = new Runnable() {
-                    public void run()
-                    {
-                        if (empty && Editor.getBufferList().contains(WebBuffer.this))
-                            kill();
-                        for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-                            Editor ed = it.next();
-                            if (empty || ed.getBuffer() == WebBuffer.this) {
-                                ed.updateLocation();
-                                ed.updateDisplay();
-                            }
+                Runnable errorRunnable = () -> {
+                    if (empty && Editor.getBufferList().contains(WebBuffer.this))
+                        kill();
+                    for (EditorIterator it = new EditorIterator(); it.hasNext();) {
+                        Editor ed = it.next();
+                        if (empty || ed.getBuffer() == WebBuffer.this) {
+                            ed.updateLocation();
+                            ed.updateDisplay();
                         }
-                        if (errorText == null)
-                            errorText = "Unable to load " + destination.canonicalPath();
-                        MessageDialog.showMessageDialog(errorText, "Error");
                     }
+                    if (errorText == null)
+                        errorText = "Unable to load " + destination.canonicalPath();
+                    MessageDialog.showMessageDialog(errorText, "Error");
                 };
                 SwingUtilities.invokeLater(errorRunnable);
             }
@@ -825,37 +819,31 @@ public final class WebBuffer extends Buffer implements WebConstants
         final File oldFile = getFile();
         setFile(destination);
         final HttpLoadProcess httpLoadProcess = new HttpLoadProcess(this, httpFile);
-        Runnable httpSuccessRunnable = new Runnable() {
-            public void run()
-            {
-                File localCache = httpLoadProcess.getCache();
-                if (localCache != null && localCache.isFile()) {
-                    if (loadLocalFile(localCache, httpLoadProcess.getContentType(), localCache.getEncoding())) {
-                        setFile(httpLoadProcess.getFile());
-                        setCache(localCache);
-                        setContentType(httpLoadProcess.getContentType());
-                        update(offset);
-                    }
+        Runnable httpSuccessRunnable = () -> {
+            File localCache = httpLoadProcess.getCache();
+            if (localCache != null && localCache.isFile()) {
+                if (loadLocalFile(localCache, httpLoadProcess.getContentType(), localCache.getEncoding())) {
+                    setFile(httpLoadProcess.getFile());
+                    setCache(localCache);
+                    setContentType(httpLoadProcess.getContentType());
+                    update(offset);
                 }
             }
         };
-        Runnable httpCancelRunnable = new Runnable() {
-            public void run()
-            {
-                setFile(oldFile);
-                setBusy(false);
-                if (empty && Editor.getBufferList().contains(WebBuffer.this))
-                    kill();
-                for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-                    Editor ed = it.next();
-                    if (ed != null && ed.getBuffer() == WebBuffer.this) {
-                        ed.status("Transfer cancelled");
-                        ed.setDefaultCursor();
-                    }
+        Runnable httpCancelRunnable = () -> {
+            setFile(oldFile);
+            setBusy(false);
+            if (empty && Editor.getBufferList().contains(WebBuffer.this))
+                kill();
+            for (EditorIterator it = new EditorIterator(); it.hasNext();) {
+                Editor ed = it.next();
+                if (ed != null && ed.getBuffer() == WebBuffer.this) {
+                    ed.status("Transfer cancelled");
+                    ed.setDefaultCursor();
                 }
-                Editor.currentEditor().updateDisplay();
-                MessageDialog.showMessageDialog("Transfer cancelled", httpFile.netPath());
             }
+            Editor.currentEditor().updateDisplay();
+            MessageDialog.showMessageDialog("Transfer cancelled", httpFile.netPath());
         };
         ErrorRunnable httpErrorRunnable = new ErrorRunnable("Load failed") {
             public void run()

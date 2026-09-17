@@ -183,34 +183,31 @@ public final class NewsGroupMessageBuffer extends MessageBuffer
         summary.updateEntry(entry);
         final MailboxLine mailboxLine =
             summary.findLineForEntry(entry);
-        Runnable completionRunnable = new Runnable() {
-            public void run()
-            {
-                setBusy(false);
-                if (rawText != null) {
-                    for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-                        Editor ed = it.next();
-                        if (ed.getBuffer() == NewsGroupMessageBuffer.this) {
-                            ed.setDot(getFirstLine(), 0);
-                            ed.moveCaretToDotCol();
-                            ed.getDisplay().setTopLine(getFirstLine());
-                            ed.setUpdateFlag(REPAINT);
-                            ed.updateDisplay();
-                        } else if (ed.getBuffer() == summary) {
-                            if (ed.getDot() != null) {
-                                if (mailboxLine != null) {
-                                    ed.updateDotLine();
-                                    ed.getDot().moveTo(mailboxLine, 0);
-                                    ed.updateDotLine();
-                                    ed.moveCaretToDotCol();
-                                }
+        Runnable completionRunnable = () -> {
+            setBusy(false);
+            if (rawText != null) {
+                for (EditorIterator it = new EditorIterator(); it.hasNext();) {
+                    Editor ed = it.next();
+                    if (ed.getBuffer() == NewsGroupMessageBuffer.this) {
+                        ed.setDot(getFirstLine(), 0);
+                        ed.moveCaretToDotCol();
+                        ed.getDisplay().setTopLine(getFirstLine());
+                        ed.setUpdateFlag(REPAINT);
+                        ed.updateDisplay();
+                    } else if (ed.getBuffer() == summary) {
+                        if (ed.getDot() != null) {
+                            if (mailboxLine != null) {
+                                ed.updateDotLine();
+                                ed.getDot().moveTo(mailboxLine, 0);
+                                ed.updateDotLine();
+                                ed.moveCaretToDotCol();
                             }
-                            ed.clearStatusText();
-                            ed.updateDisplay();
                         }
+                        ed.clearStatusText();
+                        ed.updateDisplay();
                     }
-                    Sidebar.repaintBufferListInAllFrames();
                 }
+                Sidebar.repaintBufferListInAllFrames();
             }
         };
         SwingUtilities.invokeLater(completionRunnable);

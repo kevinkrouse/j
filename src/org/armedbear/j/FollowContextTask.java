@@ -35,40 +35,34 @@ public class FollowContextTask extends IdleThreadTask implements Constants
         setRunnable(runnable);
     }
 
-    private final Runnable runnable = new Runnable() {
-        public void run()
-        {
-            final Editor editor = Editor.currentEditor();
-            if (editor == null)
-                return;
-            if (editor.getBuffer() == null)
-                return;
-            if (editor.getMark() != null)
-                return;
-            if (editor.getDot() == null || editor.getDot().equals(lastPos))
-                return;
-            lastPos = new Position(editor.getDot());
-            Expression expression =
-                editor.getMode().getExpressionAtDot(editor, false);
-            if (expression == null)
-                return;
-            if (!expression.equals(lastExpression)) {
-                final Tag tag = findMatchingTag(editor, expression);
-                if (tag != null) {
-                    Runnable r = new Runnable() {
-                        public void run()
-                        {
-                            if (tag instanceof LocalTag)
-                                TagCommands.gotoLocalTag(editor, (LocalTag)tag, true);
-                            else if (tag instanceof GlobalTag)
-                                TagCommands.gotoGlobalTag(editor, (GlobalTag)tag, true);
-                            editor.updateDisplay();
-                        }
-                    };
-                    SwingUtilities.invokeLater(r);
-                }
-                lastExpression = expression;
+    private final Runnable runnable = () -> {
+        final Editor editor = Editor.currentEditor();
+        if (editor == null)
+            return;
+        if (editor.getBuffer() == null)
+            return;
+        if (editor.getMark() != null)
+            return;
+        if (editor.getDot() == null || editor.getDot().equals(lastPos))
+            return;
+        lastPos = new Position(editor.getDot());
+        Expression expression =
+            editor.getMode().getExpressionAtDot(editor, false);
+        if (expression == null)
+            return;
+        if (!expression.equals(lastExpression)) {
+            final Tag tag = findMatchingTag(editor, expression);
+            if (tag != null) {
+                Runnable r = () -> {
+                    if (tag instanceof LocalTag)
+                        TagCommands.gotoLocalTag(editor, (LocalTag)tag, true);
+                    else if (tag instanceof GlobalTag)
+                        TagCommands.gotoGlobalTag(editor, (GlobalTag)tag, true);
+                    editor.updateDisplay();
+                };
+                SwingUtilities.invokeLater(r);
             }
+            lastExpression = expression;
         }
     };
 

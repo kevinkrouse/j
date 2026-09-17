@@ -107,13 +107,10 @@ public final class EventHandler implements Runnable
                     }
                     jdb.fireContextChanged();
                     jdb.prompt();
-                    Runnable r = new Runnable() {
-                        public void run()
-                        {
-                            if (!Platform.isPlatformWindows())
-                                Editor.getCurrentFrame().toFront();
-                            jdb.getControlDialog().toFront();
-                        }
+                    Runnable r = () -> {
+                        if (!Platform.isPlatformWindows())
+                            Editor.getCurrentFrame().toFront();
+                        jdb.getControlDialog().toFront();
                     };
                     SwingUtilities.invokeLater(r);
                 }

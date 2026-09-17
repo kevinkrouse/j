@@ -83,11 +83,8 @@ public final class TagCommands implements Constants
         textField.setHistory(new History("findTag.tag"));
         textField.setText("");
         if (editor.getDispatcher().getLastEvent().getSource() instanceof MenuItem) {
-            Runnable r = new Runnable() {
-                public void run()
-                {
-                    editor.setFocusToTextField();
-                }
+            Runnable r = () -> {
+                editor.setFocusToTextField();
             };
             SwingUtilities.invokeLater(r);
         } else

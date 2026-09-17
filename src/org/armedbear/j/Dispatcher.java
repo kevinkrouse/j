@@ -649,11 +649,8 @@ public final class Dispatcher implements Constants, KeyListener, MouseListener,
 
     public void actionPerformed(final ActionEvent e)
     {
-        Runnable r = new Runnable() {
-            public void run()
-            {
-                dispatch(e);
-            }
+        Runnable r = () -> {
+            dispatch(e);
         };
         SwingUtilities.invokeLater(r);
     }

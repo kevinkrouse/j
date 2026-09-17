@@ -101,43 +101,34 @@ public final class DirectoryTree extends SidebarTree implements NavigationCompon
     {
         if (!SwingUtilities.isEventDispatchThread())
             Debug.bug("DirectoryTree.refresh() called from background thread!");
-        Runnable refreshRunnable = new Runnable() {
-            public void run()
-            {
-                File file = editor.getBuffer().getFile();
-                if (file == null)
-                    return;
-                if (treeModel == null) {
-                    treeModel = DirectoryTreeModel.getTreeModel(file);
-                    if (treeModel != null) {
-                        final DefaultMutableTreeNode node = getNode(file);
-                        Runnable completionRunnable = new Runnable() {
-                            public void run()
-                            {
-                                setModel(treeModel);
-                                if (node != null)
-                                    scrollNodeToCenter(node);
-                            }
-                        };
-                        SwingUtilities.invokeLater(completionRunnable);
-                    }
-                } else {
-                    DefaultMutableTreeNode selectedNode = null;
-                    TreePath path = getSelectionPath();
-                    if (path != null) {
-                        selectedNode =
-                            (DefaultMutableTreeNode) path.getLastPathComponent();
-                    }
+        Runnable refreshRunnable = () -> {
+            File file = editor.getBuffer().getFile();
+            if (file == null)
+                return;
+            if (treeModel == null) {
+                treeModel = DirectoryTreeModel.getTreeModel(file);
+                if (treeModel != null) {
                     final DefaultMutableTreeNode node = getNode(file);
-                    if (node != null && node != selectedNode) {
-                        Runnable completionRunnable = new Runnable() {
-                            public void run()
-                            {
-                                scrollNodeToCenter(node);
-                            }
-                        };
-                        SwingUtilities.invokeLater(completionRunnable);
-                    }
+                    Runnable completionRunnable = () -> {
+                        setModel(treeModel);
+                        if (node != null)
+                            scrollNodeToCenter(node);
+                    };
+                    SwingUtilities.invokeLater(completionRunnable);
+                }
+            } else {
+                DefaultMutableTreeNode selectedNode = null;
+                TreePath path = getSelectionPath();
+                if (path != null) {
+                    selectedNode =
+                        (DefaultMutableTreeNode) path.getLastPathComponent();
+                }
+                final DefaultMutableTreeNode node = getNode(file);
+                if (node != null && node != selectedNode) {
+                    Runnable completionRunnable = () -> {
+                        scrollNodeToCenter(node);
+                    };
+                    SwingUtilities.invokeLater(completionRunnable);
                 }
             }
         };

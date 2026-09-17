@@ -85,14 +85,11 @@ public class StatusBarProgressNotifier implements Cancellable, ProgressNotifier,
 
     private void update()
     {
-        Runnable r = new Runnable() {
-            public void run()
-            {
-                for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-                    Editor ed = it.next();
-                    if (ed.getBuffer() == buffer)
-                        ed.status(progressText);
-                }
+        Runnable r = () -> {
+            for (EditorIterator it = new EditorIterator(); it.hasNext();) {
+                Editor ed = it.next();
+                if (ed.getBuffer() == buffer)
+                    ed.status(progressText);
             }
         };
         SwingUtilities.invokeLater(r);

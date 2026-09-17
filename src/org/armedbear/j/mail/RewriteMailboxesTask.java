@@ -66,14 +66,11 @@ public final class RewriteMailboxesTask extends IdleThreadTask
                                     if (mb.isDirty() && mb.isIdle(300, 60)) {
                                         mb.setBusy(true);
                                         mb.setWaitCursor();
-                                        Runnable r = new Runnable() {
-                                            public void run()
-                                            {
-                                                mb.rewriteMailbox(false);
-                                                mb.setBusy(false);
-                                                mb.unlock();
-                                                mb.setDefaultCursor();
-                                            }
+                                        Runnable r = () -> {
+                                            mb.rewriteMailbox(false);
+                                            mb.setBusy(false);
+                                            mb.unlock();
+                                            mb.setDefaultCursor();
                                         };
                                         Thread t = new Thread(r);
                                         t.setPriority(Thread.MIN_PRIORITY);

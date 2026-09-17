@@ -51,21 +51,15 @@ public class Git extends VersionControl implements Constants
         // Append current file name for diff
         final String cmd = parseArgs("git", s, true, command.startsWith("diff"));
         final Buffer parentBuffer = editor.getBuffer();
-        Runnable commandRunnable = new Runnable()
+        Runnable commandRunnable = () ->
         {
-            public void run()
+            final String output =
+                    command(cmd, editor.getCurrentDirectory());
+            Runnable completionRunnable = () ->
             {
-                final String output =
-                        command(cmd, editor.getCurrentDirectory());
-                Runnable completionRunnable = new Runnable()
-                {
-                    public void run()
-                    {
-                        gitCompleted(editor, parentBuffer, cmd, output);
-                    }
-                };
-                SwingUtilities.invokeLater(completionRunnable);
-            }
+                gitCompleted(editor, parentBuffer, cmd, output);
+            };
+            SwingUtilities.invokeLater(completionRunnable);
         };
         new Thread(commandRunnable).start();
     }

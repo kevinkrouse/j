@@ -40,15 +40,12 @@ public final class GarbageCollectionTask extends IdleThreadTask
         lastRunMillis = when;
     }
 
-    private final Runnable runnable = new Runnable() {
-        public void run()
-        {
-            // Only do gc if there has been a user event since the last time
-            // we did gc.
-            if (Dispatcher.getLastEventMillis() > getLastRunMillis()) {
-                Runtime.getRuntime().gc();
-                setLastRunMillis(System.currentTimeMillis());
-            }
+    private final Runnable runnable = () -> {
+        // Only do gc if there has been a user event since the last time
+        // we did gc.
+        if (Dispatcher.getLastEventMillis() > getLastRunMillis()) {
+            Runtime.getRuntime().gc();
+            setLastRunMillis(System.currentTimeMillis());
         }
     };
 }

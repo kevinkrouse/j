@@ -394,14 +394,11 @@ public final class IncrementalFindTextFieldHandler extends DefaultTextFieldHandl
         SwingUtilities.invokeLater(foundRunnable);
     }
 
-    private final Runnable foundRunnable = new Runnable() {
-        public void run()
-        {
-            if (dirty) {
-                editor.markFoundPattern(search);
-                editor.updateDisplay();
-                dirty = false;
-            }
+    private final Runnable foundRunnable = () -> {
+        if (dirty) {
+            editor.markFoundPattern(search);
+            editor.updateDisplay();
+            dirty = false;
         }
     };
 

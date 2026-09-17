@@ -213,6 +213,9 @@ public final class IList implements BackgroundProcess, Constants
         }
     }
 
+    // An anonymous class rather than a lambda: the body reads editor and
+    // search, which are blank finals the constructor assigns, and a lambda in
+    // a field initialiser may not read those.
     private Runnable completionRunnable = new Runnable() {
         public void run()
         {

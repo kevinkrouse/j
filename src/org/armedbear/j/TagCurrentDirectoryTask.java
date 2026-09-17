@@ -30,25 +30,22 @@ public final class TagCurrentDirectoryTask extends IdleThreadTask
         setRunnable(runnable);
     }
 
-    private final Runnable runnable = new Runnable() {
-        public void run()
-        {
-            long now = System.currentTimeMillis();
-            if (lastRun == 0 || now - lastRun > getIdle()) {
-                // Add current directory to tag file manager's queue.
-                Buffer buffer = Editor.currentEditor().getBuffer();
-                File file = buffer.getFile();
-                if (file == null)
-                    return;
-                if (file.isRemote())
-                    return;
-                if (buffer.isTaggable()) {
-                    File dir = file.getParentFile();
-                    if (dir != null)
-                        Editor.getTagFileManager().addToQueue(dir, buffer.getMode());
-                }
-                lastRun = now;
+    private final Runnable runnable = () -> {
+        long now = System.currentTimeMillis();
+        if (lastRun == 0 || now - lastRun > getIdle()) {
+            // Add current directory to tag file manager's queue.
+            Buffer buffer = Editor.currentEditor().getBuffer();
+            File file = buffer.getFile();
+            if (file == null)
+                return;
+            if (file.isRemote())
+                return;
+            if (buffer.isTaggable()) {
+                File dir = file.getParentFile();
+                if (dir != null)
+                    Editor.getTagFileManager().addToQueue(dir, buffer.getMode());
             }
+            lastRun = now;
         }
     };
 }

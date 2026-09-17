@@ -106,25 +106,22 @@ public final class NewsGroupSummaryBuffer extends MailboxBuffer
                 return;
             }
             if (count > 100) {
-                Runnable confirmRunnable = new Runnable() {
-                    public void run()
-                    {
-                        Editor editor = Editor.currentEditor();
-                        editor.setDefaultCursor();
-                        String prompt = "How many headers would you like?";
-                        String defaultValue = String.valueOf(count);
-                        String response =
-                            InputDialog.showInputDialog(editor, prompt,
-                                groupName, defaultValue);
-                        editor.setWaitCursor();
-                        numberToGet = 0;
-                        if (response != null && response.length() > 0) {
-                            try {
-                                numberToGet = Integer.parseInt(response);
-                            }
-                            catch (NumberFormatException e) {
-                                Log.error(e);
-                            }
+                Runnable confirmRunnable = () -> {
+                    Editor editor = Editor.currentEditor();
+                    editor.setDefaultCursor();
+                    String prompt = "How many headers would you like?";
+                    String defaultValue = String.valueOf(count);
+                    String response =
+                        InputDialog.showInputDialog(editor, prompt,
+                            groupName, defaultValue);
+                    editor.setWaitCursor();
+                    numberToGet = 0;
+                    if (response != null && response.length() > 0) {
+                        try {
+                            numberToGet = Integer.parseInt(response);
+                        }
+                        catch (NumberFormatException e) {
+                            Log.error(e);
                         }
                     }
                 };
@@ -309,11 +306,8 @@ public final class NewsGroupSummaryBuffer extends MailboxBuffer
     public void dispose()
     {
         if (session != null) {
-            Runnable r = new Runnable(){
-                public void run()
-                {
-                    session.disconnect();
-                }
+            Runnable r = () ->{
+                session.disconnect();
             };
             new Thread(r).start();
         }

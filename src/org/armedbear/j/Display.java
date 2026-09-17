@@ -592,11 +592,8 @@ public final class Display extends JComponent implements Constants,
         if (dot != null) {
             caretVisible = !caretVisible;
             final Line line = dot.getLine();
-            Runnable r = new Runnable() {
-                public void run()
-                {
-                    repaintLine(line);
-                }
+            Runnable r = () -> {
+                repaintLine(line);
             };
             SwingUtilities.invokeLater(r);
         }

@@ -92,13 +92,10 @@ public final class JLispBuffer extends LispShellBuffer
                 }
                 Log.debug("interpreter thread exiting");
                 Lisp.resetIO();
-                Runnable processExitedRunnable = new Runnable() {
-                    public void run()
-                    {
-                        appendString("\nProcess exited\n");
-                        setBusy(false);
-                        updateDisplayInAllFrames();
-                    }
+                Runnable processExitedRunnable = () -> {
+                    appendString("\nProcess exited\n");
+                    setBusy(false);
+                    updateDisplayInAllFrames();
                 };
                 SwingUtilities.invokeLater(processExitedRunnable);
                 //LispThread.remove(thread);

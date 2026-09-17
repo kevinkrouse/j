@@ -1137,23 +1137,20 @@ public class Buffer extends SystemBuffer
         Debug.assertTrue(SwingUtilities.isEventDispatchThread());
         FtpSession session = FtpSession.getSession(file);
         final FtpLoadProcess ftpLoadProcess = new FtpLoadProcess(this, file, session);
-        Runnable successRunnable = new Runnable() {
-            public void run()
-            {
-                File newCache = ftpLoadProcess.getCache();
-                if (newCache != null) {
-                    Log.debug("newCache != null");
-                    if (cache != null && cache.isFile())
-                        cache.delete();
-                    cache = newCache;
-                    reloadLocal(cache);
-                } else {
-                    // User cancelled.
-                    setLoaded(true);
-                }
-                setBusy(false);
-                reloadSucceeded();
+        Runnable successRunnable = () -> {
+            File newCache = ftpLoadProcess.getCache();
+            if (newCache != null) {
+                Log.debug("newCache != null");
+                if (cache != null && cache.isFile())
+                    cache.delete();
+                cache = newCache;
+                reloadLocal(cache);
+            } else {
+                // User cancelled.
+                setLoaded(true);
             }
+            setBusy(false);
+            reloadSucceeded();
         };
         ErrorRunnable errorRunnable = new ErrorRunnable("Reload failed") {
             public void run()
@@ -1173,23 +1170,20 @@ public class Buffer extends SystemBuffer
         Log.debug("reloadHttp");
         Debug.assertTrue(SwingUtilities.isEventDispatchThread());
         final HttpLoadProcess httpLoadProcess = new HttpLoadProcess(this, file);
-        Runnable successRunnable = new Runnable() {
-            public void run()
-            {
-                File newCache = httpLoadProcess.getCache();
-                if (newCache != null) {
-                    Log.debug("newCache != null");
-                    if (cache != null && cache.isFile())
-                        cache.delete();
-                    cache = newCache;
-                    reloadLocal(cache);
-                } else {
-                    // User cancelled.
-                    setLoaded(true);
-                }
-                setBusy(false);
-                reloadSucceeded();
+        Runnable successRunnable = () -> {
+            File newCache = httpLoadProcess.getCache();
+            if (newCache != null) {
+                Log.debug("newCache != null");
+                if (cache != null && cache.isFile())
+                    cache.delete();
+                cache = newCache;
+                reloadLocal(cache);
+            } else {
+                // User cancelled.
+                setLoaded(true);
             }
+            setBusy(false);
+            reloadSucceeded();
         };
         ErrorRunnable errorRunnable = new ErrorRunnable("Reload failed") {
             public void run()
@@ -1612,18 +1606,15 @@ public class Buffer extends SystemBuffer
             saveProcess = new FtpSaveProcess(this, cache, file, session);
         saveProcess.setConfirmIfDestinationChanged(true);
         saveProcess.setTitle("Save");
-        final Runnable successRunnable = new Runnable() {
-            public void run()
-            {
-                saved();
-                setListing(saveProcess.getListing());
-                for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-                    Editor ed = it.next();
-                    if (ed.getBuffer() == Buffer.this)
-                        ed.setDefaultCursor();
-                }
-                Sidebar.repaintBufferListInAllFrames();
+        final Runnable successRunnable = () -> {
+            saved();
+            setListing(saveProcess.getListing());
+            for (EditorIterator it = new EditorIterator(); it.hasNext();) {
+                Editor ed = it.next();
+                if (ed.getBuffer() == Buffer.this)
+                    ed.setDefaultCursor();
             }
+            Sidebar.repaintBufferListInAllFrames();
         };
         saveProcess.setSuccessRunnable(successRunnable);
         Debug.assertTrue(isLocked());
@@ -1795,20 +1786,17 @@ public class Buffer extends SystemBuffer
             new FtpSaveProcess(this, cache, destination, session);
         saveProcess.setConfirmOverwrite(true);
         saveProcess.setTitle("Save As");
-        final Runnable successRunnable = new Runnable() {
-            public void run()
-            {
-                saved();
-                changeFile(destination);
-                setListing(saveProcess.getListing());
-                Sidebar.setUpdateFlagInAllFrames(SIDEBAR_REPAINT_BUFFER_LIST);
-                for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-                    Editor ed = it.next();
-                    if (ed.getBuffer() == Buffer.this)
-                        ed.setDefaultCursor();
-                }
-                Sidebar.repaintBufferListInAllFrames();
+        final Runnable successRunnable = () -> {
+            saved();
+            changeFile(destination);
+            setListing(saveProcess.getListing());
+            Sidebar.setUpdateFlagInAllFrames(SIDEBAR_REPAINT_BUFFER_LIST);
+            for (EditorIterator it = new EditorIterator(); it.hasNext();) {
+                Editor ed = it.next();
+                if (ed.getBuffer() == Buffer.this)
+                    ed.setDefaultCursor();
             }
+            Sidebar.repaintBufferListInAllFrames();
         };
         saveProcess.setSuccessRunnable(successRunnable);
         Debug.assertTrue(isLocked());
@@ -1893,16 +1881,13 @@ public class Buffer extends SystemBuffer
             MessageDialog.showMessageDialog(message, "Save Copy");
             return;
         }
-        final Runnable successRunnable = new Runnable() {
-            public void run()
-            {
-                for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-                    Editor ed = it.next();
-                    if (ed.getBuffer() == Buffer.this)
-                        ed.setDefaultCursor();
-                }
-                Sidebar.repaintBufferListInAllFrames();
+        final Runnable successRunnable = () -> {
+            for (EditorIterator it = new EditorIterator(); it.hasNext();) {
+                Editor ed = it.next();
+                if (ed.getBuffer() == Buffer.this)
+                    ed.setDefaultCursor();
             }
+            Sidebar.repaintBufferListInAllFrames();
         };
         final FtpSaveProcess saveProcess =
             new FtpSaveProcess(this, cache, destination, session);
@@ -1985,22 +1970,19 @@ public class Buffer extends SystemBuffer
                 new Thread(autosaveRunnable, "autosave").start();
     }
 
-    private final Runnable autosaveRunnable = new Runnable() {
-        public void run()
-        {
-            try {
-                lockRead();
-            }
-            catch (InterruptedException e) {
-                Log.error(e);
-                return;
-            }
-            try {
-                autosaveInternal();
-            }
-            finally {
-                unlockRead();
-            }
+    private final Runnable autosaveRunnable = () -> {
+        try {
+            lockRead();
+        }
+        catch (InterruptedException e) {
+            Log.error(e);
+            return;
+        }
+        try {
+            autosaveInternal();
+        }
+        finally {
+            unlockRead();
         }
     };
 

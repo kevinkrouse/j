@@ -384,13 +384,9 @@ class Node extends DefaultMutableTreeNode
 
     // Typed to TreeNode because the list being sorted is the children field
     // DefaultMutableTreeNode declares, and every element in it is a Node.
-    private static final Comparator<TreeNode> comparator = new Comparator<TreeNode>() {
-        public int compare(TreeNode o1, TreeNode o2)
-        {
-            return RFC822Date.compare(((Node) o1).getDate(),
-                ((Node) o2).getDate());
-        }
-    };
+    private static final Comparator<TreeNode> comparator =
+        (n1, n2) -> RFC822Date.compare(((Node) n1).getDate(),
+                                       ((Node) n2).getDate());
 
     private static final void sortEntriesByDate(List<TreeNode> list)
     {

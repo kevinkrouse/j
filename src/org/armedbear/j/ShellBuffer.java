@@ -281,13 +281,10 @@ public class ShellBuffer extends CommandInterpreterBuffer implements Constants
                 catch (InterruptedException e) {
                     Log.error(e);
                 }
-                Runnable processExitedRunnable = new Runnable() {
-                    public void run()
-                    {
-                        appendString("\nProcess exited\n");
-                        setBusy(false);
-                        updateDisplayInAllFrames();
-                    }
+                Runnable processExitedRunnable = () -> {
+                    appendString("\nProcess exited\n");
+                    setBusy(false);
+                    updateDisplayInAllFrames();
                 };
                 if (stderrThread != null)
                     SwingUtilities.invokeLater(processExitedRunnable);
@@ -491,18 +488,15 @@ public class ShellBuffer extends CommandInterpreterBuffer implements Constants
 
     protected void stdOutUpdate(final String s)
     {
-        Runnable r = new Runnable() {
-            public void run()
-            {
-                if (s.length() > 0) {
-                    updateDirectory(s);
-                    appendString(s);
-                }
-                updateLineFlags();
-                updateDisplayInAllFrames();
-                resetUndo();
-                checkPasswordPrompt();
+        Runnable r = () -> {
+            if (s.length() > 0) {
+                updateDirectory(s);
+                appendString(s);
             }
+            updateLineFlags();
+            updateDisplayInAllFrames();
+            resetUndo();
+            checkPasswordPrompt();
         };
         SwingUtilities.invokeLater(r);
     }
@@ -522,14 +516,11 @@ public class ShellBuffer extends CommandInterpreterBuffer implements Constants
                 }
             }
         }
-        Runnable r = new Runnable() {
-            public void run()
-            {
-                appendString(s);
-                updateLineFlags();
-                updateDisplayInAllFrames();
-                resetUndo();
-            }
+        Runnable r = () -> {
+            appendString(s);
+            updateLineFlags();
+            updateDisplayInAllFrames();
+            resetUndo();
         };
         SwingUtilities.invokeLater(r);
     }

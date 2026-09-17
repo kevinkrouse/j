@@ -207,16 +207,13 @@ public class ImageBuffer extends Buffer implements Constants
             return;
         }
         final LoadProcess loadProcess = p;
-        Runnable successRunnable = new Runnable() {
-            public void run()
-            {
-                final File cache = getCache();
-                if (cache != null && cache.isFile())
-                    cache.delete();
-                setCache(loadProcess.getCache());
-                reloadLocal();
-                setBusy(false);
-            }
+        Runnable successRunnable = () -> {
+            final File cache = getCache();
+            if (cache != null && cache.isFile())
+                cache.delete();
+            setCache(loadProcess.getCache());
+            reloadLocal();
+            setBusy(false);
         };
         ErrorRunnable errorRunnable = new ErrorRunnable("Reload failed");
         loadProcess.setProgressNotifier(new StatusBarProgressNotifier(this));

@@ -452,14 +452,11 @@ public final class Editor extends JPanel implements Constants,
         if (startServer)
             Server.startServer();
 
-        Runnable r = new Runnable() {
-            public void run()
-            {
-                currentEditor.getFrame().setVisible(true);
-                Sidebar sidebar = currentEditor.getSidebar();
-                if (sidebar != null)
-                    sidebar.setUpdateFlag(SIDEBAR_ALL);
-            }
+        Runnable r = () -> {
+            currentEditor.getFrame().setVisible(true);
+            Sidebar sidebar = currentEditor.getSidebar();
+            if (sidebar != null)
+                sidebar.setUpdateFlag(SIDEBAR_ALL);
         };
         SwingUtilities.invokeLater(r);
 
@@ -945,11 +942,8 @@ public final class Editor extends JPanel implements Constants,
         setCurrentEditor(ed);
         ed.updateDisplay();
         display.repaint();
-        Runnable r = new Runnable() {
-            public void run()
-            {
-                currentEditor.setFocusToDisplay();
-            }
+        Runnable r = () -> {
+            currentEditor.setFocusToDisplay();
         };
         SwingUtilities.invokeLater(r);
     }
@@ -4401,12 +4395,9 @@ public final class Editor extends JPanel implements Constants,
 
     public static final void restoreFocus()
     {
-        Runnable r = new Runnable() {
-            public void run()
-            {
-                if (currentEditor != null)
-                    currentEditor.setFocusToDisplay();
-            }
+        Runnable r = () -> {
+            if (currentEditor != null)
+                currentEditor.setFocusToDisplay();
         };
         SwingUtilities.invokeLater(r);
     }
@@ -4649,11 +4640,8 @@ public final class Editor extends JPanel implements Constants,
     {
         AWTEvent e = dispatcher.getLastEvent();
         if (e != null && e.getSource() instanceof MenuItem) {
-            Runnable r = new Runnable() {
-                public void run()
-                {
-                    setFocusToTextField();
-                }
+            Runnable r = () -> {
+                setFocusToTextField();
             };
             SwingUtilities.invokeLater(r);
         } else
@@ -4669,12 +4657,9 @@ public final class Editor extends JPanel implements Constants,
       final Editor ed = getOtherEditor();
       if (ed.getLocationBar() != null)
         {
-          Runnable r = new Runnable()
+          Runnable r = () ->
             {
-              public void run()
-              {
-                frame.setFocus(ed.getLocationBar().getTextField());
-              }
+              frame.setFocus(ed.getLocationBar().getTextField());
             };
           SwingUtilities.invokeLater(r);
           setCurrentEditor(ed);
@@ -6319,11 +6304,8 @@ public final class Editor extends JPanel implements Constants,
 
     private void requestFocusLater()
     {
-        Runnable r = new Runnable() {
-            public void run()
-            {
-                Editor.this.requestFocus();
-            }
+        Runnable r = () -> {
+            Editor.this.requestFocus();
         };
         SwingUtilities.invokeLater(r);
     }
@@ -6483,11 +6465,8 @@ public final class Editor extends JPanel implements Constants,
           textField.selectAll();
           AWTEvent e = dispatcher.getLastEvent();
           if (e != null && e.getSource() instanceof MenuItem) {
-            Runnable r = new Runnable() {
-              public void run()
-              {
-                setFocusToTextField();
-              }
+            Runnable r = () -> {
+              setFocusToTextField();
             };
             SwingUtilities.invokeLater(r);
           } else
@@ -6553,50 +6532,47 @@ public final class Editor extends JPanel implements Constants,
         if (array != null) {
             final String command = array[0];
             final String parameters = array[1];
-            Runnable r = new Runnable() {
-                public void run()
-                {
-                    try {
-                        StatusBar statusBar = getStatusBar();
-                        statusBar.setText("");
-                        execute(command, parameters);
-                        if (interactive && parameters == null) {
-                            // Suggest key binding if one is available.
-                            Object[] values = getKeyMapping(command);
-                            Debug.assertTrue(values != null);
-                            Debug.assertTrue(values.length == 2);
-                            KeyMapping mapping = (KeyMapping) values[0];
-                            Mode mode = (Mode) values[1];
-                            if (mapping != null) {
-                                String statusText = statusBar.getText();
-                                boolean append =
-                                    statusText != null && statusText.length() > 0;
-                                StringBuilder sb = new StringBuilder();
-                                if (append) {
-                                    sb.append(statusText);
-                                    sb.append("          ");
-                                }
-                                sb.append(command);
-                                sb.append(" is mapped to ");
-                                sb.append(mapping.getKeyText());
-                                if (mode != null) {
-                                    sb.append(" (");
-                                    sb.append(mode);
-                                    sb.append(" mode)");
-                                } else
-                                    sb.append(" (global mapping)");
-                                status(sb.toString());
+            Runnable r = () -> {
+                try {
+                    StatusBar statusBar = getStatusBar();
+                    statusBar.setText("");
+                    execute(command, parameters);
+                    if (interactive && parameters == null) {
+                        // Suggest key binding if one is available.
+                        Object[] values = getKeyMapping(command);
+                        Debug.assertTrue(values != null);
+                        Debug.assertTrue(values.length == 2);
+                        KeyMapping mapping = (KeyMapping) values[0];
+                        Mode mode = (Mode) values[1];
+                        if (mapping != null) {
+                            String statusText = statusBar.getText();
+                            boolean append =
+                                statusText != null && statusText.length() > 0;
+                            StringBuilder sb = new StringBuilder();
+                            if (append) {
+                                sb.append(statusText);
+                                sb.append("          ");
                             }
+                            sb.append(command);
+                            sb.append(" is mapped to ");
+                            sb.append(mapping.getKeyText());
+                            if (mode != null) {
+                                sb.append(" (");
+                                sb.append(mode);
+                                sb.append(" mode)");
+                            } else
+                                sb.append(" (global mapping)");
+                            status(sb.toString());
                         }
                     }
-                    catch (NoSuchMethodException e) {
-                        StringBuilder sb =
-                            new StringBuilder("Unknown command \"");
-                        sb.append(command);
-                        sb.append('"');
-                        MessageDialog.showMessageDialog(Editor.this,
-                            sb.toString(), "Error");
-                    }
+                }
+                catch (NoSuchMethodException e) {
+                    StringBuilder sb =
+                        new StringBuilder("Unknown command \"");
+                    sb.append(command);
+                    sb.append('"');
+                    MessageDialog.showMessageDialog(Editor.this,
+                        sb.toString(), "Error");
                 }
             };
             if (SwingUtilities.isEventDispatchThread()) {
@@ -7170,11 +7146,8 @@ public final class Editor extends JPanel implements Constants,
 
     public void updateDisplayLater()
     {
-        Runnable r = new Runnable() {
-            public void run()
-            {
-                updateDisplay();
-            }
+        Runnable r = () -> {
+            updateDisplay();
         };
         SwingUtilities.invokeLater(r);
     }
@@ -7182,14 +7155,11 @@ public final class Editor extends JPanel implements Constants,
     // Update display of buf in all windows showing it.
     public static void updateDisplayLater(final Buffer buf)
     {
-        Runnable r = new Runnable() {
-            public void run()
-            {
-                for (int i = 0; i < getEditorCount(); i++) {
-                    Editor ed = getEditor(i);
-                    if (ed.getBuffer() == buf)
-                        ed.updateDisplay();
-                }
+        Runnable r = () -> {
+            for (int i = 0; i < getEditorCount(); i++) {
+                Editor ed = getEditor(i);
+                if (ed.getBuffer() == buf)
+                    ed.updateDisplay();
             }
         };
         SwingUtilities.invokeLater(r);

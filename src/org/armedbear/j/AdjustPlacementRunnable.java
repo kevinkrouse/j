@@ -41,17 +41,14 @@ public final class AdjustPlacementRunnable implements Runnable
         }
         final Editor editor = frame.getCurrentEditor();
         editor.setFocusToDisplay();
-        Runnable r = new Runnable() {
-            public void run()
-            {
-                // Must call setDisplayReady(true) before calling reframe().
-                Editor.setDisplayReady(true);
-                editor.reframe();
-                if (editor.getBuffer().isBusy())
-                    editor.setWaitCursor();
-                else
-                    editor.setDefaultCursor();
-            }
+        Runnable r = () -> {
+            // Must call setDisplayReady(true) before calling reframe().
+            Editor.setDisplayReady(true);
+            editor.reframe();
+            if (editor.getBuffer().isBusy())
+                editor.setWaitCursor();
+            else
+                editor.setDefaultCursor();
         };
         SwingUtilities.invokeLater(r);
         IdleThread.startIdleThread();

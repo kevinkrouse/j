@@ -79,21 +79,15 @@ public class P4 extends VersionControl implements Constants
     editor.setWaitCursor();
     final String cmd = parseArgs("p4", s, true, false);
     final Buffer parentBuffer = editor.getBuffer();
-    Runnable commandRunnable = new Runnable()
+    Runnable commandRunnable = () ->
       {
-        public void run()
-        {
-          final String output =
-            command(cmd, editor.getCurrentDirectory());
-          Runnable completionRunnable = new Runnable()
-            {
-              public void run()
-              {
-                p4Completed(editor, parentBuffer, cmd, output);
-              }
-            };
-          SwingUtilities.invokeLater(completionRunnable);
-        }
+        final String output =
+          command(cmd, editor.getCurrentDirectory());
+        Runnable completionRunnable = () ->
+          {
+            p4Completed(editor, parentBuffer, cmd, output);
+          };
+        SwingUtilities.invokeLater(completionRunnable);
       };
     new Thread(commandRunnable).start();
   }
@@ -134,20 +128,14 @@ public class P4 extends VersionControl implements Constants
     StringBuilder sb = new StringBuilder("p4 edit ");
     sb.append(Utilities.maybeQuote(file.getName()));
     final String cmd = sb.toString();
-    Runnable commandRunnable = new Runnable()
+    Runnable commandRunnable = () ->
       {
-        public void run()
-        {
-          final String output = command(cmd, buffer.getCurrentDirectory());
-          Runnable completionRunnable = new Runnable()
-            {
-              public void run()
-              {
-                editCompleted(editor, buffer, cmd, output);
-              }
-            };
-          SwingUtilities.invokeLater(completionRunnable);
-        }
+        final String output = command(cmd, buffer.getCurrentDirectory());
+        Runnable completionRunnable = () ->
+          {
+            editCompleted(editor, buffer, cmd, output);
+          };
+        SwingUtilities.invokeLater(completionRunnable);
       };
     new Thread(commandRunnable).start();
   }
@@ -236,32 +224,26 @@ public class P4 extends VersionControl implements Constants
           return;
       }
     final String cmd = "p4 revert " + Utilities.maybeQuote(file.getName());
-    Runnable commandRunnable = new Runnable()
+    Runnable commandRunnable = () ->
       {
-        public void run()
-        {
-          final String output = command(cmd, buffer.getCurrentDirectory());
-          Runnable completionRunnable = new Runnable()
-            {
-              public void run()
+        final String output = command(cmd, buffer.getCurrentDirectory());
+        Runnable completionRunnable = () ->
+          {
+            if (output.trim().endsWith(" - was edit, reverted"))
+              editor.status("File reverted");
+            else
               {
-                if (output.trim().endsWith(" - was edit, reverted"))
-                  editor.status("File reverted");
-                else
-                  {
-                    OutputBuffer buf = OutputBuffer.getOutputBuffer(output);
-                    buf.setTitle(cmd);
-                    editor.makeNext(buf);
-                    editor.activateInOtherWindow(buf);
-                  }
-                editor.reload(buffer);
-                // Update read-only status.
-                if (editor.reactivate(buffer))
-                  Sidebar.repaintBufferListInAllFrames();
+                OutputBuffer buf = OutputBuffer.getOutputBuffer(output);
+                buf.setTitle(cmd);
+                editor.makeNext(buf);
+                editor.activateInOtherWindow(buf);
               }
-            };
-          SwingUtilities.invokeLater(completionRunnable);
-        }
+            editor.reload(buffer);
+            // Update read-only status.
+            if (editor.reactivate(buffer))
+              Sidebar.repaintBufferListInAllFrames();
+          };
+        SwingUtilities.invokeLater(completionRunnable);
       };
     new Thread(commandRunnable).start();
   }
@@ -319,21 +301,15 @@ public class P4 extends VersionControl implements Constants
               }
           }
         final String cmd = baseCmd + Utilities.maybeQuote(file.canonicalPath());
-        Runnable commandRunnable = new Runnable()
+        Runnable commandRunnable = () ->
           {
-            public void run()
-            {
-              final String output =
-                command(cmd, parentBuffer.getCurrentDirectory());
-              Runnable completionRunnable = new Runnable()
-                {
-                  public void run()
-                  {
-                    diffCompleted(editor, parentBuffer, title, output, VC_P4);
-                  }
-                };
-              SwingUtilities.invokeLater(completionRunnable);
-            }
+            final String output =
+              command(cmd, parentBuffer.getCurrentDirectory());
+            Runnable completionRunnable = () ->
+              {
+                diffCompleted(editor, parentBuffer, title, output, VC_P4);
+              };
+            SwingUtilities.invokeLater(completionRunnable);
           };
         new Thread(commandRunnable).start();
       }
@@ -367,20 +343,14 @@ public class P4 extends VersionControl implements Constants
     Editor ed = editor.activateInOtherWindow(buf);
     ed.setWaitCursor();
     buf.setBusy(true);
-    Runnable commandRunnable = new Runnable()
+    Runnable commandRunnable = () ->
       {
-        public void run()
-        {
-          final String output = command(cmd, directory);
-          Runnable completionRunnable = new Runnable()
-            {
-              public void run()
-              {
-                processCompleted(buf, output);
-              }
-            };
-          SwingUtilities.invokeLater(completionRunnable);
-        }
+        final String output = command(cmd, directory);
+        Runnable completionRunnable = () ->
+          {
+            processCompleted(buf, output);
+          };
+        SwingUtilities.invokeLater(completionRunnable);
       };
     new Thread(commandRunnable).start();
   }
@@ -437,20 +407,14 @@ public class P4 extends VersionControl implements Constants
     editor.makeNext(outputBuffer);
     Editor ed = editor.activateInOtherWindow(outputBuffer);
     ed.setWaitCursor();
-    Runnable commandRunnable = new Runnable()
+    Runnable commandRunnable = () ->
       {
-        public void run()
-        {
-          final String output = command(cmd, parentBuffer.getCurrentDirectory());
-          Runnable completionRunnable = new Runnable()
-            {
-              public void run()
-              {
-                processCompleted(outputBuffer, output);
-              }
-            };
-          SwingUtilities.invokeLater(completionRunnable);
-        }
+        final String output = command(cmd, parentBuffer.getCurrentDirectory());
+        Runnable completionRunnable = () ->
+          {
+            processCompleted(outputBuffer, output);
+          };
+        SwingUtilities.invokeLater(completionRunnable);
     };
     new Thread(commandRunnable).start();
   }
@@ -530,35 +494,29 @@ public class P4 extends VersionControl implements Constants
       }
     final ShellCommand shellCommand =
       new ShellCommand(sb.toString(), parentBuffer.getCurrentDirectory());
-    Runnable commandRunnable = new Runnable()
+    Runnable commandRunnable = () ->
       {
-        public void run()
-        {
-          shellCommand.run();
-          Runnable completionRunnable = new Runnable()
-            {
-              public void run()
-              {
-                checkinBuffer.setText(shellCommand.getOutput());
-                Position dot = findStartOfComment(checkinBuffer);
-                Position mark = null;
-                if (dot != null)
-                  mark = findEndOfComment(checkinBuffer, dot);
-                checkinBuffer.setBusy(false);
-                for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-                  Editor ed = it.next();
-                  if (ed.getBuffer() == checkinBuffer) {
-                    ed.setTopLine(checkinBuffer.getFirstLine());
-                    ed.setDot(dot);
-                    ed.setMark(mark);
-                    ed.setUpdateFlag(REPAINT);
-                    ed.updateDisplay();
-                  }
-                }
+        shellCommand.run();
+        Runnable completionRunnable = () ->
+          {
+            checkinBuffer.setText(shellCommand.getOutput());
+            Position dot = findStartOfComment(checkinBuffer);
+            Position mark = null;
+            if (dot != null)
+              mark = findEndOfComment(checkinBuffer, dot);
+            checkinBuffer.setBusy(false);
+            for (EditorIterator it = new EditorIterator(); it.hasNext();) {
+              Editor ed = it.next();
+              if (ed.getBuffer() == checkinBuffer) {
+                ed.setTopLine(checkinBuffer.getFirstLine());
+                ed.setDot(dot);
+                ed.setMark(mark);
+                ed.setUpdateFlag(REPAINT);
+                ed.updateDisplay();
               }
-            };
-          SwingUtilities.invokeLater(completionRunnable);
-        }
+            }
+          };
+        SwingUtilities.invokeLater(completionRunnable);
       };
     new Thread(commandRunnable).start();
   }
@@ -674,35 +632,29 @@ public class P4 extends VersionControl implements Constants
           }
         final ShellCommand shellCommand =
             new ShellCommand(sb.toString(), parentBuffer.getCurrentDirectory());
-        Runnable commandRunnable = new Runnable()
+        Runnable commandRunnable = () ->
           {
-            public void run()
-            {
-              shellCommand.run();
-              Runnable completionRunnable = new Runnable()
-                {
-                  public void run()
-                  {
-                    checkinBuffer.setText(shellCommand.getOutput());
-                    Position dot = findStartOfComment(checkinBuffer);
-                    Position mark = null;
-                    if (dot != null)
-                        mark = findEndOfComment(checkinBuffer, dot);
-                    checkinBuffer.setBusy(false);
-                    for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-                      Editor ed = it.next();
-                      if (ed.getBuffer() == checkinBuffer) {
-                        ed.setTopLine(checkinBuffer.getFirstLine());
-                        ed.setDot(dot);
-                        ed.setMark(mark);
-                        ed.setUpdateFlag(REPAINT);
-                        ed.updateDisplay();
-                      }
-                    }
+            shellCommand.run();
+            Runnable completionRunnable = () ->
+              {
+                checkinBuffer.setText(shellCommand.getOutput());
+                Position dot = findStartOfComment(checkinBuffer);
+                Position mark = null;
+                if (dot != null)
+                    mark = findEndOfComment(checkinBuffer, dot);
+                checkinBuffer.setBusy(false);
+                for (EditorIterator it = new EditorIterator(); it.hasNext();) {
+                  Editor ed = it.next();
+                  if (ed.getBuffer() == checkinBuffer) {
+                    ed.setTopLine(checkinBuffer.getFirstLine());
+                    ed.setDot(dot);
+                    ed.setMark(mark);
+                    ed.setUpdateFlag(REPAINT);
+                    ed.updateDisplay();
                   }
-                };
-              SwingUtilities.invokeLater(completionRunnable);
-            }
+                }
+              };
+            SwingUtilities.invokeLater(completionRunnable);
           };
         new Thread(commandRunnable).start();
       }
@@ -838,25 +790,19 @@ public class P4 extends VersionControl implements Constants
     final String input = checkinBuffer.getText();
     final ShellCommand shellCommand =
       new ShellCommand(cmd, parentBuffer.getCurrentDirectory(), input);
-    Runnable commandRunnable = new Runnable()
+    Runnable commandRunnable = () ->
       {
-        public void run()
-        {
-          shellCommand.run();
-          if (shellCommand.exitValue() != 0)
-            {
-              Log.error("P4.finish input = |" + input + "|");
-              Log.error("P4.finish exit value = " + shellCommand.exitValue());
-            }
-          Runnable completionRunnable = new Runnable()
-            {
-              public void run()
-              {
-                finishCompleted(editor, checkinBuffer, title, editOnly, shellCommand);
-              }
-            };
-          SwingUtilities.invokeLater(completionRunnable);
-        }
+        shellCommand.run();
+        if (shellCommand.exitValue() != 0)
+          {
+            Log.error("P4.finish input = |" + input + "|");
+            Log.error("P4.finish exit value = " + shellCommand.exitValue());
+          }
+        Runnable completionRunnable = () ->
+          {
+            finishCompleted(editor, checkinBuffer, title, editOnly, shellCommand);
+          };
+        SwingUtilities.invokeLater(completionRunnable);
       };
     new Thread(commandRunnable).start();
   }

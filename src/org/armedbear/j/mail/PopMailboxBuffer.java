@@ -134,30 +134,24 @@ public final class PopMailboxBuffer extends LocalMailboxBuffer
             }
             finally {
                 if (abort) {
-                    Runnable r = new Runnable() {
-                        public void run()
-                        {
-                            kill();
-                            for (EditorIterator it = new EditorIterator(); it.hasNext();)
-                                it.next().updateDisplay();
-                        }
+                    Runnable r = () -> {
+                        kill();
+                        for (EditorIterator it = new EditorIterator(); it.hasNext();)
+                            it.next().updateDisplay();
                     };
                     SwingUtilities.invokeLater(r);
                 } else {
                     refreshBuffer();
-                    Runnable r = new Runnable() {
-                        public void run()
-                        {
-                            setBusy(false);
-                            for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-                                Editor ed = it.next();
-                                View view = new View();
-                                view.setDotEntry(getInitialEntry());
-                                ed.setView(PopMailboxBuffer.this, view);
-                                if (ed.getBuffer() == PopMailboxBuffer.this) {
-                                    ed.bufferActivated(true);
-                                    ed.updateDisplay();
-                                }
+                    Runnable r = () -> {
+                        setBusy(false);
+                        for (EditorIterator it = new EditorIterator(); it.hasNext();) {
+                            Editor ed = it.next();
+                            View view = new View();
+                            view.setDotEntry(getInitialEntry());
+                            ed.setView(PopMailboxBuffer.this, view);
+                            if (ed.getBuffer() == PopMailboxBuffer.this) {
+                                ed.bufferActivated(true);
+                                ed.updateDisplay();
                             }
                         }
                     };
@@ -912,30 +906,27 @@ public final class PopMailboxBuffer extends LocalMailboxBuffer
     public void dispose()
     {
         Log.debug("PopMailboxBuffer.dispose");
-        Runnable disposeRunnable = new Runnable() {
-            public void run()
-            {
-                try {
-                    Log.debug("disposeRunnable.run() calling acquire()...");
-                    acquire(); // Blocks, may throw InterruptedException.
-                    Log.debug("disposeRunnable.run() back from acquire()");
-                    if (dirty) {
-                        final Object pending = new Object();
-                        Editor.getPendingOperations().add(pending);
-                        Log.debug("disposeRunnable.run() calling rewriteMailbox()...");
-                        rewriteMailbox(false);
-                        Log.debug("disposeRunnable.run() back from rewriteMailbox()");
-                        Editor.getPendingOperations().remove(pending);
-                    }
-                    Debug.assertTrue(session != null);
-                    Log.debug("disposeRunnable.run() calling session.logout()...");
-                    session.logout();
-                    release();
-                    Log.debug("disposeRunnable.run() back from release()");
+        Runnable disposeRunnable = () -> {
+            try {
+                Log.debug("disposeRunnable.run() calling acquire()...");
+                acquire(); // Blocks, may throw InterruptedException.
+                Log.debug("disposeRunnable.run() back from acquire()");
+                if (dirty) {
+                    final Object pending = new Object();
+                    Editor.getPendingOperations().add(pending);
+                    Log.debug("disposeRunnable.run() calling rewriteMailbox()...");
+                    rewriteMailbox(false);
+                    Log.debug("disposeRunnable.run() back from rewriteMailbox()");
+                    Editor.getPendingOperations().remove(pending);
                 }
-                catch (InterruptedException e) {
-                    Log.error(e);
-                }
+                Debug.assertTrue(session != null);
+                Log.debug("disposeRunnable.run() calling session.logout()...");
+                session.logout();
+                release();
+                Log.debug("disposeRunnable.run() back from release()");
+            }
+            catch (InterruptedException e) {
+                Log.error(e);
             }
         };
         new Thread(disposeRunnable).start();

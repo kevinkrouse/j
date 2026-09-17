@@ -223,13 +223,10 @@ public final class FindInFiles extends Replacement implements Constants,
         outputBuffer.setBackgroundProcess(null);
         outputBuffer.setBusy(false);
         if (!cancelled && getReplaceWith() != null) {
-            Runnable r = new Runnable() {
-                public void run()
-                {
-                    Editor.getTagFileManager().setEnabled(false);
-                    replaceInAllFiles();
-                    Editor.getTagFileManager().setEnabled(true);
-                }
+            Runnable r = () -> {
+                Editor.getTagFileManager().setEnabled(false);
+                replaceInAllFiles();
+                Editor.getTagFileManager().setEnabled(true);
             };
             SwingUtilities.invokeLater(r);
         }
@@ -265,37 +262,34 @@ public final class FindInFiles extends Replacement implements Constants,
         }
         if (getReplaceWith() == null) {
             // Find in files, not replace in files.
-            Runnable runnable = new Runnable() {
-                public void run()
-                {
-                    frame.setDefaultCursor();
-                    if (outputBuffer != null) {
-                        if (cancelled)
-                            getEditor().status("Search cancelled");
-                        else
-                            getEditor().status("Search completed");
-                        StringBuilder sb =
-                            new StringBuilder("Pattern found in ");
-                        sb.append(results.size());
-                        sb.append(" of ");
-                        sb.append(numFilesExamined);
-                        sb.append(" files examined");
-                        if (cancelled)
-                            sb.append(" (search cancelled by user)");
-                        outputBuffer.appendStatusLine(sb.toString());
-                        outputBuffer.invalidate();
-                        outputBuffer.renumber();
-                        outputBuffer.setBusy(false);
-                        EditorIterator iter = new EditorIterator();
-                        while (iter.hasNext()) {
-                            Editor ed = iter.next();
-                            if (ed.getBuffer() == outputBuffer) {
-                                ed.setTopLine(outputBuffer.getFirstLine());
-                                ed.setDot(outputBuffer.getInitialDotPos());
-                                ed.moveCaretToDotCol();
-                                ed.setUpdateFlag(REPAINT);
-                                ed.updateDisplay();
-                            }
+            Runnable runnable = () -> {
+                frame.setDefaultCursor();
+                if (outputBuffer != null) {
+                    if (cancelled)
+                        getEditor().status("Search cancelled");
+                    else
+                        getEditor().status("Search completed");
+                    StringBuilder sb =
+                        new StringBuilder("Pattern found in ");
+                    sb.append(results.size());
+                    sb.append(" of ");
+                    sb.append(numFilesExamined);
+                    sb.append(" files examined");
+                    if (cancelled)
+                        sb.append(" (search cancelled by user)");
+                    outputBuffer.appendStatusLine(sb.toString());
+                    outputBuffer.invalidate();
+                    outputBuffer.renumber();
+                    outputBuffer.setBusy(false);
+                    EditorIterator iter = new EditorIterator();
+                    while (iter.hasNext()) {
+                        Editor ed = iter.next();
+                        if (ed.getBuffer() == outputBuffer) {
+                            ed.setTopLine(outputBuffer.getFirstLine());
+                            ed.setDot(outputBuffer.getInitialDotPos());
+                            ed.moveCaretToDotCol();
+                            ed.setUpdateFlag(REPAINT);
+                            ed.updateDisplay();
                         }
                     }
                 }
@@ -445,21 +439,18 @@ public final class FindInFiles extends Replacement implements Constants,
         SwingUtilities.invokeLater(updateDisplayRunnable);
     }
 
-    private final Runnable updateDisplayRunnable = new Runnable() {
-        public void run()
-        {
-            Position end = null;
-            for (EditorIterator iter = new EditorIterator(); iter.hasNext();) {
-                Editor ed = iter.next();
-                if (ed.getBuffer() == outputBuffer) {
-                    if (end == null) {
-                        end = outputBuffer.getEnd();
-                        end.setOffset(0);
-                    }
-                    ed.moveDotTo(end);
-                    ed.setUpdateFlag(REPAINT);
-                    ed.updateDisplay();
+    private final Runnable updateDisplayRunnable = () -> {
+        Position end = null;
+        for (EditorIterator iter = new EditorIterator(); iter.hasNext();) {
+            Editor ed = iter.next();
+            if (ed.getBuffer() == outputBuffer) {
+                if (end == null) {
+                    end = outputBuffer.getEnd();
+                    end.setOffset(0);
                 }
+                ed.moveDotTo(end);
+                ed.setUpdateFlag(REPAINT);
+                ed.updateDisplay();
             }
         }
     };
@@ -500,15 +491,12 @@ public final class FindInFiles extends Replacement implements Constants,
         }
 
         // Restore state and display completion message.
-        Runnable runnable = new Runnable() {
-            public void run()
-            {
-                editor.activate(oldBuffer);
-                editor.setUpdateFlag(REPAINT);
-                frame.setDefaultCursor();
-                editor.updateDisplay();
-                completed();
-            }
+        Runnable runnable = () -> {
+            editor.activate(oldBuffer);
+            editor.setUpdateFlag(REPAINT);
+            frame.setDefaultCursor();
+            editor.updateDisplay();
+            completed();
         };
         if (SwingUtilities.isEventDispatchThread())
             runnable.run();
@@ -518,16 +506,13 @@ public final class FindInFiles extends Replacement implements Constants,
 
     private void handleCheckFileException(final CheckFileException e)
     {
-        Runnable runnable = new Runnable() {
-            public void run()
-            {
-                String title = "Replace In Files";
-                String message = e.getMessage();
-                if (message == null)
-                    message = "Error.";
-                message += " Continue?";
-                cancelled = !getEditor().confirm(title, message);
-            }
+        Runnable runnable = () -> {
+            String title = "Replace In Files";
+            String message = e.getMessage();
+            if (message == null)
+                message = "Error.";
+            message += " Continue?";
+            cancelled = !getEditor().confirm(title, message);
         };
 
         if (SwingUtilities.isEventDispatchThread()) {
@@ -544,23 +529,20 @@ public final class FindInFiles extends Replacement implements Constants,
 
     private void handleSaveException(final SaveException e)
     {
-        Runnable runnable = new Runnable() {
-            public void run()
-            {
-                String title = "Replace In Files";
-                String message = e.getMessage();
+        Runnable runnable = () -> {
+            String title = "Replace In Files";
+            String message = e.getMessage();
 
-                // Tell user exactly what error occurred.
-                if (message != null)
-                    MessageDialog.showMessageDialog(message, title);
-
-                // Display summary message.
-                message = "Unable to save " + e.getFile().canonicalPath();
+            // Tell user exactly what error occurred.
+            if (message != null)
                 MessageDialog.showMessageDialog(message, title);
 
-                message = "Continue anyway?";
-                cancelled = !getEditor().confirm(title, message);
-            }
+            // Display summary message.
+            message = "Unable to save " + e.getFile().canonicalPath();
+            MessageDialog.showMessageDialog(message, title);
+
+            message = "Continue anyway?";
+            cancelled = !getEditor().confirm(title, message);
         };
 
         if (SwingUtilities.isEventDispatchThread()) {
@@ -586,18 +568,15 @@ public final class FindInFiles extends Replacement implements Constants,
                 replaceInFileConfirm(file);
                 frame.setWaitCursor();
             } else {
-                Runnable runnable = new Runnable() {
-                    public void run()
-                    {
-                        frame.setDefaultCursor();
-                        try {
-                            replaceInFileConfirm(file);
-                        }
-                        catch (SaveException e) {
-                            FindInFiles.this.saveException = e;
-                        }
-                        frame.setWaitCursor();
+                Runnable runnable = () -> {
+                    frame.setDefaultCursor();
+                    try {
+                        replaceInFileConfirm(file);
                     }
+                    catch (SaveException e) {
+                        FindInFiles.this.saveException = e;
+                    }
+                    frame.setWaitCursor();
                 };
                 try {
                     SwingUtilities.invokeAndWait(runnable);

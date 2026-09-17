@@ -112,12 +112,9 @@ public final class ThreadPanel implements ContextListener, MouseListener
         }
         // Update UI in event dispatch thread.
         final int finalIndex = index;
-        Runnable r = new Runnable() {
-            public void run()
-            {
-                list.setListData(v.toArray(new String[0]));
-                list.setSelectedIndex(finalIndex);
-            }
+        Runnable r = () -> {
+            list.setListData(v.toArray(new String[0]));
+            list.setSelectedIndex(finalIndex);
         };
         SwingUtilities.invokeLater(r);
     }

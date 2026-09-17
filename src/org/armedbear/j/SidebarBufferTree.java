@@ -385,13 +385,10 @@ public final class SidebarBufferTree extends SidebarTree implements Constants,
         updateFlag &= ~SIDEBAR_MODIFIED_BUFFER_COUNT;
     }
 
-    private final Runnable refreshRunnable = new Runnable() {
-        public void run()
-        {
-            if ((updateFlag & SIDEBAR_MODIFIED_BUFFER_COUNT) != 0)
-                updateLabel();
-            initializeTreeStructure();
-        }
+    private final Runnable refreshRunnable = () -> {
+        if ((updateFlag & SIDEBAR_MODIFIED_BUFFER_COUNT) != 0)
+            updateLabel();
+        initializeTreeStructure();
     };
 
     public void refresh()
@@ -932,13 +929,10 @@ public final class SidebarBufferTree extends SidebarTree implements Constants,
                     if (pos.y == yMax)
                         scrollY = 0;
                 }
-                Runnable r = new Runnable() {
-                    public void run()
-                    {
-                        if (viewport != null && pos != null) {
-                            viewport.setViewPosition(pos);
-                            repaint();
-                        }
+                Runnable r = () -> {
+                    if (viewport != null && pos != null) {
+                        viewport.setViewPosition(pos);
+                        repaint();
                     }
                 };
                 SwingUtilities.invokeLater(r);

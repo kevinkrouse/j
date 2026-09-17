@@ -119,13 +119,10 @@ public final class DescribeKeyDialog extends AbstractDialog
             if (keyStrokeText == null)
                 keyStrokeText = lastKeyText;
             // Use invokeLater() so message dialog will get focus.
-            Runnable r = new Runnable() {
-                public void run()
-                {
-                    MessageDialog.showMessageDialog(
-                        editor,
-                        keyStrokeText + " is not mapped", title);
-                }
+            Runnable r = () -> {
+                MessageDialog.showMessageDialog(
+                    editor,
+                    keyStrokeText + " is not mapped", title);
             };
             SwingUtilities.invokeLater(r);
         }
@@ -188,12 +185,9 @@ public final class DescribeKeyDialog extends AbstractDialog
             sb.append(" (global mapping)");
         dispose();
         // Use invokeLater() so message dialog will get focus.
-        Runnable r = new Runnable() {
-            public void run()
-            {
-                MessageDialog.showMessageDialog(editor, sb.toString(),
-                                                "Describe Key");
-            }
+        Runnable r = () -> {
+            MessageDialog.showMessageDialog(editor, sb.toString(),
+                                            "Describe Key");
         };
         SwingUtilities.invokeLater(r);
     }

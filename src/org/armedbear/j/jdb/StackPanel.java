@@ -121,12 +121,9 @@ public final class StackPanel implements ContextListener, MouseListener
                 }
                 final int finalSelectedIndex = selectedIndex;
                 // Update UI in event dispatch thread.
-                Runnable r = new Runnable() {
-                    public void run()
-                    {
-                        list.setListData(v.toArray(new String[0]));
-                        list.setSelectedIndex(finalSelectedIndex);
-                    }
+                Runnable r = () -> {
+                    list.setListData(v.toArray(new String[0]));
+                    list.setSelectedIndex(finalSelectedIndex);
                 };
                 SwingUtilities.invokeLater(r);
             }

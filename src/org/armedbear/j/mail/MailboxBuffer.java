@@ -486,41 +486,32 @@ public abstract class MailboxBuffer extends Buffer
         final MailAddress[] to = MailCommands.bounceGetTo(editor, toBeBounced.size());
         if (to == null)
             return;
-        Runnable bounceRunnable = new Runnable() {
-            public void run()
-            {
-                boolean succeeded = false;
-                try {
-                    succeeded = bounceMessages(toBeBounced, to);
-                }
-                finally {
-                    unlock();
-                    setBusy(false);
-                    editor.updateDisplayLater();
-                }
-                if (succeeded) {
-                    Runnable successRunnable = new Runnable() {
-                        public void run()
-                        {
-                            final int size = toBeBounced.size();
-                            StringBuilder sb = new StringBuilder(String.valueOf(size));
-                            sb.append(" message");
-                            if (size > 1)
-                                sb.append('s');
-                            sb.append(" bounced");
-                            editor.status(sb.toString());
-                        }
-                    };
-                    SwingUtilities.invokeLater(successRunnable);
-                } else {
-                    Runnable errorRunnable = new Runnable() {
-                        public void run()
-                        {
-                            MessageDialog.showMessageDialog(editor, "Failed", "Bounce");
-                        }
-                    };
-                    SwingUtilities.invokeLater(errorRunnable);
-                }
+        Runnable bounceRunnable = () -> {
+            boolean succeeded = false;
+            try {
+                succeeded = bounceMessages(toBeBounced, to);
+            }
+            finally {
+                unlock();
+                setBusy(false);
+                editor.updateDisplayLater();
+            }
+            if (succeeded) {
+                Runnable successRunnable = () -> {
+                    final int size = toBeBounced.size();
+                    StringBuilder sb = new StringBuilder(String.valueOf(size));
+                    sb.append(" message");
+                    if (size > 1)
+                        sb.append('s');
+                    sb.append(" bounced");
+                    editor.status(sb.toString());
+                };
+                SwingUtilities.invokeLater(successRunnable);
+            } else {
+                Runnable errorRunnable = () -> {
+                    MessageDialog.showMessageDialog(editor, "Failed", "Bounce");
+                };
+                SwingUtilities.invokeLater(errorRunnable);
             }
         };
         if (lock()) {
@@ -811,34 +802,28 @@ public abstract class MailboxBuffer extends Buffer
             currentEntry = ((MailboxLine)editor.getDotLine()).getMailboxEntry();
         else
             currentEntry = null;
-        final Runnable completionRunnable = new Runnable() {
-            public void run()
-            {
-                for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-                    Editor ed = it.next();
-                    View view = new View();
-                    view.setDotEntry(currentEntry != null ? currentEntry : getInitialEntry());
-                    ed.setView(MailboxBuffer.this, view);
-                    if (ed.getBuffer() == MailboxBuffer.this) {
-                        ed.bufferActivated(true);
-                        ed.updateDisplay();
-                    }
+        final Runnable completionRunnable = () -> {
+            for (EditorIterator it = new EditorIterator(); it.hasNext();) {
+                Editor ed = it.next();
+                View view = new View();
+                view.setDotEntry(currentEntry != null ? currentEntry : getInitialEntry());
+                ed.setView(MailboxBuffer.this, view);
+                if (ed.getBuffer() == MailboxBuffer.this) {
+                    ed.bufferActivated(true);
+                    ed.updateDisplay();
                 }
             }
         };
-        Runnable sortRunnable = new Runnable() {
-            public void run()
-            {
-                editor.setWaitCursor();
-                try {
-                    refreshBuffer();
-                    SwingUtilities.invokeLater(completionRunnable);
-                }
-                finally {
-                    unlock();
-                    setBusy(false);
-                    editor.setDefaultCursor();
-                }
+        Runnable sortRunnable = () -> {
+            editor.setWaitCursor();
+            try {
+                refreshBuffer();
+                SwingUtilities.invokeLater(completionRunnable);
+            }
+            finally {
+                unlock();
+                setBusy(false);
+                editor.setDefaultCursor();
             }
         };
         if (lock()) {
@@ -990,12 +975,8 @@ public abstract class MailboxBuffer extends Buffer
 
     private static void sortEntriesByDate(List<MailboxEntry> list)
     {
-        Comparator<MailboxEntry> c = new Comparator<MailboxEntry>() {
-            public int compare(MailboxEntry o1, MailboxEntry o2)
-            {
-                return RFC822Date.compare(o1.getDate(), o2.getDate());
-            }
-        };
+        Comparator<MailboxEntry> c =
+            (e1, e2) -> RFC822Date.compare(e1.getDate(), e2.getDate());
         Collections.sort(list, c);
         int sequenceNumber = 1;
         for (MailboxEntry entry : list) {
@@ -1096,14 +1077,11 @@ public abstract class MailboxBuffer extends Buffer
 
     protected void status(final String s)
     {
-        Runnable r = new Runnable() {
-            public void run()
-            {
-                for (int i = 0; i < Editor.getFrameCount(); i++) {
-                    Editor ed = Editor.getFrame(i).getCurrentEditor();
-                    if (ed.getBuffer() == MailboxBuffer.this)
-                        ed.status(s);
-                }
+        Runnable r = () -> {
+            for (int i = 0; i < Editor.getFrameCount(); i++) {
+                Editor ed = Editor.getFrame(i).getCurrentEditor();
+                if (ed.getBuffer() == MailboxBuffer.this)
+                    ed.status(s);
             }
         };
         SwingUtilities.invokeLater(r);
@@ -1153,26 +1131,20 @@ public abstract class MailboxBuffer extends Buffer
 
     protected void error(final String text, final String title)
     {
-        Runnable r = new Runnable() {
-            public void run()
-            {
-                Editor editor = Editor.currentEditor();
-                // Restore default cursor.
-                setBusy(false);
-                editor.updateDisplay();
-                MessageDialog.showMessageDialog(editor, text, title);
-            }
+        Runnable r = () -> {
+            Editor editor = Editor.currentEditor();
+            // Restore default cursor.
+            setBusy(false);
+            editor.updateDisplay();
+            MessageDialog.showMessageDialog(editor, text, title);
         };
         SwingUtilities.invokeLater(r);
     }
 
     protected void success(final String text)
     {
-        Runnable r = new Runnable() {
-            public void run()
-            {
-                Editor.currentEditor().status(text);
-            }
+        Runnable r = () -> {
+            Editor.currentEditor().status(text);
         };
         SwingUtilities.invokeLater(r);
     }
@@ -1191,68 +1163,65 @@ public abstract class MailboxBuffer extends Buffer
         SwingUtilities.invokeLater(updateDisplayRunnable);
     }
 
-    private Runnable updateDisplayRunnable = new Runnable() {
-        public void run()
-        {
-            invalidate();
-            for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-                Editor ed = it.next();
-                if (ed.getBuffer() == MailboxBuffer.this) {
-                    View view = ed.getView(ed.getBuffer());
-                    if (view.getDotEntry() != null) {
-                        try {
-                            lockRead();
-                        }
-                        catch (InterruptedException e) {
-                            Log.error(e);
-                            return;
-                        }
-                        try {
-                            Line topLine = findLineForEntry(view.getTopEntry());
-                            if (topLine == null)
-                                topLine = getFirstLine();
-                            ed.setTopLine(topLine);
-                            Line dotLine = findLineForEntry(view.getDotEntry());
-                            if (dotLine != null) {
-                                int offset = view.getDotOffset();
-                                if (offset > dotLine.length())
-                                    offset = dotLine.length();
-                                ed.setDot(dotLine, offset);
-                                ed.moveCaretToDotCol();
-                            } else {
-                                dotLine = getLastLine();
-                                if (dotLine != null) {
-                                    Log.debug("updateDisplayRunnable setting dotLine to last line");
-                                    ed.setDot(dotLine, 0);
-                                    ed.moveCaretToDotCol();
-                                } else
-                                    ed.setDot(null);
-                            }
-                            ed.setMark(null);
-                        }
-                        finally {
-                            unlockRead();
-                        }
-                    } else {
-                        Line firstLine = getFirstLine();
-                        if (firstLine != null) {
-                            ed.setDot(firstLine, 0);
-                            ed.moveCaretToDotCol();
-                            ed.setMark(null);
-                            ed.setTopLine(firstLine);
-                        } else {
-                            ed.setDot(null);
-                            ed.setMark(null);
-                            ed.setTopLine(null);
-                        }
+    private Runnable updateDisplayRunnable = () -> {
+        invalidate();
+        for (EditorIterator it = new EditorIterator(); it.hasNext();) {
+            Editor ed = it.next();
+            if (ed.getBuffer() == MailboxBuffer.this) {
+                View view = ed.getView(ed.getBuffer());
+                if (view.getDotEntry() != null) {
+                    try {
+                        lockRead();
                     }
-                    ed.setUpdateFlag(REPAINT);
-                    ed.updateDisplay();
+                    catch (InterruptedException e) {
+                        Log.error(e);
+                        return;
+                    }
+                    try {
+                        Line topLine = findLineForEntry(view.getTopEntry());
+                        if (topLine == null)
+                            topLine = getFirstLine();
+                        ed.setTopLine(topLine);
+                        Line dotLine = findLineForEntry(view.getDotEntry());
+                        if (dotLine != null) {
+                            int offset = view.getDotOffset();
+                            if (offset > dotLine.length())
+                                offset = dotLine.length();
+                            ed.setDot(dotLine, offset);
+                            ed.moveCaretToDotCol();
+                        } else {
+                            dotLine = getLastLine();
+                            if (dotLine != null) {
+                                Log.debug("updateDisplayRunnable setting dotLine to last line");
+                                ed.setDot(dotLine, 0);
+                                ed.moveCaretToDotCol();
+                            } else
+                                ed.setDot(null);
+                        }
+                        ed.setMark(null);
+                    }
+                    finally {
+                        unlockRead();
+                    }
+                } else {
+                    Line firstLine = getFirstLine();
+                    if (firstLine != null) {
+                        ed.setDot(firstLine, 0);
+                        ed.moveCaretToDotCol();
+                        ed.setMark(null);
+                        ed.setTopLine(firstLine);
+                    } else {
+                        ed.setDot(null);
+                        ed.setMark(null);
+                        ed.setTopLine(null);
+                    }
                 }
+                ed.setUpdateFlag(REPAINT);
+                ed.updateDisplay();
             }
-            Sidebar.setUpdateFlagInAllFrames(SIDEBAR_BUFFER_LIST_CHANGED);
-            Sidebar.repaintBufferListInAllFrames();
         }
+        Sidebar.setUpdateFlagInAllFrames(SIDEBAR_BUFFER_LIST_CHANGED);
+        Sidebar.repaintBufferListInAllFrames();
     };
 
     protected void advanceDot(final Line dotLine)
@@ -1271,20 +1240,17 @@ public abstract class MailboxBuffer extends Buffer
 
     private void setDotLine(final Line line)
     {
-        Runnable r = new Runnable() {
-            public void run()
-            {
-                for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-                    Editor ed = it.next();
-                    if (ed.getBuffer() == MailboxBuffer.this) {
-                        if (ed.getDot() != null) {
-                            ed.update(ed.getDotLine());
-                            ed.getDot().moveTo(line, 0);
-                            ed.update(line);
-                            ed.moveCaretToDotCol();
-                            ed.clearStatusText();
-                            ed.updateDisplay();
-                        }
+        Runnable r = () -> {
+            for (EditorIterator it = new EditorIterator(); it.hasNext();) {
+                Editor ed = it.next();
+                if (ed.getBuffer() == MailboxBuffer.this) {
+                    if (ed.getDot() != null) {
+                        ed.update(ed.getDotLine());
+                        ed.getDot().moveTo(line, 0);
+                        ed.update(line);
+                        ed.moveCaretToDotCol();
+                        ed.clearStatusText();
+                        ed.updateDisplay();
                     }
                 }
             }

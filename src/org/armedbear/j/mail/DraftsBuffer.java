@@ -216,18 +216,15 @@ public final class DraftsBuffer extends MailboxBuffer
         }
     }
 
-    private Runnable expungeRunnable = new Runnable() {
-        public void run()
-        {
-            try {
-                if (expungeInternal())
-                    loadInternal();
-            }
-            finally {
-                setBusy(false);
-                unlock();
-                updateDisplay();
-            }
+    private Runnable expungeRunnable = () -> {
+        try {
+            if (expungeInternal())
+                loadInternal();
+        }
+        finally {
+            setBusy(false);
+            unlock();
+            updateDisplay();
         }
     };
 
@@ -274,46 +271,37 @@ public final class DraftsBuffer extends MailboxBuffer
         }
     }
 
-    private Runnable loadRunnable = new Runnable() {
-        public void run()
-        {
-            try {
-                loadInternal();
-            }
-            finally {
-                unlock();
-                setBusy(false);
-                Runnable completionRunnable = new Runnable() {
-                    public void run()
-                    {
-                        for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-                            Editor ed = it.next();
-                            View view = new View();
-                            view.setDotEntry(getInitialEntry());
-                            ed.setView(DraftsBuffer.this, view);
-                            if (ed.getBuffer() == DraftsBuffer.this) {
-                                ed.bufferActivated(true);
-                                ed.updateDisplay();
-                            }
-                        }
+    private Runnable loadRunnable = () -> {
+        try {
+            loadInternal();
+        }
+        finally {
+            unlock();
+            setBusy(false);
+            Runnable completionRunnable = () -> {
+                for (EditorIterator it = new EditorIterator(); it.hasNext();) {
+                    Editor ed = it.next();
+                    View view = new View();
+                    view.setDotEntry(getInitialEntry());
+                    ed.setView(DraftsBuffer.this, view);
+                    if (ed.getBuffer() == DraftsBuffer.this) {
+                        ed.bufferActivated(true);
+                        ed.updateDisplay();
                     }
-                };
-                SwingUtilities.invokeLater(completionRunnable);
-            }
+                }
+            };
+            SwingUtilities.invokeLater(completionRunnable);
         }
     };
 
-    private Runnable reloadRunnable = new Runnable() {
-        public void run()
-        {
-            try {
-                loadInternal();
-                updateDisplay();
-            }
-            finally {
-                unlock();
-                setBusy(false);
-            }
+    private Runnable reloadRunnable = () -> {
+        try {
+            loadInternal();
+            updateDisplay();
+        }
+        finally {
+            unlock();
+            setBusy(false);
         }
     };
 

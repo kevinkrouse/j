@@ -325,6 +325,8 @@ public class DefaultTextFieldHandler implements Constants, TextFieldHandler
             popup.show(textField, 0, textField.getHeight());
     }
 
+    // An anonymous class rather than a lambda: textField is a blank final the
+    // constructor assigns, and a lambda in a field initialiser may not read it.
     private ActionListener popupActionListener = new ActionListener() {
         public void actionPerformed(ActionEvent e)
         {

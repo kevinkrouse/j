@@ -47,35 +47,32 @@ public final class CheckMailTask extends IdleThreadTask
         return instance;
     }
 
-    private final Runnable runnable = new Runnable()
+    private final Runnable runnable = () ->
     {
-        public void run()
-        {
-            if (!Editor.preferences().getBooleanProperty(Property.CHECK_ENABLED))
-                return;
-            if (!Editor.isMailEnabled())
-                return;
-            // Only check every 10 seconds.
-            if (System.currentTimeMillis() - lastRun > 10000) {
-                // Make a list of mailboxes to check. We don't want to keep the
-                // buffer list locked while we do the actual check!
-                ArrayList<Buffer> mailboxes = new ArrayList<Buffer>();
-                BufferList bufferList = Editor.getBufferList();
-                synchronized (bufferList) {
-                    for (BufferIterator it = new BufferIterator(); it.hasNext();) {
-                        Buffer buf = it.next();
-                        if (buf instanceof ImapMailboxBuffer || buf instanceof PopMailboxBuffer)
-                            mailboxes.add(buf);
-                    }
+        if (!Editor.preferences().getBooleanProperty(Property.CHECK_ENABLED))
+            return;
+        if (!Editor.isMailEnabled())
+            return;
+        // Only check every 10 seconds.
+        if (System.currentTimeMillis() - lastRun > 10000) {
+            // Make a list of mailboxes to check. We don't want to keep the
+            // buffer list locked while we do the actual check!
+            ArrayList<Buffer> mailboxes = new ArrayList<Buffer>();
+            BufferList bufferList = Editor.getBufferList();
+            synchronized (bufferList) {
+                for (BufferIterator it = new BufferIterator(); it.hasNext();) {
+                    Buffer buf = it.next();
+                    if (buf instanceof ImapMailboxBuffer || buf instanceof PopMailboxBuffer)
+                        mailboxes.add(buf);
                 }
-                // Now check the mailboxes in the list.
-                for (int i = 0; i < mailboxes.size(); i++) {
-                    MailboxBuffer mb = (MailboxBuffer) mailboxes.get(i);
-                    if (bufferList.contains(mb))
-                        check(mb);
-                }
-                lastRun = System.currentTimeMillis();
             }
+            // Now check the mailboxes in the list.
+            for (int i = 0; i < mailboxes.size(); i++) {
+                MailboxBuffer mb = (MailboxBuffer) mailboxes.get(i);
+                if (bufferList.contains(mb))
+                    check(mb);
+            }
+            lastRun = System.currentTimeMillis();
         }
     };
 

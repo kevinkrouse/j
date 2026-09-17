@@ -746,26 +746,20 @@ public final class SshSession implements Constants, RemoteSession
         return _promptRE;
     }
 
-    private Runnable getPasswordRunnable = new Runnable() {
-        public void run()
-        {
-            final Editor editor = Editor.currentEditor();
-            editor.setDefaultCursor();
-            password = PasswordDialog.showPasswordDialog(editor, passwordPrompt,
-                passwordTitle);
-            editor.setWaitCursor();
-        }
+    private Runnable getPasswordRunnable = () -> {
+        final Editor editor = Editor.currentEditor();
+        editor.setDefaultCursor();
+        password = PasswordDialog.showPasswordDialog(editor, passwordPrompt,
+            passwordTitle);
+        editor.setWaitCursor();
     };
 
-    private Runnable getPassphraseRunnable = new Runnable() {
-        public void run()
-        {
-            final Editor editor = Editor.currentEditor();
-            editor.setDefaultCursor();
-            passphrase = PasswordDialog.showPasswordDialog(editor, passwordPrompt,
-                passwordTitle);
-            editor.setWaitCursor();
-        }
+    private Runnable getPassphraseRunnable = () -> {
+        final Editor editor = Editor.currentEditor();
+        editor.setDefaultCursor();
+        passphrase = PasswordDialog.showPasswordDialog(editor, passwordPrompt,
+            passwordTitle);
+        editor.setWaitCursor();
     };
 
     private String getCurrentDirectory()
@@ -1023,36 +1017,33 @@ public final class SshSession implements Constants, RemoteSession
 
     private void writeToOutputBuffer(final String s)
     {
-        Runnable r = new Runnable() {
-            public void run()
-            {
-                // Avoid race (and NPE) if setOutputBuffer(null) gets called in
-                // another thread.
-                final Buffer buf = outputBuffer;
-                if (buf == null)
-                    return;
-                try {
-                    buf.lockWrite();
-                }
-                catch (InterruptedException e) {
-                    Log.debug(e);
-                    return;
-                }
-                try {
-                    buf.append(s);
-                    buf.renumber();
-                }
-                finally {
-                    buf.unlockWrite();
-                }
-                for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-                    Editor ed = it.next();
-                    if (ed.getBuffer() == buf) {
-                        ed.setDot(buf.getEnd());
-                        ed.moveCaretToDotCol();
-                        ed.setUpdateFlag(REPAINT);
-                        ed.updateDisplay();
-                    }
+        Runnable r = () -> {
+            // Avoid race (and NPE) if setOutputBuffer(null) gets called in
+            // another thread.
+            final Buffer buf = outputBuffer;
+            if (buf == null)
+                return;
+            try {
+                buf.lockWrite();
+            }
+            catch (InterruptedException e) {
+                Log.debug(e);
+                return;
+            }
+            try {
+                buf.append(s);
+                buf.renumber();
+            }
+            finally {
+                buf.unlockWrite();
+            }
+            for (EditorIterator it = new EditorIterator(); it.hasNext();) {
+                Editor ed = it.next();
+                if (ed.getBuffer() == buf) {
+                    ed.setDot(buf.getEnd());
+                    ed.moveCaretToDotCol();
+                    ed.setUpdateFlag(REPAINT);
+                    ed.updateDisplay();
                 }
             }
         };
@@ -1119,11 +1110,8 @@ public final class SshSession implements Constants, RemoteSession
         }
     }
 
-    private static final Runnable cleanupRunnable = new Runnable() {
-        public void run()
-        {
-            cleanup();
-        }
+    private static final Runnable cleanupRunnable = () -> {
+        cleanup();
     };
 
     private String stdOutFilter(String s)

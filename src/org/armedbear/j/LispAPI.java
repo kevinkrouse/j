@@ -1482,19 +1482,16 @@ public final class LispAPI
           fun = arg;
         if (fun instanceof Function)
           {
-            Runnable r = new Runnable()
+            Runnable r = () ->
               {
-                public void run()
-                {
-                  try
-                    {
-                      LispThread.currentThread().execute(fun);
-                    }
-                  catch (Throwable t)
-                    {
-                      Log.error(t);
-                    }
-                }
+                try
+                  {
+                    LispThread.currentThread().execute(fun);
+                  }
+                catch (Throwable t)
+                  {
+                    Log.error(t);
+                  }
               };
             SwingUtilities.invokeLater(r);
             return NIL;
@@ -1596,19 +1593,16 @@ public final class LispAPI
         if (arg instanceof AbstractString)
           {
             final String s = ((AbstractString)arg).getStringValue();
-            Runnable r = new Runnable()
+            Runnable r = () ->
               {
-                public void run()
-                {
-                  try
-                    {
-                      Editor.currentEditor().status(s);
-                    }
-                  catch (Throwable t)
-                    {
-                      Log.error(t);
-                    }
-                }
+                try
+                  {
+                    Editor.currentEditor().status(s);
+                  }
+                catch (Throwable t)
+                  {
+                    Log.error(t);
+                  }
               };
             SwingUtilities.invokeLater(r);
             return T;
@@ -1621,17 +1615,14 @@ public final class LispAPI
           {
             final String s = ((AbstractString)first).getStringValue();
             final Editor editor = checkEditor(second);
-            Runnable r = new Runnable()
+            Runnable r = () ->
               {
-                public void run()
-                {
-                  try
-                    {
-                      editor.status(s);
-                    }
-                  catch (Throwable t) {
-                    Log.error(t);
+                try
+                  {
+                    editor.status(s);
                   }
+                catch (Throwable t) {
+                  Log.error(t);
                 }
               };
             SwingUtilities.invokeLater(r);

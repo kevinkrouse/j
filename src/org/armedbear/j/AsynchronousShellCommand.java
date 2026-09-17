@@ -126,21 +126,18 @@ public final class AsynchronousShellCommand implements Constants, Runnable
 
     private void appendLater(final String s)
     {
-        Runnable runnable = new Runnable() {
-            public void run()
-            {
-                outputBuffer.insertString(posEndOfBuffer, s);
-                if (outputBuffer.needsRenumbering())
-                    outputBuffer.renumber();
-                outputBuffer.enforceOutputLimit(Property.SHELL_OUTPUT_LIMIT);
-                for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-                    Editor ed = it.next();
-                    if (ed.getBuffer() == outputBuffer) {
-                        ed.eob();
-                        ed.getDisplay().setReframe(-2);
-                        ed.setUpdateFlag(REPAINT);
-                        ed.updateDisplay();
-                    }
+        Runnable runnable = () -> {
+            outputBuffer.insertString(posEndOfBuffer, s);
+            if (outputBuffer.needsRenumbering())
+                outputBuffer.renumber();
+            outputBuffer.enforceOutputLimit(Property.SHELL_OUTPUT_LIMIT);
+            for (EditorIterator it = new EditorIterator(); it.hasNext();) {
+                Editor ed = it.next();
+                if (ed.getBuffer() == outputBuffer) {
+                    ed.eob();
+                    ed.getDisplay().setReframe(-2);
+                    ed.setUpdateFlag(REPAINT);
+                    ed.updateDisplay();
                 }
             }
         };

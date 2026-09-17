@@ -240,24 +240,18 @@ public abstract class VersionControl implements Constants
   protected static void outputBufferCommand(final Editor editor, final String cmd, final File workingDirectory)
   {
       editor.setWaitCursor();
-      Runnable commandRunnable = new Runnable()
+      Runnable commandRunnable = () ->
         {
-          public void run()
-          {
-            final String output = command(cmd, workingDirectory);
-            Runnable completionRunnable = new Runnable()
-              {
-                public void run()
-                {
-                  OutputBuffer buf = OutputBuffer.getOutputBuffer(output);
-                  buf.setTitle(cmd);
-                  editor.makeNext(buf);
-                  editor.activateInOtherWindow(buf);
-                  editor.setDefaultCursor();
-                }
-              };
-            SwingUtilities.invokeLater(completionRunnable);
-          }
+          final String output = command(cmd, workingDirectory);
+          Runnable completionRunnable = () ->
+            {
+              OutputBuffer buf = OutputBuffer.getOutputBuffer(output);
+              buf.setTitle(cmd);
+              editor.makeNext(buf);
+              editor.activateInOtherWindow(buf);
+              editor.setDefaultCursor();
+            };
+          SwingUtilities.invokeLater(completionRunnable);
         };
       new Thread(commandRunnable).start();
   }
