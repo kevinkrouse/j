@@ -66,20 +66,20 @@ public class Server implements Runnable
     {
         while (true) {
             try {
-                Socket sock = socket.accept(); // Blocks.
-                // Process request.
-                BufferedReader in = new BufferedReader(new InputStreamReader(sock.getInputStream()));
                 List<String> v = null;
-                while (true) {
-                    String s = in.readLine();
-                    if (s == null)
-                        break;
-                    if (v == null)
-                        v = new ArrayList<String>();
-                    v.add(s);
+                // Process request.
+                try (Socket sock = socket.accept(); // Blocks.
+                     BufferedReader in = new BufferedReader(
+                         new InputStreamReader(sock.getInputStream()))) {
+                    while (true) {
+                        String s = in.readLine();
+                        if (s == null)
+                            break;
+                        if (v == null)
+                            v = new ArrayList<String>();
+                        v.add(s);
+                    }
                 }
-                in.close();
-                sock.close();
                 SwingUtilities.invokeLater(new Messenger(v));
             }
             catch (SocketException e) {

@@ -236,9 +236,8 @@ public final class Registers
             File.getInstance(Directories.getRegistersDirectory(), name);
         if (!file.isFile())
             return null;
-        try {
-            BufferedReader reader = new BufferedReader(new InputStreamReader(
-                file.getInputStream()));
+        try (BufferedReader reader = new BufferedReader(
+                 new InputStreamReader(file.getInputStream()))) {
             StringBuilder sb = new StringBuilder();
             int lineCount = 0;
             int c;
@@ -249,7 +248,6 @@ public final class Registers
                 if (maxLines > 0 && lineCount == maxLines)
                     break;
             }
-            reader.close();
             return sb.toString();
         }
         catch (IOException e) {

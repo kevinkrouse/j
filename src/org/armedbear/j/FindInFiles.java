@@ -402,10 +402,11 @@ public final class FindInFiles extends Replacement implements Constants,
     private static boolean isBinaryFile(File file)
     {
         try {
-            InputStream in = file.getInputStream();
             byte[] bytes = new byte[4096];
-            int bytesRead = in.read(bytes);
-            in.close();
+            int bytesRead;
+            try (InputStream in = file.getInputStream()) {
+                bytesRead = in.read(bytes);
+            }
             for (int i = 0; i < bytesRead; i++) {
                 if (bytes[i] == 0)
                     return true;

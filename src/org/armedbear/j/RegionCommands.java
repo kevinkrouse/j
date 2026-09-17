@@ -289,12 +289,10 @@ public final class RegionCommands
                 return;
             // At this point, if the target file exists, the user has said
             // it's OK to overwrite it.
-            try {
-                OutputStream out = saveAs.getOutputStream();
+            try (OutputStream out = saveAs.getOutputStream()) {
                 if (out != null) {
                     out.write(bytes, 0, length);
                     out.flush();
-                    out.close();
                 }
             }
             catch (IOException e) {

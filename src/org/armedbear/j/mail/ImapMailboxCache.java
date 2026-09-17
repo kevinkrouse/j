@@ -156,9 +156,9 @@ public final class ImapMailboxCache implements Serializable
             // Load the catalog.
             try {
                 if (catalogFile.isFile()) {
-                    InputStream in = catalogFile.getInputStream();
-                    catalog.load(in);
-                    in.close();
+                    try (InputStream in = catalogFile.getInputStream()) {
+                        catalog.load(in);
+                    }
                 }
             }
             catch (IOException e) {

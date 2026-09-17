@@ -356,9 +356,11 @@ public final class Editor extends JPanel implements Constants,
         portfile = File.getInstance(Directories.getEditorDirectory(), "port");
         if (portfile.exists()) {
             try {
-                BufferedReader in = new BufferedReader(new InputStreamReader(portfile.getInputStream()));
-                String s = in.readLine();
-                in.close();
+                String s;
+                try (BufferedReader in = new BufferedReader(
+                         new InputStreamReader(portfile.getInputStream()))) {
+                    s = in.readLine();
+                }
 
                 int port = Integer.parseInt(s);
 

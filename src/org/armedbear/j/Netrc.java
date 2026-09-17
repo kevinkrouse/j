@@ -82,10 +82,10 @@ public final class Netrc
             lastModified = file.lastModified();
             int length = (int) file.length();
             byte bytes[] = new byte[length];
-            InputStream in = file.getInputStream();
-            if (in.read(bytes) != length)
-                return;
-            in.close();
+            try (InputStream in = file.getInputStream()) {
+                if (in.read(bytes) != length)
+                    return;
+            }
             String s = new String(bytes);
             StringTokenizer st = new StringTokenizer(s);
             String host = null;

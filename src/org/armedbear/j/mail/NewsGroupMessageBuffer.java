@@ -261,18 +261,18 @@ public final class NewsGroupMessageBuffer extends MessageBuffer
                                               extension);
                     StringBuilder sb = new StringBuilder("begin 644 ");
                     sb.append(decoded.getName());
-                    BufferedWriter writer = new BufferedWriter(
-                        new OutputStreamWriter(encoded.getOutputStream(),
-                            "ISO-8859-1"));
-                    writer.write(sb.toString());
-                    writer.write('\n');
-                    while ((s = reader.readLine()) != null) {
-                        writer.write(s);
+                    try (BufferedWriter writer = new BufferedWriter(
+                             new OutputStreamWriter(encoded.getOutputStream(),
+                                                    "ISO-8859-1"))) {
+                        writer.write(sb.toString());
                         writer.write('\n');
-                        if (s.equals("end")) {
-                            writer.flush();
-                            writer.close();
-                            break;
+                        while ((s = reader.readLine()) != null) {
+                            writer.write(s);
+                            writer.write('\n');
+                            if (s.equals("end")) {
+                                writer.flush();
+                                break;
+                            }
                         }
                     }
                     if (decode(encoded, "uudecode"))
@@ -295,22 +295,22 @@ public final class NewsGroupMessageBuffer extends MessageBuffer
                     File decoded =
                         Utilities.getTempFile(Directories.getTempDirectory(),
                                               extension);
-                    BufferedWriter writer = new BufferedWriter(
-                        new OutputStreamWriter(encoded.getOutputStream(),
-                            "ISO-8859-1"));
                     StringBuilder sb =
                         new StringBuilder(s.substring(0, index));
                     sb.append(decoded.getName());
-                    writer.write(sb.toString());
-                    writer.write('\n');
-                    while ((s = reader.readLine()) != null) {
-                        writer.write(s);
-                        if (s.startsWith("=yend")) {
-                            writer.flush();
-                            writer.close();
-                            break;
-                        }
+                    try (BufferedWriter writer = new BufferedWriter(
+                             new OutputStreamWriter(encoded.getOutputStream(),
+                                                    "ISO-8859-1"))) {
+                        writer.write(sb.toString());
                         writer.write('\n');
+                        while ((s = reader.readLine()) != null) {
+                            writer.write(s);
+                            if (s.startsWith("=yend")) {
+                                writer.flush();
+                                break;
+                            }
+                            writer.write('\n');
+                        }
                     }
                     if (decode(encoded, "yydecode -b"))
                         appendImageLine(decoded);

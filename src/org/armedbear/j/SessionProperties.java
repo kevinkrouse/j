@@ -265,10 +265,10 @@ public final class SessionProperties
     {
         try {
             File tempFile = Utilities.getTempFile();
-            OutputStream out = tempFile.getOutputStream();
-            properties.store(out, null);
-            out.flush();
-            out.close();
+            try (OutputStream out = tempFile.getOutputStream()) {
+                properties.store(out, null);
+                out.flush();
+            }
             if (file.exists() && !Utilities.deleteRename(file, backupFile)) {
                 Log.error("SessionProperties.save deleteRename failed");
                 Log.error("source = " + file);

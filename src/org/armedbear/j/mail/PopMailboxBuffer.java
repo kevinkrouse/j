@@ -870,9 +870,9 @@ public final class PopMailboxBuffer extends LocalMailboxBuffer
         // Load the catalog.
         try {
             if (catalogFile.isFile()) {
-                InputStream in = catalogFile.getInputStream();
-                catalog.load(in);
-                in.close();
+                try (InputStream in = catalogFile.getInputStream()) {
+                    catalog.load(in);
+                }
             }
         }
         catch (IOException e) {
@@ -887,10 +887,10 @@ public final class PopMailboxBuffer extends LocalMailboxBuffer
         File file = Utilities.getTempFile(popDir);
         catalog.put(mailboxName, file.getName());
         try {
-            OutputStream out = catalogFile.getOutputStream();
-            catalog.store(out, null);
-            out.flush();
-            out.close();
+            try (OutputStream out = catalogFile.getOutputStream()) {
+                catalog.store(out, null);
+                out.flush();
+            }
             return localStore = file;
         }
         catch (IOException e) {

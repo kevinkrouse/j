@@ -100,16 +100,13 @@ public final class Cache
             URL url = Utilities.toURL(netPath);
             HttpURLConnection connection =
                 (HttpURLConnection) url.openConnection();
-            InputStream in = connection.getInputStream();
-            if (in != null) {
-                file = Utilities.getTempFile(cacheDir);
-                OutputStream out = file.getOutputStream();
+            file = Utilities.getTempFile(cacheDir);
+            try (InputStream in = connection.getInputStream();
+                 OutputStream out = file.getOutputStream()) {
                 byte[] buf = new byte[4096];
                 int bytesRead;
                 while ((bytesRead = in.read(buf)) > 0)
                     out.write(buf, 0, bytesRead);
-                out.close();
-                in.close();
             }
         }
         catch (IOException e) {
@@ -129,14 +126,14 @@ public final class Cache
     {
         List<Tuple2<String, String>> v = new ArrayList<Tuple2<String, String>>();
         if (catalogFile.exists()) {
-            try {
-                BufferedReader reader = new BufferedReader(
-                    new InputStreamReader(catalogFile.getInputStream()));
+            try (BufferedReader reader = new BufferedReader(
+                     new InputStreamReader(catalogFile.getInputStream()))) {
                 String s;
                 while ((s = reader.readLine()) != null) {
                     int index = s.indexOf(' ');
                     if (index >= 0)
-                        v.add(new Tuple2<String, String>(s.substring(0, index), s.substring(index+1)));
+                        v.add(new Tuple2<String, String>(s.substring(0, index),
+                                                         s.substring(index+1)));
                 }
             }
             catch (IOException e) {
@@ -148,18 +145,15 @@ public final class Cache
 
     private void saveCatalog()
     {
-        try {
-            BufferedWriter writer = new BufferedWriter(
-                new OutputStreamWriter(catalogFile.getOutputStream()));
-            for (int i = 0; i < catalog.size(); i++) {
-                Tuple2<String, String> pair = catalog.get(i);
+        try (BufferedWriter writer = new BufferedWriter(
+                 new OutputStreamWriter(catalogFile.getOutputStream()))) {
+            for (Tuple2<String, String> pair : catalog) {
                 writer.write(pair.first);
                 writer.write(' ');
                 writer.write(pair.second);
                 writer.newLine();
             }
             writer.flush();
-            writer.close();
         }
         catch (IOException e) {
             Log.error(e);

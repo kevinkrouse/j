@@ -219,16 +219,16 @@ public final class NewsGroupSummaryBuffer extends MailboxBuffer
             File file = Utilities.getTempFile();
             try {
                 FastStringReader reader = new FastStringReader(text);
-                BufferedWriter writer = new BufferedWriter(
-                    new OutputStreamWriter(file.getOutputStream(),
-                        "ISO-8859-1"));
-                String s;
-                while ((s = reader.readLine()) != null) {
-                    writer.write(s);
-                    writer.write('\n');
+                try (BufferedWriter writer = new BufferedWriter(
+                         new OutputStreamWriter(file.getOutputStream(),
+                                                "ISO-8859-1"))) {
+                    String s;
+                    while ((s = reader.readLine()) != null) {
+                        writer.write(s);
+                        writer.write('\n');
+                    }
+                    writer.flush();
                 }
-                writer.flush();
-                writer.close();
             }
             catch (IOException e) {
                 Log.error(e);

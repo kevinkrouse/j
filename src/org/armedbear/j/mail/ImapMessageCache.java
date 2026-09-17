@@ -234,9 +234,9 @@ public final class ImapMessageCache
             catalog = new Properties();
             try {
                 if (catalogFile.isFile()) {
-                    InputStream in = catalogFile.getInputStream();
-                    catalog.load(in);
-                    in.close();
+                    try (InputStream in = catalogFile.getInputStream()) {
+                        catalog.load(in);
+                    }
                 }
             }
             catch (IOException e) {

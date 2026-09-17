@@ -96,12 +96,9 @@ public final class NewsBuffer extends Buffer
         File file = File.getInstance(newsDir, session.getHost());
         if (newsDir.isDirectory()) {
             if (file.isFile()) {
-                try {
-                    InputStream in = file.getInputStream();
-                    if (in != null) {
+                try (InputStream in = file.getInputStream()) {
+                    if (in != null)
                         load(in, null);
-                        in.close();
-                    }
                 }
                 catch (IOException e) {
                     Log.error(e);
@@ -134,15 +131,14 @@ public final class NewsBuffer extends Buffer
                             progressNotifier.progress(String.valueOf(count));
                         }
                         if (newsDir.isDirectory()) {
-                            try {
-                                BufferedWriter writer = new BufferedWriter(
-                                    new OutputStreamWriter(file.getOutputStream()));
+                            try (BufferedWriter writer = new BufferedWriter(
+                                     new OutputStreamWriter(
+                                         file.getOutputStream()))) {
                                 for (Line line = getFirstLine(); line != null; line = line.next()) {
                                     writer.write(line.getText());
                                     writer.write('\n');
                                 }
                                 writer.flush();
-                                writer.close();
                             }
                             catch (IOException e) {
                                 Log.error(e);

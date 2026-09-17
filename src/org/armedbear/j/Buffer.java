@@ -808,17 +808,14 @@ public class Buffer extends SystemBuffer
         try {
             File tempFile = Utilities.getTempFile();
             if (tempFile != null) {
-                InputStream in = new GZIPInputStream(f.getInputStream());
-                if (in != null) {
-                    OutputStream out = tempFile.getOutputStream();
+                try (InputStream in = new GZIPInputStream(f.getInputStream());
+                     OutputStream out = tempFile.getOutputStream()) {
                     byte[] buf = new byte[4096];
                     int bytesRead;
                     while ((bytesRead = in.read(buf)) > 0)
                         out.write(buf, 0, bytesRead);
-                    out.close();
-                    in.close();
-                    return tempFile;
                 }
+                return tempFile;
             }
         }
         catch (IOException e) {

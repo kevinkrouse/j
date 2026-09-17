@@ -373,10 +373,10 @@ public class MimePart
                 byte[] bytes = getDecodedBodyAsByteArray();
                 if (bytes == null)
                     return false;
-                FileOutputStream out = file.getOutputStream();
-                out.write(bytes);
-                out.flush();
-                out.close();
+                try (FileOutputStream out = file.getOutputStream()) {
+                    out.write(bytes);
+                    out.flush();
+                }
                 return true;
             }
             catch (IOException e) {

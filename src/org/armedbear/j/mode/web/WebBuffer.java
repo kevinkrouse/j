@@ -603,9 +603,8 @@ public final class WebBuffer extends Buffer implements WebConstants
             return false; // File not found.
         }
         byte[] buf = new byte[2];
-        try {
-            int bytesRead = inputStream.read(buf);
-            inputStream.close();
+        try (InputStream in = inputStream) {
+            int bytesRead = in.read(buf);
             if (bytesRead == 2) {
                 byte byte1 = buf[0];
                 byte byte2 = buf[1];

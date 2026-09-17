@@ -468,8 +468,7 @@ public class FtpSession implements Constants, RemoteSession
                     out = getOutputStreamForFile(tempName);
             }
             if (out != null) {
-                try {
-                    InputStream in = localFile.getInputStream();
+                try (InputStream in = localFile.getInputStream()) {
                     byte[] bytes = new byte[16384];
                     long totalBytes = 0;
                     int bytesRead;
@@ -493,7 +492,6 @@ public class FtpSession implements Constants, RemoteSession
                     out.flush();
                     out.close();
                     closeDataSocket();
-                    in.close();
                     succeeded = getReply(226);
                     if (cancelled && tempName != null) {
                         command("DELE " + tempName);
@@ -573,8 +571,7 @@ public class FtpSession implements Constants, RemoteSession
         InputStream  in = getInputStreamForFile(remoteFile.canonicalPath());
         if (in == null)
             return ERROR;
-        try {
-            OutputStream out = localFile.getOutputStream();
+        try (OutputStream out = localFile.getOutputStream()) {
             byte[] bytes = new byte[16384];
             long totalBytes = 0;
 
@@ -613,7 +610,6 @@ public class FtpSession implements Constants, RemoteSession
             // If the user cancels, just close the data connection.
             // A bit rude, but it seems to work.
             out.flush();
-            out.close();
             in.close();
             closeDataSocket();
             if (cancelled)

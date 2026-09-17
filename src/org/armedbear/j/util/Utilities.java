@@ -275,10 +275,9 @@ public final class Utilities implements Constants
         File file = getTempFile(dir);
         if (file != null) {
             try {
-                // getOutputStream() will throw FileNotFoundException if
-                // directory is not writable.
-                FileOutputStream out = file.getOutputStream();
-                out.close();
+                // Opening for write throws FileNotFoundException if the
+                // directory is not writable. Nothing needs to be written.
+                file.getOutputStream().close();
                 if (file.isFile()) {
                     isWritable = true;
                     file.delete();
@@ -763,10 +762,11 @@ public final class Utilities implements Constants
             return FILETYPE_UNKNOWN;
         int fileType = FILETYPE_UNKNOWN;
         try {
-            InputStream in = file.getInputStream();
             byte[] bytes = new byte[4096];
-            int bytesRead = in.read(bytes);
-            in.close();
+            int bytesRead;
+            try (InputStream in = file.getInputStream()) {
+                bytesRead = in.read(bytes);
+            }
             boolean isUnicode = false;
             boolean isLittleEndian = false;
             if (bytesRead >= 2) {

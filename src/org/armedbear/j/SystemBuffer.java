@@ -166,10 +166,9 @@ public class SystemBuffer implements Constants
         if (!isLoaded) {
             try {
                 if (file.isFile()) {
-                    InputStream in = file.getInputStream();
-                    if (in != null) {
-                        load(in, file.getEncoding());
-                        in.close();
+                    try (InputStream in = file.getInputStream()) {
+                        if (in != null)
+                            load(in, file.getEncoding());
                     }
                 }
                 if (getFirstLine() == null) {
@@ -487,8 +486,8 @@ public class SystemBuffer implements Constants
 
     public boolean writeFile(File outputFile)
     {
-        try {
-            BufferedOutputStream out = new BufferedOutputStream(outputFile.getOutputStream());
+        try (BufferedOutputStream out =
+                 new BufferedOutputStream(outputFile.getOutputStream())) {
             if (lineSeparator == null)
                 lineSeparator = System.getProperty("line.separator");
             String encoding = outputFile.getEncoding();
@@ -509,7 +508,6 @@ public class SystemBuffer implements Constants
                 }
             }
             out.flush();
-            out.close();
             return true;
         }
         catch (IOException e) {
