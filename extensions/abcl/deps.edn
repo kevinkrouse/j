@@ -1,0 +1,19 @@
+;; Dependency manifest for the abcl extension (see ../../build.clj).
+;;
+;; This is where ABCL lives now. The root deps.edn has no dependencies at all:
+;; core compiles and runs without it, which is the point of the exercise.
+{:paths ["src"]
+
+ ;; As in the root manifest, the basis is created with :root nil, so the
+ ;; repositories have to be named here rather than inherited.
+ :mvn/repos
+ {"central" {:url "https://repo1.maven.org/maven2/"}}
+
+ :deps
+ {org.abcl/abcl {:mvn/version "1.8.0"}}
+
+ :aliases
+ {;; extra deps needed to compile and run test/src
+  :test
+  {:extra-paths ["test/src"]
+   :extra-deps {junit/junit {:mvn/version "4.8.2"}}}}}

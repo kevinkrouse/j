@@ -8,8 +8,9 @@
  :mvn/repos
  {"central" {:url "https://repo1.maven.org/maven2/"}}
 
- :deps
- {org.abcl/abcl {:mvn/version "1.8.0"}}
+ ;; Empty on purpose. ABCL moved to extensions/abcl; core depends on
+ ;; nothing but the JDK.
+ :deps {}
 
  :aliases
  {;; extra deps needed to compile and run test/src

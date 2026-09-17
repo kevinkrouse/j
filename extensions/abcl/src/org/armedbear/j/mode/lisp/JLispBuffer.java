@@ -30,15 +30,14 @@ import org.armedbear.j.Buffer;
 import org.armedbear.j.BufferIterator;
 import org.armedbear.j.Directories;
 import org.armedbear.j.Editor;
-import java.lang.StringBuilder;
 import org.armedbear.j.File;
 import org.armedbear.j.Frame;
 import org.armedbear.j.History;
 import org.armedbear.j.Log;
 import org.armedbear.j.Version;
+import org.armedbear.j.extension.abcl.AbclSession;
 import org.armedbear.lisp.Interpreter;
 import org.armedbear.lisp.Lisp;
-import org.armedbear.lisp.LispObject;
 
 public final class JLispBuffer extends LispShellBuffer
 {
@@ -75,19 +74,6 @@ public final class JLispBuffer extends LispShellBuffer
         return true;
     }
 
-    // The interpreter is a process-wide singleton, so this is static. It used
-    // to live on Editor as isLispInitialized; that is now the session's business
-    // and this class keeps its own.
-    private static boolean interpreterInitialized;
-
-    private static synchronized void initializeInterpreter()
-    {
-        if (!interpreterInitialized) {
-            Interpreter.initializeJLisp();
-            interpreterInitialized = true;
-        }
-    }
-
     protected void startProcess()
     {
         thread = new Thread("JLispBuffer interpreter") {
@@ -96,7 +82,9 @@ public final class JLispBuffer extends LispShellBuffer
                 try {
                     startServer();
                     if (interpreter != null) {
-                        interpreterInitialized = true;
+                        // This REPL's interpreter counts as the runtime being up;
+                        // nothing should boot a second one behind it.
+                        AbclSession.markInitialized();
                         interpreter.run();
                     }
                 }
@@ -222,20 +210,5 @@ public final class JLispBuffer extends LispShellBuffer
             ed = editor.activateInOtherWindow(jlisp);
         ed.eob();
         editor.setDefaultCursor();
-    }
-
-    public static void runStartupScript(File file)
-    {
-        initializeInterpreter();
-        StringBuilder sb = new StringBuilder("(load \"");
-        sb.append(file.shellEscaped());
-        sb.append("\")");
-        Interpreter.evaluate(sb.toString());
-    }
-
-    public static LispObject runLispCommand(String command)
-    {
-        initializeInterpreter();
-        return Interpreter.evaluate(command);
     }
 }

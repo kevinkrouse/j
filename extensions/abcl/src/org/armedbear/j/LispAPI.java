@@ -24,6 +24,7 @@ import java.util.regex.PatternSyntaxException;
 import javax.swing.SwingUtilities;
 import javax.swing.undo.CompoundEdit;
 
+import org.armedbear.j.extension.abcl.LispFunction;
 import org.armedbear.j.mode.lisp.LispMode;
 import org.armedbear.lisp.AbstractString;
 import org.armedbear.lisp.Fixnum;
@@ -916,7 +917,7 @@ public final class LispAPI
           {
             // Verify that the command can be coerced to a function.
             coerceToFunction(third);
-            command = third;
+            command = new LispFunction(third);
           }
         if (second instanceof LispCharacter)
           keymap.mapKey(((LispCharacter)second).value, command);
@@ -946,7 +947,7 @@ public final class LispAPI
           {
             // Verify that the command can be coerced to a function.
             coerceToFunction(second);
-            command = second;
+            command = new LispFunction(second);
           }
         return KeyMap.getGlobalKeyMap().mapKey(keyText, command) ? T : NIL;
       }
@@ -980,7 +981,7 @@ public final class LispAPI
           {
             // Verify that the command can be coerced to a function.
             coerceToFunction(second);
-            command = second;
+            command = new LispFunction(second);
           }
         String modeName = third.getStringValue();
         Mode mode = Editor.getModeList().getModeFromModeName(modeName);

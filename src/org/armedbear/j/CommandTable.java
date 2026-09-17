@@ -318,7 +318,6 @@ public class CommandTable
             addCommand("imageZoomOut", "mode.image.ImageMode");
             addCommand("insertRegister", "Registers");
             addCommand("jdkHelp", "JDKHelp");
-            addCommand("jlisp", "mode.lisp.JLispBuffer");
             addCommand("jumpToColumn", "JumpCommands");
             addCommand("jumpToLine", "JumpCommands");
             addCommand("jumpToOffset", "JumpCommands");

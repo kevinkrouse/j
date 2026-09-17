@@ -159,8 +159,6 @@
 (defn jar "Build and package build/j.jar."
   [opts]
   (let [{:keys [buildtime] :as opts} (-> opts build stamp)]
-    (b/copy-file {:src (lib-jar (basis) 'org.abcl/abcl)
-                  :target (str lib-dir "/abcl.jar")})
     ;; the resources that ship in the jar alongside the classes
     (b/copy-dir {:src-dirs [src-dir] :target-dir classes-dir
                  :include "**/*.{lisp,keywords,png,svg}"})
@@ -170,8 +168,7 @@
             ;; build.xml scoped the Implementation-* attributes to an
             ;; org/armedbear/j manifest section, which tools.build cannot
             ;; write. Nothing reads them: Version reads the files stamp wrote.
-            :manifest  {"Class-Path"             "lib/abcl.jar"
-                        "Implementation-Title"   "ArmedBear J"
+            :manifest  {"Implementation-Title"   "ArmedBear J"
                         "Implementation-Version" j-version
                         "Implementation-Build"   buildtime}})
     (println "wrote" (abs-path jar-file))
