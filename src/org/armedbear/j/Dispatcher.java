@@ -47,12 +47,14 @@ import java.awt.event.ActionListener;
 import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
+import java.awt.Dimension;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.awt.event.MouseMotionListener;
 import java.net.URL;
 import java.util.List;
 import javax.swing.JPopupMenu;
+import javax.swing.ImageIcon;
 import javax.swing.SwingUtilities;
 import org.armedbear.j.util.Utilities;
 import javax.swing.ToolTipManager;
@@ -917,30 +919,39 @@ public final class Dispatcher implements Constants, KeyListener, MouseListener,
         if (cursors[index] != null)
             return cursors[index];
         // Need to create cursor.
-        String name, filename;
+        String name, iconName;
         switch (index) {
             case CURSOR_NO:
             default:
                 name = "NoDrop";
-                filename = "nodrop.png";
+                iconName = "nodrop";
                 break;
             case CURSOR_MOVE:
                 name = "MoveDrop";
-                filename = "movedrop.png";
+                iconName = "movedrop";
                 break;
             case CURSOR_COPY:
                 name = "CopyDrop";
-                filename = "copydrop.png";
+                iconName = "copydrop";
                 break;
         }
         Cursor cursor = null;
-        URL url = Editor.class.getResource("images/".concat(filename));
-        if (url != null) {
+        try {
             Toolkit toolkit = java.awt.Toolkit.getDefaultToolkit();
-            Image image = toolkit.createImage(url);
-            if (image != null)
-                cursor = toolkit.createCustomCursor(image, new Point(1, 1),
-                    name);
+            // The size the platform wants: anything else is padded or scaled,
+            // and on a high resolution display it is larger than the icons
+            // the rest of the interface uses.
+            Dimension size = toolkit.getBestCursorSize(32, 32);
+            if (size.width > 0 && size.height > 0) {
+                ImageIcon icon =
+                    Utilities.getIconFromFile(iconName, size.width);
+                if (icon != null)
+                    cursor = toolkit.createCustomCursor(icon.getImage(),
+                                                        new Point(1, 1), name);
+            }
+        }
+        catch (Throwable t) {
+            Log.error(t);
         }
         if (cursor == null)
             cursor = Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR);
