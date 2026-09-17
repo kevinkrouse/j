@@ -218,15 +218,13 @@ public final class JavaTree extends SidebarTree implements Constants,
         return allTags;
     }
 
-    private static class MethodComparator implements Comparator
+    private static class MethodComparator implements Comparator<JavaTag>
     {
         MethodComparator() {}
 
-        public int compare(Object o1, Object o2)
+        public int compare(JavaTag t1, JavaTag t2)
         {
-            String s1 = o1.toString();
-            String s2 = o2.toString();
-            return s1.compareTo(s2);
+            return t1.toString().compareTo(t2.toString());
         }
     }
 

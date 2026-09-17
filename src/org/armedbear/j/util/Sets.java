@@ -10,6 +10,7 @@ import java.util.Set;
  */
 public class Sets
 {
+    @SafeVarargs
     public static <E> Set<E> newHashSet(E... values)
     {
         int capacity = Math.max(2 * values.length, 11);

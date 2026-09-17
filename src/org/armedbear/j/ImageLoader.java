@@ -54,13 +54,9 @@ public final class ImageLoader
         if (image == null) {
             // Try again using JIMI.
             try {
-                Class c = Class.forName("com.sun.jimi.core.Jimi");
-                Class[] parameterTypes = new Class[1];
-                parameterTypes[0] = Class.forName("java.lang.String");
-                Method method = c.getMethod("getImage", parameterTypes);
-                Object[] args = new Object[1];
-                args[0] = file.canonicalPath();
-                Object returned = method.invoke(null, args);
+                Class<?> c = Class.forName("com.sun.jimi.core.Jimi");
+                Method method = c.getMethod("getImage", String.class);
+                Object returned = method.invoke(null, file.canonicalPath());
                 if (returned instanceof Image)
                     image = (Image) returned;
             }

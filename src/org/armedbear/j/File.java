@@ -37,7 +37,7 @@ import org.armedbear.j.util.FastStringReader;
 import org.armedbear.j.util.Utilities;
 import org.armedbear.lisp.Pathname;
 
-public class File implements Comparable
+public class File implements Comparable<File>
 {
     public static final int PROTOCOL_FILE        = 0;
     public static final int PROTOCOL_HTTP        = 1;
@@ -1061,9 +1061,9 @@ public class File implements Comparable
         }
     }
 
-    public final int compareTo(Object o)
+    public final int compareTo(File f)
     {
-        return getName().compareTo(((File)o).getName());
+        return getName().compareTo(f.getName());
     }
 
 //     private static void test(String dirname, String filename, String expected)

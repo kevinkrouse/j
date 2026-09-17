@@ -210,7 +210,7 @@ public abstract class AbstractDialog extends JDialog implements ActionListener,
         if (e.getModifiers() == 0) {
             // Special case for combo box.
             if (e.getComponent() instanceof JComboBox) {
-                JComboBox cb = (JComboBox) e.getComponent();
+                JComboBox<?> cb = (JComboBox<?>) e.getComponent();
                 if (cb.isPopupVisible())
                     return;
                 // Combo box popup is not visible. Fall through...

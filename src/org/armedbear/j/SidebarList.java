@@ -30,7 +30,8 @@ import javax.swing.border.Border;
 import javax.swing.border.CompoundBorder;
 import javax.swing.border.EmptyBorder;
 
-public abstract class SidebarList extends JList implements NavigationComponent
+public abstract class SidebarList extends JList<Object>
+    implements NavigationComponent
 {
     protected Sidebar sidebar;
 
@@ -80,7 +81,7 @@ public abstract class SidebarList extends JList implements NavigationComponent
     }
 
     private static final class SidebarListCellRenderer extends JLabel
-        implements ListCellRenderer
+        implements ListCellRenderer<Object>
     {
         private Sidebar sidebar;
 
@@ -97,7 +98,7 @@ public abstract class SidebarList extends JList implements NavigationComponent
         }
 
         public Component getListCellRendererComponent(
-            JList list,
+            JList<?> list,
             Object value,
             int index,
             boolean isSelected,

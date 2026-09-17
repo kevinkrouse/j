@@ -24,12 +24,12 @@ import java.io.DataInputStream;
 
 public final class ExtensionClassLoader extends ClassLoader
 {
-    public Class loadClass(String s, boolean resolve) throws ClassNotFoundException
+    public Class<?> loadClass(String s, boolean resolve) throws ClassNotFoundException
     {
         try {
             File file = null;
             String classname = null;
-            Class c = null;
+            Class<?> c = null;
             if (s.endsWith(".class")) {
                 // String passed in is a file name, not a class name.
                 // By default, extension classes are in ~/.j

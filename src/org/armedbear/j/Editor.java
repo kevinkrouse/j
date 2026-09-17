@@ -2586,7 +2586,7 @@ public final class Editor extends JPanel implements Constants,
                 // Special case. Command is implemented in org.armedbear.j.Editor.
                 method = Editor.class.getMethod(methodName, parameterTypes);
             } else {
-                Class c = Class.forName("org.armedbear.j." + className);
+                Class<?> c = Class.forName("org.armedbear.j." + className);
                 if (c != null)
                     method = c.getMethod(methodName, parameterTypes);
             }
@@ -7383,7 +7383,7 @@ public final class Editor extends JPanel implements Constants,
         Cookie.deleteCookies();
     }
 
-    private static Class extensionClass = null;
+    private static Class<?> extensionClass = null;
 
     private static void loadExtensions()
     {

@@ -28,6 +28,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import javax.swing.tree.DefaultMutableTreeNode;
+import javax.swing.tree.TreeNode;
 import org.armedbear.j.Debug;
 import org.armedbear.j.Log;
 
@@ -381,15 +382,17 @@ class Node extends DefaultMutableTreeNode
             sortEntriesByDate(children);
     }
 
-    private static final Comparator comparator = new Comparator() {
-        public int compare(Object o1, Object o2)
+    // Typed to TreeNode because the list being sorted is the children field
+    // DefaultMutableTreeNode declares, and every element in it is a Node.
+    private static final Comparator<TreeNode> comparator = new Comparator<TreeNode>() {
+        public int compare(TreeNode o1, TreeNode o2)
         {
-            return RFC822Date.compare(((Node)o1).getDate(),
-                ((Node)o2).getDate());
+            return RFC822Date.compare(((Node) o1).getDate(),
+                ((Node) o2).getDate());
         }
     };
 
-    private static final void sortEntriesByDate(List<? extends Object> list)
+    private static final void sortEntriesByDate(List<TreeNode> list)
     {
         Collections.sort(list, comparator);
     }

@@ -48,7 +48,7 @@ public final class ModeListEntry
         this.defaultFiles = defaultFiles;
         if (className != null && Editor.isDebugEnabled()) {
             try {
-                Class clazz = Class.forName("org.armedbear.j." + className);
+                Class.forName("org.armedbear.j." + className);
             }
             catch (ClassNotFoundException e) {
                 Log.debug(e.getMessage());
@@ -81,9 +81,10 @@ public final class ModeListEntry
         if (mode == null && create) {
             if (className != null) {
                 try {
-                    Class c = Class.forName("org.armedbear.j.".concat(className));
-                    Method method = c.getMethod("getMode", new Class[0]);
-                    mode = (Mode) method.invoke(null, new Object[0]);
+                    Class<?> c =
+                        Class.forName("org.armedbear.j.".concat(className));
+                    Method method = c.getMethod("getMode");
+                    mode = (Mode) method.invoke(null);
                 }
                 catch (Throwable t) {
                     Log.error(t);

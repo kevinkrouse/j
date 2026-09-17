@@ -38,10 +38,8 @@ public final class Main
         System.setProperty("apple.awt.graphics.EnableQ2DX", "true");
 
         try {
-            Class c = Class.forName("org.armedbear.j.Editor");
-            Class[] parameterTypes = new Class[1];
-            parameterTypes[0] = String[].class;
-            Method method = c.getMethod("main", parameterTypes);
+            Class<?> c = Class.forName("org.armedbear.j.Editor");
+            Method method = c.getMethod("main", String[].class);
             Object[] parameters = new Object[1];
             parameters[0] = args;
             method.invoke(null, parameters);

@@ -733,10 +733,11 @@ public final class Dispatcher implements Constants, KeyListener, MouseListener,
     {
         event.acceptDrop(DnDConstants.ACTION_LINK);
         try {
-            List files =
-                (List) t.getTransferData(DataFlavor.javaFileListFlavor);
-            for (int i = 0; i < files.size(); i++) {
-                String path = ((java.io.File)files.get(i)).getPath();
+            @SuppressWarnings("unchecked")
+            List<java.io.File> files =
+                (List<java.io.File>) t.getTransferData(DataFlavor.javaFileListFlavor);
+            for (java.io.File dropped : files) {
+                String path = dropped.getPath();
                 Buffer buffer = editor.openFile(File.getInstance(path));
                 if (buffer != null) {
                     editor.makeNext(buffer);

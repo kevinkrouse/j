@@ -114,10 +114,9 @@ public final class Preferences
     // FIXME This is far from ideal (but it does work).
     public synchronized void killTheme()
     {
-        Set k = properties.keySet();
-        Iterator<String> it = ((Set<String>)k).iterator();
+        Iterator<Object> it = properties.keySet().iterator();
         while (it.hasNext()) {
-            String key = it.next();
+            String key = (String) it.next();
             if (key.startsWith("color."))
                 it.remove();
             else if (key.contains(".color."))

@@ -51,7 +51,7 @@ public final class Command
     private void checkExists()
     {
         if (Editor.isDebugEnabled()) {
-            Class clazz = null;
+            Class<?> clazz = null;
             try {
                 clazz = Class.forName("org.armedbear.j." + className);
                 clazz.getMethod(methodName);

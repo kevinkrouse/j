@@ -29,7 +29,7 @@ import java.util.Map;
 import java.util.Iterator;
 import java.util.List;
 
-public final class Property implements Comparable, Constants
+public final class Property implements Comparable<Property>, Constants
 {
     // Written only while this class initialises, by the createProperty calls
     // in the field initialisers above; read-only from then on.
@@ -533,9 +533,8 @@ public final class Property implements Comparable, Constants
         return sb.toString();
     }
 
-    public int compareTo(Object o)
+    public int compareTo(Property p)
     {
-        Property p = (Property) o;
         return displayName.compareToIgnoreCase(p.displayName);
     }
 
