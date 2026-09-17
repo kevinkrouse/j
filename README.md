@@ -1,5 +1,4 @@
-GENERAL INFORMATION
--------------------
+# GENERAL
 
 J is a multifile, multiwindow programmer's editor written entirely in Java. It
 features syntax highlighting for Java, C, C++, XML, HTML, CSS, JavaScript,
@@ -9,10 +8,9 @@ replace, autosave and crash recovery, undo/redo, FTP/HTTP support, email,
 and multiple horizontal/vertical splits. All keyboard mappings can be
 customized. Themes may be used to customize the editor's appearance.
 
-Peter Graves is the original author of J and Armed Bear Common Lisp.
+This is Kevin Krouse's fork of Peter Graves original J editor.
 
-LICENSE
--------
+# LICENSE
 
 J is distributed under the GNU General Public License
 (with a special exception described below).
@@ -36,25 +34,15 @@ you are not obligated to do so. If you do not wish to do so, delete this
 exception statement from your version.
 
 
-INSTALLATION
-------------
+# INSTALLATION
 
-To build J, you'll need JDK 25, Ant, and Armed Bear Common Lisp. Once you have
-built ABCL, edit the build.properties found next to this README file and change
-the property values for your local environment.
+To build J you need JDK 25 and [babashka](https://babashka.org/).
+Armed Bear Common Lisp is fetched from Maven Central on the first build.
+If you use Nix, "nix-shell" puts a suitable JDK, babashka and gcc on your PATH.
 
-Run 'ant' to compile the source.
-Run 'ant help' to see a list of available targets.
+Run `bb build` to compile the source.
+Run `bb tasks` to see a list of available targets.
 
+The old Ant build (build.xml, build.properties) is still here and still works;
+it is kept around for the moment so the two builds can be compared.
 
-BUGS
-----
-
-Please report problems to the j-devel mailing list:
-
-    armedbear-j-devel@lists.sourceforge.net
-
-Have fun!
-
-Kevin Krouse
-May 02, 2009

@@ -1,0 +1,25 @@
+;; Dependency manifest for the babashka/tools.build build (see build.clj).
+;;
+{:paths ["src"]
+
+ ;; build.clj creates its basis with :root nil so that nothing but the deps
+ ;; below lands on J's compile/run classpath, which means the repositories
+ ;; have to be named here rather than inherited from the standard root.
+ :mvn/repos
+ {"central" {:url "https://repo1.maven.org/maven2/"}}
+
+ :deps
+ {org.abcl/abcl {:mvn/version "1.8.0"}}
+
+ :aliases
+ {;; extra deps needed to compile and run test/src
+  :test
+  {:extra-paths ["test/src"]
+   :extra-deps {junit/junit {:mvn/version "4.8.2"}}}
+
+  ;; `bb run-swingexplorer`
+  :swingexplorer
+  {:extra-deps {org.swingexplorer/swingexplorer-core {:mvn/version "1.7.0"}
+                org.swingexplorer/swingexplorer-agent {:mvn/version "1.7.0"}
+                javassist/javassist {:mvn/version "3.12.1.GA"}
+                org.swinglabs/swing-layout {:mvn/version "1.0.3"}}}}}
