@@ -34,7 +34,8 @@ import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.StringTokenizer;
-import java.util.Vector;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.regex.Matcher;
 import javax.swing.SwingUtilities;
 import javax.swing.undo.CompoundEdit;
@@ -60,7 +61,7 @@ public final class FindInFiles extends Replacement implements Constants,
 
     private Mode mode;
 
-    private Vector<File> results = new Vector<File>();
+    private List<File> results = new ArrayList<File>();
 
     private boolean cancelled;
 

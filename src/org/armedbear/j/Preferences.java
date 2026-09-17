@@ -104,9 +104,9 @@ public final class Preferences
     private static Properties canonicalize(Properties properties)
     {
         Properties newProperties = new Properties();
-        for (Enumeration e = properties.keys(); e.hasMoreElements();) {
-            String key = (String) e.nextElement();
-            newProperties.put(key.toLowerCase(), properties.get(key));
+        for (Map.Entry<Object, Object> entry : properties.entrySet()) {
+            String key = (String) entry.getKey();
+            newProperties.put(key.toLowerCase(), entry.getValue());
         }
         return newProperties;
     }

@@ -31,7 +31,8 @@ import java.awt.event.InputEvent;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.util.List;
-import java.util.Vector;
+import java.util.ArrayList;
+import java.util.List;
 import javax.swing.JList;
 import javax.swing.JScrollPane;
 import javax.swing.SwingUtilities;
@@ -56,8 +57,8 @@ public final class StackPanel implements ContextListener, MouseListener
     {
         this.jdb = jdb;
         this.dialog = dialog;
-        Vector<String> v = new Vector<String>();
-        list = new JList<String>(v);
+        List<String> v = new ArrayList<String>();
+        list = new JList<String>(v.toArray(new String[0]));
         scrollPane = new JScrollPane(list);
         jdb.addContextListener(this);
         list.addMouseListener(this);
@@ -74,7 +75,7 @@ public final class StackPanel implements ContextListener, MouseListener
         if (threadRef != null) {
             try {
                 frames = threadRef.frames();
-                final Vector<String> v = new Vector<String>();
+                final List<String> v = new ArrayList<String>();
                 int selectedIndex = -1;
                 if (frames.size() > 0) {
                     StackFrame currentStackFrame = jdb.getCurrentStackFrame();
@@ -123,7 +124,7 @@ public final class StackPanel implements ContextListener, MouseListener
                 Runnable r = new Runnable() {
                     public void run()
                     {
-                        list.setListData((Vector)v);
+                        list.setListData(v.toArray(new String[0]));
                         list.setSelectedIndex(finalSelectedIndex);
                     }
                 };

@@ -22,7 +22,8 @@ package org.armedbear.j.mode.html;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Vector;
+import java.util.ArrayList;
+import java.util.List;
 
 public final class HtmlElement
 {

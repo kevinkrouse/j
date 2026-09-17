@@ -25,7 +25,8 @@ import org.armedbear.j.Platform;
 
 import java.util.Arrays;
 import java.util.Comparator;
-import java.util.Vector;
+import java.util.ArrayList;
+import java.util.List;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeModel;
 import javax.swing.tree.TreeNode;
@@ -35,7 +36,7 @@ public class DirectoryTreeModel extends DefaultTreeModel
     private static final boolean ignoreCase = Platform.isPlatformWindows();
 
     private static DirectoryTreeModel localTreeModel;
-    private static Vector<DirectoryTreeModel> remoteModels;
+    private static List<DirectoryTreeModel> remoteModels;
 
     private File rootFile; // Will be null for local tree.
 
@@ -80,7 +81,7 @@ public class DirectoryTreeModel extends DefaultTreeModel
         model = new DirectoryTreeModel(root, rootFile);
         addChildren(rootFile, root);
         if (remoteModels == null)
-            remoteModels = new Vector<DirectoryTreeModel>();
+            remoteModels = new ArrayList<DirectoryTreeModel>();
         remoteModels.add(model);
         return model;
     }

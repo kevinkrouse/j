@@ -2001,7 +2001,7 @@ public final class Display extends JComponent implements Constants,
 
     public synchronized final void lineChanged(Line line)
     {
-        // Avoid NPE in Hashtable.put().
+        // A null line would go into the map as a null key and never be found.
         if (line == null) {
             Debug.bug("lineChanged line is null");
             return;

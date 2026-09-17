@@ -25,7 +25,8 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
-import java.util.Stack;
+import java.util.ArrayDeque;
+import java.util.Deque;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeModel;
 import javax.swing.tree.TreeModel;
@@ -57,7 +58,7 @@ public final class XmlParserImpl extends DefaultHandler implements Runnable,
     private Reader reader;
     private XMLReader xmlReader;
     private TreeModel treeModel;
-    private Stack<DefaultMutableTreeNode> stack;
+    private Deque<DefaultMutableTreeNode> stack;
     private Exception exception;
     private DefaultMutableTreeNode current;
     private Locator locator;
@@ -216,7 +217,7 @@ public final class XmlParserImpl extends DefaultHandler implements Runnable,
                 inputSource.setSystemId("file://".concat(file.canonicalPath()));
         }
         treeModel = null;
-        stack = new Stack<DefaultMutableTreeNode>();
+        stack = new ArrayDeque<DefaultMutableTreeNode>();
 
         if (xmlReader != null) {
             xmlReader.setContentHandler(this);
@@ -333,7 +334,7 @@ public final class XmlParserImpl extends DefaultHandler implements Runnable,
 
     public void endElement(String uri, String localName, String qName)
     {
-        if (stack.empty())
+        if (stack.isEmpty())
             current = null;
         else
             current = stack.pop();

@@ -31,7 +31,8 @@ import org.armedbear.j.SystemBuffer;
 import org.armedbear.j.Tagger;
 import org.armedbear.j.mode.cpp.CppTag;
 
-import java.util.Stack;
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.ArrayList;
 
 public class JavaTagger extends Tagger implements Constants
@@ -72,7 +73,7 @@ public class JavaTagger extends Tagger implements Constants
     visibility = 0;
     final boolean beanShell = buffer.getModeId() == BEANSHELL_MODE;
     final boolean javaScript = buffer.getModeId() == JAVASCRIPT_MODE;
-    final Stack<JavaClass> stack = new Stack<JavaClass>();
+    final Deque<JavaClass> stack = new ArrayDeque<JavaClass>();
     int state = NEUTRAL;
     while (!pos.atEnd())
       {
@@ -257,7 +258,7 @@ public class JavaTagger extends Tagger implements Constants
           }
         if (c == '}')
           {
-            if (!stack.empty())
+            if (!stack.isEmpty())
               currentClass = stack.pop();
             else
               currentClass = null;

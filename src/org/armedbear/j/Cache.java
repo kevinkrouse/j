@@ -32,7 +32,8 @@ import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.util.Vector;
+import java.util.ArrayList;
+import java.util.List;
 
 public final class Cache
 {
@@ -42,7 +43,7 @@ public final class Cache
     private static Cache cache;
 
     private File catalogFile;
-    private Vector<Tuple2<String, String>> catalog;
+    private List<Tuple2<String, String>> catalog;
 
     private Cache()
     {
@@ -124,9 +125,9 @@ public final class Cache
         return file;
     }
 
-    private Vector<Tuple2<String, String>> loadCatalog()
+    private List<Tuple2<String, String>> loadCatalog()
     {
-        Vector<Tuple2<String, String>> v = new Vector<Tuple2<String, String>>();
+        List<Tuple2<String, String>> v = new ArrayList<Tuple2<String, String>>();
         if (catalogFile.exists()) {
             try {
                 BufferedReader reader = new BufferedReader(

@@ -28,7 +28,8 @@ import org.armedbear.j.SystemBuffer;
 import org.armedbear.j.mode.c.CTagger;
 
 import java.util.ArrayList;
-import java.util.Stack;
+import java.util.ArrayDeque;
+import java.util.Deque;
 
 public final class CppTagger extends CTagger implements Constants
 {
@@ -51,7 +52,7 @@ public final class CppTagger extends CTagger implements Constants
   {
     ArrayList<LocalTag> tags = new ArrayList<LocalTag>();
     String className = null;
-    Stack<String> classNames = new Stack<String>();
+    Deque<String> classNames = new ArrayDeque<String>();
     pos = new Position(buffer.getFirstLine(), 0);
     token = null;
     tokenStart = null;
@@ -188,7 +189,7 @@ public final class CppTagger extends CTagger implements Constants
           }
         if (c == '}')
           {
-            if (classNames.empty())
+            if (classNames.isEmpty())
               className = null;
             else
               className = classNames.pop();

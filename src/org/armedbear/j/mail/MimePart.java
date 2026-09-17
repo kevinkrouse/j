@@ -25,7 +25,8 @@ import java.io.ByteArrayOutputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
-import java.util.Vector;
+import java.util.ArrayList;
+import java.util.List;
 import org.armedbear.j.Directories;
 import org.armedbear.j.File;
 import org.armedbear.j.Headers;
@@ -38,7 +39,7 @@ public class MimePart
     protected String raw;
     protected Headers headers;
 
-    private Vector<MimePart> parts;
+    private List<MimePart> parts;
 
     public MimePart(String raw)
     {
@@ -190,7 +191,7 @@ public class MimePart
         return null;
     }
 
-    public Vector<MimePart> getParts()
+    public List<MimePart> getParts()
     {
         return parts;
     }
@@ -206,7 +207,7 @@ public class MimePart
         return parts.get(i);
     }
 
-    protected void addParts(Vector<MimePart> v)
+    protected void addParts(List<MimePart> v)
     {
         v.add(this);
         // Recurse.
@@ -443,13 +444,13 @@ public class MimePart
         }
         final String disposition = getDisposition();
         if (disposition != null && disposition.equalsIgnoreCase("attachment")) {
-            parts = new Vector<MimePart>();
+            parts = new ArrayList<MimePart>();
             MimePart part = new MimePart(raw);
             parts.add(part);
         }
     }
 
-    private Vector<MimePart> parseParts(String boundary)
+    private List<MimePart> parseParts(String boundary)
     {
         final String marker = "--" + boundary;
         final String endMarker = marker + "--";
@@ -457,7 +458,7 @@ public class MimePart
         int start = raw.indexOf(marker);
         if (start < 0)
             return null;
-        Vector<MimePart> v = new Vector<MimePart>();
+        List<MimePart> v = new ArrayList<MimePart>();
         while (true) {
             start += marker.length();
             if (raw.charAt(start) == '\r')

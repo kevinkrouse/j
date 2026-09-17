@@ -20,12 +20,13 @@
 
 package org.armedbear.j;
 
-import java.util.Vector;
+import java.util.ArrayList;
+import java.util.List;
 import javax.swing.SwingUtilities;
 
 public class IdleThread extends Thread
 {
-    private Vector<IdleThreadTask> tasks = new Vector<IdleThreadTask>();
+    private List<IdleThreadTask> tasks = new ArrayList<IdleThreadTask>();
 
     private static IdleThread idleThread;
 

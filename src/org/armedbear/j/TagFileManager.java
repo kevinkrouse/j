@@ -30,7 +30,8 @@ import java.io.OutputStreamWriter;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Vector;
+import java.util.ArrayList;
+import java.util.List;
 
 public final class TagFileManager extends Thread
 {
@@ -40,7 +41,7 @@ public final class TagFileManager extends Thread
     private final File tagFileDir;
     private final TagFileCatalog catalog;
 
-    private Vector<QueueEntry> queue = new Vector<QueueEntry>();
+    private List<QueueEntry> queue = new ArrayList<QueueEntry>();
     private boolean enabled = true;
 
     private TagFileCache cache;

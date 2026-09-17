@@ -23,7 +23,8 @@ package org.armedbear.j.jdb;
 import java.awt.Component;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
-import java.util.Vector;
+import java.util.ArrayList;
+import java.util.List;
 import javax.swing.JList;
 import javax.swing.JScrollPane;
 import org.armedbear.j.Buffer;
@@ -41,8 +42,9 @@ public final class BreakpointPanel implements BreakpointListener, KeyListener
     {
         this.jdb = jdb;
         this.dialog = dialog;
-        Vector<ResolvableBreakpoint> v = new Vector<ResolvableBreakpoint>(jdb.getBreakpoints());
-        list = new JList<ResolvableBreakpoint>(v);
+        List<ResolvableBreakpoint> v = new ArrayList<ResolvableBreakpoint>(jdb.getBreakpoints());
+        list = new JList<ResolvableBreakpoint>(
+            v.toArray(new ResolvableBreakpoint[0]));
         scrollPane = new JScrollPane(list);
         jdb.addBreakpointListener(this);
         list.addKeyListener(this);
@@ -55,7 +57,8 @@ public final class BreakpointPanel implements BreakpointListener, KeyListener
 
     public void breakpointChanged()
     {
-        list.setListData(new Vector<ResolvableBreakpoint>(jdb.getBreakpoints()));
+        list.setListData(
+            jdb.getBreakpoints().toArray(new ResolvableBreakpoint[0]));
         list.setSelectedIndex(-1);
     }
 

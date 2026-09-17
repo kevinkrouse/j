@@ -70,7 +70,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Vector;
+import java.util.ArrayList;
+import java.util.List;
 import javax.swing.Icon;
 import javax.swing.SwingUtilities;
 
@@ -2140,7 +2141,7 @@ public final class DirectoryBuffer extends Buffer
 
 class DirectoryHistory
 {
-    private Vector<DirectoryHistoryEntry> v = new Vector<DirectoryHistoryEntry>();
+    private List<DirectoryHistoryEntry> v = new ArrayList<DirectoryHistoryEntry>();
     private int index = -1;
 
     DirectoryHistory()
@@ -2155,7 +2156,7 @@ class DirectoryHistory
     void truncate()
     {
         if (index != -1)
-            v.setSize(index);
+            v.subList(index, v.size()).clear();
     }
 
     void append(File file, String name, int offset)

@@ -24,13 +24,17 @@ import java.lang.StringBuilder;
 
 import java.io.Serializable;
 import java.util.ArrayList;
-import java.util.Hashtable;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Iterator;
 import java.util.List;
 
 public final class Property implements Comparable, Constants
 {
-    private static final Hashtable<String, Property> ht = new Hashtable<String, Property>();
+    // Written only while this class initialises, by the createProperty calls
+    // in the field initialisers above; read-only from then on.
+    private static final Map<String, Property> ht =
+        new HashMap<String, Property>();
 
     // Integer properties.
     public static final Property ADJUST_ASCENT =

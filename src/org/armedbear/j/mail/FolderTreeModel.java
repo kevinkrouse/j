@@ -90,7 +90,7 @@ public final class FolderTreeModel extends DefaultTreeModel
 
     private DefaultMutableTreeNode findNodeForFolder(MailboxURL url)
     {
-        Enumeration nodes =
+        Enumeration<TreeNode> nodes =
             ((DefaultMutableTreeNode) root).depthFirstEnumeration();
         while (nodes.hasMoreElements()) {
             DefaultMutableTreeNode node =
@@ -105,7 +105,7 @@ public final class FolderTreeModel extends DefaultTreeModel
     private void addNodeForFolder(MailboxURL url)
     {
         if (url instanceof ImapURL) {
-            Enumeration nodes = root.children();
+            Enumeration<? extends TreeNode> nodes = root.children();
             DefaultMutableTreeNode parent = null;
             while (nodes.hasMoreElements()) {
                 DefaultMutableTreeNode node =

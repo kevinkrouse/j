@@ -20,7 +20,8 @@
 
 package org.armedbear.j.mail;
 
-import java.util.Stack;
+import java.util.ArrayDeque;
+import java.util.Deque;
 import org.armedbear.j.Debug;
 import org.armedbear.j.util.FastStringReader;
 import org.armedbear.j.Log;
@@ -44,7 +45,7 @@ public abstract class MailboxFilter
 
     private static MailboxFilter parse(FastStringReader reader) throws Exception
     {
-        Stack<MailboxFilter> stack = new Stack<MailboxFilter>();
+        Deque<MailboxFilter> stack = new ArrayDeque<MailboxFilter>();
         while (parseNextTerm(reader, stack))
             ;
         Debug.assertTrue(stack.size() == 1);
@@ -52,7 +53,7 @@ public abstract class MailboxFilter
     }
 
     // Returns false if end of input is reached, true otherwise.
-    private static boolean parseNextTerm(FastStringReader reader, Stack<MailboxFilter> stack)
+    private static boolean parseNextTerm(FastStringReader reader, Deque<MailboxFilter> stack)
         throws Exception
     {
         reader.skipWhitespace();

@@ -136,13 +136,13 @@ public class RemoteShellBuffer extends ShellBuffer
         return null;
     }
 
-    private StringBuffer sbFilter;
+    private StringBuilder sbFilter;
 
     private String telnetStdOutFilter(String s)
     {
         if (stripEcho && input != null) {
             if (sbFilter == null)
-                sbFilter = new StringBuffer(s);
+                sbFilter = new StringBuilder(s);
             else {
                 sbFilter.append(s);
                 s = sbFilter.toString();

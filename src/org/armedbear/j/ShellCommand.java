@@ -35,6 +35,8 @@ public final class ShellCommand implements Runnable
     private final String cmdline;
     private final File workingDirectory;
     private final String input;
+    // A StringBuffer, not a StringBuilder: the stdout and stderr reader
+    // threads both append to this one, concurrently.
     private final StringBuffer output = new StringBuffer();
     private int exitValue = -1;
 

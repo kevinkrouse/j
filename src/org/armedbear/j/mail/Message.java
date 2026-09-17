@@ -20,12 +20,13 @@
 
 package org.armedbear.j.mail;
 
-import java.util.Vector;
+import java.util.ArrayList;
+import java.util.List;
 import org.armedbear.j.Headers;
 
 public final class Message extends MimePart
 {
-    private Vector<MimePart> messageParts;
+    private List<MimePart> messageParts;
 
     public Message(String raw)
     {
@@ -37,7 +38,7 @@ public final class Message extends MimePart
         super(raw, headers);
     }
 
-    public Vector<MimePart> getParts()
+    public List<MimePart> getParts()
     {
         return messageParts;
     }
@@ -56,10 +57,10 @@ public final class Message extends MimePart
     public void parse()
     {
         super.parse();
-        Vector<? extends MimePart> parts = super.getParts();
+        List<? extends MimePart> parts = super.getParts();
         if (parts == null || parts.size() == 0)
             return;
-        Vector<MimePart> v = new Vector<MimePart>();
+        List<MimePart> v = new ArrayList<MimePart>();
         addParts(v);
         messageParts = v;
     }

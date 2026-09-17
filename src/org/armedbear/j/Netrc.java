@@ -22,22 +22,23 @@ package org.armedbear.j;
 
 import java.io.InputStream;
 import java.io.IOException;
-import java.util.Vector;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.StringTokenizer;
 
 public final class Netrc
 {
-    private static Vector<Login> logins;
+    // Read from FTP/SSH/mail session threads so access is synchronized.
+    private static List<Login> logins;
     private static long lastModified;
 
-    public static Login getLogin(String host)
+    public static synchronized Login getLogin(String host)
     {
         if (host == null)
             return null;
         parseNetrc();
         if (logins == null)
             return null;
-        final int limit = logins.size();
         for (Login login : logins) {
             if (host.equals(login.host))
                 return login;
@@ -45,7 +46,7 @@ public final class Netrc
         return null;
     }
 
-    public static String getPassword(String host, String user)
+    public static synchronized String getPassword(String host, String user)
     {
         if (host == null)
             return null;
@@ -62,7 +63,6 @@ public final class Netrc
         return null;
     }
 
-    // Returns Vector of Login objects.
     private static void parseNetrc()
     {
         File file = File.getInstance(Directories.getUserHomeDirectory(), ".netrc");
@@ -91,7 +91,7 @@ public final class Netrc
             String host = null;
             String user = null;
             String password = null;
-            logins = new Vector<Login>();
+            logins = new ArrayList<Login>();
             while (st.hasMoreTokens()) {
                 String token = st.nextToken();
                 if (token.equals("machine")) {

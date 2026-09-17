@@ -532,7 +532,7 @@ public final class SidebarBufferTree extends SidebarTree implements Constants,
     private DefaultMutableTreeNode findNodeForObject(Buffer userObj)
     {
         if (rootNode != null) {
-            Enumeration enumeration = rootNode.breadthFirstEnumeration();
+            Enumeration<TreeNode> enumeration = rootNode.breadthFirstEnumeration();
             while (enumeration.hasMoreElements()) {
                 Object next = enumeration.nextElement();
                 if (next instanceof DefaultMutableTreeNode) {

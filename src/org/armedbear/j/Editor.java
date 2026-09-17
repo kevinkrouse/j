@@ -56,10 +56,13 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
-import java.util.Hashtable;
+import java.util.Map;
+import java.util.HashMap;
 import java.util.List;
-import java.util.Stack;
-import java.util.Vector;
+import java.util.ArrayDeque;
+import java.util.Deque;
+import java.util.ArrayList;
+import java.util.List;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.FocusManager;
@@ -172,7 +175,7 @@ public final class Editor extends JPanel implements Constants,
     private Selection selection;
     private boolean isColumnSelection;
 
-    Hashtable<SystemBuffer, View> views = new Hashtable<SystemBuffer, View>();
+    Map<SystemBuffer, View> views = new HashMap<SystemBuffer, View>();
 
     // BUG! This stuff should be factored somehow...
     private int currentCommand = COMMAND_NOTHING;
@@ -750,7 +753,7 @@ public final class Editor extends JPanel implements Constants,
         frame.setWindowHeight(this, n);
     }
 
-    static Vector<Frame> frames = new Vector<Frame>();
+    static List<Frame> frames = new ArrayList<Frame>();
 
     public static int indexOf(Frame frame)
     {
@@ -8240,10 +8243,12 @@ public final class Editor extends JPanel implements Constants,
         }
     }
 
-    // Position stack.
-    private static Stack<Marker> positionStack = new Stack<Marker>();
+    // Position stack, newest first, capped at POSITION_STACK_SIZE.
+    private static final int POSITION_STACK_SIZE = 30;
+    private static Deque<Marker> positionStack = new ArrayDeque<Marker>();
 
-    public static List<Marker> getPositionStack()
+    /** Newest position first. */
+    public static Deque<Marker> getPositionStack()
     {
         return positionStack;
     }
@@ -8256,7 +8261,7 @@ public final class Editor extends JPanel implements Constants,
 
     public void popPosition()
     {
-        if (positionStack.empty()) {
+        if (positionStack.isEmpty()) {
             status("Position stack is empty");
         } else {
             Marker m = positionStack.pop();
@@ -8267,8 +8272,11 @@ public final class Editor extends JPanel implements Constants,
 
     public static void pushMarker(Marker m)
     {
-        while (positionStack.size() >= 30)
-            positionStack.removeElementAt(0);
+        if (m == null)
+            return;
+        // Drop from the far end -- the oldest position -- to make room.
+        while (positionStack.size() >= POSITION_STACK_SIZE)
+            positionStack.removeLast();
         positionStack.push(m);
     }
 

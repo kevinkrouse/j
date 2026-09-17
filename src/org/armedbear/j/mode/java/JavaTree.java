@@ -53,6 +53,7 @@ import javax.swing.Icon;
 import javax.swing.JTree;
 import javax.swing.SwingUtilities;
 import javax.swing.tree.DefaultMutableTreeNode;
+import javax.swing.tree.TreeNode;
 import javax.swing.tree.DefaultTreeCellRenderer;
 import javax.swing.tree.DefaultTreeModel;
 import javax.swing.tree.TreeModel;
@@ -236,7 +237,7 @@ public final class JavaTree extends SidebarTree implements Constants,
         if (parent == null)
             return rootNode;
         final String parentName = parent.getName();
-        Enumeration nodes = rootNode.breadthFirstEnumeration();
+        Enumeration<TreeNode> nodes = rootNode.breadthFirstEnumeration();
         while (nodes.hasMoreElements()) {
             DefaultMutableTreeNode node =
                 (DefaultMutableTreeNode) nodes.nextElement();
@@ -335,7 +336,7 @@ public final class JavaTree extends SidebarTree implements Constants,
     private DefaultMutableTreeNode findNode(DefaultMutableTreeNode root,
         JavaTag tag)
     {
-        Enumeration nodes = root.depthFirstEnumeration();
+        Enumeration<TreeNode> nodes = root.depthFirstEnumeration();
         while (nodes.hasMoreElements()) {
             DefaultMutableTreeNode node =
                 (DefaultMutableTreeNode) nodes.nextElement();

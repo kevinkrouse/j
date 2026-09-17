@@ -51,6 +51,7 @@ import javax.swing.SwingUtilities;
 import javax.swing.event.TreeSelectionEvent;
 import javax.swing.event.TreeSelectionListener;
 import javax.swing.tree.DefaultMutableTreeNode;
+import javax.swing.tree.TreeNode;
 import javax.swing.tree.DefaultTreeCellRenderer;
 import javax.swing.tree.TreeModel;
 import javax.swing.tree.TreePath;
@@ -518,7 +519,7 @@ public final class XmlTree extends JTree implements Constants, NavigationCompone
         DefaultMutableTreeNode currentNode = null;
         int currentLineDelta = Integer.MAX_VALUE;
         int currentColumnDelta = Integer.MAX_VALUE;
-        Enumeration nodes = root.depthFirstEnumeration();
+        Enumeration<TreeNode> nodes = root.depthFirstEnumeration();
         while (nodes.hasMoreElements()) {
             DefaultMutableTreeNode node =
                 (DefaultMutableTreeNode) nodes.nextElement();

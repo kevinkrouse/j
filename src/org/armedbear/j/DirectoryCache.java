@@ -21,7 +21,8 @@
 package org.armedbear.j;
 
 import java.util.Iterator;
-import java.util.Vector;
+import java.util.ArrayList;
+import java.util.List;
 
 public final class DirectoryCache
 {
@@ -29,7 +30,7 @@ public final class DirectoryCache
 
     private static DirectoryCache cache;
 
-    private Vector<DirectoryCacheEntry> entries = new Vector<DirectoryCacheEntry>();
+    private List<DirectoryCacheEntry> entries = new ArrayList<DirectoryCacheEntry>();
 
     public static synchronized DirectoryCache getDirectoryCache()
     {

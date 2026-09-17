@@ -29,7 +29,8 @@ import java.io.RandomAccessFile;
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Vector;
+import java.util.ArrayList;
+import java.util.List;
 import javax.swing.SwingUtilities;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.BufferIterator;
@@ -208,7 +209,7 @@ public class LocalMailboxBuffer extends MailboxBuffer
                     Line line = editor.getDotLine();
                     if (!(line instanceof MailboxLine))
                         return;
-                    toBeDeleted = new Vector<MailboxEntry>();
+                    toBeDeleted = new ArrayList<MailboxEntry>();
                     toBeDeleted.add(((MailboxLine) line).getMailboxEntry());
                     advanceDot = true;
                 }
@@ -245,7 +246,7 @@ public class LocalMailboxBuffer extends MailboxBuffer
                     Line line = editor.getDotLine();
                     if (!(line instanceof MailboxLine))
                         return;
-                    toBeUndeleted = new Vector<MailboxEntry>();
+                    toBeUndeleted = new ArrayList<MailboxEntry>();
                     toBeUndeleted.add(((MailboxLine) line).getMailboxEntry());
                     if (getBooleanProperty(Property.UNDELETE_ADVANCE_DOT))
                         advanceDot = true;
@@ -282,7 +283,7 @@ public class LocalMailboxBuffer extends MailboxBuffer
                     Line line = editor.getDotLine();
                     if (!(line instanceof MailboxLine))
                         return;
-                    list = new Vector<MailboxEntry>();
+                    list = new ArrayList<MailboxEntry>();
                     list.add(((MailboxLine) line).getMailboxEntry());
                     advanceDot = true;
                 }
@@ -317,7 +318,7 @@ public class LocalMailboxBuffer extends MailboxBuffer
                     Line line = editor.getDotLine();
                     if (!(line instanceof MailboxLine))
                         return;
-                    list = new Vector<MailboxEntry>();
+                    list = new ArrayList<MailboxEntry>();
                     list.add(((MailboxLine) line).getMailboxEntry());
                     advanceDot = true;
                 }
@@ -556,7 +557,8 @@ public class LocalMailboxBuffer extends MailboxBuffer
                 }
                 if (purge) {
                     // Copy entries to new list, skipping deleted entries.
-                    Vector<MailboxEntry> v = new Vector<MailboxEntry>(entries.size(), 10);
+                    ArrayList<MailboxEntry> v =
+                        new ArrayList<MailboxEntry>(entries.size());
                     for (i = 0; i < entries.size(); i++) {
                         MailboxEntry entry = entries.get(i);
                         if (!entry.isDeleted())

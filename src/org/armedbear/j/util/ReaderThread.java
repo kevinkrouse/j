@@ -85,7 +85,7 @@ public class ReaderThread extends Thread
 
     private String read()
     {
-        StringBuffer sb = new StringBuffer();
+        StringBuilder sb = new StringBuilder();
         try {
             do {
                 int numChars = reader.read(buf, 0, buf.length); // Blocks.

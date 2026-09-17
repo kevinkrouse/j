@@ -35,7 +35,8 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.HashSet;
-import java.util.Stack;
+import java.util.ArrayList;
+import java.util.List;
 
 public final class CheckPath implements Constants
 {
@@ -46,7 +47,7 @@ public final class CheckPath implements Constants
     private String path;
     private File currentDirectory;
     private HashSet<File> checkedFiles = new HashSet<File>(256);
-    private Stack<File> stack = new Stack<File>();
+    private List<File> files = new ArrayList<File>();
     private int depthDisplayed;
 
     private CheckPath(Editor editor, boolean showAll)
@@ -131,7 +132,7 @@ public final class CheckPath implements Constants
                         sb.append(" -->\n");
                     }
                     // Recurse!
-                    stack.push(file);
+                    files.add(file);
                     int result = checkFile(name, depth+1);
                     if (showAll) {
                         if (result == NOT_FOUND)
@@ -141,9 +142,9 @@ public final class CheckPath implements Constants
                         if (sb.length() == 0 || sb.charAt(sb.length()-1) != '\n')
                             sb.append('\n');
                     } else if (result == NOT_FOUND) {
-                        while (depthDisplayed < stack.size()) {
+                        while (depthDisplayed < files.size()) {
                             sb.append(spaces(depthDisplayed));
-                            sb.append(getDisplayName(stack.get(depthDisplayed)));
+                            sb.append(getDisplayName(files.get(depthDisplayed)));
                             sb.append(" -->\n");
                             ++depthDisplayed;
                         }
@@ -151,7 +152,7 @@ public final class CheckPath implements Constants
                         sb.append(name);
                         sb.append("  NOT FOUND\n");
                     }
-                    stack.pop();
+                    files.remove(files.size() - 1);
                     ++count;
                 }
             }

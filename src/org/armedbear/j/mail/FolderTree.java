@@ -30,6 +30,7 @@ import java.awt.event.MouseListener;
 import java.util.Enumeration;
 import javax.swing.JTree;
 import javax.swing.tree.DefaultMutableTreeNode;
+import javax.swing.tree.TreeNode;
 import javax.swing.tree.DefaultTreeCellRenderer;
 import javax.swing.tree.TreePath;
 import javax.swing.tree.TreeSelectionModel;
@@ -84,7 +85,7 @@ public final class FolderTree extends JTree implements NavigationComponent,
             DefaultMutableTreeNode root =
                 (DefaultMutableTreeNode) getModel().getRoot();
             if (root != null) {
-                Enumeration nodes = root.depthFirstEnumeration();
+                Enumeration<TreeNode> nodes = root.depthFirstEnumeration();
                 while (nodes.hasMoreElements()) {
                     DefaultMutableTreeNode node =
                         (DefaultMutableTreeNode) nodes.nextElement();

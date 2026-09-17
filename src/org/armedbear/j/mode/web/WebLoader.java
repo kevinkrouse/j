@@ -42,23 +42,28 @@ import java.io.InputStreamReader;
 import java.io.PushbackReader;
 import java.io.Reader;
 import java.util.ArrayList;
-import java.util.Hashtable;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.List;
-import java.util.Stack;
+import java.util.ArrayDeque;
+import java.util.Deque;
+import java.util.LinkedList;
 
 public final class WebLoader implements WebConstants
 {
     private PushbackReader reader;
     private final StringBuilder textBuffer = new StringBuilder();
-    private final Stack<String> indentStack = new Stack<String>();
-    private final Stack<Table> tableStack = new Stack<Table>();
+    private final Deque<String> indentStack = new ArrayDeque<String>();
+    // A LinkedList, not an ArrayDeque: the first <table> pushes the null
+    // that means "no enclosing table", and ArrayDeque rejects nulls.
+    private final Deque<Table> tableStack = new LinkedList<Table>();
     private Table currentTable;
     private int sourceOffset;
     private int offset;
     private final int maxChars = 80;
     private LineSegmentList segments;
     private LineSequence lines;
-    private final Hashtable<String, Integer> refs = new Hashtable<String, Integer>();
+    private final Map<String, Integer> refs = new HashMap<String, Integer>();
     private int indentLevel;
     private File file;
 
@@ -75,7 +80,7 @@ public final class WebLoader implements WebConstants
         this.reader = new PushbackReader(new BufferedReader(reader));
     }
 
-    public final Hashtable<String, Integer> getRefs()
+    public final Map<String, Integer> getRefs()
     {
         return refs;
     }
@@ -383,7 +388,7 @@ public final class WebLoader implements WebConstants
         }
         if (tagName == "/blockquote") {
             newLine();
-            if (!indentStack.empty()) {
+            if (!indentStack.isEmpty()) {
                 String s = indentStack.pop();
                 --indentLevel;
                 if (!s.equals("blockquote"))
@@ -401,7 +406,7 @@ public final class WebLoader implements WebConstants
         if (tagName == "/dl") {
             newLine();
             // Handle unbalanced <dt> and/or <dd> tags.
-            while (!indentStack.empty()) {
+            while (!indentStack.isEmpty()) {
                 String s = indentStack.peek();
                 if (s.equals("dd")) {
                     indentStack.pop();
@@ -419,7 +424,7 @@ public final class WebLoader implements WebConstants
         // Definition.
         if (tagName == "dd") {
             flushLine();
-            if (!indentStack.empty()) {
+            if (!indentStack.isEmpty()) {
                 String s = indentStack.peek();
                 if (s.equals("dl"))
                     ;
@@ -437,7 +442,7 @@ public final class WebLoader implements WebConstants
         // Term to be defined.
         if (tagName == "dt") {
             flushLine();
-            if (!indentStack.empty()) {
+            if (!indentStack.isEmpty()) {
                 String s = indentStack.peek();
                 if (s.equals("dd")) {
                     indentStack.pop(); // <dt> terminating <dd> (javadoc)
@@ -480,7 +485,7 @@ public final class WebLoader implements WebConstants
         // Never omitted.
         if (tagName == "/ul") {
             newLine();
-            if (!indentStack.empty()) {
+            if (!indentStack.isEmpty()) {
                 indentStack.pop();
                 --indentLevel;
             }
@@ -510,7 +515,7 @@ public final class WebLoader implements WebConstants
         }
         if (tagName == "/table") {
             flushLine();
-            if (!tableStack.empty())
+            if (!tableStack.isEmpty())
                 currentTable = tableStack.pop();
             else
                 Log.error("**** /table: table stack imbalance source offset = " + sourceOffset);

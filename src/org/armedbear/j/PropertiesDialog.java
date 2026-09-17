@@ -31,7 +31,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
 import java.util.Set;
-import java.util.Vector;
+import java.util.ArrayList;
+import java.util.List;
 import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
@@ -258,11 +259,12 @@ public final class PropertiesDialog extends AbstractDialog implements Constants
                 addVerticalStrut();
 
                 // Line separator combo box.
-                Vector<String> v = new Vector<String>();
+                List<String> v = new ArrayList<String>();
                 v.add(TEXT_LF);
                 v.add(TEXT_CRLF);
                 v.add(TEXT_CR);
-                lineSeparatorComboBox = new JComboBox<String>(v);
+                lineSeparatorComboBox =
+                    new JComboBox<String>(v.toArray(new String[0]));
                 dim = lineSeparatorComboBox.getPreferredSize();
                 lineSeparatorComboBox.setMinimumSize(dim);
                 lineSeparatorComboBox.setMaximumSize(dim);

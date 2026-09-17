@@ -31,7 +31,8 @@ import java.awt.event.InputEvent;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.util.List;
-import java.util.Vector;
+import java.util.ArrayList;
+import java.util.List;
 import javax.swing.JList;
 import javax.swing.JScrollPane;
 import javax.swing.SwingUtilities;
@@ -56,8 +57,8 @@ public final class ThreadPanel implements ContextListener, MouseListener
     {
         this.jdb = jdb;
         this.dialog = dialog;
-        Vector<String> v = new Vector<String>();
-        list = new JList<String>(v);
+        List<String> v = new ArrayList<String>();
+        list = new JList<String>(v.toArray(new String[0]));
         scrollPane = new JScrollPane(list);
         jdb.addContextListener(this);
         list.addMouseListener(this);
@@ -70,7 +71,7 @@ public final class ThreadPanel implements ContextListener, MouseListener
 
     public void contextChanged()
     {
-        final Vector<String> v = new Vector<String>();
+        final List<String> v = new ArrayList<String>();
         int index = -1;
         VirtualMachine vm = jdb.getVM();
         if (vm != null) {
@@ -114,7 +115,7 @@ public final class ThreadPanel implements ContextListener, MouseListener
         Runnable r = new Runnable() {
             public void run()
             {
-                list.setListData((Vector)v);
+                list.setListData(v.toArray(new String[0]));
                 list.setSelectedIndex(finalIndex);
             }
         };

@@ -32,7 +32,6 @@ import java.util.regex.Pattern;
 import java.util.regex.Matcher;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Stack;
 
 public final class JavaContext implements Constants
 {
@@ -47,7 +46,7 @@ public final class JavaContext implements Constants
     private static final Pattern returnRE = Pattern.compile("^return[ \t]");
 
     private final Editor editor;
-    private final Stack<Scope> stack = new Stack<Scope>();
+    private final List<Scope> scopes = new ArrayList<Scope>();
 
     public JavaContext(Editor editor)
     {
@@ -59,7 +58,7 @@ public final class JavaContext implements Constants
         final List<LocalTag> tags = editor.getBuffer().getTags();
         if (tags != null) {
             Scope scope = new Scope(new Position(editor.getBuffer().getFirstLine(), 0));
-            stack.push(scope);
+            scopes.add(scope);
             // BUG! We should only consider the current top-level class (and
             // its inner classes if any), not all the tags in the file.
             final int size = tags.size();
@@ -75,13 +74,13 @@ public final class JavaContext implements Constants
                 char c = pos.getChar();
                 if (c == '(') {
                     Scope scope = new Scope(pos);
-                    stack.push(scope);
+                    scopes.add(scope);
                     scope.parseParameters();
                     continue;
                 }
                 if (c == '{') {
                     Scope scope = new Scope(pos);
-                    stack.push(scope);
+                    scopes.add(scope);
                     scope.parse(dot);
                     break;
                 }
@@ -104,8 +103,8 @@ public final class JavaContext implements Constants
                 return null;
             // It's a member of the current class.
             name = name.substring(index+1);
-            if (stack.size() > 0) {
-                Scope scope = stack.get(0);
+            if (scopes.size() > 0) {
+                Scope scope = scopes.get(0);
                 for (int j = 0; j < scope.list.size(); j++) {
                     JavaVariable var = scope.getVariable(j);
                     if (name.equals(var.getName()))
@@ -116,8 +115,8 @@ public final class JavaContext implements Constants
         }
         // It's a simple name. A local variable hides a class member with the
         // same name.
-        for (int i = stack.size()-1; i >= 0; i--) {
-            Scope scope = stack.get(i);
+        for (int i = scopes.size()-1; i >= 0; i--) {
+            Scope scope = scopes.get(i);
             for (int j = 0; j < scope.list.size(); j++) {
                 JavaVariable var = scope.getVariable(j);
                 if (name.equals(var.getName()))
@@ -186,10 +185,10 @@ public final class JavaContext implements Constants
                 }
                 if (c == '{') {
                     Scope scope = new Scope(pos);
-                    stack.push(scope);
+                    scopes.add(scope);
                     scope.parse(dot);
                 } else if (c == '}') {
-                    stack.pop();
+                    scopes.remove(scopes.size() - 1);
                     return;
                 } else {
                     final String text = pos.getLine().substring(pos.getOffset());
@@ -313,7 +312,7 @@ public final class JavaContext implements Constants
     // For debugging.
     private void dump()
     {
-        for (Scope s : stack)
+        for (Scope s : scopes)
             s.dump();
     }
 }

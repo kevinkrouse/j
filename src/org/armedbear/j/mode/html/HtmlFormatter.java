@@ -47,7 +47,7 @@ public final class HtmlFormatter extends Formatter implements Constants
     private static final int HTML_FORMAT_TAG_TABLE_DATA = HTML_FORMAT_FIRST + 7;
     private static final int HTML_FORMAT_SCRIPT         = HTML_FORMAT_FIRST + 8;
 
-    private StringBuffer sb = new StringBuffer();
+    private StringBuilder sb = new StringBuilder();
 
     private JavaFormatter javaFormatter;
 

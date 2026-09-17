@@ -26,7 +26,8 @@ import java.io.OutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketException;
-import java.util.Vector;
+import java.util.ArrayList;
+import java.util.List;
 import javax.swing.SwingUtilities;
 
 public class Server implements Runnable
@@ -68,13 +69,13 @@ public class Server implements Runnable
                 Socket sock = socket.accept(); // Blocks.
                 // Process request.
                 BufferedReader in = new BufferedReader(new InputStreamReader(sock.getInputStream()));
-                Vector<String> v = null;
+                List<String> v = null;
                 while (true) {
                     String s = in.readLine();
                     if (s == null)
                         break;
                     if (v == null)
-                        v = new Vector<String>();
+                        v = new ArrayList<String>();
                     v.add(s);
                 }
                 in.close();
@@ -92,10 +93,10 @@ public class Server implements Runnable
 
     class Messenger implements Runnable
     {
-        Vector<String> v = null;
+        List<String> v = null;
 
         // If this constructor is private, we run into jikes 1.15 bug #2256.
-        Messenger(Vector<String> v)
+        Messenger(List<String> v)
         {
             this.v = v;
         }

@@ -22,12 +22,14 @@ package org.armedbear.j;
 
 import java.lang.StringBuilder;
 
-import java.util.Vector;
+import java.util.ArrayList;
+import java.util.List;
 import java.net.URL;
 
 public final class Cookie
 {
-    private static Vector<Cookie> cookies;
+    // Shared from HHTP load threads as well as the event thread so access must be synchronized.
+    private static List<Cookie> cookies;
 
     private String name;
     private String value;
@@ -40,7 +42,7 @@ public final class Cookie
     {
     }
 
-    public static void setCookie(URL url, String s)
+    public static synchronized void setCookie(URL url, String s)
     {
         Cookie cookie = new Cookie();
         String remaining = s.trim();
@@ -73,7 +75,7 @@ public final class Cookie
     }
 
     // BUG! Cookies with more specific path mappings should be sent first.
-    public static String getCookie(URL url)
+    public static synchronized String getCookie(URL url)
     {
         if (cookies == null)
             return null;
@@ -97,7 +99,7 @@ public final class Cookie
         return sb.toString();
     }
 
-    public static void deleteCookies()
+    public static synchronized void deleteCookies()
     {
         cookies = null;
     }
@@ -117,7 +119,7 @@ public final class Cookie
                 }
             }
         } else
-            cookies = new Vector<Cookie>();
+            cookies = new ArrayList<Cookie>();
         cookies.add(cookie);
     }
 

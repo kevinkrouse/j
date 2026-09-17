@@ -57,14 +57,14 @@ import java.awt.Image;
 import java.awt.Rectangle;
 import java.awt.event.MouseEvent;
 import java.io.InputStream;
-import java.util.Hashtable;
+import java.util.Map;
 import javax.swing.SwingUtilities;
 
 public final class WebBuffer extends Buffer implements WebConstants
 {
     private String ref;
     private WebHistory history;
-    private Hashtable<String, Integer> refs;
+    private Map<String, Integer> refs;
     private String contentType;
     private String errorText;
 

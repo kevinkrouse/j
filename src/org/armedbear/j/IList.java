@@ -29,13 +29,14 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.HashSet;
-import java.util.Stack;
+import java.util.ArrayDeque;
+import java.util.Deque;
 import javax.swing.SwingUtilities;
 
 public final class IList implements BackgroundProcess, Constants
 {
     private final HashSet<File> searchedFiles = new HashSet<File>(256);
-    private final Stack<File> stack = new Stack<File>();
+    private final Deque<File> stack = new ArrayDeque<File>();
     private final Editor editor;
     private final Buffer sourceBuffer;
     private final Search search;

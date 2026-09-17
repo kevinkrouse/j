@@ -27,7 +27,8 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
-import java.util.Vector;
+import java.util.ArrayList;
+import java.util.List;
 import org.armedbear.j.Directories;
 import org.armedbear.j.File;
 import org.armedbear.j.Log;
@@ -41,11 +42,11 @@ public final class AddressBook
     private static File file;
     private static File backupFile;
 
-    private Vector<AddressBookEntry> entries;
+    private List<AddressBookEntry> entries;
 
     private AddressBook()
     {
-        entries = new Vector<AddressBookEntry>();
+        entries = new ArrayList<AddressBookEntry>();
     }
 
     public static AddressBook getGlobalAddressBook()
@@ -159,8 +160,8 @@ public final class AddressBook
         AddressBookEntry toBePromoted = new AddressBookEntry(personal, address);
         for (int i = entries.size()-1; i >= 0; i--) {
             if (toBePromoted.equals(getEntry(i))) {
-                entries.removeElementAt(i);
-                entries.insertElementAt(toBePromoted, 0);
+                entries.remove(i);
+                entries.add(0, toBePromoted);
                 return;
             }
         }

@@ -22,11 +22,12 @@ package org.armedbear.j.mode.web;
 
 import org.armedbear.j.File;
 
-import java.util.Vector;
+import java.util.ArrayList;
+import java.util.List;
 
 public final class WebHistory
 {
-    private Vector<WebHistoryEntry> v = new Vector<WebHistoryEntry>();
+    private List<WebHistoryEntry> v = new ArrayList<WebHistoryEntry>();
     private int index = -1;
 
     public WebHistory()
@@ -41,7 +42,7 @@ public final class WebHistory
     public void truncate()
     {
         if (index >= 0)
-            v.setSize(index);
+            v.subList(index, v.size()).clear();
     }
 
     public void append(File file, int offset, String contentType)

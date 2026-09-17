@@ -28,7 +28,8 @@ import java.awt.event.FocusListener;
 import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
-import java.util.Vector;
+import java.util.ArrayList;
+import java.util.List;
 import javax.swing.BoxLayout;
 import javax.swing.JDialog;
 import javax.swing.JPanel;
@@ -45,7 +46,7 @@ public class SaveFileDialog extends JDialog implements FocusListener, KeyListene
     protected History history;
 
     private final String prompt;
-    private Vector<String> completions;
+    private List<String> completions;
     private int index;
     private boolean completionsIgnoreCase;
     private boolean allowDirectory;
@@ -299,9 +300,9 @@ public class SaveFileDialog extends JDialog implements FocusListener, KeyListene
         return null;
     }
 
-    private Vector<String> getCompletions(String prefix)
+    private List<String> getCompletions(String prefix)
     {
-        Vector<String> v = new Vector<String>();
+        List<String> v = new ArrayList<String>();
         File currentDir = editor.getCurrentDirectory();
         File dir  = null;
         boolean isShortName = false;
