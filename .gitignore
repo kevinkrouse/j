@@ -6,7 +6,7 @@ dist
 *.abcl
 .cache
 Makefile
-abcl
+/abcl
 classes.stamp
 config.log
 config.status

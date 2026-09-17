@@ -20,6 +20,8 @@
 
 package org.armedbear.j;
 
+import org.armedbear.j.extension.Extensions;
+
 import java.awt.AWTEvent;
 import java.awt.Cursor;
 import java.awt.Image;
@@ -200,8 +202,7 @@ public final class Dispatcher implements Constants, KeyListener, MouseListener,
         editor.setLastCommand(currentCommand);
         editor.setCurrentCommand(COMMAND_NOTHING);
 
-        if (Editor.isLispInitialized())
-            LispAPI.eventHandled();
+        Extensions.hooks().eventHandled();
 
         SystemSelection.updateSystemSelection(editor);
 

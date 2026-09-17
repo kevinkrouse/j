@@ -25,7 +25,10 @@ import org.armedbear.j.BufferIterator;
 import org.armedbear.j.Constants;
 import org.armedbear.j.Editor;
 import org.armedbear.j.EditorIterator;
-import org.armedbear.j.mode.lisp.JLispBuffer;
+import org.armedbear.j.extension.EvalException;
+import org.armedbear.j.extension.EvalRequest;
+import org.armedbear.j.extension.EvalResult;
+import org.armedbear.j.extension.Extensions;
 import java.lang.StringBuilder;
 import org.armedbear.j.File;
 import org.armedbear.j.Log;
@@ -125,19 +128,17 @@ public final class CompilationBuffer extends CompilationErrorBuffer
     {
         long start = System.currentTimeMillis();
         if (expandedCommand.startsWith("(")) {
-            // Lisp.
-            StringBuilder sb = new StringBuilder();
-            sb.append("(with-output-to-string (s) ");
-            sb.append("(let ((*standard-output* s)) ");
-            sb.append(expandedCommand);
-            sb.append(" ))");
+            // A form: the client redirects the runtime's standard output for us,
+            // which is what the with-output-to-string wrapper used to do here.
             try {
-                org.armedbear.lisp.LispObject result =
-                    JLispBuffer.runLispCommand(sb.toString());
-                appendLater(result.getStringValue());
+                EvalResult result = Extensions.session().evalSync(
+                    EvalRequest.of(expandedCommand)
+                               .origin("compile")
+                               .captureOutput(true));
+                appendLater(result.display());
             }
-            catch (Throwable t) {
-                Log.debug(t);
+            catch (EvalException e) {
+                Log.debug(e);
             }
         } else {
             startProcess();

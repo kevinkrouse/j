@@ -35,7 +35,6 @@ import org.armedbear.j.mode.dir.DirectoryEntry;
 import java.lang.StringBuilder;
 import org.armedbear.j.util.FastStringReader;
 import org.armedbear.j.util.Utilities;
-import org.armedbear.lisp.Pathname;
 
 public class File implements Comparable<File>
 {
@@ -101,11 +100,6 @@ public class File implements Comparable<File>
         hostName = host;
         canonicalPath = path;
         this.protocol = protocol;
-    }
-
-    public static File getInstance(Pathname p)
-    {
-        return getInstance(p.getNamestring());
     }
 
     public static File getInstance(String name)

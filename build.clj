@@ -212,11 +212,12 @@
 ;; tests
 
 (defn- test-classes
-  "The class names of every test under test/src."
+  "The class names of every test under test/src. Only *Test, so that fixtures
+  and helpers can live beside the tests that use them."
   []
   (let [root (fs/path (b/resolve-path test-src-dir))]
     (when (fs/exists? root)
-      (->> (fs/glob root "**.java")
+      (->> (fs/glob root "**Test.java")
            (map #(-> (str (fs/relativize root %))
                      (str/replace #"\.java$" "")
                      (str/replace File/separator ".")))

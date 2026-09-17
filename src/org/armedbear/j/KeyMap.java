@@ -30,10 +30,8 @@ import java.util.List;
 import javax.swing.KeyStroke;
 
 import java.lang.StringBuilder;
+import org.armedbear.j.extension.Extensions;
 import org.armedbear.j.util.Utilities;
-import org.armedbear.lisp.Interpreter;
-import org.armedbear.lisp.JavaObject;
-import org.armedbear.lisp.LispObject;
 
 public final class KeyMap implements Constants
 {
@@ -50,21 +48,11 @@ public final class KeyMap implements Constants
     public static synchronized KeyMap getGlobalKeyMap()
     {
         if (globalKeyMap == null) {
-            if (Editor.isLispInitialized()) {
-                try {
-                    LispObject result =
-                        Interpreter.evaluate("(j:current-global-map)");
-                    if (result instanceof JavaObject) {
-                        Object obj = ((JavaObject)result).getObject();
-                        if (obj instanceof KeyMap) {
-                            globalKeyMap = (KeyMap) obj;
-                            return globalKeyMap;
-                        }
-                    }
-                }
-                catch (Throwable t) {
-                    Log.debug(t);
-                }
+            // An extension gets first say; init.lisp supplies one this way.
+            KeyMap supplied = Extensions.keyMaps().getGlobalKeyMap();
+            if (supplied != null) {
+                globalKeyMap = supplied;
+                return globalKeyMap;
             }
             String filename =
                 Editor.preferences().getStringProperty(Property.GLOBAL_KEY_MAP);

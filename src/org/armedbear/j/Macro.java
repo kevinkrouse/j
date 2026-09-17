@@ -22,8 +22,7 @@ package org.armedbear.j;
 
 import java.util.ArrayList;
 import javax.swing.undo.CompoundEdit;
-import org.armedbear.lisp.LispObject;
-import org.armedbear.lisp.LispThread;
+import org.armedbear.j.extension.ScriptFunction;
 
 public final class Macro implements Constants
 {
@@ -152,13 +151,8 @@ public final class Macro implements Constants
                 editor.setCurrentCommand(COMMAND_NOTHING);
                 if (object instanceof String) {
                     editor.executeCommand((String)object);
-                } else if (object instanceof LispObject) {
-                    try {
-                        LispThread.currentThread().execute((LispObject)object);
-                    }
-                    catch (Throwable t) {
-                        Log.error(t);
-                    }
+                } else if (object instanceof ScriptFunction) {
+                    ((ScriptFunction)object).invoke();
                 } else if (object instanceof Character) {
                     editor.insertNormalChar(((Character)object).charValue());
                 }

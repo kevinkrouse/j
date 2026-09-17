@@ -21,8 +21,9 @@
 package org.armedbear.j;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class CommandTable
 {
@@ -30,21 +31,38 @@ public class CommandTable
     // accommodate 450 entries without rehashing.
     private static final int INITIAL_CAPACITY = 600;
 
-    private static HashMap<String, Command> map;
+    // Concurrent because extensions register into it at startup while a lazy
+    // init() may be running on another thread.
+    private static Map<String, Command> map;
 
     public static final Command getCommand(String name)
     {
         if (name == null)
             return null;
-        if (map == null)
-            init();
+        init();
         return map.get(name.toLowerCase());
+    }
+
+    /**
+     * Register a command supplied by an extension.
+     *
+     * <p>The owning class is passed as a Class, not a name: core resolves
+     * command class names with Class.forName on its own loader, which cannot
+     * see anything in an extension's loader. The method must be public static,
+     * taking either no arguments or a single String.
+     */
+    public static void registerCommand(String name, Class<?> owner, String methodName)
+    {
+        if (name == null || owner == null || methodName == null)
+            throw new IllegalArgumentException("name, owner and method are all required");
+        init();
+        map.put(name.toLowerCase(), new Command(name, owner, methodName));
     }
 
     private static synchronized void init()
     {
         if (map == null) {
-            map = new HashMap<String, Command>(INITIAL_CAPACITY);
+            map = new ConcurrentHashMap<String, Command>(INITIAL_CAPACITY);
 
             // Commands implemented in Editor.java.
             addCommand("backspace");
@@ -509,7 +527,7 @@ public class CommandTable
             addCommand("clhs", "mode.lisp.LispMode", "hyperspec");
             addCommand("abcl", "mode.lisp.LispShellBuffer", "lisp");
 
-            if (Editor.isDebugEnabled() && map.size() > INITIAL_CAPACITY * 0.75) {
+            if (Editor.isDebugEnabled() && map.size() > INITIAL_CAPACITY * 0.9) {
                 Log.error("CommandTable.init need to increase initial capacity!");
                 Log.error("CommandTable.init size = " + map.size());
             }
@@ -537,6 +555,7 @@ public class CommandTable
 
     public static List<String> getCompletionsForPrefix(String prefix)
     {
+        init();
         String lower = prefix.toLowerCase();
         ArrayList<String> list = new ArrayList<String>();
         for (Command command : map.values()) {
@@ -548,6 +567,7 @@ public class CommandTable
 
     public static List<String> apropos(String s)
     {
+        init();
         String lower = s.toLowerCase();
         ArrayList<String> list = new ArrayList<String>();
         for (Command command : map.values()) {

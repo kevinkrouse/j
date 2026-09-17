@@ -81,18 +81,16 @@ import org.armedbear.j.mode.dir.DirectoryBuffer;
 import org.armedbear.j.mode.dir.DirectoryTree;
 import org.armedbear.j.mode.image.ImageBuffer;
 import org.armedbear.j.mode.java.JavaMode;
-import org.armedbear.j.mode.lisp.JLispBuffer;
+import org.armedbear.j.extension.EvalException;
+import org.armedbear.j.extension.EvalRequest;
+import org.armedbear.j.extension.EvalResult;
+import org.armedbear.j.extension.Extensions;
+import org.armedbear.j.extension.ScriptFunction;
 import org.armedbear.j.mode.list.ListOccurrencesInFilesBuffer;
 import org.armedbear.j.mode.perl.PerlMode;
 import java.lang.StringBuilder;
 import org.armedbear.j.util.Utilities;
 import org.armedbear.j.vcs.p4.P4;
-import org.armedbear.lisp.Condition;
-import org.armedbear.lisp.ControlTransfer;
-import org.armedbear.lisp.Interpreter;
-import org.armedbear.lisp.Lisp;
-import org.armedbear.lisp.LispObject;
-import org.armedbear.lisp.LispThread;
 import org.jdesktop.swingx.MultiSplitLayout;
 
 public final class Editor extends JPanel implements Constants,
@@ -316,6 +314,10 @@ public final class Editor extends JPanel implements Constants,
                     printDirectories = true;
                     continue;
                 }
+                if (arg.equals("--no-extensions")) {
+                    Extensions.setDisabled(true);
+                    continue;
+                }
                 if (arg.startsWith("--home")) {
                     String home = null;
                     if (arg.equals("--home")) {
@@ -411,6 +413,7 @@ public final class Editor extends JPanel implements Constants,
         Log.initialize(dumpEnv, dumpProps);
         Directories.moveUnsentMessagesToDraftsFolder();
         loadExtensions();
+        Extensions.load();
         if (quick == 0) {
             runStartupScript();
         }
@@ -495,6 +498,7 @@ public final class Editor extends JPanel implements Constants,
         System.out.println("  --home=directory");
         System.out.println("  --migrate-to-xdg");
         System.out.println("  --print-directories");
+        System.out.println("  --no-extensions");
     }
 
     private static final void version()
@@ -926,8 +930,7 @@ public final class Editor extends JPanel implements Constants,
                 currentEditor.repaintLocationBar();
             if (oldCurrentEditor != null)
                 oldCurrentEditor.repaintLocationBar();
-            if (isLispInitialized())
-                LispAPI.invokeBufferActivatedHook(currentEditor.getBuffer());
+            Extensions.hooks().bufferActivated(currentEditor.getBuffer());
         }
     }
 
@@ -2592,7 +2595,12 @@ public final class Editor extends JPanel implements Constants,
             // Method is not cached yet.
             className = command.getClassName();
             methodName = command.getMethodName();
-            if (className == null) {
+            Class<?> declaring = command.getDeclaringClass();
+            if (declaring != null) {
+                // Supplied by an extension: the class is already resolved, by
+                // a loader core cannot reach with Class.forName.
+                method = declaring.getMethod(methodName, parameterTypes);
+            } else if (className == null) {
                 // Special case. Command is implemented in org.armedbear.j.Editor.
                 method = Editor.class.getMethod(methodName, parameterTypes);
             } else {
@@ -2759,12 +2767,12 @@ public final class Editor extends JPanel implements Constants,
                     Log.error(t);
                 }
                 return true;
-            } else if (command instanceof LispObject) {
+            } else if (command instanceof ScriptFunction) {
                 requestedKeyMap = null;
                 currentEventSequence = null;
                 local = false;
                 try {
-                    LispThread.currentThread().execute(Lisp.coerceToFunction((LispObject)command));
+                    ((ScriptFunction)command).invoke();
                 }
                 catch (Throwable t) {
                     Log.error(t);
@@ -6252,11 +6260,9 @@ public final class Editor extends JPanel implements Constants,
 
         Sidebar.setUpdateFlagInAllFrames(SIDEBAR_ALL);
 
-        if (isLispInitialized()) {
-            if (firstTime)
-                LispAPI.invokeOpenFileHook(buffer);
-            LispAPI.invokeBufferActivatedHook(buffer);
-        }
+        if (firstTime)
+            Extensions.hooks().openFile(buffer);
+        Extensions.hooks().bufferActivated(buffer);
     }
 
     private void bufferPending()
@@ -6495,43 +6501,37 @@ public final class Editor extends JPanel implements Constants,
         executeCommand(input, false);
     }
 
+    private void showEvalError(String message)
+    {
+        if (message == null || message.length() == 0)
+            message = "Error";
+        else {
+            StringBuilder sb = new StringBuilder(message);
+            sb.setCharAt(0, Character.toUpperCase(sb.charAt(0)));
+            message = sb.toString();
+        }
+        MessageDialog.showMessageDialog(this, message, "Error");
+    }
+
     public void executeCommand(String input, final boolean interactive)
     {
         input = Utilities.trimLeading(input);
         if (input.length() == 0)
             return;
         if (input.charAt(0) == '(') {
-            // Lisp form.
+            // A form, for whatever language client is installed. Unwrapping the
+            // runtime's own condition types is the client's job; what arrives
+            // here is already a message fit to show.
             try {
-                String result = Interpreter.evaluate(input).printObject();
-                if (interactive)
-                    status(result);
+                EvalResult result = Extensions.session().evalSync(
+                    EvalRequest.of(input).origin("command-line"));
+                if (result.isError())
+                    showEvalError(result.getError());
+                else if (interactive)
+                    status(result.display());
             }
-            catch (Throwable t) {
-                String message = null;
-                if (t instanceof ControlTransfer) {
-                    try {
-                        LispObject obj = ((ControlTransfer)t).getCondition();
-                        if (obj instanceof Condition) {
-                            try {
-                                message = ((Condition)obj).getConditionReport();
-                            }
-                            catch (Throwable ignored) {
-                                // At least we tried.
-                            }
-                        }
-                    }
-                    catch (Throwable ignored) {}
-                }
-                if (message == null || message.length() == 0)
-                    message = t.getMessage();
-                if (message != null && message.length() > 0) {
-                    StringBuilder sb = new StringBuilder(message);
-                    sb.setCharAt(0, Character.toUpperCase(sb.charAt(0)));
-                    message = sb.toString();
-                } else
-                    message = String.valueOf(t);
-                MessageDialog.showMessageDialog(this, message, "Error");
+            catch (EvalException e) {
+                showEvalError(e.getMessage());
             }
             return;
         }
@@ -7413,7 +7413,7 @@ public final class Editor extends JPanel implements Constants,
         if (file != null && file.isFile()) {
             try {
                 long start = System.currentTimeMillis();
-                JLispBuffer.runStartupScript(file);
+                Extensions.session().loadFile(file);
                 long elapsed = System.currentTimeMillis() - start;
                 StringBuilder sb = new StringBuilder("loaded ");
                 sb.append(file.canonicalPath());
@@ -7429,43 +7429,58 @@ public final class Editor extends JPanel implements Constants,
         }
     }
 
+    /**
+     * @deprecated Evaluate through the extension SPI instead:
+     * {@code Extensions.session().eval(EvalRequest.of(code), handler)}.
+     */
+    @Deprecated
     public static void runLispCommand(String command)
     {
         try {
-            JLispBuffer.runLispCommand(command);
+            Extensions.session().evalSync(EvalRequest.of(command).origin("hook"));
         }
-        catch (Throwable t) {
-            Log.error(t);
+        catch (EvalException e) {
+            Log.error(e);
         }
     }
 
-    private static boolean isLispInitialized;
-
-    public static synchronized boolean isLispInitialized()
+    /**
+     * @deprecated Ask the session: {@code Extensions.session().isReady()}. Kept
+     * because it has been public since J 0.x.
+     */
+    @Deprecated
+    public static boolean isLispInitialized()
     {
-        return isLispInitialized;
+        return Extensions.session().isReady();
     }
 
-    public static synchronized void setLispInitialized(boolean b)
+    /**
+     * @deprecated Does nothing. A session tracks its own readiness now.
+     */
+    @Deprecated
+    public static void setLispInitialized(boolean b)
     {
-        isLispInitialized = b;
     }
 
+    /** @deprecated Use {@code Extensions.hooks().invoke(hook)}. */
+    @Deprecated
     public static void invokeHook(String hook)
     {
-        invokeHook(hook, null);
+        Extensions.hooks().invoke(hook);
     }
 
+    /**
+     * @deprecated Use {@code Extensions.hooks().invoke(hook, args)}. Note that
+     * the argument is now passed raw -- it used to be a pre-quoted fragment of
+     * Lisp -- because quoting belongs to whoever implements the hook.
+     */
+    @Deprecated
     public static void invokeHook(String hook, String args)
     {
-        StringBuilder sb = new StringBuilder("(invoke-hook '");
-        sb.append(hook);
-        if (args != null && args.length() > 0) {
-            sb.append(' ');
-            sb.append(args);
-        }
-        sb.append(')');
-        runLispCommand(sb.toString());
+        if (args == null || args.length() == 0)
+            Extensions.hooks().invoke(hook);
+        else
+            Extensions.hooks().invoke(hook, args);
     }
 
     public void mode()

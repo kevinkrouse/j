@@ -39,7 +39,6 @@ import org.armedbear.j.Formatter;
 import org.armedbear.j.KeyMap;
 import org.armedbear.j.Keywords;
 import org.armedbear.j.Line;
-import org.armedbear.j.Log;
 import org.armedbear.j.Menu;
 import org.armedbear.j.MessageDialog;
 import org.armedbear.j.Position;
@@ -51,9 +50,7 @@ import org.armedbear.j.SystemBuffer;
 import org.armedbear.j.Tagger;
 import org.armedbear.j.util.Utilities;
 import org.armedbear.j.mode.web.WebBuffer;
-import org.armedbear.lisp.Interpreter;
-import org.armedbear.lisp.Lisp;
-import org.armedbear.lisp.LispObject;
+import org.armedbear.j.extension.Extensions;
 
 public class LispMode extends AbstractMode implements Constants, Mode
 {
@@ -142,17 +139,7 @@ public class LispMode extends AbstractMode implements Constants, Mode
 
     private static final boolean isSlimeLoaded()
     {
-        if (Editor.isLispInitialized()) {
-            try {
-                LispObject result =
-                    Interpreter.evaluate("(ext:featurep :slime)");
-                return (result != Lisp.NIL) ? true : false;
-            }
-            catch (Throwable t) {
-                Log.debug(t);
-            }
-        }
-        return false;
+        return Extensions.session().hasFeature("slime");
     }
 
     public boolean isTaggable()

@@ -35,7 +35,7 @@ import java.lang.StringBuilder;
 import java.util.Set;
 
 import org.armedbear.j.util.Utilities;
-import org.armedbear.lisp.LispObject;
+import org.armedbear.j.extension.ScriptFunction;
 
 public final class Help
 {
@@ -256,10 +256,9 @@ public final class Help
                     sb.append("</a>");
                 } else
                     sb.append(commandString);
-            } else if (command instanceof LispObject) {
+            } else if (command instanceof ScriptFunction) {
                 try {
-                    String s = ((LispObject)command).printObject();
-                    sb.append(sanitize(s));
+                    sb.append(sanitize(((ScriptFunction)command).describe()));
                 }
                 catch (Throwable t) {
                     Log.debug(t);

@@ -38,7 +38,6 @@ import java.lang.StringBuilder;
 import org.armedbear.j.File;
 import org.armedbear.j.History;
 import org.armedbear.j.Line;
-import org.armedbear.j.LispAPI;
 import org.armedbear.j.LocalFile;
 import org.armedbear.j.Log;
 import org.armedbear.j.MessageDialog;
@@ -48,8 +47,9 @@ import org.armedbear.j.Property;
 import org.armedbear.j.Region;
 import org.armedbear.j.SimpleEdit;
 import org.armedbear.j.util.Utilities;
-import org.armedbear.lisp.Pathname;
-import org.armedbear.lisp.Site;
+import org.armedbear.j.extension.EvalException;
+import org.armedbear.j.extension.EvalRequest;
+import org.armedbear.j.extension.Extensions;
 
 public class LispShellBuffer extends ShellBuffer
 {
@@ -131,11 +131,11 @@ public class LispShellBuffer extends ShellBuffer
           }
         else
           {
-            Pathname lispHome = (Pathname)Site.getLispHome();
+            String lispHome = Extensions.languageClient().getHomeDirectory();
             if (lispHome == null)
               return null; // FIXME Error message?
-            File swankLoader = File.getInstance(
-                Pathname.mergePathnames(lispHome, Pathname.create("swank-loader.lisp")));
+            File swankLoader =
+              File.getInstance(File.getInstance(lispHome), "swank-loader.lisp");
             if (swankLoader == null)
               return null; // FIXME Error message?
             if (shellCommand.indexOf("sbcl") >= 0
@@ -213,8 +213,7 @@ public class LispShellBuffer extends ShellBuffer
           lisp.setExitCommand(",quit");
       }
     lisp.needsRenumbering(true);
-    if (Editor.isLispInitialized())
-      LispAPI.invokeLispShellStartupHook(lisp, shellCommand);
+    Extensions.hooks().invoke("lisp-shell-startup-hook", lisp, shellCommand);
     return lisp;
   }
 
@@ -756,7 +755,13 @@ public class LispShellBuffer extends ShellBuffer
 
   public static void slime()
   {
-    _slime(getDefaultLispShellCommand(), "slime abcl", false);
+    String shellCommand = getDefaultLispShellCommand();
+    if (shellCommand == null)
+      {
+        MessageDialog.showMessageDialog(NO_LISP_RUNTIME, "Error");
+        return;
+      }
+    _slime(shellCommand, "slime abcl", false);
   }
 
   public static void slime(String shellCommand)
@@ -786,7 +791,13 @@ public class LispShellBuffer extends ShellBuffer
 
   public static void lisp()
   {
-    lisp(getDefaultLispShellCommand(), "abcl", false, false);
+    String shellCommand = getDefaultLispShellCommand();
+    if (shellCommand == null)
+      {
+        MessageDialog.showMessageDialog(NO_LISP_RUNTIME, "Error");
+        return;
+      }
+    lisp(shellCommand, "abcl", false, false);
   }
 
   public static void lisp(String shellCommand)
@@ -832,16 +843,26 @@ public class LispShellBuffer extends ShellBuffer
       }
   }
 
+  /**
+   * Evaluate in the embedded runtime, if one is up. Slime lives in there, not
+   * in the subprocess this buffer is talking to.
+   */
+  private static void eval(String code) throws EvalException
+  {
+    if (Extensions.session().isReady())
+      Extensions.session().evalSync(EvalRequest.of(code).origin("slime"));
+  }
+
   private static void startSlime(final Buffer buffer)
   {
     Runnable r = () ->
       {
         try
           {
-            JLispBuffer.runLispCommand("(sys:load-system-file \"slime-loader.lisp\")");
-            JLispBuffer.runLispCommand("(setq slime::*repl-buffer-name* \"" +
-                                 buffer.getTitle() + "\")");
-            JLispBuffer.runLispCommand("(slime:slime)");
+            eval("(sys:load-system-file \"slime-loader.lisp\")");
+            eval("(setq slime::*repl-buffer-name* \"" +
+                 buffer.getTitle() + "\")");
+            eval("(slime:slime)");
             //LispThread.remove(Thread.currentThread());
           }
         catch (Throwable t)
@@ -858,8 +879,8 @@ public class LispShellBuffer extends ShellBuffer
       {
         try
           {
-            JLispBuffer.runLispCommand("(slime::disconnect)");
-            JLispBuffer.runLispCommand("(setq slime::*repl-buffer* nil)");
+            eval("(slime::disconnect)");
+            eval("(setq slime::*repl-buffer* nil)");
             //LispThread.remove(Thread.currentThread());
           }
         catch (Throwable t)
@@ -870,8 +891,20 @@ public class LispShellBuffer extends ShellBuffer
     new Thread(r, "killSlime").start();
   }
 
+  private static final String NO_LISP_RUNTIME =
+    "No Lisp runtime is installed. Install the abcl extension, or name a " +
+    "Lisp of your own with \"M-x lisp <command>\".";
+
+  /**
+   * The command line that starts a Lisp in a fresh JVM, or null when nothing
+   * can say where one is. j.jar no longer names abcl.jar on its manifest
+   * Class-Path, so the path has to come from the installed language client.
+   */
   private static String getDefaultLispShellCommand()
   {
+    String runtimeClassPath = Extensions.languageClient().getRuntimeClassPath();
+    if (runtimeClassPath == null)
+      return null;
     File java = null;
     File javaHome = File.getInstance(System.getProperty("java.home"));
     if (javaHome != null && javaHome.isDirectory())
@@ -908,7 +941,7 @@ public class LispShellBuffer extends ShellBuffer
         sb.append(" -Xmx256M");
         if (Platform.isPlatformUnix())
           {
-            Pathname lispHome = (Pathname)org.armedbear.lisp.Site.getLispHome();
+            String lispHome = Extensions.languageClient().getHomeDirectory();
             if (lispHome != null)
               {
                 sb.append(" -Xrs -Djava.library.path=");
@@ -922,6 +955,8 @@ public class LispShellBuffer extends ShellBuffer
     sb.append(" -cp ");
     sb.append('"');
     sb.append(classPath);
+    sb.append(LocalFile.getPathSeparatorChar());
+    sb.append(runtimeClassPath);
     sb.append('"');
     sb.append(" org.armedbear.lisp.Main");
     return sb.toString();

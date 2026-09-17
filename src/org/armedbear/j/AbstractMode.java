@@ -30,10 +30,8 @@ import javax.swing.JPopupMenu;
 import org.armedbear.j.mode.dir.DirectoryBuffer;
 import java.lang.StringBuilder;
 import org.armedbear.j.mode.text.PlainTextFormatter;
+import org.armedbear.j.extension.Extensions;
 import org.armedbear.j.util.Utilities;
-import org.armedbear.lisp.Interpreter;
-import org.armedbear.lisp.JavaObject;
-import org.armedbear.lisp.LispObject;
 
 public abstract class AbstractMode implements Constants, Mode
 {
@@ -51,11 +49,9 @@ public abstract class AbstractMode implements Constants, Mode
     {
         this.id = id;
         this.displayName = displayName;
-        if (Editor.isLispInitialized()) {
-            String hook =
-                displayName.toLowerCase().replace(' ', '-') + "-mode-hook";
-            Editor.invokeHook(hook);
-        }
+        // The hook name -- "java-mode-hook" and the like -- is the extension's
+        // business; core just says which mode was created.
+        Extensions.hooks().modeCreated(displayName);
     }
 
     public final int getId()
@@ -87,27 +83,10 @@ public abstract class AbstractMode implements Constants, Mode
     public synchronized final KeyMap getKeyMap()
     {
         if (keyMap == null) {
-            if (Editor.isLispInitialized()) {
-                String functionName =
-                    displayName.toLowerCase().replace(' ', '-').concat("-mode-map");
-                StringBuilder sb = new StringBuilder("(ignore-errors (");
-                sb.append("j::");
-                sb.append(functionName);
-                sb.append("))");
-                try {
-                    LispObject result =
-                        Interpreter.evaluate(sb.toString());
-                    if (result instanceof JavaObject) {
-                        Object obj = ((JavaObject)result).getObject();
-                        if (obj instanceof KeyMap) {
-                            keyMap = (KeyMap) obj;
-                            return keyMap;
-                        }
-                    }
-                }
-                catch (Throwable t) {
-                    Log.debug(t);
-                }
+            KeyMap supplied = Extensions.keyMaps().getKeyMapForMode(displayName);
+            if (supplied != null) {
+                keyMap = supplied;
+                return keyMap;
             }
             if (!loadKeyMapForMode()) {
                 keyMap = new KeyMap();
@@ -328,7 +307,10 @@ public abstract class AbstractMode implements Constants, Mode
     public void populateLispMenu(Editor editor, Menu menu)
     {
         menu.add(editor, "Run Lisp as Separate Process", 'L', "lisp");
-        menu.add(editor, "Run Embedded Lisp", 'E', "jlisp");
+        // The embedded REPL comes from an extension; grey it out when none is
+        // installed rather than offering a command that cannot run.
+        menu.add(editor, "Run Embedded Lisp", 'E', "jlisp",
+                 CommandTable.getCommand("jlisp") != null);
     }
 
     private static void populateHelpMenu(Editor editor, Menu menu)

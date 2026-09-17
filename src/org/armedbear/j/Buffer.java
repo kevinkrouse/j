@@ -20,6 +20,7 @@
 
 package org.armedbear.j;
 
+import org.armedbear.j.extension.Extensions;
 import org.armedbear.j.mode.dir.DirectoryBuffer;
 import org.armedbear.j.mode.image.ImageBuffer;
 import org.armedbear.j.mode.image.ImageLine;
@@ -1373,8 +1374,8 @@ public class Buffer extends SystemBuffer
             if (file instanceof SshFile)
                 succeeded = saveSsh((SshFile)file);
         }
-        if (succeeded && Editor.isLispInitialized())
-            LispAPI.invokeAfterSaveHook(this);
+        if (succeeded)
+            Extensions.hooks().afterSave(this);
         return succeeded;
     }
 

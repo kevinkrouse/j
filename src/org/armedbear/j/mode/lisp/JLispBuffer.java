@@ -75,6 +75,19 @@ public final class JLispBuffer extends LispShellBuffer
         return true;
     }
 
+    // The interpreter is a process-wide singleton, so this is static. It used
+    // to live on Editor as isLispInitialized; that is now the session's business
+    // and this class keeps its own.
+    private static boolean interpreterInitialized;
+
+    private static synchronized void initializeInterpreter()
+    {
+        if (!interpreterInitialized) {
+            Interpreter.initializeJLisp();
+            interpreterInitialized = true;
+        }
+    }
+
     protected void startProcess()
     {
         thread = new Thread("JLispBuffer interpreter") {
@@ -83,7 +96,7 @@ public final class JLispBuffer extends LispShellBuffer
                 try {
                     startServer();
                     if (interpreter != null) {
-                        Editor.setLispInitialized(true);
+                        interpreterInitialized = true;
                         interpreter.run();
                     }
                 }
@@ -213,10 +226,7 @@ public final class JLispBuffer extends LispShellBuffer
 
     public static void runStartupScript(File file)
     {
-        if (!Editor.isLispInitialized()) {
-            Interpreter.initializeJLisp();
-            Editor.setLispInitialized(true);
-        }
+        initializeInterpreter();
         StringBuilder sb = new StringBuilder("(load \"");
         sb.append(file.shellEscaped());
         sb.append("\")");
@@ -225,10 +235,7 @@ public final class JLispBuffer extends LispShellBuffer
 
     public static LispObject runLispCommand(String command)
     {
-        if (!Editor.isLispInitialized()) {
-            Interpreter.initializeJLisp();
-            Editor.setLispInitialized(true);
-        }
+        initializeInterpreter();
         return Interpreter.evaluate(command);
     }
 }

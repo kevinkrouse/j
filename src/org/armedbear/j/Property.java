@@ -290,6 +290,9 @@ public final class Property implements Comparable<Property>, Constants
         createProperty("eom");
     public static final Property EXTENSION =
         createProperty("extension");
+    // Comma-separated extension names not to load, e.g. "abcl,mail".
+    public static final Property DISABLED_EXTENSIONS =
+        createProperty("disabledExtensions");
     public static final Property FCC =
         createProperty("fcc");
     public static final Property FILES =

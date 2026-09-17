@@ -20,6 +20,7 @@
 
 package org.armedbear.j;
 
+import org.armedbear.j.extension.Extensions;
 import org.armedbear.j.util.Utilities;
 import java.awt.Component;
 import java.awt.event.KeyEvent;
@@ -38,12 +39,7 @@ public final class CustomFocusManager extends DefaultFocusManager
                     km = new KeyMapping(keyCode, Utilities.keyModifiers(e), null);
                 else
                     km = new KeyMapping(e.getKeyChar(), null);
-                String keyText = km.toString();
-                // Escape the escape character!
-                if (keyText.equals("\\"))
-                    keyText = "\\\\";
-                Editor.invokeHook("key-pressed-hook",
-                                  "\"" + keyText + "\"");
+                Extensions.hooks().invoke("key-pressed-hook", km.toString());
             }
         }
         super.processKeyEvent(focusedComponent, e);

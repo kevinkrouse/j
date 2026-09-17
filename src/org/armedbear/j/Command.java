@@ -30,11 +30,25 @@ public final class Command
     private String className;
     private Method method;
 
+    // Null for build-in commands or set when the command came from an extension.
+    private final Class<?> declaringClass;
+
     public Command(String name, String className, String methodName)
     {
         this.name = name;
         this.className = className;
         this.methodName = methodName;
+        this.declaringClass = null;
+        checkExists();
+    }
+
+    /** For commands supplied by an extension. */
+    public Command(String name, Class<?> declaringClass, String methodName)
+    {
+        this.name = name;
+        this.className = declaringClass.getName();
+        this.methodName = methodName;
+        this.declaringClass = declaringClass;
         checkExists();
     }
 
@@ -45,15 +59,17 @@ public final class Command
         this.name = name;
         this.className = Editor.class.getSimpleName();
         this.methodName = name;
+        this.declaringClass = null;
         checkExists();
     }
 
     private void checkExists()
     {
         if (Editor.isDebugEnabled()) {
-            Class<?> clazz = null;
+            Class<?> clazz = declaringClass;
             try {
-                clazz = Class.forName("org.armedbear.j." + className);
+                if (clazz == null)
+                    clazz = Class.forName("org.armedbear.j." + className);
                 clazz.getMethod(methodName);
             }
             catch (ClassNotFoundException e) {
@@ -81,6 +97,11 @@ public final class Command
     public final String getClassName()
     {
         return className;
+    }
+
+    public final Class<?> getDeclaringClass()
+    {
+        return declaringClass;
     }
 
     public final String getMethodName()
