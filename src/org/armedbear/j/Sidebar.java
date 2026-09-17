@@ -184,6 +184,10 @@ public final class Sidebar extends JComponent implements Constants
         final Editor editor = getEditor();
         bottomComponent = editor.getMode().getSidebarComponent(editor);
         if (bottomComponent != null) {
+            // The mode caches this component on the View, so it can predate a
+            // uiScale change and still be carrying the old font and row
+            // heights in its renderer.
+            UIScale.refresh((JComponent) bottomComponent);
             JScrollPane scrollPane = new JScrollPane((JComponent)bottomComponent);
             if (bottomComponent instanceof SidebarList)
                 scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);

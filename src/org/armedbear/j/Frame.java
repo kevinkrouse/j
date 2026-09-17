@@ -338,6 +338,8 @@ public final class Frame extends JFrame implements Constants, ComponentListener,
             Editor.getSessionProperties().getSidebarWidth(this);
         splitPane.setDividerLocation(dividerLocation);
         splitPane.setBorder(null);
+        // This layout is in the scale that is in force now.
+        Editor.getSessionProperties().recordSidebarScale(this);
         return splitPane;
     }
 

@@ -28,6 +28,7 @@ import java.util.regex.Matcher;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Graphics;
+import java.awt.Image;
 import java.awt.event.KeyEvent;
 import java.awt.image.BufferedImage;
 import java.io.BufferedInputStream;
@@ -41,6 +42,7 @@ import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Properties;
 import java.util.StringTokenizer;
@@ -70,6 +72,7 @@ import org.armedbear.j.Path;
 import org.armedbear.j.Platform;
 import org.armedbear.j.Position;
 import org.armedbear.j.Property;
+import org.armedbear.j.UIScale;
 import org.armedbear.j.mode.java.JavaMode;
 import org.xml.sax.XMLReader;
 import org.xml.sax.helpers.XMLReaderFactory;
@@ -1396,15 +1399,46 @@ public final class Utilities implements Constants
         }
     }
 
-    public static ImageIcon getIconFromFile(String iconFile)
+    // Cache of scaled for the display
+    private static final HashMap<String, ImageIcon> iconCache =
+        new HashMap<String, ImageIcon>();
+
+    public static synchronized ImageIcon getIconFromFile(String iconFile)
     {
+        if (iconCache.containsKey(iconFile))
+            return iconCache.get(iconFile);
         String path = "images/".concat(iconFile);
         URL url = Editor.class.getResource(path);
         if (url == null) {
             Log.warn("failed to get icon: " + iconFile);
             return null;
         }
-        return new ImageIcon(url);
+        ImageIcon icon = scaleIcon(new ImageIcon(url));
+        iconCache.put(iconFile, icon);
+        return icon;
+    }
+
+    // Called when uiScale changes
+    public static synchronized void clearIconCache()
+    {
+        iconCache.clear();
+    }
+
+    // j's icons are authored at 16 and 24 pixels, for a 96 dpi screen.
+    private static ImageIcon scaleIcon(ImageIcon icon)
+    {
+        final double scale = UIScale.getScale();
+        if (icon == null || scale == 1.0)
+            return icon;
+        final int w = icon.getIconWidth();
+        final int h = icon.getIconHeight();
+        if (w <= 0 || h <= 0)
+            return icon;
+        Image scaled =
+            icon.getImage().getScaledInstance((int) Math.round(w * scale),
+                                              (int) Math.round(h * scale),
+                                              Image.SCALE_SMOOTH);
+        return new ImageIcon(scaled);
     }
 
     public static BufferedImage getImageFromFile(String iconFile)

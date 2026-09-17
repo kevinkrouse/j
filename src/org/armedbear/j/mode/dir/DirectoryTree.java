@@ -365,6 +365,11 @@ public final class DirectoryTree extends SidebarTree implements NavigationCompon
             editor = tree.getEditor();
             oldBackgroundSelectionColor = getBackgroundSelectionColor();
 
+        }
+
+        public void updateUI()
+        {
+            super.updateUI();
             setOpenIcon(Utilities.getIconFromFile("dir_open.png"));
             setClosedIcon(Utilities.getIconFromFile("dir_close.png"));
             setLeafIcon(Utilities.getIconFromFile("dir_close.png"));

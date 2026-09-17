@@ -27,6 +27,7 @@ import java.awt.Color;
 import java.awt.Font;
 import java.awt.FontMetrics;
 import java.awt.Graphics2D;
+import java.awt.GraphicsConfiguration;
 import java.awt.Graphics;
 import java.awt.Image;
 import java.awt.Point;
@@ -39,7 +40,10 @@ import java.awt.event.FocusEvent;
 import java.awt.event.FocusListener;
 import java.awt.event.MouseEvent;
 import java.awt.font.GlyphVector;
+import java.awt.geom.AffineTransform;
+import java.awt.image.BufferedImage;
 import java.util.HashMap;
+import java.util.Map;
 import javax.swing.JComponent;
 import javax.swing.SwingUtilities;
 import javax.swing.Timer;
@@ -64,6 +68,7 @@ public final class Display extends JComponent implements Constants,
     private static int minCharWidth;
 
     private static boolean antialias;
+    private static Object desktopAntialiasingHint;
     private static boolean underlineBold;
     private static boolean emulateBold;
 
@@ -123,8 +128,11 @@ public final class Display extends JComponent implements Constants,
 
     public static void initializeStaticValues()
     {
+        // Preferences may have been reloaded, and uiScale is one of them.
+        UIScale.reset();
+
         final String fontName = preferences.getStringProperty(Property.FONT_NAME);
-        final int fontSize = preferences.getIntegerProperty(Property.FONT_SIZE);
+        final int fontSize = UIScale.scaledProperty(preferences, Property.FONT_SIZE);
 
         plainFont = new Font(fontName, Font.PLAIN, fontSize);
         boldFont = new Font(fontName, Font.BOLD, fontSize);
@@ -175,13 +183,14 @@ public final class Display extends JComponent implements Constants,
         charHeight = charAscent + charDescent + charLeading;
 
         antialias = preferences.getBooleanProperty(Property.ANTIALIAS);
+        desktopAntialiasingHint = getDesktopAntialiasingHint();
         underlineBold = preferences.getBooleanProperty(Property.UNDERLINE_BOLD);
         emulateBold = preferences.getBooleanProperty(Property.EMULATE_BOLD);
 
         String gutterFontName = preferences.getStringProperty(Property.GUTTER_FONT_NAME);
         if (gutterFontName == null)
             gutterFontName = fontName;
-        int gutterFontSize = preferences.getIntegerProperty(Property.GUTTER_FONT_SIZE);
+        int gutterFontSize = UIScale.scaledProperty(preferences, Property.GUTTER_FONT_SIZE);
         if (gutterFontSize == 0)
             gutterFontSize = fontSize;
         gutterFont = new Font(gutterFontName, Font.PLAIN, gutterFontSize);
@@ -190,7 +199,7 @@ public final class Display extends JComponent implements Constants,
         gutterCharWidth = fm.charWidth('0');
 
         changeMarkWidth =
-            preferences.getIntegerProperty(Property.CHANGE_MARK_WIDTH);
+            UIScale.scaledProperty(preferences, Property.CHANGE_MARK_WIDTH);
     }
 
     public synchronized void initialize()
@@ -716,26 +725,54 @@ public final class Display extends JComponent implements Constants,
     private Image paintLineImage;
     private int paintLineImageWidth;
     private int paintLineImageHeight;
+    private double paintLineImageScale;
     private Graphics2D paintLineGraphics;
+
+    // How many device pixels the display gets per logical pixel. 1.0 unless
+    // the JDK is scaling the UI for a high resolution display.
+    private double getDeviceScale()
+    {
+        GraphicsConfiguration gc = getGraphicsConfiguration();
+        if (gc == null)
+            return 1.0;
+        AffineTransform t = gc.getDefaultTransform();
+        if (t == null)
+            return 1.0;
+        return Math.max(t.getScaleX(), t.getScaleY());
+    }
 
     private final void providePaintLineImage(int width, int height)
     {
+        final double deviceScale = getDeviceScale();
+
         if (paintLineImage != null &&
             paintLineImageWidth == width &&
-            paintLineImageHeight == height)
+            paintLineImageHeight == height &&
+            paintLineImageScale == deviceScale)
             return;
 
         // Otherwise...
-        paintLineImage = createImage(width, height);
+        // Allocate the buffer in device pixels rather than logical ones. A
+        // logical sized buffer is magnified on the way to a high resolution
+        // screen, which would blur every line drawn through here -- and since
+        // only the incremental repaints use this buffer, the text under the
+        // caret would look softer than the rest of the screen. Scaling the
+        // buffer's Graphics by the same factor lets all the drawing code below
+        // go on working in logical coordinates.
+        final int deviceWidth = (int) Math.ceil(width * deviceScale);
+        final int deviceHeight = (int) Math.ceil(height * deviceScale);
+
+        paintLineImage =
+            new BufferedImage(Math.max(deviceWidth, 1), Math.max(deviceHeight, 1),
+                              BufferedImage.TYPE_INT_RGB);
         paintLineImageWidth = width;
         paintLineImageHeight = height;
+        paintLineImageScale = deviceScale;
         paintLineGraphics = (Graphics2D) paintLineImage.getGraphics();
+        if (deviceScale != 1.0)
+            paintLineGraphics.scale(deviceScale, deviceScale);
 
-        if (antialias) {
-            paintLineGraphics.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING,
-                                               //RenderingHints.VALUE_TEXT_ANTIALIAS_LCD_HRGB);
-                                               RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
-        }
+        setRenderingHints(paintLineGraphics);
     }
 
     private final void paintLine(Line line, Graphics2D g2d, int y)
@@ -782,7 +819,8 @@ public final class Display extends JComponent implements Constants,
         drawText(paintLineGraphics, textArray, totalChars, formatArray, 0);
         changedLines.remove(line);
 
-        g.drawImage(paintLineImage, 0, y, null);
+        g.drawImage(paintLineImage, 0, y,
+                    paintLineImageWidth, paintLineImageHeight, null);
     }
 
     private void paintImageLine(ImageLine imageLine, Graphics g, int y)
@@ -1030,11 +1068,7 @@ public final class Display extends JComponent implements Constants,
     {
         initializePaint();
         Graphics2D g2d = (Graphics2D) g;
-        if (antialias) {
-            g2d.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING,
-                                 //RenderingHints.VALUE_TEXT_ANTIALIAS_LCD_HRGB);                                
-                                 RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
-        }
+        setRenderingHints(g2d);
         final Rectangle clipBounds = g2d.getClipBounds();
         final int displayWidth = getWidth();
         final int maxCols = getMaxCols();
@@ -1994,14 +2028,59 @@ public final class Display extends JComponent implements Constants,
         }
     }
 
+    private static Object getDesktopAntialiasingHint()
+    {
+        try {
+            Object hints = Toolkit.getDefaultToolkit()
+                .getDesktopProperty("awt.font.desktophints");
+            if (hints instanceof Map) {
+                Object value =
+                    ((Map) hints).get(RenderingHints.KEY_TEXT_ANTIALIASING);
+                // A desktop with antialiasing switched off still leaves j's
+                // own antialias preference in charge, so ignore OFF here.
+                if (value != null &&
+                    value != RenderingHints.VALUE_TEXT_ANTIALIAS_OFF &&
+                    value != RenderingHints.VALUE_TEXT_ANTIALIAS_DEFAULT)
+                    return value;
+            }
+        }
+        catch (Throwable t) {
+            Log.error(t);
+        }
+        return null;
+    }
+
     public static void setRenderingHints(Graphics g)
     {
-        if (antialias) {
-            Graphics2D g2d = (Graphics2D) g;
-            g2d.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING,
-                                 //RenderingHints.VALUE_TEXT_ANTIALIAS_LCD_HRGB);                                
-                                 RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
-        }
+        setRenderingHints(g, false);
+    }
+
+    /**
+     * Applies j's text rendering settings to a Graphics.
+     *
+     * <p>fractionalMetrics must stay false for the editor's own text: charWidth
+     * and all the column arithmetic built on it are whole pixels, so fractional
+     * advances would drift the glyphs away from the caret.
+     *
+     * <p>It should be true for a component Swing lays out itself, such as a
+     * text field. Rounding every glyph advance to a whole pixel visibly ragged-
+     * ens text whose natural advance isn't one -- the logical Monospaced font
+     * advances 13.245 pixels at 22 point but 13 with integer metrics, and a
+     * quarter pixel per character accumulates into uneven gaps along a path.
+     */
+    public static void setRenderingHints(Graphics g, boolean fractionalMetrics)
+    {
+        if (!antialias)
+            return;
+        Graphics2D g2d = (Graphics2D) g;
+        Object hint = desktopAntialiasingHint;
+        g2d.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING,
+                             hint != null ? hint
+                                          : RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+        g2d.setRenderingHint(RenderingHints.KEY_FRACTIONALMETRICS,
+                             fractionalMetrics
+                                 ? RenderingHints.VALUE_FRACTIONALMETRICS_ON
+                                 : RenderingHints.VALUE_FRACTIONALMETRICS_OFF);
     }
 
     public String getToolTipText(MouseEvent e)

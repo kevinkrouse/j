@@ -48,10 +48,17 @@ public final class Preferences
             editor.activate(buf);
     }
 
-    public synchronized void reload()
+    public void reload()
+    {
+        reloadSynchronized();
+        // Deliberately not inside the lock: UIScale takes its own lock
+        UIScale.reset();
+        firePreferencesChanged();
+    }
+
+    private synchronized void reloadSynchronized()
     {
         reloadInternal();
-        firePreferencesChanged();
     }
 
     private void reloadInternal()
@@ -251,6 +258,14 @@ public final class Preferences
                 return false;
         }
         return defaultValue;
+    }
+
+    // Returns true if this property has been set explicitly, as opposed to
+    // falling back to its built-in default. Lets a caller tell "the user asked
+    // for 12" apart from "nobody said, so 12".
+    public synchronized boolean isPropertySet(Property property)
+    {
+        return getProperty(property.key()) != null;
     }
 
     public synchronized int getIntegerProperty(Property property)

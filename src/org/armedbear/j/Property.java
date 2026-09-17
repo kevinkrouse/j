@@ -88,7 +88,7 @@ public final class Property implements Comparable, Constants
 
     // Boolean properties.
     public static final Property ANTIALIAS =
-        createProperty("antialias", false);
+        createProperty("antialias", true);
     public static final Property ATTRIBUTES_REQUIRE_QUOTES =
         createProperty("attributesRequireQuotes", true);
     public static final Property AUTOSAVE_NAMED_SESSIONS =
@@ -259,6 +259,11 @@ public final class Property implements Comparable, Constants
         createProperty("sshPromptPattern", DEFAULT_SHELL_PROMPT_PATTERN);
     public static final Property TELNET_PROMPT_PATTERN =
         createProperty("telnetPromptPattern", DEFAULT_SHELL_PROMPT_PATTERN);
+    // Scale factor for j's built-in sizes on a high resolution display.
+    // A fractional value is allowed, so this is stored as a string. Unset or
+    // 0 means detect it from the display; see UIScale.
+    public static final Property UI_SCALE =
+        createProperty("uiScale", "0");
     public static final Property TEXT_FIELD_FONT_NAME =
         createProperty("textFieldFontName", "Monospaced");
 

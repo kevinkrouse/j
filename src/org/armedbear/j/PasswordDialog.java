@@ -109,10 +109,10 @@ public final class PasswordDialog extends JDialog implements FocusListener,
                 preferences.getStringProperty(Property.TEXT_FIELD_FONT_NAME);
             if (fontName != null) {
                 int fontSize =
-                    preferences.getIntegerProperty(Property.TEXT_FIELD_FONT_SIZE);
+                    UIScale.scaledProperty(preferences, Property.TEXT_FIELD_FONT_SIZE);
                 if (fontSize == 0)
                     fontSize =
-                    preferences.getIntegerProperty(Property.DIALOG_FONT_SIZE);
+                    UIScale.scaledProperty(preferences, Property.DIALOG_FONT_SIZE);
                 setFont(new Font(fontName, Font.PLAIN, fontSize));
             }
         }
@@ -125,7 +125,8 @@ public final class PasswordDialog extends JDialog implements FocusListener,
 
         public void paintComponent(Graphics g)
         {
-            Display.setRenderingHints(g);
+            // Laid out by Swing; see Display.setRenderingHints.
+            Display.setRenderingHints(g, true);
             super.paintComponent(g);
         }
     }

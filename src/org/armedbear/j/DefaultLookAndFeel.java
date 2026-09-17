@@ -106,7 +106,7 @@ public final class DefaultLookAndFeel extends DefaultMetalTheme
     private DefaultLookAndFeel()
     {
         String name = preferences.getStringProperty(Property.DIALOG_FONT_NAME);
-        int size = preferences.getIntegerProperty(Property.DIALOG_FONT_SIZE);
+        int size = UIScale.scaledProperty(preferences, Property.DIALOG_FONT_SIZE);
         Font font = new Font(name, Font.PLAIN, size);
         plainFont = new FontUIResource(font);
     }
@@ -127,8 +127,15 @@ public final class DefaultLookAndFeel extends DefaultMetalTheme
         table.put("ScrollBar.thumbHighlight", Color.white);
         table.put("ScrollBar.thumbDarkShadow", Color.black);
         table.put("ScrollBar.thumbShadow", new Color(0x808080));
-        table.put("ScrollBar.width", 16);
-        table.put("Button.textIconGap", 1);
+        table.put("ScrollBar.width", UIScale.scale(16));
+        table.put("Button.textIconGap", UIScale.scale(1));
+        // Metal sizes the tree indents in whole pixels, so they stay narrow
+        // while the tree font grows.
+        table.put("Tree.leftChildIndent", UIScale.scale(7));
+        table.put("Tree.rightChildIndent", UIScale.scale(13));
+        // Tree.expandedIcon and Tree.collapsedIcon need no entry here: they
+        // are replaced below with j's own images, which the icon loader
+        // already scales, and a UIManager.put outranks this table anyway.
         table.put("ToolTipUI", "org.armedbear.j.ToolTipUI");
     }
 

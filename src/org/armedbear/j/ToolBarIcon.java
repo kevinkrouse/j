@@ -60,8 +60,21 @@ public enum ToolBarIcon
         _filename = filename;
     }
     
+    // The sizes j actually ships toolbar icons in. Anything else is served by
+    // scaling one of these; see ToolBarButton.setIconFromFile.
+    private static final int[] AVAILABLE_SIZES = { 16, 24 };
+
     public String getFile(int size)
     {
-        return "toolbar/" + String.valueOf(size) + "/" + _filename;
+        return "toolbar/" + String.valueOf(sourceSize(size)) + "/" + _filename;
+    }
+
+    static int sourceSize(int size)
+    {
+        int best = AVAILABLE_SIZES[0];
+        for (int i = 0; i < AVAILABLE_SIZES.length; i++)
+            if (AVAILABLE_SIZES[i] <= size && AVAILABLE_SIZES[i] > best)
+                best = AVAILABLE_SIZES[i];
+        return best;
     }
 }

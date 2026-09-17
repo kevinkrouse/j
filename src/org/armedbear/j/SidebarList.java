@@ -39,7 +39,8 @@ public abstract class SidebarList extends JList implements NavigationComponent
         this.sidebar = sidebar;
         setCellRenderer(new SidebarListCellRenderer(sidebar));
         setToolTipText("");
-        int h = Editor.preferences().getIntegerProperty(Property.JLIST_FIXED_CELL_HEIGHT);
+        int h = UIScale.scaledProperty(Editor.preferences(),
+                                       Property.JLIST_FIXED_CELL_HEIGHT);
         if (h > 0)
             setFixedCellHeight(h);
         setFocusTraversalKeysEnabled(false);
@@ -119,7 +120,7 @@ public abstract class SidebarList extends JList implements NavigationComponent
                 Buffer buffer = (Buffer) value;
                 setIcon(buffer.getIcon());
                 if (buffer.isSecondary())
-                    innerBorder = new EmptyBorder(0, 10, 0, 0);
+                    innerBorder = new EmptyBorder(0, UIScale.scale(10), 0, 0);
             } else if (value instanceof LocalTag) {
                 LocalTag tag = (LocalTag) value;
                 setText(tag.getSidebarText());

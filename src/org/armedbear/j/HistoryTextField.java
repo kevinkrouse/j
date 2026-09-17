@@ -53,10 +53,10 @@ public class HistoryTextField extends JTextField implements FocusListener,
             preferences.getStringProperty(Property.TEXT_FIELD_FONT_NAME);
         if (fontName != null) {
             int fontSize =
-                preferences.getIntegerProperty(Property.TEXT_FIELD_FONT_SIZE);
+                UIScale.scaledProperty(preferences, Property.TEXT_FIELD_FONT_SIZE);
             if (fontSize == 0)
                 fontSize =
-                    preferences.getIntegerProperty(Property.DIALOG_FONT_SIZE);
+                    UIScale.scaledProperty(preferences, Property.DIALOG_FONT_SIZE);
             setFont(new Font(fontName, Font.PLAIN, fontSize));
         }
         setAlignmentX(LEFT_ALIGNMENT);
@@ -186,7 +186,9 @@ public class HistoryTextField extends JTextField implements FocusListener,
 
     public void paintComponent(Graphics g)
     {
-        Display.setRenderingHints(g);
+        // Swing lays this field out, so let it place glyphs at their true
+        // advances instead of rounding each one to a whole pixel.
+        Display.setRenderingHints(g, true);
         super.paintComponent(g);
     }
 

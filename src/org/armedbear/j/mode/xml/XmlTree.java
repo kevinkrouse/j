@@ -638,6 +638,11 @@ public final class XmlTree extends JTree implements Constants, NavigationCompone
             this.tree = tree;
             editor = tree.getEditor();
             oldBackgroundSelectionColor = getBackgroundSelectionColor();
+        }
+
+        public void updateUI()
+        {
+            super.updateUI();
             setOpenIcon(Utilities.getIconFromFile("branch.png"));
             setClosedIcon(Utilities.getIconFromFile("branch.png"));
             setLeafIcon(Utilities.getIconFromFile("leaf.png"));

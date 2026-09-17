@@ -39,27 +39,37 @@ import javax.swing.border.MatteBorder;
 public final class StatusBar extends JComponent
     implements PreferencesChangeListener
 {
-    private static final Font font = new Font("SansSerif", Font.PLAIN, 12);
-    private static final int LEFT_MARGIN = 2;
-    private static final int RIGHT_MARGIN = 2;
-
+    // Sized for the display rather than fixed, and recomputed whenever
+    // preferences are reloaded, since uiScale may have changed.
+    private static Font font;
+    private static int leftMargin;
+    private static int rightMargin;
     private static FontMetrics fm;
+    private static int charAscent;
+    private static int charDescent;
+
     private static int displayContext = 1;
 
     private final Frame frame;
     private final Border border;
-    private final int charAscent;
     private String messageText;
+
+    private static synchronized void initializeStaticValues()
+    {
+        font = new Font("SansSerif", Font.PLAIN, UIScale.scale(12));
+        leftMargin = UIScale.scale(2);
+        rightMargin = UIScale.scale(2);
+        fm = Toolkit.getDefaultToolkit().getFontMetrics(font);
+        charAscent = fm.getAscent();
+        charDescent = fm.getDescent();
+    }
 
     public StatusBar(Frame frame)
     {
         this.frame = frame;
         Editor.preferences().addPreferencesChangeListener(this);
         preferencesChanged();
-        if (fm == null)
-            fm = Toolkit.getDefaultToolkit().getFontMetrics(font);
-        charAscent = fm.getAscent();
-        int charDescent = fm.getDescent();
+        initializeStaticValues();
         Dimension dim = frame.getSize();
         Insets insets = frame.getInsets();
         dim.width -= (insets.left + insets.right);
@@ -69,6 +79,19 @@ public final class StatusBar extends JComponent
         insets = border.getBorderInsets(this);
         dim.height = charAscent + charDescent + insets.top + insets.bottom;
         setPreferredSize(dim);
+    }
+
+    // The status bar outlives a preferences reload -- the frame doesn't
+    // recreate it -- so it has to resize itself in place.
+    private void updateSize()
+    {
+        initializeStaticValues();
+        Insets insets = border.getBorderInsets(this);
+        Dimension dim = getPreferredSize();
+        dim.height = charAscent + charDescent + insets.top + insets.bottom;
+        setPreferredSize(dim);
+        revalidate();
+        repaint();
     }
 
     public final void setText(String s)
@@ -117,14 +140,14 @@ public final class StatusBar extends JComponent
         g.setColor(UIManager.getColor("controlText"));
         g.setFont(font);
         Display.setRenderingHints(g);
-        int x1 = insets.left + LEFT_MARGIN;
+        int x1 = insets.left + leftMargin;
         int y = insets.top + charAscent;
         if (messageText == null && displayContext > 0) {
             // We want the long context string if displayContext > 1.
             messageText =
                 buffer.getMode().getContextString(editor, displayContext > 1);
         }
-        int x2 = textAreaWidth - RIGHT_MARGIN;
+        int x2 = textAreaWidth - rightMargin;
         if (Platform.isPlatformMacOSX())
             x2 -= 15; // Leave room for the Aqua window handle graphic.
         String statusText = getStatusText(editor);
@@ -149,5 +172,7 @@ public final class StatusBar extends JComponent
     {
         displayContext =
             Editor.preferences().getIntegerProperty(Property.STATUS_BAR_DISPLAY_CONTEXT);
+        if (font != null)
+            updateSize(); // Not during construction; the border isn't set yet.
     }
 }

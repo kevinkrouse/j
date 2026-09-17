@@ -124,6 +124,19 @@ public final class SessionProperties
         }
     }
 
+    // Records the uiScale the sidebar is being laid out under. Called when the
+    // sidebar is built, NOT when its geometry is saved: by the time a scale
+    // change reaches saveSidebarState the factor has already moved, and
+    // stamping the new factor onto a width measured under the old one would
+    // lose exactly the information needed to correct it.
+    public void recordSidebarScale(Frame frame)
+    {
+        String prefix = getPrefix(frame);
+        if (prefix != null)
+            setIntegerProperty(prefix.concat("sidebar.scale"),
+                               (int) Math.round(UIScale.getScale() * 100));
+    }
+
     public boolean getShowSidebar(Frame frame)
     {
         int index = Editor.indexOf(frame);
@@ -140,22 +153,32 @@ public final class SessionProperties
 
     public int getSidebarWidth(Frame frame)
     {
-        int toBeReturned = 150;
-        String prefix = getPrefix(frame);
-        if (prefix != null)
-            toBeReturned = getIntegerProperty(prefix.concat("sidebar.width"),
-                toBeReturned);
-        return toBeReturned;
+        return getScaledSidebarProperty(frame, "sidebar.width", 150);
     }
 
     public int getSidebarDividerLocation(Frame frame)
     {
-        int toBeReturned = 200;
+        return getScaledSidebarProperty(frame, "sidebar.dividerLocation", 200);
+    }
+
+    // A stored sidebar size, corrected for any change in uiScale since it was
+    // stored, falling back to a scaled default.
+    private int getScaledSidebarProperty(Frame frame, String key, int defaultValue)
+    {
         String prefix = getPrefix(frame);
-        if (prefix != null)
-            toBeReturned = getIntegerProperty(prefix.concat("sidebar.dividerLocation"),
-                toBeReturned);
-        return toBeReturned;
+        if (prefix == null)
+            return UIScale.scale(defaultValue);
+
+        int stored = getIntegerProperty(prefix.concat(key), -1);
+        if (stored <= 0)
+            return UIScale.scale(defaultValue);
+
+        int storedScale = getIntegerProperty(prefix.concat("sidebar.scale"), 0);
+        if (storedScale <= 0)
+            return stored; // Written before we recorded a scale; take as-is.
+
+        double factor = UIScale.getScale() / (storedScale / 100.0);
+        return (int) Math.round(stored * factor);
     }
 
     public boolean getShowToolbar(Frame frame)

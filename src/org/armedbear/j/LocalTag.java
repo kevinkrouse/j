@@ -113,15 +113,6 @@ public class LocalTag extends Tag implements Constants
         return (flags & TAG_VISIBILITY_MASK) == TAG_PRIVATE;
     }
 
-    private static ImageIcon interfaceIcon;
-    private static ImageIcon classIcon;
-    private static ImageIcon methodIcon;
-    private static ImageIcon fieldIcon;
-
-    private static ImageIcon publicIcon;
-    private static ImageIcon protectedIcon;
-    private static ImageIcon privateIcon;
-
     public Icon getIcon()
     {
         ImageIcon base = null;
@@ -130,47 +121,33 @@ public class LocalTag extends Tag implements Constants
             case TAG_INTERFACE:
             case TAG_IMPLEMENTS:
             case TAG_TYPE:      // Lisp
-                if (interfaceIcon == null)
-                    interfaceIcon = Utilities.getIconFromFile("interface.png");
-                base = interfaceIcon;
+                base = Utilities.getIconFromFile("interface.png");
                 break;
             case TAG_CLASS:
             case TAG_EXTENDS:
             case TAG_CONDITION: // Lisp
             case TAG_STRUCT:    // Lisp
-                if (classIcon == null)
-                    classIcon = Utilities.getIconFromFile("class.png");
-                base = classIcon;
+                base = Utilities.getIconFromFile("class.png");
                 break;
             case TAG_METHOD:
             case TAG_MACRO:     // Lisp
             case TAG_DEFUN:     // Lisp
             default:
-                if (methodIcon == null)
-                    methodIcon = Utilities.getIconFromFile("method.png");
-                base = methodIcon;
+                base = Utilities.getIconFromFile("method.png");
                 break;
             case TAG_FIELD:
             case TAG_CONSTANT:  // Lisp
             case TAG_PARAMETER: // Lisp
             case TAG_VAR:       // Lisp
-                if (fieldIcon == null)
-                    fieldIcon = Utilities.getIconFromFile("field.png");
-                base = fieldIcon;
+                base = Utilities.getIconFromFile("field.png");
                 break;
         }
         if (isPublic()) {
-            if (publicIcon == null)
-                publicIcon = Utilities.getIconFromFile("public.png");
-            overlay = publicIcon;
+            overlay = Utilities.getIconFromFile("public.png");
         } else if (isProtected()) {
-            if (protectedIcon == null)
-                protectedIcon = Utilities.getIconFromFile("protected.png");
-            overlay = protectedIcon;
+            overlay = Utilities.getIconFromFile("protected.png");
         } else if (isPrivate()) {
-            if (privateIcon == null)
-                privateIcon = Utilities.getIconFromFile("private.png");
-            overlay = privateIcon;
+            overlay = Utilities.getIconFromFile("private.png");
         }
         return new OverlayIcon(base, overlay);
     }

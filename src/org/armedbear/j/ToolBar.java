@@ -135,7 +135,7 @@ public class ToolBar extends JToolBar implements ActionListener
 
     public static int iconSize()
     {
-        return preferences.getIntegerProperty(Property.TOOL_BAR_ICON_SIZE);
+        return UIScale.scaledProperty(preferences, Property.TOOL_BAR_ICON_SIZE);
     }
 
     public void actionPerformed(ActionEvent e)

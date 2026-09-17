@@ -563,10 +563,6 @@ public final class JavaTree extends SidebarTree implements Constants,
     private static class TreeCellRenderer extends DefaultTreeCellRenderer
     {
         private static Color noFocusSelectionBackground = new Color(208, 208, 208);
-        private static Icon classIcon = Utilities.getIconFromFile("class.png");
-        private static Icon fieldIcon = Utilities.getIconFromFile("field.png");
-        private static Icon constructorIcon = Utilities.getIconFromFile("method.png");
-        private static Icon methodIcon = Utilities.getIconFromFile("method.png");
 
         private Color oldBackgroundSelectionColor;
 
@@ -598,13 +594,13 @@ public final class JavaTree extends SidebarTree implements Constants,
                     setText(t.getSidebarText());
                 } else if (obj instanceof String) {
                     if (obj.equals(CAPTION_FIELDS))
-                        setIcon(fieldIcon);
+                        setIcon(Utilities.getIconFromFile("field.png"));
                     else if (obj.equals(CAPTION_CONSTRUCTORS))
-                        setIcon(constructorIcon);
+                        setIcon(Utilities.getIconFromFile("method.png"));
                     else if (obj.equals(CAPTION_METHODS))
-                        setIcon(methodIcon);
+                        setIcon(Utilities.getIconFromFile("method.png"));
                     else if (obj.equals(CAPTION_NESTED_CLASSES))
-                        setIcon(classIcon);
+                        setIcon(Utilities.getIconFromFile("class.png"));
                 }
             }
             return this;

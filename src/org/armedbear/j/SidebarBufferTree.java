@@ -919,7 +919,7 @@ public final class SidebarBufferTree extends SidebarTree implements Constants,
                 Buffer buffer = (Buffer) userObject;
                 setIcon(buffer.getIcon());
                 if (buffer.isSecondary())
-                    innerBorder = new EmptyBorder(0, 10, 0, 0);
+                    innerBorder = new EmptyBorder(0, UIScale.scale(10), 0, 0);
             } else
                 setIcon(null);
             Frame frame = sidebar.getFrame();

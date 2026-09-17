@@ -162,10 +162,17 @@ negative value can be specified).
 <code><a name="antialias">antialias</a></code>
 <dl>
 <dd>
-If true, j uses the antialiasing supported by Java2D. This may make things look
-better, or it may make things look worse.
+If true, j smooths text using the antialiasing supported by Java2D. j follows
+the desktop's own font smoothing setting where the platform reports one, so
+that text matches the rest of your applications, and otherwise falls back to
+plain grayscale antialiasing.
 <p>
-<b>Default value:</b> false
+Set this to false for the hard-edged rendering j used before it was smoothed by
+default.
+<p>
+<b>See also:</b> <a href="#uiScale">uiScale</a>
+<p>
+<b>Default value:</b> true
 </dl>
 
 <code><a name="attributesRequireQuotes">attributesRequireQuotes</a></code>
@@ -1814,6 +1821,30 @@ semicolon for Windows.
 <b>Default value:</b> None
 <p>
 <b>See also:</b> <code><a href="#theme">theme</a></code>
+</dl>
+
+<code><a name="uiScale">uiScale</a></code>
+<dl>
+<dd>
+The factor by which j multiplies its own built-in sizes -- font sizes, icons,
+the sidebar width, tree indents, scrollbars, the status bar and similar chrome
+-- so that they stay legible on a high resolution display. Fractional values
+such as 1.5 are allowed.
+<p>
+The default, 0, means detect it. If the Java runtime is already scaling the
+user interface, j leaves its sizes alone, because Java is doing the
+magnification itself and scaling again would double-count. Otherwise j derives
+the factor from the screen's reported resolution, which covers the common case
+of a high resolution monitor run at 100%. The detected factor is clamped to
+between 1 and 3 and written to the log at startup.
+<p>
+This applies only to j's built-in defaults. Any size you set yourself, such as
+<a href="#fontSize">fontSize</a>, is used exactly as written.
+<p>
+<b>See also:</b> <a href="#fontSize">fontSize</a>,
+<a href="#dialogFontSize">dialogFontSize</a>
+<p>
+<b>Default value:</b> 0 (detect)
 </dl>
 
 <code><a name="useIncrementalFind">useIncrementalFind</a></code> <dl> <dd> If

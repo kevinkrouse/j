@@ -26,7 +26,12 @@ import java.awt.AWTEvent;
 import java.awt.BorderLayout;
 import java.awt.Cursor;
 import java.awt.Desktop;
+import java.awt.GraphicsConfiguration;
+import java.awt.GraphicsDevice;
+import java.awt.GraphicsEnvironment;
+import java.awt.Toolkit;
 import java.awt.Dimension;
+import java.awt.Rectangle;
 import java.awt.Point;
 import java.awt.datatransfer.DataFlavor;
 import java.awt.datatransfer.Transferable;
@@ -61,6 +66,7 @@ import javax.swing.FocusManager;
 import javax.swing.JComponent;
 import javax.swing.JDialog;
 import javax.swing.JPanel;
+import javax.swing.RepaintManager;
 import javax.swing.JPopupMenu;
 import javax.swing.SwingUtilities;
 import javax.swing.undo.CompoundEdit;
@@ -393,6 +399,7 @@ public final class Editor extends JPanel implements Constants,
         }
         initMacOSX();
         DefaultLookAndFeel.setLookAndFeel();
+        initDoubleBufferSize();
 
         sessionProperties = new SessionProperties();
 
@@ -494,6 +501,56 @@ public final class Editor extends JPanel implements Constants,
     {
         usage();
         fatal("Unknown option \"" + arg + "\"");
+    }
+
+    // Swing works out the maximum size of its double buffers once, the first
+    // time it paints, from the screen devices it can see at that moment. If it
+    // happens to look while the display is being reconfigured it can see no
+    // devices at all, cache a maximum of 0 by 0, and then throw out of every
+    // subsequent paint:
+    //
+    //   IllegalArgumentException: Width (0) and height (0) cannot be <= 0
+    //       at java.awt.GraphicsConfiguration.createCompatibleVolatileImage
+    //       at javax.swing.RepaintManager.getVolatileOffscreenBuffer
+    private static final void initDoubleBufferSize()
+    {
+        try {
+            if (GraphicsEnvironment.isHeadless())
+                return;
+
+            Rectangle virtualBounds = new Rectangle();
+            GraphicsDevice[] devices =
+                GraphicsEnvironment.getLocalGraphicsEnvironment().getScreenDevices();
+            for (int i = 0; i < devices.length; i++) {
+                GraphicsConfiguration gc = devices[i].getDefaultConfiguration();
+                if (gc != null)
+                    virtualBounds = virtualBounds.union(gc.getBounds());
+            }
+
+            if (virtualBounds.width <= 0 || virtualBounds.height <= 0) {
+                // No usable device. Fall back to the screen size.
+                Dimension screen = Toolkit.getDefaultToolkit().getScreenSize();
+                virtualBounds = new Rectangle(screen);
+            }
+
+            if (virtualBounds.width <= 0 || virtualBounds.height <= 0) {
+                // We are in exactly the state that causes the bug, so we have
+                // nothing good to pin. Leave Swing's own value alone: it will
+                // recompute on the next display change.
+                Log.warn("initDoubleBufferSize: no screen bounds available");
+                return;
+            }
+
+            RepaintManager.currentManager((JComponent) null)
+                .setDoubleBufferMaximumSize(new Dimension(virtualBounds.width,
+                                                          virtualBounds.height));
+            Log.debug("initDoubleBufferSize: " + virtualBounds.width + "x" +
+                      virtualBounds.height);
+        }
+        catch (Throwable t) {
+            // Nothing here is worth failing to start over.
+            Log.error(t);
+        }
     }
 
     private static final void initMacOSX()

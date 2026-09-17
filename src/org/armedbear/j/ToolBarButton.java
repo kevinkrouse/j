@@ -60,7 +60,7 @@ public final class ToolBarButton extends JButton implements ActionListener,
 
         if (icon != null) {
             int size = ToolBar.iconSize();
-            if (icon.getIconWidth() > size || icon.getIconHeight() > size) {
+            if (icon.getIconWidth() != size || icon.getIconHeight() != size) {
                 Image img = icon.getImage().getScaledInstance(size, size, Image.SCALE_SMOOTH);
                 icon = new ImageIcon(img);
             }
