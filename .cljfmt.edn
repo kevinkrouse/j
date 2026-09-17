@@ -1,0 +1,4 @@
+;; Two newlines (one blank line is cljfmt's maximum otherwise) between
+;; top-level forms.  cljfmt has no option to *insert* padding lines, so this
+;; only stops it collapsing the ones we write; it does not enforce them.
+{:remove-consecutive-blank-lines? false}

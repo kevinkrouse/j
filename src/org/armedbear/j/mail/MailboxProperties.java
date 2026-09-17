@@ -129,9 +129,10 @@ public final class MailboxProperties
                     }
                 }
             }
-            // Delete old mailboxes.xml in ~/.j (if any).
+            // Delete old mailboxes.xml in the legacy ~/.j (if any). Under the
+            // XDG layout it was never written, so there is nothing to find.
             File oldFile =
-                File.getInstance(Directories.getEditorDirectory(),
+                File.getInstance(Directories.getConfigDirectory(),
                     "mailboxes.xml");
             if (oldFile != null && oldFile.isFile())
                 oldFile.delete();

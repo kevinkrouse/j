@@ -38,7 +38,7 @@ import java.util.List;
 public final class Cache
 {
     private static final File cacheDir =
-        File.getInstance(Directories.getEditorDirectory(), "cache");
+        File.getInstance(Directories.getCacheDirectory(), "cache");
 
     private static Cache cache;
 

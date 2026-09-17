@@ -39,7 +39,7 @@ import org.armedbear.j.StatusBarProgressNotifier;
 public final class NewsBuffer extends Buffer
 {
     private static final File newsDir =
-        File.getInstance(Directories.getEditorDirectory(), "news");
+        File.getInstance(Directories.getDataDirectory(), "news");
 
     private final NntpSession session;
     private boolean error;

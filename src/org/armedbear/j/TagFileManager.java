@@ -52,7 +52,7 @@ public final class TagFileManager extends Thread
         setPriority(Thread.MIN_PRIORITY);
         setDaemon(true);
         tagFileDir =
-            File.getInstance(Directories.getEditorDirectory(), "tagfiles");
+            File.getInstance(Directories.getCacheDirectory(), "tagfiles");
         catalog = new TagFileCatalog(tagFileDir);
         if (initialize())
             start();

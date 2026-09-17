@@ -23,7 +23,8 @@ To minimize loss of work in the event of a crash, j autosaves each modified
 buffer whenever there is no user activity for a minimum of two seconds. This
 has no effect on the file you're editing; modified buffers are written out to
 temporary files in j's autosave directory (which is normally 
-<code>~/.j/autosave</code> on Unix or <code>C:\.j\autosave</code> on Windows,
+<code>~/.local/state/j/autosave</code> (see
+<a href="filelocations.html">Where J Keeps Its Files</a>),
 but see below).
 
 <p>
@@ -58,11 +59,10 @@ You can specify a different home directory by starting j with the
 <pre>
     j --home=C:\ArmedBear
 </pre>
-In this case your home directory, as far as j is concerned, will be    
-<code>C:\ArmedBear</code>, the <code>.j</code> directory will be 
-<code>C:\ArmedBear\.j</code>, autosave files will be stored in   
-<code>C:\ArmedBear\.j\autosave</code>, and the default backup directory will be
-<code>C:\ArmedBear\backup</code>.
+In this case j ignores the <code>$XDG_*</code> variables and puts everything
+below <code>C:\ArmedBear</code>: autosave files will be stored in
+<code>C:\ArmedBear\.local\state\j\autosave</code>, and the default backup
+directory will be <code>C:\ArmedBear\backup</code>.
 
 <p>
 

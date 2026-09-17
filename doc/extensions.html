@@ -25,7 +25,8 @@ line like this to your <a href="preferences.html">preferences</a> file:
     extension=SampleExtension
 </pre>
 where <code>SampleExtension</code> is the name of a class you've written,
-compiled, and placed in <code>~/.j</code> or <code>C:\.j</code>. The class must
+compiled, and placed in j's configuration directory (<code>~/.config/j</code>
+by default; see <a href="filelocations.html">Where J Keeps Its Files</a>). The class must
 provide the method <code>public void run( )</code>, and the class itself must
 be declared  <code>public</code>. If these conditions are met, your class
 will be loaded when the editor starts up and the <code>run</code> method will
@@ -41,12 +42,12 @@ that I can make sure it stays <code>public</code> in the future.
 <p>
 The easiest way to write your extension class is to develop and debug it in the
 j's top-level <code>src</code> directory; the loader will pick it up from
-there, so you don't have to copy it into <code>~/.j</code> every time you
-compile it.  When you're done you should move it into <code>~/.j</code> and
+there, so you don't have to copy it into the configuration directory every time you
+compile it.  When you're done you should move it into the configuration directory and
 delete any extraneous copies.
 <p>
 Strictly speaking, your extension class does not have to live in   
-<code>~/.j</code> or <code>C:\.j</code>.  You can also specify the fully
+j's configuration directory.  You can also specify the fully
 qualified pathname of your extension's <code>.class</code> file in your
 preferences file, like this:
 <pre>

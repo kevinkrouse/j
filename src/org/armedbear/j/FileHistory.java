@@ -46,7 +46,7 @@ public final class FileHistory extends DefaultHandler implements ContentHandler
 
     private FileHistory()
     {
-        file = File.getInstance(Directories.getEditorDirectory(), "files.xml");
+        file = File.getInstance(Directories.getStateDirectory(), "files.xml");
         if (file.isFile())
             load();
     }

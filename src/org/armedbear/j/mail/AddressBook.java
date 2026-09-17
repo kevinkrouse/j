@@ -52,9 +52,9 @@ public final class AddressBook
     public static AddressBook getGlobalAddressBook()
     {
         if (addressBook == null) {
-            file = File.getInstance(Directories.getEditorDirectory(), "addresses");
+            file = File.getInstance(Directories.getDataDirectory(), "addresses");
             backupFile =
-                File.getInstance(Directories.getEditorDirectory(), "addresses~");
+                File.getInstance(Directories.getDataDirectory(), "addresses~");
             addressBook = new AddressBook();
             InputStream inputStream = null;
             try {

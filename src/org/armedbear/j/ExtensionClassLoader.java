@@ -33,7 +33,7 @@ public final class ExtensionClassLoader extends ClassLoader
             if (s.endsWith(".class")) {
                 // String passed in is a file name, not a class name.
                 // By default, extension classes are in ~/.j
-                file = File.getInstance(Directories.getEditorDirectory(), s);
+                file = File.getInstance(Directories.getConfigDirectory(), s);
             } else {
                 // Must be class name.
                 classname = s;
@@ -49,7 +49,7 @@ public final class ExtensionClassLoader extends ClassLoader
                 if (c == null) {
                     // We did not find it.  Look for a .class file in ~/.j
                     Debug.assertTrue(file == null);
-                    file = File.getInstance(Directories.getEditorDirectory(),
+                    file = File.getInstance(Directories.getConfigDirectory(),
                                             classname.concat(".class"));
                 }
             }

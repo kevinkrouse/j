@@ -45,7 +45,7 @@ public final class RecentFiles implements Constants
 
     private RecentFiles()
     {
-        file = File.getInstance(Directories.getEditorDirectory(), "recent");
+        file = File.getInstance(Directories.getStateDirectory(), "recent");
         if (file != null && file.isFile())
             load();
     }

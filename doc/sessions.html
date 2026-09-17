@@ -48,7 +48,7 @@ By default, the information in a named session file is only updated when you
 explicitly invoke <a href="commands.html#saveSession">saveSession</a>. This
 allows you to exercise better control over the contents of named session
 files. If you'd like named session information to be updated automatically,
-add this line to ~/.j/prefs or C:\.j\prefs:
+add this line to your <a href="preferences.html">preferences file</a>:
 <pre>
     autosaveNamedSessions = true</pre>
 <p>
@@ -66,8 +66,8 @@ previous session is restored, but no named session is active until you do
 <a href="commands.html#loadSession">loadSession</a>.
 </p>
 <p>
-Named session files are stored in the directory ~/.j/sessions (or
-C:\.j\sessions). You might want to visit that directory on your day off and
+Named session files are stored in the directory ~/.local/state/j/sessions (or
+%LOCALAPPDATA%\j\sessions). You might want to visit that directory on your day off and
 delete session files that are no longer needed.
 </p>
 </body>

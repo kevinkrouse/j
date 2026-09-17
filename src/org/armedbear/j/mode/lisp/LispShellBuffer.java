@@ -120,7 +120,7 @@ public class LispShellBuffer extends ShellBuffer
   {
     if (startSlime)
       {
-        File portFile = File.getInstance(Directories.getEditorDirectory(),
+        File portFile = File.getInstance(Directories.getRuntimeDirectory(),
                                          "swank");
         portFile.delete();
         if (shellCommand.indexOf("abcl") >= 0 ||

@@ -61,7 +61,7 @@ public final class JdbSession extends Properties
     private static File getSettingsDirectory()
     {
         if (jdbDir == null) {
-            jdbDir = File.getInstance(Directories.getEditorDirectory(), "jdb");
+            jdbDir = File.getInstance(Directories.getStateDirectory(), "jdb");
             if (!jdbDir.isDirectory())
                 jdbDir.mkdirs();
         }

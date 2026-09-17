@@ -39,8 +39,8 @@ public final class SessionProperties
     public SessionProperties()
     {
         properties = new Properties();
-        file = File.getInstance(Directories.getEditorDirectory(), "props");
-        backupFile = File.getInstance(Directories.getEditorDirectory(), "props~");
+        file = File.getInstance(Directories.getStateDirectory(), "props");
+        backupFile = File.getInstance(Directories.getStateDirectory(), "props~");
         try {
             InputStream in = null;
             if (file != null && file.isFile()) {

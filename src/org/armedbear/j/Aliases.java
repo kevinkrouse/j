@@ -38,7 +38,7 @@ public final class Aliases implements PreferencesChangeListener
 
     public Aliases()
     {
-        file = File.getInstance(Directories.getEditorDirectory(), "aliases");
+        file = File.getInstance(Directories.getConfigDirectory(), "aliases");
         // Set up system aliases.
         if (systemAliases == null) {
             systemAliases = new Properties();

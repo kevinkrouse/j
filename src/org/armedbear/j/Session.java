@@ -47,7 +47,7 @@ public final class Session extends DefaultHandler implements Constants
 
     private Session()
     {
-        file = File.getInstance(Directories.getEditorDirectory(), "session.xml");
+        file = File.getInstance(Directories.getStateDirectory(), "session.xml");
     }
 
     private Session(File file)
@@ -59,7 +59,7 @@ public final class Session extends DefaultHandler implements Constants
     {
         if (sessionDirectory == null) {
             sessionDirectory =
-                File.getInstance(Directories.getEditorDirectory(), "sessions");
+                File.getInstance(Directories.getStateDirectory(), "sessions");
             if (!sessionDirectory.isDirectory()) {
                 sessionDirectory.mkdirs();
                 if (!sessionDirectory.isDirectory())

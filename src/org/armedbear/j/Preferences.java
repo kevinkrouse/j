@@ -34,7 +34,7 @@ public final class Preferences
 
     public static final File getPreferencesFile()
     {
-        return File.getInstance(Directories.getEditorDirectory(), "prefs");
+        return File.getInstance(Directories.getConfigDirectory(), "prefs");
     }
 
     public static void editPrefs()

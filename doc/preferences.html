@@ -19,20 +19,13 @@
 
 <p>
 
-Preferences are read from a file named <code>prefs</code> in the
-<code>.j</code> directory. This directory is created automatically by j in the
-home directory of the current user.
-
-<p>
-
-On Windows, from j's point of view, the home directory of the current user
-normally defaults to <code>C:\</code>. The default is actually the root
-directory of the first writable drive, excluding drives A and B.
-
-<p>
-
-So, by default, your preferences file is <code>~/.j/prefs</code> on Unix and
-<code>C:\.j\prefs</code> on Windows.
+Preferences are read from a file named <code>prefs</code> in j's configuration
+directory, which is created automatically the first time j runs. By default
+that is <code>~/.config/j</code> on Unix, <code>%APPDATA%\j</code> on Windows
+and <code>~/Library/Application Support/j</code> on macOS, so your preferences
+file is normally <code>~/.config/j/prefs</code>. See
+<a href="filelocations.html">Where J Keeps Its Files</a> for the full layout
+and for what happens if you still have a <code>~/.j</code> directory.
 
 <p>
 
@@ -41,10 +34,9 @@ You can specify a different home directory by starting j with the
 <pre>
     j --home=C:\ArmedBear
 </pre>
-In this case your home directory, as far as j is concerned, will be
-<code>C:\ArmedBear</code>, the <code>.j</code> directory will be
-<code>C:\ArmedBear\.j</code>, and your preferences file will be
-<code>C:\ArmedBear\.j\prefs</code>.
+In this case j ignores the <code>$XDG_*</code> variables and puts everything
+below <code>C:\ArmedBear</code>, so your preferences file will be
+<code>C:\ArmedBear\.config\j\prefs</code>.
 
 <p>
 
@@ -777,7 +769,8 @@ Name of extension class. If the name ends in <code>.class</code>, it is taken
 to be a filename, rather than a class name, and in that case the file's
 absolute pathname may be specified.  If the absolute pathname is not specified,
 or if the <code>.class</code> extension is omitted, the class file in question
-must be in the directory <code>~/.j</code> (Unix) or <code>C:\.j</code>
+must be in j's configuration directory (see
+<a href="filelocations.html">Where J Keeps Its Files</a>)
 (Windows). When j starts up, the specified extension class is loaded by j's
 extension class loader, a new instance of the extension class is created, and
 its <code>public void run</code> method is invoked.
@@ -1033,7 +1026,7 @@ same bits over the network again. This is particularly useful if you have a
 slow network connection.
 <p>
 Each message is saved in a file named after its UID, in a directory specific
-to the mailbox in question, under ~/.j/mail/imap/cache.
+to the mailbox in question, under ~/.local/share/j/mail/imap/cache.
 <p>
 Deleted messages are automatically removed from the cache by
 <a href="commands.html#mailboxExpunge">mailboxExpunge</a>. The current
@@ -1255,8 +1248,8 @@ If true, logging is enabled.
 <code><a name="Log.maxBackupIndex">Log.maxBackupIndex</a></code>
 <dl>
 <dd>
-The maximum index for backups of j's log file (~/.j/log or C:\.j\log). Since
-the first backup file is ~/.j/log.0 (or C:\.j\log.0), the number of backups
+The maximum index for backups of j's log file (~/.local/state/j/log or %LOCALAPPDATA%\j\log). Since
+the first backup file is ~/.local/state/j/log.0 (or %LOCALAPPDATA%\j\log.0), the number of backups
 that will be kept is one more than the maximum backup index.
 <p>
 <b>Default value:</b> 0
@@ -1268,10 +1261,10 @@ that will be kept is one more than the maximum backup index.
 <code><a name="Log.maxFileSize">Log.maxFileSize</a></code>
 <dl>
 <dd>
-The maximum size, in bytes, of j's log file (~/.j/log or C:\.j\log).
+The maximum size, in bytes, of j's log file (~/.local/state/j/log or %LOCALAPPDATA%\j\log).
 <p>
 When the log file exceeds its maximum size, it is rolled over to the file
-~/.j/log.0, which in turn is rolled over to ~/.j/log.1, etc.
+~/.local/state/j/log.0, which in turn is rolled over to ~/.local/state/j/log.1, etc.
 <p>
 <b>Default value:</b> 100000
 <p>
@@ -1817,7 +1810,7 @@ If this parameter is not specified, the value of
 <dl>
 <dd>
 Name of theme file. The specified theme file is loaded as an additional
-preferences file after ~/.j/prefs is loaded. The idea is to gather all the
+preferences file after ~/.config/j/prefs is loaded. The idea is to gather all the
 settings that relate to j's look and feel in one place.
 <p>
 <b>Default value:</b> None

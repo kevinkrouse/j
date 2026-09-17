@@ -253,6 +253,8 @@ public final class Editor extends JPanel implements Constants,
         boolean startServer = true;
         int quick = 0;
         File userHomeDir = null;
+        boolean migrateToXdg = false;
+        boolean printDirectories = false;
         List<String> files = null;
 
         // Process command line.
@@ -306,6 +308,14 @@ public final class Editor extends JPanel implements Constants,
                     startServer = false;
                     continue;
                 }
+                if (arg.equals("--migrate-to-xdg")) {
+                    migrateToXdg = true;
+                    continue;
+                }
+                if (arg.equals("--print-directories")) {
+                    printDirectories = true;
+                    continue;
+                }
                 if (arg.startsWith("--home")) {
                     String home = null;
                     if (arg.equals("--home")) {
@@ -350,10 +360,12 @@ public final class Editor extends JPanel implements Constants,
 
         // At this point the user has had a chance to tell us where his home
         // directory is.
-        Directories.initialize(userHomeDir);
+        Directories.initialize(userHomeDir, migrateToXdg);
+        if (printDirectories)
+            Directories.printDirectories();
 
         boolean alreadyRunning = false;
-        portfile = File.getInstance(Directories.getEditorDirectory(), "port");
+        portfile = File.getInstance(Directories.getRuntimeDirectory(), "port");
         if (portfile.exists()) {
             try {
                 String s;
@@ -481,6 +493,8 @@ public final class Editor extends JPanel implements Constants,
         System.out.println("  --no-session");
         System.out.println("  --no-server");
         System.out.println("  --home=directory");
+        System.out.println("  --migrate-to-xdg");
+        System.out.println("  --print-directories");
     }
 
     private static final void version()
@@ -7395,7 +7409,7 @@ public final class Editor extends JPanel implements Constants,
     private static void runStartupScript()
     {
         File file =
-            File.getInstance(Directories.getEditorDirectory(), "init.lisp");
+            File.getInstance(Directories.getConfigDirectory(), "init.lisp");
         if (file != null && file.isFile()) {
             try {
                 long start = System.currentTimeMillis();

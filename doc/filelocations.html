@@ -1,0 +1,143 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+
+<html>
+
+<head>
+<title>J User's Guide - Where J Keeps Its Files</title>
+<LINK REL="stylesheet" HREF="j.css" TYPE="text/css">
+</head>
+
+<body>
+
+<a href="contents.html">Top</a>
+
+<hr>
+
+<h1>Where J Keeps Its Files</h1>
+
+<hr>
+
+<p>
+
+J follows the
+<a href="https://specifications.freedesktop.org/basedir-spec/latest/">XDG Base
+Directory Specification</a>. What older versions of j kept together in
+<code>~/.j</code> is split across four directories, according to how much you
+would mind losing it:
+
+<p>
+
+<table border="1" cellpadding="4" cellspacing="0">
+<tr>
+    <th align="left">Directory</th>
+    <th align="left">Default</th>
+    <th align="left">Contents</th>
+</tr>
+<tr>
+    <td><code>$XDG_CONFIG_HOME/j</code></td>
+    <td><code>~/.config/j</code></td>
+    <td>Things you edit by hand: <a href="preferences.html">prefs</a>,
+        <a href="aliases.html">aliases</a>,
+        <a href="init.lisp.html">init.lisp</a>, and your
+        <a href="extensions.html">extension</a> classes</td>
+</tr>
+<tr>
+    <td><code>$XDG_DATA_HOME/j</code></td>
+    <td><code>~/.local/share/j</code></td>
+    <td>Things you would miss: <a href="mail.html">mail</a>, registers,
+        addresses, news</td>
+</tr>
+<tr>
+    <td><code>$XDG_STATE_HOME/j</code></td>
+    <td><code>~/.local/state/j</code></td>
+    <td>Things j maintains for you: <a href="sessions.html">sessions</a>,
+        window placement, the recent file list, file history,
+        <a href="autosave.html">autosave and recovery files</a>, the
+        <a href="logging.html">log</a></td>
+</tr>
+<tr>
+    <td><code>$XDG_CACHE_HOME/j</code></td>
+    <td><code>~/.cache/j</code></td>
+    <td>Things j can rebuild: the file cache,
+        <a href="tags.html">tag files</a>, temporary files</td>
+</tr>
+<tr>
+    <td><code>$XDG_RUNTIME_DIR/j</code></td>
+    <td>the state directory</td>
+    <td>Things belonging to the running instance: the server port file, the
+        swank port file</td>
+</tr>
+</table>
+
+<p>
+
+The environment variables above are honoured on every platform. Where one is
+not set, j falls back on whatever is normal for the platform:
+<code>%APPDATA%</code> and <code>%LOCALAPPDATA%</code> on Windows,
+<code>~/Library/Application Support</code> and <code>~/Library/Caches</code> on
+macOS, and the defaults in the table everywhere else.
+
+<h2>Checking where things are</h2>
+
+<p>
+
+The <code>--print-directories</code> option prints the five directories j has
+resolved and then carries on starting up:
+
+<pre>
+    $ j --print-directories
+    config   /home/you/.config/j
+    data     /home/you/.local/share/j
+    state    /home/you/.local/state/j
+    cache    /home/you/.cache/j
+    runtime  /run/user/1000/j
+</pre>
+
+<p>
+
+If j is still using a <code>~/.j</code> directory it says so, and lists where
+migrating would put each file instead. Printing does not create anything.
+
+<h2>If you already have a <code>~/.j</code></h2>
+
+<p>
+
+Nothing changes. If j finds a <code>~/.j</code> directory it uses it for
+everything, exactly as it always did, and never writes anywhere else.
+Upgrading j will not move your mail or your preferences.
+
+<p>
+
+When you want the new layout, start j once with the
+<code>--migrate-to-xdg</code> option:
+
+<pre>
+    j --migrate-to-xdg
+</pre>
+
+<p>
+
+j moves each file to its new home, discards the few that are recreated on every
+run anyway (the port, swank and log files), and then starts up on the new
+layout. Nothing is overwritten: if a file already exists at its destination,
+the copy in <code>~/.j</code> is left where it is. Anything j does not
+recognize &mdash; and anything that could not be moved &mdash; stays in
+<code>~/.j</code>, which is renamed to <code>~/.j.migrated</code> so that j
+does not mistake it for a layout to go back to. j prints what it did, so read
+the output before deleting anything.
+
+<h2>Putting everything somewhere else</h2>
+
+<p>
+
+The <code>--home</code> option still overrides all of this. Given
+<code>--home=<i>directory</i></code>, j ignores the <code>$XDG_*</code>
+variables and uses <code><i>directory</i>/.config/j</code>,
+<code><i>directory</i>/.local/share/j</code>,
+<code><i>directory</i>/.local/state/j</code> and
+<code><i>directory</i>/.cache/j</code>. This is the way to run two independent
+copies of j, or to keep j's files on a removable disk.
+
+</body>
+
+</html>

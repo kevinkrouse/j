@@ -42,7 +42,7 @@ public final class Autosave implements Constants
     {
         if (!initialized) {
             autosaveDirectory =
-                File.getInstance(Directories.getEditorDirectory(), "autosave");
+                File.getInstance(Directories.getStateDirectory(), "autosave");
             if (autosaveDirectory != null) {
                 if (!autosaveDirectory.isDirectory()) {
                     autosaveDirectory.mkdirs();
@@ -198,6 +198,6 @@ public final class Autosave implements Constants
 
     private static final File getRecoverDirectory()
     {
-        return File.getInstance(Directories.getEditorDirectory(), "recover");
+        return File.getInstance(Directories.getStateDirectory(), "recover");
     }
 }

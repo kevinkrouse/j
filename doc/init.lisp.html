@@ -10,8 +10,8 @@
 <h1>init.lisp</h1>
 <hr>
 <p>
-Starting (officially) with version 0.20.0, j loads the file ~/.j/init.lisp
-(Unix) or C:\.j\init.lisp (Windows) on startup if it exists. This is done after
+Starting (officially) with version 0.20.0, j loads the file ~/.config/j/init.lisp
+on startup if it exists. This is done after
 the user's preferences, theme, and custom key maps (if any) have been loaded.
 <p>
 The following commands are officially supported:
@@ -45,7 +45,7 @@ If you make changes to init.lisp while j is running, you can use
 <a href="commands.html#executeCommand">executeCommand</a>, mapped by default to
 Alt X, to reload init.lisp without restarting j, for example:
 <pre>
-        (load "/home/peter/.j/init.lisp")
+        (load "/home/peter/.config/j/init.lisp")
 </pre>
 or:
 <pre>

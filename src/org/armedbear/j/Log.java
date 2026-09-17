@@ -214,12 +214,12 @@ public final class Log
 
     private static final File getLogFile()
     {
-        return File.getInstance(Directories.getEditorDirectory(), "log");
+        return File.getInstance(Directories.getStateDirectory(), "log");
     }
 
     private static final File getBackupLogFile(int index)
     {
-        return File.getInstance(Directories.getEditorDirectory(),
+        return File.getInstance(Directories.getStateDirectory(),
             "log.".concat(String.valueOf(index)));
     }
 
