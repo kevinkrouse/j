@@ -21,6 +21,7 @@
 package org.armedbear.j.vcs;
 
 import org.armedbear.j.Buffer;
+import org.armedbear.j.Constants;
 
 public abstract class VersionControlEntry
 {
@@ -48,4 +49,10 @@ public abstract class VersionControlEntry
     public abstract String getStatusText();
 
     public abstract String getLongStatusText();
+
+    /** The status as one of the VCS_ constants. */
+    public int getStatusKind()
+    {
+        return Constants.VCS_UNKNOWN;
+    }
 }

@@ -1762,6 +1762,6 @@ public final class Jdb extends Buffer implements JdbConstants
 
     public Icon getIcon()
     {
-        return Utilities.getIconFromFile("jpty.png");
+        return Utilities.getIconFromFile("jpty");
     }
 }

@@ -2134,7 +2134,7 @@ public final class DirectoryBuffer extends Buffer
     // For the buffer list.
     public final Icon getIcon()
     {
-        return Utilities.getIconFromFile("directory.png");
+        return Utilities.getIconFromFile("directory");
     }
 }
 

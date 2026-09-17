@@ -188,7 +188,7 @@ public class HistoryTextField extends JTextField implements FocusListener,
     {
         // Swing lays this field out, so let it place glyphs at their true
         // advances instead of rounding each one to a whole pixel.
-        Display.setRenderingHints(g, true);
+        Display.setRenderingHints(g);
         super.paintComponent(g);
     }
 

@@ -21,6 +21,7 @@
 package org.armedbear.j.vcs;
 
 import org.armedbear.j.Buffer;
+import org.armedbear.j.vcs.git.GitStatusCache;
 import org.armedbear.j.BufferIterator;
 import org.armedbear.j.Constants;
 import org.armedbear.j.Directories;
@@ -44,6 +45,11 @@ import java.util.ArrayList;
 
 public abstract class VersionControl implements Constants
 {
+  public static void invalidate()
+  {
+    GitStatusCache.invalidate();
+  }
+
   public static VersionControlEntry getEntry(Buffer buffer)
   {
       int vc;

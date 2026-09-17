@@ -126,7 +126,7 @@ public final class PasswordDialog extends JDialog implements FocusListener,
         public void paintComponent(Graphics g)
         {
             // Laid out by Swing; see Display.setRenderingHints.
-            Display.setRenderingHints(g, true);
+            Display.setRenderingHints(g);
             super.paintComponent(g);
         }
     }

@@ -370,9 +370,9 @@ public final class DirectoryTree extends SidebarTree implements NavigationCompon
         public void updateUI()
         {
             super.updateUI();
-            setOpenIcon(Utilities.getIconFromFile("dir_open.png"));
-            setClosedIcon(Utilities.getIconFromFile("dir_close.png"));
-            setLeafIcon(Utilities.getIconFromFile("dir_close.png"));
+            setOpenIcon(Utilities.getIconFromFile("dir_open"));
+            setClosedIcon(Utilities.getIconFromFile("dir_close"));
+            setLeafIcon(Utilities.getIconFromFile("dir_close"));
         }
 
         public Component getTreeCellRendererComponent(

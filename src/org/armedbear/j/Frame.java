@@ -42,6 +42,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JComponent;
 import javax.swing.JFrame;
@@ -109,12 +110,14 @@ public final class Frame extends JFrame implements Constants, ComponentListener,
 
     private void setIconImages()
     {
-        String[] imageNames = new String[] { "icons/j-512.png", "icons/j-128.png", "icons/j-32.png", "icons/j-16.png" };
-        ArrayList<Image> images = new ArrayList<Image>(imageNames.length);
-        for (String imageName : imageNames) {
-            Image image = Utilities.getImageFromFile(imageName);
-            if (image != null)
-                images.add(image);
+        // Drawn from the vector logo at each size the window manager might ask
+        // for, rather than scaled from one bitmap.
+        final int[] sizes = new int[] { 16, 32, 64, 128, 256 };
+        ArrayList<Image> images = new ArrayList<Image>(sizes.length);
+        for (int i = 0; i < sizes.length; i++) {
+            ImageIcon icon = Utilities.getIconFromFile("j-logo", sizes[i]);
+            if (icon != null)
+                images.add(icon.getImage());
         }
 
         setIconImages(images);

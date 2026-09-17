@@ -51,21 +51,23 @@ public final class ToolBarButton extends JButton implements ActionListener,
 
     public void setIconFromFile(String filename)
     {
+        final int size = ToolBar.iconSize();
         ImageIcon icon;
-        if (Utilities.isFilenameAbsolute(filename))
+        if (Utilities.isFilenameAbsolute(filename)) {
+            // An icon supplied by an extension, as a file on disk. Still a
+            // bitmap, so it may need resizing.
             icon = new ImageIcon(filename);
-        else {
-            icon = Utilities.getIconFromFile(filename);
-        }
-
-        if (icon != null) {
-            int size = ToolBar.iconSize();
             if (icon.getIconWidth() != size || icon.getIconHeight() != size) {
-                Image img = icon.getImage().getScaledInstance(size, size, Image.SCALE_SMOOTH);
-                icon = new ImageIcon(img);
+                Image image =
+                    icon.getImage().getScaledInstance(size, size, Image.SCALE_SMOOTH);
+                icon = new ImageIcon(image);
             }
-            setIcon(icon);
+        } else {
+            // One of j's own icons: drawn at exactly the size asked for.
+            icon = Utilities.getIconFromFile(filename, size);
         }
+        if (icon != null)
+            setIcon(icon);
     }
 
     protected void paintBorder(Graphics g)

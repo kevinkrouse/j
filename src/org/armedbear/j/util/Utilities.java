@@ -29,6 +29,8 @@ import java.awt.Color;
 import java.awt.Component;
 import java.awt.Graphics;
 import java.awt.Image;
+import java.awt.AlphaComposite;
+import java.awt.Graphics2D;
 import java.awt.event.KeyEvent;
 import java.awt.image.BufferedImage;
 import java.io.BufferedInputStream;
@@ -70,6 +72,7 @@ import org.armedbear.j.MessageDialog;
 import org.armedbear.j.Mode;
 import org.armedbear.j.Path;
 import org.armedbear.j.Platform;
+import org.armedbear.j.Preferences;
 import org.armedbear.j.Position;
 import org.armedbear.j.Property;
 import org.armedbear.j.UIScale;
@@ -1399,46 +1402,163 @@ public final class Utilities implements Constants
         }
     }
 
-    // Cache of scaled for the display
+    // The size j's icons are drawn for before the display scale is applied.
+    public static final int ICON_SIZE = 16;
+
+    // Geometry, parsed once per icon and shared by every size and colour.
+    private static final HashMap<String, SvgIcon> svgCache =
+        new HashMap<String, SvgIcon>();
+
+    // Painted icons, keyed by name + badges and size. Renderers ask for an icon
+    // on every row of every repaint, so this is the cache that matters.
     private static final HashMap<String, ImageIcon> iconCache =
         new HashMap<String, ImageIcon>();
 
-    public static synchronized ImageIcon getIconFromFile(String iconFile)
+    private static Color iconColor;
+
+    /** An icon from j's own set, at the standard size, scaled for the display. */
+    public static ImageIcon getIconFromFile(String name)
     {
-        if (iconCache.containsKey(iconFile))
-            return iconCache.get(iconFile);
-        String path = "images/".concat(iconFile);
-        URL url = Editor.class.getResource(path);
-        if (url == null) {
-            Log.warn("failed to get icon: " + iconFile);
+        return getIconFromFile(name, UIScale.scale(ICON_SIZE));
+    }
+
+    /** The icon rendered at exactly {@code size} pixels. */
+    public static synchronized ImageIcon getIconFromFile(String name, int size)
+    {
+        if (size <= 0)
             return null;
+        final String key = name + '@' + size;
+        if (iconCache.containsKey(key))
+            return iconCache.get(key);
+
+        ImageIcon icon = null;
+        try {
+            SvgIcon svg = getSvgIcon(name);
+            if (svg != null) {
+                BufferedImage image =
+                    new BufferedImage(size, size, BufferedImage.TYPE_INT_ARGB);
+                Graphics2D g2d = image.createGraphics();
+                try {
+                    svg.paint(g2d, size);
+                }
+                finally {
+                    g2d.dispose();
+                }
+                icon = new ImageIcon(image);
+            }
         }
-        ImageIcon icon = scaleIcon(new ImageIcon(url));
-        iconCache.put(iconFile, icon);
+        catch (Throwable t) {
+            Log.error(t);
+        }
+        iconCache.put(key, icon);
         return icon;
     }
 
-    // Called when uiScale changes
+    /**
+     * A base icon with badges drawn over it, separated by a cleared gap.
+     *
+     * <p>A badge sits in a corner of the same 16 by 16 field as the icon it
+     * marks, so the two can touch. Each badge first erases a fattened silhouette
+     * of itself from what has been drawn so far. Because this is composited
+     * into a transparent image, erasing shows the background the icon is sitting
+     * on, whatever that happens to be, rather than punching a hole in the row.
+     *
+     * @param badges drawn in order; nulls are skipped so a caller can pass a
+     *               badge it may not have without branching.
+     */
+    public static ImageIcon getBadgedIcon(String base, String... badges)
+    {
+        return getBadgedIcon(UIScale.scale(ICON_SIZE), base, badges);
+    }
+
+    public static synchronized ImageIcon getBadgedIcon(int size, String base,
+                                                       String... badges)
+    {
+        if (size <= 0 || base == null)
+            return null;
+        StringBuilder sb = new StringBuilder(base);
+        for (int i = 0; i < badges.length; i++) {
+            if (badges[i] != null)
+                sb.append('+').append(badges[i]);
+        }
+        sb.append('@').append(size);
+        final String key = sb.toString();
+        if (iconCache.containsKey(key))
+            return iconCache.get(key);
+
+        ImageIcon icon = null;
+        try {
+            SvgIcon baseIcon = getSvgIcon(base);
+            if (baseIcon != null) {
+                BufferedImage image =
+                    new BufferedImage(size, size, BufferedImage.TYPE_INT_ARGB);
+                Graphics2D g2d = image.createGraphics();
+                try {
+                    baseIcon.paint(g2d, size);
+                    for (int i = 0; i < badges.length; i++) {
+                        if (badges[i] == null)
+                            continue;
+                        SvgIcon badge = getSvgIcon(badges[i]);
+                        if (badge == null)
+                            continue;
+                        g2d.setComposite(AlphaComposite.Clear);
+                        badge.paintOutline(g2d, size, BADGE_GAP);
+                        g2d.setComposite(AlphaComposite.SrcOver);
+                        badge.paint(g2d, size);
+                    }
+                }
+                finally {
+                    g2d.dispose();
+                }
+                icon = new ImageIcon(image);
+            }
+        }
+        catch (Throwable t) {
+            Log.error(t);
+        }
+        iconCache.put(key, icon);
+        return icon;
+    }
+
+    // How far a badge holds the drawing underneath it at bay, in the icon's own
+    // 16 unit coordinates.
+    private static final float BADGE_GAP = 1.6f;
+
+    private static SvgIcon getSvgIcon(String name) throws Exception
+    {
+        if (svgCache.containsKey(name))
+            return svgCache.get(name);
+        SvgIcon svg = null;
+        try {
+            svg = new SvgIcon(name, getIconColor());
+        }
+        catch (IllegalArgumentException e) {
+            Log.warn("failed to get icon: " + name + " (" + e.getMessage() + ")");
+        }
+        svgCache.put(name, svg);
+        return svg;
+    }
+
+
+    public static synchronized Color getIconColor()
+    {
+        if (iconColor == null) {
+            Preferences preferences = Editor.preferences();
+            if (preferences != null) {
+                String s = preferences.getStringProperty(Property.ICON_COLOR);
+                if (s != null && s.trim().length() > 0)
+                    iconColor = SvgIcon.parseColor(s, null);
+            }
+        }
+        return iconColor;
+    }
+
+    /** Called when uiScale, the theme, or any other icon input changes. */
     public static synchronized void clearIconCache()
     {
         iconCache.clear();
-    }
-
-    // j's icons are authored at 16 and 24 pixels, for a 96 dpi screen.
-    private static ImageIcon scaleIcon(ImageIcon icon)
-    {
-        final double scale = UIScale.getScale();
-        if (icon == null || scale == 1.0)
-            return icon;
-        final int w = icon.getIconWidth();
-        final int h = icon.getIconHeight();
-        if (w <= 0 || h <= 0)
-            return icon;
-        Image scaled =
-            icon.getImage().getScaledInstance((int) Math.round(w * scale),
-                                              (int) Math.round(h * scale),
-                                              Image.SCALE_SMOOTH);
-        return new ImageIcon(scaled);
+        svgCache.clear();
+        iconColor = null;
     }
 
     public static BufferedImage getImageFromFile(String iconFile)

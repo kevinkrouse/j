@@ -104,7 +104,9 @@ public class JavaTagger extends Tagger implements Constants
           {
             if (c == '{')
               {
+                // A static initializer, not a modifier on a declaration.
                 skipBrace();
+                visibility = 0;
                 state = NEUTRAL;
                 continue;
               }
@@ -308,7 +310,14 @@ public class JavaTagger extends Tagger implements Constants
             else if (token.equals("class"))
               state = CLASS_NAME;
             else if (token.equals("static"))
-              state = STATIC_INITIALIZER;
+              {
+                visibility |= TAG_STATIC;
+                state = STATIC_INITIALIZER;
+              }
+            else if (token.equals("abstract"))
+              visibility |= TAG_ABSTRACT;
+            else if (token.equals("final"))
+              visibility |= TAG_FINAL;
             else if (token.equals("new"))
               // Don't be confused by lines like "Runnable r = new Runnable() { ... };"
               state = NEW;

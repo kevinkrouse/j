@@ -1468,6 +1468,8 @@ public class Buffer extends SystemBuffer
                 buf.reload();
         }
 
+        // clear the vcs snapshot and recheck
+        VersionControl.invalidate();
         checkVCS();
 
         if (repaint) {
@@ -1746,6 +1748,7 @@ public class Buffer extends SystemBuffer
             saved();
             changeFile(destination);
             setLastModified(getFile().lastModified());
+            VersionControl.invalidate();
             checkVCS();
             final String encoding = destination.getEncoding();
             if (encoding != null)
@@ -2579,12 +2582,12 @@ public class Buffer extends SystemBuffer
     // For the buffer list.
     public Icon getIcon()
     {
+        String badge = null;
         if (isModified())
-            return Utilities.getIconFromFile("modified.png");
+            badge = "modified";
         else if (isReadOnly())
-            return Utilities.getIconFromFile("read_only.png");
-        else
-            return Utilities.getIconFromFile("buffer.png");
+            badge = "locked";
+        return Utilities.getBadgedIcon("buffer", badge);
     }
 
     public final int getCol(Position pos)
@@ -3133,15 +3136,69 @@ public class Buffer extends SystemBuffer
     }
 
     private VersionControlEntry vcsEntry;
+    private boolean vcsChecked;
 
     public final VersionControlEntry getVCSEntry()
     {
         return vcsEntry;
     }
 
+    /** The version control status of this buffer, as a VCS_ constant. */
+    public final int getVCStatusKind()
+    {
+        return vcsEntry != null ? vcsEntry.getStatusKind() : VCS_UNKNOWN;
+    }
+
+    /** True once this buffer's version control status has been looked up. */
+    public final boolean isVCSChecked()
+    {
+        return vcsChecked;
+    }
+
     public final void checkVCS()
     {
         vcsEntry = VersionControl.getEntry(this);
+        vcsChecked = true;
+    }
+
+    /**
+     * Looks up version control for every buffer that hasn't been checked.
+     *
+     * Not very efficient since we shell out once for every buffer, but
+     * it is fine for a small buffer list.
+     */
+    public static void checkVCSForAllBuffers(final Runnable whenDone)
+    {
+        final List<Buffer> pending = new ArrayList<Buffer>();
+        for (BufferIterator it = new BufferIterator(); it.hasNext();) {
+            Buffer buf = it.next();
+            if (buf != null && !buf.isVCSChecked() && buf.getFile() != null
+                && !buf.getFile().isRemote())
+                pending.add(buf);
+        }
+        if (pending.isEmpty())
+            return;
+        VersionControl.invalidate();
+        Thread thread = new Thread("check version control") {
+            public void run()
+            {
+                for (int i = 0; i < pending.size(); i++) {
+                    try {
+                        pending.get(i).checkVCS();
+                    }
+                    catch (Throwable t) {
+                        Log.error(t);
+                        // Don't let one bad file stop the rest.
+                        pending.get(i).vcsChecked = true;
+                    }
+                }
+                if (whenDone != null)
+                    SwingUtilities.invokeLater(whenDone);
+            }
+        };
+        thread.setDaemon(true);
+        thread.setPriority(Thread.MIN_PRIORITY);
+        thread.start();
     }
 
     public final boolean isKeyword(String s)

@@ -2050,25 +2050,19 @@ public final class Display extends JComponent implements Constants,
         return null;
     }
 
-    public static void setRenderingHints(Graphics g)
-    {
-        setRenderingHints(g, false);
-    }
-
     /**
      * Applies j's text rendering settings to a Graphics.
      *
-     * <p>fractionalMetrics must stay false for the editor's own text: charWidth
-     * and all the column arithmetic built on it are whole pixels, so fractional
-     * advances would drift the glyphs away from the caret.
-     *
-     * <p>It should be true for a component Swing lays out itself, such as a
-     * text field. Rounding every glyph advance to a whole pixel visibly ragged-
-     * ens text whose natural advance isn't one -- the logical Monospaced font
-     * advances 13.245 pixels at 22 point but 13 with integer metrics, and a
-     * quarter pixel per character accumulates into uneven gaps along a path.
+     * <p>Fractional metrics stay off everywhere. The editor needs that because
+     * charWidth and all the column arithmetic built on it are whole pixels. Text
+     * fields need it for a subtler reason: Swing paints their glyphs with the
+     * hints set here, but works out where the caret and the selection go from a
+     * Graphics it fetches separately, which carries the defaults. Turning
+     * fractional metrics on for the painting alone leaves the two disagreeing,
+     * and the error accumulates along the string until the caret sits visibly
+     * inside the wrong character.
      */
-    public static void setRenderingHints(Graphics g, boolean fractionalMetrics)
+    public static void setRenderingHints(Graphics g)
     {
         if (!antialias)
             return;
@@ -2078,9 +2072,7 @@ public final class Display extends JComponent implements Constants,
                              hint != null ? hint
                                           : RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
         g2d.setRenderingHint(RenderingHints.KEY_FRACTIONALMETRICS,
-                             fractionalMetrics
-                                 ? RenderingHints.VALUE_FRACTIONALMETRICS_ON
-                                 : RenderingHints.VALUE_FRACTIONALMETRICS_OFF);
+                             RenderingHints.VALUE_FRACTIONALMETRICS_OFF);
     }
 
     public String getToolTipText(MouseEvent e)

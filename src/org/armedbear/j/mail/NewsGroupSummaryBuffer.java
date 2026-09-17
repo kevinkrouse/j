@@ -322,7 +322,7 @@ public final class NewsGroupSummaryBuffer extends MailboxBuffer
     // For the buffer list.
     public Icon getIcon()
     {
-        return Utilities.getIconFromFile("mailbox.png");
+        return Utilities.getIconFromFile("mailbox");
     }
 
     public void getNewMessages()

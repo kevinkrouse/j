@@ -24,6 +24,10 @@ import java.lang.StringBuilder;
 
 import java.awt.Color;
 import java.awt.Component;
+import java.awt.Dimension;
+import java.awt.FontMetrics;
+import java.awt.Graphics;
+import java.awt.Insets;
 import java.awt.Cursor;
 import java.awt.Point;
 import java.awt.Rectangle;
@@ -44,6 +48,8 @@ import java.awt.dnd.DropTargetDragEvent;
 import java.awt.dnd.DropTargetDropEvent;
 import java.awt.dnd.DropTargetEvent;
 import java.awt.dnd.DropTargetListener;
+import java.awt.event.ComponentAdapter;
+import java.awt.event.ComponentEvent;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.InputEvent;
@@ -116,6 +122,14 @@ public final class SidebarBufferTree extends SidebarTree implements Constants,
         addMouseMotionListener(this);
         setToolTipText("");
         setRootVisible(false);
+        // The rows are laid out against the width of the view, so a change to
+        // that width has to throw away the sizes the tree cached for them.
+        addComponentListener(new ComponentAdapter() {
+            public void componentResized(ComponentEvent e) {
+                updateRowIndent();
+                invalidateRowSizes();
+            }
+        });
 
         dragSource = DragSource.getDefaultDragSource() ;
         DragGestureRecognizer dgr =
@@ -179,6 +193,64 @@ public final class SidebarBufferTree extends SidebarTree implements Constants,
         updateFlag |= mask;
     }
 
+    // How far the first row is inset. Measured by the tree, never by the cell
+    // renderer: getRowBounds() consults the layout cache, which calls the
+    // renderer, so asking from inside the renderer overflows the stack.
+    private int rowIndent;
+    private boolean measuringRowIndent;
+
+    int getRowIndent()
+    {
+        return rowIndent;
+    }
+
+    private void updateRowIndent()
+    {
+        if (measuringRowIndent)
+            return;
+        measuringRowIndent = true;
+        try {
+            if (getRowCount() > 0) {
+                java.awt.Rectangle bounds = getRowBounds(0);
+                if (bounds != null)
+                    rowIndent = bounds.x;
+            }
+        }
+        catch (Throwable t) {
+            Log.error(t);
+        }
+        finally {
+            measuringRowIndent = false;
+        }
+    }
+
+    /**
+     * Makes the tree measure its rows again. treeDidChange() revalidates the
+     * layout but keeps the cached row sizes; the UI drops those when the
+     * renderer changes. The null in between matters, because setting the same
+     * renderer twice fires no property change.
+     */
+    private void invalidateRowSizes()
+    {
+        TreeCellRenderer renderer = getCellRenderer();
+        if (renderer != null) {
+            setCellRenderer(null);
+            setCellRenderer(renderer);
+        }
+        revalidate();
+        repaint();
+    }
+
+    /**
+     * Fills the view rather than scrolling sideways to the widest row: the
+     * status column needs a right edge to sit against, and long names are
+     * ellipsised to reach it.
+     */
+    public boolean getScrollableTracksViewportWidth()
+    {
+        return true;
+    }
+
     public synchronized void updateBufferList()
     {
         if (!SwingUtilities.isEventDispatchThread())
@@ -201,6 +273,7 @@ public final class SidebarBufferTree extends SidebarTree implements Constants,
             scrollPathToVisible(getSelectionPath());
         boolean repaint = (updateFlag & SIDEBAR_REPAINT_BUFFER_LIST) != 0;
         updateFlag = 0;
+        updateRowIndent();
         if (repaint) {
             // Schedule a repaint.
             repaint();
@@ -897,6 +970,14 @@ public final class SidebarBufferTree extends SidebarTree implements Constants,
 
         private final Sidebar sidebar;
 
+        // Status of the row currently being drawn, painted after the name.
+        private int statusKind = VCS_UNKNOWN;
+
+        // The name before any ellipsis, and where this row starts.
+        private String fullText;
+        private int rowIndent;
+        private JTree tree;
+
         public SidebarTreeCellRenderer(Sidebar sidebar)
         {
             super();
@@ -914,14 +995,22 @@ public final class SidebarBufferTree extends SidebarTree implements Constants,
             if (value instanceof DefaultMutableTreeNode)
                 userObject = ((DefaultMutableTreeNode)value).getUserObject();
             Border innerBorder = null;
+            this.tree = tree;
+            this.rowIndent = (tree instanceof SidebarBufferTree)
+                           ? ((SidebarBufferTree) tree).getRowIndent() : 0;
             if (userObject instanceof Buffer) {
-                setText(userObject.toString());
+                fullText = userObject.toString();
+                setText(fullText);
                 Buffer buffer = (Buffer) userObject;
                 setIcon(buffer.getIcon());
+                statusKind = buffer.getVCStatusKind();
                 if (buffer.isSecondary())
                     innerBorder = new EmptyBorder(0, UIScale.scale(10), 0, 0);
-            } else
+            } else {
                 setIcon(null);
+                statusKind = VCS_UNKNOWN;
+                fullText = null;
+            }
             Frame frame = sidebar.getFrame();
             if (selected) {
                 if (frame.isActive() && tree.hasFocus())
@@ -941,7 +1030,112 @@ public final class SidebarBufferTree extends SidebarTree implements Constants,
             else
                 outerBorder = noFocusBorder;
             setBorder(new CompoundBorder(outerBorder, innerBorder));
+            fitText();
             return this;
+        }
+
+        private static String statusLetter(int kind)
+        {
+            switch (kind) {
+                case VCS_NEW:      return "A";
+                case VCS_MODIFIED: return "M";
+                case VCS_DELETED:  return "D";
+                case VCS_CONFLICT: return "C";
+                default:           return null;
+            }
+        }
+
+        private static Color statusColor(int kind)
+        {
+            switch (kind) {
+                case VCS_NEW:      return new Color(0x3F9142); // green
+                case VCS_MODIFIED: return new Color(0x2B6CB0); // blue
+                case VCS_DELETED:  return new Color(0x8B1A1A); // dark red
+                case VCS_CONFLICT: return new Color(0xE03131); // bright red
+                default:           return null;
+            }
+        }
+
+        private int statusGap()
+        {
+            return UIScale.scale(6);
+        }
+
+        private int statusWidth()
+        {
+            FontMetrics fm = getFontMetrics(getFont());
+            return fm != null ? fm.charWidth('M') : UIScale.scale(8);
+        }
+
+        /** Width reserved on the right for the status column, gap included. */
+        private int statusColumnWidth()
+        {
+            return statusGap() + statusWidth();
+        }
+
+        /** Stretches the row to the full width of the tree. */
+        public Dimension getPreferredSize()
+        {
+            Dimension size = super.getPreferredSize();
+            size.width += statusColumnWidth();
+            if (size.width < 0)
+                size.width = 0;
+            if (tree != null) {
+                java.awt.Rectangle visible = tree.getVisibleRect();
+                int available = visible.width - rowIndent;
+                if (available > size.width)
+                    size.width = available;
+            }
+            return size;
+        }
+
+        /** Shortens the name so it cannot run under the status column. */
+        private void fitText()
+        {
+            if (fullText == null)
+                return;
+            setText(fullText);
+            if (tree == null)
+                return;
+            final int viewport = tree.getVisibleRect().width;
+            if (viewport <= 0)
+                return;
+            Insets insets = getInsets();
+            int available = viewport - rowIndent
+                          - (insets != null ? insets.left + insets.right : 0)
+                          - statusColumnWidth();
+            if (getIcon() != null)
+                available -= getIcon().getIconWidth() + getIconTextGap();
+            setText(ellipsize(fullText, getFontMetrics(getFont()), available));
+        }
+
+        public void paintComponent(Graphics g)
+        {
+            Display.setRenderingHints(g);
+            super.paintComponent(g);
+            final String letter = statusLetter(statusKind);
+            if (letter == null)
+                return;
+            FontMetrics fm = g.getFontMetrics();
+            int x = getWidth() - statusWidth()
+                  + (statusWidth() - fm.stringWidth(letter)) / 2;
+            int y = (getHeight() + fm.getAscent() - fm.getDescent()) / 2;
+            g.setColor(statusColor(statusKind));
+            g.drawString(letter, x, y);
+        }
+
+        private static String ellipsize(String text, FontMetrics fm, int width)
+        {
+            if (fm == null || width <= 0 || fm.stringWidth(text) <= width)
+                return text;
+            final String suffix = "…";
+            final int room = width - fm.stringWidth(suffix);
+            if (room <= 0)
+                return suffix;
+            int n = text.length();
+            while (n > 0 && fm.stringWidth(text.substring(0, n)) > room)
+                --n;
+            return text.substring(0, n) + suffix;
         }
     }
 

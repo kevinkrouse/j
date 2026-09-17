@@ -1010,6 +1010,20 @@ Example:
 <b>Default value:</b> None
 </dl>
 
+<code><a name="iconColor">iconColor</a></code>
+<dl>
+<dd>
+The color to draw the icons in as <code>#rrggbb</code>.
+<p>
+If this is not set, each icon uses the color named in its own file.
+<p>
+<b>See also:</b> <a href="#uiScale">uiScale</a>,
+<a href="icons.html">Icons</a>,
+<a href="themes.html">Themes</a>
+<p>
+<b>Default value:</b> None
+</dl>
+
 <code><a name="imapUseLocalCache">imapUseLocalCache</a></code>
 <dl>
 <dd>
@@ -1744,7 +1758,8 @@ Regular expression to match prompts in a telnet buffer.
 <code><a name="ToolBar.iconSize">ToolBar.iconSize</a></code>
 <dl>
 <dd>
-Size of the toolbar icons.  Currently, only sizes 24 and 16 are supported.
+Size of the toolbar icons -- see
+<a href="#uiScale">uiScale</a>.
 <p>
 <b>Default value:</b> 24
 </dl>
@@ -1771,7 +1786,7 @@ If true, toolbar buttons contain icons.
 <dd>
 If true, toolbar buttons contain text.
 <p>
-<b>Default value:</b> true
+<b>Default value:</b> false
 </dl>
 
 <code><a name="textFieldFontName">textFieldFontName</a></code>

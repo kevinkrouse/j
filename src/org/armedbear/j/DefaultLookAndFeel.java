@@ -84,9 +84,9 @@ public final class DefaultLookAndFeel extends DefaultMetalTheme
             // Default customizations.
             MetalLookAndFeel.setCurrentTheme(new DefaultLookAndFeel());
             UIManager.put("Tree.collapsedIcon",
-                          Utilities.getIconFromFile("collapsed.png"));
+                          Utilities.getIconFromFile("collapsed"));
             UIManager.put("Tree.expandedIcon",
-                          Utilities.getIconFromFile("expanded.png"));
+                          Utilities.getIconFromFile("expanded"));
         } else {
             MetalLookAndFeel.setCurrentTheme(new DefaultMetalTheme());
         }

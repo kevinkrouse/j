@@ -115,9 +115,7 @@ public class ToolBar extends JToolBar implements ActionListener
 
     private static boolean textEnabled()
     {
-        // Defaults to true for j's default look and feel.
-        return preferences.getBooleanProperty(Property.TOOL_BAR_SHOW_TEXT,
-            Editor.lookAndFeel == null);
+        return preferences.getBooleanProperty(Property.TOOL_BAR_SHOW_TEXT);
     }
 
     private static boolean iconsEnabled()
@@ -128,9 +126,7 @@ public class ToolBar extends JToolBar implements ActionListener
 
     public static boolean isRolloverEnabled()
     {
-        // Defaults to true for j's default look and feel.
-        return preferences.getBooleanProperty(Property.TOOL_BAR_IS_ROLLOVER,
-            Editor.lookAndFeel == null);
+        return preferences.getBooleanProperty(Property.TOOL_BAR_IS_ROLLOVER);
     }
 
     public static int iconSize()

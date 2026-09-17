@@ -643,9 +643,9 @@ public final class XmlTree extends JTree implements Constants, NavigationCompone
         public void updateUI()
         {
             super.updateUI();
-            setOpenIcon(Utilities.getIconFromFile("branch.png"));
-            setClosedIcon(Utilities.getIconFromFile("branch.png"));
-            setLeafIcon(Utilities.getIconFromFile("leaf.png"));
+            setOpenIcon(Utilities.getIconFromFile("branch"));
+            setClosedIcon(Utilities.getIconFromFile("branch"));
+            setLeafIcon(Utilities.getIconFromFile("leaf"));
         }
 
         public Component getTreeCellRendererComponent(

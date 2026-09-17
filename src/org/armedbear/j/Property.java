@@ -220,7 +220,7 @@ public final class Property implements Comparable, Constants
     public static final Property TOOL_BAR_SHOW_ICONS =
         createProperty("ToolBar.showIcons", true);
     public static final Property TOOL_BAR_SHOW_TEXT =
-        createProperty("ToolBar.showText", true);
+        createProperty("ToolBar.showText", false);
     public static final Property UNDELETE_ADVANCE_DOT =
         createProperty("undeleteAdvanceDot", true);
     public static final Property UNDERLINE_BOLD =
@@ -259,6 +259,10 @@ public final class Property implements Comparable, Constants
         createProperty("sshPromptPattern", DEFAULT_SHELL_PROMPT_PATTERN);
     public static final Property TELNET_PROMPT_PATTERN =
         createProperty("telnetPromptPattern", DEFAULT_SHELL_PROMPT_PATTERN);
+    // icon colos. Empty means use the color named in its own file.
+    public static final Property ICON_COLOR =
+        createProperty("iconColor", "");
+
     // Scale factor for j's built-in sizes on a high resolution display.
     // A fractional value is allowed, so this is stored as a string. Unset or
     // 0 means detect it from the display; see UIScale.

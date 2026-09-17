@@ -594,13 +594,13 @@ public final class JavaTree extends SidebarTree implements Constants,
                     setText(t.getSidebarText());
                 } else if (obj instanceof String) {
                     if (obj.equals(CAPTION_FIELDS))
-                        setIcon(Utilities.getIconFromFile("field.png"));
+                        setIcon(Utilities.getIconFromFile("field"));
                     else if (obj.equals(CAPTION_CONSTRUCTORS))
-                        setIcon(Utilities.getIconFromFile("method.png"));
+                        setIcon(Utilities.getIconFromFile("method"));
                     else if (obj.equals(CAPTION_METHODS))
-                        setIcon(Utilities.getIconFromFile("method.png"));
+                        setIcon(Utilities.getIconFromFile("method"));
                     else if (obj.equals(CAPTION_NESTED_CLASSES))
-                        setIcon(Utilities.getIconFromFile("class.png"));
+                        setIcon(Utilities.getIconFromFile("class"));
                 }
             }
             return this;

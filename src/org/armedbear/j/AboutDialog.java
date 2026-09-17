@@ -69,7 +69,7 @@ public class AboutDialog extends AbstractDialog
                         GridBagConstraints.NONE,
                         new Insets(0, 0, 0, 0), 0, 0);
 
-        ImageIcon image = Utilities.getIconFromFile("icons/j-64.png");
+        ImageIcon image = Utilities.getIconFromFile("j-logo", UIScale.scale(64));
         JLabel icon = new JLabel(image);
 
         icon.setOpaque(false);
@@ -77,11 +77,13 @@ public class AboutDialog extends AbstractDialog
 
         contents.add(icon, c);
 
-        Font productFont = mainPanel.getFont().deriveFont(Font.BOLD, 11);
-        Font buildFont = mainPanel.getFont().deriveFont(Font.PLAIN, 11);
-
-        Font plainFont = mainPanel.getFont().deriveFont(Font.PLAIN, 10);
-        Font boldFont = mainPanel.getFont().deriveFont(Font.BOLD, 10);
+        Font base = UIManager.getFont("Label.font");
+        if (base == null)
+            base = mainPanel.getFont();
+        Font plainFont = base.deriveFont(Font.PLAIN);
+        Font boldFont = base.deriveFont(Font.BOLD);
+        Font productFont = boldFont;
+        Font buildFont = plainFont;
 
         c.gridy = 0;
         c.insets = new Insets(10, 0, 0, 0);

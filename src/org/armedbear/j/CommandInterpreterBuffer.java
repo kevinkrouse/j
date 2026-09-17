@@ -125,7 +125,7 @@ public class CommandInterpreterBuffer extends Buffer
 
     public Icon getIcon()
     {
-        return Utilities.getIconFromFile("jpty.png");
+        return Utilities.getIconFromFile("jpty");
     }
 
     public int load()

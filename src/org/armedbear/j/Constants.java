@@ -107,12 +107,28 @@ public interface Constants
 
     int TAG_VISIBILITY_MASK      = 0x0007;
 
+    // Modifiers (also stored in the LocalTag flags field).
+    int TAG_STATIC               = 0x0008;
+    int TAG_ABSTRACT             = 0x0010;
+    int TAG_FINAL                = 0x0020;
+
+    int TAG_MODIFIER_MASK        = 0x0038;
+
     // Version control.
     int VC_CVS                   = 1;
     int VC_P4                    = 2;
     int VC_DARCS                 = 3;
     int VC_SVN                   = 4;
     int VC_GIT                   = 5;
+
+    // Version control status, normalised across backends so the buffer list
+    // doesn't have to know how any one of them spells things.
+    int VCS_UNKNOWN              = 0;
+    int VCS_UNCHANGED            = 1;
+    int VCS_NEW                  = 2;
+    int VCS_MODIFIED             = 3;
+    int VCS_DELETED              = 4;
+    int VCS_CONFLICT             = 5;
 
     String CHECK_SAVE_PROMPT  = "Buffer is modified; save it first?";
 

@@ -1098,7 +1098,7 @@ public class MessageBuffer extends Buffer
     // For the buffer list.
     public Icon getIcon()
     {
-        return Utilities.getIconFromFile("message.png");
+        return Utilities.getIconFromFile("message");
     }
 
     public String getFileNameForDisplay()

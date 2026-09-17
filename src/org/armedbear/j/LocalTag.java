@@ -113,43 +113,74 @@ public class LocalTag extends Tag implements Constants
         return (flags & TAG_VISIBILITY_MASK) == TAG_PRIVATE;
     }
 
+    public final boolean isStatic()
+    {
+        return (flags & TAG_STATIC) != 0;
+    }
+
+    public final boolean isAbstract()
+    {
+        return (flags & TAG_ABSTRACT) != 0;
+    }
+
+    public final boolean isFinal()
+    {
+        return (flags & TAG_FINAL) != 0;
+    }
+
+    /**
+     * The modifier badge, or null.
+     *
+     * <p>At most one is shown so the most telling modifier wins:
+     * abstract says the most about a declaration, final the least.
+     */
+    private static String modifierBadge(LocalTag tag)
+    {
+        if (tag.isAbstract())
+            return "abstract";
+        if (tag.isStatic())
+            return "static";
+        if (tag.isFinal())
+            return "final";
+        return null;
+    }
+
     public Icon getIcon()
     {
-        ImageIcon base = null;
-        ImageIcon overlay = null;
+        String base;
+        String visibility = null;
         switch (type) {
             case TAG_INTERFACE:
             case TAG_IMPLEMENTS:
             case TAG_TYPE:      // Lisp
-                base = Utilities.getIconFromFile("interface.png");
+                base = "interface";
                 break;
             case TAG_CLASS:
             case TAG_EXTENDS:
             case TAG_CONDITION: // Lisp
             case TAG_STRUCT:    // Lisp
-                base = Utilities.getIconFromFile("class.png");
+                base = "class";
                 break;
             case TAG_METHOD:
             case TAG_MACRO:     // Lisp
             case TAG_DEFUN:     // Lisp
             default:
-                base = Utilities.getIconFromFile("method.png");
+                base = "method";
                 break;
             case TAG_FIELD:
             case TAG_CONSTANT:  // Lisp
             case TAG_PARAMETER: // Lisp
             case TAG_VAR:       // Lisp
-                base = Utilities.getIconFromFile("field.png");
+                base = "field";
                 break;
         }
-        if (isPublic()) {
-            overlay = Utilities.getIconFromFile("public.png");
-        } else if (isProtected()) {
-            overlay = Utilities.getIconFromFile("protected.png");
-        } else if (isPrivate()) {
-            overlay = Utilities.getIconFromFile("private.png");
-        }
-        return new OverlayIcon(base, overlay);
+        if (isPublic())
+            visibility = "public";
+        else if (isProtected())
+            visibility = "protected";
+        else if (isPrivate())
+            visibility = "private";
+        return Utilities.getBadgedIcon(base, visibility, modifierBadge(this));
     }
 
     public String toString()
@@ -181,33 +212,4 @@ public class LocalTag extends Tag implements Constants
         }
     }
 
-    private static class OverlayIcon extends ImageIcon
-    {
-        private ImageIcon base;
-        private ImageIcon overlay;
-
-        private OverlayIcon(ImageIcon base, ImageIcon overlay)
-        {
-            this.base = base;
-            this.overlay = overlay;
-        }
-
-        public synchronized void paintIcon(Component c, Graphics g, int x, int y)
-        {
-            if (base != null)
-                base.paintIcon(c, g, x, y);
-            if (overlay != null)
-                overlay.paintIcon(c, g, x, y);
-        }
-
-        public final int getIconWidth()
-        {
-            return base.getIconWidth();
-        }
-
-        public final int getIconHeight()
-        {
-            return base.getIconHeight();
-        }
-    }
 }

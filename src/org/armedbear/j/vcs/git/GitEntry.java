@@ -59,6 +59,37 @@ public class GitEntry extends VersionControlEntry
         return statusText(false);
     }
 
+    /**
+     * Maps git's two letter porcelain code to a status kind.
+     *
+     * <p>The first letter is the index, the second the working tree. A conflict
+     * shows as matching letters on both sides, or a D or A paired with a U, and
+     * has to be tested before anything else because those letters would
+     * otherwise read as an ordinary add or delete.
+     */
+    @Override
+    public int getStatusKind()
+    {
+        if (xy == null || xy.length() < 2)
+            return Constants.VCS_UNKNOWN;
+        final char index = xy.charAt(0);
+        final char tree = xy.charAt(1);
+
+        if (index == 'U' || tree == 'U'
+            || (index == 'D' && tree == 'D')
+            || (index == 'A' && tree == 'A'))
+            return Constants.VCS_CONFLICT;
+        if (index == '?' || tree == '?' || index == 'A' || tree == 'A')
+            return Constants.VCS_NEW;
+        if (index == 'D' || tree == 'D')
+            return Constants.VCS_DELETED;
+        if (index == 'M' || tree == 'M' || index == 'R' || tree == 'R')
+            return Constants.VCS_MODIFIED;
+        if (index == ' ' && tree == ' ')
+            return Constants.VCS_UNCHANGED;
+        return Constants.VCS_UNKNOWN;
+    }
+
     private String statusText(boolean brief)
     {
         StringBuilder sb = new StringBuilder("git");
@@ -79,24 +110,11 @@ public class GitEntry extends VersionControlEntry
             return null;
 
         final File file = buffer.getFile();
-        ShellCommand cmd = new ShellCommand(
-                "git status -z --porcelain --ignored --untracked -- " + Utilities.maybeQuote(file.getName()),
-                file.getParentFile());
-        cmd.run();
-        String output = cmd.getOutput();
-        if (output == null || output.length() == 0)
+        final String xy = GitStatusCache.statusFor(file);
+        if (xy == null || xy.length() < 2)
             return null;
-
-        // We're expecting the format: XY<space>filename
-        if (output.length() < 4) {
-            Log.debug("Unexpected git status = |" + output + "|");
-            return null;
-        }
-
-        String xy = output.substring(0, 2);
-        char x = xy.charAt(0);
-        char y = xy.charAt(1);
-        String filename = output.substring(2);
+        final char x = xy.charAt(0);
+        final char y = xy.charAt(1);
 
         String status;
         switch (x) {
@@ -110,7 +128,7 @@ public class GitEntry extends VersionControlEntry
                 else if (y == 'U')
                     status = "conflict";
                 else {
-                    Log.debug("Unexpected git xy status = |" + output + "|");
+                    Log.debug("Unexpected git xy status = |" + xy + "|");
                     return null;
                 }
                 break;
@@ -121,7 +139,7 @@ public class GitEntry extends VersionControlEntry
                 else if (y == 'D')
                     status = "deleted";
                 else {
-                    Log.debug("Unexpected git xy status = |" + output + "|");
+                    Log.debug("Unexpected git xy status = |" + xy + "|");
                     return null;
                 }
                 break;
@@ -132,7 +150,7 @@ public class GitEntry extends VersionControlEntry
                 else if (y == 'D')
                     status = "deleted";
                 else {
-                    Log.debug("Unexpected git xy status = |" + output + "|");
+                    Log.debug("Unexpected git xy status = |" + xy + "|");
                     return null;
                 }
                 break;
@@ -147,7 +165,7 @@ public class GitEntry extends VersionControlEntry
                 else if ( y == 'A')
                     status = "unmerged, both added";
                 else {
-                    Log.debug("Unexpected git xy status = |" + output + "|");
+                    Log.debug("Unexpected git xy status = |" + xy + "|");
                     return null;
                 }
                 break;
@@ -160,7 +178,7 @@ public class GitEntry extends VersionControlEntry
                 else if ( y == 'D')
                     status = "unmerged, both deleted";
                 else {
-                    Log.debug("Unexpected git xy status = |" + output + "|");
+                    Log.debug("Unexpected git xy status = |" + xy + "|");
                     return null;
                 }
                 break;
@@ -169,7 +187,7 @@ public class GitEntry extends VersionControlEntry
                 if (y == 'U' || y == 'A' || y == 'D' || y == 'T')
                     status = "conflict";
                 else {
-                    Log.debug("Unexpected git xy status = |" + output + "|");
+                    Log.debug("Unexpected git xy status = |" + xy + "|");
                     return null;
                 }
                 break;
@@ -180,7 +198,7 @@ public class GitEntry extends VersionControlEntry
                 else if (y == 'D')
                     status = "deleted";
                 else {
-                    Log.debug("Unexpected git xy status = |" + output + "|");
+                    Log.debug("Unexpected git xy status = |" + xy + "|");
                     return null;
                 }
                 break;
@@ -191,7 +209,7 @@ public class GitEntry extends VersionControlEntry
                 else if (y == 'D')
                     status = "deleted";
                 else {
-                    Log.debug("Unexpected git xy status = |" + output + "|");
+                    Log.debug("Unexpected git xy status = |" + xy + "|");
                     return null;
                 }
                 break;
@@ -205,7 +223,7 @@ public class GitEntry extends VersionControlEntry
                 break;
 
             default:
-                Log.debug("Unexpected git xy status = |" + output + "|");
+                Log.debug("Unexpected git xy status = |" + xy + "|");
                 return null;
         }
 

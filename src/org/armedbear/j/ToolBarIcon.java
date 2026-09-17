@@ -22,36 +22,36 @@ package org.armedbear.j;
 
 public enum ToolBarIcon
 {
-    ICON_BACK("stock_left.png"),
-    ICON_CLOSE("stock_close.png"),
-    ICON_COPY("stock_copy.png"),
-    ICON_CUT("stock_cut.png"),
-    ICON_DELETE("stock_delete.png"),
-    ICON_DIRECTORY("stock_index.png"),
-    ICON_EXIT("application-exit.png"),
-    ICON_FIND("stock_search.png"),
-    ICON_FORWARD("stock_right.png"),
-    ICON_HOME("stock_home.png"),
-    ICON_MAIL_ATTACH("stock_attach.png"),
-    ICON_MAIL_COMPOSE("mail-message-new.png"),
-    ICON_MAIL_INBOX("mail.png"),
-    ICON_MAIL_NEXT("stock_right.png"),
-    ICON_MAIL_PREVIOUS("stock_left.png"),
-    ICON_MAIL_RECEIVE("mail-receive.png"),
-    ICON_MAIL_REPLY_SENDER("mail-reply-sender.png"),
-    ICON_MAIL_REPLY_ALL("mail-reply-all.png"),
-    ICON_MAIL_SEND("mail-send.png"),
-    //ICON_MAIL_SEND_RECEIVE("mail-send-receive.png"),
-    ICON_NEW("document-new.png"),
-    ICON_OPEN("document-open.png"),
-    ICON_PASTE("stock_paste.png"),
-    ICON_REDO("stock_redo.png"),
-    ICON_REFRESH("stock_refresh.png"),
-    ICON_REPLACE("stock_search-and-replace.png"),
-    ICON_SAVE("document-save.png"),
-    ICON_STOP("stock_stop.png"),
-    ICON_UNDO("stock_undo.png"),
-    ICON_UP("stock_up.png");
+    ICON_BACK("left"),
+    ICON_CLOSE("close"),
+    ICON_COPY("copy"),
+    ICON_CUT("cut"),
+    ICON_DELETE("delete"),
+    ICON_DIRECTORY("directory-list"),
+    ICON_EXIT("application-exit"),
+    ICON_FIND("search"),
+    ICON_FORWARD("right"),
+    ICON_HOME("home"),
+    ICON_MAIL_ATTACH("attach"),
+    ICON_MAIL_COMPOSE("mail-message-new"),
+    ICON_MAIL_INBOX("mail"),
+    ICON_MAIL_NEXT("right"),
+    ICON_MAIL_PREVIOUS("left"),
+    ICON_MAIL_RECEIVE("mail-receive"),
+    ICON_MAIL_REPLY_SENDER("mail-reply-sender"),
+    ICON_MAIL_REPLY_ALL("mail-reply-all"),
+    ICON_MAIL_SEND("mail-send"),
+    //ICON_MAIL_SEND_RECEIVE("mail-send-receive"),
+    ICON_NEW("document-new"),
+    ICON_OPEN("document-open"),
+    ICON_PASTE("paste"),
+    ICON_REDO("redo"),
+    ICON_REFRESH("refresh"),
+    ICON_REPLACE("search-and-replace"),
+    ICON_SAVE("document-save"),
+    ICON_STOP("stop"),
+    ICON_UNDO("undo"),
+    ICON_UP("up");
 
     private String _filename;
 
@@ -60,21 +60,8 @@ public enum ToolBarIcon
         _filename = filename;
     }
     
-    // The sizes j actually ships toolbar icons in. Anything else is served by
-    // scaling one of these; see ToolBarButton.setIconFromFile.
-    private static final int[] AVAILABLE_SIZES = { 16, 24 };
-
-    public String getFile(int size)
+    public String getFile()
     {
-        return "toolbar/" + String.valueOf(sourceSize(size)) + "/" + _filename;
-    }
-
-    static int sourceSize(int size)
-    {
-        int best = AVAILABLE_SIZES[0];
-        for (int i = 0; i < AVAILABLE_SIZES.length; i++)
-            if (AVAILABLE_SIZES[i] <= size && AVAILABLE_SIZES[i] > best)
-                best = AVAILABLE_SIZES[i];
-        return best;
+        return _filename;
     }
 }

@@ -133,6 +133,7 @@
       <include name="org/armedbear/j/build"/>
       <include name="org/armedbear/j/snapshot"/>
       <include name="org/armedbear/j/images/**/*.png"/>
+      <include name="org/armedbear/j/images/**/*.svg"/>
     </patternset>
 
     <patternset id="j.resources.top">
@@ -482,7 +483,7 @@
 
     <target name="test" depends="build,test.build" description="-- build and run tests">
       <mkdir dir="${build.dir}/testresults"/>
-      <junit fork="yes">
+      <junit fork="yes" failureproperty="tests.failed" errorproperty="tests.failed">
         <classpath refid="test.run.classpath" />
         <batchtest todir="${build.dir}/testresults">
           <fileset dir="${test.dir}">
@@ -491,6 +492,8 @@
         </batchtest>
         <formatter type="plain" />
       </junit>
+      <fail if="tests.failed"
+            message="Unit tests failed. See ${build.dir}/testresults."/>
     </target>
 
     <!--

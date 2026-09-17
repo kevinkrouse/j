@@ -1,0 +1,191 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+
+<html>
+
+<head>
+<title>Icons</title>
+<LINK REL="stylesheet" HREF="j.css" TYPE="text/css">
+</head>
+
+<body>
+
+<a href="contents.html">Top</a>
+
+<hr>
+
+<h1>Icons</h1>
+
+<hr>
+
+<p>
+j's icons are SVG and are rendered by java2d at drawn by
+<code>org.armedbear.j.util.SvgIcon</code>. The icons are resized by
+<a href="preferences.html#uiScale">uiScale</a>, and allow a theme to change
+what colour the icons are drawn in.
+
+<p>
+Drawing them in j rather than with a rendering library keeps j free of
+dependencies, but it means only a small part of SVG is understood. The subset is
+listed below.
+
+<h2>Where the icons live</h2>
+
+<p>
+One file per icon, in <code>src/org/armedbear/j/images/svg</code>, named after
+the icon. Code asks for them by that bare name through
+<code>org.armedbear.j.util.Utilities.getIconFromFile</code> &mdash;
+<code>"buffer"</code>, not <code>"buffer.png"</code>, since the artwork is vector
+and the renderer picks the size. The result is cached per name, size and colour.
+<p>
+The application logo is a real bitmap and is loaded with
+<code>Utilities.getRasterIcon</code> instead.
+
+<h2>Elements</h2>
+
+<dl>
+<dd>
+<code>&lt;svg&gt;</code>
+&mdash; the root. Its <code>viewBox</code> sets the coordinate system, and any
+presentation attribute on it is inherited by everything inside.
+<p>
+<code>&lt;path&gt;</code>
+&mdash; a shape, described by <code>d</code>.
+<p>
+<code>&lt;circle&gt;</code>
+&mdash; <code>cx</code>, <code>cy</code>, <code>r</code>.
+<p>
+<code>&lt;g&gt;</code>
+&mdash; a group. Passes its attributes down; draws nothing itself.
+</dl>
+
+<h2>Attributes</h2>
+
+<p>
+<dl>
+<dd>
+<code>viewBox</code>, <code>width</code>, <code>height</code>
+<p>
+<code>fill</code>, <code>stroke</code> &mdash; a <code>#rgb</code> or
+<code>#rrggbb</code> colour, the keyword <code>none</code>, or
+<code>currentColor</code>
+<p>
+<code>stroke-width</code>, <code>stroke-linecap</code>
+(<code>butt</code>, <code>round</code>, <code>square</code>),
+<code>stroke-linejoin</code>
+(<code>miter</code>, <code>round</code>, <code>bevel</code>),
+<code>stroke-dasharray</code>
+<p>
+<code>color</code> &mdash; on the root, the value <code>currentColor</code>
+resolves to
+<p>
+<code>d</code>, <code>cx</code>, <code>cy</code>, <code>r</code>
+</dl>
+
+<h2>Path commands</h2>
+
+<p>
+Straight lines and elliptical arcs. Upper case is absolute, lower case relative.
+
+<dl>
+<dd>
+<code>M</code> <code>m</code> &mdash; move to. Further coordinate pairs after a
+move are treated as line-to.
+<p>
+<code>L</code> <code>l</code> &mdash; line to
+<p>
+<code>H</code> <code>h</code> &mdash; horizontal line to
+<p>
+<code>V</code> <code>v</code> &mdash; vertical line to
+<p>
+<code>A</code> <code>a</code> &mdash; elliptical arc
+<p>
+<code>Z</code> <code>z</code> &mdash; close the subpath
+</dl>
+
+<p>
+Note that numbers may run together the way SVG allows: <code>3.5.5</code> is two
+numbers, <code>3.5</code> and <code>.5</code>, because a second decimal point
+begins a new one.
+
+<h2>Not supported</h2>
+
+<p>
+Anything not listed above, including: the curve commands
+(<code>C</code>, <code>S</code>, <code>Q</code>, <code>T</code>);
+<code>transform</code>; <code>opacity</code>;
+gradients and patterns; <code>&lt;text&gt;</code>; <code>&lt;rect&gt;</code>,
+<code>&lt;line&gt;</code>, <code>&lt;polygon&gt;</code> and the other shape
+elements; <code>&lt;use&gt;</code> and <code>&lt;defs&gt;</code>; clip paths,
+masks and filters; embedded images; CSS, whether in a <code>style</code>
+attribute or a <code>&lt;style&gt;</code> element.
+
+<p>
+A curve or a rectangle is easy enough to express with the commands that are
+supported, and doing so keeps every icon drawable by the same few hundred lines.
+
+<h2>Color</h2>
+
+<p>
+Icons are drawn in one colour, named once on the root element:
+
+<p>
+<code>&lt;svg ... color="#4A4E57" fill="none" stroke="currentColor"&gt;</code>
+
+<p>
+Every shape then says <code>currentColor</code> rather than repeating the
+value. Setting the <a href="preferences.html#iconColor">iconColor</a> preference
+overrides it for the whole set, which is how a theme meant for a dark background
+recolours the icons without a second set of files.
+
+<h2>Conventions</h2>
+
+<p>
+These are not enforced, but the icons are drawn to them and a new one will look
+out of place otherwise.
+
+<dl>
+<dd>
+A <code>0 0 16 16</code> viewBox, with shapes aligned to that grid.
+<p>
+Strokes of width 1 centred on half coordinates &mdash; <code>3.5</code>, not
+<code>3</code> &mdash; so a vertical or horizontal line covers a whole pixel
+rather than straddling two.
+<p>
+File glyphs occupy x&nbsp;3&ndash;13, y&nbsp;2&ndash;14; folder glyphs
+x&nbsp;2&ndash;14, y&nbsp;3&ndash;13. The two carry similar visual weight when
+they sit next to each other in a list.
+<p>
+Node glyphs for the structure tree &mdash; <code>class</code>,
+<code>interface</code>, <code>method</code>, <code>field</code> &mdash; sit in an
+8&nbsp;by&nbsp;8 box at x&nbsp;2&ndash;10, y&nbsp;2&ndash;10, leaving both right
+hand corners free for badges.
+<p>
+Badges are full 16&nbsp;by&nbsp;16 canvases with the mark in one corner, composed
+over a base icon by <code>Utilities.getBadgedIcon</code>. Visibility
+(<code>public</code>, <code>protected</code>, <code>private</code>),
+<code>locked</code> and <code>modified</code> go bottom right; modifiers
+(<code>static</code>, <code>abstract</code>, <code>final</code>) go top right,
+from x&nbsp;10.5.
+<p>
+Before each badge is drawn, a fattened silhouette of it is erased from what is
+already there, which leaves a gap between the badge and the drawing underneath.
+The erasing happens in a transparent image, so the gap shows whatever the icon is
+sitting on &mdash; a white row, a selected one, the editor background &mdash;
+rather than punching a hole. That is why a badge can overlap the outline of a
+file or folder, which has no spare corner to give it.
+</dl>
+
+<h2>Adding an icon</h2>
+
+<p>
+Write the file, then run <code>ant test</code>. Every icon in the directory is
+parsed and drawn at several sizes, and an unsupported construct fails the build.
+An icon that parses but draws nothing fails too.
+
+<hr>
+
+<a href="contents.html">Top</a>
+
+</body>
+
+</html>

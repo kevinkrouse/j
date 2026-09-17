@@ -147,6 +147,6 @@ public abstract class CompilationErrorBuffer extends Buffer
     // For the buffer list.
     public Icon getIcon()
     {
-        return Utilities.getIconFromFile("jpty.png");
+        return Utilities.getIconFromFile("jpty");
     }
 }

@@ -1427,8 +1427,8 @@ public final class SendMail extends Buffer
     public Icon getIcon()
     {
         if (isModified())
-            return Utilities.getIconFromFile("compose_modified.png");
-        return Utilities.getIconFromFile("compose.png");
+            return Utilities.getIconFromFile("compose_modified");
+        return Utilities.getIconFromFile("compose");
     }
 
     public String getFileNameForDisplay()
