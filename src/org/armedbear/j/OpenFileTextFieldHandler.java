@@ -24,7 +24,6 @@ import java.util.regex.Pattern;
 import java.util.regex.Matcher;
 
 import java.awt.Component;
-import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;

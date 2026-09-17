@@ -88,11 +88,9 @@ public final class Autosave implements Constants
                 return;
             catalogFile = File.getInstance(getAutosaveDirectory(), CATALOG_NAME);
         }
-        try {
-            OutputStream out = catalogFile.getOutputStream();
+        try (OutputStream out = catalogFile.getOutputStream()) {
             catalog.store(out, null);
             out.flush();
-            out.close();
         }
         catch (IOException e) {
             Log.error(e);
@@ -120,10 +118,8 @@ public final class Autosave implements Constants
             return; // No catalog file.
         if (catalog == null)
             catalog = new Properties();
-        try {
-            InputStream in = catalogFile.getInputStream();
+        try (InputStream in = catalogFile.getInputStream()) {
             catalog.load(in);
-            in.close();
         }
         catch (IOException e) {
             Log.error(e);

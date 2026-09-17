@@ -303,11 +303,9 @@ public final class ImapMessageCache
             cacheDirectory = File.getInstance(parentDirectory, directoryName);
         if (modified) {
             Log.debug("saving modified catalog");
-            try {
-                OutputStream out = catalogFile.getOutputStream();
+            try (OutputStream out = catalogFile.getOutputStream()) {
                 catalog.store(out, null);
                 out.flush();
-                out.close();
             }
             catch (IOException e) {
                 Log.error(e);

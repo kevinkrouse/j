@@ -24,7 +24,6 @@ import org.armedbear.j.mode.list.ListTagsBuffer;
 import org.armedbear.j.util.Utilities;
 
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 
 public final class FindTagTextFieldHandler extends DefaultTextFieldHandler

@@ -20,7 +20,6 @@
 
 package org.armedbear.j;
 
-import java.lang.StringBuilder;
 
 import java.io.IOException;
 import java.io.PrintWriter;

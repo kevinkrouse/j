@@ -20,7 +20,6 @@
 
 package org.armedbear.j.mail;
 
-import java.util.List;
 import org.armedbear.j.Headers;
 import org.armedbear.j.Log;
 

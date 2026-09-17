@@ -30,7 +30,6 @@ import org.armedbear.j.Line;
 import org.armedbear.j.Mode;
 import org.armedbear.j.Property;
 
-import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
 
 public final class MakefileMode extends AbstractMode implements Constants, Mode

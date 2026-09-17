@@ -29,7 +29,6 @@ import java.awt.Font;
 import java.awt.FontMetrics;
 import java.awt.Graphics;
 import java.awt.Insets;
-import java.awt.Toolkit;
 import javax.swing.JComponent;
 import javax.swing.UIManager;
 import javax.swing.border.Border;

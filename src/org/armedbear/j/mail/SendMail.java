@@ -949,8 +949,7 @@ public final class SendMail extends Buffer
         // which would have padded a chunk in mid-stream and corrupted the
         // attachment.
         final int bytesPerLine = 57;
-        try {
-            FileInputStream inputStream = file.getInputStream();
+        try (FileInputStream inputStream = file.getInputStream()) {
             Base64.Encoder encoder = Base64.getEncoder();
             byte[] chunk;
             while ((chunk = inputStream.readNBytes(bytesPerLine)).length > 0) {
@@ -958,7 +957,6 @@ public final class SendMail extends Buffer
                 writer.write(separator);
             }
             writer.flush();
-            inputStream.close();
         }
         catch (IOException e) {
             Log.error(e);

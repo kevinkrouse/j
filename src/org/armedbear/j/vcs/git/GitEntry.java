@@ -25,8 +25,6 @@ import org.armedbear.j.Constants;
 import java.lang.StringBuilder;
 import org.armedbear.j.File;
 import org.armedbear.j.Log;
-import org.armedbear.j.ShellCommand;
-import org.armedbear.j.util.Utilities;
 import org.armedbear.j.vcs.VersionControlEntry;
 
 public class GitEntry extends VersionControlEntry

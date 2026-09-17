@@ -23,7 +23,6 @@ package org.armedbear.j;
 import org.armedbear.j.util.Utilities;
 import java.awt.Dimension;
 import java.awt.Point;
-import java.awt.event.InputEvent;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import javax.swing.JScrollPane;

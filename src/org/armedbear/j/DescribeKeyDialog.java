@@ -23,7 +23,6 @@ package org.armedbear.j;
 import org.armedbear.j.util.Utilities;
 import java.lang.StringBuilder;
 
-import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
 import javax.swing.JLabel;
 import javax.swing.JTextField;

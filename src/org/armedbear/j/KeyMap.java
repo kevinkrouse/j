@@ -669,11 +669,9 @@ public final class KeyMap implements Constants
 
     public synchronized void writeKeyMap(File file)
     {
-        try {
-            PrintWriter out = new PrintWriter(file.getOutputStream());
+        try (PrintWriter out = new PrintWriter(file.getOutputStream())) {
             for (KeyMapping mapping : mappings)
                 out.println(mapping.toString());
-            out.close();
         }
         catch (IOException e) {
             Log.error(e);

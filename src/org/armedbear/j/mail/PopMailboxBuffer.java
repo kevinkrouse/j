@@ -803,15 +803,13 @@ public final class PopMailboxBuffer extends LocalMailboxBuffer
             return;
         }
         String filename = mailboxFile.canonicalPath() + ".expunged";
-        try {
-            BufferedReader reader = new BufferedReader(new FileReader(filename));
+        try (BufferedReader reader = new BufferedReader(new FileReader(filename))) {
             String s;
             while ((s = reader.readLine()) != null) {
                 if (expungedUidlsList == null)
                     expungedUidlsList = new HashSet<String>();
                 expungedUidlsList.add(s);
             }
-            reader.close();
         }
         catch (FileNotFoundException e) {
             // Might happen.
@@ -835,14 +833,12 @@ public final class PopMailboxBuffer extends LocalMailboxBuffer
                 file.delete();
             return;
         }
-        try {
-            BufferedWriter writer = new BufferedWriter(new FileWriter(filename));
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(filename))) {
             for (String uidl : expungedUidlsList) {
                 writer.write(uidl);
                 writer.newLine();
             }
             writer.flush();
-            writer.close();
         }
         catch (IOException e) {
             Log.error(e);

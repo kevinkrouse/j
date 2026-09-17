@@ -122,10 +122,8 @@ public final class Aliases implements PreferencesChangeListener
     {
         userAliases = new Properties();
         if (file.isFile()) {
-            try {
-                InputStream inputStream = file.getInputStream();
+            try (InputStream inputStream = file.getInputStream()) {
                 userAliases.load(inputStream);
-                inputStream.close();
             }
             catch (IOException e) {
                 Log.error(e);
@@ -135,10 +133,8 @@ public final class Aliases implements PreferencesChangeListener
 
     private void save()
     {
-        try {
-            OutputStream outputStream = file.getOutputStream();
+        try (OutputStream outputStream = file.getOutputStream()) {
             userAliases.store(outputStream, null);
-            outputStream.close();
         }
         catch (IOException e) {
             Log.error(e);

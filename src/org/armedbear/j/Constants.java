@@ -20,7 +20,6 @@
 
 package org.armedbear.j;
 
-import java.awt.event.InputEvent;
 
 public interface Constants
 {

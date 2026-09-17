@@ -28,7 +28,6 @@ import org.armedbear.j.KeyMap;
 import org.armedbear.j.Keywords;
 import org.armedbear.j.Line;
 import org.armedbear.j.Mode;
-import org.armedbear.j.Platform;
 import org.armedbear.j.Position;
 import org.armedbear.j.Property;
 import org.armedbear.j.SyntaxIterator;

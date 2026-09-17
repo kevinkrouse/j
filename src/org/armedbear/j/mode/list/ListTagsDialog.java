@@ -32,7 +32,6 @@ import org.armedbear.j.TagCommands;
 import org.armedbear.j.Tagger;
 
 import java.awt.Dimension;
-import java.awt.event.InputEvent;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.util.ArrayList;

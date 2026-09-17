@@ -73,10 +73,8 @@ public final class Preferences
         // Load preferences file into a temporary Properties object so we can
         // see if the user has specified a theme.
         Properties temp = new Properties();
-        try {
-            InputStream in = file.getInputStream();
+        try (InputStream in = file.getInputStream()) {
             temp.load(in);
-            in.close();
         }
         catch (IOException e) {
             Log.error(e);
@@ -133,10 +131,8 @@ public final class Preferences
         Properties properties = new Properties();
         File file = getThemeFile(themeName, themePath);
         if (file != null && file.isFile()) {
-            try {
-                InputStream in = file.getInputStream();
+            try (InputStream in = file.getInputStream()) {
                 properties.load(in);
-                in.close();
             }
             catch (IOException e) {
                 Log.error(e);

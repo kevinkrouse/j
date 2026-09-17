@@ -38,7 +38,6 @@ import org.armedbear.j.Line;
 import org.armedbear.j.Menu;
 import org.armedbear.j.MenuItem;
 import org.armedbear.j.NavigationComponent;
-import org.armedbear.j.Platform;
 import org.armedbear.j.Position;
 import org.armedbear.j.Property;
 import org.armedbear.j.Region;

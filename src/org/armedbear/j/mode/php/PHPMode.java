@@ -31,7 +31,6 @@ import org.armedbear.j.Menu;
 import org.armedbear.j.Mode;
 import org.armedbear.j.Position;
 import org.armedbear.j.Property;
-import org.armedbear.j.Search;
 import org.armedbear.j.SyntaxIterator;
 import org.armedbear.j.SystemBuffer;
 import org.armedbear.j.Tagger;

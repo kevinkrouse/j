@@ -33,7 +33,6 @@ import java.awt.event.FocusListener;
 import java.awt.event.TextEvent;
 import java.awt.event.TextListener;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.StringTokenizer;
 import javax.swing.Box;
 import javax.swing.BoxLayout;

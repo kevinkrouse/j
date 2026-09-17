@@ -27,7 +27,6 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.net.Socket;
-import java.net.URL;
 import javax.net.ssl.SSLSocketFactory;
 import javax.swing.SwingUtilities;
 

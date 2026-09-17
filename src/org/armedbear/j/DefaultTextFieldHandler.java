@@ -21,7 +21,6 @@
 package org.armedbear.j;
 
 import org.armedbear.j.util.Utilities;
-import java.awt.Color;
 import java.awt.Container;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
