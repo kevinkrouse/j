@@ -25,8 +25,10 @@ import java.util.Map;
 import java.util.Set;
 
 import org.armedbear.j.Directories;
+import org.armedbear.j.Editor;
 import org.armedbear.j.File;
 import org.armedbear.j.Log;
+import org.armedbear.j.Property;
 
 /**
  * The bindings, one trie per mapping mode, read from a table.
@@ -77,11 +79,42 @@ public final class VimKeyMap
     public static synchronized VimKeyMap getShared()
     {
         if (shared == null) {
-            shared = getDefault();
+            shared = getConfigured();
             sharedOptions = new VimOptions();
             loadVimrc(shared, sharedOptions);
         }
         return shared;
+    }
+
+    /**
+     * The table to start from: the user's if the vimKeyMap preference names
+     * one, otherwise the built-in.
+     *
+     * A named file replaces the built-in table rather than adding to it, so
+     * that someone who wants a different set of bindings gets exactly theirs.
+     * To change a few bindings, use a vimrc.
+     */
+    private static VimKeyMap getConfigured()
+    {
+        final String filename = Editor.preferences()
+            .getStringProperty(Property.VIM_KEY_MAP);
+        if (filename == null)
+            return getDefault();
+        final File file = File.getInstance(filename);
+        if (file == null || !file.isFile()) {
+            Log.error("vimKeyMap: no such file: " + filename);
+            return getDefault();
+        }
+        final VimKeyMap keyMap = new VimKeyMap();
+        try (Reader reader = new InputStreamReader(file.getInputStream(),
+                                                   StandardCharsets.UTF_8)) {
+            keyMap.load(reader);
+        }
+        catch (IOException e) {
+            Log.error(e);
+            return getDefault();
+        }
+        return keyMap;
     }
 
     public static synchronized VimOptions getSharedOptions()

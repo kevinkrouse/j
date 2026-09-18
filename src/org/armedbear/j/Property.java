@@ -293,6 +293,9 @@ public final class Property implements Comparable<Property>, Constants
         createProperty("editMode", "simple");
     public static final Property EMULATION =
         createProperty("emulation");
+    // A file of modal key bindings, replacing the table built into j.
+    public static final Property VIM_KEY_MAP =
+        createProperty("vimKeyMap");
     public static final Property EOM =
         createProperty("eom");
     // Comma-separated extension names not to load, e.g. "abcl,mail".

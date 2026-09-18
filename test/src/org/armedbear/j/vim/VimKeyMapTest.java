@@ -168,6 +168,21 @@ public class VimKeyMapTest
                            .match(keys("gg")).value.getCommand());
     }
 
+    @Test
+    public void aTableCanBeReadFromAFile() throws Exception
+    {
+        // What the vimKeyMap preference does: a whole table of one's own,
+        // replacing the built-in rather than adding to it.
+        final VimKeyMap keyMap = new VimKeyMap();
+        keyMap.load(new StringReader(
+            "# my own bindings\n"
+            + "n  q  motion  moveToEol  inclusive\n"));
+        assertSame(KeyStrokeTrie.Status.FULL,
+                   keyMap.getTrie(MappingMode.NORMAL).match(keys("q")).status);
+        assertSame("nothing else came with it", KeyStrokeTrie.Status.NONE,
+                   keyMap.getTrie(MappingMode.NORMAL).match(keys("w")).status);
+    }
+
     // ------------------------------------------------------- the built-in map
 
     @Test
