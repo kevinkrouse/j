@@ -511,6 +511,27 @@ public final class Editor extends JPanel implements Constants,
             System.out.println(snapshotInformation);
     }
 
+    /**
+     * Commands that live in an extension rather than in core.
+     *
+     * <p>Without this, someone who upgrades gets a bare "Unknown command" for
+     * something that worked the day before, with nothing to say where it
+     * went.
+     */
+    private static final Map<String, String> commandProviders =
+        Map.of("jlisp", "abcl");
+
+    static String unknownCommandMessage(String command)
+    {
+        String extension = command == null ? null
+            : commandProviders.get(command.toLowerCase());
+        if (extension == null)
+            return "Unknown command \"".concat(String.valueOf(command)).concat("\"");
+        return "\"".concat(command).concat("\" is provided by the ")
+                   .concat(extension)
+                   .concat(" extension, which is not installed.");
+    }
+
     public static final void fatal(String message)
     {
         System.err.println(message);
@@ -6583,12 +6604,8 @@ public final class Editor extends JPanel implements Constants,
                     }
                 }
                 catch (NoSuchMethodException e) {
-                    StringBuilder sb =
-                        new StringBuilder("Unknown command \"");
-                    sb.append(command);
-                    sb.append('"');
                     MessageDialog.showMessageDialog(Editor.this,
-                        sb.toString(), "Error");
+                        unknownCommandMessage(command), "Error");
                 }
             };
             if (SwingUtilities.isEventDispatchThread()) {
@@ -7411,6 +7428,17 @@ public final class Editor extends JPanel implements Constants,
         File file =
             File.getInstance(Directories.getConfigDirectory(), "init.lisp");
         if (file != null && file.isFile()) {
+            if (!Extensions.languageClient().isAvailable()) {
+                // Starting anyway would drop every customization in the file
+                // on the floor, silently, and leave the user wondering why
+                // their key bindings stopped working.
+                StringBuilder sb = new StringBuilder();
+                sb.append(file.canonicalPath());
+                sb.append(" cannot run: no language client is installed.\n");
+                sb.append("Install the abcl extension, remove the file, or ");
+                sb.append("start j with -q to skip it.");
+                fatal(sb.toString());
+            }
             try {
                 long start = System.currentTimeMillis();
                 Extensions.session().loadFile(file);

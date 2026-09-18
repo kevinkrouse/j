@@ -329,9 +329,12 @@
     (println "no extensions found under" extensions-dir))
   opts)
 
+(declare test)
+
 (defn test-extensions "Build and run the extensions' unit tests."
   [opts]
   (extensions opts)
+  (test opts)
   (doseq [name (extension-names)]
     (let [{:keys [test-src classes test]} (extension-paths name)]
       (if-let [tests (test-classes test-src)]
