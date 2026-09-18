@@ -2,7 +2,10 @@
 ;;
 ;; This is where ABCL lives now. The root deps.edn has no dependencies at all:
 ;; core compiles and runs without it, which is the point of the exercise.
-{:paths ["src"]
+;; No :paths. build.clj passes this extension's source directories to javac
+;; explicitly; a :paths here would be resolved against the repository root, not
+;; this directory, and would put core's src/ on the extension's classpath.
+{:paths []
 
  ;; As in the root manifest, the basis is created with :root nil, so the
  ;; repositories have to be named here rather than inherited.
@@ -13,7 +16,9 @@
  {org.abcl/abcl {:mvn/version "1.8.0"}}
 
  :aliases
- {;; extra deps needed to compile and run test/src
+ {;; extra deps needed to compile and run test/src.
+  ;;
+  ;; Newer than core's junit 4.8.2, which is the point: an extension resolves
+  ;; its own dependencies, and @FixMethodOrder arrived in 4.11.
   :test
-  {:extra-paths ["test/src"]
-   :extra-deps {junit/junit {:mvn/version "4.8.2"}}}}}
+  {:extra-deps {junit/junit {:mvn/version "4.13.2"}}}}}

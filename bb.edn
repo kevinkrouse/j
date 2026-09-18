@@ -10,21 +10,25 @@
  :tasks
  {:requires ([build])
 
-  clean     {:doc "Remove J build and dist files"           :task (build/clean {})}
-  deps      {:doc "Resolve and show the dependencies"       :task (build/deps {})}
-  jpty      {:doc "Compile build/bin/jpty (unix, needs gcc)" :task (build/jpty {})}
-  build     {:doc "Compile J to build/classes"              :task (build/build {})}
-  stamp     {:doc "Write the version/build resources"       :task (build/stamp {})}
-  jar       {:doc "Create packaged build/j.jar"             :task (build/jar {})}
-  run       {:doc "Run J from build/classes"                :task (build/run {})
-             :override-builtin true}
-  test      {:doc "Build and run unit tests"                :task (build/test {})}
-  fmt       {:doc "Reformat the clj/edn files with cljfmt"  :task (build/fmt {})}
-  fmt-check {:doc "Check clj/edn formatting, change nothing" :task (build/fmt-check {})}
-  dist      {:doc "Create distributions in dist/"           :task (build/dist {})}
-  dist-bin  {:doc "Create the binary distribution archives" :task (build/dist-bin {})}
-  dist-src  {:doc "Create the source distribution archives" :task (build/dist-src {})}
-  dist-mac  {:doc "Build the macOS .dmg"                    :task (build/dist-mac {})}
-  dist-win  {:doc "Build the Windows .exe"                  :task (build/dist-win {})}
+  clean      {:doc "Remove J build and dist files"           :task (build/clean {})}
+  deps       {:doc "Resolve and show the dependencies"       :task (build/deps {})}
+  jpty       {:doc "Compile bin/jpty (unix, needs gcc)"      :task (build/jpty {})}
+  build      {:doc "Compile J to build/classes"              :task (build/build {})}
+  extensions {:doc "Compile and package extensions/*"        :task (build/extensions {})}
+  check-core {:doc "Assert core carries no ABCL"             :task (build/check-core {})}
+  stamp      {:doc "Write the version/build resources"       :task (build/stamp {})}
+  jar        {:doc "Create packaged build/j.jar"             :task (build/jar {})}
+  run        {:doc "Run J from build/classes"                :task (build/run {})
+              :override-builtin true}
+  run-core   {:doc "Run J with no extension loaded"          :task (build/run-core {})}
+  test       {:doc "Build and run unit tests"                :task (build/test {})}
+  test-extensions {:doc "Build and run extensions' tests"    :task (build/test-extensions {})}
+  fmt        {:doc "Reformat the clj/edn files with cljfmt"  :task (build/fmt {})}
+  fmt-check  {:doc "Check clj formatting, change nothing"    :task (build/fmt-check {})}
+  dist       {:doc "Create distributions in dist/"           :task (build/dist {})}
+  dist-bin   {:doc "Create the binary distribution archives" :task (build/dist-bin {})}
+  dist-src   {:doc "Create the source distribution archives" :task (build/dist-src {})}
+  dist-mac   {:doc "Build the macOS .dmg"                    :task (build/dist-mac {})}
+  dist-win   {:doc "Build the Windows .exe"                  :task (build/dist-win {})}
 
   run-swingexplorer {:doc "Run J under SwingExplorer" :task (build/run-swingexplorer {})}}}

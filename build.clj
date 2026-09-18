@@ -34,6 +34,15 @@
 (def dist-dir     "dist")
 (def stage-dir    (str dist-dir "/j-" j-version))
 
+;; Extensions. Each is its own project under extensions/<name>, with its own
+;; deps.edn and its own class loader at run time, and is packaged into
+;; build/lib/extensions/<name>/ -- which is where org.armedbear.j.extension
+;; .Extensions looks, both for build/classes and for an installed j.jar, and
+;; which dist-stage copies along with the rest of lib/.
+(def extensions-dir      "extensions")
+(def extensions-lib-dir  (str lib-dir "/extensions"))
+(def extensions-test-dir (str build-dir "/extensions-test"))
+
 ;; the resources org.armedbear.j.Version reads
 (def version-path (str classes-dir "/org/armedbear/j/version"))
 (def build-path   (str classes-dir "/org/armedbear/j/build"))
@@ -161,7 +170,7 @@
   (let [{:keys [buildtime] :as opts} (-> opts build stamp)]
     ;; the resources that ship in the jar alongside the classes
     (b/copy-dir {:src-dirs [src-dir] :target-dir classes-dir
-                 :include "**/*.{lisp,keywords,png,svg}"})
+                 :include "**/*.{keywords,png,svg}"})
     (b/jar {:class-dir classes-dir
             :jar-file  jar-file
             :main      'Main
@@ -183,14 +192,28 @@
 (def ^:private j-args
   ["--debug" "--force-new-instance" "--no-session" "--no-server" "--no-restore"])
 
+(declare extensions)
+
 (defn run "Run J from build/classes, with a debugger listening on port 5005."
+  [opts]
+  ;; Extensions are found relative to the code source, so build/classes finds
+  ;; build/lib/extensions with no -D override needed.
+  (extensions opts)
+  (java! {:basis     (basis)
+          :cp        [(abs-path classes-dir)]
+          :java-opts debug-opts
+          :main      'Main
+          :main-args j-args})
+  opts)
+
+(defn run-core "Run J from build/classes with no extension loaded."
   [opts]
   (build opts)
   (java! {:basis     (basis)
           :cp        [(abs-path classes-dir)]
           :java-opts debug-opts
           :main      'Main
-          :main-args j-args})
+          :main-args (cons "--no-extensions" j-args)})
   opts)
 
 (defn run-swingexplorer "Run J under SwingExplorer."
@@ -209,10 +232,10 @@
 ;; tests
 
 (defn- test-classes
-  "The class names of every test under test/src. Only *Test, so that fixtures
-  and helpers can live beside the tests that use them."
-  []
-  (let [root (fs/path (b/resolve-path test-src-dir))]
+  "The class names of every test under a source root. Only *Test, so that
+  fixtures and helpers can live beside the tests that use them."
+  [dir]
+  (let [root (fs/path (b/resolve-path dir))]
     (when (fs/exists? root)
       (->> (fs/glob root "**Test.java")
            (map #(-> (str (fs/relativize root %))
@@ -224,7 +247,7 @@
 (defn test "Build and run the unit tests."
   [opts]
   (build opts)
-  (if-let [classes (test-classes)]
+  (if-let [classes (test-classes test-src-dir)]
     (let [basis (basis :test)]
       ;; b/javac derives its classpath from the basis libs and :class-dir
       ;; only, leaving out the J classes the tests compile against; a
@@ -242,6 +265,117 @@
                                       :main-args classes})))
         (throw (ex-info "unit tests failed" {}))))
     (println "no tests found under" test-src-dir))
+  opts)
+
+
+;; extensions
+
+(defn- extension-names
+  "Every directory under extensions/ that carries a deps.edn."
+  []
+  (let [root (fs/path (b/resolve-path extensions-dir))]
+    (when (fs/exists? root)
+      (->> (fs/list-dir root)
+           (filter #(fs/exists? (fs/path % "deps.edn")))
+           (map #(str (fs/file-name %)))
+           sort
+           seq))))
+
+(defn- extension-basis
+  "An extension's own dependencies, resolved from its own deps.edn. Nothing of
+  core's is in here: an extension may carry a library core has never heard of,
+  or a different version of one it has."
+  [name & aliases]
+  (b/create-basis (cond-> {:root nil :user nil
+                           :project (str extensions-dir "/" name "/deps.edn")}
+                    (seq aliases) (assoc :aliases (vec aliases)))))
+
+(defn- extension-paths [name]
+  {:src      (str extensions-dir "/" name "/src")
+   :test-src (str extensions-dir "/" name "/test/src")
+   :classes  (str build-dir "/extensions/" name)
+   :test     (str extensions-test-dir "/" name)
+   :lib      (str extensions-lib-dir "/" name)
+   :jar      (str extensions-lib-dir "/" name "/j-" name ".jar")})
+
+(defn extensions "Compile and package the extensions under extensions/."
+  [opts]
+  (build opts)
+  (if-let [names (extension-names)]
+    (doseq [name names]
+      (let [{:keys [src classes lib jar]} (extension-paths name)
+            basis (extension-basis name)]
+        (println "Compiling extension" name "...")
+        ;; As in the test target: b/javac builds its classpath from the basis
+        ;; alone, so core's classes have to come in through :javac-opts.
+        (javac! {:src-dirs   [src]
+                 :class-dir  classes
+                 :basis      basis
+                 :javac-opts ["-classpath" (join-paths (abs-path classes-dir)
+                                                       (abs-path classes)
+                                                       (lib-jars basis))]})
+        ;; META-INF/services is how ServiceLoader finds the extension at all.
+        (b/copy-dir {:src-dirs [src] :target-dir classes
+                     :include "META-INF/**"})
+        (b/copy-dir {:src-dirs [src] :target-dir classes
+                     :include "**/*.{lisp,keywords,png,svg}"})
+        (b/delete {:path lib})
+        (b/jar {:class-dir classes :jar-file jar})
+        ;; The libraries it brings with it, beside its own jar: one loader per
+        ;; extension directory picks up every jar in it.
+        (doseq [dep (lib-jars basis)]
+          (b/copy-file {:src dep :target (str lib "/" (fs/file-name dep))}))
+        (println "wrote" (abs-path jar))))
+    (println "no extensions found under" extensions-dir))
+  opts)
+
+(defn test-extensions "Build and run the extensions' unit tests."
+  [opts]
+  (extensions opts)
+  (doseq [name (extension-names)]
+    (let [{:keys [test-src classes test]} (extension-paths name)]
+      (if-let [tests (test-classes test-src)]
+        (let [basis (extension-basis name :test)
+              cp    [(abs-path classes-dir) (abs-path classes) (abs-path test)]]
+          (javac! {:src-dirs   [test-src]
+                   :class-dir  test
+                   :basis      basis
+                   :javac-opts ["-classpath" (join-paths cp (lib-jars basis))]})
+          (when-not (zero? (:exit (java! {:basis     basis
+                                          :cp        cp
+                                          :main      'org.junit.runner.JUnitCore
+                                          :main-args tests})))
+            (throw (ex-info (str name " extension tests failed") {:extension name}))))
+        (println "no tests found under" test-src))))
+  opts)
+
+(defn check-core
+  "Assert that core carries no ABCL.
+
+  The executable statement of the goal: a raw byte search catches constant-pool
+  type references and reflective Class.forName strings alike, which a classpath
+  check would not."
+  [opts]
+  (build opts)
+  (let [root    (b/resolve-path classes-dir)
+        tainted (->> (fs/glob root "**.class")
+                     (filter #(str/includes? (slurp (fs/file %) :encoding "ISO-8859-1")
+                                             "org/armedbear/lisp"))
+                     (map #(str (fs/relativize (fs/path root) %)))
+                     sort)
+        lisp    (->> (fs/glob root "**.lisp")
+                     (map #(str (fs/relativize (fs/path root) %)))
+                     sort)]
+    (when (seq tainted)
+      (println "classes referencing ABCL:")
+      (doseq [c tainted] (println " " c)))
+    (when (seq lisp)
+      (println "Lisp resources in core:")
+      (doseq [l lisp] (println " " l)))
+    (when (or (seq tainted) (seq lisp))
+      (throw (ex-info "core is not free of ABCL"
+                      {:classes tainted :resources lisp})))
+    (println "core is clean:" (count (fs/glob root "**.class")) "classes, no ABCL"))
   opts)
 
 
@@ -274,7 +408,9 @@
 
 (defn dist-stage "Lay out the distribution tree under dist/j-<version>."
   [opts]
-  (let [opts (jar opts)]
+  ;; An ordinary install still has Lisp: the extensions are built into lib/,
+  ;; which is copied below.
+  (let [opts (-> opts jar extensions)]
     (b/delete {:path stage-dir})
     (b/copy-file {:src jar-file :target (str stage-dir "/j.jar")})
     (b/copy-file {:src "COPYING" :target (str stage-dir "/COPYING")})
@@ -282,6 +418,13 @@
                  :include "*.{html,css}"})
     (doseq [[src dst] [["themes" "themes"] ["examples" "examples"] [lib-dir "lib"]]]
       (b/copy-dir {:src-dirs [src] :target-dir (str stage-dir "/" dst)}))
+    ;; An extension's examples are about the extension, so they ship under a
+    ;; directory of its own rather than mixed in with core's.
+    (doseq [name (extension-names)
+            :let [src (str extensions-dir "/" name "/examples")]
+            :when (fs/exists? (b/resolve-path src))]
+      (b/copy-dir {:src-dirs [src]
+                   :target-dir (str stage-dir "/examples/" name)}))
     (when (fs/exists? (b/resolve-path bin-dir))
       (b/copy-dir {:src-dirs [bin-dir] :target-dir (str stage-dir "/bin")})
       (doseq [f (fs/list-dir (b/resolve-path (str stage-dir "/bin")))]

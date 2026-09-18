@@ -53,9 +53,14 @@ public final class LispFunction implements ScriptFunction
     public void invoke()
     {
         // Reports rather than throws: this runs from the dispatcher, where a
-        // broken binding must not take the editor down with it.
+        // broken binding must not take the editor down with it -- and must not
+        // drop it into ABCL's debugger on standard input either, which is what
+        // a bare execute() does.
         try {
-            LispThread.currentThread().execute(Lisp.coerceToFunction(function));
+            LispObject result = LispThread.currentThread().execute(
+                AbclSession.safeCaller(), Lisp.coerceToFunction(function));
+            if (result != Lisp.NIL)
+                Log.error("key binding failed: ".concat(AbclSession.report(result)));
         }
         catch (Throwable t) {
             Log.error(t);

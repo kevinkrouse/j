@@ -117,6 +117,48 @@ public final class AbclSession implements Session
         initialized = true;
     }
 
+    private static LispObject safeCaller;
+
+    /**
+     * A funcaller that traps errors instead of entering the debugger.
+     *
+     * <p>{@code LispThread.execute} on a function that signals drops ABCL into
+     * its interactive debugger, which then blocks reading standard input --
+     * inside a GUI editor that is an editor that has silently stopped
+     * responding. handler-case unwinds before the debugger is reached.
+     *
+     * <p>Returns NIL when the function ran, or the condition itself when it
+     * did not -- the condition rather than a printed report, because printing
+     * one goes through print-object, which is autoloaded and can signal in
+     * turn. Java formats it instead, with {@link #report}. Only the embedded
+     * REPL should ever see the debugger, so this is deliberately not a global
+     * *debugger-hook*.
+     */
+    static synchronized LispObject safeCaller()
+    {
+        if (safeCaller == null) {
+            safeCaller = Interpreter.evaluate(
+                "(lambda (f) (handler-case (progn (funcall f) nil) (error (e) e)))");
+        }
+        return safeCaller;
+    }
+
+    /** A condition object, as a line fit to log. Never throws. */
+    static String report(LispObject condition)
+    {
+        if (condition instanceof Condition) {
+            try {
+                String message = ((Condition)condition).getConditionReport();
+                if (message != null && message.length() > 0)
+                    return message;
+            }
+            catch (Throwable ignored) {
+                // At least we tried.
+            }
+        }
+        return "error";
+    }
+
     public EvalResult evalSync(EvalRequest request) throws EvalException
     {
         ensureInitialized();
