@@ -18,6 +18,7 @@ import org.armedbear.j.Constants;
 import org.armedbear.j.Editor;
 import org.armedbear.j.InputHandler;
 import org.armedbear.j.JEvent;
+import org.armedbear.j.Line;
 import org.armedbear.j.Log;
 import org.armedbear.j.Position;
 
@@ -153,8 +154,10 @@ public final class VimInputHandler implements InputHandler
             return true;
 
         builder.pushKey(key);
-        final KeyStrokeTrie<VimCommand> trie =
-            keyMap.getTrie(MappingMode.forVimMode(state.getMode()));
+        final MappingMode mappingMode = builder.hasOperator()
+            ? MappingMode.OP_PENDING
+            : MappingMode.forVimMode(state.getMode());
+        final KeyStrokeTrie<VimCommand> trie = keyMap.getTrie(mappingMode);
         final KeyStrokeTrie.Match<VimCommand> match = trie.match(builder.getKeys());
 
         switch (match.status) {
@@ -167,14 +170,150 @@ public final class VimInputHandler implements InputHandler
                 return false;
         }
 
-        final int count = builder.getCount();
-        final boolean countGiven = builder.hasCount();
         final VimCommand command = match.value;
         final String character = match.character;
+
+        if (command.getKind() == VimCommand.Kind.OPERATOR) {
+            acceptOperator(editor, command);
+            return true;
+        }
+
+        final int count = builder.getEffectiveCount();
+        final boolean countGiven = builder.hasEffectiveCount();
+        final VimCommand operator = builder.getOperator();
         builder.reset();
 
-        run(editor, command, count, countGiven, character, depth);
+        if (operator != null)
+            runOperator(editor, operator, command, count, countGiven, character);
+        else
+            run(editor, command, count, countGiven, character, depth);
         return true;
+    }
+
+    /**
+     * Takes an operator, or applies it to the whole line if it is the same
+     * one again: dd, cc, yy.
+     */
+    private void acceptOperator(Editor editor, VimCommand operator)
+    {
+        final VimCommand pending = builder.getOperator();
+        if (pending != null) {
+            final boolean doubled =
+                pending.getCommand().equals(operator.getCommand());
+            final int count = builder.getEffectiveCount();
+            builder.reset();
+            if (doubled)
+                runLinewise(editor, pending, count);
+            return;
+        }
+        builder.setOperator(operator);
+    }
+
+    /** dd and friends: count whole lines, starting at this one. */
+    private void runLinewise(Editor editor, VimCommand operator, int count)
+    {
+        final Position from = editor.getDot();
+        if (from == null)
+            return;
+        Line last = from.getLine();
+        for (int i = 1; i < count; i++) {
+            final Line next = last.nextVisible();
+            if (next == null)
+                break;
+            last = next;
+        }
+        final VimRange range = RangeNormalizer.normalize(
+            new Position(from.getLine(), 0), new Position(last, 0),
+            MotionKind.LINEWISE, true);
+        applyOperator(editor, operator, range, count, true, null);
+    }
+
+    /**
+     * Runs an operator over the span a motion covers.
+     *
+     * The caret never visits the far end: the motion only says how far the
+     * operator reaches.
+     */
+    private void runOperator(Editor editor, VimCommand operator,
+                             VimCommand motionCommand, int count,
+                             boolean countGiven, String character)
+    {
+        VimCommand effective = motionCommand;
+        MotionKind kind = MotionKind.of(motionCommand);
+
+        // cw and cW change to the end of the word rather than to the start of
+        // the next one, so that the space after the word survives.
+        if (isChangeWord(operator, motionCommand, editor)) {
+            effective = VimKeyMap.parse(
+                "o w motion moveByWords forward,wordEnd,inclusive"
+                + (motionCommand.getBoolean("bigWord") ? ",bigWord" : ""));
+            kind = MotionKind.CHARWISE_INCLUSIVE;
+        }
+
+        final VimMotions.Motion motion = VimMotions.get(effective.getCommand());
+        if (motion == null) {
+            Log.error("vim: no motion named " + effective.getCommand());
+            return;
+        }
+        final Position from = editor.getDot();
+        if (from == null)
+            return;
+        final MotionContext ctx = new MotionContext(editor, state, count,
+                                                    countGiven, effective,
+                                                    character);
+        final Position to = motion.move(ctx, from);
+        if (to == null)
+            return;
+
+        if (isForwardWordStart(effective))
+            RangeNormalizer.clipWordMotionAtLineEnd(from, to);
+
+        final VimRange range = RangeNormalizer.normalize(
+            new Position(from), to, kind, effective.getBoolean("forward"));
+        applyOperator(editor, operator, range, count, countGiven, character);
+    }
+
+    /**
+     * cw on a non-blank behaves as ce. Vim documents this as a special case
+     * and it is the one people notice: without it, cw eats the space too.
+     */
+    private static boolean isChangeWord(VimCommand operator,
+                                        VimCommand motionCommand, Editor editor)
+    {
+        if (!operator.getCommand().equals("change"))
+            return false;
+        if (!motionCommand.getCommand().equals("moveByWords"))
+            return false;
+        if (!motionCommand.getBoolean("forward")
+            || motionCommand.getBoolean("wordEnd"))
+            return false;
+        final Position dot = editor.getDot();
+        return dot != null && dot.getOffset() < dot.getLineLength()
+            && !Character.isWhitespace(dot.getChar());
+    }
+
+    private static boolean isForwardWordStart(VimCommand motionCommand)
+    {
+        return motionCommand.getCommand().equals("moveByWords")
+            && motionCommand.getBoolean("forward")
+            && !motionCommand.getBoolean("wordEnd");
+    }
+
+    private void applyOperator(Editor editor, VimCommand operator,
+                               VimRange range, int count, boolean countGiven,
+                               String character)
+    {
+        final VimOperators.Operator op =
+            VimOperators.get(operator.getCommand());
+        if (op == null) {
+            Log.error("vim: no operator named " + operator.getCommand());
+            return;
+        }
+        op.apply(new MotionContext(editor, state, count, countGiven, operator,
+                                   character),
+                 range);
+        state.clearDesiredColumn();
+        editor.updateDotLine();
     }
 
     private void run(Editor editor, VimCommand command, int count,

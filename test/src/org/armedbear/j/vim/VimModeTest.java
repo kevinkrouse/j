@@ -75,7 +75,9 @@ public class VimModeTest
     @Test
     public void normalModeDoesNotInsertText()
     {
-        vim("alpha bravo\n").cursor(0, 0).keys("dwxyz");
+        // None of these are bound to anything; what matters is that not one
+        // of them ends up in the buffer as a character.
+        vim("alpha bravo\n").cursor(0, 0).keys("zQvV");
         h.assertText("alpha bravo\n");
     }
 

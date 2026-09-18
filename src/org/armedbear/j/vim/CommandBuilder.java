@@ -27,6 +27,11 @@ public final class CommandBuilder
     private final StringBuilder count = new StringBuilder();
     private final List<String> keys = new ArrayList<String>();
 
+    /** The operator waiting for a motion, in d{motion}. */
+    private VimCommand operator;
+    /** The count typed before the operator; 0 when there was none. */
+    private int operatorCount;
+
     /**
      * Takes a key as a count digit if that is what it is.
      *
@@ -61,7 +66,7 @@ public final class CommandBuilder
 
     public boolean isEmpty()
     {
-        return keys.isEmpty() && count.length() == 0;
+        return keys.isEmpty() && count.length() == 0 && operator == null;
     }
 
     /** True if the user actually typed a count. */
@@ -84,16 +89,61 @@ public final class CommandBuilder
         }
     }
 
+    /**
+     * Records an operator and clears the way for its motion's own count.
+     *
+     * Both counts are kept because vim multiplies them: 2d3w deletes six
+     * words, not two and not three.
+     */
+    public void setOperator(VimCommand operator)
+    {
+        this.operator = operator;
+        this.operatorCount = hasCount() ? getCount() : 0;
+        count.setLength(0);
+        keys.clear();
+    }
+
+    public VimCommand getOperator()
+    {
+        return operator;
+    }
+
+    public boolean hasOperator()
+    {
+        return operator != null;
+    }
+
+    /**
+     * The count for the motion, with the operator's folded in.
+     */
+    public int getEffectiveCount()
+    {
+        final int motionCount = getCount();
+        return operatorCount == 0 ? motionCount : operatorCount * motionCount;
+    }
+
+    public boolean hasEffectiveCount()
+    {
+        return hasCount() || operatorCount != 0;
+    }
+
     public void reset()
     {
         count.setLength(0);
         keys.clear();
+        operator = null;
+        operatorCount = 0;
     }
 
     /** What to show while the command is incomplete, as vim does. */
     public String getPendingText()
     {
-        final StringBuilder sb = new StringBuilder(count);
+        final StringBuilder sb = new StringBuilder();
+        if (operatorCount != 0)
+            sb.append(operatorCount);
+        if (operator != null)
+            sb.append(operator.getKeys());
+        sb.append(count);
         for (String key : keys)
             sb.append(key);
         return sb.toString();

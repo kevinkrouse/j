@@ -5,7 +5,41 @@
 # free to fail while the modal engine is still being built --
 # VimConformanceTest prints any that start passing.
 #
-# Promotion is deliberate, never automatic. While normal mode swallows keys it
-# does not understand yet, any case whose expectation is "the document did not
-# change" passes for the wrong reason; listing those would turn the ratchet
-# into a source of false alarms once the feature really lands.
+# Promotion is deliberate, never automatic. A case whose expectation is "the
+# document did not change" passes for the wrong reason while normal mode is
+# still swallowing keys it does not understand, so these four are left out
+# even though they currently pass: Y, s_visual, *_no_word and
+# jumpToMark_next_sameline all test features that do not exist yet.
+
+# M1: motions
+F,
+F;
+T,
+T;
+f,
+f;
+t,
+t;
+}
+
+# M1: insert mode
+i with surrogate characters
+
+# M2: operators, and the range rules
+D
+cw
+d_inclusive
+db_start_of_document
+db_whitespace_and_empty_lines
+dj
+dk
+dl
+dl_repeat
+dw_empty_line_followed_by_word
+dw_eol
+dw_eol_with_multiple_newlines
+dw_only_word
+dw_repeat
+dw_space
+dw_word
+s_normal

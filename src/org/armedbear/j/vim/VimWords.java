@@ -153,13 +153,13 @@ final class VimWords
     {
         while (true) {
             final int cls = classAt(pos, mode, bigWord);
-            if (cls == BLANK) {
+            if (cls == BLANK || cls == NEWLINE) {
+                final boolean wasNewline = cls == NEWLINE;
+                // Out of buffer: w stops here rather than failing, so that
+                // dw on the last word still deletes it.
                 if (!pos.next())
-                    return null;
-            } else if (cls == NEWLINE) {
-                if (!pos.next())
-                    return null;
-                if (pos.getLine().length() == 0)
+                    return pos;
+                if (wasNewline && pos.getLine().length() == 0)
                     return pos;
             } else {
                 return pos;
