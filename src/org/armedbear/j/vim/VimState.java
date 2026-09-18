@@ -270,11 +270,14 @@ public final class VimState
      * and j's undo records the mark along with the text -- so undoing a delete
      * restores the operator's scratch mark and leaves a selection nobody asked
      * for, which then grows with every motion.
+     *
+     * <p>Through {@code unmark} rather than {@code setMark(null)}, because
+     * only the former asks for the highlight to be painted out.
      */
     public void clearSelectionUnlessVisual(Editor editor)
     {
-        if (!mode.isVisual() && editor.getMark() != null)
-            editor.setMark(null);
+        if (!mode.isVisual())
+            editor.unmark();
     }
 
     // ------------------------------------------------------------- caret

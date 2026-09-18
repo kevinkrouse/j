@@ -12,8 +12,10 @@
 package org.armedbear.j.vim;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 import org.armedbear.j.EditorHarness;
 import org.junit.After;
@@ -143,5 +145,56 @@ public class VimSelectionTest
         vim("one\ntwo\nthree\n").cursor(0, 0).keys("ddu");
         assertEquals(0, h.lineNumber());
         assertEquals(0, h.offset());
+    }
+
+    // ---------------------------------------- painting the selection out
+
+    // Clearing the mark changes the model but paints nothing: j repaints by
+    // line, and no line changed. Every way out of a selection has to ask for
+    // the highlight to be redrawn or it stays on screen.
+
+    @Test
+    public void leavingVisualModeAsksForARepaint()
+    {
+        vim("alpha bravo\n").cursor(0, 0).keys("vll");
+        h.clearRepaintPending();
+        h.keys("<Esc>");
+        assertTrue("the highlight has to be painted out", h.repaintPending());
+    }
+
+    @Test
+    public void anOperatorThatLeavesVisualModeAsksForARepaint()
+    {
+        // Yank changes no text, so nothing else would redraw those lines.
+        vim("alpha bravo\n").cursor(0, 0).keys("vll");
+        h.clearRepaintPending();
+        h.keys("y");
+        assertTrue(h.repaintPending());
+    }
+
+    @Test
+    public void droppingAStraySelectionAsksForARepaint()
+    {
+        // A selection from somewhere other than visual mode, as a mouse drag
+        // leaves: the motion that drops it has to paint it out too.
+        vim("alpha bravo\n").cursor(0, 0);
+        h.editor().setMark(new org.armedbear.j.Position(
+            h.buffer().getFirstLine(), 0));
+        h.editor().setDot(h.buffer().getFirstLine(), 5);
+        h.clearRepaintPending();
+        h.keys("l");
+        assertTrue(h.repaintPending());
+    }
+
+    @Test
+    public void anOrdinaryMotionAsksForNothing()
+    {
+        // The control: without this, the three above would pass however
+        // freely a repaint was requested.
+        vim("alpha bravo\n").cursor(0, 0);
+        h.clearRepaintPending();
+        h.keys("l");
+        assertFalse("moving the caret repaints two lines, not the window",
+                    h.repaintPending());
     }
 }

@@ -335,6 +335,22 @@ public final class EditorHarness
         assertEquals("offset", offset, offset());
     }
 
+    /**
+     * Forgets any repaint the display is owed, so that a test can ask whether
+     * the <em>next</em> keystroke asks for one.
+     */
+    public EditorHarness clearRepaintPending()
+    {
+        editor.getDisplay().clearRepaintPending();
+        return this;
+    }
+
+    /** True if something has asked for the whole display to be redrawn. */
+    public boolean repaintPending()
+    {
+        return editor.getDisplay().isRepaintPending();
+    }
+
     private Line lineAt(int lineNumber)
     {
         Line line = buffer.getFirstLine();

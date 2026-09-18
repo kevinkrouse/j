@@ -1896,6 +1896,21 @@ public final class Display extends JComponent implements Constants,
         updateFlag |= mask;
     }
 
+    // Whether a full repaint is owed, and a way to settle it without
+    // painting. For the headless tests, which never paint: a command that
+    // changes what is on screen without changing any line -- clearing a
+    // selection, say -- is otherwise indistinguishable from one that does
+    // nothing at all.
+    boolean isRepaintPending()
+    {
+        return (updateFlag & REPAINT) == REPAINT;
+    }
+
+    void clearRepaintPending()
+    {
+        updateFlag &= ~REPAINT;
+    }
+
     private int reframeParam = 0;
 
     public void setReframe(int n)

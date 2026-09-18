@@ -43,7 +43,10 @@ final class VimVisual
     static void leave(Editor editor, VimState state)
     {
         remember(editor, state);
-        editor.setMark(null);
+        // unmark, not setMark(null): clearing the mark changes the model but
+        // paints nothing, so the highlight would stay on screen until
+        // something else happened to force a repaint.
+        editor.unmark();
         state.setMode(editor, VimMode.NORMAL);
         state.clampCaret(editor);
     }

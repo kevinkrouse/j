@@ -27,6 +27,7 @@ i with surrogate characters
 
 # M2: operators, and the range rules
 D
+ct
 cw
 d_inclusive
 db_start_of_document
