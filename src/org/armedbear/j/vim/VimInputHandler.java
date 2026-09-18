@@ -12,33 +12,54 @@
 package org.armedbear.j.vim;
 
 import java.awt.event.KeyEvent;
+import java.util.List;
 
 import org.armedbear.j.Constants;
 import org.armedbear.j.Editor;
 import org.armedbear.j.InputHandler;
 import org.armedbear.j.JEvent;
-import org.armedbear.j.Line;
+import org.armedbear.j.Log;
 import org.armedbear.j.Position;
 
 /**
  * Modal editing: the keystroke side.
  *
- * Holds the editor's {@link VimState} and decides, for each event, whether the
- * key is a command, text, or none of its business.
+ * Holds the editor's {@link VimState}, turns each event into a key name, and
+ * runs whatever the key map says that key means.
  *
- * <p>Only the pieces the current milestone needs are implemented. Normal mode
- * swallows every key it does not understand rather than letting it reach the
- * key maps, because a half-built normal mode that sometimes inserts text is
- * worse than one that does nothing: the whole point is that a key in normal
- * mode never means itself.
+ * <p>In a command mode an ordinary character is always consumed, whether or not
+ * it means anything yet, because the whole point is that a key never stands for
+ * itself there. A key that is <em>not</em> an ordinary character -- a chord, a
+ * function key -- falls through to j's own key maps when the modal map has no
+ * binding for it, so Ctrl+S still saves.
  */
 public final class VimInputHandler implements InputHandler
 {
+    /** Guards against a key-to-key binding that leads back to itself. */
+    private static final int MAX_KEY_TO_KEY_DEPTH = 32;
+
     private final VimState state = new VimState();
+    private final VimKeyMap keyMap;
+    private final CommandBuilder builder = new CommandBuilder();
+
+    public VimInputHandler()
+    {
+        this(VimKeyMap.getDefault());
+    }
+
+    public VimInputHandler(VimKeyMap keyMap)
+    {
+        this.keyMap = keyMap;
+    }
 
     public VimState getState()
     {
         return state;
+    }
+
+    public VimKeyMap getKeyMap()
+    {
+        return keyMap;
     }
 
     @Override
@@ -58,14 +79,15 @@ public final class VimInputHandler implements InputHandler
     @Override
     public void editorDeactivated(Editor editor)
     {
+        builder.reset();
         state.editorLeftBuffer(editor);
     }
 
     /**
      * A key press carries the physical key and the modifiers, but not reliably
      * the character: on many layouts {@code getKeyChar} is undefined here, and
-     * which character a key produces depends on the layout. So anything that
-     * is identified by its character waits for the key typed event.
+     * which character a key produces depends on the layout. So anything
+     * identified by its character waits for the key typed event.
      */
     private Result keyPressed(Editor editor, JEvent event)
     {
@@ -75,83 +97,174 @@ public final class VimInputHandler implements InputHandler
         if (keyCode == KeyEvent.VK_ESCAPE)
             return escape(editor);
 
-        // Control and alt chords keep their j bindings for now; vim's own
-        // chords arrive with the key map table.
-        if ((modifiers & (Constants.CTRL_MASK | Constants.ALT_MASK
-                          | Constants.META_MASK)) != 0)
+        if (!state.getMode().isCommandMode())
             return Result.PASS_THROUGH;
 
-        if (isNamedKey(keyCode))
-            return Result.PASS_THROUGH;
+        final boolean modified =
+            (modifiers & (Constants.CTRL_MASK | Constants.ALT_MASK
+                          | Constants.META_MASK)) != 0;
+        if (!modified && !isNamedKey(keyCode)) {
+            // An ordinary character: decide once we know which one it is.
+            return Result.DEFER;
+        }
 
-        // An ordinary character: decide when we can see which one it is.
-        return state.getMode().isCommandMode() ? Result.DEFER
-                                               : Result.PASS_THROUGH;
+        final String key = KeyNotation.name(keyCode, event.getKeyChar(), modifiers);
+        if (dispatch(editor, key, 0))
+            return Result.CONSUMED;
+
+        // Nothing in the modal map wants it. If no command is part-typed, let
+        // j's own key maps have it, so existing bindings keep working.
+        return builder.isEmpty() ? Result.PASS_THROUGH : Result.CONSUMED;
     }
 
     private Result keyTyped(Editor editor, JEvent event)
     {
         if (!state.getMode().isCommandMode())
             return Result.PASS_THROUGH;
-        command(editor, event.getKeyChar());
-        // Consumed whether or not it meant anything: in command mode a
-        // character is never text.
+        dispatch(editor, KeyNotation.name(0, event.getKeyChar(), 0), 0);
         return Result.CONSUMED;
     }
 
     private Result escape(Editor editor)
     {
+        builder.reset();
         if (state.getMode().isInsert()) {
             state.setMode(editor, VimMode.NORMAL);
             // Leaving insert steps back onto the last character typed.
-            moveLeftWithinLine(editor);
-            state.clampCaret(editor);
-            return Result.CONSUMED;
+            final Position dot = editor.getDot();
+            if (dot != null && dot.getOffset() > 0)
+                editor.setDot(dot.getLine(), dot.getOffset() - 1);
+            editor.moveCaretToDotCol();
         }
-        // Already in a command mode: swallow it, so Escape does not reach
-        // j's own escape() and close things the user is still using.
         state.clampCaret(editor);
         return Result.CONSUMED;
     }
 
-    /** Runs one normal-mode command, or does nothing if it is not one yet. */
-    private void command(Editor editor, char c)
+    // ---------------------------------------------------------- dispatch
+
+    /**
+     * Feeds one key to the command being built.
+     *
+     * @return true if the key was part of a command, complete or not
+     */
+    private boolean dispatch(Editor editor, String key, int depth)
     {
-        switch (c) {
-            case 'i':
-                enterInsert(editor);
-                break;
-            case 'a':
-                moveRightWithinLine(editor);
-                enterInsert(editor);
-                break;
-            case 'I':
-                editor.home();
-                enterInsert(editor);
-                break;
-            case 'A':
-                editor.eol();
-                enterInsert(editor);
-                break;
-            case 'o':
-                editor.eol();
-                enterInsert(editor);
-                editor.newlineAndIndent();
-                break;
-            case 'O':
-                editor.bol();
-                enterInsert(editor);
-                editor.newlineAndIndent();
-                moveUpToOpenedLine(editor);
+        if (builder.acceptCountDigit(key))
+            return true;
+
+        builder.pushKey(key);
+        final KeyStrokeTrie<VimCommand> trie =
+            keyMap.getTrie(MappingMode.forVimMode(state.getMode()));
+        final KeyStrokeTrie.Match<VimCommand> match = trie.match(builder.getKeys());
+
+        switch (match.status) {
+            case PARTIAL:
+                return true;
+            case FULL:
                 break;
             default:
+                builder.reset();
+                return false;
+        }
+
+        final int count = builder.getCount();
+        final boolean countGiven = builder.hasCount();
+        final VimCommand command = match.value;
+        final String character = match.character;
+        builder.reset();
+
+        run(editor, command, count, countGiven, character, depth);
+        return true;
+    }
+
+    private void run(Editor editor, VimCommand command, int count,
+                     boolean countGiven, String character, int depth)
+    {
+        final MotionContext ctx = new MotionContext(editor, state, count,
+                                                    countGiven, command,
+                                                    character);
+        switch (command.getKind()) {
+            case MOTION:
+                runMotion(editor, ctx, command);
+                break;
+            case ACTION:
+                runAction(editor, ctx, command);
+                break;
+            case KEY_TO_KEY:
+                runKeyToKey(editor, command, count, countGiven, depth);
+                break;
+            case IDLE:
+                break;
+            default:
+                Log.error("vim: " + command.getKind()
+                          + " is not implemented yet: " + command);
                 break;
         }
     }
 
-    private void enterInsert(Editor editor)
+    private void runMotion(Editor editor, MotionContext ctx, VimCommand command)
     {
-        state.beginInsert(editor, VimMode.INSERT);
+        final VimMotions.Motion motion = VimMotions.get(command.getCommand());
+        if (motion == null) {
+            Log.error("vim: no motion named " + command.getCommand());
+            return;
+        }
+        final Position from = editor.getDot();
+        if (from == null)
+            return;
+        final Position to = motion.move(ctx, from);
+        if (to == null)
+            return;
+        editor.setDot(to.getLine(), to.getOffset());
+        editor.moveCaretToDotCol();
+        state.clampCaret(editor);
+        rememberColumn(editor, command);
+        editor.updateDotLine();
+    }
+
+    /**
+     * Keeps or forgets the column j and k aim for.
+     *
+     * Only the vertical motions preserve it; $ makes it stick to the end of
+     * the line; everything else takes it from wherever the caret ended up.
+     */
+    private void rememberColumn(Editor editor, VimCommand command)
+    {
+        if (command.getBoolean("keepColumn"))
+            return;
+        if (command.getBoolean("stickyEol"))
+            state.setDesiredColumn(VimState.STICKY_EOL);
+        else
+            state.clearDesiredColumn();
+    }
+
+    private void runAction(Editor editor, MotionContext ctx, VimCommand command)
+    {
+        final VimActions.Action action = VimActions.get(command.getCommand());
+        if (action == null) {
+            Log.error("vim: no action named " + command.getCommand());
+            return;
+        }
+        action.run(ctx);
+        state.clearDesiredColumn();
+    }
+
+    private void runKeyToKey(Editor editor, VimCommand command, int count,
+                             boolean countGiven, int depth)
+    {
+        if (depth >= MAX_KEY_TO_KEY_DEPTH) {
+            Log.error("vim: key map recursion at " + command);
+            return;
+        }
+        // The count was typed in front of the original key, so it belongs to
+        // the sequence this stands for.
+        final List<String> keys = KeyNotation.tokenize(command.getCommand());
+        for (int i = 0; i < keys.size(); i++) {
+            if (i == 0 && countGiven)
+                for (char digit : Integer.toString(count).toCharArray())
+                    builder.acceptCountDigit(String.valueOf(digit));
+            dispatch(editor, keys.get(i), depth + 1);
+        }
     }
 
     // ------------------------------------------------------------ helpers
@@ -177,35 +290,5 @@ public final class VimInputHandler implements InputHandler
             default:
                 return keyCode >= KeyEvent.VK_F1 && keyCode <= KeyEvent.VK_F12;
         }
-    }
-
-    private static void moveLeftWithinLine(Editor editor)
-    {
-        final Position dot = editor.getDot();
-        if (dot != null && dot.getOffset() > 0)
-            editor.setDot(dot.getLine(), dot.getOffset() - 1);
-        editor.moveCaretToDotCol();
-    }
-
-    private static void moveRightWithinLine(Editor editor)
-    {
-        final Position dot = editor.getDot();
-        if (dot != null && dot.getOffset() < dot.getLineLength())
-            editor.setDot(dot.getLine(), dot.getOffset() + 1);
-        editor.moveCaretToDotCol();
-    }
-
-    /**
-     * After O has split the line, the caret is on the line below the new one.
-     */
-    private static void moveUpToOpenedLine(Editor editor)
-    {
-        final Position dot = editor.getDot();
-        if (dot == null)
-            return;
-        final Line previous = dot.getLine().previous();
-        if (previous != null)
-            editor.setDot(previous, previous.length());
-        editor.moveCaretToDotCol();
     }
 }

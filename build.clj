@@ -146,11 +146,20 @@
             (shell {:dir dir} "gcc" "-Wall" "-O2" "jpty.c" "-o" (abs-path target))))))
   opts)
 
+(def resource-glob
+  "Non-Java files under src/ that belong on the class path beside the classes:
+  syntax keyword lists, icons, and the modal editing key map table."
+  "**/*.{keywords,png,svg,conf}")
+
 (defn build "Compile the J sources to build/classes."
   [opts]
   (check-javac!)
   (jpty opts)
   (javac! {:src-dirs [src-dir] :class-dir classes-dir :basis (basis)})
+  ;; Copied here rather than only when packaging, so that running or testing
+  ;; from build/classes finds the same resources the jar would ship.
+  (b/copy-dir {:src-dirs [src-dir] :target-dir classes-dir
+               :include resource-glob})
   opts)
 
 (defn stamp "Write the version/build resources read by org.armedbear.j.Version."
@@ -168,9 +177,6 @@
 (defn jar "Build and package build/j.jar."
   [opts]
   (let [{:keys [buildtime] :as opts} (-> opts build stamp)]
-    ;; the resources that ship in the jar alongside the classes
-    (b/copy-dir {:src-dirs [src-dir] :target-dir classes-dir
-                 :include "**/*.{keywords,png,svg}"})
     (b/jar {:class-dir classes-dir
             :jar-file  jar-file
             :main      'Main

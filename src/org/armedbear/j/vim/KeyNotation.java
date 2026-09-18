@@ -142,23 +142,46 @@ public final class KeyNotation
     public static List<Stroke> parse(String keys)
     {
         final List<Stroke> strokes = new ArrayList<Stroke>();
+        for (String token : tokenize(keys)) {
+            if (token.charAt(0) == '<')
+                strokes.add(parseBracketed(
+                    token.substring(1, token.length() - 1), keys));
+            else
+                strokes.add(new Stroke(0, token.charAt(0), 0));
+        }
+        return strokes;
+    }
+
+    /**
+     * Splits a key sequence into one token per keystroke, without interpreting
+     * any of them: "cw&lt;Esc&gt;" becomes ["c", "w", "&lt;Esc&gt;"].
+     *
+     * Key maps need the split without the interpretation, because a map's
+     * left-hand side may contain placeholders such as
+     * &lt;character&gt; that stand for a whole class of keys rather than for
+     * one.
+     *
+     * @throws IllegalArgumentException on an unterminated '&lt;'
+     */
+    public static List<String> tokenize(String keys)
+    {
+        final List<String> tokens = new ArrayList<String>();
         final int length = keys.length();
         int i = 0;
         while (i < length) {
-            final char c = keys.charAt(i);
-            if (c == '<') {
+            if (keys.charAt(i) == '<') {
                 final int end = keys.indexOf('>', i + 1);
                 if (end < 0)
                     throw new IllegalArgumentException(
                         "unterminated '<' in key sequence \"" + keys + "\"");
-                strokes.add(parseBracketed(keys.substring(i + 1, end), keys));
+                tokens.add(keys.substring(i, end + 1));
                 i = end + 1;
             } else {
-                strokes.add(new Stroke(0, c, 0));
+                tokens.add(keys.substring(i, i + 1));
                 ++i;
             }
         }
-        return strokes;
+        return tokens;
     }
 
     /** Convenience for a sequence that is known to be a single stroke. */

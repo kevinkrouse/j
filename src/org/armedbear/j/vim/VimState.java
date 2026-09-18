@@ -109,6 +109,72 @@ public final class VimState
         mode = VimMode.NORMAL;
     }
 
+    // ------------------------------------------------- character search
+
+    /** The f, F, t or T that ';' and ',' repeat. */
+    public static final class CharacterSearch
+    {
+        public final char target;
+        public final boolean forward;
+        public final boolean till;
+
+        CharacterSearch(char target, boolean forward, boolean till)
+        {
+            this.target = target;
+            this.forward = forward;
+            this.till = till;
+        }
+    }
+
+    private CharacterSearch lastCharacterSearch;
+
+    public CharacterSearch getLastCharacterSearch()
+    {
+        return lastCharacterSearch;
+    }
+
+    public void setLastCharacterSearch(char target, boolean forward,
+                                       boolean till)
+    {
+        lastCharacterSearch = new CharacterSearch(target, forward, till);
+    }
+
+    // ---------------------------------------------------- desired column
+
+    /**
+     * The screen column j and k are trying to get back to.
+     *
+     * Moving down through a short line and on to a long one returns to the
+     * column you started from, rather than to wherever the short line ended.
+     * {@link #STICKY_EOL} is vim's curswant=MAXCOL, which is what $ sets so
+     * that j and k keep following the end of each line.
+     *
+     * Negative means "not set": the next vertical motion takes it from
+     * wherever the caret is.
+     */
+    public static final int STICKY_EOL = Integer.MAX_VALUE;
+
+    private int desiredColumn = -1;
+
+    public int getDesiredColumn(Editor editor, Position from)
+    {
+        if (desiredColumn < 0)
+            desiredColumn = Buffer.getCol(from.getLine(), from.getOffset(),
+                                          editor.getBuffer().getTabWidth());
+        return desiredColumn;
+    }
+
+    public void setDesiredColumn(int column)
+    {
+        desiredColumn = column;
+    }
+
+    /** Forgets the column, so the next j or k takes it from the caret. */
+    public void clearDesiredColumn()
+    {
+        desiredColumn = -1;
+    }
+
     // ------------------------------------------------------------- caret
 
     /**
