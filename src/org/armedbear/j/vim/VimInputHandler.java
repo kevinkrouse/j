@@ -78,6 +78,28 @@ public final class VimInputHandler implements InputHandler
     }
 
     @Override
+    public CaretShape getCaretShape()
+    {
+        final VimMode mode = state.getMode();
+        if (mode == VimMode.REPLACE)
+            return CaretShape.UNDERLINE;
+        return mode.isCommandMode() ? CaretShape.BLOCK : CaretShape.BAR;
+    }
+
+    @Override
+    public String getModeIndicator()
+    {
+        return state.getMode().getIndicator();
+    }
+
+    @Override
+    public String getPendingCommand()
+    {
+        final String pending = builder.getPendingText();
+        return pending.isEmpty() ? null : pending;
+    }
+
+    @Override
     public void editorDeactivated(Editor editor)
     {
         builder.reset();

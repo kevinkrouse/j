@@ -61,6 +61,46 @@ public interface InputHandler
         PASS_THROUGH
     }
 
+    /** What the caret should look like. */
+    enum CaretShape
+    {
+        /** Between two characters, as when inserting. */
+        BAR,
+        /** On a character, as in a mode where keys are commands. */
+        BLOCK,
+        /** On a character that typing will overwrite. */
+        UNDERLINE
+    }
+
+    /**
+     * The caret shape for the current state.
+     *
+     * A modal editor has to show which mode it is in, and the caret is the
+     * place the eye already is.
+     */
+    default CaretShape getCaretShape()
+    {
+        return CaretShape.BAR;
+    }
+
+    /**
+     * What to show in the status bar, as in {@code -- INSERT --}, or null for
+     * a state that announces nothing.
+     */
+    default String getModeIndicator()
+    {
+        return null;
+    }
+
+    /**
+     * The command typed so far but not yet complete, as in {@code "a2d}, or
+     * null when there is none.
+     */
+    default String getPendingCommand()
+    {
+        return null;
+    }
+
     /**
      * Offers one event to the handler.
      *

@@ -23,7 +23,7 @@ package org.armedbear.j.vim;
  */
 public enum VimMode
 {
-    NORMAL("NORMAL"),
+    NORMAL(null),
     INSERT("INSERT"),
     REPLACE("REPLACE"),
     VISUAL("VISUAL"),

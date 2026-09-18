@@ -110,6 +110,20 @@ public final class StatusBar extends JComponent
         if (buffer == null)
              return "";
         StringBuilder sb = new StringBuilder();
+        final InputHandler handler = editor.getInputHandler();
+        if (handler != null) {
+            final String indicator = handler.getModeIndicator();
+            if (indicator != null) {
+                sb.append("-- ");
+                sb.append(indicator);
+                sb.append(" --   ");
+            }
+            final String pending = handler.getPendingCommand();
+            if (pending != null) {
+                sb.append(pending);
+                sb.append("   ");
+            }
+        }
         String emulation = buffer.getStringProperty(Property.EMULATION);
         if (emulation != null && emulation.length() > 0) {
             sb.append('[');

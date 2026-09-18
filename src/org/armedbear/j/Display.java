@@ -624,13 +624,23 @@ public final class Display extends JComponent implements Constants,
             return;
         if (editor.getDot() == null)
             return;
-        if (editor.getMark() != null && !editor.getMark().equals(editor.getDot()))
+        final InputHandler.CaretShape caretShape = caretShape();
+        // A thin caret between two characters disappears into a selection, so
+        // it is not drawn over one. A block caret is the cursor itself and has
+        // to stay visible: visual mode is the selection plus where you are in
+        // it.
+        if (caretShape == InputHandler.CaretShape.BAR
+            && editor.getMark() != null
+            && !editor.getMark().equals(editor.getDot()))
             return;
         if (caretCol < 0)
             return;
-        if (!editor.getFrame().isActive())
-            return;
-        if (editor.getFrame().getFocusedComponent() != this)
+        // An editor with no frame is always focused: there is no window to
+        // lose focus to. This is also what lets a test paint one and look at
+        // the pixels.
+        final Frame frame = editor.getFrame();
+        if (frame != null
+            && (!frame.isActive() || frame.getFocusedComponent() != this))
             return;
         final Line dotLine = editor.getDotLine();
         if (dotLine instanceof ImageLine)
@@ -659,8 +669,46 @@ public final class Display extends JComponent implements Constants,
 
         g2d.setColor(editor.getFormatter().getCaretColor());
 
-        // Caret width is 2 pixel.
-        g2d.fillRect(x-1, y, 2, charAscent + charDescent);
+        final int height = charAscent + charDescent;
+        switch (caretShape) {
+            case BLOCK:
+                g2d.fillRect(x, y, characterWidth(g2d, dotLine), height);
+                break;
+            case UNDERLINE:
+                g2d.fillRect(x, y + height - 2, characterWidth(g2d, dotLine), 2);
+                break;
+            default:
+                // Caret width is 2 pixel.
+                g2d.fillRect(x-1, y, 2, height);
+                break;
+        }
+    }
+
+    private InputHandler.CaretShape caretShape()
+    {
+        final InputHandler handler = editor.getInputHandler();
+        return handler == null ? InputHandler.CaretShape.BAR
+                               : handler.getCaretShape();
+    }
+
+    /**
+     * How wide the character under the caret is, for a caret that covers it.
+     *
+     * Measured rather than assumed: the font may be proportional, and a tab is
+     * as wide as it needs to be. Past the end of the line there is no
+     * character, so a space's worth is used.
+     */
+    private int characterWidth(Graphics2D g2d, Line dotLine)
+    {
+        final int offset = editor.getDotOffset();
+        if (dotLine.length() == 0 || offset >= dotLine.length())
+            return spaceWidth;
+        formatLine(dotLine, shift, caretCol + 1);
+        final int end = measureLine(g2d, textArray, caretCol + 1, formatArray);
+        formatLine(dotLine, shift, caretCol);
+        final int start = measureLine(g2d, textArray, caretCol, formatArray);
+        final int width = end - start;
+        return width > 0 ? width : spaceWidth;
     }
 
     public synchronized void setCaretVisible(boolean b)
