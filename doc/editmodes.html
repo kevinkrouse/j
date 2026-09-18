@@ -1,0 +1,167 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+<html>
+<head>
+<title>J User's Guide - Edit Modes</title>
+<LINK REL="stylesheet" HREF="j.css" TYPE="text/css">
+</head>
+<body>
+<a href="contents.html">Top</a>
+<hr>
+<h1>Edit Modes</h1>
+<hr>
+<p>
+J has two ways of reading the keyboard. In the default <b>simple</b> edit mode
+every key means itself: a printable character that no
+<a href="keys.html">key map</a> claims is inserted into the buffer. In
+<b>vim</b> edit mode the keyboard is modal, as it is in vi and its
+descendants: a key means one thing while you are typing text and another while
+you are giving commands.
+<p>
+Note that "edit mode" and <a href="modes.html">mode</a> are different things.
+A buffer's mode is the language it holds -- Java mode, HTML mode. Its edit mode
+is how the keyboard behaves.
+
+<h2>Turning it on</h2>
+<p>
+Add this to your <a href="preferences.html">preferences</a> file:
+<pre>
+    editMode=vim
+</pre>
+<p>
+Like any other preference it can be set for one mode only:
+<pre>
+    JavaMode.editMode=vim
+</pre>
+<p>
+Only ordinary text buffers are affected. Directory buffers, image buffers and
+the like bind plain letters as commands of their own and are always in simple
+edit mode.
+
+<h2>What is there</h2>
+<p>
+Normal, insert, visual and visual-line modes, operator-pending commands, counts,
+registers, marks and the dot command:
+<table border="0" cellpadding="2">
+<tr><td valign="top"><b>motions</b></td>
+    <td><code>h j k l 0 ^ $ w W b B e E ge gE gg G | f F t T ; , { } % H M L</code>
+        and the arrow keys</td></tr>
+<tr><td valign="top"><b>operators</b></td>
+    <td><code>d c y &gt; &lt; gu gU g~</code>, doubled for whole lines
+        (<code>dd</code>, <code>cc</code>, <code>yy</code>)</td></tr>
+<tr><td valign="top"><b>changes</b></td>
+    <td><code>x X D C s S r R J gJ ~ p P</code></td></tr>
+<tr><td valign="top"><b>insert</b></td>
+    <td><code>i I a A o O</code>, leaving with <code>Escape</code></td></tr>
+<tr><td valign="top"><b>visual</b></td>
+    <td><code>v V o gv</code>, and any operator over the selection</td></tr>
+<tr><td valign="top"><b>registers</b></td>
+    <td><code>"a</code> through <code>"z</code> (upper case appends),
+        <code>"0</code>, <code>"1</code>-<code>"9</code>, <code>"-</code>,
+        <code>"_</code></td></tr>
+<tr><td valign="top"><b>marks</b></td>
+    <td><code>m</code>, <code>`</code>, <code>'</code>,
+        <code>]`</code>, <code>[`</code>, <code>]'</code>, <code>['</code>,
+        and <code>`&lt;</code> / <code>`&gt;</code> after a selection</td></tr>
+<tr><td valign="top"><b>other</b></td>
+    <td><code>u</code>, <code>Ctrl R</code>, <code>.</code></td></tr>
+</table>
+<p>
+Counts work where vim's do, and multiply across an operator and its motion:
+<code>2d3w</code> deletes six words. An insert session is one undo step, so
+<code>u</code> after <code>cwsomething&lt;Esc&gt;</code> puts back both what
+went and what came.
+
+<h2>What is not there yet</h2>
+<p>
+Text objects (<code>iw</code>, <code>i(</code>), searching (<code>/</code>,
+<code>?</code>, <code>n</code>, <code>*</code>), the <code>:</code> command
+line, visual block mode, macros (<code>q</code>, <code>@</code>), and the
+insert-mode commands (<code>Ctrl W</code>, <code>Ctrl R</code>).
+<p>
+A key that vim mode does not claim falls through to j's own key maps, so
+<code>Ctrl S</code> still saves and <code>Alt X</code> still prompts for a
+command.
+
+<h2>Changing the bindings</h2>
+<p>
+The bindings are not built into j: they are read from a table, and you can
+replace it or override parts of it.
+
+<h3>The table</h3>
+<p>
+The built-in table ships as <code>default-keymap.conf</code> inside j. Each row
+is a binding:
+<pre>
+    # modes  keys            kind      command           args
+    n,v,o    w               motion    moveByWords       forward
+    n,v,o    f&lt;character&gt;    motion    moveToCharacter   forward,inclusive
+    n,o,v    d               operator  delete            -
+    n        i               action    enterInsertMode   at=here,isEdit
+    n        x               keytokey  dl
+</pre>
+<p>
+<b>modes</b> are the letters vim's map commands use: <code>n</code> normal,
+<code>v</code> visual, <code>o</code> operator-pending, <code>i</code> insert.
+<b>keys</b> is the key sequence in vim's notation;
+<code>&lt;character&gt;</code> stands for any one key, which is how
+<code>f</code> waits for the character to find. <b>kind</b> is one of
+<code>motion</code>, <code>operator</code>, <code>action</code>,
+<code>keytokey</code>, <code>command</code> or <code>idle</code>. <b>args</b>
+are comma separated, either <code>name=value</code> or a bare <code>name</code>
+meaning true, or <code>-</code> for none.
+<p>
+To replace the whole table, copy it and set:
+<pre>
+    vimKeyMap=/home/you/.config/j/vim-keymap.conf
+</pre>
+
+<h3>Your vimrc</h3>
+<p>
+To change a few bindings rather than all of them, put them in
+<code>~/.config/j/vimrc</code> in the form you already know:
+<pre>
+    " j reads the parts of a vimrc it understands and ignores the rest.
+    let mapleader = ","
+    set shiftwidth=4
+
+    nnoremap Y y$
+    vnoremap &lt; &lt;gv
+    nnoremap &lt;leader&gt;w :save&lt;CR&gt;
+</pre>
+<p>
+<code>map</code>, <code>nmap</code>, <code>vmap</code>, <code>xmap</code>,
+<code>omap</code> and <code>imap</code> are understood, with their
+<code>noremap</code> and <code>unmap</code> forms, along with
+<code>set</code> and <code>let mapleader</code>. A right-hand side that begins
+with <code>:</code> and ends with <code>&lt;CR&gt;</code> runs one of
+<a href="commands.html">j's own commands</a>, which is how a key reaches
+something the modal layer knows nothing about.
+<p>
+Anything else in the file -- vimscript, plugins, autocommands -- is reported in
+the <a href="logging.html">log</a> and skipped, so an existing vimrc can be
+pointed at j without being cut down first.
+<p>
+When a key is both a command and the start of a longer mapping, the longer one
+wins if you type it; otherwise the shorter one runs as soon as the next key
+shows it was not coming. Nothing is decided on a timer.
+
+<h2>Where it differs from vim</h2>
+<p>
+These are known and deliberate:
+<ul>
+<li><code>u</code> puts the caret back where the change was recorded rather
+    than always on the first non-blank of the first changed line.</li>
+<li><code>&gt;</code> and <code>&lt;</code> shift by j's
+    <a href="indentation.html">indentSize</a> unless a vimrc sets
+    <code>shiftwidth</code>, and the indent they produce follows j's
+    <code>useTabs</code>.</li>
+<li>Registers are not shared with j's own
+    <a href="killring.html">kill ring</a> or its file-backed
+    <a href="commands.html">registers</a>. <code>"+</code> and <code>"*</code>
+    are not connected to the system clipboard yet.</li>
+<li>Marks are per editor rather than per buffer.</li>
+</ul>
+<hr>
+<a href="contents.html">Top</a>
+</body>
+</html>

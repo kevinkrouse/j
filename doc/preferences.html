@@ -698,6 +698,28 @@ Full path of directory containing j's documentation.
 <b>Default value:</b> None
 </dl>
 
+<code><a name="editMode">editMode</a></code>
+<dl>
+<dd>
+How the keyboard behaves. <code>simple</code> is j's ordinary, non-modal
+editing. <code>vim</code> is modal editing, where a key means one thing while
+typing and another while giving commands; see
+<a href="editmodes.html">edit modes</a>. Only ordinary text buffers are
+affected.
+<p>
+<b>Default value:</b> simple
+</dl>
+
+<code><a name="vimKeyMap">vimKeyMap</a></code>
+<dl>
+<dd>
+The file holding the modal key bindings, replacing the table built into j. See
+<a href="editmodes.html">edit modes</a> for the format. To change a few
+bindings rather than all of them, use <code>~/.config/j/vimrc</code> instead.
+<p>
+<b>Default value:</b> none
+</dl>
+
 <code><a name="emulateBold">emulateBold</a></code>
 <dl>
 <dd>
