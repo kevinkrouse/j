@@ -60,3 +60,13 @@ dw_whitespace_followed_by_empty_line
 dw_whitespace_followed_by_whitespace
 dw_word_whitespace_word
 yw_repeat
+
+# M4: marks
+jumpToMark_next
+jumpToMark_next_onlyprev
+jumpToMark_next_repeat
+jumpToMark_next_sameline
+jumpToMark_prev
+jumpToMark_prev_onlynext
+jumpToMark_prev_repeat
+jumpToMark_prev_sameline

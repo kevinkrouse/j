@@ -67,6 +67,8 @@ public final class VimMotions
         register("moveToCharacter", VimMotions::moveToCharacter);
         register("repeatCharacterSearch", VimMotions::repeatCharacterSearch);
         register("moveByParagraph", VimMotions::moveByParagraph);
+        register("goToMark", VimMotions::goToMark);
+        register("jumpToMark", VimMotions::jumpToMark);
     }
 
     // ------------------------------------------------------------ motions
@@ -297,6 +299,45 @@ public final class VimMotions
             line = next;
         }
         return at(line, 0);
+    }
+
+    /**
+     * `a and 'a -- to a mark.
+     *
+     * The backtick form goes to the exact spot; the quote form goes to the
+     * first non-blank of its line and is linewise, which is why {@code d'a}
+     * takes whole lines and {@code d`a} does not.
+     */
+    private static Position goToMark(MotionContext ctx, Position from)
+    {
+        if (ctx.character == null || ctx.character.length() != 1)
+            return null;
+        final Position mark = ctx.state.getMarks()
+            .get(ctx.character.charAt(0), ctx.editor.getBuffer());
+        if (mark == null)
+            return null;
+        return ctx.arg("linewise")
+            ? at(mark.getLine(), firstNonBlank(mark.getLine()))
+            : at(mark.getLine(), mark.getOffset());
+    }
+
+    /** ]` and [` -- to the nearest mark either side of the caret. */
+    private static Position jumpToMark(MotionContext ctx, Position from)
+    {
+        final VimMarks marks = ctx.state.getMarks();
+        final boolean forward = ctx.arg("forward");
+        Position pos = from;
+        for (int i = 0; i < ctx.count; i++) {
+            final Position next = forward
+                ? marks.next(ctx.editor.getBuffer(), pos)
+                : marks.previous(ctx.editor.getBuffer(), pos);
+            if (next == null)
+                return i == 0 ? null : pos;
+            pos = next;
+        }
+        return ctx.arg("linewise")
+            ? at(pos.getLine(), firstNonBlank(pos.getLine()))
+            : at(pos.getLine(), pos.getOffset());
     }
 
     // ------------------------------------------------------------ helpers

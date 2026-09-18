@@ -109,6 +109,15 @@ public final class VimState
         mode = VimMode.NORMAL;
     }
 
+    // ----------------------------------------------------------- marks
+
+    private final VimMarks marks = new VimMarks();
+
+    public VimMarks getMarks()
+    {
+        return marks;
+    }
+
     // ------------------------------------------------------- registers
 
     private char pendingRegister;

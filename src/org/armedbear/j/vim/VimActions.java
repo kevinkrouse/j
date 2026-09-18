@@ -52,6 +52,7 @@ public final class VimActions
         register("enterInsertMode", VimActions::enterInsertMode);
         register("openLine", VimActions::openLine);
         register("selectRegister", VimActions::selectRegister);
+        register("setMark", VimActions::setMark);
         register("put", VimActions::put);
     }
 
@@ -68,6 +69,19 @@ public final class VimActions
         final char name = ctx.character.charAt(0);
         if (VimRegisters.isValidName(name))
             ctx.state.setPendingRegister(name);
+    }
+
+    /** m{a-z} -- remember where the caret is. */
+    private static void setMark(MotionContext ctx)
+    {
+        if (ctx.character == null || ctx.character.length() != 1)
+            return;
+        final char name = ctx.character.charAt(0);
+        if (!VimMarks.isValidName(name))
+            return;
+        final Position dot = ctx.editor.getDot();
+        if (dot != null)
+            ctx.state.getMarks().set(name, ctx.editor.getBuffer(), dot);
     }
 
     /**
