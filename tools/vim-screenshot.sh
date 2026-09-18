@@ -15,6 +15,10 @@
 #
 # The editMode=vim preference is set in a throwaway home, so this never reads
 # or writes your own configuration.
+#
+# Needs the same JDK the build used on PATH. nix-shell puts its own PATH in
+# front, so export JAVA_HOME and PATH before calling it, or the system java
+# will be found and j will not start.
 set -eu
 
 out=$1; shift
@@ -37,6 +41,14 @@ java -cp build/classes Main --home "$home" --no-session --no-restore "$file" \
 j=$!
 trap 'kill $j 2>/dev/null || true; kill $xvfb 2>/dev/null || true' EXIT
 sleep 6
+
+# A j that failed to start would otherwise be photographed as a black screen,
+# and the frames would look like a rendering bug rather than a missing JDK.
+if ! kill -0 $j 2>/dev/null; then
+    echo "j did not start; $out/j.log says:" >&2
+    sed 's/^/    /' "$out/j.log" >&2
+    exit 1
+fi
 
 shot() {
     ffmpeg -loglevel quiet -y -f x11grab -video_size 900x500 -i $display \

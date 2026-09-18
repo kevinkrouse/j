@@ -259,6 +259,24 @@ public final class VimState
         desiredColumn = -1;
     }
 
+    // --------------------------------------------------------- selection
+
+    /**
+     * Drops any selection, unless one is meant to be there.
+     *
+     * Outside visual mode vim has no selection, but j does: it is one mark and
+     * one dot, and several things set a mark without meaning to start a
+     * selection. An operator sets one so that it can reuse j's region delete,
+     * and j's undo records the mark along with the text -- so undoing a delete
+     * restores the operator's scratch mark and leaves a selection nobody asked
+     * for, which then grows with every motion.
+     */
+    public void clearSelectionUnlessVisual(Editor editor)
+    {
+        if (!mode.isVisual() && editor.getMark() != null)
+            editor.setMark(null);
+    }
+
     // ------------------------------------------------------------- caret
 
     /**

@@ -189,6 +189,9 @@ public final class VimInputHandler implements InputHandler
             VimVisual.leave(editor, state);
             return Result.CONSUMED;
         }
+        // Escape means "whatever is going on, stop": that includes a
+        // selection left behind by something other than visual mode.
+        editor.setMark(null);
         if (state.getMode().isInsert()) {
             state.setMode(editor, VimMode.NORMAL);
             // Leaving insert steps back onto the last character typed.
@@ -570,6 +573,7 @@ public final class VimInputHandler implements InputHandler
         final Position to = motion.move(ctx, from);
         if (to == null)
             return;
+        state.clearSelectionUnlessVisual(editor);
         editor.setDot(to.getLine(), to.getOffset());
         editor.moveCaretToDotCol();
         state.clampCaret(editor);

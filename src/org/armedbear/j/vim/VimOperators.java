@@ -281,8 +281,12 @@ public final class VimOperators
     {
         if (range.isEmpty())
             return;
-        editor.setMark(new Position(range.start));
-        editor.setDot(new Position(range.end));
+        // The caret goes at the start and the mark at the end, not the other
+        // way round: j's undo records where the caret was when the edit was
+        // made, so this is what puts it back at the start of the restored
+        // text, which is where vim leaves it.
+        editor.setMark(new Position(range.end));
+        editor.setDot(new Position(range.start));
         editor.deleteRegion();
         editor.setMark(null);
         editor.moveCaretToDotCol();

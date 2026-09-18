@@ -710,11 +710,30 @@ public final class Display extends JComponent implements Constants,
         caretLine = dotLine;
         if (previous == null || previous == dotLine)
             return;
-        if (topLine == null || previous.lineNumber() < topLine.lineNumber())
-            return;
-        final int y = getY(previous);
-        if (y >= 0 && y < getHeight())
+        final int y = visibleY(previous);
+        if (y >= 0)
             paintLine(previous, g2d, y);
+    }
+
+    /**
+     * Where a line is on screen, or -1 if it is not on screen at all.
+     *
+     * Unlike getY this reports failure. The line the caret came from may have
+     * been removed from the buffer since -- undoing a delete replaces line
+     * objects -- and an orphan would otherwise be given the y of wherever the
+     * walk happened to stop, and painted there.
+     */
+    private int visibleY(Line target)
+    {
+        int y = - pixelsAboveTopLine;
+        final int limit = getHeight();
+        for (Line line = topLine; line != null && y < limit;
+             line = line.nextVisible()) {
+            if (line == target)
+                return y;
+            y += line.getHeight();
+        }
+        return -1;
     }
 
     /**

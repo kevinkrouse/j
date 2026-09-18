@@ -105,6 +105,7 @@ public final class VimActions
         ctx.state.endInsert(ctx.editor);
         for (int i = 0; i < ctx.count; i++)
             ctx.editor.getBuffer().undo();
+        ctx.state.clearSelectionUnlessVisual(ctx.editor);
         ctx.state.clampCaret(ctx.editor);
     }
 
@@ -113,6 +114,7 @@ public final class VimActions
     {
         for (int i = 0; i < ctx.count; i++)
             ctx.editor.getBuffer().redo();
+        ctx.state.clearSelectionUnlessVisual(ctx.editor);
         ctx.state.clampCaret(ctx.editor);
     }
 
