@@ -59,6 +59,13 @@ public final class CommandBuilder
         keys.add(key);
     }
 
+    /** Puts back the key just pushed. */
+    public void dropLastKey()
+    {
+        if (!keys.isEmpty())
+            keys.remove(keys.size() - 1);
+    }
+
     public List<String> getKeys()
     {
         return Collections.unmodifiableList(keys);
@@ -127,10 +134,21 @@ public final class CommandBuilder
         return hasCount() || operatorCount != 0;
     }
 
-    public void reset()
+    /**
+     * Drops the keys typed so far, keeping the count and any operator.
+     *
+     * For a binding that stands for other keys: those keys are still the same
+     * command, with the same count in front of it.
+     */
+    public void clearKeys()
     {
         count.setLength(0);
         keys.clear();
+    }
+
+    public void reset()
+    {
+        clearKeys();
         operator = null;
         operatorCount = 0;
     }

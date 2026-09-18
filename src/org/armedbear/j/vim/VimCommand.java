@@ -41,6 +41,8 @@ public final class VimCommand
         TEXT_OBJECT,
         /** Stands for another key sequence. */
         KEY_TO_KEY,
+        /** Runs one of j's own named commands. */
+        EDITOR_COMMAND,
         /** Consumes the key and does nothing. */
         IDLE;
 
@@ -53,6 +55,7 @@ public final class VimCommand
                 case "opmotion": return OPERATOR_MOTION;
                 case "textobj":  return TEXT_OBJECT;
                 case "keytokey": return KEY_TO_KEY;
+                case "command":  return EDITOR_COMMAND;
                 case "idle":     return IDLE;
                 default:
                     throw new IllegalArgumentException("unknown kind: " + s);

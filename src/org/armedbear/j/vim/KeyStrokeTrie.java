@@ -51,12 +51,22 @@ public final class KeyStrokeTrie<T>
         public final T value;
         /** The key a {@code <character>} placeholder matched, or null. */
         public final String character;
+        /**
+         * A complete command here that a longer one is still being waited for.
+         *
+         * When {@code ,} is a command and {@code ,d} is a mapping, typing
+         * {@code ,} is both. The status is {@link Status#PARTIAL}, because the
+         * longer one may still arrive, and this is what to fall back to when
+         * it does not.
+         */
+        public final T fallback;
 
-        Match(Status status, T value, String character)
+        Match(Status status, T value, String character, T fallback)
         {
             this.status = status;
             this.value = value;
             this.character = character;
+            this.fallback = fallback;
         }
     }
 
@@ -119,13 +129,18 @@ public final class KeyStrokeTrie<T>
                 character = key;
             }
             if (next == null)
-                return new Match<T>(Status.NONE, null, null);
+                return new Match<T>(Status.NONE, null, null, null);
             node = next;
         }
+        // A command that is also the start of a longer one waits: the longer
+        // one wins if it arrives, and this is the fallback if it does not.
+        if (node.value != null && hasChildren(node))
+            return new Match<T>(Status.PARTIAL, null, character, node.value);
         if (node.value != null)
-            return new Match<T>(Status.FULL, node.value, character);
-        return hasChildren(node) ? new Match<T>(Status.PARTIAL, null, character)
-                                 : new Match<T>(Status.NONE, null, null);
+            return new Match<T>(Status.FULL, node.value, character, null);
+        return hasChildren(node)
+            ? new Match<T>(Status.PARTIAL, null, character, null)
+            : new Match<T>(Status.NONE, null, null, null);
     }
 
     private static boolean hasChildren(Node<?> node)

@@ -24,6 +24,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.armedbear.j.Directories;
+import org.armedbear.j.File;
 import org.armedbear.j.Log;
 
 /**
@@ -60,6 +62,67 @@ public final class VimKeyMap
     {
         for (MappingMode mode : MappingMode.values())
             tries.put(mode, new KeyStrokeTrie<VimCommand>());
+    }
+
+    private static VimKeyMap shared;
+    private static VimOptions sharedOptions;
+
+    /**
+     * The key map every editor uses: the built-in table, then whatever the
+     * user's vimrc changes about it.
+     *
+     * Built once. Nothing reloads it yet, so a change to the vimrc needs a
+     * restart, the way j's own key map files did before autoReloadKeyMaps.
+     */
+    public static synchronized VimKeyMap getShared()
+    {
+        if (shared == null) {
+            shared = getDefault();
+            sharedOptions = new VimOptions();
+            loadVimrc(shared, sharedOptions);
+        }
+        return shared;
+    }
+
+    public static synchronized VimOptions getSharedOptions()
+    {
+        getShared();
+        return sharedOptions;
+    }
+
+    /** Forgets the shared map, so the next use rebuilds it. */
+    public static synchronized void reset()
+    {
+        shared = null;
+        sharedOptions = null;
+    }
+
+    /**
+     * Uses this map instead of building one.
+     *
+     * For tests, which must not read whatever vimrc the person running them
+     * happens to have.
+     */
+    public static synchronized void setShared(VimKeyMap keyMap,
+                                              VimOptions options)
+    {
+        shared = keyMap;
+        sharedOptions = options;
+    }
+
+    private static void loadVimrc(VimKeyMap keyMap, VimOptions options)
+    {
+        final File file =
+            File.getInstance(Directories.getConfigDirectory(), "vimrc");
+        if (file == null || !file.isFile())
+            return;
+        try (Reader reader = new InputStreamReader(file.getInputStream(),
+                                                   StandardCharsets.UTF_8)) {
+            new VimrcParser(keyMap, options).load(reader);
+        }
+        catch (IOException e) {
+            Log.error(e);
+        }
     }
 
     /** The built-in map, or an empty one if the resource cannot be read. */

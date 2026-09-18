@@ -118,6 +118,31 @@ public final class EditorHarness
      */
     public EditorHarness vim()
     {
+        return vim(null);
+    }
+
+    /**
+     * Turns on modal editing, with a vimrc.
+     *
+     * Always goes through here rather than through the shared key map, so a
+     * test never reads the vimrc of whoever is running it.
+     */
+    public EditorHarness vim(String vimrc)
+    {
+        final org.armedbear.j.vim.VimKeyMap keyMap =
+            org.armedbear.j.vim.VimKeyMap.getDefault();
+        final org.armedbear.j.vim.VimOptions options =
+            new org.armedbear.j.vim.VimOptions();
+        if (vimrc != null) {
+            try {
+                new org.armedbear.j.vim.VimrcParser(keyMap, options)
+                    .load(new java.io.StringReader(vimrc));
+            }
+            catch (java.io.IOException e) {
+                throw new IllegalStateException(e);
+            }
+        }
+        org.armedbear.j.vim.VimKeyMap.setShared(keyMap, options);
         buffer.setProperty(Property.EDIT_MODE, "vim");
         // Registers are global, as they are in vim, so one test's yank would
         // otherwise be visible to the next.

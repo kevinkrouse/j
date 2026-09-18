@@ -43,9 +43,14 @@ public final class VimInputHandler implements InputHandler
     private final VimKeyMap keyMap;
     private final CommandBuilder builder = new CommandBuilder();
 
+    // A command the keys so far already spell, held back in case the next key
+    // completes a longer one. See KeyStrokeTrie.Match.fallback.
+    private VimCommand fallback;
+    private String fallbackCharacter;
+
     public VimInputHandler()
     {
-        this(VimKeyMap.getDefault());
+        this(VimKeyMap.getShared());
     }
 
     public VimInputHandler(VimKeyMap keyMap)
@@ -103,6 +108,7 @@ public final class VimInputHandler implements InputHandler
     public void editorDeactivated(Editor editor)
     {
         builder.reset();
+        fallback = null;
         state.editorLeftBuffer(editor);
     }
 
@@ -151,6 +157,7 @@ public final class VimInputHandler implements InputHandler
     private Result escape(Editor editor)
     {
         builder.reset();
+        fallback = null;
         if (state.getMode().isVisual()) {
             VimVisual.leave(editor, state);
             return Result.CONSUMED;
@@ -188,19 +195,49 @@ public final class VimInputHandler implements InputHandler
 
         switch (match.status) {
             case PARTIAL:
+                if (match.fallback != null) {
+                    fallback = match.fallback;
+                    fallbackCharacter = match.character;
+                }
                 return true;
             case FULL:
                 break;
             default:
+                if (fallback != null) {
+                    // The longer command never arrived. Run the shorter one
+                    // the earlier keys spelled, then start again with the key
+                    // that broke the match.
+                    final VimCommand held = fallback;
+                    final String heldCharacter = fallbackCharacter;
+                    fallback = null;
+                    builder.dropLastKey();
+                    execute(editor, held, heldCharacter, depth);
+                    return dispatch(editor, key, depth);
+                }
                 builder.reset();
                 return false;
         }
+        fallback = null;
 
-        final VimCommand command = match.value;
-        final String character = match.character;
+        return execute(editor, match.value, match.character, depth);
+    }
 
+    /** Runs a command the keys have completely spelled. */
+    private boolean execute(Editor editor, VimCommand command, String character,
+                            int depth)
+    {
         if (command.getKind() == VimCommand.Kind.OPERATOR) {
             acceptOperator(editor, command);
+            return true;
+        }
+
+        if (command.getKind() == VimCommand.Kind.KEY_TO_KEY) {
+            // Stands for other keys, so put those through instead -- keeping
+            // any operator and count already typed in front of it.
+            final int count = builder.getCount();
+            final boolean countGiven = builder.hasCount();
+            builder.clearKeys();
+            runKeyToKey(editor, command, count, countGiven, depth);
             return true;
         }
 
@@ -377,6 +414,11 @@ public final class VimInputHandler implements InputHandler
                 break;
             case KEY_TO_KEY:
                 runKeyToKey(editor, command, count, countGiven, depth);
+                break;
+            case EDITOR_COMMAND:
+                // Whatever the user bound: one of j's own named commands,
+                // which the modal layer knows nothing about.
+                editor.executeCommand(command.getCommand(), false);
                 break;
             case IDLE:
                 break;

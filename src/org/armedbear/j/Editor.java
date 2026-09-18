@@ -6653,7 +6653,8 @@ public final class Editor extends JPanel implements Constants,
             Runnable r = () -> {
                 try {
                     StatusBar statusBar = getStatusBar();
-                    statusBar.setText("");
+                    if (statusBar != null)
+                        statusBar.setText("");
                     execute(command, parameters);
                     if (interactive && parameters == null) {
                         // Suggest key binding if one is available.
@@ -6662,7 +6663,7 @@ public final class Editor extends JPanel implements Constants,
                         Debug.assertTrue(values.length == 2);
                         KeyMapping mapping = (KeyMapping) values[0];
                         Mode mode = (Mode) values[1];
-                        if (mapping != null) {
+                        if (mapping != null && statusBar != null) {
                             String statusText = statusBar.getText();
                             boolean append =
                                 statusText != null && statusText.length() > 0;
