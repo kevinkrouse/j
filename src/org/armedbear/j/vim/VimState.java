@@ -56,6 +56,20 @@ public final class VimState
         if (mode.isInsert() && !newMode.isInsert())
             endInsert(editor);
         mode = newMode;
+        caretShapeChanged(editor);
+    }
+
+    /**
+     * Asks for the caret's line to be repainted.
+     *
+     * The caret changes shape with the mode -- a block for commands, a bar for
+     * typing -- so a mode change has to redraw it even though nothing moved
+     * and no text changed.
+     */
+    private static void caretShapeChanged(Editor editor)
+    {
+        if (editor.getDot() != null)
+            editor.updateDotLine();
     }
 
     // ------------------------------------------------------------ insert
@@ -72,6 +86,7 @@ public final class VimState
             insertEditBuffer = buffer;
         }
         mode = insertMode;
+        caretShapeChanged(editor);
     }
 
     /**
@@ -107,6 +122,7 @@ public final class VimState
     {
         endInsert(editor);
         mode = VimMode.NORMAL;
+        caretShapeChanged(editor);
     }
 
     // ---------------------------------------------------------- visual

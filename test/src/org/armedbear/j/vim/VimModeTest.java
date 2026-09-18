@@ -163,6 +163,25 @@ public class VimModeTest
     }
 
     @Test
+    public void controlBracketIsEscape()
+    {
+        // CTRL-[ is what Escape sends on a terminal; vim treats them as one
+        // key, and people who learned vim on a terminal type it.
+        vim("alpha\n").cursor(0, 0).keys("iXY<C-[>");
+        h.assertText("XYalpha\n");
+        assertSame(VimMode.NORMAL, h.vimState().getMode());
+        assertEquals("and it steps back like Escape does", 1, h.offset());
+    }
+
+    @Test
+    public void controlBracketLeavesVisualModeToo()
+    {
+        vim("alpha\n").cursor(0, 0).keys("vl<C-[>");
+        assertSame(VimMode.NORMAL, h.vimState().getMode());
+        assertNull(h.editor().getMark());
+    }
+
+    @Test
     public void escapeInNormalModeIsSwallowed()
     {
         vim("alpha\n").cursor(0, 0).keys("<Esc>");

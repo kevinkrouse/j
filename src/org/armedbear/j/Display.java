@@ -608,6 +608,17 @@ public final class Display extends JComponent implements Constants,
         g2d.fillRect(x, y, 1, charAscent + charDescent);
     }
 
+    /**
+     * The line the caret was last drawn on.
+     *
+     * A block caret fills a character cell, so leaving it behind is plainly
+     * visible in a way a two pixel bar was not. j repaints by line and expects
+     * whoever moved the caret to mark the line it left, which every caller
+     * would now have to remember to do. Tracking it here instead makes the
+     * caret clean up after itself wherever it is moved from.
+     */
+    private Line caretLine;
+
     // Called only from synchronized methods.
     private void drawCaret(Graphics2D g2d)
     {
@@ -667,12 +678,15 @@ public final class Display extends JComponent implements Constants,
         if (y >= getHeight())
             return;
 
+        eraseCaretFromOldLine(g2d, dotLine);
+
         g2d.setColor(editor.getFormatter().getCaretColor());
 
         final int height = charAscent + charDescent;
         switch (caretShape) {
             case BLOCK:
                 g2d.fillRect(x, y, characterWidth(g2d, dotLine), height);
+                drawCharacterInCaret(g2d, dotLine, x, y);
                 break;
             case UNDERLINE:
                 g2d.fillRect(x, y + height - 2, characterWidth(g2d, dotLine), 2);
@@ -681,6 +695,61 @@ public final class Display extends JComponent implements Constants,
                 // Caret width is 2 pixel.
                 g2d.fillRect(x-1, y, 2, height);
                 break;
+        }
+    }
+
+    /**
+     * Repaints the line the caret has just left, if it is still on screen.
+     *
+     * Safe to call while painting: paintLine draws no caret, so this cannot
+     * recurse.
+     */
+    private void eraseCaretFromOldLine(Graphics2D g2d, Line dotLine)
+    {
+        final Line previous = caretLine;
+        caretLine = dotLine;
+        if (previous == null || previous == dotLine)
+            return;
+        if (topLine == null || previous.lineNumber() < topLine.lineNumber())
+            return;
+        final int y = getY(previous);
+        if (y >= 0 && y < getHeight())
+            paintLine(previous, g2d, y);
+    }
+
+    /**
+     * Redraws the character a block caret covers, in the background colour.
+     *
+     * A filled block hides the character underneath it, which is not what a
+     * block cursor looks like anywhere else: a terminal draws the cell
+     * inverted, so the character is still there to read.
+     */
+    private void drawCharacterInCaret(Graphics2D g2d, Line dotLine, int x, int y)
+    {
+        final int offset = editor.getDotOffset();
+        if (dotLine.length() == 0 || offset >= dotLine.length())
+            return;
+        formatLine(dotLine, shift, caretCol + 1);
+        if (caretCol < 0 || caretCol >= textArray.length)
+            return;
+        final char c = textArray[caretCol];
+        if (c == ' ' || c == '\t')
+            return;
+        g2d.setColor(editor.getFormatter().getBackgroundColor());
+        g2d.setFont(fontForFormat(formatArray[caretCol]));
+        g2d.drawChars(textArray, caretCol, 1, x, y + charAscent);
+    }
+
+    private Font fontForFormat(int format)
+    {
+        switch (editor.getFormatter().getStyle(format)) {
+            case Font.BOLD:
+                return boldFont;
+            case Font.ITALIC:
+                return italicFont;
+            case Font.PLAIN:
+            default:
+                return plainFont;
         }
     }
 

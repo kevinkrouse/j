@@ -135,7 +135,7 @@ public final class VimInputHandler implements InputHandler
         final int keyCode = event.getKeyCode();
         final int modifiers = event.getModifiers();
 
-        if (keyCode == KeyEvent.VK_ESCAPE)
+        if (isEscape(keyCode, modifiers))
             return escape(editor);
 
         if (!state.getMode().isCommandMode()) {
@@ -625,6 +625,23 @@ public final class VimInputHandler implements InputHandler
     }
 
     // ------------------------------------------------------------ helpers
+
+    /**
+     * Escape, and the chord that has always meant it.
+     *
+     * CTRL-[ is what Escape sends on a terminal, and vim treats the two as the
+     * same key. It is handled here rather than in the key map table because
+     * leaving insert mode cannot go through the table: in insert mode the
+     * table is not consulted at all.
+     */
+    private static boolean isEscape(int keyCode, int modifiers)
+    {
+        if (keyCode == KeyEvent.VK_ESCAPE)
+            return true;
+        return keyCode == KeyEvent.VK_OPEN_BRACKET
+            && (modifiers & Constants.CTRL_MASK) != 0
+            && (modifiers & (Constants.ALT_MASK | Constants.META_MASK)) == 0;
+    }
 
     /** True for keys identified by their code rather than their character. */
     private static boolean isNamedKey(int keyCode)
