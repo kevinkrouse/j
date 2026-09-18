@@ -61,6 +61,7 @@ public final class VimActions
         register("joinLines", VimActions::joinLines);
         register("replaceCharacter", VimActions::replaceCharacter);
         register("toggleCase", VimActions::toggleCase);
+        register("repeatLastChange", VimActions::repeatLastChange);
         register("put", VimActions::put);
     }
 
@@ -276,6 +277,12 @@ public final class VimActions
             editor.moveCaretToDotCol();
         }
         ctx.state.clampCaret(editor);
+    }
+
+    /** . -- do the last change again. */
+    private static void repeatLastChange(MotionContext ctx)
+    {
+        ctx.handler.repeatLastChange(ctx.editor, ctx.count, ctx.countGiven);
     }
 
     /** m{a-z} -- remember where the caret is. */

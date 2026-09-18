@@ -48,6 +48,17 @@ public final class VimInputHandler implements InputHandler
     private VimCommand fallback;
     private String fallbackCharacter;
 
+    // What '.' repeats. The keys of a change are recorded as they are typed,
+    // including everything typed in insert mode, and replayed verbatim -- so
+    // a repeat runs the same command rather than an approximation of it.
+    private final StringBuilder recording = new StringBuilder();
+    private String lastChange;
+    private boolean recordingEdit;
+    private boolean replaying;
+    // Set when a command actually changed the buffer. An operator on its own
+    // has not: dw is only a change once the w arrives.
+    private boolean edited;
+
     public VimInputHandler()
     {
         this(VimKeyMap.getShared());
@@ -57,6 +68,7 @@ public final class VimInputHandler implements InputHandler
     {
         this.keyMap = keyMap;
     }
+
 
     public VimState getState()
     {
@@ -126,8 +138,12 @@ public final class VimInputHandler implements InputHandler
         if (keyCode == KeyEvent.VK_ESCAPE)
             return escape(editor);
 
-        if (!state.getMode().isCommandMode())
+        if (!state.getMode().isCommandMode()) {
+            if (recordingEdit && !replaying && isNamedKey(keyCode))
+                recording.append(KeyNotation.name(keyCode, event.getKeyChar(),
+                                                  modifiers));
             return Result.PASS_THROUGH;
+        }
 
         final boolean modified =
             (modifiers & (Constants.CTRL_MASK | Constants.ALT_MASK
@@ -148,8 +164,11 @@ public final class VimInputHandler implements InputHandler
 
     private Result keyTyped(Editor editor, JEvent event)
     {
-        if (!state.getMode().isCommandMode())
+        if (!state.getMode().isCommandMode()) {
+            if (recordingEdit && !replaying)
+                recording.append(KeyNotation.name(0, event.getKeyChar(), 0));
             return Result.PASS_THROUGH;
+        }
         dispatch(editor, KeyNotation.name(0, event.getKeyChar(), 0), 0);
         return Result.CONSUMED;
     }
@@ -158,6 +177,14 @@ public final class VimInputHandler implements InputHandler
     {
         builder.reset();
         fallback = null;
+        if (recordingEdit && !replaying && state.getMode().isInsert()) {
+            // The change was still being typed; Escape is the end of it.
+            recording.append("<Esc>");
+            lastChange = recording.toString();
+            clearRecording();
+        } else if (!replaying) {
+            clearRecording();
+        }
         if (state.getMode().isVisual()) {
             VimVisual.leave(editor, state);
             return Result.CONSUMED;
@@ -183,6 +210,8 @@ public final class VimInputHandler implements InputHandler
      */
     private boolean dispatch(Editor editor, String key, int depth)
     {
+        if (depth == 0 && !replaying)
+            recording.append(key);
         if (builder.acceptCountDigit(key))
             return true;
 
@@ -219,7 +248,104 @@ public final class VimInputHandler implements InputHandler
         }
         fallback = null;
 
-        return execute(editor, match.value, match.character, depth);
+        final boolean handled = execute(editor, match.value, match.character,
+                                        depth);
+        if (depth == 0)
+            afterCommand();
+        return handled;
+    }
+
+    /**
+     * Decides what the keys just typed mean for '.'.
+     *
+     * A change that ends in insert mode is not finished being typed, so the
+     * recording stays open until Escape closes it. Nor is a command finished
+     * while an operator is still waiting for its motion.
+     */
+    private void afterCommand()
+    {
+        if (replaying)
+            return;
+        if (edited) {
+            edited = false;
+            recordingEdit = true;
+            if (!state.getMode().isInsert()) {
+                lastChange = recording.toString();
+                clearRecording();
+            }
+            return;
+        }
+        if (builder.hasOperator() || state.getMode().isInsert())
+            return;
+        clearRecording();
+    }
+
+    /**
+     * True for a command that changes the buffer, which is what '.' repeats.
+     *
+     * Yank is an operator but not a change, so '.' after a yank repeats
+     * whatever was changed before it, as in vim.
+     */
+    private static boolean isEdit(VimCommand command)
+    {
+        if (command.getKind() == VimCommand.Kind.OPERATOR)
+            return !command.getCommand().equals("yank");
+        return command.getBoolean("isEdit");
+    }
+
+    private void clearRecording()
+    {
+        recording.setLength(0);
+        recordingEdit = false;
+    }
+
+    /** Replays the last change. */
+    void repeatLastChange(Editor editor, int count, boolean countGiven)
+    {
+        if (lastChange == null || replaying)
+            return;
+        // A count given to '.' replaces the one the change was made with.
+        final String keys = countGiven ? countGiven(lastChange, count)
+                                       : lastChange;
+        replaying = true;
+        try {
+            for (String key : KeyNotation.tokenize(keys))
+                dispatchReplay(editor, key);
+        }
+        finally {
+            replaying = false;
+        }
+    }
+
+    /**
+     * Feeds one replayed key, through insert mode as well as command mode.
+     *
+     * Insert mode keys are not commands, so they go where a typed character
+     * would: straight into the buffer.
+     */
+    private void dispatchReplay(Editor editor, String key)
+    {
+        if (state.getMode().isInsert()) {
+            final KeyNotation.Stroke stroke = KeyNotation.parseOne(key);
+            if (stroke.keyCode == KeyEvent.VK_ESCAPE) {
+                escape(editor);
+                return;
+            }
+            if (stroke.keyCode == KeyEvent.VK_ENTER)
+                editor.newlineAndIndent();
+            else if (stroke.keyChar != KeyEvent.CHAR_UNDEFINED)
+                editor.insertNormalChar(stroke.keyChar);
+            return;
+        }
+        dispatch(editor, key, 0);
+    }
+
+    private static String countGiven(String keys, int count)
+    {
+        int i = 0;
+        while (i < keys.length() && Character.isDigit(keys.charAt(i)))
+            ++i;
+        return count + keys.substring(i);
     }
 
     /** Runs a command the keys have completely spelled. */
@@ -334,7 +460,7 @@ public final class VimInputHandler implements InputHandler
         final Position from = editor.getDot();
         if (from == null)
             return;
-        final MotionContext ctx = new MotionContext(editor, state, count,
+        final MotionContext ctx = new MotionContext(this, editor, state, count,
                                                     countGiven, effective,
                                                     character, true);
         final Position to = motion.move(ctx, from);
@@ -392,8 +518,10 @@ public final class VimInputHandler implements InputHandler
             Log.error("vim: no operator named " + operator.getCommand());
             return;
         }
-        op.apply(new MotionContext(editor, state, count, countGiven, operator,
-                                   character),
+        if (isEdit(operator) && !replaying)
+            edited = true;
+        op.apply(new MotionContext(this, editor, state, count, countGiven,
+                                   operator, character),
                  range);
         state.clearDesiredColumn();
         editor.updateDotLine();
@@ -402,7 +530,7 @@ public final class VimInputHandler implements InputHandler
     private void run(Editor editor, VimCommand command, int count,
                      boolean countGiven, String character, int depth)
     {
-        final MotionContext ctx = new MotionContext(editor, state, count,
+        final MotionContext ctx = new MotionContext(this, editor, state, count,
                                                     countGiven, command,
                                                     character);
         switch (command.getKind()) {
@@ -472,6 +600,8 @@ public final class VimInputHandler implements InputHandler
             Log.error("vim: no action named " + command.getCommand());
             return;
         }
+        if (isEdit(command) && !replaying)
+            edited = true;
         action.run(ctx);
         state.clearDesiredColumn();
     }

@@ -82,3 +82,9 @@ gJ
 g~w_repeat
 visual_marks
 ~
+
+# M8: dot-repeat
+._insert_cw
+._insert_cw_repeat
+._insert_o
+._repeat

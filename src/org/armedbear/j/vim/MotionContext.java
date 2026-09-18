@@ -34,16 +34,22 @@ public final class MotionContext
      * {@code l} stops one place short of where {@code dl} does.
      */
     public final boolean forOperator;
+    /** The handler running this command, for the few that need it back. */
+    public final VimInputHandler handler;
 
-    MotionContext(Editor editor, VimState state, int count, boolean countGiven,
-                  VimCommand command, String character)
+    MotionContext(VimInputHandler handler, Editor editor, VimState state,
+                  int count, boolean countGiven, VimCommand command,
+                  String character)
     {
-        this(editor, state, count, countGiven, command, character, false);
+        this(handler, editor, state, count, countGiven, command, character,
+             false);
     }
 
-    MotionContext(Editor editor, VimState state, int count, boolean countGiven,
-                  VimCommand command, String character, boolean forOperator)
+    MotionContext(VimInputHandler handler, Editor editor, VimState state,
+                  int count, boolean countGiven, VimCommand command,
+                  String character, boolean forOperator)
     {
+        this.handler = handler;
         this.editor = editor;
         this.state = state;
         this.count = count;
