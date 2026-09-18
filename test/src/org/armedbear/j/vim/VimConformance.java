@@ -191,7 +191,8 @@ public final class VimConformance
      */
     public static void run(Case c)
     {
-        final EditorHarness h = EditorHarness.create();
+        // In modal editing, obviously: the corpus is vim's expectations.
+        final EditorHarness h = EditorHarness.create().vim();
         try {
             int stepNumber = 0;
             for (Step step : c.steps) {

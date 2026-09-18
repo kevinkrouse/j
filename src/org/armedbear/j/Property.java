@@ -287,6 +287,10 @@ public final class Property implements Comparable<Property>, Constants
         createProperty("browserOpts");
     public static final Property DOC_PATH =
         createProperty("docPath");
+    // "simple" (j's own non-modal editing) or "vim" (modal). Buffer and
+    // mode scoped like any other property, so JavaMode.editMode=vim works.
+    public static final Property EDIT_MODE =
+        createProperty("editMode", "simple");
     public static final Property EMULATION =
         createProperty("emulation");
     public static final Property EOM =

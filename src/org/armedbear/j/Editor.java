@@ -837,6 +837,38 @@ public final class Editor extends JPanel implements Constants,
         return buffer;
     }
 
+    // Non-null only while this editor is showing a buffer whose editMode
+    // asks for one. See getInputHandler().
+    private InputHandler inputHandler;
+    private String inputHandlerEditMode;
+
+    /**
+     * The thing that gets first refusal on every keystroke, or null in j's
+     * ordinary non-modal editing.
+     *
+     * Resolved from the buffer's editMode each time it is asked for, so that
+     * switching buffers, or reloading preferences, takes effect immediately.
+     * Only ordinary text buffers get one: directory, image and compilation
+     * buffers bind bare letters as commands already, and a modal layer on top
+     * of them would make them unusable.
+     */
+    public final InputHandler getInputHandler()
+    {
+        if (buffer == null || buffer.getType() != SystemBuffer.TYPE_NORMAL)
+            return null;
+        final String editMode = buffer.getStringProperty(Property.EDIT_MODE);
+        if (editMode == null || editMode.equals("simple"))
+            return null;
+        if (!editMode.equals(inputHandlerEditMode)) {
+            inputHandler = "vim".equals(editMode)
+                ? new org.armedbear.j.vim.VimInputHandler() : null;
+            inputHandlerEditMode = editMode;
+            if (inputHandler == null)
+                Log.error("unknown editMode \"" + editMode + "\"");
+        }
+        return inputHandler;
+    }
+
     /**
      * Points this editor at a buffer without any of the activation
      * bookkeeping that activate() does -- no loading, no cursor changes, no
@@ -2725,6 +2757,24 @@ public final class Editor extends JPanel implements Constants,
         if (insertingKeyText) {
             insertKeyTextInternal(keyChar, keyCode, modifiers);
             return true;
+        }
+        // Modal editing gets first refusal, but stays out of a key sequence
+        // that is already in progress so that Emacs-style prefix keys and
+        // keyboardQuit keep working.
+        if (requestedKeyMap == null) {
+            final InputHandler handler = getInputHandler();
+            if (handler != null) {
+                switch (handler.handle(this, event)) {
+                    case CONSUMED:
+                        return true;
+                    case DEFER:
+                        // Skip the key maps and wait for the key typed event,
+                        // which is the one that says which character it is.
+                        return false;
+                    case PASS_THROUGH:
+                        break;
+                }
+            }
         }
         KeyMapping mapping = null;
         if (requestedKeyMap != null) {
@@ -6184,6 +6234,8 @@ public final class Editor extends JPanel implements Constants,
     public void deactivate()
     {
         Debug.bugIfNot(buffer != null && bufferList.contains(buffer));
+        if (inputHandler != null)
+            inputHandler.editorDeactivated(this);
         buffer.autosave();
         saveView();
         RecentFiles.getInstance().bufferDeactivated(buffer, dot);

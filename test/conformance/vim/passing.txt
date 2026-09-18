@@ -1,8 +1,11 @@
 # Conformance cases that are expected to pass, one name per line.
 #
-# A ratchet: add a name when a milestone makes that case pass. If a listed
-# case stops passing the build fails. Cases not listed here are free to fail
-# while the modal engine is still being built -- VimConformanceTest prints any
-# that start passing so they can be added.
+# A ratchet: a name is added when a milestone implements the feature that case
+# covers. If a listed case stops passing the build fails. Cases not listed are
+# free to fail while the modal engine is still being built --
+# VimConformanceTest prints any that start passing.
 #
-# Nothing is listed yet: the engine does not exist. M0 builds the rig.
+# Promotion is deliberate, never automatic. While normal mode swallows keys it
+# does not understand yet, any case whose expectation is "the document did not
+# change" passes for the wrong reason; listing those would turn the ratchet
+# into a source of false alarms once the feature really lands.

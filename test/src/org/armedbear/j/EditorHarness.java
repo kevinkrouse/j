@@ -111,6 +111,27 @@ public final class EditorHarness
     }
 
     /**
+     * Puts this editor into modal (vim) editing.
+     *
+     * Set on the buffer rather than globally so that one test cannot leak an
+     * edit mode into the next.
+     */
+    public EditorHarness vim()
+    {
+        buffer.setProperty(Property.EDIT_MODE, "vim");
+        return this;
+    }
+
+    /** The modal state, or null unless {@link #vim} was called. */
+    public org.armedbear.j.vim.VimState vimState()
+    {
+        final InputHandler handler = editor.getInputHandler();
+        return handler instanceof org.armedbear.j.vim.VimInputHandler
+            ? ((org.armedbear.j.vim.VimInputHandler) handler).getState()
+            : null;
+    }
+
+    /**
      * Sets how many lines the display shows.
      *
      * H, M, L, CTRL-F and 'scrolloff' are all defined in terms of the visible
