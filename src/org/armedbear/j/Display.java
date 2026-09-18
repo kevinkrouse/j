@@ -1009,10 +1009,9 @@ public final class Display extends JComponent implements Constants,
 
         int totalChars = formatLine(line, shift, maxCols);
 
-        if (editor.getMark() != null) {
-            // Selection.
-            Region r = new Region(editor);
-            handleSelection(r, line, formatArray, paintLineGraphics, 0);
+        final Region selection = selectionRegion();
+        if (selection != null) {
+            handleSelection(selection, line, formatArray, paintLineGraphics, 0);
         } else if (posMatch != null) {
             if (posMatch.getLine() == line)
                 highlightBracket(posMatch, line, formatArray,
@@ -1328,7 +1327,7 @@ public final class Display extends JComponent implements Constants,
         final int maxCols = getMaxCols();
 
         // Selection.
-        final Region r = editor.getMark() != null ? new Region(editor) : null;
+        final Region r = selectionRegion();
 
         // Current line.
         final Line currentLine = getCurrentLine();
@@ -1390,6 +1389,32 @@ public final class Display extends JComponent implements Constants,
         if (editor.getDot() != null && editor.getMark() == null)
             return editor.getDotLine();
         return null;
+    }
+
+    /**
+     * The selection to paint, or null when there is none.
+     *
+     * Ordinarily that is mark to dot. A linewise selection is painted from the
+     * start of its first line to the start of the line after its last, so that
+     * the whole of both end lines is covered however far along them the caret
+     * is.
+     */
+    private Region selectionRegion()
+    {
+        final Position mark = editor.getMark();
+        if (mark == null)
+            return null;
+        final InputHandler handler = editor.getInputHandler();
+        final Position dot = editor.getDot();
+        if (handler == null || !handler.isLinewiseSelection() || dot == null)
+            return new Region(editor);
+        final boolean markFirst = mark.isBefore(dot);
+        final Line first = markFirst ? mark.getLine() : dot.getLine();
+        final Line last = markFirst ? dot.getLine() : mark.getLine();
+        final Line after = last.nextVisible();
+        return new Region(editor.getBuffer(), new Position(first, 0),
+                          after != null ? new Position(after, 0)
+                                        : new Position(last, last.length()));
     }
 
     private void handleSelection(Region r, Line line, int[] formatArray,

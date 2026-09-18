@@ -102,6 +102,20 @@ public interface InputHandler
     }
 
     /**
+     * True when the selection covers whole lines, however far along them the
+     * caret happens to sit.
+     *
+     * j's selection is one mark and one dot, so it always stops where the
+     * caret is. Vim's linewise visual mode takes the whole of the first and
+     * last lines instead. Only the painting differs: the mark and the dot stay
+     * where they are, because they are what the motions move.
+     */
+    default boolean isLinewiseSelection()
+    {
+        return false;
+    }
+
+    /**
      * Offers one event to the handler.
      *
      * Called for key presses, key typed events and mouse presses, from the top

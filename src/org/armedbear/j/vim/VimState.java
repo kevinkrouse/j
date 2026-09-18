@@ -14,6 +14,7 @@ package org.armedbear.j.vim;
 import javax.swing.undo.CompoundEdit;
 
 import org.armedbear.j.Buffer;
+import org.armedbear.j.Constants;
 import org.armedbear.j.Editor;
 import org.armedbear.j.Line;
 import org.armedbear.j.Position;
@@ -278,6 +279,23 @@ public final class VimState
     {
         if (!mode.isVisual())
             editor.unmark();
+    }
+
+    /**
+     * Asks for the whole display when a selection has changed shape across
+     * lines.
+     *
+     * j repaints by line, and a motion marks only the line the caret left and
+     * the one it arrived on. That is enough for a selection grown a step at a
+     * time, but not for one that jumps: {@code v3j} covers four lines and
+     * would repaint the first and the last, leaving the two in between with no
+     * highlight on them. Which lines a selection covers now is not something
+     * the motion knows line by line, so the window is the unit.
+     */
+    public void selectionCrossedLines(Editor editor, Line before, Line after)
+    {
+        if (mode.isVisual() && before != after)
+            editor.setUpdateFlag(Constants.REPAINT);
     }
 
     // ------------------------------------------------------------- caret

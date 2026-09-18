@@ -187,6 +187,90 @@ public class VimSelectionTest
     }
 
     @Test
+    public void aCountedMotionInVisualModeAsksForARepaint()
+    {
+        // v3j covers four lines. Marking the line left and the line arrived on
+        // would leave the two in between with no highlight.
+        vim("one\ntwo\nthree\nfour\nfive\n").cursor(0, 0).keys("v");
+        h.clearRepaintPending();
+        h.keys("3j");
+        assertEquals("the selection reaches line 4", 3, h.lineNumber());
+        assertTrue("the lines jumped over have to be redrawn too",
+                   h.repaintPending());
+    }
+
+    @Test
+    public void shrinkingAVisualSelectionAcrossLinesAsksForARepaint()
+    {
+        vim("one\ntwo\nthree\nfour\nfive\n").cursor(0, 0).keys("v3j");
+        h.clearRepaintPending();
+        h.keys("2k");
+        assertTrue(h.repaintPending());
+    }
+
+    @Test
+    public void reselectingWithGvAsksForARepaint()
+    {
+        vim("one\ntwo\nthree\nfour\n").cursor(0, 0).keys("v2j<Esc>");
+        h.clearRepaintPending();
+        h.keys("gv");
+        assertTrue("gv brings back a selection three lines tall",
+                   h.repaintPending());
+    }
+
+    @Test
+    public void aVisualMotionWithinOneLineAsksForNothing()
+    {
+        // The line itself is redrawn, which is all that changed.
+        vim("alpha bravo\n").cursor(0, 0).keys("v");
+        h.clearRepaintPending();
+        h.keys("3l");
+        assertEquals(3, h.offset());
+        assertFalse(h.repaintPending());
+    }
+
+    // ------------------------------------------- linewise selections
+
+    // V selects whole lines however far along them the caret is, which j's
+    // mark and dot cannot say on their own -- they stop where the caret is.
+    // So the handler tells the display, and the display paints the whole of
+    // both end lines.
+
+    @Test
+    public void visualLineTellsTheDisplayItsSelectionIsLinewise()
+    {
+        vim("one\ntwo\nthree\n").cursor(0, 1).keys("V");
+        assertTrue(h.editor().getInputHandler().isLinewiseSelection());
+    }
+
+    @Test
+    public void charwiseVisualDoesNot()
+    {
+        vim("one\ntwo\nthree\n").cursor(0, 1).keys("v");
+        assertFalse(h.editor().getInputHandler().isLinewiseSelection());
+    }
+
+    @Test
+    public void leavingVisualLineModeStopsSayingSo()
+    {
+        vim("one\ntwo\nthree\n").cursor(0, 1).keys("Vj<Esc>");
+        assertFalse(h.editor().getInputHandler().isLinewiseSelection());
+    }
+
+    @Test
+    public void switchingBetweenVAndVLineAsksForARepaint()
+    {
+        // Every selected line changes shape, not only the caret's.
+        vim("one\ntwo\nthree\n").cursor(0, 0).keys("vj");
+        h.clearRepaintPending();
+        h.keys("V");
+        assertTrue(h.repaintPending());
+        h.clearRepaintPending();
+        h.keys("v");
+        assertTrue(h.repaintPending());
+    }
+
+    @Test
     public void anOrdinaryMotionAsksForNothing()
     {
         // The control: without this, the three above would pass however

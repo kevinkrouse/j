@@ -104,6 +104,12 @@ public final class VimInputHandler implements InputHandler
     }
 
     @Override
+    public boolean isLinewiseSelection()
+    {
+        return state.getMode() == VimMode.VISUAL_LINE;
+    }
+
+    @Override
     public String getModeIndicator()
     {
         return state.getMode().getIndicator();
@@ -573,12 +579,14 @@ public final class VimInputHandler implements InputHandler
         final Position to = motion.move(ctx, from);
         if (to == null)
             return;
+        final Line was = from.getLine();
         state.clearSelectionUnlessVisual(editor);
         editor.setDot(to.getLine(), to.getOffset());
         editor.moveCaretToDotCol();
         state.clampCaret(editor);
         rememberColumn(editor, command);
         editor.updateDotLine();
+        state.selectionCrossedLines(editor, was, editor.getDotLine());
     }
 
     /**

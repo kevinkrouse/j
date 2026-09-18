@@ -38,6 +38,13 @@ final class VimVisual
         if (!state.getMode().isVisual())
             editor.setMarkAtDot();
         state.setMode(editor, mode);
+        // Switching between v and V changes how much of every selected line is
+        // covered, not only the caret's.
+        final Position anchor = editor.getMark();
+        final Position head = editor.getDot();
+        if (anchor != null && head != null)
+            state.selectionCrossedLines(editor, anchor.getLine(),
+                                        head.getLine());
     }
 
     static void leave(Editor editor, VimState state)
@@ -82,6 +89,7 @@ final class VimVisual
         editor.setDot(headLine, Math.min(last.headOffset, headLine.length()));
         editor.moveCaretToDotCol();
         state.setMode(editor, last.mode);
+        state.selectionCrossedLines(editor, anchorLine, headLine);
     }
 
     /** o -- put the caret on the other end of the selection. */
