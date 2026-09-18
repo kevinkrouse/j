@@ -31,7 +31,10 @@
 - [-] port the `install` targets (deliberately left out of build.clj)
 
 ## UI
-- [ ] support ligatures with setting
+- [x] support ligatures with setting: --> <=> www ----
+    - `ligatures` preference: auto (default), true, false
+    - auto probes the font for contextual substitutions; Monospaced pays nothing
+    - breaks apart under the caret; buffer text only
 - [ ] separate core from swing components
     - headless editor engine
         - communicate via protocol or shared memory

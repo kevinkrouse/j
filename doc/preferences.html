@@ -1205,6 +1205,33 @@ keywords file.
 <b>Default value:</b> None
 </dl>
 
+<code><a name="ligatures">ligatures</a></code>
+<dl>
+<dd>
+Controls whether j shapes buffer text with the font's OpenType tables, so that
+a programming font renders <code>-&gt;</code> as an arrow and <code>!=</code>,
+<code>&lt;=</code>, <code>&gt;=</code> and <code>===</code> as single glyphs.
+<p>
+Set to "auto" (the default), j checks the font named by
+<a href="#fontName">fontName</a> for these substitutions and turns shaping on
+only if it has them, so an ordinary monospaced font pays nothing for the
+feature. Set it to "true" or "false" to decide for yourself.
+<p>
+Ligatures apply to buffer text only, not to the gutter, the status bar, text
+fields or printing. A ligature comes apart while the caret sits inside it, so
+you can always see which character you are on.
+<p>
+Note that Java sees these fonts under their abbreviated family names: the Nerd
+Font build of Caskaydia Cove is "CaskaydiaCove NFM", not "CaskaydiaCove Nerd
+Font Mono". A name Java does not recognize silently falls back to a default
+font.
+<p>
+<b>See also:</b> <a href="#fontName">fontName</a>,
+<a href="#antialias">antialias</a>
+<p>
+<b>Default value:</b> auto
+</dl>
+
 <code><a name="lineupArglist">lineupArglist</a></code>
 <dl>
 <dd>

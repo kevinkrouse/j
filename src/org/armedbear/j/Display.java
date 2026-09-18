@@ -40,6 +40,7 @@ import java.awt.event.ActionListener;
 import java.awt.event.FocusEvent;
 import java.awt.event.FocusListener;
 import java.awt.event.MouseEvent;
+import java.awt.font.FontRenderContext;
 import java.awt.font.GlyphVector;
 import java.awt.geom.AffineTransform;
 import java.awt.image.BufferedImage;
@@ -72,6 +73,7 @@ public final class Display extends JComponent implements Constants,
     private static Object desktopAntialiasingHint;
     private static boolean underlineBold;
     private static boolean emulateBold;
+    private static boolean ligatures;
 
     private static int changeMarkWidth;
 
@@ -187,6 +189,8 @@ public final class Display extends JComponent implements Constants,
         desktopAntialiasingHint = getDesktopAntialiasingHint();
         underlineBold = preferences.getBooleanProperty(Property.UNDERLINE_BOLD);
         emulateBold = preferences.getBooleanProperty(Property.EMULATE_BOLD);
+        ligatures = resolveLigatures(
+            preferences.getStringProperty(Property.LIGATURES), plainFont);
 
         String gutterFontName = preferences.getStringProperty(Property.GUTTER_FONT_NAME);
         if (gutterFontName == null)
@@ -239,6 +243,79 @@ public final class Display extends JComponent implements Constants,
             if (widths[i] != 0 && widths[i] < minWidth)
                 minWidth = widths[i];
         return minWidth;
+    }
+
+    /**
+     * Digraphs that programming fonts ligate. Any one of them is enough to
+     * conclude the font has contextual substitutions worth shaping for.
+     */
+    private static final String[] LIGATURE_PROBES =
+        { "->", "=>", "==", "!=", "<=", ">=", "..." };
+
+    /**
+     * Whether to shape text with {@link Font#layoutGlyphVector}.
+     *
+     * <p>"true" and "false" say so outright. "auto", the default, probes the
+     * font, so that the cost of shaping is paid only by a font that has
+     * something to show for it.
+     */
+    private static boolean resolveLigatures(String pref, Font font)
+    {
+        boolean enabled;
+        String reason;
+        if (pref == null || pref.equalsIgnoreCase("auto")) {
+            enabled = fontHasLigatures(font);
+            reason = "auto";
+        } else if (pref.equalsIgnoreCase("true") || pref.equalsIgnoreCase("yes")
+                   || pref.equalsIgnoreCase("on")) {
+            enabled = true;
+            reason = "ligatures = " + pref;
+        } else if (pref.equalsIgnoreCase("false") || pref.equalsIgnoreCase("no")
+                   || pref.equalsIgnoreCase("off")) {
+            enabled = false;
+            reason = "ligatures = " + pref;
+        } else {
+            Log.warn("unrecognized value for ligatures: \"" + pref +
+                     "\" (expected auto, true or false)");
+            enabled = fontHasLigatures(font);
+            reason = "auto";
+        }
+        Log.debug("ligatures " + (enabled ? "enabled" : "disabled") + " for " +
+                  font.getFamily() + " (" + reason + ")");
+        return enabled;
+    }
+
+    /**
+     * True if the font applies contextual substitutions to any of
+     * {@link #LIGATURE_PROBES} -- that is, if shaping a digraph yields
+     * something other than its characters shaped one at a time.
+     *
+     * <p>Programming fonts (CaskaydiaCove, Fira Code, JetBrains Mono, Cascadia
+     * Code) do; Monospaced, Courier and the plain monospaced faces do not.
+     */
+    static boolean fontHasLigatures(Font font)
+    {
+        // The same FontRenderContext the painting will use, so that detection
+        // can never disagree with what gets drawn.
+        FontRenderContext frc =
+            Utilities.getFontMetrics(font).getFontRenderContext();
+        for (String probe : LIGATURE_PROBES) {
+            char[] chars = probe.toCharArray();
+            GlyphVector shaped =
+                font.layoutGlyphVector(frc, chars, 0, chars.length,
+                                       Font.LAYOUT_LEFT_TO_RIGHT);
+            if (shaped.getNumGlyphs() != chars.length)
+                return true;
+            for (int i = 0; i < chars.length; i++) {
+                GlyphVector alone =
+                    font.layoutGlyphVector(frc, chars, i, i + 1,
+                                           Font.LAYOUT_LEFT_TO_RIGHT);
+                if (alone.getNumGlyphs() != 1 ||
+                    alone.getGlyphCode(0) != shaped.getGlyphCode(i))
+                    return true;
+            }
+        }
+        return false;
     }
 
     public static final int getCharHeight()
@@ -806,7 +883,8 @@ public final class Display extends JComponent implements Constants,
         if (showLineNumbers && editor.getDot() != null)
             drawGutterBorder(paintLineGraphics, 0, line.getHeight());
         drawVerticalRule(paintLineGraphics, 0, line.getHeight());
-        drawText(paintLineGraphics, textArray, totalChars, formatArray, 0);
+        drawText(paintLineGraphics, textArray, totalChars, formatArray, 0,
+                 caretBreakCol(line, totalChars));
         changedLines.remove(line);
 
         g.drawImage(paintLineImage, 0, y,
@@ -920,8 +998,52 @@ public final class Display extends JComponent implements Constants,
         return width;
     }
 
+    /**
+     * The column of the caret on this line, if a ligature there should be
+     * broken apart so the character under the caret is legible, otherwise -1.
+     *
+     * <p>Deliberately independent of the blink state: a ligature that came and
+     * went with the caret would flicker.
+     */
+    private int caretBreakCol(Line line, int totalChars)
+    {
+        if (!ligatures)
+            return -1;
+        if (line != editor.getDotLine())
+            return -1;
+        if (editor.getMark() != null)
+            return -1;
+        return (caretCol > 0 && caretCol < totalChars) ? caretCol : -1;
+    }
+
+    /**
+     * Glyphs for textArray[start, limit).
+     *
+     * <p>createGlyphVector is a bare cmap lookup: no ligatures, no kerning.
+     * layoutGlyphVector runs the font's OpenType tables through HarfBuzz,
+     * which is what turns "->" into an arrow. Substitution is confined to
+     * [start, limit), so splitting a run breaks the ligature at that point
+     * without moving anything -- drawText relies on that to let the caret sit
+     * inside a ligature.
+     */
+    private static GlyphVector glyphs(Font font, FontRenderContext frc,
+        char[] textArray, int start, int limit)
+    {
+        if (ligatures)
+            return font.layoutGlyphVector(frc, textArray, start, limit,
+                                          Font.LAYOUT_LEFT_TO_RIGHT);
+        char[] chars = new char[limit - start];
+        System.arraycopy(textArray, start, chars, 0, limit - start);
+        return font.createGlyphVector(frc, chars);
+    }
+
+    /**
+     * @param breakCol a column at which to end a run even though the format
+     *     has not changed, so that a ligature straddling it comes apart, or -1
+     *     for none. Used to show the caret's own character inside a ligature.
+     */
     private void drawText(Graphics2D g2d, char[] textArray, int length,
-        int[] formatArray, int y)
+        int[] formatArray, int y, int breakCol)
     {
         int i = 0;
         double x = gutterWidth;
@@ -929,7 +1051,8 @@ public final class Display extends JComponent implements Constants,
         while (i < length) {
             int format = formatArray[i];
             int start = i;
-            while (formatArray[i] == format && i < length)
+            ++i;
+            while (i < length && formatArray[i] == format && i != breakCol)
                 ++i;
             g2d.setColor(formatter.getColor(format));
             int style = formatter.getStyle(format);
@@ -946,9 +1069,8 @@ public final class Display extends JComponent implements Constants,
                     font = plainFont;
                     break;
             }
-            char[] chars = new char[i - start];
-            System.arraycopy(textArray, start, chars, 0, i - start);
-            GlyphVector gv = font.createGlyphVector(g2d.getFontRenderContext(), chars);
+            GlyphVector gv = glyphs(font, g2d.getFontRenderContext(),
+                                    textArray, start, i);
             final double width = gv.getLogicalBounds().getWidth();
             if (style == Font.BOLD) {
                 if (boldFont == plainFont) {
@@ -992,9 +1114,8 @@ public final class Display extends JComponent implements Constants,
                     font = plainFont;
                     break;
             }
-            char[] chars = new char[i - startCol];
-            System.arraycopy(textArray, startCol, chars, 0, i - startCol);
-            GlyphVector gv = font.createGlyphVector(g2d.getFontRenderContext(), chars);
+            GlyphVector gv = glyphs(font, g2d.getFontRenderContext(),
+                                    textArray, startCol, i);
             totalWidth += gv.getLogicalBounds().getWidth();
         }
         return (int) totalWidth;
@@ -1101,7 +1222,8 @@ public final class Display extends JComponent implements Constants,
                 if (totalChars > 0) {
                     // Draw vertical rule first so it will be behind the text.
                     drawVerticalRule(g2d, y, line.getHeight());
-                    drawText(g2d, textArray, totalChars, formatArray, y);
+                    drawText(g2d, textArray, totalChars, formatArray, y,
+                             caretBreakCol(line, totalChars));
                 } else
                     drawVerticalRule(g2d, y, line.getHeight());
                 changedLines.remove(line);

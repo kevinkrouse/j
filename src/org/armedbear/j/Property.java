@@ -255,6 +255,9 @@ public final class Property implements Comparable<Property>, Constants
         createProperty("explicitTag", "###");
     public static final Property FONT_NAME =
         createProperty("fontName", "Monospaced");
+    // "auto/true/false" See Display.resolveLigatures().
+    public static final Property LIGATURES =
+        createProperty("ligatures", "auto");
     public static final Property PRINTER_FONT_NAME =
         createProperty("printerFontName", "Courier");
     public static final Property SHELL_PROMPT_PATTERN =
