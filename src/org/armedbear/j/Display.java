@@ -29,6 +29,7 @@ import java.awt.Font;
 import java.awt.FontMetrics;
 import java.awt.Graphics2D;
 import java.awt.GraphicsConfiguration;
+import java.awt.GraphicsEnvironment;
 import java.awt.Graphics;
 import java.awt.Image;
 import java.awt.Point;
@@ -215,7 +216,13 @@ public final class Display extends JComponent implements Constants,
         // Allocate text and format arrays big enough to handle full screen
         // width for narrowest character in font, plus some slack (runs of
         // italics tend to get compressed). An extra 25% should be plenty.
-        int size = Toolkit.getDefaultToolkit().getScreenSize().width * 5 / (minCharWidth * 4);
+        // Toolkit.getScreenSize() throws HeadlessException when there is no
+        // display. Any plausible width will do here; these arrays are only a
+        // scratch buffer for formatting one line.
+        final int screenWidth =
+            GraphicsEnvironment.isHeadless() ? 1920
+            : Toolkit.getDefaultToolkit().getScreenSize().width;
+        int size = screenWidth * 5 / (minCharWidth * 4);
         textArray = new char[size];
         formatArray = new int[size];
 
@@ -1428,6 +1435,8 @@ public final class Display extends JComponent implements Constants,
     // Move content down.
     private void scrollPixelsUp(int dy)
     {
+        if (!isShowing() || !editor.isShowing())
+            return;
         Point pt1 = editor.getLocationOnScreen();
         Point pt2 = getLocationOnScreen();
         int x = pt2.x - pt1.x;
@@ -1438,6 +1447,8 @@ public final class Display extends JComponent implements Constants,
     // Move content up.
     private void scrollPixelsDown(int dy)
     {
+        if (!isShowing() || !editor.isShowing())
+            return;
         Point pt1 = editor.getLocationOnScreen();
         Point pt2 = getLocationOnScreen();
         int x = pt2.x - pt1.x;

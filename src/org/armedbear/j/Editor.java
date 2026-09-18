@@ -621,6 +621,23 @@ public final class Editor extends JPanel implements Constants,
         frame = f != null ? f : new Frame(this);
     }
 
+    /**
+     * Creates an editor with no frame, for use without a display.
+     *
+     * The buffer, the caret and every editing primitive work normally; only
+     * the window does not exist. Methods that would reach through to the
+     * frame (status(), getStatusBar(), setFocusToDisplay()) are null-guarded
+     * and do nothing. Package private: this is for tests and for exercising
+     * the editing engine headlessly, not for ordinary use.
+     */
+    Editor()
+    {
+        display = new Display(this);
+        dispatcher = new Dispatcher(this);
+        init();
+        frame = null;
+    }
+
     private void init()
     {
       // Add this editor to the global editor list.
@@ -630,7 +647,8 @@ public final class Editor extends JPanel implements Constants,
       display.setDoubleBuffered(true);
       add(display, BorderLayout.CENTER);
 
-      new DropTarget(display, dispatcher);
+      if (!GraphicsEnvironment.isHeadless())
+          new DropTarget(display, dispatcher);
 
       addLocationBar();
       addVerticalScrollBar();
@@ -819,6 +837,18 @@ public final class Editor extends JPanel implements Constants,
         return buffer;
     }
 
+    /**
+     * Points this editor at a buffer without any of the activation
+     * bookkeeping that activate() does -- no loading, no cursor changes, no
+     * dialogs, no sidebar update. Only for an editor with no frame, where
+     * there is nothing to keep in sync. Use activate() everywhere else.
+     */
+    void setBufferDirectly(Buffer buf)
+    {
+        Debug.assertTrue(frame == null);
+        buffer = buf;
+    }
+
     public final Mode getMode()
     {
         return buffer.getMode();
@@ -851,12 +881,12 @@ public final class Editor extends JPanel implements Constants,
 
     public final Sidebar getSidebar()
     {
-        return frame.getSidebar();
+        return frame != null ? frame.getSidebar() : null;
     }
 
     public final StatusBar getStatusBar()
     {
-        return frame.getStatusBar();
+        return frame != null ? frame.getStatusBar() : null;
     }
 
     public static final PendingOperations getPendingOperations()
@@ -944,7 +974,8 @@ public final class Editor extends JPanel implements Constants,
     {
         Editor oldCurrentEditor = currentEditor;
         currentEditor = editor;
-        editor.getFrame().setCurrentEditor(editor);
+        if (editor.getFrame() != null)
+            editor.getFrame().setCurrentEditor(editor);
         if (currentEditor != oldCurrentEditor) {
             if (currentEditor != null)
                 currentEditor.repaintLocationBar();
@@ -4430,7 +4461,8 @@ public final class Editor extends JPanel implements Constants,
 
     public void setFocusToDisplay()
     {
-        frame.setFocus(display);
+        if (frame != null)
+            frame.setFocus(display);
     }
 
     public static final void restoreFocus()
@@ -4487,6 +4519,8 @@ public final class Editor extends JPanel implements Constants,
 
     public void ensureActive()
     {
+        if (frame == null)
+            return;
         if (!frame.isActive()) {
             for (int i = 0; i < getFrameCount(); i++) {
                 Frame f = getFrame(i);
@@ -7165,7 +7199,8 @@ public final class Editor extends JPanel implements Constants,
         Sidebar sidebar = getSidebar();
         if (sidebar != null)
             sidebar.setUpdateFlag(SIDEBAR_POSITION);
-        frame.repaintStatusBar();
+        if (frame != null)
+            frame.repaintStatusBar();
         if (buffer.isBusy())
             setWaitCursor();
         else
@@ -7242,7 +7277,8 @@ public final class Editor extends JPanel implements Constants,
 
     public void status(String s)
     {
-        frame.setStatusText(s);
+        if (frame != null)
+            frame.setStatusText(s);
     }
 
     private static boolean displayReady;

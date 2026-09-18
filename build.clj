@@ -258,9 +258,12 @@
                :javac-opts ["-classpath" (join-paths (abs-path classes-dir)
                                                      (abs-path test-dir)
                                                      (lib-jars basis))]})
+      ;; Headless on purpose: a unit test must not depend on a display, and
+      ;; must not open a window on a machine that has one.
       (when-not (zero? (:exit (java! {:basis     basis
                                       :cp        [(abs-path classes-dir)
                                                   (abs-path test-dir)]
+                                      :java-opts ["-Djava.awt.headless=true"]
                                       :main      'org.junit.runner.JUnitCore
                                       :main-args classes})))
         (throw (ex-info "unit tests failed" {}))))

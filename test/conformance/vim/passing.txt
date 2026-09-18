@@ -1,0 +1,8 @@
+# Conformance cases that are expected to pass, one name per line.
+#
+# A ratchet: add a name when a milestone makes that case pass. If a listed
+# case stops passing the build fails. Cases not listed here are free to fail
+# while the modal engine is still being built -- VimConformanceTest prints any
+# that start passing so they can be added.
+#
+# Nothing is listed yet: the engine does not exist. M0 builds the rig.

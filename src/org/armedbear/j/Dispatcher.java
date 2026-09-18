@@ -24,6 +24,7 @@ import org.armedbear.j.extension.Extensions;
 
 import java.awt.AWTEvent;
 import java.awt.Cursor;
+import java.awt.GraphicsEnvironment;
 import java.awt.Image;
 import java.awt.Point;
 import java.awt.Toolkit;
@@ -33,7 +34,6 @@ import java.awt.datatransfer.Transferable;
 import java.awt.dnd.DnDConstants;
 import java.awt.dnd.DragGestureEvent;
 import java.awt.dnd.DragGestureListener;
-import java.awt.dnd.DragGestureRecognizer;
 import java.awt.dnd.DragSource;
 import java.awt.dnd.DragSourceContext;
 import java.awt.dnd.DragSourceDragEvent;
@@ -106,10 +106,23 @@ public final class Dispatcher implements Constants, KeyListener, MouseListener,
         display = editor.getDisplay();
 
 
-        dragSource = DragSource.getDefaultDragSource() ;
-        DragGestureRecognizer dgr =
+        if (!GraphicsEnvironment.isHeadless()) {
+            dragSource = DragSource.getDefaultDragSource();
             dragSource.createDefaultDragGestureRecognizer(display,
                 DnDConstants.ACTION_COPY_OR_MOVE, this);
+        }
+    }
+
+    /**
+     * True if the display this dispatcher serves should see key events.
+     *
+     * An editor with no frame (headless) is always focused: there is no other
+     * component that could hold the focus instead.
+     */
+    private boolean displayHasFocus()
+    {
+        final Frame frame = editor.getFrame();
+        return frame == null || frame.getFocusedComponent() == display;
     }
 
     public final AWTEvent getLastEvent()
@@ -317,7 +330,7 @@ public final class Dispatcher implements Constants, KeyListener, MouseListener,
         ToolTipManager.sharedInstance().setEnabled(false);
         ToolTipManager.sharedInstance().setEnabled(true);
 
-        if (editor.getFrame().getFocusedComponent() != display)
+        if (!displayHasFocus())
             return;
 
         editor.ensureActive();
@@ -333,7 +346,7 @@ public final class Dispatcher implements Constants, KeyListener, MouseListener,
     public void keyReleased(KeyEvent e)
     {
         e.consume();
-        if (editor.getFrame().getFocusedComponent() != display)
+        if (!displayHasFocus())
             return;
 
         if (lastKeyEvent == KeyEvent.KEY_RELEASED) {
@@ -354,7 +367,7 @@ public final class Dispatcher implements Constants, KeyListener, MouseListener,
 
     public void keyTyped(KeyEvent e)
     {
-        if (editor.getFrame().getFocusedComponent() != display)
+        if (!displayHasFocus())
             return;
 
         lastKeyEvent = KeyEvent.KEY_TYPED;

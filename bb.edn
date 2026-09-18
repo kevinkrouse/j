@@ -22,6 +22,8 @@
               :override-builtin true}
   run-core   {:doc "Run J with no extension loaded"          :task (build/run-core {})}
   test       {:doc "Build and run unit tests"                :task (build/test {})}
+  vim-conformance {:doc "Regenerate the vim conformance corpus from a vim_test.js"
+                   :task (load-file "tools/vim-conformance.clj")}
   test-extensions {:doc "Build and run extensions' tests"    :task (build/test-extensions {})}
   fmt        {:doc "Reformat the clj/edn files with cljfmt"  :task (build/fmt {})}
   fmt-check  {:doc "Check clj formatting, change nothing"    :task (build/fmt-check {})}
