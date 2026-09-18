@@ -17,6 +17,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.awt.event.KeyEvent;
+import java.util.Arrays;
 import java.util.List;
 
 import org.armedbear.j.Constants;
@@ -155,11 +156,29 @@ public class KeyNotationTest
         catch (IllegalArgumentException expected) {
             assertTrue(expected.getMessage().contains("Excape"));
         }
-        try {
-            KeyNotation.parse("<Esc");
-            fail("expected an exception for an unterminated '<'");
-        }
-        catch (IllegalArgumentException expected) {
-        }
+    }
+
+    @Test
+    public void aBareAngleBracketIsTheKeyItself()
+    {
+        // << is the shift-left operator typed twice, not a malformed name.
+        final List<KeyNotation.Stroke> strokes = KeyNotation.parse("<lt><lt>");
+        assertEquals(2, strokes.size());
+        assertEquals('<', strokes.get(0).keyChar);
+
+        assertEquals("a bare < is read as the key",
+                     Arrays.asList("<lt>", "<lt>"), KeyNotation.tokenize("<<"));
+        assertEquals("and normalised so a binding and a keystroke agree",
+                     Arrays.asList("<lt>"), KeyNotation.tokenize("<"));
+        assertEquals(Arrays.asList("d", "<lt>"), KeyNotation.tokenize("d<"));
+    }
+
+    @Test
+    public void namingAndTokenizingAgreeOnTheAngleBracket()
+    {
+        // The dispatcher spells a typed '<' with name(); a key map spells it
+        // with tokenize(). If those differ, the binding never matches.
+        assertEquals(KeyNotation.tokenize("<").get(0),
+                     KeyNotation.name(0, '<', 0));
     }
 }

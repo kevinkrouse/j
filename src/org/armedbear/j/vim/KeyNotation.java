@@ -161,7 +161,10 @@ public final class KeyNotation
      * &lt;character&gt; that stand for a whole class of keys rather than for
      * one.
      *
-     * @throws IllegalArgumentException on an unterminated '&lt;'
+     * A '&lt;' that does not open a bracketed name is the key itself, as it
+     * is in a vimrc: {@code &lt;&lt;} is two keys, not a malformed one. It is
+     * normalised to {@code &lt;lt&gt;} so that a binding and a keystroke spell
+     * that key the same way.
      */
     public static List<String> tokenize(String keys)
     {
@@ -169,13 +172,13 @@ public final class KeyNotation
         final int length = keys.length();
         int i = 0;
         while (i < length) {
-            if (keys.charAt(i) == '<') {
-                final int end = keys.indexOf('>', i + 1);
-                if (end < 0)
-                    throw new IllegalArgumentException(
-                        "unterminated '<' in key sequence \"" + keys + "\"");
+            final int end = keys.charAt(i) == '<' ? keys.indexOf('>', i + 1) : -1;
+            if (end > i + 1) {
                 tokens.add(keys.substring(i, end + 1));
                 i = end + 1;
+            } else if (keys.charAt(i) == '<') {
+                tokens.add("<lt>");
+                ++i;
             } else {
                 tokens.add(keys.substring(i, i + 1));
                 ++i;

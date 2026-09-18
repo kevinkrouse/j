@@ -14,10 +14,14 @@ package org.armedbear.j.vim;
 import java.util.HashMap;
 import java.util.Map;
 
+import javax.swing.undo.CompoundEdit;
+
+import org.armedbear.j.Buffer;
 import org.armedbear.j.Editor;
 import org.armedbear.j.Line;
 import org.armedbear.j.Position;
 import org.armedbear.j.Region;
+import org.armedbear.j.SimpleEdit;
 
 /**
  * The operators, by the names the key map table uses.
@@ -53,6 +57,111 @@ public final class VimOperators
         register("delete", VimOperators::delete);
         register("change", VimOperators::change);
         register("yank", VimOperators::yank);
+        register("changeCase", VimOperators::changeCase);
+        register("indent", VimOperators::indent);
+    }
+
+    /**
+     * gu, gU and g~.
+     *
+     * The text keeps its place and its length, so the caret goes back to the
+     * start of the range rather than following the replacement.
+     */
+    private static void changeCase(MotionContext ctx, VimRange range)
+    {
+        final Editor editor = ctx.editor;
+        final String text = textOf(editor, range);
+        if (text.isEmpty())
+            return;
+        final String changed = applyCase(text, ctx.arg("to", "toggle"));
+        if (changed.equals(text)) {
+            editor.setDot(new Position(range.start));
+            editor.moveCaretToDotCol();
+            return;
+        }
+        final CompoundEdit edit = editor.getBuffer().beginCompoundEdit();
+        try {
+            final int line = range.start.lineNumber();
+            final int offset = range.start.getOffset();
+            deleteRange(editor, range);
+            editor.insertString(changed);
+            final Line target = lineNumbered(editor, line);
+            if (target != null) {
+                editor.setDot(target, Math.min(offset, target.length()));
+                editor.moveCaretToDotCol();
+            }
+        }
+        finally {
+            editor.getBuffer().endCompoundEdit(edit);
+        }
+        ctx.state.clampCaret(editor);
+    }
+
+    private static String applyCase(String text, String to)
+    {
+        final StringBuilder sb = new StringBuilder(text.length());
+        for (int i = 0; i < text.length(); i++) {
+            final char c = text.charAt(i);
+            switch (to) {
+                case "lower": sb.append(Character.toLowerCase(c)); break;
+                case "upper": sb.append(Character.toUpperCase(c)); break;
+                default:
+                    sb.append(Character.isUpperCase(c)
+                              ? Character.toLowerCase(c)
+                              : Character.toUpperCase(c));
+                    break;
+            }
+        }
+        return sb.toString();
+    }
+
+    /**
+     * &gt; and &lt;.
+     *
+     * A shift by 'shiftwidth', not a re-indent: vim moves the line, it does
+     * not work out where the line ought to go. j's own indentRegion does the
+     * latter, which is a different command.
+     */
+    private static void indent(MotionContext ctx, VimRange range)
+    {
+        final Editor editor = ctx.editor;
+        final Buffer buffer = editor.getBuffer();
+        final int width = buffer.getIndentSize();
+        final int sign = ctx.arg("right") ? 1 : -1;
+
+        final CompoundEdit edit = buffer.beginCompoundEdit();
+        try {
+            Line line = range.start.getLine();
+            final Line stop = range.end.getOffset() == 0
+                ? range.end.getLine()
+                : range.end.getLine().next();
+            while (line != null && line != stop) {
+                if (line.length() > 0 || sign > 0) {
+                    editor.setDot(line, 0);
+                    editor.addUndo(SimpleEdit.LINE_EDIT);
+                    final int was = buffer.getIndentation(line);
+                    buffer.setIndentation(line, Math.max(0, was + sign * width));
+                    editor.updateDotLine();
+                }
+                line = line.next();
+            }
+        }
+        finally {
+            buffer.endCompoundEdit(edit);
+        }
+        // Vim leaves the caret on the first non-blank of the first line.
+        final Line first = range.start.getLine();
+        editor.setDot(first, VimMotions.firstNonBlank(first));
+        editor.moveCaretToDotCol();
+        ctx.state.clampCaret(editor);
+    }
+
+    private static Line lineNumbered(Editor editor, int number)
+    {
+        Line line = editor.getBuffer().getFirstLine();
+        for (int i = 0; i < number && line != null; i++)
+            line = line.next();
+        return line;
     }
 
     /** y: take a copy and leave the text alone. */

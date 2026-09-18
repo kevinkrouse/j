@@ -56,6 +56,11 @@ public final class VimActions
         register("toggleVisualMode", VimActions::toggleVisualMode);
         register("swapVisualEnds", ctx -> VimVisual.swapEnds(ctx.editor));
         register("reselectVisual", ctx -> VimVisual.reselect(ctx.editor, ctx.state));
+        register("undo", VimActions::undo);
+        register("redo", VimActions::redo);
+        register("joinLines", VimActions::joinLines);
+        register("replaceCharacter", VimActions::replaceCharacter);
+        register("toggleCase", VimActions::toggleCase);
         register("put", VimActions::put);
     }
 
@@ -86,6 +91,191 @@ public final class VimActions
             VimVisual.leave(ctx.editor, ctx.state);
         else
             VimVisual.enter(ctx.editor, ctx.state, wanted);
+    }
+
+    /**
+     * u.
+     *
+     * An insert session still in progress is closed first, so that u undoes
+     * the insert as one step rather than joining the step before it.
+     */
+    private static void undo(MotionContext ctx)
+    {
+        ctx.state.endInsert(ctx.editor);
+        for (int i = 0; i < ctx.count; i++)
+            ctx.editor.getBuffer().undo();
+        ctx.state.clampCaret(ctx.editor);
+    }
+
+    /** CTRL-R. */
+    private static void redo(MotionContext ctx)
+    {
+        for (int i = 0; i < ctx.count; i++)
+            ctx.editor.getBuffer().redo();
+        ctx.state.clampCaret(ctx.editor);
+    }
+
+    /**
+     * J and gJ -- pull the next line up onto this one.
+     *
+     * J puts a single space at the join and drops the next line's indent; gJ
+     * joins the lines exactly as they are. Either way the caret lands where
+     * the join happened, which is what makes a following {@code .} sensible.
+     */
+    private static void joinLines(MotionContext ctx)
+    {
+        final Editor editor = ctx.editor;
+        final boolean keepSpaces = ctx.arg("keepSpaces");
+        // J with no count joins two lines; with a count it joins that many,
+        // so the number of joins is one less.
+        final int joins = Math.max(1, ctx.count - 1);
+
+        final CompoundEdit edit = editor.getBuffer().beginCompoundEdit();
+        try {
+            for (int i = 0; i < joins; i++) {
+                final Position dot = editor.getDot();
+                if (dot == null)
+                    return;
+                final Line line = dot.getLine();
+                final Line next = line.next();
+                if (next == null)
+                    return;
+                final String rest = keepSpaces ? text(next)
+                                               : stripLeading(text(next));
+                // The line keeps its own trailing whitespace: vim only drops
+                // the indent of the line being pulled up. And it adds a space
+                // only if there is not one there already.
+                final String head = text(line);
+                final String separator =
+                    keepSpaces || rest.isEmpty() || head.isEmpty()
+                        || Character.isWhitespace(head.charAt(head.length() - 1))
+                    ? "" : " ";
+
+                editor.setDot(line, head.length());
+                editor.setMark(new Position(next, 0));
+                // Select from the join point to the start of the next line's
+                // text, then replace it with the separator.
+                editor.setDot(next, next.length() - rest.length());
+                editor.setMark(new Position(line, head.length()));
+                editor.deleteRegion();
+                editor.setMark(null);
+                final Position joined = editor.getDot();
+                if (!separator.isEmpty()) {
+                    editor.insertString(separator);
+                    editor.setDot(joined.getLine(), head.length());
+                } else {
+                    editor.setDot(joined.getLine(), head.length());
+                }
+                editor.moveCaretToDotCol();
+            }
+        }
+        finally {
+            editor.getBuffer().endCompoundEdit(edit);
+        }
+        ctx.state.clampCaret(editor);
+    }
+
+    private static String stripLeading(String s)
+    {
+        if (s == null)
+            return "";
+        int i = 0;
+        while (i < s.length() && Character.isWhitespace(s.charAt(i)))
+            ++i;
+        return s.substring(i);
+    }
+
+    private static String text(Line line)
+    {
+        final String s = line.getText();
+        return s == null ? "" : s;
+    }
+
+    /**
+     * r{char} -- overwrite the character under the caret.
+     *
+     * With a count it overwrites that many, and does nothing at all if there
+     * are not that many left on the line: vim will not do half of it.
+     */
+    private static void replaceCharacter(MotionContext ctx)
+    {
+        final char replacement = ctx.characterArg();
+        if (replacement == 0)
+            return;
+        final Editor editor = ctx.editor;
+        final Position dot = editor.getDot();
+        if (dot == null)
+            return;
+        final Line line = dot.getLine();
+        if (dot.getOffset() + ctx.count > line.length())
+            return;
+
+        final StringBuilder text = new StringBuilder();
+        for (int i = 0; i < ctx.count; i++)
+            text.append(replacement);
+
+        final CompoundEdit edit = editor.getBuffer().beginCompoundEdit();
+        try {
+            editor.setMark(new Position(line, dot.getOffset() + ctx.count));
+            editor.setDot(line, dot.getOffset());
+            editor.deleteRegion();
+            editor.setMark(null);
+            editor.insertString(text.toString());
+            // The caret ends on the last character replaced.
+            final Position now = editor.getDot();
+            editor.setDot(now.getLine(), Math.max(0, now.getOffset() - 1));
+            editor.moveCaretToDotCol();
+        }
+        finally {
+            editor.getBuffer().endCompoundEdit(edit);
+        }
+    }
+
+    /**
+     * ~ -- swap the case of the characters under the caret and step past them.
+     *
+     * Not the g~ operator with an l motion: that would leave the caret where
+     * it started, and ~ is meant to be held down.
+     */
+    private static void toggleCase(MotionContext ctx)
+    {
+        final Editor editor = ctx.editor;
+        final Position dot = editor.getDot();
+        if (dot == null)
+            return;
+        final Line line = dot.getLine();
+        final int start = dot.getOffset();
+        final int end = Math.min(line.length(), start + ctx.count);
+        if (end <= start)
+            return;
+
+        final String was = line.getText().substring(start, end);
+        final StringBuilder now = new StringBuilder(was.length());
+        for (int i = 0; i < was.length(); i++) {
+            final char c = was.charAt(i);
+            now.append(Character.isUpperCase(c) ? Character.toLowerCase(c)
+                                                : Character.toUpperCase(c));
+        }
+
+        final CompoundEdit edit = editor.getBuffer().beginCompoundEdit();
+        try {
+            editor.setMark(new Position(line, end));
+            editor.setDot(line, start);
+            editor.deleteRegion();
+            editor.setMark(null);
+            editor.insertString(now.toString());
+        }
+        finally {
+            editor.getBuffer().endCompoundEdit(edit);
+        }
+        // Step onto the character after the last one changed.
+        final Position after = editor.getDot();
+        if (after != null) {
+            editor.setDot(after.getLine(),
+                          Math.min(after.getOffset(), after.getLineLength()));
+            editor.moveCaretToDotCol();
+        }
+        ctx.state.clampCaret(editor);
     }
 
     /** m{a-z} -- remember where the caret is. */

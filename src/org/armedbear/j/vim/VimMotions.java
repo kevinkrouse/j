@@ -69,6 +69,8 @@ public final class VimMotions
         register("moveByParagraph", VimMotions::moveByParagraph);
         register("goToMark", VimMotions::goToMark);
         register("jumpToMark", VimMotions::jumpToMark);
+        register("moveToScreenLine", VimMotions::moveToScreenLine);
+        register("moveToMatchingBracket", VimMotions::moveToMatchingBracket);
     }
 
     // ------------------------------------------------------------ motions
@@ -339,6 +341,85 @@ public final class VimMotions
         return ctx.arg("linewise")
             ? at(pos.getLine(), firstNonBlank(pos.getLine()))
             : at(pos.getLine(), pos.getOffset());
+    }
+
+    /**
+     * H, M and L -- to a line of the window rather than of the buffer.
+     *
+     * H and L take a count of lines in from the edge; M ignores it.
+     */
+    private static Position moveToScreenLine(MotionContext ctx, Position from)
+    {
+        final Line top = ctx.editor.getDisplay().getTopLine();
+        if (top == null)
+            return null;
+        final int rows = Math.max(1, ctx.editor.getDisplay().getRows());
+
+        // How many lines of buffer the window actually shows.
+        int visible = 0;
+        Line line = top;
+        while (line != null && visible < rows) {
+            ++visible;
+            line = line.nextVisible();
+        }
+
+        final String where = ctx.arg("where", "top");
+        final int index;
+        if (where.equals("middle"))
+            index = (visible - 1) / 2;
+        else if (where.equals("bottom"))
+            index = Math.max(0, visible - ctx.count);
+        else
+            index = Math.min(ctx.count - 1, visible - 1);
+
+        line = top;
+        for (int i = 0; i < index && line.nextVisible() != null; i++)
+            line = line.nextVisible();
+        return at(line, firstNonBlank(line));
+    }
+
+    /**
+     * % -- to the bracket matching the first one at or after the caret.
+     *
+     * Only looks on the caret's line for the bracket to match from, as vim
+     * does; the match itself may be anywhere.
+     */
+    private static Position moveToMatchingBracket(MotionContext ctx, Position from)
+    {
+        final String open = "([{";
+        final String close = ")]}";
+        final String text = from.getLine().getText();
+        if (text == null)
+            return null;
+
+        int offset = -1;
+        for (int i = from.getOffset(); i < text.length(); i++) {
+            final char c = text.charAt(i);
+            if (open.indexOf(c) >= 0 || close.indexOf(c) >= 0) {
+                offset = i;
+                break;
+            }
+        }
+        if (offset < 0)
+            return null;
+
+        final char bracket = text.charAt(offset);
+        final int openIndex = open.indexOf(bracket);
+        final boolean forward = openIndex >= 0;
+        final char match = forward ? close.charAt(openIndex)
+                                   : open.charAt(close.indexOf(bracket));
+
+        final Position pos = new Position(from.getLine(), offset);
+        int depth = 0;
+        while (true) {
+            final char c = pos.getChar();
+            if (c == bracket)
+                ++depth;
+            else if (c == match && --depth == 0)
+                return at(pos.getLine(), pos.getOffset());
+            if (forward ? !pos.next() : !pos.prev())
+                return null;
+        }
     }
 
     // ------------------------------------------------------------ helpers

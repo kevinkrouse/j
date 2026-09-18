@@ -76,3 +76,9 @@ S_visual
 s_visual
 visual_line
 visual_yank
+
+# M5: undo, join, replace, case and indent
+gJ
+g~w_repeat
+visual_marks
+~
