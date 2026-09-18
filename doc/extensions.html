@@ -18,43 +18,152 @@
 <hr>
 
 <p>
+An extension is a jar that j discovers at startup and that adds commands, key
+bindings, editor hooks, or a connection to a language runtime. Lisp support is
+itself an extension: <a href="init.lisp.html">init.lisp</a>,
+<code>M-x jlisp</code> and evaluating a form in the location bar all come from
+the <code>abcl</code> extension, which ships with j but can be removed.
 
-J provides a mechanism to support arbitrary user extensions.  You can add a
-line like this to your <a href="preferences.html">preferences</a> file:
+<h2>Where extensions live</h2>
+
+<p>
+j looks in two places, in this order:
 <pre>
-    extension=SampleExtension
+    &lt;install directory&gt;/lib/extensions/&lt;name&gt;/
+    ~/.config/j/extensions/&lt;name&gt;/
 </pre>
-where <code>SampleExtension</code> is the name of a class you've written,
-compiled, and placed in j's configuration directory (<code>~/.config/j</code>
-by default; see <a href="filelocations.html">Where J Keeps Its Files</a>). The class must
-provide the method <code>public void run( )</code>, and the class itself must
-be declared  <code>public</code>. If these conditions are met, your class
-will be loaded when the editor starts up and the <code>run</code> method will
-be invoked.
+The first is where the extensions bundled with j are installed; the second is
+yours. See <a href="filelocations.html">Where J Keeps Its Files</a> for how the
+configuration directory is chosen.
 <p>
-One problem you're likely to run into with this is that any editor method or
-member variable referenced in your extension class must be explicitly declared
-<code>public</code> in the editor source; otherwise you'll get an 
-<code>IllegalAccessException</code>. The short-term solution to this is to
-hack the editor source and make the thing <code>public</code>; the long-term
-solution is to <a href="mailto:peter@armedbear.org">tell me about it</a> so
-that I can make sure it stays <code>public</code> in the future.
+Each extension gets a directory of its own, holding its jar and any libraries
+it depends on. Every jar in that directory is loaded together, in a class
+loader of its own &mdash; so two extensions can depend on different versions of
+the same library without colliding.
+
+<h2>Turning extensions off</h2>
+
 <p>
-The easiest way to write your extension class is to develop and debug it in the
-j's top-level <code>src</code> directory; the loader will pick it up from
-there, so you don't have to copy it into the configuration directory every time you
-compile it.  When you're done you should move it into the configuration directory and
-delete any extraneous copies.
-<p>
-Strictly speaking, your extension class does not have to live in   
-j's configuration directory.  You can also specify the fully
-qualified pathname of your extension's <code>.class</code> file in your
-preferences file, like this:
+To skip one extension, name it in your
+<a href="preferences.html">preferences</a> file:
 <pre>
-    extension=/home/peter/SampleExtension.class
+    disabledExtensions = abcl
 </pre>
-In this case you must specifically append the <code>.class</code> extension, as
-shown in the example.
+The value is a comma-separated list of extension names.
+<p>
+To skip all of them for one run, start j with <code>--no-extensions</code>.
+That is the way back in if an extension is keeping the editor from starting.
+
+<h2>Creating an extension</h2>
+
+<p>
+An extension implements
+<code>org.armedbear.j.extension.Extension</code> and declares itself the way
+any <code>java.util.ServiceLoader</code> service does, in a file named
+<pre>
+    META-INF/services/org.armedbear.j.extension.Extension
+</pre>
+containing the fully qualified name of your class. There is no manifest format
+of j's own to learn.
+<pre>
+    package com.example.j;
+
+    import org.armedbear.j.extension.Extension;
+    import org.armedbear.j.extension.ExtensionContext;
+
+    public final class HelloExtension implements Extension
+    {
+        public String getName()    { return "hello"; }
+        public String getVersion() { return "1.0"; }
+
+        public void initialize(ExtensionContext context)
+        {
+            context.registerCommand("hello", HelloCommands.class, "hello");
+        }
+    }
+</pre>
+<p>
+<code>getName</code> is what <code>disabledExtensions</code> matches on, so keep
+it short, lower-case and stable.
+<p>
+<code>initialize</code> should execute quickly and only register things.
+For example, the <code>abcl</code> extension registers a command
+and three providers at startup and does not boot an interpreter until something
+evaluates a form.
+<p>
+If <code>initialize</code> throws, the failure is logged and j carries on
+without that extension. One broken jar must not stop the editor from starting.
+
+<h3>What you can register</h3>
+
+<table border="1" cellpadding="4" cellspacing="0">
+<tr>
+    <th align="left">Method</th>
+    <th align="left">Adds</th>
+</tr>
+<tr>
+    <td><code>registerCommand(name, owner, method)</code></td>
+    <td>A command, callable with <code>M-x <i>name</i></code> or from a key
+        binding. The method must be <code>public static</code>, taking either
+        no arguments or a single <code>String</code>.</td>
+</tr>
+<tr>
+    <td><code>registerHooks(EditorHooks)</code></td>
+    <td>Notifications: a buffer was activated, a file opened, a buffer saved, a
+        mode created, an event handled.</td>
+</tr>
+<tr>
+    <td><code>registerKeyMapProvider(KeyMapProvider)</code></td>
+    <td>The global key map, or the key map for a mode. Return
+        <code>null</code> to leave it to j.</td>
+</tr>
+<tr>
+    <td><code>registerLanguageClient(LanguageClient)</code></td>
+    <td>A connection to a language runtime, so that evaluating a form in the
+        location bar, in a
+        <a href="compilation.html">compilation buffer</a> or from
+        <a href="init.lisp.html">init.lisp</a> reaches it.</td>
+</tr>
+</table>
+
+<p>
+Note that <code>registerCommand</code> takes a <code>Class</code>, not a class
+name. j resolves the names of its own commands reflectively, on its own class
+loader, which cannot see anything in the extension &mdash; so you hand it a
+class your loader has already resolved.
+
+<h3>A function as a command</h3>
+
+<p>
+A key can be bound to something other than a named command: a closure defined
+in whatever language your extension speaks. Wrap it in an
+<code>org.armedbear.j.extension.ScriptFunction</code>, which j invokes without
+knowing what it is, and asks to describe itself for
+<code>M-x describeKey</code>.
+
+<h3>Preferences</h3>
+
+<p>
+Read and write your own settings with
+<code>ExtensionContext.getPreferences()</code>. Prefix your keys with your
+extension's name; j's own <code>Property</code> table is closed.
+
+<h2>Building one</h2>
+
+<p>
+In j's own source tree, an extension is a directory under
+<code>extensions/</code> with a <code>deps.edn</code> of its own naming its
+dependencies, and a <code>src/</code> beside it. <code>bb extensions</code>
+compiles and packages every one of them into
+<code>build/lib/extensions/</code>, and <code>bb test-extensions</code> runs
+their tests. Look at <code>extensions/abcl/</code> for a worked example.
+
+<h2>The old mechanism</h2>
+
+<p>
+Earlier releases had an <code>extension=</code> preference naming a single
+class with a <code>run()</code> method, loaded from the configuration
+directory.
 
 </body>
 

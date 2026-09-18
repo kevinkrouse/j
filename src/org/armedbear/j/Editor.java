@@ -412,7 +412,6 @@ public final class Editor extends JPanel implements Constants,
         loadPreferences();
         Log.initialize(dumpEnv, dumpProps);
         Directories.moveUnsentMessagesToDraftsFolder();
-        loadExtensions();
         Extensions.load();
         if (quick == 0) {
             runStartupScript();
@@ -2563,10 +2562,6 @@ public final class Editor extends JPanel implements Constants,
                         c = Class.forName("org.armedbear.j." + className);
                     }
                     catch (ClassNotFoundException e) {}
-                    if (c == null) {
-                        // Check for extension class.
-                        c = loadExtensionClass(className);
-                    }
                     if (c != null) {
                         // Might throw NoSuchMethodException.
                         method = c.getMethod(methodName, parameterTypes);
@@ -7384,43 +7379,6 @@ public final class Editor extends JPanel implements Constants,
     public void httpDeleteCookies()
     {
         Cookie.deleteCookies();
-    }
-
-    private static Class<?> extensionClass = null;
-
-    private static void loadExtensions()
-    {
-        String extension = prefs.getStringProperty(Property.EXTENSION);
-        if (extension != null) {
-            Log.debug("loading extension " + extension);
-            try {
-                ExtensionClassLoader loader = new ExtensionClassLoader();
-                extensionClass = loader.loadClass(extension, true);
-                if (extensionClass != null) {
-                    Method method = extensionClass.getMethod("run");
-                    if (method != null)
-                        method.invoke(
-                            extensionClass.getDeclaredConstructor().newInstance());
-                } else
-                    Log.error("extension " + extension + " not found");
-            }
-            catch (Exception e) {
-                Log.error(e);
-            }
-        }
-    }
-
-    private static Class loadExtensionClass(String className)
-    {
-        Class<? extends Object> c = null;
-        try {
-            ExtensionClassLoader loader = new ExtensionClassLoader();
-            c = loader.loadClass(className, true);
-        }
-        catch (Exception e) {
-            Log.error(e);
-        }
-        return c;
     }
 
     private static void runStartupScript()

@@ -288,8 +288,6 @@ public final class Property implements Comparable<Property>, Constants
         createProperty("emulation");
     public static final Property EOM =
         createProperty("eom");
-    public static final Property EXTENSION =
-        createProperty("extension");
     // Comma-separated extension names not to load, e.g. "abcl,mail".
     public static final Property DISABLED_EXTENSIONS =
         createProperty("disabledExtensions");

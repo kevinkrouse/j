@@ -36,6 +36,13 @@ for theme files when the full path of the theme file is not given. For example:
 <pre>
     themePath=/home/peter:/home/peter/j/themes:/usr/local/share/j/themes
 </pre>
+<p>
+Two of the bundled themes, <code>AnokhaClassic.lisp</code> and
+<code>Kodiak.lisp</code>, are Lisp rather than preference files. They are not
+loaded by the <code>theme</code> property above; you load them from your
+<a href="init.lisp.html">init.lisp</a>, which means they need the
+<code>abcl</code> <a href="extensions.html">extension</a>. Without it they do
+nothing at all &mdash; no error, no theme.
 
 </body>
 </html>
