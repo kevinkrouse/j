@@ -70,3 +70,9 @@ jumpToMark_prev
 jumpToMark_prev_onlynext
 jumpToMark_prev_repeat
 jumpToMark_prev_sameline
+
+# M4: visual mode
+S_visual
+s_visual
+visual_line
+visual_yank

@@ -129,6 +129,10 @@ public final class VimInputHandler implements InputHandler
     private Result escape(Editor editor)
     {
         builder.reset();
+        if (state.getMode().isVisual()) {
+            VimVisual.leave(editor, state);
+            return Result.CONSUMED;
+        }
         if (state.getMode().isInsert()) {
             state.setMode(editor, VimMode.NORMAL);
             // Leaving insert steps back onto the last character typed.
@@ -196,6 +200,19 @@ public final class VimInputHandler implements InputHandler
      */
     private void acceptOperator(Editor editor, VimCommand operator)
     {
+        if (state.getMode().isVisual()) {
+            // Nothing to wait for: the selection is the range.
+            final int count = builder.getEffectiveCount();
+            builder.reset();
+            final VimRange range = VimVisual.toRange(editor, state);
+            VimVisual.remember(editor, state);
+            editor.setMark(null);
+            state.setMode(editor, VimMode.NORMAL);
+            if (range != null)
+                applyOperator(editor, operator, range, count, false, null);
+            state.clampCaret(editor);
+            return;
+        }
         final VimCommand pending = builder.getOperator();
         if (pending != null) {
             final boolean doubled =

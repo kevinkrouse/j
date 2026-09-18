@@ -283,6 +283,30 @@ public final class KeyNotation
         return sb.toString();
     }
 
+    /**
+     * The character a key name stands for, or 0 for a key that is not one.
+     *
+     * A key map placeholder captures the key's <em>name</em>, so the character
+     * {@code <} arrives as {@code "<lt>"} and a space as {@code "<Space>"}.
+     * Anything that takes a character argument -- {@code f}, {@code r},
+     * {@code m}, {@code "} -- has to come back through here.
+     */
+    public static char characterOf(String key)
+    {
+        if (key == null || key.isEmpty())
+            return 0;
+        if (key.length() == 1)
+            return key.charAt(0);
+        if (key.charAt(0) != '<' || key.charAt(key.length() - 1) != '>')
+            return 0;
+        final int[] named = NAMED.get(
+            key.substring(1, key.length() - 1).toLowerCase());
+        if (named == null)
+            return 0;
+        final char c = (char) named[1];
+        return c == KeyEvent.CHAR_UNDEFINED ? 0 : c;
+    }
+
     /** Converts j's modifier mask to the AWT extended mask. */
     public static int awtModifiers(int modifiers)
     {

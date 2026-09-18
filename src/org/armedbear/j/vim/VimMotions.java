@@ -207,9 +207,9 @@ public final class VimMotions
      */
     private static Position moveToCharacter(MotionContext ctx, Position from)
     {
-        if (ctx.character == null || ctx.character.length() != 1)
+        final char target = ctx.characterArg();
+        if (target == 0)
             return null;
-        final char target = ctx.character.charAt(0);
         final boolean forward = ctx.arg("forward");
         final boolean till = ctx.arg("till");
         ctx.state.setLastCharacterSearch(target, forward, till);
@@ -310,10 +310,11 @@ public final class VimMotions
      */
     private static Position goToMark(MotionContext ctx, Position from)
     {
-        if (ctx.character == null || ctx.character.length() != 1)
+        final char name = ctx.characterArg();
+        if (name == 0)
             return null;
-        final Position mark = ctx.state.getMarks()
-            .get(ctx.character.charAt(0), ctx.editor.getBuffer());
+        final Position mark =
+            ctx.state.getMarks().get(name, ctx.editor.getBuffer());
         if (mark == null)
             return null;
         return ctx.arg("linewise")

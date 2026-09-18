@@ -109,6 +109,42 @@ public final class VimState
         mode = VimMode.NORMAL;
     }
 
+    // ---------------------------------------------------------- visual
+
+    /** Where a visual selection was, so that gv can put it back. */
+    public static final class Selection
+    {
+        public final int anchorLine;
+        public final int anchorOffset;
+        public final int headLine;
+        public final int headOffset;
+        public final VimMode mode;
+
+        Selection(int anchorLine, int anchorOffset, int headLine,
+                  int headOffset, VimMode mode)
+        {
+            this.anchorLine = anchorLine;
+            this.anchorOffset = anchorOffset;
+            this.headLine = headLine;
+            this.headOffset = headOffset;
+            this.mode = mode;
+        }
+    }
+
+    private Selection lastSelection;
+
+    public Selection getLastSelection()
+    {
+        return lastSelection;
+    }
+
+    public void rememberSelection(int anchorLine, int anchorOffset,
+                                  int headLine, int headOffset, VimMode mode)
+    {
+        lastSelection = new Selection(anchorLine, anchorOffset, headLine,
+                                      headOffset, mode);
+    }
+
     // ----------------------------------------------------------- marks
 
     private final VimMarks marks = new VimMarks();

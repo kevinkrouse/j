@@ -53,6 +53,17 @@ public final class MotionContext
         this.forOperator = forOperator;
     }
 
+    /**
+     * The character argument, or 0 if there was none.
+     *
+     * The raw {@link #character} is a key name, so f&lt; arrives as
+     * "&lt;lt&gt;" rather than as "&lt;".
+     */
+    public char characterArg()
+    {
+        return KeyNotation.characterOf(character);
+    }
+
     public boolean arg(String name)
     {
         return command.getBoolean(name);

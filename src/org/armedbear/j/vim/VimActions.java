@@ -53,6 +53,9 @@ public final class VimActions
         register("openLine", VimActions::openLine);
         register("selectRegister", VimActions::selectRegister);
         register("setMark", VimActions::setMark);
+        register("toggleVisualMode", VimActions::toggleVisualMode);
+        register("swapVisualEnds", ctx -> VimVisual.swapEnds(ctx.editor));
+        register("reselectVisual", ctx -> VimVisual.reselect(ctx.editor, ctx.state));
         register("put", VimActions::put);
     }
 
@@ -64,19 +67,31 @@ public final class VimActions
      */
     private static void selectRegister(MotionContext ctx)
     {
-        if (ctx.character == null || ctx.character.length() != 1)
-            return;
-        final char name = ctx.character.charAt(0);
+        final char name = ctx.characterArg();
         if (VimRegisters.isValidName(name))
             ctx.state.setPendingRegister(name);
+    }
+
+    /**
+     * v and V.
+     *
+     * Typing the mode you are already in leaves visual mode, which is how vim
+     * lets the same key do both.
+     */
+    private static void toggleVisualMode(MotionContext ctx)
+    {
+        final VimMode wanted = ctx.arg("linewise") ? VimMode.VISUAL_LINE
+                                                    : VimMode.VISUAL;
+        if (ctx.state.getMode() == wanted)
+            VimVisual.leave(ctx.editor, ctx.state);
+        else
+            VimVisual.enter(ctx.editor, ctx.state, wanted);
     }
 
     /** m{a-z} -- remember where the caret is. */
     private static void setMark(MotionContext ctx)
     {
-        if (ctx.character == null || ctx.character.length() != 1)
-            return;
-        final char name = ctx.character.charAt(0);
+        final char name = ctx.characterArg();
         if (!VimMarks.isValidName(name))
             return;
         final Position dot = ctx.editor.getDot();
