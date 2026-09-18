@@ -79,6 +79,7 @@ public class VimConformanceTest
         }
 
         report(cases.size(), passing, expected);
+        reportFailures(failures);
 
         final List<String> regressed = new ArrayList<String>();
         for (String name : expected)
@@ -88,6 +89,24 @@ public class VimConformanceTest
         assertTrue("cases that used to pass and no longer do:\n  "
                    + String.join("\n  ", regressed),
                    regressed.isEmpty());
+    }
+
+    /**
+     * Prints why cases fail, which is how you find the next thing to
+     * implement. Off by default: 160 failures would bury the test output.
+     *
+     * <pre>bb test -Dvim.conformance.failures=dw   # or =all</pre>
+     */
+    private static void reportFailures(Map<String, String> failures)
+    {
+        final String filter = System.getProperty("vim.conformance.failures");
+        if (filter == null)
+            return;
+        System.out.println("failing cases:");
+        for (Map.Entry<String, String> entry : failures.entrySet())
+            if (filter.equals("all") || entry.getKey().contains(filter))
+                System.out.println("    " + entry.getValue());
+        System.out.println();
     }
 
     private static void report(int total, Set<String> passing, Set<String> expected)

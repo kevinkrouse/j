@@ -115,19 +115,20 @@ final class RangeNormalizer
      * w specifically, not about exclusive motions, so it runs before those and
      * usually stops them applying at all.
      *
-     * Nothing is pulled back when no word actually ended at the line break --
-     * {@code dw} on an empty line really does delete the line break.
+     * The end goes back to the end of the line the operator started on, not
+     * to one line before where the motion landed: {@code dw} on the last word
+     * of a line leaves the line, and leaves any blank lines below it alone
+     * even though the motion crossed them looking for a word.
+     *
+     * Only applies when the motion landed at the start of a line. Having got
+     * somewhere mid-line -- which is what a count large enough to pass a word
+     * does -- the motion meant it.
      */
     static void clipWordMotionAtLineEnd(Position from, Position to)
     {
         if (to.getLine() == from.getLine() || to.getOffset() != 0)
             return;
-        final Line previous = to.getLine().previous();
-        if (previous == null || previous.length() == 0)
-            return;
-        if (Character.isWhitespace(previous.charAt(previous.length() - 1)))
-            return;
-        to.setLine(previous);
-        to.setOffset(previous.length());
+        to.setLine(from.getLine());
+        to.setOffset(from.getLine().length());
     }
 }

@@ -17,6 +17,7 @@ import java.util.Map;
 import org.armedbear.j.Editor;
 import org.armedbear.j.Line;
 import org.armedbear.j.Position;
+import org.armedbear.j.Region;
 
 /**
  * The operators, by the names the key map table uses.
@@ -51,11 +52,56 @@ public final class VimOperators
     static {
         register("delete", VimOperators::delete);
         register("change", VimOperators::change);
+        register("yank", VimOperators::yank);
+    }
+
+    /** y: take a copy and leave the text alone. */
+    private static void yank(MotionContext ctx, VimRange range)
+    {
+        final String text = textOf(ctx.editor, range);
+        VimRegisters.getInstance().yanked(ctx.state.takePendingRegister(), text,
+                                          range.linewise
+                                              ? VimRegisters.Type.LINEWISE
+                                              : VimRegisters.Type.CHARWISE);
+        // The caret only ever moves back to the start of what was yanked,
+        // never forward: yw leaves it where it was, yb pulls it back. A
+        // linewise yank keeps its column, so yy and y} do not move it at all.
+        final Position dot = ctx.editor.getDot();
+        if (dot != null && range.start.isBefore(dot)) {
+            if (!range.linewise) {
+                ctx.editor.setDot(new Position(range.start));
+                ctx.editor.moveCaretToDotCol();
+            } else if (range.start.lineNumber() < dot.lineNumber()) {
+                final Line line = range.start.getLine();
+                ctx.editor.setDot(line, Math.min(dot.getOffset(), line.length()));
+                ctx.editor.moveCaretToDotCol();
+            }
+        }
+        ctx.state.clampCaret(ctx.editor);
+    }
+
+    /**
+     * The text a range covers.
+     *
+     * A linewise range ends at the start of the line after the last one, so
+     * the text it covers ends with a newline -- which is what tells a later
+     * put to make new lines rather than splice into one.
+     */
+    static String textOf(Editor editor, VimRange range)
+    {
+        if (range.isEmpty())
+            return "";
+        return new Region(editor.getBuffer(), range.start, range.end).toString();
     }
 
     /** d, and the operators that are d with a motion built in. */
     private static void delete(MotionContext ctx, VimRange range)
     {
+        VimRegisters.getInstance().deleted(ctx.state.takePendingRegister(),
+                                           textOf(ctx.editor, range),
+                                           range.linewise
+                                               ? VimRegisters.Type.LINEWISE
+                                               : VimRegisters.Type.CHARWISE);
         deleteRange(ctx.editor, range);
         if (range.linewise) {
             // Vim leaves the caret on the first non-blank of the line that
@@ -79,6 +125,11 @@ public final class VimOperators
     private static void change(MotionContext ctx, VimRange range)
     {
         final Editor editor = ctx.editor;
+        VimRegisters.getInstance().deleted(ctx.state.takePendingRegister(),
+                                           textOf(editor, range),
+                                           range.linewise
+                                               ? VimRegisters.Type.LINEWISE
+                                               : VimRegisters.Type.CHARWISE);
         ctx.state.beginInsert(editor, VimMode.INSERT);
         if (range.linewise) {
             // cc keeps the line, empties it, and keeps its indent.

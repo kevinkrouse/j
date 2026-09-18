@@ -260,13 +260,20 @@ public final class VimInputHandler implements InputHandler
             return;
         final MotionContext ctx = new MotionContext(editor, state, count,
                                                     countGiven, effective,
-                                                    character);
+                                                    character, true);
         final Position to = motion.move(ctx, from);
         if (to == null)
             return;
 
-        if (isForwardWordStart(effective))
+        if (isForwardWordStart(effective)) {
+            // w from an empty line takes the line itself: the empty line is
+            // the word being moved over, and there is nothing on it to take.
+            if (from.getLineLength() == 0) {
+                runLinewise(editor, operator, count);
+                return;
+            }
             RangeNormalizer.clipWordMotionAtLineEnd(from, to);
+        }
 
         final VimRange range = RangeNormalizer.normalize(
             new Position(from), to, kind, effective.getBoolean("forward"));

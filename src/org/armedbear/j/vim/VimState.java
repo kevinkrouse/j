@@ -109,6 +109,29 @@ public final class VimState
         mode = VimMode.NORMAL;
     }
 
+    // ------------------------------------------------------- registers
+
+    private char pendingRegister;
+
+    /** Names the register the next yank, delete or put should use. */
+    public void setPendingRegister(char name)
+    {
+        pendingRegister = name;
+    }
+
+    /**
+     * The register named for this command, and forgets it.
+     *
+     * Returns 0 when none was named, which every caller reads as "the usual
+     * ones": the unnamed register plus whichever of 0, 1-9 or - applies.
+     */
+    public char takePendingRegister()
+    {
+        final char name = pendingRegister;
+        pendingRegister = 0;
+        return name;
+    }
+
     // ------------------------------------------------- character search
 
     /** The f, F, t or T that ';' and ',' repeat. */

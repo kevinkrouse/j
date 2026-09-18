@@ -58,6 +58,41 @@ public class HeadlessEditorTest
         h.editor().ensureActive();
     }
 
+    // The harness is the instrument every other test reads; if it lies, they
+    // all lie. It did: value() used to drop a leading empty line.
+
+    @Test
+    public void valueRoundTripsThroughTheCodeMirrorLineModel()
+    {
+        final String[] values = {
+            "", "a", "a\nb", "\na", "a\n", "\n", "\n\n",
+            "\na\n", "a\n\nb", "  \n   \n",
+        };
+        for (String value : values) {
+            final EditorHarness harness = EditorHarness.create();
+            try {
+                harness.value(value);
+                assertEquals("round trip of " + value.replace("\n", "\\n"),
+                             value, harness.value());
+                assertEquals("line count of " + value.replace("\n", "\\n"),
+                             value.split("\n", -1).length,
+                             harness.buffer().getLineCount());
+            }
+            finally {
+                harness.close();
+            }
+        }
+    }
+
+    @Test
+    public void aLeadingEmptyLineSurvives()
+    {
+        h.text("\nabc\n");
+        assertEquals(2, h.buffer().getLineCount());
+        assertEquals("\nabc", h.value());
+        assertEquals("\nabc\n", h.text());
+    }
+
     @Test
     public void typingInsertsThroughTheRealDispatcher()
     {

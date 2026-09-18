@@ -119,6 +119,9 @@ public final class EditorHarness
     public EditorHarness vim()
     {
         buffer.setProperty(Property.EDIT_MODE, "vim");
+        // Registers are global, as they are in vim, so one test's yank would
+        // otherwise be visible to the next.
+        org.armedbear.j.vim.VimRegisters.getInstance().clear();
         return this;
     }
 
@@ -257,12 +260,22 @@ public final class EditorHarness
     public String value()
     {
         final StringBuilder sb = new StringBuilder();
+        // Count lines rather than testing whether anything has been appended:
+        // a leading empty line appends nothing and would lose its separator.
+        boolean first = true;
         for (Line line = buffer.getFirstLine(); line != null; line = line.next()) {
-            if (sb.length() > 0)
+            if (!first)
                 sb.append('\n');
-            sb.append(line.getText());
+            first = false;
+            sb.append(textOf(line));
         }
         return sb.toString();
+    }
+
+    private static String textOf(Line line)
+    {
+        final String text = line.getText();
+        return text == null ? "" : text;
     }
 
     /** The whole buffer, lines joined with '\n' and a trailing '\n'. */
@@ -270,7 +283,7 @@ public final class EditorHarness
     {
         final StringBuilder sb = new StringBuilder();
         for (Line line = buffer.getFirstLine(); line != null; line = line.next()) {
-            sb.append(line.getText());
+            sb.append(textOf(line));
             sb.append('\n');
         }
         return sb.toString();

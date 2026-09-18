@@ -26,9 +26,23 @@ public final class MotionContext
     public final VimCommand command;
     /** The key a {@code <character>} placeholder matched, or null. */
     public final String character;
+    /**
+     * True when this motion is an operator's argument rather than a move.
+     *
+     * It changes how far the motion may reach: the caret cannot rest past the
+     * last character of a line, but an operator can certainly delete it, so
+     * {@code l} stops one place short of where {@code dl} does.
+     */
+    public final boolean forOperator;
 
     MotionContext(Editor editor, VimState state, int count, boolean countGiven,
                   VimCommand command, String character)
+    {
+        this(editor, state, count, countGiven, command, character, false);
+    }
+
+    MotionContext(Editor editor, VimState state, int count, boolean countGiven,
+                  VimCommand command, String character, boolean forOperator)
     {
         this.editor = editor;
         this.state = state;
@@ -36,6 +50,7 @@ public final class MotionContext
         this.countGiven = countGiven;
         this.command = command;
         this.character = character;
+        this.forOperator = forOperator;
     }
 
     public boolean arg(String name)

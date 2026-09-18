@@ -80,7 +80,11 @@ public final class VimMotions
     private static Position moveByCharacters(MotionContext ctx, Position from)
     {
         final boolean forward = ctx.arg("forward");
-        final int last = lastOffset(ctx, from.getLine());
+        // dl on the last character of a line deletes it, so the exclusive end
+        // has to be able to sit one past where the caret could.
+        final int last = forward && ctx.forOperator
+            ? from.getLineLength()
+            : lastOffset(ctx, from.getLine());
         int offset = from.getOffset() + (forward ? ctx.count : -ctx.count);
         if (offset < 0)
             offset = 0;

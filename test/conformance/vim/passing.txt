@@ -43,3 +43,20 @@ dw_repeat
 dw_space
 dw_word
 s_normal
+
+# M3: registers, yank and put
+2dd_blank_P
+Y
+black_hole_register
+db_empty_lines
+db_word_end_and_empty_lines
+db_word_start_and_empty_lines
+de_word_start_and_empty_lines
+dl_eol
+dw_empty_line_followed_by_empty_line
+dw_empty_line_followed_by_whitespace
+dw_end_of_document
+dw_whitespace_followed_by_empty_line
+dw_whitespace_followed_by_whitespace
+dw_word_whitespace_word
+yw_repeat
