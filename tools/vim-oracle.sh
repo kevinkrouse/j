@@ -17,9 +17,12 @@
 # getValue() would: lines joined by \n, no trailing newline.
 set -eu
 value=$1; line=$2; col=$3; keys=$4
-# <Esc> and friends are written the way a key map writes them; inside a
-# vimscript double-quoted string they need a backslash.
-keys=$(printf '%s' "$keys" | sed -E 's/<([A-Za-z0-9-]+)>/\\<\1>/g')
+# The keys end up inside a vimscript double-quoted string. Escape what that
+# string treats specially first -- otherwise di" ends the string early and
+# the run silently does something else -- then mark up <Esc> and friends,
+# which need the backslash vimscript uses for a key name.
+keys=$(printf '%s' "$keys" | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g' \
+                           | sed -E 's/<([A-Za-z0-9-]+)>/\\<\1>/g')
 d=$(mktemp -d)
 # A file ending in a newline is read as exactly those lines, which is what
 # CodeMirror's value means: "\n\n" is three empty lines, not two.
