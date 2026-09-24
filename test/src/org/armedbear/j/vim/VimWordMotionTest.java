@@ -235,6 +235,71 @@ public class VimWordMotionTest
         at(0, 2);
     }
 
+    // -------------------------------------------- running out of words
+
+    // A forward word motion with nowhere left to go stops at the end of the
+    // buffer instead of failing; a backward one at the very start does fail.
+    // Both checked against nvim.
+
+    @Test
+    public void eOnTheLastWordStillDeletesIt()
+    {
+        vim("abc\n").cursor(0, 2).keys("de");
+        h.assertText("ab\n");
+    }
+
+    // These use the CodeMirror-compatible value() view, so the strings read
+    // the same as the nvim runs they were checked against.
+
+    private EditorHarness value(String text)
+    {
+        h = EditorHarness.create().vim();
+        h.value(text);
+        return h;
+    }
+
+    @Test
+    public void eWithOnlyBlanksLeftTakesTheRestOfTheBuffer()
+    {
+        value("   \n\n\n").cursor(0, 0).keys("de");
+        assertEquals("", h.value());
+    }
+
+    @Test
+    public void aCountBiggerThanTheWordsLeftTakesTheRest()
+    {
+        value("word\n\n\n").cursor(0, 0).keys("d9w");
+        assertEquals("", h.value());
+        h.close();
+        value("ab cd").cursor(0, 0).keys("d9e");
+        assertEquals("", h.value());
+    }
+
+    @Test
+    public void plainEAtTheLastWordEndGoesToTheEndOfTheBuffer()
+    {
+        value("word\n\n\n").cursor(0, 3).keys("e");
+        at(3, 0);
+    }
+
+    @Test
+    public void theWordClipStillAppliesWhenAWordWasActuallyFound()
+    {
+        // dw over a blank line: w reaches the empty last line, which is a
+        // word, so the clip pulls the range back to the end of line one.
+        value("  \n   \n").cursor(0, 0).keys("dw");
+        assertEquals("\n   \n", h.value());
+    }
+
+    @Test
+    public void backwardAtTheStartOfTheBufferDoesNothing()
+    {
+        vim("abc\n").cursor(0, 0).keys("dge");
+        h.assertText("abc\n");
+        vim("abc\n").cursor(0, 0).keys("d5b");
+        h.assertText("abc\n");
+    }
+
     @Test
     public void wordMotionsChangeNoText()
     {

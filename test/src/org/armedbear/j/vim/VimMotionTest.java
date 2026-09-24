@@ -229,6 +229,53 @@ public class VimMotionTest
         at(0, 1);
     }
 
+    // ----------------------------------------------------- ; and , kinds
+
+    // The kind is not in the key map table: it follows the f/F/t/T being
+    // repeated, and ',' flips the direction that decides it. Expectations
+    // checked against nvim.
+
+    @Test
+    public void semicolonAfterFIsInclusive()
+    {
+        vim("0123456789\n").cursor(0, 0).keys("f4gg0d;");
+        h.assertText("56789\n");
+    }
+
+    @Test
+    public void semicolonAfterCapitalFIsExclusive()
+    {
+        vim("0123456789\n").cursor(0, 9).keys("F4$d;");
+        h.assertText("01239\n");
+    }
+
+    @Test
+    public void commaReversesTheDirectionAndTheKindWithIt()
+    {
+        // ',' after f searches backward, so it becomes exclusive ...
+        vim("0123456789\n").cursor(0, 0).keys("f4$d,");
+        h.assertText("01239\n");
+        // ... and after F it searches forward, so it becomes inclusive.
+        vim("0123456789\n").cursor(0, 9).keys("F4gg0d,");
+        h.assertText("56789\n");
+    }
+
+    @Test
+    public void semicolonAfterTIsInclusiveToo()
+    {
+        vim("0123456789\n").cursor(0, 0).keys("t5gg0d;");
+        h.assertText("56789\n");
+    }
+
+    @Test
+    public void semicolonStillMovesTheCaretWithoutAnOperator()
+    {
+        vim("0a0b0c\n").cursor(0, 0).keys("f0");
+        at(0, 2);
+        h.keys(";");
+        at(0, 4);
+    }
+
     // ------------------------------------------------- motions do not edit
 
     @Test

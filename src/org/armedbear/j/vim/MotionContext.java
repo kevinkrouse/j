@@ -37,6 +37,14 @@ public final class MotionContext
     /** The handler running this command, for the few that need it back. */
     public final VimInputHandler handler;
 
+    /**
+     * Set when a forward motion ran out and stopped at the end of the buffer
+     * rather than where it was aiming. Landing there because that is where
+     * the next word is looks identical in the returned position, and the
+     * w-with-operator clip has to tell them apart.
+     */
+    boolean clampedToBufferEnd;
+
     MotionContext(VimInputHandler handler, Editor editor, VimState state,
                   int count, boolean countGiven, VimCommand command,
                   String character)

@@ -457,7 +457,7 @@ public final class VimInputHandler implements InputHandler
                              boolean countGiven, String character)
     {
         VimCommand effective = motionCommand;
-        MotionKind kind = MotionKind.of(motionCommand);
+        boolean forceInclusive = false;
 
         // cw and cW change to the end of the word rather than to the start of
         // the next one, so that the space after the word survives.
@@ -465,7 +465,7 @@ public final class VimInputHandler implements InputHandler
             effective = VimKeyMap.parse(
                 "o w motion moveByWords forward,wordEnd,inclusive"
                 + (motionCommand.getBoolean("bigWord") ? ",bigWord" : ""));
-            kind = MotionKind.CHARWISE_INCLUSIVE;
+            forceInclusive = true;
         }
 
         final VimMotions.Motion motion = VimMotions.get(effective.getCommand());
@@ -479,6 +479,10 @@ public final class VimInputHandler implements InputHandler
         final MotionContext ctx = new MotionContext(this, editor, state, count,
                                                     countGiven, effective,
                                                     character, true);
+        // Asked before the move, since a motion may update the state its kind
+        // depends on -- f sets the search that a later ';' reads.
+        final MotionKind kind = forceInclusive ? MotionKind.CHARWISE_INCLUSIVE
+                                               : motion.kindOf(ctx);
         final Position to = motion.move(ctx, from);
         if (to == null)
             return;
@@ -490,7 +494,10 @@ public final class VimInputHandler implements InputHandler
                 runLinewise(editor, operator, count);
                 return;
             }
-            RangeNormalizer.clipWordMotionAtLineEnd(from, to);
+            // Not when the motion ran out and clamped: the clip is for a w
+            // that reached the next word's line, and there was no such word.
+            if (!ctx.clampedToBufferEnd)
+                RangeNormalizer.clipWordMotionAtLineEnd(from, to);
         }
 
         final VimRange range = RangeNormalizer.normalize(

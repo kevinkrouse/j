@@ -10,6 +10,17 @@
 # still swallowing keys it does not understand, so these four are left out
 # even though they currently pass: Y, s_visual, *_no_word and
 # jumpToMark_next_sameline all test features that do not exist yet.
+#
+# Cases where nvim disagrees with the CodeMirror corpus, verified with
+# tools/vim-oracle.sh. nvim wins, so these stay out of passing.txt and are
+# not bugs to chase:
+#
+#   dge_start_of_document   corpus deletes a char; nvim does nothing, because
+#                           ge at offset 0 has nowhere to go
+#   dge_empty_lines         same shape, on blank lines
+#   dj_end_of_document      corpus deletes the line; nvim needs two lines for
+#                           dj and does nothing on a one-line buffer
+#   dk_start_of_document    same, upward
 
 # M1: motions
 F,
@@ -89,3 +100,19 @@ visual_marks
 ._insert_cw_repeat
 ._insert_o
 ._repeat
+
+# M10: ; and , take their kind from the f/F/t/T they repeat
+Fc,;
+Fd,;
+Tc,;
+Td,;
+fc,;
+fd,;
+fy,;
+tc,;
+td,;
+
+# M10: a forward word motion that runs out stops at the end of the buffer
+de_end_of_document
+de_whitespace_and_empty_lines
+de_word_end_and_empty_lines

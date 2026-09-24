@@ -36,6 +36,17 @@ public final class VimMotions
     public interface Motion
     {
         Position move(MotionContext ctx, Position from);
+
+        /**
+         * How far an operator following this motion reaches.
+         *
+         * Usually the table row says, but ';' and ',' cannot: their kind
+         * follows the f/t search they repeat, which is only known at run time.
+         */
+        default MotionKind kindOf(MotionContext ctx)
+        {
+            return MotionKind.of(ctx.command);
+        }
     }
 
     private static final Map<String, Motion> MOTIONS =
@@ -65,7 +76,7 @@ public final class VimMotions
         register("moveToColumn", VimMotions::moveToColumn);
         register("moveByWords", VimMotions::moveByWords);
         register("moveToCharacter", VimMotions::moveToCharacter);
-        register("repeatCharacterSearch", VimMotions::repeatCharacterSearch);
+        register("repeatCharacterSearch", new RepeatCharacterSearch());
         register("moveByParagraph", VimMotions::moveByParagraph);
         register("goToMark", VimMotions::goToMark);
         register("jumpToMark", VimMotions::jumpToMark);
@@ -195,8 +206,18 @@ public final class VimMotions
             else
                 next = wordEnd ? VimWords.backwardToWordEnd(pos, mode, bigWord)
                                : VimWords.backwardToWordStart(pos, mode, bigWord);
-            if (next == null)
+            if (next == null) {
+                // Out of words. Going forward that means the end of the
+                // buffer, not failure: `de` on the last word still deletes
+                // it, and `d9w` takes everything that is left. Going
+                // backward from the very start there is nowhere to go, so
+                // the motion really does fail.
+                if (forward) {
+                    ctx.clampedToBufferEnd = true;
+                    return ctx.editor.getBuffer().getEnd();
+                }
                 return i == 0 ? null : pos;
+            }
             pos = next;
         }
         return pos;
@@ -218,15 +239,43 @@ public final class VimMotions
         return findCharacter(from, target, forward, till, ctx.count, false);
     }
 
-    /** ; and , -- the last f/F/t/T again, or reversed. */
-    private static Position repeatCharacterSearch(MotionContext ctx, Position from)
+    /**
+     * ; and , -- the last f/F/t/T again, or reversed.
+     *
+     * Its own class rather than a lambda because the kind is not in the table:
+     * f and t are inclusive, F and T are exclusive, and ',' flips which of
+     * those applies. So `d;` after `f4` takes the 4 and `d;` after `F4` does
+     * not.
+     */
+    private static final class RepeatCharacterSearch implements Motion
     {
-        final VimState.CharacterSearch last = ctx.state.getLastCharacterSearch();
-        if (last == null)
-            return null;
-        final boolean forward = ctx.arg("reverse") ? !last.forward : last.forward;
-        return findCharacter(from, last.target, forward, last.till, ctx.count,
-                             true);
+        @Override
+        public Position move(MotionContext ctx, Position from)
+        {
+            final VimState.CharacterSearch last =
+                ctx.state.getLastCharacterSearch();
+            if (last == null)
+                return null;
+            return findCharacter(from, last.target, forward(ctx, last),
+                                 last.till, ctx.count, true);
+        }
+
+        @Override
+        public MotionKind kindOf(MotionContext ctx)
+        {
+            final VimState.CharacterSearch last =
+                ctx.state.getLastCharacterSearch();
+            if (last == null)
+                return MotionKind.of(ctx.command);
+            return forward(ctx, last) ? MotionKind.CHARWISE_INCLUSIVE
+                                      : MotionKind.CHARWISE_EXCLUSIVE;
+        }
+
+        private static boolean forward(MotionContext ctx,
+                                       VimState.CharacterSearch last)
+        {
+            return ctx.arg("reverse") ? !last.forward : last.forward;
+        }
     }
 
     /**
