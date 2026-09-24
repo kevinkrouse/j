@@ -116,3 +116,6 @@ td,;
 de_end_of_document
 de_whitespace_and_empty_lines
 de_word_end_and_empty_lines
+
+# M10: text objects
+ci" for two strings

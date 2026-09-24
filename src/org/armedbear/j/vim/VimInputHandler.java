@@ -388,11 +388,70 @@ public final class VimInputHandler implements InputHandler
         final VimCommand operator = builder.getOperator();
         builder.reset();
 
-        if (operator != null)
+        if (command.getKind() == VimCommand.Kind.TEXT_OBJECT)
+            runTextObject(editor, operator, command, count, countGiven);
+        else if (operator != null)
             runOperator(editor, operator, command, count, countGiven, character);
         else
             run(editor, command, count, countGiven, character, depth);
         return true;
+    }
+
+    /**
+     * Applies a text object: to the pending operator, or to the selection if
+     * we are in visual mode.
+     *
+     * Bound only in operator-pending and visual, so there is no third case --
+     * a bare {@code iw} in normal mode never reaches here.
+     */
+    private void runTextObject(Editor editor, VimCommand operator,
+                               VimCommand command, int count,
+                               boolean countGiven)
+    {
+        final VimTextObjects.TextObject object =
+            VimTextObjects.get(command.getCommand());
+        if (object == null) {
+            Log.error("vim: no text object named " + command.getCommand());
+            return;
+        }
+        final Position from = editor.getDot();
+        if (from == null)
+            return;
+        final MotionContext ctx = new MotionContext(this, editor, state, count,
+                                                    countGiven, command, null,
+                                                    operator != null);
+        final VimRange range = object.range(ctx, from, ctx.arg("inner"));
+        if (range == null)
+            return;
+
+        if (operator != null) {
+            applyOperator(editor, operator, range, count, countGiven, null);
+            return;
+        }
+        selectRange(editor, range);
+    }
+
+    /** Makes a text object's span the visual selection. */
+    private void selectRange(Editor editor, VimRange range)
+    {
+        editor.setDot(new Position(range.start));
+        editor.setMarkAtDot();
+        // The selection is mark..dot and vim's includes the character under
+        // the caret, so the caret sits one short of the range's open end.
+        final Position last = new Position(range.end);
+        if (!range.start.equals(last))
+            last.prev();
+        editor.setDot(last);
+        editor.moveCaretToDotCol();
+        // A linewise object -- ip, or a block alone on its lines -- selects
+        // whole lines, which is visual line mode rather than a selection that
+        // happens to span them.
+        if (range.linewise)
+            state.setMode(editor, VimMode.VISUAL_LINE);
+        state.clampCaret(editor);
+        editor.updateDotLine();
+        state.selectionCrossedLines(editor, range.start.getLine(),
+                                    editor.getDotLine());
     }
 
     /**

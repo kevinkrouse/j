@@ -1404,14 +1404,19 @@ public final class Display extends JComponent implements Constants,
      * the whole of both end lines is covered however far along them the caret
      * is.
      */
+    private boolean isLinewiseSelection()
+    {
+        final InputHandler handler = editor.getInputHandler();
+        return handler != null && handler.isLinewiseSelection();
+    }
+
     private Region selectionRegion()
     {
         final Position mark = editor.getMark();
         if (mark == null)
             return null;
-        final InputHandler handler = editor.getInputHandler();
         final Position dot = editor.getDot();
-        if (handler == null || !handler.isLinewiseSelection() || dot == null)
+        if (dot == null || !isLinewiseSelection())
             return new Region(editor);
         final boolean markFirst = mark.isBefore(dot);
         final Line first = markFirst ? mark.getLine() : dot.getLine();
@@ -1427,6 +1432,18 @@ public final class Display extends JComponent implements Constants,
     {
         if (r == null)
             return;
+
+        // A linewise selection ends at offset 0 of the line after it, which
+        // lets the branches below fill each selected line. The last line of
+        // the buffer has no line after it, so the region ends part way along
+        // it and it would be filled only to the caret -- or not at all.
+        if (line.next() == null && isLinewiseSelection()
+            && line.lineNumber() >= r.getBeginLineNumber()
+            && line.lineNumber() <= r.getEndLineNumber()) {
+            g2d.setColor(editor.getFormatter().getSelectionBackgroundColor());
+            g2d.fillRect(gutterWidth, y, getWidth(), charHeight);
+            return;
+        }
 
         int maxCols = getMaxCols();
         int fillWidth = 0;
