@@ -149,13 +149,21 @@ public final class VimRegisters
         if (Character.isUpperCase(name)) {
             final Register existing = registers.get(Character.valueOf(key));
             if (existing != null) {
-                final String joined = existing.type == Type.LINEWISE
-                    ? existing.text + text
-                    : existing.text + text;
+                // Appending a linewise capture to any register, or appending
+                // anything to an already-linewise one, makes the result
+                // linewise; a newline is inserted at the join (and at the
+                // end) so the two captures do not run their lines together.
+                final boolean linewise =
+                    existing.type == Type.LINEWISE || type == Type.LINEWISE;
+                String joined = existing.text;
+                if (linewise && !joined.isEmpty() && !joined.endsWith("\n"))
+                    joined += "\n";
+                joined += text;
+                if (linewise && !joined.endsWith("\n"))
+                    joined += "\n";
                 registers.put(Character.valueOf(key),
                               new Register(joined,
-                                           existing.type == Type.LINEWISE
-                                               ? Type.LINEWISE : type));
+                                           linewise ? Type.LINEWISE : type));
                 return;
             }
         }

@@ -179,6 +179,30 @@ public class VimRegisterTest
     }
 
     @Test
+    public void anUpperCaseNameAppendingLinewiseSeparatesTheLines()
+    {
+        // yy on the last line of the buffer captures no trailing newline, so
+        // appending another linewise yank has to add the separator itself,
+        // or the two lines run together.
+        vim("alpha\nbravo\n").cursor(1, 0).keys("\"ayy");
+        assertEquals("bravo", reg('a'));
+        h.keys("k\"Ayy");
+        assertEquals("bravo\nalpha\n", reg('a'));
+    }
+
+    @Test
+    public void escapeDropsAPendingRegisterNeverUsed()
+    {
+        // "a selects register a for the next command; Escape means that
+        // command is never coming, so a later, unrelated yank must not
+        // silently land in register a instead of the unnamed one.
+        vim("alpha bravo\n").cursor(0, 0).keys("\"a<Esc>yw");
+        assertEquals("alpha ", reg(VimRegisters.UNNAMED));
+        assertNull("the abandoned register was never written",
+                   reg('a'));
+    }
+
+    @Test
     public void theBlackHoleRegisterDiscards()
     {
         vim("alpha bravo\n").cursor(0, 0).keys("yw");

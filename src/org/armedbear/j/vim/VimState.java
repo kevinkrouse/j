@@ -194,6 +194,12 @@ public final class VimState
         return name;
     }
 
+    /** Drops a register name named but never used, e.g. by Escape. */
+    public void clearPendingRegister()
+    {
+        pendingRegister = 0;
+    }
+
     // ------------------------------------------------- character search
 
     /** The f, F, t or T that ';' and ',' repeat. */
@@ -291,11 +297,38 @@ public final class VimState
      * would repaint the first and the last, leaving the two in between with no
      * highlight on them. Which lines a selection covers now is not something
      * the motion knows line by line, so the window is the unit.
+     *
+     * <p>Also what a shape change without any motion needs -- switching
+     * between {@code v} and {@code V}, or {@code gv} -- since every line the
+     * selection spans can change how much of itself is covered, not only the
+     * two the caret and anchor sit on.
      */
     public void selectionCrossedLines(Editor editor, Line before, Line after)
     {
         if (mode.isVisual() && before != after)
             editor.setUpdateFlag(Constants.REPAINT);
+    }
+
+    /**
+     * The motion-specific version of {@link #selectionCrossedLines}.
+     *
+     * Called on every motion in visual mode, so it is worth sparing the whole
+     * window for the common case: an ordinary single-line step (j, k, an
+     * adjacent word motion) marks just the line the caret left -- the one it
+     * arrived on is already marked by {@code updateDotLine()} -- instead of
+     * repainting everything on screen. A motion that jumps further than one
+     * line falls back to {@link #selectionCrossedLines}, for the same reason
+     * given there.
+     */
+    public void motionChangedSelection(Editor editor, Line before, Line after)
+    {
+        if (!mode.isVisual() || before == after)
+            return;
+        if (before.next() == after || before.previous() == after) {
+            editor.update(before);
+            return;
+        }
+        editor.setUpdateFlag(Constants.REPAINT);
     }
 
     // ------------------------------------------------------------- caret

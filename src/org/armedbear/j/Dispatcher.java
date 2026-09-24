@@ -202,7 +202,10 @@ public final class Dispatcher implements Constants, KeyListener, MouseListener,
                     ed.getDisplay().repaintChangedLines();
                     ed.updateScrollBars();
                 }
-                ed.getFrame().repaintStatusBar();
+                // A headless editor (test harnesses, e.g.) has no frame.
+                final Frame edFrame = ed.getFrame();
+                if (edFrame != null)
+                    edFrame.repaintStatusBar();
             }
         }
 

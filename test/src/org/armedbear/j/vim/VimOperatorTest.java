@@ -185,6 +185,16 @@ public class VimOperatorTest
     }
 
     @Test
+    public void countedCcReachingEndOfBufferChangesEveryLine()
+    {
+        // RangeNormalizer represents a range that reaches end of buffer
+        // differently from one that does not, which changeLinewise has to
+        // account for or it silently drops the last line from the change.
+        vim("alpha\nbravo\n").cursor(0, 0).keys("2ccX");
+        h.assertText("X\n");
+    }
+
+    @Test
     public void changeLeavesInsertMode()
     {
         vim("alpha bravo\n").cursor(0, 0).keys("cwX<Esc>");

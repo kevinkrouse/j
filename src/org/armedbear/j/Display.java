@@ -748,7 +748,10 @@ public final class Display extends JComponent implements Constants,
         final int offset = editor.getDotOffset();
         if (dotLine.length() == 0 || offset >= dotLine.length())
             return;
-        formatLine(dotLine, shift, caretCol + 1);
+        // Relies on characterWidth(), called just before this in the one
+        // place this is (drawCaret's BLOCK case), having already formatted
+        // this line to at least caretCol + 1 -- reformatting here would only
+        // repeat work formatLine already did.
         if (caretCol < 0 || caretCol >= textArray.length)
             return;
         final char c = textArray[caretCol];
@@ -791,10 +794,12 @@ public final class Display extends JComponent implements Constants,
         final int offset = editor.getDotOffset();
         if (dotLine.length() == 0 || offset >= dotLine.length())
             return spaceWidth;
+        // One format covers both measurements: formatLine fills every
+        // column up to its limit, so the text at caretCol is already there
+        // once it has been called with caretCol + 1.
         formatLine(dotLine, shift, caretCol + 1);
-        final int end = measureLine(g2d, textArray, caretCol + 1, formatArray);
-        formatLine(dotLine, shift, caretCol);
         final int start = measureLine(g2d, textArray, caretCol, formatArray);
+        final int end = measureLine(g2d, textArray, caretCol + 1, formatArray);
         final int width = end - start;
         return width > 0 ? width : spaceWidth;
     }
@@ -1505,7 +1510,8 @@ public final class Display extends JComponent implements Constants,
             Debug.bug();
             return;
         }
-        if (editor.getFrame().getFocusedComponent() != this)
+        final Frame frame = editor.getFrame();
+        if (frame != null && frame.getFocusedComponent() != this)
             return;
         int beginCol = editor.getBuffer().getCol(pos) - shift;
         if (beginCol < 0)

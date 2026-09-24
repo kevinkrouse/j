@@ -127,6 +127,10 @@ public final class VimInputHandler implements InputHandler
     {
         builder.reset();
         fallback = null;
+        // A buffer switch mid-insert never runs Escape, so without this a
+        // partial insert-mode recording would survive and contaminate the
+        // next '.' repeat.
+        clearRecording();
         state.editorLeftBuffer(editor);
     }
 
@@ -183,6 +187,9 @@ public final class VimInputHandler implements InputHandler
     {
         builder.reset();
         fallback = null;
+        // "a then Escape means the register was never used; without this it
+        // would silently attach itself to some unrelated later command.
+        state.clearPendingRegister();
         if (recordingEdit && !replaying && state.getMode().isInsert()) {
             // The change was still being typed; Escape is the end of it.
             recording.append("<Esc>");
@@ -586,7 +593,7 @@ public final class VimInputHandler implements InputHandler
         state.clampCaret(editor);
         rememberColumn(editor, command);
         editor.updateDotLine();
-        state.selectionCrossedLines(editor, was, editor.getDotLine());
+        state.motionChangedSelection(editor, was, editor.getDotLine());
     }
 
     /**

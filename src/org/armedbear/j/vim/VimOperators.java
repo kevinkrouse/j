@@ -253,12 +253,14 @@ public final class VimOperators
         final Editor editor = ctx.editor;
         final Line first = range.start.getLine();
         // Everything from the first line to the last, but leave one line
-        // behind for the new text.
-        Line last = first;
-        while (last.next() != null
-               && last.next() != range.end.getLine()
-               && last != range.end.getLine())
-            last = last.next();
+        // behind for the new text. RangeNormalizer.linewise() marks the end
+        // of a non-final range with the line *after* the last affected one,
+        // at offset 0 -- back up to its previous line to find the last
+        // affected line. At end of buffer there is no such line, so the
+        // range's own last line is given directly instead, at its length.
+        final Line last = range.end.getOffset() == 0
+            ? range.end.getLine().previous()
+            : range.end.getLine();
 
         editor.setMark(new Position(first, 0));
         editor.setDot(last, last.length());

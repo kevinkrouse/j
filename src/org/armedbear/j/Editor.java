@@ -6234,8 +6234,13 @@ public final class Editor extends JPanel implements Constants,
     public void deactivate()
     {
         Debug.bugIfNot(buffer != null && bufferList.contains(buffer));
-        if (inputHandler != null)
-            inputHandler.editorDeactivated(this);
+        // Through getInputHandler(), not the raw field: the field is a cache
+        // that getInputHandler() only refreshes for a TYPE_NORMAL buffer, so
+        // reading it directly here would clean up a vim session against a
+        // directory or image buffer that was never in vim mode.
+        final InputHandler handler = getInputHandler();
+        if (handler != null)
+            handler.editorDeactivated(this);
         buffer.autosave();
         saveView();
         RecentFiles.getInstance().bufferDeactivated(buffer, dot);

@@ -403,23 +403,13 @@ public final class VimMotions
         if (offset < 0)
             return null;
 
-        final char bracket = text.charAt(offset);
-        final int openIndex = open.indexOf(bracket);
-        final boolean forward = openIndex >= 0;
-        final char match = forward ? close.charAt(openIndex)
-                                   : open.charAt(close.indexOf(bracket));
-
-        final Position pos = new Position(from.getLine(), offset);
-        int depth = 0;
-        while (true) {
-            final char c = pos.getChar();
-            if (c == bracket)
-                ++depth;
-            else if (c == match && --depth == 0)
-                return at(pos.getLine(), pos.getOffset());
-            if (forward ? !pos.next() : !pos.prev())
-                return null;
-        }
+        // The actual search is Editor's own, which already knows to ignore a
+        // bracket inside a comment or string literal, or one that is
+        // backslash-escaped -- rules this motion has no business
+        // reimplementing.
+        final Position match =
+            ctx.editor.findMatchInternal(new Position(from.getLine(), offset), 0);
+        return match == null ? null : at(match.getLine(), match.getOffset());
     }
 
     // ------------------------------------------------------------ helpers
