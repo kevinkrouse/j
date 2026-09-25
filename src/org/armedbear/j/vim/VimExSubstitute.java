@@ -126,6 +126,7 @@ final class VimExSubstitute
                                    String replacement, String flags)
         throws VimEx.BadCommand
     {
+        checkFlags(flags);
         final boolean all = flags.indexOf('g') >= 0;
         final Pattern regex = compile(pattern, flags);
         final String rewritten = toJavaReplacement(replacement);
@@ -167,6 +168,24 @@ final class VimExSubstitute
         state.clampCaret(editor);
     }
 
+    /**
+     * Refuses a flag this does not implement.
+     *
+     * Vim reports trailing characters rather than ignoring them, and for
+     * {@code c} -- confirm -- saying nothing would be worse than an error:
+     * the user asked to be asked about each match and would instead get the
+     * lot replaced silently.
+     */
+    private static void checkFlags(String flags) throws VimEx.BadCommand
+    {
+        for (int i = 0; i < flags.length(); i++) {
+            final char c = flags.charAt(i);
+            if (c != 'g' && c != 'i' && c != 'I' && c != ' ')
+                throw new VimEx.BadCommand(
+                    "E488: Trailing characters: " + flags.substring(i));
+        }
+    }
+
     private static Pattern compile(String pattern, String flags)
         throws VimEx.BadCommand
     {
@@ -197,15 +216,13 @@ final class VimExSubstitute
     {
         final StringBuffer sb = new StringBuffer();
         boolean any = false;
-        int emptyAt = -1;
         while (matcher.find()) {
-            // A pattern that can match nothing would otherwise match at every
-            // position forever; vim takes one empty match per position.
-            if (matcher.end() == matcher.start()) {
-                if (matcher.start() == emptyAt)
-                    break;
-                emptyAt = matcher.start();
-            }
+            // Vim takes no empty match at the end of the line: s/x*/-/g on
+            // "ab" gives "-a-b", not "-a-b-". A non-empty match there is
+            // fine, so the test is on the match and not on the position.
+            if (matcher.start() == matcher.end()
+                && matcher.start() == matcher.regionEnd())
+                break;
             matcher.appendReplacement(sb, replacement);
             any = true;
         }
@@ -227,6 +244,13 @@ final class VimExSubstitute
         final StringBuilder sb = new StringBuilder(replacement.length());
         for (int i = 0; i < replacement.length(); i++) {
             final char c = replacement.charAt(i);
+            if (c == '\\' && i + 1 == replacement.length()) {
+                // A backslash with nothing after it is a literal one. Left to
+                // fall through it produced a Java replacement ending in a
+                // lone backslash, which appendReplacement rejects outright.
+                sb.append("\\\\");
+                continue;
+            }
             if (c == '\\' && i + 1 < replacement.length()) {
                 final char next = replacement.charAt(++i);
                 if (next >= '0' && next <= '9')

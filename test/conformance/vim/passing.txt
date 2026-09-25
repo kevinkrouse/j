@@ -26,6 +26,12 @@
 #   * # g* (second halves)  the corpus expects Match to match match, which
 #                           needs ignorecase; vim defaults to noignorecase
 #                           and nvim agrees with us
+#   macro_last_ex_command_  our text is right (2@: gives bbbaa) but the
+#   register                corpus wants the caret at column 2. Vim leaves it
+#                           on the first non-blank of the changed line: 0,0
+#                           here, and 0,4 on an indented line, whatever
+#                           column the match was in. Confirmed with nvim on
+#                           a plain :s, since @: cannot run inside :normal!
 
 # M1: motions
 F,

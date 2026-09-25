@@ -104,7 +104,8 @@ public final class VimEx
             ++i;
         final VimEx ex = new VimEx(editor, state, s.substring(i));
         final Range range = ex.range();
-        return new Command(range, ex.name(), ex.bang(), ex.rest());
+        final String name = ex.name();
+        return new Command(range, name, ex.bang(name), ex.rest());
     }
 
     // ------------------------------------------------------------- range
@@ -180,9 +181,11 @@ public final class VimEx
         }
         if (base == null && offset == null)
             return null;
-        final int n = (base == null ? currentLine() : base)
-                      + (offset == null ? 0 : offset);
-        return clamp(n);
+        // Not clamped. Vim refuses an address past the end of the buffer
+        // rather than quietly using the last line, so :50 on three lines is
+        // an error; the commands check when they resolve it to a Line.
+        return (base == null ? currentLine() : base)
+               + (offset == null ? 0 : offset);
     }
 
     private int number()
@@ -248,13 +251,27 @@ public final class VimEx
         return text.substring(start, pos);
     }
 
-    private boolean bang()
+    /**
+     * The {@code !} some commands take.
+     *
+     * Not every {@code !} after a name is one. {@code :s} takes any
+     * punctuation as its separator, {@code !} included, so {@code :s!a!b!} is
+     * a perfectly ordinary substitute and eating that first {@code !} would
+     * leave {@code a!b!} to be read with {@code a} as the separator.
+     */
+    private boolean bang(String name)
     {
-        if (peek() == '!') {
-            ++pos;
-            return true;
-        }
-        return false;
+        if (peek() != '!' || takesSeparator(name))
+            return false;
+        ++pos;
+        return true;
+    }
+
+    /** True for the commands whose argument opens with a delimiter. */
+    private static boolean takesSeparator(String name)
+    {
+        return name.equals("s") || "substitute".startsWith(name)
+               && name.startsWith("s");
     }
 
     private String rest()
@@ -293,11 +310,6 @@ public final class VimEx
     {
         final Buffer buffer = editor.getBuffer();
         return buffer == null ? 1 : Math.max(1, buffer.getLineCount());
-    }
-
-    private int clamp(int line)
-    {
-        return Math.max(1, Math.min(line, lineCount()));
     }
 
     /** The line a 1-based number names, or null if the buffer is shorter. */

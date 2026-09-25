@@ -463,7 +463,7 @@ public final class VimInputHandler implements InputHandler
         if (command.getKind() == VimCommand.Kind.SEARCH)
             startSearch(editor, operator, command, count, countGiven);
         else if (command.getKind() == VimCommand.Kind.EX)
-            startEx(editor);
+            runEx(editor, command, character, count);
         else if (command.getKind() == VimCommand.Kind.TEXT_OBJECT)
             runTextObject(editor, operator, command, count, countGiven);
         else if (operator != null)
@@ -531,6 +531,24 @@ public final class VimInputHandler implements InputHandler
      * : takes the keyboard the same way, but parks no command: an ex line is
      * read and run on its own rather than completing something half-typed.
      */
+    /**
+     * The two EX-kind commands: {@code :} opens the prompt, {@code @} repeats.
+     *
+     * {@code @} is the macro command, and macros are not built: only the
+     * {@code :} register it can name exists, so {@code @a} does nothing,
+     * which is also what vim does with an empty register.
+     */
+    private void runEx(Editor editor, VimCommand command, String character,
+                       int count)
+    {
+        if (command.getCommand().equals("repeatRegister")) {
+            if (":".equals(character))
+                repeatEx(editor, count);
+            return;
+        }
+        startEx(editor);
+    }
+
     private void startEx(Editor editor)
     {
         // From visual mode vim leaves the selection and fills the line in
@@ -641,15 +659,15 @@ public final class VimInputHandler implements InputHandler
         typedLine = null;
         if (line == null || line.isEmpty())
             return;
-        // The keys never went through dispatch, so add them to the recording
-        // by hand or '.' would replay a bare ":" and hang on a prompt that
-        // never closes.
-        if (!replaying)
-            recording.append(line).append("<CR>");
+        // Not added to the recording. Vim's '.' repeats the last *change*,
+        // and an ex command is not one: after :s the dot still replays
+        // whatever was changed before it, which nvim confirms. @: is what
+        // repeats an ex command, and it reads lastEx below.
         try {
             final VimEx.Command command = VimEx.parse(editor, state, line);
             if (!VimExCommands.run(editor, state, command))
                 runJCommand(editor, command);
+            lastEx = line;
         }
         catch (VimEx.BadCommand e) {
             editor.status(e.getMessage());
@@ -674,6 +692,14 @@ public final class VimInputHandler implements InputHandler
         if (CommandTable.getCommand(command.name) == null)
             throw new VimEx.BadCommand(
                 "E492: Not an editor command: " + command.name);
+        // j's commands know nothing of ranges, so one given here would be
+        // silently dropped and the command would run somewhere else entirely.
+        // Say so rather than do the wrong thing quietly.
+        if (command.range.given)
+            throw new VimEx.BadCommand(
+                "E481: No range allowed: " + command.name);
+        if (command.bang)
+            throw new VimEx.BadCommand("E477: No ! allowed");
         try {
             editor.execute(command.name,
                            command.args.isEmpty() ? null : command.args);
@@ -682,6 +708,24 @@ public final class VimInputHandler implements InputHandler
             throw new VimEx.BadCommand(
                 "E492: Not an editor command: " + command.name);
         }
+    }
+
+    /**
+     * The last ex line that ran, for {@code @:}.
+     *
+     * Vim keeps it in the {@code :} register. Only a line that ran is kept:
+     * one that failed to parse is not worth repeating.
+     */
+    private String lastEx;
+
+    /** {@code @:} -- run the last ex line again. */
+    void repeatEx(Editor editor, int count)
+    {
+        if (lastEx == null)
+            return;
+        final String line = lastEx;
+        for (int i = 0; i < count; i++)
+            exEntered(editor, line);
     }
 
     /** The : prompt was abandoned. */

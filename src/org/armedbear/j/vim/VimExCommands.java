@@ -42,6 +42,8 @@ public final class VimExCommands
         throws VimEx.BadCommand
     {
         final String name = command.name;
+        if (command.bang && !name.isEmpty())
+            throw new VimEx.BadCommand("E477: No ! allowed");
         if (name.isEmpty()) {
             // A bare range means "go to that line", which is what :42 is.
             if (command.range.given)
@@ -80,10 +82,11 @@ public final class VimExCommands
 
     /** {@code :42} -- the first non-blank of that line. */
     private static void goToLine(Editor editor, VimState state, int number)
+        throws VimEx.BadCommand
     {
-        final Line line = VimEx.lineAt(editor, number);
+        final Line line = number < 1 ? null : VimEx.lineAt(editor, number);
         if (line == null)
-            return;
+            throw new VimEx.BadCommand("E16: Invalid range");
         editor.setDot(line, VimMotions.firstNonBlank(line));
         editor.moveCaretToDotCol();
         state.clampCaret(editor);
@@ -102,6 +105,8 @@ public final class VimExCommands
     static VimRange linesOf(Editor editor, VimEx.Range range)
         throws VimEx.BadCommand
     {
+        if (range.first < 1 || range.last < 1)
+            throw new VimEx.BadCommand("E16: Invalid range");
         final Line first = VimEx.lineAt(editor, range.first);
         final Line last = VimEx.lineAt(editor, range.last);
         if (first == null || last == null)
@@ -116,7 +121,7 @@ public final class VimExCommands
     private static void delete(Editor editor, VimState state,
                                VimEx.Command command) throws VimEx.BadCommand
     {
-        final VimRange range = linesOf(editor, countedRange(command));
+        final VimRange range = linesOf(editor, countedRange(editor, command));
         registerFrom(state, command);
         VimRegisters.getInstance().deleted(state.takePendingRegister(),
                                            VimOperators.textOf(editor, range),
@@ -144,7 +149,7 @@ public final class VimExCommands
     private static void yank(Editor editor, VimState state,
                              VimEx.Command command) throws VimEx.BadCommand
     {
-        final VimRange range = linesOf(editor, countedRange(command));
+        final VimRange range = linesOf(editor, countedRange(editor, command));
         registerFrom(state, command);
         VimRegisters.getInstance().yanked(state.takePendingRegister(),
                                           VimOperators.textOf(editor, range),
@@ -159,27 +164,43 @@ public final class VimExCommands
      * many lines starting at its <em>last</em> one, so {@code :1,3d 2} deletes
      * lines 3 and 4.
      */
-    private static VimEx.Range countedRange(VimEx.Command command)
+    private static VimEx.Range countedRange(Editor editor,
+                                            VimEx.Command command)
     {
         final String count = trailingCount(command.args);
         if (count.isEmpty())
             return command.range;
         final int n = Integer.parseInt(count);
+        // A count past the end of the buffer clamps, where an address past
+        // the end is an error. Vim really is asymmetric here: :1,3d 100 takes
+        // what there is, and :100d takes nothing and complains.
+        final int lines = Math.max(1, editor.getBuffer().getLineCount());
         return new VimEx.Range(command.range.last,
-                               command.range.last + n - 1, true);
+                               Math.min(command.range.last + n - 1, lines),
+                               true);
     }
 
+    /**
+     * The count in the {@code [register] [count]} tail.
+     *
+     * The two need no space between them: {@code :d a2} and {@code :d a 2}
+     * are the same, so the digits are taken from the end of the last word
+     * rather than from a word of their own.
+     */
     private static String trailingCount(String args)
     {
         final String s = args.trim();
-        if (s.isEmpty())
-            return "";
-        final int i = s.lastIndexOf(' ');
-        final String tail = i < 0 ? s : s.substring(i + 1);
-        for (int j = 0; j < tail.length(); j++)
-            if (!Character.isDigit(tail.charAt(j)))
-                return "";
-        return tail;
+        int i = s.length();
+        while (i > 0 && Character.isDigit(s.charAt(i - 1)))
+            --i;
+        final String digits = s.substring(i);
+        // What comes before must be a register name or nothing; digits in the
+        // middle of a word are not a count.
+        final String head = s.substring(0, i);
+        if (head.isEmpty() || (head.length() == 1
+                               && VimRegisters.isValidName(head.charAt(0))))
+            return digits;
+        return "";
     }
 
     private static void registerFrom(VimState state, VimEx.Command command)

@@ -263,6 +263,100 @@ public class VimExTest
         assertEquals("abc", h.value());
     }
 
+    // ------------------------------------------------------ refusals
+
+    @Test
+    public void anAddressPastTheEndIsRefused()
+    {
+        // Vim errors rather than quietly using the last line.
+        vim("l1\nl2\nl3", 0, 0).keys(":").exCommand("50s/l/L/");
+        assertEquals("l1\nl2\nl3", h.value());
+        h.keys(":").exCommand("50");
+        at(0, 0);
+    }
+
+    @Test
+    public void butACountPastTheEndClamps()
+    {
+        // Vim is asymmetric here: an address errors, a count takes what
+        // there is. Both checked against nvim.
+        vim("1\n2\n3\n4\n5", 0, 0).keys(":").exCommand("1,3d 100");
+        assertEquals("1\n2", h.value());
+    }
+
+    @Test
+    public void theRegisterAndCountNeedNoSpaceBetweenThem()
+    {
+        vim("1\n2\n3\n4\n5", 0, 0).keys(":").exCommand("1,3d a2");
+        assertEquals("1\n2\n5", h.value());
+    }
+
+    @Test
+    public void aBangTheCommandDoesNotTakeIsRefused()
+    {
+        vim("a\nb", 0, 0).keys(":").exCommand("d!");
+        assertEquals("a\nb", h.value());
+    }
+
+    @Test
+    public void butABangAfterSIsItsSeparator()
+    {
+        // :s takes any punctuation as its delimiter, ! included, so eating
+        // that ! as a bang would leave a!b! to be split on 'a'.
+        vim("aXb", 0, 0).keys(":").exCommand("s!X!-!");
+        assertEquals("a-b", h.value());
+    }
+
+    @Test
+    public void aFlagThatIsNotUnderstoodIsRefused()
+    {
+        // Saying nothing would be worse for c (confirm) than an error: the
+        // user asked to be asked, and would get the lot replaced silently.
+        vim("aba", 0, 0).keys(":").exCommand("s/a/X/z");
+        assertEquals("aba", h.value());
+        h.close();
+        vim("aba", 0, 0).keys(":").exCommand("s/a/X/gc");
+        assertEquals("aba", h.value());
+    }
+
+    @Test
+    public void aTrailingBackslashInTheReplacementIsALiteral()
+    {
+        // It used to reach appendReplacement as a lone backslash, which
+        // throws IllegalArgumentException -- past the BadCommand catch.
+        vim("ab", 0, 0).keys(":").exCommand("s/b/x\\");
+        assertEquals("ax\\", h.value());
+    }
+
+    @Test
+    public void thereIsNoEmptyMatchAtTheEndOfTheLine()
+    {
+        vim("ab", 0, 0).keys(":").exCommand("s/x*/-/g");
+        assertEquals("-a-b", h.value());
+        h.close();
+        vim("ab", 0, 0).keys(":").exCommand("s/b*/-/g");
+        assertEquals("-a-", h.value());
+    }
+
+    @Test
+    public void aJCommandStillRuns()
+    {
+        // The fall-through to j's own command table, which is what makes
+        // :findTagAtDot work without being listed as an ex command.
+        vim("one\ntwo", 0, 0).keys(":").exCommand("eol");
+        at(0, 3);
+    }
+
+    @Test
+    public void butARangeOnOneIsRefusedRatherThanDropped()
+    {
+        // j's commands know nothing of ranges, so one given here would be
+        // dropped and the command would run somewhere else without saying
+        // so. The same eol, which would otherwise move the caret.
+        vim("one\ntwo", 0, 0).keys(":").exCommand("1,2eol");
+        at(0, 0);
+    }
+
     // ------------------------------------------------------ from visual
 
     @Test
@@ -292,6 +386,57 @@ public class VimExTest
         h.keys("x");
         assertEquals("the selection is gone, so x takes one character",
                      "ne\ntwo", h.value());
+    }
+
+    // ------------------------------------------------ repeating an ex line
+
+    @Test
+    public void dotDoesNotRepeatAnExCommand()
+    {
+        // Vim's '.' repeats the last *change*, and an ex command is not one:
+        // after :s the dot still replays whatever was changed before it.
+        // Checked against nvim, which replays the C here, not the substitute.
+        vim("a\nb\nc", 0, 0).keys("CZ<Esc>").keys("2G");
+        h.exCommand("s/b/x");
+        assertEquals("Z\nx\nc", h.value());
+        h.keys(".");
+        assertEquals("Z\nZ\nc", h.value());
+    }
+
+    @Test
+    public void atColonRunsTheLastExLineAgain()
+    {
+        vim("aaaaa", 0, 0).keys(":").exCommand("s/a/b");
+        assertEquals("baaaa", h.value());
+        h.keys("@:");
+        assertEquals("bbaaa", h.value());
+    }
+
+    @Test
+    public void atColonTakesACount()
+    {
+        vim("aaaaa", 0, 0).keys(":").exCommand("s/a/b");
+        h.keys("2@:");
+        assertEquals("bbbaa", h.value());
+        at(0, 0);
+    }
+
+    @Test
+    public void atColonWithNothingToRepeatDoesNothing()
+    {
+        vim("abc", 0, 0).keys("@:");
+        assertEquals("abc", h.value());
+    }
+
+    @Test
+    public void aLineThatFailedIsNotWorthRepeating()
+    {
+        // The failing line must not become what @: repeats.
+        vim("aa", 0, 0).keys(":").exCommand("s/a/X/");
+        assertEquals("Xa", h.value());
+        h.keys(":").exCommand("nosuchcommand");
+        h.keys("@:");
+        assertEquals("@: still repeats the substitute", "XX", h.value());
     }
 
     // ------------------------------------------------- j's own commands
