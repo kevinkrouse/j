@@ -228,7 +228,15 @@ public final class VimEx
             ++pos;
         final VimSearch.Query query =
             new VimSearch.Query(pattern.toString(), delimiter == '/', false);
-        final Position found = VimSearch.find(editor, query, editor.getDot(), 1);
+        final Position found;
+        try {
+            found = VimSearch.find(editor, query, editor.getDot(), 1);
+        }
+        catch (VimSearch.BadPattern e) {
+            // exEntered only catches BadCommand, so anything else thrown
+            // here would escape into the key handler.
+            throw new BadCommand(e.getMessage());
+        }
         if (found == null)
             throw new BadCommand("E486: Pattern not found: " + pattern);
         return found.lineNumber() + 1;

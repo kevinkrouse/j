@@ -458,7 +458,7 @@ public final class VimMotions
         final VimSearch.Query query =
             new VimSearch.Query(VimSearch.literal(word.text),
                                 ctx.arg("forward"),
-                                word.keyword && !ctx.arg("partial"));
+                                word.keyword && !ctx.arg("partial"), false);
         ctx.state.setLastSearch(query);
         // From the word, not from the caret: * with the caret on the spaces
         // before a word searches from the word, so the word itself is not a
@@ -509,15 +509,10 @@ public final class VimMotions
             pos.setOffset(last);
     }
 
+    /** j's own, which moveToWindowTop and its kin use too. */
     static int firstNonBlank(Line line)
     {
-        final String text = line.getText();
-        if (text == null)
-            return 0;
-        for (int i = 0; i < text.length(); i++)
-            if (!Character.isWhitespace(text.charAt(i)))
-                return i;
-        return Math.max(0, text.length() - 1);
+        return CaretCommands.firstNonBlank(line);
     }
 
     private static Line lineNumbered(Buffer buffer, int number)

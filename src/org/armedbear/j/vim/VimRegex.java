@@ -138,6 +138,16 @@ final class VimRegex
     /** Whether a translated pattern should ignore case. */
     static boolean ignoreCase(Result r, Boolean forceCase)
     {
+        return ignoreCase(r, forceCase, true);
+    }
+
+    /**
+     * @param useSmartcase false for * and its kin, which vim documents as
+     *        using 'ignorecase' but not 'smartcase'
+     */
+    static boolean ignoreCase(Result r, Boolean forceCase,
+                              boolean useSmartcase)
+    {
         // \c and \C in the pattern beat the flags and the options, as they
         // do in vim; a flag given to :s beats the options.
         if (r.ignoreCase != null)
@@ -147,7 +157,8 @@ final class VimRegex
         final VimOptions options = VimKeyMap.getSharedOptions();
         if (!options.getBoolean("ignorecase", false))
             return false;
-        return !(options.getBoolean("smartcase", false) && r.hasUppercase);
+        return !(useSmartcase && options.getBoolean("smartcase", false)
+                 && r.hasUppercase);
     }
 
     /**

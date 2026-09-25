@@ -44,17 +44,30 @@ public final class VimSearch
         public final boolean forward;
         /** True for * and #, which match whole words only. */
         public final boolean wholeWord;
+        /**
+         * False for * # g* g#, which use 'ignorecase' but not 'smartcase':
+         * the word came from the buffer, so its capitals say nothing about
+         * what the user meant.
+         */
+        public final boolean smartcase;
 
         public Query(String pattern, boolean forward, boolean wholeWord)
+        {
+            this(pattern, forward, wholeWord, true);
+        }
+
+        public Query(String pattern, boolean forward, boolean wholeWord,
+                     boolean smartcase)
         {
             this.pattern = pattern;
             this.forward = forward;
             this.wholeWord = wholeWord;
+            this.smartcase = smartcase;
         }
 
         Query reversed()
         {
-            return new Query(pattern, !forward, wholeWord);
+            return new Query(pattern, !forward, wholeWord, smartcase);
         }
     }
 
@@ -215,11 +228,17 @@ public final class VimSearch
     private static Search compile(Query query, Editor editor)
     {
         final Search search = new Search();
-        search.setPattern(toJavaRegex(query.pattern));
-        search.setIgnoreCase(ignoreCase(query.pattern));
-        search.setWholeWordsOnly(query.wholeWord);
-        search.setRegularExpression(true);
+        // The translation is inside the try too: VimRegex refuses what it
+        // cannot express by throwing, and a refusal has to reach the user as
+        // a message rather than escape into the key handler.
         try {
+            search.setPattern(toJavaRegex(query.pattern));
+            search.setIgnoreCase(VimRegex.ignoreCase(
+                VimRegex.translate(query.pattern,
+                                   VimExSubstitute.lastReplacement()),
+                null, query.smartcase));
+            search.setWholeWordsOnly(query.wholeWord);
+            search.setRegularExpression(true);
             search.setREFromPattern();
         }
         catch (PatternSyntaxException e) {

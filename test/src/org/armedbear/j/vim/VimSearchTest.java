@@ -193,6 +193,37 @@ public class VimSearchTest
         at(0, 0);
     }
 
+    @Test
+    public void starUsesIgnorecaseButNotSmartcase()
+    {
+        // :help * -- "'ignorecase' is used, 'smartcase' is not". nvim with
+        // both set finds the lower case foo from Foo. A typed / keeps
+        // smartcase, so /Foo stays case sensitive.
+        // The options are set after the harness exists: vim() installs a
+        // fresh set, so setting them first sets them on one thrown away.
+        try {
+            vim("Foo x foo", 0, 0);
+            ignoreCaseAndSmartcase();
+            h.keys("*");
+            at(0, 6);
+            h.close();
+            vim("Foo x foo\nFoo", 0, 0);
+            ignoreCaseAndSmartcase();
+            h.keys("/").searchPattern("Foo");
+            at(1, 0);
+        }
+        finally {
+            VimKeyMap.reset();
+        }
+    }
+
+    private static void ignoreCaseAndSmartcase()
+    {
+        final VimOptions options = VimKeyMap.getSharedOptions();
+        options.set("ignorecase", "true");
+        options.set("smartcase", "true");
+    }
+
     // ------------------------------------------------- with an operator
 
     // A search is an exclusive motion, so an operator reaches up to the

@@ -220,9 +220,18 @@ public class VimRegexTest
     @Test
     public void aRefusalReachesTheUserAsAMessageNotAnException()
     {
+        // Through every door a pattern comes in by. Only :s was tested at
+        // first, and it was the one path that happened to catch a refusal:
+        // / and the /pat/ address let it escape into the key handler.
         h = EditorHarness.create().vim();
-        h.value("abc").cursor(0, 0).exCommand("s/\\%V/x/");
-        assertEquals("abc", h.value());
+        h.value("abc\nxyz").cursor(0, 0).exCommand("s/\\%V/x/");
+        assertEquals("abc\nxyz", h.value());
+        h.keys("/").searchPattern("\\%V");
+        h.exCommand("/\\%V/d");
+        h.exCommand("g/a\\&b/d");
+        h.exCommand("sort r/\\%V/");
+        assertEquals("abc\nxyz", h.value());
+        assertEquals("the caret has not moved either", 0, h.lineNumber());
     }
 
     @Test

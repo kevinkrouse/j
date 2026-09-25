@@ -1052,13 +1052,18 @@ public final class VimInputHandler implements InputHandler
                 // executeCommand, which reads a leading ( as a Lisp form and
                 // an = as a property assignment -- the same trap the ex
                 // parser avoids.
+                boolean ran;
                 try {
-                    editor.execute(command.getCommand(), null);
+                    ran = editor.execute(command.getCommand(), null);
                 }
                 catch (NoSuchMethodException e) {
+                    ran = false;
+                }
+                // execute() throws for some unknown names and quietly
+                // returns false for others; either way, say so.
+                if (!ran)
                     editor.status("E492: Not an editor command: "
                                   + command.getCommand());
-                }
                 break;
             case IDLE:
                 break;
