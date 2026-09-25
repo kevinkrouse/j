@@ -185,3 +185,6 @@ ex_sort_reverse
 ex_sort_unique
 ex_substitute_empty_arguments
 ex_substitute_range_implicit_offset
+
+# M12c: :g, :normal, :join, :move, :copy
+ex_global_substitute_split

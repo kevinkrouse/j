@@ -18,6 +18,7 @@ import javax.swing.undo.CompoundEdit;
 
 import org.armedbear.j.Editor;
 import org.armedbear.j.Line;
+import org.armedbear.j.Lines;
 import org.armedbear.j.Position;
 import org.armedbear.j.SimpleEdit;
 
@@ -128,54 +129,23 @@ public final class VimActions
      */
     private static void joinLines(MotionContext ctx)
     {
-        final Editor editor = ctx.editor;
-        final boolean keepSpaces = ctx.arg("keepSpaces");
         // J with no count joins two lines; with a count it joins that many,
         // so the number of joins is one less.
-        final int joins = Math.max(1, ctx.count - 1);
+        joinAt(ctx.editor, ctx.state, Math.max(1, ctx.count - 1),
+               ctx.arg("keepSpaces"));
+    }
 
-        final CompoundEdit edit = editor.getBuffer().beginCompoundEdit();
-        try {
-            VimOperators.recordCaret(editor);
-            for (int i = 0; i < joins; i++) {
-                final Position dot = editor.getDot();
-                if (dot == null)
-                    return;
-                final Line line = dot.getLine();
-                final Line next = line.next();
-                if (next == null)
-                    return;
-                final String rest = keepSpaces ? text(next)
-                                               : stripLeading(text(next));
-                // The line keeps its own trailing whitespace: vim only drops
-                // the indent of the line being pulled up. And it adds a space
-                // only if there is not one there already.
-                final String head = text(line);
-                final String separator =
-                    keepSpaces || rest.isEmpty() || head.isEmpty()
-                        || Character.isWhitespace(head.charAt(head.length() - 1))
-                    ? "" : " ";
-
-                editor.setDot(line, head.length());
-                editor.setMark(new Position(next, 0));
-                // Select from the join point to the start of the next line's
-                // text, then replace it with the separator.
-                editor.setDot(next, next.length() - rest.length());
-                editor.setMark(new Position(line, head.length()));
-                editor.deleteRegion();
-                editor.setMark(null);
-                final Position joined = editor.getDot();
-                if (!separator.isEmpty())
-                    editor.insertString(separator);
-                // Recorded, so that a second join's undo finds the caret
-                // where the first one's edit left it.
-                moveAfterEdit(editor, joined.getLine(), head.length());
-            }
-        }
-        finally {
-            editor.getBuffer().endCompoundEdit(edit);
-        }
-        ctx.state.clampCaret(editor);
+    /**
+     * Joins this many times, starting at the caret.
+     *
+     * Shared by {@code J} and by {@code :join}, which differ only in how they
+     * work out how many joins to do and where to start.
+     */
+    static void joinAt(Editor editor, VimState state, int joins,
+                       boolean keepSpaces)
+    {
+        Lines.join(editor, joins, keepSpaces);
+        state.clampCaret(editor);
     }
 
     private static String stripLeading(String s)

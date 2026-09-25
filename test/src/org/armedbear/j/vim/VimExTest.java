@@ -366,6 +366,110 @@ public class VimExTest
         assertEquals("6\nd3", h.value());
     }
 
+    // ------------------------------------------- join, move, copy, normal
+
+    @Test
+    public void joinJoinsTheLinesTheRangeCovers()
+    {
+        vim("a\nb\nc\nd", 0, 0).keys(":").exCommand("1,3j");
+        assertEquals("a b c\nd", h.value());
+        at(0, 0);
+    }
+
+    @Test
+    public void joinWithOneLineStillJoinsItToTheNext()
+    {
+        vim("a\nb\nc", 0, 0).keys(":").exCommand("1j");
+        assertEquals("a b\nc", h.value());
+    }
+
+    @Test
+    public void moveTakesTheLinesSomewhereElse()
+    {
+        vim("a\nb\nc\nd", 0, 0).keys(":").exCommand("2,3m0");
+        assertEquals("b\nc\na\nd", h.value());
+        at(1, 0);
+    }
+
+    @Test
+    public void copyLeavesTheOriginalWhereItWas()
+    {
+        vim("a\nb\nc", 0, 0).keys(":").exCommand("1t$");
+        assertEquals("a\nb\nc\na", h.value());
+        at(3, 0);
+    }
+
+    @Test
+    public void normalRunsItsArgumentAsKeys()
+    {
+        vim("a\nb\nc", 0, 0).keys(":").exCommand("%norm A;");
+        assertEquals("a;\nb;\nc;", h.value());
+    }
+
+    @Test
+    public void normalEndsAnUnfinishedInsertTheWayVimDoes()
+    {
+        // The trailing A; leaves insert mode rather than eating what comes
+        // next, so the x below is a command again.
+        vim("a\nb", 0, 0).keys(":").exCommand("norm A;");
+        h.keys("x");
+        assertEquals("a\nb", h.value().replace("a;", "a"));
+    }
+
+    // ------------------------------------------------------- global
+
+    @Test
+    public void globalRunsACommandOnEveryMatchingLine()
+    {
+        vim("one\ntwo\nthree\nfour\nfive\nsix\nseven\nnine\n---", 0, 0)
+            .keys(":").exCommand("g/e/d");
+        assertEquals("two\nfour\nsix\n---", h.value());
+    }
+
+    @Test
+    public void vGlobalRunsItOnTheLinesThatDoNotMatch()
+    {
+        vim("one\ntwo\nthree", 0, 0).keys(":").exCommand("v/e/d");
+        assertEquals("one\nthree", h.value());
+        h.close();
+        // :g! is the same thing.
+        vim("one\ntwo\nthree", 0, 0).keys(":").exCommand("g!/e/d");
+        assertEquals("one\nthree", h.value());
+    }
+
+    @Test
+    public void globalTakesARange()
+    {
+        vim("ae\nbe\nce\nde", 0, 0).keys(":").exCommand("2,3g/e/d");
+        assertEquals("ae\nde", h.value());
+    }
+
+    @Test
+    public void globalWithSubstituteUsesTheMatchItFound()
+    {
+        // The empty pattern in the inner :s means the one :g matched.
+        vim("one\ntwo\nthree", 0, 0).keys(":").exCommand("g/one/s//1/");
+        assertEquals("1\ntwo\nthree", h.value());
+    }
+
+    @Test
+    public void globalDoesNotRevisitTheLinesItsCommandMade()
+    {
+        // Two passes: the lines are picked out first. One pass would go back
+        // over the halves a newline-producing replacement had just made.
+        vim("one\ntwo\nthree\nfour\nfive\n", 0, 0)
+            .keys(":").exCommand("g/e/s/[or]/\\n");
+        assertEquals("\nne\ntwo\nth\nee\nfour\nfive\n", h.value());
+    }
+
+    @Test
+    public void globalCanNestInsideGlobal()
+    {
+        vim("one\ntwo\nthree\nfour\nfive\nsix\nseven\nnine\n---", 0, 0)
+            .keys(":").exCommand("g/e/g/v/d");
+        assertEquals("one\ntwo\nthree\nfour\nsix\nnine\n---", h.value());
+    }
+
     // ------------------------------------------------------ refusals
 
     @Test

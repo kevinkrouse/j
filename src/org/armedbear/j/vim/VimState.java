@@ -32,6 +32,25 @@ public final class VimState
     private VimMode mode = VimMode.NORMAL;
 
     /**
+     * The handler this state belongs to.
+     *
+     * One per editor, as this is. Commands that have to feed keys back
+     * through the engine -- {@code :normal} is the first -- need a way back
+     * to it from wherever they are.
+     */
+    private VimInputHandler handler;
+
+    void setHandler(VimInputHandler handler)
+    {
+        this.handler = handler;
+    }
+
+    VimInputHandler getHandler()
+    {
+        return handler;
+    }
+
+    /**
      * The undo step covering the current insert session, and the buffer whose
      * undo manager holds it.
      *

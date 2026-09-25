@@ -41,6 +41,10 @@ public final class VimInputHandler implements InputHandler
     private static final int MAX_KEY_TO_KEY_DEPTH = 32;
 
     private final VimState state = new VimState();
+
+    {
+        state.setHandler(this);
+    }
     private final VimKeyMap keyMap;
     private final CommandBuilder builder = new CommandBuilder();
 
@@ -376,10 +380,30 @@ public final class VimInputHandler implements InputHandler
         // A count given to '.' replaces the one the change was made with.
         final String keys = countGiven ? countGiven(lastChange, count)
                                        : lastChange;
+        runKeys(editor, keys);
+    }
+
+    /**
+     * Runs a string of keys as though they had been typed.
+     *
+     * Shared by {@code .} and by {@code :normal}. Recording is off for the
+     * duration: these keys are a replay of a change, or somebody else's
+     * command, and either way they are not the change {@code .} should
+     * repeat next.
+     */
+    void runKeys(Editor editor, String keys)
+    {
+        if (replaying)
+            return;
         replaying = true;
         try {
             for (String key : KeyNotation.tokenize(keys))
                 dispatchReplay(editor, key);
+            // :normal ends an unfinished command the way vim does, so a
+            // trailing "A;" leaves insert mode rather than eating the next
+            // key typed.
+            if (state.getMode().isInsert())
+                escape(editor);
         }
         finally {
             replaying = false;

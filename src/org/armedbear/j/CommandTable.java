@@ -126,6 +126,7 @@ public class CommandTable
             addCommand("home");
             addCommand("httpDeleteCookies");
             addCommand("incrementalFind");
+            addCommand("duplicateLines", "Lines");
             addCommand("indentLine");
             addCommand("indentLineOrRegion");
             addCommand("indentRegion");
@@ -141,6 +142,7 @@ public class CommandTable
             addCommand("killAppend");
             addCommand("killBuffer");
             addCommand("killFrame");
+            addCommand("joinLines", "Lines");
             addCommand("killLine");
             // synonym for unsplitAllWindows
             addCommand("killOtherWindows", "Editor", "unsplitAllWindows");
@@ -150,6 +152,8 @@ public class CommandTable
             addCommand("killWordRight");
             addCommand("left");
             addCommand("mode");
+            addCommand("moveLinesDown", "Lines");
+            addCommand("moveLinesUp", "Lines");
             addCommand("movePastCloseAndReindent");
             addCommand("newBuffer");
             addCommand("newFrame");

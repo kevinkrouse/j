@@ -342,6 +342,10 @@
     <li><a href="commands.html#sidebarListTags">sidebarListTags</a></li>
     <li><a href="commands.html#slideIn">slideIn</a></li>
     <li><a href="commands.html#slideOut">slideOut</a></li>
+    <li><a href="commands.html#duplicateLines">duplicateLines</a></li>
+    <li><a href="commands.html#joinLines">joinLines</a></li>
+    <li><a href="commands.html#moveLinesDown">moveLinesDown</a></li>
+    <li><a href="commands.html#moveLinesUp">moveLinesUp</a></li>
     <li><a href="commands.html#sortLines">sortLines</a></li>
     <li><a href="commands.html#source">source</a></li>
     <li><a href="commands.html#splitWindow">splitWindow</a></li>
@@ -4622,6 +4626,48 @@ So <code>sortLines n</code> orders by number, and
 <br><br>
 <b>See also:</b> the <code>:sort</code> command in
 <a href="editmodes.html">vim edit mode</a>, which is the same sort.
+<br><br>
+</dl><!--<hr>-->
+
+<a name="joinLines">joinLines</a><dl><dd>
+<p>
+Joins the next line onto the current one, putting a single space at the join
+and dropping the indent of the line pulled up. A line that already ends in
+whitespace gets no second space.
+<p>
+With a selection, joins every line the selection covers. With an argument, as
+in <code>joinLines 3</code>, joins that many lines into one. A selection wins
+over an argument.
+<br><br>
+<b>Default key mapping:</b> None
+<br><br>
+<b>See also:</b> <code>J</code> and <code>:join</code> in
+<a href="editmodes.html">vim edit mode</a>, which are this command.
+<br><br>
+</dl><!--<hr>-->
+
+<a name="moveLinesUp">moveLinesUp</a>, <a name="moveLinesDown">moveLinesDown</a><dl><dd>
+<p>
+Moves the current line, or every line the selection covers, up or down by one.
+Does nothing at the end it would move off.
+<br><br>
+<b>Default key mapping:</b> None
+<br><br>
+<b>See also:</b> <a href="#duplicateLines">duplicateLines</a>, and
+<code>:move</code> in <a href="editmodes.html">vim edit mode</a>, which moves
+a range to anywhere rather than by one.
+<br><br>
+</dl><!--<hr>-->
+
+<a name="duplicateLines">duplicateLines</a><dl><dd>
+<p>
+Copies the current line, or every line the selection covers, immediately below
+itself.
+<br><br>
+<b>Default key mapping:</b> None
+<br><br>
+<b>See also:</b> <a href="#moveLinesUp">moveLinesUp</a>, and <code>:copy</code>
+in <a href="editmodes.html">vim edit mode</a>.
 <br><br>
 </dl><!--<hr>-->
 
