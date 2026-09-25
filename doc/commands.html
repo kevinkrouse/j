@@ -343,6 +343,9 @@
     <li><a href="commands.html#slideIn">slideIn</a></li>
     <li><a href="commands.html#slideOut">slideOut</a></li>
     <li><a href="commands.html#duplicateLines">duplicateLines</a></li>
+    <li><a href="commands.html#findCharInLine">findCharInLine</a></li>
+    <li><a href="commands.html#moveToWindowTop">moveToWindowTop</a></li>
+    <li><a href="commands.html#replaceChar">replaceChar</a></li>
     <li><a href="commands.html#toggleCaseRegion">toggleCaseRegion</a></li>
     <li><a href="commands.html#joinLines">joinLines</a></li>
     <li><a href="commands.html#moveLinesDown">moveLinesDown</a></li>
@@ -4630,6 +4633,51 @@ So <code>sortLines n</code> orders by number, and
 <br><br>
 </dl><!--<hr>-->
 
+<a name="findCharInLine">findCharInLine</a>, <a name="findCharInLineBackward">findCharInLineBackward</a>,
+<a name="tillCharInLine">tillCharInLine</a>, <a name="tillCharInLineBackward">tillCharInLineBackward</a><dl><dd>
+<p>
+Moves the caret to the next (or previous) occurrence of a character on the
+current line. The character is the command's argument, as in
+<code>findCharInLine ;</code>. The <code>till</code> forms stop one character
+short of it rather than on it.
+<p>
+These never leave the line the caret is on.
+<br><br>
+<b>Default key mapping:</b> None
+<br><br>
+<b>See also:</b> <code>f</code>, <code>F</code>, <code>t</code> and
+<code>T</code> in <a href="editmodes.html">vim edit mode</a>, which are these.
+<br><br>
+</dl><!--<hr>-->
+
+<a name="moveToWindowTop">moveToWindowTop</a>, <a name="moveToWindowMiddle">moveToWindowMiddle</a>,
+<a name="moveToWindowBottom">moveToWindowBottom</a><dl><dd>
+<p>
+Moves the caret to the first non-blank of the top, middle or bottom line the
+window is showing, without scrolling.
+<p>
+Not to be confused with <a href="#toTop">toTop</a>, toCenter and toBottom,
+which scroll the window and leave the caret where it is.
+<br><br>
+<b>Default key mapping:</b> None
+<br><br>
+<b>See also:</b> <code>H</code>, <code>M</code> and <code>L</code> in
+<a href="editmodes.html">vim edit mode</a>.
+<br><br>
+</dl><!--<hr>-->
+
+<a name="replaceChar">replaceChar</a><dl><dd>
+<p>
+Puts the command's argument in place of the character under the caret, without
+inserting. Does nothing at the end of a line, where there is no character to
+replace.
+<br><br>
+<b>Default key mapping:</b> None
+<br><br>
+<b>See also:</b> <code>r</code> in <a href="editmodes.html">vim edit mode</a>.
+<br><br>
+</dl><!--<hr>-->
+
 <a name="toggleCaseRegion">toggleCaseRegion</a><dl><dd>
 <p>
 Swaps the case of every letter in the selected region, so that upper becomes
@@ -5128,6 +5176,14 @@ without changing the location of the caret.
 <p>
 Moves the caret to the beginning of the current word, or, if the caret is
 already at the beginning of the current word, to the beginning of the previous word.
+<p>
+With the argument <code>vim</code>, as in <code>wordRight vim</code>, it
+follows vim's rule instead. The two agree on ordinary text &mdash; j already
+counts <code>foo.bar</code> as three words &mdash; and differ on empty lines,
+which vim treats as a word of their own and j steps over. The same argument
+works on <a href="#wordLeft">wordLeft</a>,
+<a href="#selectWordRight">selectWordRight</a> and
+<a href="#selectWordLeft">selectWordLeft</a>.
 <br><br>
 <b>Default key mapping:</b> Ctrl Left
 <br><br>
@@ -5136,6 +5192,14 @@ already at the beginning of the current word, to the beginning of the previous w
 <a name="wordRight">wordRight</a><dl><dd>
 <p>
 Moves the caret to the beginning of the next word.
+<p>
+With the argument <code>vim</code>, as in <code>wordRight vim</code>, it
+follows vim's rule instead. The two agree on ordinary text &mdash; j already
+counts <code>foo.bar</code> as three words &mdash; and differ on empty lines,
+which vim treats as a word of their own and j steps over. The same argument
+works on <a href="#wordLeft">wordLeft</a>,
+<a href="#selectWordRight">selectWordRight</a> and
+<a href="#selectWordLeft">selectWordLeft</a>.
 <br><br>
 <b>Default key mapping:</b> Ctrl Right
 <br><br>

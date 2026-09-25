@@ -3946,44 +3946,80 @@ public final class Editor extends JPanel implements Constants,
         }
     }
 
+    /**
+     * Which rule a word motion follows.
+     *
+     * j's own is a block of text and then the run of blanks after it, so a
+     * word ends at punctuation only when there is whitespace there.
+     * <a href="editmodes.html">Vim's</a> sorts characters into keyword,
+     * other non-blank and blank, and a word is a run of one class, so
+     * {@code foo.bar} is three words. Neither is wrong; they suit different
+     * habits, and vim's is finer grained.
+     *
+     * @param parameters "vim" for vim's rule, anything else for j's
+     */
+    private static boolean wantsVimWords(String parameters)
+    {
+        return parameters != null && parameters.trim().equalsIgnoreCase("vim");
+    }
+
     public void wordRight()
+    {
+        wordRight(null);
+    }
+
+    /** {@code wordRight vim} moves the way vim's {@code w} does. */
+    public void wordRight(String parameters)
     {
         if (dot == null)
             return;
         updateDotLine();
         addUndo(SimpleEdit.MOVE);
-        endOfBlock();
-        nextWord();
+        if (wantsVimWords(parameters)) {
+            final Position to =
+                Words.forwardToWordStart(new Position(dot), getMode(), false);
+            if (to != null)
+                dot.moveTo(to);
+        } else {
+            endOfBlock();
+            nextWord();
+        }
         moveCaretToDotCol();
         updateDotLine();
     }
 
     public void wordLeft()
     {
+        wordLeft(null);
+    }
+
+    /** {@code wordLeft vim} moves the way vim's {@code b} does. */
+    public void wordLeft(String parameters)
+    {
         if (dot == null)
             return;
         updateDotLine();
         addUndo(SimpleEdit.MOVE);
-        beginningOfBlock();
-        prevWord();
+        if (wantsVimWords(parameters)) {
+            final Position to =
+                Words.backwardToWordStart(new Position(dot), getMode(), false);
+            if (to != null)
+                dot.moveTo(to);
+        } else {
+            beginningOfBlock();
+            prevWord();
+        }
         moveCaretToDotCol();
         updateDotLine();
     }
 
     public void selectWordRight()
     {
-        if (dot == null)
-            return;
-        addUndo(SimpleEdit.MOVE);
-        if (mark == null)
-            setMarkAtDot();
-        updateDotLine();
-        nextWord();
-        moveCaretToDotCol();
-        updateDotLine();
+        selectWordRight(null);
     }
 
-    public void selectWordLeft()
+    /** {@code selectWordRight vim} extends by vim's {@code w}. */
+    public void selectWordRight(String parameters)
     {
         if (dot == null)
             return;
@@ -3991,7 +4027,38 @@ public final class Editor extends JPanel implements Constants,
         if (mark == null)
             setMarkAtDot();
         updateDotLine();
-        prevWord();
+        if (wantsVimWords(parameters)) {
+            final Position to =
+                Words.forwardToWordStart(new Position(dot), getMode(), false);
+            if (to != null)
+                dot.moveTo(to);
+        } else
+            nextWord();
+        moveCaretToDotCol();
+        updateDotLine();
+    }
+
+    public void selectWordLeft()
+    {
+        selectWordLeft(null);
+    }
+
+    /** {@code selectWordLeft vim} extends by vim's {@code b}. */
+    public void selectWordLeft(String parameters)
+    {
+        if (dot == null)
+            return;
+        addUndo(SimpleEdit.MOVE);
+        if (mark == null)
+            setMarkAtDot();
+        updateDotLine();
+        if (wantsVimWords(parameters)) {
+            final Position to =
+                Words.backwardToWordStart(new Position(dot), getMode(), false);
+            if (to != null)
+                dot.moveTo(to);
+        } else
+            prevWord();
         moveCaretToDotCol();
         updateDotLine();
     }

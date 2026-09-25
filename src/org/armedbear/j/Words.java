@@ -1,5 +1,5 @@
 /*
- * VimWords.java
+ * Words.java
  *
  * Copyright (C) 2026 Kevin Krouse
  *
@@ -9,10 +9,8 @@
  * of the License, or (at your option) any later version.
  */
 
-package org.armedbear.j.vim;
+package org.armedbear.j;
 
-import org.armedbear.j.Mode;
-import org.armedbear.j.Position;
 
 /**
  * Where words begin and end, the way vim counts them.
@@ -27,19 +25,19 @@ import org.armedbear.j.Position;
  * {@link Mode#isIdentifierPart}, which is the same thing vim's
  * {@code 'iskeyword'} expresses.
  */
-final class VimWords
+public final class Words
 {
-    static final int BLANK = 0;
-    static final int KEYWORD = 1;
-    static final int PUNCTUATION = 2;
+    public static final int BLANK = 0;
+    public static final int KEYWORD = 1;
+    public static final int PUNCTUATION = 2;
     /** A line boundary, which stops every word motion. */
-    static final int NEWLINE = 3;
+    public static final int NEWLINE = 3;
 
-    private VimWords()
+    private Words()
     {
     }
 
-    static int classOf(char c, Mode mode, boolean bigWord)
+    public static int classOf(char c, Mode mode, boolean bigWord)
     {
         if (c == '\n')
             return NEWLINE;
@@ -61,7 +59,7 @@ final class VimWords
      * An empty line counts as a word, which is why a run of blank lines is
      * stepped through one at a time rather than skipped.
      */
-    static Position forwardToWordStart(Position from, Mode mode, boolean bigWord)
+    public static Position forwardToWordStart(Position from, Mode mode, boolean bigWord)
     {
         final Position pos = new Position(from);
         final int startClass = classAt(pos, mode, bigWord);
@@ -81,7 +79,7 @@ final class VimWords
     }
 
     /** b and B: to the start of this word, or of the one before it. */
-    static Position backwardToWordStart(Position from, Mode mode, boolean bigWord)
+    public static Position backwardToWordStart(Position from, Mode mode, boolean bigWord)
     {
         final Position pos = new Position(from);
         if (!pos.prev())
@@ -105,7 +103,7 @@ final class VimWords
     }
 
     /** e and E: to the last character of this word, or of the next one. */
-    static Position forwardToWordEnd(Position from, Mode mode, boolean bigWord)
+    public static Position forwardToWordEnd(Position from, Mode mode, boolean bigWord)
     {
         final Position pos = new Position(from);
         if (!pos.next())
@@ -116,7 +114,7 @@ final class VimWords
     }
 
     /** ge and gE: back to the last character of the previous word. */
-    static Position backwardToWordEnd(Position from, Mode mode, boolean bigWord)
+    public static Position backwardToWordEnd(Position from, Mode mode, boolean bigWord)
     {
         final Position pos = new Position(from);
         if (!pos.prev())

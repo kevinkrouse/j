@@ -16,6 +16,7 @@ import java.util.Map;
 
 import javax.swing.undo.CompoundEdit;
 
+import org.armedbear.j.CaretCommands;
 import org.armedbear.j.Editor;
 import org.armedbear.j.Line;
 import org.armedbear.j.Lines;
@@ -180,29 +181,10 @@ public final class VimActions
         final Position dot = editor.getDot();
         if (dot == null)
             return;
-        final Line line = dot.getLine();
-        if (dot.getOffset() + ctx.count > line.length())
-            return;
-
-        final StringBuilder text = new StringBuilder();
-        for (int i = 0; i < ctx.count; i++)
-            text.append(replacement);
-
-        final CompoundEdit edit = editor.getBuffer().beginCompoundEdit();
-        try {
-            editor.setMark(new Position(line, dot.getOffset() + ctx.count));
-            editor.setDot(line, dot.getOffset());
-            editor.deleteRegion();
-            editor.setMark(null);
-            editor.insertString(text.toString());
-            // The caret ends on the last character replaced.
-            final Position now = editor.getDot();
-            editor.setDot(now.getLine(), Math.max(0, now.getOffset() - 1));
-            editor.moveCaretToDotCol();
-        }
-        finally {
-            editor.getBuffer().endCompoundEdit(edit);
-        }
+        // j's own replaceChar, which refuses rather than doing part of it
+        // when the line is too short.
+        CaretCommands.replaceChars(editor, dot.getLine(), dot.getOffset(),
+                                   replacement, ctx.count);
     }
 
     /**

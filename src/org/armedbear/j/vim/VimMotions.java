@@ -15,8 +15,10 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.armedbear.j.Buffer;
+import org.armedbear.j.CaretCommands;
 import org.armedbear.j.Line;
 import org.armedbear.j.Mode;
+import org.armedbear.j.Words;
 import org.armedbear.j.Position;
 
 /**
@@ -203,11 +205,11 @@ public final class VimMotions
         for (int i = 0; i < ctx.count; i++) {
             final Position next;
             if (forward)
-                next = wordEnd ? VimWords.forwardToWordEnd(pos, mode, bigWord)
-                               : VimWords.forwardToWordStart(pos, mode, bigWord);
+                next = wordEnd ? Words.forwardToWordEnd(pos, mode, bigWord)
+                               : Words.forwardToWordStart(pos, mode, bigWord);
             else
-                next = wordEnd ? VimWords.backwardToWordEnd(pos, mode, bigWord)
-                               : VimWords.backwardToWordStart(pos, mode, bigWord);
+                next = wordEnd ? Words.backwardToWordEnd(pos, mode, bigWord)
+                               : Words.backwardToWordStart(pos, mode, bigWord);
             if (next == null) {
                 // Out of words. Going forward that means the end of the
                 // buffer, not failure: `de` on the last word still deletes
@@ -285,28 +287,13 @@ public final class VimMotions
      *        till search: the caret is already parked against the character
      *        it stopped before, so searching from there would never move.
      */
+    /** f, F, t and T, which are j's own {@link CaretCommands} scan. */
     private static Position findCharacter(Position from, char target,
                                           boolean forward, boolean till,
                                           int count, boolean repeat)
     {
-        final Line line = from.getLine();
-        final String text = line.getText();
-        if (text == null)
-            return null;
-
-        int found = from.getOffset();
-        if (till && repeat)
-            found += forward ? 1 : -1;
-
-        for (int i = 0; i < count; i++) {
-            found = indexOf(text, target, found + (forward ? 1 : -1), forward);
-            if (found < 0)
-                return null;
-        }
-        final int landing = till ? (forward ? found - 1 : found + 1) : found;
-        if (landing < 0 || landing >= text.length())
-            return null;
-        return at(line, landing);
+        return CaretCommands.findCharacter(from,
+            new CaretCommands.CharSearch(target, forward, till), count, repeat);
     }
 
     private static int indexOf(String text, char target, int from,
@@ -401,32 +388,11 @@ public final class VimMotions
      */
     private static Position moveToScreenLine(MotionContext ctx, Position from)
     {
-        final Line top = ctx.editor.getDisplay().getTopLine();
-        if (top == null)
-            return null;
-        final int rows = Math.max(1, ctx.editor.getDisplay().getRows());
-
-        // How many lines of buffer the window actually shows.
-        int visible = 0;
-        Line line = top;
-        while (line != null && visible < rows) {
-            ++visible;
-            line = line.nextVisible();
-        }
-
-        final String where = ctx.arg("where", "top");
-        final int index;
-        if (where.equals("middle"))
-            index = (visible - 1) / 2;
-        else if (where.equals("bottom"))
-            index = Math.max(0, visible - ctx.count);
-        else
-            index = Math.min(ctx.count - 1, visible - 1);
-
-        line = top;
-        for (int i = 0; i < index && line.nextVisible() != null; i++)
-            line = line.nextVisible();
-        return at(line, firstNonBlank(line));
+        // H, M and L, which are j's own moveToWindowTop and friends.
+        final Line line = CaretCommands.screenLine(ctx.editor,
+                                                   ctx.arg("where", "top"),
+                                                   ctx.count);
+        return line == null ? null : at(line, firstNonBlank(line));
     }
 
     /**

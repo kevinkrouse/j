@@ -112,6 +112,8 @@ public class CommandTable
             addCommand("eol");
             addCommand("escape");
             addCommand("executeCommand");
+            addCommand("findCharInLine", "CaretCommands");
+            addCommand("findCharInLineBackward", "CaretCommands");
             addCommand("findFirstOccurrence");
             addCommand("findMatchingChar");
             addCommand("findNext");
@@ -153,6 +155,9 @@ public class CommandTable
             addCommand("left");
             addCommand("mode");
             addCommand("moveLinesDown", "Lines");
+            addCommand("moveToWindowBottom", "CaretCommands");
+            addCommand("moveToWindowMiddle", "CaretCommands");
+            addCommand("moveToWindowTop", "CaretCommands");
             addCommand("moveLinesUp", "Lines");
             addCommand("movePastCloseAndReindent");
             addCommand("newBuffer");
@@ -213,6 +218,8 @@ public class CommandTable
             addCommand("tab");
             addCommand("tempBufferQuit");
             addCommand("textMode");
+            addCommand("tillCharInLine", "CaretCommands");
+            addCommand("tillCharInLineBackward", "CaretCommands");
             addCommand("toBottom");
             addCommand("toCenter");
             addCommand("toTop");
@@ -385,6 +392,7 @@ public class CommandTable
             addCommand("reloadKeyMaps", "KeyMap");
             addCommand("renumberRegion", "RegionCommands");
             addCommand("replace", "ReplaceDialog");
+            addCommand("replaceChar", "CaretCommands");
             addCommand("replaceInFiles", "FindInFiles");
             addCommand("resetLisp", "mode.lisp.LispShellMode");
             addCommand("saveSession", "Session");
