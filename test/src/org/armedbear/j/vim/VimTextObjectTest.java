@@ -12,6 +12,7 @@
 package org.armedbear.j.vim;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import org.armedbear.j.EditorHarness;
 import org.junit.After;
@@ -108,6 +109,18 @@ public class VimTextObjectTest
     {
         vim("alpha bravo charlie").cursor(0, 7).keys("d2iw");
         is("alpha charlie");
+    }
+
+    @Test
+    public void awWithACountTakesWholeWordsNotChunks()
+    {
+        // iw counts chunks, so 2iw is a word and the space after it. aw
+        // counts words, so 2aw is two words and their spaces.
+        vim("alpha bravo charlie delta").cursor(0, 7).keys("d2aw");
+        is("alpha delta");
+        h.close();
+        vim("alpha bravo charlie delta").cursor(0, 5).keys("d2aw");
+        is("alpha delta");
     }
 
     // -------------------------------------------------------------- quote
@@ -309,6 +322,25 @@ public class VimTextObjectTest
         is("a\nb\nc\nd");
     }
 
+    @Test
+    public void apOnTheLastParagraphTakesTheBlanksBefore()
+    {
+        // There are none after, so the gap that separated it goes instead --
+        // otherwise deleting the last paragraph leaves a trailing blank line.
+        vim("a\nb\n\nc\nd").cursor(3, 0).keys("dap");
+        is("a\nb");
+    }
+
+    @Test
+    public void paragraphObjectsTakeACount()
+    {
+        vim("a\n\nb\n\nc").cursor(0, 0).keys("d2ap");
+        is("c");
+        h.close();
+        vim("a\n\nb\n\nc").cursor(0, 0).keys("d2ip");
+        is("b\n\nc");
+    }
+
     // ------------------------------------------------------------- visual
 
     @Test
@@ -326,6 +358,17 @@ public class VimTextObjectTest
     {
         vim("a\nb\n\nc").cursor(0, 0).keys("vipd");
         is("\nc");
+    }
+
+    @Test
+    public void shrinkingASelectionWithATextObjectAsksForARepaint()
+    {
+        // A text object can make a selection smaller as easily as bigger, and
+        // the lines it no longer covers have to be painted back.
+        vim("alpha\nbravo\ncharlie").cursor(0, 0).keys("v2j");
+        h.clearRepaintPending();
+        h.keys("iw");
+        assertTrue(h.repaintPending());
     }
 
     @Test

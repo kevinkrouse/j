@@ -31,6 +31,11 @@ import org.armedbear.j.Position;
  *
  * <p>Each object comes in two forms: inner ({@code iw}) takes just the thing,
  * outer ({@code aw}) takes its surroundings too.
+ *
+ * <p>Known gap: the word object works within one line, so {@code aw} on a
+ * blank line does nothing, where vim counts the empty line as a word and
+ * takes the next one with it. Closing that means chunking over positions
+ * rather than over the line's text.
  */
 public final class VimTextObjects
 {
@@ -84,31 +89,24 @@ public final class VimTextObjects
                                 false);
 
         final int at = Math.min(from.getOffset(), text.length() - 1);
-        int end = at;
-        // A count takes that many chunks, alternating word and blank run the
-        // way vim does -- 2iw is a word plus the space after it.
-        for (int i = 0; i < ctx.count; i++) {
-            if (i > 0 && end >= text.length())
-                break;
-            end = endOfChunk(text, end, mode, bigWord);
-        }
         int start = startOfChunk(text, at, mode, bigWord);
+        int end = at;
 
-        if (!inner) {
-            if (Character.isWhitespace(text.charAt(at))) {
-                // Starting on a blank, "a word" is the blanks plus the word
-                // they lead to -- daw on a space takes the word after it.
-                end = endOfChunk(text, end, mode, bigWord);
-            } else {
-                // Otherwise the word plus the blanks after it, falling back
-                // to the ones before when the word ends the line.
-                final int after = skipBlanks(text, end, 1);
-                if (after != end)
-                    end = after;
-                else
-                    start = skipBlanks(text, start - 1, -1) + 1;
-            }
-        }
+        // iw counts chunks, alternating word and blank run, so 2iw is a word
+        // plus the space after it. aw counts *words*, each with the blanks
+        // beside it -- two chunks a time, in whichever order the caret's own
+        // chunk puts them.
+        final int chunks = inner ? ctx.count : ctx.count * 2;
+        for (int i = 0; i < chunks && end < text.length(); i++)
+            end = endOfChunk(text, end, mode, bigWord);
+
+        // A word that ends the line has no blanks after it to take, so "a
+        // word" takes the ones before it instead. Only when the caret started
+        // on a word: starting on blanks they are already in the span.
+        if (!inner && !Character.isWhitespace(text.charAt(at))
+            && (end == 0 || !Character.isWhitespace(text.charAt(end - 1))))
+            start = skipBlanks(text, start - 1, -1) + 1;
+
         return new VimRange(new Position(line, start), new Position(line, end),
                             false);
     }
@@ -298,11 +296,9 @@ public final class VimTextObjects
         final Line firstInner = open.getLine().next();
 
         if (openEndsLine && closeStartsLine && firstInner != null
-            && firstInner != close.getLine()) {
-            final Line lastInner = close.getLine().previous();
+            && firstInner != close.getLine())
             return new VimRange(new Position(firstInner, 0),
                                 new Position(close.getLine(), 0), true);
-        }
 
         final Position start = openEndsLine && firstInner != null
             ? new Position(firstInner, 0)
@@ -321,6 +317,8 @@ public final class VimTextObjects
     private static boolean onlyBlanksBefore(Line line, int offset)
     {
         final String text = line.getText();
+        if (text == null)
+            return true;
         for (int i = 0; i < offset && i < text.length(); i++)
             if (!Character.isWhitespace(text.charAt(i)))
                 return false;
@@ -416,20 +414,35 @@ public final class VimTextObjects
     private static VimRange paragraph(MotionContext ctx, Position from,
                                       boolean inner)
     {
-        final boolean wantBlank = from.getLine().length() == 0;
+        final boolean startedBlank = blank(from.getLine());
         Line first = from.getLine();
-        while (first.previous() != null && blank(first.previous()) == wantBlank)
+        while (first.previous() != null
+               && blank(first.previous()) == startedBlank)
             first = first.previous();
+
+        // Same shape as iw/aw: ip counts runs, ap counts paragraphs with the
+        // blank lines beside them.
         Line last = from.getLine();
-        while (last.next() != null && blank(last.next()) == wantBlank)
-            last = last.next();
-
-        if (!inner)
-            while (last.next() != null && blank(last.next()) != wantBlank)
+        boolean blankRun = startedBlank;
+        final int runs = inner ? ctx.count : ctx.count * 2;
+        for (int i = 0; i < runs; i++) {
+            while (last.next() != null && blank(last.next()) == blankRun)
                 last = last.next();
+            if (i + 1 < runs) {
+                if (last.next() == null)
+                    break;
+                last = last.next();
+                blankRun = !blankRun;
+            }
+        }
 
-        return new VimRange(new Position(first, 0),
-                            endOfLines(last), true);
+        // A paragraph at the end of the buffer has no blank lines after it to
+        // take, so "a paragraph" takes the ones before it instead.
+        if (!inner && !startedBlank && !blank(last))
+            while (first.previous() != null && blank(first.previous()))
+                first = first.previous();
+
+        return new VimRange(new Position(first, 0), endOfLines(last), true);
     }
 
     private static boolean blank(Line line)

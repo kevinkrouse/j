@@ -296,6 +296,7 @@ public class VimWordMotionTest
     {
         vim("abc\n").cursor(0, 0).keys("dge");
         h.assertText("abc\n");
+        h.close();
         vim("abc\n").cursor(0, 0).keys("d5b");
         h.assertText("abc\n");
     }

@@ -305,7 +305,14 @@ public final class VimState
      */
     public void selectionCrossedLines(Editor editor, Line before, Line after)
     {
-        if (mode.isVisual() && before != after)
+        if (before != after)
+            selectionReshaped(editor);
+    }
+
+    /** The same, for a caller that has already decided the shape changed. */
+    public void selectionReshaped(Editor editor)
+    {
+        if (mode.isVisual())
             editor.setUpdateFlag(Constants.REPAINT);
     }
 

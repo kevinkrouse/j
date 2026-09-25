@@ -283,12 +283,26 @@ public final class VimOperators
     {
         if (range.isEmpty())
             return;
+        Position start = new Position(range.start);
+        // A linewise range normally ends at offset 0 of the line after it, so
+        // deleting it takes the newlines with the lines. The last line of the
+        // buffer has no line after, so the range ends part way along it and
+        // one newline too few is taken -- leaving an empty line behind. Take
+        // the newline before the range instead.
+        // The end offset says which: 0 means the line after the range, so the
+        // range stops short of the buffer end after all.
+        if (range.linewise && range.end.getLine().next() == null
+            && range.end.getOffset() > 0 && start.getOffset() == 0) {
+            final Line before = start.getLine().previous();
+            if (before != null)
+                start = new Position(before, before.length());
+        }
         // The caret goes at the start and the mark at the end, not the other
         // way round: j's undo records where the caret was when the edit was
         // made, so this is what puts it back at the start of the restored
         // text, which is where vim leaves it.
         editor.setMark(new Position(range.end));
-        editor.setDot(new Position(range.start));
+        editor.setDot(start);
         editor.deleteRegion();
         editor.setMark(null);
         editor.moveCaretToDotCol();

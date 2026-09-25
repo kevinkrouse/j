@@ -1437,9 +1437,14 @@ public final class Display extends JComponent implements Constants,
         // lets the branches below fill each selected line. The last line of
         // the buffer has no line after it, so the region ends part way along
         // it and it would be filled only to the caret -- or not at all.
-        if (line.next() == null && isLinewiseSelection()
+        //
+        // Only when this line is really in the selection: a region ending at
+        // offset 0 of this line means the line *after* the selection, and
+        // filling that paints a line nobody selected.
+        if (line.nextVisible() == null && isLinewiseSelection()
             && line.lineNumber() >= r.getBeginLineNumber()
-            && line.lineNumber() <= r.getEndLineNumber()) {
+            && line.lineNumber() <= r.getEndLineNumber()
+            && (r.getEndOffset() > 0 || line == r.getBeginLine())) {
             g2d.setColor(editor.getFormatter().getSelectionBackgroundColor());
             g2d.fillRect(gutterWidth, y, getWidth(), charHeight);
             return;

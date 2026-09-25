@@ -434,6 +434,14 @@ public final class VimInputHandler implements InputHandler
     /** Makes a text object's span the visual selection. */
     private void selectRange(Editor editor, VimRange range)
     {
+        // What the selection covered before, so that lines it no longer
+        // covers get painted back. Nothing below sets an update flag, and a
+        // text object can shrink a selection as easily as grow it.
+        final Position wasMark = editor.getMark();
+        final Line wasFrom = wasMark != null ? wasMark.getLine()
+                                             : editor.getDotLine();
+        final Line wasTo = editor.getDotLine();
+
         editor.setDot(new Position(range.start));
         editor.setMarkAtDot();
         // The selection is mark..dot and vim's includes the character under
@@ -450,8 +458,9 @@ public final class VimInputHandler implements InputHandler
             state.setMode(editor, VimMode.VISUAL_LINE);
         state.clampCaret(editor);
         editor.updateDotLine();
-        state.selectionCrossedLines(editor, range.start.getLine(),
-                                    editor.getDotLine());
+        if (wasFrom != range.start.getLine() || wasTo != editor.getDotLine()
+            || range.start.getLine() != editor.getDotLine())
+            state.selectionReshaped(editor);
     }
 
     /**

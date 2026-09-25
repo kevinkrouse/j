@@ -117,5 +117,6 @@ de_end_of_document
 de_whitespace_and_empty_lines
 de_word_end_and_empty_lines
 
-# M10: text objects
+# M10: text objects, and a linewise delete at the end of the buffer
 ci" for two strings
+reselect_visual_line
