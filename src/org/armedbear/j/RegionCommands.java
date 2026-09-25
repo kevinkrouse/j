@@ -178,23 +178,60 @@ public final class RegionCommands
         }
     }
 
+    /** Which way {@link #changeCaseRegion} goes. */
+    public enum Case
+    {
+        UPPER, LOWER, TOGGLE;
+
+        /** Applies this change to a string. */
+        public String apply(String s)
+        {
+            if (this == UPPER)
+                return s.toUpperCase();
+            if (this == LOWER)
+                return s.toLowerCase();
+            final StringBuilder sb = new StringBuilder(s.length());
+            for (int i = 0; i < s.length(); i++) {
+                final char c = s.charAt(i);
+                sb.append(Character.isUpperCase(c) ? Character.toLowerCase(c)
+                                                   : Character.toUpperCase(c));
+            }
+            return sb.toString();
+        }
+    }
+
     public static void upperCaseRegion()
     {
-        final Editor editor = Editor.currentEditor();
-        editor.setWaitCursor();
-        changeCaseRegion(editor, true);
-        editor.setDefaultCursor();
+        changeCaseRegion(Case.UPPER);
     }
 
     public static void lowerCaseRegion()
     {
+        changeCaseRegion(Case.LOWER);
+    }
+
+    /** Swaps the case of every letter in the region, as vim's g~ does. */
+    public static void toggleCaseRegion()
+    {
+        changeCaseRegion(Case.TOGGLE);
+    }
+
+    private static void changeCaseRegion(Case which)
+    {
         final Editor editor = Editor.currentEditor();
         editor.setWaitCursor();
-        changeCaseRegion(editor, false);
+        changeCaseRegion(editor, which);
         editor.setDefaultCursor();
     }
 
-    private static void changeCaseRegion(Editor editor, boolean toUpper)
+    /**
+     * Changes the case of the region between mark and dot.
+     *
+     * Public so that vim's {@code gu}, {@code gU} and {@code g~} operators
+     * can set the region and call in rather than carrying a second copy of
+     * this. The mark is cleared on the way out, as the commands above expect.
+     */
+    public static void changeCaseRegion(Editor editor, Case which)
     {
         if (!editor.checkReadOnly())
             return;
@@ -229,7 +266,7 @@ public final class RegionCommands
             r.delete();
 
             editor.addUndo(SimpleEdit.INSERT_STRING);
-            editor.insertStringInternal(toUpper ? s.toUpperCase() : s.toLowerCase());
+            editor.insertStringInternal(which.apply(s));
             editor.endCompoundEdit(compoundEdit);
             editor.moveCaretToDotCol();
             if (hard)

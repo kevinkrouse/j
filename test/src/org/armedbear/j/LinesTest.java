@@ -180,6 +180,23 @@ public class LinesTest
         at(3);
     }
 
+    // ------------------------------------------------------- case region
+
+    @Test
+    public void toggleCaseRegionSwapsTheCaseOfTheSelection() throws Exception
+    {
+        // New: j had upperCaseRegion and lowerCaseRegion and no toggle. It
+        // is the same code vim's g~ runs.
+        h = EditorHarness.create("aBc dEf\n");
+        final Line first = h.buffer().getFirstLine();
+        h.editor().setMark(new Position(first, 0));
+        h.editor().setDot(first, 3);
+        h.editor().moveCaretToDotCol();
+        Editor.setCurrentEditor(h.editor());
+        h.editor().execute("toggleCaseRegion", null);
+        h.assertText("AbC dEf\n");
+    }
+
     // ------------------------------------------------- the command table
 
     @Test

@@ -21,6 +21,7 @@ import org.armedbear.j.Editor;
 import org.armedbear.j.Line;
 import org.armedbear.j.Position;
 import org.armedbear.j.Region;
+import org.armedbear.j.RegionCommands;
 import org.armedbear.j.SimpleEdit;
 
 /**
@@ -70,49 +71,33 @@ public final class VimOperators
     private static void changeCase(MotionContext ctx, VimRange range)
     {
         final Editor editor = ctx.editor;
-        final String text = textOf(editor, range);
-        if (text.isEmpty())
+        if (range.isEmpty())
             return;
-        final String changed = applyCase(text, ctx.arg("to", "toggle"));
-        if (changed.equals(text)) {
-            editor.setDot(new Position(range.start));
+        final RegionCommands.Case which = caseOf(ctx.arg("to", "toggle"));
+        // j's own upperCaseRegion and lowerCaseRegion do this, between mark
+        // and dot, so set the region and let them. The caret comes back to
+        // the start of the range either way, which is where vim leaves it.
+        final int line = range.start.lineNumber();
+        final int offset = range.start.getOffset();
+        editor.setMark(new Position(range.end));
+        editor.setDot(new Position(range.start));
+        editor.moveCaretToDotCol();
+        RegionCommands.changeCaseRegion(editor, which);
+        final Line target = lineNumbered(editor, line);
+        if (target != null) {
+            editor.setDot(target, Math.min(offset, target.length()));
             editor.moveCaretToDotCol();
-            return;
-        }
-        final CompoundEdit edit = editor.getBuffer().beginCompoundEdit();
-        try {
-            final int line = range.start.lineNumber();
-            final int offset = range.start.getOffset();
-            deleteRange(editor, range);
-            editor.insertString(changed);
-            final Line target = lineNumbered(editor, line);
-            if (target != null) {
-                editor.setDot(target, Math.min(offset, target.length()));
-                editor.moveCaretToDotCol();
-            }
-        }
-        finally {
-            editor.getBuffer().endCompoundEdit(edit);
         }
         ctx.state.clampCaret(editor);
     }
 
-    private static String applyCase(String text, String to)
+    private static RegionCommands.Case caseOf(String to)
     {
-        final StringBuilder sb = new StringBuilder(text.length());
-        for (int i = 0; i < text.length(); i++) {
-            final char c = text.charAt(i);
-            switch (to) {
-                case "lower": sb.append(Character.toLowerCase(c)); break;
-                case "upper": sb.append(Character.toUpperCase(c)); break;
-                default:
-                    sb.append(Character.isUpperCase(c)
-                              ? Character.toLowerCase(c)
-                              : Character.toUpperCase(c));
-                    break;
-            }
-        }
-        return sb.toString();
+        if (to.equals("upper"))
+            return RegionCommands.Case.UPPER;
+        if (to.equals("lower"))
+            return RegionCommands.Case.LOWER;
+        return RegionCommands.Case.TOGGLE;
     }
 
     /**

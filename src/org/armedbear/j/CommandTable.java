@@ -215,6 +215,7 @@ public class CommandTable
             addCommand("textMode");
             addCommand("toCenter");
             addCommand("toTop");
+            addCommand("toggleCaseRegion", "RegionCommands");
             addCommand("toggleSidebar");
             addCommand("top");
             addCommand("uncommentRegion");

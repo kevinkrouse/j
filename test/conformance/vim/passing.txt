@@ -34,6 +34,13 @@
 #   only_reverse            matched, keeping the rest in their original
 #                           order. nvim reverses the whole result, and so do
 #                           we: c b a3 y2 z1, not c b z1 y2 a3
+#   delmark_multi           :delmarks is right in all three -- a deleted mark
+#   delmark_multi_space     stops working and the others keep working. They
+#   delmark_range           fail on their last assertion, which puts a mark
+#                           at column 2 of an empty line and expects to come
+#                           back to it. CodeMirror lets the caret sit past
+#                           the end of a line; vim and j do not, so the mark
+#                           is at column 0
 #   macro_last_ex_command_  our text is right (2@: gives bbbaa) but the
 #   register                corpus wants the caret at column 2. Vim leaves it
 #                           on the first non-blank of the changed line: 0,0
@@ -188,3 +195,5 @@ ex_substitute_range_implicit_offset
 
 # M12c: :g, :normal, :join, :move, :copy
 ex_global_substitute_split
+delmark_all
+delmark_single

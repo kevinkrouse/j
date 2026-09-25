@@ -20,6 +20,7 @@ import org.armedbear.j.Editor;
 import org.armedbear.j.Line;
 import org.armedbear.j.Lines;
 import org.armedbear.j.Position;
+import org.armedbear.j.RegionCommands;
 import org.armedbear.j.SimpleEdit;
 
 /**
@@ -222,21 +223,19 @@ public final class VimActions
         if (end <= start)
             return;
 
-        final String was = line.getText().substring(start, end);
-        final StringBuilder now = new StringBuilder(was.length());
-        for (int i = 0; i < was.length(); i++) {
-            final char c = was.charAt(i);
-            now.append(Character.isUpperCase(c) ? Character.toLowerCase(c)
-                                                : Character.toUpperCase(c));
-        }
+        final String now =
+            RegionCommands.Case.TOGGLE.apply(line.getText().substring(start, end));
 
         final CompoundEdit edit = editor.getBuffer().beginCompoundEdit();
         try {
             editor.setMark(new Position(line, end));
             editor.setDot(line, start);
+            // The display keeps its own caret column and j pads an insert out
+            // to it, so this has to move as well as setDot.
+            editor.moveCaretToDotCol();
             editor.deleteRegion();
             editor.setMark(null);
-            editor.insertString(now.toString());
+            editor.insertString(now);
         }
         finally {
             editor.getBuffer().endCompoundEdit(edit);

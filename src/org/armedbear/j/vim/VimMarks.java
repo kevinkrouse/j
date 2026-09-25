@@ -55,6 +55,12 @@ public final class VimMarks
         return marker.getPosition();
     }
 
+    /** Forgets one mark, for {@code :delmarks}. */
+    public void remove(char name)
+    {
+        marks.remove(Character.valueOf(name));
+    }
+
     public void clear()
     {
         marks.clear();

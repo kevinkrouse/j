@@ -52,7 +52,8 @@ public final class VimExCommands
         final String name = command.name;
         // :sort! is the only one of these that means anything by it.
         if (command.bang && !name.isEmpty() && !matches(name, "sor", "sort")
-            && !matches(name, "g", "global") && !matches(name, "j", "join"))
+            && !matches(name, "g", "global") && !matches(name, "j", "join")
+            && !matches(name, "delm", "delmarks"))
             throw new VimEx.BadCommand("E477: No ! allowed");
         if (name.isEmpty()) {
             // A bare range means "go to that line", which is what :42 is.
@@ -90,6 +91,10 @@ public final class VimExCommands
         }
         if (matches(name, "norm", "normal")) {
             normal(editor, state, command);
+            return true;
+        }
+        if (matches(name, "delm", "delmarks")) {
+            deleteMarks(state, command);
             return true;
         }
         if (matches(name, "g", "global") || matches(name, "v", "vglobal")) {
@@ -188,6 +193,42 @@ public final class VimExCommands
             editor.setDot(line, 0);
             editor.moveCaretToDotCol();
             state.getHandler().runKeys(editor, keys);
+        }
+    }
+
+    // --------------------------------------------------------------- marks
+
+    /**
+     * {@code :delmarks} -- forget marks by name.
+     *
+     * The argument is a list of names, which may be separated by spaces or
+     * not at all, and may include {@code a-c} ranges. {@code :delmarks!}
+     * forgets every mark rather than taking names.
+     */
+    private static void deleteMarks(VimState state, VimEx.Command command)
+        throws VimEx.BadCommand
+    {
+        if (command.bang) {
+            state.getMarks().clear();
+            return;
+        }
+        final String names = command.args.trim();
+        if (names.isEmpty())
+            throw new VimEx.BadCommand("E471: Argument required");
+        for (int i = 0; i < names.length(); i++) {
+            final char c = names.charAt(i);
+            if (c == ' ')
+                continue;
+            // "b-d" is every name from b to d, so the dash is read here
+            // rather than treated as a mark of its own.
+            if (i + 2 < names.length() && names.charAt(i + 1) == '-') {
+                final char to = names.charAt(i + 2);
+                for (char m = c; m <= to; m++)
+                    state.getMarks().remove(m);
+                i += 2;
+                continue;
+            }
+            state.getMarks().remove(c);
         }
     }
 
