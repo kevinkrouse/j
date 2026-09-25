@@ -242,9 +242,10 @@ public final class EditorHarness
         int keyCode = stroke.keyCode;
         if (keyCode == 0)
             keyCode = KeyEvent.getExtendedKeyCodeForChar(stroke.keyChar);
+        final char keyChar = characterAwtWouldSend(stroke);
 
         dispatcher.keyPressed(new KeyEvent(source, KeyEvent.KEY_PRESSED, when,
-                                           ex, keyCode, stroke.keyChar));
+                                           ex, keyCode, keyChar));
 
         // AWT follows a key press with a key typed only when the keystroke
         // produces a character. Sending it unconditionally would let a test
@@ -252,7 +253,25 @@ public final class EditorHarness
         if (stroke.producesChar())
             dispatcher.keyTyped(new KeyEvent(source, KeyEvent.KEY_TYPED, when,
                                              ex, KeyEvent.VK_UNDEFINED,
-                                             stroke.keyChar));
+                                             keyChar));
+    }
+
+    /**
+     * What AWT puts in {@code getKeyChar} for a stroke.
+     *
+     * A key map writes Ctrl-R as the letter r, but AWT reports the character
+     * the keystroke <em>produces</em>: 0x12. Sending the letter here would
+     * make every control binding pass on a path the running editor never
+     * takes -- which is how &lt;C-r&gt; shipped opening j's replace dialog
+     * with a green test.
+     */
+    private static char characterAwtWouldSend(KeyNotation.Stroke stroke)
+    {
+        final char c = stroke.keyChar;
+        if ((stroke.modifiers & Constants.CTRL_MASK) != 0
+            && c >= 'a' && c <= 'z')
+            return (char) (c - 'a' + 1);
+        return c;
     }
 
     /**

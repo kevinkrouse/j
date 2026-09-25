@@ -255,6 +255,12 @@ public final class KeyNotation
         if (named != null)
             return bracket(named, modifiers);
 
+        if ((modifiers & Constants.CTRL_MASK) != 0) {
+            final char body = controlBody(keyCode, keyChar);
+            if (body != 0)
+                return bracket(String.valueOf(body), modifiers);
+        }
+
         if (keyChar != KeyEvent.CHAR_UNDEFINED && keyChar != 0) {
             if (modifiers == 0) {
                 switch (keyChar) {
@@ -268,6 +274,32 @@ public final class KeyNotation
         // A key with neither a name nor a character: spell it by code so that
         // it is at least greppable rather than silently dropped.
         return bracket("k" + keyCode, modifiers);
+    }
+
+    /**
+     * The key a control keystroke names: the "r" in "&lt;C-r&gt;".
+     *
+     * AWT reports a control key press by the character it <em>produces</em> --
+     * Ctrl-R arrives as 0x12, not as 'r' -- so naming the key after its
+     * character spells it in a way no key map can match, and it falls through
+     * to j's own bindings instead. The key code says which key was pressed;
+     * for the few control characters that are not letters, the C0 table does.
+     * Returns 0 for a control key that is neither.
+     */
+    private static char controlBody(int keyCode, char keyChar)
+    {
+        if (keyCode >= KeyEvent.VK_A && keyCode <= KeyEvent.VK_Z)
+            return (char) ('a' + keyCode - KeyEvent.VK_A);
+        if (keyChar >= 1 && keyChar <= 26)
+            return (char) ('a' + keyChar - 1);
+        switch (keyChar) {
+            case 0x1b: return '[';
+            case 0x1c: return '\\';
+            case 0x1d: return ']';
+            case 0x1e: return '^';
+            case 0x1f: return '_';
+            default:   return 0;
+        }
     }
 
     private static String bracket(String body, int modifiers)

@@ -44,6 +44,22 @@ public final class VimState
     private CompoundEdit insertEdit;
     private Buffer insertEditBuffer;
 
+    /**
+     * What R has typed over, most recent last, so that BS can put it back.
+     *
+     * {@link #APPENDED} stands for a keystroke that landed past the end of
+     * the line and so overwrote nothing; BS takes that one away instead of
+     * restoring anything.
+     */
+    private StringBuilder replaced;
+
+    /**
+     * Marks a replace keystroke that added a character rather than typing
+     * over one. Not a character anyone can type: U+FFFF is a noncharacter,
+     * and it is also what AWT means by "this key produced none".
+     */
+    public static final char APPENDED = '￿';
+
     public VimMode getMode()
     {
         return mode;
@@ -87,7 +103,43 @@ public final class VimState
             insertEditBuffer = buffer;
         }
         mode = insertMode;
+        replaced = insertMode == VimMode.REPLACE ? new StringBuilder() : null;
         caretShapeChanged(editor);
+    }
+
+    /** Notes what a replace keystroke typed over, or {@link #APPENDED}. */
+    public void pushReplaced(char c)
+    {
+        if (replaced != null)
+            replaced.append(c);
+    }
+
+    /**
+     * Takes back the last replace keystroke, or 0 if there is nothing left.
+     *
+     * Nothing left means BS has reached where R started, or the caret has
+     * moved on its own since -- either way vim has nothing of its own to
+     * restore and simply steps left.
+     */
+    public char popReplaced()
+    {
+        if (replaced == null || replaced.length() == 0)
+            return 0;
+        final char c = replaced.charAt(replaced.length() - 1);
+        replaced.setLength(replaced.length() - 1);
+        return c;
+    }
+
+    /**
+     * Forgets what R has typed over so far.
+     *
+     * Called when the caret moves by something other than typing, since after
+     * that the record no longer lines up with the characters BS would reach.
+     */
+    public void forgetReplaced()
+    {
+        if (replaced != null)
+            replaced.setLength(0);
     }
 
     /**
@@ -96,6 +148,7 @@ public final class VimState
      */
     public void endInsert(Editor editor)
     {
+        replaced = null;
         if (insertEdit == null)
             return;
         final CompoundEdit edit = insertEdit;

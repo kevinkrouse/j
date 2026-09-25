@@ -49,9 +49,13 @@ registers, marks and the dot command:
     <td><code>d c y &gt; &lt; gu gU g~</code>, doubled for whole lines
         (<code>dd</code>, <code>cc</code>, <code>yy</code>)</td></tr>
 <tr><td valign="top"><b>changes</b></td>
-    <td><code>x X D C s S r R J gJ ~ p P</code></td></tr>
+    <td><code>x X D C s S r J gJ ~ p P</code></td></tr>
 <tr><td valign="top"><b>insert</b></td>
     <td><code>i I a A o O</code>, leaving with <code>Escape</code></td></tr>
+<tr><td valign="top"><b>replace</b></td>
+    <td><code>R</code>, which types over what is already there until
+        <code>Escape</code>. <code>Backspace</code> walks the session
+        backwards, putting back each character it typed over.</td></tr>
 <tr><td valign="top"><b>text objects</b></td>
     <td><code>iw aw iW aW</code>, the quote pairs
         <code>i" a" i' a'</code> and the backtick pair,
@@ -189,6 +193,12 @@ These are known and deliberate:
 <li><code>cc</code> and <code>S</code> start at column 0 rather than
     keeping the line's indent, which is what vim does with
     <code>autoindent</code> set.</li>
+<li>A count before an insert does not repeat it: <code>3iab&lt;Esc&gt;</code>
+    and <code>3Rab&lt;Esc&gt;</code> type once, not three times.</li>
+<li>In replace mode, <code>Backspace</code> restores only what was typed
+    over since the caret last moved on its own. After <code>Enter</code> or
+    an arrow key it just steps left, where vim would keep walking back
+    across the move.</li>
 </ul>
 <hr>
 <a href="contents.html">Top</a>

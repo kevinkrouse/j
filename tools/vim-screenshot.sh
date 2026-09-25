@@ -8,9 +8,9 @@
 #
 # Each key spec is passed to "xdotool key" and a frame is captured after it,
 # named for its position in the sequence. Run it through nix-shell for the
-# two tools it needs:
+# three tools it needs:
 #
-#   nix-shell -p xvfb xdotool --run \
+#   nix-shell -p xvfb xdotool imagemagick --run \
 #     'tools/vim-screenshot.sh /tmp/shots README.md l l j i'
 #
 # The editMode=vim preference is set in a throwaway home, so this never reads
@@ -50,10 +50,20 @@ if ! kill -0 $j 2>/dev/null; then
     exit 1
 fi
 
-shot() {
-    ffmpeg -loglevel quiet -y -f x11grab -video_size 900x500 -i $display \
-           -frames:v 1 "$out/$1.png"
-}
+# Either grabber will do. ImageMagick's import is first because ffmpeg only
+# has x11grab when it was built against libxcb, and a build without it fails
+# here rather than at the point where you would look for it.
+if command -v import >/dev/null 2>&1; then
+    shot() { import -display $display -window root "$out/$1.png"; }
+elif ffmpeg -hide_banner -f x11grab -h >/dev/null 2>&1; then
+    shot() {
+        ffmpeg -loglevel error -y -f x11grab -video_size 900x500 -i $display \
+               -frames:v 1 "$out/$1.png"
+    }
+else
+    echo "no screen grabber: add imagemagick (for import) to the nix-shell" >&2
+    exit 1
+fi
 
 shot 00-start
 n=0

@@ -72,6 +72,16 @@ public class VimAppearanceTest
     }
 
     @Test
+    public void replaceModeUsesAnUnderlineCaret()
+    {
+        vim("abc\n").cursor(0, 0).keys("R");
+        assertSame(InputHandler.CaretShape.UNDERLINE, handler().getCaretShape());
+        assertEquals("REPLACE", handler().getModeIndicator());
+        h.keys("<Esc>");
+        assertSame(InputHandler.CaretShape.BLOCK, handler().getCaretShape());
+    }
+
+    @Test
     public void visualModeKeepsTheBlockCaret()
     {
         // The caret has to stay visible inside the selection.

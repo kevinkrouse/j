@@ -136,6 +136,38 @@ public class KeyNotationTest
     }
 
     @Test
+    public void aControlKeyIsNamedFromItsKeyCode()
+    {
+        // AWT does not hand a control key press the letter: Ctrl-R arrives as
+        // keyCode VK_R with keyChar 0x12. Naming it after the character spelt
+        // it as something no key map matched, so <C-r> fell through to j's
+        // own binding and opened the replace dialog instead of redoing.
+        assertEquals("<C-r>", KeyNotation.name(KeyEvent.VK_R, '\u0012',
+                                               Constants.CTRL_MASK));
+        assertEquals("<C-w>", KeyNotation.name(KeyEvent.VK_W, '\u0017',
+                                               Constants.CTRL_MASK));
+        // Held with Shift the character is the same; the key code still says
+        // which key it was.
+        assertEquals("<C-S-r>",
+                     KeyNotation.name(KeyEvent.VK_R, '\u0012',
+                                      Constants.CTRL_MASK | Constants.SHIFT_MASK));
+        // Some layouts report no character at all for a control key.
+        assertEquals("<C-r>", KeyNotation.name(KeyEvent.VK_R,
+                                               KeyEvent.CHAR_UNDEFINED,
+                                               Constants.CTRL_MASK));
+        // And with no key code, the control character alone says enough.
+        assertEquals("<C-r>", KeyNotation.name(0, '\u0012', Constants.CTRL_MASK));
+    }
+
+    @Test
+    public void theControlCharactersThatAreNotLettersAreNamedToo()
+    {
+        assertEquals("<C-[>", KeyNotation.name(0, '\u001b', Constants.CTRL_MASK));
+        assertEquals("<C-]>", KeyNotation.name(0, '\u001d', Constants.CTRL_MASK));
+        assertEquals("<C-\\>", KeyNotation.name(0, '\u001c', Constants.CTRL_MASK));
+    }
+
+    @Test
     public void awtModifiersRoundTrip()
     {
         assertEquals(java.awt.event.InputEvent.CTRL_DOWN_MASK,

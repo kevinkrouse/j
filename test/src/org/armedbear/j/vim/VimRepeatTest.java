@@ -46,6 +46,17 @@ public class VimRepeatTest
     }
 
     @Test
+    public void repeatsAnInsertThatCorrectedItself()
+    {
+        // The replay used to insert the backspace as a character rather than
+        // taking one back, so the repeat and the original differed.
+        vim("XY\n").cursor(0, 0).keys("iab<BS>c<Esc>");
+        h.assertText("acXY\n");
+        h.keys(".");
+        h.assertText("aaccXY\n");
+    }
+
+    @Test
     public void repeatsAnOperatorWithItsMotion()
     {
         vim("one two three\n").cursor(0, 0).keys("dw.");

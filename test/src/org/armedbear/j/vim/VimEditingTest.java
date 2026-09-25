@@ -233,6 +233,75 @@ public class VimEditingTest
         h.assertText("abc\n");
     }
 
+    // R types over what is already there. Every expectation below was taken
+    // from nvim; R was unbound before, so it fell through and the keys after
+    // it ran as normal-mode commands.
+
+    @Test
+    public void capitalRTypesOverTheCharactersItPassesOver()
+    {
+        vim("abcdef\n").cursor(0, 0).keys("Rxy<Esc>");
+        h.assertText("xycdef\n");
+        at(0, 1);
+    }
+
+    @Test
+    public void replaceModeAppendsOnceItRunsOffTheEndOfTheLine()
+    {
+        // R can lengthen a line, never shorten one.
+        vim("ab\n").cursor(0, 0).keys("Rxyz<Esc>");
+        h.assertText("xyz\n");
+        at(0, 2);
+    }
+
+    @Test
+    public void backspaceInReplaceModePutsBackWhatWasTypedOver()
+    {
+        // Not a delete: it walks the session backwards.
+        vim("abcdef\n").cursor(0, 2).keys("Rxy<BS><BS><Esc>");
+        h.assertText("abcdef\n");
+        at(0, 1);
+    }
+
+    @Test
+    public void backspacePastTheStartOfTheReplaceOnlyMovesTheCaret()
+    {
+        // The text to the left was never this session's to give back.
+        vim("abcdef\n").cursor(0, 2).keys("Rxy<BS><BS><BS><BS><Esc>");
+        h.assertText("abcdef\n");
+        at(0, 0);
+
+        h.close();
+        vim("abcdef\n").cursor(0, 3).keys("R<BS><BS><Esc>");
+        h.assertText("abcdef\n");
+        at(0, 0);
+    }
+
+    @Test
+    public void backspaceTakesAwayACharacterReplaceModeAppended()
+    {
+        // Past the old end of the line there was nothing to put back, so the
+        // character goes instead.
+        vim("ab\n").cursor(0, 0).keys("Rxyz<BS><Esc>");
+        h.assertText("xy\n");
+        at(0, 1);
+    }
+
+    @Test
+    public void undoTakesBackTheWholeReplaceSession()
+    {
+        undoLeavesCaretAt("abcdef\nx", 0, 1, "Rxy<Esc>", 0, 1);
+    }
+
+    @Test
+    public void dotRepeatsAReplace()
+    {
+        vim("abcdef\nabcdef\n").cursor(0, 0).keys("Rxy<Esc>");
+        h.assertText("xycdef\nabcdef\n");
+        h.keys("j0.");
+        h.assertText("xycdef\nxycdef\n");
+    }
+
     // ---------------------------------------------------------------- case
 
     @Test

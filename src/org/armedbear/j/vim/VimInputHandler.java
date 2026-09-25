@@ -161,6 +161,17 @@ public final class VimInputHandler implements InputHandler
             if (recordingEdit && !replaying && isNamedKey(keyCode))
                 recording.append(KeyNotation.name(keyCode, event.getKeyChar(),
                                                   modifiers));
+            if (state.getMode() == VimMode.REPLACE && modifiers == 0) {
+                if (keyCode == KeyEvent.VK_BACK_SPACE) {
+                    VimActions.replaceBackspace(editor, state);
+                    return Result.CONSUMED;
+                }
+                // Enter, an arrow, anything that moves the caret itself: what
+                // R typed over is no longer what lies to the left of it, so
+                // BS has nothing of its own to give back from here on.
+                if (isNamedKey(keyCode))
+                    state.forgetReplaced();
+            }
             return Result.PASS_THROUGH;
         }
 
@@ -189,6 +200,12 @@ public final class VimInputHandler implements InputHandler
         if (!state.getMode().isCommandMode()) {
             if (recordingEdit && !replaying)
                 recording.append(KeyNotation.name(0, event.getKeyChar(), 0));
+            final char typed = event.getKeyChar();
+            if (state.getMode() == VimMode.REPLACE && typed >= ' '
+                && typed != KeyEvent.CHAR_UNDEFINED && typed != '\u007f') {
+                VimActions.replaceTypedCharacter(editor, state, typed);
+                return Result.CONSUMED;
+            }
             return Result.PASS_THROUGH;
         }
         dispatch(editor, KeyNotation.name(0, event.getKeyChar(), 0), 0);
@@ -373,10 +390,21 @@ public final class VimInputHandler implements InputHandler
                 escape(editor);
                 return;
             }
-            if (stroke.keyCode == KeyEvent.VK_ENTER)
+            if (stroke.keyCode == KeyEvent.VK_BACK_SPACE) {
+                if (state.getMode() == VimMode.REPLACE)
+                    VimActions.replaceBackspace(editor, state);
+                else
+                    editor.backspace();
+            } else if (stroke.keyCode == KeyEvent.VK_ENTER) {
+                state.forgetReplaced();
                 editor.newlineAndIndent();
-            else if (stroke.keyChar != KeyEvent.CHAR_UNDEFINED)
-                editor.insertNormalChar(stroke.keyChar);
+            } else if (stroke.keyChar != KeyEvent.CHAR_UNDEFINED) {
+                if (state.getMode() == VimMode.REPLACE)
+                    VimActions.replaceTypedCharacter(editor, state,
+                                                     stroke.keyChar);
+                else
+                    editor.insertNormalChar(stroke.keyChar);
+            }
             return;
         }
         dispatch(editor, key, 0);
