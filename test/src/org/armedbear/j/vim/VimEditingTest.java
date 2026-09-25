@@ -86,6 +86,39 @@ public class VimEditingTest
         undoRestores("one\ntwo\nthree\nfour", "4J");
     }
 
+    /** Runs keys, undoes once, and checks where the caret came back to. */
+    private void undoLeavesCaretAt(String start, int line, int offset,
+                                   String keys, int wantLine, int wantOffset)
+    {
+        h = EditorHarness.create().vim();
+        h.value(start).cursor(line, offset).keys(keys);
+        h.keys("u");
+        assertEquals(keys + ": text", start, h.value());
+        assertEquals(keys + ": line", wantLine, h.lineNumber());
+        assertEquals(keys + ": offset", wantOffset, h.offset());
+        h.close();
+        h = null;
+    }
+
+    @Test
+    public void undoPutsTheCaretBackWhereTheCommandFoundIt()
+    {
+        // A command that edits moves the caret to what it is changing, and
+        // that move belongs to the change: undo has to give back the caret
+        // as well as the text. Every expectation checked against nvim.
+        undoLeavesCaretAt("abcdef\nx", 0, 0, "yyp", 0, 0);
+        undoLeavesCaretAt("abcdef\nx", 0, 0, "yyP", 0, 0);
+        undoLeavesCaretAt("one\ntwo\nx", 1, 0, "yyp", 1, 0);
+        undoLeavesCaretAt("abc\ndef", 0, 1, "ylp", 0, 1);
+        undoLeavesCaretAt("one\ntwo\nx", 0, 1, "J", 0, 1);
+        undoLeavesCaretAt("a\nb\nc\nd", 0, 0, "3J", 0, 0);
+        undoLeavesCaretAt("one\ntwo\nx", 0, 1, "dd", 0, 1);
+        undoLeavesCaretAt("one\ntwo\nthree", 1, 1, "dj", 1, 1);
+        undoLeavesCaretAt("one\ntwo", 0, 1, "oZ<Esc>", 0, 1);
+        undoLeavesCaretAt("one\ntwo", 1, 1, "OZ<Esc>", 1, 1);
+        undoLeavesCaretAt("abc\nx", 0, 1, ">>", 0, 1);
+    }
+
     @Test
     public void theWholeYankPutUndoSequenceFromAnEmptyBuffer()
     {

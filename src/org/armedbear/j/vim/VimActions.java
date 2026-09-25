@@ -136,6 +136,7 @@ public final class VimActions
 
         final CompoundEdit edit = editor.getBuffer().beginCompoundEdit();
         try {
+            VimOperators.recordCaret(editor);
             for (int i = 0; i < joins; i++) {
                 final Position dot = editor.getDot();
                 if (dot == null)
@@ -322,6 +323,10 @@ public final class VimActions
 
         final CompoundEdit edit = editor.getBuffer().beginCompoundEdit();
         try {
+            // Where the caret was before any of this, so undo gives it back.
+            // A put moves it to the insertion point first, and that move is
+            // as much a part of the change as the text is.
+            VimOperators.recordCaret(editor);
             if (register.type == VimRegisters.Type.LINEWISE)
                 putLinewise(editor, dot, text.toString(), after);
             else
@@ -471,6 +476,9 @@ public final class VimActions
             return;
         final boolean after = ctx.arg("after");
         ctx.state.beginInsert(editor, VimMode.INSERT);
+        // Inside the insert session's undo step, before the caret moves to
+        // where the new line goes.
+        VimOperators.recordCaret(editor);
         if (after) {
             editor.setDot(dot.getLine(), dot.getLineLength());
             editor.moveCaretToDotCol();

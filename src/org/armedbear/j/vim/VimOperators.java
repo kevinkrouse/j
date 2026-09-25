@@ -131,6 +131,7 @@ public final class VimOperators
 
         final CompoundEdit edit = buffer.beginCompoundEdit();
         try {
+            recordCaret(editor);
             Line line = range.start.getLine();
             final Line stop = range.end.getOffset() == 0
                 ? range.end.getLine()
@@ -211,18 +212,26 @@ public final class VimOperators
                                            range.linewise
                                                ? VimRegisters.Type.LINEWISE
                                                : VimRegisters.Type.CHARWISE);
-        deleteRange(ctx.editor, range);
-        if (range.linewise) {
-            // Vim leaves the caret on the first non-blank of the line that
-            // moved up into the gap.
-            final Position dot = ctx.editor.getDot();
-            if (dot != null) {
-                ctx.editor.setDot(dot.getLine(),
+        final Editor editor = ctx.editor;
+        final CompoundEdit edit = editor.getBuffer().beginCompoundEdit();
+        try {
+            recordCaret(editor);
+            deleteRange(editor, range);
+            if (range.linewise) {
+                // Vim leaves the caret on the first non-blank of the line that
+                // moved up into the gap.
+                final Position dot = editor.getDot();
+                if (dot != null) {
+                    editor.setDot(dot.getLine(),
                                   VimMotions.firstNonBlank(dot.getLine()));
-                ctx.editor.moveCaretToDotCol();
+                    editor.moveCaretToDotCol();
+                }
             }
         }
-        ctx.state.clampCaret(ctx.editor);
+        finally {
+            editor.getBuffer().endCompoundEdit(edit);
+        }
+        ctx.state.clampCaret(editor);
     }
 
     /**
@@ -240,6 +249,10 @@ public final class VimOperators
                                                ? VimRegisters.Type.LINEWISE
                                                : VimRegisters.Type.CHARWISE);
         ctx.state.beginInsert(editor, VimMode.INSERT);
+        // No recordCaret here. Vim is not uniform about where undo leaves the
+        // caret: J and p give back where it was, but c leaves it at the start
+        // of what changed -- which is what falling through to j's own records
+        // already does.
         if (range.linewise) {
             // cc keeps the line, empties it, and keeps its indent.
             changeLinewise(ctx, range);
@@ -274,6 +287,20 @@ public final class VimOperators
     }
 
     // ------------------------------------------------------------ helpers
+
+    /**
+     * Notes where the caret is, so that undo gives it back.
+     *
+     * A command that edits usually moves the caret to the place it is about
+     * to change, and j's undo records only restore what the edits themselves
+     * captured. Without this, undo leaves the caret wherever the command put
+     * it rather than where the user had it. Must be inside the command's
+     * compound edit, or it becomes an undo step of its own.
+     */
+    static void recordCaret(Editor editor)
+    {
+        editor.addUndo(SimpleEdit.MOVE);
+    }
 
     /**
      * Deletes a span through j's own region delete, which already handles the
