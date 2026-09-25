@@ -213,6 +213,7 @@ public class CommandTable
             addCommand("tab");
             addCommand("tempBufferQuit");
             addCommand("textMode");
+            addCommand("toBottom");
             addCommand("toCenter");
             addCommand("toTop");
             addCommand("toggleCaseRegion", "RegionCommands");

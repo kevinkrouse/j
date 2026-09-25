@@ -1047,9 +1047,18 @@ public final class VimInputHandler implements InputHandler
                 runKeyToKey(editor, command, count, countGiven, depth);
                 break;
             case EDITOR_COMMAND:
-                // Whatever the user bound: one of j's own named commands,
-                // which the modal layer knows nothing about.
-                editor.executeCommand(command.getCommand(), false);
+                // Whatever was bound: one of j's own named commands, which
+                // the modal layer knows nothing about. Not through
+                // executeCommand, which reads a leading ( as a Lisp form and
+                // an = as a property assignment -- the same trap the ex
+                // parser avoids.
+                try {
+                    editor.execute(command.getCommand(), null);
+                }
+                catch (NoSuchMethodException e) {
+                    editor.status("E492: Not an editor command: "
+                                  + command.getCommand());
+                }
                 break;
             case IDLE:
                 break;

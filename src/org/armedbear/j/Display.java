@@ -2155,6 +2155,22 @@ public final class Display extends JComponent implements Constants,
         }
     }
 
+    /** Scrolls so the caret's line is the last one on screen. */
+    public void toBottom()
+    {
+        Line line = editor.getDotLine();
+        for (int i = getRows() - 1; i > 0; i--) {
+            Line prev = line.previousVisible();
+            if (prev == null)
+                break;
+            line = prev;
+        }
+        if (topLine != line) {
+            setTopLine(line);
+            setUpdateFlag(REPAINT);
+        }
+    }
+
     // Does nothing if entire region is already visible.
     public void centerRegion(Line begin, Line end)
     {

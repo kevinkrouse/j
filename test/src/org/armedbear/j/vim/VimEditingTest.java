@@ -464,6 +464,26 @@ public class VimEditingTest
     }
 
     @Test
+    public void zzZtAndZbScrollWithoutMovingTheCaret()
+    {
+        // These are j's own toCenter, toTop and toBottom, bound rather than
+        // reimplemented. The caret must not move, which is what separates
+        // them from H, M and L.
+        vim("1\n2\n3\n4\n5\n6\n7\n8\n9\n").cursor(4, 0).keys("zt");
+        at(4, 0);
+        // j's toTop keeps one line of context above, which is vim's zt with
+        // 'scrolloff' at 1 rather than at its default 0. Left as j has it:
+        // nothing is duplicated either way, so there is no reason to change
+        // how an existing j command feels.
+        assertEquals("scrolled to the caret's line, less one", 3,
+                     h.editor().getDisplay().getTopLine().lineNumber());
+        h.keys("zz");
+        at(4, 0);
+        h.keys("zb");
+        at(4, 0);
+    }
+
+    @Test
     public void deleteCanUseAMatchingBracketAsItsMotion()
     {
         vim("(abc)d\n").cursor(0, 0).keys("d%");

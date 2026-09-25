@@ -3390,6 +3390,11 @@ public final class Editor extends JPanel implements Constants,
         display.toCenter();
     }
 
+    public void toBottom()
+    {
+        display.toBottom();
+    }
+
     public void toTop()
     {
         display.toTop();
