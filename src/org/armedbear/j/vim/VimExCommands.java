@@ -269,10 +269,10 @@ public final class VimExCommands
 
         final Pattern regex;
         try {
-            regex = Pattern.compile(VimSearch.toJavaRegex(pattern));
+            regex = VimRegex.compile(pattern, null);
         }
         catch (PatternSyntaxException e) {
-            throw new VimEx.BadCommand("E486: Pattern not found: " + pattern);
+            throw new VimEx.BadCommand(VimExSubstitute.badPattern(pattern, e));
         }
         state.setLastSearch(new VimSearch.Query(pattern, true, false));
 

@@ -43,6 +43,15 @@ final class VimExSubstitute
     private static String lastPattern;
     private static String lastReplacement;
 
+    /**
+     * The replacement of the last {@code :s}, which {@code ~} in a pattern
+     * matches, or null if there has been none.
+     */
+    static String lastReplacement()
+    {
+        return lastReplacement;
+    }
+
     static void run(Editor editor, VimState state, VimEx.Command command)
         throws VimEx.BadCommand
     {
@@ -79,10 +88,12 @@ final class VimExSubstitute
                 throw new VimEx.BadCommand("E35: No previous regular expression");
         }
         lastPattern = pattern;
-        lastReplacement = replacement;
         // :s sets the search pattern too, so a following n finds it.
         state.setLastSearch(new VimSearch.Query(pattern, true, false));
         substitute(editor, state, command.range, pattern, replacement, flags);
+        // Only now: a ~ in this command's own pattern means the *previous*
+        // replacement, and the pattern is compiled inside substitute().
+        lastReplacement = replacement;
     }
 
     /**
@@ -189,17 +200,34 @@ final class VimExSubstitute
     private static Pattern compile(String pattern, String flags)
         throws VimEx.BadCommand
     {
-        int options = 0;
-        if (flags.indexOf('i') >= 0)
-            options |= Pattern.CASE_INSENSITIVE;
-        else if (flags.indexOf('I') < 0 && VimSearch.ignoreCase(pattern))
-            options |= Pattern.CASE_INSENSITIVE;
+        // The i and I flags beat the options; \c and \C in the pattern beat
+        // both, which VimRegex sees to.
+        final Boolean force = flags.indexOf('i') >= 0 ? Boolean.TRUE
+            : flags.indexOf('I') >= 0 ? Boolean.FALSE : null;
         try {
-            return Pattern.compile(VimSearch.toJavaRegex(pattern), options);
+            return VimRegex.compile(pattern, force);
         }
         catch (PatternSyntaxException e) {
-            throw new VimEx.BadCommand("E486: Pattern not found: " + pattern);
+            throw new VimEx.BadCommand(badPattern(pattern, e));
         }
+    }
+
+    /**
+     * What to say about a pattern that will not compile.
+     *
+     * The translator's own description when it refused something by name.
+     * Otherwise Java refused what the translator produced -- a \zs after
+     * something of unbounded length becomes a lookbehind Java will not take
+     * -- and saying "not found" about a search that never ran would be
+     * false, so Java's reason goes along with vim's E383.
+     */
+    static String badPattern(String pattern, PatternSyntaxException e)
+    {
+        final String d = e.getDescription();
+        if (d != null && (d.startsWith("E") || d.contains("not supported")))
+            return d;
+        return "E383: Invalid search string: " + pattern
+               + (d == null ? "" : " (" + d + ")");
     }
 
     private static String replaceFirst(Matcher matcher, String replacement)

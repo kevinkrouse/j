@@ -41,6 +41,16 @@
 #                           back to it. CodeMirror lets the caret sit past
 #                           the end of a line; vim and j do not, so the mark
 #                           is at column 0
+#   /_greedy                the corpus writes its patterns in JavaScript's
+#   ?_greedy                regex syntax, where + means one-or-more. In vim's
+#   ex_sort_pattern_alpha_  default magic level a bare + is the character, so
+#   longer                  /a+ finds nothing and sort r/[a-z]+/ leaves the
+#                           lines as they were -- nvim does both, and so do
+#                           we since M12.5. The vim spellings /a\+ and
+#                           sort r/[a-z]\+/ give exactly what these cases
+#                           mean, and are unit tested. These three passed
+#                           before M12.5 for the wrong reason: Java's regex
+#                           syntax happens to agree with JavaScript's.
 #   macro_last_ex_command_  our text is right (2@: gives bbbaa) but the
 #   register                corpus wants the caret at column 2. Vim leaves it
 #                           on the first non-blank of the changed line: 0,0
@@ -152,11 +162,9 @@ reselect_visual_line
 *_seek
 *_symbol
 /_case
-/_greedy
 /_nongreedy
 d_/
 g#
-?_greedy
 
 # M12: the : command line
 ex_go_to_line
@@ -182,7 +190,6 @@ ex_sort_ignoreCase
 ex_sort_octal
 ex_sort_oneline
 ex_sort_pattern_alpha
-ex_sort_pattern_alpha_longer
 ex_sort_pattern_alpha_num
 ex_sort_pattern_alpha_only
 ex_sort_pattern_alpha_reverse

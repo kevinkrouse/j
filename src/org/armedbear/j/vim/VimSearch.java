@@ -28,11 +28,8 @@ import org.armedbear.j.Search;
  * expects around it -- never matching where the caret already is, and wrapping
  * round the end of the buffer, which j only does for a literal forward search.
  *
- * <p>Patterns are {@code java.util.regex} with a shim for {@code \&lt;} and
- * {@code \&gt;}. Vim's own dialect is not emulated: in vim's default magic
- * mode {@code \+} is "one or more" and {@code +} is a literal, and here it is
- * the other way round. That is a documented divergence, not an oversight --
- * see {@code doc/editmodes.html}.
+ * <p>Patterns are vim's, magic levels and all; {@link VimRegex} rewrites them
+ * for {@code java.util.regex}, which is what j's {@code Search} runs.
  */
 public final class VimSearch
 {
@@ -235,42 +232,22 @@ public final class VimSearch
      * Vim's {@code 'ignorecase'}, narrowed by {@code 'smartcase'}: a pattern
      * with an upper case letter in it is taken to mean that case.
      */
+    /**
+     * Vim's {@code 'ignorecase'}, narrowed by {@code 'smartcase'} and
+     * overridden by {@code \c} or {@code \C} in the pattern itself.
+     */
     static boolean ignoreCase(String pattern)
     {
-        final VimOptions options = VimKeyMap.getSharedOptions();
-        if (!options.getBoolean("ignorecase", false))
-            return false;
-        if (!options.getBoolean("smartcase", false))
-            return true;
-        for (int i = 0; i < pattern.length(); i++)
-            if (Character.isUpperCase(pattern.charAt(i)))
-                return false;
-        return true;
+        return VimRegex.ignoreCase(
+            VimRegex.translate(pattern, VimExSubstitute.lastReplacement()),
+            null);
     }
 
-    /**
-     * The shim: vim's word boundaries, which java.util.regex spells
-     * differently. Everything else is passed through untouched.
-     */
+    /** A vim pattern in Java's syntax; see {@link VimRegex}. */
     static String toJavaRegex(String pattern)
     {
-        final StringBuilder sb = new StringBuilder(pattern.length());
-        for (int i = 0; i < pattern.length(); i++) {
-            final char c = pattern.charAt(i);
-            if (c == '\\' && i + 1 < pattern.length()) {
-                final char next = pattern.charAt(i + 1);
-                if (next == '<' || next == '>') {
-                    sb.append("\\b");
-                    ++i;
-                    continue;
-                }
-                sb.append(c).append(next);
-                ++i;
-                continue;
-            }
-            sb.append(c);
-        }
-        return sb.toString();
+        return VimRegex.translate(pattern, VimExSubstitute.lastReplacement())
+            .java;
     }
 
     /** What * and # decided to search for, and where it starts. */
@@ -330,9 +307,16 @@ public final class VimSearch
         return null;
     }
 
-    /** Quotes a literal, so a word with regex characters in it still works. */
+    /**
+     * Quotes a literal, so a word with regex characters in it still works.
+     *
+     * In vim's syntax, not Java's: every pattern goes through
+     * {@link VimRegex}, which would read Java's \Q as the letter Q. After
+     * {@code \V} only a backslash is special, so doubling those is all the
+     * quoting there is to do.
+     */
     static String literal(String text)
     {
-        return "\\Q" + text + "\\E";
+        return "\\V" + text.replace("\\", "\\\\");
     }
 }

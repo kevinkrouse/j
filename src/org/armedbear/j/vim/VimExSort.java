@@ -86,10 +86,10 @@ final class VimExSort
     private static Pattern compile(String source) throws VimEx.BadCommand
     {
         try {
-            return Pattern.compile(VimSearch.toJavaRegex(source));
+            return VimRegex.compile(source, null);
         }
         catch (PatternSyntaxException e) {
-            throw new VimEx.BadCommand("E486: Pattern not found: " + source);
+            throw new VimEx.BadCommand(VimExSubstitute.badPattern(source, e));
         }
     }
 }

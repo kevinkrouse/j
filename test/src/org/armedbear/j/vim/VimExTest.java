@@ -219,8 +219,19 @@ public class VimExTest
     @Test
     public void aGroupIsSpeltWithABackslash()
     {
-        vim("john smith", 0, 0).keys(":").exCommand("s/(\\w+) (\\w+)/\\2 \\1/");
+        vim("john smith", 0, 0).keys(":")
+            .exCommand("s/\\(\\w\\+\\) \\(\\w\\+\\)/\\2 \\1/");
         assertEquals("smith john", h.value());
+    }
+
+    @Test
+    public void bareParenthesesAndPlusAreCharacters()
+    {
+        // In vim's default magic level ( ) and + are literals, so the Java
+        // spelling of the same substitute matches nothing. This test used to
+        // assert the opposite -- pinning a divergence rather than vim.
+        vim("john smith", 0, 0).keys(":").exCommand("s/(\\w+) (\\w+)/\\2 \\1/");
+        assertEquals("john smith", h.value());
     }
 
     @Test

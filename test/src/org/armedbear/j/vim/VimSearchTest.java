@@ -262,16 +262,23 @@ public class VimSearchTest
     // ------------------------------------------------------- the pattern
 
     @Test
-    public void patternsAreRegularExpressions()
+    public void patternsAreVimRegularExpressions()
     {
-        vim("aaa bbb", 0, 0).keys("/").searchPattern("b+");
+        // \+ is "one or more"; a bare + is the character.
+        vim("aaa bbb", 0, 0).keys("/").searchPattern("b\\+");
         at(0, 4);
     }
 
     @Test
-    public void vimWordBoundariesAreTranslated()
+    public void aBarePlusIsTheCharacter()
     {
-        assertEquals("\\bfoo\\b", VimSearch.toJavaRegex("\\<foo\\>"));
+        vim("aaa bbb b+", 0, 0).keys("/").searchPattern("b+");
+        at(0, 8);
+    }
+
+    @Test
+    public void vimWordBoundariesMatchWholeWords()
+    {
         vim(WORDS, 0, 0).keys("/").searchPattern("\\<foo\\>");
         at(1, 7);
     }
@@ -285,13 +292,13 @@ public class VimSearchTest
 
     // Where the matches on a line are is fixed by scanning it from the
     // start, not from the caret. It only shows with a pattern that can
-    // overlap itself, and then it shows badly: searching a+ in "aaa aa"
+    // overlap itself, and then it shows badly: searching a\+ in "aaa aa"
     // from column 0 must find column 4, not column 1.
 
     @Test
     public void overlappingMatchesAreCountedFromTheStartOfTheLine()
     {
-        vim("aaa aa \n a aa", 0, 0).keys("/").searchPattern("a+");
+        vim("aaa aa \n a aa", 0, 0).keys("/").searchPattern("a\\+");
         at(0, 4);
         h.keys("n");
         at(1, 1);
@@ -304,7 +311,7 @@ public class VimSearchTest
     @Test
     public void andBackwardsTheSameWay()
     {
-        vim("aaa aa \n a aa", 0, 0).keys("?").searchPattern("a+");
+        vim("aaa aa \n a aa", 0, 0).keys("?").searchPattern("a\\+");
         at(1, 3);
         h.keys("n");
         at(1, 1);

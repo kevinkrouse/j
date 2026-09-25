@@ -189,16 +189,24 @@ These are known and deliberate:
     <a href="commands.html">registers</a>. <code>"+</code> and <code>"*</code>
     are not connected to the system clipboard yet.</li>
 <li>Marks are per editor rather than per buffer.</li>
-<li><b>Search patterns are Java regular expressions</b>, not vim's. The
-    difference that bites first is quantifiers: vim's default magic mode
-    spells "one or more" <code>\+</code> and treats <code>+</code> as a
-    literal, and here it is the other way round &mdash; <code>/a+</code>
-    works, <code>/a\+</code> does not. <code>\&lt;</code> and
-    <code>\&gt;</code> are translated to word boundaries;
-    <code>\v</code>, <code>\zs</code>, <code>\ze</code> and
-    <code>\%[]</code> are not understood.
-    <code>ignorecase</code> and <code>smartcase</code> work,
-    and searching is case sensitive by default as in vim.</li>
+<li><b>Patterns are vim's</b>, in <code>/</code>, <code>?</code>,
+    <code>:s</code>, <code>:g</code> and <code>:sort</code> alike: the four
+    magic levels (<code>\v \m \M \V</code>, with <code>\m</code> the default,
+    so <code>/a\+</code> is one or more and <code>/a+</code> is the
+    characters), groups and backreferences, <code>\{n,m}</code> and its
+    non-greedy <code>\{-}</code>, <code>\zs</code> and <code>\ze</code>, the
+    <code>\@=</code> family, the letter classes, POSIX classes in brackets,
+    <code>\%x..</code> and friends, <code>~</code>, and <code>\c</code> /
+    <code>\C</code>. <code>ignorecase</code> and <code>smartcase</code> work,
+    and searching is case sensitive by default as in vim. What is refused,
+    by name, rather than quietly misread: <code>\%V</code> and the other
+    window- and cursor-dependent atoms, <code>\&amp;</code>,
+    <code>\zs</code> or <code>\ze</code> inside a group or beside a
+    top-level <code>\|</code>, and a <code>\zs</code> after a quantified
+    group such as <code>\(ab\)*</code>. <code>\k</code>, <code>\i</code> and
+    <code>\f</code> use vim's usual character sets rather than reading
+    <code>iskeyword</code>. j's own <a href="commands.html#sortLines">sortLines</a>
+    takes Java's syntax, as the rest of j does.</li>
 <li><b>The pattern for <code>/</code> is typed at the top of the editor</b>,
     in the location bar, rather than at the bottom. Escape abandons the
     search, and an operator waiting on it &mdash; the <code>d</code> of
