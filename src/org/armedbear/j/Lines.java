@@ -110,6 +110,9 @@ public final class Lines
 
                 editor.setDot(next, next.length() - rest.length());
                 editor.setMark(new Position(line, head.length()));
+                // The display keeps its own caret column and j pads an insert
+                // out to it, so this has to move as well as setDot.
+                editor.moveCaretToDotCol();
                 editor.deleteRegion();
                 editor.setMark(null);
                 final Position joined = editor.getDot();
@@ -195,25 +198,35 @@ public final class Lines
      * {@code after}, all 1-based; {@code after} of 0 means above the first
      * line. Leaves the caret on the last line moved.
      */
-    public static void moveLines(Editor editor, int first, int last, int after)
+    public static boolean moveLines(Editor editor, int first, int last,
+                                    int after)
     {
-        transfer(editor, first, last, after, true);
+        return transfer(editor, first, last, after, true);
     }
 
     /** {@link #moveLines}, but leaving the originals where they are. */
-    public static void copyLines(Editor editor, int first, int last, int after)
+    public static boolean copyLines(Editor editor, int first, int last,
+                                    int after)
     {
-        transfer(editor, first, last, after, false);
+        return transfer(editor, first, last, after, false);
     }
 
-    private static void transfer(Editor editor, int first, int last, int after,
-                                 boolean move)
+    /**
+     * @return false when the lines or the destination do not exist, in which
+     *         case nothing at all has been changed
+     */
+    private static boolean transfer(Editor editor, int first, int last,
+                                    int after, boolean move)
     {
         editor.getBuffer().renumber();
         final Line from = lineAt(editor, first);
         final Line to = lineAt(editor, last);
-        if (from == null || to == null)
-            return;
+        // The destination is checked here, before anything is taken out: a
+        // move whose target does not exist used to delete the lines and then
+        // find nowhere to put them.
+        if (from == null || to == null
+            || after < 0 || after > editor.getBuffer().getLineCount())
+            return false;
         final int count = last - first + 1;
         final String block = blockOf(editor, from, to);
 
@@ -242,6 +255,7 @@ public final class Lines
         finally {
             editor.getBuffer().endCompoundEdit(edit);
         }
+        return true;
     }
 
     /** The text of a run of lines, always ending in a newline. */

@@ -156,12 +156,13 @@ public final class VimExCommands
             || VimEx.lineAt(editor, command.range.last) == null)
             throw new VimEx.BadCommand("E16: Invalid range");
 
-        if (move)
-            Lines.moveLines(editor, command.range.first, command.range.last,
-                            target);
-        else
-            Lines.copyLines(editor, command.range.first, command.range.last,
-                            target);
+        final boolean done = move
+            ? Lines.moveLines(editor, command.range.first, command.range.last,
+                              target)
+            : Lines.copyLines(editor, command.range.first, command.range.last,
+                              target);
+        if (!done)
+            throw new VimEx.BadCommand("E16: Invalid range");
         final Position dot = editor.getDot();
         if (dot != null) {
             editor.setDot(dot.getLine(), VimMotions.firstNonBlank(dot.getLine()));
@@ -189,9 +190,18 @@ public final class VimExCommands
             state.getHandler().runKeys(editor, keys);
             return;
         }
-        for (Line line : linesIn(editor, command.range)) {
+        // By number and from the bottom up, for the reason :g gives below: a
+        // Line captured here does not survive the keys deleting it, and the
+        // numbers of the lines still to come must not be shifted by an edit
+        // above them. :%norm dd used to leave a line behind.
+        editor.getBuffer().renumber();
+        for (int n = command.range.last; n >= command.range.first; n--) {
+            final Line line = VimEx.lineAt(editor, n);
+            if (line == null)
+                continue;
             editor.setDot(line, 0);
             editor.moveCaretToDotCol();
+            editor.getBuffer().renumber();
             state.getHandler().runKeys(editor, keys);
         }
     }
@@ -253,11 +263,9 @@ public final class VimExCommands
         final int close = indexOfUnescaped(args, separator, 1);
         final String pattern = close < 0 ? args.substring(1)
                                          : args.substring(1, close);
-        final String rest = close < 0 ? "" : args.substring(close + 1).trim();
-        // A bare :g/pat/ prints the matching lines, which has nowhere to go
-        // here; vim's own default is :p, so do the nearest useful thing and
-        // treat it as "no command".
-        final String line = rest.isEmpty() ? "" : rest;
+        // A bare :g/pat/ prints the matching lines in vim. There is nowhere
+        // to print them here, so it does nothing but set the search pattern.
+        final String line = close < 0 ? "" : args.substring(close + 1).trim();
 
         final Pattern regex;
         try {
@@ -335,22 +343,6 @@ public final class VimExCommands
                 return i;
         }
         return -1;
-    }
-
-    /** The lines a range covers, as they stand now. */
-    private static List<Line> linesIn(Editor editor, VimEx.Range range)
-        throws VimEx.BadCommand
-    {
-        final List<Line> lines = new ArrayList<Line>();
-        for (int n = range.first; n <= range.last; n++) {
-            final Line line = VimEx.lineAt(editor, n);
-            if (line == null)
-                break;
-            lines.add(line);
-        }
-        if (lines.isEmpty())
-            throw new VimEx.BadCommand("E16: Invalid range");
-        return lines;
     }
 
     /**

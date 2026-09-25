@@ -224,29 +224,41 @@ public final class Sort
             wanted.add(e.text);
         }
 
-        CompoundEdit compoundEdit = new CompoundEdit();
-        compoundEdit.addEdit(new UndoMove(editor));
-        boolean changed = false;
-        Line line = first;
-        int i = 0;
-        for (; i < wanted.size() && line != null; i++, line = line.next()) {
-            if (!wanted.get(i).equals(text(line))) {
-                compoundEdit.addEdit(new UndoLineEdit(buffer, line));
-                line.setText(wanted.get(i));
-                changed = true;
-            }
-            if (line == last)
-                break;
-        }
-        compoundEdit.end();
-        if (changed) {
-            buffer.addEdit(compoundEdit);
-            buffer.modified();
-        }
-
         final int removed = entries.size() - wanted.size();
-        if (removed > 0)
-            removeLines(editor, wanted.size(), first, last);
+        // One undo step for the whole sort. The rewrite and the removal that
+        // a unique sort needs are two different mechanisms -- setText under
+        // an UndoLineEdit, and a region delete -- and left as two steps one
+        // undo puts back the old text under the new line count, which is not
+        // a state the buffer was ever in.
+        final CompoundEdit outer =
+            removed > 0 ? buffer.beginCompoundEdit() : null;
+        try {
+            CompoundEdit compoundEdit = new CompoundEdit();
+            compoundEdit.addEdit(new UndoMove(editor));
+            boolean changed = false;
+            Line line = first;
+            int i = 0;
+            for (; i < wanted.size() && line != null; i++, line = line.next()) {
+                if (!wanted.get(i).equals(text(line))) {
+                    compoundEdit.addEdit(new UndoLineEdit(buffer, line));
+                    line.setText(wanted.get(i));
+                    changed = true;
+                }
+                if (line == last)
+                    break;
+            }
+            compoundEdit.end();
+            if (changed) {
+                buffer.addEdit(compoundEdit);
+                buffer.modified();
+            }
+            if (removed > 0)
+                removeLines(editor, wanted.size(), first, last);
+        }
+        finally {
+            if (outer != null)
+                buffer.endCompoundEdit(outer);
+        }
 
         buffer.setNeedsParsing(true);
         buffer.getFormatter().parseBuffer();

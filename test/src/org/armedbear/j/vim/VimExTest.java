@@ -416,6 +416,39 @@ public class VimExTest
         assertEquals("a\nb", h.value().replace("a;", "a"));
     }
 
+    @Test
+    public void aMoveWithNowhereToGoChangesNothing()
+    {
+        // It used to take the lines out and then find no destination, so
+        // they were simply gone.
+        vim("1\n2\n3", 0, 0).keys(":").exCommand("1m99");
+        assertEquals("1\n2\n3", h.value());
+        h.close();
+        vim("1\n2\n3", 0, 0).keys(":").exCommand("1t99");
+        assertEquals("1\n2\n3", h.value());
+    }
+
+    @Test
+    public void normalOverARangeReachesEveryLineEvenWhenItDeletesThem()
+    {
+        // The lines were held as Line objects across the keys that removed
+        // them, so %norm dd left one behind.
+        vim("a\nb\nc", 0, 0).keys(":").exCommand("%norm dd");
+        assertEquals("", h.value());
+    }
+
+    @Test
+    public void aUniqueSortIsOneUndoStep()
+    {
+        // The rewrite and the removal are two mechanisms; left as two steps,
+        // one undo put the old text back under the new line count, which is
+        // not a state the buffer was ever in.
+        vim("b\na\na\nc", 0, 0).keys(":").exCommand("sort u");
+        assertEquals("a\nb\nc", h.value());
+        h.keys("u");
+        assertEquals("b\na\na\nc", h.value());
+    }
+
     // ------------------------------------------------------- global
 
     @Test
