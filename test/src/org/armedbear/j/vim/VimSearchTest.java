@@ -157,6 +157,29 @@ public class VimSearchTest
     }
 
     @Test
+    public void starWorksFromAnywhereInTheWord()
+    {
+        // The caret is usually in the middle of a word, not on its first
+        // character, and getIdentifier reads back to the start of it.
+        for (int caret = 0; caret <= 2; caret++) {
+            vim(WORDS, 0, caret).keys("*");
+            assertEquals("caret " + caret, 1, h.lineNumber());
+            assertEquals("caret " + caret, 7, h.offset());
+            h.close();
+        }
+        h = null;
+    }
+
+    @Test
+    public void deleteToAStarFromMidWordStartsAtTheCaret()
+    {
+        // The search starts at the word, but the operator starts where the
+        // caret is, so the first character survives.
+        vim(WORDS, 0, 1).keys("d*");
+        assertEquals("ffoo\nbar foo", h.value());
+    }
+
+    @Test
     public void starOnPunctuationTakesTheNextWordOnTheLine()
     {
         vim("a + b", 0, 2).keys("*");
@@ -287,6 +310,40 @@ public class VimSearchTest
         at(1, 1);
         h.keys("n");
         at(0, 4);
+    }
+
+    @Test
+    public void aPatternThatCanMatchNothingDoesNotFallOffTheBuffer()
+    {
+        // $ matches empty at the end of every line, so stepping past a match
+        // runs out of buffer -- which used to be a null position handed
+        // straight to the search.
+        vim("aaa", 0, 0).keys("2/").searchPattern("$");
+        vim("aaa\nbbb", 0, 0).keys("3/").searchPattern("$");
+    }
+
+    // ------------------------------------------------- repeating with '.'
+
+    @Test
+    public void dotRepeatsAChangeMadeWithASearch()
+    {
+        vim("one END two\nthree END four", 0, 0).keys("d/")
+            .searchPattern("END");
+        assertEquals("END two\nthree END four", h.value());
+        h.keys("j0.");
+        assertEquals("END two\nEND four", h.value());
+    }
+
+    @Test
+    public void aSearchChangeDoesNotClobberAnUnrelatedRepeat()
+    {
+        // The search finishes outside the usual dispatch, so the "something
+        // was edited" flag used to leak into whatever was typed next.
+        vim("one two three\nalpha bravo charlie", 0, 0).keys("dw");
+        h.keys("d/").searchPattern("three");
+        h.keys("j0j");
+        assertEquals("a motion is not a change", "three\nalpha bravo charlie",
+                     h.value());
     }
 
     @Test

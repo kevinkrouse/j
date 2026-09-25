@@ -94,7 +94,7 @@ public final class VimSearch
     {
         final Buffer buffer = editor.getBuffer();
         Position found = forward ? nextAfter(search, buffer, from)
-                                 : lastBefore(search, buffer, from);
+                                 : lastBefore(editor, search, from);
         if (found != null)
             return found;
 
@@ -106,7 +106,7 @@ public final class VimSearch
         // is vim's behaviour too, so it is not filtered out.
         return forward
             ? search.find(buffer, new Position(buffer.getFirstLine(), 0))
-            : lastBefore(search, buffer, null);
+            : lastBefore(editor, search, null);
     }
 
     /**
@@ -135,7 +135,9 @@ public final class VimSearch
             if (match.getOffset() > from.getOffset())
                 return match;
             scan = past(match, matchLength(search));
-            if (scan == null || scan.getLine() != line)
+            if (scan == null)
+                return null;   // end of the buffer; only the wrap is left
+            if (scan.getLine() != line)
                 return search.find(buffer, scan);
         }
     }
@@ -144,26 +146,54 @@ public final class VimSearch
      * The last match starting before a position, or the last in the buffer
      * when {@code limit} is null.
      *
-     * A forward scan from the start rather than j's reverse one, because the
-     * matches have to be the same set the forward direction sees -- otherwise
-     * {@code ?} and {@code n} disagree about where the matches are. It costs
-     * a pass over the text ahead of the caret, which is what searching
-     * backwards for an overlapping pattern costs.
+     * Each line is scanned forwards, because the matches have to be the same
+     * set the forward direction sees -- otherwise {@code ?} and {@code n}
+     * disagree about where the matches are.
      */
-    private static Position lastBefore(Search search, Buffer buffer,
+    private static Position lastBefore(Editor editor, Search search,
                                        Position limit)
     {
+        final Buffer buffer = editor.getBuffer();
+        Line line = limit != null ? limit.getLine() : lastLine(buffer);
+        int before = limit != null ? limit.getOffset() : Integer.MAX_VALUE;
+        for (; line != null; line = line.previous()) {
+            final Position best = lastOnLine(editor, search, line, before);
+            if (best != null)
+                return best;
+            before = Integer.MAX_VALUE;
+        }
+        return null;
+    }
+
+    /**
+     * The last match on one line that starts before {@code before}.
+     *
+     * Line at a time so that walking backwards stops at the first line that
+     * has a match, rather than sweeping the whole buffer on every keystroke.
+     */
+    private static Position lastOnLine(Editor editor, Search search, Line line,
+                                       int before)
+    {
+        final Mode mode = editor.getBuffer().getMode();
         Position best = null;
-        Position scan = new Position(buffer.getFirstLine(), 0);
-        while (true) {
-            final Position match = search.find(buffer, scan);
-            if (match == null || (limit != null && !match.isBefore(limit)))
+        int offset = 0;
+        while (offset <= line.length()) {
+            final Position match =
+                search.findInLine(mode, new Position(line, offset));
+            if (match == null || match.getOffset() >= before)
                 return best;
             best = match;
-            scan = past(match, matchLength(search));
-            if (scan == null)
-                return best;
+            offset = match.getOffset() + matchLength(search);
         }
+        return best;
+    }
+
+    private static Line lastLine(Buffer buffer)
+    {
+        Line line = buffer.getFirstLine();
+        while (line != null && line.next() != null)
+            line = line.next();
+        return line;
     }
 
     /** Just past a match, stepping to the next line when it ends one. */
@@ -282,7 +312,10 @@ public final class VimSearch
             pos.setOffset(offset);
             final String word = mode.getIdentifier(pos);
             if (word != null && !word.isEmpty())
-                return new Word(word, text.indexOf(word, offset), true);
+                // getIdentifier scans back to the start of the word, so with
+                // the caret inside one the word begins before this offset.
+                return new Word(word, Math.max(0, text.lastIndexOf(word, offset)),
+                                true);
         }
         // No keyword: the first run of non-blanks that is not one either.
         for (int offset = dot.getOffset(); offset < text.length(); offset++) {

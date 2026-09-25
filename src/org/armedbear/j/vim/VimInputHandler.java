@@ -307,7 +307,11 @@ public final class VimInputHandler implements InputHandler
             }
             return;
         }
-        if (builder.hasOperator() || state.getMode().isInsert())
+        // A search has already cleared the builder, so hasOperator no longer
+        // shows that a command is still in flight -- without this the keys
+        // typed so far are thrown away before the pattern arrives.
+        if (builder.hasOperator() || pendingSearch != null
+            || state.getMode().isInsert())
             return;
         clearRecording();
     }
@@ -357,6 +361,12 @@ public final class VimInputHandler implements InputHandler
      */
     private void dispatchReplay(Editor editor, String key)
     {
+        if (typedPattern != null) {
+            // Mid-pattern: these keys are the search text, not commands.
+            final KeyNotation.Stroke stroke = KeyNotation.parseOne(key);
+            collectPattern(editor, stroke.keyCode, stroke.keyChar);
+            return;
+        }
         if (state.getMode().isInsert()) {
             final KeyNotation.Stroke stroke = KeyNotation.parseOne(key);
             if (stroke.keyCode == KeyEvent.VK_ESCAPE) {
@@ -458,7 +468,9 @@ public final class VimInputHandler implements InputHandler
     {
         final boolean forward = command.getBoolean("forward");
         pendingSearch = new PendingSearch(operator, count, countGiven, forward);
-        if (!VimSearchPrompt.open(editor, this, forward))
+        // A replay has the pattern in its own keys, so it must not put a
+        // prompt on screen and wait for someone to type it again.
+        if (replaying || !VimSearchPrompt.open(editor, this, forward))
             typedPattern = new StringBuilder();
     }
 
@@ -511,11 +523,21 @@ public final class VimInputHandler implements InputHandler
         if (pending == null || pattern == null || pattern.isEmpty())
             return;
 
+        // The pattern keys never went through dispatch, so add them to the
+        // recording by hand or '.' would replay a bare "d/" and hang on a
+        // prompt that never closes.
+        if (!replaying)
+            recording.append(pattern).append("<CR>");
+
         final VimSearch.Query query =
             new VimSearch.Query(pattern, pending.forward, false);
         state.setLastSearch(query);
         moveToMatch(editor, query, pending.operator, pending.count,
                     pending.countGiven);
+        // This ran outside dispatch, so finish the command here: otherwise
+        // the edited flag stays set and the next key typed is recorded as
+        // the last change.
+        afterCommand();
     }
 
     /** The prompt was abandoned, so the command it belonged to is too. */

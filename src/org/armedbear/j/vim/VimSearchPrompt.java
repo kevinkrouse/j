@@ -33,7 +33,6 @@ final class VimSearchPrompt extends DefaultTextFieldHandler
 {
     private final VimInputHandler handler;
     private final boolean forward;
-    private boolean finished;
 
     private VimSearchPrompt(Editor editor, HistoryTextField textField,
                             VimInputHandler handler, boolean forward)
@@ -75,7 +74,6 @@ final class VimSearchPrompt extends DefaultTextFieldHandler
     public void enter()
     {
         final String pattern = textField.getText();
-        finished = true;
         final History history = textField.getHistory();
         if (history != null && pattern != null && !pattern.isEmpty()) {
             history.append(pattern);
@@ -90,21 +88,16 @@ final class VimSearchPrompt extends DefaultTextFieldHandler
         editor.getDispatcher().eventHandled();
     }
 
+    /**
+     * Escape abandons the search, and the operator waiting on it with it.
+     *
+     * Clicking away does the same: {@code Dispatcher.mousePressed} calls
+     * escape on whatever handler the location bar has.
+     */
     @Override
     public void escape()
     {
-        finished = true;
         handler.searchCancelled();
         super.escape();
-    }
-
-    /**
-     * Losing focus any other way -- a mouse click elsewhere -- abandons the
-     * search too, or the operator would stay pending and swallow the next
-     * motion typed.
-     */
-    boolean isFinished()
-    {
-        return finished;
     }
 }
