@@ -172,6 +172,13 @@ public final class VimEx
         while (true) {
             skipSpace();
             final char sign = peek();
+            // After an address a bare number is an offset with the + left
+            // out: ":.2" is two lines on from here and ":'a1" is one on from
+            // the mark. Only after one, though -- ":3" on its own is line 3.
+            if (base != null && Character.isDigit(sign)) {
+                offset = (offset == null ? 0 : offset) + number();
+                continue;
+            }
             if (sign != '+' && sign != '-')
                 break;
             ++pos;

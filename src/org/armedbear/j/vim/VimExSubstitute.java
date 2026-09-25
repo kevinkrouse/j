@@ -42,7 +42,6 @@ final class VimExSubstitute
     /** The pattern and replacement of the last {@code :s}, for a bare {@code :s}. */
     private static String lastPattern;
     private static String lastReplacement;
-    private static String lastFlags = "";
 
     static void run(Editor editor, VimState state, VimEx.Command command)
         throws VimEx.BadCommand
@@ -52,8 +51,10 @@ final class VimExSubstitute
             // A bare :s repeats the last one over the current line.
             if (lastPattern == null)
                 throw new VimEx.BadCommand("E33: No previous substitute");
+            // The pattern and replacement come back, the flags do not: after
+            // :s/a/b/g a bare :s changes one match on the line, not all.
             substitute(editor, state, command.range, lastPattern,
-                       lastReplacement, lastFlags);
+                       lastReplacement, "");
             return;
         }
         final char separator = args.charAt(0);
@@ -79,7 +80,6 @@ final class VimExSubstitute
         }
         lastPattern = pattern;
         lastReplacement = replacement;
-        lastFlags = flags;
         // :s sets the search pattern too, so a following n finds it.
         state.setLastSearch(new VimSearch.Query(pattern, true, false));
         substitute(editor, state, command.range, pattern, replacement, flags);
@@ -290,6 +290,10 @@ final class VimExSubstitute
     {
         editor.setMark(new Position(line, line.length()));
         editor.setDot(line, 0);
+        // setDot moves the caret in the model; the display keeps its own
+        // column, and j pads an insert out to it. Without this, writing into
+        // an empty line indents it to wherever the last edit left the caret.
+        editor.moveCaretToDotCol();
         editor.deleteRegion();
         editor.setMark(null);
         editor.insertString(text);

@@ -42,7 +42,8 @@ public final class VimExCommands
         throws VimEx.BadCommand
     {
         final String name = command.name;
-        if (command.bang && !name.isEmpty())
+        // :sort! is the only one of these that means anything by it.
+        if (command.bang && !name.isEmpty() && !matches(name, "sor", "sort"))
             throw new VimEx.BadCommand("E477: No ! allowed");
         if (name.isEmpty()) {
             // A bare range means "go to that line", which is what :42 is.
@@ -56,6 +57,10 @@ public final class VimExCommands
         }
         if (matches(name, "y", "yank")) {
             yank(editor, state, command);
+            return true;
+        }
+        if (matches(name, "sor", "sort")) {
+            VimExSort.run(editor, state, command);
             return true;
         }
         if (matches(name, "s", "substitute")) {

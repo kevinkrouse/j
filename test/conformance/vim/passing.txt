@@ -9,9 +9,10 @@
 # document did not change" passes for the wrong reason while normal mode is
 # still swallowing keys it does not understand, so these are left out even
 # though they currently pass: Y, s_visual, *_no_word and
-# jumpToMark_next_sameline all test features that do not exist yet, and
-# ex_sort_oneline and ex_sort_pattern_alpha_reverse both expect the document
-# unchanged while :sort does not exist at all.
+# jumpToMark_next_sameline all test features that do not exist yet.
+# (ex_sort_oneline and ex_sort_pattern_alpha_reverse were held out for this
+# reason until M12b built :sort; they are listed below now that they pass
+# for the right one.)
 #
 # Cases where nvim disagrees with the CodeMirror corpus, verified with
 # tools/vim-oracle.sh. nvim wins, so these stay out of passing.txt and are
@@ -26,6 +27,13 @@
 #   * # g* (second halves)  the corpus expects Match to match match, which
 #                           needs ignorecase; vim defaults to noignorecase
 #                           and nvim agrees with us
+#   ex_sort_decimal*        the corpus spells the numeric sort flag "d"; vim
+#   (five cases)            spells it "n" and rejects "d" outright. Our "n"
+#                           gives exactly what these cases expect of "d"
+#   ex_sort_pattern_alpha_  the corpus reverses only the lines the pattern
+#   only_reverse            matched, keeping the rest in their original
+#                           order. nvim reverses the whole result, and so do
+#                           we: c b a3 y2 z1, not c b z1 y2 a3
 #   macro_last_ex_command_  our text is right (2@: gives bbbaa) but the
 #   register                corpus wants the caret at column 2. Vim leaves it
 #                           on the first non-blank of the changed line: 0,0
@@ -157,3 +165,23 @@ ex_substitute_range_offset
 ex_substitute_same_line
 ex_substitute_to_eof
 ex_substitute_to_relative_eof
+
+# M12b: :sort, and the address offsets
+ex_go_to_line_offset
+ex_go_to_mark_offset
+ex_sort
+ex_sort_hex
+ex_sort_ignoreCase
+ex_sort_octal
+ex_sort_oneline
+ex_sort_pattern_alpha
+ex_sort_pattern_alpha_longer
+ex_sort_pattern_alpha_num
+ex_sort_pattern_alpha_only
+ex_sort_pattern_alpha_reverse
+ex_sort_pattern_no_r
+ex_sort_range
+ex_sort_reverse
+ex_sort_unique
+ex_substitute_empty_arguments
+ex_substitute_range_implicit_offset

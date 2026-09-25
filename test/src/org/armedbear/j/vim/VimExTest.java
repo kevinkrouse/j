@@ -263,6 +263,109 @@ public class VimExTest
         assertEquals("abc", h.value());
     }
 
+    @Test
+    public void writingIntoAnEmptyLineDoesNotIndentIt()
+    {
+        // setDot moves the model caret; the display keeps its own column and
+        // j pads an insert out to it, so an empty line rewritten after a long
+        // one came out indented to the long one's width.
+        vim("1234567\n\n89", 0, 0).keys(":").exCommand("%s/^/X/");
+        assertEquals("X1234567\nX\nX89", h.value());
+    }
+
+    // ----------------------------------------------------------- sort
+
+    @Test
+    public void sortWithNoRangeTakesTheWholeBuffer()
+    {
+        // Unlike :d and :y, which take the current line.
+        vim("b\nZ\nd\nc\na", 0, 0).keys(":").exCommand("sort");
+        assertEquals("Z\na\nb\nc\nd", h.value());
+        at(0, 0);
+    }
+
+    @Test
+    public void sortTakesARangeAndABang()
+    {
+        vim("b\nd\nc\na", 0, 0).keys(":").exCommand("2,3sort");
+        assertEquals("b\nc\nd\na", h.value());
+        h.close();
+        vim("b\nd\nc\na", 0, 0).keys(":").exCommand("sort!");
+        assertEquals("d\nc\nb\na", h.value());
+    }
+
+    @Test
+    public void sortIgnoresCaseAndDropsDuplicatesOnRequest()
+    {
+        vim("b\nZ\nd\nc\na", 0, 0).keys(":").exCommand("sort i");
+        assertEquals("a\nb\nc\nd\nZ", h.value());
+        h.close();
+        vim("b\nZ\na\na\nd\na\nc\na", 0, 0).keys(":").exCommand("sort u");
+        assertEquals("Z\na\nb\nc\nd", h.value());
+    }
+
+    @Test
+    public void sortNReadsTheFirstNumberOutOfEachLine()
+    {
+        // Not the whole line: "d3" and " s5" sort as 3 and 5.
+        vim("6\nd3\n s5\n.9", 0, 0).keys(":").exCommand("sort n");
+        assertEquals("d3\n s5\n6\n.9", h.value());
+    }
+
+    @Test
+    public void aMinusSignInFrontOfTheNumberCounts()
+    {
+        vim("6\nd3\n s5\n.9\nz-9", 0, 0).keys(":").exCommand("sort n");
+        assertEquals("z-9\nd3\n s5\n6\n.9", h.value());
+    }
+
+    @Test
+    public void aLineWithNoNumberSortsBeforeEveryLineThatHasOne()
+    {
+        // And keeps its place among the others: not the same as counting it
+        // zero, which would put it after the negative.
+        vim("x\n5\nz-9\ny", 0, 0).keys(":").exCommand("sort n");
+        assertEquals("x\ny\nz-9\n5", h.value());
+    }
+
+    @Test
+    public void sortXAndSortOReadTheirOwnBases()
+    {
+        vim("6\nd3\n s5\n&0xB\n.9", 0, 0).keys(":").exCommand("sort x");
+        assertEquals(" s5\n6\n.9\n&0xB\nd3", h.value());
+        h.close();
+        // 9 and 8 are not octal digits, so those lines have no number.
+        vim("6\nd3\n s5\n.9\n.8", 0, 0).keys(":").exCommand("sort o");
+        assertEquals(".9\n.8\nd3\n s5\n6", h.value());
+    }
+
+    @Test
+    public void aPatternWithRSortsByTheMatch()
+    {
+        vim("z\ny\nc1\nb2\na3", 0, 0).keys(":").exCommand("sort r/[a-z]/");
+        assertEquals("a3\nb2\nc1\ny\nz", h.value());
+    }
+
+    @Test
+    public void aPatternWithoutRSortsByWhatFollowsTheMatch()
+    {
+        // And a line the pattern misses is not a separate category: its key
+        // is the empty string, so it sorts with the lines whose match left
+        // nothing after it rather than ahead of them.
+        vim("1 in c \n z \n2 in d \n in\n3 in a \n", 0, 0)
+            .keys(":").exCommand("sort /in/");
+        assertEquals(" z \n in\n\n3 in a \n1 in c \n2 in d ", h.value());
+    }
+
+    @Test
+    public void sortRejectsAFlagItDoesNotKnow()
+    {
+        // The corpus spells the numeric flag "d"; vim spells it "n" and
+        // refuses "d", which is what we do.
+        vim("6\nd3", 0, 0).keys(":").exCommand("sort d");
+        assertEquals("6\nd3", h.value());
+    }
+
     // ------------------------------------------------------ refusals
 
     @Test
