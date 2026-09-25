@@ -4595,8 +4595,33 @@ modified in the Properties dialog (see <a href="#properties">properties</a>).
 <p>
 Sorts the lines in the selected region in ascending lexicographic order, based
 on the Unicode value of the characters in each line.
+<p>
+It also takes an argument, spelt the way vim's <code>:sort</code> spells it,
+so that the two are the same command:
+<table border="0" cellpadding="2">
+<tr><td valign="top"><code>i</code></td>
+    <td>compare without regard to case</td></tr>
+<tr><td valign="top"><code>u</code></td>
+    <td>keep only the first of each run of equal lines</td></tr>
+<tr><td valign="top"><code>n</code>, <code>x</code>, <code>o</code>,
+    <code>b</code></td>
+    <td>compare the first number in the line, read as decimal, hexadecimal,
+        octal or binary. A line with no such number sorts before every line
+        that has one, keeping its place among them.</td></tr>
+<tr><td valign="top"><code>/pattern/</code></td>
+    <td>compare what follows the first match rather than the whole line; a
+        line the pattern misses compares as empty</td></tr>
+<tr><td valign="top"><code>r</code></td>
+    <td>with a pattern, compare the match itself instead</td></tr>
+</table>
+<p>
+So <code>sortLines n</code> orders by number, and
+<code>sortLines ru /^[^:]*/</code> orders by everything up to the first colon.
 <br><br>
 <b>Default key mapping:</b> None
+<br><br>
+<b>See also:</b> the <code>:sort</code> command in
+<a href="editmodes.html">vim edit mode</a>, which is the same sort.
 <br><br>
 </dl><!--<hr>-->
 

@@ -23,11 +23,134 @@ package org.armedbear.j;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.regex.PatternSyntaxException;
 import javax.swing.undo.CompoundEdit;
 
+/**
+ * Putting lines in order, for {@code sortLines} and for vim's {@code :sort}.
+ *
+ * The comparison is over a <em>key</em> taken from each line rather than over
+ * the line itself, which is what every option here really selects: a pattern
+ * picks out the text to compare, and a radix reads a number out of it. With
+ * no options at all the key is the whole line, which is what {@code sortLines}
+ * has always done.
+ */
 public final class Sort
 {
+    private Sort()
+    {
+    }
+
+    /**
+     * How to compare, in vim's {@code :sort} vocabulary.
+     *
+     * The flag letters are vim's, so a j key map and an ex command describe
+     * the same sort the same way.
+     */
+    public static final class Options
+    {
+        /** i -- compare without regard to case. */
+        public boolean ignoreCase;
+        /** u -- drop a line whose key repeats the one before it. */
+        public boolean unique;
+        /** ! -- reverse the result. */
+        public boolean reverse;
+        /** r -- compare the match itself rather than what follows it. */
+        public boolean useMatch;
+        /** n, x, o, b, f -- the base to read a number in, or 0 for text. */
+        public int radix;
+        /** The pattern picking out the key, or null for the whole line. */
+        public Pattern pattern;
+
+        /**
+         * Reads a vim {@code :sort} argument: flag letters, then an optional
+         * {@code /pattern/}.
+         *
+         * @throws IllegalArgumentException for a flag that is not one of
+         *         vim's, so a typo is reported rather than ignored
+         */
+        public static Options parse(String args)
+        {
+            final Options options = new Options();
+            final String s = args == null ? "" : args.trim();
+            final int slash = s.indexOf('/');
+            final String flags = (slash < 0 ? s : s.substring(0, slash))
+                                 .replace(" ", "");
+            for (int i = 0; i < flags.length(); i++) {
+                final char c = flags.charAt(i);
+                switch (c) {
+                    case 'i': options.ignoreCase = true; break;
+                    case 'u': options.unique = true; break;
+                    case 'r': options.useMatch = true; break;
+                    case 'x': options.radix = 16; break;
+                    case 'o': options.radix = 8; break;
+                    case 'b': options.radix = 2; break;
+                    case 'n': case 'f': options.radix = 10; break;
+                    default:
+                        throw new IllegalArgumentException(
+                            "E475: Invalid argument: " + c);
+                }
+            }
+            if (slash >= 0) {
+                final int close = s.indexOf('/', slash + 1);
+                final String source = close < 0 ? s.substring(slash + 1)
+                                                : s.substring(slash + 1, close);
+                if (!source.isEmpty())
+                    options.pattern = compile(source);
+            }
+            return options;
+        }
+
+        private static Pattern compile(String source)
+        {
+            try {
+                return Pattern.compile(source);
+            }
+            catch (PatternSyntaxException e) {
+                throw new IllegalArgumentException(
+                    "E486: Pattern not found: " + source);
+            }
+        }
+    }
+
+    /** A line and the key it is compared by. */
+    private static final class Entry
+    {
+        final String text;
+        final String key;
+        /** The number read from the key, or null when the sort is textual. */
+        final Long number;
+        /** False when a radix is in force and the line has no number. */
+        final boolean keyed;
+
+        Entry(String text, String key, Long number, boolean keyed)
+        {
+            this.text = text;
+            this.key = key;
+            this.number = number;
+            this.keyed = keyed;
+        }
+    }
+
+    /**
+     * The {@code sortLines} command: sorts the lines the selection covers.
+     *
+     * A whole-line comparison, as it has always been. The parameterised form
+     * takes vim's flags.
+     */
     public static void sortLines()
+    {
+        sortLines("");
+    }
+
+    /**
+     * {@code sortLines} with vim's {@code :sort} flags, as in
+     * {@code sortLines n} or {@code sortLines ru /:/}.
+     */
+    public static void sortLines(String parameters)
     {
         final Editor editor = Editor.currentEditor();
         if (editor.getMark() == null)
@@ -37,6 +160,14 @@ public final class Sort
             return;
         if (!editor.checkReadOnly())
             return;
+        final Options options;
+        try {
+            options = Options.parse(parameters);
+        }
+        catch (IllegalArgumentException e) {
+            editor.status(e.getMessage());
+            return;
+        }
         final Buffer buffer = editor.getBuffer();
         try {
             buffer.lockWrite();
@@ -46,49 +177,211 @@ public final class Sort
             return;
         }
         try {
-            sortLinesInternal(editor, buffer, region);
+            // getEndLine() is the line after the last one selected, so the
+            // last line to sort is the one before it.
+            sortLines(editor, region.getBeginLine(),
+                      region.getEndLine().previous(), options);
         }
         finally {
             buffer.unlockWrite();
         }
     }
 
-    private static void sortLinesInternal(Editor editor, Buffer buffer, Region region)
+    /**
+     * Sorts a span of lines, both ends included.
+     *
+     * The text of each line is replaced where it stands rather than the span
+     * being cut and re-inserted, which keeps this clear of the end-of-buffer
+     * newline rules and of the caret column entirely. Only {@code unique}
+     * makes the span shorter, and the lines it leaves over are removed at the
+     * end.
+     *
+     * <p>The caller arranges the write lock; the {@code sortLines} command
+     * above does, and a modal command runs under the dispatcher's.
+     *
+     * @return the number of lines removed
+     */
+    public static int sortLines(Editor editor, Line first, Line last,
+                                Options options)
     {
-        ArrayList<String> arrayList = new ArrayList<String>();
-        for (Line line = region.getBeginLine(); line != region.getEndLine(); line = line.next())
-            arrayList.add(line.getText());
-        Collections.sort(arrayList, new SortLinesComparator());
-        CompoundEdit compoundEdit = null;
-        int i = 0;
-        for (Line line = region.getBeginLine(); line != region.getEndLine(); line = line.next(), i++) {
-            String newText = arrayList.get(i);
-            if (!newText.equals(line.getText())) {
-                if (compoundEdit == null) {
-                    compoundEdit = new CompoundEdit();
-                    compoundEdit.addEdit(new UndoMove(editor));
-                }
-                compoundEdit.addEdit(new UndoLineEdit(buffer, line));
-                line.setText(newText);
-            }
+        if (first == null || last == null)
+            return 0;
+        final Buffer buffer = editor.getBuffer();
+        final List<Entry> entries = new ArrayList<Entry>();
+        for (Line line = first; line != null; line = line.next()) {
+            entries.add(entryFor(text(line), options));
+            if (line == last)
+                break;
         }
-        if (compoundEdit != null) {
-            compoundEdit.end();
+        sort(entries, options);
+
+        final List<String> wanted = new ArrayList<String>(entries.size());
+        String previous = null;
+        for (Entry e : entries) {
+            if (options.unique && previous != null && previous.equals(e.key))
+                continue;
+            previous = e.key;
+            wanted.add(e.text);
+        }
+
+        CompoundEdit compoundEdit = new CompoundEdit();
+        compoundEdit.addEdit(new UndoMove(editor));
+        boolean changed = false;
+        Line line = first;
+        int i = 0;
+        for (; i < wanted.size() && line != null; i++, line = line.next()) {
+            if (!wanted.get(i).equals(text(line))) {
+                compoundEdit.addEdit(new UndoLineEdit(buffer, line));
+                line.setText(wanted.get(i));
+                changed = true;
+            }
+            if (line == last)
+                break;
+        }
+        compoundEdit.end();
+        if (changed) {
             buffer.addEdit(compoundEdit);
             buffer.modified();
         }
+
+        final int removed = entries.size() - wanted.size();
+        if (removed > 0)
+            removeLines(editor, wanted.size(), first, last);
+
         buffer.setNeedsParsing(true);
         buffer.getFormatter().parseBuffer();
         buffer.repaint();
+        return removed;
     }
 
-    private static class SortLinesComparator implements Comparator<String>
+    /** Takes away the lines a unique sort left over, at the end of the span. */
+    private static void removeLines(Editor editor, int keep, Line first,
+                                    Line last)
     {
-        SortLinesComparator() {}
+        Line from = first;
+        for (int i = 0; i < keep && from != null; i++)
+            from = from.next();
+        if (from == null)
+            return;
+        // The span ends at the start of the line after the last one, so that
+        // the newlines go with the lines. At the end of the buffer there is
+        // no such line, so the newline before the span goes instead.
+        final Line after = last.next();
+        final Editor ed = editor;
+        if (after != null) {
+            ed.setMark(new Position(after, 0));
+            ed.setDot(from, 0);
+        } else {
+            final Line before = from.previous();
+            ed.setMark(new Position(last, last.length()));
+            ed.setDot(before != null ? before : from,
+                      before != null ? before.length() : 0);
+        }
+        ed.moveCaretToDotCol();
+        ed.deleteRegion();
+        ed.setMark(null);
+    }
 
-        public final int compare(String s1, String s2)
+    private static String text(Line line)
+    {
+        return line.getText() == null ? "" : line.getText();
+    }
+
+    /**
+     * The key a line is compared by.
+     *
+     * With a pattern, {@code useMatch} compares the match itself and its
+     * absence compares what follows the match -- which is the point of
+     * {@code sort /.*:/} over a file of prefixed lines.
+     */
+    private static Entry entryFor(String text, Options options)
+    {
+        String key = text;
+        if (options.pattern != null) {
+            final Matcher matcher = options.pattern.matcher(text);
+            key = !matcher.find() ? ""
+                  : options.useMatch ? matcher.group()
+                                     : text.substring(matcher.end());
+        }
+        if (options.radix != 0) {
+            // A line with no number of this base sorts before every line that
+            // has one, keeping its place among the others. Not the same as
+            // counting it zero, which would put it after a negative.
+            final Long number = numberIn(key, options.radix);
+            return new Entry(text, key, number, number != null);
+        }
+        // A line the pattern did not match is not a separate category: its
+        // key is just the empty string, which sorts first anyway but sorts
+        // *with* the lines whose match left nothing after it.
+        return new Entry(text, options.ignoreCase ? key.toLowerCase() : key,
+                         null, true);
+    }
+
+    /**
+     * The first number of this base in the text, or null if there is none.
+     *
+     * Scanned for rather than required, so "d3" and " s5" sort as 3 and 5. A
+     * minus sign directly in front counts, which is what puts "z-9" first.
+     */
+    private static Long numberIn(String text, int radix)
+    {
+        for (int i = 0; i < text.length(); i++) {
+            if (Character.digit(text.charAt(i), radix) < 0)
+                continue;
+            int start = i;
+            // 0x before a hex number belongs to it, rather than being read as
+            // the digit zero followed by a stray x.
+            if (radix == 16 && text.charAt(i) == '0' && i + 1 < text.length()
+                && (text.charAt(i + 1) == 'x' || text.charAt(i + 1) == 'X')
+                && i + 2 < text.length()
+                && Character.digit(text.charAt(i + 2), 16) >= 0)
+                start = i + 2;
+            int end = start;
+            while (end < text.length()
+                   && Character.digit(text.charAt(end), radix) >= 0)
+                ++end;
+            final boolean negative = start > 0 && text.charAt(start - 1) == '-';
+            try {
+                final long value =
+                    Long.parseLong(text.substring(start, end), radix);
+                return negative ? -value : value;
+            }
+            catch (NumberFormatException e) {
+                return null;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Orders the entries, keeping equal ones as they were.
+     *
+     * Reversing reverses the result rather than the comparison, so the lines
+     * with no number stay together at what is now the end.
+     */
+    private static void sort(List<Entry> entries, Options options)
+    {
+        entries.sort(new EntryComparator(options.radix != 0));
+        if (options.reverse)
+            Collections.reverse(entries);
+    }
+
+    private static class EntryComparator implements Comparator<Entry>
+    {
+        private final boolean numeric;
+
+        EntryComparator(boolean numeric)
         {
-            return s1.compareTo(s2);
+            this.numeric = numeric;
+        }
+
+        public final int compare(Entry a, Entry b)
+        {
+            if (!a.keyed || !b.keyed)
+                return a.keyed == b.keyed ? 0 : (a.keyed ? 1 : -1);
+            if (numeric)
+                return Long.compare(a.number, b.number);
+            return a.key.compareTo(b.key);
         }
     }
 }
