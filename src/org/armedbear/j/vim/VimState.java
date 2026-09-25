@@ -54,6 +54,17 @@ public final class VimState
     private StringBuilder replaced;
 
     /**
+     * Where the last replace keystroke left the caret.
+     *
+     * The record of what R typed over only lines up with the text while the
+     * caret is still where R left it. An arrow key, a mouse click or one of
+     * j's own commands bound to a modified key can move it without this
+     * layer seeing anything, so BS checks rather than assumes.
+     */
+    private Line replacedLine;
+    private int replacedCaret;
+
+    /**
      * Marks a replace keystroke that added a character rather than typing
      * over one. Not a character anyone can type: U+FFFF is a noncharacter,
      * and it is also what AWT means by "this key produced none".
@@ -104,42 +115,45 @@ public final class VimState
         }
         mode = insertMode;
         replaced = insertMode == VimMode.REPLACE ? new StringBuilder() : null;
+        replacedLine = null;
         caretShapeChanged(editor);
     }
 
-    /** Notes what a replace keystroke typed over, or {@link #APPENDED}. */
-    public void pushReplaced(char c)
+    /**
+     * Notes what a replace keystroke typed over, or {@link #APPENDED}, and
+     * where it left the caret.
+     */
+    public void pushReplaced(char c, Line line, int caret)
     {
-        if (replaced != null)
-            replaced.append(c);
+        if (replaced == null)
+            return;
+        replaced.append(c);
+        replacedLine = line;
+        replacedCaret = caret;
     }
 
     /**
-     * Takes back the last replace keystroke, or 0 if there is nothing left.
+     * Takes back the last replace keystroke, or 0 if there is none to take.
      *
-     * Nothing left means BS has reached where R started, or the caret has
-     * moved on its own since -- either way vim has nothing of its own to
-     * restore and simply steps left.
+     * None to take means BS has reached where R started, or the caret is no
+     * longer where the last keystroke left it -- an arrow, a click, a
+     * mapping that ran one of j's own commands. Vim has nothing of its own
+     * to restore in either case, and a remembered character written at a
+     * column R never visited would silently corrupt the line. BS always
+     * lands one column left, so that is where the next one expects to be.
      */
-    public char popReplaced()
+    public char popReplaced(Line line, int caret)
     {
         if (replaced == null || replaced.length() == 0)
             return 0;
+        if (line != replacedLine || caret != replacedCaret) {
+            replaced.setLength(0);
+            return 0;
+        }
         final char c = replaced.charAt(replaced.length() - 1);
         replaced.setLength(replaced.length() - 1);
+        replacedCaret = caret - 1;
         return c;
-    }
-
-    /**
-     * Forgets what R has typed over so far.
-     *
-     * Called when the caret moves by something other than typing, since after
-     * that the record no longer lines up with the characters BS would reach.
-     */
-    public void forgetReplaced()
-    {
-        if (replaced != null)
-            replaced.setLength(0);
     }
 
     /**
@@ -149,6 +163,7 @@ public final class VimState
     public void endInsert(Editor editor)
     {
         replaced = null;
+        replacedLine = null;
         if (insertEdit == null)
             return;
         final CompoundEdit edit = insertEdit;

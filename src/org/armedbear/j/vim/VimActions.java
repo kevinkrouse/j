@@ -482,11 +482,11 @@ public final class VimActions
         final Line line = dot.getLine();
         final int offset = dot.getOffset();
         if (offset >= line.length()) {
-            state.pushReplaced(VimState.APPENDED);
             editor.insertString(String.valueOf(c));
+            noteReplaced(editor, state, VimState.APPENDED);
             return;
         }
-        state.pushReplaced(line.charAt(offset));
+        final char was = line.charAt(offset);
         final CompoundEdit edit = editor.getBuffer().beginCompoundEdit();
         try {
             editor.setMark(new Position(line, offset + 1));
@@ -498,6 +498,15 @@ public final class VimActions
         finally {
             editor.getBuffer().endCompoundEdit(edit);
         }
+        noteReplaced(editor, state, was);
+    }
+
+    /** Records a replace keystroke against where the edit left the caret. */
+    private static void noteReplaced(Editor editor, VimState state, char was)
+    {
+        final Position now = editor.getDot();
+        if (now != null)
+            state.pushReplaced(was, now.getLine(), now.getOffset());
     }
 
     /**
@@ -514,7 +523,7 @@ public final class VimActions
             return;
         final Line line = dot.getLine();
         final int offset = dot.getOffset() - 1;
-        final char was = state.popReplaced();
+        final char was = state.popReplaced(line, dot.getOffset());
         if (was == 0) {
             editor.setDot(line, offset);
             editor.moveCaretToDotCol();

@@ -55,7 +55,9 @@ registers, marks and the dot command:
 <tr><td valign="top"><b>replace</b></td>
     <td><code>R</code>, which types over what is already there until
         <code>Escape</code>. <code>Backspace</code> walks the session
-        backwards, putting back each character it typed over.</td></tr>
+        backwards, putting back each character it typed over &mdash; until
+        the caret moves by something other than typing, after which, as in
+        vim, it only steps left.</td></tr>
 <tr><td valign="top"><b>text objects</b></td>
     <td><code>iw aw iW aW</code>, the quote pairs
         <code>i" a" i' a'</code> and the backtick pair,
@@ -195,10 +197,6 @@ These are known and deliberate:
     <code>autoindent</code> set.</li>
 <li>A count before an insert does not repeat it: <code>3iab&lt;Esc&gt;</code>
     and <code>3Rab&lt;Esc&gt;</code> type once, not three times.</li>
-<li>In replace mode, <code>Backspace</code> restores only what was typed
-    over since the caret last moved on its own. After <code>Enter</code> or
-    an arrow key it just steps left, where vim would keep walking back
-    across the move.</li>
 </ul>
 <hr>
 <a href="contents.html">Top</a>

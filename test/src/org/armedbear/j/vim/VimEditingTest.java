@@ -288,6 +288,51 @@ public class VimEditingTest
     }
 
     @Test
+    public void backspaceGivesUpOnceSomethingElseMovesTheCaret()
+    {
+        // The record only lines up with the text while the caret is where the
+        // last keystroke left it. <C-Left> is one of j's own bindings, so
+        // nothing in the modal layer sees it move -- and a remembered
+        // character written at a column R never visited corrupts the line.
+        vim("abcdef ghijkl\n").cursor(0, 8).keys("RXY");
+        h.assertText("abcdef gXYjkl\n");
+        h.keys("<C-Left>");
+        assertEquals("the binding really does move the caret", 7, h.offset());
+        h.keys("<BS><Esc>");
+        h.assertText("abcdef gXYjkl\n");
+    }
+
+    @Test
+    public void shiftBackspaceIsStillBackspace()
+    {
+        // With any modifier it used to reach j's own backspace, which
+        // deletes -- so R shortened the line, which R cannot do.
+        vim("abcdef\n").cursor(0, 0).keys("Rxy<S-BS><Esc>");
+        h.assertText("xbcdef\n");
+        at(0, 0);
+    }
+
+    @Test
+    public void replaceModeTypesOverWithTab()
+    {
+        // Tab carries no character, so the typed path never sees it; passing
+        // it through inserted an indent instead of replacing one character.
+        vim("abcdef\n").cursor(0, 0).keys("R<Tab>q<Esc>");
+        h.assertText("\tqcdef\n");
+        at(0, 1);
+    }
+
+    @Test
+    public void backspaceKeepsItsRecordAcrossADelete()
+    {
+        // Delete does not move the caret, so what R typed over still lies
+        // where the record says it does.
+        vim("abcdef\n").cursor(0, 0).keys("Rxy<Del><BS><Esc>");
+        h.assertText("xbdef\n");
+        at(0, 0);
+    }
+
+    @Test
     public void undoTakesBackTheWholeReplaceSession()
     {
         undoLeavesCaretAt("abcdef\nx", 0, 1, "Rxy<Esc>", 0, 1);

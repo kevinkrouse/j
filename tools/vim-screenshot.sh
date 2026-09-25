@@ -50,12 +50,14 @@ if ! kill -0 $j 2>/dev/null; then
     exit 1
 fi
 
-# Either grabber will do. ImageMagick's import is first because ffmpeg only
-# has x11grab when it was built against libxcb, and a build without it fails
-# here rather than at the point where you would look for it.
+# Either grabber will do. ImageMagick's import is first because ffmpeg only has
+# x11grab when it was built against libxcb, and a build without it fails here
+# rather than at the point where you would look for it. The ffmpeg probe reads
+# the demuxer list: "-f x11grab -h" answers the help and exits 0 whether or not
+# the format exists, so it proves nothing.
 if command -v import >/dev/null 2>&1; then
     shot() { import -display $display -window root "$out/$1.png"; }
-elif ffmpeg -hide_banner -f x11grab -h >/dev/null 2>&1; then
+elif [ -n "$(ffmpeg -hide_banner -demuxers 2>/dev/null | grep -w x11grab)" ]; then
     shot() {
         ffmpeg -loglevel error -y -f x11grab -video_size 900x500 -i $display \
                -frames:v 1 "$out/$1.png"

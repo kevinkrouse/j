@@ -161,16 +161,23 @@ public final class VimInputHandler implements InputHandler
             if (recordingEdit && !replaying && isNamedKey(keyCode))
                 recording.append(KeyNotation.name(keyCode, event.getKeyChar(),
                                                   modifiers));
-            if (state.getMode() == VimMode.REPLACE && modifiers == 0) {
-                if (keyCode == KeyEvent.VK_BACK_SPACE) {
+            if (state.getMode() == VimMode.REPLACE) {
+                // Shift-Backspace is still Backspace to vim. Held with Ctrl,
+                // Alt or Meta it is one of j's own bindings, so it goes
+                // through -- and whatever that does to the caret, the next
+                // Backspace notices, because the record is checked against
+                // where the last keystroke left it.
+                if (keyCode == KeyEvent.VK_BACK_SPACE && !isChorded(modifiers)) {
                     VimActions.replaceBackspace(editor, state);
                     return Result.CONSUMED;
                 }
-                // Enter, an arrow, anything that moves the caret itself: what
-                // R typed over is no longer what lies to the left of it, so
-                // BS has nothing of its own to give back from here on.
-                if (isNamedKey(keyCode))
-                    state.forgetReplaced();
+                // Tab arrives with no character, so the typed path never sees
+                // it, and passing it through would insert rather than type
+                // over. Vim writes one tab over one character.
+                if (keyCode == KeyEvent.VK_TAB && !isChorded(modifiers)) {
+                    VimActions.replaceTypedCharacter(editor, state, '\t');
+                    return Result.CONSUMED;
+                }
             }
             return Result.PASS_THROUGH;
         }
@@ -192,7 +199,15 @@ public final class VimInputHandler implements InputHandler
         return builder.isEmpty() ? Result.PASS_THROUGH : Result.CONSUMED;
     }
 
+    /** True when a modifier other than Shift is held. */
+    private static boolean isChorded(int modifiers)
+    {
+        return (modifiers & (Constants.CTRL_MASK | Constants.ALT_MASK
+                             | Constants.META_MASK)) != 0;
+    }
+
     private Result keyTyped(Editor editor, JEvent event)
+
     {
         if (typedPattern != null)
             return collectPattern(editor, 0, event.getKeyChar());
@@ -396,8 +411,10 @@ public final class VimInputHandler implements InputHandler
                 else
                     editor.backspace();
             } else if (stroke.keyCode == KeyEvent.VK_ENTER) {
-                state.forgetReplaced();
                 editor.newlineAndIndent();
+            } else if (stroke.keyCode == KeyEvent.VK_TAB
+                       && state.getMode() == VimMode.REPLACE) {
+                VimActions.replaceTypedCharacter(editor, state, '\t');
             } else if (stroke.keyChar != KeyEvent.CHAR_UNDEFINED) {
                 if (state.getMode() == VimMode.REPLACE)
                     VimActions.replaceTypedCharacter(editor, state,
