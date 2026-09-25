@@ -46,6 +46,60 @@ public class VimEditingTest
 
     // ------------------------------------------------------------ undo/redo
 
+    // j's UndoInsertString works out how much to take back from where the
+    // caret is when undo runs, not from where the insert left it. So any
+    // command that repositions the caret after editing has to record that
+    // move, or undo takes back the wrong lines. Each of these corrupted the
+    // buffer before it did.
+
+    /** Runs keys, undoes once, and requires the text to be back as it was. */
+    private void undoRestores(String start, String keys)
+    {
+        h = EditorHarness.create().vim();
+        h.value(start).cursor(0, 0).keys(keys);
+        h.keys("u");
+        assertEquals(start + " after " + keys + " then u", start, h.value());
+        h.close();
+        h = null;
+    }
+
+    @Test
+    public void undoingAPutInTheMiddleOfTheBufferPutsItBack()
+    {
+        // Used to duplicate the line below instead of removing the pasted one.
+        undoRestores("abcdef\nx", "yyp");
+        undoRestores("abcdef\nx", "yyP");
+        undoRestores("one\ntwo\nthree", "jyyp");
+    }
+
+    @Test
+    public void undoingACharacterPutPutsItBack()
+    {
+        undoRestores("abc\ndef", "ylp");
+    }
+
+    @Test
+    public void undoingACountedJoinPutsEveryLineBack()
+    {
+        // 3J then u used to lose a line outright.
+        undoRestores("a\nb\nc\nd", "3J");
+        undoRestores("one\ntwo\nthree\nfour", "4J");
+    }
+
+    @Test
+    public void theWholeYankPutUndoSequenceFromAnEmptyBuffer()
+    {
+        h = EditorHarness.create().vim();
+        h.value("").cursor(0, 0).keys("iabcdef<Esc>");
+        assertEquals("abcdef", h.value());
+        h.keys("yyp");
+        assertEquals("abcdef\nabcdef", h.value());
+        h.keys("u");
+        assertEquals("the duplicate goes", "abcdef", h.value());
+        h.keys("u");
+        assertEquals("then the insert", "", h.value());
+    }
+
     @Test
     public void uUndoesAndCtrlRRedoes()
     {

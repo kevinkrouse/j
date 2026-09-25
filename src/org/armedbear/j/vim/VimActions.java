@@ -19,6 +19,7 @@ import javax.swing.undo.CompoundEdit;
 import org.armedbear.j.Editor;
 import org.armedbear.j.Line;
 import org.armedbear.j.Position;
+import org.armedbear.j.SimpleEdit;
 
 /**
  * The commands that are neither motions nor operators, by the names the key
@@ -163,13 +164,11 @@ public final class VimActions
                 editor.deleteRegion();
                 editor.setMark(null);
                 final Position joined = editor.getDot();
-                if (!separator.isEmpty()) {
+                if (!separator.isEmpty())
                     editor.insertString(separator);
-                    editor.setDot(joined.getLine(), head.length());
-                } else {
-                    editor.setDot(joined.getLine(), head.length());
-                }
-                editor.moveCaretToDotCol();
+                // Recorded, so that a second join's undo finds the caret
+                // where the first one's edit left it.
+                moveAfterEdit(editor, joined.getLine(), head.length());
             }
         }
         finally {
@@ -395,7 +394,24 @@ public final class VimActions
     {
         if (line == null)
             return;
-        editor.setDot(line, VimMotions.firstNonBlank(line));
+        moveAfterEdit(editor, line, VimMotions.firstNonBlank(line));
+    }
+
+    /**
+     * Puts the caret somewhere after an insert, recording the move.
+     *
+     * j's {@code UndoInsertString} works out how much text to take back from
+     * where the caret is <em>when undo runs</em>, not from where the insert
+     * left it. Moving the caret afterwards without a record would therefore
+     * make undo take back the wrong lines -- p in the middle of a buffer then
+     * u used to duplicate the line below instead of removing the pasted one.
+     * A compound edit undoes its parts in reverse, so recording the move puts
+     * the caret back first and the insert then sees what it expects.
+     */
+    private static void moveAfterEdit(Editor editor, Line line, int offset)
+    {
+        editor.addUndo(SimpleEdit.MOVE);
+        editor.setDot(line, offset);
         editor.moveCaretToDotCol();
     }
 
@@ -410,10 +426,8 @@ public final class VimActions
         editor.insertString(text);
         // Vim leaves the caret on the last character put, not past it.
         final Position now = editor.getDot();
-        if (now != null && now.getOffset() > 0) {
-            editor.setDot(now.getLine(), now.getOffset() - 1);
-            editor.moveCaretToDotCol();
-        }
+        if (now != null && now.getOffset() > 0)
+            moveAfterEdit(editor, now.getLine(), now.getOffset() - 1);
     }
 
     /** i, a, I and A: the same action, differing only in where it starts. */
