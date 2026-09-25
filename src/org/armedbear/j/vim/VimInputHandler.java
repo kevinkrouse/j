@@ -148,6 +148,15 @@ public final class VimInputHandler implements InputHandler
         if (isEscape(keyCode, modifiers))
             return escape(editor);
 
+        if (typedPattern != null) {
+            // Enter and Backspace are the only key-coded ones a pattern
+            // cares about; the characters arrive as key typed.
+            if (keyCode == KeyEvent.VK_ENTER
+                || keyCode == KeyEvent.VK_BACK_SPACE)
+                return collectPattern(editor, keyCode, KeyEvent.CHAR_UNDEFINED);
+            return Result.DEFER;
+        }
+
         if (!state.getMode().isCommandMode()) {
             if (recordingEdit && !replaying && isNamedKey(keyCode))
                 recording.append(KeyNotation.name(keyCode, event.getKeyChar(),
@@ -174,6 +183,9 @@ public final class VimInputHandler implements InputHandler
 
     private Result keyTyped(Editor editor, JEvent event)
     {
+        if (typedPattern != null)
+            return collectPattern(editor, 0, event.getKeyChar());
+
         if (!state.getMode().isCommandMode()) {
             if (recordingEdit && !replaying)
                 recording.append(KeyNotation.name(0, event.getKeyChar(), 0));
@@ -187,6 +199,10 @@ public final class VimInputHandler implements InputHandler
     {
         builder.reset();
         fallback = null;
+        // A / whose prompt never delivered leaves its operator parked, and
+        // it would swallow the next motion typed.
+        pendingSearch = null;
+        typedPattern = null;
         // "a then Escape means the register was never used; without this it
         // would silently attach itself to some unrelated later command.
         state.clearPendingRegister();
@@ -388,13 +404,168 @@ public final class VimInputHandler implements InputHandler
         final VimCommand operator = builder.getOperator();
         builder.reset();
 
-        if (command.getKind() == VimCommand.Kind.TEXT_OBJECT)
+        if (command.getKind() == VimCommand.Kind.SEARCH)
+            startSearch(editor, operator, command, count, countGiven);
+        else if (command.getKind() == VimCommand.Kind.TEXT_OBJECT)
             runTextObject(editor, operator, command, count, countGiven);
         else if (operator != null)
             runOperator(editor, operator, command, count, countGiven, character);
         else
             run(editor, command, count, countGiven, character, depth);
         return true;
+    }
+
+    // ------------------------------------------------------------- search
+
+    /**
+     * What a command was in the middle of when {@code /} opened its prompt.
+     *
+     * Every other command runs to completion inside one keystroke; a search
+     * cannot, because the pattern is typed somewhere else entirely and the
+     * engine does not see those keys at all. So the half-built command is
+     * parked here until the prompt says what was typed.
+     */
+    private static final class PendingSearch
+    {
+        final VimCommand operator;
+        final int count;
+        final boolean countGiven;
+        final boolean forward;
+
+        PendingSearch(VimCommand operator, int count, boolean countGiven,
+                      boolean forward)
+        {
+            this.operator = operator;
+            this.count = count;
+            this.countGiven = countGiven;
+            this.forward = forward;
+        }
+    }
+
+    private PendingSearch pendingSearch;
+
+    /**
+     * The pattern so far when there is no prompt to type it into, and null
+     * when there is. A frameless editor has no location bar, so the keys go
+     * here instead of to a text field -- which is also what lets a headless
+     * test type {@code /foo<CR>} as one sequence.
+     */
+    private StringBuilder typedPattern;
+
+    /** / and ?: park the command and hand the keyboard to the prompt. */
+    private void startSearch(Editor editor, VimCommand operator,
+                             VimCommand command, int count, boolean countGiven)
+    {
+        final boolean forward = command.getBoolean("forward");
+        pendingSearch = new PendingSearch(operator, count, countGiven, forward);
+        if (!VimSearchPrompt.open(editor, this, forward))
+            typedPattern = new StringBuilder();
+    }
+
+    /**
+     * Takes a key as part of a pattern being typed here rather than at a
+     * prompt.
+     *
+     * @return the result to report, or null if this key is not ours
+     */
+    private Result collectPattern(Editor editor, int keyCode, char keyChar)
+    {
+        if (typedPattern == null)
+            return null;
+        if (keyCode == KeyEvent.VK_ENTER) {
+            final String pattern = typedPattern.toString();
+            typedPattern = null;
+            searchEntered(editor, pattern);
+            return Result.CONSUMED;
+        }
+        if (keyCode == KeyEvent.VK_BACK_SPACE) {
+            if (typedPattern.length() > 0)
+                typedPattern.setLength(typedPattern.length() - 1);
+            return Result.CONSUMED;
+        }
+        if (keyChar != KeyEvent.CHAR_UNDEFINED && keyChar >= ' ')
+            typedPattern.append(keyChar);
+        return Result.CONSUMED;
+    }
+
+    /** True while a / or ? is waiting for its pattern. */
+    public boolean isAwaitingSearchPattern()
+    {
+        return pendingSearch != null;
+    }
+
+    /**
+     * Supplies the pattern a waiting {@code /} or {@code ?} asked for, and
+     * finishes the command that was parked.
+     *
+     * A search is an exclusive motion, so with an operator waiting this is
+     * the same range machinery any other motion would go through. Public
+     * because the prompt that calls it is a separate object -- and because it
+     * is the seam a test drives, there being no location bar to type into.
+     */
+    public void searchEntered(Editor editor, String pattern)
+    {
+        final PendingSearch pending = pendingSearch;
+        pendingSearch = null;
+        typedPattern = null;
+        if (pending == null || pattern == null || pattern.isEmpty())
+            return;
+
+        final VimSearch.Query query =
+            new VimSearch.Query(pattern, pending.forward, false);
+        state.setLastSearch(query);
+        moveToMatch(editor, query, pending.operator, pending.count,
+                    pending.countGiven);
+    }
+
+    /** The prompt was abandoned, so the command it belonged to is too. */
+    public void searchCancelled()
+    {
+        pendingSearch = null;
+        builder.reset();
+    }
+
+    /**
+     * Runs the found match as a motion, with or without an operator.
+     *
+     * Shared by {@code /} once its prompt closes and by {@code n N * #},
+     * which have their pattern already.
+     */
+    private void moveToMatch(Editor editor, VimSearch.Query query,
+                             VimCommand operator, int count,
+                             boolean countGiven)
+    {
+        final Position from = editor.getDot();
+        if (from == null)
+            return;
+        final Position to;
+        try {
+            to = VimSearch.find(editor, query, from, count);
+        }
+        catch (VimSearch.BadPattern e) {
+            editor.status("Bad pattern: " + e.getMessage());
+            return;
+        }
+        if (to == null) {
+            editor.status("Pattern not found: " + query.pattern);
+            return;
+        }
+
+        if (operator != null) {
+            final VimRange range = RangeNormalizer.normalize(
+                new Position(from), to, MotionKind.CHARWISE_EXCLUSIVE,
+                query.forward);
+            applyOperator(editor, operator, range, count, countGiven, null);
+            return;
+        }
+        state.clearSelectionUnlessVisual(editor);
+        final Line was = from.getLine();
+        editor.setDot(to.getLine(), to.getOffset());
+        editor.moveCaretToDotCol();
+        state.clampCaret(editor);
+        state.clearDesiredColumn();
+        editor.updateDotLine();
+        state.motionChangedSelection(editor, was, editor.getDotLine());
     }
 
     /**

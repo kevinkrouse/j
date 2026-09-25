@@ -153,10 +153,36 @@ public final class EditorHarness
     /** The modal state, or null unless {@link #vim} was called. */
     public org.armedbear.j.vim.VimState vimState()
     {
+        final org.armedbear.j.vim.VimInputHandler handler = vimHandler();
+        return handler != null ? handler.getState() : null;
+    }
+
+    private org.armedbear.j.vim.VimInputHandler vimHandler()
+    {
         final InputHandler handler = editor.getInputHandler();
         return handler instanceof org.armedbear.j.vim.VimInputHandler
-            ? ((org.armedbear.j.vim.VimInputHandler) handler).getState()
+            ? (org.armedbear.j.vim.VimInputHandler) handler
             : null;
+    }
+
+    /**
+     * Answers the pattern prompt a {@code /} or {@code ?} is waiting on.
+     *
+     * A frameless editor has no location bar to type into, so the keystrokes
+     * that would go there are supplied here instead. Everything after the
+     * pattern arrives -- the parked operator, the range, the move -- is the
+     * production path.
+     */
+    public EditorHarness searchPattern(String pattern)
+    {
+        vimHandler().searchEntered(editor, pattern);
+        return this;
+    }
+
+    /** True while a {@code /} or {@code ?} is waiting for its pattern. */
+    public boolean awaitingSearchPattern()
+    {
+        return vimHandler().isAwaitingSearchPattern();
     }
 
     /**

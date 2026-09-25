@@ -82,6 +82,8 @@ public final class VimMotions
         register("jumpToMark", VimMotions::jumpToMark);
         register("moveToScreenLine", VimMotions::moveToScreenLine);
         register("moveToMatchingBracket", VimMotions::moveToMatchingBracket);
+        register("repeatSearch", VimMotions::repeatSearch);
+        register("searchWordAtDot", VimMotions::searchWordAtDot);
     }
 
     // ------------------------------------------------------------ motions
@@ -459,6 +461,59 @@ public final class VimMotions
         final Position match =
             ctx.editor.findMatchInternal(new Position(from.getLine(), offset), 0);
         return match == null ? null : at(match.getLine(), match.getOffset());
+    }
+
+    // ------------------------------------------------------------- search
+
+    /**
+     * n and N -- the last pattern again, in the same direction or the other
+     * one. A motion like any other, so {@code dn} works.
+     */
+    private static Position repeatSearch(MotionContext ctx, Position from)
+    {
+        final VimSearch.Query last = ctx.state.getLastSearch();
+        if (last == null) {
+            ctx.editor.status("No previous search");
+            return null;
+        }
+        return found(ctx, ctx.arg("reverse") ? last.reversed() : last, from);
+    }
+
+    /**
+     * * and # -- the word under the caret, whole words unless g* or g#.
+     *
+     * Sets the last pattern, so n carries on from where these left off.
+     */
+    private static Position searchWordAtDot(MotionContext ctx, Position from)
+    {
+        final VimSearch.Word word = VimSearch.wordAtDot(ctx.editor);
+        if (word == null)
+            return null;
+        final VimSearch.Query query =
+            new VimSearch.Query(VimSearch.literal(word.text),
+                                ctx.arg("forward"),
+                                word.keyword && !ctx.arg("partial"));
+        ctx.state.setLastSearch(query);
+        // From the word, not from the caret: * with the caret on the spaces
+        // before a word searches from the word, so the word itself is not a
+        // result.
+        return found(ctx, query, new Position(from.getLine(), word.offset));
+    }
+
+    private static Position found(MotionContext ctx, VimSearch.Query query,
+                                  Position from)
+    {
+        try {
+            final Position to =
+                VimSearch.find(ctx.editor, query, from, ctx.count);
+            if (to == null)
+                ctx.editor.status("Pattern not found: " + query.pattern);
+            return to;
+        }
+        catch (VimSearch.BadPattern e) {
+            ctx.editor.status("Bad pattern: " + e.getMessage());
+            return null;
+        }
     }
 
     // ------------------------------------------------------------ helpers

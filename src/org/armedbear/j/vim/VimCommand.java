@@ -39,6 +39,8 @@ public final class VimCommand
         OPERATOR_MOTION,
         /** Defines a range directly, as {@code iw} does. */
         TEXT_OBJECT,
+        /** Asks for a pattern, then moves to it: / and ?. */
+        SEARCH,
         /** Stands for another key sequence. */
         KEY_TO_KEY,
         /** Runs one of j's own named commands. */
@@ -54,6 +56,7 @@ public final class VimCommand
                 case "operator": return OPERATOR;
                 case "opmotion": return OPERATOR_MOTION;
                 case "textobj":  return TEXT_OBJECT;
+                case "search":   return SEARCH;
                 case "keytokey": return KEY_TO_KEY;
                 case "command":  return EDITOR_COMMAND;
                 case "idle":     return IDLE;

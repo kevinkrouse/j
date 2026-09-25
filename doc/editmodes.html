@@ -52,6 +52,14 @@ registers, marks and the dot command:
     <td><code>x X D C s S r R J gJ ~ p P</code></td></tr>
 <tr><td valign="top"><b>insert</b></td>
     <td><code>i I a A o O</code>, leaving with <code>Escape</code></td></tr>
+<tr><td valign="top"><b>text objects</b></td>
+    <td><code>iw aw iW aW</code>, the quote pairs
+        <code>i" a" i' a'</code> and the backtick pair,
+        <code>i( a( i[ a[ i{ a{ i&lt; a&gt;</code> with the
+        <code>b</code> and <code>B</code> aliases, and
+        <code>ip ap</code></td></tr>
+<tr><td valign="top"><b>search</b></td>
+    <td><code>/ ? n N * # g* g#</code></td></tr>
 <tr><td valign="top"><b>visual</b></td>
     <td><code>v V o gv</code>, and any operator over the selection</td></tr>
 <tr><td valign="top"><b>registers</b></td>
@@ -73,10 +81,11 @@ went and what came.
 
 <h2>What is not there yet</h2>
 <p>
-Text objects (<code>iw</code>, <code>i(</code>), searching (<code>/</code>,
-<code>?</code>, <code>n</code>, <code>*</code>), the <code>:</code> command
-line, visual block mode, macros (<code>q</code>, <code>@</code>), and the
-insert-mode commands (<code>Ctrl W</code>, <code>Ctrl R</code>).
+The <code>:</code> command line, visual block mode, macros (<code>q</code>,
+<code>@</code>), the insert-mode commands (<code>Ctrl W</code>,
+<code>Ctrl R</code>), <code>Ctrl A</code> and <code>Ctrl X</code>, the
+<code>it</code> and <code>is</code> text objects, and the jump list
+(<code>Ctrl O</code>, <code>Ctrl I</code>).
 <p>
 A key that vim mode does not claim falls through to j's own key maps, so
 <code>Ctrl S</code> still saves and <code>Alt X</code> still prompts for a
@@ -158,6 +167,28 @@ These are known and deliberate:
     <a href="commands.html">registers</a>. <code>"+</code> and <code>"*</code>
     are not connected to the system clipboard yet.</li>
 <li>Marks are per editor rather than per buffer.</li>
+<li><b>Search patterns are Java regular expressions</b>, not vim's. The
+    difference that bites first is quantifiers: vim's default magic mode
+    spells "one or more" <code>\+</code> and treats <code>+</code> as a
+    literal, and here it is the other way round &mdash; <code>/a+</code>
+    works, <code>/a\+</code> does not. <code>\&lt;</code> and
+    <code>\&gt;</code> are translated to word boundaries;
+    <code>\v</code>, <code>\zs</code>, <code>\ze</code> and
+    <code>\%[]</code> are not understood.
+    <code>ignorecase</code> and <code>smartcase</code> work,
+    and searching is case sensitive by default as in vim.</li>
+<li><b>The pattern for <code>/</code> is typed at the top of the editor</b>,
+    in the location bar, rather than at the bottom. Escape abandons the
+    search, and an operator waiting on it &mdash; the <code>d</code> of
+    <code>d/foo</code> &mdash; is abandoned with it.</li>
+<li>There is no <code>hlsearch</code>: the match you are on is shown, the
+    others are not. Search offsets (<code>/foo/e</code>) are not
+    understood.</li>
+<li><code>aw</code> on a blank line does nothing, where vim counts the
+    empty line as a word and takes the next one with it.</li>
+<li><code>cc</code> and <code>S</code> start at column 0 rather than
+    keeping the line's indent, which is what vim does with
+    <code>autoindent</code> set.</li>
 </ul>
 <hr>
 <a href="contents.html">Top</a>

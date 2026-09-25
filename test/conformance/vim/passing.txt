@@ -21,6 +21,9 @@
 #   dj_end_of_document      corpus deletes the line; nvim needs two lines for
 #                           dj and does nothing on a one-line buffer
 #   dk_start_of_document    same, upward
+#   * # g* (second halves)  the corpus expects Match to match match, which
+#                           needs ignorecase; vim defaults to noignorecase
+#                           and nvim agrees with us
 
 # M1: motions
 F,
@@ -120,3 +123,14 @@ de_word_end_and_empty_lines
 # M10: text objects, and a linewise delete at the end of the buffer
 ci" for two strings
 reselect_visual_line
+
+# M11: search
+*_no_word
+*_seek
+*_symbol
+/_case
+/_greedy
+/_nongreedy
+d_/
+g#
+?_greedy

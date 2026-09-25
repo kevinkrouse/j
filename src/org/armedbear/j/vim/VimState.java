@@ -230,6 +230,27 @@ public final class VimState
         lastCharacterSearch = new CharacterSearch(target, forward, till);
     }
 
+    // ------------------------------------------------------------ search
+
+    /**
+     * The pattern n and N repeat.
+     *
+     * Its own field rather than {@code Editor.lastSearch}: that one has no
+     * direction, is shared with j's own find commands, and may hold a
+     * {@code FindInFiles} rather than a plain search.
+     */
+    private VimSearch.Query lastSearch;
+
+    public VimSearch.Query getLastSearch()
+    {
+        return lastSearch;
+    }
+
+    public void setLastSearch(VimSearch.Query query)
+    {
+        lastSearch = query;
+    }
+
     // ---------------------------------------------------- desired column
 
     /**
