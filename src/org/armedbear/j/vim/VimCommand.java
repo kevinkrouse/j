@@ -41,6 +41,8 @@ public final class VimCommand
         TEXT_OBJECT,
         /** Asks for a pattern, then moves to it: / and ?. */
         SEARCH,
+        /** Asks for a command line, then runs it: the : commands. */
+        EX,
         /** Stands for another key sequence. */
         KEY_TO_KEY,
         /** Runs one of j's own named commands. */
@@ -57,6 +59,7 @@ public final class VimCommand
                 case "opmotion": return OPERATOR_MOTION;
                 case "textobj":  return TEXT_OBJECT;
                 case "search":   return SEARCH;
+                case "ex":       return EX;
                 case "keytokey": return KEY_TO_KEY;
                 case "command":  return EDITOR_COMMAND;
                 case "idle":     return IDLE;

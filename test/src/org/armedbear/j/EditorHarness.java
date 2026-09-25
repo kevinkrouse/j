@@ -179,6 +179,25 @@ public final class EditorHarness
         return this;
     }
 
+    /**
+     * Supplies the line a waiting {@code :} asked for.
+     *
+     * The counterpart of {@link #searchPattern}: a frameless editor has no
+     * location bar, so this stands in for typing at one. Everything after it
+     * is the production path.
+     */
+    public EditorHarness exCommand(String line)
+    {
+        vimHandler().exEntered(editor, line);
+        return this;
+    }
+
+    /** True while a {@code :} is waiting for its line. */
+    public boolean awaitingExCommand()
+    {
+        return vimHandler().isAwaitingExCommand();
+    }
+
     /** True while a {@code /} or {@code ?} is waiting for its pattern. */
     public boolean awaitingSearchPattern()
     {

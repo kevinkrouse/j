@@ -235,7 +235,7 @@ public final class VimSearch
      * Vim's {@code 'ignorecase'}, narrowed by {@code 'smartcase'}: a pattern
      * with an upper case letter in it is taken to mean that case.
      */
-    private static boolean ignoreCase(String pattern)
+    static boolean ignoreCase(String pattern)
     {
         final VimOptions options = VimKeyMap.getSharedOptions();
         if (!options.getBoolean("ignorecase", false))

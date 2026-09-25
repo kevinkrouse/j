@@ -7,9 +7,11 @@
 #
 # Promotion is deliberate, never automatic. A case whose expectation is "the
 # document did not change" passes for the wrong reason while normal mode is
-# still swallowing keys it does not understand, so these four are left out
-# even though they currently pass: Y, s_visual, *_no_word and
-# jumpToMark_next_sameline all test features that do not exist yet.
+# still swallowing keys it does not understand, so these are left out even
+# though they currently pass: Y, s_visual, *_no_word and
+# jumpToMark_next_sameline all test features that do not exist yet, and
+# ex_sort_oneline and ex_sort_pattern_alpha_reverse both expect the document
+# unchanged while :sort does not exist at all.
 #
 # Cases where nvim disagrees with the CodeMirror corpus, verified with
 # tools/vim-oracle.sh. nvim wins, so these stay out of passing.txt and are
@@ -134,3 +136,18 @@ reselect_visual_line
 d_/
 g#
 ?_greedy
+
+# M12: the : command line
+ex_go_to_line
+ex_go_to_mark
+ex_substitute_alternate_separator
+ex_substitute_full_file
+ex_substitute_input_range
+ex_substitute_range_current_to_input
+ex_substitute_range_input_to_current
+ex_substitute_range_mark
+ex_substitute_range_mark_offset
+ex_substitute_range_offset
+ex_substitute_same_line
+ex_substitute_to_eof
+ex_substitute_to_relative_eof

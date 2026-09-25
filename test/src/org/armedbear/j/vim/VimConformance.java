@@ -137,7 +137,7 @@ public final class VimConformance
         final String rest = space < 0 ? "" : line.substring(space + 1).trim();
 
         if (directive.equals("value") || directive.equals("keys")
-            || directive.equals("expect-value"))
+            || directive.equals("ex") || directive.equals("expect-value"))
             return new Step(directive, unquote(rest), 0, 0);
 
         if (directive.equals("cursor") || directive.equals("expect-cursor")) {
@@ -201,6 +201,11 @@ public final class VimConformance
                     h.value(step.text);
                 } else if (step.directive.equals("cursor")) {
                     h.cursor(step.a, step.b);
+                } else if (step.directive.equals("ex")) {
+                    // Upstream's doEx() hands the line to the ex handler
+                    // rather than typing it, and so does this: an ex line
+                    // can contain < and would not survive key tokenizing.
+                    h.exCommand(step.text);
                 } else if (step.directive.equals("keys")) {
                     h.keys(step.text);
                 } else if (step.directive.equals("expect-value")) {

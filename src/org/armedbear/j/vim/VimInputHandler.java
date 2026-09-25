@@ -14,6 +14,7 @@ package org.armedbear.j.vim;
 import java.awt.event.KeyEvent;
 import java.util.List;
 
+import org.armedbear.j.CommandTable;
 import org.armedbear.j.Constants;
 import org.armedbear.j.Editor;
 import org.armedbear.j.InputHandler;
@@ -148,12 +149,12 @@ public final class VimInputHandler implements InputHandler
         if (isEscape(keyCode, modifiers))
             return escape(editor);
 
-        if (typedPattern != null) {
+        if (typedLine != null) {
             // Enter and Backspace are the only key-coded ones a pattern
             // cares about; the characters arrive as key typed.
             if (keyCode == KeyEvent.VK_ENTER
                 || keyCode == KeyEvent.VK_BACK_SPACE)
-                return collectPattern(editor, keyCode, KeyEvent.CHAR_UNDEFINED);
+                return collectLine(editor, keyCode, KeyEvent.CHAR_UNDEFINED);
             return Result.DEFER;
         }
 
@@ -209,8 +210,8 @@ public final class VimInputHandler implements InputHandler
     private Result keyTyped(Editor editor, JEvent event)
 
     {
-        if (typedPattern != null)
-            return collectPattern(editor, 0, event.getKeyChar());
+        if (typedLine != null)
+            return collectLine(editor, 0, event.getKeyChar());
 
         if (!state.getMode().isCommandMode()) {
             if (recordingEdit && !replaying)
@@ -234,7 +235,7 @@ public final class VimInputHandler implements InputHandler
         // A / whose prompt never delivered leaves its operator parked, and
         // it would swallow the next motion typed.
         pendingSearch = null;
-        typedPattern = null;
+        typedLine = null;
         // "a then Escape means the register was never used; without this it
         // would silently attach itself to some unrelated later command.
         state.clearPendingRegister();
@@ -393,10 +394,10 @@ public final class VimInputHandler implements InputHandler
      */
     private void dispatchReplay(Editor editor, String key)
     {
-        if (typedPattern != null) {
+        if (typedLine != null) {
             // Mid-pattern: these keys are the search text, not commands.
             final KeyNotation.Stroke stroke = KeyNotation.parseOne(key);
-            collectPattern(editor, stroke.keyCode, stroke.keyChar);
+            collectLine(editor, stroke.keyCode, stroke.keyChar);
             return;
         }
         if (state.getMode().isInsert()) {
@@ -461,6 +462,8 @@ public final class VimInputHandler implements InputHandler
 
         if (command.getKind() == VimCommand.Kind.SEARCH)
             startSearch(editor, operator, command, count, countGiven);
+        else if (command.getKind() == VimCommand.Kind.EX)
+            startEx(editor);
         else if (command.getKind() == VimCommand.Kind.TEXT_OBJECT)
             runTextObject(editor, operator, command, count, countGiven);
         else if (operator != null)
@@ -500,12 +503,17 @@ public final class VimInputHandler implements InputHandler
     private PendingSearch pendingSearch;
 
     /**
-     * The pattern so far when there is no prompt to type it into, and null
-     * when there is. A frameless editor has no location bar, so the keys go
-     * here instead of to a text field -- which is also what lets a headless
-     * test type {@code /foo<CR>} as one sequence.
+     * The line so far when there is no prompt to type it into, and null when
+     * there is. A frameless editor has no location bar, so the keys go here
+     * instead of to a text field -- which is also what lets a headless test
+     * type {@code /foo<CR>} or {@code :s/a/b<CR>} as one sequence.
      */
-    private StringBuilder typedPattern;
+    private StringBuilder typedLine;
+
+    /** What {@link #typedLine} will be used for once Enter arrives. */
+    private enum LineKind { SEARCH, EX }
+
+    private LineKind typedKind = LineKind.SEARCH;
 
     /** / and ?: park the command and hand the keyboard to the prompt. */
     private void startSearch(Editor editor, VimCommand operator,
@@ -516,7 +524,33 @@ public final class VimInputHandler implements InputHandler
         // A replay has the pattern in its own keys, so it must not put a
         // prompt on screen and wait for someone to type it again.
         if (replaying || !VimSearchPrompt.open(editor, this, forward))
-            typedPattern = new StringBuilder();
+            collectHere(LineKind.SEARCH);
+    }
+
+    /**
+     * : takes the keyboard the same way, but parks no command: an ex line is
+     * read and run on its own rather than completing something half-typed.
+     */
+    private void startEx(Editor editor)
+    {
+        // From visual mode vim leaves the selection and fills the line in
+        // with its range, so that :d acts on what was selected rather than
+        // on the line the caret happens to be on.
+        String seed = "";
+        if (state.getMode().isVisual()) {
+            VimVisual.leave(editor, state);
+            seed = "'<,'>";
+        }
+        if (replaying || !VimExPrompt.open(editor, this, seed)) {
+            collectHere(LineKind.EX);
+            typedLine.append(seed);
+        }
+    }
+
+    private void collectHere(LineKind kind)
+    {
+        typedLine = new StringBuilder();
+        typedKind = kind;
     }
 
     /**
@@ -525,23 +559,27 @@ public final class VimInputHandler implements InputHandler
      *
      * @return the result to report, or null if this key is not ours
      */
-    private Result collectPattern(Editor editor, int keyCode, char keyChar)
+    private Result collectLine(Editor editor, int keyCode, char keyChar)
     {
-        if (typedPattern == null)
+        if (typedLine == null)
             return null;
         if (keyCode == KeyEvent.VK_ENTER) {
-            final String pattern = typedPattern.toString();
-            typedPattern = null;
-            searchEntered(editor, pattern);
+            final String line = typedLine.toString();
+            final LineKind kind = typedKind;
+            typedLine = null;
+            if (kind == LineKind.EX)
+                exEntered(editor, line);
+            else
+                searchEntered(editor, line);
             return Result.CONSUMED;
         }
         if (keyCode == KeyEvent.VK_BACK_SPACE) {
-            if (typedPattern.length() > 0)
-                typedPattern.setLength(typedPattern.length() - 1);
+            if (typedLine.length() > 0)
+                typedLine.setLength(typedLine.length() - 1);
             return Result.CONSUMED;
         }
         if (keyChar != KeyEvent.CHAR_UNDEFINED && keyChar >= ' ')
-            typedPattern.append(keyChar);
+            typedLine.append(keyChar);
         return Result.CONSUMED;
     }
 
@@ -564,7 +602,7 @@ public final class VimInputHandler implements InputHandler
     {
         final PendingSearch pending = pendingSearch;
         pendingSearch = null;
-        typedPattern = null;
+        typedLine = null;
         if (pending == null || pattern == null || pattern.isEmpty())
             return;
 
@@ -583,6 +621,74 @@ public final class VimInputHandler implements InputHandler
         // the edited flag stays set and the next key typed is recorded as
         // the last change.
         afterCommand();
+    }
+
+    /** True while a : is waiting for its line. */
+    public boolean isAwaitingExCommand()
+    {
+        return typedLine != null && typedKind == LineKind.EX;
+    }
+
+    /**
+     * Runs a typed {@code :} line.
+     *
+     * Public for the same two reasons {@code searchEntered} is: the prompt
+     * that calls it is a separate object, and it is the seam a test drives
+     * when there is no location bar to type into.
+     */
+    public void exEntered(Editor editor, String line)
+    {
+        typedLine = null;
+        if (line == null || line.isEmpty())
+            return;
+        // The keys never went through dispatch, so add them to the recording
+        // by hand or '.' would replay a bare ":" and hang on a prompt that
+        // never closes.
+        if (!replaying)
+            recording.append(line).append("<CR>");
+        try {
+            final VimEx.Command command = VimEx.parse(editor, state, line);
+            if (!VimExCommands.run(editor, state, command))
+                runJCommand(editor, command);
+        }
+        catch (VimEx.BadCommand e) {
+            editor.status(e.getMessage());
+        }
+        // This ran outside dispatch, so finish the command here: otherwise
+        // the edited flag stays set and the next key typed is recorded as
+        // the last change.
+        afterCommand();
+    }
+
+    /**
+     * Hands a name j already knows to j's own command table.
+     *
+     * Only ever a bare name and its parameters, never the typed line:
+     * {@code Editor.executeCommand} reads a leading {@code (} as a Lisp form
+     * and anything with an {@code =} in it as a property assignment, which
+     * would silently eat {@code :s/a=b/c/}.
+     */
+    private void runJCommand(Editor editor, VimEx.Command command)
+        throws VimEx.BadCommand
+    {
+        if (CommandTable.getCommand(command.name) == null)
+            throw new VimEx.BadCommand(
+                "E492: Not an editor command: " + command.name);
+        try {
+            editor.execute(command.name,
+                           command.args.isEmpty() ? null : command.args);
+        }
+        catch (NoSuchMethodException e) {
+            throw new VimEx.BadCommand(
+                "E492: Not an editor command: " + command.name);
+        }
+    }
+
+    /** The : prompt was abandoned. */
+    public void exCancelled()
+    {
+        typedLine = null;
+        builder.reset();
     }
 
     /** The prompt was abandoned, so the command it belonged to is too. */

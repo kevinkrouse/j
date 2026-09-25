@@ -193,6 +193,12 @@
       (let [keys (apply str (js-strings args))]
         (when-not (str/blank? keys) (directive "keys" (quoted keys)))))]
 
+   ;; helpers.doEx('s/a/b');
+   [#"^helpers\.doEx\((.*)\)\s*;$"
+    (fn [[_ args] _]
+      (let [line (apply str (js-strings args))]
+        (when-not (str/blank? line) (directive "ex" (quoted line)))))]
+
    ;; helpers.assertCursorAt(0, 1);
    [#"^helpers\.assertCursorAt\(\s*(\d+)\s*,\s*(\d+)\s*\)\s*;$"
     (fn [[_ line ch] _] (directive "expect-cursor" line ch))]
