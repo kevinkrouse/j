@@ -258,9 +258,12 @@ These are known and deliberate:
     nothing was typed after goes again at <code>Escape</code> or the next
     <code>Enter</code>, as in vim.</li>
 <li>A character outside the Basic Multilingual Plane, such as an emoji, is
-    one character to motions and edits, as in vim, but j measures columns in
-    UTF-16 units, so <code>|</code> and <code>j</code>/<code>k</code> past one
-    can land a column away from where vim would.</li>
+    one character to motions and edits, as in vim. But <code>|</code> and
+    <code>j</code>/<code>k</code> count columns in UTF-16 units where vim
+    counts screen cells. The two agree for an emoji, which is two of each,
+    and differ past a wide character such as <code>&#x4E2D;</code> (one unit, two
+    cells) or a narrow one outside the plane such as <code>&#x1D400;</code> (two
+    units, one cell).</li>
 <li><code>zt</code> leaves one line of context above the caret, because it is
     j's <code>toTop</code>; vim leaves none unless <code>'scrolloff'</code> is
     set. The command was left as j has it rather than changed to suit this
