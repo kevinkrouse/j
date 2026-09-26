@@ -591,7 +591,10 @@ public final class VimActions
             editor.newlineAndIndent();
         } else {
             // A plain split: newlineAndIndent would reindent the line below,
-            // which O must leave alone. The new line takes that line's indent.
+            // which O must leave alone. The new line is indented as o's is:
+            // by j's indentLine where the mode knows the language, which is
+            // nvim with filetype indent, and otherwise with the line's own
+            // indent, which is vim's autoindent.
             final String indent = VimOperators.leadingBlanks(dot.getLine());
             editor.setDot(dot.getLine(), 0);
             editor.moveCaretToDotCol();
@@ -601,12 +604,14 @@ public final class VimActions
             if (opened != null) {
                 editor.setDot(opened, 0);
                 editor.moveCaretToDotCol();
-                if (!indent.isEmpty())
+                if (editor.getMode().canIndent())
+                    editor.indentLine();
+                else if (!indent.isEmpty())
                     editor.insertString(indent);
             }
         }
-        // Whatever indent j's newlineAndIndent gave the new line is the
-        // session's own, not the user's, until something is typed after it.
+        // Whatever indent j gave the new line is the session's own, not the
+        // user's, until something is typed after it.
         final Position now = editor.getDot();
         if (now != null)
             state.noteAutoIndent(now.getLine());

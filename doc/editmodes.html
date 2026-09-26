@@ -53,10 +53,13 @@ commands, counts, registers, marks and the dot command:
 <tr><td valign="top"><b>insert</b></td>
     <td><code>i I a A o O</code>, leaving with <code>Escape</code>; while
         typing, <code>Ctrl T</code> and <code>Ctrl D</code> add or take away
-        one indent, rounded to a multiple of it. <code>o O cc S</code> keep
-        the indent, as vim does with <code>autoindent</code>, and
-        <code>Escape</code> takes it away again if nothing was typed after
-        it.</td></tr>
+        one indent, rounded to a multiple of it. <code>o</code> and
+        <code>O</code> indent the new line by the language in a mode j can
+        indent, as nvim does with filetype indent, and like the line they
+        start from elsewhere, as vim's <code>autoindent</code> does;
+        <code>cc</code> and <code>S</code> keep the line's indent.
+        <code>Escape</code> takes such an indent away again if nothing was
+        typed after it.</td></tr>
 <tr><td valign="top"><b>replace</b></td>
     <td><code>R</code>, which types over what is already there until
         <code>Escape</code>. <code>Backspace</code> walks the session

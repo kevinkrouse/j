@@ -233,4 +233,32 @@ public class VimM13LeftoversTest
         vim("  x", 0, 0).keys("A<CR>y<Esc>");
         assertEquals("  x\ny", h.value());
     }
+    // ------------------------------------------------- o and O indent
+    //
+    // Both indent by the language where j's mode knows it, as nvim does with
+    // filetype indent, and copy the line's indent where it does not.
+
+    @Test
+    public void openAboveAClosingBraceIndentsTheBody()
+    {
+        java("class A {\n  x();\n}", 2, 0).keys("Oy<Esc>");
+        assertEquals("class A {\n  x();\n  y\n}", h.value());
+        h.assertCursorAt(2, 2);
+    }
+
+    @Test
+    public void openAboveAStatementIndentsLikeIt()
+    {
+        java("class A {\n  x();\n}", 1, 0).keys("Oy<Esc>");
+        assertEquals("class A {\n  y\n  x();\n}", h.value());
+        h.assertCursorAt(1, 2);
+    }
+
+    @Test
+    public void openAboveInPlainTextCopiesTheLine()
+    {
+        vim("a\n  b", 1, 0).keys("Oy<Esc>");
+        assertEquals("a\n  y\n  b", h.value());
+        h.assertCursorAt(1, 2);
+    }
 }
