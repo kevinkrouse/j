@@ -35,8 +35,6 @@ public final class VimCommand
         ACTION,
         /** Waits for a motion, then acts on the text it covers. */
         OPERATOR,
-        /** An operator with its motion built in, as {@code x} is {@code dl}. */
-        OPERATOR_MOTION,
         /** Defines a range directly, as {@code iw} does. */
         TEXT_OBJECT,
         /** Asks for a pattern, then moves to it: / and ?. */
@@ -56,7 +54,6 @@ public final class VimCommand
                 case "motion":   return MOTION;
                 case "action":   return ACTION;
                 case "operator": return OPERATOR;
-                case "opmotion": return OPERATOR_MOTION;
                 case "textobj":  return TEXT_OBJECT;
                 case "search":   return SEARCH;
                 case "ex":       return EX;

@@ -32,6 +32,11 @@ there either, and if the key or key combination corresponds (in j's opinion) to
 a "normal" character, that character is inserted in the buffer at the
 location of the caret.
 <p>
+In vim <a href="editmodes.html">edit mode</a>, vim's own key map is asked
+first. Outside insert mode it takes every plain character, and only a chord
+or function key it does not bind reaches the key maps described here. While
+typing text, keys reach them as above.
+<p>
 You can use the command <a href="commands.html#describeKey">describeKey</a>,
 mapped by default to Alt K and available on the Help menu, to see what command
 is mapped to a specific key or key combination in the current buffer.

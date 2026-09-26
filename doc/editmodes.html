@@ -39,8 +39,8 @@ edit mode.
 
 <h2>What is there</h2>
 <p>
-Normal, insert, visual and visual-line modes, operator-pending commands, counts,
-registers, marks and the dot command:
+Normal, insert, replace, visual and visual-line modes, operator-pending
+commands, counts, registers, marks and the dot command:
 <table border="0" cellpadding="2">
 <tr><td valign="top"><b>motions</b></td>
     <td><code>h j k l 0 ^ $ w W b B e E ge gE gg G | f F t T ; , { } % H M L</code>
@@ -113,10 +113,12 @@ went and what came.
 <h2>What is not there yet</h2>
 <p>
 Visual block mode, macros (<code>q</code>, and the rest of <code>@</code>),
-the insert-mode commands (<code>Ctrl W</code>, <code>Ctrl R</code>),
-<code>Ctrl A</code> and <code>Ctrl X</code>, the <code>it</code> and
-<code>is</code> text objects, and the jump list (<code>Ctrl O</code>,
-<code>Ctrl I</code>).
+the insert-mode commands other than <code>Ctrl T</code> and
+<code>Ctrl D</code> (<code>Ctrl W</code>, <code>Ctrl U</code>,
+<code>Ctrl R</code>, <code>Ctrl O</code>), <code>Ctrl A</code> and
+<code>Ctrl X</code>, the <code>[[</code> family of section motions, the
+<code>it</code> and <code>is</code> text objects, and the jump list
+(<code>Ctrl O</code>, <code>Ctrl I</code>).
 <p>
 Of the ex commands: <code>:marks</code> as a listing, the <code>c</code> flag
 on <code>:s</code>, which is reported rather than silently replacing
@@ -124,9 +126,14 @@ everything, a <code>:s</code> pattern matching <code>\n</code> to join
 lines, and in a replacement <code>~</code> (the previous replacement) and the
 case changes <code>\u \U \l \L \e \E</code>.
 <p>
-A key that vim mode does not claim falls through to j's own key maps, so
-<code>Ctrl S</code> still saves and <code>Alt X</code> still prompts for a
-command.
+Outside insert mode a plain character never inserts itself, bound or not. A
+chord or function key that vim mode does not claim falls through to j's own
+<a href="keys.html">key maps</a>, so <code>Ctrl S</code> still saves and
+<code>Alt X</code> still prompts for a command. <code>Ctrl W</code> is the
+exception: it does nothing, rather than reach j's <code>killBuffer</code>.
+In insert mode keys go to j's key maps as they do in simple mode, apart from
+<code>Escape</code> and the few vim mode binds there (<code>Ctrl T</code>,
+<code>Ctrl D</code>).
 
 <h2>Changing the bindings</h2>
 <p>
@@ -152,7 +159,10 @@ is a binding:
 <code>&lt;character&gt;</code> stands for any one key, which is how
 <code>f</code> waits for the character to find. <b>kind</b> is one of
 <code>motion</code>, <code>operator</code>, <code>action</code>,
-<code>keytokey</code>, <code>command</code> or <code>idle</code>. <b>args</b>
+<code>textobj</code>, <code>search</code>, <code>ex</code>,
+<code>keytokey</code> (the key stands for the keys in the command
+column, as <code>x</code> stands for <code>dl</code>), <code>command</code> (one of <a href="commands.html">j's own
+commands</a>, by name) or <code>idle</code> (the key does nothing). <b>args</b>
 are comma separated, either <code>name=value</code> or a bare <code>name</code>
 meaning true, or <code>-</code> for none.
 <p>
@@ -265,9 +275,7 @@ These are known and deliberate:
     (<code>:w !cmd</code>) do not.</li>
 <li><code>Ctrl ^</code> takes no count: j's buffers have no numbers to give
     it.</li>
-<li>A count before an insert does not repeat it:
-
- <code>3iab&lt;Esc&gt;</code>
+<li>A count before an insert does not repeat it: <code>3iab&lt;Esc&gt;</code>
     and <code>3Rab&lt;Esc&gt;</code> type once, not three times.</li>
 </ul>
 <hr>
