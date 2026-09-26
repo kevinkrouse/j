@@ -142,11 +142,11 @@ public final class VimState
      * Notes what a replace keystroke typed over, or {@link #APPENDED}, and
      * where it left the caret.
      */
-    public void pushReplaced(char c, Line line, int caret)
+    public void pushReplaced(int c, Line line, int caret)
     {
         if (replaced == null)
             return;
-        replaced.append(c);
+        replaced.appendCodePoint(c);
         replacedLine = line;
         replacedCaret = caret;
     }
@@ -161,7 +161,7 @@ public final class VimState
      * column R never visited would silently corrupt the line. BS always
      * lands one column left, so that is where the next one expects to be.
      */
-    public char popReplaced(Line line, int caret)
+    public int popReplaced(Line line, int caret)
     {
         if (replaced == null || replaced.length() == 0)
             return 0;
@@ -169,8 +169,9 @@ public final class VimState
             replaced.setLength(0);
             return 0;
         }
-        final char c = replaced.charAt(replaced.length() - 1);
-        replaced.setLength(replaced.length() - 1);
+        // A whole character, which may be a surrogate pair.
+        final int c = replaced.codePointBefore(replaced.length());
+        replaced.setLength(replaced.length() - Character.charCount(c));
         replacedCaret = caret - 1;
         return c;
     }

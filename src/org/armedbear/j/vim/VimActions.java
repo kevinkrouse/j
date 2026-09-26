@@ -465,10 +465,10 @@ public final class VimActions
             noteReplaced(editor, state, VimState.APPENDED);
             return;
         }
-        final char was = line.charAt(offset);
+        final int was = line.getText().codePointAt(offset);
         final CompoundEdit edit = editor.getBuffer().beginCompoundEdit();
         try {
-            editor.setMark(new Position(line, offset + 1));
+            editor.setMark(new Position(line, CodePoints.next(line, offset)));
             editor.setDot(line, offset);
             editor.deleteRegion();
             editor.setMark(null);
@@ -481,7 +481,7 @@ public final class VimActions
     }
 
     /** Records a replace keystroke against where the edit left the caret. */
-    private static void noteReplaced(Editor editor, VimState state, char was)
+    private static void noteReplaced(Editor editor, VimState state, int was)
     {
         final Position now = editor.getDot();
         if (now != null)
@@ -502,7 +502,7 @@ public final class VimActions
             return;
         final Line line = dot.getLine();
         final int offset = dot.getOffset() - 1;
-        final char was = state.popReplaced(line, dot.getOffset());
+        final int was = state.popReplaced(line, dot.getOffset());
         if (was == 0) {
             editor.setDot(line, offset);
             editor.moveCaretToDotCol();
@@ -515,7 +515,7 @@ public final class VimActions
             editor.deleteRegion();
             editor.setMark(null);
             if (was != VimState.APPENDED)
-                editor.insertString(String.valueOf(was));
+                editor.insertString(new String(Character.toChars(was)));
             // Back to the character just restored, from wherever the edit
             // left the caret rather than from the line captured above.
             final Position now = editor.getDot();

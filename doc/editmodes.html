@@ -53,7 +53,10 @@ registers, marks and the dot command:
 <tr><td valign="top"><b>insert</b></td>
     <td><code>i I a A o O</code>, leaving with <code>Escape</code>; while
         typing, <code>Ctrl T</code> and <code>Ctrl D</code> add or take away
-        one indent, rounded to a multiple of it</td></tr>
+        one indent, rounded to a multiple of it. <code>o O cc S</code> keep
+        the indent, as vim does with <code>autoindent</code>, and
+        <code>Escape</code> takes it away again if nothing was typed after
+        it.</td></tr>
 <tr><td valign="top"><b>replace</b></td>
     <td><code>R</code>, which types over what is already there until
         <code>Escape</code>. <code>Backspace</code> walks the session
@@ -85,7 +88,11 @@ registers, marks and the dot command:
         command <a href="commands.html">j already knows</a>. <code>:</code>
         in visual mode fills in <code>'&lt;,'&gt;</code>.</td></tr>
 <tr><td valign="top"><b>visual</b></td>
-    <td><code>v V o gv</code>, and any operator over the selection</td></tr>
+    <td><code>v V o O gv</code>, any operator over the selection, and
+        <code>J gJ p P r u U ~</code>. <code>D C S R X Y</code> take whole
+        lines, as in vim, even from a characterwise selection. <code>p</code>
+        leaves what it replaced in the unnamed register; <code>P</code> leaves
+        the registers alone.</td></tr>
 <tr><td valign="top"><b>registers</b></td>
     <td><code>"a</code> through <code>"z</code> (upper case appends),
         <code>"0</code>, <code>"1</code>-<code>"9</code>, <code>"-</code>,
@@ -229,9 +236,11 @@ These are known and deliberate:
     understood.</li>
 <li><code>aw</code> on a blank line does nothing, where vim counts the
     empty line as a word and takes the next one with it.</li>
-<li><code>cc</code> and <code>S</code> start at column 0 rather than
-    keeping the line's indent, which is what vim does with
-    <code>autoindent</code> set.</li>
+<li>A character outside the Basic Multilingual Plane, such as an emoji, is
+    one character to motions and edits, as in vim, but j measures columns in
+    UTF-16 units, so <code>|</code> and <code>j</code>/<code>k</code> past one
+    can land a column away from where vim would. It cannot be the character
+    typed after <code>f</code>, <code>t</code> or <code>r</code>.</li>
 <li><code>zt</code> leaves one line of context above the caret, because it is
     j's <code>toTop</code>; vim leaves none unless <code>'scrolloff'</code> is
     set. The command was left as j has it rather than changed to suit this

@@ -711,4 +711,16 @@ public class VimM13Test
         emoji("lahi<Esc>", "a😀hib😀c", 4);
         emoji("ls-<Esc>", "a-b😀c", 1);
     }
+
+    @Test
+    public void replaceModeTypesOverAWholeEmojiAndBackspacePutsItBack()
+    {
+        vim("a😀b", 0, 0);
+        h.keys("lRxy<Esc>");
+        assertEquals("axy", h.value());
+        vim("a😀b", 0, 0);
+        h.keys("lRxy<BS><BS><Esc>");
+        assertEquals("a😀b", h.value());
+        h.assertCursorAt(0, 0);
+    }
 }
