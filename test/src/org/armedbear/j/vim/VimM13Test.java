@@ -432,4 +432,214 @@ public class VimM13Test
         h.keys("o<Esc>u");
         assertEquals("  abc", h.value());
     }
+
+    // --------------------------------------------------------- visual mode
+
+    @Test
+    public void visualJJoinsTheSelectedLines()
+    {
+        vim(" 1\n 2\n 3\n 4\n 5", 0, 0);
+        h.keys("lVljjJ");
+        assertEquals(" 1 2 3\n 4\n 5", h.value());
+        h.assertCursorAt(0, 4);
+    }
+
+    @Test
+    public void visualGJJoinsWithoutTouchingSpaces()
+    {
+        vim(" 1\n 2\n 3", 0, 0);
+        h.keys("lvjgJ");
+        assertEquals(" 1 2\n 3", h.value());
+        h.assertCursorAt(0, 2);
+    }
+
+    @Test
+    public void visualJOnOneLineJoinsTheNext()
+    {
+        vim("1\n2", 0, 0);
+        h.keys("vJ");
+        assertEquals("1 2", h.value());
+        h.assertCursorAt(0, 1);
+    }
+
+    @Test
+    public void visualRReplacesEverySelectedCharacterButNotLineEnds()
+    {
+        vim("abcdef\nghij", 0, 1);
+        h.keys("vjrx");
+        assertEquals("axxxxx\nxxij", h.value());
+        h.assertCursorAt(0, 1);
+    }
+
+    @Test
+    public void linewiseVisualRReplacesWholeLines()
+    {
+        vim("abcdef\nghij", 0, 1);
+        h.keys("Vjrx");
+        assertEquals("xxxxxx\nxxxx", h.value());
+        h.assertCursorAt(0, 0);
+    }
+
+    @Test
+    public void visualCaseOperators()
+    {
+        vim("abcdef", 0, 1);
+        h.keys("vllU");
+        assertEquals("aBCDef", h.value());
+        h.assertCursorAt(0, 1);
+        h.keys("vlu");
+        assertEquals("abcDef", h.value());
+        h.keys("0vll~");
+        assertEquals("ABCDef", h.value());
+        h.assertCursorAt(0, 0);
+    }
+
+    @Test
+    public void visualUAcrossLines()
+    {
+        vim("abcdef\nxy", 0, 4);
+        h.keys("vjU");
+        assertEquals("abcdEF\nXY", h.value());
+        h.assertCursorAt(0, 4);
+    }
+
+    @Test
+    public void visualDAndXTakeWholeLines()
+    {
+        vim("abcdef\nghij\nkl", 0, 2);
+        h.keys("vjX");
+        assertEquals("kl", h.value());
+        vim("abcdef\nghij\nkl", 0, 2);
+        h.keys("vjD");
+        assertEquals("kl", h.value());
+    }
+
+    /** V then D was bound as V d, and V in visual-line mode leaves it. */
+    @Test
+    public void linewiseVisualDAndSStayLinewise()
+    {
+        vim("abcdef\nghij\nkl", 0, 0);
+        h.keys("VjD");
+        assertEquals("kl", h.value());
+        h.assertCursorAt(0, 0);
+        vim("abcdef\nghij\nkl", 0, 2);
+        h.keys("VjSz<Esc>");
+        assertEquals("z\nkl", h.value());
+    }
+
+    @Test
+    public void visualRChangesTheLines()
+    {
+        vim("abcdef\nghij\nkl", 0, 2);
+        h.keys("vRz<Esc>");
+        assertEquals("z\nghij\nkl", h.value());
+    }
+
+    @Test
+    public void visualYYanksWholeLines()
+    {
+        vim("abcdef\nghij", 0, 2);
+        h.keys("vYjp");
+        assertEquals("abcdef\nghij\nabcdef", h.value());
+    }
+
+    @Test
+    public void visualCapitalOSwapsEndsLikeO()
+    {
+        vim("abcd\nefgh", 0, 0);
+        h.keys("vjlO");
+        h.assertCursorAt(0, 0);
+    }
+
+    @Test
+    public void gvInVisualSwapsWithThePreviousSelection()
+    {
+        vim("ab cd ef", 0, 0);
+        h.keys("vlwvwwvgvd");
+        assertEquals("d ef", h.value());
+    }
+
+    @Test
+    public void visualPReplacesAndKeepsWhatWasSelected()
+    {
+        vim("abc def", 0, 0);
+        h.keys("yiwwviwp$p");
+        assertEquals("abc abcdef", h.value());
+    }
+
+    @Test
+    public void visualCapitalPLeavesTheRegisterAlone()
+    {
+        vim("abc def", 0, 0);
+        h.keys("yiwwviwP$p");
+        assertEquals("abc abcabc", h.value());
+    }
+
+    @Test
+    public void visualPWithACount()
+    {
+        vim("ab cd", 0, 0);
+        h.keys("yiwwv2p");
+        assertEquals("ab ababd", h.value());
+        h.assertCursorAt(0, 6);
+    }
+
+    @Test
+    public void visualPOverTheLineEndJoins()
+    {
+        vim("ab cd\nef", 0, 0);
+        h.keys("yiwwv$p");
+        assertEquals("ab abef", h.value());
+        h.assertCursorAt(0, 4);
+    }
+
+    @Test
+    public void visualDollarTakesInTheLineEnd()
+    {
+        vim("ab cd\nef", 0, 0);
+        h.keys("wv$d");
+        assertEquals("ab ef", h.value());
+    }
+
+    @Test
+    public void visualPOfLinesIntoACharwiseSelectionSplitsTheLine()
+    {
+        vim("abc\nxyz\nqq", 0, 0);
+        h.keys("yyjlvlp");
+        assertEquals("abc\nx\nabc\n\nqq", h.value());
+        h.assertCursorAt(2, 0);
+    }
+
+    @Test
+    public void linewiseVisualPReplacesTheLinesAndUndoesInOne()
+    {
+        vim("abc\nxyz\nqq", 0, 0);
+        h.keys("yyjVp");
+        assertEquals("abc\nabc\nqq", h.value());
+        h.assertCursorAt(1, 0);
+        h.keys("u");
+        assertEquals("abc\nxyz\nqq", h.value());
+        h.assertCursorAt(1, 0);
+    }
+
+    @Test
+    public void linewiseVisualPAtTheEndOfTheBuffer()
+    {
+        vim("abc\nxyz", 0, 0);
+        h.keys("yyjVp");
+        assertEquals("abc\nabc", h.value());
+        vim("abc\nxyz", 0, 0);
+        h.keys("yyVGp");
+        assertEquals("abc", h.value());
+        h.assertCursorAt(0, 0);
+    }
+
+    @Test
+    public void linewiseVisualPOfACharwiseRegister()
+    {
+        vim("ab\n  xyz", 0, 0);
+        h.keys("yiwjVp");
+        assertEquals("ab\nab", h.value());
+        h.assertCursorAt(1, 0);
+    }
 }

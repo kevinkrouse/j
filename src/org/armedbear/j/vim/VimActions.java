@@ -68,6 +68,11 @@ public final class VimActions
         register("repeatLastChange", VimActions::repeatLastChange);
         register("put", VimActions::put);
         register("insertShift", VimActions::insertShift);
+        register("visualJoin", VimActions::visualJoin);
+        register("visualReplace", VimActions::visualReplace);
+        register("visualPut", VimActions::visualPut);
+        register("swapLastSelection",
+                 ctx -> VimVisual.swapWithLast(ctx.editor, ctx.state));
     }
 
     /**
@@ -565,5 +570,130 @@ public final class VimActions
         final Position now = editor.getDot();
         if (now != null)
             ctx.state.noteAutoIndent(now.getLine(), now.getLine().getText());
+    }
+
+    // ---------------------------------------------------------- visual mode
+
+    /**
+     * Visual J and gJ: join the selected lines, or this one and the next if
+     * the selection is on one line. j's own join does the work.
+     */
+    private static void visualJoin(MotionContext ctx)
+    {
+        final Editor editor = ctx.editor;
+        final Position anchor = editor.getMark();
+        final Position head = editor.getDot();
+        if (anchor == null || head == null)
+            return;
+        editor.getBuffer().renumber();
+        final Line first = anchor.isBefore(head) ? anchor.getLine()
+                                                 : head.getLine();
+        final int joins = Math.max(1, Math.abs(anchor.lineNumber()
+                                               - head.lineNumber()));
+        VimVisual.take(editor, ctx.state);
+        editor.setDot(first, 0);
+        editor.moveCaretToDotCol();
+        joinAt(editor, ctx.state, joins, ctx.arg("keepSpaces"));
+    }
+
+    /**
+     * Visual r{char}: every selected character becomes this one. Line ends
+     * stay; the caret goes to the start of the selection.
+     */
+    private static void visualReplace(MotionContext ctx)
+    {
+        final Editor editor = ctx.editor;
+        final char replacement = ctx.characterArg();
+        final VimRange range = VimVisual.take(editor, ctx.state);
+        if (range == null || replacement == 0)
+            return;
+        final CompoundEdit edit = editor.getBuffer().beginCompoundEdit();
+        try {
+            VimOperators.recordCaret(editor);
+            for (Line line = range.start.getLine(); line != null;
+                 line = line.next()) {
+                final boolean last = line == range.end.getLine();
+                final int from = line == range.start.getLine()
+                    ? range.start.getOffset() : 0;
+                final int to = last ? Math.min(range.end.getOffset(),
+                                               line.length())
+                                    : line.length();
+                if (to > from)
+                    CaretCommands.replaceChars(editor, line, from,
+                                               replacement, to - from);
+                if (last)
+                    break;
+            }
+            editor.setDot(range.start.getLine(), range.start.getOffset());
+            editor.moveCaretToDotCol();
+        }
+        finally {
+            editor.getBuffer().endCompoundEdit(edit);
+        }
+        ctx.state.clampCaret(editor);
+    }
+
+    /**
+     * Visual p and P: the register takes the selection's place. p leaves
+     * what was selected in the unnamed register; P leaves the registers
+     * alone, so it can be done again.
+     */
+    private static void visualPut(MotionContext ctx)
+    {
+        final Editor editor = ctx.editor;
+        final VimRegisters.Register register =
+            VimRegisters.getInstance().get(registerName(ctx));
+        final VimRange range = VimVisual.take(editor, ctx.state);
+        if (range == null || register == null || register.text.isEmpty())
+            return;
+        final boolean lines = register.type == VimRegisters.Type.LINEWISE;
+        final String once = lines && register.text.endsWith("\n")
+            ? register.text.substring(0, register.text.length() - 1)
+            : register.text;
+        final StringBuilder text = new StringBuilder(once);
+        for (int i = 1; i < ctx.count; i++)
+            text.append(lines ? "\n" : "").append(once);
+        final String selected = VimOperators.textOf(editor, range);
+
+        final CompoundEdit edit = editor.getBuffer().beginCompoundEdit();
+        try {
+            VimOperators.recordCaret(editor);
+            final Line first = range.start.getLine();
+            if (range.linewise) {
+                // Empty the lines to one and fill that: no line after the
+                // selection is needed, so the end of the buffer is no case.
+                Line last = range.end.getLine();
+                if (range.end.getOffset() == 0 && last != first)
+                    last = last.previous();
+                editor.setMark(new Position(first, 0));
+                editor.setDot(last, last.length());
+                editor.moveCaretToDotCol();
+                editor.deleteRegion();
+                editor.setMark(null);
+                editor.moveCaretToDotCol();
+                editor.insertString(text.toString());
+                landOnFirstNonBlank(editor, first);
+            } else {
+                VimOperators.deleteRange(editor, range);
+                if (lines) {
+                    // Linewise text goes in as whole lines, splitting the
+                    // line where the selection was.
+                    editor.insertString("\n" + text + "\n");
+                    landOnFirstNonBlank(editor, first.next());
+                } else {
+                    putCharwise(editor, editor.getDot(), text.toString(),
+                                false);
+                }
+            }
+        }
+        finally {
+            editor.getBuffer().endCompoundEdit(edit);
+        }
+        if (ctx.arg("after"))
+            VimRegisters.getInstance().deleted((char) 0, selected,
+                                               range.linewise
+                                                   ? VimRegisters.Type.LINEWISE
+                                                   : VimRegisters.Type.CHARWISE);
+        ctx.state.clampCaret(editor);
     }
 }

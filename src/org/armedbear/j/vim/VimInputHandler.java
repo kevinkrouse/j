@@ -927,10 +927,11 @@ public final class VimInputHandler implements InputHandler
             // Nothing to wait for: the selection is the range.
             final int count = builder.getEffectiveCount();
             builder.reset();
-            final VimRange range = VimVisual.toRange(editor, state);
-            VimVisual.remember(editor, state);
-            editor.unmark();
-            state.setMode(editor, VimMode.NORMAL);
+            // D, C, S, R, X and Y take whole lines even from a charwise
+            // selection.
+            if (operator.getBoolean("linewise"))
+                state.setMode(editor, VimMode.VISUAL_LINE);
+            final VimRange range = VimVisual.take(editor, state);
             if (range != null)
                 applyOperator(editor, operator, range, count, false, null);
             state.clampCaret(editor);

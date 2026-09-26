@@ -398,6 +398,12 @@ public final class VimState
         desiredColumn = column;
     }
 
+    /** True after $, while the caret stands for the end of the line. */
+    public boolean isStickyEol()
+    {
+        return desiredColumn == STICKY_EOL;
+    }
+
     /** Forgets the column, so the next j or k takes it from the caret. */
     public void clearDesiredColumn()
     {

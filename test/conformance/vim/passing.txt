@@ -213,3 +213,9 @@ ex_substitute_range_implicit_offset
 # M12c: :g, :normal, :join, :move, :copy
 delmark_all
 delmark_single
+
+# M13: visual-mode J gJ p P r R u U ~ O gv, and v$ over the line end
+o_visual
+visual_join
+visual_join_2
+visual_paste

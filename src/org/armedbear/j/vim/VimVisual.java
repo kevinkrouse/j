@@ -77,7 +77,38 @@ final class VimVisual
     /** gv -- select what was selected last time. */
     static void reselect(Editor editor, VimState state)
     {
+        select(editor, state, state.getLastSelection());
+    }
+
+    /**
+     * gv in visual mode: swap this selection with the previous one, so a
+     * second gv comes back.
+     */
+    static void swapWithLast(Editor editor, VimState state)
+    {
         final VimState.Selection last = state.getLastSelection();
+        if (last == null)
+            return;
+        remember(editor, state);
+        select(editor, state, last);
+    }
+
+    /**
+     * The selection as an operator's range, leaving visual mode: what every
+     * command that acts on the selection starts with.
+     */
+    static VimRange take(Editor editor, VimState state)
+    {
+        final VimRange range = toRange(editor, state);
+        remember(editor, state);
+        editor.unmark();
+        state.setMode(editor, VimMode.NORMAL);
+        return range;
+    }
+
+    private static void select(Editor editor, VimState state,
+                               VimState.Selection last)
+    {
         if (last == null)
             return;
         final Line anchorLine = lineAt(editor, last.anchorLine);
@@ -120,6 +151,13 @@ final class VimVisual
             return null;
         final Position start = anchor.isBefore(head) ? anchor : head;
         final Position end = anchor.isBefore(head) ? head : anchor;
+        // After $ the caret stands for the line end itself, so v$ takes in
+        // the newline: v$d joins the next line on.
+        if (state.getMode() == VimMode.VISUAL && !head.isBefore(anchor)
+            && state.isStickyEol() && head.getLine().next() != null)
+            return new VimRange(new Position(start),
+                                new Position(head.getLine().next(), 0),
+                                false);
         return RangeNormalizer.normalize(
             new Position(start), new Position(end),
             state.getMode() == VimMode.VISUAL_LINE ? MotionKind.LINEWISE
