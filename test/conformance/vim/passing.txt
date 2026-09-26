@@ -32,6 +32,12 @@
 #                           inside ")" and expects the ( at 0; nvim fails
 #                           there and stays put, because a quote lies between
 #                           the two brackets
+#   mark.                   Otesting on " wOrd1" makes " testing", as nvim's
+#                           autoindent does, so '. lands on the first
+#                           non-blank, 0,1, and `. on where the insert
+#                           began, 0,1 again. The corpus expects 0,0 and
+#                           0,6: CodeMirror neither indents nor keeps '. at
+#                           the start of the insert
 #   dj_end_of_document      corpus deletes the line; nvim needs two lines for
 #                           dj and does nothing on a one-line buffer
 #   dk_start_of_document    same, upward

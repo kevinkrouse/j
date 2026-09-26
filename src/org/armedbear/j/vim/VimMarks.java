@@ -17,16 +17,18 @@ import java.util.List;
 import java.util.Map;
 
 import org.armedbear.j.Buffer;
+import org.armedbear.j.Line;
 import org.armedbear.j.Marker;
 import org.armedbear.j.Position;
 
 /**
  * Named places in a buffer: {@code ma} to set one, {@code `a} to come back.
  *
- * Built on j's {@link Marker}, so a mark follows the text it was put on when
- * lines above it are added or removed -- {@code Region.delete} already adjusts
- * every live marker, and a mark that did not move with its text would be worse
- * than no mark at all.
+ * Built on j's {@link Marker}, which holds its {@code Line}: a mark follows its
+ * line when lines above it are added or removed. {@code Region.delete} does
+ * not adjust these markers -- they are not among {@code Marker.getAllMarkers}
+ * -- so a mark on a deleted line is gone, which is what vim does with a named
+ * mark.
  */
 public final class VimMarks
 {
@@ -45,6 +47,48 @@ public final class VimMarks
     }
 
     /**
+     * Notes what a command changed or yanked: '[ at its start, '] on its last
+     * character, and for a change '. at where it was made.
+     *
+     * @param end    the exclusive end; at the start for a delete
+     * @param change where '. goes, or null for a yank or a change that
+     *               changed nothing
+     */
+    public void noteChange(Buffer buffer, Position start, Position end,
+                           Position change)
+    {
+        set('[', buffer, start);
+        final Position last = new Position(end);
+        if (!last.equals(start)) {
+            if (last.getOffset() > 0)
+                last.setOffset(CodePoints.previous(last.getLine(),
+                                                   last.getOffset()));
+            else
+                last.prev();
+        }
+        set(']', buffer, last);
+        if (change != null)
+            set('.', buffer, change);
+    }
+
+    /** A change that began at start: '. goes there too. */
+    public void noteEdit(Buffer buffer, Position start, Position end)
+    {
+        noteChange(buffer, start, end, start);
+    }
+
+    /**
+     * Notes lines an ex command changed: '[ and '] at the starts of the
+     * first and last, and '. at the start of the one it changed first.
+     */
+    public void noteLines(Buffer buffer, Line first, Line last, Line changed)
+    {
+        set('[', buffer, new Position(first, 0));
+        set(']', buffer, new Position(last, 0));
+        set('.', buffer, new Position(changed, 0));
+    }
+
+    /**
      * Where a mark is now, or null if it was never set or its buffer is gone.
      */
     public Position get(char name, Buffer buffer)
@@ -52,7 +96,9 @@ public final class VimMarks
         final Marker marker = marks.get(Character.valueOf(name));
         if (marker == null || marker.getBuffer() != buffer)
             return null;
-        return marker.getPosition();
+        // A mark on a deleted line went with it, as in vim.
+        final Position pos = marker.getPosition();
+        return pos != null && buffer.contains(pos.getLine()) ? pos : null;
     }
 
     /** Forgets one mark, for {@code :delmarks}. */
@@ -93,9 +139,12 @@ public final class VimMarks
 
     private List<Position> positionsIn(Buffer buffer)
     {
+        // Lowercase marks only, as in vim: not '< or '[ or the rest.
         final List<Position> positions = new ArrayList<Position>();
-        for (Marker marker : marks.values()) {
-            if (marker.getBuffer() != buffer)
+        for (Map.Entry<Character, Marker> entry : marks.entrySet()) {
+            final char name = entry.getKey().charValue();
+            final Marker marker = entry.getValue();
+            if (name < 'a' || name > 'z' || marker.getBuffer() != buffer)
                 continue;
             final Position pos = marker.getPosition();
             if (pos != null)

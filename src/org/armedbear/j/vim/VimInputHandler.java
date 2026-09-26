@@ -169,6 +169,7 @@ public final class VimInputHandler implements InputHandler
         }
 
         if (!state.getMode().isCommandMode()) {
+            state.noteInsertStart(editor);
             final int recordedTo = recording.length();
             final int insertKeysTo = state.insertKeysLength();
             if (!replaying && isNamedKey(keyCode)) {
@@ -312,6 +313,7 @@ public final class VimInputHandler implements InputHandler
             return collectLine(editor, 0, event.getKeyChar());
 
         if (!state.getMode().isCommandMode()) {
+            state.noteInsertStart(editor);
             if (!replaying) {
                 final String name = KeyNotation.name(0, event.getKeyChar(), 0);
                 if (recordingEdit)
@@ -368,6 +370,7 @@ public final class VimInputHandler implements InputHandler
             // step.
             repeatInsert(editor);
             dropUntouchedAutoIndent(editor);
+            state.markInsertStop(editor);
             state.setMode(editor, VimMode.NORMAL);
             // Leaving insert steps back onto the last character typed.
             final Position dot = editor.getDot();
@@ -622,6 +625,7 @@ public final class VimInputHandler implements InputHandler
             return;
         }
         if (state.getMode().isInsert()) {
+            state.noteInsertStart(editor);
             final KeyNotation.Stroke stroke = KeyNotation.parseOne(key);
             if (stroke.keyCode == KeyEvent.VK_ESCAPE) {
                 escape(editor);
@@ -983,8 +987,7 @@ public final class VimInputHandler implements InputHandler
     /**
      * Runs the found match as a motion, with or without an operator.
      *
-     * Shared by {@code /} once its prompt closes and by {@code n N * #},
-     * which have their pattern already.
+     * For {@code /} once its prompt closes.
      */
     private void moveToMatch(Editor editor, VimSearch.Query query,
                              VimCommand operator, int count,
@@ -1014,6 +1017,7 @@ public final class VimInputHandler implements InputHandler
                           count, countGiven, null);
             return;
         }
+        state.jumped(editor, from);
         state.clearSelectionUnlessVisual(editor);
         final Line was = from.getLine();
         editor.setDot(to.getLine(), to.getOffset());
@@ -1324,6 +1328,10 @@ public final class VimInputHandler implements InputHandler
         final Position to = motion.move(ctx, from);
         if (to == null)
             return;
+        // G, /, 'a and the rest: vim's jumps. After the move is worked out,
+        // since '' goes to the jump before this one.
+        if (command.getBoolean("jump"))
+            state.jumped(editor, from);
         final Line was = from.getLine();
         state.clearSelectionUnlessVisual(editor);
         editor.setDot(to.getLine(), to.getOffset());

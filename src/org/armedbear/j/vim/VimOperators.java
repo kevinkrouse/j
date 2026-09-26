@@ -80,6 +80,10 @@ public final class VimOperators
         // the start of the range either way, which is where vim leaves it.
         final int line = range.start.lineNumber();
         final int offset = range.start.getOffset();
+        final String before = textOf(editor, range);
+        final boolean changes = !which.apply(before).equals(before);
+        final int endLine = range.end.lineNumber();
+        final int endOffset = range.end.getOffset();
         editor.setMark(new Position(range.end));
         editor.setDot(new Position(range.start));
         editor.moveCaretToDotCol();
@@ -88,6 +92,13 @@ public final class VimOperators
         if (target != null) {
             editor.setDot(target, Math.min(offset, target.length()));
             editor.moveCaretToDotCol();
+            // A case change that changed nothing is not a change to vim.
+            final Position start = editor.getDot();
+            final Line end = lineNumbered(editor, endLine);
+            ctx.state.getMarks().noteChange(
+                editor.getBuffer(), start,
+                end != null ? new Position(end, endOffset) : start,
+                changes ? start : null);
         }
         ctx.state.clampCaret(editor);
     }
@@ -117,7 +128,11 @@ public final class VimOperators
 
         // j's own shiftLinesRight and shiftLinesLeft do this.
         final Line from = range.start.getLine();
+        final int column = markColumn(editor, range);
         Lines.shift(editor, from, range.last, sign * width);
+        ctx.state.getMarks().noteChange(
+            buffer, new Position(from, column), new Position(range.last, range.last.length()),
+            new Position(from, 0));
         // Vim leaves the caret on the first non-blank of the first line.
         final Line first = range.start.getLine();
         editor.setDot(first, VimMotions.firstNonBlank(first));
@@ -136,6 +151,8 @@ public final class VimOperators
     /** y: take a copy and leave the text alone. */
     private static void yank(MotionContext ctx, VimRange range)
     {
+        ctx.state.getMarks().noteChange(ctx.editor.getBuffer(), range.start,
+                                        range.end, null);
         final String text = textOf(ctx.editor, range);
         VimRegisters.getInstance().yanked(ctx.state.takePendingRegister(), text,
                                           range.linewise
@@ -181,10 +198,20 @@ public final class VimOperators
                                                ? VimRegisters.Type.LINEWISE
                                                : VimRegisters.Type.CHARWISE);
         final Editor editor = ctx.editor;
+        final int column = markColumn(editor, range);
         final CompoundEdit edit = editor.getBuffer().beginCompoundEdit();
         try {
             recordCaret(editor);
             deleteRange(editor, range);
+            final Position gap = editor.getDot();
+            if (gap != null) {
+                final Position at = !range.linewise ? gap
+                    : new Position(gap.getLine(),
+                                   Math.min(column, gap.getLineLength()));
+                ctx.state.getMarks().noteChange(
+                    editor.getBuffer(), at, at,
+                    range.linewise ? new Position(gap.getLine(), 0) : gap);
+            }
             if (range.linewise) {
                 // Vim leaves the caret on the first non-blank of the line that
                 // moved up into the gap.
@@ -200,6 +227,17 @@ public final class VimOperators
             editor.getBuffer().endCompoundEdit(edit);
         }
         ctx.state.clampCaret(editor);
+    }
+
+    /**
+     * The column '[ keeps after a linewise dd or >>: the caret's, when it is
+     * on the first line, as vim's operator start is; else 0, as after Vjd.
+     */
+    private static int markColumn(Editor editor, VimRange range)
+    {
+        final Position dot = editor.getDot();
+        return dot != null && dot.getLine() == range.start.getLine()
+            ? dot.getOffset() : range.start.getOffset();
     }
 
     /** The spaces and tabs a line starts with. */

@@ -237,6 +237,8 @@ public class VimDocTest
                 keys.add("<Esc>");
             else if (words[i].equals("Backspace"))
                 keys.add("<BS>");
+            else if (words[i].equals("Tab"))
+                keys.add("<Tab>");
             else if (!words[i].isEmpty())
                 keys.add(words[i]);
         }

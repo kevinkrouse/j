@@ -91,7 +91,7 @@ is one key.
 | `VimMotions`, `MotionContext`, `MotionKind` | motions by table name; each resolves its kind at run time (`;` is inclusive or not by direction) |
 | `RangeNormalizer`, `VimRange` | motion + kind → the range an operator acts on (`:help exclusive`, the `w`-with-operator clip); a linewise range carries its last line (`VimRange.lines`) |
 | `VimOperators`, `VimActions`, `VimTextObjects`, `VimVisual` | the commands, by table name |
-| `VimRegisters`, `VimMarks` | in-memory registers typed charwise/linewise; marks on j `Marker`s |
+| `VimRegisters`, `VimMarks`, `VimJumps` | in-memory registers typed charwise/linewise; marks on j `Marker`s; one buffer's jump list |
 | `VimSearch`, `VimSearchPrompt`, `VimRegex` | `/ ? n N * #`; vim's pattern dialect translated for `java.util.regex` |
 | `VimEx`, `VimExPrompt`, `VimExCommands`, `VimExSubstitute`, `VimExSort` | the `:` line: parsing, ranges, commands |
 | `VimOptions`, `VimrcParser` | `:set` and the vimrc subset |
@@ -181,6 +181,23 @@ recorded, or a count's replay would run it where it does move. The rule is
 A half-typed command (an operator, a register, a `/` or `:` line) is dropped as
 a unit by `dropPartialCommand`, from Escape, an abandoned prompt, and the end of
 `:normal`.
+
+### Marks and the jump list
+
+`VimMarks` holds every mark on j `Marker`s, vim's own ones too: each command
+that changes or yanks text notes its extent with `noteChange` (`'[`, `']`,
+and `'.` for a change), and an ex command with `noteLines`. The insert session
+notes where typing began at its first key -- by line number -- and Escape sets
+`'[ '] '^ '.` from it (`markInsertStop`). A mark whose line was deleted is
+gone, as in vim. `]`` and `[`` walk the lowercase marks only.
+
+A row with `jump` in its args is one of vim's jumps; `runMotion` records the
+position it leaves (`VimState.jumped`) after working out where it goes, since
+`''` goes to the jump *before* this one. `/`, `:N` and `:s` record theirs
+themselves, and `:g` holds jumps while its commands run and records one. A
+motion under an operator records none, as in vim. `VimJumps` is one buffer's
+list, vim's rules without its travel between files: one entry per line, the
+newest kept; the first `<C-o>` after a jump lists where it was typed.
 
 ### Search and the `:` line
 
@@ -429,9 +446,10 @@ review before the next.
 | — | branch review: linewise last line, `:s///g`, `:sort u`, prompts, emoji put | `dab86d5a6` … `42f6390cc` |
 | — | M13 leftovers: counted inserts, Enter autoindent, `O` indent, `v$o`, emoji `f t r`, visual `J` undo caret; replayed Delete/Tab | `1485050bf` … `85c28d320` |
 
-| M15 | corpus key names and documents; `ge` over line ends; `:help d`; `%` and quotes; an arrow splits an insert | (uncommitted) |
+| M15 | corpus key names and documents; `ge` over line ends; `:help d`; `%` and quotes; an arrow splits an insert | `db9e981c6` |
+| M16 | `'. '[ '] '^`, the jump list, `''` and ````, `<C-o>` `<C-i>` | (uncommitted) |
 
-After M15: 789 tests, conformance 145 of 253 (144 ratcheted).
+After M16: 821 tests, conformance 145 of 253 (144 ratcheted).
 
 ### What the work learned
 

@@ -67,6 +67,10 @@ final class VimExSort
         Sort.sortLines(editor, first, last, options);
         final Line landed = VimEx.lineAt(editor, range.first);
         if (landed != null) {
+            final Line bottom = VimEx.lineAt(editor, range.last);
+            state.getMarks().noteLines(editor.getBuffer(), landed,
+                                       bottom != null ? bottom : landed,
+                                       landed);
             editor.setDot(landed, VimMotions.firstNonBlank(landed));
             editor.moveCaretToDotCol();
         }

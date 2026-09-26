@@ -82,6 +82,7 @@ public final class VimMotions
         register("moveByParagraph", VimMotions::moveByParagraph);
         register("goToMark", VimMotions::goToMark);
         register("jumpToMark", VimMotions::jumpToMark);
+        register("travelJumps", VimMotions::travelJumps);
         register("moveToScreenLine", VimMotions::moveToScreenLine);
         register("moveToMatchingBracket", VimMotions::moveToMatchingBracket);
         register("repeatSearch", VimMotions::repeatSearch);
@@ -355,13 +356,24 @@ public final class VimMotions
         final char name = ctx.characterArg();
         if (name == 0)
             return null;
-        final Position mark =
-            ctx.state.getMarks().get(name, ctx.editor.getBuffer());
+        // `` and '' are one mark.
+        final Position mark = ctx.state.getMarks().get(
+            name == '`' ? '\'' : name, ctx.editor.getBuffer());
         if (mark == null)
             return null;
         return ctx.arg("linewise")
             ? at(mark.getLine(), firstNonBlank(mark.getLine()))
             : at(mark.getLine(), mark.getOffset());
+    }
+
+    /**
+     * CTRL-O and CTRL-I -- back and forward along the jump list, count
+     * entries at a time.
+     */
+    private static Position travelJumps(MotionContext ctx, Position from)
+    {
+        final int step = ctx.arg("forward") ? ctx.count : -ctx.count;
+        return ctx.state.travel(ctx.editor, from, step);
     }
 
     /**

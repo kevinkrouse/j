@@ -11,6 +11,9 @@
 
 package org.armedbear.j.vim;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import javax.swing.undo.CompoundEdit;
 
 import org.armedbear.j.Buffer;
@@ -130,7 +133,9 @@ public final class VimState
         final Buffer buffer = editor.getBuffer();
         insertRepeat = 0;
         insertKeys.setLength(0);
+        insertStartLine = -1;
         if (buffer != null) {
+            insertModCount = buffer.getModCount();
             insertEdit = buffer.beginCompoundEdit();
             insertEditBuffer = buffer;
         }
@@ -290,10 +295,61 @@ public final class VimState
     {
         insertRepeat = 0;
         insertKeys.setLength(0);
+        insertStartLine = -1;
         if (insertEdit == null)
             return;
+        insertModCount = insertEditBuffer.getModCount();
         insertEditBuffer.endCompoundEdit(insertEdit);
         insertEdit = insertEditBuffer.beginCompoundEdit();
+    }
+
+    /**
+     * Where typing began, for '[ -- by number, since a Line does not survive
+     * a Backspace that joins it to the one before. -1 until the first key.
+     */
+    private int insertStartLine = -1;
+    private int insertStartOffset;
+    /** The buffer's modification count when the session began. */
+    private int insertModCount;
+
+    /**
+     * Notes where the caret is as where typing began, unless that is known.
+     * Called with each insert-mode key: the command that entered insert mode
+     * has finished moving the caret by then, whichever command it was.
+     */
+    public void noteInsertStart(Editor editor)
+    {
+        final Position dot = editor.getDot();
+        if (insertStartLine >= 0 || dot == null)
+            return;
+        editor.getBuffer().renumber();
+        insertStartLine = dot.lineNumber();
+        insertStartOffset = dot.getOffset();
+    }
+
+    /**
+     * Escape: '^ and '] where typing stopped, '[ where it began, and '. at
+     * the start -- or at the start of the last line, if the insert made new
+     * ones -- when the session changed anything.
+     */
+    public void markInsertStop(Editor editor)
+    {
+        noteInsertStart(editor);
+        final Position stop = editor.getDot();
+        final Buffer buffer = editor.getBuffer();
+        if (stop == null)
+            return;
+        Line line = VimEx.lineAt(editor, insertStartLine + 1);
+        if (line == null)
+            line = stop.getLine();
+        final Position start =
+            new Position(line, Math.min(insertStartOffset, line.length()));
+        marks.set('[', buffer, start);
+        marks.set(']', buffer, stop);
+        marks.set('^', buffer, stop);
+        if (buffer.getModCount() != insertModCount)
+            marks.set('.', buffer, stop.getLine() == line ? start
+                                    : new Position(stop.getLine(), 0));
     }
 
     /** True while an insert session's undo step is open. */
@@ -355,6 +411,57 @@ public final class VimState
     // ----------------------------------------------------------- marks
 
     private final VimMarks marks = new VimMarks();
+
+    /** Jump lists, one per buffer. */
+    private final Map<Buffer, VimJumps> jumps = new HashMap<Buffer, VimJumps>();
+
+    private VimJumps jumpsFor(Buffer buffer)
+    {
+        // A list holds its buffer, so a closed buffer's goes here, not by
+        // weak reference.
+        jumps.keySet().removeIf(
+            b -> b != buffer && !Editor.getBufferList().contains(b));
+        VimJumps list = jumps.get(buffer);
+        if (list == null) {
+            list = new VimJumps(buffer);
+            jumps.put(buffer, list);
+        }
+        return list;
+    }
+
+    /**
+     * A jump is leaving from: onto the jump list, and the previous context
+     * mark, which '' and `` go back to.
+     */
+    public void jumped(Editor editor, Position from)
+    {
+        if (jumpsHeld > 0)
+            return;
+        jumpsFor(editor.getBuffer()).push(from);
+        marks.set('\'', editor.getBuffer(), from);
+    }
+
+    /** While :g runs, which is one jump however many lines it visits. */
+    private int jumpsHeld;
+
+    public void holdJumps(boolean hold)
+    {
+        jumpsHeld += hold ? 1 : -1;
+    }
+
+    /**
+     * CTRL-O and CTRL-I: the jump count entries away, or null. Leaving the
+     * end of the list is a jump of its own, so '' comes back.
+     */
+    public Position travel(Editor editor, Position from, int count)
+    {
+        final VimJumps list = jumpsFor(editor.getBuffer());
+        final boolean leaving = list.isAtEnd();
+        final Position to = list.travel(from, count);
+        if (to != null && leaving)
+            marks.set('\'', editor.getBuffer(), from);
+        return to;
+    }
 
     public VimMarks getMarks()
     {

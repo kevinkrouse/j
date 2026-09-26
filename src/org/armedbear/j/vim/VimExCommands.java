@@ -182,6 +182,13 @@ public final class VimExCommands
             throw new VimEx.BadCommand("E16: Invalid range");
         final Position dot = editor.getDot();
         if (dot != null) {
+            // The caret is on the last line moved or copied.
+            Line first = dot.getLine();
+            for (int i = command.range.first; i < command.range.last
+                     && first.previous() != null; i++)
+                first = first.previous();
+            state.getMarks().noteLines(editor.getBuffer(), first, dot.getLine(),
+                                       first);
             editor.setDot(dot.getLine(), VimMotions.firstNonBlank(dot.getLine()));
             editor.moveCaretToDotCol();
         }
@@ -391,6 +398,12 @@ public final class VimExCommands
         if (line.isEmpty())
             return;
 
+        // One jump for the lot, from where :g began: the commands it runs
+        // record none of their own.
+        final Position from = editor.getDot();
+        if (from != null)
+            state.jumped(editor, from);
+        state.holdJumps(true);
         final CompoundEdit edit = editor.getBuffer().beginCompoundEdit();
         try {
             VimOperators.recordCaret(editor);
@@ -422,6 +435,7 @@ public final class VimExCommands
         }
         finally {
             editor.getBuffer().endCompoundEdit(edit);
+            state.holdJumps(false);
         }
         state.clampCaret(editor);
     }
@@ -467,6 +481,9 @@ public final class VimExCommands
             VimEx.lineAt(editor, Math.max(1, Math.min(number, lines)));
         if (line == null)
             throw new VimEx.BadCommand("E16: Invalid range");
+        final Position from = editor.getDot();
+        if (from != null)
+            state.jumped(editor, from);
         editor.setDot(line, VimMotions.firstNonBlank(line));
         editor.moveCaretToDotCol();
         state.clampCaret(editor);
@@ -505,6 +522,10 @@ public final class VimExCommands
         VimRegisters.getInstance().deleted(state.takePendingRegister(),
                                            VimOperators.textOf(editor, range),
                                            VimRegisters.Type.LINEWISE);
+        // :d is a jump in vim, as :s is.
+        final Position from = editor.getDot();
+        if (from != null)
+            state.jumped(editor, from);
         final CompoundEdit edit = editor.getBuffer().beginCompoundEdit();
         try {
             VimOperators.recordCaret(editor);
@@ -513,6 +534,8 @@ public final class VimExCommands
             // moved up into the gap, as dd does.
             final Position dot = editor.getDot();
             if (dot != null) {
+                final Position gap = new Position(dot.getLine(), 0);
+                state.getMarks().noteChange(editor.getBuffer(), gap, gap, gap);
                 editor.setDot(dot.getLine(),
                               VimMotions.firstNonBlank(dot.getLine()));
                 editor.moveCaretToDotCol();
@@ -533,6 +556,8 @@ public final class VimExCommands
         VimRegisters.getInstance().yanked(state.takePendingRegister(),
                                           VimOperators.textOf(editor, range),
                                           VimRegisters.Type.LINEWISE);
+        state.getMarks().noteChange(editor.getBuffer(), range.start, range.end,
+                                    null);
     }
 
     /**

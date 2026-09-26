@@ -152,11 +152,16 @@ final class VimExSubstitute
         final String rewritten =
             toJavaReplacement(replacement, regex.matcher("").groupCount());
 
+        // :s is a jump; by number, as the lines it changes are replaced.
+        editor.getBuffer().renumber();
+        final int fromLine = editor.getDotLine().lineNumber() + 1;
+        final int fromOffset = editor.getDotOffset();
         final CompoundEdit edit = editor.getBuffer().beginCompoundEdit();
         try {
             VimOperators.recordCaret(editor);
             int changed = 0;
             int lastRow = 0;
+            int firstRow = 0;
             boolean matched = false;
             // Walked forward rather than looked up by number each time, which
             // was a walk from the first line per line of the range. A
@@ -180,6 +185,8 @@ final class VimExSubstitute
                 if (now.equals(was))
                     continue;
                 replaceLine(editor, here, now);
+                if (firstRow == 0)
+                    firstRow = n + changed;
                 // Each line break the replacement introduced pushes the rest
                 // of the range down by one; step past the lines it made.
                 final int breaks = count(now, '\n');
@@ -204,6 +211,17 @@ final class VimExSubstitute
             final Line last = lastRow > 0 ? VimEx.lineAt(editor, lastRow)
                                           : null;
             if (last != null) {
+                // '[ and '] span the range; '. is the first line changed.
+                final Line top = VimEx.lineAt(editor, range.first);
+                final Line bottom = VimEx.lineAt(editor, range.last + changed);
+                state.getMarks().noteLines(editor.getBuffer(),
+                                           top != null ? top : last,
+                                           bottom != null ? bottom : last,
+                                           VimEx.lineAt(editor, firstRow));
+                final Line back = VimEx.lineAt(editor, fromLine);
+                if (back != null)
+                    state.jumped(editor, new Position(
+                        back, Math.min(fromOffset, back.length())));
                 editor.setDot(last, VimMotions.firstNonBlank(last));
                 editor.moveCaretToDotCol();
             }

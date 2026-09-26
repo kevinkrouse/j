@@ -105,7 +105,12 @@ commands, counts, registers, marks and the dot command:
 <tr><td valign="top"><b>marks</b></td>
     <td><code>m</code>, <code>`</code>, <code>'</code>,
         <code>]`</code>, <code>[`</code>, <code>]'</code>, <code>['</code>,
-        and <code>`&lt;</code> / <code>`&gt;</code> after a selection</td></tr>
+        <code>`&lt;</code> / <code>`&gt;</code> after a selection,
+        <code>`.</code> (the last change), <code>`[</code> and
+        <code>`]</code> (what it or the last yank covered), <code>`^</code>
+        (where insert stopped), and <code>``</code> / <code>''</code> (before
+        the last jump). The jump list: <code>Ctrl O</code> back,
+        <code>Ctrl I</code> or <code>Tab</code> forward.</td></tr>
 <tr><td valign="top"><b>other</b></td>
     <td><code>u</code>, <code>Ctrl R</code>, <code>.</code></td></tr>
 </table>
@@ -123,8 +128,7 @@ the insert-mode commands other than <code>Ctrl T</code> and
 <code>Ctrl D</code> (<code>Ctrl W</code>, <code>Ctrl U</code>,
 <code>Ctrl R</code>, <code>Ctrl O</code>), <code>Ctrl A</code> and
 <code>Ctrl X</code>, the <code>[[</code> family of section motions, the
-<code>it</code> and <code>is</code> text objects, and the jump list
-(<code>Ctrl O</code>, <code>Ctrl I</code>).
+<code>it</code> and <code>is</code> text objects.
 <p>
 Of the ex commands: <code>:marks</code> as a listing, the <code>c</code> flag
 on <code>:s</code>, which is reported rather than silently replacing
@@ -220,6 +224,13 @@ These are known and deliberate:
     <a href="commands.html">registers</a>. <code>"+</code> and <code>"*</code>
     are not connected to the system clipboard yet.</li>
 <li>Marks are per editor rather than per buffer.</li>
+<li>The jump list is per buffer: <code>Ctrl O</code> does not go back to
+    another file, and a jump from a line since deleted may be dropped, where
+    vim moves it to the line after the delete. And <code>u</code> leaves <code>`[</code> and
+    <code>`]</code> where they were, where vim moves them to what it
+    restored. After <code>J</code>, <code>`.</code> is where the join was,
+    and after <code>:m</code> the first line moved; vim puts it on the next
+    line and where the lines came from.</li>
 <li><b>Patterns are vim's</b>, in <code>/</code>, <code>?</code>,
     <code>:s</code>, <code>:g</code> and <code>:sort</code> alike: the four
     magic levels (<code>\v \m \M \V</code>, with <code>\m</code> the default,

@@ -153,7 +153,19 @@ public final class VimActions
     static void joinAt(Editor editor, VimState state, int joins,
                        boolean keepSpaces)
     {
+        final Position dot = editor.getDot();
+        final int joinedAt = dot != null ? dot.getLineLength() : 0;
+        final int modCount = editor.getBuffer().getModCount();
         Lines.join(editor, joins, keepSpaces);
+        // '[ where the first join was, '] at the end of the joined line.
+        final Position now = editor.getDot();
+        if (now != null && editor.getBuffer().getModCount() != modCount) {
+            final Line line = now.getLine();
+            final Position start =
+                new Position(line, Math.min(joinedAt, line.length()));
+            state.getMarks().noteEdit(editor.getBuffer(), start,
+                                      new Position(line, line.length()));
+        }
         state.clampCaret(editor);
     }
 
@@ -197,8 +209,17 @@ public final class VimActions
             return;
         // j's own replaceChar, which refuses rather than doing part of it
         // when the line is too short.
-        CaretCommands.replaceChars(editor, dot.getLine(), dot.getOffset(),
-                                   replacement, ctx.count);
+        final Line line = dot.getLine();
+        final int start = dot.getOffset();
+        if (!CaretCommands.replaceChars(editor, line, start, replacement,
+                                        ctx.count))
+            return;
+        int end = start;
+        for (int i = 0; i < ctx.count; i++)
+            end = CodePoints.next(line, end);
+        ctx.state.getMarks().noteEdit(editor.getBuffer(),
+                                      new Position(line, start),
+                                      new Position(line, end));
     }
 
     /**
@@ -239,6 +260,9 @@ public final class VimActions
         // Step onto the character after the last one changed.
         final Position after = editor.getDot();
         if (after != null) {
+            ctx.state.getMarks().noteEdit(editor.getBuffer(),
+                                          new Position(after.getLine(), start),
+                                          new Position(after.getLine(), end));
             editor.setDot(after.getLine(),
                           Math.min(after.getOffset(), after.getLineLength()));
             editor.moveCaretToDotCol();
@@ -256,11 +280,14 @@ public final class VimActions
     private static void setMark(MotionContext ctx)
     {
         final char name = ctx.characterArg();
-        if (!VimMarks.isValidName(name))
+        final Position here = ctx.editor.getDot();
+        // m' and m` set the previous context mark, as a jump from here would.
+        if ((name == '\'' || name == '`') && here != null) {
+            ctx.state.jumped(ctx.editor, here);
             return;
-        final Position dot = ctx.editor.getDot();
-        if (dot != null)
-            ctx.state.getMarks().set(name, ctx.editor.getBuffer(), dot);
+        }
+        if (VimMarks.isValidName(name) && here != null)
+            ctx.state.getMarks().set(name, ctx.editor.getBuffer(), here);
     }
 
     /**
@@ -293,9 +320,9 @@ public final class VimActions
             // as much a part of the change as the text is.
             VimOperators.recordCaret(editor);
             if (register.type == VimRegisters.Type.LINEWISE)
-                putLinewise(editor, dot, text.toString(), after);
+                putLinewise(editor, ctx.state, dot, text.toString(), after);
             else
-                putCharwise(editor, dot, text.toString(), after);
+                putCharwise(editor, ctx.state, dot, text.toString(), after);
         }
         finally {
             editor.getBuffer().endCompoundEdit(edit);
@@ -309,8 +336,8 @@ public final class VimActions
         return named == 0 ? VimRegisters.UNNAMED : named;
     }
 
-    private static void putLinewise(Editor editor, Position dot, String text,
-                                    boolean after)
+    private static void putLinewise(Editor editor, VimState state,
+                                    Position dot, String text, boolean after)
     {
         // Linewise text always ends with a newline; inserting it at the start
         // of a line is what turns it back into whole lines.
@@ -324,9 +351,10 @@ public final class VimActions
             editor.setDot(line, line.length());
             editor.moveCaretToDotCol();
             editor.insertString("\n" + body.substring(0, body.length() - 1));
-            landOnFirstNonBlank(editor,
-                                back(editor.getDot().getLine(),
-                                     countNewlines(body) - 1));
+            final Line first =
+                back(editor.getDot().getLine(), countNewlines(body) - 1);
+            markPut(editor, state, new Position(first, 0));
+            landOnFirstNonBlank(editor, first);
             return;
         }
 
@@ -336,8 +364,17 @@ public final class VimActions
         // The body ends in a newline, so the caret is now at the start of the
         // line below the block. Counting back finds the first pasted line --
         // the Line the insert started at may itself have been split by it.
-        landOnFirstNonBlank(editor,
-                            back(editor.getDot().getLine(), countNewlines(body)));
+        final Line first = back(editor.getDot().getLine(), countNewlines(body));
+        markPut(editor, state, new Position(first, 0));
+        landOnFirstNonBlank(editor, first);
+    }
+
+    /** '[ and '] around text just put, ending at the caret; '. at its start. */
+    private static void markPut(Editor editor, VimState state, Position start)
+    {
+        final Position end = editor.getDot();
+        if (end != null)
+            state.getMarks().noteEdit(editor.getBuffer(), start, end);
     }
 
     private static int countNewlines(String s)
@@ -385,8 +422,8 @@ public final class VimActions
         editor.moveCaretToDotCol();
     }
 
-    private static void putCharwise(Editor editor, Position dot, String text,
-                                    boolean after)
+    private static void putCharwise(Editor editor, VimState state,
+                                    Position dot, String text, boolean after)
     {
         int offset = dot.getOffset();
         if (after && offset < dot.getLineLength())
@@ -396,6 +433,10 @@ public final class VimActions
         editor.insertString(text);
         // Vim leaves the caret on the last character put, not past it.
         final Position now = editor.getDot();
+        if (now != null)
+            markPut(editor, state,
+                    new Position(back(now.getLine(), countNewlines(text)),
+                                 offset));
         if (now != null && now.getOffset() > 0)
             moveAfterEdit(editor, now.getLine(),
                           CodePoints.previous(now.getLine(), now.getOffset()));
@@ -680,6 +721,8 @@ public final class VimActions
             // Recorded, or undo takes back the last line's edit from here.
             moveAfterEdit(editor, range.start.getLine(),
                           range.start.getOffset());
+            ctx.state.getMarks().noteEdit(editor.getBuffer(), range.start,
+                                          range.end);
         }
         finally {
             editor.getBuffer().endCompoundEdit(edit);
@@ -728,6 +771,7 @@ public final class VimActions
                 editor.setMark(null);
                 editor.moveCaretToDotCol();
                 editor.insertString(text.toString());
+                markPut(editor, ctx.state, new Position(first, 0));
                 landOnFirstNonBlank(editor, first);
             } else {
                 VimOperators.deleteRange(editor, range);
@@ -735,10 +779,11 @@ public final class VimActions
                     // Linewise text goes in as whole lines, splitting the
                     // line where the selection was.
                     editor.insertString("\n" + text + "\n");
+                    markPut(editor, ctx.state, new Position(first.next(), 0));
                     landOnFirstNonBlank(editor, first.next());
                 } else {
-                    putCharwise(editor, editor.getDot(), text.toString(),
-                                false);
+                    putCharwise(editor, ctx.state, editor.getDot(),
+                                text.toString(), false);
                 }
             }
         }
