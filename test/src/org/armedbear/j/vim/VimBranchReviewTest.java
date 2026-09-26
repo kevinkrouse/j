@@ -175,4 +175,19 @@ public class VimBranchReviewTest
         assertEquals("yBa\nzCb\nxAc", h.value());
         assertEquals("", h.status());
     }
+    // F5 -- a group the pattern does not have is empty, not an exception.
+
+    @Test
+    public void aMissingGroupIsEmpty()
+    {
+        vim("abc", 0, 0).exCommand("s/b/[\\1]/");
+        assertEquals("a[]c", h.value());
+    }
+
+    @Test
+    public void aGroupPastTheLastIsEmpty()
+    {
+        vim("abc", 0, 0).exCommand("s/\\(b\\)/[\\1\\2]/");
+        assertEquals("a[b]c", h.value());
+    }
 }

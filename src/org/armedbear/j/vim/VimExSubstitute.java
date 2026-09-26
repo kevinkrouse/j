@@ -149,7 +149,8 @@ final class VimExSubstitute
         // e: no error when nothing matches.
         final boolean quiet = flags.indexOf('e') >= 0;
         final Pattern regex = compile(pattern, flags);
-        final String rewritten = toJavaReplacement(replacement);
+        final String rewritten =
+            toJavaReplacement(replacement, regex.matcher("").groupCount());
 
         final CompoundEdit edit = editor.getBuffer().beginCompoundEdit();
         try {
@@ -305,9 +306,10 @@ final class VimExSubstitute
      *
      * Vim: {@code &} is the whole match, {@code \1} a group, {@code \&} and
      * {@code \\} the literals. Java: {@code $0} and {@code $1}, with {@code $}
-     * and {@code \} needing escapes of their own.
+     * and {@code \} needing escapes of their own. A group the pattern does
+     * not have is empty, as in vim, where Java would throw.
      */
-    static String toJavaReplacement(String replacement)
+    static String toJavaReplacement(String replacement, int groups)
     {
         final StringBuilder sb = new StringBuilder(replacement.length());
         for (int i = 0; i < replacement.length(); i++) {
@@ -321,8 +323,10 @@ final class VimExSubstitute
             }
             if (c == '\\' && i + 1 < replacement.length()) {
                 final char next = replacement.charAt(++i);
-                if (next >= '0' && next <= '9')
-                    sb.append('$').append(next);
+                if (next >= '0' && next <= '9') {
+                    if (next - '0' <= groups)
+                        sb.append('$').append(next);
+                }
                 // In a replacement \r is the line break and \n inserts a NUL
                 // -- the other way round from a pattern, and checked with
                 // nvim, which puts ^@ where \n was.
