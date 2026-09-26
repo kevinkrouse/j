@@ -21,6 +21,7 @@ import org.armedbear.j.Editor;
 import org.armedbear.j.JEvent;
 import org.armedbear.j.Line;
 import org.armedbear.j.Lines;
+import org.armedbear.j.NumberCommands;
 import org.armedbear.j.Position;
 import org.armedbear.j.RegionCommands;
 import org.armedbear.j.SimpleEdit;
@@ -69,6 +70,7 @@ public final class VimActions
         register("toggleCase", VimActions::toggleCase);
         register("repeatLastChange", VimActions::repeatLastChange);
         register("put", VimActions::put);
+        register("addToNumber", VimActions::addToNumber);
         register("insertShift", VimActions::insertShift);
         register("insertDeleteBack", VimActions::insertDeleteBack);
         register("insertRegister", VimActions::insertRegister);
@@ -235,6 +237,77 @@ public final class VimActions
             editor.deleteRegion(new Position(line, to), new Position(dot));
         }
         state.insertDeletedBack(editor);
+    }
+
+    /**
+     * CTRL-A and CTRL-X: add the count to the number at or after the caret.
+     * In visual mode, to the first number of each line the selection takes
+     * in, and with g one count more for each number after the first. '[ and
+     * '] go around the numbers, '. at the start of the first line.
+     */
+    private static void addToNumber(MotionContext ctx)
+    {
+        final Editor editor = ctx.editor;
+        final boolean subtract = ctx.arg("subtract");
+        if (!ctx.state.getMode().isVisual()) {
+            final Position dot = editor.getDot();
+            if (dot == null)
+                return;
+            final Line line = dot.getLine();
+            final NumberCommands.Change change = NumberCommands.add(
+                editor, line, dot.getOffset(), -1, ctx.count, subtract);
+            if (change != null)
+                ctx.state.getMarks().noteChange(editor.getBuffer(),
+                    new Position(line, change.start),
+                    new Position(line, change.last() + 1),
+                    new Position(line, 0));
+            return;
+        }
+        final VimRange range = VimVisual.take(editor, ctx.state);
+        if (range == null)
+            return;
+        // Undo gives the caret back at the start of the selection.
+        final Line first = range.start.getLine();
+        editor.setDot(first, range.start.getOffset());
+        editor.moveCaretToDotCol();
+        final CompoundEdit edit = editor.getBuffer().beginCompoundEdit();
+        try {
+            long amount = ctx.count;
+            NumberCommands.Change firstChange = null;
+            NumberCommands.Change lastChange = null;
+            Line firstLine = null;
+            Line lastLine = null;
+            for (Line line = first; line != null; line = line.next()) {
+                final boolean last = line == range.end.getLine();
+                final int from = line == first ? range.start.getOffset() : 0;
+                final int to = last ? range.end.getOffset() : line.length();
+                final NumberCommands.Change change =
+                    NumberCommands.add(editor, line, from, to, amount,
+                                       subtract);
+                if (change != null) {
+                    if (firstChange == null) {
+                        firstChange = change;
+                        firstLine = line;
+                    }
+                    lastChange = change;
+                    lastLine = line;
+                    if (ctx.arg("progressive"))
+                        amount += ctx.count;
+                }
+                if (last)
+                    break;
+            }
+            moveAfterEdit(editor, first, range.start.getOffset());
+            if (firstChange != null)
+                ctx.state.getMarks().noteChange(editor.getBuffer(),
+                    new Position(firstLine, firstChange.start),
+                    new Position(lastLine, lastChange.last() + 1),
+                    new Position(first, 0));
+        }
+        finally {
+            editor.getBuffer().endCompoundEdit(edit);
+        }
+        ctx.state.clampCaret(editor);
     }
 
     /**

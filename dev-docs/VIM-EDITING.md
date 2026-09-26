@@ -110,7 +110,8 @@ produced, all reachable from j's key maps and `executeCommand` too:
   `shiftLinesLeft`/`Right`, `toggleCaseRegion`, `toBottom`, `replaceChar`,
   `findCharInLine`/`Backward`, `tillCharInLine`/`Backward`,
   `moveToWindowTop`/`Middle`/`Bottom` (in `Lines`, `CaretCommands`,
-  `RegionCommands`);
+  `RegionCommands`), `incrementNumber`/`decrementNumber` (`NumberCommands`,
+  whose `plan` is vim's CTRL-A arithmetic on a line's text);
 - new arguments: `sortLines` flags (`Sort.Options`, vim's `:sort` letters),
   `pageDown`/`pageUp vim`, `prevBuffer alternate`, `wordRight vim`,
   `saveAs FILE`, `saveCopy FILE`;
@@ -457,6 +458,12 @@ Each of these has bitten at least once. Read them before editing.
     test of an indent Enter makes -- `<C-r>` of several lines, `<C-o>`
     taking an untouched indent away -- has to switch to Java mode, or it
     passes without testing anything; the mutation check caught one.
+27. **j's redo leaves the caret where the edit left it**: `UndoMove.redo`
+    restores the caret as it was when undo ran, so no arrangement of MOVE
+    records makes redo land where the command was typed, as vim's does. It
+    agrees for most commands and not for `<C-a>` or `p`; documented. A
+    MOVE record after the edit is not needed for a one-line insert:
+    `replaceChars` and `NumberCommands.add` have none, and undo is right.
 
 ## History
 
@@ -487,9 +494,10 @@ review before the next.
 | — | M13 leftovers: counted inserts, Enter autoindent, `O` indent, `v$o`, emoji `f t r`, visual `J` undo caret; replayed Delete/Tab | `1485050bf` … `85c28d320` |
 | M15 | corpus key names and documents; `ge` over line ends; `:help d`; `%` and quotes; an arrow splits an insert | `db9e981c6` |
 | M16 | `'. '[ '] '^`, the jump list, `''` and ````, `<C-o>` `<C-i>` | `d31fed8ec` |
-| M17 | insert-mode `<C-w> <C-u> <C-r> <C-o>`; the marks a split leaves | (uncommitted) |
+| M17 | insert-mode `<C-w> <C-u> <C-r> <C-o>`; the marks a split leaves | `219b055f0` |
+| M18 | `<C-a>` `<C-x>`, visual and `g`; `NumberCommands` | (uncommitted) |
 
-After M17: 859 tests, conformance 146 of 253 (145 ratcheted).
+After M18: 876 tests, conformance 152 of 253 (151 ratcheted).
 
 ### What the work learned
 

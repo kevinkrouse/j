@@ -275,6 +275,7 @@ public class CommandTable
             addCommand("cvsLog", "vcs.cvs.CVS", "log");
             addCommand("darcs", "vcs.darcs.Darcs");
             addCommand("decodeRegion", "RegionCommands");
+            addCommand("decrementNumber", "NumberCommands");
             addCommand("defaultKeyMaps", "KeyMap");
             addCommand("describe", "mode.lisp.LispShellMode");
             addCommand("describeBindings", "Help");
@@ -331,6 +332,7 @@ public class CommandTable
             addCommand("imageRestore", "mode.image.ImageMode");
             addCommand("imageZoomIn", "mode.image.ImageMode");
             addCommand("imageZoomOut", "mode.image.ImageMode");
+            addCommand("incrementNumber", "NumberCommands");
             addCommand("insertRegister", "Registers");
             addCommand("jdkHelp", "JDKHelp");
             addCommand("jumpToColumn", "JumpCommands");

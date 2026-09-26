@@ -87,6 +87,8 @@ public class VimDocTest
         KEY_MODES.put("insert <C-u>", I);
         KEY_MODES.put("insert <C-r>", I);
         KEY_MODES.put("insert <C-o>", I);
+        KEY_MODES.put("changes <C-a>", NV);
+        KEY_MODES.put("changes <C-x>", NV);
     }
 
     /** What a row names in code that is not a key in the map, and why. */
@@ -96,6 +98,9 @@ public class VimDocTest
         "insert <Esc>", "replace <Esc>", "replace <BS>",
         // Vim's option, named to say what o O cc S copy.
         "insert autoindent",
+        // The number formats CTRL-A reads.
+        "changes 0x", "changes 0b", "changes nrformats", "changes 007",
+        "changes 0x0f",
         // The mode shown during CTRL-O.
         "insert --", "insert (insert)",
         // j's command names, beside the keys bound to them.
@@ -239,6 +244,10 @@ public class VimDocTest
         for (int i = 0; i < words.length; ++i) {
             if (words[i].equals("Ctrl") && i + 1 < words.length)
                 keys.add("<C-" + words[++i].toLowerCase() + ">");
+            // g Ctrl A is one key sequence, g<C-a>.
+            else if (words[i].equals("g") && i + 2 < words.length
+                     && words[i + 1].equals("Ctrl"))
+                keys.add("g<C-" + words[i += 2].toLowerCase() + ">");
             else if (words[i].equals("Escape"))
                 keys.add("<Esc>");
             else if (words[i].equals("Backspace"))

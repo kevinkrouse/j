@@ -289,13 +289,8 @@ public final class CaretCommands
         final CompoundEdit edit = editor.getBuffer().beginCompoundEdit();
         try {
             editor.addUndo(SimpleEdit.MOVE);
-            editor.setMark(new Position(line, end));
-            editor.setDot(line, offset);
-            // setDot moves the model caret; the display keeps its own column
-            // and j pads an insert out to it.
-            editor.moveCaretToDotCol();
-            editor.deleteRegion();
-            editor.setMark(null);
+            editor.deleteRegion(new Position(line, offset),
+                                new Position(line, end));
             editor.insertString(text.toString());
             // The caret ends on the last character replaced, as vim leaves it.
             final Position now = editor.getDot();

@@ -347,6 +347,7 @@
     <li><a href="commands.html#findCharInLine">findCharInLine</a></li>
     <li><a href="commands.html#moveToWindowTop">moveToWindowTop</a></li>
     <li><a href="commands.html#replaceChar">replaceChar</a></li>
+    <li><a href="commands.html#incrementNumber">incrementNumber</a></li>
     <li><a href="commands.html#toggleCaseRegion">toggleCaseRegion</a></li>
     <li><a href="commands.html#joinLines">joinLines</a></li>
     <li><a href="commands.html#moveLinesDown">moveLinesDown</a></li>
@@ -4698,6 +4699,21 @@ replace.
 <b>Default key mapping:</b> None
 <br><br>
 <b>See also:</b> <code>r</code> in <a href="editmodes.html">vim edit mode</a>.
+<br><br>
+</dl><!--<hr>-->
+
+<a name="incrementNumber">incrementNumber</a>, <a name="decrementNumber">decrementNumber</a><dl><dd>
+<p>
+Adds the command's argument, or 1, to the number at or after the caret on
+its line, or takes it away: decimal, with a leading minus, <code>0x</code>
+hexadecimal and <code>0b</code> binary. The digits keep their width, so
+<code>0x10</code> less one is <code>0x0f</code>, and the caret ends on the
+number's last character.
+<br><br>
+<b>Default key mapping:</b> None
+<br><br>
+<b>See also:</b> <code>Ctrl A</code> and <code>Ctrl X</code> in
+<a href="editmodes.html">vim edit mode</a>, which call the same code.
 <br><br>
 </dl><!--<hr>-->
 
