@@ -128,6 +128,8 @@ public final class VimState
     {
         endInsert(editor);
         final Buffer buffer = editor.getBuffer();
+        insertRepeat = 0;
+        insertKeys.setLength(0);
         if (buffer != null) {
             insertEdit = buffer.beginCompoundEdit();
             insertEditBuffer = buffer;
@@ -209,6 +211,44 @@ public final class VimState
             if (text.charAt(i) != ' ' && text.charAt(i) != '\t')
                 return false;
         return true;
+    }
+
+    /**
+     * How many more times Escape types what this session typed, and whether
+     * each time opens a line first, as {@code 3o} does.
+     */
+    private int insertRepeat;
+    private boolean insertRepeatOpensLine;
+    /** The keys typed in this session, in key notation, for the repeat. */
+    private final StringBuilder insertKeys = new StringBuilder();
+
+    public void setInsertRepeat(int times, boolean opensLine)
+    {
+        insertRepeat = Math.max(0, times);
+        insertRepeatOpensLine = opensLine;
+    }
+
+    /** The repeat count, which is spent by asking for it. */
+    public int takeInsertRepeat()
+    {
+        final int times = insertRepeat;
+        insertRepeat = 0;
+        return times;
+    }
+
+    public boolean insertRepeatOpensLine()
+    {
+        return insertRepeatOpensLine;
+    }
+
+    public void noteInsertKey(String key)
+    {
+        insertKeys.append(key);
+    }
+
+    public String getInsertKeys()
+    {
+        return insertKeys.toString();
     }
 
     /**

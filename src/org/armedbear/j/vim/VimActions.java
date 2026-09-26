@@ -427,6 +427,8 @@ public final class VimActions
         editor.moveCaretToDotCol();
         ctx.state.beginInsert(editor, ctx.arg("replace")
                                       ? VimMode.REPLACE : VimMode.INSERT);
+        // 3iab<Esc> types ab three times: Escape types the other two.
+        ctx.state.setInsertRepeat(ctx.count - 1, false);
     }
 
     // ------------------------------------------------------- replace mode
@@ -529,14 +531,26 @@ public final class VimActions
     private static void openLine(MotionContext ctx)
     {
         final Editor editor = ctx.editor;
-        final Position dot = editor.getDot();
-        if (dot == null)
+        if (editor.getDot() == null)
             return;
-        final boolean after = ctx.arg("after");
         ctx.state.beginInsert(editor, VimMode.INSERT);
+        // 3o opens three lines: Escape opens the other two, below this one.
+        ctx.state.setInsertRepeat(ctx.count - 1, true);
         // Inside the insert session's undo step, before the caret moves to
         // where the new line goes.
         VimOperators.recordCaret(editor);
+        openLine(editor, ctx.state, ctx.arg("after"));
+    }
+
+    /**
+     * Opens a line below or above the caret's and puts the caret on it,
+     * indented. The indent is the session's until something is typed.
+     */
+    static void openLine(Editor editor, VimState state, boolean after)
+    {
+        final Position dot = editor.getDot();
+        if (dot == null)
+            return;
         if (after) {
             editor.setDot(dot.getLine(), dot.getLineLength());
             editor.moveCaretToDotCol();
@@ -561,7 +575,7 @@ public final class VimActions
         // session's own, not the user's, until something is typed after it.
         final Position now = editor.getDot();
         if (now != null)
-            ctx.state.noteAutoIndent(now.getLine());
+            state.noteAutoIndent(now.getLine());
     }
 
     // ---------------------------------------------------------- visual mode

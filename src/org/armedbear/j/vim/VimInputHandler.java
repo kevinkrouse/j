@@ -163,9 +163,13 @@ public final class VimInputHandler implements InputHandler
         }
 
         if (!state.getMode().isCommandMode()) {
-            if (recordingEdit && !replaying && isNamedKey(keyCode))
-                recording.append(KeyNotation.name(keyCode, event.getKeyChar(),
-                                                  modifiers));
+            if (!replaying && isNamedKey(keyCode)) {
+                final String name =
+                    KeyNotation.name(keyCode, event.getKeyChar(), modifiers);
+                if (recordingEdit)
+                    recording.append(name);
+                state.noteInsertKey(name);
+            }
             // A chorded key bound in insert mode -- CTRL-T, CTRL-D -- is the
             // vim command, not j's: j binds Ctrl-D to dir, which would open
             // a directory buffer in the middle of typing.
@@ -228,8 +232,11 @@ public final class VimInputHandler implements InputHandler
         if (match.status != KeyStrokeTrie.Status.FULL)
             return false;
         // Part of the insert session, so '.' replays it with the rest.
-        if (recordingEdit && !replaying)
-            recording.append(key);
+        if (!replaying) {
+            if (recordingEdit)
+                recording.append(key);
+            state.noteInsertKey(key);
+        }
         run(editor, match.value, 1, false, null, 1);
         return true;
     }
@@ -248,8 +255,12 @@ public final class VimInputHandler implements InputHandler
             return collectLine(editor, 0, event.getKeyChar());
 
         if (!state.getMode().isCommandMode()) {
-            if (recordingEdit && !replaying)
-                recording.append(KeyNotation.name(0, event.getKeyChar(), 0));
+            if (!replaying) {
+                final String name = KeyNotation.name(0, event.getKeyChar(), 0);
+                if (recordingEdit)
+                    recording.append(name);
+                state.noteInsertKey(name);
+            }
             final char typed = event.getKeyChar();
             // Typing makes the indent the user's.
             if (typed >= ' ' && typed != KeyEvent.CHAR_UNDEFINED
@@ -285,19 +296,10 @@ public final class VimInputHandler implements InputHandler
         // selection left behind by something other than visual mode.
         editor.unmark();
         if (state.getMode().isInsert()) {
-            // An indent put there by o, O or cc with nothing typed after it
-            // goes again, as in vim: nvim leaves an empty line after o<Esc>
-            // under an indented one, not a line of blanks. Before the mode
-            // changes, so it is part of the insert's undo step.
-            final Position at = editor.getDot();
-            if (at != null && state.isUntouchedAutoIndent(at.getLine())) {
-                final Line line = at.getLine();
-                editor.setMark(new Position(line, line.length()));
-                editor.setDot(line, 0);
-                editor.moveCaretToDotCol();
-                editor.deleteRegion();
-                editor.setMark(null);
-            }
+            // Before the mode changes, so both are part of the insert's undo
+            // step.
+            repeatInsert(editor);
+            dropUntouchedAutoIndent(editor);
             state.setMode(editor, VimMode.NORMAL);
             // Leaving insert steps back onto the last character typed.
             final Position dot = editor.getDot();
@@ -308,6 +310,51 @@ public final class VimInputHandler implements InputHandler
         }
         state.clampCaret(editor);
         return Result.CONSUMED;
+    }
+
+    /**
+     * Types the session's keys again for the count it was started with:
+     * {@code 3iab<Esc>} gives ababab, and {@code 3o} three lines.
+     */
+    private void repeatInsert(Editor editor)
+    {
+        final int times = state.takeInsertRepeat();
+        if (times == 0)
+            return;
+        final List<String> keys = KeyNotation.tokenize(state.getInsertKeys());
+        final boolean wasReplaying = replaying;
+        replaying = true;
+        try {
+            for (int i = 0; i < times; i++) {
+                if (state.insertRepeatOpensLine()) {
+                    dropUntouchedAutoIndent(editor);
+                    VimActions.openLine(editor, state, true);
+                }
+                for (String key : keys)
+                    dispatchReplay(editor, key);
+            }
+        }
+        finally {
+            replaying = wasReplaying;
+        }
+    }
+
+    /**
+     * Empties a line o, O or cc indented if nothing was typed after the
+     * indent, as vim does: nvim leaves an empty line after o<Esc> under an
+     * indented one, not a line of blanks.
+     */
+    private void dropUntouchedAutoIndent(Editor editor)
+    {
+        final Position at = editor.getDot();
+        if (at == null || !state.isUntouchedAutoIndent(at.getLine()))
+            return;
+        final Line line = at.getLine();
+        editor.setMark(new Position(line, line.length()));
+        editor.setDot(line, 0);
+        editor.moveCaretToDotCol();
+        editor.deleteRegion();
+        editor.setMark(null);
     }
 
     // ---------------------------------------------------------- dispatch
@@ -490,6 +537,7 @@ public final class VimInputHandler implements InputHandler
                 escape(editor);
                 return;
             }
+            state.noteInsertKey(key);
             if (isChorded(stroke.modifiers) && runInsertBinding(editor, key))
                 return;
             if (stroke.keyCode == KeyEvent.VK_BACK_SPACE) {

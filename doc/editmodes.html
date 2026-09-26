@@ -106,9 +106,10 @@ commands, counts, registers, marks and the dot command:
 </table>
 <p>
 Counts work where vim's do, and multiply across an operator and its motion:
-<code>2d3w</code> deletes six words. An insert session is one undo step, so
-<code>u</code> after <code>cwsomething&lt;Esc&gt;</code> puts back both what
-went and what came.
+<code>2d3w</code> deletes six words, and <code>3iab&lt;Esc&gt;</code> types
+<code>ab</code> three times, as <code>3o</code> opens three lines. An insert
+session is one undo step, so <code>u</code> after
+<code>cwsomething&lt;Esc&gt;</code> puts back both what went and what came.
 
 <h2>What is not there yet</h2>
 <p>
@@ -275,8 +276,6 @@ These are known and deliberate:
     (<code>:w !cmd</code>) do not.</li>
 <li><code>Ctrl ^</code> takes no count: j's buffers have no numbers to give
     it.</li>
-<li>A count before an insert does not repeat it: <code>3iab&lt;Esc&gt;</code>
-    and <code>3Rab&lt;Esc&gt;</code> type once, not three times.</li>
 </ul>
 <hr>
 <a href="contents.html">Top</a>
