@@ -188,7 +188,7 @@ public final class VimActions
      */
     private static void replaceCharacter(MotionContext ctx)
     {
-        final char replacement = ctx.characterArg();
+        final int replacement = ctx.codePointArg();
         if (replacement == 0)
             return;
         final Editor editor = ctx.editor;
@@ -648,7 +648,7 @@ public final class VimActions
     private static void visualReplace(MotionContext ctx)
     {
         final Editor editor = ctx.editor;
-        final char replacement = ctx.characterArg();
+        final int replacement = ctx.codePointArg();
         final VimRange range = VimVisual.take(editor, ctx.state);
         if (range == null || replacement == 0)
             return;

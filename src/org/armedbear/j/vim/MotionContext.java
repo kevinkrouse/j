@@ -78,6 +78,12 @@ public final class MotionContext
         return KeyNotation.characterOf(character);
     }
 
+    /** The character argument as a code point, so that it can be an emoji. */
+    public int codePointArg()
+    {
+        return KeyNotation.codePointOf(character);
+    }
+
     public boolean arg(String name)
     {
         return command.getBoolean(name);

@@ -286,4 +286,93 @@ public class VimM13LeftoversTest
         vim("abc\ndef", 0, 1).keys("v$ohd");
         assertEquals("def", h.value());
     }
+    // ------------------------------------------ an emoji after f t r
+    //
+    // AWT types it as two events; a command takes them as one key.
+
+    private static final String EMOJI = "😀";
+
+    @Test
+    public void fFindsAnEmoji()
+    {
+        vim("ab" + EMOJI + "cd", 0, 0).keys("f" + EMOJI);
+        h.assertCursorAt(0, 2);
+        h.keys("fd");
+        h.assertCursorAt(0, 5);
+    }
+
+    @Test
+    public void dfTakesTheWholeEmoji()
+    {
+        vim("ab" + EMOJI + "cd", 0, 0).keys("df" + EMOJI);
+        assertEquals("cd", h.value());
+    }
+
+    @Test
+    public void dtStopsBeforeIt()
+    {
+        vim("ab" + EMOJI + "cd", 0, 0).keys("dt" + EMOJI);
+        assertEquals(EMOJI + "cd", h.value());
+    }
+
+    @Test
+    public void backwardsToAndAfterAnEmoji()
+    {
+        vim("ab" + EMOJI + "cd", 0, 5).keys("dF" + EMOJI);
+        assertEquals("abd", h.value());
+        h.close();
+        vim("ab" + EMOJI + "cd", 0, 5).keys("dT" + EMOJI);
+        assertEquals("ab" + EMOJI + "d", h.value());
+    }
+
+    @Test
+    public void aCountPastTheLastEmojiDoesNothing()
+    {
+        vim(EMOJI + "a" + EMOJI + "b", 0, 0).keys("d2f" + EMOJI);
+        assertEquals(EMOJI + "a" + EMOJI + "b", h.value());
+    }
+
+    @Test
+    public void semicolonRepeatsAnEmojiSearch()
+    {
+        vim("a" + EMOJI + "b" + EMOJI, 0, 0).keys("f" + EMOJI).keys(";");
+        h.assertCursorAt(0, 4);
+    }
+
+    @Test
+    public void rPutsAnEmoji()
+    {
+        vim("abc", 0, 1).keys("r" + EMOJI);
+        assertEquals("a" + EMOJI + "c", h.value());
+        h.assertCursorAt(0, 1);
+    }
+
+    @Test
+    public void countedRPutsThatMany()
+    {
+        vim("abc", 0, 1).keys("2r" + EMOJI);
+        assertEquals("a" + EMOJI + EMOJI, h.value());
+        h.assertCursorAt(0, 3);
+    }
+
+    @Test
+    public void visualRPutsAnEmojiOnEach()
+    {
+        vim("abc", 0, 0).keys("vlr" + EMOJI);
+        assertEquals(EMOJI + EMOJI + "c", h.value());
+    }
+
+    @Test
+    public void dotRepeatsREmoji()
+    {
+        vim("abcd", 0, 0).keys("r" + EMOJI).keys("l.");
+        assertEquals(EMOJI + EMOJI + "cd", h.value());
+    }
+
+    @Test
+    public void anEmojiTypedInInsertModeIsStillText()
+    {
+        vim("ab", 0, 1).keys("3i" + EMOJI + "<Esc>");
+        assertEquals("a" + EMOJI + EMOJI + EMOJI + "b", h.value());
+    }
 }

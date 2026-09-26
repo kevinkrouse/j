@@ -369,11 +369,12 @@ public final class VimState
     /** The f, F, t or T that ';' and ',' repeat. */
     public static final class CharacterSearch
     {
-        public final char target;
+        /** A code point: f can look for an emoji. */
+        public final int target;
         public final boolean forward;
         public final boolean till;
 
-        CharacterSearch(char target, boolean forward, boolean till)
+        CharacterSearch(int target, boolean forward, boolean till)
         {
             this.target = target;
             this.forward = forward;
@@ -388,7 +389,7 @@ public final class VimState
         return lastCharacterSearch;
     }
 
-    public void setLastCharacterSearch(char target, boolean forward,
+    public void setLastCharacterSearch(int target, boolean forward,
                                        boolean till)
     {
         lastCharacterSearch = new CharacterSearch(target, forward, till);

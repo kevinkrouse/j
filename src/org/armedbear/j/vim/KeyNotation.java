@@ -147,7 +147,9 @@ public final class KeyNotation
                 strokes.add(parseBracketed(
                     token.substring(1, token.length() - 1), keys));
             else
-                strokes.add(new Stroke(0, token.charAt(0), 0));
+                // A surrogate pair is typed as two events, as AWT sends it.
+                for (int i = 0; i < token.length(); i++)
+                    strokes.add(new Stroke(0, token.charAt(i), 0));
         }
         return strokes;
     }
@@ -180,8 +182,10 @@ public final class KeyNotation
                 tokens.add("<lt>");
                 ++i;
             } else {
-                tokens.add(keys.substring(i, i + 1));
-                ++i;
+                // A surrogate pair is one key, as an emoji typed after f is.
+                final int n = Character.charCount(keys.codePointAt(i));
+                tokens.add(keys.substring(i, i + n));
+                i += n;
             }
         }
         return tokens;
@@ -333,6 +337,18 @@ public final class KeyNotation
         sb.append(body);
         sb.append('>');
         return sb.toString();
+    }
+
+    /**
+     * The character a key stands for as a code point: {@link #characterOf},
+     * but a key that is one surrogate pair gives the whole character.
+     */
+    public static int codePointOf(String key)
+    {
+        if (key != null && key.length() == 2
+            && Character.isSurrogatePair(key.charAt(0), key.charAt(1)))
+            return key.codePointAt(0);
+        return characterOf(key);
     }
 
     /**

@@ -235,7 +235,7 @@ public final class VimMotions
      */
     private static Position moveToCharacter(MotionContext ctx, Position from)
     {
-        final char target = ctx.characterArg();
+        final int target = ctx.codePointArg();
         if (target == 0)
             return null;
         final boolean forward = ctx.arg("forward");
@@ -284,12 +284,13 @@ public final class VimMotions
     }
 
     /**
+     * f, F, t and T, which are j's own {@link CaretCommands} scan.
+     *
      * @param repeat true for ';' and ',', which need one extra step for a
      *        till search: the caret is already parked against the character
      *        it stopped before, so searching from there would never move.
      */
-    /** f, F, t and T, which are j's own {@link CaretCommands} scan. */
-    private static Position findCharacter(Position from, char target,
+    private static Position findCharacter(Position from, int target,
                                           boolean forward, boolean till,
                                           int count, boolean repeat)
     {

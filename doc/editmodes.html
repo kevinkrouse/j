@@ -260,8 +260,7 @@ These are known and deliberate:
 <li>A character outside the Basic Multilingual Plane, such as an emoji, is
     one character to motions and edits, as in vim, but j measures columns in
     UTF-16 units, so <code>|</code> and <code>j</code>/<code>k</code> past one
-    can land a column away from where vim would. It cannot be the character
-    typed after <code>f</code>, <code>t</code> or <code>r</code>.</li>
+    can land a column away from where vim would.</li>
 <li><code>zt</code> leaves one line of context above the caret, because it is
     j's <code>toTop</code>; vim leaves none unless <code>'scrolloff'</code> is
     set. The command was left as j has it rather than changed to suit this

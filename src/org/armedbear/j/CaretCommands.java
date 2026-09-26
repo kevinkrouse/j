@@ -33,12 +33,13 @@ public final class CaretCommands
     /** Where {@code f}, {@code F}, {@code t} and {@code T} land. */
     public static final class CharSearch
     {
-        public final char target;
+        /** A code point, so that an emoji can be found as one character. */
+        public final int target;
         public final boolean forward;
         /** True to stop one short of the character rather than on it. */
         public final boolean till;
 
-        public CharSearch(char target, boolean forward, boolean till)
+        public CharSearch(int target, boolean forward, boolean till)
         {
             this.target = target;
             this.forward = forward;
@@ -67,32 +68,46 @@ public final class CaretCommands
 
         int found = from.getOffset();
         if (search.till && repeat)
-            found += search.forward ? 1 : -1;
+            found = step(text, found, search.forward);
 
         for (int i = 0; i < count; i++) {
-            found = indexOf(text, search.target, found + (search.forward ? 1 : -1),
-                            search.forward);
+            found = indexOf(text, search.target,
+                            step(text, found, search.forward), search.forward);
             if (found < 0)
                 return null;
         }
         final int landing = search.till
-            ? (search.forward ? found - 1 : found + 1) : found;
+            ? step(text, found, !search.forward) : found;
         if (landing < 0 || landing >= text.length())
             return null;
         return new Position(line, landing);
     }
 
-    private static int indexOf(String text, char target, int from,
+    /** One character on or back, a surrogate pair being one. */
+    private static int step(String text, int offset, boolean forward)
+    {
+        if (forward)
+            return offset >= 0 && offset < text.length()
+                ? offset + Character.charCount(text.codePointAt(offset))
+                : offset + 1;
+        return offset > 0 && offset <= text.length()
+            ? offset - Character.charCount(text.codePointBefore(offset))
+            : offset - 1;
+    }
+
+    private static int indexOf(String text, int target, int from,
                                boolean forward)
     {
         if (forward) {
-            for (int i = Math.max(0, from); i < text.length(); i++)
-                if (text.charAt(i) == target)
+            for (int i = Math.max(0, from); i < text.length();
+                 i = step(text, i, true))
+                if (text.codePointAt(i) == target)
                     return i;
             return -1;
         }
-        for (int i = Math.min(from, text.length() - 1); i >= 0; i--)
-            if (text.charAt(i) == target)
+        for (int i = Math.min(from, text.length() - 1); i >= 0;
+             i = step(text, i, false))
+            if (text.codePointAt(i) == target)
                 return i;
         return -1;
     }
@@ -135,7 +150,7 @@ public final class CaretCommands
         // The first character of the argument, so that a trailing space in a
         // key map definition does not become the thing being looked for.
         final Position to = findCharacter(dot,
-            new CharSearch(parameters.charAt(0), forward, till), 1, false);
+            new CharSearch(parameters.codePointAt(0), forward, till), 1, false);
         if (to == null) {
             editor.status("not found on this line");
             return;
@@ -245,7 +260,7 @@ public final class CaretCommands
         if (dot == null)
             return;
         replaceChars(editor, dot.getLine(), dot.getOffset(),
-                     parameters.charAt(0), 1);
+                     parameters.codePointAt(0), 1);
     }
 
     /**
@@ -257,7 +272,7 @@ public final class CaretCommands
      * @return false when there are not that many characters left on the line
      */
     public static boolean replaceChars(Editor editor, Line line, int offset,
-                                       char replacement, int count)
+                                       int replacement, int count)
     {
         // Whole characters: a surrogate pair is one, as it is on screen.
         final String was = line.getText();
@@ -269,7 +284,7 @@ public final class CaretCommands
         }
         final StringBuilder text = new StringBuilder(count);
         for (int i = 0; i < count; i++)
-            text.append(replacement);
+            text.appendCodePoint(replacement);
 
         final CompoundEdit edit = editor.getBuffer().beginCompoundEdit();
         try {
@@ -285,7 +300,9 @@ public final class CaretCommands
             // The caret ends on the last character replaced, as vim leaves it.
             final Position now = editor.getDot();
             if (now != null) {
-                editor.setDot(now.getLine(), Math.max(0, now.getOffset() - 1));
+                editor.setDot(now.getLine(),
+                              Math.max(0, now.getOffset()
+                                          - Character.charCount(replacement)));
                 editor.moveCaretToDotCol();
             }
         }

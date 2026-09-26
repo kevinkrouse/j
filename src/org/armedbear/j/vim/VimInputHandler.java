@@ -63,6 +63,8 @@ public final class VimInputHandler implements InputHandler
     // Set when a command actually changed the buffer. An operator on its own
     // has not: dw is only a change once the w arrives.
     private boolean edited;
+    /** The first half of a surrogate pair typed as a command key. */
+    private char highSurrogate;
 
     public VimInputHandler()
     {
@@ -278,7 +280,19 @@ public final class VimInputHandler implements InputHandler
             }
             return Result.PASS_THROUGH;
         }
-        dispatch(editor, KeyNotation.name(0, event.getKeyChar(), 0), 0);
+        // AWT sends a character outside the Basic Multilingual Plane as two
+        // key typed events. A command takes it as one key, so that f can
+        // find an emoji: hold the first half until the second arrives.
+        final char c = event.getKeyChar();
+        if (Character.isHighSurrogate(c)) {
+            highSurrogate = c;
+            return Result.CONSUMED;
+        }
+        final String key = highSurrogate != 0 && Character.isLowSurrogate(c)
+            ? new String(new char[] { highSurrogate, c })
+            : KeyNotation.name(0, c, 0);
+        highSurrogate = 0;
+        dispatch(editor, key, 0);
         return Result.CONSUMED;
     }
 
@@ -530,6 +544,15 @@ public final class VimInputHandler implements InputHandler
      */
     private void dispatchReplay(Editor editor, String key)
     {
+        // Text takes a surrogate pair as the two events AWT sends; only a
+        // command takes it as one key.
+        if ((typedLine != null || state.getMode().isInsert())
+            && key.length() == 2
+            && Character.isSurrogatePair(key.charAt(0), key.charAt(1))) {
+            dispatchReplay(editor, key.substring(0, 1));
+            dispatchReplay(editor, key.substring(1));
+            return;
+        }
         if (typedLine != null) {
             // Mid-pattern: these keys are the search text, not commands.
             final KeyNotation.Stroke stroke = KeyNotation.parseOne(key);
