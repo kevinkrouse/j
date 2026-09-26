@@ -106,8 +106,9 @@ the insert-mode commands (<code>Ctrl W</code>, <code>Ctrl R</code>),
 <p>
 Of the ex commands: <code>:marks</code> as a listing, the <code>c</code> flag
 on <code>:s</code>, which is reported rather than silently replacing
-everything, and a <code>:s</code> pattern matching <code>\n</code> to join
-lines.
+everything, a <code>:s</code> pattern matching <code>\n</code> to join
+lines, and in a replacement <code>~</code> (the previous replacement) and the
+case changes <code>\u \U \l \L \e \E</code>.
 <p>
 A key that vim mode does not claim falls through to j's own key maps, so
 <code>Ctrl S</code> still saves and <code>Alt X</code> still prompts for a
@@ -202,8 +203,13 @@ These are known and deliberate:
     by name, rather than quietly misread: <code>\%V</code> and the other
     window- and cursor-dependent atoms, <code>\&amp;</code>,
     <code>\zs</code> or <code>\ze</code> inside a group or beside a
-    top-level <code>\|</code>, and a <code>\zs</code> after a quantified
-    group such as <code>\(ab\)*</code>. <code>\k</code>, <code>\i</code> and
+    top-level <code>\|</code>, and <b>a <code>\zs</code> after anything of
+    variable width</b> &mdash; including the common <code>.*\zsfoo</code>.
+    Vim's <code>\zs</code> lands after the greedy match, so that pattern means
+    the last foo on the line; the construct it is translated into lands at
+    the leftmost place instead, which would mean every foo. It is refused
+    until it can be done properly. A <code>\zs</code> after something of
+    fixed width, such as <code>foo\zsbar</code>, works. <code>\k</code>, <code>\i</code> and
     <code>\f</code> use vim's usual character sets rather than reading
     <code>iskeyword</code>. j's own <a href="commands.html#sortLines">sortLines</a>
     takes Java's syntax, as the rest of j does.</li>
@@ -223,7 +229,15 @@ These are known and deliberate:
     j's <code>toTop</code>; vim leaves none unless <code>'scrolloff'</code> is
     set. The command was left as j has it rather than changed to suit this
     mode.</li>
-<li>A count before an insert does not repeat it: <code>3iab&lt;Esc&gt;</code>
+<li><code>:normal!</code> runs its keys through your mappings, as
+    <code>:normal</code> does; vim's leaves them out. Your mappings share one
+    table with the built-in bindings, so there is no unmapped table to run
+    them through instead.</li>
+<li>A backwards range such as <code>:5,1d</code> is put the right way round
+    and run, where vim asks first (E493). <code>:sort l</code> is accepted,
+    and sorts by code point, which is what the C locale gives.</li>
+<li>A count before an insert does not repeat it:
+ <code>3iab&lt;Esc&gt;</code>
     and <code>3Rab&lt;Esc&gt;</code> type once, not three times.</li>
 </ul>
 <hr>

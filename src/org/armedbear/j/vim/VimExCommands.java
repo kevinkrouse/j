@@ -12,9 +12,7 @@
 package org.armedbear.j.vim;
 
 import java.util.ArrayList;
-import java.util.IdentityHashMap;
 import java.util.List;
-import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
@@ -50,10 +48,14 @@ public final class VimExCommands
         throws VimEx.BadCommand
     {
         final String name = command.name;
-        // :sort! is the only one of these that means anything by it.
+        // The commands here that take a bang. :normal! is accepted but runs
+        // the keys through your mappings as :normal does: j merges mappings
+        // into the same table as the built-ins, so there is no unmapped
+        // table left to fall back on. Documented.
         if (command.bang && !name.isEmpty() && !matches(name, "sor", "sort")
             && !matches(name, "g", "global") && !matches(name, "j", "join")
-            && !matches(name, "delm", "delmarks"))
+            && !matches(name, "delm", "delmarks")
+            && !matches(name, "norm", "normal"))
             throw new VimEx.BadCommand("E477: No ! allowed");
         if (name.isEmpty()) {
             // A bare range means "go to that line", which is what :42 is.
@@ -146,10 +148,7 @@ public final class VimExCommands
     {
         final String where = command.args.trim();
         if (where.isEmpty())
-            throw new VimEx.BadCommand("E14: Invalid address");
-        // Parsed here rather than by the range parser because it is the one
-        // address that may legitimately be zero: :2,3m0 means "above the
-        // first line".
+            throw new VimEx.BadCommand("E16: Invalid range");
         final int target = where.equals("0") ? 0
             : VimEx.parse(editor, state, where).range.last;
         if (VimEx.lineAt(editor, command.range.first) == null
@@ -171,7 +170,7 @@ public final class VimExCommands
         state.clampCaret(editor);
     }
 
-    // -------------------------------------------------------------- normal"
+    // -------------------------------------------------------------- normal
 
     /**
      * {@code :normal} -- run the rest of the line as normal-mode keys.
@@ -185,7 +184,7 @@ public final class VimExCommands
     {
         final String keys = command.args;
         if (keys.isEmpty())
-            return;
+            throw new VimEx.BadCommand("E471: Argument required: normal");
         if (!command.range.given) {
             state.getHandler().runKeys(editor, keys);
             return;
@@ -296,13 +295,17 @@ public final class VimExCommands
         // another g -- each line is independent and the result is the same.
         final List<Integer> targets = new ArrayList<Integer>();
         editor.getBuffer().renumber();
-        for (int n = range.first; n <= range.last; n++) {
-            final Line l = VimEx.lineAt(editor, n);
-            if (l == null)
-                break;
-            final String text = l.getText() == null ? "" : l.getText();
+        Line scan = VimEx.lineAt(editor, range.first);
+        for (int n = range.first; n <= range.last && scan != null;
+             n++, scan = scan.next()) {
+            final String text = scan.getText() == null ? "" : scan.getText();
             if (regex.matcher(text).find() != invert)
                 targets.add(Integer.valueOf(n));
+        }
+        if (targets.isEmpty()) {
+            // Not an error in vim -- a message, and the command carries on.
+            editor.status("Pattern not found: " + pattern);
+            return;
         }
         if (line.isEmpty())
             return;
@@ -320,9 +323,20 @@ public final class VimExCommands
                 // its own asks for the line the caret is on by number.
                 editor.getBuffer().renumber();
                 final VimEx.Command inner = VimEx.parse(editor, state, line);
-                if (!VimExCommands.run(editor, state, inner))
-                    throw new VimEx.BadCommand(
-                        "E492: Not an editor command: " + inner.name);
+                try {
+                    if (!VimExCommands.run(editor, state, inner))
+                        throw new VimEx.BadCommand(
+                            "E492: Not an editor command: " + inner.name);
+                }
+                catch (VimEx.BadCommand e) {
+                    // An inner :s that finds nothing on this line is not an
+                    // error to :g, which carries on to the next: nvim makes
+                    // Xne of :g/e/s/o/X/ over "one three five" without
+                    // complaint. Anything else still stops it.
+                    if (e.getMessage() == null
+                        || !e.getMessage().startsWith("E486"))
+                        throw e;
+                }
             }
         }
         finally {
@@ -364,7 +378,12 @@ public final class VimExCommands
     private static void goToLine(Editor editor, VimState state, int number)
         throws VimEx.BadCommand
     {
-        final Line line = number < 1 ? null : VimEx.lineAt(editor, number);
+        // A bare address clamps both ways: :50 on three lines is the last
+        // line and :0 the first. Only a command with a range refuses one
+        // past the end -- :50d is E16. Both checked with nvim.
+        final int lines = Math.max(1, editor.getBuffer().getLineCount());
+        final Line line =
+            VimEx.lineAt(editor, Math.max(1, Math.min(number, lines)));
         if (line == null)
             throw new VimEx.BadCommand("E16: Invalid range");
         editor.setDot(line, VimMotions.firstNonBlank(line));
@@ -385,10 +404,12 @@ public final class VimExCommands
     static VimRange linesOf(Editor editor, VimEx.Range range)
         throws VimEx.BadCommand
     {
-        if (range.first < 1 || range.last < 1)
+        // Line 0 means the first line to most commands, as in vim: :0d
+        // deletes line 1. Below that is an error, and so is past the end.
+        if (range.first < 0 || range.last < 0)
             throw new VimEx.BadCommand("E16: Invalid range");
-        final Line first = VimEx.lineAt(editor, range.first);
-        final Line last = VimEx.lineAt(editor, range.last);
+        final Line first = VimEx.lineAt(editor, Math.max(1, range.first));
+        final Line last = VimEx.lineAt(editor, Math.max(1, range.last));
         if (first == null || last == null)
             throw new VimEx.BadCommand("E16: Invalid range");
         final Line after = last.next();
@@ -450,7 +471,11 @@ public final class VimExCommands
         final String count = trailingCount(command.args);
         if (count.isEmpty())
             return command.range;
-        final int n = Integer.parseInt(count);
+        // Read as a long and clamped below: a count too big for an int is
+        // still just "to the end", as vim takes it.
+        final long wanted = count.length() > 18 ? Long.MAX_VALUE
+                                                : Long.parseLong(count);
+        final int n = (int) Math.min(wanted, Integer.MAX_VALUE / 2);
         // A count past the end of the buffer clamps, where an address past
         // the end is an error. Vim really is asymmetric here: :1,3d 100 takes
         // what there is, and :100d takes nothing and complains.
@@ -475,8 +500,9 @@ public final class VimExCommands
             --i;
         final String digits = s.substring(i);
         // What comes before must be a register name or nothing; digits in the
-        // middle of a word are not a count.
-        final String head = s.substring(0, i);
+        // middle of a word are not a count. Spaces between the two do not
+        // matter, so "a 2" is read the same as "a2".
+        final String head = s.substring(0, i).trim();
         if (head.isEmpty() || (head.length() == 1
                                && VimRegisters.isValidName(head.charAt(0))))
             return digits;

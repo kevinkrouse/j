@@ -52,6 +52,13 @@ final class VimExSubstitute
         return lastReplacement;
     }
 
+    /** Clears what the last :s left, for a test that needs there to be none. */
+    static void forgetForTest()
+    {
+        lastPattern = null;
+        lastReplacement = null;
+    }
+
     static void run(Editor editor, VimState state, VimEx.Command command)
         throws VimEx.BadCommand
     {
@@ -139,6 +146,8 @@ final class VimExSubstitute
     {
         checkFlags(flags);
         final boolean all = flags.indexOf('g') >= 0;
+        // e: no error when nothing matches.
+        final boolean quiet = flags.indexOf('e') >= 0;
         final Pattern regex = compile(pattern, flags);
         final String rewritten = toJavaReplacement(replacement);
 
@@ -146,29 +155,54 @@ final class VimExSubstitute
         try {
             VimOperators.recordCaret(editor);
             int changed = 0;
-            Line last = null;
-            // Walk by number rather than by Line.next(): a replacement
-            // containing a newline splits the line it was on, and the lines
-            // it makes are not part of the range.
-            for (int n = range.first; n <= range.last; n++) {
-                final Line line = VimEx.lineAt(editor, n + changed);
-                if (line == null)
-                    break;
-                final String was = line.getText() == null ? "" : line.getText();
+            int lastRow = 0;
+            boolean matched = false;
+            // Walked forward rather than looked up by number each time, which
+            // was a walk from the first line per line of the range. A
+            // replacement containing a line break splits the line it was on,
+            // and the lines it makes are not part of the range, so the next
+            // line to look at is past them.
+            Line line = VimEx.lineAt(editor, range.first);
+            for (int n = range.first; n <= range.last && line != null;
+                 n++) {
+                final Line here = line;
+                line = here.next();
+                final String was = here.getText() == null ? "" : here.getText();
                 final Matcher matcher = regex.matcher(was);
                 final String now = all ? replaceAll(matcher, rewritten)
                                        : replaceFirst(matcher, rewritten);
-                if (now == null || now.equals(was))
+                if (now == null)
                     continue;
-                replaceLine(editor, line, now);
-                // Each newline the replacement introduced pushes the rest of
-                // the range down by one.
-                changed += count(now, '\n');
-                last = editor.getDot() == null ? line : editor.getDot().getLine();
+                // A match that changes nothing still counts as a match: vim
+                // does not report s/b/b/ as not found.
+                matched = true;
+                if (now.equals(was))
+                    continue;
+                replaceLine(editor, here, now);
+                // Each line break the replacement introduced pushes the rest
+                // of the range down by one; step past the lines it made.
+                final int breaks = count(now, '\n');
+                changed += breaks;
+                line = here;
+                for (int k = 0; k <= breaks && line != null; k++)
+                    line = line.next();
+                // Vim leaves the caret on the last line the last substitution
+                // produced -- the tail of a split, not the line it started on.
+                // Tracked by number: the dot after a split is no guide.
+                lastRow = n + changed;
             }
+            if (!matched && !quiet)
+                throw new VimEx.BadCommand("E486: Pattern not found: "
+                                           + pattern);
+            // j numbers lines lazily, and the lines a split made have none
+            // yet: anything reading lineNumber() after this -- a following
+            // :.d, for one -- would get -1. Trap 15, which is how the caret
+            // came to be on "line -1" rather than on a wrong line.
+            if (changed > 0)
+                editor.getBuffer().renumber();
+            final Line last = lastRow > 0 ? VimEx.lineAt(editor, lastRow)
+                                          : null;
             if (last != null) {
-                // Vim leaves the caret on the first non-blank of the last
-                // line it changed.
                 editor.setDot(last, VimMotions.firstNonBlank(last));
                 editor.moveCaretToDotCol();
             }
@@ -191,7 +225,7 @@ final class VimExSubstitute
     {
         for (int i = 0; i < flags.length(); i++) {
             final char c = flags.charAt(i);
-            if (c != 'g' && c != 'i' && c != 'I' && c != ' ')
+            if (c != 'g' && c != 'i' && c != 'I' && c != 'e' && c != ' ')
                 throw new VimEx.BadCommand(
                     "E488: Trailing characters: " + flags.substring(i));
         }
@@ -202,8 +236,11 @@ final class VimExSubstitute
     {
         // The i and I flags beat the options; \c and \C in the pattern beat
         // both, which VimRegex sees to.
-        final Boolean force = flags.indexOf('i') >= 0 ? Boolean.TRUE
-            : flags.indexOf('I') >= 0 ? Boolean.FALSE : null;
+        // The last of i and I wins, as in vim: s/b/B/iI is case sensitive.
+        final int i = flags.lastIndexOf('i');
+        final int upper = flags.lastIndexOf('I');
+        final Boolean force = i < 0 && upper < 0 ? null
+            : Boolean.valueOf(i > upper);
         try {
             return VimRegex.compile(pattern, force);
         }
@@ -283,8 +320,13 @@ final class VimExSubstitute
                 final char next = replacement.charAt(++i);
                 if (next >= '0' && next <= '9')
                     sb.append('$').append(next);
-                else if (next == 'n')
+                // In a replacement \r is the line break and \n inserts a NUL
+                // -- the other way round from a pattern, and checked with
+                // nvim, which puts ^@ where \n was.
+                else if (next == 'r')
                     sb.append('\n');
+                else if (next == 'n')
+                    sb.append('\u0000');
                 else if (next == 't')
                     sb.append('\t');
                 else if (next == '\\')

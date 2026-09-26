@@ -95,7 +95,7 @@ public final class VimRegisters
         if (name == BLACK_HOLE)
             return;
         if (name != 0) {
-            put(name, text, type);
+            putNamed(name, text, type);
             return;
         }
         put(UNNAMED, text, type);
@@ -114,7 +114,7 @@ public final class VimRegisters
         if (name == BLACK_HOLE)
             return;
         if (name != 0) {
-            put(name, text, type);
+            putNamed(name, text, type);
             return;
         }
         put(UNNAMED, text, type);
@@ -143,6 +143,23 @@ public final class VimRegisters
      * An upper case name appends to the lower case one, which is how vim
      * collects several yanks into a single register.
      */
+    /**
+     * Writes a register the user named, and points the unnamed register at
+     * it, as vim does: after "add a bare p pastes what went into a. Only the
+     * named register and the unnamed one change -- vim leaves "0 and the
+     * numbered registers alone when a register is named.
+     *
+     * For an upper case name the unnamed register gets the whole of the
+     * register after the append, not just the part appended.
+     */
+    private void putNamed(char name, String text, Type type)
+    {
+        put(name, text, type);
+        final Register now = get(name);
+        if (now != null && Character.toLowerCase(name) != UNNAMED)
+            registers.put(Character.valueOf(UNNAMED), now);
+    }
+
     private void put(char name, String text, Type type)
     {
         final char key = Character.toLowerCase(name);

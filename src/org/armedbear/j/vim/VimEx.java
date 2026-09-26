@@ -14,6 +14,7 @@ package org.armedbear.j.vim;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Editor;
 import org.armedbear.j.Line;
+import org.armedbear.j.Lines;
 import org.armedbear.j.Position;
 
 /**
@@ -188,9 +189,9 @@ public final class VimEx
         }
         if (base == null && offset == null)
             return null;
-        // Not clamped. Vim refuses an address past the end of the buffer
-        // rather than quietly using the last line, so :50 on three lines is
-        // an error; the commands check when they resolve it to a Line.
+        // Not clamped here, because what an address past the end means
+        // depends on who asks: a bare :50 clamps to the last line, :50d is
+        // E16, and :m0 is above the first line. The commands decide.
         return (base == null ? currentLine() : base)
                + (offset == null ? 0 : offset);
     }
@@ -327,12 +328,9 @@ public final class VimEx
         return buffer == null ? 1 : Math.max(1, buffer.getLineCount());
     }
 
-    /** The line a 1-based number names, or null if the buffer is shorter. */
+    /** The line a 1-based number names; j's own {@link Lines#lineAt}. */
     static Line lineAt(Editor editor, int number)
     {
-        Line line = editor.getBuffer().getFirstLine();
-        for (int i = 1; i < number && line != null; i++)
-            line = line.next();
-        return line;
+        return Lines.lineAt(editor, number);
     }
 }

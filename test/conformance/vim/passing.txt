@@ -51,6 +51,11 @@
 #                           mean, and are unit tested. These three passed
 #                           before M12.5 for the wrong reason: Java's regex
 #                           syntax happens to agree with JavaScript's.
+#   ex_global_substitute_   the corpus writes \n in a replacement to break the
+#   split                   line. In vim that inserts a NUL; \r is the line
+#                           break. nvim leaves NULs where the corpus expects
+#                           new lines, and so do we since the M12.5 review.
+#                           The same :g with \r is unit tested.
 #   macro_last_ex_command_  our text is right (2@: gives bbbaa) but the
 #   register                corpus wants the caret at column 2. Vim leaves it
 #                           on the first non-blank of the changed line: 0,0
@@ -201,6 +206,5 @@ ex_substitute_empty_arguments
 ex_substitute_range_implicit_offset
 
 # M12c: :g, :normal, :join, :move, :copy
-ex_global_substitute_split
 delmark_all
 delmark_single

@@ -192,6 +192,13 @@ public final class EditorHarness
         return this;
     }
 
+    /** The last status message, or "" if there has been none. */
+    public String status()
+    {
+        final String s = editor.getLastStatus();
+        return s == null ? "" : s;
+    }
+
     /** True while a {@code :} is waiting for its line. */
     public boolean awaitingExCommand()
     {

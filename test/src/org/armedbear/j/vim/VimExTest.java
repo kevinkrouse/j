@@ -501,8 +501,9 @@ public class VimExTest
     {
         // Two passes: the lines are picked out first. One pass would go back
         // over the halves a newline-producing replacement had just made.
+        // \r is the line break in a replacement; \n would insert a NUL.
         vim("one\ntwo\nthree\nfour\nfive\n", 0, 0)
-            .keys(":").exCommand("g/e/s/[or]/\\n");
+            .keys(":").exCommand("g/e/s/[or]/\\r");
         assertEquals("\nne\ntwo\nth\nee\nfour\nfive\n", h.value());
     }
 
@@ -517,13 +518,30 @@ public class VimExTest
     // ------------------------------------------------------ refusals
 
     @Test
-    public void anAddressPastTheEndIsRefused()
+    public void aCommandWithAnAddressPastTheEndIsRefused()
     {
-        // Vim errors rather than quietly using the last line.
         vim("l1\nl2\nl3", 0, 0).keys(":").exCommand("50s/l/L/");
         assertEquals("l1\nl2\nl3", h.value());
-        h.keys(":").exCommand("50");
+        h.exCommand("50d");
+        assertEquals("l1\nl2\nl3", h.value());
+    }
+
+    @Test
+    public void butABareAddressClampsBothWays()
+    {
+        // :50 on three lines is the last line and :0 the first; I had
+        // written the opposite into a comment, having checked only :50s.
+        vim("l1\nl2\nl3", 0, 0).keys(":").exCommand("50");
+        at(2, 0);
+        h.exCommand("0");
         at(0, 0);
+    }
+
+    @Test
+    public void lineZeroIsTheFirstLineToACommand()
+    {
+        vim("a\nb\nc", 1, 0).keys(":").exCommand("0d");
+        assertEquals("b\nc", h.value());
     }
 
     @Test

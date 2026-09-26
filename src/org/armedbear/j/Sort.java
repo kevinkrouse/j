@@ -60,8 +60,10 @@ public final class Sort
         public boolean reverse;
         /** r -- compare the match itself rather than what follows it. */
         public boolean useMatch;
-        /** n, x, o, b, f -- the base to read a number in, or 0 for text. */
+        /** n, x, o, b -- the base to read a number in, or 0 for text. */
         public int radix;
+        /** f -- compare the first floating point number in the line. */
+        public boolean real;
         /** The pattern picking out the key, or null for the whole line. */
         public Pattern pattern;
 
@@ -79,20 +81,37 @@ public final class Sort
             final int slash = s.indexOf('/');
             final String flags = (slash < 0 ? s : s.substring(0, slash))
                                  .replace(" ", "");
+            char kind = 0;
             for (int i = 0; i < flags.length(); i++) {
                 final char c = flags.charAt(i);
                 switch (c) {
                     case 'i': options.ignoreCase = true; break;
                     case 'u': options.unique = true; break;
                     case 'r': options.useMatch = true; break;
-                    case 'x': options.radix = 16; break;
-                    case 'o': options.radix = 8; break;
-                    case 'b': options.radix = 2; break;
-                    case 'n': case 'f': options.radix = 10; break;
+                    // l sorts by the locale. The comparison here is by code
+                    // point, which is what the C locale gives, so it is
+                    // accepted and changes nothing.
+                    case 'l': break;
+                    case 'n': case 'f': case 'x': case 'o': case 'b':
+                        // Mutually exclusive, and vim says so rather than
+                        // letting the last one win.
+                        if (kind != 0 && kind != c)
+                            throw new IllegalArgumentException(
+                                "E474: Invalid argument");
+                        kind = c;
+                        break;
                     default:
                         throw new IllegalArgumentException(
                             "E475: Invalid argument: " + c);
                 }
+            }
+            switch (kind) {
+                case 'x': options.radix = 16; break;
+                case 'o': options.radix = 8; break;
+                case 'b': options.radix = 2; break;
+                case 'n': options.radix = 10; break;
+                case 'f': options.real = true; break;
+                default: break;
             }
             if (slash >= 0) {
                 final int close = s.indexOf('/', slash + 1);
@@ -123,6 +142,8 @@ public final class Sort
         final String key;
         /** The number read from the key, or null when the sort is textual. */
         final Long number;
+        /** The float read from the key, for f. */
+        double real;
         /** False when a radix is in force and the line has no number. */
         final boolean keyed;
 
@@ -315,6 +336,13 @@ public final class Sort
                   : options.useMatch ? matcher.group()
                                      : text.substring(matcher.end());
         }
+        if (options.real) {
+            // Unlike n, a line with no float is not put first: it counts as
+            // 0.0, which is where nvim puts "x" among -25, 0.1 and 0.5.
+            final Entry e = new Entry(text, key, null, true);
+            e.real = realIn(key);
+            return e;
+        }
         if (options.radix != 0) {
             // A line with no number of this base sorts before every line that
             // has one, keeping its place among the others. Not the same as
@@ -365,6 +393,23 @@ public final class Sort
         return null;
     }
 
+    /** The first floating point number in the text, or 0.0 if there is none. */
+    private static double realIn(String text)
+    {
+        final Matcher m = FLOAT.matcher(text);
+        if (!m.find())
+            return 0.0;
+        try {
+            return Double.parseDouble(m.group());
+        }
+        catch (NumberFormatException e) {
+            return 0.0;
+        }
+    }
+
+    private static final Pattern FLOAT = Pattern.compile(
+        "[-+]?(?:\\d+(?:\\.\\d*)?|\\.\\d+)(?:[eE][-+]?\\d+)?");
+
     /**
      * Orders the entries, keeping equal ones as they were.
      *
@@ -373,7 +418,7 @@ public final class Sort
      */
     private static void sort(List<Entry> entries, Options options)
     {
-        entries.sort(new EntryComparator(options.radix != 0));
+        entries.sort(new EntryComparator(options.radix != 0, options.real));
         if (options.reverse)
             Collections.reverse(entries);
     }
@@ -381,14 +426,18 @@ public final class Sort
     private static class EntryComparator implements Comparator<Entry>
     {
         private final boolean numeric;
+        private final boolean real;
 
-        EntryComparator(boolean numeric)
+        EntryComparator(boolean numeric, boolean real)
         {
             this.numeric = numeric;
+            this.real = real;
         }
 
         public final int compare(Entry a, Entry b)
         {
+            if (real)
+                return Double.compare(a.real, b.real);
             if (!a.keyed || !b.keyed)
                 return a.keyed == b.keyed ? 0 : (a.keyed ? 1 : -1);
             if (numeric)

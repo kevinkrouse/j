@@ -252,12 +252,35 @@ public class VimRegexTest
     }
 
     @Test
-    public void butAnUnboundedSingleAtomBeforeZsWorks()
+    public void zsAfterSomethingOfVariableWidthIsRefused()
     {
-        // nvim: a*\zsb on "aab" gives "aax".
+        // The lookbehind \zs becomes is satisfied at the leftmost place it
+        // can be; vim's \zs lands after the greedy match. .*\zsfoo is the
+        // last foo in nvim and was every foo here, silently. Refused by
+        // name until \zs is done properly.
         h = EditorHarness.create().vim();
-        h.value("aab").cursor(0, 0).exCommand("s/a*\\zsb/x/");
-        assertEquals("aax", h.value());
+        h.value("foo x foo").cursor(0, 0).exCommand("s/.*\\zsfoo/X/");
+        assertEquals("foo x foo", h.value());
+        for (String p : new String[] {"a\\+\\zsb", "\\(a\\|bc\\)\\zsd",
+                                      "\\(a\\)\\1\\zsb", "a\\{1,2}\\zsb"}) {
+            try {
+                VimRegex.translate(p);
+                fail("expected " + p + " to be refused");
+            }
+            catch (PatternSyntaxException expected) {
+                // as intended
+            }
+        }
+    }
+
+    @Test
+    public void butAFixedWidthPrefixIsExactAndAllowed()
+    {
+        // With a fixed width the leftmost lookbehind and vim's greedy \zs
+        // land in the same place. \{3} is still fixed.
+        h = EditorHarness.create().vim();
+        h.value("aaab").cursor(0, 0).exCommand("s/a\\{3}\\zsb/X/");
+        assertEquals("aaaX", h.value());
     }
 
     @Test

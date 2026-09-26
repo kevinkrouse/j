@@ -7407,9 +7407,26 @@ public final class Editor extends JPanel implements Constants,
 
     public void status(String s)
     {
+        lastStatus = s;
         if (frame != null)
             frame.setStatusText(s);
     }
+
+    /**
+     * The last message given to {@link #status}, frame or no frame.
+     *
+     * A frameless editor drops status messages, which made every fix of the
+     * kind "report this error rather than do nothing" untestable: the text
+     * is the same either way and the message is the whole change. Package
+     * private, for the test harness; the same trade as
+     * Display.isRepaintPending.
+     */
+    String getLastStatus()
+    {
+        return lastStatus;
+    }
+
+    private String lastStatus;
 
     private static boolean displayReady;
 

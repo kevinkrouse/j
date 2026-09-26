@@ -232,11 +232,11 @@ public final class VimSearch
         // cannot express by throwing, and a refusal has to reach the user as
         // a message rather than escape into the key handler.
         try {
-            search.setPattern(toJavaRegex(query.pattern));
-            search.setIgnoreCase(VimRegex.ignoreCase(
-                VimRegex.translate(query.pattern,
-                                   VimExSubstitute.lastReplacement()),
-                null, query.smartcase));
+            final VimRegex.Result translated = VimRegex.translate(
+                query.pattern, VimExSubstitute.lastReplacement());
+            search.setPattern(translated.java);
+            search.setIgnoreCase(VimRegex.ignoreCase(translated, null,
+                                                     query.smartcase));
             search.setWholeWordsOnly(query.wholeWord);
             search.setRegularExpression(true);
             search.setREFromPattern();
@@ -247,10 +247,6 @@ public final class VimSearch
         return search;
     }
 
-    /**
-     * Vim's {@code 'ignorecase'}, narrowed by {@code 'smartcase'}: a pattern
-     * with an upper case letter in it is taken to mean that case.
-     */
     /**
      * Vim's {@code 'ignorecase'}, narrowed by {@code 'smartcase'} and
      * overridden by {@code \c} or {@code \C} in the pattern itself.

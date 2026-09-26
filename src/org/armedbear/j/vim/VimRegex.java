@@ -202,6 +202,14 @@ final class VimRegex
         private int zs = -1;
         private int ze = -1;
         private boolean topLevelAlternation;
+        /**
+         * Set once anything of variable width has been written: a
+         * quantifier, an alternative, a backreference. \zs after one is
+         * refused, because the lookbehind it becomes is satisfied at the
+         * leftmost place it can be, where vim's \zs lands after the greedy
+         * match -- .*\zsfoo is the last foo in vim and the first here.
+         */
+        private boolean variableWidth;
 
         Translator(String in, String lastSubstitute)
         {
@@ -278,7 +286,8 @@ final class VimRegex
                 case 'f': atom("[0-9A-Za-z_./\\-+,#$%~=]"); return;
                 case 'F': atom("[A-Za-z_./\\-+,#$%~=]"); return;
                 case 'p': atom("[\\x20-\\x7e]"); return;
-                case 'P': atom("[\\x21-\\x7e]"); return;
+                // Capital forms of \i \k \f \p exclude digits.
+                case 'P': atom("[\\x20-\\x2f\\x3a-\\x7e]"); return;
                 // Control characters. \b is backspace here, not a boundary.
                 case 'e': atom("\\x1b"); return;
                 case 't': atom("\\t"); return;
@@ -292,6 +301,7 @@ final class VimRegex
             }
             if (c >= '1' && c <= '9') {
                 atom("\\" + c);
+                variableWidth = true;
                 return;
             }
             // Anything else escaped is itself: \\, \/, \] and the rest.
@@ -327,10 +337,11 @@ final class VimRegex
                     return;
                 case '~':
                     // The last substitute string, as a single atom. With none
-                    // yet it matches nothing at all -- not the empty string:
-                    // nvim finds no a~b in "ab".
-                    atom(lastSubstitute == null ? "(?!)"
-                         : "(?:" + Pattern.quote(lastSubstitute) + ")");
+                    // yet it is an error, as in vim.
+                    if (lastSubstitute == null)
+                        throw error(
+                            "E33: No previous substitute regular expression");
+                    atom("(?:" + Pattern.quote(lastSubstitute) + ")");
                     return;
                 case '(':
                     openGroup("(");
@@ -344,6 +355,7 @@ final class VimRegex
                     out.append('|');
                     lastAtom = -1;
                     branchStart = true;
+                    variableWidth = true;
                     return;
                 case '*':
                     quantifier("*", c);
@@ -425,6 +437,7 @@ final class VimRegex
             }
             out.append(java);
             branchStart = false;
+            variableWidth = true;
         }
 
         /** {@code \{n,m}} and its non-greedy {@code \{-n,m}} form. */
@@ -476,6 +489,9 @@ final class VimRegex
             out.append(java);
             if (lazy)
                 out.append('?');
+            // An exact count, {n}, is still a fixed width.
+            if (!java.matches("\\{\\d+\\}"))
+                variableWidth = true;
         }
 
         private int number(String s)
@@ -588,8 +604,19 @@ final class VimRegex
                 ++pos;
             if (pos == start)
                 throw error("E678: Invalid character after \\%[dxouU]");
-            final int cp = Integer.parseInt(in.substring(start, pos), radix);
-            atom(Pattern.quote(new String(Character.toChars(cp))));
+            // Parsed as a long and range-checked: \%d99999999999 overflows an
+            // int, and \%UFFFFFFFF is past Unicode. Either would otherwise
+            // escape as an exception no caller expects.
+            final long cp;
+            try {
+                cp = Long.parseLong(in.substring(start, pos), radix);
+            }
+            catch (NumberFormatException e) {
+                throw error("E678: Invalid character after \\%[dxouU]");
+            }
+            if (cp > Character.MAX_CODE_POINT)
+                throw error("E678: Invalid character after \\%[dxouU]");
+            atom(Pattern.quote(new String(Character.toChars((int) cp))));
         }
 
         /** {@code \_x}: a class that also matches a newline, and {@code \_.}. */
@@ -637,6 +664,9 @@ final class VimRegex
             // level alternatives, where "the whole pattern" is one thing.
             if (!groups.isEmpty())
                 throw error("\\z" + c + " inside a group is not supported");
+            if (c == 's' && variableWidth)
+                throw error("\\zs after something of variable width is not "
+                            + "supported");
             if (c == 's')
                 zs = out.length();
             else
