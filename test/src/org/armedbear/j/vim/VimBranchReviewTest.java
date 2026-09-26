@@ -144,4 +144,26 @@ public class VimBranchReviewTest
         vim("ab", 0, 0).exCommand("s/b*/-/g");
         assertEquals("-a-", h.value());
     }
+    // F3 -- :sort u drops equal lines, not lines with equal keys.
+
+    @Test
+    public void sortUniqueComparesWholeLinesNotKeys()
+    {
+        vim("x:1\ny:1", 0, 0).exCommand("sort u /:/");
+        assertEquals("x:1\ny:1", h.value());
+    }
+
+    @Test
+    public void sortUniqueByNumberStillComparesLines()
+    {
+        vim("a1\nb1\n1", 0, 0).exCommand("sort nu");
+        assertEquals("a1\nb1\n1", h.value());
+    }
+
+    @Test
+    public void sortUniqueIgnoringCaseKeepsTheFirst()
+    {
+        vim("A\na\nb", 0, 0).exCommand("sort iu");
+        assertEquals("A\nb", h.value());
+    }
 }

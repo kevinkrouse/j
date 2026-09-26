@@ -239,9 +239,12 @@ public final class Sort
         final List<String> wanted = new ArrayList<String>(entries.size());
         String previous = null;
         for (Entry e : entries) {
-            if (options.unique && previous != null && previous.equals(e.key))
+            // Equal lines, not equal keys: :sort u /:/ keeps x:1 and y:1.
+            if (options.unique && previous != null
+                && (options.ignoreCase ? previous.equalsIgnoreCase(e.text)
+                                       : previous.equals(e.text)))
                 continue;
-            previous = e.key;
+            previous = e.text;
             wanted.add(e.text);
         }
 
