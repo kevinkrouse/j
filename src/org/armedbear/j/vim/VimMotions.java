@@ -362,21 +362,35 @@ public final class VimMotions
             : at(mark.getLine(), mark.getOffset());
     }
 
-    /** ]` and [` -- to the nearest mark either side of the caret. */
+    /**
+     * ]` [` ]' [' -- to the nearest mark either side of the caret.
+     *
+     * The quote forms go by lines: a mark on the caret's own line does not
+     * count, and with no mark to go to they still land on the first
+     * non-blank, as nvim does.
+     */
     private static Position jumpToMark(MotionContext ctx, Position from)
     {
         final VimMarks marks = ctx.state.getMarks();
         final boolean forward = ctx.arg("forward");
+        final boolean linewise = ctx.arg("linewise");
         Position pos = from;
         for (int i = 0; i < ctx.count; i++) {
+            // Searching from the far end of the line skips its own marks.
+            final Position after = !linewise ? pos
+                : new Position(pos.getLine(),
+                               forward ? pos.getLine().length() : 0);
             final Position next = forward
-                ? marks.next(ctx.editor.getBuffer(), pos)
-                : marks.previous(ctx.editor.getBuffer(), pos);
-            if (next == null)
-                return i == 0 ? null : pos;
+                ? marks.next(ctx.editor.getBuffer(), after)
+                : marks.previous(ctx.editor.getBuffer(), after);
+            if (next == null) {
+                if (i == 0 && !linewise)
+                    return null;
+                break;
+            }
             pos = next;
         }
-        return ctx.arg("linewise")
+        return linewise
             ? at(pos.getLine(), firstNonBlank(pos.getLine()))
             : at(pos.getLine(), pos.getOffset());
     }

@@ -219,3 +219,9 @@ o_visual
 visual_join
 visual_join_2
 visual_paste
+
+# M13: ]' and [' skip their own line, and land on it with no mark
+jumpToMark_next_linewise_over
+jumpToMark_next_nomark
+jumpToMark_prev_linewise_over
+jumpToMark_prev_nomark

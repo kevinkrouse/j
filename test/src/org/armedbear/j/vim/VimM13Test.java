@@ -43,6 +43,9 @@ public class VimM13Test
 
     private EditorHarness vim(String text, int line, int offset)
     {
+        // A test may start over; the old buffer must not outlive it.
+        if (h != null)
+            h.close();
         h = EditorHarness.create().vim();
         h.value(text).cursor(line, offset);
         return h;
@@ -641,5 +644,31 @@ public class VimM13Test
         h.keys("yiwjVp");
         assertEquals("ab\nab", h.value());
         h.assertCursorAt(1, 0);
+    }
+
+    // ------------------------------------------------------------ ]' ['
+
+    @Test
+    public void countedMarkJumpStopsAtTheLastMark()
+    {
+        vim("  a\n  b\n  c\n  d\n  e", 1, 2);
+        h.keys("ma");
+        h.cursor(3, 2);
+        h.keys("mb");
+        h.cursor(0, 0);
+        h.keys("3]'");
+        h.assertCursorAt(3, 2);
+    }
+
+    @Test
+    public void quoteMarkJumpWithNoMarkIsTheLineItself()
+    {
+        // nvim: with no mark ahead, d]' still takes the caret's line.
+        vim("  a\n  b\n  c", 1, 2);
+        h.keys("d]'");
+        assertEquals("  a\n  c", h.value());
+        vim("  a\n  b\n  c", 1, 2);
+        h.keys("3]`");
+        h.assertCursorAt(1, 2);
     }
 }
