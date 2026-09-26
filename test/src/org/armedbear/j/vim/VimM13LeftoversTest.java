@@ -375,4 +375,22 @@ public class VimM13LeftoversTest
         vim("ab", 0, 1).keys("3i" + EMOJI + "<Esc>");
         assertEquals("a" + EMOJI + EMOJI + EMOJI + "b", h.value());
     }
+    // ------------------------------------------ undo after visual J
+    //
+    // nvim gives the caret back where it was if that was on the first line
+    // joined, and at that line's start if it was lower down.
+
+    @Test
+    public void undoAfterAnUpwardVisualJoin()
+    {
+        vim("abc\ndef\nghi", 0, 0).keys("jllVkJ").keys("u");
+        h.assertCursorAt(0, 2);
+    }
+
+    @Test
+    public void undoAfterADownwardVisualJoin()
+    {
+        vim("abc\ndef\nghi", 0, 0).keys("llVjJ").keys("u");
+        h.assertCursorAt(0, 0);
+    }
 }

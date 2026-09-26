@@ -635,8 +635,11 @@ public final class VimActions
                                                  : head.getLine();
         final int joins = Math.max(1, Math.abs(anchor.lineNumber()
                                                - head.lineNumber()));
+        // Where undo gives the caret back, as nvim does: where it was if
+        // that was on the first line, else that line's start.
+        final int column = head.getLine() == first ? head.getOffset() : 0;
         VimVisual.take(editor, ctx.state);
-        editor.setDot(first, 0);
+        editor.setDot(first, column);
         editor.moveCaretToDotCol();
         joinAt(editor, ctx.state, joins, ctx.arg("keepSpaces"));
     }
