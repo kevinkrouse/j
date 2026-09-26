@@ -579,6 +579,13 @@ public final class VimInputHandler implements InputHandler
             } else if (stroke.keyCode == KeyEvent.VK_TAB
                        && state.getMode() == VimMode.REPLACE) {
                 VimActions.replaceTypedCharacter(editor, state, '\t');
+            } else if (isNamedKey(stroke.keyCode)) {
+                // Delete, Tab, an arrow: whatever j binds it to, as it was
+                // when typed. Its character is not text: Delete's is DEL.
+                if (stroke.keyCode == KeyEvent.VK_TAB)
+                    state.forgetAutoIndent();
+                editor.handleKeyMapEvent(new JEvent(JEvent.KEY_PRESSED,
+                    stroke.keyCode, stroke.keyChar, stroke.modifiers));
             } else if (stroke.keyChar != KeyEvent.CHAR_UNDEFINED) {
                 if (state.getMode() == VimMode.REPLACE)
                     VimActions.replaceTypedCharacter(editor, state,

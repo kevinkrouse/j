@@ -393,4 +393,46 @@ public class VimM13LeftoversTest
         vim("abc\ndef\nghi", 0, 0).keys("llVjJ").keys("u");
         h.assertCursorAt(0, 0);
     }
+    // ------------------------ Delete and Tab in a repeated insert
+    //
+    // A named key replays as whatever j binds it to, as it did when typed,
+    // not as its character: Delete's is DEL.
+
+    @Test
+    public void aRepeatDeletesWhereTheInsertDid()
+    {
+        vim("xyz", 0, 0).keys("3ia<Del><Esc>");
+        assertEquals("aaa", h.value());
+    }
+
+    @Test
+    public void dotDeletesWhereTheInsertDid()
+    {
+        vim("xyz\nuvw", 0, 0).keys("ia<Del><Esc>").keys("j0.");
+        assertEquals("ayz\navw", h.value());
+    }
+
+    @Test
+    public void aRepeatTabsAsTypingDoes()
+    {
+        // Java mode's Tab reindents the line rather than inserting a tab.
+        java("{\nx", 1, 0).keys("i<Tab>a<Tab>a<Tab>a<Esc>");
+        final String typed = h.value();
+        h.close();
+        java("{\nx", 1, 0).keys("3i<Tab>a<Esc>");
+        assertEquals(typed, h.value());
+        assertEquals("{\n  aaax", h.value());
+    }
+    @Test
+    public void aTabMakesTheIndentTheUsersInARepeatToo()
+    {
+        // nvim: each opened line keeps its indent and the tab typed after it.
+        vim("  x", 0, 0).keys("o<Tab><Esc>o<Tab><Esc>o<Tab><Esc>");
+        final String typed = h.value();
+        h.close();
+        vim("  x", 0, 0).keys("3o<Tab><Esc>");
+        assertEquals(typed, h.value());
+        assertEquals(4, h.value().split("\n", -1).length);
+        assertEquals(false, h.value().contains("\n\n"));
+    }
 }
