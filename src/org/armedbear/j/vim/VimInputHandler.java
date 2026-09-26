@@ -268,15 +268,7 @@ public final class VimInputHandler implements InputHandler
 
     private Result escape(Editor editor)
     {
-        builder.reset();
-        fallback = null;
-        // A / whose prompt never delivered leaves its operator parked, and
-        // it would swallow the next motion typed.
-        pendingSearch = null;
-        typedLine = null;
-        // "a then Escape means the register was never used; without this it
-        // would silently attach itself to some unrelated later command.
-        state.clearPendingRegister();
+        dropPartialCommand();
         if (recordingEdit && !replaying && state.getMode().isInsert()) {
             // The change was still being typed; Escape is the end of it.
             recording.append("<Esc>");
@@ -402,6 +394,23 @@ public final class VimInputHandler implements InputHandler
     }
 
     /**
+     * Forgets a command typed only in part: an operator or register waiting,
+     * or a / or : line still being typed, here or at a prompt.
+     */
+    private void dropPartialCommand()
+    {
+        builder.reset();
+        fallback = null;
+        // A / whose prompt never delivered leaves its operator parked, and
+        // it would swallow the next motion typed.
+        pendingSearch = null;
+        typedLine = null;
+        // "a then Escape means the register was never used; without this it
+        // would silently attach itself to some unrelated later command.
+        state.clearPendingRegister();
+    }
+
+    /**
      * True for a command that changes the buffer, which is what '.' repeats.
      *
      * Yank is an operator but not a change, so '.' after a yank repeats
@@ -452,6 +461,9 @@ public final class VimInputHandler implements InputHandler
             // key typed.
             if (state.getMode().isInsert())
                 escape(editor);
+            // So does a command left half typed: :normal /foo abandons the
+            // search rather than leave it waiting for the next key.
+            dropPartialCommand();
         }
         finally {
             replaying = false;
@@ -696,8 +708,10 @@ public final class VimInputHandler implements InputHandler
         final PendingSearch pending = pendingSearch;
         pendingSearch = null;
         typedLine = null;
-        if (pending == null || pattern == null || pattern.isEmpty())
+        if (pending == null || pattern == null || pattern.isEmpty()) {
+            searchCancelled();
             return;
+        }
 
         // The pattern keys never went through dispatch, so add them to the
         // recording by hand or '.' would replay a bare "d/" and hang on a
@@ -813,8 +827,11 @@ public final class VimInputHandler implements InputHandler
     /** The prompt was abandoned, so the command it belonged to is too. */
     public void searchCancelled()
     {
-        pendingSearch = null;
-        builder.reset();
+        dropPartialCommand();
+        // Else the d of an abandoned d/ stays recorded, and the next change
+        // is appended to it: . would then open a prompt nobody sees.
+        if (!replaying)
+            clearRecording();
     }
 
     /**

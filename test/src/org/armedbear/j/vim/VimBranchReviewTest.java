@@ -12,6 +12,7 @@
 package org.armedbear.j.vim;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 
 import org.armedbear.j.EditorHarness;
 import org.junit.After;
@@ -189,5 +190,36 @@ public class VimBranchReviewTest
     {
         vim("abc", 0, 0).exCommand("s/\\(b\\)/[\\1\\2]/");
         assertEquals("a[b]c", h.value());
+    }
+    // F6 -- an abandoned d/ is not left in the recording for . to replay.
+
+    @Test
+    public void anEmptyPatternLeavesNothingForDotToReplay()
+    {
+        vim("abcdef", 0, 0).keys("d/").searchPattern("");
+        h.keys("x").keys(".");
+        assertEquals("cdef", h.value());
+        assertFalse(h.awaitingSearchPattern());
+    }
+
+    @Test
+    public void anEscapedPromptLeavesNothingForDotToReplay()
+    {
+        vim("abcdef", 0, 0).keys("d/");
+        ((VimInputHandler) h.editor().getInputHandler()).searchCancelled();
+        h.keys("x").keys(".");
+        assertEquals("cdef", h.value());
+        assertFalse(h.awaitingSearchPattern());
+    }
+
+    // F7 -- :normal abandons a command its keys leave unfinished.
+
+    @Test
+    public void normalAbandonsAnUnfinishedSearch()
+    {
+        vim("abc", 0, 0).exCommand("normal /b");
+        assertFalse(h.awaitingSearchPattern());
+        h.keys("x");
+        assertEquals("bc", h.value());
     }
 }
