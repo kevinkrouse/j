@@ -389,14 +389,15 @@ public final class VimActions
     {
         int offset = dot.getOffset();
         if (after && offset < dot.getLineLength())
-            ++offset;
+            offset = CodePoints.next(dot.getLine(), offset);
         editor.setDot(dot.getLine(), offset);
         editor.moveCaretToDotCol();
         editor.insertString(text);
         // Vim leaves the caret on the last character put, not past it.
         final Position now = editor.getDot();
         if (now != null && now.getOffset() > 0)
-            moveAfterEdit(editor, now.getLine(), now.getOffset() - 1);
+            moveAfterEdit(editor, now.getLine(),
+                          CodePoints.previous(now.getLine(), now.getOffset()));
     }
 
     /** i, a, I and A: the same action, differing only in where it starts. */

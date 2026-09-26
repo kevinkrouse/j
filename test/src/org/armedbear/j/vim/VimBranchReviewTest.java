@@ -222,4 +222,24 @@ public class VimBranchReviewTest
         h.keys("x");
         assertEquals("bc", h.value());
     }
+    // F8 -- p steps over a whole character outside the Basic Multilingual
+    // Plane, on the way in and on the way back to the last one put.
+
+    private static final String EMOJI = "😀";
+
+    @Test
+    public void putAfterAnEmojiGoesAfterAllOfIt()
+    {
+        vim("X" + EMOJI, 0, 0).keys("yllp");
+        assertEquals("X" + EMOJI + "X", h.value());
+        h.assertCursorAt(0, 3);
+    }
+
+    @Test
+    public void putAnEmojiLeavesTheCaretOnItsStart()
+    {
+        vim(EMOJI + "a", 0, 0).keys("ylp");
+        assertEquals(EMOJI + EMOJI + "a", h.value());
+        h.assertCursorAt(0, 2);
+    }
 }
