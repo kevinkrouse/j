@@ -348,6 +348,9 @@
     <li><a href="commands.html#moveToWindowTop">moveToWindowTop</a></li>
     <li><a href="commands.html#replaceChar">replaceChar</a></li>
     <li><a href="commands.html#incrementNumber">incrementNumber</a></li>
+    <li><a href="commands.html#adjacentWindow">adjacentWindow</a></li>
+    <li><a href="commands.html#balanceWindows">balanceWindows</a></li>
+    <li><a href="commands.html#gotoWindow">gotoWindow</a></li>
     <li><a href="commands.html#toggleCaseRegion">toggleCaseRegion</a></li>
     <li><a href="commands.html#joinLines">joinLines</a></li>
     <li><a href="commands.html#moveLinesDown">moveLinesDown</a></li>
@@ -2618,7 +2621,9 @@ If the current frame contains a split window, closes the current edit window,
 and gives focus to the other edit window. Equivalent to
 <a href="#otherWindow">otherWindow</a> followed by
 <a href="#unsplitWindow">unsplitWindow</a>.
-The last window in a frame can't be closed.
+The last window in a frame can't be closed. With the argument
+<code>vim</code>, focus goes instead to the window that takes this one's
+space, the next in its row or column, as vim's <code>:close</code> does.
 <p>
 <b>Default key mapping:</b> Ctrl Shift F10
 <p>
@@ -4702,6 +4707,42 @@ replace.
 <br><br>
 </dl><!--<hr>-->
 
+<a name="adjacentWindow">adjacentWindow</a><dl><dd>
+<p>
+Moves to the window beside this one: <code>h</code> left, <code>j</code>
+below, <code>k</code> above or <code>l</code> right. Of several, the one level
+with the caret.
+<br><br>
+<b>Default key mapping:</b> None
+<br><br>
+<b>See also:</b> <code>Ctrl W h j k l</code> in
+<a href="editmodes.html">vim edit mode</a>.
+<br><br>
+</dl><!--<hr>-->
+
+<a name="balanceWindows">balanceWindows</a><dl><dd>
+<p>
+Makes the windows in each row and column the same size again, however their
+dividers have been dragged.
+<br><br>
+<b>Default key mapping:</b> None
+<br><br>
+<b>See also:</b> <code>Ctrl W =</code> in
+<a href="editmodes.html">vim edit mode</a>.
+<br><br>
+</dl><!--<hr>-->
+
+<a name="gotoWindow">gotoWindow</a><dl><dd>
+<p>
+Moves to the window with the number given, counting from the top left.
+<br><br>
+<b>Default key mapping:</b> None
+<br><br>
+<b>See also:</b> <a href="#nextWindow">nextWindow</a>, and a count before
+<code>Ctrl W w</code> in <a href="editmodes.html">vim edit mode</a>.
+<br><br>
+</dl><!--<hr>-->
+
 <a name="incrementNumber">incrementNumber</a>, <a name="decrementNumber">decrementNumber</a><dl><dd>
 <p>
 Adds the command's argument, or 1, to the number at or after the caret on
@@ -4816,7 +4857,8 @@ source on your system by adding a line like this to your
 <a name="splitWindow">splitWindow</a><dl><dd>
 <p>
 Splits the current window horizontally and moves focus to the new window.
-Multiple splits are supported.
+Multiple splits are supported. With the argument <code>vim</code>, focus stays
+in the top window, which is how vim's split looks.
 <p>
 <b>Default key mapping:</b> F10
 <p>
@@ -5181,7 +5223,8 @@ are indicated by the character '^'.
 <a name="vsplitWindow">vsplitWindow</a><dl><dd>
 <p>
 Splits the current window vertically and moves focus to the new window.
-Multiple splits are supported.
+Multiple splits are supported. With the argument <code>vim</code>, focus stays
+in the left window.
 <p>
 <b>Default key mapping:</b> Ctrl F10
 <p>

@@ -7,7 +7,7 @@
 #   tools/vim-screenshot.sh <out-dir> <file> [xdotool key spec]...
 #
 # Each key spec is passed to "xdotool key" -- or, prefixed "type:", to
-# "xdotool type" -- and a frame is captured after it,
+# "xdotool type", or "drag:" for the mouse -- and a frame is captured after it,
 # named for its position in the sequence. Run it through nix-shell for the
 # three tools it needs:
 #
@@ -81,6 +81,15 @@ for keys in "$@"; do
         # "sleep:N" waits N seconds without a key, for anything j does when
         # idle -- the sidebar's modified count is refreshed that way.
         sleep:*) sleep "${keys#sleep:}" ;;
+        # "drag:X1,Y1,X2,Y2" drags the mouse between two screen points, for
+        # a split's divider.
+        drag:*)  IFS=, read -r x1 y1 x2 y2 <<< "${keys#drag:}"
+                 # Paused, and by way of the middle: Swing starts a drag on
+                 # motion after the press, not on a jump.
+                 xdotool mousemove "$x1" "$y1" sleep 0.2 mousedown 1 \
+                         sleep 0.2 mousemove "$(( (x1 + x2) / 2 ))" \
+                         "$(( (y1 + y2) / 2 ))" sleep 0.2 \
+                         mousemove "$x2" "$y2" sleep 0.2 mouseup 1 ;;
         *)       xdotool key --clearmodifiers $keys ;;
     esac
     sleep 0.5

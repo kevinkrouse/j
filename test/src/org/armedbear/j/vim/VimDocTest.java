@@ -70,6 +70,7 @@ public class VimDocTest
         ROWS.put("search", NVO);
         ROWS.put("scroll", NV);
         ROWS.put("buffers", N);
+        ROWS.put("windows", NV);
         ROWS.put("ex", NV);
         ROWS.put("visual", V);
         ROWS.put("registers", NV);
@@ -101,6 +102,10 @@ public class VimDocTest
         // The number formats CTRL-A reads.
         "changes 0x", "changes 0b", "changes nrformats", "changes 007",
         "changes 0x0f",
+        // The prefix the windows row's keys come after.
+        "windows <C-w>",
+        // Vim's option, named to say what a split and a close do.
+        "windows equalalways",
         // The mode shown during CTRL-O.
         "insert --", "insert (insert)",
         // j's command names, beside the keys bound to them.
@@ -133,8 +138,11 @@ public class VimDocTest
                     continue;
                 final Set<MappingMode> modes = KEY_MODES.containsKey(where)
                     ? KEY_MODES.get(where) : rowModes;
+                // The windows row names what comes after CTRL-W.
+                final String keys =
+                    label.equals("windows") ? "<C-w>" + key : key;
                 for (MappingMode mode : modes)
-                    if (!resolves(map, mode, KeyNotation.tokenize(key)))
+                    if (!resolves(map, mode, KeyNotation.tokenize(keys)))
                         failures.add(where + " is not bound in mode "
                                      + mode.getLetter());
             }
@@ -169,7 +177,8 @@ public class VimDocTest
 
     private static boolean isExCommand(String label, String key)
     {
-        return label.equals("ex") && key.length() > 1 && key.startsWith(":");
+        return (label.equals("ex") || label.equals("windows"))
+            && key.length() > 1 && key.startsWith(":");
     }
 
     /**

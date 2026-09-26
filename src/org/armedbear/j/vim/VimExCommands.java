@@ -56,7 +56,9 @@ public final class VimExCommands
             && !matches(name, "g", "global") && !matches(name, "j", "join")
             && !matches(name, "delm", "delmarks")
             && !matches(name, "norm", "normal")
-            && !matches(name, "w", "write") && !name.equals("wq"))
+            && !matches(name, "w", "write") && !name.equals("wq")
+            && !matches(name, "q", "quit") && !matches(name, "clo", "close")
+            && !matches(name, "on", "only"))
             throw new VimEx.BadCommand("E477: No ! allowed");
         // j's read-only is vim's nomodifiable: nothing may change the text.
         // :g and :normal get there through the commands they run.
@@ -110,7 +112,27 @@ public final class VimExCommands
         }
         if (name.equals("wq")) {
             if (write(editor, command))
-                closeWindow(editor);
+                closeWindow(editor, true);
+            return true;
+        }
+        if (matches(name, "sp", "split")) {
+            split(editor, command, false);
+            return true;
+        }
+        if (matches(name, "vs", "vsplit")) {
+            split(editor, command, true);
+            return true;
+        }
+        if (matches(name, "q", "quit")) {
+            closeWindow(editor, true);
+            return true;
+        }
+        if (matches(name, "clo", "close")) {
+            closeWindow(editor, false);
+            return true;
+        }
+        if (matches(name, "on", "only")) {
+            editor.unsplitAllWindows();
             return true;
         }
         if (matches(name, "delm", "delmarks")) {
@@ -275,22 +297,52 @@ public final class VimExCommands
     }
 
     /**
-     * What :wq's q does: close this window, or leave j if it is the last.
+     * :q, :close and CTRL-W q and c: close this window, and the caret goes to
+     * the one that takes its space. The last one is :q leaving j, and E444
+     * for :close.
      *
      * Vim's :q is the window's, not the buffer's -- in a split only that
      * split goes and vim carries on, which nvim confirms -- and the last
      * window closing is vim exiting. j's quit asks first when other buffers
      * have unsaved changes, where vim refuses with E37.
      */
-    private static void closeWindow(Editor editor)
+    static void closeWindow(Editor editor, boolean quit)
     {
         final org.armedbear.j.Frame frame = editor.getFrame();
         if (frame == null)
             return;
         if (frame.getEditorCount() > 1)
-            editor.killWindow();
-        else
+            editor.killWindow("vim");
+        else if (quit)
             editor.quit();
+        else
+            editor.status("E444: Cannot close last window");
+    }
+
+    /**
+     * {@code :split} and {@code :vsplit}, with a file to open in the new
+     * window or without. The caret stays in the top or left window, which
+     * is how vim's split, the new window above and the caret in it, looks.
+     */
+    private static void split(Editor editor, VimEx.Command command,
+                              boolean vertical)
+    {
+        if (editor.getFrame() == null)
+            return;
+        if (vertical)
+            editor.vsplitWindow("vim");
+        else
+            editor.splitWindow("vim");
+        final String file = command.args.trim();
+        if (file.isEmpty())
+            return;
+        final Editor top = Editor.currentEditor();
+        final org.armedbear.j.Buffer buffer =
+            top.openFile(top.fileNamed(file));
+        if (buffer != null) {
+            top.makeNext(buffer);
+            top.switchToBuffer(buffer);
+        }
     }
 
     // --------------------------------------------------------------- marks

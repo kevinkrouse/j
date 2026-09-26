@@ -391,6 +391,26 @@ public final class Display extends JComponent implements Constants,
         caretCol = n;
     }
 
+    /**
+     * About where the caret is, in this display's coordinates: the middle
+     * of its cell, taking each character as wide as a space. For choosing
+     * a window by position, not for painting.
+     */
+    public Point getCaretPoint()
+    {
+        final Line dotLine = editor.getDotLine();
+        int y = 0;
+        if (dotLine != null && topLine != null) {
+            if (editor.getBuffer().needsRenumbering())
+                editor.getBuffer().renumber();
+            if (dotLine.lineNumber() >= topLine.lineNumber())
+                y = Math.min(getY(dotLine), Math.max(0, getHeight() - 1));
+        }
+        return new Point(gutterWidth + Math.max(0, caretCol) * spaceWidth
+                         + spaceWidth / 2,
+                         y + charHeight / 2);
+    }
+
     public int getAbsoluteCaretCol()
     {
         return caretCol + shift;

@@ -112,8 +112,12 @@ produced, all reachable from j's key maps and `executeCommand` too:
   `moveToWindowTop`/`Middle`/`Bottom` (in `Lines`, `CaretCommands`,
   `RegionCommands`), `incrementNumber`/`decrementNumber` (`NumberCommands`,
   whose `plan` is vim's CTRL-A arithmetic on a line's text);
+  `adjacentWindow`, `balanceWindows`, `gotoWindow` (`Editor`, over
+  `Frame.adjacent` and `EditorPane.balance`);
 - new arguments: `sortLines` flags (`Sort.Options`, vim's `:sort` letters),
   `pageDown`/`pageUp vim`, `prevBuffer alternate`, `wordRight vim`,
+  `splitWindow vim` and `vsplitWindow vim` (the caret stays top or left),
+  `killWindow vim` (the caret goes where the space goes),
   `saveAs FILE`, `saveCopy FILE`;
 - borrowed as-is: `Search` for matching, `Region` for range text and deletion,
   `Marker` for marks, `Buffer.beginCompoundEdit` for undo, `newlineAndIndent`
@@ -377,6 +381,8 @@ carries no non-JDK dependency) and `bb fmt-check`.
   `PATH` before `nix-shell -p xvfb xdotool imagemagick`. xdotool cannot type a
   character outside the BMP: AWT truncates its keysym (U+1F600 arrives as
   U+F600), so an emoji can only be tested through an input method.
+  `drag:X1,Y1,X2,Y2` drags the mouse, for a split's divider; the drag
+  leaves j's keyboard focus off the editor until a click in the text.
 - **`VimDocTest`** checks every key the "What is there" table in
   `doc/editmodes.html` names is bound in its row's modes, and every ex command
   it names runs. The docs once claimed `R` for several milestones with nothing
@@ -464,6 +470,20 @@ Each of these has bitten at least once. Read them before editing.
     agrees for most commands and not for `<C-a>` or `p`; documented. A
     MOVE record after the edit is not needed for a one-line insert:
     `replaceChars` and `NumberCommands.add` have none, and undo is right.
+28. **`EditorPane.root` left the kept window's leaf in its old split.** The
+    next split then added to that split, which was no longer on screen, and
+    nothing appeared: `<C-w>o` then `<C-w>s` did nothing. A bug in j's own
+    `unsplitAllWindows` followed by `splitWindow`; the leaf is detached now.
+29. **Headless nvim knows no screen columns.** `wincmd k` picks the window
+    over the cursor's screen column, which headless nvim works out only on a
+    redraw: without `redraw!` first it always said window 1. The window
+    probes use a script that prints `winnr()` and `winlayout()`.
+30. **A dragged divider stops the split layout following the weights**
+    (`MultiSplitLayout` floating dividers off, for good), and a divider made
+    after that has no place: the next split came out at the edge or not at
+    all. `EditorPane.evenOut` puts every divider back evenly on each split
+    and close once that has happened, as vim's `equalalways` does, and is
+    what `<C-w>=` runs.
 
 ## History
 
@@ -495,9 +515,10 @@ review before the next.
 | M15 | corpus key names and documents; `ge` over line ends; `:help d`; `%` and quotes; an arrow splits an insert | `db9e981c6` |
 | M16 | `'. '[ '] '^`, the jump list, `''` and ````, `<C-o>` `<C-i>` | `d31fed8ec` |
 | M17 | insert-mode `<C-w> <C-u> <C-r> <C-o>`; the marks a split leaves | `219b055f0` |
-| M18 | `<C-a>` `<C-x>`, visual and `g`; `NumberCommands` | (uncommitted) |
+| M18 | `<C-a>` `<C-x>`, visual and `g`; `NumberCommands` | `35bc31aa9` |
+| M19 | windows: `<C-w>` and `:sp :vs :q :clo :on` | (uncommitted) |
 
-After M18: 876 tests, conformance 152 of 253 (151 ratcheted).
+After M19: 888 tests, conformance 152 of 253 (151 ratcheted).
 
 ### What the work learned
 

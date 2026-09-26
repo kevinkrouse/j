@@ -8017,9 +8017,25 @@ public final class Editor extends JPanel implements Constants,
         currentEditor.getFrame().splitWindow();
     }
 
+    /**
+     * {@code splitWindow vim}: the caret stays in the top window, which is
+     * what vim's split looks like -- the new window above, and the caret in
+     * it -- with both showing the same.
+     */
+    public void splitWindow(String arg)
+    {
+        frame.splitWindow(this, false, !"vim".equals(arg));
+    }
+
     public void vsplitWindow()
     {
         currentEditor.getFrame().vsplitWindow();
+    }
+
+    /** {@code vsplitWindow vim}: the caret stays in the left window. */
+    public void vsplitWindow(String arg)
+    {
+        frame.splitWindow(this, true, !"vim".equals(arg));
     }
 
     public void unsplitWindow()
@@ -8028,14 +8044,60 @@ public final class Editor extends JPanel implements Constants,
         frame.unsplitWindow();
     }
 
-    public void killWindow()
+    /**
+     * {@code killWindow vim}: the caret goes to the window that takes this
+     * one's space, the next in its row or column, as in vim.
+     */
+    public void killWindow(String arg)
     {
-        frame.unsplitWindowKeepOther();
+        frame.closeEditor(currentEditor, "vim".equals(arg));
         Sidebar sidebar = getSidebar();
         if (sidebar != null) {
             sidebar.setUpdateFlag(SIDEBAR_ALL);
             sidebar.refreshSidebar();
         }
+    }
+
+    /**
+     * {@code adjacentWindow h|j|k|l} -- to the window left, below, above or
+     * right of this one; of several, the one level with the caret.
+     */
+    public void adjacentWindow(String direction)
+    {
+        if (direction == null || direction.length() != 1)
+            return;
+        switchWindow(frame.getAdjacentEditor(this, direction.charAt(0)));
+    }
+
+    /** {@code gotoWindow n} -- to the nth window, the top left first. */
+    public void gotoWindow(String n)
+    {
+        if (n == null)
+            return;
+        int target;
+        try {
+            target = Integer.parseInt(n.trim());
+        }
+        catch (NumberFormatException e) {
+            return;
+        }
+        // There being no such window does nothing, as in vim.
+        for (Editor ed : frame.getEditors())
+            if (--target == 0) {
+                switchWindow(ed);
+                return;
+            }
+    }
+
+    /** Every window in each row or column the same size again. */
+    public void balanceWindows()
+    {
+        frame.balanceWindows();
+    }
+
+    public void killWindow()
+    {
+        killWindow(null);
     }
 
     // Close all other windows except for this Editor window.

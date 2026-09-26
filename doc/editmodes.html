@@ -97,6 +97,20 @@ commands, counts, registers, marks and the dot command:
 <tr><td valign="top"><b>buffers</b></td>
     <td><code>Ctrl ^</code> (or <code>Ctrl 6</code>), the alternate file:
         the buffer used most recently before this one</td></tr>
+<tr><td valign="top"><b>windows</b></td>
+    <td><code>Ctrl W</code> then <code>s</code> or <code>v</code> to split,
+        <code>h j k l</code> (or the arrows) to the window beside, of
+        several the one level with the caret, <code>w</code> and
+        <code>W</code> to the next and the one before (with a count, to that
+        window), <code>p</code> to the one used last, <code>c</code> and
+        <code>q</code> to close, <code>o</code> to close the others, and
+        <code>=</code> to make them the same size again; <code>:sp</code> and
+        <code>:vs</code>, with a file or without, <code>:q</code>,
+        <code>:clo</code> and <code>:on</code>. A split shows the same buffer
+        twice, with the caret in the top or left window, as in vim; a window
+        closing gives its space and the caret to the next one. Each split and
+        close makes the windows the same size again, as vim's
+        <code>equalalways</code> does, even after a divider was dragged.</td></tr>
 <tr><td valign="top"><b>ex</b></td>
     <td><code>:</code> with ranges (<code>%</code>, <code>1,5</code>,
         <code>.</code>, <code>$</code>, <code>'a</code>, <code>/pat/</code>
@@ -153,8 +167,8 @@ case changes <code>\u \U \l \L \e \E</code>.
 Outside insert mode a plain character never inserts itself, bound or not. A
 chord or function key that vim mode does not claim falls through to j's own
 <a href="keys.html">key maps</a>, so <code>Ctrl S</code> still saves and
-<code>Alt X</code> still prompts for a command. <code>Ctrl W</code> is the
-exception: it does nothing, rather than reach j's <code>killBuffer</code>.
+<code>Alt X</code> still prompts for a command. <code>Ctrl W</code> is vim's
+window prefix, and never reaches j's <code>killBuffer</code>.
 In insert mode keys go to j's key maps as they do in simple mode, apart from
 <code>Escape</code> and the few vim mode binds there (<code>Ctrl T</code>,
 <code>Ctrl D</code>, <code>Ctrl W</code>, <code>Ctrl U</code>, <code>Ctrl R</code>,
@@ -327,6 +341,13 @@ These are known and deliberate:
     (<code>:w !cmd</code>) do not.</li>
 <li><code>Ctrl ^</code> takes no count: j's buffers have no numbers to give
     it.</li>
+<li>A window left in visual mode keeps its selection, and the one
+    <code>Ctrl W</code> goes to is in normal mode; vim carries visual mode
+    into it. A count before <code>Ctrl W s</code> or <code>v</code> is not a
+    size. <code>:q!</code> is <code>:q</code>: on the last window j asks
+    before leaving if buffers have unsaved changes. The other
+    <code>Ctrl W</code> commands (<code>n x r R T + - &lt; &gt; _ |</code>)
+    are not there.</li>
 </ul>
 <hr>
 <a href="contents.html">Top</a>

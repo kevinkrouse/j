@@ -79,6 +79,9 @@ public final class VimActions
         register("visualJoin", VimActions::visualJoin);
         register("visualReplace", VimActions::visualReplace);
         register("visualPut", VimActions::visualPut);
+        register("switchWindow", VimActions::switchWindow);
+        register("closeWindow", ctx -> VimExCommands.closeWindow(
+                     ctx.editor, ctx.arg("quit")));
         register("swapLastSelection",
                  ctx -> VimVisual.swapWithLast(ctx.editor, ctx.state));
     }
@@ -237,6 +240,20 @@ public final class VimActions
             editor.deleteRegion(new Position(line, to), new Position(dot));
         }
         state.insertDeletedBack(editor);
+    }
+
+    /**
+     * CTRL-W w and W: the next window or the one before, and with a count
+     * that window, the top left first.
+     */
+    private static void switchWindow(MotionContext ctx)
+    {
+        if (ctx.countGiven)
+            ctx.editor.gotoWindow(String.valueOf(ctx.count));
+        else if (ctx.arg("backward"))
+            ctx.editor.previousWindow();
+        else
+            ctx.editor.nextWindow();
     }
 
     /**

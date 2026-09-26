@@ -28,6 +28,7 @@ import java.awt.Cursor;
 import java.awt.Dimension;
 import java.awt.Image;
 import java.awt.Insets;
+import java.awt.Point;
 import java.awt.Rectangle;
 import java.awt.Toolkit;
 import java.awt.event.ComponentEvent;
@@ -564,7 +565,7 @@ public final class Frame extends JFrame implements Constants, ComponentListener,
         splitWindow(currentEditor, true, true);
     }
 
-    private void splitWindow(Editor ed, boolean vertical, boolean focusNewEditor)
+    void splitWindow(Editor ed, boolean vertical, boolean focusNewEditor)
     {
         if (!contains(ed))
             return;
@@ -597,6 +598,83 @@ public final class Frame extends JFrame implements Constants, ComponentListener,
         newEditor.updateDisplay();
         restoreFocus();
         updateControls();
+    }
+
+    /** The windows the same size again, row by row and column by column. */
+    public void balanceWindows()
+    {
+        editorPane.balance();
+    }
+
+    /**
+     * The window next to this one in a direction -- h, j, k or l, as vim's
+     * CTRL-W takes them -- or null. Of several, the one level with the
+     * caret.
+     */
+    public Editor getAdjacentEditor(Editor ed, char direction)
+    {
+        final List<Rectangle> others = new ArrayList<Rectangle>();
+        final List<Editor> candidates = new ArrayList<Editor>();
+        for (Editor other : editors) {
+            if (other != ed) {
+                candidates.add(other);
+                others.add(other.getBounds());
+            }
+        }
+        final Point caret = SwingUtilities.convertPoint(ed.getDisplay(),
+            ed.getDisplay().getCaretPoint(), editorPane);
+        final int index =
+            adjacent(ed.getBounds(), caret, others, direction);
+        return index < 0 ? null : candidates.get(index);
+    }
+
+    /**
+     * Which of the other windows is next to this one in a direction: of
+     * those beyond that side and alongside it, the nearest, and of those
+     * the one the caret's row or column runs into, or the closest to it.
+     *
+     * @return an index into {@code others}, or -1
+     */
+    static int adjacent(Rectangle r, Point caret, List<Rectangle> others,
+                        char direction)
+    {
+        final boolean across = direction == 'h' || direction == 'l';
+        int best = -1;
+        int bestGap = 0;
+        int bestMiss = 0;
+        for (int i = 0; i < others.size(); i++) {
+            final Rectangle o = others.get(i);
+            final int gap;
+            switch (direction) {
+                case 'h': gap = r.x - (o.x + o.width); break;
+                case 'l': gap = o.x - (r.x + r.width); break;
+                case 'k': gap = r.y - (o.y + o.height); break;
+                case 'j': gap = o.y - (r.y + r.height); break;
+                default: return -1;
+            }
+            final boolean alongside = across
+                ? o.y < r.y + r.height && r.y < o.y + o.height
+                : o.x < r.x + r.width && r.x < o.x + o.width;
+            if (gap < 0 || !alongside)
+                continue;
+            final int miss = across ? miss(caret.y, o.y, o.height)
+                                    : miss(caret.x, o.x, o.width);
+            if (best < 0 || gap < bestGap
+                || (gap == bestGap && miss < bestMiss)) {
+                best = i;
+                bestGap = gap;
+                bestMiss = miss;
+            }
+        }
+        return best;
+    }
+
+    /** How far v is outside the span from start, of length. */
+    private static int miss(int v, int start, int length)
+    {
+        if (v < start)
+            return start - v;
+        return v >= start + length ? v - (start + length) + 1 : 0;
     }
 
     public final boolean isEditorSibling(Editor ed, Editor other)
@@ -848,12 +926,22 @@ public final class Frame extends JFrame implements Constants, ComponentListener,
 
     public void closeEditor(Editor editor)
     {
+        closeEditor(editor, false);
+    }
+
+    /**
+     * Closes a window. The caret goes to the one used before it, or with
+     * {@code toSuccessor} to the one that takes its space, as in vim.
+     */
+    public void closeEditor(Editor editor, boolean toSuccessor)
+    {
         if (!hasSplit())
             return;
         if (!contains(editor))
             return;
         promoteSecondaryBuffers();
-        Editor keep = getOtherEditor(editor);
+        Editor keep = toSuccessor ? editorPane.successor(editor)
+                                  : getOtherEditor(editor);
         Editor kill = editor;
         unsplitInternal(keep, kill);
     }

@@ -65,7 +65,9 @@ public class CommandTable
             map = new ConcurrentHashMap<String, Command>(INITIAL_CAPACITY);
 
             // Commands implemented in Editor.java.
+            addCommand("adjacentWindow");
             addCommand("backspace");
+            addCommand("balanceWindows");
             addCommand("bob");
             addCommand("bol");
             addCommand("bottom");
@@ -125,6 +127,7 @@ public class CommandTable
             addCommand("foldRegion");
             addCommand("gotoBookmark");
             addCommand("gotoTemporaryMarker");
+            addCommand("gotoWindow");
             addCommand("home");
             addCommand("httpDeleteCookies");
             addCommand("incrementalFind");
