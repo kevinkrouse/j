@@ -251,6 +251,17 @@ public final class VimState
         return insertKeys.toString();
     }
 
+    public int insertKeysLength()
+    {
+        return insertKeys.length();
+    }
+
+    /** Forgets the keys noted after the first length characters. */
+    public void truncateInsertKeys(int length)
+    {
+        insertKeys.setLength(Math.min(length, insertKeys.length()));
+    }
+
     /**
      * Closes the insert session's undo step. Doing it twice is harmless, which
      * matters because it has to be called from every way out of insert mode.
@@ -268,6 +279,21 @@ public final class VimState
         insertEditBuffer = null;
         if (buffer != null)
             buffer.endCompoundEdit(edit);
+    }
+
+    /**
+     * An arrow moved the caret in insert mode: close this undo step and open
+     * another, and forget the keys and count, which no longer describe one
+     * insert.
+     */
+    public void restartInsert()
+    {
+        insertRepeat = 0;
+        insertKeys.setLength(0);
+        if (insertEdit == null)
+            return;
+        insertEditBuffer.endCompoundEdit(insertEdit);
+        insertEdit = insertEditBuffer.beginCompoundEdit();
     }
 
     /** True while an insert session's undo step is open. */

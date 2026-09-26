@@ -22,7 +22,16 @@
 #
 #   dge_start_of_document   corpus deletes a char; nvim does nothing, because
 #                           ge at offset 0 has nowhere to go
-#   dge_empty_lines         same shape, on blank lines
+#   dge_empty_lines         the corpus leaves "\n"; nvim leaves "". The range
+#                           runs from blank line to blank line, and :help d
+#                           makes such a delete take the lines whole
+#   dw_repeat               same rule: d2w from " word1" over "word2" has only
+#                           blanks before it and nothing after, so nvim takes
+#                           both lines and leaves "", not the corpus's " "
+#   %_skip_string           its first half passes. The second starts on the )
+#                           inside ")" and expects the ( at 0; nvim fails
+#                           there and stays put, because a quote lies between
+#                           the two brackets
 #   dj_end_of_document      corpus deletes the line; nvim needs two lines for
 #                           dj and does nothing on a one-line buffer
 #   dk_start_of_document    same, upward
@@ -99,7 +108,6 @@ dw_empty_line_followed_by_word
 dw_eol
 dw_eol_with_multiple_newlines
 dw_only_word
-dw_repeat
 dw_space
 dw_word
 s_normal
@@ -234,3 +242,21 @@ d with surrogate character
 r with surrogate characters
 r_visual with surrogate characters
 s_normal surrogate character
+
+# M15: CodeMirror's key names, other tests' documents, ge, :help d
+._delete
+._delete_repeat
+._insert
+._insert_o_repeat
+._insert_repeat
+._repeat_insert
+I_repeat
+dge_whitespace_and_empty_lines
+dge_word_and_empty_lines
+ex_substitute_empty_query
+i_backspace
+i_forward_delete
+i_repeat
+i_repeat_delete
+moveTillCharacter
+o_repeat

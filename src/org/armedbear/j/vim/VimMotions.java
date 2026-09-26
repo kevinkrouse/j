@@ -436,12 +436,11 @@ public final class VimMotions
         if (offset < 0)
             return null;
 
-        // The actual search is Editor's own, which already knows to ignore a
-        // bracket inside a comment or string literal, or one that is
-        // backslash-escaped -- rules this motion has no business
-        // reimplementing.
-        final Position match =
-            ctx.editor.findMatchInternal(new Position(from.getLine(), offset), 0);
+        // The actual search is Editor's own, which knows the mode's comments
+        // and strings; its vim flag adds vim's rules for quotes and
+        // backslashes.
+        final Position match = ctx.editor.findMatchInternal(
+            new Position(from.getLine(), offset), 0, true);
         return match == null ? null : at(match.getLine(), match.getOffset());
     }
 

@@ -116,26 +116,27 @@ public final class Words
     /** ge and gE: back to the last character of the previous word. */
     public static Position backwardToWordEnd(Position from, Mode mode, boolean bigWord)
     {
+        // Vim's bckend_word: off the word the caret started in, then back
+        // over blanks to the end of the one before. A line end is a blank
+        // there, so a word never runs on across one; an empty line is a word.
         final Position pos = new Position(from);
+        final int startClass = blankIfNewline(classAt(pos, mode, bigWord));
         if (!pos.prev())
             return null;
-        final int here = classAt(pos, mode, bigWord);
-        if (here != BLANK && here != NEWLINE) {
-            // Step off the word we are still inside.
-            final Position start = toStartOfCurrentWord(new Position(pos), mode,
-                                                        bigWord);
-            if (start.getOffset() == pos.getOffset()
-                && start.getLine() == pos.getLine()) {
+        if (startClass != BLANK)
+            while (blankIfNewline(classAt(pos, mode, bigWord)) == startClass)
                 if (!pos.prev())
-                    return null;
-            } else {
-                pos.moveTo(start);
-                if (!pos.prev())
-                    return null;
-            }
-        }
-        skipBlanksBackward(pos, mode, bigWord);
+                    return pos;
+        while (blankIfNewline(classAt(pos, mode, bigWord)) == BLANK
+               && pos.getLineLength() > 0)
+            if (!pos.prev())
+                return pos;
         return pos;
+    }
+
+    private static int blankIfNewline(int cls)
+    {
+        return cls == NEWLINE ? BLANK : cls;
     }
 
     // ------------------------------------------------------------ helpers
@@ -181,14 +182,6 @@ public final class Words
             if (!pos.next())
                 return null;
         }
-    }
-
-    private static void skipBlanksBackward(Position pos, Mode mode,
-                                           boolean bigWord)
-    {
-        while (classAt(pos, mode, bigWord) == BLANK)
-            if (!pos.prev())
-                return;
     }
 
     private static Position toStartOfCurrentWord(Position pos, Mode mode,

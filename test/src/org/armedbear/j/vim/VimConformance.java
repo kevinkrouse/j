@@ -200,7 +200,10 @@ public final class VimConformance
                 if (step.directive.equals("value")) {
                     h.value(step.text);
                 } else if (step.directive.equals("cursor")) {
-                    h.cursor(step.a, step.b);
+                    // CodeMirror's setCursor clamps to the document.
+                    final String[] lines = h.value().split("\n", -1);
+                    final int line = Math.min(step.a, lines.length - 1);
+                    h.cursor(line, Math.min(step.b, lines[line].length()));
                 } else if (step.directive.equals("ex")) {
                     // Upstream's doEx() hands the line to the ex handler
                     // rather than typing it, and so does this: an ex line

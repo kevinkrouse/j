@@ -14,6 +14,7 @@ package org.armedbear.j.vim;
 import java.awt.event.KeyEvent;
 import java.util.List;
 
+import org.armedbear.j.Buffer;
 import org.armedbear.j.CommandTable;
 import org.armedbear.j.Constants;
 import org.armedbear.j.Editor;
@@ -59,6 +60,9 @@ public final class VimInputHandler implements InputHandler
     private final StringBuilder recording = new StringBuilder();
     private String lastChange;
     private boolean recordingEdit;
+    // The recording is an i begun by an arrow in insert mode, and is not a
+    // change until something is typed after the i.
+    private boolean insertRestarted;
     private boolean replaying;
     // Set when a command actually changed the buffer. An operator on its own
     // has not: dw is only a change once the w arrives.
@@ -165,6 +169,8 @@ public final class VimInputHandler implements InputHandler
         }
 
         if (!state.getMode().isCommandMode()) {
+            final int recordedTo = recording.length();
+            final int insertKeysTo = state.insertKeysLength();
             if (!replaying && isNamedKey(keyCode)) {
                 final String name =
                     KeyNotation.name(keyCode, event.getKeyChar(), modifiers);
@@ -205,6 +211,8 @@ public final class VimInputHandler implements InputHandler
                     return Result.CONSUMED;
                 }
             }
+            if (isNamedKey(keyCode) || isChorded(modifiers))
+                return runInInsert(editor, event, recordedTo, insertKeysTo);
             return Result.PASS_THROUGH;
         }
 
@@ -223,6 +231,48 @@ public final class VimInputHandler implements InputHandler
         // Nothing in the modal map wants it. If no command is part-typed, let
         // j's own key maps have it, so existing bindings keep working.
         return builder.isEmpty() ? Result.PASS_THROUGH : Result.CONSUMED;
+    }
+
+    /**
+     * Runs j's binding for a key in insert mode. One that moves the caret
+     * without changing the text -- an arrow, Home, a page key -- splits the
+     * insert as vim's arrows do: the undo step ends, '.' keeps what was typed
+     * before it, and what is typed after is a new change that '.' repeats as
+     * an i. The count is dropped. One that does neither -- an arrow at the
+     * edge -- is not recorded at all.
+     *
+     * @param recordedTo   the recording's length before this key was added
+     * @param insertKeysTo the session's keys' length before it
+     */
+    private Result runInInsert(Editor editor, JEvent event, int recordedTo,
+                               int insertKeysTo)
+    {
+        final Buffer buffer = editor.getBuffer();
+        final Position before =
+            editor.getDot() != null ? new Position(editor.getDot()) : null;
+        final int modCount = buffer.getModCount();
+        if (!editor.handleKeyMapEvent(event))
+            return Result.DEFER; // unbound: the key maps' own false
+        final Position after = editor.getDot();
+        // Not after a binding that left insert mode or the buffer: that has
+        // already ended the session.
+        if (replaying || before == null || after == null
+            || editor.getBuffer() != buffer || !state.getMode().isInsert()
+            || buffer.getModCount() != modCount)
+            return Result.CONSUMED;
+        // Typed nothing: nothing for '.' or a count to type again.
+        recording.setLength(recordedTo);
+        state.truncateInsertKeys(insertKeysTo);
+        if (after.equals(before))
+            return Result.CONSUMED;
+        if (recordingEdit)
+            commitInsert();
+        recording.setLength(0);
+        recording.append('i');
+        recordingEdit = true;
+        insertRestarted = true;
+        state.restartInsert();
+        return Result.CONSUMED;
     }
 
     /**
@@ -301,8 +351,7 @@ public final class VimInputHandler implements InputHandler
         dropPartialCommand();
         if (recordingEdit && !replaying && state.getMode().isInsert()) {
             // The change was still being typed; Escape is the end of it.
-            recording.append("<Esc>");
-            lastChange = recording.toString();
+            commitInsert();
             clearRecording();
         } else if (!replaying) {
             clearRecording();
@@ -489,10 +538,23 @@ public final class VimInputHandler implements InputHandler
         return command.getBoolean("isEdit");
     }
 
+    /**
+     * Makes the insert being recorded the last change -- unless it is an i an
+     * arrow began and nothing followed, which leaves the one before.
+     */
+    private void commitInsert()
+    {
+        if (insertRestarted && recording.length() == 1)
+            return;
+        recording.append("<Esc>");
+        lastChange = recording.toString();
+    }
+
     private void clearRecording()
     {
         recording.setLength(0);
         recordingEdit = false;
+        insertRestarted = false;
     }
 
     /** Replays the last change. */
@@ -948,7 +1010,8 @@ public final class VimInputHandler implements InputHandler
             final VimRange range = RangeNormalizer.normalize(
                 new Position(from), to, MotionKind.CHARWISE_EXCLUSIVE,
                 query.forward);
-            applyOperator(editor, operator, range, count, countGiven, null);
+            applyOperator(editor, operator, deleteRule(operator, range),
+                          count, countGiven, null);
             return;
         }
         state.clearSelectionUnlessVisual(editor);
@@ -989,7 +1052,8 @@ public final class VimInputHandler implements InputHandler
             return;
 
         if (operator != null) {
-            applyOperator(editor, operator, range, count, countGiven, null);
+            applyOperator(editor, operator, deleteRule(operator, range),
+                          count, countGiven, null);
             return;
         }
         selectRange(editor, range);
@@ -1137,7 +1201,8 @@ public final class VimInputHandler implements InputHandler
 
         final VimRange range = RangeNormalizer.normalize(
             new Position(from), to, kind, effective.getBoolean("forward"));
-        applyOperator(editor, operator, range, count, countGiven, character);
+        applyOperator(editor, operator, deleteRule(operator, range),
+                      count, countGiven, character);
     }
 
     /**
@@ -1164,6 +1229,13 @@ public final class VimInputHandler implements InputHandler
         return motionCommand.getCommand().equals("moveByWords")
             && motionCommand.getBoolean("forward")
             && !motionCommand.getBoolean("wordEnd");
+    }
+
+    /** An operator-pending d, not a visual one, may take whole lines. */
+    private static VimRange deleteRule(VimCommand operator, VimRange range)
+    {
+        return operator.getCommand().equals("delete")
+            ? RangeNormalizer.deleteRange(range) : range;
     }
 
     private void applyOperator(Editor editor, VimCommand operator,

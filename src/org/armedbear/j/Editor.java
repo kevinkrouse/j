@@ -1569,6 +1569,17 @@ public final class Editor extends JPanel implements Constants,
     // forward or backward in the buffer.
     public Position findMatchInternal(Position start, int numLines)
     {
+        return findMatchInternal(start, numLines, false);
+    }
+
+    /**
+     * With vim, match as vim's % does ('cpoptions' without %): the start may
+     * be in a string or escaped, and a bracket is skipped when it is inside
+     * "..." counted from the start, in a 'x' literal, or escaped differently
+     * from the start.
+     */
+    public Position findMatchInternal(Position start, int numLines, boolean vim)
+    {
         if (start == null)
             return null;
         final String s1 = new String("{([})]");
@@ -1577,13 +1588,16 @@ public final class Editor extends JPanel implements Constants,
         if (index < 0)
             return null;
         final Mode mode = buffer.getMode();
-        if (mode.isInComment(buffer, start) || mode.isInQuote(buffer, start))
-            return null;
         final int offset = start.getOffset();
-        if (offset > 0 && start.getLine().charAt(offset - 1) == '\\') {
-            // It's escaped.
-            return null;
+        if (!vim) {
+            if (mode.isInComment(buffer, start) || mode.isInQuote(buffer, start))
+                return null;
+            if (offset > 0 && start.getLine().charAt(offset - 1) == '\\') {
+                // It's escaped.
+                return null;
+            }
         }
+        final boolean escaped = isEscaped(start.getLine(), offset);
         final String s2 = new String("})]{([");
         final char match = s2.charAt(index);
         final boolean searchBackwards = index > 2;
@@ -1608,6 +1622,9 @@ public final class Editor extends JPanel implements Constants,
             }
             if (c == SyntaxIterator.DONE)
                 return null;
+            if (vim && (c == origChar || c == match)
+                && isSkippedByVim(start, it.getPosition(), escaped))
+                continue;
             if (c == origChar)
                 ++count;
             else if (c == match)
@@ -1617,6 +1634,64 @@ public final class Editor extends JPanel implements Constants,
                 return it.getPosition();
             }
         }
+    }
+
+    private static boolean isSkippedByVim(Position start, Position pos,
+                                          boolean startEscaped)
+    {
+        final Line line = pos.getLine();
+        final int offset = pos.getOffset();
+        if (isEscaped(line, offset) != startEscaped)
+            return true;
+        final String text = line.getText();
+        if (text == null)
+            return false;
+        // 'x' and '\x'.
+        if (offset + 1 < text.length() && text.charAt(offset + 1) == '\''
+            && (offset >= 1 && text.charAt(offset - 1) == '\''
+                || offset >= 2 && text.charAt(offset - 2) == '\''
+                   && text.charAt(offset - 1) == '\\'))
+            return true;
+        // Quotes say nothing on a line with an odd number of them. Counted
+        // from the start on its own line, from the line's start on others.
+        if (!hasEvenQuotes(text))
+            return false;
+        int from = 0;
+        int to = offset;
+        if (line == start.getLine()) {
+            from = Math.min(start.getOffset(), offset) + 1;
+            to = Math.max(start.getOffset(), offset);
+        }
+        boolean inQuote = false;
+        for (int i = from; i < to; i++)
+            if (text.charAt(i) == '"' && !isEscaped(line, i))
+                inQuote = !inQuote;
+        return inQuote;
+    }
+
+    /** After an odd number of backslashes. */
+    private static boolean isEscaped(Line line, int offset)
+    {
+        int i = offset;
+        while (i > 0 && line.charAt(i - 1) == '\\')
+            --i;
+        return ((offset - i) & 1) != 0;
+    }
+
+    /** Vim's count, which leaves out \" and '"'. */
+    private static boolean hasEvenQuotes(String text)
+    {
+        int quotes = 0;
+        for (int i = 0; i < text.length(); i++) {
+            final char c = text.charAt(i);
+            if (c == '"' && (i == 0 || text.charAt(i - 1) != '\''
+                             || i + 1 == text.length()
+                             || text.charAt(i + 1) != '\''))
+                ++quotes;
+            else if (c == '\\' && i + 1 < text.length())
+                ++i;
+        }
+        return (quotes & 1) == 0;
     }
 
     public void findMatchingChar()

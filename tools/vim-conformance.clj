@@ -69,6 +69,19 @@
   (map (comp unescape-js second) (re-seq string-literal s)))
 
 
+(def ^:private key-names
+  "CodeMirror key names in vim notation. Upstream's typeKey presses a doKeys
+  argument that is exactly one of these as that key, and types any other as
+  text."
+  {"Backspace" "<BS>", "Delete" "<Del>", "Tab" "<Tab>",
+   "Return" "<CR>", "Enter" "<CR>", "Escape" "<Esc>",
+   "Up" "<Up>", "Down" "<Down>", "Left" "<Left>", "Right" "<Right>",
+   "ArrowUp" "<Up>", "ArrowDown" "<Down>",
+   "ArrowLeft" "<Left>", "ArrowRight" "<Right>",
+   "Home" "<Home>", "End" "<End>", "PageUp" "<PageUp>", "PageDown" "<PageDown>",
+   "Insert" "<Insert>"})
+
+
 ;; .conf output
 
 (defn- quoted
@@ -112,11 +125,13 @@
   (second (re-find #"^testVim\(\s*'((?:[^'\\]|\\.)*)'" block)))
 
 (defn- block-value
-  "The test's own initial document, from its trailing options object, or nil
-  when it relies on the file's shared fixture."
+  "The test's own initial document, from its trailing options object: a string,
+  {:var name} when it names a variable, or nil when it relies on the file's
+  shared fixture."
   [block]
-  (when-let [[_ value] (re-find #"\}\s*,\s*\{[^}]*?value\s*:\s*'((?:[^'\\]|\\.)*)'" block)]
-    (unescape-js value)))
+  (when-let [[_ value var-name]
+             (re-find #"\}\s*,\s*\{[^}]*?value\s*:\s*(?:'((?:[^'\\]|\\.)*)'|([A-Za-z_$][\w$]*))" block)]
+    (if value (unescape-js value) {:var var-name})))
 
 (defn- join-continuations
   "Rejoins a call that upstream split over several lines into one statement."
@@ -143,13 +158,16 @@
          (remove #(str/starts-with? % "//"))
          (join-continuations))))
 
-(defn- shared-fixture
-  "The file's `var code = '' + ... ;` document, used by tests that declare no
-  value: of their own. Assumes the fixture holds no semicolon, which is true of
-  the upstream file and would show up as a truncated document if it stopped
-  being true."
-  [src]
-  (when-let [[_ literals] (re-find #"(?s)var code = ''([^;]*);" src)]
+(defn- string-var
+  "The value of a top-level `var name = '' + '...';`, or nil. `code` is the
+  shared fixture, used by tests that declare no value: of their own. Assumes
+  the value holds no semicolon, which is true of the upstream file and would
+  show up as a truncated document if it stopped being true."
+  [src var-name]
+  (when-let [[_ literals] (re-find (re-pattern (str "(?m)^var "
+                                                     (java.util.regex.Pattern/quote var-name)
+                                                     "\\s*=([^;]*);"))
+                                   src)]
     (apply str (js-strings literals))))
 
 
@@ -190,7 +208,7 @@
    ;; helpers.doKeys('d', 'w');
    [#"^helpers\.doKeys\((.*)\)\s*;$"
     (fn [[_ args] _]
-      (let [keys (apply str (js-strings args))]
+      (let [keys (apply str (map #(key-names % %) (js-strings args)))]
         (when-not (str/blank? keys) (directive "keys" (quoted keys)))))]
 
    ;; helpers.doEx('s/a/b');
@@ -262,11 +280,16 @@
 
 (defn- translate
   "Turns one block into {:name .. :steps [..]} or {:name .. :skip <statement>}."
-  [block fixture]
+  [block src]
   (let [test-name (block-name block)
-        value (or (block-value block) fixture)]
+        own (block-value block)
+        value (cond (string? own) own
+                    own (string-var src (:var own))
+                    :else (string-var src "code"))]
     (if (nil? value)
-      {:name test-name :skip "no initial document"}
+      {:name test-name :skip (if own
+                               (str "value: " (:var own) " is not a string variable")
+                               "no initial document")}
       (let [start {:vars {} :steps [(conf-line "value" (quoted value))] :dropped 0}
             result (reduce (fn [acc line]
                              (if-let [{:keys [vars steps]} (step line (:vars acc))]
@@ -336,10 +359,7 @@
       (die (str "vim-conformance: no such file: " input)
            "Usage: bb vim-conformance <path-to-vim_test.js> [out-dir]"))
     (let [src (slurp input)
-          ;; One fixture for the whole file, shared by every test that declares
-          ;; no value: of its own.
-          fixture (shared-fixture src)
-          results (doall (map #(translate % fixture) (blocks src)))
+          results (doall (map #(translate % src) (blocks src)))
           translated (filter (every-pred :steps asserts-something?) results)
           skipped (filter :skip results)]
       (when (empty? results)

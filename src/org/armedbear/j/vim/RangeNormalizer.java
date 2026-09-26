@@ -13,6 +13,7 @@ package org.armedbear.j.vim;
 
 import org.armedbear.j.Line;
 import org.armedbear.j.Position;
+import org.armedbear.j.util.Utilities;
 
 /**
  * Turns "where the motion started and ended" into "what the operator deletes".
@@ -51,12 +52,12 @@ final class RangeNormalizer
             case LINEWISE:
                 return linewise(from, to);
             case CHARWISE_INCLUSIVE:
-                // Take the character the motion landed on as well.
+                // Take the character the motion landed on as well. An empty
+                // line has none, and its newline does not count: d$ there
+                // does nothing.
                 to = new Position(to);
                 if (to.getOffset() < to.getLineLength())
                     to.setOffset(CodePoints.next(to.getLine(), to.getOffset()));
-                else if (to.getLine().next() != null)
-                    to = new Position(to.getLine().next(), 0);
                 return new VimRange(from, to);
             default:
                 return new VimRange(from, to);
@@ -90,6 +91,23 @@ final class RangeNormalizer
         return from.getOffset() <= VimMotions.firstNonBlank(from.getLine())
             ? MotionKind.LINEWISE
             : MotionKind.CHARWISE_EXCLUSIVE;
+    }
+
+    /**
+     * The exception in {@code :help d}: a characterwise delete across lines,
+     * with only blanks before its start and after its end, takes the whole
+     * lines -- so it does not leave a line of blanks behind.
+     */
+    static VimRange deleteRange(VimRange range)
+    {
+        if (range.linewise || range.start.getLine() == range.end.getLine())
+            return range;
+        final Line first = range.start.getLine();
+        final Line last = range.end.getLine();
+        if (!Utilities.isWhitespace(first.substring(0, range.start.getOffset()))
+            || !Utilities.isWhitespace(last.substring(range.end.getOffset())))
+            return range;
+        return VimRange.lines(first, last);
     }
 
     private static VimRange linewise(Position from, Position to)

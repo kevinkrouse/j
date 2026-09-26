@@ -167,11 +167,13 @@ final class VimVisual
         final Position start = anchor.isBefore(head) ? anchor : head;
         final Position end = anchor.isBefore(head) ? head : anchor;
         // After $ the caret stands for the line end itself, so v$ takes in
-        // the newline: v$d joins the next line on.
-        if (state.getMode() == VimMode.VISUAL && !head.isBefore(anchor)
-            && state.isStickyEol() && head.getLine().next() != null)
+        // the newline: v$d joins the next line on. So does an end on an
+        // empty line, which has nothing else to take.
+        if (state.getMode() == VimMode.VISUAL && end.getLine().next() != null
+            && (end.getOffset() >= end.getLineLength()
+                || !head.isBefore(anchor) && state.isStickyEol()))
             return new VimRange(new Position(start),
-                                new Position(head.getLine().next(), 0));
+                                new Position(end.getLine().next(), 0));
         return RangeNormalizer.normalize(
             new Position(start), new Position(end),
             state.getMode() == VimMode.VISUAL_LINE ? MotionKind.LINEWISE

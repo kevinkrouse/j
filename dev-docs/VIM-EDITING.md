@@ -116,8 +116,11 @@ produced, all reachable from j's key maps and `executeCommand` too:
   `saveAs FILE`, `saveCopy FILE`;
 - borrowed as-is: `Search` for matching, `Region` for range text and deletion,
   `Marker` for marks, `Buffer.beginCompoundEdit` for undo, `newlineAndIndent`
-  and `indentLine` for indentation, `Editor.findMatchInternal` for `%`,
-  `toCenter`/`toTop` for `zz`/`zt`.
+  and `indentLine` for indentation, `toCenter`/`toTop` for `zz`/`zt`;
+- `Editor.findMatchInternal` for `%`, with a `vim` flag for vim's smart
+  matching: brackets in `"..."` (counted from the start bracket, per line,
+  only on lines with an even number of quotes) and in `'x'` are skipped, and
+  an escaped bracket pairs only with an escaped one.
 
 `CaretCommands.findCharacter` and `replaceChars` work in code points, so `f`,
 `t` and `r` take an emoji.
@@ -165,6 +168,15 @@ and a count before an insert (`3iab<Esc>`, `3o`, `3R`) makes Escape replay them
 count−1 more times -- opening a line first for `o`/`O`. Replay goes through
 `dispatchReplay`, which feeds insert-mode keys as typing would: characters as
 text, Backspace and Enter and the named keys through j's bindings.
+
+**An arrow splits an insert**, as in vim. `runInInsert` runs j's binding for
+a named or chorded key; if the text did not change but the caret moved, the
+undo step closes and a new one opens (`VimState.restartInsert`), what was typed
+so far becomes the last change, the count is dropped, and the recording
+restarts as `i` -- which only becomes the last change once something is typed
+after it. A key that neither moves nor types (an arrow at the edge) is not
+recorded, or a count's replay would run it where it does move. The rule is
+"moved without typing", not a list of keys.
 
 A half-typed command (an operator, a register, a `/` or `:` line) is dropped as
 a unit by `dropPartialCommand`, from Escape, an abandoned prompt, and the end of
@@ -229,6 +241,13 @@ requirements.
    break `j`).
 10. Motions at the buffer edges are asymmetric: forward ones clamp to the end
     (`de` on the last character deletes it), backward ones at the start fail.
+11. `:help d`: a characterwise `d` across lines with only blanks before its
+    start and after its end takes the lines whole
+    (`RangeNormalizer.deleteRange`). Operator-pending `d` only -- not `c`, not
+    visual -- but text objects and `/` too.
+12. An inclusive end on an empty line takes nothing from it (`d$` there is a
+    no-op, `dge` onto one keeps its newline); a visual selection ending on one
+    takes its newline (`VimVisual.toRange`).
 
 ## Undo
 
@@ -289,7 +308,12 @@ carries no non-JDK dependency) and `bb fmt-check`.
   deliberate. The corpus is CodeMirror's reading of vim and is wrong in places
   (ignorecase, JavaScript regex, edge motions); **nvim wins**, and those cases
   stay out with the reason in `passing.txt`'s header. Print every failure with
-  `-Dvim.conformance.failures=all`.
+  `-Dvim.conformance.failures=all`; the listing holds NULs (a `:g` case), so
+  grep it with `-a`. The generator turns a `doKeys` argument that is one of
+  CodeMirror's key names (`Backspace`, `Down`) into vim notation, and resolves
+  a `value:` that names a variable, where it once fell back to the shared
+  fixture and gave the case the wrong document. The runner clamps `cursor` to
+  the document, as CodeMirror's `setCursor` does.
 - **`tools/vim-oracle.sh '<text>' <line> <col> '<keys>' ['<keys>'...]`** runs
   real nvim headless and prints the buffer and cursor. It settles every
   non-obvious expectation. Each extra argument is its own step behind an undo
@@ -365,6 +389,17 @@ Each of these has bitten at least once. Read them before editing.
     last line the two are the same position. Read `VimRange.last`.
 22. Insert-mode keys replayed as text: a replay must treat a named key as the
     key it is (Delete's character is DEL), through j's binding.
+23. **A line end is a blank to vim's word scans; j's `Words` calls it
+    `NEWLINE`.** Vim's `dec()` stops on the line end too (as `Position.prev()`
+    does) and `cls()` counts it blank, which is what keeps a word from running
+    on across a line break. A scan that treats `NEWLINE` as a class of its own
+    can stop there: `ge` returned the slot past `word`, which looked right on
+    its own -- the caret is clamped -- and was wrong under an operator.
+    Skipping the slot instead joins `ab` and `cd` across the break into one
+    word; the mutation check caught that.
+24. Insert-mode arrows are j's commands, and differ from vim's at the edges:
+    j's `right` wraps at a line end and `up` on the first line moves the caret
+    sideways, where vim's do not move.
 
 ## History
 
@@ -394,7 +429,9 @@ review before the next.
 | — | branch review: linewise last line, `:s///g`, `:sort u`, prompts, emoji put | `dab86d5a6` … `42f6390cc` |
 | — | M13 leftovers: counted inserts, Enter autoindent, `O` indent, `v$o`, emoji `f t r`, visual `J` undo caret; replayed Delete/Tab | `1485050bf` … `85c28d320` |
 
-At `85c28d320`: 755 tests, conformance 136 of 253 (129 ratcheted).
+| M15 | corpus key names and documents; `ge` over line ends; `:help d`; `%` and quotes; an arrow splits an insert | (uncommitted) |
+
+After M15: 789 tests, conformance 145 of 253 (144 ratcheted).
 
 ### What the work learned
 
