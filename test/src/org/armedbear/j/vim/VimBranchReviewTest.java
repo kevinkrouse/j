@@ -166,4 +166,13 @@ public class VimBranchReviewTest
         vim("A\na\nb", 0, 0).exCommand("sort iu");
         assertEquals("A\nb", h.value());
     }
+    // F4 -- the :sort pattern is vim's only, never compiled as Java's first.
+
+    @Test
+    public void sortTakesAPatternOnlyVimUnderstands()
+    {
+        vim("xAc\nyBa\nzCb", 0, 0).exCommand("sort /\\u/");
+        assertEquals("yBa\nzCb\nxAc", h.value());
+        assertEquals("", h.status());
+    }
 }

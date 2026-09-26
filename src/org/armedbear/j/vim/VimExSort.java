@@ -47,18 +47,19 @@ final class VimExSort
         if (first == null || last == null)
             throw new VimEx.BadCommand("E16: Invalid range");
 
+        // Sort.Options reads the flags only: it would compile the pattern as
+        // Java's, which is what j's own commands use. A pattern typed at the
+        // vim prompt is vim's, as it is in / and :s.
+        final int slash = command.args.indexOf('/');
         final Sort.Options options;
         try {
-            options = Sort.Options.parse(command.args);
+            options = Sort.Options.parse(slash < 0 ? command.args
+                                         : command.args.substring(0, slash));
         }
         catch (IllegalArgumentException e) {
             throw new VimEx.BadCommand(e.getMessage());
         }
         options.reverse = command.bang;
-        // Sort.Options compiles a pattern as a plain Java one, which is what
-        // j's own commands use. A pattern typed at the vim prompt goes
-        // through the same shim as / and :s instead, so that \< and \> mean
-        // here what they mean everywhere else in this mode.
         final String source = patternOf(command.args);
         if (source != null && !source.isEmpty())
             options.pattern = compile(source);
