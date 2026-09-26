@@ -176,6 +176,34 @@ public final class VimState
     }
 
     /**
+     * An indent this insert session put on a line without the user typing it
+     * -- by o, O, cc or S -- and the line it is on. Vim takes such an indent
+     * away again if Escape comes with nothing typed after it, so that o then
+     * Escape leaves an empty line rather than one of blanks.
+     */
+    private Line autoIndentLine;
+    private String autoIndentText;
+
+    /** Records an indent the session put there itself. */
+    public void noteAutoIndent(Line line, String indent)
+    {
+        if (line != null && indent != null && !indent.isEmpty()) {
+            autoIndentLine = line;
+            autoIndentText = indent;
+        }
+    }
+
+    /**
+     * True when this line holds nothing but the indent the session put on it:
+     * nothing was typed after it, so Escape should take it away.
+     */
+    public boolean isUntouchedAutoIndent(Line line)
+    {
+        return line != null && line == autoIndentLine
+            && autoIndentText.equals(line.getText());
+    }
+
+    /**
      * Closes the insert session's undo step. Doing it twice is harmless, which
      * matters because it has to be called from every way out of insert mode.
      */
@@ -183,6 +211,8 @@ public final class VimState
     {
         replaced = null;
         replacedLine = null;
+        autoIndentLine = null;
+        autoIndentText = null;
         if (insertEdit == null)
             return;
         final CompoundEdit edit = insertEdit;

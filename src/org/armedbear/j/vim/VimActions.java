@@ -545,16 +545,25 @@ public final class VimActions
             editor.moveCaretToDotCol();
             editor.newlineAndIndent();
         } else {
+            // A plain split: newlineAndIndent would reindent the line below,
+            // which O must leave alone. The new line takes that line's indent.
+            final String indent = VimOperators.leadingBlanks(dot.getLine());
             editor.setDot(dot.getLine(), 0);
             editor.moveCaretToDotCol();
-            editor.newlineAndIndent();
-            // The split left the caret on the line below the new one.
+            editor.newline();
             final Position now = editor.getDot();
             final Line opened = now == null ? null : now.getLine().previous();
             if (opened != null) {
-                editor.setDot(opened, opened.length());
+                editor.setDot(opened, 0);
                 editor.moveCaretToDotCol();
+                if (!indent.isEmpty())
+                    editor.insertString(indent);
             }
         }
+        // Whatever indent j's newlineAndIndent gave the new line is the
+        // session's own, not the user's, until something is typed after it.
+        final Position now = editor.getDot();
+        if (now != null)
+            ctx.state.noteAutoIndent(now.getLine(), now.getLine().getText());
     }
 }

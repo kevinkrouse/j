@@ -206,6 +206,17 @@ public final class VimOperators
         ctx.state.clampCaret(editor);
     }
 
+    /** The spaces and tabs a line starts with. */
+    static String leadingBlanks(Line line)
+    {
+        final String text = line.getText() == null ? "" : line.getText();
+        int n = 0;
+        while (n < text.length()
+               && (text.charAt(n) == ' ' || text.charAt(n) == '\t'))
+            ++n;
+        return text.substring(0, n);
+    }
+
     /**
      * c: delete, then insert in the gap.
      *
@@ -247,14 +258,24 @@ public final class VimOperators
             ? range.end.getLine().previous()
             : range.end.getLine();
 
+        // The first line's indent stays, as it does in vim with 'autoindent'
+        // on, which is nvim's default: cc on "  bb" then x gives "  x". If
+        // nothing is typed after it, Escape takes it away again.
+        final String indent = leadingBlanks(first);
+
         editor.setMark(new Position(first, 0));
         editor.setDot(last, last.length());
+        editor.moveCaretToDotCol();
         editor.deleteRegion();
         editor.setMark(null);
         final Position dot = editor.getDot();
         if (dot != null) {
             editor.setDot(dot.getLine(), 0);
             editor.moveCaretToDotCol();
+            if (!indent.isEmpty()) {
+                editor.insertString(indent);
+                ctx.state.noteAutoIndent(dot.getLine(), indent);
+            }
         }
     }
 

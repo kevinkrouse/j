@@ -286,6 +286,19 @@ public final class VimInputHandler implements InputHandler
         // selection left behind by something other than visual mode.
         editor.unmark();
         if (state.getMode().isInsert()) {
+            // An indent put there by o, O or cc with nothing typed after it
+            // goes again, as in vim: nvim leaves an empty line after o<Esc>
+            // under an indented one, not a line of blanks. Before the mode
+            // changes, so it is part of the insert's undo step.
+            final Position at = editor.getDot();
+            if (at != null && state.isUntouchedAutoIndent(at.getLine())) {
+                final Line line = at.getLine();
+                editor.setMark(new Position(line, line.length()));
+                editor.setDot(line, 0);
+                editor.moveCaretToDotCol();
+                editor.deleteRegion();
+                editor.setMark(null);
+            }
             state.setMode(editor, VimMode.NORMAL);
             // Leaving insert steps back onto the last character typed.
             final Position dot = editor.getDot();

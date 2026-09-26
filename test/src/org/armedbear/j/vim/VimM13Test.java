@@ -353,4 +353,83 @@ public class VimM13Test
             recent.close();
         }
     }
+
+    // ---------------------------------------------------------- autoindent
+
+    @Test
+    public void oTypedThenEscapeKeepsTheIndent()
+    {
+        vim("  abc", 0, 3);
+        h.keys("ox<Esc>");
+        assertEquals("  abc\n  x", h.value());
+        h.assertCursorAt(1, 2);
+    }
+
+    @Test
+    public void oEscapeWithNothingTypedLeavesAnEmptyLine()
+    {
+        vim("  abc", 0, 3);
+        h.keys("o<Esc>");
+        assertEquals("  abc\n", h.value());
+        h.assertCursorAt(1, 0);
+    }
+
+    @Test
+    public void capitalOEscapeLeavesAnEmptyLine()
+    {
+        vim("  abc", 0, 3);
+        h.keys("O<Esc>");
+        assertEquals("\n  abc", h.value());
+        h.assertCursorAt(0, 0);
+    }
+
+    @Test
+    public void capitalOTakesTheIndentOfTheLineBelowAndLeavesItAlone()
+    {
+        vim("  abc", 0, 3);
+        h.keys("Ox<Esc>");
+        assertEquals("  x\n  abc", h.value());
+        h.assertCursorAt(0, 2);
+    }
+
+    @Test
+    public void ccKeepsTheIndent()
+    {
+        vim("  abc", 0, 3);
+        h.keys("ccx<Esc>");
+        assertEquals("  x", h.value());
+        h.assertCursorAt(0, 2);
+    }
+
+    @Test
+    public void ccEscapeLeavesAnEmptyLine()
+    {
+        vim("a\n  abc", 1, 3);
+        h.keys("cc<Esc>");
+        assertEquals("a\n", h.value());
+    }
+
+    @Test
+    public void capitalSKeepsTheIndentOnceSomethingIsTyped()
+    {
+        vim("a\n  abc", 1, 3);
+        h.keys("Sx<Esc>");
+        assertEquals("a\n  x", h.value());
+    }
+
+    @Test
+    public void capitalSEscapeLeavesAnEmptyLine()
+    {
+        vim("a\n  abc", 1, 3);
+        h.keys("S<Esc>");
+        assertEquals("a\n", h.value());
+    }
+
+    @Test
+    public void oEscapeThenUndoRemovesTheLine()
+    {
+        vim("  abc", 0, 3);
+        h.keys("o<Esc>u");
+        assertEquals("  abc", h.value());
+    }
 }

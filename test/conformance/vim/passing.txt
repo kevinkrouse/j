@@ -62,6 +62,11 @@
 #                           here, and 0,4 on an indented line, whatever
 #                           column the match was in. Confirmed with nvim on
 #                           a plain :s, since @: cannot run inside :normal!
+#   S_normal                the corpus expects S then Escape to leave the
+#                           line's indent behind. nvim ('autoindent' on)
+#                           takes an indent nothing was typed after away
+#                           again, leaving an empty line, and so do we. Sx
+#                           keeps it: "  x". Unit tested in VimM13Test
 
 # M1: motions
 F,
