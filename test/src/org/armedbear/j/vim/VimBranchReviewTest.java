@@ -107,4 +107,41 @@ public class VimBranchReviewTest
         vim("a\n\n\n", 1, 0).keys("vipd");
         assertEquals("a", h.value());
     }
+    // F2 -- with g, :s stops once the next search would start at the end of
+    // the line. An empty match there is taken when nothing came before it.
+
+    @Test
+    public void aLoneEmptyMatchAtTheEndIsTaken()
+    {
+        vim("xy", 0, 0).exCommand("s/$/;/g");
+        assertEquals("xy;", h.value());
+    }
+
+    @Test
+    public void anEmptyLineTakesItsOnlyMatch()
+    {
+        vim("a\n\nb", 0, 0).exCommand("%s/^/#/g");
+        assertEquals("#a\n#\n#b", h.value());
+    }
+
+    @Test
+    public void anEmptyMatchAfterANonEmptyOneIsTaken()
+    {
+        vim("ab", 0, 0).exCommand("s/a\\|$/-/g");
+        assertEquals("-b-", h.value());
+    }
+
+    @Test
+    public void noEmptyMatchOnceTheSearchReachesTheEnd()
+    {
+        vim("ab", 0, 0).exCommand("s/x*/-/g");
+        assertEquals("-a-b", h.value());
+    }
+
+    @Test
+    public void aNonEmptyMatchCanReachTheEnd()
+    {
+        vim("ab", 0, 0).exCommand("s/b*/-/g");
+        assertEquals("-a-", h.value());
+    }
 }

@@ -169,7 +169,7 @@ final class VimExSubstitute
                 line = here.next();
                 final String was = here.getText() == null ? "" : here.getText();
                 final Matcher matcher = regex.matcher(was);
-                final String now = all ? replaceAll(matcher, rewritten)
+                final String now = all ? replaceAll(matcher, was, rewritten)
                                        : replaceFirst(matcher, rewritten);
                 if (now == null)
                     continue;
@@ -277,19 +277,22 @@ final class VimExSubstitute
         return sb.toString();
     }
 
-    private static String replaceAll(Matcher matcher, String replacement)
+    private static String replaceAll(Matcher matcher, String text,
+                                     String replacement)
     {
         final StringBuffer sb = new StringBuffer();
         boolean any = false;
         while (matcher.find()) {
-            // Vim takes no empty match at the end of the line: s/x*/-/g on
-            // "ab" gives "-a-b", not "-a-b-". A non-empty match there is
-            // fine, so the test is on the match and not on the position.
-            if (matcher.start() == matcher.end()
-                && matcher.start() == matcher.regionEnd())
-                break;
             matcher.appendReplacement(sb, replacement);
             any = true;
+            // Vim stops once the next search would start at the end of the
+            // line, and after an empty match it starts a character on. So
+            // s/x*/-/g on "ab" gives "-a-b", but s/a\|$/-/g gives "-b-".
+            int next = matcher.end();
+            if (next == matcher.start() && next < text.length())
+                next += Character.charCount(text.codePointAt(next));
+            if (next >= text.length())
+                break;
         }
         if (!any)
             return null;
