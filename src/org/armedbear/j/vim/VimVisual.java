@@ -123,18 +123,33 @@ final class VimVisual
         state.selectionCrossedLines(editor, anchorLine, headLine);
     }
 
-    /** o -- put the caret on the other end of the selection. */
-    static void swapEnds(Editor editor)
+    /**
+     * o -- put the caret on the other end of the selection.
+     *
+     * After $ the caret stands for the end of its line, newline and all, so
+     * that end goes to the anchor as the line's end itself; and an anchor
+     * there makes the caret stand for it again when o brings it back.
+     */
+    static void swapEnds(Editor editor, VimState state)
     {
         final Position anchor = editor.getMark();
         final Position head = editor.getDot();
         if (anchor == null || head == null)
             return;
         final Position wasAnchor = new Position(anchor);
-        editor.setDot(head.getLine(), head.getOffset());
+        final boolean anchorAtEol = wasAnchor.getLineLength() > 0
+            && wasAnchor.getOffset() >= wasAnchor.getLineLength();
+        editor.setDot(head.getLine(), state.isStickyEol()
+                                          ? head.getLineLength()
+                                          : head.getOffset());
         editor.setMarkAtDot();
         editor.setDot(wasAnchor.getLine(), wasAnchor.getOffset());
         editor.moveCaretToDotCol();
+        if (anchorAtEol)
+            state.setDesiredColumn(VimState.STICKY_EOL);
+        else
+            state.clearDesiredColumn();
+        state.clampCaret(editor);
     }
 
     /**

@@ -1261,7 +1261,9 @@ public final class VimInputHandler implements InputHandler
         if (isEdit(command) && !replaying)
             edited = true;
         action.run(ctx);
-        state.clearDesiredColumn();
+        // An action that sets the column itself says so, as o does after $.
+        if (!command.getBoolean("keepColumn"))
+            state.clearDesiredColumn();
     }
 
     private void runKeyToKey(Editor editor, VimCommand command, int count,

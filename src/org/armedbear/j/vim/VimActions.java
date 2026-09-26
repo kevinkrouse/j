@@ -59,7 +59,7 @@ public final class VimActions
         register("selectRegister", VimActions::selectRegister);
         register("setMark", VimActions::setMark);
         register("toggleVisualMode", VimActions::toggleVisualMode);
-        register("swapVisualEnds", ctx -> VimVisual.swapEnds(ctx.editor));
+        register("swapVisualEnds", ctx -> VimVisual.swapEnds(ctx.editor, ctx.state));
         register("reselectVisual", ctx -> VimVisual.reselect(ctx.editor, ctx.state));
         register("undo", VimActions::undo);
         register("redo", VimActions::redo);

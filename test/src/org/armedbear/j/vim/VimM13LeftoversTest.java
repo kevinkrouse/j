@@ -261,4 +261,29 @@ public class VimM13LeftoversTest
         assertEquals("a\n  y\n  b", h.value());
         h.assertCursorAt(1, 2);
     }
+    // ------------------------------------------------ v$ then o
+    //
+    // After $ the selection takes in the line end, and o keeps it there.
+
+    @Test
+    public void vDollarOStillTakesTheNewline()
+    {
+        vim("abc\ndef", 0, 1).keys("v$od");
+        assertEquals("adef", h.value());
+        h.assertCursorAt(0, 1);
+    }
+
+    @Test
+    public void vDollarOOBringsTheLineEndBack()
+    {
+        vim("abc\ndef", 0, 1).keys("v$ood");
+        assertEquals("adef", h.value());
+    }
+
+    @Test
+    public void vDollarOThenAMotionKeepsTheOtherEnd()
+    {
+        vim("abc\ndef", 0, 1).keys("v$ohd");
+        assertEquals("def", h.value());
+    }
 }
