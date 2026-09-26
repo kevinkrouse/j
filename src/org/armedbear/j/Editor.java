@@ -5876,6 +5876,20 @@ public final class Editor extends JPanel implements Constants,
             status(message);
     }
 
+    /**
+     * Deletes the text from start to end, leaving the caret at start --
+     * which is also where undo puts it back. The display's caret moves too,
+     * even when there is nothing to delete: an insert there is padded out
+     * to the display's column.
+     */
+    public void deleteRegion(Position start, Position end)
+    {
+        setMark(end);
+        setDot(start);
+        moveCaretToDotCol();
+        deleteRegion();
+    }
+
     // Handles undo, updates display and marks buffer modified.
     public void deleteRegion()
     {

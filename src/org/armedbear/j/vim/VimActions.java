@@ -24,6 +24,7 @@ import org.armedbear.j.Lines;
 import org.armedbear.j.Position;
 import org.armedbear.j.RegionCommands;
 import org.armedbear.j.SimpleEdit;
+import org.armedbear.j.Words;
 
 /**
  * The commands that are neither motions nor operators, by the names the key
@@ -69,6 +70,10 @@ public final class VimActions
         register("repeatLastChange", VimActions::repeatLastChange);
         register("put", VimActions::put);
         register("insertShift", VimActions::insertShift);
+        register("insertDeleteBack", VimActions::insertDeleteBack);
+        register("insertRegister", VimActions::insertRegister);
+        register("insertOneCommand",
+                 ctx -> ctx.handler.runOneCommand(ctx.editor));
         register("visualJoin", VimActions::visualJoin);
         register("visualReplace", VimActions::visualReplace);
         register("visualPut", VimActions::visualPut);
@@ -193,6 +198,61 @@ public final class VimActions
     }
 
     /**
+     * CTRL-W and CTRL-U in insert mode: delete back to the start of the word,
+     * as b goes, or of the line's text. Both stop once where typing began,
+     * and at the start of a line join it to the one before. In replace mode
+     * they are Backspace that many times, putting back what was typed over.
+     */
+    private static void insertDeleteBack(MotionContext ctx)
+    {
+        final Editor editor = ctx.editor;
+        final VimState state = ctx.state;
+        final Position dot = editor.getDot();
+        if (dot == null || !editor.checkReadOnly())
+            return;
+        final boolean replace = state.getMode() == VimMode.REPLACE;
+        final Line line = dot.getLine();
+        final int caret = dot.getOffset();
+        int to = 0;
+        if (caret > 0 && ctx.arg("word")) {
+            final Position word = Words.backwardToWordStart(
+                dot, editor.getBuffer().getMode(), false);
+            if (word != null && word.getLine() == line)
+                to = word.getOffset();
+        } else if (caret > 0) {
+            // Autoindent is on, as in nvim: the indent stays.
+            final int indent = Lines.leadingBlanks(line);
+            if (indent < caret)
+                to = indent;
+        }
+        to = Math.max(to, state.backStop(editor));
+        if (replace) {
+            while (editor.getDot().getOffset() > to)
+                replaceBackspace(editor, state);
+        } else if (caret == 0) {
+            editor.backspace();
+        } else {
+            editor.deleteRegion(new Position(line, to), new Position(dot));
+        }
+        state.insertDeletedBack(editor);
+    }
+
+    /**
+     * CTRL-R in insert mode: the register's text, typed. Only the registers
+     * p knows.
+     */
+    private static void insertRegister(MotionContext ctx)
+    {
+        final char name = ctx.characterArg();
+        if (!VimRegisters.isValidName(name))
+            return;
+        final VimRegisters.Register register =
+            VimRegisters.getInstance().get(name);
+        if (register != null)
+            ctx.handler.typeText(ctx.editor, register.text);
+    }
+
+    /**
      * r{char} -- overwrite the character under the caret.
      *
      * With a count it overwrites that many, and does nothing at all if there
@@ -245,13 +305,8 @@ public final class VimActions
 
         final CompoundEdit edit = editor.getBuffer().beginCompoundEdit();
         try {
-            editor.setMark(new Position(line, end));
-            editor.setDot(line, start);
-            // The display keeps its own caret column and j pads an insert out
-            // to it, so this has to move as well as setDot.
-            editor.moveCaretToDotCol();
-            editor.deleteRegion();
-            editor.setMark(null);
+            editor.deleteRegion(new Position(line, start),
+                                new Position(line, end));
             editor.insertString(now);
         }
         finally {
@@ -501,10 +556,9 @@ public final class VimActions
         final int was = line.getText().codePointAt(offset);
         final CompoundEdit edit = editor.getBuffer().beginCompoundEdit();
         try {
-            editor.setMark(new Position(line, CodePoints.next(line, offset)));
-            editor.setDot(line, offset);
-            editor.deleteRegion();
-            editor.setMark(null);
+            final int next = CodePoints.next(line, offset);
+            editor.deleteRegion(new Position(line, offset),
+                                new Position(line, next));
             editor.insertString(String.valueOf(c));
         }
         finally {
@@ -545,10 +599,8 @@ public final class VimActions
         }
         final CompoundEdit edit = editor.getBuffer().beginCompoundEdit();
         try {
-            editor.setMark(new Position(line, dot.getOffset()));
-            editor.setDot(line, offset);
-            editor.deleteRegion();
-            editor.setMark(null);
+            editor.deleteRegion(new Position(line, offset),
+                                new Position(line, dot.getOffset()));
             if (was != VimState.APPENDED)
                 editor.insertString(new String(Character.toChars(was)));
             // Back to the character just restored, from wherever the edit
@@ -586,10 +638,8 @@ public final class VimActions
         if (now == null || now.getLine() == left)
             return true;
         if (untouched && left.length() > 0) {
-            editor.setMark(new Position(left, left.length()));
-            editor.setDot(left, 0);
-            editor.deleteRegion();
-            editor.setMark(null);
+            editor.deleteRegion(new Position(left, 0),
+                                new Position(left, left.length()));
             editor.setDot(now);
             editor.moveCaretToDotCol();
         }

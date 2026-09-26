@@ -206,7 +206,8 @@ public class VimBranchReviewTest
     public void anEscapedPromptLeavesNothingForDotToReplay()
     {
         vim("abcdef", 0, 0).keys("d/");
-        ((VimInputHandler) h.editor().getInputHandler()).searchCancelled();
+        ((VimInputHandler) h.editor().getInputHandler())
+            .searchCancelled(h.editor());
         h.keys("x").keys(".");
         assertEquals("cdef", h.value());
         assertFalse(h.awaitingSearchPattern());

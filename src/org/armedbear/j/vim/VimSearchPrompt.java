@@ -97,7 +97,9 @@ final class VimSearchPrompt extends DefaultTextFieldHandler
     @Override
     public void escape()
     {
-        handler.searchCancelled();
+        handler.searchCancelled(editor);
         super.escape();
+        // Back from CTRL-O, the mode shown has changed.
+        editor.getDispatcher().eventHandled();
     }
 }

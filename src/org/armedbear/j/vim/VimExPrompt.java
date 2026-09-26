@@ -85,7 +85,9 @@ final class VimExPrompt extends DefaultTextFieldHandler
     @Override
     public void escape()
     {
-        handler.exCancelled();
+        handler.exCancelled(editor);
         super.escape();
+        // Back from CTRL-O, the mode shown has changed.
+        editor.getDispatcher().eventHandled();
     }
 }

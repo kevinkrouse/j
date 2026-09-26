@@ -121,6 +121,9 @@ produced, all reachable from j's key maps and `executeCommand` too:
   matching: brackets in `"..."` (counted from the start bracket, per line,
   only on lines with an even number of quotes) and in `'x'` are skipped, and
   an escaped bracket pairs only with an escaped one.
+- `Editor.deleteRegion(start, end)`, the mark-and-dot delete the vim layer
+  had spelled out at every site, caret at the start for undo;
+- `Words.backwardToWordStart`, `b`'s scan, for insert-mode `<C-w>`.
 
 `CaretCommands.findCharacter` and `replaceChars` work in code points, so `f`,
 `t` and `r` take an emoji.
@@ -176,7 +179,35 @@ so far becomes the last change, the count is dropped, and the recording
 restarts as `i` -- which only becomes the last change once something is typed
 after it. A key that neither moves nor types (an arrow at the edge) is not
 recorded, or a count's replay would run it where it does move. The rule is
-"moved without typing", not a list of keys.
+"moved without typing", not a list of keys. The split sets `'[ '] '.` for the
+part before it, `']` where typing stopped rather than where the arrow went;
+after a split with nothing typed since, Escape sets only `'^`.
+
+**Insert-mode bindings** are the `i` rows, run by `runInsertBinding`, which
+holds a partial sequence (`insertBindingKeys`) so that `<C-r>` can wait for
+its register -- the next key, typed or named, and Escape takes back only the
+`<C-r>`. A row marked `unrecorded` is not recorded as its keys:
+`insertRegister` types the register's text through `typeText`, which records
+that text (a newline as `<CR>`, so it indents as Enter does), and `.` types
+the same text again, as in vim. `<C-w>` and `<C-u>` (`insertDeleteBack`) take
+`b`'s range, or the line but its indent, clamped to the caret's line and to
+where typing began (`VimState.backStop`) -- a stop only when it is reached,
+not when the caret starts there, which is vim's "stops once". Backspace within
+the line does not move that start; one that joins the line to the one before
+moves it to the join (`insertDeletedBack`). In replace mode they are
+Backspace that many times.
+
+**`<C-o>`** (`runOneCommand`) leaves insert mode with a return mode on
+`VimState`, shown as `-- (insert) --`, and `resumeInsert` comes back once the
+command is over: not while the builder, a register, a search, a `:` line or
+visual mode is still waiting, and not at all if the command began an insert of
+its own. It is a split, but the part before is held rather than made the last
+change: inside the command, `.` still repeats the change before the insert, as
+in vim, and afterwards the held insert becomes the last change unless the
+command was one. At the end of a line the caret steps back as for Escape, and
+comes back past the end if it is on the last character of that line, or `j`
+and `k` aim past it (vim's `ins_at_eol` and `curswant`). A `<C-o>` from keys
+being replayed only comes back within that replay.
 
 A half-typed command (an operator, a register, a `/` or `:` line) is dropped as
 a unit by `dropPartialCommand`, from Escape, an abandoned prompt, and the end of
@@ -187,7 +218,8 @@ a unit by `dropPartialCommand`, from Escape, an abandoned prompt, and the end of
 `VimMarks` holds every mark on j `Marker`s, vim's own ones too: each command
 that changes or yanks text notes its extent with `noteChange` (`'[`, `']`,
 and `'.` for a change), and an ex command with `noteLines`. The insert session
-notes where typing began at its first key -- by line number -- and Escape sets
+notes where typing began at its first key -- by line number, moved to the join
+when a Backspace joins that line to the one before -- and Escape sets
 `'[ '] '^ '.` from it (`markInsertStop`). A mark whose line was deleted is
 gone, as in vim. `]`` and `[`` walk the lowercase marks only.
 
@@ -417,6 +449,14 @@ Each of these has bitten at least once. Read them before editing.
 24. Insert-mode arrows are j's commands, and differ from vim's at the edges:
     j's `right` wraps at a line end and `up` on the first line moves the caret
     sideways, where vim's do not move.
+25. **Cancelling a prompt fires no `eventHandled`**, so nothing repaints the
+    status bar: a `<C-o>:` abandoned with Escape was back in insert mode with
+    `-- (insert) --` still showing. The prompts' `escape` calls it now, as
+    their Enter always did. Only the screenshot showed it.
+26. **j's Enter does not indent in plain text**, where the harness starts. A
+    test of an indent Enter makes -- `<C-r>` of several lines, `<C-o>`
+    taking an untouched indent away -- has to switch to Java mode, or it
+    passes without testing anything; the mutation check caught one.
 
 ## History
 
@@ -445,11 +485,11 @@ review before the next.
 | M14 | docs pass, `VimDocTest` | `7794cfe17` |
 | — | branch review: linewise last line, `:s///g`, `:sort u`, prompts, emoji put | `dab86d5a6` … `42f6390cc` |
 | — | M13 leftovers: counted inserts, Enter autoindent, `O` indent, `v$o`, emoji `f t r`, visual `J` undo caret; replayed Delete/Tab | `1485050bf` … `85c28d320` |
-
 | M15 | corpus key names and documents; `ge` over line ends; `:help d`; `%` and quotes; an arrow splits an insert | `db9e981c6` |
-| M16 | `'. '[ '] '^`, the jump list, `''` and ````, `<C-o>` `<C-i>` | (uncommitted) |
+| M16 | `'. '[ '] '^`, the jump list, `''` and ````, `<C-o>` `<C-i>` | `d31fed8ec` |
+| M17 | insert-mode `<C-w> <C-u> <C-r> <C-o>`; the marks a split leaves | (uncommitted) |
 
-After M16: 821 tests, conformance 145 of 253 (144 ratcheted).
+After M17: 859 tests, conformance 146 of 253 (145 ratcheted).
 
 ### What the work learned
 

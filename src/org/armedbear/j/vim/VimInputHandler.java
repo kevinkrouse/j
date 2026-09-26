@@ -12,6 +12,7 @@
 package org.armedbear.j.vim;
 
 import java.awt.event.KeyEvent;
+import java.util.ArrayList;
 import java.util.List;
 
 import org.armedbear.j.Buffer;
@@ -60,8 +61,8 @@ public final class VimInputHandler implements InputHandler
     private final StringBuilder recording = new StringBuilder();
     private String lastChange;
     private boolean recordingEdit;
-    // The recording is an i begun by an arrow in insert mode, and is not a
-    // change until something is typed after the i.
+    // The recording is an i begun by an arrow or CTRL-O in insert mode, and
+    // is not a change until something is typed after the i.
     private boolean insertRestarted;
     private boolean replaying;
     // Set when a command actually changed the buffer. An operator on its own
@@ -123,7 +124,7 @@ public final class VimInputHandler implements InputHandler
     @Override
     public String getModeIndicator()
     {
-        return state.getMode().getIndicator();
+        return state.getModeIndicator();
     }
 
     @Override
@@ -138,6 +139,7 @@ public final class VimInputHandler implements InputHandler
     {
         builder.reset();
         fallback = null;
+        insertBindingKeys.clear();
         // A buffer switch mid-insert never runs Escape, so without this a
         // partial insert-mode recording would survive and contaminate the
         // next '.' repeat.
@@ -170,6 +172,16 @@ public final class VimInputHandler implements InputHandler
 
         if (!state.getMode().isCommandMode()) {
             state.noteInsertStart(editor);
+            // The rest of a binding, as the register after CTRL-R. A
+            // character waits for its key typed event.
+            if (!insertBindingKeys.isEmpty()) {
+                if (!isNamedKey(keyCode) && !isChorded(modifiers))
+                    return Result.DEFER;
+                final String key =
+                    KeyNotation.name(keyCode, event.getKeyChar(), modifiers);
+                if (runInsertBinding(editor, key))
+                    return Result.CONSUMED;
+            }
             final int recordedTo = recording.length();
             final int insertKeysTo = state.insertKeysLength();
             if (!replaying && isNamedKey(keyCode)) {
@@ -226,7 +238,9 @@ public final class VimInputHandler implements InputHandler
         }
 
         final String key = KeyNotation.name(keyCode, event.getKeyChar(), modifiers);
-        if (dispatch(editor, key, 0))
+        final boolean dispatched = dispatch(editor, key, 0);
+        resumeInsert(editor);
+        if (dispatched)
             return Result.CONSUMED;
 
         // Nothing in the modal map wants it. If no command is part-typed, let
@@ -258,44 +272,68 @@ public final class VimInputHandler implements InputHandler
         // Not after a binding that left insert mode or the buffer: that has
         // already ended the session.
         if (replaying || before == null || after == null
-            || editor.getBuffer() != buffer || !state.getMode().isInsert()
-            || buffer.getModCount() != modCount)
+            || editor.getBuffer() != buffer || !state.getMode().isInsert())
             return Result.CONSUMED;
+        if (buffer.getModCount() != modCount) {
+            state.insertDeletedBack(editor);
+            return Result.CONSUMED;
+        }
         // Typed nothing: nothing for '.' or a count to type again.
         recording.setLength(recordedTo);
         state.truncateInsertKeys(insertKeysTo);
         if (after.equals(before))
             return Result.CONSUMED;
+        state.markInsert(editor, before);
         if (recordingEdit)
             commitInsert();
         recording.setLength(0);
-        recording.append('i');
-        recordingEdit = true;
-        insertRestarted = true;
+        startSplitRecording();
         state.restartInsert();
         return Result.CONSUMED;
     }
 
+    /** After a split, '.' repeats what is typed next as an i. */
+    private void startSplitRecording()
+    {
+        recording.append('i');
+        recordingEdit = true;
+        insertRestarted = true;
+    }
+
     /**
-     * Runs a key bound in insert mode, when one is: a single key that is a
-     * whole binding on its own. Longer insert-mode mappings are a different
-     * question and are not answered here.
+     * Keys of an insert-mode binding typed so far, while CTRL-R waits for
+     * its register.
+     */
+    private final List<String> insertBindingKeys = new ArrayList<String>();
+
+    /**
+     * Feeds a key to the insert-mode bindings: a whole one runs, and the
+     * start of one waits for the rest.
      *
      * @return false when the key is not bound, so it goes to j as before
      */
     private boolean runInsertBinding(Editor editor, String key)
     {
+        insertBindingKeys.add(key);
         final KeyStrokeTrie.Match<VimCommand> match = keyMap
-            .getTrie(MappingMode.INSERT).match(java.util.Collections.singletonList(key));
+            .getTrie(MappingMode.INSERT).match(insertBindingKeys);
+        if (match.status == KeyStrokeTrie.Status.PARTIAL)
+            return true;
+        final List<String> keys = new ArrayList<String>(insertBindingKeys);
+        insertBindingKeys.clear();
         if (match.status != KeyStrokeTrie.Status.FULL)
-            return false;
-        // Part of the insert session, so '.' replays it with the rest.
-        if (!replaying) {
-            if (recordingEdit)
-                recording.append(key);
-            state.noteInsertKey(key);
+            // What came before is dropped; the key may start another.
+            return keys.size() > 1 && runInsertBinding(editor, key);
+        // Part of the insert session, so '.' replays it with the rest --
+        // unless it records what it does itself, as CTRL-R does.
+        if (!replaying && !match.value.getBoolean("unrecorded")) {
+            for (String k : keys) {
+                if (recordingEdit)
+                    recording.append(k);
+                state.noteInsertKey(k);
+            }
         }
-        run(editor, match.value, 1, false, null, 1);
+        run(editor, match.value, 1, false, match.character, 1);
         return true;
     }
 
@@ -314,6 +352,10 @@ public final class VimInputHandler implements InputHandler
 
         if (!state.getMode().isCommandMode()) {
             state.noteInsertStart(editor);
+            if (!insertBindingKeys.isEmpty()
+                && runInsertBinding(editor,
+                       KeyNotation.name(0, event.getKeyChar(), 0)))
+                return Result.CONSUMED;
             if (!replaying) {
                 final String name = KeyNotation.name(0, event.getKeyChar(), 0);
                 if (recordingEdit)
@@ -345,11 +387,17 @@ public final class VimInputHandler implements InputHandler
             : KeyNotation.name(0, c, 0);
         highSurrogate = 0;
         dispatch(editor, key, 0);
+        resumeInsert(editor);
         return Result.CONSUMED;
     }
 
     private Result escape(Editor editor)
     {
+        // CTRL-R waiting for its register: Escape takes back only the CTRL-R.
+        if (!insertBindingKeys.isEmpty()) {
+            insertBindingKeys.clear();
+            return Result.CONSUMED;
+        }
         dropPartialCommand();
         if (recordingEdit && !replaying && state.getMode().isInsert()) {
             // The change was still being typed; Escape is the end of it.
@@ -360,6 +408,7 @@ public final class VimInputHandler implements InputHandler
         }
         if (state.getMode().isVisual()) {
             VimVisual.leave(editor, state);
+            resumeInsert(editor);
             return Result.CONSUMED;
         }
         // Escape means "whatever is going on, stop": that includes a
@@ -380,7 +429,62 @@ public final class VimInputHandler implements InputHandler
             editor.moveCaretToDotCol();
         }
         state.clampCaret(editor);
+        resumeInsert(editor);
         return Result.CONSUMED;
+    }
+
+    /** True when CTRL-O's command comes from keys being replayed. */
+    private boolean oneCommandReplaying;
+    /**
+     * The insert CTRL-O split, which is the last change once the command is
+     * over -- unless the command was a change itself. Until then . inside
+     * it repeats the change before, as in vim.
+     */
+    private String heldInsert;
+    private String changeBeforeCommand;
+
+    /**
+     * CTRL-O: one command in normal mode, then back to insert. The insert
+     * is split there as an arrow splits it, and its count is dropped.
+     */
+    void runOneCommand(Editor editor)
+    {
+        if (!replaying) {
+            heldInsert = recordingEdit ? recordedInsert() : null;
+            changeBeforeCommand = lastChange;
+            clearRecording();
+        }
+        dropUntouchedAutoIndent(editor);
+        state.markInsertStop(editor);
+        state.leaveInsertForOneCommand(editor);
+        oneCommandReplaying = replaying;
+    }
+
+    /**
+     * Back to insert mode once CTRL-O's command is over: not while it is
+     * still being typed, nor in a visual mode it began. One that began an
+     * insert of its own leaves nothing to do.
+     */
+    private void resumeInsert(Editor editor)
+    {
+        if (!state.isOneCommand() || replaying != oneCommandReplaying)
+            return;
+        if (state.getMode().isInsert()) {
+            state.forgetOneCommand();
+            return;
+        }
+        if (state.getMode().isVisual() || !builder.isEmpty()
+            || pendingSearch != null || typedLine != null || exPromptOpen
+            || state.hasPendingRegister())
+            return;
+        state.resumeInsert(editor);
+        if (!replaying) {
+            if (heldInsert != null && lastChange == changeBeforeCommand)
+                lastChange = heldInsert;
+            heldInsert = null;
+            clearRecording();
+            startSplitRecording();
+        }
     }
 
     /**
@@ -421,11 +525,8 @@ public final class VimInputHandler implements InputHandler
         if (at == null || !state.isUntouchedAutoIndent(at.getLine()))
             return;
         final Line line = at.getLine();
-        editor.setMark(new Position(line, line.length()));
-        editor.setDot(line, 0);
-        editor.moveCaretToDotCol();
-        editor.deleteRegion();
-        editor.setMark(null);
+        editor.deleteRegion(new Position(line, 0),
+                            new Position(line, line.length()));
     }
 
     // ---------------------------------------------------------- dispatch
@@ -547,10 +648,17 @@ public final class VimInputHandler implements InputHandler
      */
     private void commitInsert()
     {
+        final String insert = recordedInsert();
+        if (insert != null)
+            lastChange = insert;
+    }
+
+    /** The insert being recorded as a change, or null if it is not one. */
+    private String recordedInsert()
+    {
         if (insertRestarted && recording.length() == 1)
-            return;
-        recording.append("<Esc>");
-        lastChange = recording.toString();
+            return null;
+        return recording + "<Esc>";
     }
 
     private void clearRecording()
@@ -595,6 +703,9 @@ public final class VimInputHandler implements InputHandler
             // So does a command left half typed: :normal /foo abandons the
             // search rather than leave it waiting for the next key.
             dropPartialCommand();
+            // And a CTRL-O it began comes back to nothing.
+            if (oneCommandReplaying)
+                state.forgetOneCommand();
         }
         finally {
             replaying = false;
@@ -632,37 +743,65 @@ public final class VimInputHandler implements InputHandler
                 return;
             }
             state.noteInsertKey(key);
-            if (isChorded(stroke.modifiers) && runInsertBinding(editor, key))
+            if ((isChorded(stroke.modifiers) || !insertBindingKeys.isEmpty())
+                && runInsertBinding(editor, key))
                 return;
-            if (stroke.keyCode == KeyEvent.VK_BACK_SPACE) {
-                if (state.getMode() == VimMode.REPLACE)
-                    VimActions.replaceBackspace(editor, state);
-                else
-                    editor.backspace();
-            } else if (stroke.keyCode == KeyEvent.VK_ENTER) {
-                VimActions.insertNewline(editor, state,
-                    new JEvent(JEvent.KEY_PRESSED, KeyEvent.VK_ENTER, '\n', 0));
-            } else if (stroke.keyCode == KeyEvent.VK_TAB
-                       && state.getMode() == VimMode.REPLACE) {
-                VimActions.replaceTypedCharacter(editor, state, '\t');
-            } else if (isNamedKey(stroke.keyCode)) {
-                // Delete, Tab, an arrow: whatever j binds it to, as it was
-                // when typed. Its character is not text: Delete's is DEL.
-                if (stroke.keyCode == KeyEvent.VK_TAB)
-                    state.forgetAutoIndent();
-                editor.handleKeyMapEvent(new JEvent(JEvent.KEY_PRESSED,
-                    stroke.keyCode, stroke.keyChar, stroke.modifiers));
-            } else if (stroke.keyChar != KeyEvent.CHAR_UNDEFINED) {
-                if (state.getMode() == VimMode.REPLACE)
-                    VimActions.replaceTypedCharacter(editor, state,
-                                                     stroke.keyChar);
-                else
-                    editor.insertNormalChar(stroke.keyChar);
-                state.forgetAutoIndent();
-            }
+            typeInsertKey(editor, stroke);
             return;
         }
         dispatch(editor, key, 0);
+        resumeInsert(editor);
+    }
+
+    /**
+     * Types text in insert mode as though its keys were typed, so that a
+     * line break indents as Enter does. Recorded as those keys: '.' types
+     * the same text again rather than reading a register a second time.
+     */
+    void typeText(Editor editor, String text)
+    {
+        for (int i = 0; i < text.length(); i++) {
+            final char c = text.charAt(i);
+            final String key = c == '\n' ? "<CR>" : KeyNotation.name(0, c, 0);
+            if (!replaying) {
+                if (recordingEdit)
+                    recording.append(key);
+                state.noteInsertKey(key);
+            }
+            typeInsertKey(editor, KeyNotation.parseOne(key));
+        }
+    }
+
+    /** What an insert-mode key does when it is not a binding of ours. */
+    private void typeInsertKey(Editor editor, KeyNotation.Stroke stroke)
+    {
+        if (stroke.keyCode == KeyEvent.VK_BACK_SPACE) {
+            if (state.getMode() == VimMode.REPLACE)
+                VimActions.replaceBackspace(editor, state);
+            else
+                editor.backspace();
+            state.insertDeletedBack(editor);
+        } else if (stroke.keyCode == KeyEvent.VK_ENTER) {
+            VimActions.insertNewline(editor, state,
+                new JEvent(JEvent.KEY_PRESSED, KeyEvent.VK_ENTER, '\n', 0));
+        } else if (stroke.keyCode == KeyEvent.VK_TAB
+                   && state.getMode() == VimMode.REPLACE) {
+            VimActions.replaceTypedCharacter(editor, state, '\t');
+        } else if (isNamedKey(stroke.keyCode)) {
+            // Delete, Tab, an arrow: whatever j binds it to, as it was
+            // when typed. Its character is not text: Delete's is DEL.
+            if (stroke.keyCode == KeyEvent.VK_TAB)
+                state.forgetAutoIndent();
+            editor.handleKeyMapEvent(new JEvent(JEvent.KEY_PRESSED,
+                stroke.keyCode, stroke.keyChar, stroke.modifiers));
+        } else if (stroke.keyChar != KeyEvent.CHAR_UNDEFINED) {
+            if (state.getMode() == VimMode.REPLACE)
+                VimActions.replaceTypedCharacter(editor, state,
+                                                 stroke.keyChar);
+            else
+                editor.insertNormalChar(stroke.keyChar);
+            state.forgetAutoIndent();
+        }
     }
 
     private static String countGiven(String keys, int count)
@@ -796,11 +935,15 @@ public final class VimInputHandler implements InputHandler
             VimVisual.leave(editor, state);
             seed = "'<,'>";
         }
-        if (replaying || !VimExPrompt.open(editor, this, seed)) {
+        exPromptOpen = !replaying && VimExPrompt.open(editor, this, seed);
+        if (!exPromptOpen) {
             collectHere(LineKind.EX);
             typedLine.append(seed);
         }
     }
+
+    /** True while the : prompt is open. */
+    private boolean exPromptOpen;
 
     private void collectHere(LineKind kind)
     {
@@ -859,7 +1002,7 @@ public final class VimInputHandler implements InputHandler
         pendingSearch = null;
         typedLine = null;
         if (pending == null || pattern == null || pattern.isEmpty()) {
-            searchCancelled();
+            searchCancelled(editor);
             return;
         }
 
@@ -878,6 +1021,7 @@ public final class VimInputHandler implements InputHandler
         // the edited flag stays set and the next key typed is recorded as
         // the last change.
         afterCommand();
+        resumeInsert(editor);
     }
 
     /** True while a : is waiting for its line. */
@@ -894,6 +1038,13 @@ public final class VimInputHandler implements InputHandler
      * when there is no location bar to type into.
      */
     public void exEntered(Editor editor, String line)
+    {
+        exPromptOpen = false;
+        runExLine(editor, line);
+        resumeInsert(editor);
+    }
+
+    private void runExLine(Editor editor, String line)
     {
         typedLine = null;
         if (line == null || line.isEmpty())
@@ -964,24 +1115,27 @@ public final class VimInputHandler implements InputHandler
             return;
         final String line = lastEx;
         for (int i = 0; i < count; i++)
-            exEntered(editor, line);
+            runExLine(editor, line);
     }
 
     /** The : prompt was abandoned. */
-    public void exCancelled()
+    public void exCancelled(Editor editor)
     {
+        exPromptOpen = false;
         typedLine = null;
         builder.reset();
+        resumeInsert(editor);
     }
 
     /** The prompt was abandoned, so the command it belonged to is too. */
-    public void searchCancelled()
+    public void searchCancelled(Editor editor)
     {
         dropPartialCommand();
         // Else the d of an abandoned d/ stays recorded, and the next change
         // is appended to it: . would then open a prompt nobody sees.
         if (!replaying)
             clearRecording();
+        resumeInsert(editor);
     }
 
     /**

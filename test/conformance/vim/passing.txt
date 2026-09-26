@@ -266,3 +266,6 @@ i_repeat
 i_repeat_delete
 moveTillCharacter
 o_repeat
+
+# M17: insert-mode CTRL-R
+<C-r>_insert_mode

@@ -83,6 +83,10 @@ public class VimDocTest
     static {
         KEY_MODES.put("insert <C-t>", I);
         KEY_MODES.put("insert <C-d>", I);
+        KEY_MODES.put("insert <C-w>", I);
+        KEY_MODES.put("insert <C-u>", I);
+        KEY_MODES.put("insert <C-r>", I);
+        KEY_MODES.put("insert <C-o>", I);
     }
 
     /** What a row names in code that is not a key in the map, and why. */
@@ -92,6 +96,8 @@ public class VimDocTest
         "insert <Esc>", "replace <Esc>", "replace <BS>",
         // Vim's option, named to say what o O cc S copy.
         "insert autoindent",
+        // The mode shown during CTRL-O.
+        "insert --", "insert (insert)",
         // j's command names, beside the keys bound to them.
         "scroll toTop", "scroll toBottom", "scroll pageUp", "scroll vim",
         // Ex ranges, read by the command line rather than the key map.

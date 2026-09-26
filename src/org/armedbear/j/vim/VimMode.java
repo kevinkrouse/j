@@ -19,7 +19,7 @@ package org.armedbear.j.vim;
  * cannot express -- a mode remembering the mode to return to, so that
  * {@code i CTRL-O d/foo} unwinds Insert to Normal to Operator-pending to
  * Command-line correctly -- is kept as a separate field on {@link VimState},
- * because only the CTRL-O family needs it and that is not built yet.
+ * because only CTRL-O needs it.
  */
 public enum VimMode
 {

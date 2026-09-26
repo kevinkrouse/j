@@ -12,6 +12,7 @@
 package org.armedbear.j.vim;
 
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 
 import javax.swing.undo.CompoundEdit;
@@ -134,6 +135,7 @@ public final class VimState
         insertRepeat = 0;
         insertKeys.setLength(0);
         insertStartLine = -1;
+        insertSplit = false;
         if (buffer != null) {
             insertModCount = buffer.getModCount();
             insertEdit = buffer.beginCompoundEdit();
@@ -296,6 +298,7 @@ public final class VimState
         insertRepeat = 0;
         insertKeys.setLength(0);
         insertStartLine = -1;
+        insertSplit = true;
         if (insertEdit == null)
             return;
         insertModCount = insertEditBuffer.getModCount();
@@ -311,6 +314,8 @@ public final class VimState
     private int insertStartOffset;
     /** The buffer's modification count when the session began. */
     private int insertModCount;
+    /** True after an arrow or CTRL-O split the session. */
+    private boolean insertSplit;
 
     /**
      * Notes where the caret is as where typing began, unless that is known.
@@ -328,17 +333,60 @@ public final class VimState
     }
 
     /**
-     * Escape: '^ and '] where typing stopped, '[ where it began, and '. at
-     * the start -- or at the start of the last line, if the insert made new
-     * ones -- when the session changed anything.
+     * A Backspace that joined the line where typing began to the one before
+     * moves the start to the join, as in vim. One within the line does not.
      */
+    public void insertDeletedBack(Editor editor)
+    {
+        final Position dot = editor.getDot();
+        if (insertStartLine < 0 || dot == null)
+            return;
+        editor.getBuffer().renumber();
+        final int line = dot.lineNumber();
+        if (line < insertStartLine) {
+            insertStartLine = line;
+            insertStartOffset = dot.getOffset();
+        }
+    }
+
+    /**
+     * Where CTRL-W and CTRL-U stop on the way back from the caret: where
+     * typing began, when that is earlier on the caret's line, else 0.
+     */
+    public int backStop(Editor editor)
+    {
+        final Position dot = editor.getDot();
+        if (insertStartLine < 0 || dot == null)
+            return 0;
+        editor.getBuffer().renumber();
+        if (dot.lineNumber() != insertStartLine
+            || insertStartOffset >= dot.getOffset())
+            return 0;
+        return insertStartOffset;
+    }
+
+    /** Escape or CTRL-O: '^ where insert mode stopped, and the rest. */
     public void markInsertStop(Editor editor)
     {
-        noteInsertStart(editor);
         final Position stop = editor.getDot();
+        if (stop != null)
+            marks.set('^', editor.getBuffer(), stop);
+        markInsert(editor, stop);
+    }
+
+    /**
+     * '] where typing stopped, '[ where it began, and '. at the start -- or
+     * at the start of the last line, if the insert made new ones -- when
+     * the session changed anything. After a split with nothing typed since,
+     * they are still those of the part before it.
+     */
+    public void markInsert(Editor editor, Position stop)
+    {
         final Buffer buffer = editor.getBuffer();
-        if (stop == null)
+        if (stop == null
+            || (insertSplit && buffer.getModCount() == insertModCount))
             return;
+        noteInsertStart(editor);
         Line line = VimEx.lineAt(editor, insertStartLine + 1);
         if (line == null)
             line = stop.getLine();
@@ -346,7 +394,6 @@ public final class VimState
             new Position(line, Math.min(insertStartOffset, line.length()));
         marks.set('[', buffer, start);
         marks.set(']', buffer, stop);
-        marks.set('^', buffer, stop);
         if (buffer.getModCount() != insertModCount)
             marks.set('.', buffer, stop.getLine() == line ? start
                                     : new Position(stop.getLine(), 0));
@@ -356,6 +403,87 @@ public final class VimState
     public boolean isInsertEditOpen()
     {
         return insertEdit != null;
+    }
+
+    // ------------------------------------------------------------ CTRL-O
+
+    /** The insert mode CTRL-O comes back to, or null. */
+    private VimMode insertReturn;
+    /** Vim's ins_at_eol: CTRL-O was typed at the end of this line. */
+    private int insertReturnEolLine = -1;
+
+    /**
+     * CTRL-O: out of insert mode for one command. At the end of the line the
+     * caret steps back onto the last character, as for Escape, but j and k
+     * still aim past it.
+     */
+    public void leaveInsertForOneCommand(Editor editor)
+    {
+        insertReturn = mode;
+        insertReturnEolLine = -1;
+        desiredColumn = -1;
+        setMode(editor, VimMode.NORMAL);
+        final Position dot = editor.getDot();
+        if (dot == null)
+            return;
+        final Line line = dot.getLine();
+        if (line.length() == 0 || dot.getOffset() < line.length())
+            return;
+        editor.getBuffer().renumber();
+        insertReturnEolLine = dot.lineNumber();
+        desiredColumn = Buffer.getCol(line, line.length(),
+                                      editor.getBuffer().getTabWidth());
+        editor.setDot(line, CodePoints.previous(line, line.length()));
+        editor.moveCaretToDotCol();
+    }
+
+    public boolean isOneCommand()
+    {
+        return insertReturn != null;
+    }
+
+    /**
+     * CTRL-O's command is over: back to insert mode, and past the end of the
+     * line if the caret is on its last character and was at the end of this
+     * line before, or j and k aim past it -- vim's ins_at_eol and curswant.
+     * Split from what came before, as an arrow splits it.
+     */
+    public void resumeInsert(Editor editor)
+    {
+        final VimMode back = insertReturn;
+        insertReturn = null;
+        final Position dot = editor.getDot();
+        if (dot != null) {
+            final Line line = dot.getLine();
+            editor.getBuffer().renumber();
+            if (line.length() > 0
+                && CodePoints.next(line, dot.getOffset()) == line.length()
+                && (dot.lineNumber() == insertReturnEolLine
+                    || desiredColumn > Buffer.getCol(line, dot.getOffset(),
+                           editor.getBuffer().getTabWidth()))) {
+                editor.setDot(line, line.length());
+                editor.moveCaretToDotCol();
+            }
+        }
+        beginInsert(editor, back);
+        insertSplit = true;
+    }
+
+    /** CTRL-O's command began an insert of its own. */
+    public void forgetOneCommand()
+    {
+        insertReturn = null;
+    }
+
+    /** As vim shows it: -- (insert) VISUAL -- during CTRL-O. */
+    public String getModeIndicator()
+    {
+        if (insertReturn == null)
+            return mode.getIndicator();
+        final String back =
+            "(" + insertReturn.getIndicator().toLowerCase(Locale.ROOT) + ")";
+        return mode.getIndicator() == null ? back
+                                           : back + " " + mode.getIndicator();
     }
 
     /**
@@ -368,6 +496,7 @@ public final class VimState
     public void editorLeftBuffer(Editor editor)
     {
         endInsert(editor);
+        insertReturn = null;
         mode = VimMode.NORMAL;
         caretShapeChanged(editor);
     }
@@ -489,6 +618,11 @@ public final class VimState
         final char name = pendingRegister;
         pendingRegister = 0;
         return name;
+    }
+
+    public boolean hasPendingRegister()
+    {
+        return pendingRegister != 0;
     }
 
     /** Drops a register name named but never used, e.g. by Escape. */

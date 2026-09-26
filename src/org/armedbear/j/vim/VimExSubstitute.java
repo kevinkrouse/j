@@ -383,14 +383,8 @@ final class VimExSubstitute
      */
     private static void replaceLine(Editor editor, Line line, String text)
     {
-        editor.setMark(new Position(line, line.length()));
-        editor.setDot(line, 0);
-        // setDot moves the caret in the model; the display keeps its own
-        // column, and j pads an insert out to it. Without this, writing into
-        // an empty line indents it to wherever the last edit left the caret.
-        editor.moveCaretToDotCol();
-        editor.deleteRegion();
-        editor.setMark(null);
+        editor.deleteRegion(new Position(line, 0),
+                            new Position(line, line.length()));
         editor.insertString(text);
     }
 
