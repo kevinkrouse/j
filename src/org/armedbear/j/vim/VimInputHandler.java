@@ -303,7 +303,8 @@ public final class VimInputHandler implements InputHandler
             // Leaving insert steps back onto the last character typed.
             final Position dot = editor.getDot();
             if (dot != null && dot.getOffset() > 0)
-                editor.setDot(dot.getLine(), dot.getOffset() - 1);
+                editor.setDot(dot.getLine(),
+                              CodePoints.previous(dot.getLine(), dot.getOffset()));
             editor.moveCaretToDotCol();
         }
         state.clampCaret(editor);

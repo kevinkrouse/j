@@ -259,8 +259,14 @@ public final class CaretCommands
     public static boolean replaceChars(Editor editor, Line line, int offset,
                                        char replacement, int count)
     {
-        if (offset + count > line.length())
-            return false;
+        // Whole characters: a surrogate pair is one, as it is on screen.
+        final String was = line.getText();
+        int end = offset;
+        for (int i = 0; i < count; i++) {
+            if (end >= line.length())
+                return false;
+            end += Character.charCount(was.codePointAt(end));
+        }
         final StringBuilder text = new StringBuilder(count);
         for (int i = 0; i < count; i++)
             text.append(replacement);
@@ -268,7 +274,7 @@ public final class CaretCommands
         final CompoundEdit edit = editor.getBuffer().beginCompoundEdit();
         try {
             editor.addUndo(SimpleEdit.MOVE);
-            editor.setMark(new Position(line, offset + count));
+            editor.setMark(new Position(line, end));
             editor.setDot(line, offset);
             // setDot moves the model caret; the display keeps its own column
             // and j pads an insert out to it.

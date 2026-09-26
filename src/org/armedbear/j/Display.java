@@ -750,7 +750,7 @@ public final class Display extends JComponent implements Constants,
             return;
         // Relies on characterWidth(), called just before this in the one
         // place this is (drawCaret's BLOCK case), having already formatted
-        // this line to at least caretCol + 1 -- reformatting here would only
+        // this line to at least caretCol + 2 -- reformatting here would only
         // repeat work formatLine already did.
         if (caretCol < 0 || caretCol >= textArray.length)
             return;
@@ -759,7 +759,18 @@ public final class Display extends JComponent implements Constants,
             return;
         g2d.setColor(editor.getFormatter().getBackgroundColor());
         g2d.setFont(fontForFormat(formatArray[caretCol]));
-        g2d.drawChars(textArray, caretCol, 1, x, y + charAscent);
+        g2d.drawChars(textArray, caretCol, caretSpan(), x, y + charAscent);
+    }
+
+    /**
+     * How many columns the character under the caret takes in textArray: two
+     * for a surrogate pair such as an emoji, which is one character on screen.
+     */
+    private int caretSpan()
+    {
+        return caretCol + 1 < textArray.length
+            && Character.isHighSurrogate(textArray[caretCol])
+            && Character.isLowSurrogate(textArray[caretCol + 1]) ? 2 : 1;
     }
 
     private Font fontForFormat(int format)
@@ -796,10 +807,12 @@ public final class Display extends JComponent implements Constants,
             return spaceWidth;
         // One format covers both measurements: formatLine fills every
         // column up to its limit, so the text at caretCol is already there
-        // once it has been called with caretCol + 1.
-        formatLine(dotLine, shift, caretCol + 1);
+        // once it has been called with caretCol + 2, which also takes in the
+        // second half of a surrogate pair.
+        formatLine(dotLine, shift, caretCol + 2);
         final int start = measureLine(g2d, textArray, caretCol, formatArray);
-        final int end = measureLine(g2d, textArray, caretCol + 1, formatArray);
+        final int end = measureLine(g2d, textArray, caretCol + caretSpan(),
+                                    formatArray);
         final int width = end - start;
         return width > 0 ? width : spaceWidth;
     }

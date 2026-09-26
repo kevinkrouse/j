@@ -671,4 +671,44 @@ public class VimM13Test
         h.keys("3]`");
         h.assertCursorAt(1, 2);
     }
+
+    // ----------------------------------------------------- surrogate pairs
+
+    // "a😀b😀c": the emoji are two chars each, at 1-2 and 4-5. nvim's
+    // answers, turned from its byte columns into j's offsets.
+    private static final String EMOJI = "a😀b😀c";
+
+    private void emoji(String keys, String expected, int offset)
+    {
+        vim(EMOJI, 0, 0);
+        h.keys(keys);
+        assertEquals(keys, expected, h.value());
+        assertEquals(keys + " caret", offset, h.offset());
+    }
+
+    @Test
+    public void anEmojiIsOneCharacterToHAndL()
+    {
+        emoji("lx", "ab😀c", 1);
+        emoji("llx", "a😀😀c", 3);
+        emoji("lllhx", "a😀😀c", 3);
+    }
+
+    @Test
+    public void anEmojiIsOneCharacterToACountAndToDollar()
+    {
+        emoji("2x", "b😀c", 0);
+        emoji("$x", "a😀b😀", 4);
+        emoji("ex", "ab😀c", 1);
+    }
+
+    @Test
+    public void anEmojiIsOneCharacterToREditsAndVisualMode()
+    {
+        emoji("3rx", "xxx😀c", 2);
+        emoji("vlld", "😀c", 0);
+        emoji("vld", "b😀c", 0);
+        emoji("lahi<Esc>", "a😀hib😀c", 4);
+        emoji("ls-<Esc>", "a-b😀c", 1);
+    }
 }

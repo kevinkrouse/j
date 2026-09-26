@@ -29,7 +29,7 @@ display=:99
 home="$out/home"
 mkdir -p "$out" "$home/.config/j"
 # blinkCaret off, or a frame may land on the half of the blink with no caret.
-printf 'editMode=vim\nblinkCaret=false\n' > "$home/.config/j/prefs"
+printf 'editMode=vim\nblinkCaret=false\ndefaultEncoding=UTF-8\n' > "$home/.config/j/prefs"
 
 export DISPLAY=$display
 Xvfb $display -screen 0 900x500x24 >/dev/null 2>&1 &

@@ -10,6 +10,8 @@
 # still swallowing keys it does not understand, so these are left out even
 # though they currently pass: Y, s_visual, *_no_word and
 # jumpToMark_next_sameline all test features that do not exist yet.
+# r_visual_block with surrogate characters is held out the same way: <C-v>
+# is not built, so it passes as a plain ru.
 # (ex_sort_oneline and ex_sort_pattern_alpha_reverse were held out for this
 # reason until M12b built :sort; they are listed below now that they pass
 # for the right one.)
@@ -225,3 +227,10 @@ jumpToMark_next_linewise_over
 jumpToMark_next_nomark
 jumpToMark_prev_linewise_over
 jumpToMark_prev_nomark
+
+# M13: an emoji is one character
+a with surrogate characters
+d with surrogate character
+r with surrogate characters
+r_visual with surrogate characters
+s_normal surrogate character

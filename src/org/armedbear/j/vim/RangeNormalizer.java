@@ -54,7 +54,7 @@ final class RangeNormalizer
                 // Take the character the motion landed on as well.
                 to = new Position(to);
                 if (to.getOffset() < to.getLineLength())
-                    to.setOffset(to.getOffset() + 1);
+                    to.setOffset(CodePoints.next(to.getLine(), to.getOffset()));
                 else if (to.getLine().next() != null)
                     to = new Position(to.getLine().next(), 0);
                 return new VimRange(from, to, false);

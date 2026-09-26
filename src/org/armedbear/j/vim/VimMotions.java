@@ -104,9 +104,10 @@ public final class VimMotions
         final int last = forward && ctx.forOperator
             ? from.getLineLength()
             : lastOffset(ctx, from.getLine());
-        int offset = from.getOffset() + (forward ? ctx.count : -ctx.count);
-        if (offset < 0)
-            offset = 0;
+        int offset = from.getOffset();
+        for (int i = 0; i < ctx.count; i++)
+            offset = forward ? CodePoints.next(from.getLine(), offset)
+                             : CodePoints.previous(from.getLine(), offset);
         if (offset > last)
             offset = last;
         return offset == from.getOffset() ? null : at(from.getLine(), offset);
@@ -512,8 +513,9 @@ public final class VimMotions
     private static int lastOffset(MotionContext ctx, Line line)
     {
         final int length = line.length();
-        return ctx.state.getMode().isCommandMode() ? Math.max(0, length - 1)
-                                                   : length;
+        return ctx.state.getMode().isCommandMode()
+            ? CodePoints.snap(line, Math.max(0, length - 1))
+            : length;
     }
 
     private static void clampToLine(MotionContext ctx, Position pos)

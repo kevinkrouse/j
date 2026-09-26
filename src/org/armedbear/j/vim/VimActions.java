@@ -425,7 +425,8 @@ public final class VimActions
             case "after":
                 // Past the last character is where insert mode may sit.
                 if (dot.getOffset() < dot.getLineLength())
-                    editor.setDot(dot.getLine(), dot.getOffset() + 1);
+                    editor.setDot(dot.getLine(),
+                                  CodePoints.next(dot.getLine(), dot.getOffset()));
                 break;
             case "firstNonBlank":
                 editor.setDot(dot.getLine(), VimMotions.firstNonBlank(dot.getLine()));
@@ -619,8 +620,9 @@ public final class VimActions
                                                line.length())
                                     : line.length();
                 if (to > from)
-                    CaretCommands.replaceChars(editor, line, from,
-                                               replacement, to - from);
+                    CaretCommands.replaceChars(
+                        editor, line, from, replacement,
+                        Character.codePointCount(line.getText(), from, to));
                 if (last)
                     break;
             }

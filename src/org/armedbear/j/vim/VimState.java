@@ -500,11 +500,13 @@ public final class VimState
         final Position dot = editor.getDot();
         if (dot == null)
             return;
-        final int last = Math.max(0, dot.getLineLength() - 1);
-        if (dot.getOffset() > last) {
+        final int last = CodePoints.snap(dot.getLine(),
+                                         Math.max(0, dot.getLineLength() - 1));
+        final int at = CodePoints.snap(dot.getLine(), dot.getOffset());
+        if (dot.getOffset() > last || at != dot.getOffset()) {
             // No undo record: this corrects where the caret may legally rest,
             // it is not a move the user asked for.
-            editor.setDot(dot.getLine(), last);
+            editor.setDot(dot.getLine(), Math.min(at, last));
             editor.moveCaretToDotCol();
         }
     }
