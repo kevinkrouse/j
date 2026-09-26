@@ -156,22 +156,6 @@ public final class VimActions
         state.clampCaret(editor);
     }
 
-    private static String stripLeading(String s)
-    {
-        if (s == null)
-            return "";
-        int i = 0;
-        while (i < s.length() && Character.isWhitespace(s.charAt(i)))
-            ++i;
-        return s.substring(i);
-    }
-
-    private static String text(Line line)
-    {
-        final String s = line.getText();
-        return s == null ? "" : s;
-    }
-
     /**
      * Insert-mode CTRL-T and CTRL-D: one shiftwidth more or less indent on
      * this line, rounded to a multiple of it, with the caret staying with the
@@ -181,6 +165,8 @@ public final class VimActions
     {
         final Editor editor = ctx.editor;
         final Position dot = editor.getDot();
+        if (!editor.checkReadOnly())
+            return;
         if (dot == null)
             return;
         final Line line = dot.getLine();
@@ -456,6 +442,8 @@ public final class VimActions
                                              char c)
     {
         final Position dot = editor.getDot();
+        if (!editor.checkReadOnly())
+            return;
         if (dot == null)
             return;
         final Line line = dot.getLine();
@@ -498,6 +486,8 @@ public final class VimActions
     public static void replaceBackspace(Editor editor, VimState state)
     {
         final Position dot = editor.getDot();
+        if (!editor.checkReadOnly())
+            return;
         if (dot == null || dot.getOffset() == 0)
             return;
         final Line line = dot.getLine();
@@ -570,7 +560,7 @@ public final class VimActions
         // session's own, not the user's, until something is typed after it.
         final Position now = editor.getDot();
         if (now != null)
-            ctx.state.noteAutoIndent(now.getLine(), now.getLine().getText());
+            ctx.state.noteAutoIndent(now.getLine());
     }
 
     // ---------------------------------------------------------- visual mode
@@ -608,6 +598,10 @@ public final class VimActions
         final VimRange range = VimVisual.take(editor, ctx.state);
         if (range == null || replacement == 0)
             return;
+        // Undo gives the caret back at the start of the selection, as nvim
+        // does, so that is where it is when the change is recorded.
+        editor.setDot(range.start.getLine(), range.start.getOffset());
+        editor.moveCaretToDotCol();
         final CompoundEdit edit = editor.getBuffer().beginCompoundEdit();
         try {
             VimOperators.recordCaret(editor);
@@ -626,8 +620,9 @@ public final class VimActions
                 if (last)
                     break;
             }
-            editor.setDot(range.start.getLine(), range.start.getOffset());
-            editor.moveCaretToDotCol();
+            // Recorded, or undo takes back the last line's edit from here.
+            moveAfterEdit(editor, range.start.getLine(),
+                          range.start.getOffset());
         }
         finally {
             editor.getBuffer().endCompoundEdit(edit);
@@ -657,6 +652,10 @@ public final class VimActions
             text.append(lines ? "\n" : "").append(once);
         final String selected = VimOperators.textOf(editor, range);
 
+        // Undo gives the caret back at the start of the selection, as nvim
+        // does, so that is where it is when the change is recorded.
+        editor.setDot(range.start.getLine(), range.start.getOffset());
+        editor.moveCaretToDotCol();
         final CompoundEdit edit = editor.getBuffer().beginCompoundEdit();
         try {
             VimOperators.recordCaret(editor);

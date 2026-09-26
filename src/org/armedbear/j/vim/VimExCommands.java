@@ -58,6 +58,14 @@ public final class VimExCommands
             && !matches(name, "norm", "normal")
             && !matches(name, "w", "write") && !name.equals("wq"))
             throw new VimEx.BadCommand("E477: No ! allowed");
+        // j's read-only is vim's nomodifiable: nothing may change the text.
+        // :g and :normal get there through the commands they run.
+        if ((matches(name, "d", "delete") || matches(name, "sor", "sort")
+             || matches(name, "s", "substitute") || matches(name, "j", "join")
+             || matches(name, "m", "move") || matches(name, "co", "copy")
+             || name.equals("t"))
+            && !editor.checkReadOnly())
+            throw new VimEx.BadCommand("E21: Cannot make changes");
         if (name.isEmpty()) {
             // A bare range means "go to that line", which is what :42 is.
             if (command.range.given)

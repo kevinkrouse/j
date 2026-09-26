@@ -357,6 +357,25 @@ public class VimM13Test
         }
     }
 
+    @Test
+    public void aCountOnCtrlCaretDoesNotSendItBackAgain()
+    {
+        // Vim's count picks a buffer number, which j's buffers do not have.
+        // Ignored, it is still the alternate file; repeated, it would toggle
+        // straight back.
+        final EditorHarness recent = EditorHarness.create("recent");
+        try {
+            vim("here", 0, 0);
+            recent.buffer().setLastActivated(200);
+            h.buffer().setLastActivated(300);
+            h.keys("2<C-^>");
+            assertTrue(h.editor().getBuffer() == recent.buffer());
+        }
+        finally {
+            recent.close();
+        }
+    }
+
     // ---------------------------------------------------------- autoindent
 
     @Test
@@ -426,6 +445,33 @@ public class VimM13Test
         vim("a\n  abc", 1, 3);
         h.keys("S<Esc>");
         assertEquals("a\n", h.value());
+    }
+
+    @Test
+    public void typingKeepsTheIndentEvenWhenItIsTakenBack()
+    {
+        // nvim: ox<BS><Esc> keeps "  "; o<Tab><Esc> keeps its blanks too.
+        vim("  abc", 0, 3);
+        h.keys("ox<BS><Esc>");
+        assertEquals("  abc\n  ", h.value());
+        vim("  abc", 0, 3);
+        h.keys("o<Tab><Esc>");
+        // j's own Tab, which may write spaces where nvim writes a tab.
+        assertTrue(h.value().startsWith("  abc\n  ")
+                   && h.value().length() > "  abc\n  ".length());
+    }
+
+    @Test
+    public void ctrlTAndCtrlDAreNotTyping()
+    {
+        // nvim: o<C-t><Esc> and o<C-d><Esc> both leave an empty line.
+        vim("  abc", 0, 3);
+        h.buffer().setIndentSize(4);
+        h.keys("o<C-t><Esc>");
+        assertEquals("  abc\n", h.value());
+        vim("  abc", 0, 3);
+        h.keys("o<C-d><Esc>");
+        assertEquals("  abc\n", h.value());
     }
 
     @Test
@@ -722,5 +768,32 @@ public class VimM13Test
         h.keys("lRxy<BS><BS><Esc>");
         assertEquals("a😀b", h.value());
         h.assertCursorAt(0, 0);
+    }
+
+    @Test
+    public void undoAfterVisualRAndJGivesTheCaretBackWhereNvimDoes()
+    {
+        vim("abcdef\nghij", 0, 1);
+        h.keys("vjrxu");
+        assertEquals("abcdef\nghij", h.value());
+        h.assertCursorAt(0, 1);
+        vim(" 1\n 2\n 3", 0, 0);
+        h.keys("lVjJu");
+        assertEquals(" 1\n 2\n 3", h.value());
+        h.assertCursorAt(0, 0);
+    }
+
+    @Test
+    public void undoAfterCapitalOAndCcPutsTheTextBack()
+    {
+        vim("a\n  abc", 1, 3);
+        h.keys("Ox<Esc>u");
+        assertEquals("a\n  abc", h.value());
+        vim("a\n  abc\nb", 1, 3);
+        h.keys("ccx<Esc>u");
+        assertEquals("a\n  abc\nb", h.value());
+        vim("a\n  abc\nb", 1, 3);
+        h.keys("O<Esc>u");
+        assertEquals("a\n  abc\nb", h.value());
     }
 }

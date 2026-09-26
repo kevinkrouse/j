@@ -210,11 +210,7 @@ public final class VimOperators
     static String leadingBlanks(Line line)
     {
         final String text = line.getText() == null ? "" : line.getText();
-        int n = 0;
-        while (n < text.length()
-               && (text.charAt(n) == ' ' || text.charAt(n) == '\t'))
-            ++n;
-        return text.substring(0, n);
+        return text.substring(0, Lines.leadingBlanks(line));
     }
 
     /**
@@ -272,10 +268,9 @@ public final class VimOperators
         if (dot != null) {
             editor.setDot(dot.getLine(), 0);
             editor.moveCaretToDotCol();
-            if (!indent.isEmpty()) {
+            if (!indent.isEmpty())
                 editor.insertString(indent);
-                ctx.state.noteAutoIndent(dot.getLine(), indent);
-            }
+            ctx.state.noteAutoIndent(dot.getLine());
         }
     }
 

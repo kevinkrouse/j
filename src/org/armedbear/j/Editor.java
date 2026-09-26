@@ -2421,27 +2421,25 @@ public final class Editor extends JPanel implements Constants,
         if (toBeSaved.isLocked()
             || toBeSaved.getType() != Buffer.TYPE_NORMAL)
             return false;
-        {
-            final String dialogTitle = "Save As";
-            // Do we have the target file in a buffer?
-            Buffer buf = bufferList.findBuffer(destination);
-            if (buf != null) {
-                // We do. Can we just get rid of it?
-                if (!buf.isModified()) {
-                    buf.deleteAutosaveFile();
-                    bufferList.remove(buf);
-                } else {
-                    // Buffer is modified.  Make user deal with it.
-                    setDefaultCursor();
-                    String message = "Target file is in an active buffer.  Please take care of that first.";
-                    MessageDialog.showMessageDialog(this, message, dialogTitle);
-                    return false;
-                }
+        final String dialogTitle = "Save As";
+        // Do we have the target file in a buffer?
+        Buffer buf = bufferList.findBuffer(destination);
+        if (buf != null) {
+            // We do. Can we just get rid of it?
+            if (!buf.isModified()) {
+                buf.deleteAutosaveFile();
+                bufferList.remove(buf);
+            } else {
+                // Buffer is modified.  Make user deal with it.
+                setDefaultCursor();
+                String message = "Target file is in an active buffer.  Please take care of that first.";
+                MessageDialog.showMessageDialog(this, message, dialogTitle);
+                return false;
             }
-
-            toBeSaved.saveAs(destination);
-            return !toBeSaved.isModified();
         }
+
+        toBeSaved.saveAs(destination);
+        return !toBeSaved.isModified();
     }
 
     /**
@@ -2482,25 +2480,23 @@ public final class Editor extends JPanel implements Constants,
     {
         if (buffer.isLocked() || buffer.getType() != Buffer.TYPE_NORMAL)
             return false;
-        {
-            // Do we have the target file in a buffer?
-            Buffer buf = bufferList.findBuffer(destination);
-            if (buf != null) {
-                // We do.  Do we care?
-                if (buf.isModified()) {
-                    // Buffer is modified.  Make user deal with it.
-                    setDefaultCursor();
-                    String message = "Target file is in an active buffer.  Please take care of that first.";
-                    MessageDialog.showMessageDialog(this, message, "Save Copy");
-                    return false;
-                }
+        // Do we have the target file in a buffer?
+        Buffer buf = bufferList.findBuffer(destination);
+        if (buf != null) {
+            // We do.  Do we care?
+            if (buf.isModified()) {
+                // Buffer is modified.  Make user deal with it.
+                setDefaultCursor();
+                String message = "Target file is in an active buffer.  Please take care of that first.";
+                MessageDialog.showMessageDialog(this, message, "Save Copy");
+                return false;
             }
-
-            buffer.saveCopy(destination);
-            if (buf != null && buf.isLoaded())
-                reload(buf);
-            return true;
         }
+
+        buffer.saveCopy(destination);
+        if (buf != null && buf.isLoaded())
+            reload(buf);
+        return true;
     }
 
     public void saveAll()

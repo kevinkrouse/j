@@ -177,31 +177,38 @@ public final class VimState
     }
 
     /**
-     * An indent this insert session put on a line without the user typing it
-     * -- by o, O, cc or S -- and the line it is on. Vim takes such an indent
-     * away again if Escape comes with nothing typed after it, so that o then
-     * Escape leaves an empty line rather than one of blanks.
+     * The line o, O, cc or S opened this insert session on. Vim takes the
+     * indent it put there away again if Escape comes with nothing typed on
+     * it -- CTRL-T and CTRL-D do not count -- so that o then Escape leaves an
+     * empty line rather than one of blanks.
      */
     private Line autoIndentLine;
-    private String autoIndentText;
 
-    /** Records an indent the session put there itself. */
-    public void noteAutoIndent(Line line, String indent)
+    /** Records the line the session opened with an indent of its own. */
+    public void noteAutoIndent(Line line)
     {
-        if (line != null && indent != null && !indent.isEmpty()) {
-            autoIndentLine = line;
-            autoIndentText = indent;
-        }
+        autoIndentLine = line;
+    }
+
+    /** Something was typed: the indent is the user's now. */
+    public void forgetAutoIndent()
+    {
+        autoIndentLine = null;
     }
 
     /**
-     * True when this line holds nothing but the indent the session put on it:
-     * nothing was typed after it, so Escape should take it away.
+     * True when Escape should empty this line: the session opened it, nothing
+     * was typed on it, and it holds only blanks.
      */
     public boolean isUntouchedAutoIndent(Line line)
     {
-        return line != null && line == autoIndentLine
-            && autoIndentText.equals(line.getText());
+        if (line == null || line != autoIndentLine)
+            return false;
+        final String text = line.getText() == null ? "" : line.getText();
+        for (int i = 0; i < text.length(); i++)
+            if (text.charAt(i) != ' ' && text.charAt(i) != '\t')
+                return false;
+        return true;
     }
 
     /**
@@ -213,7 +220,6 @@ public final class VimState
         replaced = null;
         replacedLine = null;
         autoIndentLine = null;
-        autoIndentText = null;
         if (insertEdit == null)
             return;
         final CompoundEdit edit = insertEdit;

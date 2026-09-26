@@ -235,7 +235,8 @@ public final class Lines
         editor.updateDotLine();
     }
 
-    private static int leadingBlanks(Line line)
+    /** How many spaces and tabs a line starts with. */
+    public static int leadingBlanks(Line line)
     {
         final String t = text(line);
         int i = 0;

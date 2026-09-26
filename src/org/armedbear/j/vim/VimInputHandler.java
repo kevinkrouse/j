@@ -173,6 +173,9 @@ public final class VimInputHandler implements InputHandler
                 && runInsertBinding(editor,
                        KeyNotation.name(keyCode, event.getKeyChar(), modifiers)))
                 return Result.CONSUMED;
+            // Tab is typing too, and arrives with no character.
+            if (keyCode == KeyEvent.VK_TAB && !isChorded(modifiers))
+                state.forgetAutoIndent();
             if (state.getMode() == VimMode.REPLACE) {
                 // Shift-Backspace is still Backspace to vim. Held with Ctrl,
                 // Alt or Meta it is one of j's own bindings, so it goes
@@ -248,6 +251,10 @@ public final class VimInputHandler implements InputHandler
             if (recordingEdit && !replaying)
                 recording.append(KeyNotation.name(0, event.getKeyChar(), 0));
             final char typed = event.getKeyChar();
+            // Typing makes the indent the user's.
+            if (typed >= ' ' && typed != KeyEvent.CHAR_UNDEFINED
+                && typed != '\u007f')
+                state.forgetAutoIndent();
             if (state.getMode() == VimMode.REPLACE && typed >= ' '
                 && typed != KeyEvent.CHAR_UNDEFINED && typed != '\u007f') {
                 VimActions.replaceTypedCharacter(editor, state, typed);
@@ -489,6 +496,7 @@ public final class VimInputHandler implements InputHandler
                                                      stroke.keyChar);
                 else
                     editor.insertNormalChar(stroke.keyChar);
+                state.forgetAutoIndent();
             }
             return;
         }
@@ -1065,6 +1073,8 @@ public final class VimInputHandler implements InputHandler
             Log.error("vim: no operator named " + operator.getCommand());
             return;
         }
+        if (isEdit(operator) && !editor.checkReadOnly())
+            return;
         if (isEdit(operator) && !replaying)
             edited = true;
         op.apply(new MotionContext(this, editor, state, count, countGiven,
@@ -1098,11 +1108,14 @@ public final class VimInputHandler implements InputHandler
                 // parser avoids.
                 // A row may pass its command an argument -- param=vim, for
                 // pageDown -- and a count runs it that many times, which is
-                // what 2 CTRL-F means.
+                // what 2 CTRL-F means -- unless the row says once, as
+                // CTRL-^ does: twice there would be back where it started.
                 final String param = command.getString("param", null);
+                final int times =
+                    command.getBoolean("once") ? 1 : Math.max(1, count);
                 boolean ran = true;
                 try {
-                    for (int i = 0; i < Math.max(1, count) && ran; i++)
+                    for (int i = 0; i < times && ran; i++)
                         ran = editor.execute(command.getCommand(), param);
                 }
                 catch (NoSuchMethodException e) {
@@ -1169,6 +1182,9 @@ public final class VimInputHandler implements InputHandler
             Log.error("vim: no action named " + command.getCommand());
             return;
         }
+        // A read-only buffer is not changed at all, as vim's nomodifiable.
+        if (isEdit(command) && !editor.checkReadOnly())
+            return;
         if (isEdit(command) && !replaying)
             edited = true;
         action.run(ctx);
