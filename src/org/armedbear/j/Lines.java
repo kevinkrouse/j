@@ -130,6 +130,120 @@ public final class Lines
         }
     }
 
+    // --------------------------------------------------------------- shift
+
+    /** Shifts the current line or the selected lines right by one indent. */
+    public static void shiftLinesRight()
+    {
+        shiftSelected(1);
+    }
+
+    /** Shifts the current line or the selected lines left by one indent. */
+    public static void shiftLinesLeft()
+    {
+        shiftSelected(-1);
+    }
+
+    private static void shiftSelected(int sign)
+    {
+        final Editor editor = Editor.currentEditor();
+        if (!editor.checkReadOnly())
+            return;
+        final int[] span = selectedSpan(editor);
+        if (span == null)
+            return;
+        final Line first = lineAt(editor, span[0]);
+        final Line last = lineAt(editor, span[1]);
+        shift(editor, first, last,
+              sign * editor.getBuffer().getIndentSize());
+    }
+
+    /**
+     * Moves each line's indent by {@code delta} columns, never below none.
+     *
+     * Not a re-indent: the lines move by the same amount whatever their
+     * syntax says, which is what vim's {@code >>} and these commands mean and
+     * what indentLineOrRegion does not. An empty line is left empty, as vim
+     * leaves it. One undo step.
+     */
+    public static void shift(Editor editor, Line first, Line last, int delta)
+    {
+        final Buffer buffer = editor.getBuffer();
+        final CompoundEdit edit = buffer.beginCompoundEdit();
+        try {
+            editor.addUndo(SimpleEdit.MOVE);
+            for (Line line = first; line != null; line = line.next()) {
+                if (line.length() > 0)
+                    setIndent(editor, line,
+                              Math.max(0, buffer.getIndentation(line) + delta));
+                if (line == last)
+                    break;
+            }
+        }
+        finally {
+            buffer.endCompoundEdit(edit);
+        }
+    }
+
+    /**
+     * Moves one line's indent to the next multiple of {@code width} in either
+     * direction, as vim's insert-mode CTRL-T and CTRL-D do: an indent of 3
+     * becomes 4 going right and 0 going left, where {@code >>} would make 7.
+     * Unlike {@link #shift}, an empty line is indented, since someone is
+     * about to type on it.
+     *
+     * @return how many characters the indent grew by, negative if it shrank,
+     *         which is how far the caret has to move to stay with the text
+     */
+    public static int shiftToMultiple(Editor editor, Line line, boolean right,
+                                      int width)
+    {
+        if (width <= 0)
+            return 0;
+        final Buffer buffer = editor.getBuffer();
+        final int was = buffer.getIndentation(line);
+        final int now = right ? (was / width + 1) * width
+            : was % width == 0 ? Math.max(0, was - width)
+                               : was / width * width;
+        if (now == was)
+            return 0;
+        final int before = leadingBlanks(line);
+        final CompoundEdit edit = buffer.beginCompoundEdit();
+        try {
+            setIndent(editor, line, now);
+        }
+        finally {
+            buffer.endCompoundEdit(edit);
+        }
+        return leadingBlanks(line) - before;
+    }
+
+    private static void setIndent(Editor editor, Line line, int columns)
+    {
+        editor.setDot(line, 0);
+        editor.moveCaretToDotCol();
+        editor.addUndo(SimpleEdit.LINE_EDIT);
+        final Buffer buffer = editor.getBuffer();
+        if (text(line).trim().isEmpty())
+            // Buffer.setIndentation leaves a blank line blank, which is right
+            // for shift and for indentRegion. Insert-mode CTRL-T wants the
+            // indent there anyway, and only it reaches a blank line here.
+            line.setText(buffer.getCorrectIndentationString(columns)
+                             .toString());
+        else
+            buffer.setIndentation(line, columns);
+        editor.updateDotLine();
+    }
+
+    private static int leadingBlanks(Line line)
+    {
+        final String t = text(line);
+        int i = 0;
+        while (i < t.length() && (t.charAt(i) == ' ' || t.charAt(i) == '\t'))
+            ++i;
+        return i;
+    }
+
     // --------------------------------------------------------- move, copy
 
     /** Moves the current line or the selected lines up by one. */

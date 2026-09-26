@@ -51,7 +51,9 @@ registers, marks and the dot command:
 <tr><td valign="top"><b>changes</b></td>
     <td><code>x X D C s S r J gJ ~ p P</code></td></tr>
 <tr><td valign="top"><b>insert</b></td>
-    <td><code>i I a A o O</code>, leaving with <code>Escape</code></td></tr>
+    <td><code>i I a A o O</code>, leaving with <code>Escape</code>; while
+        typing, <code>Ctrl T</code> and <code>Ctrl D</code> add or take away
+        one indent, rounded to a multiple of it</td></tr>
 <tr><td valign="top"><b>replace</b></td>
     <td><code>R</code>, which types over what is already there until
         <code>Escape</code>. <code>Backspace</code> walks the session
@@ -69,12 +71,17 @@ registers, marks and the dot command:
 <tr><td valign="top"><b>scroll</b></td>
     <td><code>zz zt zb</code>, which are j's own
         <a href="commands.html#toCenter">toCenter</a>, <code>toTop</code> and
-        <code>toBottom</code></td></tr>
+        <code>toBottom</code>; <code>Ctrl F</code> and <code>Ctrl B</code>,
+        which are its <a href="commands.html#pageDown">pageDown</a> and
+        <code>pageUp</code> with the <code>vim</code> argument</td></tr>
+<tr><td valign="top"><b>buffers</b></td>
+    <td><code>Ctrl ^</code> (or <code>Ctrl 6</code>), the alternate file:
+        the buffer used most recently before this one</td></tr>
 <tr><td valign="top"><b>ex</b></td>
     <td><code>:</code> with ranges (<code>%</code>, <code>1,5</code>,
         <code>.</code>, <code>$</code>, <code>'a</code>, <code>/pat/</code>
         and offsets), then <code>:d :y :s :j :m :t :sort :g :v :normal
-        :delmarks</code>, <code>@:</code> to run the last one again, and any
+        :delmarks :w :wq</code>, <code>@:</code> to run the last one again, and any
         command <a href="commands.html">j already knows</a>. <code>:</code>
         in visual mode fills in <code>'&lt;,'&gt;</code>.</td></tr>
 <tr><td valign="top"><b>visual</b></td>
@@ -236,7 +243,17 @@ These are known and deliberate:
 <li>A backwards range such as <code>:5,1d</code> is put the right way round
     and run, where vim asks first (E493). <code>:sort l</code> is accepted,
     and sorts by code point, which is what the C locale gives.</li>
+<li><code>:w</code> is j's save: an unmodified buffer is not rewritten
+    ("Not modified"), and a buffer with no name opens the Save As dialog where
+    vim says E32. <code>:wq</code> closes the window, and when it is the last
+    one leaves j, which asks first if other buffers have unsaved changes where
+    vim refuses with E37. <code>:w FILE</code> and <code>:w! FILE</code> work;
+    writing part of a buffer (<code>:1,5w</code>) and writing to a command
+    (<code>:w !cmd</code>) do not.</li>
+<li><code>Ctrl ^</code> takes no count: j's buffers have no numbers to give
+    it.</li>
 <li>A count before an insert does not repeat it:
+
  <code>3iab&lt;Esc&gt;</code>
     and <code>3Rab&lt;Esc&gt;</code> type once, not three times.</li>
 </ul>

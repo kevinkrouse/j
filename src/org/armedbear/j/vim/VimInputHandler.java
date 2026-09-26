@@ -166,6 +166,13 @@ public final class VimInputHandler implements InputHandler
             if (recordingEdit && !replaying && isNamedKey(keyCode))
                 recording.append(KeyNotation.name(keyCode, event.getKeyChar(),
                                                   modifiers));
+            // A chorded key bound in insert mode -- CTRL-T, CTRL-D -- is the
+            // vim command, not j's: j binds Ctrl-D to dir, which would open
+            // a directory buffer in the middle of typing.
+            if (isChorded(modifiers)
+                && runInsertBinding(editor,
+                       KeyNotation.name(keyCode, event.getKeyChar(), modifiers)))
+                return Result.CONSUMED;
             if (state.getMode() == VimMode.REPLACE) {
                 // Shift-Backspace is still Backspace to vim. Held with Ctrl,
                 // Alt or Meta it is one of j's own bindings, so it goes
@@ -202,6 +209,26 @@ public final class VimInputHandler implements InputHandler
         // Nothing in the modal map wants it. If no command is part-typed, let
         // j's own key maps have it, so existing bindings keep working.
         return builder.isEmpty() ? Result.PASS_THROUGH : Result.CONSUMED;
+    }
+
+    /**
+     * Runs a key bound in insert mode, when one is: a single key that is a
+     * whole binding on its own. Longer insert-mode mappings are a different
+     * question and are not answered here.
+     *
+     * @return false when the key is not bound, so it goes to j as before
+     */
+    private boolean runInsertBinding(Editor editor, String key)
+    {
+        final KeyStrokeTrie.Match<VimCommand> match = keyMap
+            .getTrie(MappingMode.INSERT).match(java.util.Collections.singletonList(key));
+        if (match.status != KeyStrokeTrie.Status.FULL)
+            return false;
+        // Part of the insert session, so '.' replays it with the rest.
+        if (recordingEdit && !replaying)
+            recording.append(key);
+        run(editor, match.value, 1, false, null, 1);
+        return true;
     }
 
     /** True when a modifier other than Shift is held. */
@@ -430,6 +457,8 @@ public final class VimInputHandler implements InputHandler
                 escape(editor);
                 return;
             }
+            if (isChorded(stroke.modifiers) && runInsertBinding(editor, key))
+                return;
             if (stroke.keyCode == KeyEvent.VK_BACK_SPACE) {
                 if (state.getMode() == VimMode.REPLACE)
                     VimActions.replaceBackspace(editor, state);
@@ -1052,9 +1081,14 @@ public final class VimInputHandler implements InputHandler
                 // executeCommand, which reads a leading ( as a Lisp form and
                 // an = as a property assignment -- the same trap the ex
                 // parser avoids.
-                boolean ran;
+                // A row may pass its command an argument -- param=vim, for
+                // pageDown -- and a count runs it that many times, which is
+                // what 2 CTRL-F means.
+                final String param = command.getString("param", null);
+                boolean ran = true;
                 try {
-                    ran = editor.execute(command.getCommand(), null);
+                    for (int i = 0; i < Math.max(1, count) && ran; i++)
+                        ran = editor.execute(command.getCommand(), param);
                 }
                 catch (NoSuchMethodException e) {
                     ran = false;

@@ -19,6 +19,7 @@ import javax.swing.undo.CompoundEdit;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Editor;
 import org.armedbear.j.Line;
+import org.armedbear.j.Lines;
 import org.armedbear.j.Position;
 import org.armedbear.j.Region;
 import org.armedbear.j.RegionCommands;
@@ -114,27 +115,13 @@ public final class VimOperators
         final int width = buffer.getIndentSize();
         final int sign = ctx.arg("right") ? 1 : -1;
 
-        final CompoundEdit edit = buffer.beginCompoundEdit();
-        try {
-            recordCaret(editor);
-            Line line = range.start.getLine();
-            final Line stop = range.end.getOffset() == 0
-                ? range.end.getLine()
-                : range.end.getLine().next();
-            while (line != null && line != stop) {
-                if (line.length() > 0 || sign > 0) {
-                    editor.setDot(line, 0);
-                    editor.addUndo(SimpleEdit.LINE_EDIT);
-                    final int was = buffer.getIndentation(line);
-                    buffer.setIndentation(line, Math.max(0, was + sign * width));
-                    editor.updateDotLine();
-                }
-                line = line.next();
-            }
-        }
-        finally {
-            buffer.endCompoundEdit(edit);
-        }
+        // j's own shiftLinesRight and shiftLinesLeft do this.
+        final Line from = range.start.getLine();
+        final Line to = range.end.getOffset() == 0
+            && range.end.getLine() != from
+            ? range.end.getLine().previous()
+            : range.end.getLine();
+        Lines.shift(editor, from, to, sign * width);
         // Vim leaves the caret on the first non-blank of the first line.
         final Line first = range.start.getLine();
         editor.setDot(first, VimMotions.firstNonBlank(first));

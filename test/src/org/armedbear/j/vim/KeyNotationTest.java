@@ -160,6 +160,23 @@ public class KeyNotationTest
     }
 
     @Test
+    public void ctrlShiftSixIsCtrlCaret()
+    {
+        // What AWT really sends, from a key probe under Xvfb: for Ctrl-Shift-6
+        // keyCode VK_6, the character '^' -- not a control character, unlike
+        // Ctrl with a letter -- and Shift still held. It was named <C-S-^>
+        // and matched nothing; found on screen.
+        assertEquals("<C-^>", KeyNotation.name(KeyEvent.VK_6, '^',
+            Constants.CTRL_MASK | Constants.SHIFT_MASK));
+        // Ctrl-6 arrives as '6', and is its own name; the key map binds both.
+        assertEquals("<C-6>", KeyNotation.name(KeyEvent.VK_6, '6',
+                                               Constants.CTRL_MASK));
+        assertEquals("a letter keeps its Shift", "<C-S-r>",
+                     KeyNotation.name(KeyEvent.VK_R, '\u0012',
+                         Constants.CTRL_MASK | Constants.SHIFT_MASK));
+    }
+
+    @Test
     public void theControlCharactersThatAreNotLettersAreNamedToo()
     {
         assertEquals("<C-[>", KeyNotation.name(0, '\u001b', Constants.CTRL_MASK));

@@ -192,6 +192,12 @@ public final class EditorHarness
         return this;
     }
 
+    /** The mode vim edit mode would show in the status bar, or null. */
+    public String vimModeIndicator()
+    {
+        return vimHandler().getModeIndicator();
+    }
+
     /** The last status message, or "" if there has been none. */
     public String status()
     {

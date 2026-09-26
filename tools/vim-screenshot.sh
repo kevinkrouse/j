@@ -6,7 +6,8 @@
 #
 #   tools/vim-screenshot.sh <out-dir> <file> [xdotool key spec]...
 #
-# Each key spec is passed to "xdotool key" and a frame is captured after it,
+# Each key spec is passed to "xdotool key" -- or, prefixed "type:", to
+# "xdotool type" -- and a frame is captured after it,
 # named for its position in the sequence. Run it through nix-shell for the
 # three tools it needs:
 #
@@ -36,7 +37,10 @@ xvfb=$!
 trap 'kill $xvfb 2>/dev/null || true' EXIT
 sleep 2
 
-java -cp build/classes Main --home "$home" --no-session --no-restore "$file" \
+# A comma-separated list opens several files, for anything that needs more
+# than one buffer -- CTRL-^, for one.
+IFS=, read -r -a files <<< "$file"
+java -cp build/classes Main --home "$home" --no-session --no-restore "${files[@]}" \
      > "$out/j.log" 2>&1 &
 j=$!
 trap 'kill $j 2>/dev/null || true; kill $xvfb 2>/dev/null || true' EXIT
@@ -70,7 +74,15 @@ fi
 shot 00-start
 n=0
 for keys in "$@"; do
-    xdotool key --clearmodifiers $keys
+    # "type:TEXT" types TEXT as characters, for an ex line or a search,
+    # rather than spelling every key by its X name.
+    case "$keys" in
+        type:*)  xdotool type --clearmodifiers --delay 30 "${keys#type:}" ;;
+        # "sleep:N" waits N seconds without a key, for anything j does when
+        # idle -- the sidebar's modified count is refreshed that way.
+        sleep:*) sleep "${keys#sleep:}" ;;
+        *)       xdotool key --clearmodifiers $keys ;;
+    esac
     sleep 0.5
     n=$((n + 1))
     shot "$(printf '%02d' $n)-$(printf '%s' "$keys" | tr -c 'A-Za-z0-9' '_')"

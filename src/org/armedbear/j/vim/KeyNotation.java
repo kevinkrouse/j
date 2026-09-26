@@ -258,7 +258,8 @@ public final class KeyNotation
         if ((modifiers & Constants.CTRL_MASK) != 0) {
             final char body = controlBody(keyCode, keyChar);
             if (body != 0)
-                return bracket(String.valueOf(body), modifiers);
+                return bracket(String.valueOf(body), shiftFolded(body,
+                                                                 modifiers));
         }
 
         if (keyChar != KeyEvent.CHAR_UNDEFINED && keyChar != 0) {
@@ -269,7 +270,8 @@ public final class KeyNotation
                     default:   return String.valueOf(keyChar);
                 }
             }
-            return bracket(String.valueOf(keyChar), modifiers);
+            return bracket(String.valueOf(keyChar),
+                           shiftFolded(keyChar, modifiers));
         }
         // A key with neither a name nor a character: spell it by code so that
         // it is at least greppable rather than silently dropped.
@@ -300,6 +302,21 @@ public final class KeyNotation
             case 0x1f: return '_';
             default:   return 0;
         }
+    }
+
+    /**
+     * Drops Shift for a character that is not a letter.
+     *
+     * For ^ or _ or ! the Shift is only how the keyboard makes the character,
+     * and vim writes <C-^> for Ctrl-Shift-6. AWT hands over the character
+     * with Shift still held -- keyCode VK_6, '^', Ctrl and Shift, seen with a
+     * key probe -- so without this the key is named <C-S-^> and matches
+     * nothing. A letter keeps its Shift: <C-S-r> is not <C-r>.
+     */
+    private static int shiftFolded(char c, int modifiers)
+    {
+        return Character.isLetter(c) ? modifiers
+            : modifiers & ~Constants.SHIFT_MASK;
     }
 
     private static String bracket(String body, int modifiers)

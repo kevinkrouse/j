@@ -2369,6 +2369,34 @@ public final class Editor extends JPanel implements Constants,
         saveAs(buffer);
     }
 
+    /**
+     * {@code saveAs FILE} saves to FILE and renames the buffer to it, without
+     * the dialog -- which is also what vim's {@code :w FILE} does to a buffer
+     * that has no name yet. A relative name is taken from the buffer's own
+     * directory.
+     *
+     * @return true when the buffer was saved
+     */
+    public boolean saveAs(String path)
+    {
+        if (path == null || path.trim().isEmpty()) {
+            saveAs();
+            return !buffer.isModified();
+        }
+        final File destination = fileNamed(path.trim());
+        if (destination == null)
+            return false;
+        return saveAsTo(buffer, destination);
+    }
+
+    /** A path typed by the user, resolved against this buffer's directory. */
+    public File fileNamed(String path)
+    {
+        final File dir = buffer.getCurrentDirectory();
+        return dir == null ? File.getInstance(path)
+                           : File.getInstance(dir, path);
+    }
+
     private void saveAs(Buffer toBeSaved)
     {
         if (toBeSaved.isLocked())
@@ -2383,7 +2411,18 @@ public final class Editor extends JPanel implements Constants,
             // At this point, if the target file exists, the user has said
             // it's OK to overwrite it.
             repaintNow();
+            saveAsTo(toBeSaved, destination);
+        }
+    }
 
+    /** The checks and the save shared by saveAs, with and without a dialog. */
+    private boolean saveAsTo(Buffer toBeSaved, File destination)
+    {
+        if (toBeSaved.isLocked()
+            || toBeSaved.getType() != Buffer.TYPE_NORMAL)
+            return false;
+        {
+            final String dialogTitle = "Save As";
             // Do we have the target file in a buffer?
             Buffer buf = bufferList.findBuffer(destination);
             if (buf != null) {
@@ -2396,12 +2435,30 @@ public final class Editor extends JPanel implements Constants,
                     setDefaultCursor();
                     String message = "Target file is in an active buffer.  Please take care of that first.";
                     MessageDialog.showMessageDialog(this, message, dialogTitle);
-                    return;
+                    return false;
                 }
             }
 
             toBeSaved.saveAs(destination);
+            return !toBeSaved.isModified();
         }
+    }
+
+    /**
+     * {@code saveCopy FILE} writes the buffer to FILE and leaves it named as
+     * it was, without the dialog -- vim's {@code :w FILE} on a buffer that
+     * already has a name.
+     *
+     * @return true when the copy was written
+     */
+    public boolean saveCopy(String path)
+    {
+        if (path == null || path.trim().isEmpty()) {
+            saveCopy();
+            return true;
+        }
+        final File destination = fileNamed(path.trim());
+        return destination != null && saveCopyTo(destination);
     }
 
     public void saveCopy()
@@ -2416,7 +2473,16 @@ public final class Editor extends JPanel implements Constants,
                 return;
 
             repaintNow();
+            saveCopyTo(destination);
+        }
+    }
 
+    /** The checks and the write shared by saveCopy, with and without a dialog. */
+    private boolean saveCopyTo(File destination)
+    {
+        if (buffer.isLocked() || buffer.getType() != Buffer.TYPE_NORMAL)
+            return false;
+        {
             // Do we have the target file in a buffer?
             Buffer buf = bufferList.findBuffer(destination);
             if (buf != null) {
@@ -2426,13 +2492,14 @@ public final class Editor extends JPanel implements Constants,
                     setDefaultCursor();
                     String message = "Target file is in an active buffer.  Please take care of that first.";
                     MessageDialog.showMessageDialog(this, message, "Save Copy");
-                    return;
+                    return false;
                 }
             }
 
             buffer.saveCopy(destination);
             if (buf != null && buf.isLoaded())
                 reload(buf);
+            return true;
         }
     }
 
@@ -2960,6 +3027,86 @@ public final class Editor extends JPanel implements Constants,
         } else
             pageDownInternal();
         setCurrentCommand(COMMAND_PAGE_DOWN);
+    }
+
+    /** {@code pageDown vim} scrolls the way vim's CTRL-F does. */
+    public void pageDown(String parameters)
+    {
+        if (wantsVim(parameters))
+            vimPage(true);
+        else
+            pageDown();
+    }
+
+    /** {@code pageUp vim} scrolls the way vim's CTRL-B does. */
+    public void pageUp(String parameters)
+    {
+        if (wantsVim(parameters))
+            vimPage(false);
+        else
+            pageUp();
+    }
+
+    /**
+     * Vim's CTRL-F and CTRL-B, which differ from pageDown and pageUp in three
+     * ways, all checked with nvim: they keep two lines of the old page on
+     * screen rather than one; the caret goes to the new top line (CTRL-F) or
+     * the new bottom line (CTRL-B) rather than keeping its row; and CTRL-F
+     * with the last line already showing puts it at the top. Too much to
+     * change what PageDown does for everyone, so it is an argument.
+     *
+     * @return false when there is nowhere further to scroll
+     */
+    boolean vimPage(boolean forward)
+    {
+        if (dot == null)
+            return false;
+        final Line top = display.getTopLine();
+        if (top == null)
+            return false;
+        final int rows = Math.max(1, display.getRows());
+        final int step = Math.max(1, rows - 2);
+        Line newTop = top;
+        if (forward) {
+            Line bottom = top;
+            for (int i = 1; i < rows && bottom.nextVisible() != null; i++)
+                bottom = bottom.nextVisible();
+            if (bottom.nextVisible() == null) {
+                // The last line is showing: put it at the top, or do nothing
+                // if it is there already.
+                if (top == bottom)
+                    return false;
+                newTop = bottom;
+            } else {
+                for (int i = 0; i < step && newTop.nextVisible() != null; i++)
+                    newTop = newTop.nextVisible();
+            }
+        } else {
+            if (top.previousVisible() == null)
+                return false;
+            for (int i = 0; i < step && newTop.previousVisible() != null; i++)
+                newTop = newTop.previousVisible();
+        }
+        Line caret = newTop;
+        if (!forward)
+            for (int i = 1; i < rows && caret.nextVisible() != null; i++)
+                caret = caret.nextVisible();
+        // The caret keeps its column, as nvim's default 'nostartofline'
+        // keeps it -- the column it is at now, not j's goal column, which
+        // only j's own up and down set. A selection is left alone, so that
+        // in visual mode the page extends it.
+        final int col = getDotCol();
+        addUndo(SimpleEdit.MOVE);
+        updateDotLine();
+        display.setTopLine(newTop);
+        dot.moveTo(caret, 0);
+        dot.moveToCol(col, buffer.getTabWidth());
+        if (dot.getOffset() > caret.length())
+            dot.setOffset(caret.length());
+        moveCaretToDotCol();
+        updateDotLine();
+        setUpdateFlag(REPAINT);
+        return true;
     }
 
     public void pageUp()
@@ -3958,7 +4105,7 @@ public final class Editor extends JPanel implements Constants,
      *
      * @param parameters "vim" for vim's rule, anything else for j's
      */
-    private static boolean wantsVimWords(String parameters)
+    static boolean wantsVim(String parameters)
     {
         return parameters != null && parameters.trim().equalsIgnoreCase("vim");
     }
@@ -3975,7 +4122,7 @@ public final class Editor extends JPanel implements Constants,
             return;
         updateDotLine();
         addUndo(SimpleEdit.MOVE);
-        if (wantsVimWords(parameters)) {
+        if (wantsVim(parameters)) {
             final Position to =
                 Words.forwardToWordStart(new Position(dot), getMode(), false);
             if (to != null)
@@ -4000,7 +4147,7 @@ public final class Editor extends JPanel implements Constants,
             return;
         updateDotLine();
         addUndo(SimpleEdit.MOVE);
-        if (wantsVimWords(parameters)) {
+        if (wantsVim(parameters)) {
             final Position to =
                 Words.backwardToWordStart(new Position(dot), getMode(), false);
             if (to != null)
@@ -4027,7 +4174,7 @@ public final class Editor extends JPanel implements Constants,
         if (mark == null)
             setMarkAtDot();
         updateDotLine();
-        if (wantsVimWords(parameters)) {
+        if (wantsVim(parameters)) {
             final Position to =
                 Words.forwardToWordStart(new Position(dot), getMode(), false);
             if (to != null)
@@ -4052,7 +4199,7 @@ public final class Editor extends JPanel implements Constants,
         if (mark == null)
             setMarkAtDot();
         updateDotLine();
-        if (wantsVimWords(parameters)) {
+        if (wantsVim(parameters)) {
             final Position to =
                 Words.backwardToWordStart(new Position(dot), getMode(), false);
             if (to != null)
@@ -4782,6 +4929,40 @@ public final class Editor extends JPanel implements Constants,
         }
         if (buf != buffer)
             switchToBuffer(buf);
+    }
+
+    /**
+     * {@code prevBuffer alternate} goes to the buffer used most recently
+     * before this one -- vim's alternate file, CTRL-^ -- rather than to the
+     * one before this in the buffer list.
+     */
+    public void prevBuffer(String parameters)
+    {
+        if (parameters == null
+            || !parameters.trim().equalsIgnoreCase("alternate")) {
+            prevBuffer();
+            return;
+        }
+        final Buffer alternate = alternateBuffer();
+        if (alternate == null) {
+            status("E23: No alternate file");
+            return;
+        }
+        switchToBuffer(alternate);
+    }
+
+    /** The buffer activated most recently, other than this one. */
+    Buffer alternateBuffer()
+    {
+        Buffer best = null;
+        for (BufferIterator it = new BufferIterator(); it.hasNext();) {
+            final Buffer b = it.next();
+            if (b == buffer || !b.isPrimary())
+                continue;
+            if (best == null || b.getLastActivated() > best.getLastActivated())
+                best = b;
+        }
+        return best;
     }
 
     public void prevBuffer()

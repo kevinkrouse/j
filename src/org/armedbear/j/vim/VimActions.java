@@ -67,6 +67,7 @@ public final class VimActions
         register("toggleCase", VimActions::toggleCase);
         register("repeatLastChange", VimActions::repeatLastChange);
         register("put", VimActions::put);
+        register("insertShift", VimActions::insertShift);
     }
 
     /**
@@ -164,6 +165,27 @@ public final class VimActions
     {
         final String s = line.getText();
         return s == null ? "" : s;
+    }
+
+    /**
+     * Insert-mode CTRL-T and CTRL-D: one shiftwidth more or less indent on
+     * this line, rounded to a multiple of it, with the caret staying with the
+     * text -- even from inside the indent, as nvim moves it.
+     */
+    private static void insertShift(MotionContext ctx)
+    {
+        final Editor editor = ctx.editor;
+        final Position dot = editor.getDot();
+        if (dot == null)
+            return;
+        final Line line = dot.getLine();
+        final int offset = dot.getOffset();
+        final int delta = Lines.shiftToMultiple(
+            editor, line, ctx.arg("right"),
+            editor.getBuffer().getIndentSize());
+        editor.setDot(line, Math.max(0, Math.min(line.length(),
+                                                 offset + delta)));
+        editor.moveCaretToDotCol();
     }
 
     /**

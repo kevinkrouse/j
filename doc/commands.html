@@ -343,6 +343,7 @@
     <li><a href="commands.html#slideIn">slideIn</a></li>
     <li><a href="commands.html#slideOut">slideOut</a></li>
     <li><a href="commands.html#duplicateLines">duplicateLines</a></li>
+    <li><a href="commands.html#shiftLinesRight">shiftLinesRight</a></li>
     <li><a href="commands.html#findCharInLine">findCharInLine</a></li>
     <li><a href="commands.html#moveToWindowTop">moveToWindowTop</a></li>
     <li><a href="commands.html#replaceChar">replaceChar</a></li>
@@ -3705,6 +3706,11 @@ the checkin buffer, to complete the checkin operation.
 <a name="pageDown">pageDown</a><dl><dd>
 <p>
 Moves the caret down one full screen.
+<p>
+With the argument <code>vim</code> it scrolls the way vim's
+<code>Ctrl F</code> does: two lines of the old page stay on screen rather than
+one, and the caret goes to the new top line, keeping its column. With the last
+line already showing, it puts that line at the top.
 <br><br>
 <b>Default key mapping:</b> Page Down
 <br><br>
@@ -3721,6 +3727,10 @@ Moves the caret down one full screen in the other window in the same frame.
 <a name="pageUp">pageUp</a><dl><dd>
 <p>
 Moves the caret up one full screen.
+<p>
+With the argument <code>vim</code> it scrolls the way vim's
+<code>Ctrl B</code> does: two lines of overlap, and the caret on the new bottom
+line.
 <br><br>
 <b>Default key mapping:</b> Page Up
 <br><br>
@@ -3808,6 +3818,10 @@ Pops the last position off the marker stack and jumps to that location.
 <a name="prevBuffer">prevBuffer</a><dl><dd>
 <p>
 Switches to the previous buffer.
+<p>
+With the argument <code>alternate</code> it switches to the buffer used most
+recently before this one, rather than to the one before it in the buffer list:
+vim's alternate file, <code>Ctrl ^</code>.
 <p>
 <b>Default key mapping:</b> Alt Left
 <p>
@@ -4206,6 +4220,11 @@ invoked for new buffers so you can provide filenames if necessary.
 
 <a name="saveAs">saveAs</a><dl><dd>
 <p>
+Given a file name as its argument, as in <code>saveAs notes.txt</code>, it
+saves there without the dialog; a relative name is taken from the buffer's
+directory. <code>:w FILE</code> in vim edit mode uses this for a buffer with no
+name yet.
+<p>
 Saves the current buffer under a new name. The file (if any) that was
 previously associated with the buffer is not deleted, but the buffer is
 henceforth associated with the new file. The buffer's mode is changed, if
@@ -4216,6 +4235,10 @@ necessary, to match the new filename.
 </dl><!--<hr>-->
 
 <a name="saveCopy">saveCopy</a><dl><dd>
+<p>
+Given a file name as its argument it writes the copy there without the dialog.
+<code>:w FILE</code> in vim edit mode uses this for a buffer that already has a
+name.
 <p>
 Saves a copy of the current buffer under a new name. The buffer continues to be
 associated with its original file.
@@ -4708,7 +4731,24 @@ over an argument.
 <br><br>
 </dl><!--<hr>-->
 
-<a name="moveLinesUp">moveLinesUp</a>, <a name="moveLinesDown">moveLinesDown</a><dl><dd>
+<a name="shiftLinesRight">shiftLinesRight</a>, <a name="shiftLinesLeft">shiftLinesLeft</a><dl><dd>
+<p>
+Moves the indent of the current line, or of every line the selection covers,
+right or left by one <a href="indentation.html">indentSize</a>. Not a re-indent:
+the lines move by the same amount whatever their syntax says, which is what
+<a href="#indentLineOrRegion">indentLineOrRegion</a> does not do. Empty lines are
+left empty.
+<br><br>
+<b>Default key mapping:</b> None
+<br><br>
+<b>See also:</b> <code>&gt;&gt;</code>, <code>&lt;&lt;</code>, and insert-mode
+<code>Ctrl T</code> and <code>Ctrl D</code> in
+<a href="editmodes.html">vim edit mode</a>.
+<br><br>
+</dl><!--<hr>-->
+
+<a name="moveLinesUp">moveLinesUp</a>
+, <a name="moveLinesDown">moveLinesDown</a><dl><dd>
 <p>
 Moves the current line, or every line the selection covers, up or down by one.
 Does nothing at the end it would move off.

@@ -55,7 +55,8 @@ public final class VimExCommands
         if (command.bang && !name.isEmpty() && !matches(name, "sor", "sort")
             && !matches(name, "g", "global") && !matches(name, "j", "join")
             && !matches(name, "delm", "delmarks")
-            && !matches(name, "norm", "normal"))
+            && !matches(name, "norm", "normal")
+            && !matches(name, "w", "write") && !name.equals("wq"))
             throw new VimEx.BadCommand("E477: No ! allowed");
         if (name.isEmpty()) {
             // A bare range means "go to that line", which is what :42 is.
@@ -93,6 +94,15 @@ public final class VimExCommands
         }
         if (matches(name, "norm", "normal")) {
             normal(editor, state, command);
+            return true;
+        }
+        if (matches(name, "w", "write")) {
+            write(editor, command);
+            return true;
+        }
+        if (name.equals("wq")) {
+            if (write(editor, command))
+                closeWindow(editor);
             return true;
         }
         if (matches(name, "delm", "delmarks")) {
@@ -203,6 +213,69 @@ public final class VimExCommands
             editor.getBuffer().renumber();
             state.getHandler().runKeys(editor, keys);
         }
+    }
+
+    // --------------------------------------------------------- write, quit
+
+    /**
+     * {@code :w} -- j's own save, and {@code :w FILE} its saveAs or saveCopy.
+     *
+     * Two small differences from vim are j's and kept: an unmodified buffer
+     * is not rewritten ("Not modified"), and a buffer with no name opens the
+     * Save As dialog where vim says E32.
+     *
+     * @return true when the buffer was written, which :wq needs to know --
+     *         vim will not quit after a write that failed
+     */
+    private static boolean write(Editor editor, VimEx.Command command)
+        throws VimEx.BadCommand
+    {
+        if (command.range.given)
+            throw new VimEx.BadCommand(
+                "Writing part of a buffer is not supported");
+        final String file = command.args.trim();
+        if (file.startsWith("!"))
+            throw new VimEx.BadCommand(
+                "Writing to a command is not supported");
+        final org.armedbear.j.Buffer buffer = editor.getBuffer();
+        if (file.isEmpty()) {
+            editor.save();
+            return !buffer.isModified();
+        }
+        final org.armedbear.j.File destination = editor.fileNamed(file);
+        if (destination == null)
+            throw new VimEx.BadCommand("E32: No file name");
+        // The dialog asks before overwriting; without one, vim's rule does.
+        if (destination.exists() && !command.bang
+            && !destination.equals(buffer.getFile()))
+            throw new VimEx.BadCommand(
+                "E13: File exists (add ! to override)");
+        // A buffer with no name takes the one it is written to, as in vim;
+        // one that has a name keeps it, and FILE gets a copy.
+        final boolean written = buffer.isUntitled()
+            ? editor.saveAs(file) : editor.saveCopy(file);
+        if (!written)
+            throw new VimEx.BadCommand("E212: Can't open file for writing");
+        return true;
+    }
+
+    /**
+     * What :wq's q does: close this window, or leave j if it is the last.
+     *
+     * Vim's :q is the window's, not the buffer's -- in a split only that
+     * split goes and vim carries on, which nvim confirms -- and the last
+     * window closing is vim exiting. j's quit asks first when other buffers
+     * have unsaved changes, where vim refuses with E37.
+     */
+    private static void closeWindow(Editor editor)
+    {
+        final org.armedbear.j.Frame frame = editor.getFrame();
+        if (frame == null)
+            return;
+        if (frame.getEditorCount() > 1)
+            editor.killWindow();
+        else
+            editor.quit();
     }
 
     // --------------------------------------------------------------- marks

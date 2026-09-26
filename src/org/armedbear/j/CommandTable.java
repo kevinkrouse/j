@@ -202,6 +202,8 @@ public class CommandTable
             addCommand("selectPageDown");
             addCommand("selectPageUp");
             addCommand("selectRight");
+            addCommand("shiftLinesLeft", "Lines");
+            addCommand("shiftLinesRight", "Lines");
             addCommand("selectSyntax");
             addCommand("selectUp");
             addCommand("selectWord");
