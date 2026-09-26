@@ -242,4 +242,13 @@ public class VimBranchReviewTest
         assertEquals(EMOJI + EMOJI + "a", h.value());
         h.assertCursorAt(0, 2);
     }
+    // Found fixing F8: Backspace in replace mode stepped one UTF-16 unit.
+
+    @Test
+    public void replaceBackspaceStepsOverAWholeEmoji()
+    {
+        vim(EMOJI + "a", 0, 2).keys("R<BS>");
+        assertEquals(EMOJI + "a", h.value());
+        h.assertCursorAt(0, 0);
+    }
 }

@@ -492,7 +492,7 @@ public final class VimActions
         if (dot == null || dot.getOffset() == 0)
             return;
         final Line line = dot.getLine();
-        final int offset = dot.getOffset() - 1;
+        final int offset = CodePoints.previous(line, dot.getOffset());
         final int was = state.popReplaced(line, dot.getOffset());
         if (was == 0) {
             editor.setDot(line, offset);
@@ -501,7 +501,7 @@ public final class VimActions
         }
         final CompoundEdit edit = editor.getBuffer().beginCompoundEdit();
         try {
-            editor.setMark(new Position(line, offset + 1));
+            editor.setMark(new Position(line, dot.getOffset()));
             editor.setDot(line, offset);
             editor.deleteRegion();
             editor.setMark(null);
