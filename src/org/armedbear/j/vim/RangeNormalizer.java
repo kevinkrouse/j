@@ -57,9 +57,9 @@ final class RangeNormalizer
                     to.setOffset(CodePoints.next(to.getLine(), to.getOffset()));
                 else if (to.getLine().next() != null)
                     to = new Position(to.getLine().next(), 0);
-                return new VimRange(from, to, false);
+                return new VimRange(from, to);
             default:
-                return new VimRange(from, to, false);
+                return new VimRange(from, to);
         }
     }
 
@@ -94,12 +94,7 @@ final class RangeNormalizer
 
     private static VimRange linewise(Position from, Position to)
     {
-        final Position start = new Position(from.getLine(), 0);
-        final Line after = to.getLine().next();
-        final Position end = after != null
-            ? new Position(after, 0)
-            : new Position(to.getLine(), to.getLine().length());
-        return new VimRange(start, end, true);
+        return VimRange.lines(from.getLine(), to.getLine());
     }
 
     /**

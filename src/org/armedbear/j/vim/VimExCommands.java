@@ -493,10 +493,7 @@ public final class VimExCommands
         final Line last = VimEx.lineAt(editor, Math.max(1, range.last));
         if (first == null || last == null)
             throw new VimEx.BadCommand("E16: Invalid range");
-        final Line after = last.next();
-        final Position end = after != null ? new Position(after, 0)
-                                           : new Position(last, last.length());
-        return new VimRange(new Position(first, 0), end, true);
+        return VimRange.lines(first, last);
     }
 
     /** {@code :d}, with the register it goes to if one was named. */

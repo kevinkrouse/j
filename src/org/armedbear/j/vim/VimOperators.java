@@ -117,11 +117,7 @@ public final class VimOperators
 
         // j's own shiftLinesRight and shiftLinesLeft do this.
         final Line from = range.start.getLine();
-        final Line to = range.end.getOffset() == 0
-            && range.end.getLine() != from
-            ? range.end.getLine().previous()
-            : range.end.getLine();
-        Lines.shift(editor, from, to, sign * width);
+        Lines.shift(editor, from, range.last, sign * width);
         // Vim leaves the caret on the first non-blank of the first line.
         final Line first = range.start.getLine();
         editor.setDot(first, VimMotions.firstNonBlank(first));
@@ -244,15 +240,8 @@ public final class VimOperators
     {
         final Editor editor = ctx.editor;
         final Line first = range.start.getLine();
-        // Everything from the first line to the last, but leave one line
-        // behind for the new text. RangeNormalizer.linewise() marks the end
-        // of a non-final range with the line *after* the last affected one,
-        // at offset 0 -- back up to its previous line to find the last
-        // affected line. At end of buffer there is no such line, so the
-        // range's own last line is given directly instead, at its length.
-        final Line last = range.end.getOffset() == 0
-            ? range.end.getLine().previous()
-            : range.end.getLine();
+        // Empty the lines down to one, for the new text.
+        final Line last = range.last;
 
         // The first line's indent stays, as it does in vim with 'autoindent'
         // on, which is nvim's default: cc on "  bb" then x gives "  x". If
@@ -304,10 +293,7 @@ public final class VimOperators
         // buffer has no line after, so the range ends part way along it and
         // one newline too few is taken -- leaving an empty line behind. Take
         // the newline before the range instead.
-        // The end offset says which: 0 means the line after the range, so the
-        // range stops short of the buffer end after all.
-        if (range.linewise && range.end.getLine().next() == null
-            && range.end.getOffset() > 0 && start.getOffset() == 0) {
+        if (range.linewise && range.last.next() == null) {
             final Line before = start.getLine().previous();
             if (before != null)
                 start = new Position(before, before.length());

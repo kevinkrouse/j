@@ -909,8 +909,10 @@ public final class VimInputHandler implements InputHandler
         editor.setMarkAtDot();
         // The selection is mark..dot and vim's includes the character under
         // the caret, so the caret sits one short of the range's open end.
-        final Position last = new Position(range.end);
-        if (!range.start.equals(last))
+        final Position last = range.linewise
+            ? new Position(range.last, range.last.length())
+            : new Position(range.end);
+        if (!range.linewise && !range.start.equals(last))
             last.prev();
         editor.setDot(last);
         editor.moveCaretToDotCol();

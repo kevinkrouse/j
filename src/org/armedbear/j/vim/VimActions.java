@@ -663,9 +663,7 @@ public final class VimActions
             if (range.linewise) {
                 // Empty the lines to one and fill that: no line after the
                 // selection is needed, so the end of the buffer is no case.
-                Line last = range.end.getLine();
-                if (range.end.getOffset() == 0 && last != first)
-                    last = last.previous();
+                final Line last = range.last;
                 editor.setMark(new Position(first, 0));
                 editor.setDot(last, last.length());
                 editor.moveCaretToDotCol();

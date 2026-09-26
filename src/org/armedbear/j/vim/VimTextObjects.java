@@ -85,8 +85,7 @@ public final class VimTextObjects
         final Line line = from.getLine();
         final String text = line.getText();
         if (text == null || text.isEmpty())
-            return new VimRange(new Position(line, 0), new Position(line, 0),
-                                false);
+            return new VimRange(new Position(line, 0), new Position(line, 0));
 
         final int at = Math.min(from.getOffset(), text.length() - 1);
         int start = startOfChunk(text, at, mode, bigWord);
@@ -107,8 +106,7 @@ public final class VimTextObjects
             && (end == 0 || !Character.isWhitespace(text.charAt(end - 1))))
             start = skipBlanks(text, start - 1, -1) + 1;
 
-        return new VimRange(new Position(line, start), new Position(line, end),
-                            false);
+        return new VimRange(new Position(line, start), new Position(line, end));
     }
 
     /** The offset just past the chunk containing {@code at}. */
@@ -274,7 +272,7 @@ public final class VimTextObjects
             return null;
 
         if (!inner)
-            return new VimRange(new Position(start), step(end), false);
+            return new VimRange(new Position(start), step(end));
         return innerBlock(start, end);
     }
 
@@ -297,8 +295,7 @@ public final class VimTextObjects
 
         if (openEndsLine && closeStartsLine && firstInner != null
             && firstInner != close.getLine())
-            return new VimRange(new Position(firstInner, 0),
-                                new Position(close.getLine(), 0), true);
+            return VimRange.lines(firstInner, close.getLine().previous());
 
         final Position start = openEndsLine && firstInner != null
             ? new Position(firstInner, 0)
@@ -311,7 +308,7 @@ public final class VimTextObjects
         }
         if (end.isBefore(start))
             end = new Position(start);
-        return new VimRange(start, end, false);
+        return new VimRange(start, end);
     }
 
     private static boolean onlyBlanksBefore(Line line, int offset)
@@ -442,7 +439,7 @@ public final class VimTextObjects
             while (first.previous() != null && blank(first.previous()))
                 first = first.previous();
 
-        return new VimRange(new Position(first, 0), endOfLines(last), true);
+        return VimRange.lines(first, last);
     }
 
     private static boolean blank(Line line)
@@ -450,19 +447,11 @@ public final class VimTextObjects
         return line.length() == 0;
     }
 
-    /** The linewise end marker: the start of the line after, as elsewhere. */
-    private static Position endOfLines(Line last)
-    {
-        final Line after = last.next();
-        return after != null ? new Position(after, 0)
-                             : new Position(last, last.length());
-    }
-
     // ------------------------------------------------------------ helpers
 
     private static VimRange charwise(Line line, int start, int end)
     {
         return new VimRange(new Position(line, Math.max(0, start)),
-                            new Position(line, Math.max(0, end)), false);
+                            new Position(line, Math.max(0, end)));
     }
 }

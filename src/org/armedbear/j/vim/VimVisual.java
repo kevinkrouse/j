@@ -156,8 +156,7 @@ final class VimVisual
         if (state.getMode() == VimMode.VISUAL && !head.isBefore(anchor)
             && state.isStickyEol() && head.getLine().next() != null)
             return new VimRange(new Position(start),
-                                new Position(head.getLine().next(), 0),
-                                false);
+                                new Position(head.getLine().next(), 0));
         return RangeNormalizer.normalize(
             new Position(start), new Position(end),
             state.getMode() == VimMode.VISUAL_LINE ? MotionKind.LINEWISE
