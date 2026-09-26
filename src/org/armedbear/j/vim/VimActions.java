@@ -18,6 +18,7 @@ import javax.swing.undo.CompoundEdit;
 
 import org.armedbear.j.CaretCommands;
 import org.armedbear.j.Editor;
+import org.armedbear.j.JEvent;
 import org.armedbear.j.Line;
 import org.armedbear.j.Lines;
 import org.armedbear.j.Position;
@@ -520,6 +521,39 @@ public final class VimActions
         finally {
             editor.getBuffer().endCompoundEdit(edit);
         }
+    }
+
+    /**
+     * Enter in insert mode: whatever j binds Enter to in this mode, with the
+     * indent it gives the new line the session's until something is typed,
+     * as after o. A line left behind with nothing typed after its indent is
+     * emptied, as vim does: A<CR><CR><Esc> under "  x" leaves two empty lines.
+     *
+     * @return false when j binds nothing to it
+     */
+    static boolean insertNewline(Editor editor, VimState state, JEvent enter)
+    {
+        final Position dot = editor.getDot();
+        if (dot == null)
+            return false;
+        final Line left = dot.getLine();
+        final boolean untouched = state.isUntouchedAutoIndent(left);
+        if (!editor.handleKeyMapEvent(enter))
+            return false;
+        final Position now = editor.getDot();
+        // Read-only, or bound to something that is not a line break.
+        if (now == null || now.getLine() == left)
+            return true;
+        if (untouched && left.length() > 0) {
+            editor.setMark(new Position(left, left.length()));
+            editor.setDot(left, 0);
+            editor.deleteRegion();
+            editor.setMark(null);
+            editor.setDot(now);
+            editor.moveCaretToDotCol();
+        }
+        state.noteAutoIndent(now.getLine());
+        return true;
     }
 
     /**

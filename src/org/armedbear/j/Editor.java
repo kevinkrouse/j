@@ -2839,6 +2839,21 @@ public final class Editor extends JPanel implements Constants,
                 }
             }
         }
+        return handleKeyMapEvent(event);
+    }
+
+    /**
+     * Runs whatever j's own key maps bind an event to, with no input handler
+     * in front of them. For an input handler that wants j's binding for a
+     * key and to do something after it, as vim edit mode does with Enter.
+     *
+     * @return false when nothing is bound
+     */
+    public boolean handleKeyMapEvent(JEvent event)
+    {
+        final char keyChar = event.getKeyChar();
+        final int keyCode = event.getKeyCode();
+        final int modifiers = event.getModifiers();
         KeyMapping mapping = null;
         if (requestedKeyMap != null) {
             if (checkKeyboardQuit(event)) {

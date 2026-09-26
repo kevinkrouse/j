@@ -14,6 +14,7 @@ package org.armedbear.j.vim;
 import static org.junit.Assert.assertEquals;
 
 import org.armedbear.j.EditorHarness;
+import org.armedbear.j.mode.java.JavaMode;
 import org.junit.After;
 import org.junit.Test;
 
@@ -158,5 +159,78 @@ public class VimM13LeftoversTest
         h.buffer().setIndentSize(4);
         h.keys("3i<C-t>a<Esc>");
         assertEquals("            aaaxy", h.value());
+    }
+    // ------------------------------------------- Enter and autoindent
+    //
+    // Enter is whatever j binds it to in the mode: newlineAndIndent in Java
+    // mode, plain newline in plain text.
+
+    private EditorHarness java(String text, int line, int offset)
+    {
+        vim(text, line, offset).mode(JavaMode.getMode());
+        // So that j's indent inside a brace is the two vim copies.
+        h.buffer().setIndentSize(2);
+        return h;
+    }
+
+    @Test
+    public void enterThenEscapeLeavesAnEmptyLine()
+    {
+        java("{\n  x;", 1, 0).keys("A<CR><Esc>");
+        assertEquals("{\n  x;\n", h.value());
+        h.assertCursorAt(2, 0);
+    }
+
+    @Test
+    public void typingAfterEnterKeepsTheIndent()
+    {
+        java("{\n  x;", 1, 0).keys("A<CR>y<Esc>");
+        assertEquals("{\n  x;\n  y", h.value());
+        h.assertCursorAt(2, 2);
+    }
+
+    @Test
+    public void enterOnAnUntouchedIndentEmptiesThatLine()
+    {
+        java("{\n  x;", 1, 0).keys("o<CR>y<Esc>");
+        assertEquals("{\n  x;\n\n  y", h.value());
+        h.assertCursorAt(3, 2);
+    }
+
+    @Test
+    public void twoEntersThenEscapeLeaveTwoEmptyLines()
+    {
+        java("{\n  x;", 1, 0).keys("A<CR><CR><Esc>");
+        assertEquals("{\n  x;\n\n", h.value());
+        h.assertCursorAt(3, 0);
+    }
+
+    @Test
+    public void undoTakesTheEnterBack()
+    {
+        java("{\n  x;", 1, 0).keys("A<CR><Esc>").keys("u");
+        assertEquals("{\n  x;", h.value());
+    }
+
+    @Test
+    public void dotRepeatsEnterTheSameWay()
+    {
+        java("{\n  x;\n  z;", 1, 0).keys("A<CR><Esc>").keys("j.");
+        assertEquals("{\n  x;\n\n  z;\n", h.value());
+    }
+    @Test
+    public void dotRepeatsEnterThroughJsBinding()
+    {
+        java("{\n  x;\n  z;", 1, 0).keys("A<CR>y<Esc>").keys("j.");
+        assertEquals("{\n  x;\n  y\n  z;\n  y", h.value());
+    }
+
+    @Test
+    public void inPlainTextEnterIsJsNewline()
+    {
+        // j binds plain newline there, which does not indent, where vim's
+        // autoindent would copy the indent.
+        vim("  x", 0, 0).keys("A<CR>y<Esc>");
+        assertEquals("  x\ny", h.value());
     }
 }

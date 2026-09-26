@@ -177,6 +177,11 @@ public final class VimInputHandler implements InputHandler
                 && runInsertBinding(editor,
                        KeyNotation.name(keyCode, event.getKeyChar(), modifiers)))
                 return Result.CONSUMED;
+            // Enter is j's, but the indent it makes is the session's: Escape
+            // straight after it takes the indent away again.
+            if (keyCode == KeyEvent.VK_ENTER && !isChorded(modifiers)
+                && VimActions.insertNewline(editor, state, event))
+                return Result.CONSUMED;
             // Tab is typing too, and arrives with no character.
             if (keyCode == KeyEvent.VK_TAB && !isChorded(modifiers))
                 state.forgetAutoIndent();
@@ -546,7 +551,8 @@ public final class VimInputHandler implements InputHandler
                 else
                     editor.backspace();
             } else if (stroke.keyCode == KeyEvent.VK_ENTER) {
-                editor.newlineAndIndent();
+                VimActions.insertNewline(editor, state,
+                    new JEvent(JEvent.KEY_PRESSED, KeyEvent.VK_ENTER, '\n', 0));
             } else if (stroke.keyCode == KeyEvent.VK_TAB
                        && state.getMode() == VimMode.REPLACE) {
                 VimActions.replaceTypedCharacter(editor, state, '\t');

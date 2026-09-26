@@ -247,10 +247,13 @@ These are known and deliberate:
     understood.</li>
 <li><code>aw</code> on a blank line does nothing, where vim counts the
     empty line as a word and takes the next one with it.</li>
-<li><code>Enter</code> in insert mode indents the new line as j always has,
-    and <code>Escape</code> straight after it leaves those blanks behind,
-    where vim takes an indent nothing was typed after away again, as it does
-    after <code>o</code>.</li>
+<li><code>Enter</code> in insert mode is whatever j binds it to in the
+    buffer's mode: <a href="commands.html#newlineAndIndent">newlineAndIndent</a>
+    in the programming modes, which indents by the language rather than
+    copying the line above as vim's <code>autoindent</code> does, and a plain
+    <code>newline</code> in plain text, which does not indent. An indent
+    nothing was typed after goes again at <code>Escape</code> or the next
+    <code>Enter</code>, as in vim.</li>
 <li>A character outside the Basic Multilingual Plane, such as an emoji, is
     one character to motions and edits, as in vim, but j measures columns in
     UTF-16 units, so <code>|</code> and <code>j</code>/<code>k</code> past one

@@ -42,7 +42,7 @@ public final class JEvent
     private final char keyChar;
     private final int modifiers;
 
-    JEvent(int id, int keyCode, char keyChar, int modifiers)
+    public JEvent(int id, int keyCode, char keyChar, int modifiers)
     {
         if (id < ID_FIRST || id > ID_LAST) {
             Log.debug("bad JEvent id " + id);

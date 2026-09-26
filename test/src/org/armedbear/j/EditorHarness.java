@@ -217,6 +217,14 @@ public final class EditorHarness
         return vimHandler().isAwaitingSearchPattern();
     }
 
+    /** Puts the buffer in another mode: its key map and its indentation. */
+    public EditorHarness mode(Mode mode)
+    {
+        buffer.setMode(mode);
+        buffer.setFormatter(mode.getFormatter(buffer));
+        return this;
+    }
+
     /**
      * Sets how many lines the display shows.
      *
