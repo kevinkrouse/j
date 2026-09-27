@@ -139,6 +139,9 @@ produced, all reachable from j's key maps and `executeCommand` too:
   highlighting and `clearSearchHighlight` for `hlsearch` and `:noh`;
 - j's `JumpList` for `<C-o> <C-i>`, and its bookmarks for the file marks
   `A`-`Z`.
+- `NumberCommands.addOverLines` for visual `<C-a>` and `g<C-a>`, which
+  j's `incrementNumber` uses over a selection; `openFileInSplit` and
+  `openFileInVsplit` for `:sp FILE` and `:vs FILE`.
 
 `CaretCommands.findCharacter` and `replaceChars` work in code points, so `f`,
 `t` and `r` take an emoji.
@@ -610,9 +613,10 @@ review before the next.
 | M20 | `]] [[ ][ []`, `( )`, `[( ]) [{ ]}`; `{ }` on vim's findpar | `0a337b057` |
 | M21 | `hlsearch`, `:noh`, `:set` at the prompt; `incsearch`, `smartcase` on, `shareSearch`; `c` map, CTRL-G and CTRL-T | `462bcfedc` |
 | M22 | one last search for j and vim; highlighting and `clearSearchHighlight` in j | `28fb66223` |
-| M23 | jump list on j's `JumpList` (was the position stack); file marks as bookmarks | (uncommitted) |
+| M23 | jump list on j's `JumpList` (was the position stack); file marks as bookmarks | `5a012f6af` |
+| M24 | `incrementNumber` over a selection; `openFileInSplit`, `openFileInVsplit` | (uncommitted) |
 
-After M23: 982 tests, conformance 156 of 253 (155 ratcheted).
+After M24: 987 tests, conformance 156 of 253 (155 ratcheted).
 
 ### What the work learned
 

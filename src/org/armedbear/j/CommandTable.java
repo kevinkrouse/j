@@ -181,6 +181,8 @@ public class CommandTable
             addCommand("offset");
             addCommand("openFile");
             addCommand("openFileInOtherWindow");
+            addCommand("openFileInSplit");
+            addCommand("openFileInVsplit");
             addCommand("otherWindow");
             addCommand("previousWindow");
             addCommand("priorWindow");

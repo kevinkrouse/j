@@ -344,22 +344,10 @@ public final class VimExCommands
     private static void split(Editor editor, VimEx.Command command,
                               boolean vertical)
     {
-        if (editor.getFrame() == null)
-            return;
         if (vertical)
-            editor.vsplitWindow("vim");
+            editor.openFileInVsplit(command.args);
         else
-            editor.splitWindow("vim");
-        final String file = command.args.trim();
-        if (file.isEmpty())
-            return;
-        final Editor top = Editor.currentEditor();
-        final org.armedbear.j.Buffer buffer =
-            top.openFile(top.fileNamed(file));
-        if (buffer != null) {
-            top.makeNext(buffer);
-            top.switchToBuffer(buffer);
-        }
+            editor.openFileInSplit(command.args);
     }
 
     // --------------------------------------------------------------- marks

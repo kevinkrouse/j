@@ -254,12 +254,84 @@ public final class NumberCommands
         return change;
     }
 
+    /** What adding over lines changed: its first and last changes. */
+    public static final class Changes
+    {
+        public final Line firstLine;
+        public final Change first;
+        public final Line lastLine;
+        public final Change last;
+
+        Changes(Line firstLine, Change first, Line lastLine, Change last)
+        {
+            this.firstLine = firstLine;
+            this.first = first;
+            this.lastLine = lastLine;
+            this.last = last;
+        }
+    }
+
+    /**
+     * Adds to the first number of each line from start to end -- on the first
+     * line from start's offset, on the last up to end's -- as one undo step,
+     * as vim's CTRL-A does over a selection, leaving the caret at start.
+     * Progressive, each number found gets amount more than the one before,
+     * as vim's g CTRL-A.
+     *
+     * @return what changed, or null when there was no number
+     */
+    public static Changes addOverLines(Editor editor, Position start,
+                                       Position end, long amount,
+                                       boolean subtract, boolean progressive)
+    {
+        Line firstLine = null;
+        Change first = null;
+        Line lastLine = null;
+        Change last = null;
+        long add = amount;
+        final CompoundEdit edit = editor.getBuffer().beginCompoundEdit();
+        try {
+            for (Line line = start.getLine(); line != null; line = line.next()) {
+                final boolean isLast = line == end.getLine();
+                final int from = line == start.getLine() ? start.getOffset() : 0;
+                final int to = isLast ? end.getOffset() : line.length();
+                final Change change = add(editor, line, from, to, add, subtract);
+                if (change != null) {
+                    if (first == null) {
+                        firstLine = line;
+                        first = change;
+                    }
+                    lastLine = line;
+                    last = change;
+                    if (progressive)
+                        add += amount;
+                }
+                if (isLast)
+                    break;
+            }
+            // Recorded, so that undo puts the caret back where the last edit
+            // left it before taking that edit back: j's undo reads the caret.
+            editor.addUndo(SimpleEdit.MOVE);
+            editor.setDot(start.getLine(), start.getOffset());
+            editor.moveCaretToDotCol();
+        }
+        finally {
+            editor.getBuffer().endCompoundEdit(edit);
+        }
+        return first == null ? null
+            : new Changes(firstLine, first, lastLine, last);
+    }
+
     public static void incrementNumber()
     {
         addHere(null, false);
     }
 
-    /** {@code incrementNumber [n]} -- add n, or 1, to the number here. */
+    /**
+     * {@code incrementNumber [n] [progressive]} -- add n, or 1, to the number
+     * at or after the caret; with a selection, to the first number of each
+     * of its lines, and progressive, n more to each after the first.
+     */
     public static void incrementNumber(String parameters)
     {
         addHere(parameters, false);
@@ -270,7 +342,7 @@ public final class NumberCommands
         addHere(null, true);
     }
 
-    /** {@code decrementNumber [n]} -- take n, or 1, from the number here. */
+    /** {@code decrementNumber [n] [progressive]} -- the same, taking away. */
     public static void decrementNumber(String parameters)
     {
         addHere(parameters, true);
@@ -285,18 +357,37 @@ public final class NumberCommands
         if (dot == null)
             return;
         long amount = 1;
-        if (parameters != null && !parameters.trim().isEmpty()) {
-            try {
-                amount = Long.parseLong(parameters.trim());
-            }
-            catch (NumberFormatException e) {
-                editor.status("not a number: " + parameters.trim());
-                return;
+        boolean progressive = false;
+        if (parameters != null) {
+            for (String word : parameters.trim().split("\\s+")) {
+                if (word.isEmpty())
+                    continue;
+                if (word.equals("progressive")) {
+                    progressive = true;
+                    continue;
+                }
+                try {
+                    amount = Long.parseLong(word);
+                }
+                catch (NumberFormatException e) {
+                    editor.status("not a number: " + word);
+                    return;
+                }
             }
         }
         // Less than nothing is the other way.
+        final boolean down = subtract ^ amount < 0;
+        if (editor.getMark() != null) {
+            final Region region = new Region(editor);
+            editor.unmark();
+            final Changes changes = addOverLines(editor, region.getBegin(),
+                region.getEnd(), Math.abs(amount), down, progressive);
+            if (changes == null)
+                editor.status("no number in the selection");
+            return;
+        }
         final Change change = add(editor, dot.getLine(), dot.getOffset(), -1,
-                                  Math.abs(amount), subtract ^ amount < 0);
+                                  Math.abs(amount), down);
         if (change == null)
             editor.status("no number at or after the caret");
     }

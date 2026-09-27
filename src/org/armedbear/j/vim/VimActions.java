@@ -302,36 +302,13 @@ public final class VimActions
         editor.moveCaretToDotCol();
         final CompoundEdit edit = editor.getBuffer().beginCompoundEdit();
         try {
-            long amount = ctx.count;
-            NumberCommands.Change firstChange = null;
-            NumberCommands.Change lastChange = null;
-            Line firstLine = null;
-            Line lastLine = null;
-            for (Line line = first; line != null; line = line.next()) {
-                final boolean last = line == range.end.getLine();
-                final int from = line == first ? range.start.getOffset() : 0;
-                final int to = last ? range.end.getOffset() : line.length();
-                final NumberCommands.Change change =
-                    NumberCommands.add(editor, line, from, to, amount,
-                                       subtract);
-                if (change != null) {
-                    if (firstChange == null) {
-                        firstChange = change;
-                        firstLine = line;
-                    }
-                    lastChange = change;
-                    lastLine = line;
-                    if (ctx.arg("progressive"))
-                        amount += ctx.count;
-                }
-                if (last)
-                    break;
-            }
-            moveAfterEdit(editor, first, range.start.getOffset());
-            if (firstChange != null)
+            final NumberCommands.Changes changes = NumberCommands.addOverLines(
+                editor, range.start, range.end, ctx.count, subtract,
+                ctx.arg("progressive"));
+            if (changes != null)
                 ctx.state.getMarks().noteChange(editor.getBuffer(),
-                    new Position(firstLine, firstChange.start),
-                    new Position(lastLine, lastChange.last() + 1),
+                    new Position(changes.firstLine, changes.first.start),
+                    new Position(changes.lastLine, changes.last.last() + 1),
                     new Position(first, 0));
         }
         finally {

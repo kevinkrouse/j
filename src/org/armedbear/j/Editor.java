@@ -5280,6 +5280,40 @@ public final class Editor extends JPanel implements Constants,
             setFocusToTextField();
     }
 
+    /**
+     * {@code openFileInSplit FILE} -- splits the window and opens FILE in
+     * the top one, with the caret, as vim's {@code :split FILE}.
+     */
+    public void openFileInSplit(String file)
+    {
+        splitAndOpen(file, false);
+    }
+
+    /** {@code openFileInVsplit FILE} -- the same, side by side, on the left. */
+    public void openFileInVsplit(String file)
+    {
+        splitAndOpen(file, true);
+    }
+
+    private void splitAndOpen(String file, boolean vertical)
+    {
+        if (frame == null)
+            return;
+        if (vertical)
+            vsplitWindow("vim");
+        else
+            splitWindow("vim");
+        if (file == null || file.trim().isEmpty())
+            return;
+        // The caret is in the top or left window now.
+        final Editor top = currentEditor();
+        final Buffer opened = top.openFile(top.fileNamed(file.trim()));
+        if (opened != null) {
+            top.makeNext(opened);
+            top.switchToBuffer(opened);
+        }
+    }
+
     public void openFileInOtherWindow()
     {
       saveView();

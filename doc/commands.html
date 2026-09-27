@@ -354,6 +354,7 @@
     <li><a href="commands.html#findUnmatchedBracket">findUnmatchedBracket</a></li>
     <li><a href="commands.html#replaceChar">replaceChar</a></li>
     <li><a href="commands.html#incrementNumber">incrementNumber</a></li>
+    <li><a href="commands.html#openFileInSplit">openFileInSplit</a></li>
     <li><a href="commands.html#adjacentWindow">adjacentWindow</a></li>
     <li><a href="commands.html#balanceWindows">balanceWindows</a></li>
     <li><a href="commands.html#gotoWindow">gotoWindow</a></li>
@@ -3602,6 +3603,21 @@ bar of the current window.
 <br><br>
 </dl><!--<hr>-->
 
+<a name="openFileInSplit">openFileInSplit</a>, <a name="openFileInVsplit">openFileInVsplit</a><dl><dd>
+<p>
+Splits the window, top and bottom or side by side, and opens the file named by
+the command's argument in the top or left one, with the caret, as in
+<code>openFileInSplit README</code>. Unlike
+<a href="#openFileInOtherWindow">openFileInOtherWindow</a> it always makes a
+new window, and does not prompt.
+<br><br>
+<b>Default key mapping:</b> None
+<br><br>
+<b>See also:</b> <code>:sp FILE</code> and <code>:vs FILE</code> in
+<a href="editmodes.html">vim edit mode</a>, which are these.
+<br><br>
+</dl><!--<hr>-->
+
 <a name="openFileInOtherWindow">openFileInOtherWindow</a><dl><dd>
 <p>
 Same as <a href="#openFile">openFile</a>, but the specified file
@@ -4860,11 +4876,18 @@ its line, or takes it away: decimal, with a leading minus, <code>0x</code>
 hexadecimal and <code>0b</code> binary. The digits keep their width, so
 <code>0x10</code> less one is <code>0x0f</code>, and the caret ends on the
 number's last character.
+<p>
+With a selection, it adds to the first number on each of its lines instead,
+within the selection on its first and last lines, and leaves the caret at its
+start; with <code>progressive</code> as well, as in
+<code>incrementNumber 1 progressive</code>, each number after the first gets
+that much more than the one before, which numbers a list.
 <br><br>
 <b>Default key mapping:</b> None
 <br><br>
 <b>See also:</b> <code>Ctrl A</code> and <code>Ctrl X</code> in
-<a href="editmodes.html">vim edit mode</a>, which call the same code.
+<a href="editmodes.html">vim edit mode</a>, and <code>g Ctrl A</code> over a
+selection, which call the same code.
 <br><br>
 </dl><!--<hr>-->
 
