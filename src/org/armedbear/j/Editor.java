@@ -33,8 +33,6 @@ import java.awt.Toolkit;
 import java.awt.Dimension;
 import java.awt.Rectangle;
 import java.awt.Point;
-import java.awt.datatransfer.DataFlavor;
-import java.awt.datatransfer.Transferable;
 import java.awt.dnd.DropTarget;
 import java.awt.event.ComponentEvent;
 import java.awt.event.ComponentListener;
@@ -6435,15 +6433,7 @@ public final class Editor extends JPanel implements Constants,
             return false;
         if (killRing.size() > 0)
             return true;
-        String toBeInserted = null;
-        Transferable t = getToolkit().getSystemClipboard().getContents(this);
-        if (t != null) {
-            try {
-                toBeInserted = (String) t.getTransferData(DataFlavor.stringFlavor);
-            }
-            catch (Exception e) {}
-        }
-        return toBeInserted != null;
+        return KillRing.getText(KillRing.systemClipboard()) != null;
     }
 
     public void paste()
@@ -6451,20 +6441,11 @@ public final class Editor extends JPanel implements Constants,
         if (!checkReadOnly())
             return;
         setWaitCursor();
-        String toBeInserted = null;
-        Transferable t = getToolkit().getSystemClipboard().getContents(this);
-        if (t != null) {
-            try {
-                toBeInserted = (String) t.getTransferData(DataFlavor.stringFlavor);
-            }
-            catch (Exception e) {}
-        }
-        if (toBeInserted != null && toBeInserted.length() > 0)
-            killRing.appendNew(toBeInserted);
+        killRing.takeClipboard();
         // Even if we already have the text to be inserted, we MUST call
         // killRing.pop() here so that killRing.indexOfNextPop and
         // killRing.lastPaste are set correctly.
-        toBeInserted = killRing.pop();
+        final String toBeInserted = killRing.pop();
         if (toBeInserted != null) {
             paste(toBeInserted);
             setCurrentCommand(COMMAND_PASTE);

@@ -146,8 +146,14 @@ commands, counts, registers, marks and the dot command:
         the registers alone.</td></tr>
 <tr><td valign="top"><b>registers</b></td>
     <td><code>"a</code> through <code>"z</code> (upper case appends),
-        <code>"0</code>, <code>"1</code>-<code>"9</code>, <code>"-</code>,
-        <code>"_</code></td></tr>
+        which are j's own <a href="commands.html#saveToRegister">registers</a>
+        and so kept from one session to the next; the unnamed register and
+        <code>"1</code>-<code>"9</code>, which are j's
+        <a href="killring.html">kill ring</a>, newest first, so that a yank
+        is what j's paste pastes and a copy in j or another program is
+        what <code>p</code> puts; <code>"+</code>, the system clipboard, and
+        <code>"*</code>, the primary selection; and <code>"0</code>,
+        <code>"-</code>, <code>"_</code></td></tr>
 <tr><td valign="top"><b>marks</b></td>
     <td><code>m</code>, <code>`</code>, <code>'</code>,
         <code>]`</code>, <code>[`</code>, <code>]'</code>, <code>['</code>,
@@ -269,10 +275,14 @@ These are known and deliberate:
     <a href="indentation.html">indentSize</a> unless a vimrc sets
     <code>shiftwidth</code>, and the indent they produce follows j's
     <code>useTabs</code>.</li>
-<li>Registers are not shared with j's own
-    <a href="killring.html">kill ring</a> or its file-backed
-    <a href="commands.html">registers</a>. <code>"+</code> and <code>"*</code>
-    are not connected to the system clipboard yet.</li>
+<li>The numbered registers are j's kill ring, which every yank and delete
+    goes into, small ones too: after <code>x</code> or <code>yy</code>,
+    <code>"1</code> holds what it took, where vim keeps <code>"1</code> for
+    deletes of a line or more. Every yank and delete goes to the system
+    clipboard, as a copy in j does, as vim does with
+    <code>clipboard=unnamedplus</code>. A register j keeps as a file, or a
+    copy from another program, comes back as lines when it ends in a
+    newline; one vim took this session comes back as it was taken.</li>
 <li><code>{ } ( ) ]] [[</code> find paragraphs and sections by vim's
     default <code>paragraphs</code> and <code>sections</code> (the nroff
     macros, such as <code>.PP</code> and <code>.SH</code>); the two cannot

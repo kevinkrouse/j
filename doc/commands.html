@@ -636,6 +636,10 @@ Prompts for a register name and erases the contents of the specified register.
 Register names must be lower case letters (a-z). The contents of registers
 persist automatically from one j session to the next.
 <p>
+In <a href="editmodes.html">vim edit mode</a> the registers a to z are
+<code>"a</code> to <code>"z</code>: a yank there writes the register, and
+<code>"ap</code> puts it.
+<p>
 <b>Default key mapping:</b> None
 <p>
 <b>See also:</b>
@@ -1857,7 +1861,8 @@ option was specified.
 <p>
 Prompts for a tag (generally speaking, a tag is a function name) and moves the
 caret to the definition of the specified function. The current location of the
-caret is first saved on the marker stack as a temporary bookmark, so you can
+caret is first put on the
+jump list, so you can
 use <a href="#popPosition">popPosition</a>, mapped by default to Shift F5, to
 get back where you came from.
 <p>
@@ -1872,8 +1877,8 @@ get back where you came from.
 <a name="findTagAtDot">findTagAtDot</a><dl><dd>
 <p>
 Jumps to the definition of the function at the current location of the caret.
-The current location of the caret is first saved on the marker stack as a
-temporary bookmark, so you can use <a href="#popPosition">popPosition</a>,
+The current location of the caret is first put on the
+jump list, so you can use <a href="#popPosition">popPosition</a>,
 mapped by default to Shift F5, to get back where you came from.
 <p>
 <b>Default key mapping:</b> Alt . (Alt dot) in Java, C, C++, Lisp, Scheme and
@@ -3371,8 +3376,8 @@ mouse click in a List Occurrences buffer.
 <a name="mouseFindTag">mouseFindTag</a><dl><dd>
 <p>
 Jumps to the definition of the function at the location of the mouse click.
-The location of the mouse click is first saved on the marker stack as a
-temporary bookmark, so you can use <a href="#popPosition">popPosition</a>,
+The location of the mouse click is first put on the
+jump list, so you can use <a href="#popPosition">popPosition</a>,
 mapped by default to Shift F5, to get back where you came from.
 <p>
 <b>Default key mapping:</b> Mouse-2 in Java, C, C++, Lisp, Scheme and Perl modes
@@ -4356,8 +4361,8 @@ persist automatically from one j session to the next.
 
 <a name="selectAll">selectAll</a><dl><dd>
 <p>
-Selects the entire buffer. The current location of the caret is first saved on
-the marker stack as a temporary bookmark, so you can use
+Selects the entire buffer. The current location of the caret is first put on the
+jump list, so you can use
 <a href="#popPosition">popPosition</a>, mapped by default to Shift F5, to get
 back where you came from.
 <p>

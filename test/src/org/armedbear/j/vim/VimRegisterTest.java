@@ -147,7 +147,9 @@ public class VimRegisterTest
     {
         vim("alpha\n").cursor(0, 0).keys("x");
         assertEquals("a", reg(VimRegisters.SMALL_DELETE));
-        assertNull("a small delete leaves register 1 alone", reg('1'));
+        // The numbered registers are j's kill ring, which every unnamed
+        // yank and delete goes into; vim would leave "1 alone. Documented.
+        assertEquals("a", reg('1'));
     }
 
     @Test

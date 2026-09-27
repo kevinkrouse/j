@@ -92,7 +92,7 @@ is one key.
 | `VimMotions`, `MotionContext`, `MotionKind` | motions by table name; each resolves its kind at run time (`;` is inclusive or not by direction) |
 | `RangeNormalizer`, `VimRange` | motion + kind → the range an operator acts on (`:help exclusive`, the `w`-with-operator clip); a linewise range carries its last line (`VimRange.lines`) |
 | `VimOperators`, `VimActions`, `VimTextObjects`, `VimVisual` | the commands, by table name |
-| `VimRegisters`, `VimMarks` | in-memory registers typed charwise/linewise; marks on j `Marker`s, A to Z as j's bookmarks |
+| `VimRegisters`, `VimMarks` | registers on j's: files for `"a`-`"z`, the kill ring for the unnamed register and `"1`-`"9`, the clipboards for `"+ "*`; marks on j `Marker`s, A to Z as j's bookmarks |
 | `VimSearch`, `VimSearchPrompt`, `VimRegex` | `/ ? n N * #`; vim's pattern dialect translated for `java.util.regex` |
 | `VimEx`, `VimExPrompt`, `VimExCommands`, `VimExSubstitute`, `VimExSort` | the `:` line: parsing, ranges, commands |
 | `VimOptions`, `VimrcParser` | `:set` and the vimrc subset |
@@ -142,6 +142,10 @@ produced, all reachable from j's key maps and `executeCommand` too:
 - `NumberCommands.addOverLines` for visual `<C-a>` and `g<C-a>`, which
   j's `incrementNumber` uses over a selection; `openFileInSplit` and
   `openFileInVsplit` for `:sp FILE` and `:vs FILE`.
+- j's registers (`Registers`), kill ring and clipboards (`KillRing`) for
+  vim's registers: a register is its text, and how vim took it is
+  remembered for the texts vim wrote this session, and otherwise taken as
+  lines when the text ends in a newline.
 
 `CaretCommands.findCharacter` and `replaceChars` work in code points, so `f`,
 `t` and `r` take an emoji.
@@ -614,9 +618,10 @@ review before the next.
 | M21 | `hlsearch`, `:noh`, `:set` at the prompt; `incsearch`, `smartcase` on, `shareSearch`; `c` map, CTRL-G and CTRL-T | `462bcfedc` |
 | M22 | one last search for j and vim; highlighting and `clearSearchHighlight` in j | `28fb66223` |
 | M23 | jump list on j's `JumpList` (was the position stack); file marks as bookmarks | `5a012f6af` |
-| M24 | `incrementNumber` over a selection; `openFileInSplit`, `openFileInVsplit` | (uncommitted) |
+| M24 | `incrementNumber` over a selection; `openFileInSplit`, `openFileInVsplit` | `30f71e596` |
+| M25 | vim's registers on j's: register files, kill ring, clipboards | (uncommitted) |
 
-After M24: 987 tests, conformance 156 of 253 (155 ratcheted).
+After M25: 998 tests, conformance 156 of 253 (155 ratcheted).
 
 ### What the work learned
 

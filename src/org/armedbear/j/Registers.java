@@ -57,26 +57,38 @@ public final class Registers
         }
         if (!validateName(name))
             return;
-        Region r = new Region(editor);
-        String text = r.toString();
-        File file =
-            File.getInstance(Directories.getRegistersDirectory(), name);
-        if (file == null)
-            return; // Shouldn't happen.
-        try {
-            OutputStreamWriter writer =
-                new OutputStreamWriter(file.getOutputStream());
-            writer.write(text);
-            writer.flush();
-            writer.close();
-            ListRegistersBuffer buf = findListRegistersBuffer();
-            if (buf != null)
-                buf.reload();
+        if (setText(name, new Region(editor).toString()))
             editor.status("Region saved to register ".concat(name));
+    }
+
+    /**
+     * Puts text in a register, which is a file under the data directory, so
+     * it is there next session too; vim edit mode's "a to "z are these.
+     *
+     * @return false when it could not be written
+     */
+    public static final boolean setText(String name, String text)
+    {
+        final File dir = Directories.getRegistersDirectory();
+        if (dir == null)
+            return false;
+        if (!dir.isDirectory())
+            dir.mkdirs();
+        final File file = File.getInstance(dir, name);
+        if (file == null)
+            return false;
+        try (OutputStreamWriter writer =
+                 new OutputStreamWriter(file.getOutputStream())) {
+            writer.write(text);
         }
         catch (IOException e) {
             Log.error(e);
+            return false;
         }
+        final ListRegistersBuffer buf = findListRegistersBuffer();
+        if (buf != null)
+            buf.reload();
+        return true;
     }
 
     public static final void insertRegister()
@@ -232,9 +244,11 @@ public final class Registers
     // If maxLines > 0, return at most maxLines lines of text.
     public static final String getText(String name, int maxLines)
     {
-        File file =
-            File.getInstance(Directories.getRegistersDirectory(), name);
-        if (!file.isFile())
+        final File dir = Directories.getRegistersDirectory();
+        if (dir == null)
+            return null;
+        File file = File.getInstance(dir, name);
+        if (file == null || !file.isFile())
             return null;
         try (BufferedReader reader = new BufferedReader(
                  new InputStreamReader(file.getInputStream()))) {

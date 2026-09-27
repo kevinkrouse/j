@@ -36,6 +36,15 @@ public class Ring
         list = new ArrayList<String>(capacity);
     }
 
+    /** Forgets every entry. */
+    public synchronized void clear()
+    {
+        list.clear();
+        index = 0;
+        indexOfNextPop = -1;
+        lastPop = null;
+    }
+
     public synchronized final int size()
     {
         return list.size();

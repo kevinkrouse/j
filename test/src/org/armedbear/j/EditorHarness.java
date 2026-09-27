@@ -14,8 +14,13 @@ package org.armedbear.j;
 import static org.junit.Assert.assertEquals;
 
 import java.awt.GraphicsEnvironment;
+import java.awt.datatransfer.Clipboard;
 import java.awt.event.KeyEvent;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.util.Comparator;
 import java.util.List;
+import java.util.stream.Stream;
 
 import org.armedbear.j.mode.text.PlainTextMode;
 import org.armedbear.j.vim.KeyNotation;
@@ -62,6 +67,42 @@ public final class EditorHarness
      */
     public static final int DEFAULT_ROWS = 24;
 
+    /** j's directories for tests, made once and removed on exit. */
+    private static java.nio.file.Path scratchHome;
+
+    /**
+     * Points j's directories at the scratch home, again for each editor: a
+     * test of Directories points them elsewhere. Its registers start empty.
+     */
+    private static synchronized void useScratchHome()
+    {
+        try {
+            if (scratchHome == null) {
+                scratchHome = Files.createTempDirectory("j-harness-home");
+                final java.nio.file.Path home = scratchHome;
+                Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+                    try (Stream<java.nio.file.Path> paths = Files.walk(home)) {
+                        paths.sorted(Comparator.reverseOrder())
+                             .forEach(p -> p.toFile().delete());
+                    }
+                    catch (IOException e) {
+                        // Only a temporary directory left behind.
+                    }
+                }));
+            }
+            Directories.initialize(File.getInstance(scratchHome.toString()));
+            final java.io.File registers = new java.io.File(
+                Directories.getRegistersDirectory().getCanonicalPath());
+            final java.io.File[] files = registers.listFiles();
+            if (files != null)
+                for (java.io.File f : files)
+                    f.delete();
+        }
+        catch (IOException e) {
+            throw new IllegalStateException(e);
+        }
+    }
+
     /** An editor on an empty buffer. */
     public static EditorHarness create()
     {
@@ -96,6 +137,13 @@ public final class EditorHarness
         editor.setLastSearch(null);
         editor.setSearchHighlightHidden(false);
         JumpList.clear();
+        // So are its directories, its kill ring and the clipboards: a scratch
+        // home, so that a test never writes the user's registers, an empty
+        // ring, and clipboards of the harness's own, there being no display.
+        useScratchHome();
+        Editor.getKillRing().clear();
+        KillRing.useClipboards(new Clipboard("harness clipboard"),
+                               new Clipboard("harness selection"));
         for (char c = '0'; c <= '9'; c++)
             Editor.setBookmark(c, null);
         for (char c = 'A'; c <= 'Z'; c++)
