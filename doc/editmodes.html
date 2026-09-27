@@ -155,8 +155,12 @@ commands, counts, registers, marks and the dot command:
         <code>`.</code> (the last change), <code>`[</code> and
         <code>`]</code> (what it or the last yank covered), <code>`^</code>
         (where insert stopped), and <code>``</code> / <code>''</code> (before
-        the last jump). The jump list: <code>Ctrl O</code> back,
-        <code>Ctrl I</code> or <code>Tab</code> forward.</td></tr>
+        the last jump). The file marks, A to Z, are
+        j's <a href="commands.html#dropBookmark">bookmarks</a>, and
+        <code>`A</code> goes into the file one is in. The jump list is j's:
+        <code>Ctrl O</code> back, <code>Ctrl I</code> or <code>Tab</code>
+        forward, into other files too, over vim's jumps and j's own
+        (<a href="commands.html#jumpBack">jumpBack</a>).</td></tr>
 <tr><td valign="top"><b>other</b></td>
     <td><code>u</code>, <code>Ctrl R</code>, <code>.</code></td></tr>
 </table>
@@ -276,7 +280,8 @@ These are known and deliberate:
 <li><code>%</code> and <code>[( ]) [{ ]}</code> skip brackets in quotes line
     by line: a string continued onto the next line by a backslash at the end
     of one is not seen as a string, where vim skips the brackets in it.</li>
-<li>Marks are per editor rather than per buffer. A mark on a line
+<li>Marks <code>a</code> to <code>z</code> are per editor rather than per
+    buffer. A mark on a line
     <code>J</code> joins to the one above is lost; vim moves it with the
     text.</li>
 <li><code>.</code> after a visual command repeats it at the caret, rather
@@ -284,9 +289,10 @@ These are known and deliberate:
 <li><code>Ctrl R</code> (redo) leaves the caret where the edit left it; vim
     puts it back where the command was typed. The two agree for most
     commands, but not after <code>Ctrl A</code> or <code>p</code>.</li>
-<li>The jump list is per buffer: <code>Ctrl O</code> does not go back to
-    another file, and a jump from a line since deleted may be dropped, where
-    vim moves it to the line after the delete. And <code>u</code> leaves <code>`[</code> and
+<li>There is one jump list and one set of file marks for all of j, where
+    vim keeps a jump list for each window. A file mark on a deleted line
+    moves to the line after, as j's bookmarks do; vim forgets it. And
+    <code>u</code> leaves <code>`[</code> and
     <code>`]</code> where they were, where vim moves them to what it
     restored. After <code>J</code>, <code>`.</code> is where the join was,
     and after <code>:m</code> the first line moved; vim puts it on the next

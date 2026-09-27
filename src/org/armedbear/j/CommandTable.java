@@ -346,6 +346,8 @@ public class CommandTable
             addCommand("incrementNumber", "NumberCommands");
             addCommand("insertRegister", "Registers");
             addCommand("jdkHelp", "JDKHelp");
+            addCommand("jumpBack", "JumpList");
+            addCommand("jumpForward", "JumpList");
             addCommand("jumpToColumn", "JumpCommands");
             addCommand("jumpToLine", "JumpCommands");
             addCommand("jumpToOffset", "JumpCommands");

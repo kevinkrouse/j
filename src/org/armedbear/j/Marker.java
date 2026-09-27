@@ -21,7 +21,6 @@
 package org.armedbear.j;
 
 import java.util.ArrayList;
-import java.util.Deque;
 import java.util.List;
 
 public final class Marker implements Constants
@@ -257,16 +256,14 @@ public final class Marker implements Constants
   public static List<Marker> getAllMarkers()
   {
     Marker[] bookmarks = Editor.getBookmarks();
-    Deque<Marker> positionStack = Editor.getPositionStack();
-    ArrayList<Marker> list = new ArrayList<Marker>(bookmarks.length + positionStack.size());
+    List<Marker> jumps = JumpList.getEntries();
+    ArrayList<Marker> list = new ArrayList<Marker>(bookmarks.length + jumps.size());
     for (int i = bookmarks.length; i-- > 0;) {
       Marker m = bookmarks[i];
       if (m != null)
         list.add(m);
     }
-    // Newest first, which is the order the stack iterates in.
-    for (Marker m : positionStack)
-      list.add(m);
+    list.addAll(jumps);
     return list;
   }
 }

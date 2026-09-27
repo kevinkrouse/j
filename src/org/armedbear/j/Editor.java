@@ -59,8 +59,6 @@ import java.util.Date;
 import java.util.Map;
 import java.util.HashMap;
 import java.util.List;
-import java.util.ArrayDeque;
-import java.util.Deque;
 import java.util.ArrayList;
 import java.util.List;
 import javax.swing.Box;
@@ -289,7 +287,11 @@ public final class Editor extends JPanel implements Constants,
         lastCommand = command;
     }
 
-    private static Marker[] bookmarks = new Marker[11];
+    /**
+     * Bookmarks by name: 0 to 9 at 0 to 9, the temporary marker at 10, and
+     * A to Z after it, which are vim's file marks.
+     */
+    private static Marker[] bookmarks = new Marker[11 + 26];
 
     private static TagFileManager tagFileManager;
 
@@ -1397,34 +1399,79 @@ public final class Editor extends JPanel implements Constants,
         return bookmarks;
     }
 
+    /** Where a bookmark's name is kept, or -1 for a name that is not one. */
+    private static int bookmarkIndex(char name)
+    {
+        if (name >= '0' && name <= '9')
+            return name - '0';
+        if (name >= 'A' && name <= 'Z')
+            return 11 + name - 'A';
+        return -1;
+    }
+
+    /** A bookmark by name, 0 to 9 or A to Z, or null. */
+    public static Marker getBookmark(char name)
+    {
+        final int index = bookmarkIndex(name);
+        return index < 0 ? null : bookmarks[index];
+    }
+
+    /** Sets a bookmark by name, or with null forgets it. */
+    public static void setBookmark(char name, Marker marker)
+    {
+        final int index = bookmarkIndex(name);
+        if (index >= 0)
+            bookmarks[index] = marker;
+    }
+
+    /** The digit key that ran the command, as the default bindings name it. */
+    private String bookmarkKey()
+    {
+        final AWTEvent e = dispatcher.getLastEvent();
+        if (e == null || e.getID() != KeyEvent.KEY_PRESSED)
+            return null;
+        final int digit = ((KeyEvent) e).getKeyCode() - KeyEvent.VK_0;
+        return digit >= 0 && digit <= 9 ? String.valueOf(digit) : null;
+    }
+
+    /** {@code dropBookmark} -- by the digit key it is bound to. */
     public void dropBookmark()
     {
-        AWTEvent e = dispatcher.getLastEvent();
-        if (e != null && e.getID() == KeyEvent.KEY_PRESSED) {
-            int keyCode = ((KeyEvent)e).getKeyCode();
-            int index = keyCode - KeyEvent.VK_0;
-            if (index >= 0 && index < bookmarks.length) {
-                if (bookmarks[index] == null ||
-                    confirm("Drop Bookmark", "Overwrite existing bookmark?")) {
-                    bookmarks[index] = new Marker(buffer, dot);
-                    status("Bookmark dropped");
-                }
-            }
+        dropBookmark(bookmarkKey());
+    }
+
+    /**
+     * {@code dropBookmark NAME} -- a bookmark here, named 0 to 9 or A to Z,
+     * asking before one already set is replaced.
+     */
+    public void dropBookmark(String name)
+    {
+        if (name == null || name.trim().length() != 1
+            || bookmarkIndex(name.trim().charAt(0)) < 0) {
+            status("A bookmark is named 0 to 9 or A to Z");
+            return;
+        }
+        final char c = name.trim().charAt(0);
+        if (getBookmark(c) == null
+            || confirm("Drop Bookmark", "Overwrite existing bookmark?")) {
+            setBookmark(c, new Marker(buffer, dot));
+            status("Bookmark dropped");
         }
     }
 
+    /** {@code gotoBookmark} -- by the digit key it is bound to. */
     public void gotoBookmark()
     {
-        AWTEvent e = dispatcher.getLastEvent();
-        if (e != null && e.getID() == KeyEvent.KEY_PRESSED) {
-            int keyCode = ((KeyEvent)e).getKeyCode();
-            int index = keyCode - KeyEvent.VK_0;
-            if (index >= 0 && index < bookmarks.length) {
-                Marker m = bookmarks[index];
-                if (m != null)
-                    m.gotoMarker(this);
-            }
-        }
+        gotoBookmark(bookmarkKey());
+    }
+
+    /** {@code gotoBookmark NAME} -- to a bookmark, in whatever file it is. */
+    public void gotoBookmark(String name)
+    {
+        final Marker m = name == null || name.trim().length() != 1 ? null
+            : getBookmark(name.trim().charAt(0));
+        if (m != null)
+            m.gotoMarker(this);
     }
 
     // Drop a temporary bookmark, overwriting the existing temporary bookmark
@@ -3987,8 +4034,10 @@ public final class Editor extends JPanel implements Constants,
 
     public void bob()
     {
-        if (buffer.getFirstLine() != null)
+        if (buffer.getFirstLine() != null) {
+            recordJump();
             moveDotTo(buffer.getFirstLine(), 0);
+        }
     }
 
     public void selectBob()
@@ -4012,6 +4061,7 @@ public final class Editor extends JPanel implements Constants,
 
     public void eob()
     {
+        recordJump();
         moveDotTo(getEob());
     }
 
@@ -4419,7 +4469,7 @@ public final class Editor extends JPanel implements Constants,
     {
         if (dot == null)
             return;
-        pushPosition();
+        recordJump();
         addUndo(SimpleEdit.MOVE);
         unmark();
         Line line = buffer.getFirstLine();
@@ -5659,6 +5709,7 @@ public final class Editor extends JPanel implements Constants,
             Position pos = search.find(buffer, start);
             setDefaultCursor();
             if (pos != null) {
+                recordJump();
                 moveDotTo(pos);
                 markFoundPattern(search);
                 if (search instanceof FindInFiles) {
@@ -5703,6 +5754,7 @@ public final class Editor extends JPanel implements Constants,
             Position pos = search.reverseFind(buffer, start);
             setDefaultCursor();
             if (pos != null) {
+                recordJump();
                 moveDotTo(pos);
                 markFoundPattern(search);
                 if (search instanceof FindInFiles) {
@@ -5873,6 +5925,7 @@ public final class Editor extends JPanel implements Constants,
                 pos = search.find(buffer.getMode(), pos);
         }
         if (pos != null && !pos.equals(start)) {
+            recordJump();
             moveDotTo(pos);
             markFoundPattern(search);
         } else
@@ -5908,6 +5961,7 @@ public final class Editor extends JPanel implements Constants,
             }
             if (pos != null) {
                 found = true;
+                recordJump();
                 moveDotTo(pos);
                 markFoundPattern(search);
             }
@@ -7046,6 +7100,7 @@ public final class Editor extends JPanel implements Constants,
     {
         Line line = buffer.getLine(lineNumber);
         if (line != null) {
+            recordJump();
             if (offset < 0)
                 offset = 0;
             else if (offset > line.length())
@@ -8883,41 +8938,24 @@ public final class Editor extends JPanel implements Constants,
         }
     }
 
-    // Position stack, newest first, capped at POSITION_STACK_SIZE.
-    private static final int POSITION_STACK_SIZE = 30;
-    private static Deque<Marker> positionStack = new ArrayDeque<Marker>();
-
-    /** Newest position first. */
-    public static Deque<Marker> getPositionStack()
+    /** A jump is leaving the caret's position: onto the {@link JumpList}. */
+    public void recordJump()
     {
-        return positionStack;
+        if (dot != null)
+            JumpList.record(buffer, dot);
     }
 
+    /** {@code pushPosition} -- puts the caret's position on the jump list. */
     public void pushPosition()
     {
-        pushMarker(new Marker(buffer, dot));
+        recordJump();
         status("Position saved");
     }
 
+    /** {@code popPosition} -- back along the jump list, as jumpBack. */
     public void popPosition()
     {
-        if (positionStack.isEmpty()) {
-            status("Position stack is empty");
-        } else {
-            Marker m = positionStack.pop();
-            if (m != null)
-                m.gotoMarker(this);
-        }
-    }
-
-    public static void pushMarker(Marker m)
-    {
-        if (m == null)
-            return;
-        // Drop from the far end -- the oldest position -- to make room.
-        while (positionStack.size() >= POSITION_STACK_SIZE)
-            positionStack.removeLast();
-        positionStack.push(m);
+        JumpList.jumpBack();
     }
 
     public static void resetDisplay()

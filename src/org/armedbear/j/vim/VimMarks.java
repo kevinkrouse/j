@@ -17,6 +17,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.armedbear.j.Buffer;
+import org.armedbear.j.Editor;
 import org.armedbear.j.Line;
 import org.armedbear.j.Marker;
 import org.armedbear.j.Position;
@@ -30,6 +31,10 @@ import org.armedbear.j.Position;
  * -- so a mark on a deleted line is gone, which is what vim does with a named
  * mark. So is one on a line J joins to the one above, which vim moves along
  * with the text.
+ *
+ * <p>A to Z, vim's file marks, are j's bookmarks
+ * ({@link Editor#getBookmark}): one set for every window, in any file, and
+ * moved by edits as j's bookmarks are.
  */
 public final class VimMarks
 {
@@ -42,9 +47,24 @@ public final class VimMarks
         return (name >= 'a' && name <= 'z') || (name >= 'A' && name <= 'Z');
     }
 
+    /** A to Z: a file mark, one of j's bookmarks. */
+    public static boolean isFileMark(char name)
+    {
+        return name >= 'A' && name <= 'Z';
+    }
+
     public void set(char name, Buffer buffer, Position pos)
     {
-        marks.put(Character.valueOf(name), new Marker(buffer, pos));
+        if (isFileMark(name))
+            Editor.setBookmark(name, new Marker(buffer, pos));
+        else
+            marks.put(Character.valueOf(name), new Marker(buffer, pos));
+    }
+
+    /** A file mark, wherever it is, or null if it is not set. */
+    public static Marker getFileMark(char name)
+    {
+        return isFileMark(name) ? Editor.getBookmark(name) : null;
     }
 
     /**
@@ -94,7 +114,8 @@ public final class VimMarks
      */
     public Position get(char name, Buffer buffer)
     {
-        final Marker marker = marks.get(Character.valueOf(name));
+        final Marker marker = isFileMark(name) ? Editor.getBookmark(name)
+            : marks.get(Character.valueOf(name));
         if (marker == null || marker.getBuffer() != buffer)
             return null;
         // A mark on a deleted line went with it, as in vim.
@@ -105,7 +126,10 @@ public final class VimMarks
     /** Forgets one mark, for {@code :delmarks}. */
     public void remove(char name)
     {
-        marks.remove(Character.valueOf(name));
+        if (isFileMark(name))
+            Editor.setBookmark(name, null);
+        else
+            marks.remove(Character.valueOf(name));
     }
 
     public void clear()

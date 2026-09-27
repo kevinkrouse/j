@@ -25,6 +25,7 @@ import org.armedbear.j.Debug;
 import org.armedbear.j.Editor;
 import java.lang.StringBuilder;
 import org.armedbear.j.GlobalTag;
+import org.armedbear.j.JumpList;
 import org.armedbear.j.Line;
 import org.armedbear.j.Log;
 import org.armedbear.j.Marker;
@@ -131,7 +132,7 @@ public final class ListTagsBuffer extends Buffer
         if (ed == null)
             ed = editor;
         if (marker != null)
-            ed.pushMarker(marker);
+            JumpList.record(marker);
         tag.gotoTag(ed);
         if (killList) {
             Editor otherEditor = ed.getOtherEditor();

@@ -11,16 +11,16 @@
 
 package org.armedbear.j.vim;
 
-import java.util.HashMap;
 import java.util.Locale;
-import java.util.Map;
 
 import javax.swing.undo.CompoundEdit;
 
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Constants;
 import org.armedbear.j.Editor;
+import org.armedbear.j.JumpList;
 import org.armedbear.j.Line;
+import org.armedbear.j.Marker;
 import org.armedbear.j.Position;
 import org.armedbear.j.Search;
 
@@ -542,32 +542,16 @@ public final class VimState
 
     private final VimMarks marks = new VimMarks();
 
-    /** Jump lists, one per buffer. */
-    private final Map<Buffer, VimJumps> jumps = new HashMap<Buffer, VimJumps>();
-
-    private VimJumps jumpsFor(Buffer buffer)
-    {
-        // A list holds its buffer, so a closed buffer's goes here, not by
-        // weak reference.
-        jumps.keySet().removeIf(
-            b -> b != buffer && !Editor.getBufferList().contains(b));
-        VimJumps list = jumps.get(buffer);
-        if (list == null) {
-            list = new VimJumps(buffer);
-            jumps.put(buffer, list);
-        }
-        return list;
-    }
-
     /**
-     * A jump is leaving from: onto the jump list, and the previous context
-     * mark, which '' and `` go back to.
+     * A jump is leaving from: onto j's {@link JumpList}, which CTRL-O and
+     * CTRL-I travel, and the previous context mark, which '' and `` go
+     * back to.
      */
     public void jumped(Editor editor, Position from)
     {
         if (jumpsHeld > 0)
             return;
-        jumpsFor(editor.getBuffer()).push(from);
+        JumpList.record(editor.getBuffer(), from);
         marks.set('\'', editor.getBuffer(), from);
     }
 
@@ -580,17 +564,24 @@ public final class VimState
     }
 
     /**
-     * CTRL-O and CTRL-I: the jump count entries away, or null. Leaving the
-     * end of the list is a jump of its own, so '' comes back.
+     * CTRL-O and CTRL-I: to the jump count entries away, which may be in
+     * another buffer. Leaving the end of the list is a jump of its own, so
+     * '' comes back.
      */
-    public Position travel(Editor editor, Position from, int count)
+    public void travel(Editor editor, int count)
     {
-        final VimJumps list = jumpsFor(editor.getBuffer());
-        final boolean leaving = list.isAtEnd();
-        final Position to = list.travel(from, count);
-        if (to != null && leaving)
-            marks.set('\'', editor.getBuffer(), from);
-        return to;
+        final Position from = editor.getDot();
+        if (from == null)
+            return;
+        final Buffer buffer = editor.getBuffer();
+        final boolean leaving = JumpList.isAtEnd();
+        final Marker to = JumpList.travel(buffer, from, count);
+        if (to == null)
+            return;
+        if (leaving)
+            marks.set('\'', buffer, from);
+        to.gotoMarker(editor);
+        clampCaret(editor);
     }
 
     public VimMarks getMarks()

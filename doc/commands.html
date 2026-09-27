@@ -172,6 +172,7 @@
     <li><a href="commands.html#jdkHelp">jdkHelp</a></li>
     <li><a href="commands.html#jlisp">jlisp</a></li>
     <li><a href="commands.html#jmips">jmips</a></li>
+    <li><a href="commands.html#jumpBack">jumpBack</a></li>
     <li><a href="commands.html#jumpToColumn">jumpToColumn</a></li>
     <li><a href="commands.html#jumpToLine">jumpToLine</a></li>
     <li><a href="commands.html#jumpToOffset">jumpToOffset</a></li>
@@ -1344,8 +1345,10 @@ default, <code>dropBookmark</code> is mapped to the ten keystrokes Alt 0 through
 9, and <code>gotoBookmark</code> is mapped by default to the ten keystrokes Ctrl 0
 through Ctrl 9. When you drop a bookmark with Alt n, you can return to it with
 Ctrl n. It's possible to unmap these keystrokes or map other commands to them,
-but the current implementation of <code>dropBookmark</code> and <code>gotoBookmark</code>
-only works with these key mappings.
+but without an argument <code>dropBookmark</code> and <code>gotoBookmark</code>
+only work with these key mappings. With one, as in <code>dropBookmark A</code>,
+they take the bookmark's name: 0 to 9, or A to Z, which are the file marks of
+<a href="editmodes.html">vim edit mode</a>.
 <br><br>
 You can still return to a bookmark even if the buffer it refers to has been
 closed (in that case the buffer will be re-opened in the current frame), but
@@ -1973,8 +1976,9 @@ Returns to a previously dropped numbered bookmark. By default,
 <code>gotoBookmark</code> is mapped by default to the ten keystrokes Ctrl 0 through
 Ctrl 9. When you drop a bookmark with Alt n, you can return to it with Ctrl n.
 It's possible to unmap these keystrokes or map other commands to them, but the
-current implementation of <code>dropBookmark</code> and <code>gotoBookmark</code> only
-works with these key mappings.
+without an argument <code>dropBookmark</code> and <code>gotoBookmark</code> only
+work with these key mappings. With one, as in <code>gotoBookmark A</code>,
+they take the bookmark's name: 0 to 9, or A to Z.
 <p>
 You can still return to a bookmark even if the buffer it refers to has been
 closed (in that case the buffer will be re-opened in the current frame), but
@@ -2533,6 +2537,25 @@ The first measurement in a given session may be wildly inaccurate, since some
 just-in-time compilers wait to compile a method until the second time it is called.
 <p>
 <b>Default key mapping:</b> None
+<br><br>
+</dl><!--<hr>-->
+
+<a name="jumpBack">jumpBack</a>, <a name="jumpForward">jumpForward</a><dl><dd>
+<p>
+Back along the jump list to where the caret was before the last jump, or
+forward again. A jump is a move that goes somewhere else in one step:
+<a href="#jumpToLine">jumpToLine</a>, <a href="#bob">bob</a> and
+<a href="#eob">eob</a>, <a href="#findNext">findNext</a> and the other finds,
+<a href="#findTag">findTag</a>, <a href="#pushPosition">pushPosition</a>, and
+in <a href="editmodes.html">vim edit mode</a> vim's jumps. The list keeps one
+place a line, the latest, and goes into other files, opening one again that
+was closed since. Going back from the newest jump remembers where the caret
+is, so <code>jumpForward</code> comes back to it.
+<br><br>
+<b>Default key mapping:</b> None
+<br><br>
+<b>See also:</b> <code>Ctrl O</code> and <code>Ctrl I</code> in
+<a href="editmodes.html">vim edit mode</a>, which are these.
 <br><br>
 </dl><!--<hr>-->
 
@@ -3836,7 +3859,9 @@ Plays back previously recorded keystrokes.
 
 <a name="popPosition">popPosition</a><dl><dd>
 <p>
-Pops the last position off the marker stack and jumps to that location.
+Goes back to where the caret was before the last jump, as
+<a href="#jumpBack">jumpBack</a> does: the position stays on the jump list, so
+<a href="#jumpForward">jumpForward</a> comes back.
 <br><br>
 <b>Default key mapping:</b> Shift F5
 <br><br>
@@ -3939,7 +3964,9 @@ buffer-specific settings such as tab width, indent size, and mode.
 
 <a name="pushPosition">pushPosition</a><dl><dd>
 <p>
-Saves the current location of the caret on the marker stack as a temporary bookmark.
+Puts the location of the caret on the jump list, for
+<a href="#popPosition">popPosition</a> or <a href="#jumpBack">jumpBack</a> to
+come back to.
 <br><br>
 <b>Default key mapping:</b> F5
 <br><br>

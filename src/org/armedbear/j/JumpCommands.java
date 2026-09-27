@@ -77,6 +77,7 @@ public final class JumpCommands implements Constants
             int offset = parseNumericInput(response, here);
             Position pos = buffer.getPosition(offset);
             if (pos != null) {
+                editor.recordJump();
                 editor.moveDotTo(pos);
                 return;
             }

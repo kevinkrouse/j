@@ -100,7 +100,7 @@ public final class TagCommands implements Constants
         if (tags.size() == 1) {
             // One match.
             Tag tag = tags.get(0);
-            editor.pushPosition();
+            editor.recordJump();
             if (tag instanceof LocalTag)
                 gotoLocalTag(editor, (LocalTag)tag, useOtherWindow);
             else if (tag instanceof GlobalTag)

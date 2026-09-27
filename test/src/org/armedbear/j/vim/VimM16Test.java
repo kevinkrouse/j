@@ -330,15 +330,13 @@ public class VimM16Test
     }
 
     @Test
-    public void aJumpFromADeletedLineMovesOrGoes()
+    public void aJumpFromADeletedLineMovesOn()
     {
-        // The first line a delete takes keeps its Line, holding the text of
-        // the one after, so a jump there moves on as it does in nvim.
+        // A jump from a deleted line moves to the line after the delete, as
+        // in nvim: the jump list is j's markers, which follow their text.
         assertEquals("7,0 4,0 0,0",
                      jumps(TEN, "5G10Gk:5d<CR>jj<C-o>", "<C-o>", "<C-o>"));
-        // Any other is dropped: nvim moves this one too, 6,0 3,0 0,0.
-        // Documented.
-        assertEquals("6,0 0,0 0,0",
+        assertEquals("6,0 3,0 0,0",
                      jumps(TEN, "5G10Gk:4,5d<CR>jj<C-o>", "<C-o>", "<C-o>"));
     }
 

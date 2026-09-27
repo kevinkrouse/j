@@ -17,6 +17,7 @@ import java.util.Map;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.CaretCommands;
 import org.armedbear.j.Line;
+import org.armedbear.j.Marker;
 import org.armedbear.j.Mode;
 import org.armedbear.j.Paragraphs;
 import org.armedbear.j.Words;
@@ -87,7 +88,6 @@ public final class VimMotions
         register("moveToUnmatched", VimMotions::moveToUnmatched);
         register("goToMark", VimMotions::goToMark);
         register("jumpToMark", VimMotions::jumpToMark);
-        register("travelJumps", VimMotions::travelJumps);
         register("moveToScreenLine", VimMotions::moveToScreenLine);
         register("moveToMatchingBracket", VimMotions::moveToMatchingBracket);
         register("repeatSearch", VimMotions::repeatSearch);
@@ -380,21 +380,35 @@ public final class VimMotions
         // `` and '' are one mark.
         final Position mark = ctx.state.getMarks().get(
             name == '`' ? '\'' : name, ctx.editor.getBuffer());
-        if (mark == null)
+        if (mark == null) {
+            goToFileMarkElsewhere(ctx, from, name);
             return null;
+        }
         return ctx.arg("linewise")
             ? at(mark.getLine(), firstNonBlank(mark.getLine()))
             : at(mark.getLine(), mark.getOffset());
     }
 
     /**
-     * CTRL-O and CTRL-I -- back and forward along the jump list, count
-     * entries at a time.
+     * `A in another file: there, as a jump. Not a motion that returns where
+     * it goes, which has to be in this buffer, and not under an operator,
+     * which vim refuses across files too.
      */
-    private static Position travelJumps(MotionContext ctx, Position from)
+    private static void goToFileMarkElsewhere(MotionContext ctx, Position from,
+                                              char name)
     {
-        final int step = ctx.arg("forward") ? ctx.count : -ctx.count;
-        return ctx.state.travel(ctx.editor, from, step);
+        final Marker marker = VimMarks.getFileMark(name);
+        if (marker == null || ctx.forOperator
+            || marker.getBuffer() == ctx.editor.getBuffer())
+            return;
+        ctx.state.jumped(ctx.editor, from);
+        marker.gotoMarker(ctx.editor);
+        final Position dot = ctx.editor.getDot();
+        if (dot != null && ctx.arg("linewise")) {
+            ctx.editor.setDot(dot.getLine(), firstNonBlank(dot.getLine()));
+            ctx.editor.moveCaretToDotCol();
+        }
+        ctx.state.clampCaret(ctx.editor);
     }
 
     /**

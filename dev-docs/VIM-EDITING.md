@@ -92,7 +92,7 @@ is one key.
 | `VimMotions`, `MotionContext`, `MotionKind` | motions by table name; each resolves its kind at run time (`;` is inclusive or not by direction) |
 | `RangeNormalizer`, `VimRange` | motion + kind → the range an operator acts on (`:help exclusive`, the `w`-with-operator clip); a linewise range carries its last line (`VimRange.lines`) |
 | `VimOperators`, `VimActions`, `VimTextObjects`, `VimVisual` | the commands, by table name |
-| `VimRegisters`, `VimMarks`, `VimJumps` | in-memory registers typed charwise/linewise; marks on j `Marker`s; one buffer's jump list |
+| `VimRegisters`, `VimMarks` | in-memory registers typed charwise/linewise; marks on j `Marker`s, A to Z as j's bookmarks |
 | `VimSearch`, `VimSearchPrompt`, `VimRegex` | `/ ? n N * #`; vim's pattern dialect translated for `java.util.regex` |
 | `VimEx`, `VimExPrompt`, `VimExCommands`, `VimExSubstitute`, `VimExSort` | the `:` line: parsing, ranges, commands |
 | `VimOptions`, `VimrcParser` | `:set` and the vimrc subset |
@@ -135,6 +135,10 @@ produced, all reachable from j's key maps and `executeCommand` too:
   `findMatchInternal`'s scan from a caret rather than a bracket, for
   `[( ]) [{ ]}`. Each is a j command too (`forwardParagraph`,
   `forwardSection`, `forwardSentence`, `findUnmatchedBracket`).
+- j's last search (`Editor.getLastSearch`) for `/ n * #`, and its
+  highlighting and `clearSearchHighlight` for `hlsearch` and `:noh`;
+- j's `JumpList` for `<C-o> <C-i>`, and its bookmarks for the file marks
+  `A`-`Z`.
 
 `CaretCommands.findCharacter` and `replaceChars` work in code points, so `f`,
 `t` and `r` take an emoji.
@@ -232,15 +236,23 @@ and `'.` for a change), and an ex command with `noteLines`. The insert session
 notes where typing began at its first key -- by line number, moved to the join
 when a Backspace joins that line to the one before -- and Escape sets
 `'[ '] '^ '.` from it (`markInsertStop`). A mark whose line was deleted is
-gone, as in vim. `]`` and `[`` walk the lowercase marks only.
+gone, as in vim. `]`` and `[`` walk the lowercase marks only. A to Z, vim's
+file marks, are j's bookmarks (`Editor.getBookmark`): one set for all of j,
+in any file, moved by edits as bookmarks are; `` `A `` into another file is
+a jump that switches buffers itself (`goToFileMarkElsewhere`), since a
+motion can only return a place in this one.
 
 A row with `jump` in its args is one of vim's jumps; `runMotion` records the
 position it leaves (`VimState.jumped`) after working out where it goes, since
 `''` goes to the jump *before* this one. `/`, `:N` and `:s` record theirs
 themselves, and `:g` holds jumps while its commands run and records one. A
-motion under an operator records none, as in vim. `VimJumps` is one buffer's
-list, vim's rules without its travel between files: one entry per line, the
-newest kept; the first `<C-o>` after a jump lists where it was typed.
+motion under an operator records none, as in vim. The list is j's own
+(`JumpList`, which `jumpBack`, `jumpForward`, `pushPosition` and
+`popPosition` use, and j's go-to-line, `bob`, `eob`, finds and tags record
+into): vim's rules -- one entry a line, the newest kept; the first `<C-o>`
+after a jump lists where it was typed -- on j `Marker`s, which follow their
+text through edits and cross files. So `<C-o>` is an action, not a motion:
+it may land in another buffer. One list for all of j, not one a window.
 
 ### Search and the `:` line
 
@@ -597,9 +609,10 @@ review before the next.
 | — | review fixes: `visualPut`'s delete, the `J` mark divergence | `30f790a4d` |
 | M20 | `]] [[ ][ []`, `( )`, `[( ]) [{ ]}`; `{ }` on vim's findpar | `0a337b057` |
 | M21 | `hlsearch`, `:noh`, `:set` at the prompt; `incsearch`, `smartcase` on, `shareSearch`; `c` map, CTRL-G and CTRL-T | `462bcfedc` |
-| M22 | one last search for j and vim; highlighting and `clearSearchHighlight` in j | (uncommitted) |
+| M22 | one last search for j and vim; highlighting and `clearSearchHighlight` in j | `28fb66223` |
+| M23 | jump list on j's `JumpList` (was the position stack); file marks as bookmarks | (uncommitted) |
 
-After M22: 969 tests, conformance 156 of 253 (155 ratcheted).
+After M23: 982 tests, conformance 156 of 253 (155 ratcheted).
 
 ### What the work learned
 

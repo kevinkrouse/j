@@ -80,6 +80,7 @@ public final class VimActions
         register("visualReplace", VimActions::visualReplace);
         register("visualPut", VimActions::visualPut);
         register("switchWindow", VimActions::switchWindow);
+        register("travelJumps", VimActions::travelJumps);
         register("incsearchStep",
                  ctx -> ctx.handler.searchStep(ctx.editor, ctx.arg("forward")));
         register("closeWindow", ctx -> VimExCommands.closeWindow(
@@ -242,6 +243,16 @@ public final class VimActions
             editor.deleteRegion(new Position(line, to), new Position(dot));
         }
         state.insertDeletedBack(editor);
+    }
+
+    /**
+     * CTRL-O and CTRL-I -- back and forward along j's jump list, count
+     * entries at a time, into another buffer if that is where it goes.
+     */
+    private static void travelJumps(MotionContext ctx)
+    {
+        ctx.state.travel(ctx.editor,
+                         ctx.arg("forward") ? ctx.count : -ctx.count);
     }
 
     /**

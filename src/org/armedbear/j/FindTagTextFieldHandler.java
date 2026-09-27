@@ -98,7 +98,7 @@ public final class FindTagTextFieldHandler extends DefaultTextFieldHandler
             } else if (tags.size() == 1) {
                 // Exactly one match.
                 Tag tag = tags.get(0);
-                editor.pushPosition();
+                editor.recordJump();
                 if (tag instanceof LocalTag)
                     TagCommands.gotoLocalTag(editor, (LocalTag) tag, false);
                 else if (tag instanceof GlobalTag)

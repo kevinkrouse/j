@@ -91,10 +91,15 @@ public final class EditorHarness
 
         final Editor editor = new Editor();
         editor.setBufferDirectly(buffer);
-        // j's last find pattern is every window's, so one test's would
-        // otherwise reach the next.
+        // j's last find pattern, jump list and bookmarks are every window's,
+        // so one test's would otherwise reach the next.
         editor.setLastSearch(null);
         editor.setSearchHighlightHidden(false);
+        JumpList.clear();
+        for (char c = '0'; c <= '9'; c++)
+            Editor.setBookmark(c, null);
+        for (char c = 'A'; c <= 'Z'; c++)
+            Editor.setBookmark(c, null);
         editor.getDisplay().initialize();
         Editor.setCurrentEditor(editor);
 
