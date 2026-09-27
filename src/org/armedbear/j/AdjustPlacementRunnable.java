@@ -45,6 +45,11 @@ public final class AdjustPlacementRunnable implements Runnable
             // Must call setDisplayReady(true) before calling reframe().
             Editor.setDisplayReady(true);
             editor.reframe();
+            // A paint before now drew only the background, and reframe
+            // repaints nothing when the window is already where it should
+            // be: the restored file stayed blank until something moved.
+            for (EditorIterator it = new EditorIterator(); it.hasNext();)
+                it.next().repaintDisplay();
             if (editor.getBuffer().isBusy())
                 editor.setWaitCursor();
             else

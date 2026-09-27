@@ -508,6 +508,15 @@ Each of these has bitten at least once. Read them before editing.
     then deletes nothing, and `c]]` sometimes inserts and sometimes loses
     what is typed, depending on the buffer's history. j takes the motion as
     empty. Do not chase such cases.
+33. **A paint before `Editor.displayReady()` draws only the background**,
+    and `AdjustPlacementRunnable`, which sets it at startup, then called
+    only `reframe` -- which repaints nothing when the window is already at
+    the restored top line. So the file a session reopened stayed blank
+    until something moved, depending on which came first: one start in
+    three at M18, every start after M19 on Kevin's session. It now
+    repaints every window once the flag is set. Found by starting j with a
+    copy of the real config and session under Xvfb; the screenshot tool's
+    `--no-session` start never showed it.
 
 ## History
 
