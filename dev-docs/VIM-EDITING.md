@@ -84,7 +84,7 @@ is one key.
 |---|---|
 | `VimInputHandler` | events → key names → dispatch; the insert session, dot-repeat recording and replay, counted inserts, the `/` and `:` hand-off |
 | `VimState` | per-editor: mode, desired column (`STICKY_EOL` after `$`), insert session and its undo step, autoindent tracking, replace-mode record, last `f`/`t`, last search, pending register, last selection |
-| `VimMode` | `NORMAL INSERT REPLACE VISUAL VISUAL_LINE`, with caret shape and indicator |
+| `VimMode` | `NORMAL INSERT REPLACE VISUAL VISUAL_LINE VISUAL_BLOCK`, with caret shape and indicator |
 | `CommandBuilder` | the command being typed: counts, keys, pending operator |
 | `KeyStrokeTrie` | key sequence → binding, one trie per mapping mode; `FULL` / `PARTIAL` / `NONE`, with a `fallback` for a binding that is also a prefix |
 | `VimKeyMap`, `VimCommand`, `MappingMode` | the table, parsed into tries; one row is one `VimCommand` |
@@ -146,6 +146,13 @@ produced, all reachable from j's key maps and `executeCommand` too:
   vim's registers: a register is its text, and how vim took it is
   remembered for the texts vim wrote this session, and otherwise taken as
   lines when the text ends in a newline.
+- `Block`, new in j, for visual block: screen columns over lines, tabs the
+  edge cuts split into spaces and the rest kept. j's own column selection
+  uses it too: `Region.toBlock`, with `deleteColumn` (cut, delete) and
+  `pasteColumn` on `Block.delete` and `Block.put`, which keep the tabs j
+  used to expand on every line they touched.
+  `Position.moveOntoCol`, `moveToCol` staying on a tab rather than past it,
+  for its corners and for `j k |`.
 
 `CaretCommands.findCharacter` and `replaceChars` work in code points, so `f`,
 `t` and `r` take an emoji.
@@ -330,6 +337,19 @@ caret -- is bridged in `VimVisual.toRange`. Linewise selection needed
 the caret stands for the line end (`STICKY_EOL`), and `o` carries that to the
 anchor as the line's end itself.
 
+Visual block is the same mark and dot, taken as j's `Block`: the screen
+columns from one corner to the other, each corner taking in the character it
+is on, over the lines between -- or, with `STICKY_EOL`, from the left column
+to the end of each line. `VimRange.block` carries it to the operators, which
+call `Block`'s edits (`delete`, `transform`, `insertOnEachLine`,
+`shiftLeft`, `shiftRight`, `put`), each one undo step. `Display` paints it from
+`InputHandler.getBlockSelection`, the offsets `Block.getOffsets` gives for
+each line. `I`, `A` and `c` insert on the first line only; `Escape`
+(`VimState.finishBlockInsert`) copies what was typed there onto the rest,
+inside the insert's undo step. For `.`, `VimVisual.take` notes the
+selection's shape as keys (`<C-v>2j3l`, `V2j`, `v4l`), and `afterCommand`
+puts them in front of the recording.
+
 ## Semantics that decide whether it feels like vim
 
 These are the things each reference emulator had to fix; treat them as
@@ -414,6 +434,8 @@ carries no non-JDK dependency) and `bb fmt-check`.
   must send what AWT sends, not what is convenient (trap 17). `mode(Mode)`
   switches the buffer's mode, for tests that need a mode's own bindings.
   `Editor` remembers its last status message so a test can read it (trap 19).
+  `close()` fails a test that made j log an error (trap 37); a test that
+  does so on purpose calls `forgetLoggedErrors`.
 - **The conformance corpus.** `tools/vim-conformance.clj` translates
   CodeMirror's `vim_test.js` (MIT) into `test/conformance/vim/codemirror.conf`;
   what it cannot translate goes to `skipped.txt` with the reason. It is a
@@ -472,8 +494,9 @@ Each of these has bitten at least once. Read them before editing.
    non-bar caret.
 2. **Visual block vs `isColumnSelection`.** `Region` derives block columns from
    display state and j's column region is a strict rectangle, whereas vim's
-   `<C-v>$` is ragged. Do not make `Region` ragged; build a block selection of
-   per-line spans driving `Region` line by line.
+   `<C-v>$` is ragged. Do not make `Region` ragged. M26 built `Block`
+   instead, which works out each line's span itself; nothing in it goes
+   through `Region`.
 3. Mode key maps are half insert-mode electric characters (`CMode` `#`,
    `HtmlMode` `>`). The vim trie must win outright in the command modes.
 4. Non-text buffers bind bare letters. Gate on `TYPE_NORMAL`.
@@ -580,6 +603,37 @@ Each of these has bitten at least once. Read them before editing.
     first only, the unit tests (which ask the handler) passed, and the
     screenshot showed no highlights at all: a search repaints the whole
     window.
+35. **j's caret is between characters; vim's is on one.** `moveToCol` takes
+    a column inside a tab to the character after it, which is right for j's
+    caret and wrong for vim's: `k` onto a tab landed past it, and a block's
+    corner with it. `moveOntoCol` stays on the tab. Likewise a line that
+    ends exactly at a block's left edge is not "short": `I` inserts at its
+    end, and `c` over a block empties lines to just that.
+    In visual mode vim goes one further: `j` and `k` may stop on the end
+    of a short line (vim's `coladvance` "may stop on the NUL"), so
+    `clampCaret` lets visual mode rest there too.
+36. **Inserting a line break at the start of a line can split the other
+    way.** After a block or selection empties a line, `insertString("\n"
+    + text)` there may leave the old `Line` below the new text, so
+    `line.next()` is not the pasted line. Count back from the caret, as
+    `putLinewise` always did.
+37. **An edit needs the buffer's write lock, and j only logs when it is
+    missing.** `Line.setText` and `modified()` expect it, and undoing a
+    line edit checks for it; without it j logs "called without write
+    lock" or `BUG!` and carries on, so every test passed while Kevin's
+    log filled up. j's commands take it themselves; vim's `u`, `<C-r>`,
+    `:sort` and `Block` did not. `Buffer.withWriteLock` takes it, and the
+    harness now fails a test that logged an error. Tests call
+    `Editor.undo()`, which locks, not `Buffer.undo()`.
+38. **A vimrc `noremap` was recursive.** Its keys went back through the
+    whole map, so `vnoremap < <gv` found itself and logged "key map
+    recursion". `VimKeyMap` now keeps the table as it was before the vimrc
+    (`getBuiltIn`), and a key-to-key row without `remap` -- every
+    `noremap`, and the table's own rows -- dispatches its keys there.
+    And `>` / `<` over a charwise selection passed `range.last`, null for
+    a charwise range, to `Lines.shift`, which took null as the end of the
+    buffer: every line below was shifted before the NPE. `VimRange.lastLine`
+    is the last line any range touches.
 
 ## History
 
@@ -619,9 +673,10 @@ review before the next.
 | M22 | one last search for j and vim; highlighting and `clearSearchHighlight` in j | `28fb66223` |
 | M23 | jump list on j's `JumpList` (was the position stack); file marks as bookmarks | `5a012f6af` |
 | M24 | `incrementNumber` over a selection; `openFileInSplit`, `openFileInVsplit` | `30f71e596` |
-| M25 | vim's registers on j's: register files, kill ring, clipboards | (uncommitted) |
+| M25 | vim's registers on j's: register files, kill ring, clipboards | `e28c4d22d` |
+| M26 | visual block on j's new `Block`; `.` over the selection's shape; `j k |` onto a tab, and in visual mode onto a line's end; `shiftwidth` read; j's column selection on `Block`; the write lock, and the harness failing on a logged error; `<` `>` over a charwise selection; vimrc `noremap` | (uncommitted) |
 
-After M25: 998 tests, conformance 156 of 253 (155 ratcheted).
+After M26: 1041 tests, conformance 167 of 253 (167 ratcheted).
 
 ### What the work learned
 

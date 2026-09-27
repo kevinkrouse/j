@@ -202,7 +202,7 @@ public class VimVisualTest
     {
         vim("one\ntwo\nthree\n").cursor(0, 0).keys("Vjd");
         h.assertText("three\n");
-        h.buffer().undo();
+        h.editor().undo();
         h.assertText("one\ntwo\nthree\n");
     }
 }

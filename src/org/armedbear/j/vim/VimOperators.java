@@ -72,6 +72,12 @@ public final class VimOperators
     private static void changeCase(MotionContext ctx, VimRange range)
     {
         final Editor editor = ctx.editor;
+        if (range.block != null) {
+            range.block.transform(editor,
+                                  caseOf(ctx.arg("to", "toggle"))::apply);
+            noteBlockChange(ctx, range);
+            return;
+        }
         if (range.isEmpty())
             return;
         final RegionCommands.Case which = caseOf(ctx.arg("to", "toggle"));
@@ -123,15 +129,27 @@ public final class VimOperators
     {
         final Editor editor = ctx.editor;
         final Buffer buffer = editor.getBuffer();
-        final int width = buffer.getIndentSize();
+        final int width = VimOptions.shiftWidth(buffer);
         final int sign = ctx.arg("right") ? 1 : -1;
+        if (range.block != null) {
+            // At the block's left edge, count shifts at once, as vim does.
+            final int shift = Math.max(1, ctx.count) * width;
+            if (sign > 0)
+                range.block.shiftRight(editor, shift);
+            else
+                range.block.shiftLeft(editor, shift);
+            noteBlockChange(ctx, range);
+            return;
+        }
 
         // j's own shiftLinesRight and shiftLinesLeft do this.
         final Line from = range.start.getLine();
         final int column = markColumn(editor, range);
-        Lines.shift(editor, from, range.last, sign * width);
+        // Every line a charwise selection touches, too.
+        final Line to = range.lastLine();
+        Lines.shift(editor, from, to, sign * width);
         ctx.state.getMarks().noteChange(
-            buffer, new Position(from, column), new Position(range.last, range.last.length()),
+            buffer, new Position(from, column), new Position(to, to.length()),
             new Position(from, 0));
         // Vim leaves the caret on the first non-blank of the first line.
         final Line first = range.start.getLine();
@@ -151,6 +169,10 @@ public final class VimOperators
     /** y: take a copy and leave the text alone. */
     private static void yank(MotionContext ctx, VimRange range)
     {
+        if (range.block != null) {
+            yankBlock(ctx, range);
+            return;
+        }
         ctx.state.getMarks().noteChange(ctx.editor.getBuffer(), range.start,
                                         range.end, null);
         final String text = textOf(ctx.editor, range);
@@ -192,6 +214,10 @@ public final class VimOperators
     /** d, and the operators that are d with a motion built in. */
     private static void delete(MotionContext ctx, VimRange range)
     {
+        if (range.block != null) {
+            deleteBlock(ctx, range);
+            return;
+        }
         VimRegisters.getInstance().deleted(ctx.state.takePendingRegister(),
                                            textOf(ctx.editor, range),
                                            range.linewise
@@ -256,6 +282,10 @@ public final class VimOperators
     private static void change(MotionContext ctx, VimRange range)
     {
         final Editor editor = ctx.editor;
+        if (range.block != null) {
+            changeBlock(ctx, range);
+            return;
+        }
         VimRegisters.getInstance().deleted(ctx.state.takePendingRegister(),
                                            textOf(editor, range),
                                            range.linewise
@@ -299,6 +329,57 @@ public final class VimOperators
                 editor.insertString(indent);
             ctx.state.noteAutoIndent(dot.getLine());
         }
+    }
+
+    // ------------------------------------------------------------ blocks
+
+    /** y over a block: blockwise, the caret to its top left. */
+    private static void yankBlock(MotionContext ctx, VimRange range)
+    {
+        ctx.state.getMarks().noteChange(ctx.editor.getBuffer(), range.start,
+                                        range.end, null);
+        VimRegisters.getInstance().yanked(ctx.state.takePendingRegister(),
+                                          range.block.getText(),
+                                          VimRegisters.Type.BLOCKWISE);
+        ctx.editor.setDot(new Position(range.start));
+        ctx.editor.moveCaretToDotCol();
+        ctx.state.clampCaret(ctx.editor);
+    }
+
+    /** d over a block, which j's Block does as one undo step. */
+    private static void deleteBlock(MotionContext ctx, VimRange range)
+    {
+        VimRegisters.getInstance().deleted(ctx.state.takePendingRegister(),
+                                           range.block.getText(),
+                                           VimRegisters.Type.BLOCKWISE);
+        range.block.delete(ctx.editor);
+        noteBlockChange(ctx, range);
+    }
+
+    /**
+     * c over a block: delete it, and insert on its first line what Escape
+     * then puts on the others too.
+     */
+    private static void changeBlock(MotionContext ctx, VimRange range)
+    {
+        final Editor editor = ctx.editor;
+        VimRegisters.getInstance().deleted(ctx.state.takePendingRegister(),
+                                           range.block.getText(),
+                                           VimRegisters.Type.BLOCKWISE);
+        ctx.state.beginInsert(editor, VimMode.INSERT);
+        range.block.delete(editor);
+        ctx.state.beginBlockInsert(editor, range.block, false, null);
+    }
+
+    /** '[ and '] around a block changed, '. at its top left, the caret too. */
+    private static void noteBlockChange(MotionContext ctx, VimRange range)
+    {
+        final Editor editor = ctx.editor;
+        final Position start = editor.getDot();
+        if (start != null)
+            ctx.state.getMarks().noteChange(editor.getBuffer(), start,
+                                            range.end, start);
+        ctx.state.clampCaret(editor);
     }
 
     // ------------------------------------------------------------ helpers

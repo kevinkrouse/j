@@ -118,6 +118,18 @@ public final class EditorHarness
             Log.debug("EditorHarness: not headless");
         }
 
+        // j logs what it finds wrong and carries on, so a test would pass
+        // through it; close() fails one that logged an error instead.
+        ERRORS.clear();
+        Log.errorListener = s -> {
+            if (isHarnessArtifact(s))
+                return;
+            final java.io.StringWriter where = new java.io.StringWriter();
+            new Throwable("logged from").printStackTrace(
+                new java.io.PrintWriter(where));
+            ERRORS.add(s + "\n" + where);
+        };
+
         final Mode mode = PlainTextMode.getMode();
         // A plausible path that is never written to: the buffer exists only
         // in memory, but a Buffer needs a File to have a mode and a name.
@@ -539,5 +551,30 @@ public final class EditorHarness
     {
         Editor.getBufferList().remove(buffer);
         Editor.getEditorList().remove(editor);
+        if (!ERRORS.isEmpty()) {
+            final String logged = String.join("\n", ERRORS);
+            ERRORS.clear();
+            throw new AssertionError("j logged an error:\n" + logged);
+        }
     }
+
+    /**
+     * An error only a headless, frameless editor logs: no graphics to
+     * measure a line with, no frame whose title a buffer switch updates.
+     */
+    private static boolean isHarnessArtifact(String logged)
+    {
+        return logged.startsWith("ensureColumnVisible g2d is null")
+            || logged.contains("because \"this.frame\" is null");
+    }
+
+    /** For a test that makes j log an error on purpose. */
+    public static void forgetLoggedErrors()
+    {
+        ERRORS.clear();
+    }
+
+    /** What j logged as errors since the last create or close. */
+    private static final java.util.List<String> ERRORS =
+        java.util.Collections.synchronizedList(new java.util.ArrayList<String>());
 }

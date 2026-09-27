@@ -10,11 +10,10 @@
 # still swallowing keys it does not understand, so these are left out even
 # though they currently pass: Y, s_visual, *_no_word and
 # jumpToMark_next_sameline all test features that do not exist yet.
-# r_visual_block with surrogate characters is held out the same way: <C-v>
-# is not built, so it passes as a plain ru.
 # (ex_sort_oneline and ex_sort_pattern_alpha_reverse were held out for this
-# reason until M12b built :sort; they are listed below now that they pass
-# for the right one.)
+# reason until M12b built :sort, and r_visual_block with surrogate
+# characters until M26 built <C-v>; they are listed below now that they
+# pass for the right one.)
 #
 # Cases where nvim disagrees with the CodeMirror corpus, verified with
 # tools/vim-oracle.sh. nvim wins, so these stay out of passing.txt and are
@@ -90,6 +89,15 @@
 #                           takes an indent nothing was typed after away
 #                           again, leaving an empty line, and so do we. Sx
 #                           keeps it: "  x". Unit tested in VimM13Test
+#   c_visual_block          CodeMirror copies what is typed on the first line
+#   c_visual_block_replay   of a block onto the others as it is typed, and
+#   s_visual_block          these check the lines before Escape. nvim copies
+#   A_visual_block          it at Escape, and so do we. Every end result
+#   I_visual_block          matches nvim: unit tested in VimM26Test
+#   ><visualblock           the corpus's shiftwidth is 2; vim's default is 8
+#   blockwise_paste         its second half puts characters over a block. The
+#                           corpus puts them once; nvim puts them on each of
+#                           the block's lines, and so do we
 
 # M1: motions
 F,
@@ -289,3 +297,17 @@ increment_hexadecimal
 [(, ])
 [[, ]]
 [], ][
+
+# M26: visual block mode
+._swapCase_visualBlock
+D_visual_block
+R_visual
+blockwise_paste_cut_paste
+blockwise_paste_from_register
+blockwise_paste_last_line
+blockwise_paste_long/short_line
+changeCase_visual_block
+d_visual_block
+r_visual_block with surrogate characters
+visual_block_different_line_lengths
+visual_block_~

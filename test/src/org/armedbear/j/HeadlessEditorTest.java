@@ -115,7 +115,7 @@ public class HeadlessEditorTest
         h.cursor(0, 0).keys("XY");
         h.assertText("XYalpha bravo\ncharlie delta\necho foxtrot\n");
 
-        h.buffer().undo();
+        h.editor().undo();
         h.assertText("alpha bravo\ncharlie delta\necho foxtrot\n");
     }
 

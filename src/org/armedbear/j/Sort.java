@@ -218,7 +218,7 @@ public final class Sort
      * end.
      *
      * <p>The caller arranges the write lock; the {@code sortLines} command
-     * above does, and a modal command runs under the dispatcher's.
+     * above does, and :sort takes it with {@link Buffer#withWriteLock}.
      *
      * @return the number of lines removed
      */

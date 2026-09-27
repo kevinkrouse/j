@@ -110,8 +110,22 @@ public final class Log
         log(FATAL, s);
     }
 
+    /**
+     * Hears every error and fatal message, for tests: the harness fails a
+     * test that logged one. Null when nobody is listening.
+     */
+    static volatile java.util.function.Consumer<String> errorListener;
+
+    private static void heard(int level, String s)
+    {
+        final java.util.function.Consumer<String> listener = errorListener;
+        if (listener != null && level >= ERROR)
+            listener.accept(s);
+    }
+
     private static final void log(int level, String s)
     {
+        heard(level, s);
         if (Editor.isDebugEnabled()) {
             System.err.println(s);
             System.err.flush();
@@ -146,6 +160,11 @@ public final class Log
 
     private static final void log(int level, Throwable t)
     {
+        if (errorListener != null && level >= ERROR) {
+            final StringWriter sw = new StringWriter();
+            t.printStackTrace(new PrintWriter(sw));
+            heard(level, sw.toString());
+        }
         if (Editor.isDebugEnabled())
             t.printStackTrace();
         if (logEnabled && level >= minLevel) {

@@ -52,6 +52,7 @@ import java.net.ConnectException;
 import java.net.Socket;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
 import java.util.Map;
@@ -6152,43 +6153,12 @@ public final class Editor extends JPanel implements Constants,
     }
 
     // Leaves dot at beginning of deleted region.
+    // Block splits a tab the region's edge cuts through, and leaves the
+    // caret at its top left.
     private void deleteColumn(Region r)
     {
         Debug.assertTrue(r.isColumnRegion());
-        final int beginCol = r.getBeginCol();
-        final int endCol = r.getEndCol();
-        CompoundEdit compoundEdit = beginCompoundEdit();
-        addUndo(SimpleEdit.MOVE);
-        dot.moveTo(r.getBegin());
-        while (true) {
-            addUndo(SimpleEdit.LINE_EDIT);
-            Line line = getDotLine();
-            deleteLineRegion(line, beginCol, endCol);
-            updateInAllEditors(line);
-            if (line == r.getEndLine())
-                break;
-            if (line.next() == null)
-                break;
-            dot.moveTo(line.next(), 0);
-        }
-        addUndo(SimpleEdit.MOVE);
-        dot.moveTo(r.getBegin());
-        endCompoundEdit(compoundEdit);
-        buffer.modified();
-    }
-
-    private void deleteLineRegion(Line line, int beginCol, int endCol)
-    {
-        String text = Utilities.detab(line.getText(), buffer.getTabWidth());
-        if (text.length() < beginCol)
-            return; // No change.
-        String head = text.substring(0, beginCol);
-        if (text.length() < endCol) {
-            line.setText(head);
-            return;
-        }
-        String tail = text.substring(endCol);
-        line.setText(head.concat(tail));
+        r.toBlock().delete(this);
     }
 
     // This really is a kill!
@@ -6629,46 +6599,22 @@ public final class Editor extends JPanel implements Constants,
         }
     }
 
+    // A block at the caret's column, one piece a line, as Block.put does it;
+    // the caret ends after the last piece.
     private void pasteColumnInternal(String toBeInserted)
     {
-        Position pos = new Position(dot);
         final int col = display.getAbsoluteCaretCol();
-        CompoundEdit compoundEdit = beginCompoundEdit();
-        while (true) {
-            final int index = toBeInserted.indexOf('\n');
-            final String s = index >= 0 ? toBeInserted.substring(0, index) : toBeInserted;
-            if (index >= 0)
-                toBeInserted = toBeInserted.substring(index + 1);
-            final Line dotLine = getDotLine();
-            String text = Utilities.detab(dotLine.getText(), buffer.getTabWidth());
-            if (text.length() < col)
-                text = text.concat(Utilities.spaces(col - text.length()));
-            Debug.assertTrue(text.length() >= col);
-            final String head = text.substring(0, col);
-            final String tail = text.substring(col);
-            addUndo(SimpleEdit.LINE_EDIT);
-            StringBuilder sb = new StringBuilder(head);
-            sb.append(s);
-            sb.append(tail);
-            dotLine.setText(sb.toString());
-            updateInAllEditors(dotLine);
-            pos = new Position(dotLine, head.length() + s.length());
-            if (toBeInserted.length() == 0)
-                break;
-            if (dotLine.next() == null) {
-                addUndo(SimpleEdit.MOVE);
-                dot.setOffset(dotLine.length());
-                addUndo(SimpleEdit.INSERT_LINE_SEP);
-                buffer.insertLineSeparator(dot);
-            } else {
-                addUndo(SimpleEdit.MOVE);
-                dot.moveTo(dotLine.next(), 0);
-            }
-        }
-        addUndo(SimpleEdit.MOVE);
-        dot.moveTo(pos);
+        final List<String> pieces =
+            Arrays.asList(toBeInserted.split("\n", -1));
+        final Line top = getDotLine();
+        Block.put(this, top, col, pieces);
+        Line last = top;
+        for (int i = 1; i < pieces.size() && last.next() != null; i++)
+            last = last.next();
+        final String piece = pieces.get(pieces.size() - 1);
+        final int start = Block.positionAt(buffer, last, col).getOffset();
+        dot.moveTo(last, Math.min(last.length(), start + piece.length()));
         moveCaretToDotCol();
-        endCompoundEdit(compoundEdit);
     }
 
     public void insertString(String toBeInserted)

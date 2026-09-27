@@ -246,7 +246,7 @@ public class VimOperatorTest
     {
         vim("one two three\n").cursor(0, 0).keys("2dw");
         h.assertText("three\n");
-        h.buffer().undo();
+        h.editor().undo();
         h.assertText("one two three\n");
     }
 
@@ -255,7 +255,7 @@ public class VimOperatorTest
     {
         vim("alpha bravo\n").cursor(0, 0).keys("cwXY<Esc>");
         h.assertText("XY bravo\n");
-        h.buffer().undo();
+        h.editor().undo();
         h.assertText("alpha bravo\n");
     }
 

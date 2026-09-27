@@ -626,6 +626,29 @@ public class Buffer extends SystemBuffer
         return rwlock.isWriteLocked();
     }
 
+    /**
+     * Runs an edit under the write lock, which changing a line's text,
+     * modified() and undo all expect. The lock is reentrant, so an edit
+     * that calls another is fine. False, and nothing run, if interrupted.
+     */
+    public final boolean withWriteLock(Runnable edit)
+    {
+        try {
+            lockWrite();
+        }
+        catch (InterruptedException e) {
+            Log.error(e);
+            return false;
+        }
+        try {
+            edit.run();
+        }
+        finally {
+            unlockWrite();
+        }
+        return true;
+    }
+
     public boolean isVisible()
     {
         for (EditorIterator it = new EditorIterator(); it.hasNext();)

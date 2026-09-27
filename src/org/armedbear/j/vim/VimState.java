@@ -15,6 +15,7 @@ import java.util.Locale;
 
 import javax.swing.undo.CompoundEdit;
 
+import org.armedbear.j.Block;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Constants;
 import org.armedbear.j.Editor;
@@ -127,6 +128,81 @@ public final class VimState
     // ------------------------------------------------------------ insert
 
     /**
+     * I, A and c over a block: the lines below the first, which Escape puts
+     * what was typed on the first on too, where it was typed from, and
+     * whether at the block's right edge.
+     */
+    private Block blockInsert;
+    private Line blockInsertLine;
+    private int blockInsertOffset;
+    private boolean blockInsertAppend;
+    /** Where the caret goes after Escape, for I and A: the top left. */
+    private Position blockInsertLanding;
+
+    /** Keys that select the shape a change from visual mode was made on. */
+    private String visualRepeat;
+
+    public void setVisualRepeat(String keys)
+    {
+        visualRepeat = keys;
+    }
+
+    /** The shape's keys, once, or null when the change was not visual. */
+    public String takeVisualRepeat()
+    {
+        final String keys = visualRepeat;
+        visualRepeat = null;
+        return keys;
+    }
+
+    /**
+     * An insert on a block's first line, for the others too at Escape,
+     * which leaves the caret at {@code landing} if it is not null.
+     */
+    public void beginBlockInsert(Editor editor, Block block, boolean append,
+                                 Position landing)
+    {
+        final Position dot = editor.getDot();
+        blockInsertLanding = landing;
+        blockInsert = dot == null ? null : block.below();
+        if (dot == null)
+            return;
+        blockInsertLine = dot.getLine();
+        blockInsertOffset = dot.getOffset();
+        blockInsertAppend = append;
+    }
+
+    /** Where Escape leaves the caret after I or A over a block, once. */
+    public Position takeBlockInsertLanding()
+    {
+        final Position landing = blockInsertLanding;
+        blockInsertLanding = null;
+        return landing;
+    }
+
+    /**
+     * Escape after I, A or c over a block: what was typed on the first line,
+     * if it was typed there, onto the others -- in the insert's undo step.
+     */
+    public void finishBlockInsert(Editor editor)
+    {
+        final Block rest = blockInsert;
+        blockInsert = null;
+        final Position dot = editor.getDot();
+        if (rest == null || dot == null || dot.getLine() != blockInsertLine
+            || dot.getOffset() < blockInsertOffset)
+            return;
+        final String typed = blockInsertLine.substring(blockInsertOffset,
+                                                       dot.getOffset());
+        if (typed.isEmpty())
+            return;
+        final Position at = new Position(dot);
+        rest.insertOnEachLine(editor, typed, blockInsertAppend);
+        editor.setDot(at);
+        editor.moveCaretToDotCol();
+    }
+
+    /**
      * Switches to insert mode, opening one undo step for the whole session.
      */
     public void beginInsert(Editor editor, VimMode insertMode)
@@ -135,6 +211,8 @@ public final class VimState
         final Buffer buffer = editor.getBuffer();
         insertRepeat = 0;
         insertKeys.setLength(0);
+        blockInsert = null;
+        blockInsertLanding = null;
         insertStartLine = -1;
         insertSplit = false;
         if (buffer != null) {
@@ -297,6 +375,9 @@ public final class VimState
     public void restartInsert()
     {
         insertRepeat = 0;
+        // An arrow in the middle: vim puts the text on the first line only.
+        blockInsert = null;
+        blockInsertLanding = null;
         insertKeys.setLength(0);
         insertStartLine = -1;
         insertSplit = true;
@@ -855,6 +936,11 @@ public final class VimState
      */
     public void motionChangedSelection(Editor editor, Line before, Line after)
     {
+        // A block's columns are every line's: any move repaints it all.
+        if (mode == VimMode.VISUAL_BLOCK) {
+            editor.setUpdateFlag(Constants.REPAINT);
+            return;
+        }
         if (!mode.isVisual() || before == after)
             return;
         if (before.next() == after || before.previous() == after) {
@@ -882,8 +968,10 @@ public final class VimState
         final Position dot = editor.getDot();
         if (dot == null)
             return;
-        final int last = CodePoints.snap(dot.getLine(),
-                                         Math.max(0, dot.getLineLength() - 1));
+        // Visual mode may rest on a line's end, where j and k leave it.
+        final int last = mode.isVisual() ? dot.getLineLength()
+            : CodePoints.snap(dot.getLine(),
+                              Math.max(0, dot.getLineLength() - 1));
         final int at = CodePoints.snap(dot.getLine(), dot.getOffset());
         if (dot.getOffset() > last || at != dot.getOffset()) {
             // No undo record: this corrects where the caret may legally rest,

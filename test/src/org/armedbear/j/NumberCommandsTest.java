@@ -92,7 +92,7 @@ public class NumberCommandsTest
         on("1\n1\n", 0, 0);
         select(1, 1);
         NumberCommands.incrementNumber();
-        h.buffer().undo();
+        h.editor().undo();
         assertEquals("1\n1\n", h.text());
     }
 }

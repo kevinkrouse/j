@@ -11,6 +11,9 @@
 
 package org.armedbear.j.vim;
 
+import org.armedbear.j.Block;
+import org.armedbear.j.Buffer;
+import org.armedbear.j.Constants;
 import org.armedbear.j.Editor;
 import org.armedbear.j.Line;
 import org.armedbear.j.Position;
@@ -100,6 +103,7 @@ final class VimVisual
     static VimRange take(Editor editor, VimState state)
     {
         final VimRange range = toRange(editor, state);
+        state.setVisualRepeat(repeatKeys(editor, state));
         remember(editor, state);
         editor.unmark();
         state.setMode(editor, VimMode.NORMAL);
@@ -130,12 +134,16 @@ final class VimVisual
      * that end goes to the anchor as the line's end itself; and an anchor
      * there makes the caret stand for it again when o brings it back.
      */
-    static void swapEnds(Editor editor, VimState state)
+    static void swapEnds(Editor editor, VimState state, boolean sideways)
     {
         final Position anchor = editor.getMark();
         final Position head = editor.getDot();
         if (anchor == null || head == null)
             return;
+        if (sideways && state.getMode() == VimMode.VISUAL_BLOCK) {
+            swapColumns(editor, state, anchor, head);
+            return;
+        }
         final Position wasAnchor = new Position(anchor);
         final boolean anchorAtEol = wasAnchor.getLineLength() > 0
             && wasAnchor.getOffset() >= wasAnchor.getLineLength();
@@ -153,6 +161,27 @@ final class VimVisual
     }
 
     /**
+     * O in a block: the caret to the other corner on its own line, the
+     * anchor to the other on its line, so the block stays the same.
+     */
+    private static void swapColumns(Editor editor, VimState state,
+                                    Position anchor, Position head)
+    {
+        final Buffer buffer = editor.getBuffer();
+        final int anchorCol = buffer.getCol(anchor);
+        final int headCol = buffer.getCol(head);
+        final Line anchorLine = anchor.getLine();
+        final Line headLine = head.getLine();
+        editor.setDot(Block.positionAt(buffer, anchorLine, headCol));
+        editor.setMarkAtDot();
+        editor.setDot(Block.positionAt(buffer, headLine, anchorCol));
+        editor.moveCaretToDotCol();
+        state.clearDesiredColumn();
+        state.clampCaret(editor);
+        editor.setUpdateFlag(Constants.REPAINT);
+    }
+
+    /**
      * The selection as an operator's range.
      *
      * Characterwise takes in the character the caret is on, which is the one
@@ -164,6 +193,8 @@ final class VimVisual
         final Position head = editor.getDot();
         if (anchor == null || head == null)
             return null;
+        if (state.getMode() == VimMode.VISUAL_BLOCK)
+            return VimRange.of(block(editor, state), editor.getBuffer());
         final Position start = anchor.isBefore(head) ? anchor : head;
         final Position end = anchor.isBefore(head) ? head : anchor;
         // After $ the caret stands for the line end itself, so v$ takes in
@@ -179,6 +210,49 @@ final class VimVisual
             state.getMode() == VimMode.VISUAL_LINE ? MotionKind.LINEWISE
                                                    : MotionKind.CHARWISE_INCLUSIVE,
             true);
+    }
+
+    /**
+     * Keys that select as much again from the caret, which . runs before
+     * a change made from a selection, as vim repeats one over the same
+     * shape: lines for V, lines and columns for CTRL-V -- to the ends of the
+     * lines after $ -- and characters for v on one line. Null for v over
+     * several lines, which . still does at the caret alone.
+     */
+    private static String repeatKeys(Editor editor, VimState state)
+    {
+        final Position anchor = editor.getMark();
+        final Position head = editor.getDot();
+        if (anchor == null || head == null)
+            return null;
+        final int lines = Math.abs(head.lineNumber() - anchor.lineNumber());
+        final String down = lines > 0 ? lines + "j" : "";
+        switch (state.getMode()) {
+            case VISUAL_LINE:
+                return "V" + down;
+            case VISUAL_BLOCK: {
+                final int cols = Math.abs(editor.getBuffer().getCol(head)
+                                          - editor.getBuffer().getCol(anchor));
+                return "<C-v>" + down + (state.isStickyEol() ? "$"
+                                         : cols > 0 ? cols + "l" : "");
+            }
+            default: {
+                if (lines > 0)
+                    return null;
+                final int chars = Math.abs(head.getOffset() - anchor.getOffset());
+                return "v" + (chars > 0 ? chars + "l" : "");
+            }
+        }
+    }
+
+    /**
+     * The block selected: anchor to caret, each taking in the character it
+     * is on, and after $ ragged to the end of each line.
+     */
+    static Block block(Editor editor, VimState state)
+    {
+        return Block.between(editor.getBuffer(), editor.getMark(),
+                             editor.getDot(), state.isStickyEol());
     }
 
     private static Line lineAt(Editor editor, int lineNumber)

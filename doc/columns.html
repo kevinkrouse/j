@@ -43,6 +43,15 @@
     <a href="commands.html#cyclePaste">cyclePaste</a> cannot be used with
     columns.
 </p>
+<p>
+    A column is screen columns, so a tab counts for the columns it covers.
+    A tab the column's edge cuts through is split into spaces; every other
+    tab stays a tab. A pasted column pads a line too short to reach it with
+    spaces, adds lines at the end of the buffer as it needs them, and pads
+    its shorter lines out to its widest, so that the text after it stays
+    in line. Vim mode's visual block (<code>Ctrl V</code>) is the same
+    column.
+</p>
 </body>
 
 </html>

@@ -11,6 +11,8 @@
 
 package org.armedbear.j.vim;
 
+import org.armedbear.j.Block;
+import org.armedbear.j.Buffer;
 import org.armedbear.j.Line;
 import org.armedbear.j.Position;
 
@@ -35,19 +37,34 @@ public final class VimRange
      * the two look the same.
      */
     public final Line last;
+    /**
+     * A visual block, which an operator takes line by line; start and end
+     * are then its top left and bottom right, for the marks and the caret.
+     */
+    public final Block block;
 
     /** A characterwise range. */
     VimRange(Position start, Position end)
     {
-        this(start, end, null);
+        this(start, end, null, null);
     }
 
-    private VimRange(Position start, Position end, Line last)
+    private VimRange(Position start, Position end, Line last, Block block)
     {
         this.start = start;
         this.end = end;
         this.linewise = last != null;
         this.last = last;
+        this.block = block;
+    }
+
+    /** A visual block. */
+    static VimRange of(Block block, Buffer buffer)
+    {
+        final Line bottom = block.getLastLine();
+        return new VimRange(
+            Block.positionAt(buffer, block.getFirstLine(), block.getStartCol()),
+            new Position(bottom, bottom.length()), null, block);
     }
 
     /**
@@ -60,7 +77,21 @@ public final class VimRange
         final Line after = last.next();
         final Position end = after != null ? new Position(after, 0)
                                            : new Position(last, last.length());
-        return new VimRange(new Position(first, 0), end, last);
+        return new VimRange(new Position(first, 0), end, last, null);
+    }
+
+    /**
+     * The last line the range touches, whatever its kind. A charwise range
+     * whose end is the start of a line -- v$ taking in the newline -- ends
+     * on the line before.
+     */
+    public Line lastLine()
+    {
+        if (last != null)
+            return last;
+        final Line line = end.getLine();
+        return end.getOffset() == 0 && line != start.getLine()
+            && line.previous() != null ? line.previous() : line;
     }
 
     public boolean isEmpty()

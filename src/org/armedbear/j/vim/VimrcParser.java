@@ -96,7 +96,8 @@ public final class VimrcParser
         if (name.endsWith("unmap"))
             return unmap(prefixOf(name, "unmap"), rest);
         if (name.endsWith("map"))
-            return map(prefixOf(name, "map"), rest);
+            return map(prefixOf(name, "map"), rest,
+                       !name.contains("nore"));
         return false;
     }
 
@@ -148,7 +149,7 @@ public final class VimrcParser
             ? prefix.substring(0, prefix.length() - 4) : prefix;
     }
 
-    private boolean map(String prefix, String rest)
+    private boolean map(String prefix, String rest, boolean remap)
     {
         final Set<MappingMode> modes = modesForPrefix(prefix);
         if (modes == null)
@@ -161,7 +162,8 @@ public final class VimrcParser
         if (keys.isEmpty() || to.isEmpty())
             return false;
 
-        keyMap.add(mapping(modes, keys, to));
+        keyMap.keepBuiltIn();
+        keyMap.add(mapping(modes, keys, to, remap));
         return true;
     }
 
@@ -171,6 +173,7 @@ public final class VimrcParser
         if (modes == null || rest.isEmpty())
             return false;
         final List<String> keys = KeyNotation.tokenize(expandLeader(rest));
+        keyMap.keepBuiltIn();
         for (MappingMode mode : modes)
             keyMap.getTrie(mode).remove(keys);
         return true;
@@ -180,12 +183,15 @@ public final class VimrcParser
      * Turns a right-hand side into a binding.
      *
      * {@code :cmd&lt;CR&gt;} runs one of j's commands; anything else is keys to
-     * press.
+     * press. Those keys mean what they do built in, unless {@code remap}
+     * -- {@code map} rather than {@code noremap} -- lets them be mappings.
      */
     private static VimCommand mapping(Set<MappingMode> modes, String keys,
-                                      String to)
+                                      String to, boolean remap)
     {
         final Map<String, String> noArgs = new LinkedHashMap<String, String>();
+        if (remap)
+            noArgs.put("remap", "true");
         if (to.startsWith(":")) {
             final String body = to.endsWith("<CR>")
                 ? to.substring(1, to.length() - 4)
@@ -201,9 +207,7 @@ public final class VimrcParser
      * Which maps a prefix of mode letters writes to.
      *
      * No prefix is normal, visual and operator-pending, as plain {@code map}
-     * is in vim. Recursion is not distinguished: {@code map} and
-     * {@code noremap} both bind, because nothing here replays a mapping
-     * through the mapping layer a second time.
+     * is in vim. See {@link #mapping} for what {@code nore} changes.
      */
     private static Set<MappingMode> modesForPrefix(String prefix)
     {

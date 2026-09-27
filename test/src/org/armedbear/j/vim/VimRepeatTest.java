@@ -134,7 +134,7 @@ public class VimRepeatTest
     {
         vim("abcdef\n").cursor(0, 0).keys("x.");
         h.assertText("cdef\n");
-        h.buffer().undo();
+        h.editor().undo();
         h.assertText("bcdef\n");
     }
 

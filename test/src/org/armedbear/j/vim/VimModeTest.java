@@ -61,6 +61,8 @@ public class VimModeTest
         assertNull(h.editor().getInputHandler());
         h.cursor(0, 0).keys("x");
         h.assertText("xalpha\n");
+        // It says so in the log.
+        EditorHarness.forgetLoggedErrors();
     }
 
     // ------------------------------------------------------- normal mode
@@ -197,7 +199,7 @@ public class VimModeTest
         vim("alpha\n").cursor(0, 0).keys("ione two three<Esc>");
         h.assertText("one two threealpha\n");
 
-        h.buffer().undo();
+        h.editor().undo();
         h.assertText("alpha\n");
     }
 
@@ -207,7 +209,7 @@ public class VimModeTest
         vim("alpha\n").cursor(0, 5).keys("i<CR>second<CR>third<Esc>");
         h.assertText("alpha\nsecond\nthird\n");
 
-        h.buffer().undo();
+        h.editor().undo();
         h.assertText("alpha\n");
     }
 

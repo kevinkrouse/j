@@ -116,6 +116,23 @@ public interface InputHandler
     }
 
     /**
+     * Where a block selection -- the same columns on each line, as vim's
+     * CTRL-V makes -- covers a line, as offsets [start, end), or null when
+     * the selection is not a block or leaves this line out. With a block the
+     * display paints this on each line in place of the selection.
+     */
+    default int[] getBlockSelection(Editor editor, Line line)
+    {
+        return null;
+    }
+
+    /** True while the selection is a block, painted by getBlockSelection. */
+    default boolean isBlockSelection()
+    {
+        return false;
+    }
+
+    /**
      * The spans of a line to paint as search matches, as offsets in pairs --
      * start, end, start, end -- or null for none. An empty span is painted
      * one character wide, and a span past the end of the line one character

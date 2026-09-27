@@ -39,7 +39,7 @@ edit mode.
 
 <h2>What is there</h2>
 <p>
-Normal, insert, replace, visual and visual-line modes, operator-pending
+Normal, insert, replace, visual, visual-line and visual-block modes, operator-pending
 commands, counts, registers, marks and the dot command:
 <table border="0" cellpadding="2">
 <tr><td valign="top"><b>motions</b></td>
@@ -136,14 +136,26 @@ commands, counts, registers, marks and the dot command:
         command <a href="commands.html">j already knows</a>. <code>:</code>
         in visual mode fills in <code>'&lt;,'&gt;</code>.</td></tr>
 <tr><td valign="top"><b>visual</b></td>
-    <td><code>v V o O gv</code>, any operator over the selection, and
+    <td><code>v V Ctrl V o O gv</code>, any operator over the selection, and
         <code>J gJ p P r u U ~</code>, and <code>Ctrl A</code> /
         <code>Ctrl X</code> on the first number of each line, which
         <code>g Ctrl A</code> / <code>g Ctrl X</code> make a sequence.
         <code>D C S R X Y</code> take whole
         lines, as in vim, even from a characterwise selection. <code>p</code>
         leaves what it replaced in the unnamed register; <code>P</code> leaves
-        the registers alone.</td></tr>
+        the registers alone.
+        <p>
+        Over a block (<code>Ctrl V</code>, <code>$</code> to take each line
+        to its end, <code>O</code> to the other side), <code>d x y c s r u U
+        ~ &lt; &gt; J p P</code> work on the block itself, as do <code>X
+        Y</code>; <code>D C</code> take it to the end of each line.
+        <code>I</code> and <code>A</code> insert before and after it, and
+        what is typed on the first line goes onto the others at
+        Escape: <code>I</code> skips a line that ends before
+        the block, <code>A</code> pads it out with spaces. A tab the block's
+        edge cuts through becomes spaces. A blockwise register
+        <code>p</code> puts as a block, padding short lines and adding lines
+        at the end of the buffer as it needs.</td></tr>
 <tr><td valign="top"><b>registers</b></td>
     <td><code>"a</code> through <code>"z</code> (upper case appends),
         which are j's own <a href="commands.html#saveToRegister">registers</a>
@@ -179,7 +191,7 @@ session is one undo step, so <code>u</code> after
 
 <h2>What is not there yet</h2>
 <p>
-Visual block mode, macros (<code>q</code>, and the rest of <code>@</code>),
+Macros (<code>q</code>, and the rest of <code>@</code>),
 the rest of the insert-mode commands (completion, <code>Ctrl V</code>,
 <code>Ctrl R Ctrl O</code> and <code>Ctrl R Ctrl P</code>, and the like),
 the <code>it</code>, <code>is</code> and <code>as</code> text objects.
@@ -253,7 +265,8 @@ To change a few bindings rather than all of them, put them in
 <code>map</code>, <code>nmap</code>, <code>vmap</code>, <code>xmap</code>,
 <code>omap</code>, <code>imap</code> and <code>cmap</code> (keys at the
 <code>/</code> prompt) are understood, with their
-<code>noremap</code> and <code>unmap</code> forms, along with
+<code>noremap</code> and <code>unmap</code> forms (a <code>noremap</code>'s
+keys mean what they do built in, a <code>map</code>'s may be mappings too), along with
 <code>set</code> and <code>let mapleader</code>. A right-hand side that begins
 with <code>:</code> and ends with <code>&lt;CR&gt;</code> runs one of
 <a href="commands.html">j's own commands</a>, which is how a key reaches
@@ -294,8 +307,22 @@ These are known and deliberate:
     buffer. A mark on a line
     <code>J</code> joins to the one above is lost; vim moves it with the
     text.</li>
-<li><code>.</code> after a visual command repeats it at the caret, rather
-    than over as much text as the selection took in, as vim does.</li>
+<li><code>.</code> after a visual command repeats it over as much again
+    from the caret: as many lines, or characters, or a block as many
+    lines down and characters across. A characterwise selection over more
+    than one line is the exception: its <code>.</code> is at the caret
+    alone, where vim takes in as many lines again. A block's width is
+    counted in characters, where vim counts screen columns, so a block
+    over tabs repeats narrower.</li>
+<li><code>&gt;</code> and <code>&lt;</code> over a block leave the blanks at
+    its left edge as spaces, where vim uses tabs when
+    <code>expandtab</code> is off.</li>
+<li>A tab a block's edge cuts through is painted whole; vim paints only
+    the columns inside the block. And <code>A</code> over a block whose
+    right edge cuts a tab on its first line appends there, before the
+    tab, and at the same column on the other lines. vim appends after the
+    tab on the first line, and puts a tab before the text on the
+    others.</li>
 <li><code>Ctrl R</code> (redo) leaves the caret where the edit left it; vim
     puts it back where the command was typed. The two agree for most
     commands, but not after <code>Ctrl A</code> or <code>p</code>.</li>

@@ -14,6 +14,8 @@ package org.armedbear.j.vim;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.armedbear.j.Buffer;
+
 /**
  * What {@code :set} set.
  *
@@ -116,5 +118,16 @@ public final class VimOptions
     public void clear()
     {
         values.clear();
+    }
+
+    /**
+     * What > and < shift by: the vimrc's shiftwidth, or j's indentSize when
+     * it sets none. Zero is the tab width, as in vim.
+     */
+    public static int shiftWidth(Buffer buffer)
+    {
+        final int sw = VimKeyMap.getSharedOptions()
+            .getInt("shiftwidth", buffer.getIndentSize());
+        return sw > 0 ? sw : buffer.getTabWidth();
     }
 }

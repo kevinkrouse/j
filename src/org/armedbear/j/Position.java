@@ -160,6 +160,24 @@ public final class Position implements Constants
         offset = i;
     }
 
+    // Like moveToCol, but a column inside a tab stays on the tab instead of
+    // going past it: the character a block cursor on that column covers.
+    public void moveOntoCol(int goal, int tabWidth)
+    {
+        final int limit = line.length();
+        int i = 0;
+        int col = 0;
+        while (i < limit) {
+            final int w =
+                line.charAt(i) == '\t' ? tabWidth - col % tabWidth : 1;
+            if (col + w > goal)
+                break;
+            col += w;
+            i += Character.charCount(line.getText().codePointAt(i));
+        }
+        offset = i;
+    }
+
     public final boolean lookingAt(String s)
     {
         return s.regionMatches(0, line.getText(), offset, s.length());

@@ -142,8 +142,12 @@ public final class VimMotions
         final Buffer buffer = ctx.editor.getBuffer();
         final int wanted = ctx.state.getDesiredColumn(ctx.editor, from);
         final Position to = new Position(line, 0);
-        to.moveToCol(wanted, buffer.getTabWidth());
-        clampToLine(ctx, to);
+        to.moveOntoCol(wanted, buffer.getTabWidth());
+        // In visual mode vim lets the caret stop on the end of a line too
+        // short for the column, so the selection takes in the line break,
+        // and a block the columns past it.
+        if (!ctx.state.getMode().isVisual())
+            clampToLine(ctx, to);
         return to;
     }
 
@@ -195,7 +199,7 @@ public final class VimMotions
     private static Position moveToColumn(MotionContext ctx, Position from)
     {
         final Position to = new Position(from.getLine(), 0);
-        to.moveToCol(ctx.count - 1, ctx.editor.getBuffer().getTabWidth());
+        to.moveOntoCol(ctx.count - 1, ctx.editor.getBuffer().getTabWidth());
         clampToLine(ctx, to);
         return to;
     }

@@ -1469,6 +1469,15 @@ public final class Display extends JComponent implements Constants,
         if (r == null)
             return;
 
+        // A block: the input handler says where it falls on each line.
+        final InputHandler handler = editor.getInputHandler();
+        if (handler != null && handler.isBlockSelection()) {
+            fillSpans(line, handler.getBlockSelection(editor, line),
+                      editor.getFormatter().getSelectionBackgroundColor(),
+                      g2d, y);
+            return;
+        }
+
         // A linewise selection ends at offset 0 of the line after it, which
         // lets the branches below fill each selected line. The last line of
         // the buffer has no line after it, so the region ends part way along

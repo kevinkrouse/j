@@ -21,7 +21,6 @@
 package org.armedbear.j;
 
 import java.lang.StringBuilder;
-import org.armedbear.j.util.Utilities;
 
 import java.util.List;
 
@@ -151,48 +150,44 @@ public final class Region implements Constants
         return isColumnRegion;
     }
 
+    /**
+     * A column region as a block: its lines, from the left column to the
+     * right one, that one not included.
+     */
+    public final Block toBlock()
+    {
+        Debug.assertTrue(isColumnRegion);
+        final int from = Math.min(getBeginCol(), getEndCol());
+        final int to = Math.max(getBeginCol(), getEndCol());
+        return new Block(buffer, beginLine, endLine, from, to, false);
+    }
+
     public final boolean isLineRegion()
     {
         return beginOffset == 0 && endOffset == 0;
     }
 
+    // A column region's text is its block's: a line for each line, joined by
+    // newlines.
     public String toString()
     {
+        if (isColumnRegion)
+            return toBlock().getText();
         if (beginLine == endLine)
             return beginLine.substring(beginOffset, endOffset);
 
         StringBuilder sb = new StringBuilder();
-        if (isColumnRegion) {
-            for (Line line = beginLine; line != null; line = line.next()) {
-                sb.append(getTextInRegion(line));
-                sb.append('\n');
-                if (line == getEndLine())
-                    break;
-            }
-        } else {
-            sb.append(beginLine.substring(beginOffset));
+        sb.append(beginLine.substring(beginOffset));
+        sb.append('\n');
+        Line line = beginLine.next();
+        while (line != endLine && line != null) {
+            sb.append(line.getText());
             sb.append('\n');
-            Line line = beginLine.next();
-            while (line != endLine && line != null) {
-                sb.append(line.getText());
-                sb.append('\n');
-                line = line.next();
-            }
-            if (line == endLine)
-                sb.append(line.substring(0, endOffset));
+            line = line.next();
         }
+        if (line == endLine)
+            sb.append(line.substring(0, endOffset));
         return sb.toString();
-    }
-
-    private String getTextInRegion(Line line)
-    {
-        String text = Utilities.detab(line.getText(), buffer.getTabWidth());
-        if (text.length() > getEndCol())
-            return text.substring(getBeginCol(), getEndCol());
-        else if (text.length() > getBeginCol())
-            return text.substring(getBeginCol());
-        else
-            return "";
     }
 
     public boolean adjustMarker(Position pos)

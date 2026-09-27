@@ -71,6 +71,30 @@ public class VimrcTest
     }
 
     @Test
+    public void aNoremapsKeysMeanWhatTheyDoBuiltIn()
+    {
+        // < in the right-hand side is the shift, not this mapping again.
+        vim("        a\n        b\nc\n", "set sw=4\nvnoremap < <gv\n")
+            .cursor(0, 8).keys("vj<<");
+        h.assertText("a\nb\nc\n");
+        assertEquals("VISUAL", h.vimModeIndicator());
+        tearDown();
+        // Z is the built-in x, which deletes a character, not the dd x is
+        // mapped to.
+        vim("abc\ndef\n", "nnoremap x dd\nnnoremap Z x\n").cursor(0, 0)
+            .keys("Z");
+        h.assertText("bc\ndef\n");
+    }
+
+    @Test
+    public void aMapsKeysAreMappingsToo()
+    {
+        vim("abc\ndef\n", "nnoremap x dd\nnmap Z x\n").cursor(0, 0)
+            .keys("Z");
+        h.assertText("def\n");
+    }
+
+    @Test
     public void mapLeaderIsExpanded()
     {
         vim("abc\n", "let mapleader = \",\"\nnnoremap <leader>d dl\n")

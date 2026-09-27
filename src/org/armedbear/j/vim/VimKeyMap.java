@@ -17,6 +17,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.LinkedHashSet;
 import java.util.LinkedHashMap;
@@ -60,10 +61,35 @@ public final class VimKeyMap
     private final Map<MappingMode, KeyStrokeTrie<VimCommand>> tries =
         new EnumMap<MappingMode, KeyStrokeTrie<VimCommand>>(MappingMode.class);
 
+    /** Every row added, in order, so the map can be copied. */
+    private final List<VimCommand> rows = new ArrayList<VimCommand>();
+
+    /**
+     * The map as it was before a vimrc changed it, which a noremap's keys
+     * and the table's own key-to-key rows mean; null while unchanged.
+     */
+    private VimKeyMap builtIn;
+
     public VimKeyMap()
     {
         for (MappingMode mode : MappingMode.values())
             tries.put(mode, new KeyStrokeTrie<VimCommand>());
+    }
+
+    /** Keeps a copy of the map as it is now, before the first mapping. */
+    void keepBuiltIn()
+    {
+        if (builtIn != null)
+            return;
+        builtIn = new VimKeyMap();
+        for (VimCommand row : rows)
+            builtIn.add(row);
+    }
+
+    /** The map without a vimrc's mappings. */
+    public VimKeyMap getBuiltIn()
+    {
+        return builtIn != null ? builtIn : this;
     }
 
     private static VimKeyMap shared;
@@ -209,6 +235,7 @@ public final class VimKeyMap
 
     public void add(VimCommand command)
     {
+        rows.add(command);
         final List<String> keys = KeyNotation.tokenize(command.getKeys());
         for (MappingMode mode : command.getModes())
             tries.get(mode).put(keys, command);

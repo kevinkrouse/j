@@ -11,11 +11,16 @@
 
 package org.armedbear.j.vim;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import javax.swing.undo.CompoundEdit;
 
+import org.armedbear.j.Block;
+import org.armedbear.j.Buffer;
 import org.armedbear.j.CaretCommands;
 import org.armedbear.j.Editor;
 import org.armedbear.j.JEvent;
@@ -61,7 +66,8 @@ public final class VimActions
         register("selectRegister", VimActions::selectRegister);
         register("setMark", VimActions::setMark);
         register("toggleVisualMode", VimActions::toggleVisualMode);
-        register("swapVisualEnds", ctx -> VimVisual.swapEnds(ctx.editor, ctx.state));
+        register("swapVisualEnds", ctx -> VimVisual.swapEnds(ctx.editor,
+            ctx.state, ctx.arg("sideways")));
         register("reselectVisual", ctx -> VimVisual.reselect(ctx.editor, ctx.state));
         register("undo", VimActions::undo);
         register("redo", VimActions::redo);
@@ -81,6 +87,7 @@ public final class VimActions
         register("visualPut", VimActions::visualPut);
         register("switchWindow", VimActions::switchWindow);
         register("travelJumps", VimActions::travelJumps);
+        register("visualInsert", VimActions::visualInsert);
         register("incsearchStep",
                  ctx -> ctx.handler.searchStep(ctx.editor, ctx.arg("forward")));
         register("closeWindow", ctx -> VimExCommands.closeWindow(
@@ -103,7 +110,7 @@ public final class VimActions
     }
 
     /**
-     * v and V.
+     * v, V and CTRL-V.
      *
      * Typing the mode you are already in leaves visual mode, which is how vim
      * lets the same key do both.
@@ -111,7 +118,7 @@ public final class VimActions
     private static void toggleVisualMode(MotionContext ctx)
     {
         final VimMode wanted = ctx.arg("linewise") ? VimMode.VISUAL_LINE
-                                                    : VimMode.VISUAL;
+            : ctx.arg("block") ? VimMode.VISUAL_BLOCK : VimMode.VISUAL;
         if (ctx.state.getMode() == wanted)
             VimVisual.leave(ctx.editor, ctx.state);
         else
@@ -127,8 +134,13 @@ public final class VimActions
     private static void undo(MotionContext ctx)
     {
         ctx.state.endInsert(ctx.editor);
-        for (int i = 0; i < ctx.count; i++)
-            ctx.editor.getBuffer().undo();
+        // Under the write lock, as j's own undo takes it: restoring a line
+        // edit expects it.
+        final Buffer buffer = ctx.editor.getBuffer();
+        buffer.withWriteLock(() -> {
+            for (int i = 0; i < ctx.count; i++)
+                buffer.undo();
+        });
         ctx.state.clearSelectionUnlessVisual(ctx.editor);
         ctx.state.clampCaret(ctx.editor);
     }
@@ -136,8 +148,11 @@ public final class VimActions
     /** CTRL-R. */
     private static void redo(MotionContext ctx)
     {
-        for (int i = 0; i < ctx.count; i++)
-            ctx.editor.getBuffer().redo();
+        final Buffer buffer = ctx.editor.getBuffer();
+        buffer.withWriteLock(() -> {
+            for (int i = 0; i < ctx.count; i++)
+                buffer.redo();
+        });
         ctx.state.clearSelectionUnlessVisual(ctx.editor);
         ctx.state.clampCaret(ctx.editor);
     }
@@ -199,7 +214,7 @@ public final class VimActions
         final int offset = dot.getOffset();
         final int delta = Lines.shiftToMultiple(
             editor, line, ctx.arg("right"),
-            editor.getBuffer().getIndentSize());
+            VimOptions.shiftWidth(editor.getBuffer()));
         editor.setDot(line, Math.max(0, Math.min(line.length(),
                                                  offset + delta)));
         editor.moveCaretToDotCol();
@@ -456,6 +471,9 @@ public final class VimActions
             VimOperators.recordCaret(editor);
             if (register.type == VimRegisters.Type.LINEWISE)
                 putLinewise(editor, ctx.state, dot, text.toString(), after);
+            else if (register.type == VimRegisters.Type.BLOCKWISE)
+                putBlockwise(editor, ctx.state, dot, register.text, ctx.count,
+                             after);
             else
                 putCharwise(editor, ctx.state, dot, text.toString(), after);
         }
@@ -463,6 +481,27 @@ public final class VimActions
             editor.getBuffer().endCompoundEdit(edit);
         }
         ctx.state.clampCaret(editor);
+    }
+
+    /**
+     * A block from the register, its top left at the caret or just after
+     * it: j's Block.put. A count repeats each of its lines along.
+     */
+    private static void putBlockwise(Editor editor, VimState state,
+                                     Position dot, String text, int count,
+                                     boolean after)
+    {
+        final List<String> pieces = new ArrayList<String>();
+        for (String piece : text.split("\n", -1))
+            pieces.add(piece.repeat(Math.max(1, count)));
+        int col = editor.getBuffer().getCol(dot);
+        if (after && dot.getOffset() < dot.getLineLength())
+            col = editor.getBuffer().getCol(new Position(dot.getLine(),
+                CodePoints.next(dot.getLine(), dot.getOffset())));
+        Block.put(editor, dot.getLine(), col, pieces);
+        final Position at = editor.getDot();
+        if (at != null)
+            state.getMarks().noteChange(editor.getBuffer(), at, at, at);
     }
 
     private static char registerName(MotionContext ctx)
@@ -606,6 +645,44 @@ public final class VimActions
                                       ? VimMode.REPLACE : VimMode.INSERT);
         // 3iab<Esc> types ab three times: Escape types the other two.
         ctx.state.setInsertRepeat(ctx.count - 1, false);
+    }
+
+    /**
+     * I and A in visual mode. Over a block, an insert at its left edge or
+     * after its right one -- the end of each line after $ -- which Escape
+     * puts on every line of it; otherwise at the start of the selection's
+     * first line, or just after the selection.
+     */
+    private static void visualInsert(MotionContext ctx)
+    {
+        final Editor editor = ctx.editor;
+        final VimState state = ctx.state;
+        final boolean append = ctx.arg("append");
+        final boolean block = state.getMode() == VimMode.VISUAL_BLOCK;
+        final Block selected = block ? VimVisual.block(editor, state) : null;
+        final VimRange range = VimVisual.take(editor, state);
+        if (range == null)
+            return;
+        state.beginInsert(editor, VimMode.INSERT);
+        if (block) {
+            final Line first = selected.getFirstLine();
+            final Position at = !append
+                ? Block.positionAt(editor.getBuffer(), first,
+                                   selected.getStartCol())
+                : selected.isToEol() ? new Position(first, first.length())
+                : selected.appendPoint(editor, first);
+            editor.setDot(at);
+            editor.moveCaretToDotCol();
+            state.beginBlockInsert(editor, selected, append,
+                Block.positionAt(editor.getBuffer(), first,
+                                 selected.getStartCol()));
+            return;
+        }
+        final Position at = append ? range.end
+            : new Position(range.start.getLine(), 0);
+        editor.setDot(append && range.linewise
+                      ? new Position(range.last, range.last.length()) : at);
+        editor.moveCaretToDotCol();
     }
 
     // ------------------------------------------------------- replace mode
@@ -826,6 +903,15 @@ public final class VimActions
         final VimRange range = VimVisual.take(editor, ctx.state);
         if (range == null || replacement == 0)
             return;
+        if (range.block != null) {
+            final String with = new String(Character.toChars(replacement));
+            range.block.transform(editor, s -> with.repeat(
+                Character.codePointCount(s, 0, s.length())));
+            ctx.state.getMarks().noteEdit(editor.getBuffer(), range.start,
+                                          range.end);
+            ctx.state.clampCaret(editor);
+            return;
+        }
         // Undo gives the caret back at the start of the selection, as nvim
         // does, so that is where it is when the change is recorded.
         editor.setDot(range.start.getLine(), range.start.getOffset());
@@ -861,6 +947,52 @@ public final class VimActions
     }
 
     /**
+     * Visual p and P over a block: the block goes, and the register comes
+     * in its place -- a block at its top left, characters on each of its
+     * lines, whole lines after its last -- as nvim does.
+     */
+    private static void blockPut(MotionContext ctx, Block block,
+                                 VimRegisters.Register register, String text)
+    {
+        final Editor editor = ctx.editor;
+        final String selected = block.getText();
+        final Line first = block.getFirstLine();
+        final Line last = block.getLastLine();
+        final int col = block.getStartCol();
+        final CompoundEdit edit = editor.getBuffer().beginCompoundEdit();
+        try {
+            VimOperators.recordCaret(editor);
+            block.delete(editor);
+            if (register.type == VimRegisters.Type.BLOCKWISE) {
+                Block.put(editor, first, col,
+                          Arrays.asList(register.text.split("\n", -1)));
+            } else if (register.type == VimRegisters.Type.LINEWISE) {
+                editor.setDot(last, last.length());
+                editor.moveCaretToDotCol();
+                editor.insertString("\n" + text);
+                // Count back: an empty last line may itself have been split.
+                landOnFirstNonBlank(editor, back(editor.getDot().getLine(),
+                                                 countNewlines(text)));
+            } else {
+                new Block(editor.getBuffer(), first, last, col, col, false)
+                    .insertOnEachLine(editor, text, false);
+                final Position start = Block.positionAt(editor.getBuffer(),
+                                                        first, col);
+                editor.setDot(first, Math.max(start.getOffset(),
+                    start.getOffset() + text.length() - 1));
+                editor.moveCaretToDotCol();
+            }
+        }
+        finally {
+            editor.getBuffer().endCompoundEdit(edit);
+        }
+        if (ctx.arg("after"))
+            VimRegisters.getInstance().deleted((char) 0, selected,
+                                               VimRegisters.Type.BLOCKWISE);
+        ctx.state.clampCaret(editor);
+    }
+
+    /**
      * Visual p and P: the register takes the selection's place. p leaves
      * what was selected in the unnamed register; P leaves the registers
      * alone, so it can be done again.
@@ -880,6 +1012,10 @@ public final class VimActions
         final StringBuilder text = new StringBuilder(once);
         for (int i = 1; i < ctx.count; i++)
             text.append(lines ? "\n" : "").append(once);
+        if (range.block != null) {
+            blockPut(ctx, range.block, register, text.toString());
+            return;
+        }
         final String selected = VimOperators.textOf(editor, range);
 
         // Undo gives the caret back at the start of the selection, as nvim
@@ -905,8 +1041,12 @@ public final class VimActions
                     // Linewise text goes in as whole lines, splitting the
                     // line where the selection was.
                     editor.insertString("\n" + text + "\n");
-                    markPut(editor, ctx.state, new Position(first.next(), 0));
-                    landOnFirstNonBlank(editor, first.next());
+                    // Counted back from the caret, as an emptied line may
+                    // itself have been split rather than first.
+                    final Line put = back(editor.getDot().getLine(),
+                                          countNewlines(text.toString()) + 1);
+                    markPut(editor, ctx.state, new Position(put, 0));
+                    landOnFirstNonBlank(editor, put);
                 } else {
                     putCharwise(editor, ctx.state, editor.getDot(),
                                 text.toString(), false);

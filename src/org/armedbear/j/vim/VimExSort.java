@@ -64,7 +64,8 @@ final class VimExSort
         if (source != null && !source.isEmpty())
             options.pattern = compile(source);
 
-        Sort.sortLines(editor, first, last, options);
+        editor.getBuffer().withWriteLock(
+            () -> Sort.sortLines(editor, first, last, options));
         final Line landed = VimEx.lineAt(editor, range.first);
         if (landed != null) {
             final Line bottom = VimEx.lineAt(editor, range.last);

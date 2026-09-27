@@ -16,6 +16,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import org.armedbear.j.Block;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.CommandTable;
 import org.armedbear.j.Constants;
@@ -120,6 +121,26 @@ public final class VimInputHandler implements InputHandler
     public boolean isLinewiseSelection()
     {
         return state.getMode() == VimMode.VISUAL_LINE;
+    }
+
+    @Override
+    public boolean isBlockSelection()
+    {
+        return state.getMode() == VimMode.VISUAL_BLOCK;
+    }
+
+    @Override
+    public int[] getBlockSelection(Editor editor, Line line)
+    {
+        if (!isBlockSelection() || editor.getMark() == null
+            || editor.getDot() == null)
+            return null;
+        final Block block = VimVisual.block(editor, state);
+        final int n = line.lineNumber();
+        if (n < block.getFirstLine().lineNumber()
+            || n > block.getLastLine().lineNumber())
+            return null;
+        return block.getOffsets(line);
     }
 
     @Override
@@ -436,6 +457,7 @@ public final class VimInputHandler implements InputHandler
             // step.
             repeatInsert(editor);
             dropUntouchedAutoIndent(editor);
+            state.finishBlockInsert(editor);
             state.markInsertStop(editor);
             state.setMode(editor, VimMode.NORMAL);
             // Leaving insert steps back onto the last character typed.
@@ -444,6 +466,12 @@ public final class VimInputHandler implements InputHandler
                 editor.setDot(dot.getLine(),
                               CodePoints.previous(dot.getLine(), dot.getOffset()));
             editor.moveCaretToDotCol();
+            // I and A over a block go back to its top left.
+            final Position landing = state.takeBlockInsertLanding();
+            if (landing != null) {
+                editor.setDot(landing);
+                editor.moveCaretToDotCol();
+            }
         }
         state.clampCaret(editor);
         resumeInsert(editor);
@@ -564,7 +592,8 @@ public final class VimInputHandler implements InputHandler
         final MappingMode mappingMode = builder.hasOperator()
             ? MappingMode.OP_PENDING
             : MappingMode.forVimMode(state.getMode());
-        final KeyStrokeTrie<VimCommand> trie = keyMap.getTrie(mappingMode);
+        final KeyStrokeTrie<VimCommand> trie =
+            (builtInOnly ? keyMap.getBuiltIn() : keyMap).getTrie(mappingMode);
         final KeyStrokeTrie.Match<VimCommand> match = trie.match(builder.getKeys());
 
         switch (match.status) {
@@ -609,11 +638,15 @@ public final class VimInputHandler implements InputHandler
      */
     private void afterCommand()
     {
+        final String visualShape = state.takeVisualRepeat();
         if (replaying)
             return;
         if (edited) {
             edited = false;
             recordingEdit = true;
+            // A change from visual mode repeats over as much again.
+            if (visualShape != null)
+                recording.insert(0, visualShape);
             if (!state.getMode().isInsert()) {
                 lastChange = recording.toString();
                 clearRecording();
@@ -1443,8 +1476,13 @@ public final class VimInputHandler implements InputHandler
             final int count = builder.getEffectiveCount();
             builder.reset();
             // D, C, S, R, X and Y take whole lines even from a charwise
-            // selection.
-            if (operator.getBoolean("linewise"))
+            // selection; from a block, D and C take to the end of each line
+            // and X and Y the block itself, as nvim does.
+            final boolean block = state.getMode() == VimMode.VISUAL_BLOCK;
+            if (block && operator.getBoolean("blockToEol"))
+                state.setDesiredColumn(VimState.STICKY_EOL);
+            else if (operator.getBoolean("linewise")
+                     && !(block && operator.getBoolean("blockAsIs")))
                 state.setMode(editor, VimMode.VISUAL_LINE);
             final VimRange range = VimVisual.take(editor, state);
             if (range != null)
@@ -1721,13 +1759,25 @@ public final class VimInputHandler implements InputHandler
         // The count was typed in front of the original key, so it belongs to
         // the sequence this stands for.
         final List<String> keys = KeyNotation.tokenize(command.getCommand());
-        for (int i = 0; i < keys.size(); i++) {
-            if (i == 0 && countGiven)
-                for (char digit : Integer.toString(count).toCharArray())
-                    builder.acceptCountDigit(String.valueOf(digit));
-            dispatch(editor, keys.get(i), depth + 1);
+        // A noremap's keys, and the table's own rows, mean what they do built
+        // in: vnoremap < <gv shifts rather than finding itself again.
+        final boolean wasBuiltInOnly = builtInOnly;
+        builtInOnly = wasBuiltInOnly || !command.getBoolean("remap");
+        try {
+            for (int i = 0; i < keys.size(); i++) {
+                if (i == 0 && countGiven)
+                    for (char digit : Integer.toString(count).toCharArray())
+                        builder.acceptCountDigit(String.valueOf(digit));
+                dispatch(editor, keys.get(i), depth + 1);
+            }
+        }
+        finally {
+            builtInOnly = wasBuiltInOnly;
         }
     }
+
+    /** While keys a mapping stands for are dispatched without remapping. */
+    private boolean builtInOnly;
 
     // ------------------------------------------------------------ helpers
 
