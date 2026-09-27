@@ -266,17 +266,25 @@ misreading it. Every pattern goes through it: `/ ? n N * #`, `:s`, `:g`,
 `:sort`, `/pat/` addresses. Vim finds the matches on a line by scanning from
 the line's start, not from the caret; so does `VimSearch`.
 
-**hlsearch** is on by default, as in nvim. `Display` asks the handler for a
-line's matches (`getSearchMatches`) as it paints it and fills them behind the
-text, under the selection; `VimSearch.matchesOnLine` finds the same matches
-`n` does, from a pattern `VimState` compiles once and recompiles when the
-pattern, `ignorecase`, `smartcase` or the last replacement changes. A new
-pattern, `:noh`, `n` after it and `:set` repaint the whole window, since
-every visible line may change. `:set` at the prompt is the vimrc's `set`.
-The last pattern and the `:noh` flag are one for every window, as in vim
-(`VimState.LastSearch`), and so repaint every window; the `shareSearch`
-preference gives each window its own -- for j's own `findNext` too
-(`Editor.getLastSearch`), and `Editor.isSearchShared` is the one check.
+**One last search, j's.** A vim search is kept as j's own last search
+(`Editor.getLastSearch`), as a `VimSearch.Compiled`: a j `Search` that
+remembers the vim query it came from. So j's `findNext` (F3) goes on with a
+`/`, and `n` reads the query back -- or, after a find of j's own, runs that
+`Search` as it is (`Query.own`), spelled for vim only for `:s//` and
+messages. A bad pattern is kept too, as vim keeps it, matching nothing. The
+`shareSearch` preference makes the search every window's or each window's,
+in one place (`Editor.isSearchShared`), for both.
+
+**Highlighting the matches is j's.** `Display` paints what
+`Editor.getSearchMatches` names, behind the text and under the selection:
+in simple mode the last search's matches (`Search.matchesOnLine`, the ones
+`findNext` finds) when the `highlightSearchMatches` preference is on; with
+an input handler, what it says -- vim's `hlsearch`, on by default as in
+nvim, and incsearch's preview. The `:noh` state is j's too:
+`clearSearchHighlight` hides the matches until the next search or
+`findNext`, and `:noh` runs it. `:set` at the prompt is the vimrc's `set`,
+and compiles the last search again, since `ignorecase` and `smartcase`
+change what it matches.
 
 **incsearch** runs off the prompt's `keyReleased`: `searchTyped` finds the
 pattern so far from where `/` was typed (`PendingSearch.origin`), moves the
@@ -416,6 +424,8 @@ carries no non-JDK dependency) and `bb fmt-check`.
   U+F600), so an emoji can only be tested through an input method.
   `drag:X1,Y1,X2,Y2` drags the mouse, for a split's divider; the drag
   leaves j's keyboard focus off the editor until a click in the text.
+  Under Xvfb `xdotool key F3` arrives with Alt held, and j opens its Find
+  dialog (Alt+F3): use Ctrl+G, which is also `findNext`.
 - **`VimDocTest`** checks every key the "What is there" table in
   `doc/editmodes.html` names is bound in its row's modes, and every ex command
   it names runs. The docs once claimed `R` for several milestones with nothing
@@ -586,9 +596,10 @@ review before the next.
 | M19 | windows: `<C-w>` and `:sp :vs :q :clo :on` | `22750f115` |
 | — | review fixes: `visualPut`'s delete, the `J` mark divergence | `30f790a4d` |
 | M20 | `]] [[ ][ []`, `( )`, `[( ]) [{ ]}`; `{ }` on vim's findpar | `0a337b057` |
-| M21 | `hlsearch`, `:noh`, `:set` at the prompt; `incsearch`, `smartcase` on, `shareSearch`; `c` map, CTRL-G and CTRL-T | (uncommitted) |
+| M21 | `hlsearch`, `:noh`, `:set` at the prompt; `incsearch`, `smartcase` on, `shareSearch`; `c` map, CTRL-G and CTRL-T | `462bcfedc` |
+| M22 | one last search for j and vim; highlighting and `clearSearchHighlight` in j | (uncommitted) |
 
-After M21: 957 tests, conformance 156 of 253 (155 ratcheted).
+After M22: 969 tests, conformance 156 of 253 (155 ratcheted).
 
 ### What the work learned
 

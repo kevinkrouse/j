@@ -11,8 +11,8 @@
 
 package org.armedbear.j.vim;
 
-import java.util.Arrays;
 import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
 import org.armedbear.j.Buffer;
@@ -51,6 +51,11 @@ public final class VimSearch
          * what the user meant.
          */
         public final boolean smartcase;
+        /**
+         * One of j's own searches this stands for, run as it is -- so that
+         * n goes on with a find made outside vim edit mode -- or null.
+         */
+        final Search own;
 
         public Query(String pattern, boolean forward, boolean wholeWord)
         {
@@ -60,16 +65,58 @@ public final class VimSearch
         public Query(String pattern, boolean forward, boolean wholeWord,
                      boolean smartcase)
         {
+            this(pattern, forward, wholeWord, smartcase, null);
+        }
+
+        private Query(String pattern, boolean forward, boolean wholeWord,
+                      boolean smartcase, Search own)
+        {
             this.pattern = pattern;
             this.forward = forward;
             this.wholeWord = wholeWord;
             this.smartcase = smartcase;
+            this.own = own;
         }
 
         Query reversed()
         {
-            return new Query(pattern, !forward, wholeWord, smartcase);
+            return new Query(pattern, !forward, wholeWord, smartcase, own);
         }
+    }
+
+    /**
+     * A query compiled to j's {@link Search}, which is what j keeps as its
+     * last search: findNext goes on with a {@code /}, and n reads the query
+     * back.
+     */
+    static final class Compiled extends Search
+    {
+        final Query query;
+
+        Compiled(Query query)
+        {
+            this.query = query;
+        }
+    }
+
+    /**
+     * What n repeats, from j's last search: the query a vim search was, or
+     * one standing for a find of j's own, forward, spelled for vim so that
+     * {@code :s//} can use it -- {@code \V} for a literal, {@code \v} for a
+     * regular expression, which is near enough to Java's.
+     */
+    static Query queryOf(Search search)
+    {
+        if (search == null)
+            return null;
+        if (search instanceof Compiled)
+            return ((Compiled) search).query;
+        final String pattern = search.getPattern();
+        final String spelled = (search.ignoreCase() ? "\\c" : "")
+            + (search.isRegularExpression()
+               ? "\\v" + pattern : "\\V" + pattern.replace("\\", "\\\\"));
+        return new Query(spelled, true, search.wholeWordsOnly(), false,
+                         search);
     }
 
     /** Raised for a pattern java.util.regex will not take. */
@@ -200,32 +247,19 @@ public final class VimSearch
     }
 
     /**
-     * For hlsearch: the matches on one line, as start and end offsets in
-     * pairs, or null for none. The same matches n finds -- scanned from the
-     * line's start, an empty one stepped past -- ended where each really
-     * ends, so an empty match stays empty.
+     * A query compiled to keep as j's last search. A bad one is kept too, as
+     * vim keeps it: it matches nothing, and n reports it again.
      */
-    static int[] matchesOnLine(Editor editor, Search search, Line line)
+    static Search compileToKeep(Query query, Editor editor)
     {
-        final Mode mode = editor.getBuffer().getMode();
-        int[] spans = new int[8];
-        int n = 0;
-        int offset = 0;
-        while (offset <= line.length()) {
-            final Position match =
-                search.findInLine(mode, new Position(line, offset));
-            if (match == null)
-                break;
-            final Matcher matcher = search.getMatch();
-            final int length = matcher != null ? matcher.group().length()
-                                               : search.getPatternLength();
-            if (n == spans.length)
-                spans = Arrays.copyOf(spans, n * 2);
-            spans[n++] = match.getOffset();
-            spans[n++] = match.getOffset() + length;
-            offset = match.getOffset() + Math.max(1, length);
-        }
-        return n == 0 ? null : Arrays.copyOf(spans, n);
+        final Search search = compileQuietly(query, editor);
+        if (search != null)
+            return search;
+        final Compiled bad = new Compiled(query);
+        bad.setPattern(query.pattern);
+        bad.setRegularExpression(true);
+        bad.setRE(Pattern.compile("(?!)"));
+        return bad;
     }
 
     /** A query compiled, or null when the pattern is bad. */
@@ -281,7 +315,9 @@ public final class VimSearch
 
     private static Search compile(Query query, Editor editor)
     {
-        final Search search = new Search();
+        if (query.own != null)
+            return query.own;
+        final Search search = new Compiled(query);
         // The translation is inside the try too: VimRegex refuses what it
         // cannot express by throwing, and a refusal has to reach the user as
         // a message rather than escape into the key handler.

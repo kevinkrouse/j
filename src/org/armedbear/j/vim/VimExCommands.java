@@ -138,16 +138,18 @@ public final class VimExCommands
         }
         if (matches(name, "se", "set")) {
             VimrcParser.set(VimKeyMap.getSharedOptions(), command.args);
+            // ignorecase and smartcase change what the pattern matches.
+            state.recompileLastSearch(editor);
             // Setting hlsearch shows the matches again after :noh.
             if (command.args.matches("(.*\\s)?(hls|hlsearch)(\\s.*)?"))
-                state.showSearchMatches(editor, true);
+                editor.setSearchHighlightHidden(false);
             // An option such as hlsearch may change what every window shows.
             for (EditorIterator it = new EditorIterator(); it.hasNext();)
                 it.next().repaintDisplay();
             return true;
         }
         if (matches(name, "noh", "nohlsearch")) {
-            state.showSearchMatches(editor, false);
+            editor.clearSearchHighlight();
             return true;
         }
         if (matches(name, "delm", "delmarks")) {

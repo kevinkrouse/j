@@ -38,6 +38,7 @@
     <li><a href="commands.html#changes">changes</a></li>
     <li><a href="commands.html#checkPath">checkPath</a></li>
     <li><a href="commands.html#clearRegister">clearRegister</a></li>
+    <li><a href="commands.html#clearSearchHighlight">clearSearchHighlight</a></li>
     <li><a href="commands.html#closeAll">closeAll</a></li>
     <li><a href="commands.html#closeOthers">closeOthers</a></li>
     <li><a href="commands.html#closeParen">closeParen</a></li>
@@ -640,6 +641,20 @@ persist automatically from one j session to the next.
 <a href="#insertRegister">insertRegister</a>,
 <a href="#listRegisters">listRegisters</a>,
 <a href="#saveToRegister">saveToRegister</a>
+<br><br>
+</dl><!--<hr>-->
+
+<a name="clearSearchHighlight">clearSearchHighlight</a><dl><dd>
+<p>
+Stops highlighting the matches of the last search until the next search, or
+until <a href="#findNext">findNext</a> or <a href="#findPrev">findPrev</a>
+shows them again. In <a href="editmodes.html">vim edit mode</a>
+<code>:noh</code> runs it.
+<br><br>
+<b>Default key mapping:</b> None
+<br><br>
+<b>See also:</b>
+<a href="preferences.html#highlightSearchMatches">highlightSearchMatches</a>
 <br><br>
 </dl><!--<hr>-->
 
@@ -1762,7 +1777,9 @@ Finds the next match in the current search (initiated by <a href="#find">find</a
 <a href="#incrementalFind">incrementalFind</a>, <a href="#findNextWord">findNextWord</a>
 or <a href="#findPrevWord">findPrevWord</a>).
 The search is every window's unless
-<a href="preferences.html#shareSearch">shareSearch</a> is false.
+<a href="preferences.html#shareSearch">shareSearch</a> is false, and is also
+the one a search in <a href="editmodes.html">vim edit mode</a> made, so this
+goes on with a <code>/</code>.
 <br><br>
 <b>Default key mapping:</b> F3, Ctrl G
 <br><br>

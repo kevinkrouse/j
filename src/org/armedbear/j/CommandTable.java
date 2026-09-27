@@ -75,6 +75,7 @@ public class CommandTable
             addCommand("bol");
             addCommand("bottom");
             addCommand("cancelBackgroundProcess");
+            addCommand("clearSearchHighlight");
             addCommand("closeAll");
             addCommand("closeOthers");
             addCommand("closeParen");

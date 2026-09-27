@@ -86,7 +86,7 @@ public class VimSearchOptionsTest
         h = vim("abc abc");
         other = vim("xbx");
         h.keys("/b<CR>");
-        assertNull(other.vimState().getLastSearch());
+        assertNull(other.vimState().getLastSearch(other.editor()));
         assertEquals("", other.searchMatches(0));
         assertEquals("0,0", caret(other.keys("n")));
         other.keys("/x<CR>").keys(":noh<CR>");
@@ -172,7 +172,7 @@ public class VimSearchOptionsTest
         h.keys("/c<CR>").keys("gg/").searchTyped("b").keys("<Esc>");
         assertEquals("0,0", caret(h));
         assertEquals("2-3 6-7", h.searchMatches(0));
-        assertEquals("c", h.vimState().getLastSearch().pattern);
+        assertEquals("c", h.vimState().getLastSearch(h.editor()).pattern);
     }
 
     @Test

@@ -161,6 +161,8 @@ public final class Property implements Comparable<Property>, Constants
         createProperty("highlightBrackets", false);
     public static final Property HIGHLIGHT_MATCHING_BRACKET =
         createProperty("highlightMatchingBracket", false);
+    public static final Property HIGHLIGHT_SEARCH_MATCHES =
+        createProperty("highlightSearchMatches", false);
     public static final Property HTTP_ENABLE_COOKIES =
         createProperty("httpEnableCookies", false);
     public static final Property IMAP_USE_LOCAL_CACHE =

@@ -485,13 +485,13 @@ public final class VimMotions
      */
     private static Position repeatSearch(MotionContext ctx, Position from)
     {
-        final VimSearch.Query last = ctx.state.getLastSearch();
+        final VimSearch.Query last = ctx.state.getLastSearch(ctx.editor);
         if (last == null) {
             ctx.editor.status("No previous search");
             return null;
         }
         // A search shows the matches again after :noh.
-        ctx.state.showSearchMatches(ctx.editor, true);
+        ctx.editor.setSearchHighlightHidden(false);
         return found(ctx, ctx.arg("reverse") ? last.reversed() : last, from);
     }
 

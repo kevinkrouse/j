@@ -99,8 +99,12 @@ commands, counts, registers, marks and the dot command:
         and
         <a href="preferences.html#color.currentSearchMatchBackground">color.currentSearchMatchBackground</a>.
         The last pattern is every window's, as in vim, unless
-        <a href="preferences.html#shareSearch">shareSearch</a> is
-        false.</td></tr>
+        <a href="preferences.html#shareSearch">shareSearch</a> is false,
+        and it is j's own last search too: j's
+        <a href="commands.html#findNext">findNext</a> (F3) goes on with a
+        <code>/</code>, and <code>n</code> with a find made in simple mode.
+        <code>:noh</code> is j's
+        <a href="commands.html#clearSearchHighlight">clearSearchHighlight</a>.</td></tr>
 <tr><td valign="top"><b>scroll</b></td>
     <td><code>zz zt zb</code>, which are j's own
         <a href="commands.html#toCenter">toCenter</a>, <code>toTop</code> and
@@ -314,6 +318,12 @@ These are known and deliberate:
     in the location bar, rather than at the bottom. Escape abandons the
     search, and an operator waiting on it &mdash; the <code>d</code> of
     <code>d/foo</code> &mdash; is abandoned with it.</li>
+<li>After a bad pattern, j's <a href="commands.html#findNext">findNext</a>
+    finds nothing, as <code>n</code> reports the pattern bad again. A find
+    made in simple mode is spelled for vim, for <code>:s//</code> and
+    messages, as <code>\V</code> and the text when it is literal and
+    <code>\v</code> and the Java regular expression when it is not, which
+    is not always the same thing.</li>
 <li>With a count, <code>Ctrl G</code> and <code>Ctrl T</code> at the
     <code>/</code> prompt step one match, and Enter stops on the one shown;
     nvim applies the count again from there.</li>

@@ -153,11 +153,15 @@ public final class Editor extends JPanel implements Constants,
     private final Frame frame;
 
     /**
-     * What findNext and findPrev repeat: one pattern for every window, or
-     * with the shareSearch preference false, each window's own.
+     * What findNext and findPrev repeat, and vim edit mode's n: one pattern
+     * for every window, or with the shareSearch preference false, each
+     * window's own. So is whether clearSearchHighlight has hidden its
+     * matches.
      */
     private Search lastSearch;
     private static Search sharedLastSearch;
+    private boolean searchHighlightHidden;
+    private static boolean sharedSearchHighlightHidden;
 
     /** The shareSearch preference, which vim edit mode's n reads too. */
     public static boolean isSearchShared()
@@ -170,12 +174,84 @@ public final class Editor extends JPanel implements Constants,
         return isSearchShared() ? sharedLastSearch : lastSearch;
     }
 
+    /** A new search, whose matches show again after clearSearchHighlight. */
     public final void setLastSearch(Search search)
     {
         if (isSearchShared())
             sharedLastSearch = search;
         else
             lastSearch = search;
+        setSearchHighlightHidden(false);
+        repaintSearchWindows();
+    }
+
+    public final boolean isSearchHighlightHidden()
+    {
+        return isSearchShared() ? sharedSearchHighlightHidden
+                                : searchHighlightHidden;
+    }
+
+    /** Hides the matches highlighted until the next search, or shows them. */
+    public final void setSearchHighlightHidden(boolean hidden)
+    {
+        if (hidden == isSearchHighlightHidden())
+            return;
+        if (isSearchShared())
+            sharedSearchHighlightHidden = hidden;
+        else
+            searchHighlightHidden = hidden;
+        repaintSearchWindows();
+    }
+
+    /**
+     * {@code clearSearchHighlight} -- stops highlighting the matches of the
+     * last search until the next one, as vim's {@code :nohlsearch}.
+     */
+    public void clearSearchHighlight()
+    {
+        setSearchHighlightHidden(true);
+    }
+
+    /**
+     * The matches of the last search to highlight on a line, as offset
+     * pairs, or null: with the highlightSearchMatches preference, or as an
+     * input handler says, which may show a search being typed instead.
+     */
+    public final int[] getSearchMatches(Line line)
+    {
+        final InputHandler handler = getInputHandler();
+        if (handler != null)
+            return handler.getSearchMatches(this, line);
+        return buffer.getBooleanProperty(Property.HIGHLIGHT_SEARCH_MATCHES)
+            ? lastSearchMatches(line) : null;
+    }
+
+    /** The last search's matches on a line, unless they are hidden. */
+    public final int[] lastSearchMatches(Line line)
+    {
+        final Search search = getLastSearch();
+        if (search == null || isSearchHighlightHidden())
+            return null;
+        return search.matchesOnLine(buffer.getMode(), line);
+    }
+
+    /** The match a search being typed is on, as an input handler says. */
+    public final int[] getCurrentSearchMatch(Line line)
+    {
+        final InputHandler handler = getInputHandler();
+        return handler == null ? null
+            : handler.getCurrentSearchMatch(this, line);
+    }
+
+    /** Every window a shared search shows in, or just this one. */
+    private void repaintSearchWindows()
+    {
+        if (!isSearchShared()) {
+            repaintDisplay();
+            return;
+        }
+        for (EditorIterator it = new EditorIterator(); it.hasNext();)
+            it.next().repaintDisplay();
     }
 
     // The current position in the buffer (that is, in the actual text).
@@ -5569,6 +5645,8 @@ public final class Editor extends JPanel implements Constants,
     {
         final Search search = getLastSearch();
         if (search != null) {
+            // Shows the matches again after clearSearchHighlight.
+            setSearchHighlightHidden(false);
             Position start;
             if (mark != null) {
                 Region r = new Region(this);
@@ -5612,6 +5690,7 @@ public final class Editor extends JPanel implements Constants,
     {
         final Search search = getLastSearch();
         if (search != null) {
+            setSearchHighlightHidden(false);
             Position start;
             if (mark != null) {
                 Region r = new Region(this);

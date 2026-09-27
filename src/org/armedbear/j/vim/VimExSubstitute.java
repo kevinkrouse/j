@@ -86,7 +86,7 @@ final class VimExSubstitute
         if (pattern.isEmpty()) {
             // An empty pattern means the last search, which is how
             // :g/one/s//two/ names its own match.
-            final VimSearch.Query last = state.getLastSearch();
+            final VimSearch.Query last = state.getLastSearch(editor);
             if (last != null)
                 pattern = last.pattern;
             else if (lastPattern != null)

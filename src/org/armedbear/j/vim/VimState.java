@@ -20,7 +20,6 @@ import javax.swing.undo.CompoundEdit;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Constants;
 import org.armedbear.j.Editor;
-import org.armedbear.j.EditorIterator;
 import org.armedbear.j.Line;
 import org.armedbear.j.Position;
 import org.armedbear.j.Search;
@@ -667,38 +666,15 @@ public final class VimState
     // ------------------------------------------------------------ search
 
     /**
-     * The pattern n and N repeat, and whether {@code :noh} has hidden its
-     * matches. One for every window, as in vim, unless the
-     * {@code shareSearch} preference says each window keeps its own.
-     *
-     * Not {@code Editor.getLastSearch}: that is j's own find commands', has
-     * no direction, and may hold a {@code FindInFiles} rather than a plain
-     * search.
+     * The pattern n and N repeat: j's last search
+     * ({@link Editor#getLastSearch}), which its findNext repeats too, one for
+     * every window unless the shareSearch preference says otherwise. A vim
+     * search is kept there as the query it was; a find of j's own stands
+     * for itself.
      */
-    private static final class LastSearch
+    public VimSearch.Query getLastSearch(Editor editor)
     {
-        VimSearch.Query query;
-        boolean matchesHidden;
-    }
-
-    private static final LastSearch SHARED = new LastSearch();
-    private final LastSearch own = new LastSearch();
-
-    /** Forgets the shared pattern, as a new session starts without one. */
-    public static void clearSharedSearch()
-    {
-        SHARED.query = null;
-        SHARED.matchesHidden = false;
-    }
-
-    private LastSearch lastSearch()
-    {
-        return Editor.isSearchShared() ? SHARED : own;
-    }
-
-    public VimSearch.Query getLastSearch()
-    {
-        return lastSearch().query;
+        return VimSearch.queryOf(editor.getLastSearch());
     }
 
     /**
@@ -707,55 +683,37 @@ public final class VimState
      */
     public void setLastSearch(Editor editor, VimSearch.Query query)
     {
-        final LastSearch last = lastSearch();
-        last.query = query;
-        last.matchesHidden = false;
-        repaintMatches(editor);
+        editor.setLastSearch(VimSearch.compileToKeep(query, editor));
+    }
+
+    /**
+     * The last pattern compiled again, after {@code :set} changes what its
+     * translation reads -- ignorecase, smartcase -- leaving it hidden if
+     * {@code :noh} had hidden it.
+     */
+    public void recompileLastSearch(Editor editor)
+    {
+        final VimSearch.Query query = getLastSearch(editor);
+        if (query == null || query.own != null)
+            return;
+        final boolean hidden = editor.isSearchHighlightHidden();
+        setLastSearch(editor, query);
+        editor.setSearchHighlightHidden(hidden);
     }
 
     // ---------------------------------------------------------- hlsearch
 
-    /** The pattern compiled once for painting, and what it was from. */
-    private Search compiledSearch;
-    private String compiledKey;
-
-    /** {@code :noh}, or with {@code show} n and N bringing them back. */
-    public void showSearchMatches(Editor editor, boolean show)
-    {
-        final LastSearch last = lastSearch();
-        if (last.matchesHidden == !show)
-            return;
-        last.matchesHidden = !show;
-        repaintMatches(editor);
-    }
-
-    /** Every window a shared pattern shows in, or just this one. */
-    private static void repaintMatches(Editor editor)
-    {
-        if (!Editor.isSearchShared()) {
-            editor.repaintDisplay();
-            return;
-        }
-        for (EditorIterator it = new EditorIterator(); it.hasNext();)
-            it.next().repaintDisplay();
-    }
-
     /**
      * With hlsearch, the matches to paint on a line, as offset pairs, or
-     * null for none: of the pattern being typed, or of the last one.
+     * null for none: of the pattern being typed, or of the last one unless
+     * {@code :noh} has hidden them.
      */
     public int[] searchMatches(Editor editor, Line line)
     {
         if (!VimKeyMap.getSharedOptions().isOn("hlsearch"))
             return null;
-        VimSearch.Query query = preview;
-        if (query == null) {
-            final LastSearch last = lastSearch();
-            if (last.matchesHidden)
-                return null;
-            query = last.query;
-        }
-        return query == null ? null : matchesOf(editor, query, line);
+        return preview != null ? previewMatches(editor, line)
+                               : editor.lastSearchMatches(line);
     }
 
     /** The match incsearch has the caret on, if it is on this line. */
@@ -763,7 +721,7 @@ public final class VimState
     {
         if (preview == null || line != previewAt.getLine())
             return null;
-        final int[] spans = matchesOf(editor, preview, line);
+        final int[] spans = previewMatches(editor, line);
         if (spans != null)
             for (int i = 0; i < spans.length; i += 2)
                 if (spans[i] == previewAt.getOffset())
@@ -771,16 +729,19 @@ public final class VimState
         return null;
     }
 
-    /** Compiled once for all the lines painted, until the query changes. */
-    private int[] matchesOf(Editor editor, VimSearch.Query query, Line line)
+    /** The pattern being typed, compiled once for all the lines painted. */
+    private Search previewSearch;
+    private String previewKey;
+
+    private int[] previewMatches(Editor editor, Line line)
     {
-        final String key = VimSearch.compiledKey(query);
-        if (!key.equals(compiledKey)) {
-            compiledKey = key;
-            compiledSearch = VimSearch.compileQuietly(query, editor);
+        final String key = VimSearch.compiledKey(preview);
+        if (!key.equals(previewKey)) {
+            previewKey = key;
+            previewSearch = VimSearch.compileQuietly(preview, editor);
         }
-        return compiledSearch == null ? null
-            : VimSearch.matchesOnLine(editor, compiledSearch, line);
+        return previewSearch == null ? null
+            : previewSearch.matchesOnLine(editor.getBuffer().getMode(), line);
     }
 
     // --------------------------------------------------------- incsearch

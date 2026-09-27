@@ -94,6 +94,7 @@ public final class EditorHarness
         // j's last find pattern is every window's, so one test's would
         // otherwise reach the next.
         editor.setLastSearch(null);
+        editor.setSearchHighlightHidden(false);
         editor.getDisplay().initialize();
         Editor.setCurrentEditor(editor);
 
@@ -150,8 +151,6 @@ public final class EditorHarness
         // Registers are global, as they are in vim, so one test's yank would
         // otherwise be visible to the next.
         org.armedbear.j.vim.VimRegisters.getInstance().clear();
-        // So is the last search pattern, unless shareSearch is off.
-        org.armedbear.j.vim.VimState.clearSharedSearch();
         return this;
     }
 
@@ -194,15 +193,13 @@ public final class EditorHarness
     /** The search matches painted on a line, as "start-end start-end". */
     public String searchMatches(int lineNumber)
     {
-        return spans(editor.getInputHandler()
-            .getSearchMatches(editor, lineAt(lineNumber)));
+        return spans(editor.getSearchMatches(lineAt(lineNumber)));
     }
 
     /** The match painted as the one incsearch is on, as "start-end". */
     public String currentSearchMatch(int lineNumber)
     {
-        return spans(editor.getInputHandler()
-            .getCurrentSearchMatch(editor, lineAt(lineNumber)));
+        return spans(editor.getCurrentSearchMatch(lineAt(lineNumber)));
     }
 
     private static String spans(int[] spans)

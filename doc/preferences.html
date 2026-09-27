@@ -567,10 +567,10 @@ typed in <a href="editmodes.html">vim edit mode</a> (vim's
 <code><a name="color.searchMatchBackground">color.searchMatchBackground</a></code>
 <dl>
 <dd>
-Background color for the matches of the last search in
-<a href="editmodes.html">vim edit mode</a>, which highlights them as vim's
-<code>hlsearch</code> does. A theme that does not set it uses its
-<code>color.matchingBracketBackground</code>.
+Background color for the highlighted matches of the last search: with
+<a href="#highlightSearchMatches">highlightSearchMatches</a>, and in
+<a href="editmodes.html">vim edit mode</a> with <code>hlsearch</code>. A theme that
+does not set it uses its <code>color.matchingBracketBackground</code>.
 <p>
 <b>Default value:</b> None
 </dl>
@@ -930,6 +930,22 @@ matching parenthesis, brace, or bracket, if any, is highlighted.
 <b>Default value:</b> false
 <p>
 <b>See also:</b> <a href="#highlightBrackets">highlightBrackets</a>
+</dl>
+
+<code><a name="highlightSearchMatches">highlightSearchMatches</a></code>
+<dl>
+<dd>
+If true, every match of the last search is highlighted in the windows
+showing it, until
+<a href="commands.html#clearSearchHighlight">clearSearchHighlight</a> or the
+next search. In <a href="editmodes.html">vim edit mode</a> vim's own
+<code>hlsearch</code> option decides instead, and is on.
+<p>
+<b>Default value:</b> false
+<p>
+<b>See also:</b>
+<a href="#color.searchMatchBackground">color.searchMatchBackground</a>,
+<a href="#shareSearch">shareSearch</a>
 </dl>
 
 <code><a name="HtmlMode.color.anchor">HtmlMode.color.anchor</a></code>

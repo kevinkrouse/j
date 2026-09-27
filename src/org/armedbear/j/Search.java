@@ -23,6 +23,7 @@ package org.armedbear.j;
 import java.lang.StringBuilder;
 import org.armedbear.j.util.Utilities;
 
+import java.util.Arrays;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 import java.util.regex.Matcher;
@@ -199,6 +200,33 @@ public class Search implements Cloneable
         else
             return findStringInLine(mode, start.getLine(), start.getOffset(),
                 start.getLineLength());
+    }
+
+    /**
+     * Where this matches on one line, as start and end offsets in pairs, or
+     * null for none: what is highlighted as the matches of a search. Scanned
+     * from the line's start, as findNext finds them; an empty match is
+     * stepped past and stays empty.
+     */
+    public final int[] matchesOnLine(Mode mode, Line line)
+    {
+        int[] spans = new int[8];
+        int n = 0;
+        int offset = 0;
+        while (offset <= line.length()) {
+            final Position found = findInLine(mode, new Position(line, offset));
+            if (found == null)
+                break;
+            final Matcher matcher = getMatch();
+            final int length = regularExpression && matcher != null
+                ? matcher.group().length() : getPatternLength();
+            if (n == spans.length)
+                spans = Arrays.copyOf(spans, n * 2);
+            spans[n++] = found.getOffset();
+            spans[n++] = found.getOffset() + length;
+            offset = found.getOffset() + Math.max(1, length);
+        }
+        return n == 0 ? null : Arrays.copyOf(spans, n);
     }
 
     public final boolean find(String s)

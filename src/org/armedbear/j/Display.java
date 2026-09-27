@@ -1558,18 +1558,16 @@ public final class Display extends JComponent implements Constants,
     }
 
     /**
-     * The search matches the input handler names on the line -- vim's
-     * hlsearch, and the match incsearch is on over them -- behind the text.
+     * The matches of the last search on the line, and over them the one a
+     * search being typed is on, behind the text. See
+     * {@link Editor#getSearchMatches}.
      */
     private void highlightSearchMatches(Line line, Graphics2D g2d, int y)
     {
-        final InputHandler handler = editor.getInputHandler();
-        if (handler == null)
-            return;
         final Formatter formatter = editor.getFormatter();
-        fillSpans(line, handler.getSearchMatches(editor, line),
+        fillSpans(line, editor.getSearchMatches(line),
                   formatter.getSearchMatchBackgroundColor(), g2d, y);
-        fillSpans(line, handler.getCurrentSearchMatch(editor, line),
+        fillSpans(line, editor.getCurrentSearchMatch(line),
                   formatter.getCurrentSearchMatchBackgroundColor(), g2d, y);
     }
 
