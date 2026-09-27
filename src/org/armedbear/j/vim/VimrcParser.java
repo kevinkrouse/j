@@ -113,8 +113,17 @@ public final class VimrcParser
         return true;
     }
 
-    /** {@code set shiftwidth=4}, {@code set ignorecase}, {@code set noeol}. */
     private boolean set(String rest)
+    {
+        set(options, rest);
+        return true;
+    }
+
+    /**
+     * {@code set shiftwidth=4}, {@code set ignorecase}, {@code set noeol},
+     * from a vimrc or the {@code :} line.
+     */
+    static void set(VimOptions options, String rest)
     {
         for (String option : rest.split("\\s+")) {
             if (option.isEmpty())
@@ -129,7 +138,6 @@ public final class VimrcParser
             else
                 options.set(option, "true");
         }
-        return true;
     }
 
     /** The mode letters in front of a command name, with any "nore". */
@@ -212,6 +220,8 @@ public final class VimrcParser
                 return EnumSet.of(MappingMode.OP_PENDING);
             case "i":
                 return EnumSet.of(MappingMode.INSERT);
+            case "c":
+                return EnumSet.of(MappingMode.COMMAND_LINE);
             default:
                 return null;
         }

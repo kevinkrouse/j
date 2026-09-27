@@ -42,6 +42,21 @@ public final class VimOptions
         ALIASES.put("tm", "timeoutlen");
     }
 
+    /**
+     * The switches read here, with their defaults: nvim's, but for
+     * smartcase, which is on here and off in both vim and nvim.
+     */
+    private static final Map<String, Boolean> SWITCHES =
+        new HashMap<String, Boolean>();
+
+    static {
+        SWITCHES.put("hlsearch", true);
+        SWITCHES.put("incsearch", true);
+        SWITCHES.put("ignorecase", false);
+        SWITCHES.put("smartcase", true);
+        SWITCHES.put("wrapscan", true);
+    }
+
     private final Map<String, String> values = new HashMap<String, String>();
 
     private static String canonical(String name)
@@ -58,12 +73,19 @@ public final class VimOptions
     public void toggle(String name)
     {
         final String key = canonical(name);
-        values.put(key, Boolean.parseBoolean(values.get(key)) ? "false" : "true");
+        values.put(key, isOn(key) ? "false" : "true");
     }
 
     public boolean isSet(String name)
     {
         return values.containsKey(canonical(name));
+    }
+
+    /** A switch, set or at its default; see {@link #SWITCHES}. */
+    public boolean isOn(String name)
+    {
+        final Boolean defaultValue = SWITCHES.get(canonical(name));
+        return getBoolean(name, defaultValue != null && defaultValue);
     }
 
     public boolean getBoolean(String name, boolean defaultValue)

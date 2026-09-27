@@ -152,16 +152,30 @@ public final class Editor extends JPanel implements Constants,
     private final Dispatcher dispatcher;
     private final Frame frame;
 
+    /**
+     * What findNext and findPrev repeat: one pattern for every window, or
+     * with the shareSearch preference false, each window's own.
+     */
     private Search lastSearch;
+    private static Search sharedLastSearch;
+
+    /** The shareSearch preference, which vim edit mode's n reads too. */
+    public static boolean isSearchShared()
+    {
+        return preferences().getBooleanProperty(Property.SHARE_SEARCH);
+    }
 
     public final Search getLastSearch()
     {
-        return lastSearch;
+        return isSearchShared() ? sharedLastSearch : lastSearch;
     }
 
     public final void setLastSearch(Search search)
     {
-        lastSearch = search;
+        if (isSearchShared())
+            sharedLastSearch = search;
+        else
+            lastSearch = search;
     }
 
     // The current position in the buffer (that is, in the actual text).
@@ -5553,7 +5567,8 @@ public final class Editor extends JPanel implements Constants,
 
     public void findNext()
     {
-        if (lastSearch != null) {
+        final Search search = getLastSearch();
+        if (search != null) {
             Position start;
             if (mark != null) {
                 Region r = new Region(this);
@@ -5563,39 +5578,40 @@ public final class Editor extends JPanel implements Constants,
             if (!start.next())
                 return;
             setWaitCursor();
-            Position pos = lastSearch.find(buffer, start);
+            Position pos = search.find(buffer, start);
             setDefaultCursor();
             if (pos != null) {
                 moveDotTo(pos);
-                markFoundPattern(lastSearch);
-                if (lastSearch instanceof FindInFiles) {
+                markFoundPattern(search);
+                if (search instanceof FindInFiles) {
                     if (buffer.getFile() != null) {
                         ListOccurrencesInFilesBuffer buf =
-                            ((FindInFiles)lastSearch).getOutputBuffer();
+                            ((FindInFiles)search).getOutputBuffer();
                         if (buf != null)
                             buf.follow(buffer.getFile(), getDotLine());
                     }
                 }
                 return;
             }
-            if (lastSearch instanceof FindInFiles) {
+            if (search instanceof FindInFiles) {
                 Editor ed = getOtherEditor();
                 if (ed != null) {
                     ListOccurrencesInFilesBuffer buf =
-                        ((FindInFiles)lastSearch).getOutputBuffer();
+                        ((FindInFiles)search).getOutputBuffer();
                     if (ed.getBuffer() == buf) {
                         buf.findNextOccurrence(ed);
                         return;
                     }
                 }
             }
-            lastSearch.notFound(this);
+            search.notFound(this);
         }
     }
 
     public void findPrev()
     {
-        if (lastSearch != null) {
+        final Search search = getLastSearch();
+        if (search != null) {
             Position start;
             if (mark != null) {
                 Region r = new Region(this);
@@ -5605,33 +5621,33 @@ public final class Editor extends JPanel implements Constants,
             if (!start.prev())
                 return;
             setWaitCursor();
-            Position pos = lastSearch.reverseFind(buffer, start);
+            Position pos = search.reverseFind(buffer, start);
             setDefaultCursor();
             if (pos != null) {
                 moveDotTo(pos);
-                markFoundPattern(lastSearch);
-                if (lastSearch instanceof FindInFiles) {
+                markFoundPattern(search);
+                if (search instanceof FindInFiles) {
                     if (buffer.getFile() != null) {
                         ListOccurrencesInFilesBuffer buf =
-                            ((FindInFiles)lastSearch).getOutputBuffer();
+                            ((FindInFiles)search).getOutputBuffer();
                         if (buf != null)
                             buf.follow(buffer.getFile(), getDotLine());
                     }
                 }
                 return;
             }
-            if (lastSearch instanceof FindInFiles) {
+            if (search instanceof FindInFiles) {
                 Editor ed = getOtherEditor();
                 if (ed != null) {
                     ListOccurrencesInFilesBuffer buf =
-                        ((FindInFiles)lastSearch).getOutputBuffer();
+                        ((FindInFiles)search).getOutputBuffer();
                     if (ed.getBuffer() == buf) {
                         buf.findPreviousOccurrence(ed);
                         return;
                     }
                 }
             }
-            lastSearch.notFound(this);
+            search.notFound(this);
         }
     }
 
@@ -5765,22 +5781,23 @@ public final class Editor extends JPanel implements Constants,
         String pattern = getTokenAtDot();
         if (pattern == null || pattern.length() == 0)
             return;
-        lastSearch = new Search(pattern, false, true);
+        final Search search = new Search(pattern, false, true);
+        setLastSearch(search);
         Position start;
         if (mark != null && dot.isBefore(mark))
             start = new Position(mark);
         else
             start = new Position(dot);
-        Position pos = lastSearch.find(buffer.getMode(), start);
+        Position pos = search.find(buffer.getMode(), start);
         if (pos != null && pos.equals(start)) {
             if (pos.next())
-                pos = lastSearch.find(buffer.getMode(), pos);
+                pos = search.find(buffer.getMode(), pos);
         }
         if (pos != null && !pos.equals(start)) {
             moveDotTo(pos);
-            markFoundPattern(lastSearch);
+            markFoundPattern(search);
         } else
-            lastSearch.notFound(this);
+            search.notFound(this);
     }
 
     public void findPrevWord()
@@ -5790,7 +5807,8 @@ public final class Editor extends JPanel implements Constants,
         String pattern = getTokenAtDot();
         if (pattern == null || pattern.length() == 0)
             return;
-        lastSearch = new Search(pattern, false, true);
+        final Search search = new Search(pattern, false, true);
+        setLastSearch(search);
         boolean found = false;
         Position start = null;
         if (mark != null)
@@ -5798,13 +5816,13 @@ public final class Editor extends JPanel implements Constants,
         else
             start = new Position(dot);
         if (start.prev()) {
-            Position pos = lastSearch.reverseFind(buffer, start);
+            Position pos = search.reverseFind(buffer, start);
             if (pos != null && pos.getLine() == start.getLine()) {
-                if (pos.getOffset() + lastSearch.getPatternLength() > start.getOffset()) {
+                if (pos.getOffset() + search.getPatternLength() > start.getOffset()) {
                     // We've found the instance we started with. Keep looking.
                     start = new Position(pos);
                     if (start.prev())
-                        pos = lastSearch.reverseFind(buffer, start);
+                        pos = search.reverseFind(buffer, start);
                     else
                         pos = null;
                 }
@@ -5812,11 +5830,11 @@ public final class Editor extends JPanel implements Constants,
             if (pos != null) {
                 found = true;
                 moveDotTo(pos);
-                markFoundPattern(lastSearch);
+                markFoundPattern(search);
             }
         }
         if (!found)
-            lastSearch.notFound(this);
+            search.notFound(this);
     }
 
     public void findFirstOccurrence()
@@ -5826,14 +5844,15 @@ public final class Editor extends JPanel implements Constants,
         String pattern = getTokenAtDot();
         if (pattern == null || pattern.length() == 0)
             return;
-        lastSearch = new Search(pattern, false, true);
-        Position pos = lastSearch.find(buffer.getMode(),
+        final Search search = new Search(pattern, false, true);
+        setLastSearch(search);
+        Position pos = search.find(buffer.getMode(),
                                        new Position(buffer.getFirstLine(), 0));
         if (pos != null) {
             moveDotTo(pos);
-            markFoundPattern(lastSearch);
+            markFoundPattern(search);
         } else
-            lastSearch.notFound(this);
+            search.notFound(this);
     }
 
     public void copyPath()

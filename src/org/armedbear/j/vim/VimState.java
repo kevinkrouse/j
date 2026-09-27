@@ -20,8 +20,10 @@ import javax.swing.undo.CompoundEdit;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Constants;
 import org.armedbear.j.Editor;
+import org.armedbear.j.EditorIterator;
 import org.armedbear.j.Line;
 import org.armedbear.j.Position;
+import org.armedbear.j.Search;
 
 /**
  * Everything modal editing has to remember between keystrokes.
@@ -665,22 +667,135 @@ public final class VimState
     // ------------------------------------------------------------ search
 
     /**
-     * The pattern n and N repeat.
+     * The pattern n and N repeat, and whether {@code :noh} has hidden its
+     * matches. One for every window, as in vim, unless the
+     * {@code shareSearch} preference says each window keeps its own.
      *
-     * Its own field rather than {@code Editor.lastSearch}: that one has no
-     * direction, is shared with j's own find commands, and may hold a
-     * {@code FindInFiles} rather than a plain search.
+     * Not {@code Editor.getLastSearch}: that is j's own find commands', has
+     * no direction, and may hold a {@code FindInFiles} rather than a plain
+     * search.
      */
-    private VimSearch.Query lastSearch;
+    private static final class LastSearch
+    {
+        VimSearch.Query query;
+        boolean matchesHidden;
+    }
+
+    private static final LastSearch SHARED = new LastSearch();
+    private final LastSearch own = new LastSearch();
+
+    /** Forgets the shared pattern, as a new session starts without one. */
+    public static void clearSharedSearch()
+    {
+        SHARED.query = null;
+        SHARED.matchesHidden = false;
+    }
+
+    private LastSearch lastSearch()
+    {
+        return Editor.isSearchShared() ? SHARED : own;
+    }
 
     public VimSearch.Query getLastSearch()
     {
-        return lastSearch;
+        return lastSearch().query;
     }
 
-    public void setLastSearch(VimSearch.Query query)
+    /**
+     * A new pattern for n and N, whose matches hlsearch paints -- again after
+     * a {@code :noh}, as any search shows them again in vim.
+     */
+    public void setLastSearch(Editor editor, VimSearch.Query query)
     {
-        lastSearch = query;
+        final LastSearch last = lastSearch();
+        last.query = query;
+        last.matchesHidden = false;
+        repaintMatches(editor);
+    }
+
+    // ---------------------------------------------------------- hlsearch
+
+    /** The pattern compiled once for painting, and what it was from. */
+    private Search compiledSearch;
+    private String compiledKey;
+
+    /** {@code :noh}, or with {@code show} n and N bringing them back. */
+    public void showSearchMatches(Editor editor, boolean show)
+    {
+        final LastSearch last = lastSearch();
+        if (last.matchesHidden == !show)
+            return;
+        last.matchesHidden = !show;
+        repaintMatches(editor);
+    }
+
+    /** Every window a shared pattern shows in, or just this one. */
+    private static void repaintMatches(Editor editor)
+    {
+        if (!Editor.isSearchShared()) {
+            editor.repaintDisplay();
+            return;
+        }
+        for (EditorIterator it = new EditorIterator(); it.hasNext();)
+            it.next().repaintDisplay();
+    }
+
+    /**
+     * With hlsearch, the matches to paint on a line, as offset pairs, or
+     * null for none: of the pattern being typed, or of the last one.
+     */
+    public int[] searchMatches(Editor editor, Line line)
+    {
+        if (!VimKeyMap.getSharedOptions().isOn("hlsearch"))
+            return null;
+        VimSearch.Query query = preview;
+        if (query == null) {
+            final LastSearch last = lastSearch();
+            if (last.matchesHidden)
+                return null;
+            query = last.query;
+        }
+        return query == null ? null : matchesOf(editor, query, line);
+    }
+
+    /** The match incsearch has the caret on, if it is on this line. */
+    public int[] currentSearchMatch(Editor editor, Line line)
+    {
+        if (preview == null || line != previewAt.getLine())
+            return null;
+        final int[] spans = matchesOf(editor, preview, line);
+        if (spans != null)
+            for (int i = 0; i < spans.length; i += 2)
+                if (spans[i] == previewAt.getOffset())
+                    return new int[] {spans[i], spans[i + 1]};
+        return null;
+    }
+
+    /** Compiled once for all the lines painted, until the query changes. */
+    private int[] matchesOf(Editor editor, VimSearch.Query query, Line line)
+    {
+        final String key = VimSearch.compiledKey(query);
+        if (!key.equals(compiledKey)) {
+            compiledKey = key;
+            compiledSearch = VimSearch.compileQuietly(query, editor);
+        }
+        return compiledSearch == null ? null
+            : VimSearch.matchesOnLine(editor, compiledSearch, line);
+    }
+
+    // --------------------------------------------------------- incsearch
+
+    /** The pattern incsearch is showing while it is typed, and its match. */
+    private VimSearch.Query preview;
+    private Position previewAt;
+
+    /** Shows a pattern being typed, or with null stops showing one. */
+    public void setSearchPreview(Editor editor, VimSearch.Query query,
+                                 Position at)
+    {
+        preview = at == null ? null : query;
+        previewAt = at;
+        editor.repaintDisplay();
     }
 
     // ---------------------------------------------------- desired column

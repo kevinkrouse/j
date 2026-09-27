@@ -35,6 +35,8 @@ public abstract class Formatter implements Constants
     protected Color colorCurrentLineBackground;
     protected Color colorSelectionBackground;
     protected Color colorMatchingBracketBackground;
+    protected Color colorSearchMatchBackground;
+    protected Color colorCurrentSearchMatchBackground;
 
     protected LineSegmentList segmentList = new LineSegmentList();
 
@@ -105,6 +107,43 @@ public abstract class Formatter implements Constants
         return colorMatchingBracketBackground;
     }
 
+    /**
+     * Behind the matches of a search, as vim's hlsearch paints them. A theme
+     * that does not say falls back to its matching bracket background, which
+     * it has already made readable behind its text.
+     */
+    public Color getSearchMatchBackgroundColor()
+    {
+        if (colorSearchMatchBackground == null) {
+            final Mode mode = buffer.getMode();
+            colorSearchMatchBackground =
+                mode.getColorProperty(Property.COLOR_SEARCH_MATCH_BACKGROUND);
+            if (colorSearchMatchBackground == null)
+                colorSearchMatchBackground = mode.getColorProperty(
+                    Property.COLOR_MATCHING_BRACKET_BACKGROUND);
+            if (colorSearchMatchBackground == null)
+                colorSearchMatchBackground =
+                    DefaultTheme.getColor("searchMatchBackground");
+        }
+        return colorSearchMatchBackground;
+    }
+
+    /**
+     * Behind the match a search being typed has the caret on. Unless a theme
+     * says, the selection's colour, which it has made to stand out.
+     */
+    public Color getCurrentSearchMatchBackgroundColor()
+    {
+        if (colorCurrentSearchMatchBackground == null) {
+            colorCurrentSearchMatchBackground = buffer.getMode()
+                .getColorProperty(Property.COLOR_CURRENT_SEARCH_MATCH_BACKGROUND);
+            if (colorCurrentSearchMatchBackground == null)
+                colorCurrentSearchMatchBackground =
+                    getSelectionBackgroundColor();
+        }
+        return colorCurrentSearchMatchBackground;
+    }
+
     public Color getColor(int format)
     {
         FormatTableEntry entry = getFormatTable().lookup(format);
@@ -140,6 +179,8 @@ public abstract class Formatter implements Constants
         colorCurrentLineBackground = null;
         colorSelectionBackground = null;
         colorMatchingBracketBackground = null;
+        colorSearchMatchBackground = null;
+        colorCurrentSearchMatchBackground = null;
         formatTable = null;
     }
 

@@ -490,6 +490,8 @@ public final class VimMotions
             ctx.editor.status("No previous search");
             return null;
         }
+        // A search shows the matches again after :noh.
+        ctx.state.showSearchMatches(ctx.editor, true);
         return found(ctx, ctx.arg("reverse") ? last.reversed() : last, from);
     }
 
@@ -507,7 +509,7 @@ public final class VimMotions
             new VimSearch.Query(VimSearch.literal(word.text),
                                 ctx.arg("forward"),
                                 word.keyword && !ctx.arg("partial"), false);
-        ctx.state.setLastSearch(query);
+        ctx.state.setLastSearch(ctx.editor, query);
         // From the word, not from the caret: * with the caret on the spaces
         // before a word searches from the word, so the word itself is not a
         // result.

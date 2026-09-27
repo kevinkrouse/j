@@ -49,8 +49,9 @@ flight (`requestedKeyMap == null`), so `checkKeyboardQuit` still works:
 
 Simple mode has **no handler object at all**, so "simple mode is unchanged" is
 structural rather than argued. The handler also supplies the caret shape, the
-mode indicator, the pending-command text and whether the selection is linewise
-(`InputHandler`'s default methods), and hears `editorDeactivated`.
+mode indicator, the pending-command text, whether the selection is linewise
+and the search matches to paint on a line (`InputHandler`'s default
+methods), and hears `editorDeactivated`.
 
 `Editor.handleKeyMapEvent` is the key-map half of `handleJEvent`, split out so
 the vim layer can run *j's own binding* for a key and then do something after
@@ -264,6 +265,33 @@ express (`\%V`, `\&`, a `\zs` after a variable-width prefix) rather than quietly
 misreading it. Every pattern goes through it: `/ ? n N * #`, `:s`, `:g`,
 `:sort`, `/pat/` addresses. Vim finds the matches on a line by scanning from
 the line's start, not from the caret; so does `VimSearch`.
+
+**hlsearch** is on by default, as in nvim. `Display` asks the handler for a
+line's matches (`getSearchMatches`) as it paints it and fills them behind the
+text, under the selection; `VimSearch.matchesOnLine` finds the same matches
+`n` does, from a pattern `VimState` compiles once and recompiles when the
+pattern, `ignorecase`, `smartcase` or the last replacement changes. A new
+pattern, `:noh`, `n` after it and `:set` repaint the whole window, since
+every visible line may change. `:set` at the prompt is the vimrc's `set`.
+The last pattern and the `:noh` flag are one for every window, as in vim
+(`VimState.LastSearch`), and so repaint every window; the `shareSearch`
+preference gives each window its own -- for j's own `findNext` too
+(`Editor.getLastSearch`), and `Editor.isSearchShared` is the one check.
+
+**incsearch** runs off the prompt's `keyReleased`: `searchTyped` finds the
+pattern so far from where `/` was typed (`PendingSearch.origin`), moves the
+caret there without a jump, and shows the pattern as `VimState`'s preview,
+its match through `getCurrentSearchMatch` in a colour of its own -- the
+display has no focus, so no caret shows it. Enter, Escape and anything else
+that drops the half-typed command put the caret and the window back first
+(`endPreview`, inside `dropPartialCommand`), so the real search runs from
+where it was typed. CTRL-G and CTRL-T are rows in the `c` map (vim's
+`cmap`), which the prompt consults for a chord before its text field sees
+it (`runCommandLineKey`); `searchStep` moves the preview a match on and the
+search's start to just before it, so Enter and further typing find it -- vim's
+own model, but for the count, which vim applies again after a step. The
+switches and their defaults are one table, `VimOptions.SWITCHES`, read with
+`isOn`.
 
 ### Visual mode
 
@@ -517,6 +545,12 @@ Each of these has bitten at least once. Read them before editing.
     repaints every window once the flag is set. Found by starting j with a
     copy of the real config and session under Xvfb; the screenshot tool's
     `--no-session` start never showed it.
+34. **`Display` paints a line in two places**: `paintTextLine`, for one
+    line, and the loop in `paintComponentInternal`, for the whole window.
+    Something drawn behind the text goes in both. hlsearch went into the
+    first only, the unit tests (which ask the handler) passed, and the
+    screenshot showed no highlights at all: a search repaints the whole
+    window.
 
 ## History
 
@@ -551,9 +585,10 @@ review before the next.
 | M18 | `<C-a>` `<C-x>`, visual and `g`; `NumberCommands` | `35bc31aa9` |
 | M19 | windows: `<C-w>` and `:sp :vs :q :clo :on` | `22750f115` |
 | — | review fixes: `visualPut`'s delete, the `J` mark divergence | `30f790a4d` |
-| M20 | `]] [[ ][ []`, `( )`, `[( ]) [{ ]}`; `{ }` on vim's findpar | (uncommitted) |
+| M20 | `]] [[ ][ []`, `( )`, `[( ]) [{ ]}`; `{ }` on vim's findpar | `0a337b057` |
+| M21 | `hlsearch`, `:noh`, `:set` at the prompt; `incsearch`, `smartcase` on, `shareSearch`; `c` map, CTRL-G and CTRL-T | (uncommitted) |
 
-After M20: 921 tests, conformance 156 of 253 (155 ratcheted).
+After M21: 957 tests, conformance 156 of 253 (155 ratcheted).
 
 ### What the work learned
 
@@ -584,3 +619,7 @@ After M20: 921 tests, conformance 156 of 253 (155 ratcheted).
 - **Targets based on bucket counts overshot every time**, because the corpus
   barely tests some features (one text-object case) and tests others through
   CodeMirror's quirks. Unit tests against nvim carry what the corpus cannot.
+- **The mutation check also catches fixes for bugs that are not there.** In
+  M21 `set number` looked as if it read as `no` + `mber`; the fix went in with
+  a test, and breaking the fix changed nothing -- `number` starts with `nu`.
+  Both came out again.

@@ -96,7 +96,7 @@ final class VimExSubstitute
         }
         lastPattern = pattern;
         // :s sets the search pattern too, so a following n finds it.
-        state.setLastSearch(new VimSearch.Query(pattern, true, false));
+        state.setLastSearch(editor, new VimSearch.Query(pattern, true, false));
         substitute(editor, state, command.range, pattern, replacement, flags);
         // Only now: a ~ in this command's own pattern means the *previous*
         // replacement, and the pattern is compiled inside substitute().

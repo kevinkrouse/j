@@ -199,6 +199,8 @@ public final class DefaultTheme
             return new Color(153, 204, 255);
         if (thing == "matchingBracketBackground")
             return new Color(153, 204, 255);
+        if (thing == "searchMatchBackground")
+            return new Color(255, 221, 102);
         if (thing == "preprocessor")
             return new Color(255, 0, 0);
         if (thing == "comment")

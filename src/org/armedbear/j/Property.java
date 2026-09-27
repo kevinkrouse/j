@@ -199,6 +199,8 @@ public final class Property implements Comparable<Property>, Constants
         createProperty("scrollCaret", true);
     public static final Property SELECT_COMPLETION =
         createProperty("selectCompletion", true);
+    public static final Property SHARE_SEARCH =
+        createProperty("shareSearch", true);
     public static final Property SHOW_CHANGE_MARKS =
         createProperty("showChangeMarks", true);
     public static final Property SHOW_COMPLETION_LIST =
@@ -382,6 +384,10 @@ public final class Property implements Comparable<Property>, Constants
     public static final Property COLOR_TEXT = createProperty("color.text");
     public static final Property COLOR_SELECTION_BACKGROUND =
         createProperty("color.selectionBackground");
+    public static final Property COLOR_SEARCH_MATCH_BACKGROUND =
+        createProperty("color.searchMatchBackground");
+    public static final Property COLOR_CURRENT_SEARCH_MATCH_BACKGROUND =
+        createProperty("color.currentSearchMatchBackground");
     public static final Property COLOR_VERTICAL_RULE =
         createProperty("color.verticalRule");
 

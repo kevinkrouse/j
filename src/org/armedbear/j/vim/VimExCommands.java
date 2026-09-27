@@ -19,6 +19,7 @@ import java.util.regex.PatternSyntaxException;
 import javax.swing.undo.CompoundEdit;
 
 import org.armedbear.j.Editor;
+import org.armedbear.j.EditorIterator;
 import org.armedbear.j.Line;
 import org.armedbear.j.Lines;
 import org.armedbear.j.Position;
@@ -133,6 +134,20 @@ public final class VimExCommands
         }
         if (matches(name, "on", "only")) {
             editor.unsplitAllWindows();
+            return true;
+        }
+        if (matches(name, "se", "set")) {
+            VimrcParser.set(VimKeyMap.getSharedOptions(), command.args);
+            // Setting hlsearch shows the matches again after :noh.
+            if (command.args.matches("(.*\\s)?(hls|hlsearch)(\\s.*)?"))
+                state.showSearchMatches(editor, true);
+            // An option such as hlsearch may change what every window shows.
+            for (EditorIterator it = new EditorIterator(); it.hasNext();)
+                it.next().repaintDisplay();
+            return true;
+        }
+        if (matches(name, "noh", "nohlsearch")) {
+            state.showSearchMatches(editor, false);
             return true;
         }
         if (matches(name, "delm", "delmarks")) {
@@ -413,7 +428,7 @@ public final class VimExCommands
         catch (PatternSyntaxException e) {
             throw new VimEx.BadCommand(VimExSubstitute.badPattern(pattern, e));
         }
-        state.setLastSearch(new VimSearch.Query(pattern, true, false));
+        state.setLastSearch(editor, new VimSearch.Query(pattern, true, false));
 
         final VimEx.Range range = command.range.given
             ? command.range

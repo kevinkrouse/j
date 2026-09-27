@@ -11,11 +11,14 @@
 
 package org.armedbear.j.vim;
 
+import java.awt.event.KeyEvent;
+
 import org.armedbear.j.DefaultTextFieldHandler;
 import org.armedbear.j.Editor;
 import org.armedbear.j.History;
 import org.armedbear.j.HistoryTextField;
 import org.armedbear.j.LocationBar;
+import org.armedbear.j.util.Utilities;
 
 /**
  * Where the pattern for {@code /} and {@code ?} is typed.
@@ -85,6 +88,31 @@ final class VimSearchPrompt extends DefaultTextFieldHandler
         editor.setFocusToDisplay();
         editor.updateLocation();
         handler.searchEntered(editor, pattern);
+        editor.getDispatcher().eventHandled();
+    }
+
+    /** A chord the c map binds, as CTRL-G, before the field sees it. */
+    @Override
+    public void keyPressed(KeyEvent e)
+    {
+        if (handler.runCommandLineKey(editor, e.getKeyCode(), e.getKeyChar(),
+                                      Utilities.keyModifiers(e))) {
+            e.consume();
+            editor.getDispatcher().eventHandled();
+            return;
+        }
+        super.keyPressed(e);
+    }
+
+    /** incsearch: after each key, show where the pattern so far goes. */
+    @Override
+    public void keyReleased(KeyEvent e)
+    {
+        super.keyReleased(e);
+        // Enter and Escape have ended the search by now.
+        if (!handler.isAwaitingSearchPattern())
+            return;
+        handler.searchTyped(editor, textField.getText());
         editor.getDispatcher().eventHandled();
     }
 

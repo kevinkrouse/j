@@ -80,6 +80,8 @@ public final class VimActions
         register("visualReplace", VimActions::visualReplace);
         register("visualPut", VimActions::visualPut);
         register("switchWindow", VimActions::switchWindow);
+        register("incsearchStep",
+                 ctx -> ctx.handler.searchStep(ctx.editor, ctx.arg("forward")));
         register("closeWindow", ctx -> VimExCommands.closeWindow(
                      ctx.editor, ctx.arg("quit")));
         register("swapLastSelection",

@@ -11,6 +11,7 @@
 
 package org.armedbear.j.vim;
 
+import java.util.Arrays;
 import java.util.regex.Matcher;
 import java.util.regex.PatternSyntaxException;
 
@@ -110,7 +111,7 @@ public final class VimSearch
 
         // Wrap. j wraps only for a literal forward search, so do it here for
         // every direction and every pattern.
-        if (!VimKeyMap.getSharedOptions().getBoolean("wrapscan", true))
+        if (!VimKeyMap.getSharedOptions().isOn("wrapscan"))
             return null;
         // A single match that we started on is found again by the wrap; that
         // is vim's behaviour too, so it is not filtered out.
@@ -196,6 +197,59 @@ public final class VimSearch
             offset = match.getOffset() + matchLength(search);
         }
         return best;
+    }
+
+    /**
+     * For hlsearch: the matches on one line, as start and end offsets in
+     * pairs, or null for none. The same matches n finds -- scanned from the
+     * line's start, an empty one stepped past -- ended where each really
+     * ends, so an empty match stays empty.
+     */
+    static int[] matchesOnLine(Editor editor, Search search, Line line)
+    {
+        final Mode mode = editor.getBuffer().getMode();
+        int[] spans = new int[8];
+        int n = 0;
+        int offset = 0;
+        while (offset <= line.length()) {
+            final Position match =
+                search.findInLine(mode, new Position(line, offset));
+            if (match == null)
+                break;
+            final Matcher matcher = search.getMatch();
+            final int length = matcher != null ? matcher.group().length()
+                                               : search.getPatternLength();
+            if (n == spans.length)
+                spans = Arrays.copyOf(spans, n * 2);
+            spans[n++] = match.getOffset();
+            spans[n++] = match.getOffset() + length;
+            offset = match.getOffset() + Math.max(1, length);
+        }
+        return n == 0 ? null : Arrays.copyOf(spans, n);
+    }
+
+    /** A query compiled, or null when the pattern is bad. */
+    static Search compileQuietly(Query query, Editor editor)
+    {
+        try {
+            return compile(query, editor);
+        }
+        catch (BadPattern e) {
+            return null;
+        }
+    }
+
+    /**
+     * What a compiled query depends on: the pattern, and the options and the
+     * last replacement ({@code ~}) its translation reads.
+     */
+    static String compiledKey(Query query)
+    {
+        final VimOptions options = VimKeyMap.getSharedOptions();
+        return query.pattern + '\0' + query.wholeWord + query.smartcase
+            + options.isOn("ignorecase")
+            + options.isOn("smartcase") + '\0'
+            + VimExSubstitute.lastReplacement();
     }
 
     private static Line lastLine(Buffer buffer)

@@ -56,6 +56,8 @@ public class VimDocTest
         EnumSet.of(MappingMode.NORMAL, MappingMode.VISUAL,
                    MappingMode.OP_PENDING);
     private static final Set<MappingMode> I = EnumSet.of(MappingMode.INSERT);
+    private static final Set<MappingMode> C =
+        EnumSet.of(MappingMode.COMMAND_LINE);
 
     /** The modes each row's keys must resolve in. */
     private static final Map<String, Set<MappingMode>> ROWS =
@@ -90,6 +92,8 @@ public class VimDocTest
         KEY_MODES.put("insert <C-o>", I);
         KEY_MODES.put("changes <C-a>", NV);
         KEY_MODES.put("changes <C-x>", NV);
+        KEY_MODES.put("search <C-g>", C);
+        KEY_MODES.put("search <C-t>", C);
     }
 
     /** What a row names in code that is not a key in the map, and why. */
@@ -106,6 +110,9 @@ public class VimDocTest
         "windows <C-w>",
         // Vim's option, named to say what a split and a close do.
         "windows equalalways",
+        // Vim's options, named to say what the search row shows, and what
+        // :set is given to turn hlsearch off.
+        "search hlsearch", "search incsearch", "search nohls",
         // The mode shown during CTRL-O.
         "insert --", "insert (insert)",
         // j's command names, beside the keys bound to them.
@@ -177,7 +184,8 @@ public class VimDocTest
 
     private static boolean isExCommand(String label, String key)
     {
-        return (label.equals("ex") || label.equals("windows"))
+        return (label.equals("ex") || label.equals("windows")
+                || label.equals("search"))
             && key.length() > 1 && key.startsWith(":");
     }
 

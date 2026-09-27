@@ -155,9 +155,9 @@ final class VimRegex
         if (forceCase != null)
             return forceCase.booleanValue();
         final VimOptions options = VimKeyMap.getSharedOptions();
-        if (!options.getBoolean("ignorecase", false))
+        if (!options.isOn("ignorecase"))
             return false;
-        return !(useSmartcase && options.getBoolean("smartcase", false)
+        return !(useSmartcase && options.isOn("smartcase")
                  && r.hasUppercase);
     }
 

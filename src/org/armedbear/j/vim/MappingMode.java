@@ -16,15 +16,17 @@ package org.armedbear.j.vim;
  *
  * Vim keeps a separate set of bindings per mode, spelled with the letters that
  * prefix its map commands: {@code nmap}, {@code vmap}, {@code omap},
- * {@code imap}. A binding can be in several at once, which is what plain
- * {@code map} means.
+ * {@code imap}, {@code cmap}. A binding can be in several at once, which is
+ * what plain {@code map} means.
  */
 public enum MappingMode
 {
     NORMAL('n'),
     VISUAL('v'),
     OP_PENDING('o'),
-    INSERT('i');
+    INSERT('i'),
+    /** Keys typed at the {@code /} prompt, as CTRL-G there. */
+    COMMAND_LINE('c');
 
     private final char letter;
 

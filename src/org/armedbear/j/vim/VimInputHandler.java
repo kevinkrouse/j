@@ -13,6 +13,7 @@ package org.armedbear.j.vim;
 
 import java.awt.event.KeyEvent;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import org.armedbear.j.Buffer;
@@ -135,6 +136,18 @@ public final class VimInputHandler implements InputHandler
     }
 
     @Override
+    public int[] getSearchMatches(Editor editor, Line line)
+    {
+        return state.searchMatches(editor, line);
+    }
+
+    @Override
+    public int[] getCurrentSearchMatch(Editor editor, Line line)
+    {
+        return state.currentSearchMatch(editor, line);
+    }
+
+    @Override
     public void editorDeactivated(Editor editor)
     {
         builder.reset();
@@ -167,6 +180,10 @@ public final class VimInputHandler implements InputHandler
             if (keyCode == KeyEvent.VK_ENTER
                 || keyCode == KeyEvent.VK_BACK_SPACE)
                 return collectLine(editor, keyCode, KeyEvent.CHAR_UNDEFINED);
+            if (typedKind == LineKind.SEARCH
+                && runCommandLineKey(editor, keyCode, event.getKeyChar(),
+                                     modifiers))
+                return Result.CONSUMED;
             return Result.DEFER;
         }
 
@@ -398,7 +415,7 @@ public final class VimInputHandler implements InputHandler
             insertBindingKeys.clear();
             return Result.CONSUMED;
         }
-        dropPartialCommand();
+        dropPartialCommand(editor);
         if (recordingEdit && !replaying && state.getMode().isInsert()) {
             // The change was still being typed; Escape is the end of it.
             commitInsert();
@@ -616,12 +633,14 @@ public final class VimInputHandler implements InputHandler
      * Forgets a command typed only in part: an operator or register waiting,
      * or a / or : line still being typed, here or at a prompt.
      */
-    private void dropPartialCommand()
+    private void dropPartialCommand(Editor editor)
     {
         builder.reset();
         fallback = null;
         // A / whose prompt never delivered leaves its operator parked, and
-        // it would swallow the next motion typed.
+        // it would swallow the next motion typed. Put back what incsearch
+        // moved while it was being typed.
+        endPreview(editor, pendingSearch);
         pendingSearch = null;
         typedLine = null;
         // "a then Escape means the register was never used; without this it
@@ -702,7 +721,7 @@ public final class VimInputHandler implements InputHandler
                 escape(editor);
             // So does a command left half typed: :normal /foo abandons the
             // search rather than leave it waiting for the next key.
-            dropPartialCommand();
+            dropPartialCommand(editor);
             // And a CTRL-O it began comes back to nothing.
             if (oneCommandReplaying)
                 state.forgetOneCommand();
@@ -865,14 +884,30 @@ public final class VimInputHandler implements InputHandler
         final int count;
         final boolean countGiven;
         final boolean forward;
+        /** Where the caret and the window were, for incsearch to go back to. */
+        final Position origin;
+        final Line topLine;
+        /** Whether incsearch has shown anything, which has to be put back. */
+        boolean previewed;
+        /** The pattern incsearch last showed, and the match it showed. */
+        String typed;
+        Position shown;
+        /**
+         * Where the search runs from once CTRL-G or CTRL-T has moved it:
+         * just before the match they went to, so that Enter, and typing on,
+         * find that match. Null until then, while the count still counts.
+         */
+        Position start;
 
         PendingSearch(VimCommand operator, int count, boolean countGiven,
-                      boolean forward)
+                      boolean forward, Position origin, Line topLine)
         {
             this.operator = operator;
             this.count = count;
             this.countGiven = countGiven;
             this.forward = forward;
+            this.origin = origin;
+            this.topLine = topLine;
         }
     }
 
@@ -896,7 +931,9 @@ public final class VimInputHandler implements InputHandler
                              VimCommand command, int count, boolean countGiven)
     {
         final boolean forward = command.getBoolean("forward");
-        pendingSearch = new PendingSearch(operator, count, countGiven, forward);
+        final Position dot = editor.getDot();
+        pendingSearch = new PendingSearch(operator, count, countGiven, forward,
+            dot == null ? null : new Position(dot), editor.getTopLine());
         // A replay has the pattern in its own keys, so it must not put a
         // prompt on screen and wait for someone to type it again.
         if (replaying || !VimSearchPrompt.open(editor, this, forward))
@@ -974,11 +1011,47 @@ public final class VimInputHandler implements InputHandler
         if (keyCode == KeyEvent.VK_BACK_SPACE) {
             if (typedLine.length() > 0)
                 typedLine.setLength(typedLine.length() - 1);
-            return Result.CONSUMED;
-        }
-        if (keyChar != KeyEvent.CHAR_UNDEFINED && keyChar >= ' ')
+        } else if (keyChar != KeyEvent.CHAR_UNDEFINED && keyChar >= ' ') {
             typedLine.append(keyChar);
+        }
+        // As the prompt does, but not for keys replayed: vim's incsearch is
+        // for typing.
+        if (typedKind == LineKind.SEARCH && !replaying)
+            searchTyped(editor, typedLine.toString());
         return Result.CONSUMED;
+    }
+
+    /**
+     * A chord typed at the / prompt: what the c map binds it to, as CTRL-G.
+     * Public for the prompt, which has the keyboard while a pattern is typed.
+     *
+     * @param modifiers j's, as {@code Utilities.keyModifiers} gives them
+     * @return false when it is not bound, so it goes to the prompt
+     */
+    public boolean runCommandLineKey(Editor editor, int keyCode, char keyChar,
+                                     int modifiers)
+    {
+        return isChorded(modifiers) && runCommandLineKey(editor,
+            KeyNotation.name(keyCode, keyChar, modifiers), 0);
+    }
+
+    /**
+     * One key in the c map. A key-to-key row, as a vimrc's
+     * {@code cmap <C-j> <C-g>} makes, stands for the c map key it names.
+     */
+    private boolean runCommandLineKey(Editor editor, String key, int depth)
+    {
+        final KeyStrokeTrie.Match<VimCommand> match = keyMap
+            .getTrie(MappingMode.COMMAND_LINE)
+            .match(Collections.singletonList(key));
+        if (match.status != KeyStrokeTrie.Status.FULL)
+            return false;
+        final VimCommand command = match.value;
+        if (command.getKind() == VimCommand.Kind.KEY_TO_KEY)
+            return depth < MAX_KEY_TO_KEY_DEPTH
+                && runCommandLineKey(editor, command.getCommand(), depth + 1);
+        run(editor, command, 1, false, match.character, 1);
+        return true;
     }
 
     /** True while a / or ? is waiting for its pattern. */
@@ -1001,6 +1074,8 @@ public final class VimInputHandler implements InputHandler
         final PendingSearch pending = pendingSearch;
         pendingSearch = null;
         typedLine = null;
+        // The search runs from where it was typed, not from the preview.
+        endPreview(editor, pending);
         if (pending == null || pattern == null || pattern.isEmpty()) {
             searchCancelled(editor);
             return;
@@ -1014,9 +1089,9 @@ public final class VimInputHandler implements InputHandler
 
         final VimSearch.Query query =
             new VimSearch.Query(pattern, pending.forward, false);
-        state.setLastSearch(query);
-        moveToMatch(editor, query, pending.operator, pending.count,
-                    pending.countGiven);
+        state.setLastSearch(editor, query);
+        moveToMatch(editor, query, pending.operator, searchCount(pending),
+                    pending.countGiven, pending.start);
         // This ran outside dispatch, so finish the command here: otherwise
         // the edited flag stays set and the next key typed is recorded as
         // the last change.
@@ -1128,9 +1203,112 @@ public final class VimInputHandler implements InputHandler
     }
 
     /** The prompt was abandoned, so the command it belonged to is too. */
+    /**
+     * incsearch: the pattern typed so far, shown as the prompt is typed in
+     * -- the caret on the match it would find, and with hlsearch every
+     * match highlighted. Public as the seam the prompt calls and a test
+     * drives. A pattern that is bad or not found puts the caret back.
+     */
+    public void searchTyped(Editor editor, String pattern)
+    {
+        final PendingSearch pending = pendingSearch;
+        if (pending == null || pending.origin == null
+            || !VimKeyMap.getSharedOptions().isOn("incsearch"))
+            return;
+        pending.typed = pattern;
+        final VimSearch.Query query = pattern == null || pattern.isEmpty()
+            ? null : new VimSearch.Query(pattern, pending.forward, false);
+        Position to = null;
+        if (query != null) {
+            try {
+                to = VimSearch.find(editor, query, searchStart(pending),
+                                    searchCount(pending));
+            }
+            catch (VimSearch.BadPattern e) {
+                // Half typed, as \( is on its way to \(a\).
+            }
+        }
+        showPreview(editor, pending, query, to);
+    }
+
+    /**
+     * CTRL-G and CTRL-T with incsearch: the match after the one shown, or
+     * the one before, whichever way the search goes, wrapping as it does.
+     */
+    public void searchStep(Editor editor, boolean forward)
+    {
+        final PendingSearch pending = pendingSearch;
+        if (pending == null || pending.shown == null)
+            return;
+        final Position to = VimSearch.find(editor,
+            new VimSearch.Query(pending.typed, forward, false), pending.shown,
+            1);
+        if (to == null)
+            return;
+        final Position start = new Position(to);
+        if (pending.forward)
+            start.prev();
+        else
+            start.next();
+        pending.start = start;
+        showPreview(editor, pending,
+                    new VimSearch.Query(pending.typed, pending.forward, false),
+                    to);
+    }
+
+    /** Where the search runs from: where it was typed, or where it moved. */
+    private static Position searchStart(PendingSearch pending)
+    {
+        return pending.start != null ? pending.start : pending.origin;
+    }
+
+    /** A count goes to the count'th match, until CTRL-G or CTRL-T steps. */
+    private static int searchCount(PendingSearch pending)
+    {
+        return pending.start != null ? 1 : pending.count;
+    }
+
+    /** The caret on the match found, or back where it was for none. */
+    private void showPreview(Editor editor, PendingSearch pending,
+                             VimSearch.Query query, Position to)
+    {
+        pending.shown = to;
+        pending.previewed = true;
+        state.setSearchPreview(editor, query, to);
+        if (to != null)
+            showCaretAt(editor, to);
+        else
+            putBack(editor, pending);
+    }
+
+    /** Takes the incsearch preview away: the caret and window as they were. */
+    private void endPreview(Editor editor, PendingSearch pending)
+    {
+        if (pending == null || !pending.previewed)
+            return;
+        pending.previewed = false;
+        state.setSearchPreview(editor, null, null);
+        putBack(editor, pending);
+    }
+
+    /** The caret and the window where they were when the search began. */
+    private static void putBack(Editor editor, PendingSearch pending)
+    {
+        showCaretAt(editor, pending.origin);
+        editor.setTopLine(pending.topLine);
+    }
+
+    /** Moves the caret for incsearch: no jump, the selection kept. */
+    private static void showCaretAt(Editor editor, Position pos)
+    {
+        editor.setDot(pos.getLine(), pos.getOffset());
+        editor.moveCaretToDotCol();
+        editor.updateDotLine();
+    }
+
     public void searchCancelled(Editor editor)
     {
-        dropPartialCommand();
+        dropPartialCommand(editor);
         // Else the d of an abandoned d/ stays recorded, and the next change
         // is appended to it: . would then open a prompt nobody sees.
         if (!replaying)
@@ -1141,18 +1319,21 @@ public final class VimInputHandler implements InputHandler
     /**
      * Runs the found match as a motion, with or without an operator.
      *
-     * For {@code /} once its prompt closes.
+     * For {@code /} once its prompt closes. The search runs from the caret,
+     * or from {@code searchFrom} where CTRL-G or CTRL-T moved it; the motion
+     * is from the caret either way.
      */
     private void moveToMatch(Editor editor, VimSearch.Query query,
                              VimCommand operator, int count,
-                             boolean countGiven)
+                             boolean countGiven, Position searchFrom)
     {
         final Position from = editor.getDot();
         if (from == null)
             return;
         final Position to;
         try {
-            to = VimSearch.find(editor, query, from, count);
+            to = VimSearch.find(editor, query,
+                                searchFrom != null ? searchFrom : from, count);
         }
         catch (VimSearch.BadPattern e) {
             editor.status("Bad pattern: " + e.getMessage());

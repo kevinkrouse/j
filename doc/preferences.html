@@ -554,6 +554,27 @@ Background color for selected text.
 <b>Default value:</b> None
 </dl>
 
+<code><a name="color.currentSearchMatchBackground">color.currentSearchMatchBackground</a></code>
+<dl>
+<dd>
+Background color for the match the caret is on while a search pattern is
+typed in <a href="editmodes.html">vim edit mode</a> (vim's
+<code>incsearch</code>). Without it, the selection's color.
+<p>
+<b>Default value:</b> None
+</dl>
+
+<code><a name="color.searchMatchBackground">color.searchMatchBackground</a></code>
+<dl>
+<dd>
+Background color for the matches of the last search in
+<a href="editmodes.html">vim edit mode</a>, which highlights them as vim's
+<code>hlsearch</code> does. A theme that does not set it uses its
+<code>color.matchingBracketBackground</code>.
+<p>
+<b>Default value:</b> None
+</dl>
+
 <code><a name="color.string">color.string</a></code>
 <dl>
 <dd>
@@ -1498,6 +1519,19 @@ the window vertically.
 <p>
 Scrolling never relocates the caret if a selection is active in the edit
 window, regardless of the value of this property.
+<p>
+<b>Default value:</b> true
+</dl>
+
+<code><a name="shareSearch">shareSearch</a></code>
+<dl>
+<dd>
+Whether the last search pattern -- what
+<a href="commands.html#findNext">findNext</a> and
+<a href="commands.html#findPrev">findPrev</a> repeat, and in
+<a href="editmodes.html">vim edit mode</a> what <code>n</code> repeats and
+<code>hlsearch</code> highlights -- is one for every window, or each window
+keeps its own.
 <p>
 <b>Default value:</b> true
 </dl>

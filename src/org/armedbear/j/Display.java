@@ -1047,6 +1047,8 @@ public final class Display extends JComponent implements Constants,
 
         int totalChars = formatLine(line, shift, maxCols);
 
+        // Under the selection, which paints over them, as vim's does.
+        highlightSearchMatches(line, paintLineGraphics, 0);
         final Region selection = selectionRegion();
         if (selection != null) {
             handleSelection(selection, line, formatArray, paintLineGraphics, 0);
@@ -1390,6 +1392,7 @@ public final class Display extends JComponent implements Constants,
                     backgroundColor = colorBackground;
                 drawBackgroundForLine(g2d, backgroundColor, line, y);
                 int totalChars = formatLine(line, shift, maxCols);
+                highlightSearchMatches(line, g2d, y);
                 if (r != null)
                     handleSelection(r, line, formatArray, g2d, y);
                 else if (posMatch != null) {
@@ -1551,6 +1554,57 @@ public final class Display extends JComponent implements Constants,
         if (fillWidth > 0) {
             g2d.setColor(editor.getFormatter().getSelectionBackgroundColor());
             g2d.fillRect(x, y, fillWidth, charHeight);
+        }
+    }
+
+    /**
+     * The search matches the input handler names on the line -- vim's
+     * hlsearch, and the match incsearch is on over them -- behind the text.
+     */
+    private void highlightSearchMatches(Line line, Graphics2D g2d, int y)
+    {
+        final InputHandler handler = editor.getInputHandler();
+        if (handler == null)
+            return;
+        final Formatter formatter = editor.getFormatter();
+        fillSpans(line, handler.getSearchMatches(editor, line),
+                  formatter.getSearchMatchBackgroundColor(), g2d, y);
+        fillSpans(line, handler.getCurrentSearchMatch(editor, line),
+                  formatter.getCurrentSearchMatchBackgroundColor(), g2d, y);
+    }
+
+    /**
+     * Fills spans of a line, offsets in pairs. An empty span, or the line end
+     * a span takes in, is one character wide.
+     */
+    private void fillSpans(Line line, int[] spans, Color color, Graphics2D g2d,
+                           int y)
+    {
+        if (spans == null)
+            return;
+        final Buffer buffer = editor.getBuffer();
+        final int length = line.length();
+        final int maxCols = getMaxCols();
+        g2d.setColor(color);
+        for (int i = 0; i + 1 < spans.length; i += 2) {
+            final int start = Math.min(spans[i], length);
+            final int end = spans[i + 1];
+            int beginCol = buffer.getCol(line, start) - shift;
+            int endCol;
+            if (end > length)
+                endCol = buffer.getCol(line, length) - shift + 1;
+            else if (end > start)
+                endCol = buffer.getCol(line, end) - shift;
+            else
+                endCol = beginCol + 1;
+            beginCol = Math.max(0, beginCol);
+            endCol = Math.min(endCol, maxCols);
+            if (endCol <= beginCol)
+                continue;
+            final int x1 = measureLine(g2d, textArray, beginCol, formatArray);
+            final int x2 = measureLine(g2d, textArray, endCol, formatArray);
+            if (x2 > x1)
+                g2d.fillRect(gutterWidth + x1, y, x2 - x1, charHeight);
         }
     }
 

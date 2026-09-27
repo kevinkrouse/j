@@ -116,6 +116,27 @@ public interface InputHandler
     }
 
     /**
+     * The spans of a line to paint as search matches, as offsets in pairs --
+     * start, end, start, end -- or null for none. An empty span is painted
+     * one character wide, and a span past the end of the line one character
+     * beyond it.
+     */
+    default int[] getSearchMatches(Editor editor, Line line)
+    {
+        return null;
+    }
+
+    /**
+     * The match the caret is on while a search is typed, as a start and an
+     * end, if it is on this line: painted over the others in a colour of
+     * its own, as vim's incsearch shows it.
+     */
+    default int[] getCurrentSearchMatch(Editor editor, Line line)
+    {
+        return null;
+    }
+
+    /**
      * Offers one event to the handler.
      *
      * Called for key presses, key typed events and mouse presses, from the top
