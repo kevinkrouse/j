@@ -67,6 +67,9 @@ public class CommandTable
             // Commands implemented in Editor.java.
             addCommand("adjacentWindow");
             addCommand("backspace");
+            addCommand("backwardParagraph", "Paragraphs");
+            addCommand("backwardSection", "Paragraphs");
+            addCommand("backwardSentence", "Sentences");
             addCommand("balanceWindows");
             addCommand("bob");
             addCommand("bol");
@@ -122,6 +125,10 @@ public class CommandTable
             addCommand("findNextWord");
             addCommand("findPrev");
             addCommand("findPrevWord");
+            addCommand("findUnmatchedBracket", "CaretCommands");
+            addCommand("forwardParagraph", "Paragraphs");
+            addCommand("forwardSection", "Paragraphs");
+            addCommand("forwardSentence", "Sentences");
             addCommand("fold");
             addCommand("foldMethods");
             addCommand("foldRegion");

@@ -129,6 +129,11 @@ produced, all reachable from j's key maps and `executeCommand` too:
 - `Editor.deleteRegion(start, end)`, the mark-and-dot delete the vim layer
   had spelled out at every site, caret at the start for undo;
 - `Words.backwardToWordStart`, `b`'s scan, for insert-mode `<C-w>`.
+- `Paragraphs.find`, vim's findpar, for `{ } ]] [[ ][ []`, and
+  `Sentences.find`, its findsent, for `( )`; `Editor.findUnmatched`,
+  `findMatchInternal`'s scan from a caret rather than a bracket, for
+  `[( ]) [{ ]}`. Each is a j command too (`forwardParagraph`,
+  `forwardSection`, `forwardSentence`, `findUnmatchedBracket`).
 
 `CaretCommands.findCharacter` and `replaceChars` work in code points, so `f`,
 `t` and `r` take an emoji.
@@ -392,6 +397,15 @@ carries no non-JDK dependency) and `bb fmt-check`.
   class outside `bb test`, rebuild first -- stale mutated classes have produced
   false failures more than once -- and expect five `VimM13Test` cases to fail
   for environmental reasons that `bb test` does not have.
+- **Fuzz a port of a vim scan against nvim.** M20 generated some 17,000
+  short random documents from a small alphabet (`. ! ? ) " \n` for
+  sentences, `{ } \f .SH .PP` for sections, brackets, quotes and
+  backslashes for `[(`), ran them all through one headless nvim with a
+  vimscript loop (a fraction of a second), and compared j case by case in a
+  throwaway JUnit test. It found four bugs the hand-written tests had not,
+  two of them in older code (`%` and `:help d`), and one divergence it left
+  documented, and gave the mutation checks the cases they were missing. One nvim session carries state from
+  case to case, so check a surprising answer with `tools/vim-oracle.sh`.
 
 ## Traps
 
@@ -484,6 +498,16 @@ Each of these has bitten at least once. Read them before editing.
     all. `EditorPane.evenOut` puts every divider back evenly on each split
     and close once that has happened, as vim's `equalalways` does, and is
     what `<C-w>=` runs.
+31. **A blank to vim is a space or a tab**, not Java's `isWhitespace`: a form
+    feed is a paragraph boundary, and counted as a blank it moved `^` and
+    `]]` off column 0 and made the `:help d` rule take whole lines.
+    `CaretCommands.firstNonBlank` and `RangeNormalizer.deleteRange` say so
+    now; the text objects still use `isWhitespace`.
+32. **Vim past its last line is not a specification.** `d]]` from a last
+    line starting with `}` sets the cursor one line beyond the buffer; nvim
+    then deletes nothing, and `c]]` sometimes inserts and sometimes loses
+    what is typed, depending on the buffer's history. j takes the motion as
+    empty. Do not chase such cases.
 
 ## History
 
@@ -516,9 +540,11 @@ review before the next.
 | M16 | `'. '[ '] '^`, the jump list, `''` and ````, `<C-o>` `<C-i>` | `d31fed8ec` |
 | M17 | insert-mode `<C-w> <C-u> <C-r> <C-o>`; the marks a split leaves | `219b055f0` |
 | M18 | `<C-a>` `<C-x>`, visual and `g`; `NumberCommands` | `35bc31aa9` |
-| M19 | windows: `<C-w>` and `:sp :vs :q :clo :on` | (uncommitted) |
+| M19 | windows: `<C-w>` and `:sp :vs :q :clo :on` | `22750f115` |
+| — | review fixes: `visualPut`'s delete, the `J` mark divergence | `30f790a4d` |
+| M20 | `]] [[ ][ []`, `( )`, `[( ]) [{ ]}`; `{ }` on vim's findpar | (uncommitted) |
 
-After M19: 888 tests, conformance 152 of 253 (151 ratcheted).
+After M20: 921 tests, conformance 156 of 253 (155 ratcheted).
 
 ### What the work learned
 

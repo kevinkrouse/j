@@ -1597,10 +1597,34 @@ public final class Editor extends JPanel implements Constants,
                 return null;
             }
         }
-        final boolean escaped = isEscaped(start.getLine(), offset);
         final String s2 = new String("})]{([");
-        final char match = s2.charAt(index);
-        final boolean searchBackwards = index > 2;
+        return scanForMatch(start, origChar, s2.charAt(index), index > 2,
+                            numLines, vim, isEscaped(start.getLine(), offset));
+    }
+
+    /**
+     * The bracket still open at {@code start}, as vim's [( and ]) find it:
+     * with '(', '[' or '{' the one before, with ')', ']' or '}' the one
+     * after. The character at start does not count. With vim, brackets are
+     * skipped as {@link #findMatchInternal(Position, int, boolean)} skips
+     * them, but for an escaped start: vim does not look at the caret's.
+     */
+    public Position findUnmatched(Position start, char bracket, boolean vim)
+    {
+        final int index = "{([})]".indexOf(bracket);
+        if (index < 0)
+            return null;
+        // Back to a '(' counts the ')'s on the way, forward the '('s.
+        return scanForMatch(start, "})]{([".charAt(index), bracket, index < 3,
+                            0, vim, false);
+    }
+
+    /** The first match after start not paired with an origChar on the way. */
+    private Position scanForMatch(Position start, char origChar, char match,
+                                  boolean searchBackwards, int numLines,
+                                  boolean vim, boolean escaped)
+    {
+        final Mode mode = buffer.getMode();
         int stopLineNumber = searchBackwards ? 0 : buffer.getLineCount();
         if (numLines != 0)
             stopLineNumber = searchBackwards ? start.lineNumber() - numLines : start.lineNumber() + numLines;
@@ -1664,7 +1688,7 @@ public final class Editor extends JPanel implements Constants,
         }
         boolean inQuote = false;
         for (int i = from; i < to; i++)
-            if (text.charAt(i) == '"' && !isEscaped(line, i))
+            if (isQuote(text, i) && !isEscaped(line, i))
                 inQuote = !inQuote;
         return inQuote;
     }
@@ -1678,17 +1702,22 @@ public final class Editor extends JPanel implements Constants,
         return ((offset - i) & 1) != 0;
     }
 
+    /** A double quote, but not the one in the literal '"'. */
+    private static boolean isQuote(String text, int i)
+    {
+        return text.charAt(i) == '"'
+            && (i == 0 || text.charAt(i - 1) != '\''
+                || i + 1 == text.length() || text.charAt(i + 1) != '\'');
+    }
+
     /** Vim's count, which leaves out \" and '"'. */
     private static boolean hasEvenQuotes(String text)
     {
         int quotes = 0;
         for (int i = 0; i < text.length(); i++) {
-            final char c = text.charAt(i);
-            if (c == '"' && (i == 0 || text.charAt(i - 1) != '\''
-                             || i + 1 == text.length()
-                             || text.charAt(i + 1) != '\''))
+            if (isQuote(text, i))
                 ++quotes;
-            else if (c == '\\' && i + 1 < text.length())
+            else if (text.charAt(i) == '\\' && i + 1 < text.length())
                 ++i;
         }
         return (quotes & 1) == 0;

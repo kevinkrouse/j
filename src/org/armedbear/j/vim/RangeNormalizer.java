@@ -13,7 +13,6 @@ package org.armedbear.j.vim;
 
 import org.armedbear.j.Line;
 import org.armedbear.j.Position;
-import org.armedbear.j.util.Utilities;
 
 /**
  * Turns "where the motion started and ended" into "what the operator deletes".
@@ -104,10 +103,19 @@ final class RangeNormalizer
             return range;
         final Line first = range.start.getLine();
         final Line last = range.end.getLine();
-        if (!Utilities.isWhitespace(first.substring(0, range.start.getOffset()))
-            || !Utilities.isWhitespace(last.substring(range.end.getOffset())))
+        if (!isBlank(first.substring(0, range.start.getOffset()))
+            || !isBlank(last.substring(range.end.getOffset())))
             return range;
         return VimRange.lines(first, last);
+    }
+
+    /** Only spaces and tabs, vim's blanks: a form feed is not one. */
+    private static boolean isBlank(String s)
+    {
+        for (int i = 0; i < s.length(); i++)
+            if (s.charAt(i) != ' ' && s.charAt(i) != '\t')
+                return false;
+        return true;
     }
 
     private static VimRange linewise(Position from, Position to)

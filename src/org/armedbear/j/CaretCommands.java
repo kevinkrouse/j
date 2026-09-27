@@ -162,6 +162,37 @@ public final class CaretCommands
         editor.updateDotLine();
     }
 
+    // ------------------------------------------------- unmatched brackets
+
+    /**
+     * {@code findUnmatchedBracket (} -- back to the '(' still open at the
+     * caret, or with ')' on to the one that closes it; '[', ']', '{' and '}'
+     * likewise, as vim's [( and ]).
+     */
+    public static void findUnmatchedBracket(String parameters)
+    {
+        final Editor editor = Editor.currentEditor();
+        final String bracket = parameters == null ? "" : parameters.trim();
+        if (bracket.length() != 1 || "([{}])".indexOf(bracket.charAt(0)) < 0) {
+            editor.status("a bracket is required");
+            return;
+        }
+        final Position dot = editor.getDot();
+        if (dot == null)
+            return;
+        final Position to =
+            editor.findUnmatched(dot, bracket.charAt(0), false);
+        if (to == null) {
+            editor.status("No match");
+            return;
+        }
+        editor.addUndo(SimpleEdit.MOVE);
+        editor.unmark();
+        editor.setDot(to);
+        editor.moveCaretToDotCol();
+        editor.updateDotLine();
+    }
+
     // --------------------------------------------- top, middle, bottom
 
     /** The line at the top, middle or bottom of what the window shows. */
@@ -227,16 +258,24 @@ public final class CaretCommands
         editor.updateDotLine();
     }
 
-    /** The offset of the first character on the line that is not a blank. */
+    /**
+     * The offset of the first character on the line that is not a blank: a
+     * space or a tab, as vim counts them, so a form feed is not one.
+     */
     public static int firstNonBlank(Line line)
     {
         final String text = line.getText();
         if (text == null)
             return 0;
         int i = 0;
-        while (i < text.length() && Character.isWhitespace(text.charAt(i)))
+        while (i < text.length() && isBlank(text.charAt(i)))
             ++i;
         return i == text.length() ? Math.max(0, i - 1) : i;
+    }
+
+    private static boolean isBlank(char c)
+    {
+        return c == ' ' || c == '\t';
     }
 
     // ------------------------------------------- overwrite a character

@@ -43,7 +43,7 @@ Normal, insert, replace, visual and visual-line modes, operator-pending
 commands, counts, registers, marks and the dot command:
 <table border="0" cellpadding="2">
 <tr><td valign="top"><b>motions</b></td>
-    <td><code>h j k l 0 ^ $ w W b B e E ge gE gg G | f F t T ; , { } % H M L</code>
+    <td><code>h j k l 0 ^ $ w W b B e E ge gE gg G | f F t T ; , { } ( ) ]] [[ ][ [] % [( ]) [{ ]} H M L</code>
         and the arrow keys</td></tr>
 <tr><td valign="top"><b>operators</b></td>
     <td><code>d c y &gt; &lt; gu gU g~</code>, doubled for whole lines
@@ -155,8 +155,7 @@ session is one undo step, so <code>u</code> after
 Visual block mode, macros (<code>q</code>, and the rest of <code>@</code>),
 the rest of the insert-mode commands (completion, <code>Ctrl V</code>,
 <code>Ctrl R Ctrl O</code> and <code>Ctrl R Ctrl P</code>, and the like),
-the <code>[[</code> family of section motions, the
-<code>it</code> and <code>is</code> text objects.
+the <code>it</code>, <code>is</code> and <code>as</code> text objects.
 <p>
 Of the ex commands: <code>:marks</code> as a listing, the <code>c</code> flag
 on <code>:s</code>, which is reported rather than silently replacing
@@ -252,6 +251,13 @@ These are known and deliberate:
     <a href="killring.html">kill ring</a> or its file-backed
     <a href="commands.html">registers</a>. <code>"+</code> and <code>"*</code>
     are not connected to the system clipboard yet.</li>
+<li><code>{ } ( ) ]] [[</code> find paragraphs and sections by vim's
+    default <code>paragraphs</code> and <code>sections</code> (the nroff
+    macros, such as <code>.PP</code> and <code>.SH</code>); the two cannot
+    be <code>:set</code>.</li>
+<li><code>%</code> and <code>[( ]) [{ ]}</code> skip brackets in quotes line
+    by line: a string continued onto the next line by a backslash at the end
+    of one is not seen as a string, where vim skips the brackets in it.</li>
 <li>Marks are per editor rather than per buffer. A mark on a line
     <code>J</code> joins to the one above is lost; vim moves it with the
     text.</li>

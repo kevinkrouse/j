@@ -346,6 +346,10 @@
     <li><a href="commands.html#shiftLinesRight">shiftLinesRight</a></li>
     <li><a href="commands.html#findCharInLine">findCharInLine</a></li>
     <li><a href="commands.html#moveToWindowTop">moveToWindowTop</a></li>
+    <li><a href="commands.html#forwardParagraph">forwardParagraph</a></li>
+    <li><a href="commands.html#forwardSection">forwardSection</a></li>
+    <li><a href="commands.html#forwardSentence">forwardSentence</a></li>
+    <li><a href="commands.html#findUnmatchedBracket">findUnmatchedBracket</a></li>
     <li><a href="commands.html#replaceChar">replaceChar</a></li>
     <li><a href="commands.html#incrementNumber">incrementNumber</a></li>
     <li><a href="commands.html#adjacentWindow">adjacentWindow</a></li>
@@ -4692,6 +4696,66 @@ which scroll the window and leave the caret where it is.
 <br><br>
 <b>See also:</b> <code>H</code>, <code>M</code> and <code>L</code> in
 <a href="editmodes.html">vim edit mode</a>.
+<br><br>
+</dl><!--<hr>-->
+
+<a name="forwardParagraph">forwardParagraph</a>, <a name="backwardParagraph">backwardParagraph</a><dl><dd>
+<p>
+Moves the caret to the empty line after (or before) the paragraph, passing
+over a run of empty lines first. A form feed at the start of a line, or an
+nroff macro such as <code>.PP</code> or <code>.SH</code>, also starts a
+paragraph. With no paragraph left the caret goes to the end (or start) of the
+buffer.
+<br><br>
+<b>Default key mapping:</b> None
+<br><br>
+<b>See also:</b> <code>}</code> and <code>{</code> in
+<a href="editmodes.html">vim edit mode</a>, which are these.
+<br><br>
+</dl><!--<hr>-->
+
+<a name="forwardSection">forwardSection</a>, <a name="backwardSection">backwardSection</a><dl><dd>
+<p>
+Moves the caret to the next (or previous) line with a <code>{</code> in its
+first column, or with the argument <code>}</code>, as in
+<code>forwardSection }</code>, a <code>}</code>. A form feed or a section
+macro such as <code>.SH</code> also starts a section. The caret lands on the
+first non-blank.
+<br><br>
+<b>Default key mapping:</b> None
+<br><br>
+<b>See also:</b> <code>]]</code>, <code>[[</code>, <code>][</code> and
+<code>[]</code> in <a href="editmodes.html">vim edit mode</a>.
+<br><br>
+</dl><!--<hr>-->
+
+<a name="forwardSentence">forwardSentence</a>, <a name="backwardSentence">backwardSentence</a><dl><dd>
+<p>
+Moves the caret to the start of the next sentence (or of this one, or the one
+before). A sentence ends at a <code>.</code>, <code>!</code> or
+<code>?</code> followed, after any closing <code>) ] " '</code>, by a space,
+a tab or the end of the line. An empty line, and the start of a paragraph or
+section, ends one too.
+<br><br>
+<b>Default key mapping:</b> None
+<br><br>
+<b>See also:</b> <code>)</code> and <code>(</code> in
+<a href="editmodes.html">vim edit mode</a>.
+<br><br>
+</dl><!--<hr>-->
+
+<a name="findUnmatchedBracket">findUnmatchedBracket</a><dl><dd>
+<p>
+Moves the caret to the bracket that is still open where the caret is: with
+the argument <code>(</code>, <code>[</code> or <code>{</code> back to the
+one that opens it, with <code>)</code>, <code>]</code> or <code>}</code> on
+to the one that closes it, as in <code>findUnmatchedBracket (</code>. It
+matches as <a href="#findMatchingChar">findMatchingChar</a> does.
+<br><br>
+<b>Default key mapping:</b> None
+<br><br>
+<b>See also:</b> <code>[(</code>, <code>[{</code>, <code>])</code> and
+<code>]}</code> in <a href="editmodes.html">vim edit mode</a>.
 <br><br>
 </dl><!--<hr>-->
 

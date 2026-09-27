@@ -18,8 +18,10 @@ import org.armedbear.j.Buffer;
 import org.armedbear.j.CaretCommands;
 import org.armedbear.j.Line;
 import org.armedbear.j.Mode;
+import org.armedbear.j.Paragraphs;
 import org.armedbear.j.Words;
 import org.armedbear.j.Position;
+import org.armedbear.j.Sentences;
 
 /**
  * The motions, by the names the key map table uses.
@@ -80,6 +82,9 @@ public final class VimMotions
         register("moveToCharacter", VimMotions::moveToCharacter);
         register("repeatCharacterSearch", new RepeatCharacterSearch());
         register("moveByParagraph", VimMotions::moveByParagraph);
+        register("moveBySection", VimMotions::moveBySection);
+        register("moveBySentence", VimMotions::moveBySentence);
+        register("moveToUnmatched", VimMotions::moveToUnmatched);
         register("goToMark", VimMotions::goToMark);
         register("jumpToMark", VimMotions::jumpToMark);
         register("travelJumps", VimMotions::travelJumps);
@@ -309,39 +314,55 @@ public final class VimMotions
     }
 
     /**
-     * { and } -- to the blank line that ends the paragraph.
-     *
-     * A paragraph boundary is an empty line, so these land on one; running out
-     * of buffer lands on the far end of it instead.
+     * { and } -- to the empty line that starts the next paragraph, past any
+     * run of them. Running out of buffer lands on its edge, but a count that
+     * runs out with some left over goes nowhere, as in vim.
      */
     private static Position moveByParagraph(MotionContext ctx, Position from)
     {
+        return Paragraphs.find(from, ctx.arg("forward"), ctx.count, (char) 0,
+                               false);
+    }
+
+    /**
+     * ]] [[ ][ [] -- to a '{' in the first column, or with {@code end} a
+     * '}'. Without an operator the caret goes to the first non-blank; with
+     * one, d]] stops at a '}' too and takes it.
+     */
+    private static Position moveBySection(MotionContext ctx, Position from)
+    {
         final boolean forward = ctx.arg("forward");
+        final char what = ctx.arg("end") ? '}' : '{';
+        final Position to = Paragraphs.find(from, forward, ctx.count, what,
+                                            ctx.forOperator && forward
+                                            && what == '{');
+        if (to == null || ctx.forOperator)
+            return to;
+        return at(to.getLine(), firstNonBlank(to.getLine()));
+    }
+
+    /** ( and ) -- to the start of a sentence, j's {@link Sentences}. */
+    private static Position moveBySentence(MotionContext ctx, Position from)
+    {
+        return Sentences.find(from, ctx.arg("forward"), ctx.count);
+    }
+
+    /**
+     * [( [{ ]) ]} -- to the bracket still open at the caret, count levels
+     * out, through j's own bracket matching with vim's rules, as for %.
+     */
+    private static Position moveToUnmatched(MotionContext ctx, Position from)
+    {
+        final char bracket = ctx.arg("bracket", "(").charAt(0);
         Position pos = from;
         for (int i = 0; i < ctx.count; i++) {
-            final Position next = paragraphBoundary(pos, forward);
+            final Position next =
+                ctx.editor.findUnmatched(pos, bracket, true);
             if (next == null)
                 return i == 0 ? null : pos;
             pos = next;
         }
-        return pos;
-    }
-
-    private static Position paragraphBoundary(Position from, boolean forward)
-    {
-        Line line = forward ? from.getLine().nextVisible()
-                            : from.getLine().previousVisible();
-        if (line == null)
-            return null;
-        while (line.length() != 0) {
-            final Line next = forward ? line.nextVisible()
-                                      : line.previousVisible();
-            if (next == null)
-                // No boundary left: stop at the edge of the buffer.
-                return at(line, forward ? line.length() : 0);
-            line = next;
-        }
-        return at(line, 0);
+        return at(pos.getLine(), pos.getOffset());
     }
 
     /**

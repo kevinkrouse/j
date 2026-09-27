@@ -58,6 +58,9 @@
 #                           back to it. CodeMirror lets the caret sit past
 #                           the end of a line; vim and j do not, so the mark
 #                           is at column 0
+#   }                       its last step, 6} over two paragraphs, expects the
+#                           end of the buffer; nvim does not move when a
+#                           count runs out with some left over, and nor do we
 #   /_greedy                the corpus writes its patterns in JavaScript's
 #   ?_greedy                regex syntax, where + means one-or-more. In vim's
 #   ex_sort_pattern_alpha_  default magic level a bare + is the character, so
@@ -97,7 +100,6 @@ f,
 f;
 t,
 t;
-}
 
 # M1: insert mode
 i with surrogate characters
@@ -280,3 +282,10 @@ increment_binary
 increment_decimal
 increment_decimal_single_zero
 increment_hexadecimal
+
+# M20: section, bracket and sentence motions
+(
+)
+[(, ])
+[[, ]]
+[], ][
