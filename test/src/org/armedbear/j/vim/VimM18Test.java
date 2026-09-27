@@ -116,6 +116,8 @@ public class VimM18Test
         check("-0x5", 0, "<C-a>", "-0x6", 3);
         // Wraps around at 64 bits.
         check("0x00", 0, "<C-x>", "0xffffffffffffffff", 17);
+        // Too big for 64 bits: read as the largest, and left there.
+        check("0x1ffffffffffffffff", 0, "<C-a>", "0x0ffffffffffffffff", 18);
     }
 
     @Test

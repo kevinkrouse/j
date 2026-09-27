@@ -166,9 +166,10 @@ public class EditorPane extends JXMultiSplitPane {
     /**
      * Every window in each row or column the same size, as vim's
      * equalalways keeps them after a split or a close. Until a divider is
-     * dragged the layout follows the weights; after, it keeps the dividers
-     * where they are, and a new one has no place yet, so they are all put
-     * back here.
+     * dragged the layout follows the weights; the drag turns floating
+     * dividers off for good (JXMultiSplitPane never turns them back on),
+     * after which it keeps the dividers where they are, and a new one has
+     * no place yet, so they are all put back here.
      */
     private void evenOut()
     {

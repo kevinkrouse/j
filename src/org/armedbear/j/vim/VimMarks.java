@@ -28,7 +28,8 @@ import org.armedbear.j.Position;
  * line when lines above it are added or removed. {@code Region.delete} does
  * not adjust these markers -- they are not among {@code Marker.getAllMarkers}
  * -- so a mark on a deleted line is gone, which is what vim does with a named
- * mark.
+ * mark. So is one on a line J joins to the one above, which vim moves along
+ * with the text.
  */
 public final class VimMarks
 {

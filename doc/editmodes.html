@@ -252,7 +252,9 @@ These are known and deliberate:
     <a href="killring.html">kill ring</a> or its file-backed
     <a href="commands.html">registers</a>. <code>"+</code> and <code>"*</code>
     are not connected to the system clipboard yet.</li>
-<li>Marks are per editor rather than per buffer.</li>
+<li>Marks are per editor rather than per buffer. A mark on a line
+    <code>J</code> joins to the one above is lost; vim moves it with the
+    text.</li>
 <li><code>.</code> after a visual command repeats it at the caret, rather
     than over as much text as the selection took in, as vim does.</li>
 <li><code>Ctrl R</code> (redo) leaves the caret where the edit left it; vim

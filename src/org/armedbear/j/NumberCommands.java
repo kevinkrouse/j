@@ -20,7 +20,8 @@ import javax.swing.undo.CompoundEdit;
  *
  * The arithmetic is vim's: an unsigned 64-bit value, with a decimal
  * number's sign kept apart, so that hexadecimal and binary wrap around and
- * decimal changes sign. The digits keep their width -- 0x0f, 007 -- and a
+ * decimal changes sign; one too big for 64 bits is read as the largest
+ * and left there. The digits keep their width -- 0x0f, 007 -- and a
  * hexadecimal number keeps the case of its last letter.
  */
 public final class NumberCommands
@@ -71,7 +72,8 @@ public final class NumberCommands
         if (col < 0 || col >= end)
             return null;
 
-        // The prefix, the digits and the value, vim's str2nr.
+        // The prefix, the digits and the value, vim's str2nr. A prefix
+        // counts only with a digit after it inside the limit, as there.
         int digits = col;
         int radix = 10;
         if (text.charAt(col) == '0' && col + 2 < end) {

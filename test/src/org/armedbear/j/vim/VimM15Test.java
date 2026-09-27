@@ -54,6 +54,8 @@ public class VimM15Test
     {
         vim("ab\ncd", 1, 1).keys("ge");
         h.assertCursorAt(0, 1);
+        vim("ab\ncd", 1, 0).keys("ge");
+        h.assertCursorAt(0, 1);
         vim("ab.\n.cd", 1, 0).keys("ge");
         h.assertCursorAt(0, 2);
         vim("x ab\ncd", 1, 1).keys("dge");

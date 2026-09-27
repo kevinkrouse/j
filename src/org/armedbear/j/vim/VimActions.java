@@ -904,12 +904,8 @@ public final class VimActions
                 // Empty the lines to one and fill that: no line after the
                 // selection is needed, so the end of the buffer is no case.
                 final Line last = range.last;
-                editor.setMark(new Position(first, 0));
-                editor.setDot(last, last.length());
-                editor.moveCaretToDotCol();
-                editor.deleteRegion();
-                editor.setMark(null);
-                editor.moveCaretToDotCol();
+                editor.deleteRegion(new Position(first, 0),
+                                    new Position(last, last.length()));
                 editor.insertString(text.toString());
                 markPut(editor, ctx.state, new Position(first, 0));
                 landOnFirstNonBlank(editor, first);
