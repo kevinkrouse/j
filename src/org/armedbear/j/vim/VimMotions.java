@@ -324,8 +324,15 @@ public final class VimMotions
      */
     private static Position moveByParagraph(MotionContext ctx, Position from)
     {
-        return Paragraphs.find(from, ctx.arg("forward"), ctx.count, (char) 0,
-                               false);
+        final Position to = Paragraphs.find(from, ctx.arg("forward"),
+                                            ctx.count, (char) 0, false);
+        // Paragraphs.find stops at the end of the last line, which for an
+        // operator is the same as taking its last character. A move rests
+        // on that character instead, as vim's findpar does.
+        if (to != null && !ctx.forOperator && to.getOffset() > 0
+            && to.getOffset() == to.getLine().length())
+            return at(to.getLine(), to.getOffset() - 1);
+        return to;
     }
 
     /**

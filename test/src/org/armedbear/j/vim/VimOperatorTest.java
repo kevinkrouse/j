@@ -275,4 +275,25 @@ public class VimOperatorTest
         h.assertText("alpha bravo\n");
         assertEquals(6, h.offset());
     }
+
+    @Test
+    public void dwOnTheLastWordBeforeAnIndentedLineDoesNotJoinThem()
+    {
+        vim("foo\n  bar baz\n").cursor(0, 0).keys("dw");
+        h.assertText("\n  bar baz\n");
+    }
+
+    @Test
+    public void dwOverTrailingBlanksBeforeAnIndentedLineKeepsTheLineBreak()
+    {
+        vim("foo  \n  bar\n").cursor(0, 3).keys("dw");
+        h.assertText("foo\n  bar\n");
+    }
+
+    @Test
+    public void closeBraceAtTheEndOfTheBufferRestsOnTheLastCharacter()
+    {
+        vim("a\nhello\n").cursor(0, 0).keys("}x");
+        h.assertText("a\nhell\n");
+    }
 }

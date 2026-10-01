@@ -2691,10 +2691,8 @@ public final class Editor extends JPanel implements Constants,
      */
     public boolean saveCopy(String path)
     {
-        if (path == null || path.trim().isEmpty()) {
-            saveCopy();
-            return true;
-        }
+        if (path == null || path.trim().isEmpty())
+            return false;
         final File destination = fileNamed(path.trim());
         return destination != null && saveCopyTo(destination);
     }
@@ -6015,6 +6013,7 @@ public final class Editor extends JPanel implements Constants,
         Position pos = search.find(buffer.getMode(),
                                        new Position(buffer.getFirstLine(), 0));
         if (pos != null) {
+            recordJump();
             moveDotTo(pos);
             markFoundPattern(search);
         } else

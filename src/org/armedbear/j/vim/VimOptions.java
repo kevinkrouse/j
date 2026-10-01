@@ -78,11 +78,6 @@ public final class VimOptions
         values.put(key, isOn(key) ? "false" : "true");
     }
 
-    public boolean isSet(String name)
-    {
-        return values.containsKey(canonical(name));
-    }
-
     /** A switch, set or at its default; see {@link #SWITCHES}. */
     public boolean isOn(String name)
     {
@@ -107,17 +102,6 @@ public final class VimOptions
         catch (NumberFormatException e) {
             return defaultValue;
         }
-    }
-
-    public String getString(String name, String defaultValue)
-    {
-        final String value = values.get(canonical(name));
-        return value == null ? defaultValue : value;
-    }
-
-    public void clear()
-    {
-        values.clear();
     }
 
     /**

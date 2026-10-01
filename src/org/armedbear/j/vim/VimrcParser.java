@@ -91,8 +91,6 @@ public final class VimrcParser
             return let(rest);
         if (name.equals("set") || name.equals("se"))
             return set(rest);
-        if (name.endsWith("mapclear"))
-            return true; // Accepted and ignored: there is nothing to clear yet.
         if (name.endsWith("unmap"))
             return unmap(prefixOf(name, "unmap"), rest);
         if (name.endsWith("map"))
@@ -132,7 +130,7 @@ public final class VimrcParser
             final int eq = option.indexOf('=');
             if (eq >= 0)
                 options.set(option.substring(0, eq), option.substring(eq + 1));
-            else if (option.startsWith("no"))
+            else if (option.startsWith("no") && option.length() > 2)
                 options.set(option.substring(2), "false");
             else if (option.endsWith("!"))
                 options.toggle(option.substring(0, option.length() - 1));
@@ -182,9 +180,10 @@ public final class VimrcParser
     /**
      * Turns a right-hand side into a binding.
      *
-     * {@code :cmd&lt;CR&gt;} runs one of j's commands; anything else is keys to
-     * press. Those keys mean what they do built in, unless {@code remap}
-     * -- {@code map} rather than {@code noremap} -- lets them be mappings.
+     * {@code :cmd&lt;CR&gt;} runs one of j's commands, or else the ex command;
+     * anything else is keys to press. Those keys mean what they do built in,
+     * unless {@code remap} -- {@code map} rather than {@code noremap} --
+     * lets them be mappings.
      */
     private static VimCommand mapping(Set<MappingMode> modes, String keys,
                                       String to, boolean remap)
@@ -196,8 +195,13 @@ public final class VimrcParser
             final String body = to.endsWith("<CR>")
                 ? to.substring(1, to.length() - 4)
                 : to.substring(1);
+            // j's own command of that name if there is one; otherwise the
+            // line goes to the ex layer, which is where :w and :bn live.
+            final Map<String, String> args =
+                new LinkedHashMap<String, String>(noArgs);
+            args.put("ex", body.trim());
             return new VimCommand(modes, keys, VimCommand.Kind.EDITOR_COMMAND,
-                                  body.trim(), noArgs);
+                                  body.trim(), args);
         }
         return new VimCommand(modes, keys, VimCommand.Kind.KEY_TO_KEY, to,
                               noArgs);

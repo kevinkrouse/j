@@ -217,4 +217,12 @@ public class VimrcTest
         assertSame("a binding the vimrc did not touch still works",
                    1, h.offset());
     }
+
+    @Test
+    public void aMappingCanRunAVimExCommandJHasNoCommandFor()
+    {
+        vim("abc\n", "nnoremap <C-a> :s/b/X/<CR>\n").cursor(0, 0);
+        h.keys("<C-a>");
+        h.assertText("aXc\n");
+    }
 }

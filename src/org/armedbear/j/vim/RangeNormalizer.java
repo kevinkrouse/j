@@ -11,6 +11,7 @@
 
 package org.armedbear.j.vim;
 
+import org.armedbear.j.CaretCommands;
 import org.armedbear.j.Line;
 import org.armedbear.j.Position;
 
@@ -141,13 +142,15 @@ final class RangeNormalizer
      * of a line leaves the line, and leaves any blank lines below it alone
      * even though the motion crossed them looking for a word.
      *
-     * Only applies when the motion landed at the start of a line. Having got
-     * somewhere mid-line -- which is what a count large enough to pass a word
-     * does -- the motion meant it.
+     * Only applies when the motion landed at the start of a line, or at the
+     * first non-blank of an indented one. Having got somewhere mid-line --
+     * which is what a count large enough to pass a word does -- the motion
+     * meant it.
      */
     static void clipWordMotionAtLineEnd(Position from, Position to)
     {
-        if (to.getLine() == from.getLine() || to.getOffset() != 0)
+        if (to.getLine() == from.getLine()
+            || to.getOffset() != CaretCommands.firstNonBlank(to.getLine()))
             return;
         to.setLine(from.getLine());
         to.setOffset(from.getLine().length());

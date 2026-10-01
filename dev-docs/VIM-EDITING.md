@@ -180,9 +180,11 @@ how `zz`, `<C-f>` and `<C-^>` are j's own. `keytokey` stands for other keys, so
 desired column.
 
 `VimrcParser` reads the parts of `~/.config/j/vimrc` it understands --
-`map nmap vmap xmap omap imap` and their `noremap`/`unmap` forms, `set`,
-`let mapleader` -- into the same tries, later rows winning. A right-hand side
-`:cmd<CR>` runs a j command. Everything else is logged and skipped.
+`map nmap vmap xmap omap imap cmap` and their `noremap`/`unmap` forms, `set`,
+`let mapleader` -- into the same tries, later rows winning. `vmap` and `xmap`
+both write the one visual mode. A right-hand side `:cmd<CR>` runs the j
+command of that name, else the vim ex command. Everything else (`mapclear`
+included) is logged and skipped.
 
 **There is no `'timeoutlen'` timer.** A binding that is also a prefix of a
 longer one (`,` and `,d`) is held as the trie's `fallback` and runs as soon as
@@ -674,7 +676,7 @@ review before the next.
 | M23 | jump list on j's `JumpList` (was the position stack); file marks as bookmarks | `5a012f6af` |
 | M24 | `incrementNumber` over a selection; `openFileInSplit`, `openFileInVsplit` | `30f71e596` |
 | M25 | vim's registers on j's: register files, kill ring, clipboards | `e28c4d22d` |
-| M26 | visual block on j's new `Block`; `.` over the selection's shape; `j k |` onto a tab, and in visual mode onto a line's end; `shiftwidth` read; j's column selection on `Block`; the write lock, and the harness failing on a logged error; `<` `>` over a charwise selection; vimrc `noremap` | (uncommitted) |
+| M26 | visual block on j's new `Block`; `.` over the selection's shape; `j k |` onto a tab, and in visual mode onto a line's end; `shiftwidth` read; j's column selection on `Block`; the write lock, and the harness failing on a logged error; `<` `>` over a charwise selection; vimrc `noremap` | `44d6695a9` |
 
 After M26: 1041 tests, conformance 167 of 253 (167 ratcheted).
 

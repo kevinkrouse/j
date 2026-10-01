@@ -101,10 +101,12 @@ public final class Lines
                                                : stripLeading(text(next));
                 // The line keeps its own trailing whitespace: only the indent
                 // of the line being pulled up is dropped. And a space goes in
-                // only if there is not one there already.
+                // only if there is not one there already, and none before a
+                // closing parenthesis.
                 final String head = text(line);
                 final String separator =
-                    keepSpaces || rest.isEmpty() || head.isEmpty()
+                    keepSpaces || rest.isEmpty() || rest.charAt(0) == ')'
+                        || head.isEmpty()
                         || Character.isWhitespace(head.charAt(head.length() - 1))
                     ? "" : " ";
 

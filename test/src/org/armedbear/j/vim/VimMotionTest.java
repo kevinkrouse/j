@@ -31,6 +31,8 @@ public class VimMotionTest
 
     private EditorHarness vim(String text)
     {
+        if (h != null)
+            h.close();
         h = EditorHarness.create(text).vim();
         return h;
     }

@@ -24,6 +24,7 @@
 #   [2] doc: $'a\nb'
 #   [2] cur: 0,0
 set -eu
+command -v nvim >/dev/null 2>&1 || { echo "vim-oracle: nvim is required" >&2; exit 1; }
 value=$1; line=$2; col=$3; shift 3
 d=$(mktemp -d)
 # A file ending in a newline is read as exactly those lines, which is what

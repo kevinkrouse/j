@@ -1675,6 +1675,11 @@ public final class VimInputHandler implements InputHandler
                 }
                 // execute() throws for some unknown names and quietly
                 // returns false for others; either way, say so.
+                // A mapping from a vimrc may name a vim ex command instead.
+                if (!ran && command.getString("ex", null) != null) {
+                    exEntered(editor, command.getString("ex", null));
+                    break;
+                }
                 if (!ran)
                     editor.status("E492: Not an editor command: "
                                   + command.getCommand());

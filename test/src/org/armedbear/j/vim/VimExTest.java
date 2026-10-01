@@ -424,7 +424,7 @@ public class VimExTest
         // next, so the x below is a command again.
         vim("a\nb", 0, 0).keys(":").exCommand("norm A;");
         h.keys("x");
-        assertEquals("a\nb", h.value().replace("a;", "a"));
+        assertEquals("a\nb", h.value());
     }
 
     @Test
@@ -746,5 +746,29 @@ public class VimExTest
         // Which is also how the conformance corpus spells an ex command.
         vim("one two three", 0, 0).keys(":s/two/2/<CR>");
         assertEquals("one 2 three", h.value());
+    }
+
+    @Test
+    public void aSubstituteRangePastTheEndIsInvalid()
+    {
+        vim("a\nb\nc", 0, 0).keys(":").exCommand("100s/a/b/");
+        assertEquals("a\nb\nc", h.value());
+        assertTrue(h.status().startsWith("E16"));
+    }
+
+    @Test
+    public void aSubstituteOnLineZeroUsesTheFirstLine()
+    {
+        vim("a\nb\nc", 2, 0).keys(":").exCommand("0s/a/b/");
+        assertEquals("b\nb\nc", h.value());
+    }
+
+    @Test
+    public void aSemicolonRangeSearchesFromTheFirstAddress()
+    {
+        // From line 1 the next "bar" is line 3; from the caret on line 3 it
+        // would be line 5.
+        vim("x\nx\nbar\nx\nbar", 2, 0).keys(":").exCommand("1;/bar/d");
+        assertEquals("x\nbar", h.value());
     }
 }

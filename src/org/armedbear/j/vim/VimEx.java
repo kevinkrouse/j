@@ -132,10 +132,20 @@ public final class VimEx
                 return new Range(currentLine(), currentLine(), false);
             return new Range(first, first, true);
         }
-        // ';' sets the caret to the first address before reading the second.
-        // Nothing here needs that difference yet, so both are read as ','.
+        // ';' sets the caret to the first address before reading the second,
+        // which is where a search for it starts, and what "." and a bare
+        // offset count from.
+        final boolean semicolon = peek() == ';';
         ++pos;
-        final Integer second = address();
+        if (semicolon && first != null)
+            current = Math.max(1, Math.min(first, lineCount()));
+        final Integer second;
+        try {
+            second = address();
+        }
+        finally {
+            current = 0;
+        }
         final int from = first == null ? currentLine() : first;
         final int to = second == null ? currentLine() : second;
         return from <= to ? new Range(from, to, true)
@@ -215,6 +225,17 @@ public final class VimEx
         return mark.lineNumber() + 1;
     }
 
+    /** Where a search address starts: the caret, or the line {a}; moved to. */
+    private Position searchStart()
+    {
+        if (current > 0) {
+            final Line line = lineAt(editor, current);
+            if (line != null)
+                return new Position(line, line.length());
+        }
+        return editor.getDot();
+    }
+
     /** The line a {@code /pat/} or {@code ?pat?} address finds. */
     private int searchLine(char delimiter) throws BadCommand
     {
@@ -231,7 +252,7 @@ public final class VimEx
             new VimSearch.Query(pattern.toString(), delimiter == '/', false);
         final Position found;
         try {
-            found = VimSearch.find(editor, query, editor.getDot(), 1);
+            found = VimSearch.find(editor, query, searchStart(), 1);
         }
         catch (VimSearch.BadPattern e) {
             // exEntered only catches BadCommand, so anything else thrown
@@ -316,8 +337,13 @@ public final class VimEx
             ++pos;
     }
 
+    /** The line a {a};{b} range has moved to for {b}, or 0 when it has not. */
+    private int current;
+
     private int currentLine()
     {
+        if (current > 0)
+            return current;
         final Position dot = editor.getDot();
         return dot == null ? 1 : dot.lineNumber() + 1;
     }

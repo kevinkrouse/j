@@ -270,7 +270,8 @@ keys mean what they do built in, a <code>map</code>'s may be mappings too), alon
 <code>set</code> and <code>let mapleader</code>. A right-hand side that begins
 with <code>:</code> and ends with <code>&lt;CR&gt;</code> runs one of
 <a href="commands.html">j's own commands</a>, which is how a key reaches
-something the modal layer knows nothing about.
+something the modal layer knows nothing about; a name j has no command for
+(<code>:w</code>, <code>:q</code>) is run as the vim ex command it is.
 <p>
 Anything else in the file -- vimscript, plugins, autocommands -- is reported in
 the <a href="logging.html">log</a> and skipped, so an existing vimrc can be
@@ -334,6 +335,13 @@ These are known and deliberate:
     restored. After <code>J</code>, <code>`.</code> is where the join was,
     and after <code>:m</code> the first line moved; vim puts it on the next
     line and where the lines came from.</li>
+<li><code>:g</code> runs its command on the matching lines from the bottom
+    up, where vim goes from the top. Commands that treat each line alone
+    (<code>:d</code>, <code>:s</code>, <code>:normal</code>) come out the
+    same, but <code>:g/^/m0</code> does not reverse the buffer, and the caret
+    ends on the first matching line rather than the last.</li>
+<li><code>vmap</code> and <code>xmap</code> are the same thing, one visual
+    mode for every kind of selection.</li>
 <li><b>Patterns are vim's</b>, in <code>/</code>, <code>?</code>,
     <code>:s</code>, <code>:g</code> and <code>:sort</code> alike: the four
     magic levels (<code>\v \m \M \V</code>, with <code>\m</code> the default,

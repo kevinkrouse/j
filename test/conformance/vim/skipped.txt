@@ -89,20 +89,27 @@ visual_block_mode_switch                             var selections = cm.getSele
 visual_block_crossing_short_line                     var selections = cm.getSelections().join();
 visual_block_curPos_on_exit                          eq(cm.getSelections().join(), "3456,,cdef");
 visual_join_blank                                    var initialValue = cm.getValue();
+visual_blank                                         no translatable assertion
 reselect_visual                                      eqCursorPos(makeCursor(0, 1), cm.getCursor('anchor'));
 reselect_visual_block                                eqCursorPos(new Pos(1, 2), vim.sel.anchor);
 o_visual_block                                       eqCursorPos(new Pos(3, 3), vim.sel.anchor);
+v_paste_from_register                                no translatable assertion
 /_2_pcre                                             CodeMirror.Vim.setOption('pcre', true);
 /_2_nopcre                                           CodeMirror.Vim.setOption('pcre', false);
 ?_nongreedy                                          helpers.assertCursorAt(0, isOldCodeMirror ? 1 : 0);
 macro_insert                                         eq(helpers.getNotificationText(), 'recording @a');
 yank_register                                        var text = helpers.getNotificationText();
+yank_visual_block                                    no translatable assertion
 yank_append_line_to_line_register                    var text = helpers.getNotificationText();
 yank_append_word_to_word_register                    var text = helpers.getNotificationText();
 yank_append_line_to_word_register                    var text = helpers.getNotificationText();
 yank_append_word_to_line_register                    var text = helpers.getNotificationText();
 macro_register                                       var text = helpers.getNotificationText();
+._register                                           no translatable assertion
+:_register                                           no translatable assertion
+registers_html_encoding                              no translatable assertion
 search_register_escape                               var text = helpers.getNotificationText();
+search_register                                      no translatable assertion
 search_history                                       eq(document.activeElement.value, 'checks');
 exCommand_history                                    eq(document.activeElement.value, 'invalid');
 search_clear                                         eq(document.activeElement.value, 'foo');
@@ -143,9 +150,9 @@ ex_substitute_visual_range                           eq(document.activeElement.v
 ex_substitute_javascript                             CodeMirror.Vim.setOption('pcre', false);
 ex_substitute_highlight                              helpers.doKeys('\n');
 ex_substitute_nopcre_special                         CodeMirror.Vim.setOption('pcre', false);
-null                                                 CodeMirror.Vim.setOption('pcre', true);
-null                                                 CodeMirror.Vim.setOption('pcre', true);
-null                                                 CodeMirror.Vim.setOption('pcre', true);
+ex_substitute_ampersand_pcre                         CodeMirror.Vim.setOption('pcre', true);
+ex_substitute_ampersand_multiple_pcre                CodeMirror.Vim.setOption('pcre', true);
+ex_escaped_ampersand_should_not_substitute_pcre      CodeMirror.Vim.setOption('pcre', true);
 ex_noh_clearSearchHighlight                          helpers.assertCursorAt(0, 11,'can\'t resume search after clearing highlighting');
 ex_yank                                              var line = cm.getLine(3);
 set_boolean                                          CodeMirror.Vim.defineOption('testoption', true, 'boolean');

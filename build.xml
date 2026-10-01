@@ -129,6 +129,7 @@
 
     <patternset id="j.resources.src">
       <include name="**/*.keywords"/>
+      <include name="**/*.conf"/>
       <include name="org/armedbear/j/version"/>
       <include name="org/armedbear/j/build"/>
       <include name="org/armedbear/j/snapshot"/>

@@ -489,4 +489,11 @@ public class VimEditingTest
         vim("(abc)d\n").cursor(0, 0).keys("d%");
         h.assertText("d\n");
     }
+
+    @Test
+    public void aClosingParenthesisIsJoinedWithoutASpace()
+    {
+        vim("foo\n)bar\n").cursor(0, 0).keys("J");
+        h.assertText("foo)bar\n");
+    }
 }

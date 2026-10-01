@@ -123,7 +123,9 @@ public class VimDocTest
     /** Ex commands the check does not run, and why. */
     private static final Set<String> NOT_RUN = new HashSet<String>(Arrays.asList(
         // A frameless buffer has no file: :w would open the Save As dialog.
-        ":w", ":wq"));
+        ":w", ":wq",
+        // A frameless editor has no windows to close the others of.
+        ":on"));
 
     @Test
     public void everyDocumentedKeyIsBound() throws IOException
@@ -161,11 +163,10 @@ public class VimDocTest
     public void everyDocumentedExCommandRuns() throws IOException
     {
         final List<String> failures = new ArrayList<String>();
-        final List<String> ex = table().getOrDefault("ex",
-            Collections.<String>emptyList());
         int ran = 0;
-        for (String key : ex) {
-            if (!isExCommand("ex", key) || NOT_RUN.contains(key))
+        for (Map.Entry<String, List<String>> row : table().entrySet())
+        for (String key : row.getValue()) {
+            if (!isExCommand(row.getKey(), key) || NOT_RUN.contains(key))
                 continue;
             final EditorHarness h = EditorHarness.create("one\ntwo\n").vim();
             try {

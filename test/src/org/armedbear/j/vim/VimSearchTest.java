@@ -45,6 +45,8 @@ public class VimSearchTest
 
     private EditorHarness vim(String text, int line, int offset)
     {
+        if (h != null)
+            h.close();
         h = EditorHarness.create().vim();
         h.value(text).cursor(line, offset);
         return h;
@@ -358,6 +360,7 @@ public class VimSearchTest
         // straight to the search.
         vim("aaa", 0, 0).keys("2/").searchPattern("$");
         vim("aaa\nbbb", 0, 0).keys("3/").searchPattern("$");
+        h.assertCursorAt(0, 2);
     }
 
     // ------------------------------------------------- repeating with '.'

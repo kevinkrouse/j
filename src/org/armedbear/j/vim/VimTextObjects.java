@@ -252,8 +252,8 @@ public final class VimTextObjects
      * i( i[ i{ i&lt; and their outer forms, across lines.
      *
      * The enclosing pair if the caret is inside one, otherwise the next pair
-     * that opens on this line -- which is how {@code di(} works with the
-     * caret still on the function name.
+     * that opens after it, on this line or a later one -- which is how
+     * {@code di(} works with the caret still on the function name.
      */
     private static VimRange bracket(MotionContext ctx, Position from,
                                     boolean inner)
@@ -264,7 +264,7 @@ public final class VimTextObjects
 
         Position start = enclosingOpen(buffer, from, open, close, ctx.count);
         if (start == null)
-            start = openOnThisLine(from, open);
+            start = openAtOrAfter(from, open);
         if (start == null)
             return null;
         final Position end = matchForward(buffer, start, open, close);
@@ -361,14 +361,18 @@ public final class VimTextObjects
         return pos;
     }
 
-    private static Position openOnThisLine(Position from, char open)
+    /** The next opening bracket at or after the caret, on any later line. */
+    private static Position openAtOrAfter(Position from, char open)
     {
-        final String text = from.getLine().getText();
-        if (text == null)
-            return null;
-        for (int i = from.getOffset(); i < text.length(); i++)
-            if (text.charAt(i) == open)
-                return new Position(from.getLine(), i);
+        int offset = from.getOffset();
+        for (Line line = from.getLine(); line != null; line = line.next()) {
+            final String text = line.getText();
+            if (text != null)
+                for (int i = offset; i < text.length(); i++)
+                    if (text.charAt(i) == open)
+                        return new Position(line, i);
+            offset = 0;
+        }
         return null;
     }
 

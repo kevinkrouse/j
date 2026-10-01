@@ -378,4 +378,18 @@ public class VimTextObjectTest
         is("a \"Y\" b");
         assertEquals(VimMode.NORMAL, h.vimState().getMode());
     }
+
+    @Test
+    public void aBracketPairOnALaterLineIsTheNextOne()
+    {
+        vim("zz\n\nx (ab) y").cursor(0, 0).keys("di(");
+        is("zz\n\nx () y");
+    }
+
+    @Test
+    public void aBracketPairBeforeTheCaretIsNotUsed()
+    {
+        vim("x (ab) y\n").cursor(1, 0).keys("di(");
+        is("x (ab) y\n");
+    }
 }

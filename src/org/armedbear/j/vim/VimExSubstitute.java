@@ -140,11 +140,19 @@ final class VimExSubstitute
     }
 
     private static void substitute(Editor editor, VimState state,
-                                   VimEx.Range range, String pattern,
+                                   VimEx.Range given, String pattern,
                                    String replacement, String flags)
         throws VimEx.BadCommand
     {
         checkFlags(flags);
+        // Line 0 is the first line, as for :d; past the end is an invalid
+        // range, not a pattern that was not found.
+        final int lines = editor.getBuffer().getLineCount();
+        if (given.first < 0 || given.last < 0 || given.first > lines
+            || given.last > lines)
+            throw new VimEx.BadCommand("E16: Invalid range");
+        final VimEx.Range range = new VimEx.Range(
+            Math.max(1, given.first), Math.max(1, given.last), given.given);
         final boolean all = flags.indexOf('g') >= 0;
         // e: no error when nothing matches.
         final boolean quiet = flags.indexOf('e') >= 0;

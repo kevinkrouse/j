@@ -122,7 +122,8 @@
 
 (defn- block-name
   [block]
-  (second (re-find #"^testVim\(\s*'((?:[^'\\]|\\.)*)'" block)))
+  (let [[_ single double] (re-find #"^testVim\(\s*(?:'((?:[^'\\]|\\.)*)'|\"((?:[^\"\\]|\\.)*)\")" block)]
+    (or single double)))
 
 (defn- block-value
   "The test's own initial document, from its trailing options object: a string,
@@ -359,7 +360,13 @@
       (die (str "vim-conformance: no such file: " input)
            "Usage: bb vim-conformance <path-to-vim_test.js> [out-dir]"))
     (let [src (slurp input)
-          results (doall (map #(translate % src) (blocks src)))
+          results (doall (map #(let [r (translate % src)]
+                                 ;; Nothing to check is not a translation: say so
+                                 ;; in skipped.txt rather than drop the case.
+                                 (if (and (:steps r) (not (asserts-something? r)))
+                                   (assoc r :skip "no translatable assertion")
+                                   r))
+                              (blocks src)))
           translated (filter (every-pred :steps asserts-something?) results)
           skipped (filter :skip results)]
       (when (empty? results)
