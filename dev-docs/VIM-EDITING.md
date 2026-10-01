@@ -637,6 +637,41 @@ Each of these has bitten at least once. Read them before editing.
     buffer: every line below was shifted before the NPE. `VimRange.lastLine`
     is the last line any range touches.
 
+## Open work
+
+The planned milestones are done. What is left, none of it blocking:
+
+**Known gaps** (from the branch review, `dev-docs/VIM-REVIEW.md`, and the
+milestones; each documented in `doc/editmodes.html`):
+
+- `nostartofline`: nvim keeps the caret's column after `G`, `gg`, `dd`,
+  `:N`, `<C-d>` and the like; j goes to the first non-blank, vim's old
+  default.
+- `d2w` across lines (`a\nb\nc`): nvim deletes to the end of line 2, j clips
+  to the end of line 1. The word-motion clip has to be per word moved.
+- `:g` runs bottom-up: `:g/^/m0` does not reverse the buffer, and the caret
+  ends on the first match. Top-down needs Line identity that survives a
+  region delete (it merges into the first line); tried and reverted.
+- `.` after a characterwise visual command over several lines repeats it at
+  the caret alone, where vim takes in as many lines again.
+- Redo leaves the caret where the edit left it, vim where the command was
+  typed (trap 27); they differ after `<C-a>` and `p`.
+- The read-only registers (`. : / %`) and `=` are not built, nor
+  `<C-r><C-o>`/`<C-p>`.
+
+**Postponed** (Kevin, 2026-09-26): `:map` at the prompt, `gn`/`gN`, macros,
+`is`/`as`/`it`/`at`, `:s` across lines and its `c` flag, `gj`/`gk`, `:marks`
+as a listing, `:normal!` without mappings, `~` and `\u \U \l \L \e \E` in a
+replacement, `\zs` after a variable-width prefix.
+
+**Tidying** (review): `VimExPrompt` and `VimSearchPrompt` repeat their
+scaffold; `VimOperators.lineNumbered` and `VimVisual.lineAt` repeat
+`Lines.lineAt`; bare `:set` does nothing; the message `:w` gives on an
+unmodified buffer; test classes named for milestones and reviews rather than
+what they cover. In the conformance runner a case named `#` cannot be
+ratcheted (comment syntax), and 23 cases wait on register and mode
+assertions being ported.
+
 ## History
 
 Branch `vim-editing`, from `ab7513524`. Every milestone was followed by a code
@@ -677,8 +712,9 @@ review before the next.
 | M24 | `incrementNumber` over a selection; `openFileInSplit`, `openFileInVsplit` | `30f71e596` |
 | M25 | vim's registers on j's: register files, kill ring, clipboards | `e28c4d22d` |
 | M26 | visual block on j's new `Block`; `.` over the selection's shape; `j k |` onto a tab, and in visual mode onto a line's end; `shiftwidth` read; j's column selection on `Block`; the write lock, and the harness failing on a logged error; `<` `>` over a charwise selection; vimrc `noremap` | `44d6695a9` |
+| — | branch review: `}` at the end, `J` before `)`, `dw` before an indent, `di(` across lines, `:s` ranges, `;` ranges, vimrc ex fallback | `0ae3ca616` |
 
-After M26: 1041 tests, conformance 167 of 253 (167 ratcheted).
+After the review: 1051 tests, conformance 167 of 253 (167 ratcheted).
 
 ### What the work learned
 

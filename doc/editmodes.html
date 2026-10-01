@@ -308,6 +308,13 @@ These are known and deliberate:
     buffer. A mark on a line
     <code>J</code> joins to the one above is lost; vim moves it with the
     text.</li>
+<li><code>G</code>, <code>gg</code>, <code>dd</code>, <code>:N</code>,
+    <code>Ctrl D</code> and the like go to the first non-blank of the line,
+    as vim does by default; nvim keeps the caret's column there
+    (<code>nostartofline</code>).</li>
+<li><code>d2w</code> and the like over several lines stop at the end of
+    the first: on <code>a</code>, <code>b</code>, <code>c</code> on lines of
+    their own, nvim deletes to the end of the second.</li>
 <li><code>.</code> after a visual command repeats it over as much again
     from the caret: as many lines, or characters, or a block as many
     lines down and characters across. A characterwise selection over more
