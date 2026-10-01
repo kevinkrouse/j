@@ -427,7 +427,7 @@ requirements.
 
 ## Testing
 
-`nix-shell --run 'bb test'` (JUnit 4, headless), plus `bb check-core` (core
+`nix develop -c bb test` (JUnit 4, headless), plus `bb check-core` (core
 carries no non-JDK dependency) and `bb fmt-check`.
 
 - **`EditorHarness`** (`test/src/org/armedbear/j/`) builds a real, frameless

@@ -17,3 +17,4 @@ j.jar
 j.bat
 *.zip
 *.tar.gz
+.direnv

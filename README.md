@@ -38,7 +38,7 @@ exception statement from your version.
 
 To build J you need JDK 25 and [babashka](https://babashka.org/).
 Armed Bear Common Lisp is fetched from Maven Central on the first build.
-If you use Nix, "nix-shell" puts a suitable JDK, babashka and gcc on your PATH.
+If you use Nix, "nix develop" puts a suitable JDK, babashka and gcc on your PATH.
 
 Run `bb build` to compile the source.
 Run `bb tasks` to see a list of available targets.
