@@ -177,6 +177,9 @@ public final class FindInFiles extends Replacement implements Constants,
 
     public void setFiles(String files) throws Exception
     {
+        // No files given: every file in the current directory.
+        if (files.trim().length() == 0)
+            files = "*";
         ArrayList<Filter> list = new ArrayList<Filter>();
         StringTokenizer st = new StringTokenizer(files, ";");
         // We start in the editor's current directory.
@@ -347,11 +350,10 @@ public final class FindInFiles extends Replacement implements Constants,
 
     private void processFile(File file)
     {
-        try {
+        try (BufferedReader reader =
+                 new BufferedReader(new InputStreamReader(file.getInputStream(),
+                                                          encoding))) {
             boolean update = false;
-            BufferedReader reader =
-                new BufferedReader(new InputStreamReader(file.getInputStream(),
-                                                         encoding));
             int lineNumber = 0;
             int matches = 0;
             final boolean delimited = wholeWordsOnly();
