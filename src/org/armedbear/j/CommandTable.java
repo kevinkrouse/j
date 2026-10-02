@@ -131,6 +131,7 @@ public class CommandTable
             addCommand("forwardSection", "Paragraphs");
             addCommand("forwardSentence", "Sentences");
             addCommand("fold");
+            addCommand("foldAll");
             addCommand("foldMethods");
             addCommand("foldRegion");
             addCommand("gotoBookmark");
@@ -239,12 +240,14 @@ public class CommandTable
             addCommand("toCenter");
             addCommand("toTop");
             addCommand("toggleCaseRegion", "RegionCommands");
+            addCommand("toggleFold");
             addCommand("toggleSidebar");
             addCommand("top");
             addCommand("uncommentRegion");
             addCommand("undo");
             addCommand("unfold");
             addCommand("unfoldAll");
+            addCommand("unfoldHere");
             addCommand("unsplitAllWindows");
             addCommand("unsplitWindow");
             addCommand("unwrapParagraph");
@@ -324,6 +327,7 @@ public class CommandTable
             addCommand("findTagAtDot", "TagCommands");
             addCommand("findTagAtDotOtherWindow", "TagCommands");
             addCommand("finish", "mode.checkin.CheckinBuffer");
+            addCommand("foldHeadings", "mode.markdown.MarkdownFolding");
             addCommand("followContext", "FollowContextTask");
             addCommand("forwardSexp", "mode.lisp.LispMode");
             addCommand("git", "vcs.git.Git", "git");

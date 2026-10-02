@@ -421,6 +421,23 @@ public interface Mode
     public boolean isCommentLine(Line line);
 
     /**
+     * The lines that folding at <code>line</code> hides, for a mode that
+     * knows its own structure.
+     *
+     * @return the first and last lines to hide; an empty array if there is
+     *         nothing to fold there; or <code>null</code> to fold by
+     *         indentation.
+     */
+    public Line[] getFoldRange(Editor editor, Line line);
+
+    /**
+     * Folds everything that can be, leaving an outline: the bodies of the
+     * methods, or of the sections under the headings. A mode with nothing
+     * to fold so says.
+     */
+    public void foldAll(Editor editor);
+
+    /**
      * Examines <code>c</code> and returns the equivalent character but
      * possibly with a different case (upper or lower) as the rules of
      * this mode dictate.  This is primarily used in programming language

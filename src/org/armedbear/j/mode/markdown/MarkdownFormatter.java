@@ -156,6 +156,32 @@ public final class MarkdownFormatter extends Formatter
         return m.group(2) != null ? m.group(2) : "";
     }
 
+    /** Whether line is in a fence, or closes one. */
+    static boolean isInFence(Line line)
+    {
+        return (line.flags() & BLOCK_MASK) == IN_FENCE;
+    }
+
+    /** Whether line opens a fence. */
+    static boolean opensFence(Line line)
+    {
+        return (line.flags() & BLOCK_MASK) == NORMAL
+            && FENCE_OPEN.matcher(line.getText()).matches();
+    }
+
+    /** Whether line is the text of a heading underlined on the next. */
+    static boolean isSetextHeading(Line line)
+    {
+        return (line.flags() & BLOCK_MASK) == NORMAL
+            && (line.flags() & HEADING_MASK) != 0;
+    }
+
+    /** Whether text begins with a list marker. */
+    static boolean startsListItem(String text)
+    {
+        return LIST_ITEM.matcher(text).lookingAt();
+    }
+
     /** Whether line is in a fence, or opens or closes one. */
     public static boolean isCode(Line line)
     {
@@ -473,7 +499,7 @@ public final class MarkdownFormatter extends Formatter
 
     // Indented four or more, after a blank line or more indented code, and
     // not in a list item: indented code cannot interrupt a paragraph.
-    private static boolean isIndentedCodeBlock(Line line)
+    static boolean isIndentedCodeBlock(Line line)
     {
         if (!isIndentedCode(line.getText()) || isInList(line))
             return false;

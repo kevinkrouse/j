@@ -8407,8 +8407,75 @@ public final class Editor extends JPanel implements Constants,
     {
         if (dot == null)
             return;
-        if (!foldRegionInternal() && !foldExplicit())
+        if (!foldRegionInternal() && !foldExplicit() && !foldByMode())
             foldNearLine(getDotLine());
+    }
+
+    /** Unfolds the fold just below the caret's line, else folds there. */
+    public void toggleFold()
+    {
+        if (dot == null)
+            return;
+        final Line next = getDotLine().next();
+        if (next != null && next.isHidden())
+            unfold(next);
+        else
+            fold();
+    }
+
+    /**
+     * Unfolds the fold just below the caret's line, as vim's zo does,
+     * where unfold opens the next one wherever it is.
+     */
+    public void unfoldHere()
+    {
+        if (dot == null)
+            return;
+        final Line next = getDotLine().next();
+        if (next != null && next.isHidden())
+            unfold(next);
+        else
+            status("No fold here");
+    }
+
+    /** Folds everything that can be, as the mode says. */
+    public void foldAll()
+    {
+        if (dot == null)
+            return;
+        getMode().foldAll(this);
+    }
+
+    // Folds what the mode says folding at the caret does, if it says.
+    private boolean foldByMode()
+    {
+        final Line[] range = getMode().getFoldRange(this, getDotLine());
+        if (range == null)
+            return false;
+        if (range.length == 2)
+            hideLines(range[0], range[1].next());
+        else
+            status("Nothing to fold");
+        return true;
+    }
+
+    /**
+     * Hides the lines from begin up to end, or to the end of the buffer if
+     * end is null, as one fold that undo puts back.
+     */
+    public void hideLines(Line begin, Line end)
+    {
+        addUndo(SimpleEdit.FOLD);
+        hide(begin, end);
+    }
+
+    // Hides the lines from begin up to end and keeps the caret in sight.
+    private void hide(Line begin, Line end)
+    {
+        for (Line line = begin; line != end; line = line.next())
+            line.hide();
+        buffer.renumber();
+        unhideDotInAllFrames(buffer);
     }
 
     public void foldRegion()
@@ -8429,14 +8496,9 @@ public final class Editor extends JPanel implements Constants,
         if (mark.getOffset() > 0)
             return false;
         Region r = new Region(buffer, mark, dot);
-        Line begin = r.getBegin().getLine().next();
-        Line end = r.getEnd().getLine();
         addUndo(SimpleEdit.FOLD);
         setMark(null);
-        for (Line line = begin; line != end; line = line.next())
-            line.hide();
-        buffer.renumber();
-        unhideDotInAllFrames(buffer);
+        hide(r.getBegin().getLine().next(), r.getEnd().getLine());
         return true;
     }
 
@@ -8486,11 +8548,7 @@ public final class Editor extends JPanel implements Constants,
         }
         if (begin == null)
             return false;
-        addUndo(SimpleEdit.FOLD);
-        for (Line line = begin; line != end; line = line.next())
-            line.hide();
-        buffer.renumber();
-        unhideDotInAllFrames(buffer);
+        hideLines(begin, end);
         return true;
     }
 
@@ -8616,11 +8674,7 @@ public final class Editor extends JPanel implements Constants,
                 break;
             end = end.next();
         }
-        addUndo(SimpleEdit.FOLD);
-        for (Line line = begin; line != end; line = line.next())
-            line.hide();
-        buffer.renumber();
-        unhideDotInAllFrames(buffer);
+        hideLines(begin, end);
     }
 
     private static Pattern labelRE = Pattern.compile("^\\s*\\w+:");

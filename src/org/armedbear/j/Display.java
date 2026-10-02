@@ -70,6 +70,7 @@ public final class Display extends JComponent implements Constants,
     private static int charWidth;
     private static int spaceWidth; // Width of a space character.
     private static int strikethroughRise; // Above the baseline.
+    private static char foldMarker; // Beside a line with a fold below it.
     private static int minCharWidth;
 
     private static boolean antialias;
@@ -158,6 +159,8 @@ public final class Display extends JComponent implements Constants,
         final int plainLeading = fm.getLeading();
 
         charWidth = fm.charWidth('a');
+        // A chevron pointing at what is folded away, if the font has one.
+        foldMarker = plainFont.canDisplay('\u203a') ? '\u203a' : '>';
         strikethroughRise = Math.max(1, Math.round(-plainFont.getLineMetrics(
             "x", fm.getFontRenderContext()).getStrikethroughOffset()));
         spaceWidth = fm.charWidth(' ');
@@ -530,10 +533,11 @@ public final class Display extends JComponent implements Constants,
         }
         showLineNumbers = buffer.getBooleanProperty(Property.SHOW_LINE_NUMBERS);
         gutterWidth = getGutterWidth(showChangeMarks, showLineNumbers);
+        // The fold marker is in it whether or not the numbers are shown.
+        lineNumberColor = mode.getColorProperty(Property.COLOR_LINE_NUMBER);
+        if (lineNumberColor == null)
+            lineNumberColor = DefaultTheme.getColor("lineNumber");
         if (showLineNumbers) {
-            lineNumberColor = mode.getColorProperty(Property.COLOR_LINE_NUMBER);
-            if (lineNumberColor == null)
-                lineNumberColor = DefaultTheme.getColor("lineNumber");
             gutterBorderColor = mode.getColorProperty(Property.COLOR_GUTTER_BORDER);
             if (gutterBorderColor == null)
                 gutterBorderColor = DefaultTheme.getColor("gutterBorder");
@@ -1208,15 +1212,18 @@ public final class Display extends JComponent implements Constants,
     {
         int x = showChangeMarks ? changeMarkWidth : 0;
         char c = 0;
+        Color color = null; // The default text color.
         Annotation annotation = line.getAnnotation();
-        if (annotation != null)
+        if (annotation != null) {
             c = annotation.getGutterChar();
-        else if (line.next() != null && line.next().isHidden())
-            c = '+';
+        } else if (line.next() != null && line.next().isHidden()) {
+            c = foldMarker;
+            color = lineNumberColor;
+        }
         if (c != 0) {
             char[] chars = new char[1];
             chars[0] = c;
-            g.setColor(editor.getFormatter().getColor(0)); // Default text color.
+            g.setColor(color != null ? color : editor.getFormatter().getColor(0));
             g.setFont(plainFont);
             g.drawChars(chars, 0, 1, x, y + charAscent);
         } else {

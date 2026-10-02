@@ -131,6 +131,8 @@
     <li><a href="commands.html#findTagAtDotOtherWindow">findTagAtDotOtherWindow</a></li>
     <li><a href="commands.html#finish">finish</a></li>
     <li><a href="commands.html#fold">fold</a></li>
+    <li><a href="commands.html#foldAll">foldAll</a></li>
+    <li><a href="commands.html#foldHeadings">foldHeadings</a></li>
     <li><a href="commands.html#foldMethods">foldMethods</a></li>
     <li><a href="commands.html#foldRegion">foldRegion</a></li>
     <li><a href="commands.html#forwardSexp">forwardSexp</a></li>
@@ -360,6 +362,7 @@
     <li><a href="commands.html#balanceWindows">balanceWindows</a></li>
     <li><a href="commands.html#gotoWindow">gotoWindow</a></li>
     <li><a href="commands.html#toggleCaseRegion">toggleCaseRegion</a></li>
+    <li><a href="commands.html#toggleFold">toggleFold</a></li>
     <li><a href="commands.html#joinLines">joinLines</a></li>
     <li><a href="commands.html#moveLinesDown">moveLinesDown</a></li>
     <li><a href="commands.html#moveLinesUp">moveLinesUp</a></li>
@@ -391,6 +394,7 @@
     <li><a href="commands.html#undo">undo</a></li>
     <li><a href="commands.html#unfold">unfold</a></li>
     <li><a href="commands.html#unfoldAll">unfoldAll</a></li>
+    <li><a href="commands.html#unfoldHere">unfoldHere</a></li>
     <li><a href="commands.html#unsplitAllWindows">unsplitAllWindows</a></li>
     <li><a href="commands.html#unsplitWindow">unsplitWindow</a></li>
     <li><a href="commands.html#unwrapParagraph">unwrapParagraph</a></li>
@@ -1921,11 +1925,40 @@ as the checkin comment. This command is only available in checkin buffers.
 <a name="fold">fold</a><dl><dd>
 <p>
 Creates a fold at (or near) the current location of the caret.
+<p>
+What a fold takes in is the mode's to say. In Markdown mode it is the
+code in a fence or an indented code block, the lines under a list item, or
+the section under a heading down to the next heading as high; folding where
+that is already folded folds the one around it.
 <br><br>
 <b>Default key mapping:</b> Ctrl [ in Java, C, C++ and Perl modes
 <br><br>
 <b>See also:</b> <a href="#foldMethods">foldMethods</a>,
 <a href="#unfold">unfold</a>, <a href="#unfoldAll">unfoldAll</a>
+<br><br>
+</dl><!--<hr>-->
+
+<a name="foldAll">foldAll</a><dl><dd>
+<p>
+Folds everything the mode can, leaving an outline: the methods, as
+<a href="#foldMethods">foldMethods</a> does in Java and Perl modes, or in
+Markdown mode, the headings, as <a href="#foldHeadings">foldHeadings</a>
+does. Other modes say there is nothing to fold.
+<br><br>
+<b>Default key mapping:</b> <code>zM</code> in
+<a href="editmodes.html">vim edit mode</a>
+<br><br>
+</dl><!--<hr>-->
+
+<a name="foldHeadings">foldHeadings</a> [level]<dl><dd>
+<p>
+In Markdown mode, folds all but the headings down to a level from 1 to 6,
+every heading if none is given: an outline of the document. What comes
+before the first heading is left alone.
+<br><br>
+<b>Default key mapping:</b> None
+<br><br>
+<b>See also:</b> <a href="#foldAll">foldAll</a>, <a href="#unfoldAll">unfoldAll</a>
 <br><br>
 </dl><!--<hr>-->
 
@@ -4929,6 +4962,16 @@ lower and lower becomes upper.
 <br><br>
 </dl><!--<hr>-->
 
+<a name="toggleFold">toggleFold</a><dl><dd>
+<p>
+Unfolds the fold just below the caret's line if there is one, else
+<a href="#fold">folds</a> there.
+<br><br>
+<b>Default key mapping:</b> <code>za</code> in
+<a href="editmodes.html">vim edit mode</a>
+<br><br>
+</dl><!--<hr>-->
+
 <a name="joinLines">joinLines</a><dl><dd>
 <p>
 Joins the next line onto the current one, putting a single space at the join
@@ -5329,6 +5372,16 @@ Unfolds all the folds in the current buffer.
 <b>Default key mapping:</b> None
 <br><br>
 <b>See also:</b> <a href="#fold">fold</a>
+<br><br>
+</dl><!--<hr>-->
+
+<a name="unfoldHere">unfoldHere</a><dl><dd>
+<p>
+Unfolds the fold just below the caret's line, and only that one; where
+<a href="#unfold">unfold</a> opens the next fold wherever it is.
+<br><br>
+<b>Default key mapping:</b> <code>zo</code> in
+<a href="editmodes.html">vim edit mode</a>
 <br><br>
 </dl><!--<hr>-->
 

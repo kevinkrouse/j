@@ -259,6 +259,11 @@ public class JavaMode extends AbstractMode implements Constants, Mode
     return true;
   }
 
+  public void foldAll(Editor editor)
+  {
+    editor.foldMethods();
+  }
+
   public boolean hasQualifiedNames()
   {
     return true;

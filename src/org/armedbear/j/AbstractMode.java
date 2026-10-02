@@ -755,6 +755,16 @@ public abstract class AbstractMode implements Constants, Mode
         return false;
     }
 
+    public Line[] getFoldRange(Editor editor, Line line)
+    {
+        return null;
+    }
+
+    public void foldAll(Editor editor)
+    {
+        editor.status("Nothing to fold");
+    }
+
     public char fixCase(Editor editor, char c)
     {
         return c;

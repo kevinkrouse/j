@@ -71,6 +71,7 @@ public class VimDocTest
         ROWS.put("text objects", OV);
         ROWS.put("search", NVO);
         ROWS.put("scroll", NV);
+        ROWS.put("folds", NV);
         ROWS.put("buffers", N);
         ROWS.put("windows", NV);
         ROWS.put("ex", NV);

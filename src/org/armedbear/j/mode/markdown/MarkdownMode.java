@@ -26,6 +26,7 @@ import org.armedbear.j.Constants;
 import org.armedbear.j.Editor;
 import org.armedbear.j.Formatter;
 import org.armedbear.j.KeyMap;
+import org.armedbear.j.Line;
 import org.armedbear.j.Mode;
 import org.armedbear.j.NavigationComponent;
 import org.armedbear.j.Property;
@@ -83,6 +84,18 @@ public final class MarkdownMode extends AbstractMode implements Constants, Mode
     public String getContextString(Editor editor, boolean verbose)
     {
         return super.getContextString(editor, true);
+    }
+
+    /** A fence's code, a list item's children, or a heading's section. */
+    public Line[] getFoldRange(Editor editor, Line line)
+    {
+        return MarkdownFolding.getFoldRange(editor.getBuffer(), line);
+    }
+
+    /** All but the headings. */
+    public void foldAll(Editor editor)
+    {
+        MarkdownFolding.foldHeadings(editor, 6);
     }
 
     public String getCommentStart()

@@ -194,14 +194,24 @@ Done, tested in `MarkdownOutlineTest`:
 
 ## Phase 4: folding
 
-- `Mode.getFoldRange(Editor, Line)`, null for indentation as now, is asked
-  first by `Editor.foldNearLine` and `fold`.
-- Markdown: a heading folds to the next heading of its level or higher; a list
-  or task item folds its more indented children and continuation lines; a
-  fence folds its body.
-- `foldHeadings [level]`, like `foldMethods`, for an outline.
-- Vim `za`, `zc`, `zo`, `zR`, `zM` on `fold`, `unfold`, `unfoldAll`, for every
-  mode.
+Done, tested in `MarkdownFoldingTest`:
+
+- `Mode.getFoldRange(Editor, Line)` returns the lines to hide, an empty
+  array for nothing, or null for indentation; `Editor.fold` asks it after a
+  selection and `{{{ }}}`. `Mode.foldAll(Editor)` is `foldMethods` unless a
+  mode says otherwise. New commands `toggleFold` and `foldAll`.
+- `MarkdownFolding` folds the innermost of a fence's code, an indented code
+  block (but its first line), a list item's children, a heading's section
+  and its parents' sections that has a line still to be seen, so folding
+  again closes outward. A blank line is as far in as the line after it. Hidden is a count, so
+  opening the outer fold leaves the inner closed, as in vim.
+- A section keeps its trailing blank lines visible, to keep the headings
+  apart; `foldHeadings [level]` hides everything but the headings.
+- Vim: `za zc zo zR zM` in the key table, for every mode. `zo` is
+  `unfoldHere`, the fold just below the caret; j's `unfold` opens the next
+  one wherever it is. `foldAll` is `foldMethods` in Java and Perl modes,
+  and says there is nothing to fold elsewhere.
+- The fold marker in the gutter is a chevron in the line numbers' color.
 
 ## Phase 5: highlighting code in fences
 

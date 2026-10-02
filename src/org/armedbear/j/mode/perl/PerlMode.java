@@ -23,6 +23,7 @@ package org.armedbear.j.mode.perl;
 import org.armedbear.j.AbstractMode;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Constants;
+import org.armedbear.j.Editor;
 import org.armedbear.j.Formatter;
 import org.armedbear.j.KeyMap;
 import org.armedbear.j.Keywords;
@@ -105,6 +106,11 @@ public final class PerlMode extends AbstractMode implements Constants, Mode
     public boolean isTaggable()
     {
         return true;
+    }
+
+    public void foldAll(Editor editor)
+    {
+        editor.foldMethods();
     }
 
     public boolean hasQualifiedNames()
