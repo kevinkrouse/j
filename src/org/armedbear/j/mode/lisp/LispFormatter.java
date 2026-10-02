@@ -26,7 +26,6 @@ import org.armedbear.j.Formatter;
 import org.armedbear.j.Line;
 import org.armedbear.j.LineSegment;
 import org.armedbear.j.LineSegmentList;
-import org.armedbear.j.Mode;
 import org.armedbear.j.Position;
 
 import java.util.regex.Pattern;
@@ -72,12 +71,10 @@ public final class LispFormatter extends Formatter
     private static final Pattern letOrDoRE =
         Pattern.compile("\\([ \t]*(let|do)\\*?[ \t]*\\(\\(");
 
-    private final Mode mode;
 
     public LispFormatter(Buffer buffer)
     {
         this.buffer = buffer;
-        this.mode = buffer.getMode();
     }
 
     private Line currentLine;
@@ -419,7 +416,7 @@ public final class LispFormatter extends Formatter
                 continue;
             }
             if (state == STATE_NAME) {
-                if (!mode.isIdentifierPart(c) && c != ':') {
+                if (!getLanguageMode().isIdentifierPart(c) && c != ':') {
                     endToken(text, i, state);
                     state = STATE_ARGLIST;
                 }
@@ -427,7 +424,7 @@ public final class LispFormatter extends Formatter
                 continue;
             }
             if (state == STATE_IDENTIFIER) {
-                if (!mode.isIdentifierPart(c) && c != ':') {
+                if (!getLanguageMode().isIdentifierPart(c) && c != ':') {
                     endToken(text, i, state);
                     state = STATE_NEUTRAL;
                 }
@@ -436,7 +433,7 @@ public final class LispFormatter extends Formatter
             }
             if (state == STATE_SECONDARY_KEYWORD ||
                 state == STATE_SUBSTITUTION) {
-                if (!mode.isIdentifierPart(c)) {
+                if (!getLanguageMode().isIdentifierPart(c)) {
                     endToken(text, i, state);
                     state = STATE_NEUTRAL;
                 }
@@ -444,7 +441,7 @@ public final class LispFormatter extends Formatter
                 continue;
             }
             if (state == STATE_DEFINITION) {
-                if (mode.isIdentifierStart(c))
+                if (getLanguageMode().isIdentifierStart(c))
                     state = STATE_NAME;
                 ++i;
                 continue;
@@ -454,7 +451,7 @@ public final class LispFormatter extends Formatter
                 if (c == ':' || c == '&') {
                     endToken(text, i, state);
                     state = STATE_SECONDARY_KEYWORD;
-                } else if (mode.isIdentifierStart(c)) {
+                } else if (getLanguageMode().isIdentifierStart(c)) {
                     endToken(text, i, state);
                     state = STATE_IDENTIFIER;
                 } else // Still neutral...
@@ -668,7 +665,7 @@ public final class LispFormatter extends Formatter
                 case ':':
                     if (i > 0) {
                         char c = text.charAt(i - 1);
-                        if (!mode.isIdentifierPart(c) && c != ':')
+                        if (!getLanguageMode().isIdentifierPart(c) && c != ':')
                             return i;
                     }
                     ++i;

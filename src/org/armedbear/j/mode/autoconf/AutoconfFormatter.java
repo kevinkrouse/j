@@ -178,7 +178,7 @@ public final class AutoconfFormatter extends Formatter
                 continue;
             }
             if (state == STATE_IDENTIFIER) {
-                if (buffer.getMode().isIdentifierPart(c))
+                if (getLanguageMode().isIdentifierPart(c))
                     sb.append(c);
                 else {
                     // End of identifier.
@@ -216,7 +216,7 @@ public final class AutoconfFormatter extends Formatter
                     }
                     // Not really the start of a comment.
                     sb.append(c);
-                } else if (buffer.getMode().isIdentifierStart(c)) {
+                } else if (getLanguageMode().isIdentifierStart(c)) {
                     endToken(state);
                     sb.append(c);
                     state = STATE_IDENTIFIER;

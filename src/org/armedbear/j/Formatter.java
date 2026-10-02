@@ -48,9 +48,25 @@ public abstract class Formatter implements Constants
         return false;
     }
 
+    // The mode whose language this formats: the buffer's, unless the
+    // formatter is lent to a buffer in another, as Markdown lends one a
+    // fenced block of Java.
+    private Mode languageMode;
+
+    /** Formats language's text, keywords and all, in a buffer of another. */
+    public final void setLanguageMode(Mode language)
+    {
+        languageMode = language;
+    }
+
+    protected final Mode getLanguageMode()
+    {
+        return languageMode != null ? languageMode : buffer.getMode();
+    }
+
     protected final boolean isKeyword(String s)
     {
-        return buffer.isKeyword(s);
+        return getLanguageMode().isKeyword(s);
     }
 
     public Color getCaretColor()

@@ -17,8 +17,9 @@ one height. They are built in the editor so that other modes can use them.
 - [Phase 3: sidebar outline](#phase-3-sidebar-outline)
 - [Phase 4: folding](#phase-4-folding)
 - [Phase 5: highlighting code in fences](#phase-5-highlighting-code-in-fences)
-- [Phase 6: hiding link URLs](#phase-6-hiding-link-urls)
-- [Phase 7: larger heading fonts](#phase-7-larger-heading-fonts)
+- [Phase 6: hiding markup](#phase-6-hiding-markup)
+- [Phase 7: following links](#phase-7-following-links)
+- [Phase 8: larger heading fonts](#phase-8-larger-heading-fonts)
 - [Colors for light and dark backgrounds](#colors-for-light-and-dark-backgrounds)
 - [Order and tests](#order-and-tests)
 
@@ -215,6 +216,22 @@ Done, tested in `MarkdownFoldingTest`:
 
 ## Phase 5: highlighting code in fences
 
+v1 done, tested in `MarkdownFencedCodeTest`:
+
+- `FenceLanguages` maps an info string's first word (`java`, `py`, `{.sh}`,
+  `bash title=x`, or any j mode's own name) to a slot, kept in bits 12-17
+  of each fenced line's flags.
+- `MarkdownFormatter` keeps a formatter per slot, lent the buffer with
+  `Formatter.setLanguageMode`, so its keywords and identifier characters
+  are its language's: `isKeyword` and the formatters that asked
+  `buffer.getMode()` now ask `getLanguageMode()`.
+- Formats come back as `EMBED` (bit 19) | slot << 12 | the language's own
+  format, below bit 20 where `Display` packs rainbow depths; `getColor`,
+  `getStyle` and `getUnderline` decode them. The style is the language's,
+  plus italic if the theme's `codeBlock` style has it.
+- v1 limit as planned: each line is formatted alone (a copy, no flags), so
+  a `/* ... */` over several lines is a comment only on its first.
+
 - The fence's language names a mode -- `java`, `js`, `py`, `sh`/`bash`, `c`,
   `cpp`, `xml`/`html`, `css`, `lisp`, `diff`, `properties`, `make` and their
   aliases -- through `ModeList.getModeFromModeName`, with one formatter per
@@ -233,23 +250,83 @@ Done, tested in `MarkdownFoldingTest`:
     bits of each fenced line's flags.
 - Perhaps `Formatter.getLineBackground(Line)` to shade a fence's rows.
 
-## Phase 6: hiding link URLs
+## Phase 6: hiding markup
 
-nvim's `conceallevel=2` with an empty `concealcursor`.
+Hidden until the caret is in it, as Obsidian's live preview and nvim's
+`conceallevel=2` show Markdown: what the markup means, not the markup.
 
-- The formatter marks runs to hide with a `CONCEAL` bit: the `[` and `](url)`
-  of a link, and, if asked, `**` and backticks.
-- `drawText` and `measureLine` give those runs no width; the caret and clicks
-  measure with `measureLine`, so they agree.
-- `Display` shows the caret's line whole. Moving the caret to another line
-  marks both lines changed, as the block caret's repaint already does.
-- `MarkdownMode.conceal = links | markup | none`.
+What hides:
+
+- links and images: the `[` and `](url)`, `[ref]` and `<` `>` of autolinks,
+  leaving the link text;
+- emphasis: `*`, `_`, `**`, `__`, `***`, `~~`;
+- code spans: the backticks;
+- fences: the whole opening and closing line, backticks, tildes and the
+  language name;
+- backslash escapes: the backslash;
+- heading markers, `#` and a setext underline, if `MarkdownMode.conceal`
+  asks for them.
+
+When it shows again: when the caret is in the item, not just on its line.
+
+- An inline item -- a link, an emphasis run, a code span -- is the markers
+  and what is between them. The caret inside it, or just after its closing
+  marker, shows its markers; the rest of the line stays hidden.
+- A fence is the block from its opening line to its closing one. The caret
+  on any of its lines shows both fence lines.
+- A heading is its line (and its underline).
+
+How:
+
+- The formatter marks hidden runs with a `CONCEAL` bit, and for each line
+  the items they belong to: the span of each inline item, and for a block,
+  the lines it covers. A `Formatter.getHiddenItems(Line)` hook, empty by
+  default, so other modes are untouched.
+- `Display` drops the bit from the runs of the item the caret is in before
+  drawing, and `drawText` and `measureLine` give the remaining hidden runs
+  no width. The caret and clicks measure with `measureLine`, so they agree.
+- Moving the caret marks the lines of the item it left and the item it
+  entered changed, as the block caret's repaint already marks the line it
+  left. For a fence that is both fence lines.
+- A fence line hidden whole is drawn empty but still takes its row, so
+  lines do not jump as the caret moves in and out.
+- `MarkdownMode.conceal = all | links | none`, default `links` plus emphasis,
+  code and fences; `all` adds heading markers.
 - Later: drawing other text in place of hidden text (nvim's `cchar`, `[x]` as
-  ☑) needs more than zero width.
-- Horizontal scrolling and `getMaxCols` still count characters; a hidden line
-  only looks shorter.
+  a check mark) needs more than zero width.
+- Horizontal scrolling and `getMaxCols` still count characters; a line with
+  hidden runs only looks shorter.
+- To check: vim motions count characters, not what is drawn, so `w` and `l`
+  step over hidden markers one at a time, showing them as the caret enters
+  the item. That is nvim's behavior too.
 
-## Phase 7: larger heading fonts
+## Phase 7: following links
+
+Ctrl+Enter on a link goes where it points. Anywhere else it is `task`, as
+now: Obsidian also uses one key to follow a link or toggle a box.
+
+- `followLink`, a new command: the link under the caret, inline
+  `[text](url)`, reference `[text][ref]` (through its `[ref]: url`
+  definition), an autolink `<url>`, or a bare URL.
+- What the target is:
+  - `#heading` in this file: the heading whose GitHub-style slug matches
+    (lower case, punctuation dropped, spaces to `-`, `-1`, `-2` for
+    repeats), found through the tags from Phase 3;
+  - a relative or absolute path, `notes.md` or `../README.md`, from the
+    buffer's directory: opened in j, then to its `#heading` if it has one;
+  - a line in a file, `file.java#L42`: opened at that line;
+  - `http:`, `https:`, `mailto:`: handed to the desktop's browser (j's
+    `BrowseFile`, or `java.awt.Desktop`).
+- Going there pushes the jump list, so vim's `Ctrl-O` and j's jump back
+  return.
+- A target that does not resolve says so in the status bar, with the
+  heading or file it looked for.
+- Ctrl+Enter becomes `followLinkOrTask`: `followLink` if the caret is on a
+  link, else `task`. Ctrl+Shift+Enter stays `task cancel`. In vim, `gx`
+  also follows a link, and Ctrl+click does with the mouse.
+- With Phase 6, the caret on a link's text shows its URL as it follows it.
+
+## Phase 8: larger heading fonts
 
 The most invasive, so last.
 
@@ -299,7 +376,8 @@ Themes override any of them (`color.heading = r g b`); `Default`, `Dark`,
 | 3 | 4 | medium |
 | 4 | 5, v1 | medium; v2 later |
 | 5 | 6 | medium |
-| 6 | 7 | large, the riskiest |
+| 6 | 7 | small to medium |
+| 7 | 8 | large, the riskiest |
 
 Tests in `test/src`, after `RainbowDelimitersTest` and `SearchHighlightTest`:
 format runs for each construct, cycling tasks and undoing it, the outline's

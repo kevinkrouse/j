@@ -153,7 +153,7 @@ public final class SchemeFormatter extends Formatter
                 }
             }
             if (state == STATE_IDENTIFIER) {
-                if (buffer.getMode().isIdentifierPart(c))
+                if (getLanguageMode().isIdentifierPart(c))
                     sb.append(c);
                 else {
                     endToken(state);
@@ -201,7 +201,7 @@ public final class SchemeFormatter extends Formatter
                 continue;
             }
             if (state == STATE_NEUTRAL) {
-                if (buffer.getMode().isIdentifierStart(c)) {
+                if (getLanguageMode().isIdentifierStart(c)) {
                     endToken(state);
                     sb.append(c);
                     state = STATE_IDENTIFIER;

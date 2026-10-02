@@ -224,7 +224,7 @@ public final class MakefileFormatter extends Formatter
           }
         if (state == STATE_IDENTIFIER) 
           {
-            if (buffer.getMode().isIdentifierPart(c))
+            if (getLanguageMode().isIdentifierPart(c))
               sb.append(c);
             else 
               {
@@ -243,7 +243,7 @@ public final class MakefileFormatter extends Formatter
               {
                 endToken(state);
                 sb.append(c);
-                if (buffer.getMode().isIdentifierStart(c))
+                if (getLanguageMode().isIdentifierStart(c))
                   state = STATE_IDENTIFIER;
                 else
                   state = STATE_NEUTRAL;
@@ -253,7 +253,7 @@ public final class MakefileFormatter extends Formatter
           }
         if (state == STATE_NEUTRAL) 
           {
-            if (buffer.getMode().isIdentifierStart(c))
+            if (getLanguageMode().isIdentifierStart(c))
               {
                 endToken(state);
                 sb.append(c);

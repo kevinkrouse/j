@@ -234,7 +234,7 @@ public final class ShellScriptFormatter extends Formatter
                     }
                 }
                 if (braceCount == 0) {
-                    if (!buffer.getMode().isIdentifierPart(c)) {
+                    if (!getLanguageMode().isIdentifierPart(c)) {
                         endToken(state);
                         sb.append(c) ;
                         state = STATE_NEUTRAL;
@@ -261,7 +261,7 @@ public final class ShellScriptFormatter extends Formatter
                 return;
             }
             if (state == STATE_IDENTIFIER) {
-                if (buffer.getMode().isIdentifierPart(c))
+                if (getLanguageMode().isIdentifierPart(c))
                     sb.append(c);
                 else {
                     endToken(state);
@@ -280,7 +280,7 @@ public final class ShellScriptFormatter extends Formatter
                 else {
                     endToken(state);
                     sb.append(c);
-                    if (buffer.getMode().isIdentifierStart(c))
+                    if (getLanguageMode().isIdentifierStart(c))
                         state = STATE_IDENTIFIER;
                     else
                         state = STATE_NEUTRAL;
@@ -289,7 +289,7 @@ public final class ShellScriptFormatter extends Formatter
                 continue;
             }
             if (state == STATE_NEUTRAL) {
-                if (buffer.getMode().isIdentifierStart(c)) {
+                if (getLanguageMode().isIdentifierStart(c)) {
                     endToken(state);
                     sb.append(c);
                     state = STATE_IDENTIFIER;

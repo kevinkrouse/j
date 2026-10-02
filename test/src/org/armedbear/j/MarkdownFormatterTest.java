@@ -104,8 +104,9 @@ public class MarkdownFormatterTest
     @Test
     public void fencedCode()
     {
-        on("```java\nint x = 1; // *x*\n```\nafter *em*\n~~~\n```\n~~~\n");
-        assertEquals("fence(```java)", runs(0));
+        // A fence that names no language; MarkdownFencedCodeTest has those.
+        on("```\nint x = 1; // *x*\n```\nafter *em*\n~~~\n```\n~~~\n");
+        assertEquals("fence(```)", runs(0));
         assertEquals("codeBlock(int x = 1; // *x*)", runs(1));
         assertEquals("fence(```)", runs(2));
         assertEquals("after markup(*)emphasis(em)markup(*)", runs(3));

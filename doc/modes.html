@@ -65,7 +65,10 @@ sidebar shows the headings as an outline, and the status bar the headings
 down to the caret's. <a href="commands.html#fold">fold</a> folds a heading's
 section, a list item's children or a fence's code, and
 <a href="commands.html#foldHeadings">foldHeadings</a> leaves just the
-headings. Its styles link to the <a href="themes.html#shared">shared
+headings. A fence that names its language, <code>```java</code>,
+<code>```py</code>, <code>```sh</code> and so on, has its code colored as
+that language's mode colors it, and in italic if the theme's
+<code>MarkdownMode.style.codeBlock</code> is, as it is by default. Its styles link to the <a href="themes.html#shared">shared
 styles</a>, so a theme that sets <code>color.heading</code> or
 <code>color.todo</code> sets them here too;
 <a href="commands.html#listStyles">listStyles</a> in a Markdown buffer shows

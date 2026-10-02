@@ -24,7 +24,14 @@ import org.armedbear.j.Buffer;
 import org.armedbear.j.FormatTable;
 import org.armedbear.j.Formatter;
 import org.armedbear.j.Line;
+import org.armedbear.j.LineSegment;
 import org.armedbear.j.LineSegmentList;
+import org.armedbear.j.Log;
+import org.armedbear.j.Mode;
+import org.armedbear.j.TextLine;
+import org.armedbear.j.TextStyle;
+
+import java.awt.Color;
 
 import java.util.Arrays;
 import java.util.function.ObjIntConsumer;
@@ -86,6 +93,16 @@ public final class MarkdownFormatter extends Formatter
     private static final int FENCE_TILDE        = 1 << 6;
     private static final int FENCE_LENGTH_SHIFT = 7;
     private static final int FENCE_LENGTH_MASK  = 0x1f << FENCE_LENGTH_SHIFT;
+    // ...and the language its info string names, as a FenceLanguages slot.
+    private static final int LANGUAGE_SHIFT = 12;
+    private static final int LANGUAGE_MASK  = FenceLanguages.MAX_SLOT << LANGUAGE_SHIFT;
+
+    // The format of a fenced line's character that the language's formatter
+    // colored: its slot and its own format. Display keeps a formatter's
+    // formats below bit 20 when it colors brackets.
+    private static final int EMBED            = 1 << 19;
+    private static final int EMBED_SLOT_SHIFT = 12;
+    private static final int EMBED_FORMAT     = (1 << EMBED_SLOT_SHIFT) - 1;
 
     private static final Pattern FENCE_OPEN =
         Pattern.compile("^ {0,3}(`{3,}(?=[^`]*$)|~{3,}).*$");
@@ -116,6 +133,9 @@ public final class MarkdownFormatter extends Formatter
 
     // The format of each character of the line being formatted.
     private int[] formats = new int[0];
+
+    // A formatter for each fence language met, by slot, lent this buffer.
+    private final Formatter[] languages = new Formatter[FenceLanguages.MAX_SLOT + 1];
 
     public MarkdownFormatter(Buffer buffer)
     {
@@ -239,7 +259,9 @@ public final class MarkdownFormatter extends Formatter
                     } else if ((m = FENCE_OPEN.matcher(text)).matches()) {
                         final String run = m.group(1);
                         fence = (run.charAt(0) == '~' ? FENCE_TILDE : 0)
-                            | Math.min(run.length(), 31) << FENCE_LENGTH_SHIFT;
+                            | Math.min(run.length(), 31) << FENCE_LENGTH_SHIFT
+                            | FenceLanguages.slotFor(text.substring(m.end(1)))
+                              << LANGUAGE_SHIFT;
                         next = IN_FENCE;
                     } else {
                         flags |= setextLevel(line) << HEADING_SHIFT;
@@ -334,8 +356,10 @@ public final class MarkdownFormatter extends Formatter
                 set(0, length, FRONT_MATTER);
                 break;
             case IN_FENCE:
-                set(0, length, FENCE_CLOSE.matcher(text).matches()
-                    && closesFence(text, flags) ? FENCE : CODE_BLOCK);
+                if (FENCE_CLOSE.matcher(text).matches() && closesFence(text, flags))
+                    set(0, length, FENCE);
+                else
+                    formatCode(line, text, (flags & LANGUAGE_MASK) >> LANGUAGE_SHIFT);
                 break;
             case IN_COMMENT: {
                 final int end = text.indexOf("-->");
@@ -359,6 +383,98 @@ public final class MarkdownFormatter extends Formatter
             }
         }
         return segmentList;
+    }
+
+    // A fenced line, in its language if j has a mode for it. The language's
+    // formatter gets a copy with no flags: what it would know from the
+    // lines before, inside a comment that began on one, it does not.
+    private void formatCode(Line line, String text, int slot)
+    {
+        final Formatter formatter = language(slot);
+        if (formatter == null) {
+            set(0, text.length(), CODE_BLOCK);
+            return;
+        }
+        final LineSegmentList segments;
+        try {
+            segments = formatter.formatLine(new TextLine(line.getText()));
+        }
+        catch (RuntimeException e) {
+            Log.debug(e);
+            set(0, text.length(), CODE_BLOCK);
+            return;
+        }
+        int pos = 0;
+        for (int i = 0; i < segments.size() && pos < text.length(); i++) {
+            final LineSegment segment = segments.getSegment(i);
+            final int end = Math.min(text.length(), pos + segment.length());
+            set(pos, end, EMBED | slot << EMBED_SLOT_SHIFT
+                          | (segment.getFormat() & EMBED_FORMAT));
+            pos = end;
+        }
+        set(pos, text.length(), CODE_BLOCK);
+    }
+
+    private Formatter language(int slot)
+    {
+        if (slot == 0)
+            return null;
+        if (languages[slot] == null) {
+            final Mode mode = FenceLanguages.modeFor(slot);
+            if (mode == null)
+                return null;
+            final Formatter formatter = mode.getFormatter(buffer);
+            if (formatter == null)
+                return null;
+            formatter.setLanguageMode(mode);
+            languages[slot] = formatter;
+        }
+        return languages[slot];
+    }
+
+    // The language's formatter for a format it gave, or null.
+    private Formatter embedded(int format)
+    {
+        if ((format & EMBED) == 0)
+            return null;
+        return languages[(format & ~EMBED) >> EMBED_SLOT_SHIFT];
+    }
+
+    public Color getColor(int format)
+    {
+        final Formatter formatter = embedded(format);
+        if (formatter != null)
+            return formatter.getColor(format & EMBED_FORMAT);
+        return super.getColor(format);
+    }
+
+    /**
+     * A language's own style, italic too if the theme makes code blocks
+     * italic, as Markdown's does.
+     */
+    public int getStyle(int format)
+    {
+        final Formatter formatter = embedded(format);
+        if (formatter != null)
+            return formatter.getStyle(format & EMBED_FORMAT)
+                | (super.getStyle(CODE_BLOCK) & TextStyle.ITALIC);
+        return super.getStyle(format);
+    }
+
+    public boolean getUnderline(int format)
+    {
+        final Formatter formatter = embedded(format);
+        if (formatter != null)
+            return formatter.getUnderline(format & EMBED_FORMAT);
+        return super.getUnderline(format);
+    }
+
+    public void reset()
+    {
+        super.reset();
+        for (Formatter formatter : languages)
+            if (formatter != null)
+                formatter.reset();
     }
 
     private void set(int begin, int end, int format)
