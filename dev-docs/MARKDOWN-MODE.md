@@ -170,6 +170,22 @@ Done: the `task [todo|doing|done|cancel]` command
 
 ## Phase 3: sidebar outline
 
+Done, tested in `MarkdownOutlineTest`:
+
+- `MarkdownTagger` tags headings as `MarkdownTag`s, type `TAG_HEADING`, which
+  `Tagger.writeTags` leaves out of tag files. Each knows its level and the
+  heading it is under; `getLongName` is the path, "A › B › C", and the
+  name is the heading as it reads, links as their text and markup gone.
+- It runs on its own thread before the buffer may have been parsed, so it
+  walks the lines with `MarkdownFormatter.scan`, which `parseBuffer` now
+  uses too, rather than reading flags.
+- The outline is `SidebarTagTree`, in core: any mode's tags nested by a
+  level the mode gives, each under the last before it at a lower level.
+  It follows the caret, and a click or Enter goes to a heading. Keys and
+  mouse as `JavaTree`'s.
+- The status bar shows the path whether or not the long context is asked
+  for (`MarkdownMode.getContextString`).
+
 - `MarkdownTagger` makes `LocalTag`s for ATX and setext headings, skipping
   fences.
 - `MarkdownTree extends SidebarTree` nests them by level, after `JavaTree`'s

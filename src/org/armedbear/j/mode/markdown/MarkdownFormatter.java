@@ -27,6 +27,7 @@ import org.armedbear.j.Line;
 import org.armedbear.j.LineSegmentList;
 
 import java.util.Arrays;
+import java.util.function.ObjIntConsumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -124,13 +125,35 @@ public final class MarkdownFormatter extends Formatter
     /** The level of the heading on line, 1-6, or 0 if it is not one. */
     public static int getHeadingLevel(Line line)
     {
-        if ((line.flags() & BLOCK_MASK) != NORMAL)
+        return headingLevel(line, line.flags());
+    }
+
+    /** The level of the heading on line had it flags. */
+    static int headingLevel(Line line, int flags)
+    {
+        if ((flags & BLOCK_MASK) != NORMAL)
             return 0;
-        final int level = (line.flags() & HEADING_MASK) >> HEADING_SHIFT;
+        final int level = (flags & HEADING_MASK) >> HEADING_SHIFT;
         if (level > 0)
             return level;
         final Matcher m = ATX_HEADING.matcher(line.getText());
         return m.matches() ? m.group(1).length() : 0;
+    }
+
+    /**
+     * The text of the heading on line, without its markers, or null if
+     * there is none.
+     */
+    static String headingText(Line line, int flags)
+    {
+        if ((flags & BLOCK_MASK) != NORMAL)
+            return null;
+        if ((flags & HEADING_MASK) != 0)
+            return line.getText().trim();
+        final Matcher m = ATX_HEADING.matcher(line.getText());
+        if (!m.matches())
+            return null;
+        return m.group(2) != null ? m.group(2) : "";
     }
 
     /** Whether line is in a fence, or opens or closes one. */
@@ -143,10 +166,25 @@ public final class MarkdownFormatter extends Formatter
 
     public boolean parseBuffer()
     {
-        boolean changed = false;
+        final boolean[] changed = { false };
+        scan(buffer.getFirstLine(), (line, flags) -> {
+            if (line.flags() != flags) {
+                line.setFlags(flags);
+                changed[0] = true;
+            }
+        });
+        buffer.setNeedsParsing(false);
+        return changed[0];
+    }
+
+    /**
+     * Gives sink each line from first on with the flags parseBuffer keeps
+     * for it, without keeping them, for those that cannot wait for it.
+     */
+    static void scan(Line first, ObjIntConsumer<Line> sink)
+    {
         int block = NORMAL;
         int fence = 0;
-        final Line first = buffer.getFirstLine();
         for (Line line = first; line != null; line = line.next()) {
             final String text = line.getText();
             int flags = block;
@@ -169,7 +207,8 @@ public final class MarkdownFormatter extends Formatter
                 }
                 default: {
                     Matcher m;
-                    if (line == first && text.equals("---")) {
+                    if (line == first && line.previous() == null
+                        && text.equals("---")) {
                         next = IN_FRONT_MATTER;
                     } else if ((m = FENCE_OPEN.matcher(text)).matches()) {
                         final String run = m.group(1);
@@ -183,14 +222,9 @@ public final class MarkdownFormatter extends Formatter
                     break;
                 }
             }
-            if (line.flags() != flags) {
-                line.setFlags(flags);
-                changed = true;
-            }
+            sink.accept(line, flags);
             block = next;
         }
-        buffer.setNeedsParsing(false);
-        return changed;
     }
 
     private static boolean closesFence(String text, int fence)

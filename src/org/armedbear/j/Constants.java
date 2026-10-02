@@ -98,6 +98,7 @@ public interface Constants
     int TAG_TYPE                 = 15;
     int TAG_VAR                  = 16;
     int TAG_TEST                 = 17;
+    int TAG_HEADING              = 18; // A document's, as Markdown's.
 
     // Visibility values (stored in LocalTag flags field).
     int TAG_PUBLIC               = 0x0001;

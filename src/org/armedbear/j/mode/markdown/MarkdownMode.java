@@ -23,10 +23,16 @@ package org.armedbear.j.mode.markdown;
 import org.armedbear.j.AbstractMode;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Constants;
+import org.armedbear.j.Editor;
 import org.armedbear.j.Formatter;
 import org.armedbear.j.KeyMap;
 import org.armedbear.j.Mode;
+import org.armedbear.j.NavigationComponent;
 import org.armedbear.j.Property;
+import org.armedbear.j.SidebarTagTree;
+import org.armedbear.j.SystemBuffer;
+import org.armedbear.j.Tagger;
+import org.armedbear.j.View;
 
 import java.awt.event.KeyEvent;
 
@@ -49,6 +55,34 @@ public final class MarkdownMode extends AbstractMode implements Constants, Mode
     public final Formatter getFormatter(Buffer buffer)
     {
         return new MarkdownFormatter(buffer);
+    }
+
+    public boolean isTaggable()
+    {
+        return true;
+    }
+
+    public Tagger getTagger(SystemBuffer buffer)
+    {
+        return new MarkdownTagger(buffer);
+    }
+
+    /** The headings, as an outline. */
+    public NavigationComponent getSidebarComponent(Editor editor)
+    {
+        final View view = editor.getCurrentView();
+        if (view == null)
+            return null; // Shouldn't happen.
+        if (!(view.getSidebarComponent() instanceof SidebarTagTree))
+            view.setSidebarComponent(new SidebarTagTree(editor, tag ->
+                tag instanceof MarkdownTag ? ((MarkdownTag) tag).getLevel() : 1));
+        return view.getSidebarComponent();
+    }
+
+    /** The headings down to the caret's: "Syntaxes › Markdown › Tasks". */
+    public String getContextString(Editor editor, boolean verbose)
+    {
+        return super.getContextString(editor, true);
     }
 
     public String getCommentStart()

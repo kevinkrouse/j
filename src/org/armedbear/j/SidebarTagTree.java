@@ -1,0 +1,318 @@
+/*
+ * SidebarTagTree.java
+ *
+ * Copyright (C) 2026 Kevin Krouse
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+ */
+
+
+package org.armedbear.j;
+
+import org.armedbear.j.util.Utilities;
+
+import java.awt.Color;
+import java.awt.Component;
+import java.awt.Graphics;
+import java.awt.Point;
+import java.awt.event.KeyEvent;
+import java.awt.event.KeyListener;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseListener;
+import java.util.ArrayDeque;
+import java.util.Deque;
+import java.util.Enumeration;
+import java.util.List;
+import java.util.function.ToIntFunction;
+import javax.swing.JTree;
+import javax.swing.SwingUtilities;
+import javax.swing.tree.DefaultMutableTreeNode;
+import javax.swing.tree.DefaultTreeCellRenderer;
+import javax.swing.tree.DefaultTreeModel;
+import javax.swing.tree.TreeModel;
+import javax.swing.tree.TreeNode;
+import javax.swing.tree.TreePath;
+import javax.swing.tree.TreeSelectionModel;
+
+/**
+ * A buffer's tags as an outline: each tag under the nearest one before it
+ * at a lower level, as a document's headings nest. The mode says what level
+ * a tag is at. It follows the caret, and going to a tag is a click or Enter.
+ */
+public class SidebarTagTree extends SidebarTree implements NavigationComponent,
+    KeyListener, MouseListener
+{
+    private final Editor editor;
+    private final Frame frame;
+    private final ToIntFunction<LocalTag> level;
+    private List<LocalTag> tags;
+
+    public SidebarTagTree(Editor editor, ToIntFunction<LocalTag> level)
+    {
+        super((TreeModel) null);
+        this.editor = editor;
+        this.level = level;
+        frame = editor.getFrame();
+        getSelectionModel().setSelectionMode(TreeSelectionModel.SINGLE_TREE_SELECTION);
+        setRootVisible(false);
+        setShowsRootHandles(true);
+        setCellRenderer(new TreeCellRenderer());
+        setFocusTraversalKeysEnabled(false);
+        addKeyListener(this);
+        addMouseListener(this);
+        setToolTipText("");
+    }
+
+    /** The tree of tags, each under the last before it at a lower level. */
+    static DefaultMutableTreeNode buildTree(List<LocalTag> tags,
+                                            ToIntFunction<LocalTag> level)
+    {
+        final DefaultMutableTreeNode root = new DefaultMutableTreeNode();
+        final Deque<DefaultMutableTreeNode> open = new ArrayDeque<DefaultMutableTreeNode>();
+        final Deque<Integer> levels = new ArrayDeque<Integer>();
+        for (LocalTag tag : tags) {
+            final int n = level.applyAsInt(tag);
+            while (!levels.isEmpty() && levels.peek() >= n) {
+                levels.pop();
+                open.pop();
+            }
+            final DefaultMutableTreeNode node = new DefaultMutableTreeNode(tag);
+            (open.isEmpty() ? root : open.peek()).add(node);
+            open.push(node);
+            levels.push(n);
+        }
+        return root;
+    }
+
+    public void refresh()
+    {
+        final Buffer buffer = editor.getBuffer();
+        final List<LocalTag> bufferTags = buffer.getTags();
+        if (tags != null && tags == bufferTags)
+            return; // Nothing to do.
+        Thread thread = new Thread(() -> refreshInternal(buffer, bufferTags),
+                                   "SidebarTagTree.refresh()");
+        thread.setDaemon(true);
+        thread.start();
+    }
+
+    private void refreshInternal(Buffer buffer, List<LocalTag> bufferTags)
+    {
+        final List<LocalTag> newTags =
+            bufferTags != null ? bufferTags : buffer.getTags(true); // Runs tagger.
+        if (newTags == null)
+            return;
+        final TreeModel model = new DefaultTreeModel(buildTree(newTags, level));
+        SwingUtilities.invokeLater(() -> {
+            setModel(model);
+            tags = newTags;
+            for (int row = 0; row < getRowCount(); row++)
+                expandRow(row);
+            updatePosition();
+        });
+    }
+
+    public void updatePosition()
+    {
+        final TreeModel model = getModel();
+        if (model == null || tags == null)
+            return;
+        final LocalTag tag = findTag(editor.getDotCopy());
+        if (tag == null) {
+            clearSelection();
+            scrollRowToVisible(0);
+            return;
+        }
+        final DefaultMutableTreeNode node =
+            findNode((DefaultMutableTreeNode) model.getRoot(), tag);
+        if (node == null)
+            return;
+        final TreePath path = getSelectionPath();
+        if (path == null || path.getLastPathComponent() != node)
+            scrollNodeToCenter(node);
+    }
+
+    // The last tag at or before pos's line.
+    private LocalTag findTag(Position pos)
+    {
+        if (pos == null)
+            return null;
+        final int lineNumber = pos.lineNumber();
+        LocalTag found = null;
+        for (LocalTag tag : tags) {
+            if (tag.lineNumber() > lineNumber)
+                break;
+            found = tag;
+        }
+        return found;
+    }
+
+    private static DefaultMutableTreeNode findNode(DefaultMutableTreeNode root,
+                                                   LocalTag tag)
+    {
+        final Enumeration<TreeNode> nodes = root.depthFirstEnumeration();
+        while (nodes.hasMoreElements()) {
+            final DefaultMutableTreeNode node =
+                (DefaultMutableTreeNode) nodes.nextElement();
+            if (node.getUserObject() == tag)
+                return node;
+        }
+        return null;
+    }
+
+    public final String getLabelText()
+    {
+        final File file = editor.getBuffer().getFile();
+        return file != null ? file.getName() : null;
+    }
+
+    public String getToolTipText(MouseEvent e)
+    {
+        final LocalTag tag = getTagAtPoint(e.getPoint());
+        return tag != null ? tag.getToolTipText() : null;
+    }
+
+    private LocalTag getTagAtPoint(Point point)
+    {
+        final TreePath path = getPathForLocation(point.x, point.y);
+        return path != null ? tagOf(path) : null;
+    }
+
+    private static LocalTag tagOf(TreePath path)
+    {
+        final Object obj =
+            ((DefaultMutableTreeNode) path.getLastPathComponent()).getUserObject();
+        return obj instanceof LocalTag ? (LocalTag) obj : null;
+    }
+
+    public void keyPressed(KeyEvent e)
+    {
+        final int modifiers = Utilities.keyModifiers(e);
+        switch (e.getKeyCode()) {
+            // Ignore modifier keystrokes.
+            case KeyEvent.VK_SHIFT:
+            case KeyEvent.VK_CONTROL:
+            case KeyEvent.VK_ALT:
+            case KeyEvent.VK_META:
+                return;
+            case KeyEvent.VK_ENTER: {
+                e.consume();
+                final TreePath path = getSelectionPath();
+                final LocalTag tag = path != null ? tagOf(path) : null;
+                if (tag != null)
+                    tag.gotoTag(editor);
+                editor.setFocusToDisplay();
+                if (modifiers == Constants.ALT_MASK)
+                    editor.toggleSidebar();
+                return;
+            }
+            case KeyEvent.VK_TAB:
+                e.consume();
+                if (modifiers == 0) {
+                    final Sidebar sidebar = editor.getSidebar();
+                    if (sidebar.getBufferList() != null) {
+                        updatePosition();
+                        editor.setFocus(sidebar.getBufferList());
+                    }
+                }
+                return;
+            case KeyEvent.VK_ESCAPE:
+                e.consume();
+                editor.getSidebar().setBuffer();
+                updatePosition();
+                editor.setFocusToDisplay();
+                return;
+        }
+        editor.getDispatcher().setEnabled(false);
+    }
+
+    public void keyReleased(KeyEvent e)
+    {
+        e.consume();
+        editor.getDispatcher().setEnabled(true);
+    }
+
+    public void keyTyped(KeyEvent e)
+    {
+        e.consume();
+    }
+
+    public void mousePressed(MouseEvent e) {}
+
+    public void mouseReleased(MouseEvent e) {}
+
+    public void mouseClicked(MouseEvent e)
+    {
+        LocationBar.cancelInput();
+        editor.ensureActive();
+        final int button = e.getButton();
+        final boolean unmodified = Utilities.isUnmodified(e);
+        if (unmodified && (button == MouseEvent.BUTTON1 || button == MouseEvent.BUTTON2)) {
+            final LocalTag tag = getTagAtPoint(e.getPoint());
+            if (tag != null)
+                tag.gotoTag(editor);
+        } else {
+            e.consume();
+        }
+        editor.setFocusToDisplay();
+    }
+
+    public void mouseEntered(MouseEvent e) {}
+
+    public void mouseExited(MouseEvent e)
+    {
+        frame.getCurrentEditor().setFocusToDisplay();
+    }
+
+    private static class TreeCellRenderer extends DefaultTreeCellRenderer
+    {
+        private static final Color noFocusSelectionBackground = new Color(208, 208, 208);
+
+        private final Color oldBackgroundSelectionColor;
+
+        TreeCellRenderer()
+        {
+            oldBackgroundSelectionColor = getBackgroundSelectionColor();
+        }
+
+        public Component getTreeCellRendererComponent(JTree tree, Object value,
+            boolean selected, boolean expanded, boolean leaf, int row,
+            boolean hasFocus)
+        {
+            super.getTreeCellRendererComponent(tree, value, selected, expanded,
+                leaf, row, hasFocus);
+            setForeground(selected ? getTextSelectionColor()
+                                   : getTextNonSelectionColor());
+            final Frame frame = Editor.getCurrentFrame();
+            if (frame != null && frame.getFocusedComponent() == tree)
+                setBackgroundSelectionColor(oldBackgroundSelectionColor);
+            else
+                setBackgroundSelectionColor(noFocusSelectionBackground);
+            final Object obj = ((DefaultMutableTreeNode) value).getUserObject();
+            if (obj instanceof LocalTag) {
+                final LocalTag tag = (LocalTag) obj;
+                setIcon(tag.getIcon());
+                setText(tag.getSidebarText());
+            }
+            return this;
+        }
+
+        public void paintComponent(Graphics g)
+        {
+            Display.setRenderingHints(g);
+            super.paintComponent(g);
+        }
+    }
+}
