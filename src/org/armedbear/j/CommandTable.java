@@ -450,6 +450,7 @@ public class CommandTable
             addCommand("svnStatus", "vcs.svn.SVN", "status");
             addCommand("tagDown", "mode.list.ListTagsMode");
             addCommand("tagUp", "mode.list.ListTagsMode");
+            addCommand("task", "mode.markdown.MarkdownTasks");
             addCommand("telnet", "RemoteShellBuffer");
             addCommand("thisError", "mode.compilation.CompilationCommands");
             addCommand("toggleWrap", "WrapText");

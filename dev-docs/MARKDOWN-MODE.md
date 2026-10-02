@@ -148,11 +148,25 @@ item in progress can have purple brackets and a blue marker.
 | Completed | `[x]` | `done` (green) | `done` | `muted` |
 | Cancelled | `[-]` | `cancelled` (grey) | `cancelled` | `cancelled`, strikethrough |
 
-- `markdownToggleTask` cycles ` ` → `/` → `x` → ` `; on a plain list item it
-  inserts `[ ] `. `markdownCancelTask` toggles `[-]`. Both act on every line
-  of a selection or visual range, as one undo step.
-- Keys: `Ctrl+Enter` and `Ctrl+Shift+Enter` in the mode's key map; for vim, an
-  ex command `:Task [todo|doing|done|cancel]` to map from the vimrc.
+Done: the `task [todo|doing|done|cancel]` command
+(`mode/markdown/MarkdownTasks`), tested in `MarkdownTasksTest`.
+
+- With no argument it moves the tasks on, ` ` → `/` → `x` → ` `, as the first
+  box in the selection says; a cancelled task starts again. `cancel` cancels
+  them, or if all are, starts them again. A list item without a box gets
+  one; a line of text becomes `- [ ] text`.
+- Every line of the selection, or the caret's line, as one undo step. A
+  selection from a block caret (vim's) takes in its last line even at offset
+  0; j's own, ending at the start of a line, does not.
+- Ctrl+Enter and Ctrl+Shift+Enter (`task cancel`) in Markdown mode, which
+  reach it from vim's normal and visual modes too.
+- One command for both edit modes, rather than a vim `:Task`: vim's
+  selection is j's mark and dot. Later: let vim's `:` hand a range to j's
+  commands as a selection, so `:'<,'>task done` works; it refuses one now
+  (E481).
+- Fixed on the way: undoing an edit of several lines made with
+  `UndoLineEdit(buffer, line)` logged a bug when the caret was on a line it
+  shortened; such an edit no longer records the caret.
 
 ## Phase 3: sidebar outline
 

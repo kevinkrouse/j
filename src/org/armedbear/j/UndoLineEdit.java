@@ -60,7 +60,11 @@ public class UndoLineEdit extends AbstractUndoableEdit implements Constants,
         super.undo();
         final Editor editor = Editor.currentEditor();
         Debug.assertTrue(editor.getBuffer() == buffer);
-        postState = new State(editor);
+        // An edit made without the editor leaves the caret to an UndoMove
+        // of its own. Until that runs the caret may be past the end of a
+        // line already put back, so it is not this edit's to record.
+        postState = preState.dotLineNumber < 0 ? new State(buffer)
+                                                : new State(editor);
         preState.restoreState(editor);
         editor.setUpdateFlag(REFRAME);
 

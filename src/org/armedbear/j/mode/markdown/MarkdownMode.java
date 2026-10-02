@@ -65,5 +65,7 @@ public final class MarkdownMode extends AbstractMode implements Constants, Mode
     {
         km.mapKey(KeyEvent.VK_F12, CTRL_MASK | SHIFT_MASK,
                   "wrapParagraphsInRegion");
+        km.mapKey(KeyEvent.VK_ENTER, CTRL_MASK, "task");
+        km.mapKey(KeyEvent.VK_ENTER, CTRL_MASK | SHIFT_MASK, "task cancel");
     }
 }

@@ -378,6 +378,7 @@
     <li><a href="commands.html#svnRevert">svnRevert</a></li>
     <li><a href="commands.html#svnStatus">svnStatus</a></li>
     <li><a href="commands.html#tab">tab</a></li>
+    <li><a href="commands.html#task">task</a></li>
     <li><a href="commands.html#tempBufferQuit">tempBufferQuit</a></li>
     <li><a href="commands.html#thisError">thisError</a></li>
     <li><a href="commands.html#toCenter">toCenter</a></li>
@@ -5190,6 +5191,24 @@ depending on the setting of the <a href="preferences.html#useTabs">useTabs</a> p
 <b>Default key mapping:</b> Tab (in programming modes)
 <p>
 <b>See also:</b> <a href="#insertTab">insertTab</a>
+<br><br>
+</dl><!--<hr>-->
+
+<a name="task">task</a> [todo|doing|done|cancel]<dl><dd>
+<p>
+Sets the state of the Markdown task boxes on the lines of the selection, or
+on the caret's line: <code>[ ]</code> not started, <code>[/]</code> in
+progress, <code>[x]</code> done, <code>[-]</code> cancelled.
+<p>
+With no argument, it moves them on, not started to in progress to done and
+round again, as the first box among them says; a cancelled task starts
+again. <code>todo</code>, <code>doing</code> and <code>done</code> set that
+state. <code>cancel</code> cancels them, or if they all are, starts them
+again. A list item without a box gets one, and a line of text becomes a
+task. Blank lines are left alone. The whole change is one undo step.
+<p>
+<b>Default key mapping:</b> Ctrl+Enter, and Ctrl+Shift+Enter for
+<code>task cancel</code> (Markdown mode)
 <br><br>
 </dl><!--<hr>-->
 
