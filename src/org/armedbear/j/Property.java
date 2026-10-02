@@ -191,6 +191,8 @@ public final class Property implements Comparable<Property>, Constants
         createProperty("popExpungeDeletedMessagesOnServer", false);
     public static final Property POP_KEEP_MESSAGES_ON_SERVER =
         createProperty("popKeepMessagesOnServer", true);
+    public static final Property RAINBOW_DELIMITERS =
+        createProperty("rainbowDelimiters", false);
     public static final Property REMOVE_TRAILING_WHITESPACE =
         createProperty("removeTrailingWhitespace", false);
     public static final Property RESTRICT_CARET =

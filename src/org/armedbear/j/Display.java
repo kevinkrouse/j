@@ -114,6 +114,7 @@ public final class Display extends JComponent implements Constants,
     private Color gutterBorderColor;
     private boolean highlightBrackets;
     private boolean highlightMatchingBracket;
+    private boolean rainbowDelimiters;
     private Position posBracket;
     private Position posMatch;
 
@@ -542,6 +543,8 @@ public final class Display extends JComponent implements Constants,
             buffer.getBooleanProperty(Property.HIGHLIGHT_BRACKETS);
         highlightMatchingBracket = highlightBrackets ||
             buffer.getBooleanProperty(Property.HIGHLIGHT_MATCHING_BRACKET);
+        rainbowDelimiters =
+            buffer.getBooleanProperty(Property.RAINBOW_DELIMITERS);
 
         if (highlightMatchingBracket) {
             Position oldPosMatch = posMatch;
@@ -550,10 +553,20 @@ public final class Display extends JComponent implements Constants,
             if (editor.getDot() != null) {
                 Position dot = editor.getDotCopy();
                 char c = dot.getChar();
+                Position quote;
                 if (c == '{' || c == '[' || c == '(') {
                     posBracket = dot;
                     posMatch = editor.findMatchInternal(dot, 200);
-                } else if (dot.getOffset() > 0) {
+                } else if ((c == '}' || c == ']' || c == ')')
+                           && caretShape() != InputHandler.CaretShape.BAR) {
+                    // A block caret is on the character, as vim's is.
+                    posBracket = dot;
+                    posMatch = editor.findMatchInternal(dot, 200);
+                } else if ((quote = editor.findMatchingQuote(dot, 200)) != null) {
+                    posBracket = dot;
+                    posMatch = quote;
+                } else if (dot.getOffset() > 0
+                           && caretShape() == InputHandler.CaretShape.BAR) {
                     int end = editor.getBuffer().getCol(dot.getLine(),
                         dot.getLine().length());
                     if (shift + caretCol <= end) {
@@ -562,6 +575,11 @@ public final class Display extends JComponent implements Constants,
                         if (c == '}' || c == ']' || c == ')') {
                             posBracket = dot;
                             posMatch = editor.findMatchInternal(dot, 200);
+                        } else if ((quote = editor.findMatchingQuote(dot, 200)) != null
+                                   && quote.isBefore(dot)) {
+                            // Just past a closing quote.
+                            posBracket = dot;
+                            posMatch = quote;
                         }
                     }
                 }
@@ -573,6 +591,12 @@ public final class Display extends JComponent implements Constants,
             if (!highlightBrackets)
                 posBracket = null;
         }
+    }
+
+    /** The bracket or quote highlightMatchingBracket highlights, or null. */
+    Position getMatchingBracketPosition()
+    {
+        return posMatch;
     }
 
     private void drawVerticalRule(Graphics g, int y, int height)
@@ -795,7 +819,7 @@ public final class Display extends JComponent implements Constants,
 
     private Font fontForFormat(int format)
     {
-        switch (editor.getFormatter().getStyle(format)) {
+        switch (editor.getFormatter().getStyle(formatterFormat(format))) {
             case Font.BOLD:
                 return boldFont;
             case Font.ITALIC:
@@ -967,7 +991,55 @@ public final class Display extends JComponent implements Constants,
             }
             segmentStart += segmentLength;
         }
+        if (rainbowDelimiters)
+            colorBrackets(line, begin, limit);
         return totalChars;
+    }
+
+    // A format with RAINBOW set is a bracket formatLine has coloured by its
+    // depth, which it keeps above RAINBOW_SHIFT. Below it, the format the
+    // formatter gave, still saying the bracket's style.
+    private static final int RAINBOW = 1 << 30;
+    private static final int RAINBOW_SHIFT = 20;
+    private static final int MAX_RAINBOW_DEPTH = (1 << 10) - 1;
+
+    /**
+     * Over the formatter's colours, colours each bracket of the line by how
+     * deeply it is nested, for rainbowDelimiters.
+     */
+    private void colorBrackets(Line line, int begin, int limit)
+    {
+        final Buffer buffer = editor.getBuffer();
+        final int[] levels = buffer.getBracketDepths().levels(line);
+        final int tabWidth = buffer.getTabWidth();
+        int col = 0;
+        for (int i = 0; i < levels.length; i++) {
+            final char c = line.charAt(i);
+            final int k = col - begin;
+            if (levels[i] != BracketDepths.NONE && k >= 0 && k < limit
+                && textArray[k] == c)
+                formatArray[k] |= RAINBOW |
+                    Math.min(levels[i], MAX_RAINBOW_DEPTH) << RAINBOW_SHIFT;
+            if (c == '\t' && tabWidth > 0)
+                col += tabWidth - col % tabWidth;
+            else
+                ++col;
+        }
+    }
+
+    private static int formatterFormat(int format)
+    {
+        if ((format & RAINBOW) != 0)
+            return format & ((1 << RAINBOW_SHIFT) - 1);
+        return format;
+    }
+
+    private static Color colorOf(Formatter formatter, int format)
+    {
+        if ((format & RAINBOW) != 0)
+            return formatter.getRainbowColor(
+                (format & ~RAINBOW) >>> RAINBOW_SHIFT);
+        return formatter.getColor(format);
     }
 
     private Image paintLineImage;
@@ -1236,8 +1308,8 @@ public final class Display extends JComponent implements Constants,
             ++i;
             while (i < length && formatArray[i] == format && i != breakCol)
                 ++i;
-            g2d.setColor(formatter.getColor(format));
-            int style = formatter.getStyle(format);
+            g2d.setColor(colorOf(formatter, format));
+            int style = formatter.getStyle(formatterFormat(format));
             Font font;
             switch (style) {
                 case Font.BOLD:
@@ -1263,7 +1335,7 @@ public final class Display extends JComponent implements Constants,
                 } else if (emulateBold)
                     g2d.drawGlyphVector(gv, (float)x + 1, y + charAscent);
             }
-            if (formatter.getUnderline(format))
+            if (formatter.getUnderline(formatterFormat(format)))
                 g2d.drawLine((int)x, y + charAscent + 1, (int)(x + width), y + charAscent + 1);
             g2d.drawGlyphVector(gv, (float)x, y + charAscent);
             x += width;
@@ -1284,7 +1356,7 @@ public final class Display extends JComponent implements Constants,
             while (i < limit && formatArray[i] == format)
                 ++i;
             Font font;
-            switch (formatter.getStyle(format)) {
+            switch (formatter.getStyle(formatterFormat(format))) {
                 case Font.BOLD:
                     font = boldFont;
                     break;

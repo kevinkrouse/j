@@ -1755,6 +1755,47 @@ public final class Editor extends JPanel implements Constants,
                             0, vim, false);
     }
 
+    /**
+     * The other end of the string a quote at pos opens or closes, as the
+     * mode's isInQuote sees strings, or null. If numLines is non-zero, looks
+     * no further than that many lines away.
+     */
+    public Position findMatchingQuote(Position pos, int numLines)
+    {
+        final char c = pos.getChar();
+        if (c != '"' && c != '\'' && c != '`')
+            return null;
+        final Line line = pos.getLine();
+        final int offset = pos.getOffset();
+        if (isEscaped(line, offset))
+            return null;
+        // The apostrophe of a word.
+        if (c == '\'' && offset > 0 && offset + 1 < line.length()
+            && Character.isLetter(line.charAt(offset - 1))
+            && Character.isLetter(line.charAt(offset + 1)))
+            return null;
+        final Mode mode = buffer.getMode();
+        if (mode.isInComment(buffer, pos))
+            return null;
+        final boolean closing = mode.isInQuote(buffer, pos);
+        if (!closing && !mode.isInQuote(buffer, new Position(line, offset + 1)))
+            return null;
+        final Position p = new Position(pos);
+        while (closing ? p.prev() : p.next()) {
+            if (numLines != 0 &&
+                Math.abs(p.lineNumber() - pos.lineNumber()) > numLines)
+                return null;
+            if (p.getOffset() < p.getLine().length() && p.getChar() == c
+                && !isEscaped(p.getLine(), p.getOffset())) {
+                // The first one there must be the string's other end.
+                if (mode.isInQuote(buffer, p) != closing)
+                    return p;
+                return null;
+            }
+        }
+        return null;
+    }
+
     /** The first match after start not paired with an origChar on the way. */
     private Position scanForMatch(Position start, char origChar, char match,
                                   boolean searchBackwards, int numLines,

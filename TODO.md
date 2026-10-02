@@ -23,6 +23,7 @@
 - [ ] sessions
     - cli option to list avilable sessions
     - cli option and command to delete a session
+- [ ] project-level settings
 
 
 ## Build
@@ -79,7 +80,7 @@
     - https://github.com/dstein64/nvim-scrollview
     - https://github.com/mihovilrak/scroll.nvim
 - [ ] smooth scrolling
-- [ ] rainbow parens
+- [x] rainbow parens
 - [ ] draw vertical indentation line
 - [ ] typing in sidebar highlights matches
 - [ ] typing in buffst list hightlights matches
@@ -123,6 +124,7 @@
     - highlight color strings in the color
 - [ ] svg, render inline preview?
 - [ ] inline mermaid diagram editor? el-easydraw like
+- [ ] man sidebar/tagger seems broken
     
 
 ## Extensions

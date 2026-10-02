@@ -699,6 +699,18 @@ public class Buffer extends SystemBuffer
     public final void setFormatter(Formatter formatter)
     {
         this.formatter = formatter;
+        // A new formatter means a new mode, which may see other strings.
+        bracketDepths = null;
+    }
+
+    private BracketDepths bracketDepths;
+
+    /** How deeply its brackets nest, for rainbowDelimiters. */
+    public final synchronized BracketDepths getBracketDepths()
+    {
+        if (bracketDepths == null)
+            bracketDepths = new BracketDepths(this);
+        return bracketDepths;
     }
 
     public boolean isReadOnly()

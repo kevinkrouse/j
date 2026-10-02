@@ -564,6 +564,16 @@ typed in <a href="editmodes.html">vim edit mode</a> (vim's
 <b>Default value:</b> None
 </dl>
 
+<code><a name="color.rainbowDelimiterN">color.rainbowDelimiter1, color.rainbowDelimiter2, ...</a></code>
+<dl>
+<dd>
+The colors of brackets with <a href="#rainbowDelimiters">rainbowDelimiters</a>,
+outermost first. As many are used as are set from 1 on without a gap. If none
+is set, nine colors chosen for a light or dark background are used.
+<p>
+<b>Default value:</b> None
+</dl>
+
 <code><a name="color.searchMatchBackground">color.searchMatchBackground</a></code>
 <dl>
 <dd>
@@ -587,6 +597,15 @@ Color for quoted strings.
 <dl>
 <dd>
 Default text color.
+<p>
+<b>Default value:</b> None
+</dl>
+
+<code><a name="color.unmatchedDelimiter">color.unmatchedDelimiter</a></code>
+<dl>
+<dd>
+Color, with <a href="#rainbowDelimiters">rainbowDelimiters</a>, for a closing
+parenthesis, bracket or brace with nothing open before it.
 <p>
 <b>Default value:</b> None
 </dl>
@@ -913,7 +932,9 @@ Font size (in points) used for line numbers.
 <dd>
 If true, when the caret is immediately before an opening parenthesis, bracket
 or brace, or immediately after a closing parenthesis, bracket or brace, the
-pair of matching parentheses, braces, or brackets is highlighted.
+pair of matching parentheses, braces, or brackets is highlighted. Likewise for
+the quotes at the two ends of a string, when the caret is on either one or
+just after the closing one.
 <p>
 <b>Default value:</b> false
 <p>
@@ -925,7 +946,9 @@ pair of matching parentheses, braces, or brackets is highlighted.
 <dd>
 If true, when the caret is immediately before an opening parenthesis, bracket
 or brace, or immediately after a closing parenthesis, bracket or brace, the
-matching parenthesis, brace, or bracket, if any, is highlighted.
+matching parenthesis, brace, or bracket, if any, is highlighted. Likewise for
+the quotes at the two ends of a string, when the caret is on either one or
+just after the closing one.
 <p>
 <b>Default value:</b> false
 <p>
@@ -1457,6 +1480,21 @@ server when they are retrieved. Applies only to POP mailboxes.
 Printer font size in points.
 <p>
 <b>Default value:</b> 10
+</dl>
+
+<code><a name="rainbowDelimiters">rainbowDelimiters</a></code>
+<dl>
+<dd>
+If true, each parenthesis, bracket and brace is colored by how deeply it is
+nested, so the two ends of a pair share a color. Those in strings and comments
+keep the mode's colors, and a closing one with nothing open is shown in
+<a href="#color.unmatchedDelimiter">color.unmatchedDelimiter</a>. The colors
+are <a href="#color.rainbowDelimiterN">color.rainbowDelimiter1</a>,
+<code>color.rainbowDelimiter2</code> and so on, used round again past the last.
+The pair <a href="#highlightMatchingBracket">highlightMatchingBracket</a>
+highlights is painted over them.
+<p>
+<b>Default value:</b> false
 </dl>
 
 <code><a name="removeTrailingWhitespace">removeTrailingWhitespace</a></code>

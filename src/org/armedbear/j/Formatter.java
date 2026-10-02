@@ -144,6 +144,56 @@ public abstract class Formatter implements Constants
         return colorCurrentSearchMatchBackground;
     }
 
+    // Bracket colours by depth, for a light background and a dark: hues far
+    // enough apart that neighbouring depths read as different.
+    private static final int[][] RAINBOW_LIGHT = {
+        {0x70, 0x70, 0x70}, {0x22, 0x88, 0xcc}, {0x99, 0x66, 0xcc},
+        {0x00, 0x88, 0x55}, {0xcc, 0x66, 0x00}, {0x00, 0x66, 0x99},
+        {0xaa, 0x44, 0x99}, {0x66, 0x88, 0x00}, {0x88, 0x55, 0x33},
+    };
+    private static final int[][] RAINBOW_DARK = {
+        {0xbb, 0xbb, 0xbb}, {0x77, 0xbb, 0xff}, {0xcc, 0x99, 0xff},
+        {0x66, 0xdd, 0x99}, {0xff, 0xaa, 0x55}, {0x55, 0xcc, 0xdd},
+        {0xff, 0x88, 0xcc}, {0xbb, 0xdd, 0x55}, {0xdd, 0xaa, 0x88},
+    };
+
+    private Color[] rainbowColors;
+    private Color unmatchedDelimiterColor;
+
+    /**
+     * The colour of a bracket at a depth, from 1 outermost, for
+     * rainbowDelimiters: color.rainbowDelimiter1, 2 and on as far as a theme
+     * sets them, round again after the last. Without them, a palette made for
+     * the background. Depth 0 is a closing bracket nothing opened, in
+     * color.unmatchedDelimiter.
+     */
+    public Color getRainbowColor(int depth)
+    {
+        if (rainbowColors == null) {
+            final Preferences prefs = Editor.preferences();
+            java.util.ArrayList<Color> colors = new java.util.ArrayList<>();
+            Color c;
+            while ((c = prefs.getColorProperty("color.rainbowDelimiter" +
+                                                (colors.size() + 1))) != null)
+                colors.add(c);
+            if (colors.isEmpty()) {
+                final Color bg = getBackgroundColor();
+                final boolean dark = (bg.getRed() * 299 + bg.getGreen() * 587 +
+                                      bg.getBlue() * 114) / 1000 < 128;
+                for (int[] rgb : dark ? RAINBOW_DARK : RAINBOW_LIGHT)
+                    colors.add(new Color(rgb[0], rgb[1], rgb[2]));
+            }
+            rainbowColors = colors.toArray(new Color[colors.size()]);
+            unmatchedDelimiterColor =
+                prefs.getColorProperty("color.unmatchedDelimiter");
+            if (unmatchedDelimiterColor == null)
+                unmatchedDelimiterColor = new Color(0xdd, 0x22, 0x22);
+        }
+        if (depth <= 0)
+            return unmatchedDelimiterColor;
+        return rainbowColors[(depth - 1) % rainbowColors.length];
+    }
+
     public Color getColor(int format)
     {
         FormatTableEntry entry = getFormatTable().lookup(format);
@@ -181,6 +231,8 @@ public abstract class Formatter implements Constants
         colorMatchingBracketBackground = null;
         colorSearchMatchBackground = null;
         colorCurrentSearchMatchBackground = null;
+        rainbowColors = null;
+        unmatchedDelimiterColor = null;
         formatTable = null;
     }
 
