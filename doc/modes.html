@@ -20,7 +20,7 @@
 <p>
 J provides specialized modes for editing particular kinds of files. Currently
 Java, JavaScript, C, C++, XML, HTML, Lisp, Perl, shell script, makefile,
-autoconf, and properties modes are provided, as well as plain text mode for
+autoconf, properties and Markdown modes are provided, as well as plain text mode for
 text files that don't fit into any of those categories. There are also modes
 for directory, archive and image buffers.  In addition, any kind of file can be
 viewed (but not edited) in binary mode.
@@ -49,11 +49,21 @@ the file. These are j's internal defaults:
     ShellScriptMode.files=".+\\.[ck]?sh"
     MakefileMode.files="makefile(\\.in)?"
     AutoconfMode.files="configure.in|aclocal.m4"
+    MarkdownMode.files=".+\\.md|.+\\.markdown|.+\\.mkd"
     PropertiesMode.files="(.+\\.config)|(.+\\.co?nf)|(.+\\.cfg)|(.+\\.ini)|(.+\\.properties)|prefs"
     ImageMode.files=".+\\.gif|.+\\.jpe?g|.+\\.png"
 </pre>
 In the current implementation, case is ignored. Note that by default, .h
 files are opened in C++ mode rather than C mode.
+<p>
+Markdown mode colors CommonMark with GitHub's tables, task lists and
+strikethrough. A task's box shows its state: <code>[ ]</code> not started,
+<code>[/]</code> in progress, <code>[x]</code> done and <code>[-]</code>
+cancelled. Its styles link to the <a href="themes.html#shared">shared
+styles</a>, so a theme that sets <code>color.heading</code> or
+<code>color.todo</code> sets them here too;
+<a href="commands.html#listStyles">listStyles</a> in a Markdown buffer shows
+them all.
 <p>
 You can customize this behavior by supplying different values for these
 regular expressions in your <a href="preferences.html">preferences</a> file.

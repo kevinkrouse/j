@@ -84,6 +84,25 @@ public final class DefaultTheme
         { null, "emphasis", "text" },
         { null, "strong",   "text" },
         { null, "url",      "muted" },
+        { "MarkdownMode", "heading1",       "heading" },
+        { "MarkdownMode", "heading2",       "heading" },
+        { "MarkdownMode", "heading3",       "heading" },
+        { "MarkdownMode", "heading4",       "heading" },
+        { "MarkdownMode", "heading5",       "heading" },
+        { "MarkdownMode", "heading6",       "heading" },
+        { "MarkdownMode", "headingMarker",  "muted" },
+        { "MarkdownMode", "codeBlock",      "code" },
+        { "MarkdownMode", "fence",          "muted" },
+        { "MarkdownMode", "linkText",       "link" },
+        { "MarkdownMode", "markup",         "muted" },
+        { "MarkdownMode", "strongEmphasis", "text" },
+        { "MarkdownMode", "strikethrough",  "text" },
+        { "MarkdownMode", "quoteMarker",    "muted" },
+        { "MarkdownMode", "rule",           "muted" },
+        { "MarkdownMode", "doneText",       "muted" },
+        { "MarkdownMode", "cancelledText",  "cancelled" },
+        { "MarkdownMode", "htmlTag",        "muted" },
+        { "MarkdownMode", "frontMatter",    "comment" },
     };
 
     // What every mode has, before a mode or a shared style says otherwise:
@@ -460,6 +479,16 @@ public final class DefaultTheme
             } else if (mode == "MakefileMode") {
                 if (thing == "target")
                     return Font.BOLD;
+            } else if (mode == "MarkdownMode") {
+                if (thing == "codeBlock")
+                    return TextStyle.ITALIC;
+                if (thing == "strongEmphasis")
+                    return TextStyle.BOLD | TextStyle.ITALIC;
+                if (thing == "strikethrough" || thing == "cancelledText")
+                    return TextStyle.STRIKETHROUGH;
+                // The box, unlike the item, is not struck through.
+                if (thing == "cancelled")
+                    return TextStyle.PLAIN;
             } else if (mode == "StatusMode") {
                 if (thing == "unknown")
                     return Font.ITALIC;

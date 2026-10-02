@@ -92,6 +92,24 @@ came from (`FormatTableEntry` keeps them).
 
 ## Phase 1: MarkdownMode and highlighting
 
+Done: `mode/markdown/MarkdownMode` and `MarkdownFormatter`, tested in
+`MarkdownFormatterTest`. As built:
+
+- Line flags hold the block a line begins in (fence, HTML comment, front
+  matter) in bits 0-2, a setext heading's level in bits 3-5, and in a fence
+  its tilde bit and length in bits 6-11. `MarkdownFormatter.getHeadingLevel`
+  and `isCode` read them for later phases.
+- `formatLine` fills an array of formats a character at a time -- block
+  structure first, then inline markup, recursively inside emphasis and link
+  text -- and turns it into runs.
+- Indented code blocks are colored too, after a blank line and outside a
+  list item.
+- The heading path in the status bar comes with Phase 3: `AbstractMode`'s
+  `getContextString` already gives the tag before the caret.
+- Emphasis is CommonMark's flanking rules simplified: a run opens before
+  something other than white space and closes, a run as long, after it.
+  `_` does not open or close inside a word.
+
 - `MARKDOWN_MODE = 47` in `Constants`; `ModeList` takes
   `.+\.md|.+\.markdown|.+\.mkd`.
 - `mode/markdown/MarkdownMode.java` and `MarkdownFormatter.java`.

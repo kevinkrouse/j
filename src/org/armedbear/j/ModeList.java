@@ -63,6 +63,7 @@ public final class ModeList implements Constants, Iterable<ModeListEntry>
         addEntry(MAILBOX_MODE, MAILBOX_MODE_NAME, "mail.MailboxMode", false, null);
         addEntry(MAKEFILE_MODE, MAKEFILE_MODE_NAME, "mode.make.MakefileMode", true, "makefile(\\.in)?");
         addEntry(MAN_MODE, MAN_MODE_NAME, "mode.man.ManMode", false, null);
+        addEntry(MARKDOWN_MODE, MARKDOWN_MODE_NAME, "mode.markdown.MarkdownMode", true, ".+\\.md|.+\\.markdown|.+\\.mkd");
         addEntry(MESSAGE_MODE, MESSAGE_MODE_NAME, "mail.MessageMode", false, null);
         addEntry(NEWS_GROUPS_MODE, NEWS_GROUPS_MODE_NAME, "mail.NewsGroupsMode", false, null);
         addEntry(NEWS_GROUP_SUMMARY_MODE, NEWS_GROUP_SUMMARY_MODE_NAME, "mail.NewsGroupSummaryMode", false, null);
