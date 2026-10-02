@@ -39,7 +39,7 @@ public final class UndoInsertLineSeparator extends AbstractUndoableEdit
         super.undo();
         final Editor editor = Editor.currentEditor();
         final Buffer buffer = editor.getBuffer();
-        postState = new PostState(editor);
+        postState = new PostState(editor, preState.dotLineNumber);
         preState.restoreState(editor);
         editor.setUpdateFlag(REFRAME);
 
@@ -133,8 +133,14 @@ public final class UndoInsertLineSeparator extends AbstractUndoableEdit
         final Line first;
         final Line second;
 
-        PostState(Editor editor)
+        // The line that was split, found by number rather than from where
+        // the caret is when undo or redo runs: something may have moved it
+        // without an undo record of its own (vim motions are not undo steps).
+        final int splitLineNumber;
+
+        PostState(Editor editor, int splitLineNumber)
         {
+            this.splitLineNumber = splitLineNumber;
             final Line dotLine = editor.getDotLine();
             dotLineNumber = dotLine.lineNumber();
             dotOffset = editor.getDotOffset();
@@ -142,8 +148,11 @@ public final class UndoInsertLineSeparator extends AbstractUndoableEdit
             final Buffer buffer = editor.getBuffer();
             modificationCount = buffer.getModCount();
             modified = buffer.isModified();
-            second = dotLine.copy();
-            first = dotLine.previous().copy();
+            if (buffer.needsRenumbering())
+                buffer.renumber();
+            final Line split = buffer.getLine(splitLineNumber);
+            first = split.copy();
+            second = split.next().copy();
         }
 
         // Redo.
@@ -151,8 +160,11 @@ public final class UndoInsertLineSeparator extends AbstractUndoableEdit
         {
             final Buffer buffer = editor.getBuffer();
 
-            Line before = editor.getDotLine().previous();
-            Line after = editor.getDotLine().next();
+            if (buffer.needsRenumbering())
+                buffer.renumber();
+            final Line split = buffer.getLine(splitLineNumber);
+            Line before = split.previous();
+            Line after = split.next();
             first.setPrevious(before);
             if (before != null)
                 before.setNext(first);

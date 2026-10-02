@@ -69,6 +69,13 @@ public class UndoInsertString extends AbstractUndoableEdit
         }
     }
 
+    private static int lineCount(Buffer buffer)
+    {
+        if (buffer.needsRenumbering())
+            buffer.renumber();
+        return buffer.getLineCount();
+    }
+
     private class PreState
     {
         final int dotLineNumber;
@@ -80,10 +87,16 @@ public class UndoInsertString extends AbstractUndoableEdit
         final int modificationCount;
         final boolean modified;
         final Line line;
+        final int lineCount;
 
         PreState(Editor editor)
         {
             dotLineNumber = editor.getDotLine().lineNumber();;
+            // The insert's last line is found from how many lines it added,
+            // not from where the caret is when undo runs: something may have
+            // moved it since without an undo record of its own (vim motions
+            // are not undo steps).
+            lineCount = lineCount(buffer);
             dotOffset = editor.getDotOffset();
             Position mark = editor.getMark();
             if (mark != null) {
@@ -104,7 +117,8 @@ public class UndoInsertString extends AbstractUndoableEdit
         void restoreState(Editor editor)
         {
             final Line first = buffer.getLine(dotLineNumber);
-            final Line last = editor.getDotLine();
+            final Line last =
+                buffer.getLine(dotLineNumber + lineCount(buffer) - lineCount);
             final Line after = last.next();
             for (Line ln = first; ln != after; ln = ln.next())
                 editor.adjustMarkers(ln);
@@ -168,7 +182,8 @@ public class UndoInsertString extends AbstractUndoableEdit
         // Redo.
         void restoreState(Editor editor)
         {
-            final Line dotLine = editor.getDotLine();
+            // Where the insert went in, wherever the caret is now.
+            final Line dotLine = buffer.getLine(preState.dotLineNumber);
             if (lines.size() == 1) {
                 dotLine.copy(lines.getFirstLine());
                 Editor.updateInAllEditors(dotLine);

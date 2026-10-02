@@ -39,7 +39,7 @@ public final class UndoDeleteLineSeparator extends AbstractUndoableEdit
         super.undo();
         final Editor editor = Editor.currentEditor();
         final Buffer buffer = editor.getBuffer();
-        postState = new PostState(editor);
+        postState = new PostState(editor, preState.dotLineNumber);
         preState.restoreState(editor);
         editor.setUpdateFlag(REFRAME);
 
@@ -67,6 +67,13 @@ public final class UndoDeleteLineSeparator extends AbstractUndoableEdit
                 SIDEBAR_REPAINT_BUFFER_LIST);
             Sidebar.repaintBufferListInAllFrames();
         }
+    }
+
+    private static Line joinedLine(Buffer buffer, int lineNumber)
+    {
+        if (buffer.needsRenumbering())
+            buffer.renumber();
+        return buffer.getLine(lineNumber);
     }
 
     private static class PreState
@@ -97,8 +104,12 @@ public final class UndoDeleteLineSeparator extends AbstractUndoableEdit
         {
             final Buffer buffer = editor.getBuffer();
 
-            Line before = editor.getDotLine().previous();
-            Line after = editor.getDotLine().next();
+            // The joined line, by number rather than from where the caret is
+            // when undo runs: something may have moved it without an undo
+            // record of its own (vim motions are not undo steps).
+            final Line joined = joinedLine(buffer, dotLineNumber);
+            Line before = joined.previous();
+            Line after = joined.next();
             first.setPrevious(before);
             if (before != null)
                 before.setNext(first);
@@ -131,9 +142,11 @@ public final class UndoDeleteLineSeparator extends AbstractUndoableEdit
         final int modificationCount;
         final boolean modified;
         final Line line;
+        final int joinedLineNumber;
 
-        PostState(Editor editor)
+        PostState(Editor editor, int joinedLineNumber)
         {
+            this.joinedLineNumber = joinedLineNumber;
             final Line dotLine = editor.getDotLine();
             dotLineNumber = dotLine.lineNumber();
             dotOffset = editor.getDotOffset();
@@ -141,7 +154,7 @@ public final class UndoDeleteLineSeparator extends AbstractUndoableEdit
             final Buffer buffer = editor.getBuffer();
             modificationCount = buffer.getModCount();
             modified = buffer.isModified();
-            line = dotLine.copy();
+            line = joinedLine(buffer, joinedLineNumber).copy();
         }
 
         // Redo.
@@ -149,8 +162,9 @@ public final class UndoDeleteLineSeparator extends AbstractUndoableEdit
         {
             final Buffer buffer = editor.getBuffer();
 
-            final Line before = editor.getDotLine().previous();
-            final Line after = editor.getDotLine().next().next();
+            final Line first = joinedLine(buffer, joinedLineNumber);
+            final Line before = first.previous();
+            final Line after = first.next().next();
             final Line restored = line.copy();
             restored.setPrevious(before);
             if (before != null)
@@ -167,7 +181,7 @@ public final class UndoDeleteLineSeparator extends AbstractUndoableEdit
             buffer.needsRenumbering = true;
             buffer.renumber();
 
-            editor.setDot(restored, dotOffset);
+            editor.setDot(restored, Math.min(dotOffset, restored.length()));
             final Display display = editor.getDisplay();
             display.setCaretCol(absCaretCol - display.getShift());
             display.setUpdateFlag(REPAINT);

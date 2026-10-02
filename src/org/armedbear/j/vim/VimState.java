@@ -873,6 +873,33 @@ public final class VimState
         desiredColumn = -1;
     }
 
+    /**
+     * Where vim's cursor stands when an operator on a selection starts, which
+     * is where undoing it leaves the caret. Worked out before the selection
+     * is taken, while its anchor is still known; null for an operator typed
+     * in normal mode, which works its own out from the range.
+     */
+    private Position operatorStart;
+
+    void setOperatorStart(Position position)
+    {
+        operatorStart = position;
+    }
+
+    /** True when the operator about to run came from a selection. */
+    boolean hasOperatorStart()
+    {
+        return operatorStart != null;
+    }
+
+    /** The selection's operator start, once: it does not outlive the operator. */
+    Position takeOperatorStart()
+    {
+        final Position position = operatorStart;
+        operatorStart = null;
+        return position;
+    }
+
     // --------------------------------------------------------- selection
 
     /**

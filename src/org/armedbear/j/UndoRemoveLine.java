@@ -73,6 +73,13 @@ public final class UndoRemoveLine extends AbstractUndoableEdit
         buffer.repaint();
     }
 
+    private static Line lineAt(Buffer buffer, int lineNumber)
+    {
+        if (buffer.needsRenumbering())
+            buffer.renumber();
+        return buffer.getLine(lineNumber);
+    }
+
     private class PreState
     {
         final int dotLineNumber;
@@ -102,13 +109,19 @@ public final class UndoRemoveLine extends AbstractUndoableEdit
         void restoreState(Editor editor)
         {
             final Buffer buffer = editor.getBuffer();
+            // The line the caret was on, by number rather than from where
+            // the caret is when undo runs: something may have moved it
+            // without an undo record of its own (vim motions are not undo
+            // steps). Taking out the line above it moved it up one.
+            final Line dotLine = lineAt(buffer, insertBefore ? dotLineNumber - 1
+                                                             : dotLineNumber);
             Line before, after;
             if (insertBefore) {
-                before = editor.getDotLine().previous();
-                after = editor.getDotLine();
+                before = dotLine.previous();
+                after = dotLine;
             } else {
-                before = editor.getDotLine();
-                after = editor.getDotLine().next();
+                before = dotLine;
+                after = dotLine.next();
             }
             line.setPrevious(before);
             if (before != null)
@@ -153,13 +166,14 @@ public final class UndoRemoveLine extends AbstractUndoableEdit
         {
             final Buffer buffer = editor.getBuffer();
 
+            final Line dotLine = lineAt(buffer, preState.dotLineNumber);
             Line remove;
             if (insertBefore) {
                 // Remove line before dot.
-                remove = editor.getDotLine().previous();
+                remove = dotLine.previous();
             } else {
                 // Remove line after dot.
-                remove = editor.getDotLine().next();
+                remove = dotLine.next();
             }
             final Line before = remove.previous();
             final Line after = remove.next();

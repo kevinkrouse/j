@@ -16,8 +16,10 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.WeakHashMap;
 
 import javax.swing.undo.CompoundEdit;
+import javax.swing.undo.UndoableEdit;
 
 import org.armedbear.j.Block;
 import org.armedbear.j.Buffer;
@@ -30,6 +32,8 @@ import org.armedbear.j.NumberCommands;
 import org.armedbear.j.Position;
 import org.armedbear.j.RegionCommands;
 import org.armedbear.j.SimpleEdit;
+import org.armedbear.j.UndoBoundary;
+import org.armedbear.j.UndoManager;
 import org.armedbear.j.Words;
 
 /**
@@ -138,23 +142,72 @@ public final class VimActions
         // edit expects it.
         final Buffer buffer = ctx.editor.getBuffer();
         buffer.withWriteLock(() -> {
-            for (int i = 0; i < ctx.count; i++)
+            for (int i = 0; i < ctx.count; i++) {
                 buffer.undo();
+                noteUndoneAt(ctx.editor);
+            }
         });
         ctx.state.clearSelectionUnlessVisual(ctx.editor);
         ctx.state.clampCaret(ctx.editor);
     }
 
-    /** CTRL-R. */
+    /**
+     * CTRL-R.
+     *
+     * The caret goes where undoing the change put it, as nvim leaves it,
+     * whatever has moved it since. j's own redo would put it back where it
+     * was when u was pressed, which may be nowhere near the change.
+     */
     private static void redo(MotionContext ctx)
     {
         final Buffer buffer = ctx.editor.getBuffer();
         buffer.withWriteLock(() -> {
-            for (int i = 0; i < ctx.count; i++)
+            for (int i = 0; i < ctx.count; i++) {
                 buffer.redo();
+                moveToUndonePlace(ctx.editor);
+            }
         });
         ctx.state.clearSelectionUnlessVisual(ctx.editor);
         ctx.state.clampCaret(ctx.editor);
+    }
+
+    /**
+     * Where u left the caret, by the change it took back, for CTRL-R. Before
+     * the caret is pulled back onto a character: after A, u rests on the last
+     * one and CTRL-R just past it. Weak keys, so a change that falls off the
+     * undo list takes its entry with it.
+     */
+    private static final Map<UndoableEdit, int[]> undonePlaces =
+        new WeakHashMap<UndoableEdit, int[]>();
+
+    private static void noteUndoneAt(Editor editor)
+    {
+        final UndoManager undo = editor.getBuffer().getUndoManager();
+        final Position dot = editor.getDot();
+        if (undo == null || dot == null)
+            return;
+        final UndoableEdit edit = undo.lastUndone();
+        // One shared instance, so it cannot stand for one change.
+        if (edit == null || edit instanceof UndoBoundary)
+            return;
+        editor.getBuffer().renumber();
+        undonePlaces.put(edit, new int[] {dot.lineNumber(), dot.getOffset()});
+    }
+
+    private static void moveToUndonePlace(Editor editor)
+    {
+        final UndoManager undo = editor.getBuffer().getUndoManager();
+        if (undo == null)
+            return;
+        final UndoableEdit edit = undo.lastRedone();
+        final int[] at = edit == null ? null : undonePlaces.get(edit);
+        if (at == null)
+            return;
+        final Line line = editor.getBuffer().getLine(at[0]);
+        if (line == null)
+            return;
+        editor.setDot(line, Math.min(at[1], line.length()));
+        editor.moveCaretToDotCol();
     }
 
     /**

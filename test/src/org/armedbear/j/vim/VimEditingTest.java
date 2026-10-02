@@ -120,6 +120,35 @@ public class VimEditingTest
     }
 
     @Test
+    public void undoPutsTheCaretWhereTheOperatorStarted()
+    {
+        // Where vim's cursor stood when the operator began changing text,
+        // which is not always where it was typed. Every expectation checked
+        // against nvim.
+        final String text = "  ab cd\nef gh\n  ij kl\nmn";
+        // cc keeps the indent, so it starts at the first non-blank.
+        undoLeavesCaretAt(text, 0, 4, "ccZZ<Esc>", 0, 2);
+        undoLeavesCaretAt(text, 0, 4, "SZZ<Esc>", 0, 2);
+        // Over lines, vim empties all but the first from the line below.
+        undoLeavesCaretAt(text, 0, 4, "cjZZ<Esc>", 1, 4);
+        undoLeavesCaretAt(text, 1, 3, "ckZZ<Esc>", 1, 3);
+        undoLeavesCaretAt(text, 0, 4, "VjcZZ<Esc>", 1, 0);
+        undoLeavesCaretAt(text, 0, 4, "VcZZ<Esc>", 0, 0);
+        // A linewise selection starts at its top line, at 0 unless the
+        // caret was the top end.
+        undoLeavesCaretAt(text, 0, 4, "Vd", 0, 0);
+        undoLeavesCaretAt(text, 0, 4, "Vjd", 0, 0);
+        undoLeavesCaretAt(text, 1, 3, "Vkd", 0, 3);
+        undoLeavesCaretAt(text, 0, 4, "VjD", 0, 0);
+        undoLeavesCaretAt(text, 0, 4, "Vj>", 0, 0);
+        undoLeavesCaretAt(text, 0, 4, "vjd", 0, 4);
+        // A linewise d keeps the column on the top line; a charwise one
+        // starts at the start of the range.
+        undoLeavesCaretAt(text, 1, 3, "dk", 0, 3);
+        undoLeavesCaretAt(text, 0, 4, "db", 0, 2);
+    }
+
+    @Test
     public void theWholeYankPutUndoSequenceFromAnEmptyBuffer()
     {
         h = EditorHarness.create().vim();
@@ -149,6 +178,58 @@ public class VimEditingTest
     {
         vim("abc\n").cursor(0, 0).keys("iXY<Esc>u");
         h.assertText("abc\n");
+    }
+
+    @Test
+    public void uAfterMovingAwayUndoesOnlyTheReplacedCharacter()
+    {
+        // The insert's undo works from wherever the caret is when u runs:
+        // this used to put the old line back over every line down to it.
+        vim("abc\ndef\nghi\njkl\nmno\n").cursor(0, 0).keys("rqjjj");
+        h.assertText("qbc\ndef\nghi\njkl\nmno\n");
+        h.keys("u");
+        h.assertText("abc\ndef\nghi\njkl\nmno\n");
+        h.keys("<C-r>");
+        h.assertText("qbc\ndef\nghi\njkl\nmno\n");
+    }
+
+    @Test
+    public void redoPutsTheCaretWhereUndoDidNotWhereItWandered()
+    {
+        // j's redo used to put the caret back where it was when u was
+        // pressed. Every expectation checked against nvim.
+        final String text = "one\n  two words\nthree\nfour\n";
+        vim(text).cursor(1, 2).keys("xG$u");
+        assertEquals(1, h.lineNumber());
+        assertEquals(2, h.offset());
+        h.keys("G$<C-r>");
+        h.assertText("one\n  wo words\nthree\nfour\n");
+        assertEquals(1, h.lineNumber());
+        assertEquals(2, h.offset());
+        h.close();
+
+        // After A, u rests on the last character and CTRL-R just past it.
+        vim(text).cursor(1, 2).keys("AZZ<Esc>ggu");
+        assertEquals(1, h.lineNumber());
+        assertEquals(10, h.offset());
+        h.keys("G$<C-r>");
+        h.assertText("one\n  two wordsZZ\nthree\nfour\n");
+        assertEquals(1, h.lineNumber());
+        assertEquals(11, h.offset());
+        h.close();
+
+        vim(text).cursor(1, 2).keys("Jggu");
+        h.keys("G$<C-r>");
+        h.assertText("one\n  two words three\nfour\n");
+        assertEquals(1, h.lineNumber());
+        assertEquals(2, h.offset());
+    }
+
+    @Test
+    public void visualRAfterMovingAwayUndoesCleanly()
+    {
+        vim("abc\ndef\nghi\njkl\nmno\n").cursor(0, 0).keys("vjrqjjju");
+        h.assertText("abc\ndef\nghi\njkl\nmno\n");
     }
 
     @Test

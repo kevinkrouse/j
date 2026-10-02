@@ -41,6 +41,18 @@ public final class UndoManager extends javax.swing.undo.UndoManager
             super.redo();
     }
 
+    /** The edit the last undo took back, which redo puts back next. */
+    public synchronized UndoableEdit lastUndone()
+    {
+        return editToBeRedone();
+    }
+
+    /** The edit the last redo put back, which undo takes back next. */
+    public synchronized UndoableEdit lastRedone()
+    {
+        return editToBeUndone();
+    }
+
     public void appendUndoFold(Editor editor)
     {
         if (edits.size() > 0) {

@@ -147,7 +147,14 @@ public final class VimOperators
         final int column = markColumn(editor, range);
         // Every line a charwise selection touches, too.
         final Line to = range.lastLine();
-        Lines.shift(editor, from, to, sign * width);
+        final CompoundEdit edit = buffer.beginCompoundEdit();
+        try {
+            recordStart(ctx, operatorStart(ctx, range));
+            Lines.shift(editor, from, to, sign * width);
+        }
+        finally {
+            buffer.endCompoundEdit(edit);
+        }
         ctx.state.getMarks().noteChange(
             buffer, new Position(from, column), new Position(to, to.length()),
             new Position(from, 0));
@@ -227,7 +234,7 @@ public final class VimOperators
         final int column = markColumn(editor, range);
         final CompoundEdit edit = editor.getBuffer().beginCompoundEdit();
         try {
-            recordCaret(editor);
+            recordStart(ctx, operatorStart(ctx, range));
             deleteRange(editor, range);
             final Position gap = editor.getDot();
             if (gap != null) {
@@ -291,11 +298,11 @@ public final class VimOperators
                                            range.linewise
                                                ? VimRegisters.Type.LINEWISE
                                                : VimRegisters.Type.CHARWISE);
+        final boolean fromSelection = ctx.state.hasOperatorStart();
+        final Position start = operatorStart(ctx, range);
         ctx.state.beginInsert(editor, VimMode.INSERT);
-        // No recordCaret here. Vim is not uniform about where undo leaves the
-        // caret: J and p give back where it was, but c leaves it at the start
-        // of what changed -- which is what falling through to j's own records
-        // already does.
+        // Inside the insert's undo step, so that it is undone last.
+        recordStart(ctx, changeStart(range, start, fromSelection));
         if (range.linewise) {
             // cc keeps the line, empties it, and keeps its indent.
             changeLinewise(ctx, range);
@@ -383,6 +390,68 @@ public final class VimOperators
     }
 
     // ------------------------------------------------------------ helpers
+
+    /**
+     * Where vim's cursor stands when the operator starts changing text, which
+     * is where undoing it leaves the caret: vim saves it in the undo step.
+     * The selection's, when there was one; otherwise the start of a
+     * characterwise range, or the top line of a linewise one at the caret's
+     * column -- dk gives back the line above, at the column it was typed in.
+     */
+    private static Position operatorStart(MotionContext ctx, VimRange range)
+    {
+        final Position selection = ctx.state.takeOperatorStart();
+        if (selection != null)
+            return selection;
+        if (!range.linewise)
+            return range.start;
+        final Position dot = ctx.editor.getDot();
+        final Line top = range.start.getLine();
+        return new Position(top, dot == null ? 0
+                                 : Math.min(dot.getOffset(), top.length()));
+    }
+
+    /**
+     * Where c starts, which is not where d does over lines. Vim takes out
+     * all but the first line before it saves anything, from the line below
+     * it, so undoing cj, ck or Vjc leaves the caret one line under the top.
+     * And cc and S keep the indent, so they start at the first non-blank.
+     */
+    private static Position changeStart(VimRange range, Position start,
+                                        boolean fromSelection)
+    {
+        if (!range.linewise)
+            return start;
+        final Line top = start.getLine();
+        if (range.last != top && top.next() != null) {
+            final Line below = top.next();
+            return new Position(below,
+                                Math.min(start.getOffset(), below.length()));
+        }
+        if (fromSelection)
+            return start;
+        return new Position(top, VimMotions.firstNonBlank(top));
+    }
+
+    /**
+     * Records the caret at {@code at} without leaving it there: undo puts it
+     * back to that, the rest of the operator still sees it where it was.
+     * Must be inside the operator's compound edit, as {@link #recordCaret}.
+     */
+    private static void recordStart(MotionContext ctx, Position at)
+    {
+        final Editor editor = ctx.editor;
+        final Position dot = editor.getDot();
+        if (dot == null || at == null) {
+            recordCaret(editor);
+            return;
+        }
+        final Position was = new Position(dot);
+        editor.setDot(new Position(at));
+        recordCaret(editor);
+        editor.setDot(was);
+        editor.moveCaretToDotCol();
+    }
 
     /**
      * Notes where the caret is, so that undo gives it back.

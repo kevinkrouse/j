@@ -1484,6 +1484,7 @@ public final class VimInputHandler implements InputHandler
             else if (operator.getBoolean("linewise")
                      && !(block && operator.getBoolean("blockAsIs")))
                 state.setMode(editor, VimMode.VISUAL_LINE);
+            state.setOperatorStart(VimVisual.operatorStart(editor, state));
             final VimRange range = VimVisual.take(editor, state);
             if (range != null)
                 applyOperator(editor, operator, range, count, false, null);
@@ -1632,6 +1633,8 @@ public final class VimInputHandler implements InputHandler
         op.apply(new MotionContext(this, editor, state, count, countGiven,
                                    operator, character),
                  range);
+        // Not every operator asks for it: y changes nothing to undo.
+        state.takeOperatorStart();
         state.clearDesiredColumn();
         editor.updateDotLine();
     }

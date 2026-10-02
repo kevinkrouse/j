@@ -249,23 +249,33 @@ public final class VimExCommands
         final String keys = command.args;
         if (keys.isEmpty())
             throw new VimEx.BadCommand("E471: Argument required: normal");
-        if (!command.range.given) {
-            state.getHandler().runKeys(editor, keys);
-            return;
-        }
-        // By number and from the bottom up, for the reason :g gives below: a
-        // Line captured here does not survive the keys deleting it, and the
-        // numbers of the lines still to come must not be shifted by an edit
-        // above them. :%norm dd used to leave a line behind.
-        editor.getBuffer().renumber();
-        for (int n = command.range.last; n >= command.range.first; n--) {
-            final Line line = VimEx.lineAt(editor, n);
-            if (line == null)
-                continue;
-            editor.setDot(line, 0);
-            editor.moveCaretToDotCol();
+        // One undo step for the whole command, as vim makes it, however many
+        // changes the keys make on however many lines.
+        final CompoundEdit edit = editor.getBuffer().beginCompoundEdit();
+        try {
+            VimOperators.recordCaret(editor);
+            if (!command.range.given) {
+                state.getHandler().runKeys(editor, keys);
+                return;
+            }
+            // By number and from the bottom up, for the reason :g gives
+            // below: a Line captured here does not survive the keys deleting
+            // it, and the numbers of the lines still to come must not be
+            // shifted by an edit above them. :%norm dd used to leave a line
+            // behind.
             editor.getBuffer().renumber();
-            state.getHandler().runKeys(editor, keys);
+            for (int n = command.range.last; n >= command.range.first; n--) {
+                final Line line = VimEx.lineAt(editor, n);
+                if (line == null)
+                    continue;
+                editor.setDot(line, 0);
+                editor.moveCaretToDotCol();
+                editor.getBuffer().renumber();
+                state.getHandler().runKeys(editor, keys);
+            }
+        }
+        finally {
+            editor.getBuffer().endCompoundEdit(edit);
         }
     }
 

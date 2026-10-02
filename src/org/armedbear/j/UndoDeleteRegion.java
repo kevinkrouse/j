@@ -30,11 +30,28 @@ public class UndoDeleteRegion extends AbstractUndoableEdit
     private PostState postState;
     private final LineSequence lines;
 
+    // Where the region began: the line that is left after the delete, which
+    // undo and redo find by number rather than from where the caret is when
+    // they run. Something may have moved it since without an undo record of
+    // its own (vim motions are not undo steps).
+    private final int beginLineNumber;
+
     public UndoDeleteRegion(Editor editor, Region r)
     {
         Debug.assertTrue(!editor.isColumnSelection());
+        final Buffer buffer = editor.getBuffer();
+        if (buffer.needsRenumbering())
+            buffer.renumber();
         preState = new PreState(editor);
         lines = new LineSequence(r.getBeginLine(), r.getEndLine());
+        beginLineNumber = r.getBeginLineNumber();
+    }
+
+    private Line beginLine(Buffer buffer)
+    {
+        if (buffer.needsRenumbering())
+            buffer.renumber();
+        return buffer.getLine(beginLineNumber);
     }
 
     public void undo()
@@ -106,7 +123,7 @@ public class UndoDeleteRegion extends AbstractUndoableEdit
         {
             final Buffer buffer = editor.getBuffer();
 
-            final Line dotLine = editor.getDotLine();
+            final Line dotLine = beginLine(buffer);
             final Line before = dotLine.previous();
             final Line after = dotLine.next();
 
@@ -154,7 +171,7 @@ public class UndoDeleteRegion extends AbstractUndoableEdit
             final Buffer buffer = editor.getBuffer();
             modificationCount = buffer.getModCount();
             modified = buffer.isModified();
-            line = dotLine.copy();
+            line = beginLine(buffer).copy();
         }
 
         // Redo the deletion.
@@ -162,8 +179,9 @@ public class UndoDeleteRegion extends AbstractUndoableEdit
         {
             final Buffer buffer = editor.getBuffer();
 
-            final Line before = editor.getDotLine().previous();
-            Line after = editor.getDotLine();
+            final Line begin = beginLine(buffer);
+            final Line before = begin.previous();
+            Line after = begin;
             for (int i = 0; i < lines.size(); i++) {
                 after = after.next();
                 if (after == null)
@@ -186,7 +204,7 @@ public class UndoDeleteRegion extends AbstractUndoableEdit
             buffer.needsRenumbering = true;
             buffer.renumber();
 
-            editor.setDot(restored, dotOffset);
+            editor.setDot(restored, Math.min(dotOffset, restored.length()));
             editor.setMark(null);
             final Display display = editor.getDisplay();
             display.setCaretCol(absCaretCol - display.getShift());

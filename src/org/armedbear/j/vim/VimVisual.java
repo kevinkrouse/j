@@ -182,6 +182,33 @@ final class VimVisual
     }
 
     /**
+     * Where vim's cursor stands when an operator on the selection starts, as
+     * {@link VimState#setOperatorStart} wants it: the start of a characterwise
+     * selection; for a linewise one its top line, at the caret's column if
+     * the caret is the top end, else at 0 -- nvim gives back (1,4) after Vkd
+     * from (1,4), but (0,0) after Vjd from (0,4) and after Vd. Null for a
+     * block, whose operators leave the caret at its corner themselves.
+     */
+    static Position operatorStart(Editor editor, VimState state)
+    {
+        final Position anchor = editor.getMark();
+        final Position head = editor.getDot();
+        if (anchor == null || head == null)
+            return null;
+        switch (state.getMode()) {
+            case VISUAL_BLOCK:
+                return null;
+            case VISUAL_LINE:
+                if (head.getLine() != anchor.getLine() && head.isBefore(anchor))
+                    return new Position(head);
+                return new Position(anchor.isBefore(head) ? anchor.getLine()
+                                                          : head.getLine(), 0);
+            default:
+                return new Position(anchor.isBefore(head) ? anchor : head);
+        }
+    }
+
+    /**
      * The selection as an operator's range.
      *
      * Characterwise takes in the character the caret is on, which is the one
