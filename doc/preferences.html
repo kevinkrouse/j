@@ -650,9 +650,23 @@ can be seen in the console window from which j was started.
 <code><a name="defaultEncoding">defaultEncoding</a></code>
 <dl>
 <dd>
-Character encoding to use when loading and saving files.
+Character encoding to use when loading and saving files. Unless
+<a href="#detectUtf8">detectUtf8</a> is false, a file that is well-formed
+UTF-8 loads and saves as UTF-8, and this is the encoding of the rest.
 <p>
-<b>Default value:</b> ISO8859_1
+<b>Default value:</b> ISO-8859-1
+</dl>
+
+<code><a name="detectUtf8">detectUtf8</a></code>
+<dl>
+<dd>
+If true, a file whose bytes are well-formed UTF-8, as plain ASCII is, is
+loaded and saved as UTF-8; any other is in
+<a href="#defaultEncoding">defaultEncoding</a>. This is vim's
+<code>fileencodings=utf-8,latin1</code>. An encoding given for a file, as in
+a session, still wins.
+<p>
+<b>Default value:</b> true
 </dl>
 
 <code><a name="dialogFontName">dialogFontName</a></code>

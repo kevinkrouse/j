@@ -117,6 +117,8 @@ public final class Property implements Comparable<Property>, Constants
         createProperty("confirmSend", true);
     public static final Property DEBUG =
         createProperty("debug", false);
+    public static final Property DETECT_UTF8 =
+        createProperty("detectUtf8", true);
     public static final Property DIR_SORT_DIRECTORIES_FIRST =
         createProperty("dirSortDirectoriesFirst", true);
     public static final Property DIR_USE_NATIVE_FORMAT =

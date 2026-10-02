@@ -26,9 +26,15 @@ import java.lang.StringBuilder;
 import org.armedbear.j.util.Utilities;
 
 import java.io.BufferedOutputStream;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
+import java.nio.charset.CharacterCodingException;
+import java.nio.charset.Charset;
+import java.nio.charset.CodingErrorAction;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 // System buffers are NOT linked into the normal buffer ring.
@@ -270,9 +276,21 @@ public class SystemBuffer implements Constants
                 }
             } else {
                 // Not Unicode.
+                boolean reread = false;
                 if (encoding == null) {
-                    encoding =
+                    final String fallback =
                         Editor.preferences().getStringProperty(Property.DEFAULT_ENCODING);
+                    encoding = fallback;
+                    if (detectsUtf8(fallback)) {
+                        // As vim's fileencodings=utf-8,latin1: the whole file
+                        // decides, so read it all before decoding any of it.
+                        final byte[] bytes = readAll(istream, buf, bytesRead);
+                        if (isUtf8(bytes))
+                            encoding = "UTF-8";
+                        istream = new ByteArrayInputStream(bytes);
+                        bytesRead = istream.read(buf);
+                        reread = true;
+                    }
                 }
                 loadEncoding = encoding;
                 ByteBuffer bb = new ByteBuffer(256);
@@ -312,7 +330,7 @@ public class SystemBuffer implements Constants
                         }
                     }
                     bytesRead = istream.read(buf);
-                    if (bytesRead > 0)
+                    if (bytesRead > 0 && !reread)
                         loadProgress(totalBytes = totalBytes + bytesRead);
                 }
                 if (bb.length() > 0) {
@@ -331,6 +349,51 @@ public class SystemBuffer implements Constants
             Log.error(e);
         }
         loadFinished(isLoaded);
+    }
+
+    // Whether to look for UTF-8 rather than take fallback: unless told not
+    // to, or fallback is UTF-8 already.
+    private static boolean detectsUtf8(String fallback)
+    {
+        if (!Editor.preferences().getBooleanProperty(Property.DETECT_UTF8))
+            return false;
+        try {
+            return !Charset.forName(fallback).equals(StandardCharsets.UTF_8);
+        }
+        catch (IllegalArgumentException e) {
+            return true;
+        }
+    }
+
+    // The bytes read into buf so far, and the rest of the stream.
+    private byte[] readAll(InputStream istream, byte[] buf, int bytesRead)
+        throws IOException
+    {
+        final ByteArrayOutputStream all = new ByteArrayOutputStream();
+        int totalBytes = 0;
+        while (bytesRead > 0) {
+            all.write(buf, 0, bytesRead);
+            totalBytes += bytesRead;
+            bytesRead = istream.read(buf);
+            if (bytesRead > 0)
+                loadProgress(totalBytes + bytesRead);
+        }
+        return all.toByteArray();
+    }
+
+    /** Whether bytes are well-formed UTF-8, as plain ASCII is. */
+    static boolean isUtf8(byte[] bytes)
+    {
+        try {
+            StandardCharsets.UTF_8.newDecoder()
+                .onMalformedInput(CodingErrorAction.REPORT)
+                .onUnmappableCharacter(CodingErrorAction.REPORT)
+                .decode(java.nio.ByteBuffer.wrap(bytes));
+            return true;
+        }
+        catch (CharacterCodingException e) {
+            return false;
+        }
     }
 
     public final Line getLastLine()
