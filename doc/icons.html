@@ -21,7 +21,7 @@
 j's icons are SVG and are rendered by java2d at drawn by
 <code>org.armedbear.j.util.SvgIcon</code>. The icons are resized by
 <a href="preferences.html#uiScale">uiScale</a>, and allow a theme to change
-what colour the icons are drawn in.
+what color the icons are drawn in.
 
 <p>
 Drawing them in j rather than with a rendering library keeps j free of
@@ -35,7 +35,7 @@ One file per icon, in <code>src/org/armedbear/j/images/svg</code>, named after
 the icon. Code asks for them by that bare name through
 <code>org.armedbear.j.util.Utilities.getIconFromFile</code> &mdash;
 <code>"buffer"</code>, not <code>"buffer.png"</code>, since the artwork is vector
-and the renderer picks the size. The result is cached per name, size and colour.
+and the renderer picks the size. The result is cached per name, size and color.
 <p>
 The application logo is a real bitmap and is loaded with
 <code>Utilities.getRasterIcon</code> instead.
@@ -66,7 +66,7 @@ presentation attribute on it is inherited by everything inside.
 <code>viewBox</code>, <code>width</code>, <code>height</code>
 <p>
 <code>fill</code>, <code>stroke</code> &mdash; a <code>#rgb</code> or
-<code>#rrggbb</code> colour, the keyword <code>none</code>, or
+<code>#rrggbb</code> color, the keyword <code>none</code>, or
 <code>currentColor</code>
 <p>
 <code>stroke-width</code>, <code>stroke-linecap</code>
@@ -126,7 +126,7 @@ supported, and doing so keeps every icon drawable by the same few hundred lines.
 <h2>Color</h2>
 
 <p>
-Icons are drawn in one colour, named once on the root element:
+Icons are drawn in one color, named once on the root element:
 
 <p>
 <code>&lt;svg ... color="#4A4E57" fill="none" stroke="currentColor"&gt;</code>
@@ -135,7 +135,7 @@ Icons are drawn in one colour, named once on the root element:
 Every shape then says <code>currentColor</code> rather than repeating the
 value. Setting the <a href="preferences.html#iconColor">iconColor</a> preference
 overrides it for the whole set, which is how a theme meant for a dark background
-recolours the icons without a second set of files.
+recolors the icons without a second set of files.
 
 <h2>Conventions</h2>
 

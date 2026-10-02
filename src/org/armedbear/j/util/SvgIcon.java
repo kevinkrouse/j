@@ -50,12 +50,12 @@ import org.w3c.dom.Node;
  * <p>This is not a general SVG implementation and is not meant to become one.
  * j's icons are drawn in house to a deliberately small subset -- three
  * elements, straight lines and elliptical arcs -- so that they can be painted
- * at any size, in any colour, without a rendering library. Everything the icon
+ * at any size, in any color, without a rendering library. Everything the icon
  * set uses is listed in {@code doc/icons.html}; anything else throws rather
  * than drawing something subtly wrong.
  *
  * <p>Parsing is the expensive part and the result is immutable, so a drawing is
- * parsed once per icon and shared by every size and colour it is painted at.
+ * parsed once per icon and shared by every size and color it is painted at.
  * See {@link Utilities#getIconFromFile} for the cache that callers actually go
  * through.
  */
@@ -83,7 +83,7 @@ public final class SvgIcon
      * {@code org/armedbear/j/images/svg/<name>.svg}.
      *
      * @param defaultColor resolves {@code currentColor} when the file doesn't
-     *                     name a colour of its own; may be null.
+     *                     name a color of its own; may be null.
      */
     public SvgIcon(String name, Color defaultColor) throws Exception
     {

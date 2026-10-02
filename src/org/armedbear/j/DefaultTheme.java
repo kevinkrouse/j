@@ -22,6 +22,11 @@ package org.armedbear.j;
 
 import java.awt.Color;
 import java.awt.Font;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Set;
 
 public final class DefaultTheme
 {
@@ -32,6 +37,127 @@ public final class DefaultTheme
 
     // Returns null if mode/thing not found.
     public static final Color getColor(String mode, String thing)
+    {
+        return getColor(mode, thing, false);
+    }
+
+    /**
+     * Whether text on a background wants the colors made for a dark one: its
+     * perceived brightness, as YIQ weighs it, is under half.
+     */
+    public static boolean isDark(Color background)
+    {
+        return (background.getRed() * 299 + background.getGreen() * 587 +
+                background.getBlue() * 114) / 1000 < 128;
+    }
+
+    // Styles any mode can link its own to, as emacs faces inherit and nvim
+    // links highlight groups: { name, light background, dark background }.
+    // The colors are GitHub Primer's, each 4.5:1 or better on its background.
+    private static final Object[][] SHARED_COLORS = {
+        { "heading",          0x0550ae, 0x58a6ff },
+        { "link",             0x0969da, 0x79c0ff },
+        { "code",             0x953800, 0xffa657 },
+        { "quote",            0x57606a, 0x8b949e },
+        { "muted",            0x6e7781, 0x8b949e },
+        { "listMarker",       0x8250df, 0xd2a8ff },
+        { "todo",             0x9a6700, 0xe3b341 },
+        { "inProgress",       0x8250df, 0xbc8cff },
+        { "inProgressMarker", 0x0969da, 0x58a6ff },
+        { "done",             0x1a7f37, 0x3fb950 },
+        { "cancelled",        0x8c959f, 0x6e7681 },
+    };
+
+    private static final Object[][] SHARED_STYLES = {
+        { "heading",    TextStyle.BOLD | TextStyle.ITALIC },
+        { "link",       TextStyle.UNDERLINE },
+        { "strong",     TextStyle.BOLD },
+        { "emphasis",   TextStyle.ITALIC },
+        { "quote",      TextStyle.ITALIC },
+        { "listMarker", TextStyle.BOLD },
+        { "cancelled",  TextStyle.STRIKETHROUGH },
+    };
+
+    // The shared style a thing takes what it does not say from, unless a
+    // theme or prefs link it elsewhere: { mode or null for any, thing, to }.
+    private static final String[][] LINKS = {
+        { null, "emphasis", "text" },
+        { null, "strong",   "text" },
+        { null, "url",      "muted" },
+    };
+
+    // What every mode has, before a mode or a shared style says otherwise:
+    // the editor's own colors, then the syntax most modes color.
+    private static final String[] BUILT_IN_NAMES = {
+        "text", "background", "caret", "currentLineBackground",
+        "selectionBackground", "matchingBracketBackground",
+        "searchMatchBackground", "verticalRule", "lineNumber", "gutterBorder",
+        "change", "savedChange",
+        "comment", "keyword", "function", "string", "number", "operator",
+        "brace", "preprocessor", "disabled", "matchingText", "prompt", "input",
+        "status", "key", "value", "delimiter",
+    };
+
+    /** The names of the styles every mode has, for listStyles. */
+    public static List<String> getBuiltInNames()
+    {
+        return Arrays.asList(BUILT_IN_NAMES);
+    }
+
+    /** The names of the shared styles, for listStyles. */
+    public static List<String> getSharedStyleNames()
+    {
+        final Set<String> names = new LinkedHashSet<String>();
+        for (Object[] entry : SHARED_COLORS)
+            names.add((String) entry[0]);
+        for (Object[] entry : SHARED_STYLES)
+            names.add((String) entry[0]);
+        for (String[] link : LINKS)
+            if (link[0] == null)
+                names.add(link[1]);
+        return new ArrayList<String>(names);
+    }
+
+    /**
+     * The name a thing links to by default, or null. FormatTable follows it
+     * for whatever the thing's own preferences leave out.
+     */
+    public static String getLink(String mode, String thing)
+    {
+        String any = null;
+        for (String[] link : LINKS) {
+            if (!link[1].equals(thing))
+                continue;
+            if (link[0] == null)
+                any = link[2];
+            else if (link[0].equals(mode))
+                return link[2];
+        }
+        return any;
+    }
+
+    private static Color getSharedColor(String thing, boolean dark)
+    {
+        for (Object[] entry : SHARED_COLORS)
+            if (entry[0] == thing)
+                return new Color((Integer) entry[dark ? 2 : 1]);
+        return null;
+    }
+
+    private static int getSharedStyle(String thing)
+    {
+        for (Object[] entry : SHARED_STYLES)
+            if (entry[0] == thing)
+                return (Integer) entry[1];
+        return -1;
+    }
+
+    /**
+     * A mode's own default for a thing first, then a shared style's color
+     * for the background, then the colors every mode shares. Returns null if
+     * mode/thing not found.
+     */
+    public static final Color getColor(String mode, String thing, boolean dark)
     {
         if (thing == null)
             return null;
@@ -187,6 +313,10 @@ public final class DefaultTheme
             }
         }
 
+        final Color shared = getSharedColor(thing, dark);
+        if (shared != null)
+            return shared;
+
         if (thing == "text")
             return new Color(0, 0, 0);
         if (thing == "background")
@@ -248,10 +378,6 @@ public final class DefaultTheme
         if (thing == "target")
             return new Color(0, 0, 0);
 
-        // Web mode.
-        if (thing == "link")
-            return new Color(0, 0, 255);
-
         // List Registers mode.
         if (thing == "registerPrefix")
             return new Color(0, 0, 153);
@@ -262,8 +388,8 @@ public final class DefaultTheme
         return null;
     }
 
-    // Font.PLAIN is 0, Font.BOLD is 1, Font.ITALIC is 2.
-    // Returns -1 if mode/thing not found.
+    // A TextStyle: Font.PLAIN is 0, Font.BOLD is 1, Font.ITALIC is 2, and
+    // the other bits combine with them. Returns -1 if mode/thing not found.
     public static final int getStyle(String mode, String thing)
     {
         if (thing == null)
@@ -341,6 +467,10 @@ public final class DefaultTheme
                     return Font.ITALIC;
             }
         }
+
+        final int shared = getSharedStyle(thing);
+        if (shared >= 0)
+            return shared;
 
         if (thing == "keyword")
             return Font.BOLD;

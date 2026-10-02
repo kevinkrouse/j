@@ -23,7 +23,6 @@ package org.armedbear.j;
 import org.armedbear.j.util.Utilities;
 
 import java.awt.Color;
-import java.awt.Font;
 
 public abstract class Formatter implements Constants
 {
@@ -130,7 +129,7 @@ public abstract class Formatter implements Constants
 
     /**
      * Behind the match a search being typed has the caret on. Unless a theme
-     * says, the selection's colour, which it has made to stand out.
+     * says, the selection's color, which it has made to stand out.
      */
     public Color getCurrentSearchMatchBackgroundColor()
     {
@@ -144,7 +143,7 @@ public abstract class Formatter implements Constants
         return colorCurrentSearchMatchBackground;
     }
 
-    // Bracket colours by depth, for a light background and a dark: hues far
+    // Bracket colors by depth, for a light background and a dark: hues far
     // enough apart that neighbouring depths read as different.
     private static final int[][] RAINBOW_LIGHT = {
         {0x70, 0x70, 0x70}, {0x22, 0x88, 0xcc}, {0x99, 0x66, 0xcc},
@@ -161,7 +160,7 @@ public abstract class Formatter implements Constants
     private Color unmatchedDelimiterColor;
 
     /**
-     * The colour of a bracket at a depth, from 1 outermost, for
+     * The color of a bracket at a depth, from 1 outermost, for
      * rainbowDelimiters: color.rainbowDelimiter1, 2 and on as far as a theme
      * sets them, round again after the last. Without them, a palette made for
      * the background. Depth 0 is a closing bracket nothing opened, in
@@ -177,9 +176,7 @@ public abstract class Formatter implements Constants
                                                 (colors.size() + 1))) != null)
                 colors.add(c);
             if (colors.isEmpty()) {
-                final Color bg = getBackgroundColor();
-                final boolean dark = (bg.getRed() * 299 + bg.getGreen() * 587 +
-                                      bg.getBlue() * 114) / 1000 < 128;
+                final boolean dark = DefaultTheme.isDark(getBackgroundColor());
                 for (int[] rgb : dark ? RAINBOW_DARK : RAINBOW_LIGHT)
                     colors.add(new Color(rgb[0], rgb[1], rgb[2]));
             }
@@ -202,12 +199,13 @@ public abstract class Formatter implements Constants
         return DefaultTheme.getColor("text");
     }
 
+    /** The format's TextStyle: bold, italic, underline, strikethrough. */
     public int getStyle(int format)
     {
         FormatTableEntry entry = getFormatTable().lookup(format);
         if (entry != null)
             return entry.getStyle();
-        return Font.PLAIN;
+        return TextStyle.PLAIN;
     }
 
     /*
@@ -217,9 +215,18 @@ public abstract class Formatter implements Constants
     }
     */
 
+    /**
+     * A color to show a swatch of in the gutter beside line, as for a line
+     * that defines one, or null.
+     */
+    public Color getGutterColor(Line line)
+    {
+        return null;
+    }
+
     public boolean getUnderline(int format)
     {
-        return false;
+        return (getStyle(format) & TextStyle.UNDERLINE) != 0;
     }
 
     public void reset()

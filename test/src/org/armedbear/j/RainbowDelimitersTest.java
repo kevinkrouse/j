@@ -21,7 +21,7 @@ import org.junit.After;
 import org.junit.Test;
 
 /**
- * The depths rainbowDelimiters colours brackets by, and the other ends of
+ * The depths rainbowDelimiters colors brackets by, and the other ends of
  * strings highlightMatchingBracket shows.
  */
 public class RainbowDelimitersTest

@@ -61,6 +61,7 @@ public final class Display extends JComponent implements Constants,
     private static Font plainFont;
     private static Font boldFont;
     private static Font italicFont;
+    private static Font boldItalicFont;
 
     private static int charHeight;
     private static int charDescent;
@@ -68,6 +69,7 @@ public final class Display extends JComponent implements Constants,
     private static int charLeading;
     private static int charWidth;
     private static int spaceWidth; // Width of a space character.
+    private static int strikethroughRise; // Above the baseline.
     private static int minCharWidth;
 
     private static boolean antialias;
@@ -141,10 +143,13 @@ public final class Display extends JComponent implements Constants,
 
         plainFont = new Font(fontName, Font.PLAIN, fontSize);
         boldFont = new Font(fontName, Font.BOLD, fontSize);
-        if (preferences.getBooleanProperty(Property.ENABLE_ITALICS))
+        if (preferences.getBooleanProperty(Property.ENABLE_ITALICS)) {
             italicFont = new Font(fontName, Font.ITALIC, fontSize);
-        else
+            boldItalicFont = new Font(fontName, Font.BOLD | Font.ITALIC, fontSize);
+        } else {
             italicFont = plainFont;
+            boldItalicFont = boldFont;
+        }
 
         FontMetrics fm = Utilities.getFontMetrics(plainFont);
 
@@ -153,6 +158,8 @@ public final class Display extends JComponent implements Constants,
         final int plainLeading = fm.getLeading();
 
         charWidth = fm.charWidth('a');
+        strikethroughRise = Math.max(1, Math.round(-plainFont.getLineMetrics(
+            "x", fm.getFontRenderContext()).getStrikethroughOffset()));
         spaceWidth = fm.charWidth(' ');
         minCharWidth = getMinCharWidth(fm);
 
@@ -781,7 +788,7 @@ public final class Display extends JComponent implements Constants,
     }
 
     /**
-     * Redraws the character a block caret covers, in the background colour.
+     * Redraws the character a block caret covers, in the background color.
      *
      * A filled block hides the character underneath it, which is not what a
      * block cursor looks like anywhere else: a terminal draws the cell
@@ -819,12 +826,19 @@ public final class Display extends JComponent implements Constants,
 
     private Font fontForFormat(int format)
     {
-        switch (editor.getFormatter().getStyle(formatterFormat(format))) {
-            case Font.BOLD:
+        return fontFor(editor.getFormatter().getStyle(formatterFormat(format)));
+    }
+
+    /** The font for a TextStyle; underline and strikethrough are drawn. */
+    private static Font fontFor(int style)
+    {
+        switch (TextStyle.fontStyle(style)) {
+            case TextStyle.BOLD:
                 return boldFont;
-            case Font.ITALIC:
+            case TextStyle.ITALIC:
                 return italicFont;
-            case Font.PLAIN:
+            case TextStyle.BOLD | TextStyle.ITALIC:
+                return boldItalicFont;
             default:
                 return plainFont;
         }
@@ -996,7 +1010,7 @@ public final class Display extends JComponent implements Constants,
         return totalChars;
     }
 
-    // A format with RAINBOW set is a bracket formatLine has coloured by its
+    // A format with RAINBOW set is a bracket formatLine has colored by its
     // depth, which it keeps above RAINBOW_SHIFT. Below it, the format the
     // formatter gave, still saying the bracket's style.
     private static final int RAINBOW = 1 << 30;
@@ -1004,7 +1018,7 @@ public final class Display extends JComponent implements Constants,
     private static final int MAX_RAINBOW_DEPTH = (1 << 10) - 1;
 
     /**
-     * Over the formatter's colours, colours each bracket of the line by how
+     * Over the formatter's colors, colors each bracket of the line by how
      * deeply it is nested, for rainbowDelimiters.
      */
     private void colorBrackets(Line line, int begin, int limit)
@@ -1205,6 +1219,10 @@ public final class Display extends JComponent implements Constants,
             g.setColor(editor.getFormatter().getColor(0)); // Default text color.
             g.setFont(plainFont);
             g.drawChars(chars, 0, 1, x, y + charAscent);
+        } else {
+            final Color swatch = editor.getFormatter().getGutterColor(line);
+            if (swatch != null)
+                drawSwatch(g, swatch, x, y);
         }
         x += charWidth;
         if (showLineNumbers) {
@@ -1217,6 +1235,21 @@ public final class Display extends JComponent implements Constants,
                 g.drawString(s, x, y + charAscent);
             }
         }
+    }
+
+    /**
+     * A small square of color in the gutter's first column, outlined in the
+     * text's color so that one like the background still shows.
+     */
+    private void drawSwatch(Graphics g, Color color, int x, int y)
+    {
+        final int size = Math.max(4, Math.min(charWidth, charAscent) - 2);
+        final int left = x + (charWidth - size) / 2;
+        final int top = y + (charAscent + charDescent - size) / 2;
+        g.setColor(color);
+        g.fillRect(left, top, size, size);
+        g.setColor(editor.getFormatter().getColor(0)); // Default text color.
+        g.drawRect(left, top, size - 1, size - 1);
     }
 
     private void drawGutterBorder(Graphics g)
@@ -1309,24 +1342,12 @@ public final class Display extends JComponent implements Constants,
             while (i < length && formatArray[i] == format && i != breakCol)
                 ++i;
             g2d.setColor(colorOf(formatter, format));
-            int style = formatter.getStyle(formatterFormat(format));
-            Font font;
-            switch (style) {
-                case Font.BOLD:
-                    font = boldFont;
-                    break;
-                case Font.ITALIC:
-                    font = italicFont;
-                    break;
-                case Font.PLAIN:
-                default:
-                    font = plainFont;
-                    break;
-            }
+            final int style = formatter.getStyle(formatterFormat(format));
+            final Font font = fontFor(style);
             GlyphVector gv = glyphs(font, g2d.getFontRenderContext(),
                                     textArray, start, i);
             final double width = gv.getLogicalBounds().getWidth();
-            if (style == Font.BOLD) {
+            if ((style & TextStyle.BOLD) != 0) {
                 if (boldFont == plainFont) {
                     if (underlineBold)
                         g2d.drawLine((int)x, y + charAscent + 1, (int)(x + width), y + charAscent + 1);
@@ -1337,6 +1358,11 @@ public final class Display extends JComponent implements Constants,
             }
             if (formatter.getUnderline(formatterFormat(format)))
                 g2d.drawLine((int)x, y + charAscent + 1, (int)(x + width), y + charAscent + 1);
+            if ((style & TextStyle.STRIKETHROUGH) != 0) {
+                // Through the middle of the lower case letters.
+                final int strikeY = y + charAscent - strikethroughRise;
+                g2d.drawLine((int)x, strikeY, (int)(x + width), strikeY);
+            }
             g2d.drawGlyphVector(gv, (float)x, y + charAscent);
             x += width;
         }
@@ -1355,19 +1381,7 @@ public final class Display extends JComponent implements Constants,
             int startCol = i;
             while (i < limit && formatArray[i] == format)
                 ++i;
-            Font font;
-            switch (formatter.getStyle(formatterFormat(format))) {
-                case Font.BOLD:
-                    font = boldFont;
-                    break;
-                case Font.ITALIC:
-                    font = italicFont;
-                    break;
-                case Font.PLAIN:
-                default:
-                    font = plainFont;
-                    break;
-            }
+            final Font font = fontFor(formatter.getStyle(formatterFormat(format)));
             GlyphVector gv = glyphs(font, g2d.getFontRenderContext(),
                                     textArray, startCol, i);
             totalWidth += gv.getLogicalBounds().getWidth();

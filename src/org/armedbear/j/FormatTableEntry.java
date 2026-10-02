@@ -21,18 +21,37 @@
 package org.armedbear.j;
 
 import java.awt.Color;
+import java.util.Collections;
+import java.util.List;
 
 /*package*/ class FormatTableEntry
 {
     private final int format;
     private final Color color;
     private final int style;
+    private final String name;
+    private final List<String> names;
+    private final String colorSource;
+    private final String styleSource;
 
-    /*package*/ FormatTableEntry(int format, Color color, int style)
+    /**
+     * @param names name, then the names it links to and its fallbacks, in
+     *     the order they were asked
+     * @param colorSource the preference key the color came from, or
+     *     "default name" for DefaultTheme's for a name
+     * @param styleSource the same for the style, or null if nothing gave one
+     *     and it is plain
+     */
+    /*package*/ FormatTableEntry(int format, Color color, int style,
+        String name, List<String> names, String colorSource, String styleSource)
     {
         this.format = format;
         this.color = color;
         this.style = style;
+        this.name = name;
+        this.names = Collections.unmodifiableList(names);
+        this.colorSource = colorSource;
+        this.styleSource = styleSource;
     }
 
     /*package*/ final int getFormat()
@@ -48,5 +67,25 @@ import java.awt.Color;
     /*package*/ final int getStyle()
     {
         return style;
+    }
+
+    /*package*/ final String getName()
+    {
+        return name;
+    }
+
+    /*package*/ final List<String> getNames()
+    {
+        return names;
+    }
+
+    /*package*/ final String getColorSource()
+    {
+        return colorSource;
+    }
+
+    /*package*/ final String getStyleSource()
+    {
+        return styleSource;
     }
 }

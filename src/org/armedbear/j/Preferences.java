@@ -23,8 +23,10 @@ package org.armedbear.j;
 import org.armedbear.j.util.Utilities;
 
 import java.awt.Color;
+import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.util.*;
 
 public final class Preferences
@@ -123,6 +125,10 @@ public final class Preferences
                 it.remove();
             else if (key.contains(".style."))
                 it.remove();
+            else if (key.startsWith("link."))
+                it.remove();
+            else if (key.contains(".link."))
+                it.remove();
         }
     }
 
@@ -139,6 +145,61 @@ public final class Preferences
             }
         }
         return canonicalize(properties);
+    }
+
+    /**
+     * Whether file looks like a theme: the theme in use, or a name with no
+     * extension in a directory on themePath or in j's own themes directory,
+     * or in another directory named "themes" if its first setting is a
+     * color, style or link. Themes are properties files, and most say so
+     * only by where they are.
+     */
+    public synchronized boolean isThemeFile(File file)
+    {
+        if (file == null || !file.isLocal())
+            return false;
+        final String theme = getStringProperty(Property.THEME);
+        if (theme != null && file.equals(
+                getThemeFile(theme, getStringProperty(Property.THEME_PATH))))
+            return true;
+        final String name = file.getName();
+        if (name == null || name.indexOf('.') >= 0)
+            return false;
+        final File dir = file.getParentFile();
+        if (dir == null)
+            return false;
+        for (File resourceDir : Utilities.resourceDirs())
+            if (dir.equals(File.getInstance(resourceDir, "themes")))
+                return true;
+        final String themePath = getStringProperty(Property.THEME_PATH);
+        if (themePath != null) {
+            final String[] dirs = new Path(stripQuotes(themePath)).list();
+            if (dirs != null)
+                for (String part : dirs)
+                    if (dir.equals(File.getInstance(part)))
+                        return true;
+        }
+        return "themes".equals(dir.getName()) && startsWithThemeSetting(file);
+    }
+
+    // Whether the first line that is not blank or a comment sets a color,
+    // style or link, for all modes or for one.
+    private static boolean startsWithThemeSetting(File file)
+    {
+        try (BufferedReader reader = new BufferedReader(
+                 new InputStreamReader(file.getInputStream()))) {
+            String s;
+            while ((s = reader.readLine()) != null) {
+                s = s.trim().toLowerCase();
+                if (s.isEmpty() || s.charAt(0) == '#' || s.charAt(0) == '!')
+                    continue;
+                return s.matches("(\\w+\\.)?(color|style|link)\\..*");
+            }
+        }
+        catch (IOException e) {
+            Log.error(e);
+        }
+        return false;
     }
 
     private static File getThemeFile(String themeName, String themePath)

@@ -44,5 +44,43 @@ loaded by the <code>theme</code> property above; you load them from your
 <code>abcl</code> <a href="extensions.html">extension</a>. Without it they do
 nothing at all &mdash; no error, no theme.
 
+<h2>Styles</h2>
+<p>
+A <code>style.</code> property may be a number, 0 plain, 1 bold, 2 italic or
+3 bold italic, or words: any of <code>plain</code>, <code>bold</code>,
+<code>italic</code>, <code>underline</code> and <code>strikethrough</code>.
+<pre>
+    style.heading = bold italic
+    MarkdownMode.style.cancelled = strikethrough
+</pre>
+
+<h2><a name="shared">Shared styles and links</a></h2>
+<p>
+Some styles are shared by every mode that has a use for them:
+<code>heading</code>, <code>link</code>, <code>url</code>, <code>code</code>,
+<code>emphasis</code>, <code>strong</code>, <code>quote</code>,
+<code>muted</code>, <code>listMarker</code>, <code>todo</code>,
+<code>inProgress</code>, <code>inProgressMarker</code>, <code>done</code> and
+<code>cancelled</code>. Without a theme's say they have colors made for a
+light background and others for a dark one, chosen by
+<code>color.background</code>.
+<p>
+A mode's own things link to the shared ones, the way emacs faces inherit and
+nvim links highlight groups, so a theme sets <code>color.heading</code> once
+and every mode's headings follow. A thing takes from its link whatever its
+own <code>color.</code> and <code>style.</code> properties leave out. A theme
+or your preferences can link a thing elsewhere, for all modes or for one:
+<pre>
+    link.url = comment
+    MarkdownMode.link.heading1 = keyword
+</pre>
+<p>
+<a href="commands.html#listStyles">listStyles</a> shows what each style came
+to and where from. In a theme or preferences file, every line that sets a
+color shows a swatch of it in the gutter. A file with no extension in a
+directory named <code>themes</code> or on <code>themePath</code>, or the theme
+in use, is edited as a properties file even without a
+<code>-*- Mode: Properties -*-</code> first line.
+
 </body>
 </html>

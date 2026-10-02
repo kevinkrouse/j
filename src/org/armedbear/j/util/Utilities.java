@@ -1060,39 +1060,67 @@ public final class Utilities implements Constants
 
     public static Color getColor(String s)
     {
-        Color color = null;
+        return parseColor(s);
+    }
+
+    /**
+     * A color as preferences write one: a name (black, white, yellow, blue,
+     * red, gray, green), "#rgb", "#rrggbb", or three numbers 0-255 for red,
+     * green and blue. Returns null for anything else, and says nothing about
+     * it, so it can be asked of any text.
+     */
+    public static Color parseColor(String s)
+    {
+        if (s == null)
+            return null;
         s = s.trim();
-        if (s.equals("black"))
-            color = Color.black;
-        else if (s.equals("white"))
-            color = Color.white;
-        else if (s.equals("yellow"))
-            color = Color.yellow;
-        else if (s.equals("blue"))
-            color = Color.blue;
-        else if (s.equals("red"))
-            color = Color.red;
-        else if (s.equals("gray"))
-            color = Color.gray;
-        else if (s.equals("green"))
-            color = Color.green;
-        else {
-            try {
-                // The string must consist of three numbers for the R, G, B
-                // components.
-                StringTokenizer st = new StringTokenizer(s);
-                if (st.countTokens() == 3) {
-                    int r = Integer.parseInt(st.nextToken());
-                    int g = Integer.parseInt(st.nextToken());
-                    int b = Integer.parseInt(st.nextToken());
-                    color = new Color(r, g, b);
-                }
-            }
-            catch (Exception e) {
-                Log.error(e);
-            }
+        switch (s) {
+            case "black":  return Color.black;
+            case "white":  return Color.white;
+            case "yellow": return Color.yellow;
+            case "blue":   return Color.blue;
+            case "red":    return Color.red;
+            case "gray":   return Color.gray;
+            case "green":  return Color.green;
         }
-        return color;
+        if (s.startsWith("#"))
+            return parseHexColor(s);
+        final StringTokenizer st = new StringTokenizer(s);
+        if (st.countTokens() != 3)
+            return null;
+        final int[] rgb = new int[3];
+        for (int i = 0; i < 3; i++) {
+            try {
+                rgb[i] = Integer.parseInt(st.nextToken());
+            }
+            catch (NumberFormatException e) {
+                return null;
+            }
+            if (rgb[i] < 0 || rgb[i] > 255)
+                return null;
+        }
+        return new Color(rgb[0], rgb[1], rgb[2]);
+    }
+
+    /**
+     * "#rgb" or "#rrggbb", as CSS writes them; null for anything else. In
+     * "#rgb" each digit is doubled, so "#f80" is "#ff8800".
+     */
+    public static Color parseHexColor(String s)
+    {
+        final int length = s.length();
+        if (length != 4 && length != 7 || s.charAt(0) != '#')
+            return null;
+        int rgb = 0;
+        for (int i = 1; i < length; i++) {
+            final int digit = Character.digit(s.charAt(i), 16);
+            if (digit < 0)
+                return null;
+            rgb = rgb << 4 | digit;
+            if (length == 4)
+                rgb = rgb << 4 | digit;
+        }
+        return new Color(rgb);
     }
 
     // BUG! Not really correct!
@@ -1464,7 +1492,7 @@ public final class Utilities implements Constants
     // The size j's icons are drawn for before the display scale is applied.
     public static final int ICON_SIZE = 16;
 
-    // Geometry, parsed once per icon and shared by every size and colour.
+    // Geometry, parsed once per icon and shared by every size and color.
     private static final HashMap<String, SvgIcon> svgCache =
         new HashMap<String, SvgIcon>();
 

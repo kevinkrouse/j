@@ -473,6 +473,8 @@ public class Buffer extends SystemBuffer
                             m = getModeForFileName(entryName);
                     } else if (file != null) {
                         m = getModeForFileName(file.getName());
+                        if (m == null && Editor.preferences().isThemeFile(file))
+                            m = modeList.getMode(PROPERTIES_MODE);
                     }
                     if (m != null && m.getId() == IMAGE_MODE) {
                         if (fileType == FILETYPE_TEXT)

@@ -317,7 +317,7 @@ change what it matches.
 **incsearch** runs off the prompt's `keyReleased`: `searchTyped` finds the
 pattern so far from where `/` was typed (`PendingSearch.origin`), moves the
 caret there without a jump, and shows the pattern as `VimState`'s preview,
-its match through `getCurrentSearchMatch` in a colour of its own -- the
+its match through `getCurrentSearchMatch` in a color of its own -- the
 display has no focus, so no caret shows it. Enter, Escape and anything else
 that drops the half-typed command put the caret and the window back first
 (`endPreview`, inside `dropPartialCommand`), so the real search runs from
@@ -414,7 +414,7 @@ requirements.
 
 - **Caret shape.** Block in normal and visual, bar in insert, underline in
   replace, drawn inside a selection. The block redraws the character under it
-  in the background colour and its syntax font, and is as wide as the
+  in the background color and its syntax font, and is as wide as the
   character (two UTF-16 units for an emoji).
 - **Mode indicator.** `-- INSERT --` and the pending command (`2d`, `"a3`) come
   from the handler and are drawn by `StatusBar`. Not `Property.EMULATION`: that

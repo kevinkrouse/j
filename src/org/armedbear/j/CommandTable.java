@@ -367,6 +367,7 @@ public class CommandTable
             addCommand("listOccurrencesOfPatternAtDot", "mode.list.ListOccurrencesBuffer");
             addCommand("listProperties", "PropertiesDialog");
             addCommand("listRegisters", "Registers");
+            addCommand("listStyles", "ListStyles");
             addCommand("listTags", "mode.list.ListTagsDialog");
             addCommand("listThreads", "Debug");
             addCommand("loadLispFile", "mode.lisp.LispMode");

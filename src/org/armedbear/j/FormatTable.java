@@ -21,8 +21,9 @@
 package org.armedbear.j;
 
 import java.awt.Color;
-import java.awt.Font;
 import java.util.ArrayList;
+import java.util.List;
+import java.util.function.Function;
 
 public final class FormatTable
 {
@@ -37,6 +38,11 @@ public final class FormatTable
     {
         this.modeName = modeName;
         list = new ArrayList<FormatTableEntry>();
+    }
+
+    public synchronized final String getModeName()
+    {
+        return modeName;
     }
 
     public synchronized final void setModeName(String s)
@@ -98,91 +104,184 @@ public final class FormatTable
 
     public synchronized void addEntryFromPrefs(int format, String thing)
     {
-        addEntryFromPrefs(format, thing, null);
+        addEntryFromPrefs(format, thing, (String[]) null);
     }
 
     public synchronized void addEntryFromPrefs(int format, String thing, String fallback)
     {
-        // Color.
+        addEntryFromPrefs(format, thing,
+                          fallback == null ? null : new String[] { fallback });
+    }
+
+    /**
+     * Gives format the color and style preferences set for thing. What they
+     * leave out comes from the names thing links to, then each fallback and
+     * what it links to, as an emacs face inherits or an nvim group links: the
+     * preferences for every one of those names first, "JavaMode.color.thing"
+     * then "color.thing", and only then DefaultTheme's for each.
+     *
+     * A theme or prefs link a name with "link.thing = other", or for one mode
+     * "JavaMode.link.thing = other"; DefaultTheme.getLink says where a name
+     * links when they do not.
+     */
+    public synchronized void addEntryFromPrefs(int format, String thing,
+                                               String... fallbacks)
+    {
+        final List<String> names = new ArrayList<String>();
+        addLinked(names, thing);
+        if (fallbacks != null)
+            for (String fallback : fallbacks)
+                addLinked(names, fallback);
+
         Color color = null;
-        String key;
-        if (modeName != null) {
-            // "JavaMode.color.comment"
-            key = modeName + ".color." + thing;
-            color = preferences.getColorProperty(key);
-        }
-        if (color == null) {
-            // "color.comment"
-            key = "color." + thing;
-            color = preferences.getColorProperty(key);
-        }
-        // Use fallback if there's no entry for thing.
-        if (color == null && fallback != null) {
-            if (modeName != null) {
-                key = modeName + ".color." + fallback;
-                color = preferences.getColorProperty(key);
-            }
-            if (color == null) {
-                key = "color." + fallback;
-                color = preferences.getColorProperty(key);
+        String colorSource = null;
+        for (String name : names) {
+            final Preference<Color> p =
+                findPreference("color", name, preferences::getColorProperty);
+            if (p != null) {
+                color = p.value;
+                colorSource = p.key;
+                break;
             }
         }
         if (color == null) {
-            color = DefaultTheme.getColor(modeName, thing);
-            if (color == null && fallback != null) {
-                color = DefaultTheme.getColor(modeName, fallback);
-                if (color == null)
-                    color = DefaultTheme.getColor("text");
+            final boolean dark = DefaultTheme.isDark(getBackground());
+            for (String name : names) {
+                if ((color = DefaultTheme.getColor(modeName, name, dark)) != null) {
+                    colorSource = "default " + name;
+                    break;
+                }
             }
+        }
+        // Nothing at all: the theme's text, not DefaultTheme's black on what
+        // may be a dark background.
+        if (color == null) {
+            final Preference<Color> p =
+                findPreference("color", "text", preferences::getColorProperty);
+            if (p != null) {
+                color = p.value;
+                colorSource = p.key;
+            }
+        }
+        if (color == null) {
+            color = DefaultTheme.getColor("text");
+            colorSource = "default text";
         }
 
-        // Style.
         int style = -1;
-        String value = null;
+        String styleSource = null;
+        for (String name : names) {
+            final Preference<Integer> p = findPreference("style", name, k -> {
+                final int parsed = TextStyle.parse(preferences.getStringProperty(k));
+                return parsed >= 0 ? parsed : null;
+            });
+            if (p != null) {
+                style = p.value;
+                styleSource = p.key;
+                break;
+            }
+        }
+        if (style < 0) {
+            for (String name : names) {
+                if ((style = DefaultTheme.getStyle(modeName, name)) >= 0) {
+                    styleSource = "default " + name;
+                    break;
+                }
+            }
+        }
+        if (style < 0)
+            style = TextStyle.PLAIN;
+
+        addEntry(new FormatTableEntry(format, color, style, thing, names,
+                                      colorSource, styleSource));
+    }
+
+    /**
+     * The entries, in order of format, with the names each was resolved
+     * through and where its color and style came from: for listStyles.
+     */
+    /*package*/ synchronized List<FormatTableEntry> getEntries()
+    {
+        final List<FormatTableEntry> entries = new ArrayList<FormatTableEntry>();
+        if (list != null)
+            entries.addAll(list);
+        else if (array != null)
+            for (FormatTableEntry entry : array)
+                if (entry != null)
+                    entries.add(entry);
+        entries.sort((a, b) -> Integer.compare(a.getFormat(), b.getFormat()));
+        return entries;
+    }
+
+    // The links of a chain are few; more than this is a cycle.
+    private static final int MAX_LINKS = 8;
+
+    // Only called from synchronized methods.
+    private void addLinked(List<String> names, String name)
+    {
+        for (int i = 0; name != null && i < MAX_LINKS; i++) {
+            if (names.contains(name))
+                return;
+            names.add(name);
+            String link = getPreference("link", name, preferences::getStringProperty);
+            name = link != null ? link.trim() : DefaultTheme.getLink(modeName, name);
+        }
+    }
+
+    // A preference's key and its value.
+    private static final class Preference<T>
+    {
+        final String key;
+        final T value;
+
+        Preference(String key, T value)
+        {
+            this.key = key;
+            this.value = value;
+        }
+    }
+
+    // "JavaMode.color.comment", then "color.comment": the first that get
+    // makes a value of, or null.
+    private <T> Preference<T> findPreference(String kind, String name,
+                                             Function<String, T> get)
+    {
         if (modeName != null) {
-            // "JavaMode.style.comment"
-            key = modeName + ".style." + thing;
-            value = preferences.getStringProperty(key);
+            final String key = modeName + "." + kind + "." + name;
+            final T value = get.apply(key);
+            if (value != null)
+                return new Preference<T>(key, value);
         }
-        if (value == null) {
-            // "style.comment"
-            key = "style." + thing;
-            value = preferences.getStringProperty(key);
-        }
-        // Use fallback if there's no entry for thing.
-        if (value == null && fallback != null) {
-            if (modeName != null) {
-                key = modeName + ".style." + fallback;
-                value = preferences.getStringProperty(key);
-            }
-            if (value == null) {
-                key = "style." + fallback;
-                value = preferences.getStringProperty(key);
-            }
-        }
-        if (value != null) {
-            try {
-                style = Integer.parseInt(value);
-            }
-            catch (NumberFormatException e) {}
-        }
-        if (style != Font.PLAIN && style != Font.BOLD && style != Font.ITALIC) {
-            style = DefaultTheme.getStyle(modeName, thing);
-            if (style < 0) {
-                if (fallback != null)
-                    style = DefaultTheme.getStyle(modeName, fallback);
-                if (style < 0)
-                    style = Font.PLAIN;
-            }
-        }
-        addEntry(format, thing, color, style);
+        final String key = kind + "." + name;
+        final T value = get.apply(key);
+        return value != null ? new Preference<T>(key, value) : null;
+    }
+
+    private <T> T getPreference(String kind, String name, Function<String, T> get)
+    {
+        final Preference<T> p = findPreference(kind, name, get);
+        return p != null ? p.value : null;
+    }
+
+    /** Whether the shared styles took their colors for a dark background. */
+    /*package*/ synchronized boolean isDarkBackground()
+    {
+        return DefaultTheme.isDark(getBackground());
+    }
+
+    // The background the mode's colors are for, so that a shared style can
+    // take its color for a light background or a dark.
+    private Color getBackground()
+    {
+        Color background = getPreference("color", "background",
+                                         preferences::getColorProperty);
+        return background != null ? background : DefaultTheme.getColor("background");
     }
 
     // Only called from synchronized methods.
-    private void addEntry(int format, String name, Color color, int style)
+    private void addEntry(FormatTableEntry entry)
     {
-        FormatTableEntry entry = new FormatTableEntry(format, color, style);
-        int index = indexOf(format);
+        int index = indexOf(entry.getFormat());
         if (index >= 0)
             list.set(index, entry);
         else

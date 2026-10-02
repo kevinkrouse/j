@@ -114,7 +114,7 @@ public class VimSearchOptionsTest
     }
 
     @Test
-    public void theMatchTheCaretIsOnHasItsOwnColour()
+    public void theMatchTheCaretIsOnHasItsOwnColor()
     {
         h = vim("abc abc");
         h.keys("w/").searchTyped("b");
@@ -252,7 +252,7 @@ public class VimSearchOptionsTest
     }
 
     @Test
-    public void theMatchSteppedToIsTheOneInItsOwnColour()
+    public void theMatchSteppedToIsTheOneInItsOwnColor()
     {
         h = vim("ab ab ab ab");
         h.keys("/ab<C-g>");

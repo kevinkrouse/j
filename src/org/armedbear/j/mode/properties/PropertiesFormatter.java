@@ -25,6 +25,9 @@ import org.armedbear.j.FormatTable;
 import org.armedbear.j.Formatter;
 import org.armedbear.j.Line;
 import org.armedbear.j.LineSegmentList;
+import org.armedbear.j.util.Utilities;
+
+import java.awt.Color;
 
 public final class PropertiesFormatter extends Formatter
 {
@@ -79,6 +82,35 @@ public final class PropertiesFormatter extends Formatter
         } else
             addSegment(text, PROPERTIES_FORMAT_TEXT);
         return segmentList;
+    }
+
+    /**
+     * The color a line sets, "color.text = 0 255 0" or
+     * "JavaMode.color.comment = #808080", for a swatch in the gutter.
+     */
+    public Color getGutterColor(Line line)
+    {
+        final String text = line.getText().trim();
+        if (text.isEmpty())
+            return null;
+        switch (text.charAt(0)) {
+            case '#':
+            case ';':
+            case '!':
+                return null;
+        }
+        // As a properties file separates them: '=', ':' or whitespace.
+        int index = 0;
+        while (index < text.length() && "=: \t".indexOf(text.charAt(index)) < 0)
+            ++index;
+        if (index == text.length())
+            return null;
+        if (!text.substring(0, index).toLowerCase().contains("color"))
+            return null;
+        String value = text.substring(index).trim();
+        if (!value.isEmpty() && (value.charAt(0) == '=' || value.charAt(0) == ':'))
+            value = value.substring(1);
+        return Utilities.parseColor(value);
     }
 
     public FormatTable getFormatTable()

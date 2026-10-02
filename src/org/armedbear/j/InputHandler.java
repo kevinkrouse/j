@@ -145,7 +145,7 @@ public interface InputHandler
 
     /**
      * The match the caret is on while a search is typed, as a start and an
-     * end, if it is on this line: painted over the others in a colour of
+     * end, if it is on this line: painted over the others in a color of
      * its own, as vim's incsearch shows it.
      */
     default int[] getCurrentSearchMatch(Editor editor, Line line)

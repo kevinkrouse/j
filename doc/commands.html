@@ -195,6 +195,7 @@
     <li><a href="commands.html#listOccurrences">listOccurrences</a></li>
     <li><a href="commands.html#listOccurrencesOfPatternAtDot">listOccurrencesOfPatternAtDot</a></li>
     <li><a href="commands.html#listRegisters">listRegisters</a></li>
+    <li><a href="commands.html#listStyles">listStyles</a></li>
     <li><a href="commands.html#listTags">listTags</a></li>
     <li><a href="commands.html#loadSession">loadSession</a></li>
     <li><a href="commands.html#lowerCaseRegion">lowerCaseRegion</a></li>
@@ -2807,6 +2808,24 @@ The search is case-sensitive (in both cases).
 Multi-line selections are not supported.
 <br><br>
 <b>Default key mapping:</b> Ctrl Alt L
+<br><br>
+</dl><!--<hr>-->
+
+<a name="listStyles">listStyles</a><dl><dd>
+<p>
+Lists every style the theme gives: the built-in ones every mode has (text,
+background, caret, selection, comment, keyword and so on), the
+<a href="themes.html#shared">shared styles</a>, and the current buffer's mode's,
+each drawn in itself with a swatch of its color in the gutter, in columns:
+its color and style, the names it links to (<code>&rarr; heading</code>), and
+where its color and its style came from. A source is the preference that set
+it, such as <code>color.heading</code>, or <code>default</code> for j's own,
+dimmed so that what the theme set stands out. For finding out why something
+is the color it is.
+<p>
+<code>listStyles all</code> lists every mode's.
+<p>
+<b>Default key mapping:</b> None
 <br><br>
 </dl><!--<hr>-->
 
