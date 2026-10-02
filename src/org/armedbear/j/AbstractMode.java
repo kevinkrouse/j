@@ -99,7 +99,7 @@ public abstract class AbstractMode implements Constants, Mode
     private boolean loadKeyMapForMode()
     {
         keyMap = null;
-        String filename = preferences.getStringProperty(getFullKey("keyMap"));
+        String filename = getModePreference("keyMap");
         if (filename != null) {
             keyMapFile = File.getInstance(filename);
             if (keyMapFile != null) {
@@ -449,7 +449,7 @@ public abstract class AbstractMode implements Constants, Mode
     protected ToolBar getCustomToolBar(Frame frame)
     {
         String filename =
-            Editor.preferences().getStringProperty(getFullKey("toolbar"));
+            getModePreference("toolbar");
         if (filename != null) {
             File file = File.getInstance(filename);
             if (file != null && file.isFile()) {
@@ -534,7 +534,7 @@ public abstract class AbstractMode implements Constants, Mode
         String key = property.key();
 
         // Look for mode-specific setting in preferences.
-        String s = preferences.getStringProperty(getFullKey(key));
+        String s = getModePreference(key);
 
         if (s == null) {
             // No mode-specific setting in preferences.
@@ -569,7 +569,7 @@ public abstract class AbstractMode implements Constants, Mode
         String key = property.key();
 
         // Look for mode-specific setting in preferences.
-        String s = preferences.getStringProperty(getFullKey(key));
+        String s = getModePreference(key);
 
         if (s == null) {
             // No mode-specific setting in preferences.
@@ -603,7 +603,7 @@ public abstract class AbstractMode implements Constants, Mode
         String key = property.key();
 
         // Look for mode-specific setting in preferences.
-        String s = preferences.getStringProperty(getFullKey(key));
+        String s = getModePreference(key);
 
         if (s == null) {
             // No mode-specific setting in preferences.
@@ -633,7 +633,7 @@ public abstract class AbstractMode implements Constants, Mode
         String key = property.key();
 
         // Look for mode-specific setting in preferences.
-        String value = preferences.getStringProperty(getFullKey(key));
+        String value = getModePreference(key);
 
         if (value == null) {
             // We don't check the mode-specific properties list here. Is that
@@ -680,18 +680,28 @@ public abstract class AbstractMode implements Constants, Mode
         return Editor.getModeList().modeAccepts(id, filename);
     }
 
+    /** The preference key of a setting of this mode's: "JavaMode.indentSize". */
     protected String getFullKey(String key)
     {
-        StringBuilder sb = new StringBuilder(this.getClass().getName());
-        sb.append('.');
-        sb.append(key);
-        final String fullKey = sb.toString().toLowerCase();
-        if (fullKey.startsWith("org.armedbear.j.mail."))
-            return fullKey.substring(21);
-        else if (fullKey.startsWith("org.armedbear.j."))
-            return fullKey.substring(16);
-        else
-            return fullKey;
+        return (getClass().getSimpleName() + '.' + key).toLowerCase();
+    }
+
+    /**
+     * A mode's own setting for key. "JavaMode.indentSize" as the docs write
+     * it, or "mode.java.JavaMode.indentSize", the only key that worked while
+     * the modes were in packages of their own and this went unnoticed.
+     */
+    private String getModePreference(String key)
+    {
+        final String s = preferences.getStringProperty(getFullKey(key));
+        if (s != null)
+            return s;
+        String name = getClass().getName();
+        if (name.startsWith("org.armedbear.j.mail."))
+            name = name.substring(21);
+        else if (name.startsWith("org.armedbear.j."))
+            name = name.substring(16);
+        return preferences.getStringProperty((name + '.' + key).toLowerCase());
     }
 
     public boolean isIdentifierStart(char c)

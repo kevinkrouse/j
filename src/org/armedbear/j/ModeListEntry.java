@@ -98,8 +98,14 @@ public final class ModeListEntry
     {
         if (defaultFiles == null)
             return false;
-        final String key = className.concat(".").concat(Property.FILES.key());
-        final String userFiles = Editor.preferences().getStringProperty(key);
+        // "JavaMode.files", or as it was keyed while that was broken,
+        // "mode.java.JavaMode.files".
+        final String simpleName = className.substring(className.lastIndexOf('.') + 1);
+        String userFiles = Editor.preferences().getStringProperty(
+            simpleName.concat(".").concat(Property.FILES.key()));
+        if (userFiles == null)
+            userFiles = Editor.preferences().getStringProperty(
+                className.concat(".").concat(Property.FILES.key()));
         Pattern filesRE = null;
         if (userFiles != null) {
             if (userFiles.trim().length() == 0)
