@@ -25,6 +25,7 @@ import java.awt.Rectangle;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.StringReader;
+import java.lang.StringBuilder;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
@@ -39,10 +40,7 @@ import org.armedbear.j.Display;
 import org.armedbear.j.Editor;
 import org.armedbear.j.EditorIterator;
 import org.armedbear.j.File;
-import java.lang.StringBuilder;
-import org.armedbear.j.util.FastStringReader;
 import org.armedbear.j.Headers;
-import org.armedbear.j.mode.image.ImageLine;
 import org.armedbear.j.ImageLoader;
 import org.armedbear.j.Line;
 import org.armedbear.j.LineSequence;
@@ -56,13 +54,14 @@ import org.armedbear.j.SaveFileDialog;
 import org.armedbear.j.Sidebar;
 import org.armedbear.j.SystemBuffer;
 import org.armedbear.j.TextLine;
-import org.armedbear.j.util.Utilities;
+import org.armedbear.j.mode.image.ImageLine;
 import org.armedbear.j.mode.web.WebBuffer;
 import org.armedbear.j.mode.web.WebFormatter;
 import org.armedbear.j.mode.web.WebLoader;
+import org.armedbear.j.util.FastStringReader;
+import org.armedbear.j.util.Utilities;
 
-public class MessageBuffer extends Buffer
-{
+public class MessageBuffer extends Buffer {
     protected MailboxBuffer mailbox;
     protected MailboxEntry entry;
     protected Message message;
@@ -78,14 +77,12 @@ public class MessageBuffer extends Buffer
 
     private boolean wrap = true;
 
-    protected MessageBuffer()
-    {
+    protected MessageBuffer() {
         super();
         setInitialized(true);
     }
 
-    public MessageBuffer(String rawText)
-    {
+    public MessageBuffer(String rawText) {
         initializeUndo();
         type = TYPE_NORMAL;
         lineSeparator = "\n";
@@ -106,48 +103,41 @@ public class MessageBuffer extends Buffer
         setInitialized(true);
     }
 
-    public final boolean isPrimary()
-    {
+    public final boolean isPrimary() {
         if (mailbox == null)
             return true;
         return mailbox.getPreviewBuffer() != this;
     }
 
-    public final boolean isSecondary()
-    {
+    public final boolean isSecondary() {
         if (mailbox == null)
             return false;
         return mailbox.getPreviewBuffer() == this;
     }
 
-    public final Buffer getPrimary()
-    {
+    public final Buffer getPrimary() {
         if (mailbox != null && mailbox.getPreviewBuffer() == this)
             return mailbox;
         return null;
     }
 
-    public final void promote()
-    {
+    public final void promote() {
         if (mailbox != null && mailbox.getPreviewBuffer() == this)
             mailbox.setPreviewBuffer(null);
     }
 
-    public int getHeaderLineCount()
-    {
+    public int getHeaderLineCount() {
         return headerLineCount;
     }
 
-    public int getDisplayHeight()
-    {
+    public int getDisplayHeight() {
         int height = 0;
         for (Line line = getFirstLine(); line != null; line = line.nextVisible())
             height += line.getHeight();
         return height;
     }
 
-    public int getDisplayWidth()
-    {
+    public int getDisplayWidth() {
         int width = 0;
         for (Line line = getFirstLine(); line != null; line = line.nextVisible()) {
             int lineWidth = line.getWidth();
@@ -158,16 +148,14 @@ public class MessageBuffer extends Buffer
     }
 
     // Returns cumulative height to top of target line.
-    public int getY(Line target)
-    {
+    public int getY(Line target) {
         int y = 0;
         for (Line line = getFirstLine(); line != null && line != target; line = line.nextVisible())
             y += line.getHeight();
         return y;
     }
 
-    protected void setEntry(MailboxEntry entry)
-    {
+    protected void setEntry(MailboxEntry entry) {
         Debug.assertTrue(entry != null);
         reset();
         this.entry = entry;
@@ -181,8 +169,7 @@ public class MessageBuffer extends Buffer
         Sidebar.setUpdateFlagInAllFrames(SIDEBAR_REPAINT_BUFFER_LIST);
     }
 
-    protected void reset()
-    {
+    protected void reset() {
         try {
             lockWrite();
         }
@@ -201,14 +188,12 @@ public class MessageBuffer extends Buffer
         }
     }
 
-    public int load()
-    {
+    public int load() {
         Debug.assertTrue(false); // Shouldn't be called.
         return LOAD_COMPLETED;
     }
 
-    protected void loadMessage(ProgressNotifier progressNotifier)
-    {
+    protected void loadMessage(ProgressNotifier progressNotifier) {
         Debug.assertTrue(entry != null);
         mailbox.setBusy(true);
         message = mailbox.getMessage(entry, progressNotifier);
@@ -251,29 +236,24 @@ public class MessageBuffer extends Buffer
         SwingUtilities.invokeLater(r);
     }
 
-    public final MailboxEntry getMailboxEntry()
-    {
+    public final MailboxEntry getMailboxEntry() {
         return entry;
     }
 
-    public final Message getMessage()
-    {
+    public final Message getMessage() {
         return message;
     }
 
-    public final int getMessageNumber()
-    {
+    public final int getMessageNumber() {
         Debug.assertTrue(entry != null);
         return entry.getMessageNumber();
     }
 
-    public final MailboxBuffer getMailbox()
-    {
+    public final MailboxBuffer getMailbox() {
         return mailbox;
     }
 
-    public void nextMessage()
-    {
+    public void nextMessage() {
         if (entry == null)
             return;
         Editor editor = Editor.currentEditor();
@@ -287,8 +267,7 @@ public class MessageBuffer extends Buffer
         }
     }
 
-    public void previousMessage()
-    {
+    public void previousMessage() {
         if (entry == null)
             return;
         Editor editor = Editor.currentEditor();
@@ -302,8 +281,7 @@ public class MessageBuffer extends Buffer
         }
     }
 
-    public void nextInThread()
-    {
+    public void nextInThread() {
         if (entry == null)
             return;
         Editor editor = Editor.currentEditor();
@@ -317,8 +295,7 @@ public class MessageBuffer extends Buffer
         }
     }
 
-    public void previousInThread()
-    {
+    public void previousInThread() {
         if (entry == null)
             return;
         Editor editor = Editor.currentEditor();
@@ -332,8 +309,7 @@ public class MessageBuffer extends Buffer
         }
     }
 
-    public void parentMessage()
-    {
+    public void parentMessage() {
         final Editor editor = Editor.currentEditor();
         String inReplyTo = message.getHeaderValue(Headers.IN_REPLY_TO);
         Log.debug("inReplyTo = |" + inReplyTo + "|");
@@ -357,7 +333,7 @@ public class MessageBuffer extends Buffer
                     if (msgId != null) {
                         Log.debug("msgId = |" + msgId + "|");
                         MailboxEntry parentEntry =
-                                mailbox.getEntryForMessageId(msgId);
+                            mailbox.getEntryForMessageId(msgId);
                         if (parentEntry != null) {
                             load(editor, parentEntry);
                             return;
@@ -369,8 +345,7 @@ public class MessageBuffer extends Buffer
         editor.status("No parent");
     }
 
-    private static String extractMessageId(String s)
-    {
+    private static String extractMessageId(String s) {
         if (s == null)
             return null;
         int begin = s.indexOf('<');
@@ -382,8 +357,7 @@ public class MessageBuffer extends Buffer
         return s.substring(begin, end + 1);
     }
 
-    private static List<String> extractAllMessageIds(String s)
-    {
+    private static List<String> extractAllMessageIds(String s) {
         if (s == null)
             return null;
         ArrayList<String> list = null;
@@ -399,13 +373,12 @@ public class MessageBuffer extends Buffer
                 list = new ArrayList<String>();
             Log.debug("adding |" + msgId + "|");
             list.add(msgId);
-            s = s.substring(end+1);
+            s = s.substring(end + 1);
         }
         return list;
     }
 
-    private void load(Editor editor, MailboxEntry nextEntry)
-    {
+    private void load(Editor editor, MailboxEntry nextEntry) {
         if (mailbox.lock()) {
             setBusy(true);
             setEntry(nextEntry);
@@ -423,8 +396,7 @@ public class MessageBuffer extends Buffer
     }
 
     // Might return null.
-    public String quoteBody(int wrapCol)
-    {
+    public String quoteBody(int wrapCol) {
         String toBeQuoted = mimeBody != null ? mimeBody : rawBody;
         if (toBeQuoted == null) {
             Log.debug("quoteBody toBeQuoted is null");
@@ -434,7 +406,7 @@ public class MessageBuffer extends Buffer
             Log.debug("quoteBody toBeQuoted is whitespace");
             return null;
         }
-        String wrapped = wrap(toBeQuoted, wrapCol-2, 8);
+        String wrapped = wrap(toBeQuoted, wrapCol - 2, 8);
         FastStringReader reader = new FastStringReader(wrapped);
         StringBuilder sb = new StringBuilder(4096);
         String s;
@@ -449,8 +421,7 @@ public class MessageBuffer extends Buffer
         return sb.toString();
     }
 
-    private static final String wrap(String s, int wrapCol, int tabWidth)
-    {
+    private static final String wrap(String s, int wrapCol, int tabWidth) {
         FastStringReader reader = new FastStringReader(s);
         StringBuilder sb = new StringBuilder(4096);
         java.io.StringWriter writer = new java.io.StringWriter();
@@ -458,16 +429,24 @@ public class MessageBuffer extends Buffer
         while ((line = reader.readLine()) != null) {
             if (line.length() == 0) {
                 if (sb.length() > 0) {
-                    writer.write(Utilities.wrap(sb.toString(), wrapCol,
-                        tabWidth));
+                    writer.write(
+                        Utilities.wrap(
+                            sb.toString(),
+                            wrapCol,
+                            tabWidth
+                        )
+                    );
                     sb.setLength(0);
                     writer.write('\n');
                 }
                 writer.write('\n');
             } else {
                 // Line is not empty.
-                if (sb.length() == 0 &&
-                    Utilities.getDetabbedLength(line, tabWidth) <= 78) {
+                if (
+                    sb.length() == 0
+                        &&
+                        Utilities.getDetabbedLength(line, tabWidth) <= 78
+                ) {
                     // Line is a reasonable length.
                     writer.write(line);
                     writer.write('\n');
@@ -476,8 +455,13 @@ public class MessageBuffer extends Buffer
                 char c = line.charAt(0);
                 if (c == ' ' || c == '\t' || c == '>') {
                     if (sb.length() > 0) {
-                        writer.write(Utilities.wrap(sb.toString(), wrapCol,
-                            tabWidth));
+                        writer.write(
+                            Utilities.wrap(
+                                sb.toString(),
+                                wrapCol,
+                                tabWidth
+                            )
+                        );
                         sb.setLength(0);
                         writer.write('\n');
                     }
@@ -486,7 +470,7 @@ public class MessageBuffer extends Buffer
                 } else {
                     if (sb.length() > 0) {
                         // Make sure last char is a space or tab.
-                        c = sb.charAt(sb.length()-1);
+                        c = sb.charAt(sb.length() - 1);
                         if (c != ' ' && c != '\t')
                             sb.append(' ');
                     }
@@ -507,8 +491,7 @@ public class MessageBuffer extends Buffer
 
     public void moveMessage() {}
 
-    public void bounce()
-    {
+    public void bounce() {
         Debug.assertTrue(SwingUtilities.isEventDispatchThread());
         final Editor editor = Editor.currentEditor();
         final MailAddress[] to = MailCommands.bounceGetTo(editor, 1);
@@ -531,8 +514,11 @@ public class MessageBuffer extends Buffer
                 SwingUtilities.invokeLater(successRunnable);
             } else {
                 Runnable errorRunnable = () -> {
-                    MessageDialog.showMessageDialog(editor, "Failed",
-                        "Bounce Message");
+                    MessageDialog.showMessageDialog(
+                        editor,
+                        "Failed",
+                        "Bounce Message"
+                    );
                 };
                 SwingUtilities.invokeLater(errorRunnable);
             }
@@ -541,8 +527,7 @@ public class MessageBuffer extends Buffer
         new Thread(bounceRunnable).start();
     }
 
-    protected String getBeautifiedHeaders()
-    {
+    protected String getBeautifiedHeaders() {
         if (message == null)
             return "";
         Headers headers = Headers.parse(message.getRawHeaders());
@@ -564,13 +549,18 @@ public class MessageBuffer extends Buffer
             if (value != null) {
                 if (name == "From" || name == "To" || name == "Cc") {
                     MailAddress[] array =
-                            MailAddress.parseAddresses(RFC2047.decode(value));
+                        MailAddress.parseAddresses(RFC2047.decode(value));
                     ArrayList<MailAddress> list = new ArrayList<MailAddress>();
                     Collections.addAll(list, array);
                     String prefix =
-                            Utilities.rightJustify(name, width).concat(": ");
-                    sb.append(MailUtilities.constructAddressHeader(prefix,
-                            list, prefix.length()));
+                        Utilities.rightJustify(name, width).concat(": ");
+                    sb.append(
+                        MailUtilities.constructAddressHeader(
+                            prefix,
+                            list,
+                            prefix.length()
+                        )
+                    );
                 } else {
                     // Subject, date.
                     sb.append(Utilities.rightJustify(name, width));
@@ -583,8 +573,7 @@ public class MessageBuffer extends Buffer
         return sb.toString();
     }
 
-    protected String getDefaultHeaders(String s)
-    {
+    protected String getDefaultHeaders(String s) {
         StringBuilder sb = new StringBuilder();
         if (s.length() > 0) {
             BufferedReader reader = new BufferedReader(new StringReader(s));
@@ -594,8 +583,11 @@ public class MessageBuffer extends Buffer
                     String text = reader.readLine();
                     if (text == null || text.length() == 0)
                         break;
-                    if (maybeContinuation &&
-                        Character.isWhitespace(text.charAt(0))) {
+                    if (
+                        maybeContinuation
+                            &&
+                            Character.isWhitespace(text.charAt(0))
+                    ) {
                         sb.append(text);
                         sb.append('\n');
                     } else if (isDefaultHeader(text)) {
@@ -613,20 +605,24 @@ public class MessageBuffer extends Buffer
         return sb.toString();
     }
 
-    private boolean isDefaultHeader(String s)
-    {
+    private boolean isDefaultHeader(String s) {
         s = s.toLowerCase();
-        if (s.startsWith("from:") ||
-            s.startsWith("to:") ||
-            s.startsWith("cc:") ||
-            s.startsWith("subject:") ||
-            s.startsWith("date:"))
+        if (
+            s.startsWith("from:")
+                ||
+                s.startsWith("to:")
+                ||
+                s.startsWith("cc:")
+                ||
+                s.startsWith("subject:")
+                ||
+                s.startsWith("date:")
+        )
             return true;
         return false;
     }
 
-    public void viewAttachment()
-    {
+    public void viewAttachment() {
         final MimePart part = getAttachmentAtDot();
         if (part == null)
             return;
@@ -656,8 +652,10 @@ public class MessageBuffer extends Buffer
         }
         File cache = part.cacheDecoded();
         if (cache == null || !cache.isFile()) {
-            MessageDialog.showMessageDialog("Unable to decode attachment",
-                "View Attachment");
+            MessageDialog.showMessageDialog(
+                "Unable to decode attachment",
+                "View Attachment"
+            );
             return;
         }
         if (contentType != null && contentType.equals("text/html")) {
@@ -671,16 +669,17 @@ public class MessageBuffer extends Buffer
         }
     }
 
-    public void saveAttachment()
-    {
+    public void saveAttachment() {
         MimePart part = getAttachmentAtDot();
         if (part == null)
             return;
         final Editor editor = Editor.currentEditor();
         SaveFileDialog d =
             new SaveFileDialog(editor, "Save Attachment", "File:");
-        File suggested = File.getInstance(editor.getCurrentDirectory(),
-            part.getAttachmentFileName());
+        File suggested = File.getInstance(
+            editor.getCurrentDirectory(),
+            part.getAttachmentFileName()
+        );
         if (suggested != null)
             d.setInitialText(suggested.canonicalPath());
         editor.centerDialog(d);
@@ -693,12 +692,13 @@ public class MessageBuffer extends Buffer
         boolean success = part.saveDecoded(saveAs);
         editor.setDefaultCursor();
         if (!success)
-            MessageDialog.showMessageDialog("Unable to save attachment",
-                "Save Attachment");
+            MessageDialog.showMessageDialog(
+                "Unable to save attachment",
+                "Save Attachment"
+            );
     }
 
-    private MimePart getAttachmentAtDot()
-    {
+    private MimePart getAttachmentAtDot() {
         Position dot = Editor.currentEditor().getDot();
         if (dot != null) {
             Annotation annotation = dot.getLine().getAnnotation();
@@ -711,8 +711,7 @@ public class MessageBuffer extends Buffer
         return null;
     }
 
-    public void toggleRaw()
-    {
+    public void toggleRaw() {
         showRawText = !showRawText;
         if (mailbox != null)
             mailbox.showRawText = showRawText;
@@ -722,15 +721,13 @@ public class MessageBuffer extends Buffer
         Editor.currentEditor().status(sb.toString());
     }
 
-    public void toggleHeaders()
-    {
+    public void toggleHeaders() {
         if (mailbox != null)
             mailbox.showFullHeaders = showFullHeaders = !showFullHeaders;
         reloadInternal();
     }
 
-    public void toggleWrap()
-    {
+    public void toggleWrap() {
         wrap = !wrap;
         reloadInternal();
         StringBuilder sb = new StringBuilder("Wrap ");
@@ -738,8 +735,7 @@ public class MessageBuffer extends Buffer
         Editor.currentEditor().status(sb.toString());
     }
 
-    private void reloadInternal()
-    {
+    private void reloadInternal() {
         setText();
         formatter.parseBuffer();
         for (EditorIterator it = new EditorIterator(); it.hasNext();) {
@@ -754,8 +750,7 @@ public class MessageBuffer extends Buffer
         }
     }
 
-    protected void parseMessage()
-    {
+    protected void parseMessage() {
         if (mimeBody != null)
             Debug.bug();
         message.parse();
@@ -784,8 +779,7 @@ public class MessageBuffer extends Buffer
         mimeBody = "";
     }
 
-    private List<Line> getAttachmentLines()
-    {
+    private List<Line> getAttachmentLines() {
         List<MimePart> parts = message.getParts();
         if (parts == null || parts.size() == 0) {
             // Not multipart.
@@ -797,7 +791,7 @@ public class MessageBuffer extends Buffer
         for (int i = 0; i < parts.size(); i++) {
             StringBuilder sb = new StringBuilder();
             sb.append("   ");
-            sb.append(i+1);
+            sb.append(i + 1);
             MimePart part = parts.get(i);
             final String contentType = part.getContentType();
             if (part == selectedPart) {
@@ -836,8 +830,7 @@ public class MessageBuffer extends Buffer
         return list;
     }
 
-    protected void setText()
-    {
+    protected void setText() {
         try {
             lockWrite();
         }
@@ -854,8 +847,7 @@ public class MessageBuffer extends Buffer
         }
     }
 
-    private void _setText()
-    {
+    private void _setText() {
         empty();
         if (showRawText) {
             body = rawBody;
@@ -888,8 +880,12 @@ public class MessageBuffer extends Buffer
                         final int imageWidth = image.getWidth(null);
                         int y = 0;
                         while (y < imageHeight) {
-                            Rectangle r = new Rectangle(0, y, imageWidth,
-                                Math.min(lineHeight, imageHeight - y));
+                            Rectangle r = new Rectangle(
+                                0,
+                                y,
+                                imageWidth,
+                                Math.min(lineHeight, imageHeight - y)
+                            );
                             appendLine(new ImageLine(image, r));
                             y += lineHeight;
                         }
@@ -973,10 +969,15 @@ public class MessageBuffer extends Buffer
                         if (filename == null)
                             continue;
                         filename = filename.toLowerCase();
-                        if (filename.endsWith(".jpg") ||
-                            filename.endsWith(".jpeg") ||
-                            filename.endsWith(".png") ||
-                            filename.endsWith(".gif"))
+                        if (
+                            filename.endsWith(".jpg")
+                                ||
+                                filename.endsWith(".jpeg")
+                                ||
+                                filename.endsWith(".png")
+                                ||
+                                filename.endsWith(".gif")
+                        )
                             cache = part.cacheDecoded();
                     } else if (partContentType.startsWith("image/"))
                         cache = part.cacheDecoded();
@@ -991,8 +992,12 @@ public class MessageBuffer extends Buffer
                             final int imageWidth = image.getWidth(null);
                             int y = 0;
                             while (y < imageHeight) {
-                                Rectangle r = new Rectangle(0, y, imageWidth,
-                                    Math.min(lineHeight, imageHeight - y));
+                                Rectangle r = new Rectangle(
+                                    0,
+                                    y,
+                                    imageWidth,
+                                    Math.min(lineHeight, imageHeight - y)
+                                );
                                 appendLine(new ImageLine(image, r));
                                 y += lineHeight;
                             }
@@ -1004,8 +1009,7 @@ public class MessageBuffer extends Buffer
         renumber();
     }
 
-    private static String wrapBody(String body)
-    {
+    private static String wrapBody(String body) {
         final int wrapCol = Editor.currentEditor().getDisplay().getColumns();
         final int tabWidth = 8;
         final int IN_DIFF = 1;
@@ -1060,8 +1064,7 @@ public class MessageBuffer extends Buffer
         return out.toString();
     }
 
-    protected void appendHeaderLines(String headers)
-    {
+    protected void appendHeaderLines(String headers) {
         if (headers != null) {
             FastStringReader reader = new FastStringReader(headers);
             String s;
@@ -1070,31 +1073,26 @@ public class MessageBuffer extends Buffer
         }
     }
 
-    protected void appendHeaderLine(String s)
-    {
+    protected void appendHeaderLine(String s) {
         appendLine(new MessageHeaderLine(s));
     }
 
-    public String toString()
-    {
+    public String toString() {
         return title;
     }
 
     // For the buffer list.
-    public Icon getIcon()
-    {
+    public Icon getIcon() {
         return Utilities.getIconFromFile("message");
     }
 
-    public String getFileNameForDisplay()
-    {
+    public String getFileNameForDisplay() {
         return "";
     }
 
     private static final String SPLIT_KEY = "MessageBuffer.split";
 
-    public void saveWindowState(Editor editor)
-    {
+    public void saveWindowState(Editor editor) {
         if (editor.getBuffer() != this)
             return;
         Editor otherEditor = editor.getOtherEditor();
@@ -1106,13 +1104,11 @@ public class MessageBuffer extends Buffer
         }
     }
 
-    public float getSplit()
-    {
+    public float getSplit() {
         return Editor.getSessionProperties().getFloatProperty(SPLIT_KEY, 0.5F);
     }
 
-    public void windowClosing()
-    {
+    public void windowClosing() {
         Editor editor = Editor.currentEditor();
         if (editor.getBuffer() == this)
             saveWindowState(editor);
@@ -1123,24 +1119,21 @@ public class MessageBuffer extends Buffer
         }
     }
 
-    public void dispose()
-    {
+    public void dispose() {
         if (mailbox != null && mailbox.getPreviewBuffer() == this)
             mailbox.setPreviewBuffer(null);
         flushImages();
     }
 
-    public void empty()
-    {
+    public void empty() {
         flushImages();
         super.empty();
     }
 
-    private void flushImages()
-    {
+    private void flushImages() {
         for (Line line = getFirstLine(); line != null; line = line.next()) {
             if (line instanceof ImageLine)
-                ((ImageLine)line).flushImage();
+                ((ImageLine) line).flushImage();
         }
     }
 }

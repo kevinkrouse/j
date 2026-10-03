@@ -21,9 +21,9 @@
 package org.armedbear.j.mode.lisp;
 
 import java.awt.event.KeyEvent;
+import java.lang.StringBuilder;
 import java.util.HashMap;
 import java.util.StringTokenizer;
-
 import org.armedbear.j.AbstractMode;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.BufferIterator;
@@ -32,8 +32,6 @@ import org.armedbear.j.Constants;
 import org.armedbear.j.Debug;
 import org.armedbear.j.Editor;
 import org.armedbear.j.EditorIterator;
-import org.armedbear.j.Mode;
-import java.lang.StringBuilder;
 import org.armedbear.j.File;
 import org.armedbear.j.Formatter;
 import org.armedbear.j.KeyMap;
@@ -41,6 +39,7 @@ import org.armedbear.j.Keywords;
 import org.armedbear.j.Line;
 import org.armedbear.j.Menu;
 import org.armedbear.j.MessageDialog;
+import org.armedbear.j.Mode;
 import org.armedbear.j.Position;
 import org.armedbear.j.Property;
 import org.armedbear.j.Region;
@@ -48,49 +47,41 @@ import org.armedbear.j.SimpleEdit;
 import org.armedbear.j.SyntaxIterator;
 import org.armedbear.j.SystemBuffer;
 import org.armedbear.j.Tagger;
-import org.armedbear.j.util.Utilities;
-import org.armedbear.j.mode.web.WebBuffer;
 import org.armedbear.j.extension.Extensions;
+import org.armedbear.j.mode.web.WebBuffer;
+import org.armedbear.j.util.Utilities;
 
-public class LispMode extends AbstractMode implements Constants, Mode
-{
+public class LispMode extends AbstractMode implements Constants, Mode {
     private static final LispMode mode = new LispMode();
 
-    private LispMode()
-    {
+    private LispMode() {
         super(LISP_MODE, LISP_MODE_NAME);
         keywords = new Keywords(this);
         setProperty(Property.INDENT_SIZE, 2);
         setProperty(Property.HIGHLIGHT_BRACKETS, true);
     }
 
-    protected LispMode(int id, String displayName)
-    {
+    protected LispMode(int id, String displayName) {
         super(id, displayName);
     }
 
-    public static Mode getMode()
-    {
+    public static Mode getMode() {
         return mode;
     }
 
-    public String getCommentStart()
-    {
+    public String getCommentStart() {
         return ";; ";
     }
 
-    public final SyntaxIterator getSyntaxIterator(Position pos)
-    {
+    public final SyntaxIterator getSyntaxIterator(Position pos) {
         return new LispSyntaxIterator(pos);
     }
 
-    public Formatter getFormatter(Buffer buffer)
-    {
+    public Formatter getFormatter(Buffer buffer) {
         return new LispFormatter(buffer);
     }
 
-    protected void setKeyMapDefaults(KeyMap km)
-    {
+    protected void setKeyMapDefaults(KeyMap km) {
         km.mapKey(KeyEvent.VK_TAB, 0, "tab");
         km.mapKey(KeyEvent.VK_TAB, CTRL_MASK, "insertTab");
         km.mapKey(KeyEvent.VK_F12, 0, "wrapComment");
@@ -117,8 +108,7 @@ public class LispMode extends AbstractMode implements Constants, Mode
         km.mapKey(KeyEvent.VK_SPACE, CTRL_MASK | SHIFT_MASK, "justOneSpace");
     }
 
-    public void populateModeMenu(Editor editor, Menu menu)
-    {
+    public void populateModeMenu(Editor editor, Menu menu) {
         boolean enabled = LispShellBuffer.findLisp(null) != null;
         if (isSlimeLoaded()) {
             menu.add(editor, "Eval Region", 'R', "(slime:slime-eval-region)", enabled);
@@ -137,38 +127,32 @@ public class LispMode extends AbstractMode implements Constants, Mode
         }
     }
 
-    private static final boolean isSlimeLoaded()
-    {
+    private static final boolean isSlimeLoaded() {
         return Extensions.session().hasFeature("slime");
     }
 
-    public boolean isTaggable()
-    {
+    public boolean isTaggable() {
         return true;
     }
 
-    public Tagger getTagger(SystemBuffer buffer)
-    {
+    public Tagger getTagger(SystemBuffer buffer) {
         return new LispTagger(buffer);
     }
 
     private static final String validChars =
         "!$%&*+-./0123456789<=>?ABCDEFGHIJKLMNOPQRSTUVWXYZ[]^_abcdefghijklmnopqrstuvwxyz{}~";
 
-    public final boolean isIdentifierStart(char c)
-    {
+    public final boolean isIdentifierStart(char c) {
         return validChars.indexOf(c) >= 0;
     }
 
-    public final boolean isIdentifierPart(char c)
-    {
+    public final boolean isIdentifierPart(char c) {
         return validChars.indexOf(c) >= 0;
     }
 
     // This needs to pick out a keyword (":FOO"), but should ignore embedded
     // colons ("FOO:BAR").
-    public String getIdentifier(Line line, int offset)
-    {
+    public String getIdentifier(Line line, int offset) {
         final int limit = line.length();
         if (offset < limit) {
             char c = line.charAt(offset);
@@ -245,8 +229,7 @@ public class LispMode extends AbstractMode implements Constants, Mode
         return null;
     }
 
-    public boolean isDelimited(Position pos, int length)
-    {
+    public boolean isDelimited(Position pos, int length) {
         final Line line = pos.getLine();
         final int offset = pos.getOffset();
         if (offset > 0) {
@@ -305,15 +288,13 @@ public class LispMode extends AbstractMode implements Constants, Mode
         definers.put("deftest", "deftest");
     }
 
-    public static final String translateDefiner(String s)
-    {
+    public static final String translateDefiner(String s) {
         if (s.length() >= 5 && s.startsWith("def"))
             return definers.get(s);
         return null;
     }
 
-    public boolean isInQuote(Buffer buffer, Position pos)
-    {
+    public boolean isInQuote(Buffer buffer, Position pos) {
         final Line line = pos.getLine();
         final int offset = pos.getOffset();
         boolean inQuote = (line.flags() == STATE_QUOTE);
@@ -332,8 +313,7 @@ public class LispMode extends AbstractMode implements Constants, Mode
         return inQuote;
     }
 
-    public boolean isInComment(Buffer buffer, Position pos)
-    {
+    public boolean isInComment(Buffer buffer, Position pos) {
         if (buffer.needsParsing()) {
             if (buffer.getFormatter().parseBuffer())
                 // Always call repaint() if parseBuffer() returns true!
@@ -366,15 +346,14 @@ public class LispMode extends AbstractMode implements Constants, Mode
         return state == STATE_COMMENT;
     }
 
-    public boolean canIndent()
-    {
+    public boolean canIndent() {
         return true;
     }
 
     private final String[] specials = new String[] {
         "block", "case", "catch", "do-all-symbols", "do-external-symbols",
         "do-symbols", "dolist", "dotimes", "ecase", "etypecase", "eval-when",
-        "flet",  "handler-bind", "labels", "lambda", "let", "let*", "locally",
+        "flet", "handler-bind", "labels", "lambda", "let", "let*", "locally",
         "loop", "macrolet", "multiple-value-bind", "multiple-value-prog1",
         "multiple-value-setq", "pprint-logical-block", "print-unreadable-object",
         "prog1", "prog2", "progn", "progv", "symbol-macrolet", "typecase",
@@ -385,8 +364,7 @@ public class LispMode extends AbstractMode implements Constants, Mode
         "while"
     };
 
-    private static int findLastUnescapedQuote(Line line)
-    {
+    private static int findLastUnescapedQuote(Line line) {
         for (int i = line.length(); i-- > 0;) {
             if (line.charAt(i) == '"') {
                 if (i == 0 || line.charAt(i - 1) != '\\')
@@ -396,17 +374,18 @@ public class LispMode extends AbstractMode implements Constants, Mode
         return -1;
     }
 
-    public int getCorrectIndentation(Line line, Buffer buffer)
-    {
+    public int getCorrectIndentation(Line line, Buffer buffer) {
         final Line model = findModel(line);
         if (model == null)
             return 0;
         final int modelIndent = buffer.getIndentation(model);
         final String modelTrim = model.trim();
         if (line.flags() == STATE_QUOTE) {
-            if (buffer.getBooleanProperty(Property.INDENT_STRINGS) ||
-                modelTrim.endsWith("~"))
-            {
+            if (
+                buffer.getBooleanProperty(Property.INDENT_STRINGS)
+                    ||
+                    modelTrim.endsWith("~")
+            ) {
                 int index = findLastUnescapedQuote(model);
                 if (index < 0)
                     return modelIndent;
@@ -431,7 +410,7 @@ public class LispMode extends AbstractMode implements Constants, Mode
                 return buffer.getCol(pos) + 1;
         }
         if (offset > 0) {
-            if (pos.getLine().charAt(offset-1) == '\'')
+            if (pos.getLine().charAt(offset - 1) == '\'')
                 return buffer.getCol(pos) + 1;
         }
         Position posFirst = downList(pos);
@@ -488,8 +467,12 @@ public class LispMode extends AbstractMode implements Constants, Mode
                 }
                 return buffer.getCol(pos) + indentSize;
             }
-            if (token.equals("handler-case") || token.equals("restart-case") ||
-                token.equals("unwind-protect")) {
+            if (
+                token.equals("handler-case")
+                    || token.equals("restart-case")
+                    ||
+                    token.equals("unwind-protect")
+            ) {
                 Position p1 = forwardSexp(posFirst);
                 if (p1 != null) {
                     // Skip whitespace to get to opening '(' of form to be
@@ -503,10 +486,15 @@ public class LispMode extends AbstractMode implements Constants, Mode
                 }
                 return buffer.getCol(pos) + indentSize;
             }
-            if (token.startsWith("def") ||
-                Utilities.isOneOf(token, specials) ||
-                Utilities.isOneOf(token, elispSpecials) ||
-                token.startsWith("with-"))
+            if (
+                token.startsWith("def")
+                    ||
+                    Utilities.isOneOf(token, specials)
+                    ||
+                    Utilities.isOneOf(token, elispSpecials)
+                    ||
+                    token.startsWith("with-")
+            )
                 return buffer.getCol(pos) + indentSize;
             // Check enclosing sexp.
             Position up = findContainingSexp(pos);
@@ -517,15 +505,15 @@ public class LispMode extends AbstractMode implements Constants, Mode
                     if (s.equals("restart-case"))
                         return buffer.getCol(up) + indentSize * 2;
                 }
-//                 up = findContainingSexp(up);
-//                 if (up != null) {
-//                     up = downList(up);
-//                     if (up != null) {
-//                         String s = gatherToken(up);
-//                         if (s.equals("flet") || s.equals("labels") || s.equals("macrolet"))
-//                             return buffer.getCol(pos) + indentSize;
-//                     }
-//                 }
+                //                 up = findContainingSexp(up);
+                //                 if (up != null) {
+                //                     up = downList(up);
+                //                     if (up != null) {
+                //                         String s = gatherToken(up);
+                //                         if (s.equals("flet") || s.equals("labels") || s.equals("macrolet"))
+                //                             return buffer.getCol(pos) + indentSize;
+                //                     }
+                //                 }
             }
             // Not special. Indent under the second element of the containing
             // list, if the second element is on the same line as the first.
@@ -540,8 +528,7 @@ public class LispMode extends AbstractMode implements Constants, Mode
         return buffer.getCol(pos) + 1;
     }
 
-    private static Line findModel(Line line)
-    {
+    private static Line findModel(Line line) {
         Line model = line.previous();
         if (line.flags() == STATE_COMMENT || line.flags() == STATE_QUOTE) {
             // Any non-blank line is an acceptable model.
@@ -558,8 +545,7 @@ public class LispMode extends AbstractMode implements Constants, Mode
         return model;
     }
 
-    private static boolean isAcceptableModel(Line model)
-    {
+    private static boolean isAcceptableModel(Line model) {
         String trim = model.trim();
         if (trim.length() == 0)
             return false;
@@ -568,8 +554,7 @@ public class LispMode extends AbstractMode implements Constants, Mode
         return true;
     }
 
-    private String gatherToken(Position start)
-    {
+    private String gatherToken(Position start) {
         Position pos = start.copy();
         StringBuilder sb = new StringBuilder();
         while (true) {
@@ -583,8 +568,7 @@ public class LispMode extends AbstractMode implements Constants, Mode
         return sb.toString();
     }
 
-    public static Position findContainingSexp(Position start)
-    {
+    public static Position findContainingSexp(Position start) {
         LispSyntaxIterator it = new LispSyntaxIterator(start);
         int parenCount = 0;
         while (true) {
@@ -607,8 +591,7 @@ public class LispMode extends AbstractMode implements Constants, Mode
         }
     }
 
-    private Position downList(Position start)
-    {
+    private Position downList(Position start) {
         if (start == null)
             return null;
         Position pos = start.copy();
@@ -662,8 +645,7 @@ public class LispMode extends AbstractMode implements Constants, Mode
         }
     }
 
-    public static void downList()
-    {
+    public static void downList() {
         final Editor editor = Editor.currentEditor();
         if (editor.getMode() instanceof LispMode) {
             Position pos = mode.downList(editor.getDot());
@@ -672,8 +654,7 @@ public class LispMode extends AbstractMode implements Constants, Mode
         }
     }
 
-    public static void backwardUpList()
-    {
+    public static void backwardUpList() {
         final Editor editor = Editor.currentEditor();
         if (editor.getMode() instanceof LispMode) {
             Position pos = findContainingSexp(editor.getDot());
@@ -682,8 +663,7 @@ public class LispMode extends AbstractMode implements Constants, Mode
         }
     }
 
-    private void skipString(Position pos)
-    {
+    private void skipString(Position pos) {
         while (true) {
             if (!pos.next())
                 return;
@@ -699,8 +679,7 @@ public class LispMode extends AbstractMode implements Constants, Mode
         }
     }
 
-    private Position forwardSexp(Position start)
-    {
+    private Position forwardSexp(Position start) {
         if (start == null)
             return null;
         Position pos = start.copy();
@@ -772,8 +751,7 @@ public class LispMode extends AbstractMode implements Constants, Mode
         }
     }
 
-    private Position backwardSexp(Position start)
-    {
+    private Position backwardSexp(Position start) {
         Position pos = findContainingSexp(start);
         if (pos == null) {
             // Top level.
@@ -826,15 +804,13 @@ public class LispMode extends AbstractMode implements Constants, Mode
     }
 
     // Advances pos to start of next line.
-    private static void skipComment(Position pos)
-    {
+    private static void skipComment(Position pos) {
         Line nextLine = pos.getNextLine();
         if (nextLine != null)
             pos.moveTo(nextLine, 0);
     }
 
-    public static void forwardSexp()
-    {
+    public static void forwardSexp() {
         final Editor editor = Editor.currentEditor();
         if (editor.getMode() instanceof LispMode) {
             Position pos = mode.forwardSexp(editor.getDot());
@@ -843,8 +819,7 @@ public class LispMode extends AbstractMode implements Constants, Mode
         }
     }
 
-    public static void backwardSexp()
-    {
+    public static void backwardSexp() {
         final Editor editor = Editor.currentEditor();
         if (editor.getMode() instanceof LispMode) {
             Position pos = mode.backwardSexp(editor.getDot());
@@ -853,8 +828,7 @@ public class LispMode extends AbstractMode implements Constants, Mode
         }
     }
 
-    public static void markSexp()
-    {
+    public static void markSexp() {
         final Editor editor = Editor.currentEditor();
         if (editor.getMode() instanceof LispMode) {
             Position pos = mode.forwardSexp(editor.getDot());
@@ -867,8 +841,7 @@ public class LispMode extends AbstractMode implements Constants, Mode
         }
     }
 
-    public static void lispFindMatchingChar()
-    {
+    public static void lispFindMatchingChar() {
         final Editor editor = Editor.currentEditor();
         Position dot = editor.getDotCopy();
         if (dot == null)
@@ -891,8 +864,7 @@ public class LispMode extends AbstractMode implements Constants, Mode
             editor.status("No match");
     }
 
-    public static void lispSelectSyntax()
-    {
+    public static void lispSelectSyntax() {
         final Editor editor = Editor.currentEditor();
         Position dot = editor.getDotCopy();
         if (dot == null)
@@ -953,8 +925,7 @@ public class LispMode extends AbstractMode implements Constants, Mode
         editor.setDefaultCursor();
     }
 
-    private static Position findDelimiterNear(Position pos)
-    {
+    private static Position findDelimiterNear(Position pos) {
         Position saved = pos.copy();
         if (pos.getChar() == '(')
             return pos;
@@ -987,8 +958,7 @@ public class LispMode extends AbstractMode implements Constants, Mode
         return null;
     }
 
-    private static Editor getLispShellEditor(Editor editor)
-    {
+    private static Editor getLispShellEditor(Editor editor) {
         Editor ed = editor.getOtherEditor();
         if (ed != null) {
             Buffer b = ed.getBuffer();
@@ -1009,8 +979,7 @@ public class LispMode extends AbstractMode implements Constants, Mode
         return editor.displayInOtherWindow(lisp);
     }
 
-    private static Editor findEditor(Buffer buf)
-    {
+    private static Editor findEditor(Buffer buf) {
         Editor ed = null;
         for (EditorIterator it = new EditorIterator(); it.hasNext();) {
             ed = it.next();
@@ -1020,8 +989,7 @@ public class LispMode extends AbstractMode implements Constants, Mode
         return null;
     }
 
-    public static Position findBeginningOfDefun(Position pos)
-    {
+    public static Position findBeginningOfDefun(Position pos) {
         Line line = pos.getLine();
         while (true) {
             if (line.getText().startsWith("(def"))
@@ -1033,8 +1001,7 @@ public class LispMode extends AbstractMode implements Constants, Mode
         }
     }
 
-    public static String getCurrentDefun(Editor editor)
-    {
+    public static String getCurrentDefun(Editor editor) {
         Position begin = findBeginningOfDefun(editor.getDot());
         if (begin != null && begin.lookingAt("(def")) {
             Position end = mode.forwardSexp(begin);
@@ -1046,8 +1013,7 @@ public class LispMode extends AbstractMode implements Constants, Mode
         return null;
     }
 
-    private static String getDefunName(String s)
-    {
+    private static String getDefunName(String s) {
         StringTokenizer st = new StringTokenizer(s);
         int count = st.countTokens();
         if (count >= 2) {
@@ -1059,8 +1025,7 @@ public class LispMode extends AbstractMode implements Constants, Mode
         return "";
     }
 
-    public static void evalDefunLisp()
-    {
+    public static void evalDefunLisp() {
         final Editor editor = Editor.currentEditor();
         if (editor.getMode() != mode)
             return;
@@ -1083,8 +1048,7 @@ public class LispMode extends AbstractMode implements Constants, Mode
         }
     }
 
-    public static void compileDefunLisp()
-    {
+    public static void compileDefunLisp() {
         final Editor editor = Editor.currentEditor();
         if (editor.getMode() != mode)
             return;
@@ -1107,8 +1071,7 @@ public class LispMode extends AbstractMode implements Constants, Mode
         }
     }
 
-    public static void evalRegionLisp()
-    {
+    public static void evalRegionLisp() {
         final Editor editor = Editor.currentEditor();
         if (editor.getMode() != mode)
             return;
@@ -1131,8 +1094,7 @@ public class LispMode extends AbstractMode implements Constants, Mode
         }
     }
 
-    public static void loadLispFile()
-    {
+    public static void loadLispFile() {
         final Editor editor = Editor.currentEditor();
         if (editor.getMode() != mode)
             return;
@@ -1142,9 +1104,11 @@ public class LispMode extends AbstractMode implements Constants, Mode
             boolean save = false;
             if (buffer.isModified()) {
                 int response =
-                    ConfirmDialog.showConfirmDialogWithCancelButton(editor,
-                            CHECK_SAVE_PROMPT,
-                            "Load File");
+                    ConfirmDialog.showConfirmDialogWithCancelButton(
+                        editor,
+                        CHECK_SAVE_PROMPT,
+                        "Load File"
+                    );
                 switch (response) {
                     case RESPONSE_YES:
                         save = true;
@@ -1172,8 +1136,7 @@ public class LispMode extends AbstractMode implements Constants, Mode
         }
     }
 
-    public static void compileLispFile()
-    {
+    public static void compileLispFile() {
         final Editor editor = Editor.currentEditor();
         if (editor.getMode() != mode)
             return;
@@ -1183,9 +1146,11 @@ public class LispMode extends AbstractMode implements Constants, Mode
             boolean save = false;
             if (buffer.isModified()) {
                 int response =
-                    ConfirmDialog.showConfirmDialogWithCancelButton(editor,
-                                                                    CHECK_SAVE_PROMPT,
-                                                                    "Compile File");
+                    ConfirmDialog.showConfirmDialogWithCancelButton(
+                        editor,
+                        CHECK_SAVE_PROMPT,
+                        "Compile File"
+                    );
                 switch (response) {
                     case RESPONSE_YES:
                         save = true;
@@ -1213,8 +1178,7 @@ public class LispMode extends AbstractMode implements Constants, Mode
         }
     }
 
-    public static void compileAndLoadLispFile()
-    {
+    public static void compileAndLoadLispFile() {
         final Editor editor = Editor.currentEditor();
         if (editor.getMode() != mode)
             return;
@@ -1224,9 +1188,11 @@ public class LispMode extends AbstractMode implements Constants, Mode
             boolean save = false;
             if (buffer.isModified()) {
                 int response =
-                    ConfirmDialog.showConfirmDialogWithCancelButton(editor,
-                                                                    CHECK_SAVE_PROMPT,
-                                                                    "Compile and Load File");
+                    ConfirmDialog.showConfirmDialogWithCancelButton(
+                        editor,
+                        CHECK_SAVE_PROMPT,
+                        "Compile and Load File"
+                    );
                 switch (response) {
                     case RESPONSE_YES:
                         save = true;
@@ -1256,13 +1222,11 @@ public class LispMode extends AbstractMode implements Constants, Mode
 
     private static HashMap<String, String> map;
 
-    public static void hyperspec()
-    {
+    public static void hyperspec() {
         hyperspec(null);
     }
 
-    public static void hyperspec(String s)
-    {
+    public static void hyperspec(String s) {
         final Editor editor = Editor.currentEditor();
         if (s == null) {
             if (editor.getDot() == null)

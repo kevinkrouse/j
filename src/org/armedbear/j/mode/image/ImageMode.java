@@ -33,24 +33,20 @@ import org.armedbear.j.MenuBar;
 import org.armedbear.j.Mode;
 import org.armedbear.j.Property;
 
-public final class ImageMode extends AbstractMode implements Constants, Mode
-{
+public final class ImageMode extends AbstractMode implements Constants, Mode {
     private static final String MENU_NAME = "ImageMode";
     private static final ImageMode mode = new ImageMode();
 
-    private ImageMode()
-    {
+    private ImageMode() {
         super(IMAGE_MODE, IMAGE_MODE_NAME);
         setProperty(Property.VERTICAL_RULE, 0);
     }
 
-    public static final ImageMode getMode()
-    {
+    public static final ImageMode getMode() {
         return mode;
     }
 
-    protected void setKeyMapDefaults(KeyMap km)
-    {
+    protected void setKeyMapDefaults(KeyMap km) {
         km.mapKey('c', "imageCycleBackground");
         km.mapKey('f', "imageFit");
         km.mapKey('r', "imageRestore");
@@ -58,13 +54,11 @@ public final class ImageMode extends AbstractMode implements Constants, Mode
         km.mapKey('-', "imageZoomOut");
     }
 
-    public String getMenuName()
-    {
+    public String getMenuName() {
         return MENU_NAME;
     }
 
-    public MenuBar createMenuBar(Frame frame)
-    {
+    public MenuBar createMenuBar(Frame frame) {
         MenuBar menuBar = new MenuBar(MENU_NAME);
         menuBar.add(new Menu("File", 'F'));
         menuBar.add(new Menu("View", 'V'));
@@ -73,8 +67,7 @@ public final class ImageMode extends AbstractMode implements Constants, Mode
         return menuBar;
     }
 
-    public void populateMenu(Editor editor, Menu menu)
-    {
+    public void populateMenu(Editor editor, Menu menu) {
         final String text = menu.getText();
         if (text == "File") {
             menu.add(editor, "New", 'N', "newBuffer");
@@ -103,16 +96,14 @@ public final class ImageMode extends AbstractMode implements Constants, Mode
             super.populateMenu(editor, menu);
     }
 
-    public Formatter getFormatter(Buffer buffer)
-    {
+    public Formatter getFormatter(Buffer buffer) {
         return null;
     }
 
-    public static void imageCycleBackground()
-    {
+    public static void imageCycleBackground() {
         final Buffer buffer = Editor.currentEditor().getBuffer();
         if (buffer instanceof ImageBuffer) {
-            ((ImageBuffer)buffer).cycleBackground();
+            ((ImageBuffer) buffer).cycleBackground();
             for (EditorIterator it = new EditorIterator(); it.hasNext();) {
                 Editor ed = it.next();
                 if (ed.getBuffer() == buffer)
@@ -121,31 +112,27 @@ public final class ImageMode extends AbstractMode implements Constants, Mode
         }
     }
 
-    public static void imageZoomIn()
-    {
+    public static void imageZoomIn() {
         final Buffer buffer = Editor.currentEditor().getBuffer();
         if (buffer instanceof ImageBuffer)
-            ((ImageBuffer)buffer).zoomIn();
+            ((ImageBuffer) buffer).zoomIn();
     }
 
-    public static void imageZoomOut()
-    {
+    public static void imageZoomOut() {
         final Buffer buffer = Editor.currentEditor().getBuffer();
         if (buffer instanceof ImageBuffer)
-            ((ImageBuffer)buffer).zoomOut();
+            ((ImageBuffer) buffer).zoomOut();
     }
 
-    public static void imageFit()
-    {
+    public static void imageFit() {
         final Buffer buffer = Editor.currentEditor().getBuffer();
         if (buffer instanceof ImageBuffer)
-            ((ImageBuffer)buffer).fit();
+            ((ImageBuffer) buffer).fit();
     }
 
-    public static void imageRestore()
-    {
+    public static void imageRestore() {
         final Buffer buffer = Editor.currentEditor().getBuffer();
         if (buffer instanceof ImageBuffer)
-            ((ImageBuffer)buffer).restore();
+            ((ImageBuffer) buffer).restore();
     }
 }

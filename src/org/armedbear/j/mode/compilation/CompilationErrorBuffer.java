@@ -20,23 +20,20 @@
 
 package org.armedbear.j.mode.compilation;
 
+import javax.swing.Icon;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Line;
 import org.armedbear.j.Log;
+import org.armedbear.j.Property;
 import org.armedbear.j.mode.text.PlainTextFormatter;
 import org.armedbear.j.mode.text.PlainTextMode;
-import org.armedbear.j.Property;
 import org.armedbear.j.util.Utilities;
 
-import javax.swing.Icon;
-
-public abstract class CompilationErrorBuffer extends Buffer
-{
+public abstract class CompilationErrorBuffer extends Buffer {
     private CompilationError currentError;
 
-    protected CompilationErrorBuffer()
-    {
-        supportsUndo  = false;
+    protected CompilationErrorBuffer() {
+        supportsUndo = false;
         mode = PlainTextMode.getMode();
         formatter = new PlainTextFormatter(this);
         lineSeparator = System.getProperty("line.separator");
@@ -49,8 +46,7 @@ public abstract class CompilationErrorBuffer extends Buffer
         setInitialized(true);
     }
 
-    public int load()
-    {
+    public int load() {
         if (!isLoaded()) {
             if (getFirstLine() == null) {
                 try {
@@ -73,18 +69,15 @@ public abstract class CompilationErrorBuffer extends Buffer
         return LOAD_COMPLETED;
     }
 
-    public CompilationError getCurrentError()
-    {
+    public CompilationError getCurrentError() {
         return currentError;
     }
 
-    public void setCurrentError(CompilationError ce)
-    {
+    public void setCurrentError(CompilationError ce) {
         currentError = ce;
     }
 
-    protected CompilationError nextError()
-    {
+    protected CompilationError nextError() {
         Line line;
         if (currentError != null) {
             line = currentError.getErrorLine();
@@ -104,8 +97,7 @@ public abstract class CompilationErrorBuffer extends Buffer
         return null;
     }
 
-    protected CompilationError previousError()
-    {
+    protected CompilationError previousError() {
         Line line;
         if (currentError != null) {
             line = currentError.getErrorLine();
@@ -125,8 +117,7 @@ public abstract class CompilationErrorBuffer extends Buffer
         return null;
     }
 
-    public String getMessage()
-    {
+    public String getMessage() {
         if (currentError != null) {
             String message = currentError.getMessage();
             if (message != null)
@@ -139,14 +130,12 @@ public abstract class CompilationErrorBuffer extends Buffer
         return null;
     }
 
-    public boolean isModified()
-    {
+    public boolean isModified() {
         return false;
     }
 
     // For the buffer list.
-    public Icon getIcon()
-    {
+    public Icon getIcon() {
         return Utilities.getIconFromFile("jpty");
     }
 }

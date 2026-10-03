@@ -20,16 +20,13 @@
 
 package org.armedbear.j;
 
-import org.armedbear.j.mode.diff.DiffOutputBuffer;
 import java.lang.StringBuilder;
+import javax.swing.undo.CompoundEdit;
+import org.armedbear.j.mode.diff.DiffOutputBuffer;
 import org.armedbear.j.util.Utilities;
 
-import javax.swing.undo.CompoundEdit;
-
-public final class ChangeMarks implements Constants
-{
-    public static void nextChange()
-    {
+public final class ChangeMarks implements Constants {
+    public static void nextChange() {
         final Editor editor = Editor.currentEditor();
         if (editor.getDot() == null)
             return;
@@ -56,8 +53,7 @@ public final class ChangeMarks implements Constants
             editor.status("No more changes");
     }
 
-    public static void previousChange()
-    {
+    public static void previousChange() {
         final Editor editor = Editor.currentEditor();
         if (editor.getDot() == null)
             return;
@@ -84,8 +80,7 @@ public final class ChangeMarks implements Constants
             editor.status("No more changes");
     }
 
-    public static void revertLines()
-    {
+    public static void revertLines() {
         final Editor editor = Editor.currentEditor();
         final Position dot = editor.getDot(); // Alias.
         if (dot == null)
@@ -142,8 +137,7 @@ public final class ChangeMarks implements Constants
         editor.endCompoundEdit(compoundEdit);
     }
 
-    private static void revertLine(Editor editor, Line line)
-    {
+    private static void revertLine(Editor editor, Line line) {
         if (!line.isModified())
             return;
         final Buffer buffer = editor.getBuffer();
@@ -165,8 +159,7 @@ public final class ChangeMarks implements Constants
         }
     }
 
-    private static void revertNewLine(Editor editor, final Line dotLine)
-    {
+    private static void revertNewLine(Editor editor, final Line dotLine) {
         editor.adjustMarkers(dotLine);
         final Line prev = dotLine.previous();
         final Line next = dotLine.next();
@@ -203,8 +196,7 @@ public final class ChangeMarks implements Constants
         buffer.repaint();
     }
 
-    private static void revertChangedLine(Editor editor, final Line dotLine)
-    {
+    private static void revertChangedLine(Editor editor, final Line dotLine) {
         final Buffer buffer = editor.getBuffer();
         final Position dot = editor.getDot(); // Alias.
         final String originalText = dotLine.getOriginalText();
@@ -241,8 +233,7 @@ public final class ChangeMarks implements Constants
         }
     }
 
-    public static void changes()
-    {
+    public static void changes() {
         final Editor editor = Editor.currentEditor();
         final Buffer buffer = editor.getBuffer();
         final File file = buffer.getFile();
@@ -263,8 +254,8 @@ public final class ChangeMarks implements Constants
             for (BufferIterator it = new BufferIterator(); it.hasNext();) {
                 Buffer b = it.next();
                 if (b instanceof DiffOutputBuffer) {
-                    if (((DiffOutputBuffer)b).getParentBuffer() == buffer) {
-                        if (((DiffOutputBuffer)b).getVCType() == 0) {
+                    if (((DiffOutputBuffer) b).getParentBuffer() == buffer) {
+                        if (((DiffOutputBuffer) b).getVCType() == 0) {
                             b.kill();
                             break; // There should be one at most.
                         }
@@ -273,8 +264,11 @@ public final class ChangeMarks implements Constants
             }
             String output = shellCommand.getOutput();
             if (output.length() == 0) {
-                MessageDialog.showMessageDialog(editor, "No changes",
-                    buffer.getFile().getName());
+                MessageDialog.showMessageDialog(
+                    editor,
+                    "No changes",
+                    buffer.getFile().getName()
+                );
             } else {
                 DiffOutputBuffer outputBuffer =
                     new DiffOutputBuffer(buffer, output, 0);

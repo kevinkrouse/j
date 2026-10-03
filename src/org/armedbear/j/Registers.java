@@ -20,30 +20,29 @@
 
 package org.armedbear.j;
 
-import org.armedbear.j.mode.list.ListRegistersBuffer;
-import java.lang.StringBuilder;
-import org.armedbear.j.util.Utilities;
-
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
+import java.lang.StringBuilder;
+import org.armedbear.j.mode.list.ListRegistersBuffer;
+import org.armedbear.j.util.Utilities;
 
-public final class Registers
-{
-    public static final void saveToRegister()
-    {
+public final class Registers {
+    public static final void saveToRegister() {
         saveToRegister(null);
     }
 
-    public static final void saveToRegister(String name)
-    {
+    public static final void saveToRegister(String name) {
         final Editor editor = Editor.currentEditor();
         if (editor.getDot() == null)
             return;
         if (editor.getMark() == null) {
-            MessageDialog.showMessageDialog(editor, "No region selected",
-                "Error");
+            MessageDialog.showMessageDialog(
+                editor,
+                "No region selected",
+                "Error"
+            );
             return;
         }
         if (editor.isColumnSelection()) {
@@ -67,8 +66,7 @@ public final class Registers
      *
      * @return false when it could not be written
      */
-    public static final boolean setText(String name, String text)
-    {
+    public static final boolean setText(String name, String text) {
         final File dir = Directories.getRegistersDirectory();
         if (dir == null)
             return false;
@@ -78,7 +76,7 @@ public final class Registers
         if (file == null)
             return false;
         try (OutputStreamWriter writer =
-                 new OutputStreamWriter(file.getOutputStream())) {
+            new OutputStreamWriter(file.getOutputStream())) {
             writer.write(text);
         }
         catch (IOException e) {
@@ -91,19 +89,16 @@ public final class Registers
         return true;
     }
 
-    public static final void insertRegister()
-    {
+    public static final void insertRegister() {
         insertRegister(null);
     }
 
-    public static final void insertRegister(String name)
-    {
+    public static final void insertRegister(String name) {
         final Editor editor = Editor.currentEditor();
         insertRegister(name, editor);
     }
 
-    public static final void insertRegister(String name, Editor editor)
-    {
+    public static final void insertRegister(String name, Editor editor) {
         if (!editor.checkReadOnly())
             return;
         if (editor.getDot() == null)
@@ -118,13 +113,11 @@ public final class Registers
             editor.paste(text);
     }
 
-    public static final void editRegister()
-    {
+    public static final void editRegister() {
         editRegister(null);
     }
 
-    public static final void editRegister(String name)
-    {
+    public static final void editRegister(String name) {
         final Editor editor = Editor.currentEditor();
         if (name == null) {
             name = getName(editor, "Edit Register");
@@ -146,13 +139,11 @@ public final class Registers
         }
     }
 
-    public static final void clearRegister()
-    {
+    public static final void clearRegister() {
         clearRegister(null);
     }
 
-    public static final void clearRegister(String name)
-    {
+    public static final void clearRegister(String name) {
         final Editor editor = Editor.currentEditor();
         if (name == null) {
             name = getName(editor, "Clear Register");
@@ -169,8 +160,7 @@ public final class Registers
         }
     }
 
-    public static final void listRegisters()
-    {
+    public static final void listRegisters() {
         Buffer buf = findListRegistersBuffer();
         if (buf == null)
             buf = new ListRegistersBuffer();
@@ -185,8 +175,7 @@ public final class Registers
         editor.activateInOtherWindow(buf);
     }
 
-    public static final ListRegistersBuffer findListRegistersBuffer()
-    {
+    public static final ListRegistersBuffer findListRegistersBuffer() {
         for (BufferIterator it = new BufferIterator(); it.hasNext();) {
             Buffer buf = it.next();
             if (buf instanceof ListRegistersBuffer)
@@ -195,16 +184,14 @@ public final class Registers
         return null;
     }
 
-    private static final String getName(Editor editor, String title)
-    {
+    private static final String getName(Editor editor, String title) {
         SelectRegisterDialog d = new SelectRegisterDialog(editor, "Register:", title, null);
         editor.centerDialog(d);
         d.setVisible(true);
         return d.getInput();
     }
 
-    private static final boolean validateName(String name)
-    {
+    private static final boolean validateName(String name) {
         boolean lenOk = false;
         boolean charsOk = true;
         int len = name.length();
@@ -214,8 +201,12 @@ public final class Registers
             for (int x = 0; x < len; x++) {
                 char c = name.charAt(x);
                 // Allow alphanumeric chars plus "-" and "_" only, with no spaces.
-                if (!Character.isLetterOrDigit(c) &&
-                    c != '-' && c != '_' ) {
+                if (
+                    !Character.isLetterOrDigit(c)
+                        &&
+                        c != '-'
+                        && c != '_'
+                ) {
                     charsOk = false;
                     break;
                 }
@@ -236,14 +227,12 @@ public final class Registers
         return false;
     }
 
-    public static final String getText(String name)
-    {
+    public static final String getText(String name) {
         return getText(name, 0);
     }
 
     // If maxLines > 0, return at most maxLines lines of text.
-    public static final String getText(String name, int maxLines)
-    {
+    public static final String getText(String name, int maxLines) {
         final File dir = Directories.getRegistersDirectory();
         if (dir == null)
             return null;
@@ -251,12 +240,13 @@ public final class Registers
         if (file == null || !file.isFile())
             return null;
         try (BufferedReader reader = new BufferedReader(
-                 new InputStreamReader(file.getInputStream()))) {
+            new InputStreamReader(file.getInputStream())
+        )) {
             StringBuilder sb = new StringBuilder();
             int lineCount = 0;
             int c;
             while ((c = reader.read()) > 0) {
-                sb.append((char)c);
+                sb.append((char) c);
                 if (c == '\n')
                     ++lineCount;
                 if (maxLines > 0 && lineCount == maxLines)
@@ -270,4 +260,3 @@ public final class Registers
         }
     }
 }
-

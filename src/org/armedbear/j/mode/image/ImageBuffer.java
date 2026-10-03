@@ -20,6 +20,11 @@
 
 package org.armedbear.j.mode.image;
 
+import java.awt.Color;
+import java.awt.Cursor;
+import java.awt.Image;
+import java.awt.MediaTracker;
+import java.lang.StringBuilder;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Constants;
 import org.armedbear.j.Debug;
@@ -27,7 +32,6 @@ import org.armedbear.j.Display;
 import org.armedbear.j.Editor;
 import org.armedbear.j.EditorIterator;
 import org.armedbear.j.ErrorRunnable;
-import java.lang.StringBuilder;
 import org.armedbear.j.File;
 import org.armedbear.j.FtpFile;
 import org.armedbear.j.FtpLoadProcess;
@@ -41,13 +45,7 @@ import org.armedbear.j.MessageDialog;
 import org.armedbear.j.Position;
 import org.armedbear.j.StatusBarProgressNotifier;
 
-import java.awt.Color;
-import java.awt.Cursor;
-import java.awt.Image;
-import java.awt.MediaTracker;
-
-public class ImageBuffer extends Buffer implements Constants
-{
+public class ImageBuffer extends Buffer implements Constants {
     private static Color backgrounds[];
 
     static {
@@ -66,8 +64,7 @@ public class ImageBuffer extends Buffer implements Constants
     private int currentHeight;
     private ImageLoader loader;
 
-    private ImageBuffer(File file, File cache, String listing)
-    {
+    private ImageBuffer(File file, File cache, String listing) {
         super();
         mode = Editor.getModeList().getMode(IMAGE_MODE);
         setFile(file);
@@ -80,8 +77,7 @@ public class ImageBuffer extends Buffer implements Constants
         setInitialized(true);
     }
 
-    public static ImageBuffer createImageBuffer(File file, File cache, String listing)
-    {
+    public static ImageBuffer createImageBuffer(File file, File cache, String listing) {
         // Load the image before creating the buffer, so we don't have to
         // unlink the buffer if we can't load the image.
         File toBeLoaded = cache != null ? cache : file;
@@ -101,39 +97,33 @@ public class ImageBuffer extends Buffer implements Constants
             return null;
     }
 
-    public final Position getInitialDotPos()
-    {
+    public final Position getInitialDotPos() {
         return null;
     }
 
-    public final boolean needsParsing()
-    {
+    public final boolean needsParsing() {
         return false;
     }
 
-    public final Image getImage()
-    {
+    public final Image getImage() {
         return currentImage;
     }
 
-    public final int getDisplayHeight()
-    {
+    public final int getDisplayHeight() {
         if (getModeId() == IMAGE_MODE)
             return currentImage.getHeight(null) + Display.getImageBorderHeight() * 2;
         else
             return super.getDisplayHeight();
     }
 
-    public final int getDisplayWidth()
-    {
+    public final int getDisplayWidth() {
         if (getModeId() == IMAGE_MODE)
             return currentImage.getWidth(null) + Display.getImageBorderWidth() * 2;
         else
             return super.getDisplayWidth();
     }
 
-    public int load()
-    {
+    public int load() {
         if (!isLoaded()) {
             Debug.assertTrue(loader == null);
             final File toBeLoaded = getCache() != null ? getCache() : getFile();
@@ -151,8 +141,7 @@ public class ImageBuffer extends Buffer implements Constants
         return LOAD_COMPLETED;
     }
 
-    public void reload()
-    {
+    public void reload() {
         switch (getModeId()) {
             case BINARY_MODE:
                 if (loader != null) {
@@ -174,8 +163,7 @@ public class ImageBuffer extends Buffer implements Constants
         }
     }
 
-    private void reloadLocal()
-    {
+    private void reloadLocal() {
         empty();
         if (loader != null) {
             loader.dispose();
@@ -193,15 +181,14 @@ public class ImageBuffer extends Buffer implements Constants
         }
     }
 
-    private void reloadRemote()
-    {
+    private void reloadRemote() {
         final File file = getFile();
         LoadProcess p = null;
         if (file instanceof FtpFile) {
-            FtpSession session = FtpSession.getSession((FtpFile)file);
-            p = new FtpLoadProcess(this, (FtpFile)file, session);
+            FtpSession session = FtpSession.getSession((FtpFile) file);
+            p = new FtpLoadProcess(this, (FtpFile) file, session);
         } else if (file instanceof HttpFile) {
-            p = new HttpLoadProcess(this, (HttpFile)file);
+            p = new HttpLoadProcess(this, (HttpFile) file);
         } else {
             Debug.bug();
             return;
@@ -222,63 +209,53 @@ public class ImageBuffer extends Buffer implements Constants
         loadProcess.start();
     }
 
-    public final Color getBackgroundColor()
-    {
+    public final Color getBackgroundColor() {
         return getBackground(backgroundIndex);
     }
 
-    public static final Color getDefaultBackgroundColor()
-    {
+    public static final Color getDefaultBackgroundColor() {
         return getBackground(0);
     }
 
-    public final int getImageWidth()
-    {
+    public final int getImageWidth() {
         return originalWidth;
     }
 
-    public final int getImageHeight()
-    {
+    public final int getImageHeight() {
         return originalHeight;
     }
 
-    public final void cycleBackground()
-    {
+    public final void cycleBackground() {
         if (++backgroundIndex >= getBackgroundCount())
             backgroundIndex = 0;
     }
 
-    private static final int getBackgroundCount()
-    {
+    private static final int getBackgroundCount() {
         return backgrounds.length;
     }
 
-    private static Color getBackground(int index)
-    {
+    private static Color getBackground(int index) {
         if (index >= 0 && index < backgrounds.length)
             return backgrounds[index];
         else
             return backgrounds[0];
     }
 
-    public void zoomIn()
-    {
+    public void zoomIn() {
         int w = currentWidth * 2;
         int h = currentHeight * 2;
         if (w > 0 && h > 0)
             resize(w, h);
     }
 
-    public void zoomOut()
-    {
+    public void zoomOut() {
         int w = currentWidth / 2;
         int h = currentHeight / 2;
         if (w > 0 && h > 0)
             resize(w, h);
     }
 
-    public void fit()
-    {
+    public void fit() {
         if (originalWidth == 0 || originalHeight == 0)
             return;
         Editor editor = Editor.currentEditor();
@@ -293,20 +270,17 @@ public class ImageBuffer extends Buffer implements Constants
         resize(w, h);
     }
 
-    public void restore()
-    {
+    public void restore() {
         resize(originalWidth, originalHeight);
     }
 
-    private void resize(int w, int h)
-    {
+    private void resize(int w, int h) {
         Editor editor = Editor.currentEditor();
         editor.setWaitCursor();
         Image img = null;
         MediaTracker mt = null;
 
-        try
-        {
+        try {
             long pixels = w * h;
             if (pixels > originalWidth * originalHeight && pixels > 2592000) {
                 // 1800x1440 (an arbitrary limit)
@@ -326,7 +300,7 @@ public class ImageBuffer extends Buffer implements Constants
             }
             img = originalImage.getScaledInstance(w, h, Image.SCALE_DEFAULT);
             mt = new MediaTracker(editor);
-            mt.addImage(img , 0);
+            mt.addImage(img, 0);
             mt.waitForID(0);
         }
         catch (Exception e) {
@@ -355,8 +329,7 @@ public class ImageBuffer extends Buffer implements Constants
         }
     }
 
-    public boolean reactivate()
-    {
+    public boolean reactivate() {
         final File file = getFile();
         if (file == null || file.isRemote() || !file.isFile())
             return false;
@@ -374,37 +347,31 @@ public class ImageBuffer extends Buffer implements Constants
         return false;
     }
 
-    private void status(Editor editor)
-    {
+    private void status(Editor editor) {
         int percent =
             (int) ((float) currentWidth * 100 / (float) originalWidth + 0.5);
         editor.status(String.valueOf(percent) + '%');
     }
 
-    public void dispose()
-    {
+    public void dispose() {
         if (loader != null)
             loader.dispose();
         super.dispose();
     }
 
-    public Cursor getDefaultCursor()
-    {
+    public Cursor getDefaultCursor() {
         return Cursor.getDefaultCursor();
     }
 
-    public Cursor getDefaultCursor(Position pos)
-    {
+    public Cursor getDefaultCursor(Position pos) {
         return Cursor.getDefaultCursor();
     }
 
-    public void saveView(Editor editor)
-    {
+    public void saveView(Editor editor) {
         // Nothing to do.
     }
 
-    public String getStatusText(Editor editor)
-    {
+    public String getStatusText(Editor editor) {
         StringBuilder sb = new StringBuilder(String.valueOf(getImageWidth()));
         sb.append('x');
         sb.append(String.valueOf(getImageHeight()));

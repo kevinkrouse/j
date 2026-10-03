@@ -20,74 +20,66 @@
 
 package org.armedbear.j.mode.archive;
 
+import java.awt.AWTEvent;
+import java.awt.event.KeyEvent;
+import java.awt.event.MouseEvent;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.lang.StringBuilder;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
 import org.armedbear.j.AbstractMode;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.BufferIterator;
 import org.armedbear.j.Compression;
 import org.armedbear.j.Constants;
 import org.armedbear.j.Editor;
-import org.armedbear.j.Mode;
-import java.lang.StringBuilder;
 import org.armedbear.j.File;
 import org.armedbear.j.Formatter;
-import org.armedbear.j.mode.image.ImageBuffer;
 import org.armedbear.j.KeyMap;
 import org.armedbear.j.Log;
-import org.armedbear.j.mode.text.PlainTextFormatter;
+import org.armedbear.j.Mode;
 import org.armedbear.j.Property;
+import org.armedbear.j.mode.image.ImageBuffer;
+import org.armedbear.j.mode.text.PlainTextFormatter;
 import org.armedbear.j.util.Utilities;
 
-import java.util.regex.Pattern;
-import java.util.regex.Matcher;
-import java.awt.AWTEvent;
-import java.awt.event.KeyEvent;
-import java.awt.event.MouseEvent;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipInputStream;
-
-public final class ArchiveMode extends AbstractMode implements Constants, Mode
-{
+public final class ArchiveMode extends AbstractMode implements Constants, Mode {
     private static final ArchiveMode mode = new ArchiveMode();
     private static final Pattern moveToFilenameRegExp =
         Pattern.compile(":[0-5][0-9] ");
 
-    private ArchiveMode()
-    {
+    private ArchiveMode() {
         super(ARCHIVE_MODE, ARCHIVE_MODE_NAME);
         setProperty(Property.VERTICAL_RULE, 0);
         setProperty(Property.SHOW_LINE_NUMBERS, false);
     }
 
-    public static final ArchiveMode getMode()
-    {
+    public static final ArchiveMode getMode() {
         return mode;
     }
 
-    public final Formatter getFormatter(Buffer buffer)
-    {
+    public final Formatter getFormatter(Buffer buffer) {
         return new PlainTextFormatter(buffer);
     }
 
-    protected void setKeyMapDefaults(KeyMap km)
-    {
+    protected void setKeyMapDefaults(KeyMap km) {
         km.mapKey(KeyEvent.VK_ENTER, 0, "archiveOpenFile");
         km.mapKey(KeyEvent.VK_G, CTRL_MASK | SHIFT_MASK, "archiveOpenFile");
         km.mapKey(VK_DOUBLE_MOUSE_1, 0, "archiveOpenFile");
         km.mapKey(VK_MOUSE_2, 0, "archiveOpenFile");
     }
 
-    private static String getName(String s)
-    {
+    private static String getName(String s) {
         Matcher matcher = moveToFilenameRegExp.matcher(s);
         return matcher.find() ? s.substring(matcher.end()) : null;
     }
 
-    public static void openFileAtDot(Editor editor)
-    {
+    public static void openFileAtDot(Editor editor) {
         Buffer buffer = editor.getBuffer();
         String name = getName(editor.getDotLine().getText());
         if (name == null)
@@ -118,7 +110,7 @@ public final class ArchiveMode extends AbstractMode implements Constants, Mode
         try {
             in = new ZipInputStream(toBeLoaded.getInputStream());
             ZipEntry zipEntry;
-            while((zipEntry = in.getNextEntry()) != null) {
+            while ((zipEntry = in.getNextEntry()) != null) {
                 if (zipEntry.getName().equals(name)) {
                     if (zipEntry.isDirectory()) {
                         editor.status(name + " is a directory");
@@ -129,9 +121,13 @@ public final class ArchiveMode extends AbstractMode implements Constants, Mode
                         if (Editor.getModeList().modeAccepts(IMAGE_MODE, name))
                             buf = ImageBuffer.createImageBuffer(null, cache, null);
                         if (buf != null) {
-                            buf.setCompression(new Compression(COMPRESSION_ZIP,
-                                                               zipEntry,
-                                                               source));
+                            buf.setCompression(
+                                new Compression(
+                                    COMPRESSION_ZIP,
+                                    zipEntry,
+                                    source
+                                )
+                            );
                             buf.setTitle(title);
                         } else {
                             buf = Buffer.createBuffer(null);
@@ -139,9 +135,13 @@ public final class ArchiveMode extends AbstractMode implements Constants, Mode
                             //buf.type = Buffer.TYPE_NORMAL; // Default (may be changed later).
                             //buf.initializeUndo();
                             buf.setCache(cache);
-                            buf.setCompression(new Compression(COMPRESSION_ZIP,
-                                                               zipEntry,
-                                                               source));
+                            buf.setCompression(
+                                new Compression(
+                                    COMPRESSION_ZIP,
+                                    zipEntry,
+                                    source
+                                )
+                            );
                             buf.initialize(); // May change buffer type.
                             buf.setTitle(title);
                             buf.setForceReadOnly(true);
@@ -165,8 +165,7 @@ public final class ArchiveMode extends AbstractMode implements Constants, Mode
         }
     }
 
-    private static File cacheEntry(ZipInputStream in)
-    {
+    private static File cacheEntry(ZipInputStream in) {
         File cache = Utilities.getTempFile();
         if (cache != null) {
             OutputStream out = null;
@@ -192,14 +191,13 @@ public final class ArchiveMode extends AbstractMode implements Constants, Mode
         return cache;
     }
 
-    public void loadFile(Buffer buffer, File file)
-    {
+    public void loadFile(Buffer buffer, File file) {
         if (!buffer.isLoaded()) {
             ZipInputStream in = null;
             try {
                 in = new ZipInputStream(file.getInputStream());
                 ZipEntry ze;
-                while((ze = in.getNextEntry()) != null) {
+                while ((ze = in.getNextEntry()) != null) {
                     in.closeEntry();
                     appendLine(buffer, ze);
                 }
@@ -223,10 +221,9 @@ public final class ArchiveMode extends AbstractMode implements Constants, Mode
     }
 
     private static final SimpleDateFormat zipEntryDateFormatter =
-        new SimpleDateFormat ("MMM dd yyyy HH:mm");
+        new SimpleDateFormat("MMM dd yyyy HH:mm");
 
-    private static void appendLine(Buffer buffer, ZipEntry ze)
-    {
+    private static void appendLine(Buffer buffer, ZipEntry ze) {
         StringBuilder sb = new StringBuilder();
         String sizeString = String.valueOf(ze.getSize());
         for (int i = 9 - sizeString.length(); i >= 0; i--)
@@ -239,15 +236,14 @@ public final class ArchiveMode extends AbstractMode implements Constants, Mode
         buffer.appendLine(sb.toString());
     }
 
-    public static void archiveOpenFile()
-    {
+    public static void archiveOpenFile() {
         final Editor editor = Editor.currentEditor();
         if (editor.getModeId() == ARCHIVE_MODE) {
             // If this method is invoked via a mouse event mapping, move dot to
             // location of mouse click first.
             AWTEvent e = editor.getDispatcher().getLastEvent();
             if (e instanceof MouseEvent)
-                editor.mouseMoveDotToPoint((MouseEvent)e);
+                editor.mouseMoveDotToPoint((MouseEvent) e);
             openFileAtDot(editor);
         }
     }

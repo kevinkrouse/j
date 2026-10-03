@@ -20,27 +20,25 @@
 
 package org.armedbear.j.mode.xml;
 
-import java.util.regex.Pattern;
-import java.util.regex.PatternSyntaxException;
-import java.util.regex.Matcher;
 import java.awt.event.KeyEvent;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.StringReader;
+import java.lang.StringBuilder;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.regex.PatternSyntaxException;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.TreeModel;
 import javax.swing.tree.TreeNode;
 import javax.swing.tree.TreePath;
 import javax.swing.undo.CompoundEdit;
-
 import org.armedbear.j.AbstractMode;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Constants;
 import org.armedbear.j.Debug;
 import org.armedbear.j.Editor;
-import org.armedbear.j.Mode;
-import java.lang.StringBuilder;
 import org.armedbear.j.File;
 import org.armedbear.j.Formatter;
 import org.armedbear.j.History;
@@ -52,22 +50,22 @@ import org.armedbear.j.Line;
 import org.armedbear.j.Log;
 import org.armedbear.j.Menu;
 import org.armedbear.j.MessageDialog;
+import org.armedbear.j.Mode;
 import org.armedbear.j.NavigationComponent;
 import org.armedbear.j.Position;
 import org.armedbear.j.Property;
 import org.armedbear.j.Sidebar;
 import org.armedbear.j.SimpleEdit;
-import org.armedbear.j.util.Utilities;
 import org.armedbear.j.View;
 import org.armedbear.j.XmlParserImpl;
+import org.armedbear.j.util.Utilities;
 import org.xml.sax.SAXParseException;
 
-public final class XmlMode extends AbstractMode implements Constants, Mode
-{
+public final class XmlMode extends AbstractMode implements Constants, Mode {
     private static final String COMMENT_START = "<!--";
-    private static final String COMMENT_END   = "-->";
-    private static final String CDATA_START   = "<![CDATA[";
-    private static final String CDATA_END     = "]]>";
+    private static final String COMMENT_END = "-->";
+    private static final String CDATA_START = "<![CDATA[";
+    private static final String CDATA_END = "]]>";
 
     private static final XmlMode mode = new XmlMode();
 
@@ -78,24 +76,20 @@ public final class XmlMode extends AbstractMode implements Constants, Mode
     private static Pattern quotedValueRE;
     private static Pattern unquotedValueRE;
 
-    private XmlMode()
-    {
+    private XmlMode() {
         super(XML_MODE, XML_MODE_NAME);
         setProperty(Property.INDENT_SIZE, 2);
     }
 
-    public static final XmlMode getMode()
-    {
+    public static final XmlMode getMode() {
         return mode;
     }
 
-    public static final XmlErrorBuffer getErrorBuffer()
-    {
+    public static final XmlErrorBuffer getErrorBuffer() {
         return errorBuffer;
     }
 
-    public NavigationComponent getSidebarComponent(Editor editor)
-    {
+    public NavigationComponent getSidebarComponent(Editor editor) {
         Debug.assertTrue(editor.getBuffer().getMode() == getMode());
         if (!editor.getBuffer().getBooleanProperty(Property.ENABLE_TREE))
             return null;
@@ -107,23 +101,19 @@ public final class XmlMode extends AbstractMode implements Constants, Mode
         return view.getSidebarComponent();
     }
 
-    public String getCommentStart()
-    {
+    public String getCommentStart() {
         return COMMENT_START;
     }
 
-    public String getCommentEnd()
-    {
+    public String getCommentEnd() {
         return COMMENT_END;
     }
 
-    public Formatter getFormatter(Buffer buffer)
-    {
+    public Formatter getFormatter(Buffer buffer) {
         return new XmlFormatter(buffer);
     }
 
-    protected void setKeyMapDefaults(KeyMap km)
-    {
+    protected void setKeyMapDefaults(KeyMap km) {
         km.mapKey(KeyEvent.VK_TAB, 0, "tab");
         km.mapKey(KeyEvent.VK_TAB, CTRL_MASK, "insertTab");
         km.mapKey(KeyEvent.VK_ENTER, 0, "newlineAndIndent");
@@ -135,8 +125,11 @@ public final class XmlMode extends AbstractMode implements Constants, Mode
         km.mapKey('/', "xmlElectricSlash");
         km.mapKey(KeyEvent.VK_I, ALT_MASK, "cycleIndentSize");
         km.mapKey(KeyEvent.VK_COMMA, CTRL_MASK | SHIFT_MASK, "xmlInsertTag");
-        km.mapKey(KeyEvent.VK_PERIOD, CTRL_MASK | SHIFT_MASK,
-                  "xmlInsertEmptyElementTag");
+        km.mapKey(
+            KeyEvent.VK_PERIOD,
+            CTRL_MASK | SHIFT_MASK,
+            "xmlInsertEmptyElementTag"
+        );
         km.mapKey(KeyEvent.VK_P, CTRL_MASK, "xmlParseBuffer");
         km.mapKey(KeyEvent.VK_P, CTRL_MASK | SHIFT_MASK, "xmlValidateBuffer");
         km.mapKey(KeyEvent.VK_EQUALS, CTRL_MASK, "xmlFindCurrentNode");
@@ -148,8 +141,7 @@ public final class XmlMode extends AbstractMode implements Constants, Mode
         km.mapKey(KeyEvent.VK_F9, CTRL_MASK, "recompile");
     }
 
-    public void populateModeMenu(Editor editor, Menu menu)
-    {
+    public void populateModeMenu(Editor editor, Menu menu) {
         menu.add(editor, "Insert Element", 'I', "xmlInsertTag");
         menu.add(editor, "End Current Element", 'E', "xmlInsertMatchingEndTag");
         menu.addSeparator();
@@ -162,8 +154,7 @@ public final class XmlMode extends AbstractMode implements Constants, Mode
         menu.add(editor, "Show Error Message", 'M', "showMessage", enabled);
     }
 
-    public void loadFile(Buffer buffer, File file)
-    {
+    public void loadFile(Buffer buffer, File file) {
         String encoding = null;
         try {
             BufferedReader reader =
@@ -189,8 +180,10 @@ public final class XmlMode extends AbstractMode implements Constants, Mode
                                 if (Utilities.isSupportedEncoding(encoding))
                                     file.setEncoding(encoding);
                                 else
-                                    Log.error("unsupported encoding \"" +
-                                            encoding + '"');
+                                    Log.error(
+                                        "unsupported encoding \"" +
+                                            encoding + '"'
+                                    );
                             }
                         }
                     }
@@ -210,13 +203,11 @@ public final class XmlMode extends AbstractMode implements Constants, Mode
         }
     }
 
-    public boolean canIndent()
-    {
+    public boolean canIndent() {
         return true;
     }
 
-    public int getCorrectIndentation(Line line, Buffer buffer)
-    {
+    public int getCorrectIndentation(Line line, Buffer buffer) {
         final Line model = getModel(line);
         if (model == null)
             return 0;
@@ -240,9 +231,12 @@ public final class XmlMode extends AbstractMode implements Constants, Mode
             return indent < 0 ? 0 : indent;
         }
         final String modelText = model.trim();
-        if (modelText.startsWith("<") && !modelText.startsWith("</") &&
-            !modelText.startsWith("<!"))
-        {
+        if (
+            modelText.startsWith("<")
+                && !modelText.startsWith("</")
+                &&
+                !modelText.startsWith("<!")
+        ) {
             String tag = getTag(modelText);
             if (isEmptyElementTag(tag))
                 return indent;
@@ -250,7 +244,7 @@ public final class XmlMode extends AbstractMode implements Constants, Mode
                 return indent;
             // Model starts with start tag.
             String tagName = Utilities.getTagName(modelText);
-            String startTag = "<"  + tagName;
+            String startTag = "<" + tagName;
             String endTag = "</" + tagName;
             int count = 1;
             final int limit = modelText.length();
@@ -287,8 +281,7 @@ public final class XmlMode extends AbstractMode implements Constants, Mode
     }
 
     // Line must start with an end tag.
-    private Position findMatchingStartTag(Line line)
-    {
+    private Position findMatchingStartTag(Line line) {
         String s = line.trim();
         if (!s.startsWith("</"))
             return null;
@@ -306,8 +299,7 @@ public final class XmlMode extends AbstractMode implements Constants, Mode
         return findMatchingStartTag(name, pos);
     }
 
-    private static Position findMatchingStartTag(String name, Position start)
-    {
+    private static Position findMatchingStartTag(String name, Position start) {
         Position pos = start.copy();
         String endTagToBeMatched = "</" + name + ">";
         String lookFor = "<" + name;
@@ -349,8 +341,7 @@ public final class XmlMode extends AbstractMode implements Constants, Mode
         return null;
     }
 
-    private static Position findMatchingEndTag(String name, Position start)
-    {
+    private static Position findMatchingEndTag(String name, Position start) {
         Position pos = start.copy();
         String startTagToBeMatched = "<" + name;
         String lookFor = "</" + name + ">";
@@ -405,8 +396,7 @@ public final class XmlMode extends AbstractMode implements Constants, Mode
         return null;
     }
 
-    private static String getUnmatchedStartTag(Position start)
-    {
+    private static String getUnmatchedStartTag(Position start) {
         Position pos = start.copy();
         if (isInComment(pos))
             return null;
@@ -447,8 +437,7 @@ public final class XmlMode extends AbstractMode implements Constants, Mode
         return null;
     }
 
-    private static boolean isInTag(Position position)
-    {
+    private static boolean isInTag(Position position) {
         Position pos = position.copy();
         while (pos.prev()) {
             if (pos.lookingAt(COMMENT_END)) {
@@ -466,8 +455,7 @@ public final class XmlMode extends AbstractMode implements Constants, Mode
         return false;
     }
 
-    private static boolean isInComment(Position position)
-    {
+    private static boolean isInComment(Position position) {
         Position pos = position.copy();
         boolean inComment = pos.getLine().flags() == STATE_COMMENT;
         pos.setOffset(0);
@@ -491,8 +479,7 @@ public final class XmlMode extends AbstractMode implements Constants, Mode
         return inComment;
     }
 
-    private static boolean isInCDataSection(Position position)
-    {
+    private static boolean isInCDataSection(Position position) {
         Position pos = position.copy();
         boolean inCDataSection = pos.getLine().flags() == STATE_CDATA;
         pos.setOffset(0);
@@ -516,8 +503,7 @@ public final class XmlMode extends AbstractMode implements Constants, Mode
         return inCDataSection;
     }
 
-    private static String getTag(String s)
-    {
+    private static String getTag(String s) {
         if (s == null || s.length() == 0 || s.charAt(0) != '<')
             return null;
         StringBuilder sb = new StringBuilder();
@@ -542,8 +528,7 @@ public final class XmlMode extends AbstractMode implements Constants, Mode
     }
 
     // Advances position to first char past end of tag.
-    private static String getTag(Position pos)
-    {
+    private static String getTag(Position pos) {
         if (pos == null || pos.getChar() != '<')
             return null;
         StringBuilder sb = new StringBuilder();
@@ -569,27 +554,23 @@ public final class XmlMode extends AbstractMode implements Constants, Mode
         return sb.toString();
     }
 
-    private static boolean isProcessingInstruction(String tag)
-    {
+    private static boolean isProcessingInstruction(String tag) {
         if (tag.startsWith("<?") && tag.endsWith("?>"))
             return true;
         return false;
     }
 
-    private static boolean isEmptyElementTag(String tag)
-    {
+    private static boolean isEmptyElementTag(String tag) {
         if (tag == null)
             return false;
         return tag.endsWith("/>");
     }
 
-    private static final boolean lookingAt(String s, int i, String pattern)
-    {
+    private static final boolean lookingAt(String s, int i, String pattern) {
         return s.regionMatches(i, pattern, 0, pattern.length());
     }
 
-    private static Line getModel(Line line)
-    {
+    private static Line getModel(Line line) {
         Line model = line;
         while ((model = model.previous()) != null) {
             int flags = model.flags();
@@ -605,8 +586,7 @@ public final class XmlMode extends AbstractMode implements Constants, Mode
         return model;
     }
 
-    public char fixCase(Editor editor, char c)
-    {
+    public char fixCase(Editor editor, char c) {
         if (!Character.isUpperCase(c) && !Character.isLowerCase(c))
             return c;
         final Buffer buffer = editor.getBuffer();
@@ -656,8 +636,7 @@ public final class XmlMode extends AbstractMode implements Constants, Mode
         return c;
     }
 
-    private static boolean checkElectricEquals(Editor editor)
-    {
+    private static boolean checkElectricEquals(Editor editor) {
         Position pos = findStartOfTag(editor.getDot());
         if (pos == null)
             return false;
@@ -668,12 +647,11 @@ public final class XmlMode extends AbstractMode implements Constants, Mode
     }
 
     // Scans backward on same line for '<'.
-    private static Position findStartOfTag(Position pos)
-    {
+    private static Position findStartOfTag(Position pos) {
         final String text = pos.getLine().getText();
         int offset = pos.getOffset();
         if (offset >= pos.getLine().length())
-            offset = pos.getLine().length()-1;
+            offset = pos.getLine().length() - 1;
         else if (text.charAt(offset) == '>')
             --offset;
         while (offset >= 0) {
@@ -687,8 +665,7 @@ public final class XmlMode extends AbstractMode implements Constants, Mode
         return null;
     }
 
-    private static boolean initRegExps()
-    {
+    private static boolean initRegExps() {
         if (tagNameRE == null) {
             try {
                 tagNameRE = Pattern.compile("</?[A-Za-z0-9]*");
@@ -704,8 +681,7 @@ public final class XmlMode extends AbstractMode implements Constants, Mode
         return true;
     }
 
-    public static void xmlFindCurrentNode()
-    {
+    public static void xmlFindCurrentNode() {
         final Editor editor = Editor.currentEditor();
         if (editor.getModeId() == XML_MODE) {
             final Sidebar sidebar = editor.getSidebar();
@@ -717,8 +693,7 @@ public final class XmlMode extends AbstractMode implements Constants, Mode
         }
     }
 
-    public static void xmlParseBuffer()
-    {
+    public static void xmlParseBuffer() {
         final Editor editor = Editor.currentEditor();
         if (editor.getModeId() == XML_MODE) {
             XmlTree tree = null;
@@ -763,7 +738,8 @@ public final class XmlMode extends AbstractMode implements Constants, Mode
                     Editor otherEditor = editor.getOtherEditor();
                     if (otherEditor != null) {
                         errorBuffer.setUnsplitOnClose(
-                            otherEditor.getBuffer().unsplitOnClose());
+                            otherEditor.getBuffer().unsplitOnClose()
+                        );
                         otherEditor.makeNext(errorBuffer);
                     } else
                         errorBuffer.setUnsplitOnClose(true);
@@ -786,8 +762,7 @@ public final class XmlMode extends AbstractMode implements Constants, Mode
         }
     }
 
-    public static void xmlValidateBuffer()
-    {
+    public static void xmlValidateBuffer() {
         final Editor editor = Editor.currentEditor();
         if (editor.getModeId() == XML_MODE) {
             final Buffer buffer = editor.getBuffer();
@@ -816,7 +791,8 @@ public final class XmlMode extends AbstractMode implements Constants, Mode
                     Editor otherEditor = editor.getOtherEditor();
                     if (otherEditor != null) {
                         errorBuffer.setUnsplitOnClose(
-                            otherEditor.getBuffer().unsplitOnClose());
+                            otherEditor.getBuffer().unsplitOnClose()
+                        );
                         otherEditor.makeNext(errorBuffer);
                     } else
                         errorBuffer.setUnsplitOnClose(true);
@@ -827,18 +803,17 @@ public final class XmlMode extends AbstractMode implements Constants, Mode
         }
     }
 
-    private static void outOfMemory()
-    {
+    private static void outOfMemory() {
         MessageDialog.showMessageDialog(
-                "Not enough memory to run parser",
-                "XML Mode");
+            "Not enough memory to run parser",
+            "XML Mode"
+        );
     }
 
-    public static void xmlFindError(Editor editor, SAXParseException e)
-    {
-        Line line = editor.getBuffer().getLine(e.getLineNumber()-1);
+    public static void xmlFindError(Editor editor, SAXParseException e) {
+        Line line = editor.getBuffer().getLine(e.getLineNumber() - 1);
         if (line != null) {
-            int offset = e.getColumnNumber()-1;
+            int offset = e.getColumnNumber() - 1;
             if (offset < 0)
                 offset = 0;
             if (offset > line.length())
@@ -854,8 +829,7 @@ public final class XmlMode extends AbstractMode implements Constants, Mode
         }
     }
 
-    public static void ensureCurrentNodeIsVisible(Editor editor, XmlTree tree)
-    {
+    public static void ensureCurrentNodeIsVisible(Editor editor, XmlTree tree) {
         if (tree == null)
             return;
         DefaultMutableTreeNode currentNode = tree.getNodeAtPos(editor.getDot());
@@ -865,8 +839,7 @@ public final class XmlMode extends AbstractMode implements Constants, Mode
         }
     }
 
-    public static void copyXPath()
-    {
+    public static void copyXPath() {
         final Editor editor = Editor.currentEditor();
         if (editor.getModeId() == XML_MODE) {
             final Sidebar sidebar = editor.getSidebar();
@@ -900,8 +873,7 @@ public final class XmlMode extends AbstractMode implements Constants, Mode
         }
     }
 
-    public static void xmlElectricEquals()
-    {
+    public static void xmlElectricEquals() {
         final Editor editor = Editor.currentEditor();
         if (!editor.checkReadOnly())
             return;
@@ -924,8 +896,7 @@ public final class XmlMode extends AbstractMode implements Constants, Mode
             editor.insertNormalChar('=');
     }
 
-    public static void xmlInsertTag()
-    {
+    public static void xmlInsertTag() {
         final Editor editor = Editor.currentEditor();
         if (!editor.checkReadOnly())
             return;
@@ -935,16 +906,14 @@ public final class XmlMode extends AbstractMode implements Constants, Mode
         _xmlInsertTag(editor, d.getInput());
     }
 
-    public static void xmlInsertTag(String input)
-    {
+    public static void xmlInsertTag(String input) {
         final Editor editor = Editor.currentEditor();
         if (!editor.checkReadOnly())
             return;
         _xmlInsertTag(editor, input);
     }
 
-    private static void _xmlInsertTag(Editor editor, String input)
-    {
+    private static void _xmlInsertTag(Editor editor, String input) {
         if (input != null) {
             final String tagName, extra;
             int index = input.indexOf(' ');
@@ -960,8 +929,7 @@ public final class XmlMode extends AbstractMode implements Constants, Mode
         }
     }
 
-    public static void xmlInsertEmptyElementTag()
-    {
+    public static void xmlInsertEmptyElementTag() {
         final Editor editor = Editor.currentEditor();
         if (!editor.checkReadOnly())
             return;
@@ -1007,8 +975,7 @@ public final class XmlMode extends AbstractMode implements Constants, Mode
         editor.endCompoundEdit(compoundEdit);
     }
 
-    public static void xmlFindMatch()
-    {
+    public static void xmlFindMatch() {
         final Editor editor = Editor.currentEditor();
         final Position dot = editor.getDot();
         if (isInComment(dot)) {
@@ -1026,21 +993,30 @@ public final class XmlMode extends AbstractMode implements Constants, Mode
             if (dotLine.substring(0, offset).trim().length() == 0) {
                 // We're in the whitespace to the left of the text on the line.
                 // Skip to first non-whitespace char.
-                while (Character.isWhitespace(dotLine.charAt(offset)) &&
-                    offset < dotLine.length())
+                while (
+                    Character.isWhitespace(dotLine.charAt(offset))
+                        &&
+                        offset < dotLine.length()
+                )
                     ++offset;
                 if (dotLine.charAt(offset) == '<')
                     pos = new Position(dotLine, offset);
             }
-            if (pos ==  null) {
+            if (pos == null) {
                 offset =
                     dotLine.getText().lastIndexOf(COMMENT_END, dot.getOffset());
-                if (offset >= 0 && dot.getOffset() >= offset &&
-                    dot.getOffset() < offset + COMMENT_END.length())
+                if (
+                    offset >= 0
+                        && dot.getOffset() >= offset
+                        &&
+                        dot.getOffset() < offset + COMMENT_END.length()
+                )
                     pos = new Position(dotLine, offset);
                 else if (dotLine.trim().equals(COMMENT_END))
-                    pos = new Position(dotLine,
-                        dotLine.getText().indexOf(COMMENT_END));
+                    pos = new Position(
+                        dotLine,
+                        dotLine.getText().indexOf(COMMENT_END)
+                    );
             }
         }
 
@@ -1081,8 +1057,7 @@ public final class XmlMode extends AbstractMode implements Constants, Mode
             editor.status("No match");
     }
 
-    public static void xmlInsertMatchingEndTag()
-    {
+    public static void xmlInsertMatchingEndTag() {
         final Editor editor = Editor.currentEditor();
         if (!editor.checkReadOnly())
             return;
@@ -1119,8 +1094,7 @@ public final class XmlMode extends AbstractMode implements Constants, Mode
         }
     }
 
-    public static void xmlElectricSlash()
-    {
+    public static void xmlElectricSlash() {
         final Editor editor = Editor.currentEditor();
         if (!editor.checkReadOnly())
             return;
@@ -1129,8 +1103,8 @@ public final class XmlMode extends AbstractMode implements Constants, Mode
             buffer.renumber();
         final Position dot = editor.getDotCopy();
         final int offset = dot.getOffset();
-        if (offset > 0 && dot.getLine().charAt(offset-1) == '<') {
-            dot.setOffset(offset-1);
+        if (offset > 0 && dot.getLine().charAt(offset - 1) == '<') {
+            dot.setOffset(offset - 1);
             String tag = getUnmatchedStartTag(dot);
             if (tag != null) {
                 final String name = Utilities.getTagName(tag);
@@ -1165,8 +1139,7 @@ public final class XmlMode extends AbstractMode implements Constants, Mode
     }
 
     // Scan backward for "<!--".
-    private static Position findCommentStart(Position start)
-    {
+    private static Position findCommentStart(Position start) {
         Position pos = start.copy();
         do {
             if (pos.lookingAt(COMMENT_START))
@@ -1177,8 +1150,7 @@ public final class XmlMode extends AbstractMode implements Constants, Mode
     }
 
     // Scan forward for "-->".
-    private static Position findCommentEnd(Position start)
-    {
+    private static Position findCommentEnd(Position start) {
         Position pos = start.copy();
         do {
             if (pos.lookingAt(COMMENT_END))

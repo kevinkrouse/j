@@ -20,10 +20,6 @@
 
 package org.armedbear.j;
 
-import org.armedbear.j.mail.FolderTree;
-import java.lang.StringBuilder;
-import org.armedbear.j.util.Utilities;
-
 import java.awt.Cursor;
 import java.awt.Dimension;
 import java.awt.Image;
@@ -39,6 +35,7 @@ import java.awt.event.KeyEvent;
 import java.awt.event.WindowEvent;
 import java.awt.event.WindowListener;
 import java.awt.event.WindowStateListener;
+import java.lang.StringBuilder;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -48,10 +45,11 @@ import javax.swing.JButton;
 import javax.swing.JComponent;
 import javax.swing.JFrame;
 import javax.swing.SwingUtilities;
+import org.armedbear.j.mail.FolderTree;
+import org.armedbear.j.util.Utilities;
 
 public final class Frame extends JFrame implements Constants, ComponentListener,
-    FocusListener, WindowListener, WindowStateListener
-{
+    FocusListener, WindowListener, WindowStateListener {
     private EditorPane editorPane;
     private EditorList editors = new EditorList();
     private Editor currentEditor;
@@ -63,8 +61,7 @@ public final class Frame extends JFrame implements Constants, ComponentListener,
     private int extendedState;
     private final StatusBar statusBar;
 
-    public Frame(Editor editor)
-    {
+    public Frame(Editor editor) {
         Editor.frames.add(this);
         addComponentListener(this);
         addWindowListener(this);
@@ -90,8 +87,7 @@ public final class Frame extends JFrame implements Constants, ComponentListener,
         setIconImages();
     }
 
-    public void titleChanged()
-    {
+    public void titleChanged() {
         StringBuilder sb =
             new StringBuilder(Version.getShortVersionString());
         String sessionName = Editor.getSessionName();
@@ -109,8 +105,7 @@ public final class Frame extends JFrame implements Constants, ComponentListener,
         setTitle(sb.toString());
     }
 
-    private void setIconImages()
-    {
+    private void setIconImages() {
         // Drawn from the vector logo at each size the window manager might ask
         // for, rather than scaled from one bitmap.
         final int[] sizes = new int[] { 16, 32, 64, 128, 256 };
@@ -124,60 +119,49 @@ public final class Frame extends JFrame implements Constants, ComponentListener,
         setIconImages(images);
     }
 
-    public void storeExtendedState(int state)
-    {
+    public void storeExtendedState(int state) {
         extendedState = state;
     }
 
-    public int retrieveExtendedState()
-    {
+    public int retrieveExtendedState() {
         return extendedState;
     }
 
-    public Rectangle getRect()
-    {
+    public Rectangle getRect() {
         return rect;
     }
 
-    protected void processEvent(java.awt.AWTEvent e)
-    {
+    protected void processEvent(java.awt.AWTEvent e) {
         if (!(e instanceof KeyEvent))
             super.processEvent(e);
     }
 
-    public boolean hasSplit()
-    {
+    public boolean hasSplit() {
         return editors.size() > 1;
     }
 
-    public int getEditorCount()
-    {
+    public int getEditorCount() {
         return editors.size();
     }
 
-    public final Iterable<Editor> getEditors()
-    {
+    public final Iterable<Editor> getEditors() {
         return editors;
     }
 
-    public final Editor getCurrentEditor()
-    {
+    public final Editor getCurrentEditor() {
         return currentEditor;
     }
 
     // May return null.
-    public final Editor getNextEditor()
-    {
+    public final Editor getNextEditor() {
         return getNextEditor(currentEditor, 1);
     }
 
-    public final Editor getNextEditor(int count)
-    {
+    public final Editor getNextEditor(int count) {
         return getNextEditor(currentEditor, count);
     }
 
-    public final Editor getNextEditor(Editor ed, int count)
-    {
+    public final Editor getNextEditor(Editor ed, int count) {
         int size = editors.size();
         Debug.bugIf(size == 0, "editor list shouldn't be empty");
         if (size == 0)
@@ -188,7 +172,7 @@ public final class Frame extends JFrame implements Constants, ComponentListener,
             return currentEditor;
 
         if (ed == null || size == 1)
-            return editors.get(0);  // return null ?
+            return editors.get(0); // return null ?
 
         int index = editors.indexOf(ed);
         index += count;
@@ -201,14 +185,12 @@ public final class Frame extends JFrame implements Constants, ComponentListener,
         return editors.get(index);
     }
 
-    public final Editor getPriorEditor()
-    {
+    public final Editor getPriorEditor() {
         return getPriorEditor(currentEditor);
     }
 
     // get most recent editor
-    private final Editor getPriorEditor(Editor editor)
-    {
+    private final Editor getPriorEditor(Editor editor) {
         // If no other editor, return null
         if (editor == null || editors.size() == 1)
             return null;
@@ -216,12 +198,10 @@ public final class Frame extends JFrame implements Constants, ComponentListener,
         return priorEditor;
     }
 
-    public final void setCurrentEditor(Editor editor)
-    {
+    public final void setCurrentEditor(Editor editor) {
         Debug.assertTrue(editor != null);
         Debug.assertTrue(editors.contains(editor));
-        if (currentEditor != editor)
-        {
+        if (currentEditor != editor) {
             // currentEditor may be closing and no longer in the editors list
             if (editors.contains(currentEditor))
                 priorEditor = currentEditor;
@@ -234,8 +214,7 @@ public final class Frame extends JFrame implements Constants, ComponentListener,
     }
 
     // Get the paired or parent editor for the given editor
-    public final Editor getPairedEditor(Editor editor)
-    {
+    public final Editor getPairedEditor(Editor editor) {
         if (editors.size() < 2)
             return null;
 
@@ -255,13 +234,11 @@ public final class Frame extends JFrame implements Constants, ComponentListener,
                 other = buf.getSecondary();
             else
                 other = buf.getPrimary();
-        }
-        else if (buf.getParentBuffer() != null) {
+        } else if (buf.getParentBuffer() != null) {
             other = buf.getParentBuffer();
         }
 
-        if (other != null)
-        {
+        if (other != null) {
             Editor ed = findEditor(other);
             if (ed != currentEditor)
                 return ed;
@@ -272,8 +249,7 @@ public final class Frame extends JFrame implements Constants, ComponentListener,
 
     // If more than one Editor is open, get the paired or parent Editor
     // or the most recent Editor.  May return null.
-    public final Editor getOtherEditor(Editor editor)
-    {
+    public final Editor getOtherEditor(Editor editor) {
         Editor paired = getPairedEditor(editor);
         if (paired != null)
             return paired;
@@ -281,8 +257,7 @@ public final class Frame extends JFrame implements Constants, ComponentListener,
         return getPriorEditor(editor);
     }
 
-    public final List<Editor> getPrimaryEditors()
-    {
+    public final List<Editor> getPrimaryEditors() {
         List<Editor> ret = new ArrayList<Editor>(editors.size());
         for (Editor ed : editors)
             if (ed.getBuffer().isPrimary())
@@ -290,14 +265,12 @@ public final class Frame extends JFrame implements Constants, ComponentListener,
         return ret;
     }
 
-    public final boolean contains(Editor ed)
-    {
+    public final boolean contains(Editor ed) {
         return ed != null && editors.contains(ed);
     }
 
     // get the Editor showing Buffer
-    public final Editor findEditor(final Buffer buf)
-    {
+    public final Editor findEditor(final Buffer buf) {
         for (Editor ed : editors)
             if (ed.getBuffer() == buf)
                 return ed;
@@ -305,39 +278,37 @@ public final class Frame extends JFrame implements Constants, ComponentListener,
     }
 
     // check buf is in the list of editors
-    private static final boolean hasBuffer(final List<Editor> editors, final Buffer buf)
-    {
+    private static final boolean hasBuffer(final List<Editor> editors, final Buffer buf) {
         for (Editor ed : editors)
             if (ed.getBuffer() == buf)
                 return true;
         return false;
     }
 
-    public void updateTitle()
-    {
+    public void updateTitle() {
         for (Editor ed : editors)
             ed.updateLocation();
     }
 
     private Sidebar sidebar;
 
-    public final Sidebar getSidebar()
-    {
+    public final Sidebar getSidebar() {
         return sidebar;
     }
 
     private SplitPane sidebarSplitPane;
 
-    public final SplitPane getSidebarSplitPane()
-    {
+    public final SplitPane getSidebarSplitPane() {
         return sidebarSplitPane;
     }
 
-    private SplitPane createSidebarSplitPane()
-    {
+    private SplitPane createSidebarSplitPane() {
         SplitPane splitPane =
-            new SplitPane(SplitPane.HORIZONTAL_SPLIT,
-                sidebar, getEditorPane());
+            new SplitPane(
+                SplitPane.HORIZONTAL_SPLIT,
+                sidebar,
+                getEditorPane()
+            );
         int dividerLocation =
             Editor.getSessionProperties().getSidebarWidth(this);
         splitPane.setDividerLocation(dividerLocation);
@@ -347,8 +318,7 @@ public final class Frame extends JFrame implements Constants, ComponentListener,
         return splitPane;
     }
 
-    private void addSidebar()
-    {
+    private void addSidebar() {
         if (sidebarSplitPane != null)
             getContentPane().remove(sidebarSplitPane);
         sidebar = new Sidebar(this);
@@ -359,13 +329,11 @@ public final class Frame extends JFrame implements Constants, ComponentListener,
         sidebar.setUpdateFlag(SIDEBAR_ALL);
     }
 
-    public final EditorPane getEditorPane()
-    {
+    public final EditorPane getEditorPane() {
         return editorPane;
     }
 
-    public void frameToggleSidebar()
-    {
+    public void frameToggleSidebar() {
         if (sidebar == null) {
             // Add sidebar.
             getContentPane().remove(getEditorPane());
@@ -385,32 +353,27 @@ public final class Frame extends JFrame implements Constants, ComponentListener,
         currentEditor.setFocusToDisplay();
     }
 
-    public final StatusBar getStatusBar()
-    {
+    public final StatusBar getStatusBar() {
         return statusBar;
     }
 
-    public void repaintStatusBar()
-    {
+    public void repaintStatusBar() {
         if (statusBar != null)
             statusBar.repaint();
     }
 
-    public void setStatusText(String text)
-    {
+    public void setStatusText(String text) {
         if (statusBar != null && text != null && !text.equals(statusBar.getText())) {
             statusBar.setText(text);
             statusBar.repaintNow();
         }
     }
 
-    public boolean getShowToolbar()
-    {
+    public boolean getShowToolbar() {
         return showToolbar;
     }
 
-    public void setToolbar()
-    {
+    public void setToolbar() {
         if (showToolbar && ToolBar.isToolBarEnabled()) {
             // We want a toolbar.
             ToolBar tb = currentEditor.getMode().getToolBar(this);
@@ -434,8 +397,7 @@ public final class Frame extends JFrame implements Constants, ComponentListener,
         }
     }
 
-    public void frameToggleToolbar()
-    {
+    public void frameToggleToolbar() {
         showToolbar = !showToolbar;
         if (toolbar != null) {
             if (!showToolbar) {
@@ -459,16 +421,14 @@ public final class Frame extends JFrame implements Constants, ComponentListener,
 
     private ToolBar defaultToolBar;
 
-    public ToolBar getDefaultToolBar()
-    {
+    public ToolBar getDefaultToolBar() {
         if (defaultToolBar == null)
             defaultToolBar = new DefaultToolBar(this);
 
         return defaultToolBar;
     }
 
-    public void addToolbar(ToolBar tb)
-    {
+    public void addToolbar(ToolBar tb) {
         Debug.assertTrue(toolbar == null);
         if (tb != null) {
             toolbar = tb;
@@ -484,8 +444,7 @@ public final class Frame extends JFrame implements Constants, ComponentListener,
         SwingUtilities.invokeLater(r);
     }
 
-    public void maybeAddToolbar()
-    {
+    public void maybeAddToolbar() {
         if (toolbar != null)
             return;
         ToolBar tb = currentEditor.getMode().getToolBar(this);
@@ -493,8 +452,7 @@ public final class Frame extends JFrame implements Constants, ComponentListener,
             addToolbar(tb);
     }
 
-    public void removeToolbar()
-    {
+    public void removeToolbar() {
         if (toolbar != null) {
             getContentPane().remove(toolbar);
             toolbar = null;
@@ -502,21 +460,22 @@ public final class Frame extends JFrame implements Constants, ComponentListener,
         }
     }
 
-    public void setMenu()
-    {
+    public void setMenu() {
         final Mode mode = currentEditor.getMode();
         final MenuBar oldMenuBar = (MenuBar) getJMenuBar();
-        if (oldMenuBar == null ||
-            Platform.isPlatformMacOSX() ||
-            oldMenuBar.getMenuName() != mode.getMenuName())
-        {
+        if (
+            oldMenuBar == null
+                ||
+                Platform.isPlatformMacOSX()
+                ||
+                oldMenuBar.getMenuName() != mode.getMenuName()
+        ) {
             setJMenuBar(mode.createMenuBar(this));
             validate();
         }
     }
 
-    public void placeWindow()
-    {
+    public void placeWindow() {
         final SessionProperties sessionProperties =
             Editor.getSessionProperties();
         if (editors.get(0) == Editor.getEditor(0)) {
@@ -555,18 +514,15 @@ public final class Frame extends JFrame implements Constants, ComponentListener,
         }
     }
 
-    public void splitWindow()
-    {
+    public void splitWindow() {
         splitWindow(currentEditor, false, true);
     }
 
-    public void vsplitWindow()
-    {
+    public void vsplitWindow() {
         splitWindow(currentEditor, true, true);
     }
 
-    void splitWindow(Editor ed, boolean vertical, boolean focusNewEditor)
-    {
+    void splitWindow(Editor ed, boolean vertical, boolean focusNewEditor) {
         if (!contains(ed))
             return;
 
@@ -575,10 +531,16 @@ public final class Frame extends JFrame implements Constants, ComponentListener,
 
     // Split the Editor into two and set the buffers for the current and new Editors.
     // UNDONE: Set divider location
-    private void splitWindow(Editor ed, Buffer primary, Buffer secondary, float split, boolean vertical, boolean switchWindows)
-    {
+    private void splitWindow(
+        Editor ed,
+        Buffer primary,
+        Buffer secondary,
+        float split,
+        boolean vertical,
+        boolean switchWindows
+    ) {
         Editor.getSessionProperties().saveSidebarState(this);
-//        final int height = ed.getHeight();
+        //        final int height = ed.getHeight();
         ed.saveView();
         ed.activate(primary);
         Editor newEditor = new Editor(this);
@@ -587,10 +549,10 @@ public final class Frame extends JFrame implements Constants, ComponentListener,
         newEditor.updateLocation();
 
         editorPane.split(ed, newEditor, vertical);
-        
-//            int dividerLocation =
-//                (int)(height * (1 - split) - sp.getDividerSize());
-//            sp.setDividerLocation(dividerLocation);
+
+        //            int dividerLocation =
+        //                (int)(height * (1 - split) - sp.getDividerSize());
+        //            sp.setDividerLocation(dividerLocation);
 
         validate();
         Editor.setCurrentEditor(switchWindows ? newEditor : ed);
@@ -601,8 +563,7 @@ public final class Frame extends JFrame implements Constants, ComponentListener,
     }
 
     /** The windows the same size again, row by row and column by column. */
-    public void balanceWindows()
-    {
+    public void balanceWindows() {
         editorPane.balance();
     }
 
@@ -611,8 +572,7 @@ public final class Frame extends JFrame implements Constants, ComponentListener,
      * CTRL-W takes them -- or null. Of several, the one level with the
      * caret.
      */
-    public Editor getAdjacentEditor(Editor ed, char direction)
-    {
+    public Editor getAdjacentEditor(Editor ed, char direction) {
         final List<Rectangle> others = new ArrayList<Rectangle>();
         final List<Editor> candidates = new ArrayList<Editor>();
         for (Editor other : editors) {
@@ -621,8 +581,11 @@ public final class Frame extends JFrame implements Constants, ComponentListener,
                 others.add(other.getBounds());
             }
         }
-        final Point caret = SwingUtilities.convertPoint(ed.getDisplay(),
-            ed.getDisplay().getCaretPoint(), editorPane);
+        final Point caret = SwingUtilities.convertPoint(
+            ed.getDisplay(),
+            ed.getDisplay().getCaretPoint(),
+            editorPane
+        );
         final int index =
             adjacent(ed.getBounds(), caret, others, direction);
         return index < 0 ? null : candidates.get(index);
@@ -635,9 +598,12 @@ public final class Frame extends JFrame implements Constants, ComponentListener,
      *
      * @return an index into {@code others}, or -1
      */
-    static int adjacent(Rectangle r, Point caret, List<Rectangle> others,
-                        char direction)
-    {
+    static int adjacent(
+        Rectangle r,
+        Point caret,
+        List<Rectangle> others,
+        char direction
+    ) {
         final boolean across = direction == 'h' || direction == 'l';
         int best = -1;
         int bestGap = 0;
@@ -646,21 +612,34 @@ public final class Frame extends JFrame implements Constants, ComponentListener,
             final Rectangle o = others.get(i);
             final int gap;
             switch (direction) {
-                case 'h': gap = r.x - (o.x + o.width); break;
-                case 'l': gap = o.x - (r.x + r.width); break;
-                case 'k': gap = r.y - (o.y + o.height); break;
-                case 'j': gap = o.y - (r.y + r.height); break;
-                default: return -1;
+                case 'h':
+                    gap = r.x - (o.x + o.width);
+                    break;
+                case 'l':
+                    gap = o.x - (r.x + r.width);
+                    break;
+                case 'k':
+                    gap = r.y - (o.y + o.height);
+                    break;
+                case 'j':
+                    gap = o.y - (r.y + r.height);
+                    break;
+                default:
+                    return -1;
             }
             final boolean alongside = across
                 ? o.y < r.y + r.height && r.y < o.y + o.height
                 : o.x < r.x + r.width && r.x < o.x + o.width;
             if (gap < 0 || !alongside)
                 continue;
-            final int miss = across ? miss(caret.y, o.y, o.height)
-                                    : miss(caret.x, o.x, o.width);
-            if (best < 0 || gap < bestGap
-                || (gap == bestGap && miss < bestMiss)) {
+            final int miss = across
+                ? miss(caret.y, o.y, o.height)
+                : miss(caret.x, o.x, o.width);
+            if (
+                best < 0
+                    || gap < bestGap
+                    || (gap == bestGap && miss < bestMiss)
+            ) {
                 best = i;
                 bestGap = gap;
                 bestMiss = miss;
@@ -670,15 +649,13 @@ public final class Frame extends JFrame implements Constants, ComponentListener,
     }
 
     /** How far v is outside the span from start, of length. */
-    private static int miss(int v, int start, int length)
-    {
+    private static int miss(int v, int start, int length) {
         if (v < start)
             return start - v;
         return v >= start + length ? v - (start + length) + 1 : 0;
     }
 
-    public final boolean isEditorSibling(Editor ed, Editor other)
-    {
+    public final boolean isEditorSibling(Editor ed, Editor other) {
         if (ed == other)
             return false;
 
@@ -687,15 +664,13 @@ public final class Frame extends JFrame implements Constants, ComponentListener,
     }
 
     // returns true if 'ed' is top-left of 'other'.
-    public final boolean isEditorTopLeftOf(Editor ed, Editor other)
-    {
+    public final boolean isEditorTopLeftOf(Editor ed, Editor other) {
         if (ed == other)
             return false;
 
         // If the 'ed' editor is found before 'other' editor, 'ed' is either to the top or to the left.
         List<Editor> siblings = editorPane.getSiblings(ed);
-        for (Editor sibling : siblings)
-        {
+        for (Editor sibling : siblings) {
             if (sibling == ed)
                 return true;
             if (sibling == other)
@@ -707,13 +682,14 @@ public final class Frame extends JFrame implements Constants, ComponentListener,
         return false;
     }
 
-
-    public void switchToBuffer(final Editor fromEditor, final Buffer buf)
-    {
+    public void switchToBuffer(final Editor fromEditor, final Buffer buf) {
         // We're either switching in a paired buffer or switching out
         // a paired buffer (or both).
-        Debug.bugIfNot(buf.isPaired() ||
-            (getEditorCount() > 1 && fromEditor.getBuffer().isPaired()));
+        Debug.bugIfNot(
+            buf.isPaired()
+                ||
+                (getEditorCount() > 1 && fromEditor.getBuffer().isPaired())
+        );
         final Buffer primary;
         final Buffer secondary;
         if (buf.isPrimary()) {
@@ -824,8 +800,7 @@ public final class Frame extends JFrame implements Constants, ComponentListener,
     }
 
     // UNDONE: enlarge window by N lines.
-    public void enlargeWindow(Editor editor, int n)
-    {
+    public void enlargeWindow(Editor editor, int n) {
         /*
         if (editorPane instanceof SplitPane) {
             final SplitPane sp = (SplitPane) editorPane;
@@ -841,10 +816,9 @@ public final class Frame extends JFrame implements Constants, ComponentListener,
     }
 
     // UNDONE: Set window height to N lines.
-    public void setWindowHeight(Editor editor, int n)
-    {
+    public void setWindowHeight(Editor editor, int n) {
         /*
-      if (editorPane instanceof SplitPane)
+        if (editorPane instanceof SplitPane)
         {
           SplitPane sp = (SplitPane) editorPane;
           Editor otherEditor = (editor == editors.get(0)) ? editors.get(1) : editors.get(0);
@@ -866,29 +840,32 @@ public final class Frame extends JFrame implements Constants, ComponentListener,
         */
     }
 
-    public final Editor activateInOtherWindow(Editor editor, Buffer buffer)
-    {
+    public final Editor activateInOtherWindow(Editor editor, Buffer buffer) {
         // Switch to other window.
         return openInOtherWindow(editor, buffer, 0.5F, true);
     }
 
-    public final Editor activateInOtherWindow(Editor editor, Buffer buffer,
-        float split)
-    {
+    public final Editor activateInOtherWindow(
+        Editor editor,
+        Buffer buffer,
+        float split
+    ) {
         // Switch to other window.
         return openInOtherWindow(editor, buffer, split, true);
     }
 
-    public final Editor displayInOtherWindow(Editor editor, Buffer buffer)
-    {
+    public final Editor displayInOtherWindow(Editor editor, Buffer buffer) {
         // Don't switch to other window.
         return openInOtherWindow(editor, buffer, 0.5F, false);
     }
 
     // UNDONE: Set divider location
-    private Editor openInOtherWindow(Editor editor, Buffer buffer, float split,
-        boolean switchWindows)
-    {
+    private Editor openInOtherWindow(
+        Editor editor,
+        Buffer buffer,
+        float split,
+        boolean switchWindows
+    ) {
         editor.saveView();
         Editor otherEditor = getOtherEditor(editor);
         if (otherEditor == null) {
@@ -899,10 +876,10 @@ public final class Frame extends JFrame implements Constants, ComponentListener,
             otherEditor.updateLocation();
 
             editorPane.splitHoriz(editor, otherEditor);
-            
-//            int dividerLocation =
-//                (int)(editor.getHeight() * (1 - split) - sp.getDividerSize());
-//            sp.setDividerLocation(dividerLocation);
+
+            //            int dividerLocation =
+            //                (int)(editor.getHeight() * (1 - split) - sp.getDividerSize());
+            //            sp.setDividerLocation(dividerLocation);
             validate();
         } else {
             // Second window is already open.
@@ -924,8 +901,7 @@ public final class Frame extends JFrame implements Constants, ComponentListener,
         return otherEditor;
     }
 
-    public void closeEditor(Editor editor)
-    {
+    public void closeEditor(Editor editor) {
         closeEditor(editor, false);
     }
 
@@ -933,21 +909,20 @@ public final class Frame extends JFrame implements Constants, ComponentListener,
      * Closes a window. The caret goes to the one used before it, or with
      * {@code toSuccessor} to the one that takes its space, as in vim.
      */
-    public void closeEditor(Editor editor, boolean toSuccessor)
-    {
+    public void closeEditor(Editor editor, boolean toSuccessor) {
         if (!hasSplit())
             return;
         if (!contains(editor))
             return;
         promoteSecondaryBuffers();
-        Editor keep = toSuccessor ? editorPane.successor(editor)
-                                  : getOtherEditor(editor);
+        Editor keep = toSuccessor
+            ? editorPane.successor(editor)
+            : getOtherEditor(editor);
         Editor kill = editor;
         unsplitInternal(keep, kill);
     }
 
-    public void unsplitWindow()
-    {
+    public void unsplitWindow() {
         if (!hasSplit())
             return;
         promoteSecondaryBuffers();
@@ -956,13 +931,11 @@ public final class Frame extends JFrame implements Constants, ComponentListener,
         unsplitInternal(keep, kill);
     }
 
-    public void unsplitWindowKeepOther()
-    {
+    public void unsplitWindowKeepOther() {
         closeEditor(currentEditor);
     }
 
-    public void promoteSecondaryBuffers()
-    {
+    public void promoteSecondaryBuffers() {
         for (Editor editor : editors) {
             Buffer buffer = editor.getBuffer();
             if (buffer.isSecondary())
@@ -970,8 +943,7 @@ public final class Frame extends JFrame implements Constants, ComponentListener,
         }
     }
 
-    public void unsplitAll(final Editor keep)
-    {
+    public void unsplitAll(final Editor keep) {
         if (!hasSplit())
             return;
         if (!contains(keep))
@@ -984,16 +956,14 @@ public final class Frame extends JFrame implements Constants, ComponentListener,
         unsplitInternal(keep, kill);
     }
 
-    private void unsplitInternal(final Editor keep, final Editor kill)
-    {
+    private void unsplitInternal(final Editor keep, final Editor kill) {
         Editor.getSessionProperties().saveSidebarState(this);
         editorPane.unsplit(kill);
         validate();
         unsplitInternal(keep, Collections.singletonList(kill));
     }
 
-    private void unsplitInternal(final Editor keep, final Collection<Editor> kill)
-    {
+    private void unsplitInternal(final Editor keep, final Collection<Editor> kill) {
         Editor.removeEditors(kill);
         editors.removeAll(kill);
         Debug.bugIfNot(editors.contains(keep));
@@ -1011,11 +981,10 @@ public final class Frame extends JFrame implements Constants, ComponentListener,
     }
 
     // Unsplit if any two Editor siblings are showing the exactly same thing.
-    public void coalesceEditors(Editor editor)
-    {
+    public void coalesceEditors(Editor editor) {
         if (editors.size() < 2)
             return;
-        
+
         Position p = editor.getDot();
         Position m = editor.getMark();
 
@@ -1033,8 +1002,7 @@ public final class Frame extends JFrame implements Constants, ComponentListener,
 
     }
 
-    public void updateControls()
-    {
+    public void updateControls() {
         boolean enable = editors.size() > 1;
         for (Editor ed : editors) {
             LocationBar locationBar = ed.getLocationBar();
@@ -1048,13 +1016,11 @@ public final class Frame extends JFrame implements Constants, ComponentListener,
 
     private boolean active;
 
-    public final boolean isActive()
-    {
+    public final boolean isActive() {
         return active;
     }
 
-    public void reactivate()
-    {
+    public void reactivate() {
         if (currentEditor.getBuffer() == null)
             return;
         boolean changed = false;
@@ -1071,8 +1037,7 @@ public final class Frame extends JFrame implements Constants, ComponentListener,
         }
     }
 
-    public void windowActivated(WindowEvent e)
-    {
+    public void windowActivated(WindowEvent e) {
         active = true;
         Editor.setCurrentEditor(currentEditor);
         setFocus(currentEditor.getDisplay());
@@ -1084,41 +1049,31 @@ public final class Frame extends JFrame implements Constants, ComponentListener,
         SwingUtilities.invokeLater(r);
     }
 
-    public void windowDeactivated(WindowEvent e)
-    {
+    public void windowDeactivated(WindowEvent e) {
         active = false;
         // Show/hide caret.
         for (Editor editor : editors)
             editor.repaint();
     }
 
-    public void windowOpened(WindowEvent e)
-    {
+    public void windowOpened(WindowEvent e) {
         if (adjustPlacementRunnable != null) {
             adjustPlacementRunnable.run();
             adjustPlacementRunnable = null;
         }
     }
 
-    public void windowClosing(WindowEvent e)
-    {
+    public void windowClosing(WindowEvent e) {
         editors.get(0).killFrame();
     }
 
-    public void windowClosed(WindowEvent e)
-    {
-    }
+    public void windowClosed(WindowEvent e) {}
 
-    public void windowIconified(WindowEvent e)
-    {
-    }
+    public void windowIconified(WindowEvent e) {}
 
-    public void windowDeiconified(WindowEvent e)
-    {
-    }
+    public void windowDeiconified(WindowEvent e) {}
 
-    public void windowStateChanged(WindowEvent e)
-    {
+    public void windowStateChanged(WindowEvent e) {
         int newState = e.getNewState();
         if (newState == 0) {
             // Not maximized.
@@ -1130,8 +1085,7 @@ public final class Frame extends JFrame implements Constants, ComponentListener,
 
     private JComponent focusedComponent;
 
-    public void setFocus(JComponent c)
-    {
+    public void setFocus(JComponent c) {
         boolean change = focusedComponent != c;
         if (c != null)
             c.requestFocus();
@@ -1152,30 +1106,26 @@ public final class Frame extends JFrame implements Constants, ComponentListener,
         }
     }
 
-    public JComponent getFocusedComponent()
-    {
+    public JComponent getFocusedComponent() {
         return focusedComponent;
     }
 
     private static final Cursor waitCursor =
         Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR);
 
-    public final void setWaitCursor()
-    {
+    public final void setWaitCursor() {
         setCursor(waitCursor);
         for (Editor ed : editors)
             ed.setWaitCursor();
     }
 
-    public final void setDefaultCursor()
-    {
+    public final void setDefaultCursor() {
         setCursor(Cursor.getDefaultCursor());
         for (Editor ed : editors)
             ed.setDefaultCursor();
     }
 
-    public void resetDisplay()
-    {
+    public void resetDisplay() {
         if (toolbar != null) {
             getContentPane().remove(toolbar);
             toolbar = null;
@@ -1223,33 +1173,28 @@ public final class Frame extends JFrame implements Constants, ComponentListener,
         validate();
     }
 
-    public static final void restoreFocus()
-    {
+    public static final void restoreFocus() {
         Editor.restoreFocus();
     }
 
     private FolderTree folderTree;
 
-    public final FolderTree getFolderTree()
-    {
+    public final FolderTree getFolderTree() {
         return folderTree;
     }
 
-    public final void setFolderTree(FolderTree folderTree)
-    {
+    public final void setFolderTree(FolderTree folderTree) {
         this.folderTree = folderTree;
     }
 
-    public void componentResized(ComponentEvent e)
-    {
+    public void componentResized(ComponentEvent e) {
         if (extendedState != 6) {
             // Not maximized.
             rect = getBounds();
         }
     }
 
-    public void componentMoved(ComponentEvent e)
-    {
+    public void componentMoved(ComponentEvent e) {
         if (extendedState != 6) {
             // Not maximized.
             rect = getBounds();
@@ -1260,8 +1205,7 @@ public final class Frame extends JFrame implements Constants, ComponentListener,
 
     public void componentHidden(ComponentEvent e) {}
 
-    public void focusGained(FocusEvent e)
-    {
+    public void focusGained(FocusEvent e) {
         currentEditor.setFocusToDisplay();
     }
 

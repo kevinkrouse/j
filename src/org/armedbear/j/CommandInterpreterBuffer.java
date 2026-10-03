@@ -20,21 +20,19 @@
 
 package org.armedbear.j;
 
-import org.armedbear.j.util.ReaderThread;
-import org.armedbear.j.util.Utilities;
-
-import java.util.regex.Pattern;
-import java.util.regex.PatternSyntaxException;
-import java.util.regex.Matcher;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStreamWriter;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.regex.PatternSyntaxException;
 import javax.swing.Icon;
 import javax.swing.SwingUtilities;
 import javax.swing.undo.CompoundEdit;
+import org.armedbear.j.util.ReaderThread;
+import org.armedbear.j.util.Utilities;
 
-public class CommandInterpreterBuffer extends Buffer
-{
+public class CommandInterpreterBuffer extends Buffer {
     protected Pattern promptRE = Pattern.compile(DEFAULT_SHELL_PROMPT_PATTERN);
     protected OutputStreamWriter stdin;
     protected ReaderThread stdoutThread;
@@ -46,40 +44,33 @@ public class CommandInterpreterBuffer extends Buffer
 
     private Position posEndOfOutput;
 
-    protected CommandInterpreterBuffer()
-    {
+    protected CommandInterpreterBuffer() {
         super();
         initializeUndo();
         initializeHistory();
     }
 
-    public final String getShellCommand()
-    {
+    public final String getShellCommand() {
         return shellCommand;
     }
 
-    public boolean isLisp()
-    {
+    public boolean isLisp() {
         return false;
     }
 
-    public final boolean isModified()
-    {
+    public final boolean isModified() {
         return false;
     }
 
-    protected void initializeHistory()
-    {
+    protected void initializeHistory() {
         history = new History(null, 30);
     }
 
-    public final Pattern getPromptRE()
-    {
+    public final Pattern getPromptRE() {
         return promptRE;
     }
 
-    protected final void setPromptRE(String pattern)
-    {
+    protected final void setPromptRE(String pattern) {
         try {
             promptRE = Pattern.compile(pattern);
         }
@@ -88,8 +79,7 @@ public class CommandInterpreterBuffer extends Buffer
         }
     }
 
-    protected final synchronized Position getEndOfOutput()
-    {
+    protected final synchronized Position getEndOfOutput() {
         if (posEndOfOutput == null)
             return null;
         if (contains(posEndOfOutput.getLine())) {
@@ -118,18 +108,15 @@ public class CommandInterpreterBuffer extends Buffer
         return null;
     }
 
-    protected final synchronized void setEndOfOutput(Position pos)
-    {
+    protected final synchronized void setEndOfOutput(Position pos) {
         posEndOfOutput = pos;
     }
 
-    public Icon getIcon()
-    {
+    public Icon getIcon() {
         return Utilities.getIconFromFile("jpty");
     }
 
-    public int load()
-    {
+    public int load() {
         try {
             lockWrite();
         }
@@ -148,13 +135,11 @@ public class CommandInterpreterBuffer extends Buffer
     }
 
     // Returns true if underlying process is alive and well.
-    protected boolean checkProcess()
-    {
+    protected boolean checkProcess() {
         return true;
     }
 
-    protected void enter()
-    {
+    protected void enter() {
         if (!checkProcess())
             return;
         final Editor editor = Editor.currentEditor();
@@ -181,8 +166,7 @@ public class CommandInterpreterBuffer extends Buffer
         enter(input);
     }
 
-    protected void enter(final String s)
-    {
+    protected void enter(final String s) {
         final Editor editor = Editor.currentEditor();
         Line dotLine = editor.getDotLine();
         if (dotLine.next() != null) {
@@ -210,8 +194,7 @@ public class CommandInterpreterBuffer extends Buffer
         send(s);
     }
 
-    protected void send(final String s)
-    {
+    protected void send(final String s) {
         try {
             stdin.write(s);
             if (!s.endsWith("\n"))
@@ -223,8 +206,7 @@ public class CommandInterpreterBuffer extends Buffer
         }
     }
 
-    protected String stripPrompt(String s)
-    {
+    protected String stripPrompt(String s) {
         if (promptRE != null) {
             Matcher matcher = promptRE.matcher(s);
             if (matcher.find())
@@ -238,13 +220,15 @@ public class CommandInterpreterBuffer extends Buffer
         return s;
     }
 
-    protected void escape()
-    {
+    protected void escape() {
         Editor editor = Editor.currentEditor();
         Position endOfOutput = getEndOfOutput();
-        if (editor.getMark() != null || endOfOutput == null ||
-            editor.getDot().isBefore(endOfOutput))
-        {
+        if (
+            editor.getMark() != null
+                || endOfOutput == null
+                ||
+                editor.getDot().isBefore(endOfOutput)
+        ) {
             // There's a marked block, or we're not at the command line.
             editor.escape();
             return;
@@ -262,8 +246,7 @@ public class CommandInterpreterBuffer extends Buffer
         resetUndo();
     }
 
-    protected void home()
-    {
+    protected void home() {
         final Editor editor = Editor.currentEditor();
         if (editor.getDotOffset() == 0)
             return;
@@ -285,8 +268,7 @@ public class CommandInterpreterBuffer extends Buffer
         editor.getDisplay().moveCaretToDotCol();
     }
 
-    protected void backspace()
-    {
+    protected void backspace() {
         Position endOfOutput = getEndOfOutput();
         if (endOfOutput == null)
             return;
@@ -295,7 +277,7 @@ public class CommandInterpreterBuffer extends Buffer
         if (editor.getDotLine() == endOfOutput.getLine()) {
             if (editor.getDotOffset() <= endOfOutput.getOffset())
                 ok = false;
-        } else{
+        } else {
             String text = editor.getDotLine().getText();
             if (promptRE != null) {
                 Matcher matcher = promptRE.matcher(text);
@@ -309,20 +291,17 @@ public class CommandInterpreterBuffer extends Buffer
             editor.backspace();
     }
 
-    private void previousInput()
-    {
+    private void previousInput() {
         getInputFromHistory(-1);
     }
 
-    private void nextInput()
-    {
+    private void nextInput() {
         getInputFromHistory(1);
     }
 
     private String currentInput;
 
-    private void getInputFromHistory(int direction)
-    {
+    private void getInputFromHistory(int direction) {
         if (getEndOfOutput() == null) {
             // No prompt yet.
             return;
@@ -369,8 +348,7 @@ public class CommandInterpreterBuffer extends Buffer
         editor.setCurrentCommand(COMMAND_HISTORY);
     }
 
-    protected void appendString(String s)
-    {
+    protected void appendString(String s) {
         try {
             lockWrite();
         }
@@ -396,8 +374,7 @@ public class CommandInterpreterBuffer extends Buffer
         }
     }
 
-    protected void updateDisplayInAllFrames()
-    {
+    protected void updateDisplayInAllFrames() {
         for (EditorIterator it = new EditorIterator(); it.hasNext();) {
             Editor ed = it.next();
             if (ed.getBuffer() == this) {
@@ -417,8 +394,7 @@ public class CommandInterpreterBuffer extends Buffer
         }
     }
 
-    protected void sendChar(int c)
-    {
+    protected void sendChar(int c) {
         final Editor editor = Editor.currentEditor();
         final Line dotLine = editor.getDotLine();
         if (dotLine.next() == null)
@@ -432,13 +408,11 @@ public class CommandInterpreterBuffer extends Buffer
         }
     }
 
-    protected String stdOutFilter(String s)
-    {
+    protected String stdOutFilter(String s) {
         return s;
     }
 
-    protected void stdOutUpdate(final String s)
-    {
+    protected void stdOutUpdate(final String s) {
         Runnable r = () -> {
             appendString(s);
             updateDisplayInAllFrames();
@@ -447,13 +421,11 @@ public class CommandInterpreterBuffer extends Buffer
         SwingUtilities.invokeLater(r);
     }
 
-    protected String stdErrFilter(String s)
-    {
+    protected String stdErrFilter(String s) {
         return s;
     }
 
-    protected void stdErrUpdate(final String s)
-    {
+    protected void stdErrUpdate(final String s) {
         Runnable r = () -> {
             appendString(s);
             updateDisplayInAllFrames();
@@ -476,99 +448,82 @@ public class CommandInterpreterBuffer extends Buffer
         return s;
     }
 
-    protected class StdoutThread extends ReaderThread
-    {
-        public StdoutThread(InputStream stdout)
-        {
+    protected class StdoutThread extends ReaderThread {
+        public StdoutThread(InputStream stdout) {
             super(stdout);
         }
 
-        public String filter(String s)
-        {
+        public String filter(String s) {
             return stdOutFilter(s);
         }
 
-        public void update(String s)
-        {
+        public void update(String s) {
             if (s != null && s.length() > 0)
                 stdOutUpdate(s);
         }
     }
 
-    protected class StderrThread extends ReaderThread
-    {
-        public StderrThread(InputStream stderr)
-        {
+    protected class StderrThread extends ReaderThread {
+        public StderrThread(InputStream stderr) {
             super(stderr);
         }
 
-        public String filter(String s)
-        {
+        public String filter(String s) {
             return stdErrFilter(s);
         }
 
-        public void update(String s)
-        {
+        public void update(String s) {
             if (s != null && s.length() > 0)
                 stdErrUpdate(s);
         }
     }
 
     // Commands.
-    public static void shellEnter()
-    {
+    public static void shellEnter() {
         final Buffer buffer = Editor.currentEditor().getBuffer();
         if (buffer instanceof CommandInterpreterBuffer)
-            ((CommandInterpreterBuffer)buffer).enter();
+            ((CommandInterpreterBuffer) buffer).enter();
     }
 
-    public static void shellEscape()
-    {
+    public static void shellEscape() {
         final Buffer buffer = Editor.currentEditor().getBuffer();
         if (buffer instanceof CommandInterpreterBuffer)
-            ((CommandInterpreterBuffer)buffer).escape();
+            ((CommandInterpreterBuffer) buffer).escape();
     }
 
-    public static void shellHome()
-    {
+    public static void shellHome() {
         final Buffer buffer = Editor.currentEditor().getBuffer();
         if (buffer instanceof CommandInterpreterBuffer)
-            ((CommandInterpreterBuffer)buffer).home();
+            ((CommandInterpreterBuffer) buffer).home();
     }
 
-    public static void shellBackspace()
-    {
+    public static void shellBackspace() {
         final Buffer buffer = Editor.currentEditor().getBuffer();
         if (buffer instanceof CommandInterpreterBuffer)
-            ((CommandInterpreterBuffer)buffer).backspace();
+            ((CommandInterpreterBuffer) buffer).backspace();
     }
 
-    public static void shellPreviousInput()
-    {
+    public static void shellPreviousInput() {
         final Buffer buffer = Editor.currentEditor().getBuffer();
         if (buffer instanceof CommandInterpreterBuffer)
-            ((CommandInterpreterBuffer)buffer).previousInput();
+            ((CommandInterpreterBuffer) buffer).previousInput();
     }
 
-    public static void shellNextInput()
-    {
+    public static void shellNextInput() {
         final Buffer buffer = Editor.currentEditor().getBuffer();
         if (buffer instanceof CommandInterpreterBuffer)
-            ((CommandInterpreterBuffer)buffer).nextInput();
+            ((CommandInterpreterBuffer) buffer).nextInput();
     }
 
-    public static void shellPreviousPrompt()
-    {
+    public static void shellPreviousPrompt() {
         findPrompt(-1);
     }
 
-    public static void shellNextPrompt()
-    {
+    public static void shellNextPrompt() {
         findPrompt(1);
     }
 
-    private static final void findPrompt(int direction)
-    {
+    private static final void findPrompt(int direction) {
         final Editor editor = Editor.currentEditor();
         final Buffer buffer = editor.getBuffer();
         if (buffer instanceof CommandInterpreterBuffer) {
@@ -576,7 +531,7 @@ public class CommandInterpreterBuffer extends Buffer
             if (dot != null) {
                 Line line =
                     direction > 0 ? dot.getLine().next() : dot.getLine().previous();
-                Pattern promptRE = ((CommandInterpreterBuffer)buffer).getPromptRE();
+                Pattern promptRE = ((CommandInterpreterBuffer) buffer).getPromptRE();
                 if (promptRE != null) {
                     while (line != null) {
                         int flags = line.flags();

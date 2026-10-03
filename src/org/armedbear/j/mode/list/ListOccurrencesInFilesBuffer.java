@@ -33,41 +33,35 @@ import org.armedbear.j.Position;
 import org.armedbear.j.Search;
 import org.armedbear.j.util.Utilities;
 
-public final class ListOccurrencesInFilesBuffer extends ListOccurrencesBuffer
-{
+public final class ListOccurrencesInFilesBuffer extends ListOccurrencesBuffer {
     private Position lastDotPos;
 
     // Find in files.
-    public ListOccurrencesInFilesBuffer(Search search)
-    {
+    public ListOccurrencesInFilesBuffer(Search search) {
         super(search);
         if (search instanceof FindInFiles) {
-            appendLine("Files: " + ((FindInFiles)search).getFiles());
+            appendLine("Files: " + ((FindInFiles) search).getFiles());
             if (search.wholeWordsOnly())
-                appendLine("Mode: " + ((FindInFiles)search).getMode().getDisplayName());
+                appendLine("Mode: " + ((FindInFiles) search).getMode().getDisplayName());
             renumber();
         }
         title = "\"" + search.getPattern() + "\"";
         setLoaded(true);
     }
 
-    private final void setLastDotPos(Position pos)
-    {
+    private final void setLastDotPos(Position pos) {
         lastDotPos = pos.copy();
     }
 
-    public final Position getLastDotPos()
-    {
+    public final Position getLastDotPos() {
         return lastDotPos != null ? lastDotPos : getInitialDotPos();
     }
 
-    public final File getCurrentDirectory()
-    {
+    public final File getCurrentDirectory() {
         return Directories.getUserHomeDirectory();
     }
 
-    public void findOccurrenceAtDot(Editor editor, boolean killList)
-    {
+    public void findOccurrenceAtDot(Editor editor, boolean killList) {
         Position pos = editor.getDotCopy();
         if (pos == null)
             return;
@@ -78,7 +72,7 @@ public final class ListOccurrencesInFilesBuffer extends ListOccurrencesBuffer
         setLastDotPos(pos);
         final Line line = pos.getLine();
         if ((line instanceof OccurrenceLine)) {
-            sourceLine = ((OccurrenceLine)line).getSourceLine();
+            sourceLine = ((OccurrenceLine) line).getSourceLine();
             Line ln = line;
             if (!ln.getText().startsWith("File: "))
                 sourceLineNumber = Utilities.parseInt(ln.getText()) - 1;
@@ -90,7 +84,7 @@ public final class ListOccurrencesInFilesBuffer extends ListOccurrencesBuffer
                 ln = ln.previous();
             }
         } else if (line instanceof FileLine)
-            canonicalPath = ((FileLine)line).getCanonicalPath();
+            canonicalPath = ((FileLine) line).getCanonicalPath();
         if (buf == null && canonicalPath != null)
             buf = Editor.getBuffer(File.getInstance(canonicalPath));
         if (buf != null) {
@@ -105,7 +99,7 @@ public final class ListOccurrencesInFilesBuffer extends ListOccurrencesBuffer
             }
             if (line instanceof FileLine) {
                 // Mark file visited.
-                ((FileLine)line).markVisited();
+                ((FileLine) line).markVisited();
                 // Advance dot to next line.
                 Position dot = editor.getDot();
                 if (dot.equals(pos) && dot.getNextLine() != null) {
@@ -125,8 +119,7 @@ public final class ListOccurrencesInFilesBuffer extends ListOccurrencesBuffer
         }
     }
 
-    public void findNextOccurrence(Editor editor)
-    {
+    public void findNextOccurrence(Editor editor) {
         Line line;
         for (line = editor.getDotLine().next(); line != null; line = line.next()) {
             if (line instanceof OccurrenceLine)
@@ -136,8 +129,7 @@ public final class ListOccurrencesInFilesBuffer extends ListOccurrencesBuffer
             findOccurrence(editor, line);
     }
 
-    public void findPreviousOccurrence(Editor editor)
-    {
+    public void findPreviousOccurrence(Editor editor) {
         Line line;
         for (line = editor.getDotLine().previous(); line != null; line = line.previous()) {
             if (line instanceof OccurrenceLine)
@@ -148,8 +140,7 @@ public final class ListOccurrencesInFilesBuffer extends ListOccurrencesBuffer
     }
 
     // Move dot to line (in all editors) and call findOccurrenceAtDot().
-    private void findOccurrence(Editor editor, Line line)
-    {
+    private void findOccurrence(Editor editor, Line line) {
         if (line instanceof OccurrenceLine) {
             for (EditorIterator it = new EditorIterator(); it.hasNext();) {
                 Editor ed = it.next();
@@ -162,25 +153,22 @@ public final class ListOccurrencesInFilesBuffer extends ListOccurrencesBuffer
         }
     }
 
-    public final void appendFileLine(File file, boolean listEachOccurrence)
-    {
+    public final void appendFileLine(File file, boolean listEachOccurrence) {
         appendLine(new FileLine(file, listEachOccurrence));
     }
 
-    protected String getOptions()
-    {
+    protected String getOptions() {
         String s = super.getOptions();
         if (search instanceof FindInFiles)
-            if (((FindInFiles)search).getIncludeSubdirs())
+            if (((FindInFiles) search).getIncludeSubdirs())
                 s = s.concat(", include subdirectories");
         return s;
     }
 
-    public Position getInitialDotPos()
-    {
+    public Position getInitialDotPos() {
         final boolean listEachOccurrence;
         if (search instanceof FindInFiles)
-            listEachOccurrence = ((FindInFiles)search).getListEachOccurrence();
+            listEachOccurrence = ((FindInFiles) search).getListEachOccurrence();
         else
             listEachOccurrence = true;
         for (Line line = getFirstLine(); line != null; line = line.next()) {
@@ -192,8 +180,7 @@ public final class ListOccurrencesInFilesBuffer extends ListOccurrencesBuffer
         return new Position(getFirstLine(), 0);
     }
 
-    public void follow(File sourceFile, Line sourceLine)
-    {
+    public void follow(File sourceFile, Line sourceLine) {
         Line line = findLineForOccurrence(sourceFile, sourceLine);
         if (line == null)
             return;
@@ -206,8 +193,7 @@ public final class ListOccurrencesInFilesBuffer extends ListOccurrencesBuffer
         }
     }
 
-    private Line findLineForOccurrence(File sourceFile, Line sourceLine)
-    {
+    private Line findLineForOccurrence(File sourceFile, Line sourceLine) {
         if (sourceFile == null)
             return null;
         if (sourceLine == null)
@@ -216,18 +202,18 @@ public final class ListOccurrencesInFilesBuffer extends ListOccurrencesBuffer
         Line line;
         for (line = getFirstLine(); line != null; line = line.next()) {
             if (line instanceof FileLine) {
-                if (((FileLine)line).getCanonicalPath().equals(cp))
+                if (((FileLine) line).getCanonicalPath().equals(cp))
                     break;
             }
         }
         if (line == null)
             return null;
         Debug.assertTrue(line instanceof FileLine);
-        Debug.assertTrue(((FileLine)line).getCanonicalPath().equals(cp));
+        Debug.assertTrue(((FileLine) line).getCanonicalPath().equals(cp));
         int target = sourceLine.lineNumber() + 1;
         Line best = null;
         for (line = line.next(); line instanceof OccurrenceLine; line = line.next()) {
-            int candidate = ((OccurrenceLine)line).getSourceLineNumber();
+            int candidate = ((OccurrenceLine) line).getSourceLineNumber();
             if (candidate == target)
                 return line;
             if (best != null && candidate > target)
@@ -237,8 +223,7 @@ public final class ListOccurrencesInFilesBuffer extends ListOccurrencesBuffer
         return best;
     }
 
-    public String getFileNameForDisplay()
-    {
+    public String getFileNameForDisplay() {
         return "";
     }
 }

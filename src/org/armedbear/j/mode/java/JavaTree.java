@@ -20,19 +20,6 @@
 
 package org.armedbear.j.mode.java;
 
-import org.armedbear.j.Buffer;
-import org.armedbear.j.Constants;
-import org.armedbear.j.Display;
-import org.armedbear.j.Editor;
-import org.armedbear.j.File;
-import org.armedbear.j.Line;
-import org.armedbear.j.LocalTag;
-import org.armedbear.j.LocationBar;
-import org.armedbear.j.NavigationComponent;
-import org.armedbear.j.Position;
-import org.armedbear.j.SidebarTree;
-import org.armedbear.j.util.Utilities;
-
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Graphics;
@@ -48,16 +35,27 @@ import java.util.List;
 import javax.swing.JTree;
 import javax.swing.SwingUtilities;
 import javax.swing.tree.DefaultMutableTreeNode;
-import javax.swing.tree.TreeNode;
 import javax.swing.tree.DefaultTreeCellRenderer;
 import javax.swing.tree.DefaultTreeModel;
 import javax.swing.tree.TreeModel;
+import javax.swing.tree.TreeNode;
 import javax.swing.tree.TreePath;
 import javax.swing.tree.TreeSelectionModel;
+import org.armedbear.j.Buffer;
+import org.armedbear.j.Constants;
+import org.armedbear.j.Display;
+import org.armedbear.j.Editor;
+import org.armedbear.j.File;
+import org.armedbear.j.Line;
+import org.armedbear.j.LocalTag;
+import org.armedbear.j.LocationBar;
+import org.armedbear.j.NavigationComponent;
+import org.armedbear.j.Position;
+import org.armedbear.j.SidebarTree;
+import org.armedbear.j.util.Utilities;
 
 public final class JavaTree extends SidebarTree implements Constants,
-        NavigationComponent, KeyListener, MouseListener
-{
+    NavigationComponent, KeyListener, MouseListener {
     private static final String CAPTION_FIELDS = "Fields";
     private static final String CAPTION_CONSTRUCTORS = "Constructors";
     private static final String CAPTION_METHODS = "Methods";
@@ -77,35 +75,30 @@ public final class JavaTree extends SidebarTree implements Constants,
     private boolean arrangedByType;
     private boolean sorted;
 
-    public static final void setArrangeByType(boolean b)
-    {
+    public static final void setArrangeByType(boolean b) {
         if (b != arrangeByType) {
             arrangeByType = b;
             Editor.getSessionProperties().setBooleanProperty(KEY_ARRANGE_BY_TYPE, b);
         }
     }
 
-    public static final boolean getArrangeByType()
-    {
+    public static final boolean getArrangeByType() {
         return arrangeByType;
     }
 
-    public static final void setSort(boolean b)
-    {
+    public static final void setSort(boolean b) {
         if (b != sort) {
             sort = b;
             Editor.getSessionProperties().setBooleanProperty(KEY_SORT, b);
         }
     }
 
-    public static final boolean getSort()
-    {
+    public static final boolean getSort() {
         return sort;
     }
 
-    public JavaTree(Editor editor)
-    {
-        super((TreeModel)null);
+    public JavaTree(Editor editor) {
+        super((TreeModel) null);
         this.editor = editor;
         getSelectionModel().setSelectionMode(TreeSelectionModel.SINGLE_TREE_SELECTION);
         setRootVisible(false);
@@ -116,15 +109,14 @@ public final class JavaTree extends SidebarTree implements Constants,
         setToolTipText("");
     }
 
-    public void refresh()
-    {
-        boolean force = (arrangedByType != arrangeByType) ||
+    public void refresh() {
+        boolean force = (arrangedByType != arrangeByType)
+            ||
             (sorted != sort);
         refresh(force);
     }
 
-    public void refresh(boolean force)
-    {
+    public void refresh(boolean force) {
         final Buffer buffer = editor.getBuffer();
         final List<LocalTag> bufferTags = buffer.getTags();
         if (!force)
@@ -138,8 +130,7 @@ public final class JavaTree extends SidebarTree implements Constants,
         thread.start();
     }
 
-    private void refreshInternal(Buffer buffer, List<LocalTag> bufferTags)
-    {
+    private void refreshInternal(Buffer buffer, List<LocalTag> bufferTags) {
         if (bufferTags == null)
             bufferTags = buffer.getTags(true); // Runs tagger synchronously.
         if (bufferTags != null) {
@@ -159,9 +150,11 @@ public final class JavaTree extends SidebarTree implements Constants,
     }
 
     // Never returns null!
-    private static TreeModel getDefaultModel(List<LocalTag> bufferTags,
-        boolean arrangeByType, boolean sort)
-    {
+    private static TreeModel getDefaultModel(
+        List<LocalTag> bufferTags,
+        boolean arrangeByType,
+        boolean sort
+    ) {
         DefaultMutableTreeNode rootNode = new DefaultMutableTreeNode();
         List<LocalTag> list;
         if (sort)
@@ -184,10 +177,9 @@ public final class JavaTree extends SidebarTree implements Constants,
     }
 
     // Doesn't modify passed-in list.
-    private static List<LocalTag> sort(List<LocalTag> list)
-    {
+    private static List<LocalTag> sort(List<LocalTag> list) {
         List<JavaTag> methodsAndFields = new ArrayList<JavaTag>();
-        List<LocalTag> allTags  = new ArrayList<LocalTag>();
+        List<LocalTag> allTags = new ArrayList<LocalTag>();
         for (int i = 0; i < list.size(); i++) {
             JavaTag t = (JavaTag) list.get(i);
             switch (t.getType()) {
@@ -200,16 +192,18 @@ public final class JavaTree extends SidebarTree implements Constants,
                     break;
             }
         }
-        Collections.sort(methodsAndFields,
-            (t1, t2) -> t1.toString().compareTo(t2.toString()));
+        Collections.sort(
+            methodsAndFields,
+            (t1, t2) -> t1.toString().compareTo(t2.toString())
+        );
         allTags.addAll(methodsAndFields);
         return allTags;
     }
 
-
-    private static DefaultMutableTreeNode findParentNodeForTag(JavaTag tag,
-        DefaultMutableTreeNode rootNode)
-    {
+    private static DefaultMutableTreeNode findParentNodeForTag(
+        JavaTag tag,
+        DefaultMutableTreeNode rootNode
+    ) {
         JavaClass parent = tag.getParent();
         if (parent == null)
             return rootNode;
@@ -243,11 +237,13 @@ public final class JavaTree extends SidebarTree implements Constants,
         return rootNode;
     }
 
-    private static void addNode(DefaultMutableTreeNode parentNode, JavaTag tag,
-        boolean arrangeByType)
-    {
+    private static void addNode(
+        DefaultMutableTreeNode parentNode,
+        JavaTag tag,
+        boolean arrangeByType
+    ) {
         if (parentNode instanceof ClassNode) {
-            ((ClassNode)parentNode).addTag(tag);
+            ((ClassNode) parentNode).addTag(tag);
         } else {
             final int type = tag.getType();
             if (type == TAG_CLASS || type == TAG_INTERFACE)
@@ -255,8 +251,7 @@ public final class JavaTree extends SidebarTree implements Constants,
         }
     }
 
-    public void updatePosition()
-    {
+    public void updatePosition() {
         TreeModel model = getModel();
         if (model == null)
             return;
@@ -288,8 +283,7 @@ public final class JavaTree extends SidebarTree implements Constants,
             expandMethods();
     }
 
-    private JavaTag findTag(Position dot)
-    {
+    private JavaTag findTag(Position dot) {
         if (dot == null)
             return null;
         final Line dotLine = dot.getLine();
@@ -310,9 +304,10 @@ public final class JavaTree extends SidebarTree implements Constants,
         return tag;
     }
 
-    private DefaultMutableTreeNode findNode(DefaultMutableTreeNode root,
-        JavaTag tag)
-    {
+    private DefaultMutableTreeNode findNode(
+        DefaultMutableTreeNode root,
+        JavaTag tag
+    ) {
         Enumeration<TreeNode> nodes = root.depthFirstEnumeration();
         while (nodes.hasMoreElements()) {
             DefaultMutableTreeNode node =
@@ -326,8 +321,7 @@ public final class JavaTree extends SidebarTree implements Constants,
         return null;
     }
 
-    private void expandMethods()
-    {
+    private void expandMethods() {
         for (int i = 0; i < getRowCount(); i++) {
             TreePath path = getPathForRow(i);
             if (path != null) {
@@ -342,20 +336,17 @@ public final class JavaTree extends SidebarTree implements Constants,
         }
     }
 
-    public final String getLabelText()
-    {
+    public final String getLabelText() {
         File file = editor.getBuffer().getFile();
         return file != null ? file.getName() : null;
     }
 
-    public String getToolTipText(MouseEvent e)
-    {
+    public String getToolTipText(MouseEvent e) {
         JavaTag t = getJavaTagAtPoint(e.getPoint());
         return t != null ? t.getToolTipText() : null;
     }
 
-    private JavaTag getJavaTagAtPoint(Point point)
-    {
+    private JavaTag getJavaTagAtPoint(Point point) {
         TreePath treePath = getPathForLocation(point.x, point.y);
         if (treePath != null) {
             DefaultMutableTreeNode node =
@@ -367,8 +358,7 @@ public final class JavaTree extends SidebarTree implements Constants,
         return null;
     }
 
-    public void keyPressed(KeyEvent e)
-    {
+    public void keyPressed(KeyEvent e) {
         final TreePath path = getSelectionPath();
         LocalTag selected = null;
         if (path != null) {
@@ -380,18 +370,15 @@ public final class JavaTree extends SidebarTree implements Constants,
         tagKeyPressed(editor, e, selected, this::updatePosition);
     }
 
-    public void keyReleased(KeyEvent e)
-    {
+    public void keyReleased(KeyEvent e) {
         tagKeyReleased(editor, e);
     }
 
-    public void keyTyped(KeyEvent e)
-    {
+    public void keyTyped(KeyEvent e) {
         e.consume();
     }
 
-    protected void processMouseEvent(MouseEvent e)
-    {
+    protected void processMouseEvent(MouseEvent e) {
         if (e.isPopupTrigger()) {
             JavaTreePopupMenu popup = new JavaTreePopupMenu(this);
             popup.show(this, e.getX(), e.getY());
@@ -403,8 +390,7 @@ public final class JavaTree extends SidebarTree implements Constants,
 
     public void mouseReleased(MouseEvent e) {}
 
-    public void mouseClicked(MouseEvent e)
-    {
+    public void mouseClicked(MouseEvent e) {
         LocationBar.cancelInput();
         editor.ensureActive();
         final int button = e.getButton();
@@ -422,13 +408,11 @@ public final class JavaTree extends SidebarTree implements Constants,
 
     public void mouseEntered(MouseEvent e) {}
 
-    public void mouseExited(MouseEvent e)
-    {
+    public void mouseExited(MouseEvent e) {
         giveBackFocus(editor);
     }
 
-    private static class ClassNode extends DefaultMutableTreeNode
-    {
+    private static class ClassNode extends DefaultMutableTreeNode {
         final String className;
         final boolean arrangeByType;
 
@@ -438,8 +422,7 @@ public final class JavaTree extends SidebarTree implements Constants,
         DefaultMutableTreeNode nestedClasses;
         int index;
 
-        ClassNode(JavaTag tag, boolean arrangeByType)
-        {
+        ClassNode(JavaTag tag, boolean arrangeByType) {
             super(tag);
             String s = tag.getName();
             if (s.startsWith("class "))
@@ -458,8 +441,7 @@ public final class JavaTree extends SidebarTree implements Constants,
                 fields = constructors = methods = nestedClasses = this;
         }
 
-        void addTag(JavaTag tag)
-        {
+        void addTag(JavaTag tag) {
             switch (tag.getType()) {
                 case TAG_CLASS:
                 case TAG_INTERFACE:
@@ -489,38 +471,45 @@ public final class JavaTree extends SidebarTree implements Constants,
             }
         }
 
-        void addField(JavaTag tag)
-        {
+        void addField(JavaTag tag) {
             fields.add(new DefaultMutableTreeNode(tag));
         }
 
-        void addConstructor(JavaTag tag)
-        {
+        void addConstructor(JavaTag tag) {
             constructors.add(new DefaultMutableTreeNode(tag));
         }
 
-        void addMethod(JavaTag tag)
-        {
+        void addMethod(JavaTag tag) {
             methods.add(new DefaultMutableTreeNode(tag));
         }
     }
 
-    private static class TreeCellRenderer extends DefaultTreeCellRenderer
-    {
+    private static class TreeCellRenderer extends DefaultTreeCellRenderer {
         private Color oldBackgroundSelectionColor;
 
-        public TreeCellRenderer()
-        {
+        public TreeCellRenderer() {
             super();
             oldBackgroundSelectionColor = getBackgroundSelectionColor();
         }
 
-        public Component getTreeCellRendererComponent(JTree tree, Object value,
-            boolean selected, boolean expanded, boolean leaf, int row,
-            boolean hasFocus)
-        {
-            super.getTreeCellRendererComponent(tree, value, selected, expanded,
-                leaf, row, hasFocus);
+        public Component getTreeCellRendererComponent(
+            JTree tree,
+            Object value,
+            boolean selected,
+            boolean expanded,
+            boolean leaf,
+            int row,
+            boolean hasFocus
+        ) {
+            super.getTreeCellRendererComponent(
+                tree,
+                value,
+                selected,
+                expanded,
+                leaf,
+                row,
+                hasFocus
+            );
             if (selected)
                 super.setForeground(getTextSelectionColor());
             else
@@ -530,7 +519,7 @@ public final class JavaTree extends SidebarTree implements Constants,
             else
                 setBackgroundSelectionColor(NO_FOCUS_SELECTION_BACKGROUND);
             if (value instanceof DefaultMutableTreeNode) {
-                Object obj = ((DefaultMutableTreeNode)value).getUserObject();
+                Object obj = ((DefaultMutableTreeNode) value).getUserObject();
                 if (obj instanceof JavaTag) {
                     JavaTag t = (JavaTag) obj;
                     setIcon(t.getIcon());
@@ -549,8 +538,7 @@ public final class JavaTree extends SidebarTree implements Constants,
             return this;
         }
 
-        public void paintComponent(Graphics g)
-        {
+        public void paintComponent(Graphics g) {
             Display.setRenderingHints(g);
             super.paintComponent(g);
         }

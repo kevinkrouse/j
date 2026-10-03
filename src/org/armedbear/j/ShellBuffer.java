@@ -19,20 +19,18 @@
 
 package org.armedbear.j;
 
-import org.armedbear.j.mode.shell.ShellTokenizer;
-import java.lang.StringBuilder;
-import org.armedbear.j.util.Utilities;
-
-import java.util.regex.Matcher;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
+import java.lang.StringBuilder;
 import java.util.List;
 import java.util.StringTokenizer;
+import java.util.regex.Matcher;
 import javax.swing.SwingUtilities;
 import javax.swing.undo.CompoundEdit;
+import org.armedbear.j.mode.shell.ShellTokenizer;
+import org.armedbear.j.util.Utilities;
 
-public class ShellBuffer extends CommandInterpreterBuffer implements Constants
-{
+public class ShellBuffer extends CommandInterpreterBuffer implements Constants {
     protected static final String JPTY_NOT_FOUND =
         "Unable to start shell process (jpty not found in PATH)";
 
@@ -44,16 +42,14 @@ public class ShellBuffer extends CommandInterpreterBuffer implements Constants
     private File initialDir;
     private boolean cygnify;
 
-    protected ShellBuffer()
-    {
+    protected ShellBuffer() {
         type = TYPE_SHELL;
         mode = Editor.getModeList().getMode(SHELL_MODE);
         formatter = mode.getFormatter(this);
         setInitialized(true);
     }
 
-    protected ShellBuffer(String shellCommand)
-    {
+    protected ShellBuffer(String shellCommand) {
         this();
         this.shellCommand = shellCommand;
         if (shellCommand != null) {
@@ -64,8 +60,7 @@ public class ShellBuffer extends CommandInterpreterBuffer implements Constants
         }
     }
 
-    protected ShellBuffer(String shellCommand, Mode mode)
-    {
+    protected ShellBuffer(String shellCommand, Mode mode) {
         type = TYPE_SHELL;
         this.shellCommand = shellCommand;
         this.mode = mode;
@@ -73,18 +68,15 @@ public class ShellBuffer extends CommandInterpreterBuffer implements Constants
         setInitialized(true);
     }
 
-    protected synchronized Process getProcess()
-    {
+    protected synchronized Process getProcess() {
         return process;
     }
 
-    protected synchronized void setProcess(Process p)
-    {
+    protected synchronized void setProcess(Process p) {
         process = p;
     }
 
-    private static final String getDefaultShellCommand()
-    {
+    private static final String getDefaultShellCommand() {
         String s =
             Editor.preferences().getStringProperty(Property.SHELL_FILE_NAME);
         if (s != null && s.length() > 0)
@@ -92,13 +84,11 @@ public class ShellBuffer extends CommandInterpreterBuffer implements Constants
         return Platform.isPlatformWindows() ? "cmd.exe /q" : "bash -i";
     }
 
-    protected void initializeHistory()
-    {
+    protected void initializeHistory() {
         history = new History("shell.history", 30);
     }
 
-    private static ShellBuffer createShell(String shellCommand)
-    {
+    private static ShellBuffer createShell(String shellCommand) {
         if (shellCommand == null) {
             Debug.bug();
             return null;
@@ -116,8 +106,7 @@ public class ShellBuffer extends CommandInterpreterBuffer implements Constants
         return shell;
     }
 
-    protected void startProcess()
-    {
+    protected void startProcess() {
         if (shellCommand == null) {
             Debug.bug();
             return;
@@ -145,8 +134,12 @@ public class ShellBuffer extends CommandInterpreterBuffer implements Constants
             cmdArray[i++] = st.nextToken();
         Process p = null;
         try {
-            p = Runtime.getRuntime().exec(cmdArray, null,
-                                          new java.io.File(initialDir.canonicalPath()));
+            p = Runtime.getRuntime()
+                .exec(
+                    cmdArray,
+                    null,
+                    new java.io.File(initialDir.canonicalPath())
+                );
             setProcess(p);
         }
         catch (Throwable t) {
@@ -167,13 +160,16 @@ public class ShellBuffer extends CommandInterpreterBuffer implements Constants
         // so check the value of getProcess() here.
         if (getProcess() == null)
             return; // Process exited.
-        if (Platform.isPlatformWindows() &&
-                shellCommand.toLowerCase().contains("cmd.exe"))
+        if (
+            Platform.isPlatformWindows()
+                &&
+                shellCommand.toLowerCase().contains("cmd.exe")
+        )
             setPromptRE(DEFAULT_CMD_EXE_PROMPT_PATTERN);
         else
             setPromptRE(Editor.preferences().getStringProperty(Property.SHELL_PROMPT_PATTERN));
         try {
-            stdin  = new OutputStreamWriter(p.getOutputStream());
+            stdin = new OutputStreamWriter(p.getOutputStream());
             stdoutThread = new StdoutThread(p.getInputStream());
             stderrThread = new StderrThread(p.getErrorStream());
             stdoutThread.setTimeOut(0);
@@ -187,15 +183,13 @@ public class ShellBuffer extends CommandInterpreterBuffer implements Constants
         }
     }
 
-    public void dispose()
-    {
+    public void dispose() {
         if (!checkProcess()) {
             Log.debug("checkProcess returned false");
             return;
         }
         Thread thread = new Thread("shell dispose") {
-            public void run()
-            {
+            public void run() {
                 try {
                     stdin.write(3);
                     stdin.flush();
@@ -220,8 +214,7 @@ public class ShellBuffer extends CommandInterpreterBuffer implements Constants
         thread.start();
     }
 
-    protected void enter(final String s)
-    {
+    protected void enter(final String s) {
         super.enter(s);
         // If it's a local shell (i.e. not telnet or ssh), keep track of the
         // current directory.
@@ -249,8 +242,7 @@ public class ShellBuffer extends CommandInterpreterBuffer implements Constants
         }
     }
 
-    protected boolean checkProcess()
-    {
+    protected boolean checkProcess() {
         Process p = getProcess();
         if (p == null)
             return false;
@@ -263,11 +255,9 @@ public class ShellBuffer extends CommandInterpreterBuffer implements Constants
         return false;
     }
 
-    protected void startWatcherThread()
-    {
+    protected void startWatcherThread() {
         Thread thread = new Thread("shell watcher") {
-            public void run()
-            {
+            public void run() {
                 try {
                     Process p = getProcess();
                     if (p != null)
@@ -294,8 +284,7 @@ public class ShellBuffer extends CommandInterpreterBuffer implements Constants
         thread.start();
     }
 
-    private void tab()
-    {
+    private void tab() {
         final Editor editor = Editor.currentEditor();
         if (editor.getMark() != null)
             return;
@@ -305,7 +294,7 @@ public class ShellBuffer extends CommandInterpreterBuffer implements Constants
         if (!matcher.find())
             return; // Not at prompt.
         final String prompt = matcher.group();
-        final String userInput  = dotLineText.substring(matcher.end());
+        final String userInput = dotLineText.substring(matcher.end());
         if (userInput.length() == 0)
             return; // Nothing to complete.
         final ShellTokenizer st = new ShellTokenizer(userInput);
@@ -358,8 +347,7 @@ public class ShellBuffer extends CommandInterpreterBuffer implements Constants
         }
     }
 
-    private void updateDirectory(String output)
-    {
+    private void updateDirectory(String output) {
         if (command != null) {
             String s = output;
             int index = s.indexOf('\r');
@@ -381,8 +369,7 @@ public class ShellBuffer extends CommandInterpreterBuffer implements Constants
         }
     }
 
-    private void changeDirectory(String s)
-    {
+    private void changeDirectory(String s) {
         if (s != null) {
             s = unescape(s).trim();
             if (s.length() > 0) {
@@ -390,8 +377,8 @@ public class ShellBuffer extends CommandInterpreterBuffer implements Constants
                 if (c == '\'' || c == '"') {
                     s = s.substring(1);
                     final int length = s.length();
-                    if (length > 0 && s.charAt(length-1) == c)
-                        s = s.substring(0, length-1);
+                    if (length > 0 && s.charAt(length - 1) == c)
+                        s = s.substring(0, length - 1);
                 }
             } else {
                 // s.length() == 0
@@ -418,8 +405,7 @@ public class ShellBuffer extends CommandInterpreterBuffer implements Constants
         }
     }
 
-    private String unescape(String s)
-    {
+    private String unescape(String s) {
         // Is '\' an escape character?
         boolean backslashIsEscape = Platform.isPlatformUnix() || cygnify;
 
@@ -444,29 +430,24 @@ public class ShellBuffer extends CommandInterpreterBuffer implements Constants
         return sb.toString();
     }
 
-    public String getFileNameForDisplay()
-    {
+    public String getFileNameForDisplay() {
         return (currentDir != null) ? currentDir.canonicalPath() : "";
     }
 
     // For the buffer list.
-    public String toString()
-    {
+    public String toString() {
         return shellCommand != null ? shellCommand : "";
     }
 
-    public File getCurrentDirectory()
-    {
+    public File getCurrentDirectory() {
         return currentDir;
     }
 
-    public File getCompletionDirectory()
-    {
+    public File getCompletionDirectory() {
         return currentDir;
     }
 
-    protected void appendString(String s)
-    {
+    protected void appendString(String s) {
         if (s.indexOf(0x1b) >= 0) {
             // Strip escape sequences used for ls colorization.
             int limit = s.length();
@@ -486,8 +467,7 @@ public class ShellBuffer extends CommandInterpreterBuffer implements Constants
         super.appendString(s);
     }
 
-    protected void stdOutUpdate(final String s)
-    {
+    protected void stdOutUpdate(final String s) {
         Runnable r = () -> {
             if (s.length() > 0) {
                 updateDirectory(s);
@@ -501,8 +481,7 @@ public class ShellBuffer extends CommandInterpreterBuffer implements Constants
         SwingUtilities.invokeLater(r);
     }
 
-    protected void stdErrUpdate(final String s)
-    {
+    protected void stdErrUpdate(final String s) {
         if (promptIsStderr) {
             Matcher matcher = promptRE.matcher(s);
             if (matcher.find()) {
@@ -525,8 +504,7 @@ public class ShellBuffer extends CommandInterpreterBuffer implements Constants
         SwingUtilities.invokeLater(r);
     }
 
-    protected void updateLineFlags()
-    {
+    protected void updateLineFlags() {
         Debug.assertTrue(SwingUtilities.isEventDispatchThread());
         Position endOfOutput = getEndOfOutput();
         if (endOfOutput == null)
@@ -552,8 +530,7 @@ public class ShellBuffer extends CommandInterpreterBuffer implements Constants
         }
     }
 
-    private boolean isPasswordPrompt(Line line)
-    {
+    private boolean isPasswordPrompt(Line line) {
         final String text = line.trim();
         if (text.startsWith("Enter passphrase") && text.endsWith(":"))
             return true;
@@ -564,15 +541,17 @@ public class ShellBuffer extends CommandInterpreterBuffer implements Constants
         return false;
     }
 
-    protected void checkPasswordPrompt()
-    {
+    protected void checkPasswordPrompt() {
         Position endOfOutput = getEndOfOutput();
         if (endOfOutput != null && isPasswordPrompt(endOfOutput.getLine())) {
             if (!Editor.getBufferList().contains(this))
                 return;
             String password =
-                PasswordDialog.showPasswordDialog(Editor.currentEditor(),
-                                                  "Password:", "Password");
+                PasswordDialog.showPasswordDialog(
+                    Editor.currentEditor(),
+                    "Password:",
+                    "Password"
+                );
             if (password != null) {
                 try {
                     stdin.write(password + "\n");
@@ -586,13 +565,11 @@ public class ShellBuffer extends CommandInterpreterBuffer implements Constants
         }
     }
 
-    public static void shell()
-    {
+    public static void shell() {
         shell(getDefaultShellCommand());
     }
 
-    public static void shell(String shellCommand)
-    {
+    public static void shell(String shellCommand) {
         if (shellCommand == null) {
             Debug.bug();
             return;
@@ -614,7 +591,7 @@ public class ShellBuffer extends CommandInterpreterBuffer implements Constants
         for (BufferIterator it = new BufferIterator(); it.hasNext();) {
             Buffer b = it.next();
             if (b instanceof ShellBuffer) {
-                if (shellCommand.equals(((ShellBuffer)b).shellCommand)) {
+                if (shellCommand.equals(((ShellBuffer) b).shellCommand)) {
                     buf = b;
                     break;
                 }
@@ -633,17 +610,15 @@ public class ShellBuffer extends CommandInterpreterBuffer implements Constants
         }
     }
 
-    public static void shellTab()
-    {
+    public static void shellTab() {
         final Buffer buffer = Editor.currentEditor().getBuffer();
         if (buffer instanceof ShellBuffer && !(buffer instanceof RemoteShellBuffer))
-            ((ShellBuffer)buffer).tab();
+            ((ShellBuffer) buffer).tab();
     }
 
-    public static void shellInterrupt()
-    {
+    public static void shellInterrupt() {
         final Buffer buffer = Editor.currentEditor().getBuffer();
         if (buffer instanceof ShellBuffer)
-            ((ShellBuffer)buffer).sendChar(3);
+            ((ShellBuffer) buffer).sendChar(3);
     }
 }

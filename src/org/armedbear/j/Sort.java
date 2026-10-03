@@ -38,11 +38,8 @@ import javax.swing.undo.CompoundEdit;
  * no options at all the key is the whole line, which is what {@code sortLines}
  * has always done.
  */
-public final class Sort
-{
-    private Sort()
-    {
-    }
+public final class Sort {
+    private Sort() {}
 
     /**
      * How to compare, in vim's {@code :sort} vocabulary.
@@ -50,8 +47,7 @@ public final class Sort
      * The flag letters are vim's, so a j key map and an ex command describe
      * the same sort the same way.
      */
-    public static final class Options
-    {
+    public static final class Options {
         /** i -- compare without regard to case. */
         public boolean ignoreCase;
         /** u -- drop a line whose key repeats the one before it. */
@@ -74,70 +70,93 @@ public final class Sort
          * @throws IllegalArgumentException for a flag that is not one of
          *         vim's, so a typo is reported rather than ignored
          */
-        public static Options parse(String args)
-        {
+        public static Options parse(String args) {
             final Options options = new Options();
             final String s = args == null ? "" : args.trim();
             final int slash = s.indexOf('/');
             final String flags = (slash < 0 ? s : s.substring(0, slash))
-                                 .replace(" ", "");
+                .replace(" ", "");
             char kind = 0;
             for (int i = 0; i < flags.length(); i++) {
                 final char c = flags.charAt(i);
                 switch (c) {
-                    case 'i': options.ignoreCase = true; break;
-                    case 'u': options.unique = true; break;
-                    case 'r': options.useMatch = true; break;
+                    case 'i':
+                        options.ignoreCase = true;
+                        break;
+                    case 'u':
+                        options.unique = true;
+                        break;
+                    case 'r':
+                        options.useMatch = true;
+                        break;
                     // l sorts by the locale. The comparison here is by code
                     // point, which is what the C locale gives, so it is
                     // accepted and changes nothing.
-                    case 'l': break;
-                    case 'n': case 'f': case 'x': case 'o': case 'b':
+                    case 'l':
+                        break;
+                    case 'n':
+                    case 'f':
+                    case 'x':
+                    case 'o':
+                    case 'b':
                         // Mutually exclusive, and vim says so rather than
                         // letting the last one win.
                         if (kind != 0 && kind != c)
                             throw new IllegalArgumentException(
-                                "E474: Invalid argument");
+                                "E474: Invalid argument"
+                            );
                         kind = c;
                         break;
                     default:
                         throw new IllegalArgumentException(
-                            "E475: Invalid argument: " + c);
+                            "E475: Invalid argument: " + c
+                        );
                 }
             }
             switch (kind) {
-                case 'x': options.radix = 16; break;
-                case 'o': options.radix = 8; break;
-                case 'b': options.radix = 2; break;
-                case 'n': options.radix = 10; break;
-                case 'f': options.real = true; break;
-                default: break;
+                case 'x':
+                    options.radix = 16;
+                    break;
+                case 'o':
+                    options.radix = 8;
+                    break;
+                case 'b':
+                    options.radix = 2;
+                    break;
+                case 'n':
+                    options.radix = 10;
+                    break;
+                case 'f':
+                    options.real = true;
+                    break;
+                default:
+                    break;
             }
             if (slash >= 0) {
                 final int close = s.indexOf('/', slash + 1);
-                final String source = close < 0 ? s.substring(slash + 1)
-                                                : s.substring(slash + 1, close);
+                final String source = close < 0
+                    ? s.substring(slash + 1)
+                    : s.substring(slash + 1, close);
                 if (!source.isEmpty())
                     options.pattern = compile(source);
             }
             return options;
         }
 
-        private static Pattern compile(String source)
-        {
+        private static Pattern compile(String source) {
             try {
                 return Pattern.compile(source);
             }
             catch (PatternSyntaxException e) {
                 throw new IllegalArgumentException(
-                    "E486: Pattern not found: " + source);
+                    "E486: Pattern not found: " + source
+                );
             }
         }
     }
 
     /** A line and the key it is compared by. */
-    private static final class Entry
-    {
+    private static final class Entry {
         final String text;
         final String key;
         /** The number read from the key, or null when the sort is textual. */
@@ -147,8 +166,7 @@ public final class Sort
         /** False when a radix is in force and the line has no number. */
         final boolean keyed;
 
-        Entry(String text, String key, Long number, boolean keyed)
-        {
+        Entry(String text, String key, Long number, boolean keyed) {
             this.text = text;
             this.key = key;
             this.number = number;
@@ -162,8 +180,7 @@ public final class Sort
      * A whole-line comparison, as it has always been. The parameterised form
      * takes vim's flags.
      */
-    public static void sortLines()
-    {
+    public static void sortLines() {
         sortLines("");
     }
 
@@ -171,8 +188,7 @@ public final class Sort
      * {@code sortLines} with vim's {@code :sort} flags, as in
      * {@code sortLines n} or {@code sortLines ru /:/}.
      */
-    public static void sortLines(String parameters)
-    {
+    public static void sortLines(String parameters) {
         final Editor editor = Editor.currentEditor();
         if (editor.getMark() == null)
             return;
@@ -200,8 +216,12 @@ public final class Sort
         try {
             // getEndLine() is the line after the last one selected, so the
             // last line to sort is the one before it.
-            sortLines(editor, region.getBeginLine(),
-                      region.getEndLine().previous(), options);
+            sortLines(
+                editor,
+                region.getBeginLine(),
+                region.getEndLine().previous(),
+                options
+            );
         }
         finally {
             buffer.unlockWrite();
@@ -222,9 +242,12 @@ public final class Sort
      *
      * @return the number of lines removed
      */
-    public static int sortLines(Editor editor, Line first, Line last,
-                                Options options)
-    {
+    public static int sortLines(
+        Editor editor,
+        Line first,
+        Line last,
+        Options options
+    ) {
         if (first == null || last == null)
             return 0;
         final Buffer buffer = editor.getBuffer();
@@ -240,9 +263,13 @@ public final class Sort
         String previous = null;
         for (Entry e : entries) {
             // Equal lines, not equal keys: :sort u /:/ keeps x:1 and y:1.
-            if (options.unique && previous != null
-                && (options.ignoreCase ? previous.equalsIgnoreCase(e.text)
-                                       : previous.equals(e.text)))
+            if (
+                options.unique
+                    && previous != null
+                    && (options.ignoreCase
+                        ? previous.equalsIgnoreCase(e.text)
+                        : previous.equals(e.text))
+            )
                 continue;
             previous = e.text;
             wanted.add(e.text);
@@ -291,9 +318,12 @@ public final class Sort
     }
 
     /** Takes away the lines a unique sort left over, at the end of the span. */
-    private static void removeLines(Editor editor, int keep, Line first,
-                                    Line last)
-    {
+    private static void removeLines(
+        Editor editor,
+        int keep,
+        Line first,
+        Line last
+    ) {
         Line from = first;
         for (int i = 0; i < keep && from != null; i++)
             from = from.next();
@@ -310,16 +340,17 @@ public final class Sort
         } else {
             final Line before = from.previous();
             ed.setMark(new Position(last, last.length()));
-            ed.setDot(before != null ? before : from,
-                      before != null ? before.length() : 0);
+            ed.setDot(
+                before != null ? before : from,
+                before != null ? before.length() : 0
+            );
         }
         ed.moveCaretToDotCol();
         ed.deleteRegion();
         ed.setMark(null);
     }
 
-    private static String text(Line line)
-    {
+    private static String text(Line line) {
         return line.getText() == null ? "" : line.getText();
     }
 
@@ -330,14 +361,15 @@ public final class Sort
      * absence compares what follows the match -- which is the point of
      * {@code sort /.*:/} over a file of prefixed lines.
      */
-    private static Entry entryFor(String text, Options options)
-    {
+    private static Entry entryFor(String text, Options options) {
         String key = text;
         if (options.pattern != null) {
             final Matcher matcher = options.pattern.matcher(text);
-            key = !matcher.find() ? ""
-                  : options.useMatch ? matcher.group()
-                                     : text.substring(matcher.end());
+            key = !matcher.find()
+                ? ""
+                : options.useMatch
+                    ? matcher.group()
+                    : text.substring(matcher.end());
         }
         if (options.real) {
             // Unlike n, a line with no float is not put first: it counts as
@@ -356,8 +388,12 @@ public final class Sort
         // A line the pattern did not match is not a separate category: its
         // key is just the empty string, which sorts first anyway but sorts
         // *with* the lines whose match left nothing after it.
-        return new Entry(text, options.ignoreCase ? key.toLowerCase() : key,
-                         null, true);
+        return new Entry(
+            text,
+            options.ignoreCase ? key.toLowerCase() : key,
+            null,
+            true
+        );
     }
 
     /**
@@ -366,22 +402,27 @@ public final class Sort
      * Scanned for rather than required, so "d3" and " s5" sort as 3 and 5. A
      * minus sign directly in front counts, which is what puts "z-9" first.
      */
-    private static Long numberIn(String text, int radix)
-    {
+    private static Long numberIn(String text, int radix) {
         for (int i = 0; i < text.length(); i++) {
             if (Character.digit(text.charAt(i), radix) < 0)
                 continue;
             int start = i;
             // 0x before a hex number belongs to it, rather than being read as
             // the digit zero followed by a stray x.
-            if (radix == 16 && text.charAt(i) == '0' && i + 1 < text.length()
-                && (text.charAt(i + 1) == 'x' || text.charAt(i + 1) == 'X')
-                && i + 2 < text.length()
-                && Character.digit(text.charAt(i + 2), 16) >= 0)
+            if (
+                radix == 16
+                    && text.charAt(i) == '0'
+                    && i + 1 < text.length()
+                    && (text.charAt(i + 1) == 'x' || text.charAt(i + 1) == 'X')
+                    && i + 2 < text.length()
+                    && Character.digit(text.charAt(i + 2), 16) >= 0
+            )
                 start = i + 2;
             int end = start;
-            while (end < text.length()
-                   && Character.digit(text.charAt(end), radix) >= 0)
+            while (
+                end < text.length()
+                    && Character.digit(text.charAt(end), radix) >= 0
+            )
                 ++end;
             final boolean negative = start > 0 && text.charAt(start - 1) == '-';
             try {
@@ -397,8 +438,7 @@ public final class Sort
     }
 
     /** The first floating point number in the text, or 0.0 if there is none. */
-    private static double realIn(String text)
-    {
+    private static double realIn(String text) {
         final Matcher m = FLOAT.matcher(text);
         if (!m.find())
             return 0.0;
@@ -411,7 +451,8 @@ public final class Sort
     }
 
     private static final Pattern FLOAT = Pattern.compile(
-        "[-+]?(?:\\d+(?:\\.\\d*)?|\\.\\d+)(?:[eE][-+]?\\d+)?");
+        "[-+]?(?:\\d+(?:\\.\\d*)?|\\.\\d+)(?:[eE][-+]?\\d+)?"
+    );
 
     /**
      * Orders the entries, keeping equal ones as they were.
@@ -419,26 +460,22 @@ public final class Sort
      * Reversing reverses the result rather than the comparison, so the lines
      * with no number stay together at what is now the end.
      */
-    private static void sort(List<Entry> entries, Options options)
-    {
+    private static void sort(List<Entry> entries, Options options) {
         entries.sort(new EntryComparator(options.radix != 0, options.real));
         if (options.reverse)
             Collections.reverse(entries);
     }
 
-    private static class EntryComparator implements Comparator<Entry>
-    {
+    private static class EntryComparator implements Comparator<Entry> {
         private final boolean numeric;
         private final boolean real;
 
-        EntryComparator(boolean numeric, boolean real)
-        {
+        EntryComparator(boolean numeric, boolean real) {
             this.numeric = numeric;
             this.real = real;
         }
 
-        public final int compare(Entry a, Entry b)
-        {
+        public final int compare(Entry a, Entry b) {
             if (real)
                 return Double.compare(a.real, b.real);
             if (!a.keyed || !b.keyed)

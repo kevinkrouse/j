@@ -20,6 +20,14 @@
 
 package org.armedbear.j.mode.web;
 
+import java.awt.AWTEvent;
+import java.awt.Cursor;
+import java.awt.Image;
+import java.awt.Rectangle;
+import java.awt.event.MouseEvent;
+import java.io.InputStream;
+import java.util.Map;
+import javax.swing.SwingUtilities;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.BufferIterator;
 import org.armedbear.j.Debug;
@@ -41,35 +49,24 @@ import org.armedbear.j.Link;
 import org.armedbear.j.Log;
 import org.armedbear.j.MessageDialog;
 import org.armedbear.j.Mode;
-import org.armedbear.j.mode.text.PlainTextFormatter;
 import org.armedbear.j.Position;
 import org.armedbear.j.Sidebar;
 import org.armedbear.j.StatusBarProgressNotifier;
 import org.armedbear.j.TextLine;
-import org.armedbear.j.util.Utilities;
 import org.armedbear.j.mode.html.HtmlLineSegment;
 import org.armedbear.j.mode.image.ImageBuffer;
 import org.armedbear.j.mode.image.ImageLine;
+import org.armedbear.j.mode.text.PlainTextFormatter;
+import org.armedbear.j.util.Utilities;
 
-import java.awt.AWTEvent;
-import java.awt.Cursor;
-import java.awt.Image;
-import java.awt.Rectangle;
-import java.awt.event.MouseEvent;
-import java.io.InputStream;
-import java.util.Map;
-import javax.swing.SwingUtilities;
-
-public final class WebBuffer extends Buffer implements WebConstants
-{
+public final class WebBuffer extends Buffer implements WebConstants {
     private String ref;
     private WebHistory history;
     private Map<String, Integer> refs;
     private String contentType;
     private String errorText;
 
-    private WebBuffer(File file, File cache, String ref)
-    {
+    private WebBuffer(File file, File cache, String ref) {
         super();
         setFile(file);
         setCache(cache);
@@ -77,8 +74,7 @@ public final class WebBuffer extends Buffer implements WebConstants
         init();
     }
 
-    private void init()
-    {
+    private void init() {
         initializeUndo();
         type = TYPE_NORMAL;
         forceReadOnly = true;
@@ -87,30 +83,25 @@ public final class WebBuffer extends Buffer implements WebConstants
         setInitialized(true);
     }
 
-    public final WebHistory getHistory()
-    {
+    public final WebHistory getHistory() {
         return history;
     }
 
-    public final void setHistory(WebHistory history)
-    {
+    public final void setHistory(WebHistory history) {
         this.history = history;
     }
 
-    public final String getContentType()
-    {
+    public final String getContentType() {
         return contentType;
     }
 
-    public final void setContentType(String contentType)
-    {
+    public final void setContentType(String contentType) {
         this.contentType = contentType;
     }
 
     private int maxChars;
 
-    private final int maxChars()
-    {
+    private final int maxChars() {
         if (maxChars == 0) {
             Display display = Editor.currentEditor().getDisplay();
             int charWidth = display.getCharWidth();
@@ -122,8 +113,7 @@ public final class WebBuffer extends Buffer implements WebConstants
         return maxChars;
     }
 
-    public Position getInitialDotPos()
-    {
+    public Position getInitialDotPos() {
         if (ref != null) {
             Position pos = findRef(ref);
             if (pos != null)
@@ -132,8 +122,7 @@ public final class WebBuffer extends Buffer implements WebConstants
         return new Position(getFirstLine(), 0);
     }
 
-    public static void browse(Editor editor, File file, String ref)
-    {
+    public static void browse(Editor editor, File file, String ref) {
         if (file == null)
             return;
         Buffer buf = null;
@@ -151,13 +140,11 @@ public final class WebBuffer extends Buffer implements WebConstants
         editor.switchToBuffer(buf);
     }
 
-    public static WebBuffer createWebBuffer(File file, File cache, String ref)
-    {
+    public static WebBuffer createWebBuffer(File file, File cache, String ref) {
         return new WebBuffer(file, cache, ref);
     }
 
-    public Position findRef(String ref)
-    {
+    public Position findRef(String ref) {
         if (ref != null && refs != null) {
             Integer i = refs.get(ref);
             Position pos = getPosition(i.intValue());
@@ -168,8 +155,7 @@ public final class WebBuffer extends Buffer implements WebConstants
         return null;
     }
 
-    public static void viewPage()
-    {
+    public static void viewPage() {
         final Editor editor = Editor.currentEditor();
         if (editor.getModeId() != HTML_MODE)
             return;
@@ -187,14 +173,13 @@ public final class WebBuffer extends Buffer implements WebConstants
         }
         if (buf == null) {
             buf = WebBuffer.createWebBuffer(file, buffer.getCache(), null);
-            ((WebBuffer)buf).setContentType("text/html");
+            ((WebBuffer) buf).setContentType("text/html");
         }
         editor.makeNext(buf);
         editor.activate(buf);
     }
 
-    public static void viewSource()
-    {
+    public static void viewSource() {
         final Editor editor = Editor.currentEditor();
         final Buffer buffer = editor.getBuffer();
         if (!(buffer instanceof WebBuffer))
@@ -208,7 +193,7 @@ public final class WebBuffer extends Buffer implements WebConstants
             editor.makeNext(buf);
             editor.activate(buf);
             if (dotLine instanceof WebLine) {
-                int sourceOffset = ((WebLine)dotLine).getSourceOffset();
+                int sourceOffset = ((WebLine) dotLine).getSourceOffset();
                 Position pos = buf.getPosition(sourceOffset);
                 editor.moveDotTo(pos);
             }
@@ -217,8 +202,7 @@ public final class WebBuffer extends Buffer implements WebConstants
 
     private boolean empty = true;
 
-    public int load()
-    {
+    public int load() {
         if (getFirstLine() == null)
             setText("");
         setLoaded(true);
@@ -226,8 +210,7 @@ public final class WebBuffer extends Buffer implements WebConstants
         return LOAD_COMPLETED;
     }
 
-    protected void loadFile(File localFile)
-    {
+    protected void loadFile(File localFile) {
         WebLoader loader = new WebLoader(localFile);
         LineSequence lines = loader.load();
         if (lines != null) {
@@ -255,29 +238,25 @@ public final class WebBuffer extends Buffer implements WebConstants
         setLoaded(true);
     }
 
-    public Cursor getDefaultCursor(Position pos)
-    {
+    public Cursor getDefaultCursor(Position pos) {
         if (pos != null && pos.getLine() instanceof WebLine) {
             HtmlLineSegment segment =
-                ((WebLine)pos.getLine()).findSegment(pos.getOffset());
+                ((WebLine) pos.getLine()).findSegment(pos.getOffset());
             if (segment != null && segment.getLink() != null)
                 return Cursor.getPredefinedCursor(Cursor.HAND_CURSOR);
         }
         return super.getDefaultCursor();
     }
 
-    public final int getMaximumColumns()
-    {
+    public final int getMaximumColumns() {
         return maxChars();
     }
 
-    public static void followLink()
-    {
+    public static void followLink() {
         followLink(false);
     }
 
-    public static void mouseFollowLink()
-    {
+    public static void mouseFollowLink() {
         final Editor editor = Editor.currentEditor();
         // If this method is invoked via a mouse event mapping, move dot to
         // location of mouse click first.
@@ -287,8 +266,7 @@ public final class WebBuffer extends Buffer implements WebConstants
         followLink(true);
     }
 
-    public static void followLink(boolean exact)
-    {
+    public static void followLink(boolean exact) {
         final Editor editor = Editor.currentEditor();
         final Buffer buffer = editor.getBuffer();
         if (!(buffer instanceof WebBuffer))
@@ -307,7 +285,7 @@ public final class WebBuffer extends Buffer implements WebConstants
         final int dotOffset = editor.getDotOffset();
 
         Link link = null;
-        HtmlLineSegment segment = ((WebLine)dotLine).findSegment(dotOffset);
+        HtmlLineSegment segment = ((WebLine) dotLine).findSegment(dotOffset);
         if (segment != null)
             link = segment.getLink();
         if (link == null) {
@@ -327,8 +305,11 @@ public final class WebBuffer extends Buffer implements WebConstants
             return;
         }
         if (target.startsWith("mailto:")) {
-            MessageDialog.showMessageDialog(editor,
-                    "Sorry, mailto URLs are not yet supported.", "Sorry...");
+            MessageDialog.showMessageDialog(
+                editor,
+                "Sorry, mailto URLs are not yet supported.",
+                "Sorry..."
+            );
             return;
         }
 
@@ -402,7 +383,9 @@ public final class WebBuffer extends Buffer implements WebConstants
                     }
                     return;
                 }
-                if (wb.loadLocalFile(httpLoadProcess.getCache(), contentType, httpLoadProcess.getCache().getEncoding())) {
+                if (
+                    wb.loadLocalFile(httpLoadProcess.getCache(), contentType, httpLoadProcess.getCache().getEncoding())
+                ) {
                     wb.saveHistory(historyFile, historyOffset, historyContentType);
                     wb.setFile(httpLoadProcess.getFile());
                     wb.setCache(httpLoadProcess.getCache());
@@ -420,8 +403,7 @@ public final class WebBuffer extends Buffer implements WebConstants
                 }
             };
             ErrorRunnable errorRunnable = new ErrorRunnable("Operation failed") {
-                public void run()
-                {
+                public void run() {
                     Log.debug("followLink errorRunnable.run");
                     String errorText = httpLoadProcess.getErrorText();
                     if (errorText == null || errorText.length() == 0)
@@ -470,11 +452,10 @@ public final class WebBuffer extends Buffer implements WebConstants
         }
     }
 
-    public static HtmlLineSegment findLink(Line line, int offset)
-    {
+    public static HtmlLineSegment findLink(Line line, int offset) {
         HtmlLineSegment segment = null;
         if (line instanceof WebLine) {
-            LineSegmentList segmentList = ((WebLine)line).getSegmentList();
+            LineSegmentList segmentList = ((WebLine) line).getSegmentList();
             if (segmentList != null) {
                 int where = 0;
                 final int size = segmentList.size();
@@ -494,8 +475,7 @@ public final class WebBuffer extends Buffer implements WebConstants
         return segment;
     }
 
-    private static File resolve(File base, String fileName)
-    {
+    private static File resolve(File base, String fileName) {
         while (fileName.startsWith("../")) {
             File parent = base.getParentFile();
             if (parent != null) {
@@ -512,22 +492,24 @@ public final class WebBuffer extends Buffer implements WebConstants
     }
 
     // BUG!! Optimize this - containsImageLine flag
-    public int getDisplayHeight()
-    {
+    public int getDisplayHeight() {
         int height = 0;
         for (Line line = getFirstLine(); line != null; line = line.nextVisible())
             height += line.getHeight();
         return height;
     }
 
-    private void insertImage(final Editor editor, final Line line,
-        final HtmlLineSegment segment, final Image image)
-    {
+    private void insertImage(
+        final Editor editor,
+        final Line line,
+        final HtmlLineSegment segment,
+        final Image image
+    ) {
         final int imageHeight = image.getHeight(null);
         if (imageHeight == 0)
             return;
 
-        LineSegmentList segments = ((WebLine)line).getSegmentList();
+        LineSegmentList segments = ((WebLine) line).getSegmentList();
         segments.removeSegment(segment);
 
         // Force next call to line.getText() to enumerate the segments again.
@@ -546,8 +528,12 @@ public final class WebBuffer extends Buffer implements WebConstants
         final int imageWidth = image.getWidth(null);
         Line dotLine = null;
         for (int y = 0; y < imageHeight; y += lineHeight) {
-            Rectangle r = new Rectangle(0, y, imageWidth,
-                Math.min(lineHeight, imageHeight - y));
+            Rectangle r = new Rectangle(
+                0,
+                y,
+                imageWidth,
+                Math.min(lineHeight, imageHeight - y)
+            );
             ImageLine imageLine = new ImageLine(image, r);
             imageLine.insertAfter(before);
             before = imageLine;
@@ -567,9 +553,11 @@ public final class WebBuffer extends Buffer implements WebConstants
         }
     }
 
-    public void saveHistory(File historyFile, int historyOffset,
-        String historyContentType)
-    {
+    public void saveHistory(
+        File historyFile,
+        int historyOffset,
+        String historyContentType
+    ) {
         if (history == null)
             history = new WebHistory();
         else
@@ -578,19 +566,19 @@ public final class WebBuffer extends Buffer implements WebConstants
         history.reset();
     }
 
-    private boolean loadLocalFile(File localFile)
-    {
+    private boolean loadLocalFile(File localFile) {
         return loadLocalFile(localFile, "text/html");
     }
 
-    private boolean loadLocalFile(File localFile, String contentType)
-    {
+    private boolean loadLocalFile(File localFile, String contentType) {
         return loadLocalFile(localFile, contentType, null);
     }
 
-    private boolean loadLocalFile(File localFile, String contentType,
-        String encoding)
-    {
+    private boolean loadLocalFile(
+        File localFile,
+        String contentType,
+        String encoding
+    ) {
         // Look for Unicode byte order mark. If we find it, use it to
         // determine the encoding.
         InputStream inputStream;
@@ -675,8 +663,7 @@ public final class WebBuffer extends Buffer implements WebConstants
         return true;
     }
 
-    public static void back()
-    {
+    public static void back() {
         final Editor editor = Editor.currentEditor();
         final Buffer buffer = editor.getBuffer();
         if (!(buffer instanceof WebBuffer))
@@ -690,8 +677,11 @@ public final class WebBuffer extends Buffer implements WebConstants
         WebHistoryEntry previous = history.getPrevious();
         if (previous != null) {
             if (atEnd)
-                history.append(wb.getFile(),
-                    wb.getAbsoluteOffset(editor.getDot()), wb.getContentType());
+                history.append(
+                    wb.getFile(),
+                    wb.getAbsoluteOffset(editor.getDot()),
+                    wb.getContentType()
+                );
             else if (current != null)
                 current.setOffset(wb.getAbsoluteOffset(editor.getDot()));
             else
@@ -703,8 +693,7 @@ public final class WebBuffer extends Buffer implements WebConstants
         }
     }
 
-    public static void forward()
-    {
+    public static void forward() {
         final Editor editor = Editor.currentEditor();
         final Buffer buffer = editor.getBuffer();
         if (!(buffer instanceof WebBuffer))
@@ -727,16 +716,14 @@ public final class WebBuffer extends Buffer implements WebConstants
         }
     }
 
-    public static void refresh()
-    {
+    public static void refresh() {
         final Editor editor = Editor.currentEditor();
         final Buffer buffer = editor.getBuffer();
         if (buffer instanceof WebBuffer)
-            ((WebBuffer)buffer).reload(editor);
+            ((WebBuffer) buffer).reload(editor);
     }
 
-    private void reload(Editor editor)
-    {
+    private void reload(Editor editor) {
         final File file = getFile();
         if (file instanceof HttpFile) {
             HttpFile httpFile = (HttpFile) file;
@@ -751,8 +738,7 @@ public final class WebBuffer extends Buffer implements WebConstants
         go(file, offset, contentType);
     }
 
-    public void go(final File destination, final int offset, String contentType)
-    {
+    public void go(final File destination, final int offset, String contentType) {
         if (destination == null)
             return;
 
@@ -845,8 +831,7 @@ public final class WebBuffer extends Buffer implements WebConstants
             MessageDialog.showMessageDialog("Transfer cancelled", httpFile.netPath());
         };
         ErrorRunnable httpErrorRunnable = new ErrorRunnable("Load failed") {
-            public void run()
-            {
+            public void run() {
                 setFile(oldFile);
                 setBusy(false);
                 if (empty && Editor.getBufferList().contains(WebBuffer.this))
@@ -867,8 +852,7 @@ public final class WebBuffer extends Buffer implements WebConstants
         httpLoadProcess.start();
     }
 
-    private void update(int offset)
-    {
+    private void update(int offset) {
         Position pos = getPosition(offset);
         if (pos == null)
             pos = new Position(getFirstLine(), 0);
@@ -876,8 +860,7 @@ public final class WebBuffer extends Buffer implements WebConstants
         update(pos);
     }
 
-    private void update(Position pos)
-    {
+    private void update(Position pos) {
         for (EditorIterator it = new EditorIterator(); it.hasNext();) {
             Editor ed = it.next();
             if (ed.getBuffer() == this) {
@@ -896,8 +879,7 @@ public final class WebBuffer extends Buffer implements WebConstants
         Editor.currentEditor().status("Loading complete");
     }
 
-    public boolean isTransient()
-    {
+    public boolean isTransient() {
         if (super.isTransient())
             return true;
         File file = getFile();
@@ -911,22 +893,20 @@ public final class WebBuffer extends Buffer implements WebConstants
         return false;
     }
 
-    public boolean save()
-    {
+    public boolean save() {
         // We shouldn't be trying to save a WebBuffer.
         Debug.bug();
         return true;
     }
 
-    public static void copyLink()
-    {
+    public static void copyLink() {
         final Editor editor = Editor.currentEditor();
         final Buffer buffer = editor.getBuffer();
         if (buffer instanceof WebBuffer) {
             Position pos = editor.getDot();
             if (pos != null && pos.getLine() instanceof WebLine) {
                 HtmlLineSegment segment =
-                    ((WebLine)pos.getLine()).findSegment(pos.getOffset());
+                    ((WebLine) pos.getLine()).findSegment(pos.getOffset());
                 if (segment != null) {
                     Link link = segment.getLink();
                     if (link == null)
@@ -950,8 +930,10 @@ public final class WebBuffer extends Buffer implements WebConstants
                         } else
                             filename = target;
                         final File destination =
-                            resolve(buffer.getFile().getParentFile(),
-                                filename);
+                            resolve(
+                                buffer.getFile().getParentFile(),
+                                filename
+                            );
                         if (destination != null) {
                             copy = destination.netPath();
                             if (ref != null)

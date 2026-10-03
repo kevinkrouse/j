@@ -20,7 +20,6 @@
 
 package org.armedbear.j;
 
-import org.armedbear.j.util.Utilities;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Font;
@@ -35,10 +34,10 @@ import javax.swing.BoxLayout;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JPanel;
+import org.armedbear.j.util.Utilities;
 
 public final class LocationBar extends JPanel implements Constants,
-    ActionListener, MouseListener
-{
+    ActionListener, MouseListener {
     private Editor editor;
     private final Label label;
     private final HistoryTextField textField;
@@ -52,12 +51,11 @@ public final class LocationBar extends JPanel implements Constants,
     };
 
     public static final int PROMPT_LOCATION = 0;
-    public static final int PROMPT_COMMAND  = 1;
-    public static final int PROMPT_TAG      = 2;
-    public static final int PROMPT_PATTERN  = 3;
+    public static final int PROMPT_COMMAND = 1;
+    public static final int PROMPT_TAG = 2;
+    public static final int PROMPT_PATTERN = 3;
 
-    public LocationBar(final Editor editor)
-    {
+    public LocationBar(final Editor editor) {
         this.editor = editor;
         setLayout(new BoxLayout(this, BoxLayout.X_AXIS));
         setBorder(BorderFactory.createEmptyBorder(1, 1, 2, 1));
@@ -85,8 +83,7 @@ public final class LocationBar extends JPanel implements Constants,
         setLabelText(PROMPT_LOCATION);
     }
 
-    private void addCloseButton()
-    {
+    private void addCloseButton() {
         closeButton = new JButton();
         URL url = Editor.class.getResource("images/close_frame.png");
         if (url != null)
@@ -105,8 +102,7 @@ public final class LocationBar extends JPanel implements Constants,
 
     private static String widest = null;
 
-    private static String getWidestPrompt()
-    {
+    private static String getWidestPrompt() {
         if (widest == null) {
             Font font = new Label().getFont();
             FontMetrics fm = Utilities.getFontMetrics(font);
@@ -122,16 +118,14 @@ public final class LocationBar extends JPanel implements Constants,
         return widest;
     }
 
-    public final void setLabelText(int index)
-    {
+    public final void setLabelText(int index) {
         if (index >= 0 && index < prompts.length)
             label.setText(prompts[index]);
         else
             Debug.bug();
     }
 
-    public void paintComponent(java.awt.Graphics g)
-    {
+    public void paintComponent(java.awt.Graphics g) {
         if (editor == Editor.currentEditor()) {
             label.setForeground(Color.black);
             textField.setForeground(Color.black);
@@ -142,8 +136,7 @@ public final class LocationBar extends JPanel implements Constants,
         super.paintComponent(g);
     }
 
-    public void update()
-    {
+    public void update() {
         setLabelText(PROMPT_LOCATION);
         textField.setHandler(new OpenFileTextFieldHandler(editor, textField));
         textField.setHistory(new History("openFile.file", 30));
@@ -152,18 +145,15 @@ public final class LocationBar extends JPanel implements Constants,
             textField.setText(buffer.getFileNameForDisplay());
     }
 
-    public final HistoryTextField getTextField()
-    {
+    public final HistoryTextField getTextField() {
         return textField;
     }
 
-    public final JButton getCloseButton()
-    {
+    public final JButton getCloseButton() {
         return closeButton;
     }
 
-    public static void cancelInput()
-    {
+    public static void cancelInput() {
         // Cancel location bar activity (if any).
         for (EditorIterator it = new EditorIterator(); it.hasNext();) {
             Editor ed = it.next();
@@ -172,8 +162,7 @@ public final class LocationBar extends JPanel implements Constants,
         }
     }
 
-    public void actionPerformed(ActionEvent e)
-    {
+    public void actionPerformed(ActionEvent e) {
         final Frame frame = editor.getFrame();
         frame.closeEditor(editor);
         frame.getCurrentEditor().setFocusToDisplay();
@@ -188,8 +177,7 @@ public final class LocationBar extends JPanel implements Constants,
 
     public void mouseExited(MouseEvent e) {}
 
-    public void mousePressed(MouseEvent e)
-    {
+    public void mousePressed(MouseEvent e) {
         editor.ensureActive();
         editor.getFrame().setFocus(textField);
     }

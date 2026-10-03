@@ -24,35 +24,29 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 
-public final class EditorList implements Collection<Editor>
-{
+public final class EditorList implements Collection<Editor> {
     private final ArrayList<Editor> list = new ArrayList<Editor>(4);
 
-    public synchronized int size()
-    {
+    public synchronized int size() {
         return list.size();
     }
 
-    public synchronized boolean isEmpty()
-    {
+    public synchronized boolean isEmpty() {
         return list.isEmpty();
     }
 
-    public synchronized int indexOf(Editor editor)
-    {
+    public synchronized int indexOf(Editor editor) {
         return list.indexOf(editor);
     }
 
-    public synchronized Editor get(int i)
-    {
+    public synchronized Editor get(int i) {
         if (i >= 0 && i < list.size())
             return list.get(i);
         else
             return null;
     }
 
-    public synchronized boolean add(Editor editor)
-    {
+    public synchronized boolean add(Editor editor) {
         if (editor == null)
             Debug.bug("can't add null editor");
         if (list.contains(editor)) {
@@ -63,8 +57,7 @@ public final class EditorList implements Collection<Editor>
         return false;
     }
 
-    private void add(int i, Editor editor)
-    {
+    private void add(int i, Editor editor) {
         if (editor == null)
             Debug.bug("can't add null editor");
         if (list.contains(editor)) {
@@ -74,8 +67,7 @@ public final class EditorList implements Collection<Editor>
         list.add(i, editor);
     }
 
-    public synchronized void addAfter(Editor editor, Editor after)
-    {
+    public synchronized void addAfter(Editor editor, Editor after) {
         if (editor == null)
             Debug.bug("can't add null editor");
         if (list.contains(editor)) {
@@ -84,73 +76,60 @@ public final class EditorList implements Collection<Editor>
         }
 
         int insertAt = 0;
-        if (after != null)
-        {
+        if (after != null) {
             // if after isn't in the list, insert at the head of the list
             insertAt = list.indexOf(after) + 1;
         }
-        
+
         add(insertAt, editor);
     }
 
-    public boolean remove(Object o)
-    {
-        return remove((Editor)o);
+    public boolean remove(Object o) {
+        return remove((Editor) o);
     }
 
-    public synchronized boolean remove(Editor editor)
-    {
+    public synchronized boolean remove(Editor editor) {
         return list.remove(editor);
     }
 
-    public boolean contains(Object o)
-    {
-        return contains((Editor)o);
+    public boolean contains(Object o) {
+        return contains((Editor) o);
     }
 
-    public synchronized boolean contains(Editor editor)
-    {
+    public synchronized boolean contains(Editor editor) {
         return list.contains(editor);
     }
 
     // XXX: Callers should be synchronizing on this EditorList while iterating.
-    public synchronized Iterator<Editor> iterator()
-    {
+    public synchronized Iterator<Editor> iterator() {
         return list.iterator();
     }
 
-    public synchronized boolean addAll(Collection<? extends Editor> c)
-    {
+    public synchronized boolean addAll(Collection<? extends Editor> c) {
         return list.addAll(c);
     }
 
-    public synchronized boolean removeAll(Collection<?> c)
-    {
+    public synchronized boolean removeAll(Collection<?> c) {
         return list.removeAll(c);
     }
 
-    public synchronized boolean retainAll(Collection<?> c)
-    {
+    public synchronized boolean retainAll(Collection<?> c) {
         return list.retainAll(c);
     }
 
-    public synchronized boolean containsAll(Collection<?> c)
-    {
+    public synchronized boolean containsAll(Collection<?> c) {
         return list.containsAll(c);
     }
 
-    public synchronized void clear()
-    {
+    public synchronized void clear() {
         list.clear();
     }
 
-    public synchronized Object[] toArray()
-    {
+    public synchronized Object[] toArray() {
         return list.toArray();
     }
 
-    public synchronized <T> T[] toArray(T[] a)
-    {
+    public synchronized <T> T[] toArray(T[] a) {
         return list.toArray(a);
     }
 }

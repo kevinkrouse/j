@@ -20,27 +20,24 @@
 
 package org.armedbear.j.mode.list;
 
+import java.lang.StringBuilder;
+import java.util.Arrays;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Debug;
 import org.armedbear.j.Directories;
 import org.armedbear.j.Editor;
 import org.armedbear.j.EditorIterator;
-import java.lang.StringBuilder;
 import org.armedbear.j.File;
 import org.armedbear.j.Line;
 import org.armedbear.j.Log;
 import org.armedbear.j.Property;
 import org.armedbear.j.Registers;
-import org.armedbear.j.util.Utilities;
 import org.armedbear.j.View;
+import org.armedbear.j.util.Utilities;
 
-import java.util.Arrays;
-
-public final class ListRegistersBuffer extends Buffer
-{
-    public ListRegistersBuffer()
-    {
-        supportsUndo  = false;
+public final class ListRegistersBuffer extends Buffer {
+    public ListRegistersBuffer() {
+        supportsUndo = false;
         type = TYPE_OUTPUT;
         mode = ListRegistersMode.getMode();
         formatter = mode.getFormatter(this);
@@ -54,8 +51,7 @@ public final class ListRegistersBuffer extends Buffer
         setInitialized(true);
     }
 
-    public int load()
-    {
+    public int load() {
         if (!isLoaded()) {
             loadInternal();
             if (!isLoaded())
@@ -64,8 +60,7 @@ public final class ListRegistersBuffer extends Buffer
         return LOAD_COMPLETED;
     }
 
-    public void reload()
-    {
+    public void reload() {
         for (EditorIterator it = new EditorIterator(); it.hasNext();) {
             Editor ed = it.next();
             if (ed.getBuffer() == this) {
@@ -103,8 +98,7 @@ public final class ListRegistersBuffer extends Buffer
         }
     }
 
-    private void loadInternal()
-    {
+    private void loadInternal() {
         String[] names = null;
         File directory = Directories.getRegistersDirectory();
         if (directory != null)
@@ -129,7 +123,8 @@ public final class ListRegistersBuffer extends Buffer
                         continue;
                     int lineCount = Utilities.countLines(text);
                     appendLine(
-                            new ListRegistersLine(sb.toString(), name));
+                        new ListRegistersLine(sb.toString(), name)
+                    );
                     append(text);
                     if (lineCount == MAX_LINES)
                         appendLine(new ListRegistersLine("[...]", name));
@@ -144,13 +139,11 @@ public final class ListRegistersBuffer extends Buffer
         }
     }
 
-    public String getFileNameForDisplay()
-    {
+    public String getFileNameForDisplay() {
         return "listRegisters";
     }
 
-    public String toString()
-    {
+    public String toString() {
         return "listRegisters";
     }
 }

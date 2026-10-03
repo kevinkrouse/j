@@ -20,33 +20,29 @@
 
 package org.armedbear.j;
 
-import org.armedbear.j.mode.list.ListOccurrencesInFilesBuffer;
-import java.lang.StringBuilder;
-import org.armedbear.j.vcs.p4.P4;
-
-import java.util.regex.Pattern;
-import java.util.regex.PatternSyntaxException;
-
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.lang.StringBuilder;
 import java.util.ArrayList;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.List;
 import java.util.StringTokenizer;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.regex.PatternSyntaxException;
 import javax.swing.SwingUtilities;
 import javax.swing.undo.CompoundEdit;
+import org.armedbear.j.mode.list.ListOccurrencesInFilesBuffer;
+import org.armedbear.j.vcs.p4.P4;
 
 public final class FindInFiles extends Replacement implements Constants,
-    BackgroundProcess
-{
+    BackgroundProcess {
     private static FindInFiles findInFiles;
 
-    public static final FindInFiles getFindInFiles()
-    {
+    public static final FindInFiles getFindInFiles() {
         return findInFiles;
     }
 
@@ -75,76 +71,62 @@ public final class FindInFiles extends Replacement implements Constants,
 
     private final String encoding;
 
-    public FindInFiles(Editor editor)
-    {
+    public FindInFiles(Editor editor) {
         super(editor);
         this.frame = editor.getFrame();
         encoding =
             Editor.preferences().getStringProperty(Property.DEFAULT_ENCODING);
     }
 
-    public final boolean getDefaultExcludes()
-    {
+    public final boolean getDefaultExcludes() {
         return defaultExcludes;
     }
 
-    public final void setDefaultExcludes(boolean b)
-    {
+    public final void setDefaultExcludes(boolean b) {
         defaultExcludes = b;
     }
 
-    public final boolean getIncludeSubdirs()
-    {
+    public final boolean getIncludeSubdirs() {
         return includeSubdirs;
     }
 
-    public final void setIncludeSubdirs(boolean b)
-    {
+    public final void setIncludeSubdirs(boolean b) {
         includeSubdirs = b;
     }
 
-    public final boolean getSearchFilesInMemory()
-    {
+    public final boolean getSearchFilesInMemory() {
         return searchFilesInMemory;
     }
 
-    public final void setSearchFilesInMemory(boolean b)
-    {
+    public final void setSearchFilesInMemory(boolean b) {
         searchFilesInMemory = b;
     }
 
-    public final Mode getMode()
-    {
+    public final Mode getMode() {
         return mode;
     }
 
-    public final void setMode(Mode mode)
-    {
+    public final void setMode(Mode mode) {
         this.mode = mode;
     }
 
-    public final ListOccurrencesInFilesBuffer getOutputBuffer()
-    {
+    public final ListOccurrencesInFilesBuffer getOutputBuffer() {
         return outputBuffer;
     }
 
-    public final void setOutputBuffer(ListOccurrencesInFilesBuffer buf)
-    {
+    public final void setOutputBuffer(ListOccurrencesInFilesBuffer buf) {
         outputBuffer = buf;
     }
 
-    public final boolean getListEachOccurrence()
-    {
+    public final boolean getListEachOccurrence() {
         return listEachOccurrence;
     }
 
-    public final void setListEachOccurrence(boolean b)
-    {
+    public final void setListEachOccurrence(boolean b) {
         listEachOccurrence = b;
     }
 
-    public void listFiles(Editor editor)
-    {
+    public void listFiles(Editor editor) {
         if (outputBuffer != null && editor.getBuffer() != outputBuffer) {
             Buffer buf = null;
             for (BufferIterator it = new BufferIterator(); it.hasNext();) {
@@ -170,13 +152,11 @@ public final class FindInFiles extends Replacement implements Constants,
         }
     }
 
-    public final String getFiles()
-    {
+    public final String getFiles() {
         return files;
     }
 
-    public void setFiles(String files) throws Exception
-    {
+    public void setFiles(String files) throws Exception {
         // No files given: every file in the current directory.
         if (files.trim().length() == 0)
             files = "*";
@@ -217,8 +197,7 @@ public final class FindInFiles extends Replacement implements Constants,
         filters = list;
     }
 
-    public final void run()
-    {
+    public final void run() {
         Debug.assertTrue(outputBuffer != null);
         outputBuffer.setBusy(true);
         outputBuffer.setBackgroundProcess(this);
@@ -235,16 +214,18 @@ public final class FindInFiles extends Replacement implements Constants,
         }
     }
 
-    private void runInternal()
-    {
+    private void runInternal() {
         frame.setWaitCursor();
         Pattern excludesRE = null;
         if (defaultExcludes) {
             try {
-                String excludesPattern = Editor.preferences().getStringProperty(
-                    Property.FILENAME_COMPLETIONS_EXCLUDE_PATTERN);
+                String excludesPattern = Editor.preferences()
+                    .getStringProperty(
+                        Property.FILENAME_COMPLETIONS_EXCLUDE_PATTERN
+                    );
                 excludesRE = Pattern.compile(excludesPattern, 0);
-            } catch (PatternSyntaxException e) {
+            }
+            catch (PatternSyntaxException e) {
                 Log.error(e);
             }
         }
@@ -304,13 +285,11 @@ public final class FindInFiles extends Replacement implements Constants,
         SwingUtilities.invokeLater(updateDisplayRunnable);
     }
 
-    public final void cancel()
-    {
+    public final void cancel() {
         cancelled = true;
     }
 
-    private void searchDirectory(File dir, Filter filter, Pattern excludesRE)
-    {
+    private void searchDirectory(File dir, Filter filter, Pattern excludesRE) {
         String[] files = dir.list();
         if (files == null)
             return;
@@ -348,11 +327,14 @@ public final class FindInFiles extends Replacement implements Constants,
         }
     }
 
-    private void processFile(File file)
-    {
+    private void processFile(File file) {
         try (BufferedReader reader =
-                 new BufferedReader(new InputStreamReader(file.getInputStream(),
-                                                          encoding))) {
+            new BufferedReader(
+                new InputStreamReader(
+                    file.getInputStream(),
+                    encoding
+                )
+            )) {
             boolean update = false;
             int lineNumber = 0;
             int matches = 0;
@@ -374,8 +356,10 @@ public final class FindInFiles extends Replacement implements Constants,
                             // First match in this file.
                             if (!listEachOccurrence && results.size() == 0)
                                 outputBuffer.appendLine("Found in:");
-                            outputBuffer.appendFileLine(file,
-                                                        listEachOccurrence);
+                            outputBuffer.appendFileLine(
+                                file,
+                                listEachOccurrence
+                            );
                             results.add(file);
                             update = true;
                         }
@@ -401,8 +385,7 @@ public final class FindInFiles extends Replacement implements Constants,
     }
 
     // BUG!! Unicode files are treated as binary.
-    private static boolean isBinaryFile(File file)
-    {
+    private static boolean isBinaryFile(File file) {
         try {
             byte[] bytes = new byte[4096];
             int bytesRead;
@@ -421,8 +404,7 @@ public final class FindInFiles extends Replacement implements Constants,
         }
     }
 
-    private void processFile(File file, Mode mode, Position pos)
-    {
+    private void processFile(File file, Mode mode, Position pos) {
         Debug.assertTrue(outputBuffer != null);
         try {
             outputBuffer.lockWrite();
@@ -458,8 +440,7 @@ public final class FindInFiles extends Replacement implements Constants,
         }
     };
 
-    private void processFileInternal(File file, Mode mode, Position pos)
-    {
+    private void processFileInternal(File file, Mode mode, Position pos) {
         if (!listEachOccurrence && results.size() == 1)
             outputBuffer.appendLine("Found in:");
         outputBuffer.appendFileLine(file, listEachOccurrence);
@@ -475,8 +456,7 @@ public final class FindInFiles extends Replacement implements Constants,
         }
     }
 
-    private void replaceInAllFiles()
-    {
+    private void replaceInAllFiles() {
         final Editor editor = getEditor();
         final Buffer oldBuffer = editor.getBuffer();
         for (File file : results) {
@@ -507,8 +487,7 @@ public final class FindInFiles extends Replacement implements Constants,
             SwingUtilities.invokeLater(runnable);
     }
 
-    private void handleCheckFileException(final CheckFileException e)
-    {
+    private void handleCheckFileException(final CheckFileException e) {
         Runnable runnable = () -> {
             String title = "Replace In Files";
             String message = e.getMessage();
@@ -530,8 +509,7 @@ public final class FindInFiles extends Replacement implements Constants,
         }
     }
 
-    private void handleSaveException(final SaveException e)
-    {
+    private void handleSaveException(final SaveException e) {
         Runnable runnable = () -> {
             String title = "Replace In Files";
             String message = e.getMessage();
@@ -561,8 +539,7 @@ public final class FindInFiles extends Replacement implements Constants,
     }
 
     private void replaceInFile(final File file) throws CheckFileException,
-        SaveException
-    {
+        SaveException {
         checkFile(file);
 
         if (confirmChanges()) {
@@ -594,8 +571,7 @@ public final class FindInFiles extends Replacement implements Constants,
             replaceInFileNoConfirm(file);
     }
 
-    private void replaceInFileNoConfirm(File file) throws SaveException
-    {
+    private void replaceInFileNoConfirm(File file) throws SaveException {
         Buffer buffer = Editor.getBufferList().findBuffer(file);
         if (buffer != null) {
             // Found existing buffer. It may or may not be loaded at this
@@ -653,7 +629,7 @@ public final class FindInFiles extends Replacement implements Constants,
                 return; // Error handling?
             boolean modified = false;
             Position pos = new Position(buf.getFirstLine(), 0);
-            while ((pos = find((Mode)null, pos)) != null) {
+            while ((pos = find((Mode) null, pos)) != null) {
                 if (cancelled)
                     break;
                 replaceOccurrence(pos);
@@ -667,8 +643,7 @@ public final class FindInFiles extends Replacement implements Constants,
         replacedInFile(file);
     }
 
-    private void replaceInFileConfirm(File file) throws SaveException
-    {
+    private void replaceInFileConfirm(File file) throws SaveException {
         final Editor editor = getEditor();
         boolean close = false;
         Buffer buffer = Editor.getBufferList().findBuffer(file);
@@ -731,8 +706,7 @@ public final class FindInFiles extends Replacement implements Constants,
         }
     }
 
-    private void replacedInFile(File file)
-    {
+    private void replacedInFile(File file) {
         if (outputBuffer != null) {
             try {
                 outputBuffer.lockWrite();
@@ -771,8 +745,7 @@ public final class FindInFiles extends Replacement implements Constants,
         }
     }
 
-    private void checkFile(File file) throws CheckFileException
-    {
+    private void checkFile(File file) throws CheckFileException {
         if (file.isRemote())
             checkFileError(file, "file is not local");
         if (file.isDirectory())
@@ -792,8 +765,7 @@ public final class FindInFiles extends Replacement implements Constants,
         }
     }
 
-    private void checkFileError(File file, String reason) throws CheckFileException
-    {
+    private void checkFileError(File file, String reason) throws CheckFileException {
         StringBuilder sb = new StringBuilder("Can't process ");
         sb.append(file.netPath());
         sb.append(" (");
@@ -804,8 +776,7 @@ public final class FindInFiles extends Replacement implements Constants,
     }
 
     // Completion message for replace in files only.
-    private void completed()
-    {
+    private void completed() {
         StringBuilder sb = new StringBuilder();
         int replacementCount = getReplacementCount();
         if (replacementCount == 0) {
@@ -840,28 +811,28 @@ public final class FindInFiles extends Replacement implements Constants,
                 }
             }
         } else
-            MessageDialog.showMessageDialog(getEditor(), sb.toString(),
-                "ReplaceInFiles");
+            MessageDialog.showMessageDialog(
+                getEditor(),
+                sb.toString(),
+                "ReplaceInFiles"
+            );
     }
 
-    public static void findInFiles()
-    {
+    public static void findInFiles() {
         final Editor editor = Editor.currentEditor();
         final File dir = editor.getCurrentDirectory();
         if (dir != null && !dir.isRemote())
             findOrReplaceInFiles(editor, false);
     }
 
-    public static void replaceInFiles()
-    {
+    public static void replaceInFiles() {
         final Editor editor = Editor.currentEditor();
         final File dir = editor.getCurrentDirectory();
         if (dir != null && !dir.isRemote())
             findOrReplaceInFiles(editor, true);
     }
 
-    private static void findOrReplaceInFiles(Editor editor, boolean replace)
-    {
+    private static void findOrReplaceInFiles(Editor editor, boolean replace) {
         FindInFilesDialog d = new FindInFilesDialog(editor, replace);
         editor.centerDialog(d);
         d.setVisible(true);
@@ -891,20 +862,17 @@ public final class FindInFiles extends Replacement implements Constants,
         editor.status("Press Escape to cancel search");
     }
 
-    public static void listFiles()
-    {
+    public static void listFiles() {
         if (findInFiles != null)
             findInFiles.listFiles(Editor.currentEditor());
     }
 
-    private static final class Filter
-    {
+    private static final class Filter {
         private final String originalPattern;
         private final boolean ignoreCase;
         private Pattern pattern;
 
-        public Filter(String s) throws Exception
-        {
+        public Filter(String s) throws Exception {
             this.originalPattern = s;
             ignoreCase = Platform.isPlatformWindows();
             File file = File.getInstance(ignoreCase ? s.toLowerCase() : s);
@@ -912,13 +880,11 @@ public final class FindInFiles extends Replacement implements Constants,
                 throw new Exception("process pattern failed");
         }
 
-        public String getOriginalPattern()
-        {
+        public String getOriginalPattern() {
             return originalPattern;
         }
 
-        private boolean processFilter(String s)
-        {
+        private boolean processFilter(String s) {
             StringBuilder sb = new StringBuilder();
             for (int i = 0; i < s.length(); i++) {
                 char c = s.charAt(i);
@@ -947,8 +913,7 @@ public final class FindInFiles extends Replacement implements Constants,
             }
         }
 
-        public boolean accepts(String name)
-        {
+        public boolean accepts(String name) {
             if (ignoreCase)
                 name = name.toLowerCase();
             Matcher matcher = pattern.matcher(name);
@@ -956,10 +921,8 @@ public final class FindInFiles extends Replacement implements Constants,
         }
     }
 
-    private static final class CheckFileException extends Exception
-    {
-        CheckFileException(String message)
-        {
+    private static final class CheckFileException extends Exception {
+        CheckFileException(String message) {
             super(message);
         }
     }

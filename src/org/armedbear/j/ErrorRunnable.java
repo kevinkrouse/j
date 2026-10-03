@@ -20,24 +20,20 @@
 
 package org.armedbear.j;
 
-public class ErrorRunnable implements Runnable
-{
+public class ErrorRunnable implements Runnable {
     private final String defaultMessage;
 
     protected String message;
 
-    public ErrorRunnable(String defaultMessage)
-    {
+    public ErrorRunnable(String defaultMessage) {
         this.defaultMessage = defaultMessage;
     }
 
-    public final void setMessage(String s)
-    {
+    public final void setMessage(String s) {
         message = s;
     }
 
-    public void run()
-    {
+    public void run() {
         for (EditorIterator it = new EditorIterator(); it.hasNext();) {
             Editor ed = it.next();
             ed.setDefaultCursor();

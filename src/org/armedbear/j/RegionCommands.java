@@ -20,30 +20,26 @@
 
 package org.armedbear.j;
 
-import java.util.regex.Pattern;
-import java.util.regex.Matcher;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.lang.StringBuilder;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import javax.swing.undo.CompoundEdit;
 import org.armedbear.j.util.Base64Decoder;
 import org.armedbear.j.util.ByteBuffer;
-import java.lang.StringBuilder;
 import org.armedbear.j.util.Utilities;
 
-public final class RegionCommands
-{
-    public static void detabRegion()
-    {
+public final class RegionCommands {
+    public static void detabRegion() {
         detabOrEntabRegion(false);
     }
 
-    public static void entabRegion()
-    {
+    public static void entabRegion() {
         detabOrEntabRegion(true);
     }
 
-    private static void detabOrEntabRegion(boolean entab)
-    {
+    private static void detabOrEntabRegion(boolean entab) {
         final Editor editor = Editor.currentEditor();
         final Position mark = editor.getMark(); // Alias, not copy.
         if (mark == null)
@@ -92,9 +88,13 @@ public final class RegionCommands
         editor.setDefaultCursor();
     }
 
-    private static void detabOrEntabRegion(Editor editor, Buffer buffer,
-        Region r, boolean entab, int tabWidth)
-    {
+    private static void detabOrEntabRegion(
+        Editor editor,
+        Buffer buffer,
+        Region r,
+        boolean entab,
+        int tabWidth
+    ) {
         CompoundEdit compoundEdit = new CompoundEdit();
         compoundEdit.addEdit(new UndoMove(editor));
         boolean changed = false;
@@ -106,8 +106,10 @@ public final class RegionCommands
         if (beginLine == endLine) {
             final String oldText = beginLine.getText();
             final String head = oldText.substring(0, beginOffset);
-            final String toBeChanged = oldText.substring(beginOffset,
-                endOffset);
+            final String toBeChanged = oldText.substring(
+                beginOffset,
+                endOffset
+            );
             final String tail = oldText.substring(endOffset);
             StringBuilder sb = new StringBuilder(head);
             if (entab)
@@ -179,13 +181,11 @@ public final class RegionCommands
     }
 
     /** Which way {@link #changeCaseRegion} goes. */
-    public enum Case
-    {
+    public enum Case {
         UPPER, LOWER, TOGGLE;
 
         /** Applies this change to a string. */
-        public String apply(String s)
-        {
+        public String apply(String s) {
             if (this == UPPER)
                 return s.toUpperCase();
             if (this == LOWER)
@@ -193,31 +193,30 @@ public final class RegionCommands
             final StringBuilder sb = new StringBuilder(s.length());
             for (int i = 0; i < s.length(); i++) {
                 final char c = s.charAt(i);
-                sb.append(Character.isUpperCase(c) ? Character.toLowerCase(c)
-                                                   : Character.toUpperCase(c));
+                sb.append(
+                    Character.isUpperCase(c)
+                        ? Character.toLowerCase(c)
+                        : Character.toUpperCase(c)
+                );
             }
             return sb.toString();
         }
     }
 
-    public static void upperCaseRegion()
-    {
+    public static void upperCaseRegion() {
         changeCaseRegion(Case.UPPER);
     }
 
-    public static void lowerCaseRegion()
-    {
+    public static void lowerCaseRegion() {
         changeCaseRegion(Case.LOWER);
     }
 
     /** Swaps the case of every letter in the region, as vim's g~ does. */
-    public static void toggleCaseRegion()
-    {
+    public static void toggleCaseRegion() {
         changeCaseRegion(Case.TOGGLE);
     }
 
-    private static void changeCaseRegion(Case which)
-    {
+    private static void changeCaseRegion(Case which) {
         final Editor editor = Editor.currentEditor();
         editor.setWaitCursor();
         changeCaseRegion(editor, which);
@@ -231,8 +230,7 @@ public final class RegionCommands
      * can set the region and call in rather than carrying a second copy of
      * this. The mark is cleared on the way out, as the commands above expect.
      */
-    public static void changeCaseRegion(Editor editor, Case which)
-    {
+    public static void changeCaseRegion(Editor editor, Case which) {
         if (!editor.checkReadOnly())
             return;
         if (editor.getDot() == null || editor.getMark() == null)
@@ -280,8 +278,7 @@ public final class RegionCommands
         }
     }
 
-    public static void decodeRegion()
-    {
+    public static void decodeRegion() {
         final Editor editor = Editor.currentEditor();
         ByteBuffer bb = new ByteBuffer();
         if (editor.getMark() != null) {
@@ -343,18 +340,15 @@ public final class RegionCommands
         }
     }
 
-    private static final byte[] decodeLine(Line line)
-    {
+    private static final byte[] decodeLine(Line line) {
         return Base64Decoder.decode(line.trim());
     }
 
-    public static void renumberRegion()
-    {
+    public static void renumberRegion() {
         renumberRegion(null);
     }
 
-    public static void renumberRegion(String arg)
-    {
+    public static void renumberRegion(String arg) {
         final Editor editor = Editor.currentEditor();
         if (editor.getMark() == null)
             return;
@@ -371,7 +365,8 @@ public final class RegionCommands
             catch (NumberFormatException e) {
                 MessageDialog.showMessageDialog(
                     "Invalid number \"" + arg + '"',
-                    "Error");
+                    "Error"
+                );
                 return;
             }
         }
@@ -391,9 +386,12 @@ public final class RegionCommands
         }
     }
 
-    private static void _renumberRegion(Editor editor, Buffer buffer,
-        Region region, int start)
-    {
+    private static void _renumberRegion(
+        Editor editor,
+        Buffer buffer,
+        Region region,
+        int start
+    ) {
         CompoundEdit compoundEdit = null;
         if (start < 0) {
             for (Line line = region.getBeginLine(); line != region.getEndLine(); line = line.next()) {
@@ -451,8 +449,7 @@ public final class RegionCommands
         buffer.repaint();
     }
 
-    private static int findNumber(String text, Mode mode)
-    {
+    private static int findNumber(String text, Mode mode) {
         Pattern re = Pattern.compile("[0-9]+");
         int index = 0;
         int limit = text.length();
@@ -467,8 +464,7 @@ public final class RegionCommands
         return -1;
     }
 
-    private static boolean isDelimited(String text, int index, int length, Mode mode)
-    {
+    private static boolean isDelimited(String text, int index, int length, Mode mode) {
         final int before = index - 1;
         if (before >= 0 && mode.isIdentifierPart(text.charAt(before)))
             return false;
@@ -478,20 +474,26 @@ public final class RegionCommands
         return true;
     }
 
-    public static void doShellCommandOnRegion()
-    {
+    public static void doShellCommandOnRegion() {
         if (!Editor.checkExperimental())
             return;
         final Editor editor = Editor.currentEditor();
         if (!editor.checkReadOnly())
             return;
         if (editor.getMark() == null) {
-            MessageDialog.showMessageDialog(editor, "No region selected",
-                                            "Error");
+            MessageDialog.showMessageDialog(
+                editor,
+                "No region selected",
+                "Error"
+            );
             return;
         }
-        InputDialog d = new InputDialog(editor, "Command:",
-                                        "Do Shell Command On Region", null);
+        InputDialog d = new InputDialog(
+            editor,
+            "Command:",
+            "Do Shell Command On Region",
+            null
+        );
         d.setHistory(new History("doShellCommandOnRegion"));
         editor.centerDialog(d);
         d.setVisible(true);

@@ -20,14 +20,12 @@
 
 package org.armedbear.j;
 
-import org.armedbear.j.util.Utilities;
-
 import java.util.ArrayList;
 import java.util.List;
 import javax.swing.undo.CompoundEdit;
+import org.armedbear.j.util.Utilities;
 
-public class Expansion implements Constants
-{
+public class Expansion implements Constants {
     protected String prefix;
     protected int prefixOffset; // Offset of prefix on current line.
 
@@ -45,13 +43,11 @@ public class Expansion implements Constants
     private boolean forceLowerCase;
 
     // For MailAddressExpansion.
-    protected Expansion()
-    {
+    protected Expansion() {
         mode = Editor.getModeList().getMode(PLAIN_TEXT_MODE);
     }
 
-    public Expansion(Position dot, Mode mode)
-    {
+    public Expansion(Position dot, Mode mode) {
         savedDot = new Position(dot);
         this.mode = mode;
         final Line dotLine = dot.getLine();
@@ -79,13 +75,11 @@ public class Expansion implements Constants
         candidates = list(pos);
     }
 
-    public Expansion(Buffer buffer, String prefix, String current)
-    {
+    public Expansion(Buffer buffer, String prefix, String current) {
         this(buffer, prefix, current, null);
     }
 
-    public Expansion(Buffer buffer, String prefix, String current, Position pos)
-    {
+    public Expansion(Buffer buffer, String prefix, String current, Position pos) {
         mode = buffer.getMode();
         this.prefix = prefix;
         this.current = current;
@@ -96,8 +90,7 @@ public class Expansion implements Constants
         candidates = list(pos);
     }
 
-    private List<Object> list(Position pos)
-    {
+    private List<Object> list(Position pos) {
         List<Object> list = new ArrayList<Object>();
         if (prefix != null) {
             final boolean ignoreCase = Utilities.isLowerCase(prefix);
@@ -138,18 +131,16 @@ public class Expansion implements Constants
         return list;
     }
 
-    private void maybeAddCandidate(List<Object> list, Position where)
-    {
+    private void maybeAddCandidate(List<Object> list, Position where) {
         final Line line = where.getLine();
         final int offset = where.getOffset();
-        if (offset == 0 || !mode.isIdentifierPart(line.charAt(offset-1))) {
+        if (offset == 0 || !mode.isIdentifierPart(line.charAt(offset - 1))) {
             final String candidate = where.getIdentifier(mode);
             maybeAddCandidate(list, candidate);
         }
     }
 
-    private void maybeAddCandidate(List<Object> list, String candidate)
-    {
+    private void maybeAddCandidate(List<Object> list, String candidate) {
         // We don't want what we started with.
         if (candidate.equals(current))
             return;
@@ -165,15 +156,13 @@ public class Expansion implements Constants
         list.add(candidate);
     }
 
-    public void appendCandidates(List<Object> list)
-    {
+    public void appendCandidates(List<Object> list) {
         final int size = list.size();
         for (int i = 0; i < size; i++)
-            maybeAddCandidate(candidates, (String)list.get(i));
+            maybeAddCandidate(candidates, (String) list.get(i));
     }
 
-    public String getNextCandidate()
-    {
+    public String getNextCandidate() {
         if (candidates == null || candidates.size() == 0)
             return null;
         int index = last + 1;
@@ -183,28 +172,23 @@ public class Expansion implements Constants
         return (String) candidates.get(index);
     }
 
-    private final int getPrefixOffset()
-    {
+    private final int getPrefixOffset() {
         return prefixOffset;
     }
 
-    public final String getPrefix()
-    {
+    public final String getPrefix() {
         return prefix;
     }
 
-    public final String getCurrent()
-    {
+    public final String getCurrent() {
         return current;
     }
 
-    public final List<Object> getCandidates()
-    {
+    public final List<Object> getCandidates() {
         return candidates;
     }
 
-    public void undo(Editor editor)
-    {
+    public void undo(Editor editor) {
         final Buffer buffer = editor.getBuffer();
         try {
             buffer.lockWrite();
@@ -226,18 +210,15 @@ public class Expansion implements Constants
         }
     }
 
-    public static Expansion getLastExpansion()
-    {
+    public static Expansion getLastExpansion() {
         return lastExpansion;
     }
 
-    public static void setLastExpansion(Expansion expansion)
-    {
+    public static void setLastExpansion(Expansion expansion) {
         lastExpansion = expansion;
     }
 
-    public static void expand()
-    {
+    public static void expand() {
         final Editor editor = Editor.currentEditor();
         if (editor.getLastCommand() == COMMAND_EXPAND)
             expand(editor, Expansion.getLastExpansion(), true);
@@ -248,8 +229,7 @@ public class Expansion implements Constants
         }
     }
 
-    private static void expand(Editor editor, Expansion expansion, boolean again)
-    {
+    private static void expand(Editor editor, Expansion expansion, boolean again) {
         final Buffer buffer = editor.getBuffer();
         final String candidate = expansion.getNextCandidate();
         if (candidate == null)

@@ -20,13 +20,11 @@
 
 package org.armedbear.j;
 
+import javax.swing.SwingUtilities;
 import org.armedbear.j.mode.dir.DirectoryBuffer;
 import org.armedbear.j.mode.web.WebBuffer;
 
-import javax.swing.SwingUtilities;
-
-public final class RemoteBuffer extends Buffer implements Constants
-{
+public final class RemoteBuffer extends Buffer implements Constants {
     private FtpSession session;
     private Buffer buffer;
     private final ProgressNotifier progressNotifier;
@@ -36,8 +34,7 @@ public final class RemoteBuffer extends Buffer implements Constants
     private FtpLoadProcess ftpLoadProcess;
     private SshLoadProcess sshLoadProcess;
 
-    public RemoteBuffer(File file)
-    {
+    public RemoteBuffer(File file) {
         super();
         initializeUndo();
         setFile(file);
@@ -49,15 +46,13 @@ public final class RemoteBuffer extends Buffer implements Constants
         setProperty(Property.SHOW_LINE_NUMBERS, false);
     }
 
-    public RemoteBuffer(HttpFile file, String ref)
-    {
+    public RemoteBuffer(HttpFile file, String ref) {
         this(file);
         this.ref = ref;
         render = true;
     }
 
-    public RemoteBuffer(FtpFile file, FtpSession session)
-    {
+    public RemoteBuffer(FtpFile file, FtpSession session) {
         this(file);
         this.session = session;
     }
@@ -65,16 +60,14 @@ public final class RemoteBuffer extends Buffer implements Constants
     private int initialLineNumber;
     private int initialOffset;
 
-    public void setInitialDotPos(int lineNumber, int offset)
-    {
+    public void setInitialDotPos(int lineNumber, int offset) {
         // We just want to store the paraemters we're called with here, so we
         // can call setInitialDotPos() on the "real" buffer later.
         initialLineNumber = lineNumber;
         initialOffset = offset;
     }
 
-    public int load()
-    {
+    public int load() {
         setLoaded(true);
         mode = Editor.getModeList().getMode(PLAIN_TEXT_MODE);
         formatter = mode.getFormatter(this);
@@ -88,7 +81,7 @@ public final class RemoteBuffer extends Buffer implements Constants
                     return LOAD_FAILED; // Report error!
             }
             setBusy(true);
-            ftpLoadProcess = new FtpLoadProcess(this, (FtpFile)file, session);
+            ftpLoadProcess = new FtpLoadProcess(this, (FtpFile) file, session);
             ftpLoadProcess.setProgressNotifier(progressNotifier);
             ftpLoadProcess.setSuccessRunnable(ftpLoadSuccessRunnable);
             ftpLoadProcess.setErrorRunnable(ftpLoadErrorRunnable);
@@ -96,14 +89,14 @@ public final class RemoteBuffer extends Buffer implements Constants
             return LOAD_PENDING;
         } else if (file instanceof HttpFile) {
             setBusy(true);
-            httpLoadProcess = new HttpLoadProcess(this, (HttpFile)file);
+            httpLoadProcess = new HttpLoadProcess(this, (HttpFile) file);
             httpLoadProcess.setProgressNotifier(progressNotifier);
             httpLoadProcess.setSuccessRunnable(httpLoadSuccessRunnable);
             httpLoadProcess.setErrorRunnable(httpLoadErrorRunnable);
             httpLoadProcess.start();
         } else if (file instanceof SshFile) {
             setBusy(true);
-            sshLoadProcess = new SshLoadProcess(this, (SshFile)file);
+            sshLoadProcess = new SshLoadProcess(this, (SshFile) file);
             sshLoadProcess.setSuccessRunnable(sshLoadSuccessRunnable);
             sshLoadProcess.setErrorRunnable(sshLoadErrorRunnable);
             sshLoadProcess.start();
@@ -112,8 +105,7 @@ public final class RemoteBuffer extends Buffer implements Constants
     }
 
     private Runnable ftpLoadSuccessRunnable = new Runnable() {
-        public void run()
-        {
+        public void run() {
             File file = ftpLoadProcess.getFile();
             String listing = ftpLoadProcess.getListing();
             if (ftpLoadProcess.fileIsDirectory()) {
@@ -131,17 +123,14 @@ public final class RemoteBuffer extends Buffer implements Constants
     };
 
     private ErrorRunnable ftpLoadErrorRunnable = new ErrorRunnable("Load failed") {
-        public void run()
-        {
+        public void run() {
             kill();
             super.run();
         }
     };
 
-    private Runnable httpLoadSuccessRunnable = new Runnable()
-    {
-        public void run()
-        {
+    private Runnable httpLoadSuccessRunnable = new Runnable() {
+        public void run() {
             File cache = httpLoadProcess.getCache();
             if (cache != null) {
                 // Success.
@@ -173,8 +162,7 @@ public final class RemoteBuffer extends Buffer implements Constants
     };
 
     private ErrorRunnable httpLoadErrorRunnable = new ErrorRunnable("Load failed") {
-        public void run()
-        {
+        public void run() {
             Log.debug("httpLoadErrorRunnable.run");
             Editor editor = Editor.currentEditor();
             if (editor.getBuffer() == RemoteBuffer.this) {
@@ -187,8 +175,7 @@ public final class RemoteBuffer extends Buffer implements Constants
     };
 
     private Runnable sshLoadSuccessRunnable = new Runnable() {
-        public void run()
-        {
+        public void run() {
             File file = sshLoadProcess.getFile();
             String listing = sshLoadProcess.getListing();
             if (sshLoadProcess.fileIsDirectory()) {
@@ -204,8 +191,7 @@ public final class RemoteBuffer extends Buffer implements Constants
     };
 
     private Runnable replaceBufferRunnable = new Runnable() {
-        public void run()
-        {
+        public void run() {
             if (Editor.getBufferList().contains(RemoteBuffer.this)) {
                 int result;
                 try {
@@ -220,7 +206,8 @@ public final class RemoteBuffer extends Buffer implements Constants
                         MessageDialog.showMessageDialog(
                             Editor.currentEditor(),
                             "Insufficient memory to load buffer",
-                            "Error");
+                            "Error"
+                        );
                     };
                     SwingUtilities.invokeLater(r);
                     result = LOAD_FAILED;
@@ -235,8 +222,7 @@ public final class RemoteBuffer extends Buffer implements Constants
     };
 
     private ErrorRunnable sshLoadErrorRunnable = new ErrorRunnable("Load failed") {
-        public void run()
-        {
+        public void run() {
             if (Editor.getBufferList().contains(RemoteBuffer.this)) {
                 if (isEmpty())
                     kill();
@@ -252,26 +238,22 @@ public final class RemoteBuffer extends Buffer implements Constants
         }
     };
 
-    public void dispose()
-    {
+    public void dispose() {
         if (progressNotifier != null)
             progressNotifier.cancel();
         super.dispose();
     }
 
-    public String getTitle()
-    {
+    public String getTitle() {
         return getFile().getHostName();
     }
 
     // For the buffer list.
-    public String toString()
-    {
+    public String toString() {
         return getFile().getHostName();
     }
 
-    public File getCurrentDirectory()
-    {
+    public File getCurrentDirectory() {
         return Directories.getUserHomeDirectory();
     }
 }

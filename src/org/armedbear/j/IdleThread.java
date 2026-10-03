@@ -24,26 +24,22 @@ import java.util.ArrayList;
 import java.util.List;
 import javax.swing.SwingUtilities;
 
-public class IdleThread extends Thread
-{
+public class IdleThread extends Thread {
     private List<IdleThreadTask> tasks = new ArrayList<IdleThreadTask>();
 
     private static IdleThread idleThread;
 
-    private IdleThread()
-    {
+    private IdleThread() {
         super("idle");
     }
 
-    public static synchronized IdleThread getInstance()
-    {
+    public static synchronized IdleThread getInstance() {
         if (idleThread == null)
             startIdleThread();
         return idleThread;
     }
 
-    public static synchronized void startIdleThread()
-    {
+    public static synchronized void startIdleThread() {
         if (idleThread == null) {
             idleThread = new IdleThread();
             idleThread.init();
@@ -53,8 +49,7 @@ public class IdleThread extends Thread
         }
     }
 
-    public static synchronized void runFollowContextTask(IdleThreadTask task)
-    {
+    public static synchronized void runFollowContextTask(IdleThreadTask task) {
         if (followContextTask == null) {
             followContextTask = task;
             followContextTask.run();
@@ -63,8 +58,7 @@ public class IdleThread extends Thread
         }
     }
 
-    public static synchronized void killFollowContextTask()
-    {
+    public static synchronized void killFollowContextTask() {
         if (followContextTask != null) {
             if (idleThread != null)
                 idleThread.removeTask(followContextTask);
@@ -72,8 +66,7 @@ public class IdleThread extends Thread
         }
     }
 
-    private synchronized void init()
-    {
+    private synchronized void init() {
         addTask(parseBuffersTask);
         addTask(updateHorizontalScrollBarsTask);
         addTask(updateSidebarTask);
@@ -85,20 +78,17 @@ public class IdleThread extends Thread
             addListThreadsTask();
     }
 
-    private synchronized IdleThreadTask getTask(int index)
-    {
+    private synchronized IdleThreadTask getTask(int index) {
         if (index < 0 || index >= tasks.size())
             return null;
         return tasks.get(index);
     }
 
-    private synchronized void addTask(IdleThreadTask task)
-    {
+    private synchronized void addTask(IdleThreadTask task) {
         tasks.add(task);
     }
 
-    public synchronized void maybeAddTask(IdleThreadTask task)
-    {
+    public synchronized void maybeAddTask(IdleThreadTask task) {
         for (int i = tasks.size(); i-- > 0;) {
             if (tasks.get(i) == task)
                 return; // Already added.
@@ -106,13 +96,11 @@ public class IdleThread extends Thread
         tasks.add(task);
     }
 
-    private synchronized void removeTask(IdleThreadTask task)
-    {
+    private synchronized void removeTask(IdleThreadTask task) {
         tasks.remove(task);
     }
 
-    public void run()
-    {
+    public void run() {
         while (true) {
             try {
                 Thread.sleep(500);
@@ -142,8 +130,7 @@ public class IdleThread extends Thread
     private IdleThreadTask updateSidebarTask =
         new IdleThreadTask(updateSidebarRunnable, 500, true);
 
-    private Runnable parseBuffersRunnable = () ->
-    {
+    private Runnable parseBuffersRunnable = () -> {
         synchronized (Editor.getBufferList()) {
             for (BufferIterator iter = new BufferIterator(); iter.hasNext();) {
                 Buffer buf = iter.next();
@@ -202,8 +189,8 @@ public class IdleThread extends Thread
 
     private Runnable saveStateRunnable = new Runnable() {
         private long lastRun = 0;
-        public void run()
-        {
+
+        public void run() {
             Debug.assertTrue(SwingUtilities.isEventDispatchThread());
             if (Dispatcher.getLastEventMillis() > lastRun) {
                 Editor editor = Editor.currentEditor();
@@ -225,14 +212,15 @@ public class IdleThread extends Thread
 
     private static IdleThreadTask followContextTask;
 
-    private void addListThreadsTask()
-    {
+    private void addListThreadsTask() {
         Runnable listThreadsRunnable = new Runnable() {
             private long lastRun = 0;
-            public void run()
-            {
-                int minutes = Editor.preferences().getIntegerProperty(
-                    Property.LIST_THREADS);
+
+            public void run() {
+                int minutes = Editor.preferences()
+                    .getIntegerProperty(
+                        Property.LIST_THREADS
+                    );
                 if (minutes > 0) {
                     long millis = minutes * 60000;
                     if (System.currentTimeMillis() - lastRun > millis) {

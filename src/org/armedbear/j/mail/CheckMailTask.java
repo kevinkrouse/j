@@ -28,27 +28,23 @@ import org.armedbear.j.Editor;
 import org.armedbear.j.IdleThreadTask;
 import org.armedbear.j.Property;
 
-public final class CheckMailTask extends IdleThreadTask
-{
+public final class CheckMailTask extends IdleThreadTask {
     private static CheckMailTask instance;
 
     private long lastRun;
 
-    private CheckMailTask()
-    {
+    private CheckMailTask() {
         setIdle(10000); // User must be idle for 10 seconds.
         setRunnable(runnable);
     }
 
-    public static synchronized CheckMailTask getInstance()
-    {
+    public static synchronized CheckMailTask getInstance() {
         if (instance == null)
             instance = new CheckMailTask();
         return instance;
     }
 
-    private final Runnable runnable = () ->
-    {
+    private final Runnable runnable = () -> {
         if (!Editor.preferences().getBooleanProperty(Property.CHECK_ENABLED))
             return;
         if (!Editor.isMailEnabled())
@@ -76,8 +72,7 @@ public final class CheckMailTask extends IdleThreadTask
         }
     };
 
-    private void check(final MailboxBuffer mb)
-    {
+    private void check(final MailboxBuffer mb) {
         // Avoid locking unnecessarily.
         if (!mb.getBooleanProperty(Property.CHECK_ENABLED))
             return;

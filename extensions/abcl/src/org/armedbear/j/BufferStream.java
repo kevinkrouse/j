@@ -20,18 +20,17 @@
 
 package org.armedbear.j;
 
+import static org.armedbear.lisp.Lisp.T;
+
 import java.lang.StringBuilder;
 import org.armedbear.lisp.LispObject;
 import org.armedbear.lisp.Stream;
 import org.armedbear.lisp.Symbol;
-import static org.armedbear.lisp.Lisp.T;
 
-public final class BufferStream extends Stream
-{
+public final class BufferStream extends Stream {
     private final Buffer buffer;
 
-    public BufferStream(Buffer buf)
-    {
+    public BufferStream(Buffer buf) {
         super(LispAPI.BUFFER_STREAM);
         buffer = buf;
         elementType = Symbol.CHARACTER;
@@ -39,32 +38,28 @@ public final class BufferStream extends Stream
         isOutputStream = true;
     }
 
-    public Buffer getBuffer()
-    {
+    public Buffer getBuffer() {
         return buffer;
     }
 
-    public LispObject typeOf()
-    {
+    public LispObject typeOf() {
         return LispAPI.BUFFER_STREAM;
     }
 
-//     // FIXME
-//     public LispClass classOf()
-//     {
-//         return BuiltInClass.STREAM;
-//     }
+    //     // FIXME
+    //     public LispClass classOf()
+    //     {
+    //         return BuiltInClass.STREAM;
+    //     }
 
     // FIXME
-    public LispObject typep(LispObject typeSpecifier)
-    {
+    public LispObject typep(LispObject typeSpecifier) {
         if (typeSpecifier == LispAPI.BUFFER_STREAM)
             return T;
         return super.typep(typeSpecifier);
     }
 
-    public void _writeChar(char c)
-    {
+    public void _writeChar(char c) {
         try {
             buffer.lockWrite();
         }
@@ -98,13 +93,11 @@ public final class BufferStream extends Stream
         }
     }
 
-    public void _writeChars(char[] chars, int start, int end)
-    {
+    public void _writeChars(char[] chars, int start, int end) {
         _writeString(new String(chars, start, end - start));
     }
 
-    public void _writeString(String s)
-    {
+    public void _writeString(String s) {
         try {
             buffer.lockWrite();
         }
@@ -123,8 +116,7 @@ public final class BufferStream extends Stream
         }
     }
 
-    public void _writeLine(String s)
-    {
+    public void _writeLine(String s) {
         try {
             buffer.lockWrite();
         }
@@ -143,21 +135,18 @@ public final class BufferStream extends Stream
         }
     }
 
-    public void _finishOutput()
-    {
+    public void _finishOutput() {
         if (buffer.needsRenumbering())
             buffer.renumber();
         buffer.repaint();
     }
 
-    public void _close()
-    {
+    public void _close() {
         _finishOutput();
         setOpen(false);
     }
 
-    public String toString()
-    {
+    public String toString() {
         return unreadableString("BUFFER-STREAM");
     }
 }

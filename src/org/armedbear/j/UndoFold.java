@@ -24,18 +24,15 @@ import javax.swing.undo.AbstractUndoableEdit;
 import javax.swing.undo.UndoableEdit;
 
 public final class UndoFold extends AbstractUndoableEdit
-    implements Constants, UndoableEdit
-{
+    implements Constants, UndoableEdit {
     private final State preState;
     private State postState;
 
-    public UndoFold(Editor editor)
-    {
+    public UndoFold(Editor editor) {
         preState = new State(editor);
     }
 
-    public void undo()
-    {
+    public void undo() {
         super.undo();
         final Editor editor = Editor.currentEditor();
         postState = new State(editor);
@@ -43,16 +40,14 @@ public final class UndoFold extends AbstractUndoableEdit
         editor.setUpdateFlag(REFRAME);
     }
 
-    public void redo()
-    {
+    public void redo() {
         super.redo();
         final Editor editor = Editor.currentEditor();
         postState.restoreState(editor);
         editor.setUpdateFlag(REFRAME);
     }
 
-    private static class State
-    {
+    private static class State {
         final int dotLineNumber;
         final int dotOffset;
         final int markLineNumber;
@@ -61,9 +56,9 @@ public final class UndoFold extends AbstractUndoableEdit
         final boolean isColumnSelection;
         final HiddenLines hiddenLines;
 
-        State(Editor editor)
-        {
-            dotLineNumber = editor.getDotLine().lineNumber();;
+        State(Editor editor) {
+            dotLineNumber = editor.getDotLine().lineNumber();
+            ;
             dotOffset = editor.getDotOffset();
             Position mark = editor.getMark();
             if (mark != null) {
@@ -78,8 +73,7 @@ public final class UndoFold extends AbstractUndoableEdit
             hiddenLines = new HiddenLines(editor);
         }
 
-        void restoreState(Editor editor)
-        {
+        void restoreState(Editor editor) {
             // Remember the top line in the current edit window (try not to
             // reframe unnecessarily).
             final Display display = editor.getDisplay();

@@ -22,38 +22,34 @@ package org.armedbear.j.mode.checkin;
 
 import org.armedbear.j.Buffer;
 import org.armedbear.j.BufferIterator;
-import org.armedbear.j.vcs.VersionControlBuffer;
-import org.armedbear.j.vcs.cvs.CVS;
 import org.armedbear.j.CommentRing;
 import org.armedbear.j.Constants;
 import org.armedbear.j.Debug;
-import org.armedbear.j.mode.diff.DiffOutputBuffer;
 import org.armedbear.j.Editor;
 import org.armedbear.j.Expansion;
 import org.armedbear.j.Log;
-import org.armedbear.j.vcs.p4.P4;
 import org.armedbear.j.Position;
+import org.armedbear.j.mode.diff.DiffOutputBuffer;
+import org.armedbear.j.vcs.VersionControlBuffer;
+import org.armedbear.j.vcs.cvs.CVS;
+import org.armedbear.j.vcs.p4.P4;
 import org.armedbear.j.vcs.svn.SVN;
 
-public class CheckinBuffer extends VersionControlBuffer implements Constants
-{
+public class CheckinBuffer extends VersionControlBuffer implements Constants {
     private final boolean editOnly;
 
     private int commentIndex = -1;
 
-    public CheckinBuffer(Buffer parentBuffer, int vcType)
-    {
+    public CheckinBuffer(Buffer parentBuffer, int vcType) {
         this(parentBuffer, vcType, false);
     }
 
-    public CheckinBuffer(Buffer parentBuffer, int vcType, boolean editOnly)
-    {
+    public CheckinBuffer(Buffer parentBuffer, int vcType, boolean editOnly) {
         super(parentBuffer, null, vcType);
         this.editOnly = editOnly;
     }
 
-    protected void init()
-    {
+    protected void init() {
         initializeUndo();
         type = TYPE_NORMAL;
         isUntitled = true;
@@ -76,44 +72,39 @@ public class CheckinBuffer extends VersionControlBuffer implements Constants
         setInitialized(true);
     }
 
-    public final boolean isEditOnly()
-    {
+    public final boolean isEditOnly() {
         return editOnly;
     }
 
-    public String getFileNameForDisplay()
-    {
+    public String getFileNameForDisplay() {
         return title != null ? title : "";
     }
 
-    public static void previousComment()
-    {
+    public static void previousComment() {
         final Editor editor = Editor.currentEditor();
         final Buffer buffer = editor.getBuffer();
         if (buffer instanceof CheckinBuffer)
-            ((CheckinBuffer)buffer).retrieveComment(editor, -1);
+            ((CheckinBuffer) buffer).retrieveComment(editor, -1);
     }
 
-    public static void nextComment()
-    {
+    public static void nextComment() {
         final Editor editor = Editor.currentEditor();
         final Buffer buffer = editor.getBuffer();
         if (buffer instanceof CheckinBuffer)
-            ((CheckinBuffer)buffer).retrieveComment(editor, +1);
+            ((CheckinBuffer) buffer).retrieveComment(editor, +1);
     }
 
-    private void retrieveComment(Editor editor, int arg)
-    {
+    private void retrieveComment(Editor editor, int arg) {
         final CommentRing commentRing = CommentRing.getInstance();
         if (commentIndex < 0)
             commentIndex = commentRing.size();
         int index = commentIndex + arg;
-        if (index > commentRing.size()-1) {
+        if (index > commentRing.size() - 1) {
             // Wrap.
             index = 0;
         } else if (index < 0) {
             // Wrap.
-            index = commentRing.size()-1;
+            index = commentRing.size() - 1;
         }
         final String comment = commentRing.get(index);
         if (comment == null) {
@@ -137,8 +128,7 @@ public class CheckinBuffer extends VersionControlBuffer implements Constants
         }
     }
 
-    public static void finish()
-    {
+    public static void finish() {
         final Editor editor = Editor.currentEditor();
         final Buffer buffer = editor.getBuffer();
         if (buffer instanceof CheckinBuffer) {
@@ -162,8 +152,7 @@ public class CheckinBuffer extends VersionControlBuffer implements Constants
         }
     }
 
-    public Expansion getExpansion(Position dot)
-    {
+    public Expansion getExpansion(Position dot) {
         Expansion e =
             new Expansion(dot, Editor.getModeList().getMode(PLAIN_TEXT_MODE));
         if (parentBuffer != null && e.getPrefix() != null) {
@@ -171,7 +160,7 @@ public class CheckinBuffer extends VersionControlBuffer implements Constants
             for (BufferIterator it = new BufferIterator(); it.hasNext();) {
                 Buffer b = it.next();
                 if (b instanceof DiffOutputBuffer) {
-                    if (((DiffOutputBuffer)b).getParentBuffer() == parentBuffer) {
+                    if (((DiffOutputBuffer) b).getParentBuffer() == parentBuffer) {
                         // Add candidates from diff output buffer.
                         Expansion d =
                             new Expansion(b, e.getPrefix(), e.getCurrent());

@@ -20,20 +20,6 @@
 
 package org.armedbear.j.mode.xml;
 
-import org.armedbear.j.Buffer;
-import org.armedbear.j.Constants;
-import org.armedbear.j.Debug;
-import org.armedbear.j.Display;
-import org.armedbear.j.Editor;
-import org.armedbear.j.Line;
-import org.armedbear.j.LocationBar;
-import org.armedbear.j.MessageDialog;
-import org.armedbear.j.NavigationComponent;
-import org.armedbear.j.Position;
-import org.armedbear.j.SimpleEdit;
-import org.armedbear.j.util.Utilities;
-import org.armedbear.j.XmlParserImpl;
-
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Graphics;
@@ -50,15 +36,27 @@ import javax.swing.SwingUtilities;
 import javax.swing.event.TreeSelectionEvent;
 import javax.swing.event.TreeSelectionListener;
 import javax.swing.tree.DefaultMutableTreeNode;
-import javax.swing.tree.TreeNode;
 import javax.swing.tree.DefaultTreeCellRenderer;
 import javax.swing.tree.TreeModel;
+import javax.swing.tree.TreeNode;
 import javax.swing.tree.TreePath;
 import javax.swing.tree.TreeSelectionModel;
+import org.armedbear.j.Buffer;
+import org.armedbear.j.Constants;
+import org.armedbear.j.Debug;
+import org.armedbear.j.Display;
+import org.armedbear.j.Editor;
+import org.armedbear.j.Line;
+import org.armedbear.j.LocationBar;
+import org.armedbear.j.MessageDialog;
+import org.armedbear.j.NavigationComponent;
+import org.armedbear.j.Position;
+import org.armedbear.j.SimpleEdit;
+import org.armedbear.j.XmlParserImpl;
+import org.armedbear.j.util.Utilities;
 
 public final class XmlTree extends JTree implements Constants, NavigationComponent,
-    TreeSelectionListener, MouseListener, MouseMotionListener, KeyListener
-{
+    TreeSelectionListener, MouseListener, MouseMotionListener, KeyListener {
     private final Editor editor;
     private final Buffer buffer;
     private String parserClassName;
@@ -67,8 +65,7 @@ public final class XmlTree extends JTree implements Constants, NavigationCompone
     private int modificationCount = -1;
     private boolean disabled;
 
-    public XmlTree(Editor editor, TreeModel model)
-    {
+    public XmlTree(Editor editor, TreeModel model) {
         super(model);
         this.editor = editor;
         this.buffer = editor.getBuffer();
@@ -80,13 +77,11 @@ public final class XmlTree extends JTree implements Constants, NavigationCompone
         setCellRenderer(new XmlTreeCellRenderer(this));
     }
 
-    public final String getLabelText()
-    {
+    public final String getLabelText() {
         return buffer.getFile() != null ? buffer.getFile().getName() : null;
     }
 
-    public void setParserClassName(String className)
-    {
+    public void setParserClassName(String className) {
         parserClassName = className;
         aelfred = false;
         xp = false;
@@ -96,13 +91,11 @@ public final class XmlTree extends JTree implements Constants, NavigationCompone
             xp = true;
     }
 
-    public final Editor getEditor()
-    {
+    public final Editor getEditor() {
         return editor;
     }
 
-    public synchronized void refresh()
-    {
+    public synchronized void refresh() {
         if (!SwingUtilities.isEventDispatchThread())
             Debug.bug("XmlTree.refresh() called from background thread!");
         if (disabled)
@@ -138,8 +131,10 @@ public final class XmlTree extends JTree implements Constants, NavigationCompone
                     Runnable r = () -> {
                         setModel(treeModel);
                         if (editor.getBuffer() == buffer)
-                            XmlMode.ensureCurrentNodeIsVisible(editor,
-                                XmlTree.this);
+                            XmlMode.ensureCurrentNodeIsVisible(
+                                editor,
+                                XmlTree.this
+                            );
                     };
                     SwingUtilities.invokeLater(r);
                 }
@@ -150,8 +145,7 @@ public final class XmlTree extends JTree implements Constants, NavigationCompone
 
     // Update the selected node in the tree, based on the position of dot in
     // the edit buffer.
-    public void updatePosition()
-    {
+    public void updatePosition() {
         if (disabled)
             return;
         Position dot = editor.getDot();
@@ -188,8 +182,11 @@ public final class XmlTree extends JTree implements Constants, NavigationCompone
                         if (columnNumber < 0) {
                             // Crimson always reports -1 ("maintaining column
                             // numbers hurts performance").
-                            index = findStartTag(treeElement.getName(),
-                                dotLine, 0);
+                            index = findStartTag(
+                                treeElement.getName(),
+                                dotLine,
+                                0
+                            );
                         } else if (xp) {
                             // Position reported by XP is '<' of start tag.
                             index = columnNumber;
@@ -197,14 +194,20 @@ public final class XmlTree extends JTree implements Constants, NavigationCompone
                             // Position reported by parser is next char after
                             // '>' of start tag. Start reverse search 1 back
                             // from there.
-                            index = reverseFindStartTag(treeElement.getName(),
-                                dotLine, columnNumber);
+                            index = reverseFindStartTag(
+                                treeElement.getName(),
+                                dotLine,
+                                columnNumber
+                            );
                         }
                         if (aelfred && index < 0) {
                             // Aelfred's locator is very sloppy. Try forward
                             // search.
-                            index = findStartTag(treeElement.getName(),
-                                dotLine, columnNumber);
+                            index = findStartTag(
+                                treeElement.getName(),
+                                dotLine,
+                                columnNumber
+                            );
                         }
                         // Make sure index is sane (the tree may need refreshing).
                         if (index < 0)
@@ -238,17 +241,16 @@ public final class XmlTree extends JTree implements Constants, NavigationCompone
         repaint();
     }
 
-    private void outOfMemory()
-    {
+    private void outOfMemory() {
         disabled = true;
         treeModel = null;
         MessageDialog.showMessageDialog(
-                "Not enough memory to display tree",
-                "XML Mode");
+            "Not enough memory to display tree",
+            "XML Mode"
+        );
     }
 
-    public void valueChanged(TreeSelectionEvent e)
-    {
+    public void valueChanged(TreeSelectionEvent e) {
         if (editor.getFocusedComponent() != this)
             return;
         if (editor.getStatusBar() == null)
@@ -263,8 +265,7 @@ public final class XmlTree extends JTree implements Constants, NavigationCompone
         editor.status(statusText);
     }
 
-    public void keyPressed(KeyEvent e)
-    {
+    public void keyPressed(KeyEvent e) {
         final int keyCode = e.getKeyCode();
         final int modifiers = Utilities.keyModifiers(e);
         switch (keyCode) {
@@ -305,25 +306,25 @@ public final class XmlTree extends JTree implements Constants, NavigationCompone
         editor.getDispatcher().setEnabled(false);
     }
 
-    public void keyReleased(KeyEvent e)
-    {
+    public void keyReleased(KeyEvent e) {
         e.consume();
         editor.getDispatcher().setEnabled(true);
     }
 
-    public void keyTyped(KeyEvent e)
-    {
+    public void keyTyped(KeyEvent e) {
         e.consume();
     }
 
-    public void mousePressed(MouseEvent e)
-    {
+    public void mousePressed(MouseEvent e) {
         LocationBar.cancelInput();
         editor.ensureActive();
         final int button = e.getButton();
         final boolean unmodified = Utilities.isUnmodified(e);
-        if ((unmodified && button == MouseEvent.BUTTON1) ||
-            (unmodified && button == MouseEvent.BUTTON2)) {
+        if (
+            (unmodified && button == MouseEvent.BUTTON1)
+                ||
+                (unmodified && button == MouseEvent.BUTTON2)
+        ) {
             editor.setFocus(this);
             if ((unmodified && button == MouseEvent.BUTTON2)) {
                 int row = getRowForLocation(e.getX(), e.getY());
@@ -334,24 +335,23 @@ public final class XmlTree extends JTree implements Constants, NavigationCompone
             editor.setFocusToDisplay();
     }
 
-    public void mouseReleased(MouseEvent e)
-    {
-    }
+    public void mouseReleased(MouseEvent e) {}
 
-    public void mouseClicked(MouseEvent e)
-    {
+    public void mouseClicked(MouseEvent e) {
         final int button = e.getButton();
         final boolean unmodified = Utilities.isUnmodified(e);
-        if ((unmodified && button == MouseEvent.BUTTON1) ||
-            (unmodified && button == MouseEvent.BUTTON2)) {
+        if (
+            (unmodified && button == MouseEvent.BUTTON1)
+                ||
+                (unmodified && button == MouseEvent.BUTTON2)
+        ) {
             Point point = e.getPoint();
             moveDotToNodeAtPoint(point);
         }
         editor.setFocusToDisplay();
     }
 
-    public void mouseMoved(MouseEvent e)
-    {
+    public void mouseMoved(MouseEvent e) {
         if (editor.getStatusBar() == null)
             return;
         String statusText = "";
@@ -369,12 +369,9 @@ public final class XmlTree extends JTree implements Constants, NavigationCompone
         }
     }
 
-    public void mouseEntered(MouseEvent e)
-    {
-    }
+    public void mouseEntered(MouseEvent e) {}
 
-    public void mouseExited(MouseEvent e)
-    {
+    public void mouseExited(MouseEvent e) {
         editor.setFocusToDisplay();
         if (editor.getStatusBar() != null) {
             editor.getStatusBar().setText(null);
@@ -382,12 +379,9 @@ public final class XmlTree extends JTree implements Constants, NavigationCompone
         }
     }
 
-    public void mouseDragged(MouseEvent e)
-    {
-    }
+    public void mouseDragged(MouseEvent e) {}
 
-    private void moveDotToNode(DefaultMutableTreeNode node)
-    {
+    private void moveDotToNode(DefaultMutableTreeNode node) {
         if (node == null)
             return;
         XmlTreeElement treeElement = (XmlTreeElement) node.getUserObject();
@@ -405,14 +399,14 @@ public final class XmlTree extends JTree implements Constants, NavigationCompone
                 offset = findStartTag(name, line, 0);
             } else if (xp) {
                 // Position reported by XP is '<' of start tag.
-                offset = treeElement.getColumnNumber()-1;
+                offset = treeElement.getColumnNumber() - 1;
             } else {
                 offset = 0;
 
                 // The line and column numbers stored in the tree element
                 // refer (in theory) to the position just past the end of the
                 // start tag. Subtract 1 since our offsets are zero-based.
-                int endOfStartTag = treeElement.getColumnNumber()-1;
+                int endOfStartTag = treeElement.getColumnNumber() - 1;
 
                 if (endOfStartTag >= 0) {
                     if (aelfred) {
@@ -434,8 +428,11 @@ public final class XmlTree extends JTree implements Constants, NavigationCompone
                             if (line.previous() == null)
                                 break;
                             line = line.previous();
-                            startOfStartTag = reverseFindStartTag(name, line,
-                                line.length());
+                            startOfStartTag = reverseFindStartTag(
+                                name,
+                                line,
+                                line.length()
+                            );
                         }
                         if (startOfStartTag >= 0)
                             offset = startOfStartTag;
@@ -470,8 +467,7 @@ public final class XmlTree extends JTree implements Constants, NavigationCompone
         }
     }
 
-    private void moveDotToNodeAtPoint(Point point)
-    {
+    private void moveDotToNodeAtPoint(Point point) {
         TreePath path = getPathForLocation(point.x, point.y);
         if (path != null) {
             DefaultMutableTreeNode node =
@@ -480,8 +476,7 @@ public final class XmlTree extends JTree implements Constants, NavigationCompone
         }
     }
 
-    public DefaultMutableTreeNode getNodeAtPos(Position where)
-    {
+    public DefaultMutableTreeNode getNodeAtPos(Position where) {
         if (treeModel == null)
             return null;
         DefaultMutableTreeNode root =
@@ -540,8 +535,7 @@ public final class XmlTree extends JTree implements Constants, NavigationCompone
         return currentNode;
     }
 
-    private int findStartTag(String name, Line line, int start)
-    {
+    private int findStartTag(String name, Line line, int start) {
         final String lookFor = '<' + name;
         final int length = lookFor.length();
         while (start + length < line.length()) {
@@ -559,8 +553,7 @@ public final class XmlTree extends JTree implements Constants, NavigationCompone
         return -1; // Not found.
     }
 
-    private int reverseFindStartTag(String name, Line line, int start)
-    {
+    private int reverseFindStartTag(String name, Line line, int start) {
         final String lookFor = '<' + name;
         final int length = lookFor.length();
         while (start >= 0) {
@@ -582,15 +575,14 @@ public final class XmlTree extends JTree implements Constants, NavigationCompone
     private static final String COMMENT_START = "<!--";
     private static final String COMMENT_END = "-->";
 
-    private Position findMatchingEndTagOnSameLine(String name, Position start)
-    {
+    private Position findMatchingEndTagOnSameLine(String name, Position start) {
         String toBeMatched = "<" + name;
         String match = "</" + name + ">";
         int count = 1;
         Position pos = new Position(start);
         pos.skip(toBeMatched.length());
         int limit = pos.getLineLength();
-        while(pos.getOffset() < limit) {
+        while (pos.getOffset() < limit) {
             if (pos.lookingAt(COMMENT_START)) {
                 pos.skip(COMMENT_START.length());
                 while (pos.getOffset() < limit) {
@@ -618,8 +610,7 @@ public final class XmlTree extends JTree implements Constants, NavigationCompone
         return null;
     }
 
-    private static class XmlTreeCellRenderer extends DefaultTreeCellRenderer
-    {
+    private static class XmlTreeCellRenderer extends DefaultTreeCellRenderer {
         private XmlTree tree;
         private Editor editor;
 
@@ -628,16 +619,14 @@ public final class XmlTree extends JTree implements Constants, NavigationCompone
 
         private Color oldBackgroundSelectionColor;
 
-        public XmlTreeCellRenderer(XmlTree tree)
-        {
+        public XmlTreeCellRenderer(XmlTree tree) {
             super();
             this.tree = tree;
             editor = tree.getEditor();
             oldBackgroundSelectionColor = getBackgroundSelectionColor();
         }
 
-        public void updateUI()
-        {
+        public void updateUI() {
             super.updateUI();
             setOpenIcon(Utilities.getIconFromFile("branch"));
             setClosedIcon(Utilities.getIconFromFile("branch"));
@@ -651,10 +640,17 @@ public final class XmlTree extends JTree implements Constants, NavigationCompone
             boolean expanded,
             boolean leaf,
             int row,
-            boolean hasFocus)
-        {
-            super.getTreeCellRendererComponent(tree, value, selected, expanded,
-                                               leaf, row, hasFocus);
+            boolean hasFocus
+        ) {
+            super.getTreeCellRendererComponent(
+                tree,
+                value,
+                selected,
+                expanded,
+                leaf,
+                row,
+                hasFocus
+            );
             if (selected)
                 super.setForeground(getTextSelectionColor());
             else
@@ -666,8 +662,7 @@ public final class XmlTree extends JTree implements Constants, NavigationCompone
             return this;
         }
 
-        public void paintComponent(Graphics g)
-        {
+        public void paintComponent(Graphics g) {
             Display.setRenderingHints(g);
             super.paintComponent(g);
         }

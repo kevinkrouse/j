@@ -20,16 +20,6 @@
 
 package org.armedbear.j.mode.dir;
 
-import org.armedbear.j.Debug;
-import org.armedbear.j.Display;
-import org.armedbear.j.Editor;
-import org.armedbear.j.File;
-import org.armedbear.j.LocationBar;
-import org.armedbear.j.NavigationComponent;
-import org.armedbear.j.SidebarTree;
-import org.armedbear.j.Constants;
-import org.armedbear.j.util.Utilities;
-
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Graphics;
@@ -50,16 +40,23 @@ import javax.swing.tree.DefaultTreeCellRenderer;
 import javax.swing.tree.TreeModel;
 import javax.swing.tree.TreePath;
 import javax.swing.tree.TreeSelectionModel;
+import org.armedbear.j.Constants;
+import org.armedbear.j.Debug;
+import org.armedbear.j.Display;
+import org.armedbear.j.Editor;
+import org.armedbear.j.File;
+import org.armedbear.j.LocationBar;
+import org.armedbear.j.NavigationComponent;
+import org.armedbear.j.SidebarTree;
+import org.armedbear.j.util.Utilities;
 
 public final class DirectoryTree extends SidebarTree implements NavigationComponent,
     TreeSelectionListener, TreeExpansionListener, MouseListener,
-    MouseMotionListener, KeyListener
-{
+    MouseMotionListener, KeyListener {
     private Editor editor;
     private DirectoryTreeModel treeModel;
 
-    private DirectoryTree(Editor editor, TreeModel model)
-    {
+    private DirectoryTree(Editor editor, TreeModel model) {
         super(model);
         this.editor = editor;
         getSelectionModel().setSelectionMode(TreeSelectionModel.SINGLE_TREE_SELECTION);
@@ -72,8 +69,7 @@ public final class DirectoryTree extends SidebarTree implements NavigationCompon
         setCellRenderer(new DirectoryTreeCellRenderer(this));
     }
 
-    static DirectoryTree getDirectoryTree(Editor editor)
-    {
+    static DirectoryTree getDirectoryTree(Editor editor) {
         if (editor.getCurrentDirectory().isLocal()) {
             if (editor.localDirectoryTree == null)
                 editor.localDirectoryTree = new DirectoryTree(editor, null);
@@ -82,23 +78,19 @@ public final class DirectoryTree extends SidebarTree implements NavigationCompon
         return new DirectoryTree(editor, null);
     }
 
-    public final String getLabelText()
-    {
+    public final String getLabelText() {
         return editor.getBuffer().getFile().getName();
     }
 
-    public DirectoryTreeModel getTreeModel()
-    {
+    public DirectoryTreeModel getTreeModel() {
         return treeModel;
     }
 
-    public Editor getEditor()
-    {
+    public Editor getEditor() {
         return editor;
     }
 
-    public void refresh()
-    {
+    public void refresh() {
         if (!SwingUtilities.isEventDispatchThread())
             Debug.bug("DirectoryTree.refresh() called from background thread!");
         Runnable refreshRunnable = () -> {
@@ -135,28 +127,24 @@ public final class DirectoryTree extends SidebarTree implements NavigationCompon
         new Thread(refreshRunnable).start();
     }
 
-    private void expandNode(DefaultMutableTreeNode node)
-    {
+    private void expandNode(DefaultMutableTreeNode node) {
         DirectoryTreeElement treeElement =
             (DirectoryTreeElement) node.getUserObject();
         File file = treeElement.getFile();
         expandNode(node, file);
     }
 
-    private void expandNode(DefaultMutableTreeNode node, File file)
-    {
+    private void expandNode(DefaultMutableTreeNode node, File file) {
         treeModel.expandNode(node, file);
     }
 
-    private DefaultMutableTreeNode getNode(File file)
-    {
+    private DefaultMutableTreeNode getNode(File file) {
         if (treeModel == null || file == null)
             return null;
         return treeModel.getNode(file);
     }
 
-    public void updatePosition()
-    {
+    public void updatePosition() {
         int limit = getRowCount();
         int rowToBeSelected = -1;
         String path = editor.getBuffer().getFile().canonicalPath();
@@ -180,8 +168,12 @@ public final class DirectoryTree extends SidebarTree implements NavigationCompon
         }
         if (rowToBeSelected >= 0) {
             int[] selectedRows = getSelectionRows();
-            if (selectedRows != null && selectedRows.length == 1 &&
-                selectedRows[0] == rowToBeSelected)
+            if (
+                selectedRows != null
+                    && selectedRows.length == 1
+                    &&
+                    selectedRows[0] == rowToBeSelected
+            )
                 ; // No change.
             else {
                 setSelectionRow(rowToBeSelected);
@@ -197,8 +189,7 @@ public final class DirectoryTree extends SidebarTree implements NavigationCompon
 
     public void treeExpanded(TreeExpansionEvent e) {}
 
-    public void keyPressed(KeyEvent e)
-    {
+    public void keyPressed(KeyEvent e) {
         int keyCode = e.getKeyCode();
         int modifiers = Utilities.keyModifiers(e);
 
@@ -226,7 +217,7 @@ public final class DirectoryTree extends SidebarTree implements NavigationCompon
                         if (Utilities.keyModifiers(e) == Constants.ALT_MASK)
                             editor.setFocusToDisplay();
                         repaint();
-                        ((DirectoryBuffer)editor.getBuffer()).changeDirectory(file);
+                        ((DirectoryBuffer) editor.getBuffer()).changeDirectory(file);
                         editor.updateDisplay();
                     }
                 }
@@ -255,28 +246,28 @@ public final class DirectoryTree extends SidebarTree implements NavigationCompon
         editor.getDispatcher().setEnabled(false);
     }
 
-    public void keyReleased(KeyEvent e)
-    {
+    public void keyReleased(KeyEvent e) {
         e.consume();
         editor.getDispatcher().setEnabled(true);
     }
 
-    public void keyTyped(KeyEvent e)
-    {
+    public void keyTyped(KeyEvent e) {
         e.consume();
     }
 
     private boolean ignoreMouseClicked;
 
-    public void mousePressed(MouseEvent e)
-    {
+    public void mousePressed(MouseEvent e) {
         ignoreMouseClicked = false;
         LocationBar.cancelInput();
         editor.ensureActive();
         final int button = e.getButton();
         final boolean unmodified = Utilities.isUnmodified(e);
-        if ((unmodified && button == MouseEvent.BUTTON1) ||
-            (unmodified && button == MouseEvent.BUTTON2)) {
+        if (
+            (unmodified && button == MouseEvent.BUTTON1)
+                ||
+                (unmodified && button == MouseEvent.BUTTON2)
+        ) {
             Point point = e.getPoint();
             if ((Utilities.isUnmodified(e) && e.getButton() == MouseEvent.BUTTON2)) {
                 int row = getRowForLocation(point.x, point.y);
@@ -294,8 +285,7 @@ public final class DirectoryTree extends SidebarTree implements NavigationCompon
 
     public void mouseReleased(MouseEvent e) {}
 
-    public void mouseClicked(MouseEvent e)
-    {
+    public void mouseClicked(MouseEvent e) {
         if (ignoreMouseClicked) {
             e.consume();
             editor.setFocusToDisplay();
@@ -303,8 +293,11 @@ public final class DirectoryTree extends SidebarTree implements NavigationCompon
         }
         final int button = e.getButton();
         final boolean unmodified = Utilities.isUnmodified(e);
-        if (!(unmodified && button == MouseEvent.BUTTON1) &&
-            !(unmodified && button == MouseEvent.BUTTON2)) {
+        if (
+            !(unmodified && button == MouseEvent.BUTTON1)
+                &&
+                !(unmodified && button == MouseEvent.BUTTON2)
+        ) {
             e.consume();
             editor.setFocusToDisplay();
             return;
@@ -321,11 +314,14 @@ public final class DirectoryTree extends SidebarTree implements NavigationCompon
             expandNode(node, file);
             expandPath(treepath);
             editor.setDefaultCursor();
-            if ((unmodified && button == MouseEvent.BUTTON1) ||
-                (unmodified && button == MouseEvent.BUTTON2))
+            if (
+                (unmodified && button == MouseEvent.BUTTON1)
+                    ||
+                    (unmodified && button == MouseEvent.BUTTON2)
+            )
                 editor.setFocusToDisplay();
             repaint();
-            ((DirectoryBuffer)editor.getBuffer()).changeDirectory(file);
+            ((DirectoryBuffer) editor.getBuffer()).changeDirectory(file);
             editor.updateDisplay();
         }
     }
@@ -334,15 +330,13 @@ public final class DirectoryTree extends SidebarTree implements NavigationCompon
 
     public void mouseEntered(MouseEvent e) {}
 
-    public void mouseExited(MouseEvent e)
-    {
+    public void mouseExited(MouseEvent e) {
         editor.setFocusToDisplay();
     }
 
     public void mouseDragged(MouseEvent e) {}
 
-    private static class DirectoryTreeCellRenderer extends DefaultTreeCellRenderer
-    {
+    private static class DirectoryTreeCellRenderer extends DefaultTreeCellRenderer {
         private DirectoryTree tree;
         private Editor editor;
 
@@ -351,8 +345,7 @@ public final class DirectoryTree extends SidebarTree implements NavigationCompon
 
         private Color oldBackgroundSelectionColor;
 
-        public DirectoryTreeCellRenderer(DirectoryTree tree)
-        {
+        public DirectoryTreeCellRenderer(DirectoryTree tree) {
             super();
             this.tree = tree;
             editor = tree.getEditor();
@@ -360,8 +353,7 @@ public final class DirectoryTree extends SidebarTree implements NavigationCompon
 
         }
 
-        public void updateUI()
-        {
+        public void updateUI() {
             super.updateUI();
             setOpenIcon(Utilities.getIconFromFile("dir_open"));
             setClosedIcon(Utilities.getIconFromFile("dir_close"));
@@ -375,10 +367,17 @@ public final class DirectoryTree extends SidebarTree implements NavigationCompon
             boolean expanded,
             boolean leaf,
             int row,
-            boolean hasFocus)
-        {
-            super.getTreeCellRendererComponent(tree, value, selected, expanded,
-                                               leaf, row, hasFocus);
+            boolean hasFocus
+        ) {
+            super.getTreeCellRendererComponent(
+                tree,
+                value,
+                selected,
+                expanded,
+                leaf,
+                row,
+                hasFocus
+            );
             if (selected)
                 super.setForeground(getTextSelectionColor());
             else
@@ -390,8 +389,7 @@ public final class DirectoryTree extends SidebarTree implements NavigationCompon
             return this;
         }
 
-        public void paintComponent(Graphics g)
-        {
+        public void paintComponent(Graphics g) {
             Display.setRenderingHints(g);
             super.paintComponent(g);
         }

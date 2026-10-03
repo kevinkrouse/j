@@ -20,21 +20,19 @@
 
 package org.armedbear.j;
 
-import org.armedbear.j.mode.list.ListOccurrencesBuffer;
-import org.armedbear.j.mode.list.ListOccurrencesInFilesBuffer;
-import java.lang.StringBuilder;
-import org.armedbear.j.util.Utilities;
-
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.util.HashSet;
+import java.lang.StringBuilder;
 import java.util.ArrayDeque;
 import java.util.Deque;
+import java.util.HashSet;
 import javax.swing.SwingUtilities;
+import org.armedbear.j.mode.list.ListOccurrencesBuffer;
+import org.armedbear.j.mode.list.ListOccurrencesInFilesBuffer;
+import org.armedbear.j.util.Utilities;
 
-public final class IList implements BackgroundProcess, Constants
-{
+public final class IList implements BackgroundProcess, Constants {
     private final HashSet<File> searchedFiles = new HashSet<File>(256);
     private final Deque<File> stack = new ArrayDeque<File>();
     private final Editor editor;
@@ -47,8 +45,7 @@ public final class IList implements BackgroundProcess, Constants
     private ListOccurrencesInFilesBuffer outputBuffer;
     private boolean cancelled;
 
-    public IList(Editor editor, Search search, boolean verbose)
-    {
+    public IList(Editor editor, Search search, boolean verbose) {
         this.editor = editor;
         sourceBuffer = editor.getBuffer();
         this.search = search;
@@ -57,18 +54,15 @@ public final class IList implements BackgroundProcess, Constants
         currentDirectory = editor.getCurrentDirectory();
     }
 
-    private Buffer getSourceBuffer()
-    {
+    private Buffer getSourceBuffer() {
         return sourceBuffer;
     }
 
-    private ListOccurrencesBuffer getOutputBuffer()
-    {
+    private ListOccurrencesBuffer getOutputBuffer() {
         return outputBuffer;
     }
 
-    private ListOccurrencesInFilesBuffer createOutputBuffer()
-    {
+    private ListOccurrencesInFilesBuffer createOutputBuffer() {
         ListOccurrencesInFilesBuffer buf = new ListOccurrencesInFilesBuffer(search);
         StringBuilder sb = new StringBuilder(sourceBuffer.getFile().getName());
         sb.append(" \"");
@@ -78,8 +72,7 @@ public final class IList implements BackgroundProcess, Constants
         return buf;
     }
 
-    public void run()
-    {
+    public void run() {
         if (SwingUtilities.isEventDispatchThread())
             Debug.bug();
         try {
@@ -87,7 +80,7 @@ public final class IList implements BackgroundProcess, Constants
             for (Line line = sourceBuffer.getFirstLine(); line != null; line = line.next()) {
                 Position pos = new Position(line, 0);
                 if ((pos = search.findInLine(mode, pos)) != null)
-                    found(sourceBuffer.getFile(), line.getText(), line.lineNumber()+1);
+                    found(sourceBuffer.getFile(), line.getText(), line.lineNumber() + 1);
                 String s = Utilities.extractInclude(line.getText());
                 if (s != null)
                     searchFile(s, search);
@@ -109,13 +102,11 @@ public final class IList implements BackgroundProcess, Constants
         }
     }
 
-    public void cancel()
-    {
+    public void cancel() {
         cancelled = true;
     }
 
-    private void searchFile(final String s, Search search)
-    {
+    private void searchFile(final String s, Search search) {
         File file = Utilities.findInclude(s, path, currentDirectory);
         if (file == null) {
             // Not found.
@@ -168,8 +159,7 @@ public final class IList implements BackgroundProcess, Constants
 
     private File currentFile;
 
-    private void found(File file, String s, int lineNumber)
-    {
+    private void found(File file, String s, int lineNumber) {
         if (outputBuffer == null)
             outputBuffer = createOutputBuffer();
         if (!file.equals(currentFile)) {
@@ -179,18 +169,15 @@ public final class IList implements BackgroundProcess, Constants
         outputBuffer.appendOccurrenceLine(s, lineNumber);
     }
 
-    public static void iList()
-    {
+    public static void iList() {
         iList(false);
     }
 
-    public static void iList(String arg)
-    {
+    public static void iList(String arg) {
         iList(arg != null && arg.trim().equals("-v"));
     }
 
-    private static void iList(boolean verbose)
-    {
+    private static void iList(boolean verbose) {
         final Editor editor = Editor.currentEditor();
         int modeId = editor.getModeId();
         if (modeId == C_MODE || modeId == CPP_MODE) {
@@ -217,8 +204,7 @@ public final class IList implements BackgroundProcess, Constants
     // search, which are blank finals the constructor assigns, and a lambda in
     // a field initialiser may not read those.
     private Runnable completionRunnable = new Runnable() {
-        public void run()
-        {
+        public void run() {
             Log.debug("completionRunnable.run");
             editor.setDefaultCursor();
             Buffer buf = getOutputBuffer();

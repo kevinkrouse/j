@@ -22,19 +22,16 @@ package org.armedbear.j;
 
 import javax.swing.SwingUtilities;
 
-public final class AdjustPlacementRunnable implements Runnable
-{
+public final class AdjustPlacementRunnable implements Runnable {
     private final Frame frame;
     private final int extendedState;
 
-    public AdjustPlacementRunnable(Frame frame, int extendedState)
-    {
+    public AdjustPlacementRunnable(Frame frame, int extendedState) {
         this.frame = frame;
         this.extendedState = extendedState;
     }
 
-    public void run()
-    {
+    public void run() {
         if (extendedState != 0) {
             frame.storeExtendedState(extendedState);
             frame.setExtendedState(extendedState);

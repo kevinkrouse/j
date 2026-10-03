@@ -20,25 +20,22 @@
 
 package org.armedbear.j;
 
-import org.armedbear.j.mode.web.WebBuffer;
 import java.lang.StringBuilder;
-import org.armedbear.j.util.Utilities;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Iterator;
+import org.armedbear.j.mode.web.WebBuffer;
+import org.armedbear.j.util.Utilities;
 
-public final class BufferList implements Constants, PreferencesChangeListener, Iterable<Buffer>
-{
+public final class BufferList implements Constants, PreferencesChangeListener, Iterable<Buffer> {
     private final ArrayList<Buffer> list = new ArrayList<Buffer>();
 
     private boolean alpha; // Sort alphabetically?
     private boolean reorder;
     private boolean modified;
 
-    public BufferList()
-    {
+    public BufferList() {
         Preferences p = Editor.preferences();
         if (p != null) {
             alpha = p.getBooleanProperty(Property.SORT_BUFFER_LIST);
@@ -51,26 +48,22 @@ public final class BufferList implements Constants, PreferencesChangeListener, I
             Debug.bug();
     }
 
-    public synchronized Iterator<Buffer> iterator()
-    {
+    public synchronized Iterator<Buffer> iterator() {
         if (alpha && modified)
             sort();
         return list.iterator();
     }
 
-    public synchronized void add(Buffer buf)
-    {
+    public synchronized void add(Buffer buf) {
         list.add(buf);
         modified = true;
     }
 
-    public synchronized boolean remove(Buffer buf)
-    {
+    public synchronized boolean remove(Buffer buf) {
         return list.remove(buf);
     }
 
-    public synchronized boolean move(Buffer buf, int index)
-    {
+    public synchronized boolean move(Buffer buf, int index) {
         // If we're given an invalid index, return false.
         if (index < 0 || index >= size())
             return false;
@@ -87,18 +80,15 @@ public final class BufferList implements Constants, PreferencesChangeListener, I
         return true;
     }
 
-    public synchronized int size()
-    {
+    public synchronized int size() {
         return list.size();
     }
 
-    public synchronized boolean contains(Buffer buf)
-    {
+    public synchronized boolean contains(Buffer buf) {
         return indexOf(buf) >= 0;
     }
 
-    public synchronized Buffer getFirstBuffer()
-    {
+    public synchronized Buffer getFirstBuffer() {
         if (list.size() > 0) {
             if (alpha && modified)
                 sort();
@@ -107,8 +97,7 @@ public final class BufferList implements Constants, PreferencesChangeListener, I
         return null;
     }
 
-    public synchronized Buffer getNextPrimaryBuffer(Buffer buffer)
-    {
+    public synchronized Buffer getNextPrimaryBuffer(Buffer buffer) {
         if (alpha && modified)
             sort();
         if (buffer.isSecondary()) {
@@ -121,7 +110,7 @@ public final class BufferList implements Constants, PreferencesChangeListener, I
         if (index < 0)
             return null;
         while (true) {
-            if (index < size()-1)
+            if (index < size() - 1)
                 ++index;
             else
                 index = 0;
@@ -134,8 +123,7 @@ public final class BufferList implements Constants, PreferencesChangeListener, I
         return null;
     }
 
-    public synchronized Buffer getPreviousPrimaryBuffer(Buffer buffer)
-    {
+    public synchronized Buffer getPreviousPrimaryBuffer(Buffer buffer) {
         if (alpha && modified)
             sort();
         if (buffer.isSecondary()) {
@@ -161,8 +149,7 @@ public final class BufferList implements Constants, PreferencesChangeListener, I
         return null;
     }
 
-    public synchronized Buffer findBuffer(File f)
-    {
+    public synchronized Buffer findBuffer(File f) {
         if (f != null) {
             for (int i = list.size(); i-- > 0;) {
                 Buffer buf = list.get(i);
@@ -175,9 +162,10 @@ public final class BufferList implements Constants, PreferencesChangeListener, I
         return null;
     }
 
-    public synchronized void makeNext(final Buffer nextBuffer,
-        final Buffer currentBuffer)
-    {
+    public synchronized void makeNext(
+        final Buffer nextBuffer,
+        final Buffer currentBuffer
+    ) {
         if (!reorder)
             return;
         if (currentBuffer == null)
@@ -193,7 +181,7 @@ public final class BufferList implements Constants, PreferencesChangeListener, I
             for (int i = 0; i < list.size(); i++) {
                 Buffer buf = list.get(i);
                 if (buf == currentBuffer) {
-                    list.add(i+1, nextBuffer);
+                    list.add(i + 1, nextBuffer);
                     return;
                 }
             }
@@ -209,8 +197,7 @@ public final class BufferList implements Constants, PreferencesChangeListener, I
     }
 
     // Replace o (old) with n (new).
-    public synchronized void replace(Buffer o, Buffer n)
-    {
+    public synchronized void replace(Buffer o, Buffer n) {
         Debug.assertTrue(list.contains(o));
         Debug.assertTrue(list.contains(n));
         for (EditorIterator iter = new EditorIterator(); iter.hasNext();) {
@@ -235,13 +222,11 @@ public final class BufferList implements Constants, PreferencesChangeListener, I
         Sidebar.setUpdateFlagInAllFrames(SIDEBAR_BUFFER_LIST_CHANGED);
     }
 
-    public synchronized final void modified()
-    {
+    public synchronized final void modified() {
         modified = true;
     }
 
-    public synchronized void preferencesChanged()
-    {
+    public synchronized void preferencesChanged() {
         Preferences p = Editor.preferences();
         boolean b = p.getBooleanProperty(Property.SORT_BUFFER_LIST);
         if (b != alpha) {
@@ -260,8 +245,7 @@ public final class BufferList implements Constants, PreferencesChangeListener, I
     private static final String userHome =
         Platform.isPlatformUnix() ? Utilities.getUserHome() : null;
 
-    public synchronized String getUniqueName(Buffer buf)
-    {
+    public synchronized String getUniqueName(Buffer buf) {
         final File file = buf.getFile();
         final String name = file.getName();
         boolean qualify = false;
@@ -293,8 +277,7 @@ public final class BufferList implements Constants, PreferencesChangeListener, I
         return name;
     }
 
-    public int indexOf(Buffer buf)
-    {
+    public int indexOf(Buffer buf) {
         for (int i = list.size(); i-- > 0;) {
             if (list.get(i) == buf)
                 return i;
@@ -304,8 +287,7 @@ public final class BufferList implements Constants, PreferencesChangeListener, I
 
     private static Comparator<Buffer> comparator;
 
-    private void sort()
-    {
+    private void sort() {
         if (alpha) {
             if (comparator == null) {
                 comparator =

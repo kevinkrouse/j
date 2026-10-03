@@ -20,21 +20,22 @@
 
 package org.armedbear.j;
 
-import org.armedbear.j.util.Utilities;
-
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
-import java.util.regex.Matcher;
 import javax.swing.undo.CompoundEdit;
+import org.armedbear.j.util.Utilities;
 
-public final class AlignStrings
-{
-    public static void alignStrings()
-    {
+public final class AlignStrings {
+    public static void alignStrings() {
         final Editor editor = Editor.currentEditor();
         InputDialog d =
-            new InputDialog(editor, "Regular Expression:", "Align Strings",
-                null);
+            new InputDialog(
+                editor,
+                "Regular Expression:",
+                "Align Strings",
+                null
+            );
         d.setHistory(new History("alignStrings"));
         editor.centerDialog(d);
         d.setVisible(true);
@@ -43,8 +44,7 @@ public final class AlignStrings
             alignStrings(input);
     }
 
-    public static void alignStrings(String s)
-    {
+    public static void alignStrings(String s) {
         final Editor editor = Editor.currentEditor();
         if (!editor.checkReadOnly())
             return;
@@ -78,11 +78,15 @@ public final class AlignStrings
         }
     }
 
-    private static void _alignStrings(Editor editor, Buffer buffer,
-        Region region, Pattern re)
-    {
+    private static void _alignStrings(
+        Editor editor,
+        Buffer buffer,
+        Region region,
+        Pattern re
+    ) {
         int maxCol = -1;
-        for (Line line = region.getBeginLine(); line != region.getEndLine();
+        for (Line line = region.getBeginLine();
+            line != region.getEndLine();
             line = line.next()) {
             String text = line.getText();
             if (text != null) {
@@ -99,7 +103,8 @@ public final class AlignStrings
             return;
         Position savedDot = new Position(editor.getDot());
         CompoundEdit compoundEdit = buffer.beginCompoundEdit();
-        for (Line line = region.getBeginLine(); line != region.getEndLine();
+        for (Line line = region.getBeginLine();
+            line != region.getEndLine();
             line = line.next()) {
             String text = line.getText();
             if (text != null) {
@@ -111,8 +116,10 @@ public final class AlignStrings
                         editor.addUndo(SimpleEdit.MOVE);
                         editor.getDot().moveTo(line, offset);
                         editor.addUndo(SimpleEdit.LINE_EDIT);
-                        buffer.insertChars(editor.getDot(),
-                            Utilities.spaces(maxCol - col));
+                        buffer.insertChars(
+                            editor.getDot(),
+                            Utilities.spaces(maxCol - col)
+                        );
                         Editor.updateInAllEditors(buffer, line);
                     }
                 }
@@ -123,14 +130,13 @@ public final class AlignStrings
         buffer.endCompoundEdit(compoundEdit);
     }
 
-    private static String unquote(String s)
-    {
+    private static String unquote(String s) {
         int length = s.length();
         if (length >= 2) {
             char c = s.charAt(0);
             if (c == '"' || c == '\'') {
-                if (s.charAt(length-1) == c)
-                    return s.substring(1, length-1);
+                if (s.charAt(length - 1) == c)
+                    return s.substring(1, length - 1);
             }
         }
         return s;

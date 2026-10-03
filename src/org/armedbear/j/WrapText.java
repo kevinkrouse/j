@@ -20,15 +20,14 @@
 
 package org.armedbear.j;
 
-import java.util.regex.Pattern;
+import java.lang.StringBuilder;
 import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import javax.swing.undo.CompoundEdit;
 import org.armedbear.j.mail.SendMail;
-import java.lang.StringBuilder;
 import org.armedbear.j.util.Utilities;
 
-public final class WrapText implements Constants
-{
+public final class WrapText implements Constants {
     private final Editor editor;
     private final Buffer buffer;
     private Position dot;
@@ -37,8 +36,7 @@ public final class WrapText implements Constants
     private final int tabWidth;
     private final boolean isHtml;
 
-    public WrapText(Editor editor)
-    {
+    public WrapText(Editor editor) {
         this.editor = editor;
         buffer = editor.getBuffer();
         dot = editor.getDot();
@@ -48,13 +46,11 @@ public final class WrapText implements Constants
         isHtml = buffer.getModeId() == HTML_MODE;
     }
 
-    public void wrapRegion()
-    {
+    public void wrapRegion() {
         wrapRegion(new Region(buffer, dot, mark));
     }
 
-    public void wrapParagraphsInRegion()
-    {
+    public void wrapParagraphsInRegion() {
         final Region r;
         if (dot != null && mark != null) {
             r = new Region(buffer, dot, mark);
@@ -103,11 +99,10 @@ public final class WrapText implements Constants
         buffer.endCompoundEdit(compoundEdit);
     }
 
-    public void wrapLine()
-    {
+    public void wrapLine() {
         // Don't try to wrap header lines in mail composition buffers!
         if (buffer instanceof SendMail)
-            if (((SendMail)buffer).isHeaderLine(dot.getLine()))
+            if (((SendMail) buffer).isHeaderLine(dot.getLine()))
                 return;
         Position begin = new Position(dot.getLine(), 0);
         Position end;
@@ -119,8 +114,7 @@ public final class WrapText implements Constants
         wrapRegion(r);
     }
 
-    public void wrapParagraph()
-    {
+    public void wrapParagraph() {
         String prefix = getPrefix(dot.getLine());
         final Position begin, end;
         if (prefix != null) {
@@ -137,8 +131,7 @@ public final class WrapText implements Constants
         }
     }
 
-    public void unwrapParagraph()
-    {
+    public void unwrapParagraph() {
         Position begin = findStartOfParagraph(dot);
         Position end = findEndOfParagraph(dot);
         if (begin != null && end != null) {
@@ -147,8 +140,7 @@ public final class WrapText implements Constants
         }
     }
 
-    private void wrapCommentInternal()
-    {
+    private void wrapCommentInternal() {
         String commentStart = null;
         final Line dotLine = dot.getLine();
         final String trim = dotLine.trim();
@@ -200,13 +192,11 @@ public final class WrapText implements Constants
         }
     }
 
-    private void wrapRegion(Region r)
-    {
+    private void wrapRegion(Region r) {
         wrapRegion(r, null);
     }
 
-    private void wrapRegion(Region r, String prefix)
-    {
+    private void wrapRegion(Region r, String prefix) {
         try {
             r.getBuffer().lockWrite();
         }
@@ -222,8 +212,7 @@ public final class WrapText implements Constants
         }
     }
 
-    private void unwrapRegion(Region r)
-    {
+    private void unwrapRegion(Region r) {
         try {
             r.getBuffer().lockWrite();
         }
@@ -239,8 +228,7 @@ public final class WrapText implements Constants
         }
     }
 
-    private void processRegion(Region r, String prefix, boolean wrap)
-    {
+    private void processRegion(Region r, String prefix, boolean wrap) {
         // Remember original contents of region.
         final String before = r.toString();
 
@@ -440,8 +428,7 @@ public final class WrapText implements Constants
         buffer.endCompoundEdit(compoundEdit);
     }
 
-    private int getCol(String s, int offset)
-    {
+    private int getCol(String s, int offset) {
         if (offset > s.length())
             offset = s.length();
         int col = 0;
@@ -454,8 +441,7 @@ public final class WrapText implements Constants
         return col;
     }
 
-    private int findBreak(String s, int maxLength)
-    {
+    private int findBreak(String s, int maxLength) {
         int breakOffset = 0;
         final int limit = Math.min(s.length(), maxLength);
         for (int i = 0; i < limit; i++) {
@@ -463,20 +449,20 @@ public final class WrapText implements Constants
             if (c == ' ')
                 breakOffset = i;
             else if (c == '-') {
-                if (i < limit-1)
-                    breakOffset = i+1;
+                if (i < limit - 1)
+                    breakOffset = i + 1;
             } else if (isHtml && c == '<') {
                 // Avoid end tags on the first pass.
-                if (i < s.length()-1 && (c = s.charAt(i+1)) != '/') {
+                if (i < s.length() - 1 && (c = s.charAt(i + 1)) != '/') {
                     // Start tag.
                     breakOffset = i;
                     // Avoid breaks within <a> tags if possible.
                     if (c == 'a' || c == 'A') {
                         if (s.regionMatches(true, i, "<a ", 0, 3)) {
                             // It's an <a> tag. Look for end tag.
-                            int index = s.toLowerCase().indexOf("</a>", i+3);
-                            if (index >= 0 && index+4 < limit) {
-                                breakOffset = index+4;
+                            int index = s.toLowerCase().indexOf("</a>", i + 3);
+                            if (index >= 0 && index + 4 < limit) {
+                                breakOffset = index + 4;
                                 i = breakOffset;
                             } else {
                                 // Don't break at the space after "<a".
@@ -499,8 +485,7 @@ public final class WrapText implements Constants
         return breakOffset;
     }
 
-    private static Position findStartOfParagraph(Position startingPoint)
-    {
+    private static Position findStartOfParagraph(Position startingPoint) {
         Position pos = new Position(startingPoint);
         while (true) {
             Line previousLine = pos.getPreviousLine();
@@ -520,8 +505,7 @@ public final class WrapText implements Constants
         return pos;
     }
 
-    private static Position findEndOfParagraph(Position startingPoint)
-    {
+    private static Position findEndOfParagraph(Position startingPoint) {
         Line line = startingPoint.getLine();
         while (true) {
             if (line.next() == null)
@@ -531,21 +515,36 @@ public final class WrapText implements Constants
                 return new Position(line, 0);
             String s = line.trim().toLowerCase();
             // Honor HTML breaks.
-            if (s.startsWith("<p>") ||
-                s.startsWith("</p>") ||
-                s.startsWith("<br>") ||
-                s.startsWith("<li>") ||
-                s.startsWith("</li>") ||
-                s.startsWith("<dl>") ||
-                s.startsWith("</dl>") ||
-                s.startsWith("</body>") ||
-                s.startsWith("<pre>")) {
+            if (
+                s.startsWith("<p>")
+                    ||
+                    s.startsWith("</p>")
+                    ||
+                    s.startsWith("<br>")
+                    ||
+                    s.startsWith("<li>")
+                    ||
+                    s.startsWith("</li>")
+                    ||
+                    s.startsWith("<dl>")
+                    ||
+                    s.startsWith("</dl>")
+                    ||
+                    s.startsWith("</body>")
+                    ||
+                    s.startsWith("<pre>")
+            ) {
                 return new Position(line, 0);
             }
-            if (s.endsWith("<p>") ||
-                s.endsWith("</p>") ||
-                s.endsWith("<br>") ||
-                s.endsWith("</li>")) {
+            if (
+                s.endsWith("<p>")
+                    ||
+                    s.endsWith("</p>")
+                    ||
+                    s.endsWith("<br>")
+                    ||
+                    s.endsWith("</li>")
+            ) {
                 if (line.next() != null)
                     return new Position(line.next(), 0);
                 return new Position(line, line.length());
@@ -553,8 +552,7 @@ public final class WrapText implements Constants
         }
     }
 
-    private static Position findStartOfComment(Position startingPoint, String commentStart)
-    {
+    private static Position findStartOfComment(Position startingPoint, String commentStart) {
         Line beginLine = null;
         for (Line line = startingPoint.getLine(); line != null; line = line.previous()) {
             if (!line.trim().startsWith(commentStart))
@@ -576,8 +574,7 @@ public final class WrapText implements Constants
         return null;
     }
 
-    private static Position findEndOfComment(Position startingPoint, String commentStart)
-    {
+    private static Position findEndOfComment(Position startingPoint, String commentStart) {
         Line endLine = null;
         for (Line line = startingPoint.getLine(); line != null; line = line.next()) {
             if (!line.trim().startsWith(commentStart))
@@ -599,15 +596,16 @@ public final class WrapText implements Constants
 
     private static final Pattern prefixRE = Pattern.compile("^>[> ]*");
 
-    private static String getPrefix(Line line)
-    {
+    private static String getPrefix(Line line) {
         Matcher match = prefixRE.matcher(line.getText());
         return match.find() ? match.group() : null;
     }
 
-    private static Position findStartOfQuotedText(Position pos, String prefix,
-        int prefixLength)
-    {
+    private static Position findStartOfQuotedText(
+        Position pos,
+        String prefix,
+        int prefixLength
+    ) {
         Line start = pos.getLine();
         for (Line line = start.previous(); line != null; line = line.previous()) {
             if (!prefix.equals(getPrefix(line)))
@@ -619,9 +617,11 @@ public final class WrapText implements Constants
         return new Position(start, 0);
     }
 
-    private static Position findEndOfQuotedText(Position pos, String prefix,
-        int prefixLength)
-    {
+    private static Position findEndOfQuotedText(
+        Position pos,
+        String prefix,
+        int prefixLength
+    ) {
         Line end = pos.getLine();
         for (Line line = end.next(); line != null; line = line.next()) {
             if (!prefix.equals(getPrefix(line)))
@@ -635,8 +635,7 @@ public final class WrapText implements Constants
         return new Position(end, end.length());
     }
 
-    private void detab(Region r)
-    {
+    private void detab(Region r) {
         Debug.assertTrue(r.getBeginOffset() == 0);
         Debug.assertTrue(r.getEndOffset() == 0 || r.getEndOffset() == r.getEndLine().length());
         Debug.assertTrue(buffer == r.getBuffer());
@@ -653,11 +652,13 @@ public final class WrapText implements Constants
         dot.moveToCol(dotCol, tabWidth);
     }
 
-    private void entab(Region r)
-    {
+    private void entab(Region r) {
         Debug.assertTrue(r.getBeginOffset() == 0);
-        Debug.assertTrue(r.getEndOffset() == 0 ||
-            r.getEndOffset() == r.getEndLine().length());
+        Debug.assertTrue(
+            r.getEndOffset() == 0
+                ||
+                r.getEndOffset() == r.getEndLine().length()
+        );
         Debug.assertTrue(buffer == r.getBuffer());
         int dotCol = buffer.getCol(dot);
         Line line = r.getBeginLine();
@@ -670,16 +671,14 @@ public final class WrapText implements Constants
         dot.moveToCol(dotCol, tabWidth);
     }
 
-    public static void wrapComment()
-    {
+    public static void wrapComment() {
         final Editor editor = Editor.currentEditor();
         if (!editor.checkReadOnly())
             return;
         new WrapText(editor).wrapCommentInternal();
     }
 
-    public static void toggleWrap()
-    {
+    public static void toggleWrap() {
         final Buffer buffer = Editor.currentEditor().getBuffer();
         boolean b = !buffer.getBooleanProperty(Property.WRAP);
         buffer.setProperty(Property.WRAP, b);

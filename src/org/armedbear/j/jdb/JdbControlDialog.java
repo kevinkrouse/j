@@ -20,7 +20,6 @@
 
 package org.armedbear.j.jdb;
 
-import org.armedbear.j.util.Utilities;
 import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.FontMetrics;
@@ -50,10 +49,10 @@ import org.armedbear.j.History;
 import org.armedbear.j.HistoryTextField;
 import org.armedbear.j.SessionProperties;
 import org.armedbear.j.StandardButton;
+import org.armedbear.j.util.Utilities;
 
 public final class JdbControlDialog extends JDialog implements JdbConstants,
-    Constants, ContextListener, ActionListener, ComponentListener, KeyListener
-{
+    Constants, ContextListener, ActionListener, ComponentListener, KeyListener {
     private static final String commandKey = "jdb.command";
 
     private static final SessionProperties sessionProperties =
@@ -66,8 +65,7 @@ public final class JdbControlDialog extends JDialog implements JdbConstants,
     private final StandardButton suspendButton;
     private final StandardButton continueButton;
 
-    public JdbControlDialog(Jdb jdb)
-    {
+    public JdbControlDialog(Jdb jdb) {
         super(Editor.getCurrentFrame(), "Jdb", false);
         this.jdb = jdb;
         toolBar = new JToolBar();
@@ -113,13 +111,11 @@ public final class JdbControlDialog extends JDialog implements JdbConstants,
         requestDefaultFocus();
     }
 
-    public void requestDefaultFocus()
-    {
+    public void requestDefaultFocus() {
         commandTextField.requestFocus();
     }
 
-    private StandardButton addButton(String text, String iconFile, String command)
-    {
+    private StandardButton addButton(String text, String iconFile, String command) {
         StandardButton button = new StandardButton(text);
         Font font = button.getFont();
         FontMetrics fm = Utilities.getFontMetrics(font);
@@ -136,14 +132,12 @@ public final class JdbControlDialog extends JDialog implements JdbConstants,
         return button;
     }
 
-    private void addSeparator()
-    {
+    private void addSeparator() {
         toolBar.addSeparator();
     }
 
     @Override
-    public void setVisible(boolean visible)
-    {
+    public void setVisible(boolean visible) {
         if (!visible) {
             super.setVisible(false);
             return;
@@ -169,8 +163,10 @@ public final class JdbControlDialog extends JDialog implements JdbConstants,
                 Dimension parent = editor.getFrame().getSize();
                 Dimension dialog = getSize();
                 Point p = editor.getFrame().getLocation();
-                p.translate(parent.width - dialog.width - 30,
-                    parent.height - dialog.height - 50);
+                p.translate(
+                    parent.width - dialog.width - 30,
+                    parent.height - dialog.height - 50
+                );
                 setLocation(p);
             } else
                 Editor.currentEditor().centerDialog(this);
@@ -178,8 +174,7 @@ public final class JdbControlDialog extends JDialog implements JdbConstants,
         super.setVisible(true);
     }
 
-    public void contextChanged()
-    {
+    public void contextChanged() {
         if (jdb.getVM() == null) {
             suspendButton.setEnabled(false);
             continueButton.setEnabled(false);
@@ -192,13 +187,11 @@ public final class JdbControlDialog extends JDialog implements JdbConstants,
         }
     }
 
-    public void actionPerformed(ActionEvent e)
-    {
+    public void actionPerformed(ActionEvent e) {
         Editor.currentEditor().getDispatcher().actionPerformed(e);
     }
 
-    public void keyPressed(KeyEvent e)
-    {
+    public void keyPressed(KeyEvent e) {
         if (e.getKeyCode() == KeyEvent.VK_ENTER) {
             if (Utilities.isUnmodified(e)) {
                 if (commandTextField.getText().trim().length() > 0) {
@@ -206,8 +199,12 @@ public final class JdbControlDialog extends JDialog implements JdbConstants,
                     commandTextField.setText("");
                 } else {
                     int command = jdb.getLastCommand();
-                    if (command == JDB_CONTINUE || command == JDB_NEXT ||
-                        command == JDB_STEP)
+                    if (
+                        command == JDB_CONTINUE
+                            || command == JDB_NEXT
+                            ||
+                            command == JDB_STEP
+                    )
                         jdb.doCommand(command, null);
                 }
             }
@@ -218,25 +215,21 @@ public final class JdbControlDialog extends JDialog implements JdbConstants,
 
     public void keyTyped(KeyEvent e) {}
 
-    public void componentResized(ComponentEvent e)
-    {
+    public void componentResized(ComponentEvent e) {
         saveWindowPlacement();
     }
 
-    public void componentMoved(ComponentEvent e)
-    {
+    public void componentMoved(ComponentEvent e) {
         saveWindowPlacement();
     }
 
-    public void componentShown(ComponentEvent e)
-    {
+    public void componentShown(ComponentEvent e) {
         saveWindowPlacement();
     }
 
     public void componentHidden(ComponentEvent e) {}
 
-    private void saveWindowPlacement()
-    {
+    private void saveWindowPlacement() {
         Rectangle r = getBounds();
         sessionProperties.setIntegerProperty("jdb.x", r.x);
         sessionProperties.setIntegerProperty("jdb.y", r.y);
@@ -244,35 +237,28 @@ public final class JdbControlDialog extends JDialog implements JdbConstants,
         sessionProperties.setIntegerProperty("jdb.height", r.height);
     }
 
-    private class WindowMonitor extends WindowAdapter
-    {
-        public void windowClosing(WindowEvent e)
-        {
+    private class WindowMonitor extends WindowAdapter {
+        public void windowClosing(WindowEvent e) {
             setVisible(false);
             dispose();
             jdb.doCommand("quit");
         }
     }
 
-    private class CommandTextFieldHandler extends DefaultTextFieldHandler
-    {
-        CommandTextFieldHandler(HistoryTextField textField)
-        {
+    private class CommandTextFieldHandler extends DefaultTextFieldHandler {
+        CommandTextFieldHandler(HistoryTextField textField) {
             super(textField);
         }
 
-        public void enter()
-        {
+        public void enter() {
             commandHistory.append(textField.getText());
         }
 
-        public void escape()
-        {
+        public void escape() {
             textField.setText("");
         }
 
-        public Expansion getExpansion(String prefix)
-        {
+        public Expansion getExpansion(String prefix) {
             Expansion expansion = new Expansion(jdb, prefix, prefix);
             EditorIterator iter = new EditorIterator();
             while (iter.hasNext()) {

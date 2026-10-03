@@ -21,11 +21,9 @@
 package org.armedbear.j;
 
 import java.lang.StringBuilder;
-
 import java.util.List;
 
-public final class Region implements Constants
-{
+public final class Region implements Constants {
     private final Buffer buffer;
     private final Position begin;
     private final Line beginLine;
@@ -39,8 +37,7 @@ public final class Region implements Constants
 
     // It is not necessary that pos1 come before pos2; we figure that out on
     // the fly.
-    public Region(Buffer buffer, Position pos1, Position pos2)
-    {
+    public Region(Buffer buffer, Position pos1, Position pos2) {
         this.buffer = buffer;
         if (buffer.needsRenumbering())
             buffer.renumber();
@@ -57,8 +54,7 @@ public final class Region implements Constants
         endOffset = end.getOffset();
     }
 
-    public Region(Editor editor)
-    {
+    public Region(Editor editor) {
         this(editor.getBuffer(), editor.getMark(), editor.getDot());
         if (editor.isColumnSelection()) {
             isColumnRegion = true;
@@ -72,81 +68,67 @@ public final class Region implements Constants
         }
     }
 
-    public final Buffer getBuffer()
-    {
+    public final Buffer getBuffer() {
         return buffer;
     }
 
-    public final Position getBegin()
-    {
+    public final Position getBegin() {
         return begin;
     }
 
-    public final Line getBeginLine()
-    {
+    public final Line getBeginLine() {
         return beginLine;
     }
 
-    public final int getBeginLineNumber()
-    {
+    public final int getBeginLineNumber() {
         return beginLine.lineNumber();
     }
 
-    public final int getBeginOffset()
-    {
+    public final int getBeginOffset() {
         return beginOffset;
     }
 
-    public final int getBeginCol()
-    {
+    public final int getBeginCol() {
         if (beginCol < 0)
             beginCol = buffer.getCol(begin);
         return beginCol;
     }
 
-    public final Position getEnd()
-    {
+    public final Position getEnd() {
         return end;
     }
 
-    public final void setEnd(Position pos)
-    {
+    public final void setEnd(Position pos) {
         end = pos;
         endLine = end.getLine();
         endOffset = end.getOffset();
         endCol = -1;
     }
 
-    public final Line getEndLine()
-    {
+    public final Line getEndLine() {
         return endLine;
     }
 
-    public final int getEndLineNumber()
-    {
+    public final int getEndLineNumber() {
         return endLine.lineNumber();
     }
 
-    public final int getEndOffset()
-    {
+    public final int getEndOffset() {
         return endOffset;
     }
 
-    public final void setEndOffset(int offset)
-    {
+    public final void setEndOffset(int offset) {
         end.setOffset(offset);
         endOffset = offset;
     }
 
-    public final int getEndCol()
-    {
+    public final int getEndCol() {
         if (endCol < 0)
             endCol = buffer.getCol(end);
         return endCol;
     }
 
-    public final boolean isColumnRegion()
-    {
+    public final boolean isColumnRegion() {
         return isColumnRegion;
     }
 
@@ -154,23 +136,20 @@ public final class Region implements Constants
      * A column region as a block: its lines, from the left column to the
      * right one, that one not included.
      */
-    public final Block toBlock()
-    {
+    public final Block toBlock() {
         Debug.assertTrue(isColumnRegion);
         final int from = Math.min(getBeginCol(), getEndCol());
         final int to = Math.max(getBeginCol(), getEndCol());
         return new Block(buffer, beginLine, endLine, from, to, false);
     }
 
-    public final boolean isLineRegion()
-    {
+    public final boolean isLineRegion() {
         return beginOffset == 0 && endOffset == 0;
     }
 
     // A column region's text is its block's: a line for each line, joined by
     // newlines.
-    public String toString()
-    {
+    public String toString() {
         if (isColumnRegion)
             return toBlock().getText();
         if (beginLine == endLine)
@@ -190,8 +169,7 @@ public final class Region implements Constants
         return sb.toString();
     }
 
-    public boolean adjustMarker(Position pos)
-    {
+    public boolean adjustMarker(Position pos) {
         if (pos == null)
             return false;
         final Line line = pos.getLine();
@@ -223,8 +201,7 @@ public final class Region implements Constants
         return false;
     }
 
-    private void adjustMarkers()
-    {
+    private void adjustMarkers() {
         if (Editor.getEditorCount() > 1) {
             for (EditorIterator it = new EditorIterator(); it.hasNext();) {
                 Editor ed = it.next();
@@ -265,8 +242,7 @@ public final class Region implements Constants
         }
     }
 
-    public void delete()
-    {
+    public void delete() {
         adjustMarkers();
         try {
             buffer.lockWrite();
@@ -323,8 +299,7 @@ public final class Region implements Constants
 
     // used by Buffer.enforceOutputLimit()
     // deletes whole lines at beginning of buffer
-    public void deleteLines()
-    {
+    public void deleteLines() {
         adjustMarkers();
         try {
             buffer.lockWrite();

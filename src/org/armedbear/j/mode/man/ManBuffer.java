@@ -20,24 +20,21 @@
 
 package org.armedbear.j.mode.man;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.lang.StringBuilder;
+import java.util.StringTokenizer;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Directories;
 import org.armedbear.j.Editor;
-import java.lang.StringBuilder;
 import org.armedbear.j.File;
 import org.armedbear.j.Line;
 import org.armedbear.j.Log;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.StringTokenizer;
-
-public final class ManBuffer extends Buffer
-{
+public final class ManBuffer extends Buffer {
     private boolean apropos;
 
-    public ManBuffer(String topic, File tempFile)
-    {
+    public ManBuffer(String topic, File tempFile) {
         super();
         // Check for -k switch.
         StringTokenizer st = new StringTokenizer(topic);
@@ -59,13 +56,11 @@ public final class ManBuffer extends Buffer
         setInitialized(true);
     }
 
-    public final boolean isApropos()
-    {
+    public final boolean isApropos() {
         return apropos;
     }
 
-    public int load()
-    {
+    public int load() {
         if (!isLoaded()) {
             try {
                 lockWrite();
@@ -121,15 +116,14 @@ public final class ManBuffer extends Buffer
         return LOAD_COMPLETED;
     }
 
-    private void _load(InputStream istream)
-    {
+    private void _load(InputStream istream) {
         byte[] buf = new byte[4096];
         int totalBytes = 0;
         StringBuilder sb = new StringBuilder(256);
         boolean skipLF = false;
         int bytesRead;
         try {
-            while ((bytesRead  = istream.read(buf)) > 0) {
+            while ((bytesRead = istream.read(buf)) > 0) {
                 for (int i = 0; i < bytesRead; i++) {
                     byte b = buf[i];
                     switch (b) {
@@ -174,13 +168,11 @@ public final class ManBuffer extends Buffer
         }
     }
 
-    public final void appendLine(String s)
-    {
+    public final void appendLine(String s) {
         appendLine(new ManLine(s));
     }
 
-    private void remove(Line line)
-    {
+    private void remove(Line line) {
         Line prev = line.previous();
         Line next = line.next();
         if (prev != null)
@@ -189,13 +181,11 @@ public final class ManBuffer extends Buffer
             next.setPrevious(prev);
     }
 
-    public final File getCurrentDirectory()
-    {
+    public final File getCurrentDirectory() {
         return Directories.getUserHomeDirectory();
     }
 
-    public final String getFileNameForDisplay()
-    {
+    public final String getFileNameForDisplay() {
         return "";
     }
 }

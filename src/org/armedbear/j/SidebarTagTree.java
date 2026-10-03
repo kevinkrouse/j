@@ -18,10 +18,7 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
  */
 
-
 package org.armedbear.j;
-
-import org.armedbear.j.util.Utilities;
 
 import java.awt.Color;
 import java.awt.Component;
@@ -45,6 +42,7 @@ import javax.swing.tree.TreeModel;
 import javax.swing.tree.TreeNode;
 import javax.swing.tree.TreePath;
 import javax.swing.tree.TreeSelectionModel;
+import org.armedbear.j.util.Utilities;
 
 /**
  * A buffer's tags as an outline: each tag under the nearest one before it
@@ -52,14 +50,12 @@ import javax.swing.tree.TreeSelectionModel;
  * a tag is at. It follows the caret, and going to a tag is a click or Enter.
  */
 public class SidebarTagTree extends SidebarTree implements NavigationComponent,
-    KeyListener, MouseListener
-{
+    KeyListener, MouseListener {
     private final Editor editor;
     private final ToIntFunction<LocalTag> level;
     private List<LocalTag> tags;
 
-    public SidebarTagTree(Editor editor, ToIntFunction<LocalTag> level)
-    {
+    public SidebarTagTree(Editor editor, ToIntFunction<LocalTag> level) {
         super((TreeModel) null);
         this.editor = editor;
         this.level = level;
@@ -74,9 +70,10 @@ public class SidebarTagTree extends SidebarTree implements NavigationComponent,
     }
 
     /** The tree of tags, each under the last before it at a lower level. */
-    static DefaultMutableTreeNode buildTree(List<LocalTag> tags,
-                                            ToIntFunction<LocalTag> level)
-    {
+    static DefaultMutableTreeNode buildTree(
+        List<LocalTag> tags,
+        ToIntFunction<LocalTag> level
+    ) {
         final DefaultMutableTreeNode root = new DefaultMutableTreeNode();
         final Deque<DefaultMutableTreeNode> open = new ArrayDeque<DefaultMutableTreeNode>();
         final Deque<Integer> levels = new ArrayDeque<Integer>();
@@ -94,20 +91,20 @@ public class SidebarTagTree extends SidebarTree implements NavigationComponent,
         return root;
     }
 
-    public void refresh()
-    {
+    public void refresh() {
         final Buffer buffer = editor.getBuffer();
         final List<LocalTag> bufferTags = buffer.getTags();
         if (tags != null && tags == bufferTags)
             return; // Nothing to do.
-        Thread thread = new Thread(() -> refreshInternal(buffer, bufferTags),
-                                   "SidebarTagTree.refresh()");
+        Thread thread = new Thread(
+            () -> refreshInternal(buffer, bufferTags),
+            "SidebarTagTree.refresh()"
+        );
         thread.setDaemon(true);
         thread.start();
     }
 
-    void refreshInternal(Buffer buffer, List<LocalTag> bufferTags)
-    {
+    void refreshInternal(Buffer buffer, List<LocalTag> bufferTags) {
         List<LocalTag> newTags = bufferTags;
         if (newTags == null) {
             // The tagger reads the lines: not while they change.
@@ -141,8 +138,7 @@ public class SidebarTagTree extends SidebarTree implements NavigationComponent,
         });
     }
 
-    public void updatePosition()
-    {
+    public void updatePosition() {
         final TreeModel model = getModel();
         if (model == null || tags == null)
             return;
@@ -162,8 +158,7 @@ public class SidebarTagTree extends SidebarTree implements NavigationComponent,
     }
 
     // The last tag at or before pos's line.
-    private LocalTag findTag(Position pos)
-    {
+    private LocalTag findTag(Position pos) {
         if (pos == null)
             return null;
         final int lineNumber = pos.lineNumber();
@@ -176,9 +171,10 @@ public class SidebarTagTree extends SidebarTree implements NavigationComponent,
         return found;
     }
 
-    private static DefaultMutableTreeNode findNode(DefaultMutableTreeNode root,
-                                                   LocalTag tag)
-    {
+    private static DefaultMutableTreeNode findNode(
+        DefaultMutableTreeNode root,
+        LocalTag tag
+    ) {
         final Enumeration<TreeNode> nodes = root.depthFirstEnumeration();
         while (nodes.hasMoreElements()) {
             final DefaultMutableTreeNode node =
@@ -189,44 +185,37 @@ public class SidebarTagTree extends SidebarTree implements NavigationComponent,
         return null;
     }
 
-    public final String getLabelText()
-    {
+    public final String getLabelText() {
         final File file = editor.getBuffer().getFile();
         return file != null ? file.getName() : null;
     }
 
-    public String getToolTipText(MouseEvent e)
-    {
+    public String getToolTipText(MouseEvent e) {
         final LocalTag tag = getTagAtPoint(e.getPoint());
         return tag != null ? tag.getToolTipText() : null;
     }
 
-    private LocalTag getTagAtPoint(Point point)
-    {
+    private LocalTag getTagAtPoint(Point point) {
         final TreePath path = getPathForLocation(point.x, point.y);
         return path != null ? tagOf(path) : null;
     }
 
-    private static LocalTag tagOf(TreePath path)
-    {
+    private static LocalTag tagOf(TreePath path) {
         final Object obj =
             ((DefaultMutableTreeNode) path.getLastPathComponent()).getUserObject();
         return obj instanceof LocalTag ? (LocalTag) obj : null;
     }
 
-    public void keyPressed(KeyEvent e)
-    {
+    public void keyPressed(KeyEvent e) {
         final TreePath path = getSelectionPath();
         tagKeyPressed(editor, e, path != null ? tagOf(path) : null, this::updatePosition);
     }
 
-    public void keyReleased(KeyEvent e)
-    {
+    public void keyReleased(KeyEvent e) {
         tagKeyReleased(editor, e);
     }
 
-    public void keyTyped(KeyEvent e)
-    {
+    public void keyTyped(KeyEvent e) {
         e.consume();
     }
 
@@ -234,8 +223,7 @@ public class SidebarTagTree extends SidebarTree implements NavigationComponent,
 
     public void mouseReleased(MouseEvent e) {}
 
-    public void mouseClicked(MouseEvent e)
-    {
+    public void mouseClicked(MouseEvent e) {
         LocationBar.cancelInput();
         editor.ensureActive();
         final int button = e.getButton();
@@ -252,28 +240,40 @@ public class SidebarTagTree extends SidebarTree implements NavigationComponent,
 
     public void mouseEntered(MouseEvent e) {}
 
-    public void mouseExited(MouseEvent e)
-    {
+    public void mouseExited(MouseEvent e) {
         giveBackFocus(editor);
     }
 
-    private static class TreeCellRenderer extends DefaultTreeCellRenderer
-    {
+    private static class TreeCellRenderer extends DefaultTreeCellRenderer {
         private final Color oldBackgroundSelectionColor;
 
-        TreeCellRenderer()
-        {
+        TreeCellRenderer() {
             oldBackgroundSelectionColor = getBackgroundSelectionColor();
         }
 
-        public Component getTreeCellRendererComponent(JTree tree, Object value,
-            boolean selected, boolean expanded, boolean leaf, int row,
-            boolean hasFocus)
-        {
-            super.getTreeCellRendererComponent(tree, value, selected, expanded,
-                leaf, row, hasFocus);
-            setForeground(selected ? getTextSelectionColor()
-                                   : getTextNonSelectionColor());
+        public Component getTreeCellRendererComponent(
+            JTree tree,
+            Object value,
+            boolean selected,
+            boolean expanded,
+            boolean leaf,
+            int row,
+            boolean hasFocus
+        ) {
+            super.getTreeCellRendererComponent(
+                tree,
+                value,
+                selected,
+                expanded,
+                leaf,
+                row,
+                hasFocus
+            );
+            setForeground(
+                selected
+                    ? getTextSelectionColor()
+                    : getTextNonSelectionColor()
+            );
             final Frame frame = Editor.getCurrentFrame();
             if (frame != null && frame.getFocusedComponent() == tree)
                 setBackgroundSelectionColor(oldBackgroundSelectionColor);
@@ -288,8 +288,7 @@ public class SidebarTagTree extends SidebarTree implements NavigationComponent,
             return this;
         }
 
-        public void paintComponent(Graphics g)
-        {
+        public void paintComponent(Graphics g) {
             Display.setRenderingHints(g);
             super.paintComponent(g);
         }

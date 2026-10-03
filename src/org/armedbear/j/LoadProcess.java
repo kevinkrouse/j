@@ -20,8 +20,7 @@
 
 package org.armedbear.j;
 
-public abstract class LoadProcess implements BackgroundProcess, Runnable, Cancellable
-{
+public abstract class LoadProcess implements BackgroundProcess, Runnable, Cancellable {
     protected Buffer buffer;
     protected File file;
     protected Runnable successRunnable;
@@ -33,59 +32,48 @@ public abstract class LoadProcess implements BackgroundProcess, Runnable, Cancel
     private String errorText;
     private Thread thread;
 
-    protected LoadProcess(Buffer buffer, File file)
-    {
+    protected LoadProcess(Buffer buffer, File file) {
         this.buffer = buffer;
         this.file = file;
     }
 
-    public final File getFile()
-    {
+    public final File getFile() {
         return file;
     }
 
-    public final void setSuccessRunnable(Runnable r)
-    {
+    public final void setSuccessRunnable(Runnable r) {
         successRunnable = r;
     }
 
-    public final void setCancelRunnable(Runnable r)
-    {
+    public final void setCancelRunnable(Runnable r) {
         cancelRunnable = r;
     }
 
-    public final void setErrorRunnable(ErrorRunnable r)
-    {
+    public final void setErrorRunnable(ErrorRunnable r) {
         errorRunnable = r;
     }
 
-    public void setProgressNotifier(ProgressNotifier progressNotifier)
-    {
+    public void setProgressNotifier(ProgressNotifier progressNotifier) {
         this.progressNotifier = progressNotifier;
     }
 
-    public final File getCache()
-    {
+    public final File getCache() {
         return cache;
     }
 
-    public final boolean cancelled()
-    {
+    public final boolean cancelled() {
         return cancelled;
     }
 
-    public final String getErrorText()
-    {
+    public final String getErrorText() {
         return errorText;
     }
 
-    protected final void setErrorText(String s)
-    {
+    protected final void setErrorText(String s) {
         errorText = s;
     }
 
-    public void start()
-    {
+    public void start() {
         buffer.setBusy(true);
         for (EditorIterator it = new EditorIterator(); it.hasNext();) {
             Editor ed = it.next();
@@ -96,8 +84,7 @@ public abstract class LoadProcess implements BackgroundProcess, Runnable, Cancel
         thread.start();
     }
 
-    public void cancel()
-    {
+    public void cancel() {
         if (thread != null)
             thread.interrupt();
         cancelled = true;

@@ -20,6 +20,8 @@
 
 package org.armedbear.j.mode.compilation;
 
+import java.awt.AWTEvent;
+import java.awt.event.MouseEvent;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.BufferIterator;
 import org.armedbear.j.CompileDialog;
@@ -37,23 +39,17 @@ import org.armedbear.j.Position;
 import org.armedbear.j.Property;
 import org.armedbear.j.Sidebar;
 import org.armedbear.j.SimpleEdit;
-import org.armedbear.j.util.Utilities;
 import org.armedbear.j.mode.xml.XmlMode;
+import org.armedbear.j.util.Utilities;
 
-import java.awt.AWTEvent;
-import java.awt.event.MouseEvent;
-
-public final class CompilationCommands implements Constants
-{
+public final class CompilationCommands implements Constants {
     private static CompilationBuffer lastCompilationBuffer;
 
-    public static CompilationBuffer getCompilationBuffer()
-    {
+    public static CompilationBuffer getCompilationBuffer() {
         return lastCompilationBuffer;
     }
 
-    public static void compile()
-    {
+    public static void compile() {
         if (!checkPlatform("Compile"))
             return;
         final Editor editor = Editor.currentEditor();
@@ -66,8 +62,7 @@ public final class CompilationCommands implements Constants
             compile(command, editor);
     }
 
-    public static void compile(String args)
-    {
+    public static void compile(String args) {
         if (!checkPlatform("Compile"))
             return;
         if (args != null && args.length() > 0) {
@@ -78,8 +73,7 @@ public final class CompilationCommands implements Constants
         }
     }
 
-    public static void recompile()
-    {
+    public static void recompile() {
         if (!checkPlatform("Recompile"))
             return;
         final History history = new History("compile.command");
@@ -90,8 +84,7 @@ public final class CompilationCommands implements Constants
             compile();
     }
 
-    private static boolean checkPlatform(String command)
-    {
+    private static boolean checkPlatform(String command) {
         if (Platform.isPlatformWindows()) {
             if (Platform.isPlatformWindows5())
                 ; // OK (Windows 2000, Windows XP)
@@ -99,16 +92,16 @@ public final class CompilationCommands implements Constants
                 ; // OK (NT 4)
             else {
                 MessageDialog.showMessageDialog(
-                        "This feature requires Windows NT 4, Windows 2000 or Windows XP.",
-                        command);
+                    "This feature requires Windows NT 4, Windows 2000 or Windows XP.",
+                    command
+                );
                 return false;
             }
         }
         return true;
     }
 
-    private static void compile(final String command, final Editor editor)
-    {
+    private static void compile(final String command, final Editor editor) {
         IdleThread.killFollowContextTask();
         Editor.getTagFileManager().setEnabled(false);
         saveCompilableBuffers(editor);
@@ -159,26 +152,27 @@ public final class CompilationCommands implements Constants
         }
     }
 
-    public static void thisError()
-    {
+    public static void thisError() {
         final Editor editor = Editor.currentEditor();
         // If this method is invoked via a mouse event mapping, move dot to
         // location of mouse click first.
         AWTEvent e = editor.getDispatcher().getLastEvent();
         if (e instanceof MouseEvent)
-            editor.mouseMoveDotToPoint((MouseEvent)e);
+            editor.mouseMoveDotToPoint((MouseEvent) e);
         CompilationError error =
             CompilationError.parseLineAsErrorMessage(editor.getDotLine());
         if (error != null) {
             final Buffer buffer = editor.getBuffer();
             if (buffer instanceof CompilationErrorBuffer)
-                ((CompilationErrorBuffer)buffer).setCurrentError(error);
+                ((CompilationErrorBuffer) buffer).setCurrentError(error);
             String errorFileName = error.getFileName();
             int errorLineNumber = error.getLineNumber();
             if (errorFileName != null && errorLineNumber != 0) {
                 Buffer buf =
-                    getSourceBuffer(buffer.getCurrentDirectory(),
-                        errorFileName);
+                    getSourceBuffer(
+                        buffer.getCurrentDirectory(),
+                        errorFileName
+                    );
                 if (buf == null)
                     return;
                 Editor otherEditor = editor.getOtherEditor();
@@ -199,18 +193,15 @@ public final class CompilationCommands implements Constants
         }
     }
 
-    public static void nextError()
-    {
+    public static void nextError() {
         nextOrPreviousError(true);
     }
 
-    public static void previousError()
-    {
+    public static void previousError() {
         nextOrPreviousError(false);
     }
 
-    private static void nextOrPreviousError(boolean next)
-    {
+    private static void nextOrPreviousError(boolean next) {
         final Editor editor = Editor.currentEditor();
         CompilationErrorBuffer errorBuffer;
         if (editor.getModeId() == XML_MODE)
@@ -262,8 +253,10 @@ public final class CompilationCommands implements Constants
         if (errorFileName != null && errorLineNumber != 0) {
             // Find or create buffer for source file containing the error.
             Buffer buf =
-                getSourceBuffer(errorBuffer.getCurrentDirectory(),
-                    errorFileName);
+                getSourceBuffer(
+                    errorBuffer.getCurrentDirectory(),
+                    errorFileName
+                );
             if (buf == null)
                 return;
             Debug.assertTrue(ed.getBuffer() == errorBuffer);
@@ -292,8 +285,7 @@ public final class CompilationCommands implements Constants
             editor.status("No more errors");
     }
 
-    private static void saveCompilableBuffers(Editor editor)
-    {
+    private static void saveCompilableBuffers(Editor editor) {
         editor.setWaitCursor();
         int numModified = 0;
         int numErrors = 0;
@@ -329,9 +321,10 @@ public final class CompilationCommands implements Constants
         editor.setDefaultCursor();
     }
 
-    private static Buffer getSourceBuffer(File currentDirectory,
-        String errorFileName)
-    {
+    private static Buffer getSourceBuffer(
+        File currentDirectory,
+        String errorFileName
+    ) {
         File file = File.getInstance(currentDirectory, errorFileName);
         if (!file.isFile()) {
             // Strip path prefix.
@@ -345,8 +338,7 @@ public final class CompilationCommands implements Constants
         return Editor.getBuffer(file);
     }
 
-    public static void showMessage()
-    {
+    public static void showMessage() {
         final Editor editor = Editor.currentEditor();
         CompilationErrorBuffer errorBuffer;
         if (editor.getModeId() == XML_MODE)

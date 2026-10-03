@@ -20,17 +20,13 @@
 
 package org.armedbear.j;
 
-import org.armedbear.j.Constants;
-import org.armedbear.j.util.Utilities;
-import java.lang.StringBuilder;
-
 import java.awt.Color;
 import java.awt.Component;
+import java.awt.Cursor;
 import java.awt.Dimension;
 import java.awt.FontMetrics;
 import java.awt.Graphics;
 import java.awt.Insets;
-import java.awt.Cursor;
 import java.awt.Point;
 import java.awt.Rectangle;
 import java.awt.datatransfer.DataFlavor;
@@ -50,15 +46,16 @@ import java.awt.dnd.DropTargetDragEvent;
 import java.awt.dnd.DropTargetDropEvent;
 import java.awt.dnd.DropTargetEvent;
 import java.awt.dnd.DropTargetListener;
-import java.awt.event.ComponentAdapter;
-import java.awt.event.ComponentEvent;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.ComponentAdapter;
+import java.awt.event.ComponentEvent;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.awt.event.MouseMotionListener;
+import java.lang.StringBuilder;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.List;
@@ -79,6 +76,8 @@ import javax.swing.tree.DefaultTreeModel;
 import javax.swing.tree.TreeCellRenderer;
 import javax.swing.tree.TreeNode;
 import javax.swing.tree.TreePath;
+import org.armedbear.j.Constants;
+import org.armedbear.j.util.Utilities;
 
 // Consider an option to make the folders either the first things or last
 // things in the buffer list. That way all of the folders will be listed
@@ -86,8 +85,7 @@ import javax.swing.tree.TreePath;
 public final class SidebarBufferTree extends SidebarTree implements Constants,
     NavigationComponent, ActionListener, KeyListener, MouseListener,
     MouseMotionListener, PreferencesChangeListener, DragGestureListener,
-    DragSourceListener, DropTargetListener
-{
+    DragSourceListener, DropTargetListener {
     private JPopupMenu popup;
     private int updateFlag;
     private DefaultMutableTreeNode rootNode;
@@ -112,8 +110,7 @@ public final class SidebarBufferTree extends SidebarTree implements Constants,
     // Are we reordering the buffers when one is opened?
     private boolean reorder = false;
 
-    public SidebarBufferTree(Sidebar sidebar)
-    {
+    public SidebarBufferTree(Sidebar sidebar) {
         super(null);
         this.sidebar = sidebar;
         setCellRenderer(new SidebarTreeCellRenderer(sidebar));
@@ -132,11 +129,13 @@ public final class SidebarBufferTree extends SidebarTree implements Constants,
             }
         });
 
-        dragSource = DragSource.getDefaultDragSource() ;
+        dragSource = DragSource.getDefaultDragSource();
         DragGestureRecognizer dgr =
-            dragSource.createDefaultDragGestureRecognizer(this,
-                                                          DnDConstants.ACTION_COPY_OR_MOVE,
-                                                          this);
+            dragSource.createDefaultDragGestureRecognizer(
+                this,
+                DnDConstants.ACTION_COPY_OR_MOVE,
+                this
+            );
         new DropTarget(this, this);
 
         Preferences p = Editor.preferences();
@@ -151,8 +150,7 @@ public final class SidebarBufferTree extends SidebarTree implements Constants,
     // data tree out of it. Also caches the session name so that we can check
     // against that later on. If the session changes, this needs to be called
     // again to repopulate the tree.
-    private void initializeTreeStructure()
-    {
+    private void initializeTreeStructure() {
         final ArrayList<Buffer> arrayList = new ArrayList<Buffer>();
         for (BufferIterator it = new BufferIterator(); it.hasNext();) {
             Buffer buf = it.next();
@@ -171,8 +169,7 @@ public final class SidebarBufferTree extends SidebarTree implements Constants,
         setModel(new DefaultTreeModel(rootNode));
     }
 
-    private void updatePreferences(Preferences p)
-    {
+    private void updatePreferences(Preferences p) {
         alpha = p.getBooleanProperty(Property.SORT_BUFFER_LIST);
         if (alpha)
             reorder = false;
@@ -180,16 +177,14 @@ public final class SidebarBufferTree extends SidebarTree implements Constants,
             reorder = p.getIntegerProperty(Property.REORDER_BUFFERS) > 1;
     }
 
-    private void buildTreeFromList(DefaultMutableTreeNode node, List<Buffer> buffers)
-    {
+    private void buildTreeFromList(DefaultMutableTreeNode node, List<Buffer> buffers) {
         for (Buffer next : buffers) {
             Buffer buffer = next;
             node.add(new DefaultMutableTreeNode(buffer));
         }
     }
 
-    public synchronized void setUpdateFlag(int mask)
-    {
+    public synchronized void setUpdateFlag(int mask) {
         updateFlag |= mask;
     }
 
@@ -199,13 +194,11 @@ public final class SidebarBufferTree extends SidebarTree implements Constants,
     private int rowIndent;
     private boolean measuringRowIndent;
 
-    int getRowIndent()
-    {
+    int getRowIndent() {
         return rowIndent;
     }
 
-    private void updateRowIndent()
-    {
+    private void updateRowIndent() {
         if (measuringRowIndent)
             return;
         measuringRowIndent = true;
@@ -230,8 +223,7 @@ public final class SidebarBufferTree extends SidebarTree implements Constants,
      * renderer changes. The null in between matters, because setting the same
      * renderer twice fires no property change.
      */
-    private void invalidateRowSizes()
-    {
+    private void invalidateRowSizes() {
         TreeCellRenderer renderer = getCellRenderer();
         if (renderer != null) {
             setCellRenderer(null);
@@ -246,13 +238,11 @@ public final class SidebarBufferTree extends SidebarTree implements Constants,
      * status column needs a right edge to sit against, and long names are
      * ellipsised to reach it.
      */
-    public boolean getScrollableTracksViewportWidth()
-    {
+    public boolean getScrollableTracksViewportWidth() {
         return true;
     }
 
-    public synchronized void updateBufferList()
-    {
+    public synchronized void updateBufferList() {
         if (!SwingUtilities.isEventDispatchThread())
             Debug.bug();
         if ((updateFlag & SIDEBAR_BUFFER_LIST_CHANGED) != 0) {
@@ -280,16 +270,14 @@ public final class SidebarBufferTree extends SidebarTree implements Constants,
         }
     }
 
-    public Buffer getSelectedBuffer()
-    {
+    public Buffer getSelectedBuffer() {
         if (getSelectionCount() > 0)
             return getBufferFromPath(getSelectionPath());
         else
             return null;
     }
 
-    public Buffer[] getSelectedBuffers()
-    {
+    public Buffer[] getSelectedBuffers() {
         int numSelected = getSelectionCount();
         // Check to make sure there is something selected.
         if (numSelected <= 0)
@@ -304,8 +292,7 @@ public final class SidebarBufferTree extends SidebarTree implements Constants,
     }
 
     // Overrides the version from JTree to ensure that null is never returned.
-    public int[] getSelectionRows()
-    {
+    public int[] getSelectionRows() {
         int[] rows = super.getSelectionRows();
         if (rows == null)
             rows = new int[0];
@@ -314,27 +301,24 @@ public final class SidebarBufferTree extends SidebarTree implements Constants,
 
     // Returns the first row from getSelectionRows() if there are any rows
     // selected, -1 otherwise.
-    public int getSelectionRow()
-    {
+    public int getSelectionRow() {
         int rows[] = getSelectionRows();
         if (rows.length > 0)
             return rows[0];
         return -1;
     }
 
-    private Buffer getBufferFromPath(TreePath path)
-    {
-        TreeNode endNode = (TreeNode)path.getLastPathComponent();
+    private Buffer getBufferFromPath(TreePath path) {
+        TreeNode endNode = (TreeNode) path.getLastPathComponent();
         if (endNode instanceof DefaultMutableTreeNode) {
-            Object obj = ((DefaultMutableTreeNode)endNode).getUserObject();
+            Object obj = ((DefaultMutableTreeNode) endNode).getUserObject();
             if (obj instanceof Buffer)
                 return (Buffer) obj;
         }
         return null;
     }
 
-    public void setSelectedBuffer(Buffer buffer)
-    {
+    public void setSelectedBuffer(Buffer buffer) {
         DefaultMutableTreeNode node = findNodeForObject(buffer);
         if (node != null) {
             TreePath path = new TreePath(node.getPath());
@@ -343,23 +327,21 @@ public final class SidebarBufferTree extends SidebarTree implements Constants,
         }
     }
 
-    public void scrollPathToVisible(TreePath path)
-    {
-	if (path != null) {
-	    makeVisible(path);
-	    Rectangle bounds = getPathBounds(path);
-	    if (bounds != null) {
+    public void scrollPathToVisible(TreePath path) {
+        if (path != null) {
+            makeVisible(path);
+            Rectangle bounds = getPathBounds(path);
+            if (bounds != null) {
                 bounds.y = Math.max(bounds.y - 17, 0);
                 bounds.height = bounds.height + 34;
-		scrollRectToVisible(bounds);
-		if (accessibleContext != null)
-		    ((AccessibleJTree)accessibleContext).fireVisibleDataPropertyChange();
-	    }
-	}
+                scrollRectToVisible(bounds);
+                if (accessibleContext != null)
+                    ((AccessibleJTree) accessibleContext).fireVisibleDataPropertyChange();
+            }
+        }
     }
 
-    public String getLabelText()
-    {
+    public String getLabelText() {
         int total = 0;
         int modified = 0;
         for (BufferIterator it = new BufferIterator(); it.hasNext();) {
@@ -379,8 +361,7 @@ public final class SidebarBufferTree extends SidebarTree implements Constants,
         return sb.toString();
     }
 
-    private synchronized void updateLabel()
-    {
+    private synchronized void updateLabel() {
         sidebar.setBufferListLabelText(getLabelText());
         updateFlag &= ~SIDEBAR_MODIFIED_BUFFER_COUNT;
     }
@@ -391,20 +372,16 @@ public final class SidebarBufferTree extends SidebarTree implements Constants,
         initializeTreeStructure();
     };
 
-    public void refresh()
-    {
+    public void refresh() {
         if (SwingUtilities.isEventDispatchThread())
             refreshRunnable.run();
         else
             SwingUtilities.invokeLater(refreshRunnable);
     }
 
-    public void updatePosition()
-    {
-    }
+    public void updatePosition() {}
 
-    private void switchToBuffer()
-    {
+    private void switchToBuffer() {
         Buffer buffer = getSelectedBuffer();
         if (buffer != null) {
             Editor editor = sidebar.getEditor();
@@ -416,8 +393,7 @@ public final class SidebarBufferTree extends SidebarTree implements Constants,
         }
     }
 
-    private void closeBuffers(Buffer[] buffers)
-    {
+    private void closeBuffers(Buffer[] buffers) {
         Editor editor = sidebar.getEditor();
         for (Buffer buffer : buffers)
             editor.maybeKillBuffer(buffer);
@@ -454,8 +430,7 @@ public final class SidebarBufferTree extends SidebarTree implements Constants,
         }
     }
 
-    private void saveSelectedBuffers()
-    {
+    private void saveSelectedBuffers() {
         Editor editor = sidebar.getEditor();
         Buffer[] array = getSelectedBuffers();
         for (int i = 0; i < array.length; i++)
@@ -463,8 +438,7 @@ public final class SidebarBufferTree extends SidebarTree implements Constants,
         Sidebar.repaintBufferListInAllFrames();
     }
 
-    public void actionPerformed(ActionEvent e)
-    {
+    public void actionPerformed(ActionEvent e) {
         String command = e.getActionCommand();
         if (command.equals("close"))
             closeSelectedBuffers();
@@ -472,14 +446,13 @@ public final class SidebarBufferTree extends SidebarTree implements Constants,
             saveSelectedBuffers();
     }
 
-    private void showPopup(Component c, int x, int y)
-    {
+    private void showPopup(Component c, int x, int y) {
         popup = new JPopupMenu();
         TreePath path = getPathForLocation(x, y);
         String bufferName = null;
         if (path != null) {
             Object last = path.getLastPathComponent();
-            Object value = ((DefaultMutableTreeNode)last).getUserObject();
+            Object value = ((DefaultMutableTreeNode) last).getUserObject();
             if (value instanceof Buffer) {
                 bufferName = last.toString();
             }
@@ -496,8 +469,7 @@ public final class SidebarBufferTree extends SidebarTree implements Constants,
         popup.show(c, x, y);
     }
 
-    public String getToolTipText(MouseEvent e)
-    {
+    public String getToolTipText(MouseEvent e) {
         String text = null;
         Point p = e.getPoint();
         int index = getRowForLocation(p.x, p.y);
@@ -515,25 +487,22 @@ public final class SidebarBufferTree extends SidebarTree implements Constants,
         return text;
     }
 
-    public synchronized void preferencesChanged()
-    {
+    public synchronized void preferencesChanged() {
         Preferences p = Editor.preferences();
         if (p != null) {
             updatePreferences(p);
-        }
-        else {
+        } else {
             Debug.bug();
         }
     }
 
-    private DefaultMutableTreeNode findNodeForObject(Buffer userObj)
-    {
+    private DefaultMutableTreeNode findNodeForObject(Buffer userObj) {
         if (rootNode != null) {
             Enumeration<TreeNode> enumeration = rootNode.breadthFirstEnumeration();
             while (enumeration.hasMoreElements()) {
                 Object next = enumeration.nextElement();
                 if (next instanceof DefaultMutableTreeNode) {
-                    Object obj = ((DefaultMutableTreeNode)next).getUserObject();
+                    Object obj = ((DefaultMutableTreeNode) next).getUserObject();
                     if (userObj.equals(obj))
                         return (DefaultMutableTreeNode) next;
                 }
@@ -542,8 +511,7 @@ public final class SidebarBufferTree extends SidebarTree implements Constants,
         return null;
     }
 
-    public void keyPressed(KeyEvent e)
-    {
+    public void keyPressed(KeyEvent e) {
         final int keyCode = e.getKeyCode();
         final int modifiers = Utilities.keyModifiers(e);
         final Editor editor = sidebar.getEditor();
@@ -565,7 +533,7 @@ public final class SidebarBufferTree extends SidebarTree implements Constants,
                 if (modifiers == 0) {
                     if (sidebar.getBottomComponent() != null) {
                         sidebar.setBuffer();
-                        editor.setFocus((JComponent)sidebar.getBottomComponent());
+                        editor.setFocus((JComponent) sidebar.getBottomComponent());
                     }
                 }
                 return;
@@ -587,27 +555,26 @@ public final class SidebarBufferTree extends SidebarTree implements Constants,
         editor.getDispatcher().setEnabled(false);
     }
 
-    public void keyReleased(KeyEvent e)
-    {
+    public void keyReleased(KeyEvent e) {
         e.consume();
         sidebar.getEditor().getDispatcher().setEnabled(true);
     }
 
-    public void keyTyped(KeyEvent e)
-    {
+    public void keyTyped(KeyEvent e) {
         e.consume();
     }
 
-    public void mousePressed(MouseEvent e)
-    {
+    public void mousePressed(MouseEvent e) {
         Editor editor = sidebar.getEditor();
         editor.ensureActive();
         final int button = e.getButton();
         final boolean unmodified = Utilities.isUnmodified(e);
         Point p = e.getPoint();
-        if ((unmodified && button == MouseEvent.BUTTON1) ||
-            (unmodified && button == MouseEvent.BUTTON2))
-        {
+        if (
+            (unmodified && button == MouseEvent.BUTTON1)
+                ||
+                (unmodified && button == MouseEvent.BUTTON2)
+        ) {
             setSelectionRow(getRowForLocation(p.x, p.y));
             paintImmediately(0, 0, getWidth(), getHeight());
             switchToBuffer();
@@ -621,21 +588,20 @@ public final class SidebarBufferTree extends SidebarTree implements Constants,
         }
     }
 
-    public void mouseReleased(MouseEvent e)
-    {
-    }
+    public void mouseReleased(MouseEvent e) {}
 
-    public void mouseClicked(MouseEvent e)
-    {
+    public void mouseClicked(MouseEvent e) {
         final int button = e.getButton();
         final boolean unmodified = Utilities.isUnmodified(e);
         Point p = e.getPoint();
         // If the user clicks with the first or second mouse button while
         // there is a popup menu visible, the tree doesn't get painted
         // properly unless we repaint it here.
-        if ((unmodified && button == MouseEvent.BUTTON1) ||
-            (unmodified && button == MouseEvent.BUTTON2))
-        {
+        if (
+            (unmodified && button == MouseEvent.BUTTON1)
+                ||
+                (unmodified && button == MouseEvent.BUTTON2)
+        ) {
             setSelectionRow(getRowForLocation(p.x, p.y));
             paintImmediately(0, 0, getWidth(), getHeight());
             switchToBuffer();
@@ -644,23 +610,20 @@ public final class SidebarBufferTree extends SidebarTree implements Constants,
         }
     }
 
-    public void mouseMoved(MouseEvent e)
-    {
+    public void mouseMoved(MouseEvent e) {
         String text = getToolTipText(e);
         if (text == null)
             text = "";
         sidebar.getFrame().setStatusText(text);
     }
 
-    public void mouseEntered(MouseEvent e)
-    {
+    public void mouseEntered(MouseEvent e) {
         // This does not overide our mouse dragging cursor while doing drag
         // and drop because we don't get a mouseEntered event while dragging.
         setCursor(Cursor.getDefaultCursor());
     }
 
-    public void mouseExited(MouseEvent e)
-    {
+    public void mouseExited(MouseEvent e) {
         final Frame frame = sidebar.getFrame();
         final StatusBar statusBar = frame.getStatusBar();
         if (statusBar != null) {
@@ -679,13 +642,10 @@ public final class SidebarBufferTree extends SidebarTree implements Constants,
         }
     }
 
-    public void mouseDragged(MouseEvent e)
-    {
-    }
+    public void mouseDragged(MouseEvent e) {}
 
     // From interface DragTargetListener.
-    public void dragEnter(DropTargetDragEvent event)
-    {
+    public void dragEnter(DropTargetDragEvent event) {
         if (alpha || reorder)
             return;
         stopScroll();
@@ -696,8 +656,7 @@ public final class SidebarBufferTree extends SidebarTree implements Constants,
     }
 
     // From interface DragTargetListener.
-    public void dragExit(DropTargetEvent e)
-    {
+    public void dragExit(DropTargetEvent e) {
         if (alpha || reorder)
             return;
         setSelectionRow(draggedBufferRow);
@@ -706,8 +665,7 @@ public final class SidebarBufferTree extends SidebarTree implements Constants,
     }
 
     // From interface DragTargetListener.
-    public void dragOver(DropTargetDragEvent event)
-    {
+    public void dragOver(DropTargetDragEvent event) {
         if (alpha || reorder)
             return;
         if (event.isDataFlavorSupported(DataFlavor.javaFileListFlavor)) {
@@ -721,14 +679,15 @@ public final class SidebarBufferTree extends SidebarTree implements Constants,
     }
 
     // From interface DragTargetListener.
-    public void drop(DropTargetDropEvent event)
-    {
+    public void drop(DropTargetDropEvent event) {
         if (alpha || reorder)
             return;
         Transferable t = event.getTransferable();
-        if (t.isDataFlavorSupported(DataFlavor.javaFileListFlavor) &&
-            draggedBuffer != null)
-        {
+        if (
+            t.isDataFlavorSupported(DataFlavor.javaFileListFlavor)
+                &&
+                draggedBuffer != null
+        ) {
             BufferList bufList = Editor.getBufferList();
             Buffer movedTo = getSelectedBuffer();
             // No dropping onto secondary buffers.
@@ -748,13 +707,11 @@ public final class SidebarBufferTree extends SidebarTree implements Constants,
             event.rejectDrop();
     }
 
-
     // From interface DragTargetListener.
     public void dropActionChanged(DropTargetDragEvent event) {}
 
     // From interface DragGestureListener.
-    public void dragGestureRecognized(DragGestureEvent event)
-    {
+    public void dragGestureRecognized(DragGestureEvent event) {
         if (alpha || reorder)
             return;
         Buffer buf = getSelectedBuffer();
@@ -776,8 +733,7 @@ public final class SidebarBufferTree extends SidebarTree implements Constants,
     }
 
     // From interface DragSourceListener.
-    public void dragDropEnd(DragSourceDropEvent event)
-    {
+    public void dragDropEnd(DragSourceDropEvent event) {
         draggedBuffer = null;
         draggedBufferRow = -1;
         stopScroll();
@@ -790,8 +746,7 @@ public final class SidebarBufferTree extends SidebarTree implements Constants,
     }
 
     // From interface DragSourceListener.
-    public void dragEnter(DragSourceDragEvent event)
-    {
+    public void dragEnter(DragSourceDragEvent event) {
         if (alpha || reorder)
             return;
         stopScroll();
@@ -802,8 +757,7 @@ public final class SidebarBufferTree extends SidebarTree implements Constants,
     }
 
     // From interface DragSourceListener.
-    public void dragOver(DragSourceDragEvent event)
-    {
+    public void dragOver(DragSourceDragEvent event) {
         if (alpha || reorder)
             return;
         // OS X doesn't seem to like to pass along dragExit events, but it
@@ -815,7 +769,7 @@ public final class SidebarBufferTree extends SidebarTree implements Constants,
                 stopScroll();
                 return;
             }
-            JViewport viewport = (JViewport)parent;
+            JViewport viewport = (JViewport) parent;
             Rectangle rect = viewport.getViewRect();
 
             Point frameLoc = Editor.getCurrentFrame().getLocationOnScreen();
@@ -840,8 +794,7 @@ public final class SidebarBufferTree extends SidebarTree implements Constants,
     public void dropActionChanged(DragSourceDragEvent event) {}
 
     // From interface DragSourceListener.
-    public void dragExit(DragSourceEvent event)
-    {
+    public void dragExit(DragSourceEvent event) {
         if (alpha || reorder)
             return;
         DragSourceContext dsc = event.getDragSourceContext();
@@ -853,7 +806,7 @@ public final class SidebarBufferTree extends SidebarTree implements Constants,
             stopScroll();
             return;
         }
-        JViewport viewport = (JViewport)parent;
+        JViewport viewport = (JViewport) parent;
         Rectangle rect = viewport.getViewRect();
         int x = event.getX();
         int y = event.getY();
@@ -865,9 +818,13 @@ public final class SidebarBufferTree extends SidebarTree implements Constants,
         int rowFudge = (getRowBounds(0).height + 1) / 2;
         int yDiff = getSize().height - rect.height - rect.y;
         // All the cases where scrolling will not be necessary.
-        if (x < 0 || x >= rect.width || (y < 0 && rect.y < rowFudge) ||
-            (y > 0 && yDiff < rowFudge))
-        {
+        if (
+            x < 0
+                || x >= rect.width
+                || (y < 0 && rect.y < rowFudge)
+                ||
+                (y > 0 && yDiff < rowFudge)
+        ) {
             stopScroll();
             return;
         }
@@ -900,13 +857,12 @@ public final class SidebarBufferTree extends SidebarTree implements Constants,
     }
 
     private class TreeScroller implements Runnable {
-        public void run()
-        {
+        public void run() {
             Component parent = getParent();
             if (!(parent instanceof JViewport)) {
                 return;
             }
-            final JViewport viewport = (JViewport)parent;
+            final JViewport viewport = (JViewport) parent;
             while (scrollY != 0) {
                 if (viewport == null)
                     break;
@@ -936,7 +892,7 @@ public final class SidebarBufferTree extends SidebarTree implements Constants,
                 };
                 SwingUtilities.invokeLater(r);
                 int absY = Math.abs(scrollY);
-                int waitIndex = Math.min(absY, WAIT_TIMES.length-1);
+                int waitIndex = Math.min(absY, WAIT_TIMES.length - 1);
                 try {
                     Thread.sleep(WAIT_TIMES[waitIndex]);
                 }
@@ -946,8 +902,7 @@ public final class SidebarBufferTree extends SidebarTree implements Constants,
     }
 
     private static class SidebarTreeCellRenderer extends JLabel
-        implements TreeCellRenderer
-    {
+        implements TreeCellRenderer {
         private static final Color textForeground =
             UIManager.getColor("Tree.textForeground");
         private static final Color textBackground =
@@ -969,26 +924,29 @@ public final class SidebarBufferTree extends SidebarTree implements Constants,
         private int rowIndent;
         private JTree tree;
 
-        public SidebarTreeCellRenderer(Sidebar sidebar)
-        {
+        public SidebarTreeCellRenderer(Sidebar sidebar) {
             super();
             this.sidebar = sidebar;
             setOpaque(true);
         }
 
-        public Component getTreeCellRendererComponent(JTree tree, Object value,
-                                                      boolean selected,
-                                                      boolean expanded,
-                                                      boolean leaf, int row,
-                                                      boolean hasFocus)
-        {
+        public Component getTreeCellRendererComponent(
+            JTree tree,
+            Object value,
+            boolean selected,
+            boolean expanded,
+            boolean leaf,
+            int row,
+            boolean hasFocus
+        ) {
             Object userObject = null;
             if (value instanceof DefaultMutableTreeNode)
-                userObject = ((DefaultMutableTreeNode)value).getUserObject();
+                userObject = ((DefaultMutableTreeNode) value).getUserObject();
             Border innerBorder = null;
             this.tree = tree;
             this.rowIndent = (tree instanceof SidebarBufferTree)
-                           ? ((SidebarBufferTree) tree).getRowIndent() : 0;
+                ? ((SidebarBufferTree) tree).getRowIndent()
+                : 0;
             if (userObject instanceof Buffer) {
                 fullText = userObject.toString();
                 setText(fullText);
@@ -1025,48 +983,52 @@ public final class SidebarBufferTree extends SidebarTree implements Constants,
             return this;
         }
 
-        private static String statusLetter(int kind)
-        {
+        private static String statusLetter(int kind) {
             switch (kind) {
-                case VCS_NEW:      return "A";
-                case VCS_MODIFIED: return "M";
-                case VCS_DELETED:  return "D";
-                case VCS_CONFLICT: return "C";
-                default:           return null;
+                case VCS_NEW:
+                    return "A";
+                case VCS_MODIFIED:
+                    return "M";
+                case VCS_DELETED:
+                    return "D";
+                case VCS_CONFLICT:
+                    return "C";
+                default:
+                    return null;
             }
         }
 
-        private static Color statusColor(int kind)
-        {
+        private static Color statusColor(int kind) {
             switch (kind) {
-                case VCS_NEW:      return new Color(0x3F9142); // green
-                case VCS_MODIFIED: return new Color(0x2B6CB0); // blue
-                case VCS_DELETED:  return new Color(0x8B1A1A); // dark red
-                case VCS_CONFLICT: return new Color(0xE03131); // bright red
-                default:           return null;
+                case VCS_NEW:
+                    return new Color(0x3F9142); // green
+                case VCS_MODIFIED:
+                    return new Color(0x2B6CB0); // blue
+                case VCS_DELETED:
+                    return new Color(0x8B1A1A); // dark red
+                case VCS_CONFLICT:
+                    return new Color(0xE03131); // bright red
+                default:
+                    return null;
             }
         }
 
-        private int statusGap()
-        {
+        private int statusGap() {
             return UIScale.scale(6);
         }
 
-        private int statusWidth()
-        {
+        private int statusWidth() {
             FontMetrics fm = getFontMetrics(getFont());
             return fm != null ? fm.charWidth('M') : UIScale.scale(8);
         }
 
         /** Width reserved on the right for the status column, gap included. */
-        private int statusColumnWidth()
-        {
+        private int statusColumnWidth() {
             return statusGap() + statusWidth();
         }
 
         /** Stretches the row to the full width of the tree. */
-        public Dimension getPreferredSize()
-        {
+        public Dimension getPreferredSize() {
             Dimension size = super.getPreferredSize();
             size.width += statusColumnWidth();
             if (size.width < 0)
@@ -1081,8 +1043,7 @@ public final class SidebarBufferTree extends SidebarTree implements Constants,
         }
 
         /** Shortens the name so it cannot run under the status column. */
-        private void fitText()
-        {
+        private void fitText() {
             if (fullText == null)
                 return;
             setText(fullText);
@@ -1093,15 +1054,14 @@ public final class SidebarBufferTree extends SidebarTree implements Constants,
                 return;
             Insets insets = getInsets();
             int available = viewport - rowIndent
-                          - (insets != null ? insets.left + insets.right : 0)
-                          - statusColumnWidth();
+                - (insets != null ? insets.left + insets.right : 0)
+                - statusColumnWidth();
             if (getIcon() != null)
                 available -= getIcon().getIconWidth() + getIconTextGap();
             setText(ellipsize(fullText, getFontMetrics(getFont()), available));
         }
 
-        public void paintComponent(Graphics g)
-        {
+        public void paintComponent(Graphics g) {
             Display.setRenderingHints(g);
             super.paintComponent(g);
             final String letter = statusLetter(statusKind);
@@ -1109,14 +1069,13 @@ public final class SidebarBufferTree extends SidebarTree implements Constants,
                 return;
             FontMetrics fm = g.getFontMetrics();
             int x = getWidth() - statusWidth()
-                  + (statusWidth() - fm.stringWidth(letter)) / 2;
+                + (statusWidth() - fm.stringWidth(letter)) / 2;
             int y = (getHeight() + fm.getAscent() - fm.getDescent()) / 2;
             g.setColor(statusColor(statusKind));
             g.drawString(letter, x, y);
         }
 
-        private static String ellipsize(String text, FontMetrics fm, int width)
-        {
+        private static String ellipsize(String text, FontMetrics fm, int width) {
             if (fm == null || width <= 0 || fm.stringWidth(text) <= width)
                 return text;
             final String suffix = "…";
@@ -1130,34 +1089,29 @@ public final class SidebarBufferTree extends SidebarTree implements Constants,
         }
     }
 
-    private class BufferSelection implements Transferable
-    {
+    private class BufferSelection implements Transferable {
         private List<java.io.File> fileList = null;
         private final DataFlavor[] flavors = new DataFlavor[] {
             DataFlavor.javaFileListFlavor
         };
 
-        public BufferSelection(java.io.File file)
-        {
+        public BufferSelection(java.io.File file) {
             fileList = new ArrayList<java.io.File>(1);
             fileList.add(file);
         }
 
-        public Object getTransferData(DataFlavor flavor)
-        {
+        public Object getTransferData(DataFlavor flavor) {
             List<java.io.File> retList = new ArrayList<java.io.File>(1);
             if (flavor == DataFlavor.javaFileListFlavor)
                 retList.add(fileList.get(0));
             return retList;
         }
 
-        public DataFlavor[] getTransferDataFlavors()
-        {
+        public DataFlavor[] getTransferDataFlavors() {
             return flavors;
         }
 
-        public boolean isDataFlavorSupported(DataFlavor flavor)
-        {
+        public boolean isDataFlavorSupported(DataFlavor flavor) {
             for (int i = 0; i < flavors.length; i++) {
                 if (flavor == flavors[i])
                     return true;

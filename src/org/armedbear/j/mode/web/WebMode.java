@@ -20,13 +20,14 @@
 
 package org.armedbear.j.mode.web;
 
+import java.awt.event.KeyEvent;
+import java.lang.StringBuilder;
+import java.util.StringTokenizer;
 import org.armedbear.j.AbstractMode;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.BufferIterator;
 import org.armedbear.j.Constants;
 import org.armedbear.j.Editor;
-import org.armedbear.j.Mode;
-import java.lang.StringBuilder;
 import org.armedbear.j.Formatter;
 import org.armedbear.j.Frame;
 import org.armedbear.j.History;
@@ -35,20 +36,16 @@ import org.armedbear.j.InputDialog;
 import org.armedbear.j.KeyMap;
 import org.armedbear.j.Link;
 import org.armedbear.j.Menu;
+import org.armedbear.j.Mode;
 import org.armedbear.j.Position;
 import org.armedbear.j.Property;
 import org.armedbear.j.ToolBar;
 import org.armedbear.j.mode.html.HtmlLineSegment;
 
-import java.awt.event.KeyEvent;
-import java.util.StringTokenizer;
-
-public final class WebMode extends AbstractMode implements Constants, Mode
-{
+public final class WebMode extends AbstractMode implements Constants, Mode {
     private static final WebMode mode = new WebMode();
 
-    private WebMode()
-    {
+    private WebMode() {
         super(WEB_MODE, WEB_MODE_NAME);
         setProperty(Property.VERTICAL_RULE, 0);
         setProperty(Property.SHOW_LINE_NUMBERS, false);
@@ -57,13 +54,11 @@ public final class WebMode extends AbstractMode implements Constants, Mode
         setProperty(Property.P4_AUTO_EDIT, false);
     }
 
-    public static final WebMode getMode()
-    {
+    public static final WebMode getMode() {
         return mode;
     }
 
-    protected void setKeyMapDefaults(KeyMap km)
-    {
+    protected void setKeyMapDefaults(KeyMap km) {
         km.mapKey(VK_MOUSE_1, 0, "mouseFollowLink");
         km.mapKey(KeyEvent.VK_ENTER, 0, "followLink");
         km.mapKey(KeyEvent.VK_G, CTRL_MASK | SHIFT_MASK, "followLink");
@@ -74,8 +69,7 @@ public final class WebMode extends AbstractMode implements Constants, Mode
         km.mapKey(KeyEvent.VK_R, 0, "webReload");
     }
 
-    public void populateMenu(Editor editor, Menu menu)
-    {
+    public void populateMenu(Editor editor, Menu menu) {
         final String text = menu.getText();
         if (text == "File") {
             menu.add(editor, "New", 'N', "newBuffer");
@@ -118,34 +112,29 @@ public final class WebMode extends AbstractMode implements Constants, Mode
             super.populateMenu(editor, menu);
     }
 
-    public final Formatter getFormatter(Buffer buffer)
-    {
+    public final Formatter getFormatter(Buffer buffer) {
         return new WebFormatter(buffer);
     }
 
-    protected ToolBar getDefaultToolBar(Frame frame)
-    {
+    protected ToolBar getDefaultToolBar(Frame frame) {
         return new WebModeToolBar(frame);
     }
 
-    public final String getContextString(Editor editor, boolean verbose /*ignored*/)
-    {
+    public final String getContextString(Editor editor, boolean verbose /*ignored*/) {
         return getContextString(editor.getDot());
     }
 
-    public final String getMouseMovedContextString(Editor editor, Position pos)
-    {
+    public final String getMouseMovedContextString(Editor editor, Position pos) {
         // We want to clear the status text if the mouse is not over a link, so
         // return "" instead of null.
         final String s = getContextString(pos);
         return s != null ? s : "";
     }
 
-    private String getContextString(Position pos)
-    {
+    private String getContextString(Position pos) {
         if (pos != null && pos.getLine() instanceof WebLine) {
             HtmlLineSegment segment =
-                ((WebLine)pos.getLine()).findSegment(pos.getOffset());
+                ((WebLine) pos.getLine()).findSegment(pos.getOffset());
             if (segment != null) {
                 Link link = segment.getLink();
                 if (link != null)
@@ -155,8 +144,7 @@ public final class WebMode extends AbstractMode implements Constants, Mode
         return null;
     }
 
-    public static void google()
-    {
+    public static void google() {
         final Editor editor = Editor.currentEditor();
         InputDialog d = new InputDialog(editor, "Search for:", "Google Search", null);
         d.setHistory(new History("google.search"));
@@ -169,20 +157,22 @@ public final class WebMode extends AbstractMode implements Constants, Mode
         google(s);
     }
 
-    public static void google(String s)
-    {
+    public static void google(String s) {
         query("http://www.google.com/search?q=", s);
     }
 
-    public static void query(String prefix, String s)
-    {
+    public static void query(String prefix, String s) {
         s = s.trim();
         // Strip enclosing quotes if any.
         int length = s.length();
-        if (length > 1 &&
-            ((s.charAt(0) == '"' && s.charAt(length-1) == '"') ||
-             (s.charAt(0) == '\'' && s.charAt(length-1) == '\''))) {
-            s = s.substring(1, length-1).trim();
+        if (
+            length > 1
+                &&
+                ((s.charAt(0) == '"' && s.charAt(length - 1) == '"')
+                    ||
+                    (s.charAt(0) == '\'' && s.charAt(length - 1) == '\''))
+        ) {
+            s = s.substring(1, length - 1).trim();
         }
         StringBuilder sb = new StringBuilder(prefix);
         StringTokenizer st = new StringTokenizer(s);

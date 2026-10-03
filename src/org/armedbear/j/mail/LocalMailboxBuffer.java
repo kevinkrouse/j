@@ -27,9 +27,10 @@ import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.RandomAccessFile;
 import java.io.UnsupportedEncodingException;
+import java.lang.StringBuilder;
+import java.util.ArrayList;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.ArrayList;
 import java.util.List;
 import javax.swing.SwingUtilities;
 import org.armedbear.j.Buffer;
@@ -39,7 +40,6 @@ import org.armedbear.j.Directories;
 import org.armedbear.j.Editor;
 import org.armedbear.j.EditorIterator;
 import org.armedbear.j.File;
-import java.lang.StringBuilder;
 import org.armedbear.j.Headers;
 import org.armedbear.j.Line;
 import org.armedbear.j.LocalFile;
@@ -47,23 +47,20 @@ import org.armedbear.j.Log;
 import org.armedbear.j.ProgressNotifier;
 import org.armedbear.j.Property;
 import org.armedbear.j.Sidebar;
-import org.armedbear.j.util.Utilities;
 import org.armedbear.j.View;
+import org.armedbear.j.util.Utilities;
 
-public class LocalMailboxBuffer extends MailboxBuffer
-{
+public class LocalMailboxBuffer extends MailboxBuffer {
     private File mailboxFile;
 
-    public LocalMailboxBuffer(MailboxURL url)
-    {
+    public LocalMailboxBuffer(MailboxURL url) {
         super(url);
         if (url instanceof LocalMailboxURL)
-            mailboxFile = ((LocalMailboxURL)url).getFile();
+            mailboxFile = ((LocalMailboxURL) url).getFile();
         init();
     }
 
-    private void init()
-    {
+    private void init() {
         supportsUndo = false;
         type = TYPE_MAILBOX;
         mode = MailboxMode.getMode();
@@ -74,31 +71,26 @@ public class LocalMailboxBuffer extends MailboxBuffer
         setInitialized(true);
     }
 
-    public String getName()
-    {
+    public String getName() {
         Debug.assertTrue(mailboxFile != null);
         return mailboxFile.canonicalPath();
     }
 
-    public final File getMailboxFile()
-    {
+    public final File getMailboxFile() {
         return mailboxFile;
     }
 
-    public final void setMailboxFile(File mailboxFile)
-    {
+    public final void setMailboxFile(File mailboxFile) {
         this.mailboxFile = mailboxFile;
     }
 
-    public int getMessageCount()
-    {
+    public int getMessageCount() {
         if (entries == null)
             return 0;
         return entries.size();
     }
 
-    public Message getMessage(MailboxEntry entry, ProgressNotifier progressNotifier)
-    {
+    public Message getMessage(MailboxEntry entry, ProgressNotifier progressNotifier) {
         try {
             RandomAccessFile raf = mailboxFile.getRandomAccessFile("r");
             String header = getMessageHeader(entry, raf);
@@ -116,8 +108,7 @@ public class LocalMailboxBuffer extends MailboxBuffer
         }
     }
 
-    private String getMessageHeader(MailboxEntry entry, RandomAccessFile raf)
-    {
+    private String getMessageHeader(MailboxEntry entry, RandomAccessFile raf) {
         StringBuilder sb = new StringBuilder(8192);
         try {
             long offset = ((LocalMailboxEntry) entry).getMessageStart();
@@ -147,8 +138,7 @@ public class LocalMailboxBuffer extends MailboxBuffer
     }
 
     // File pointer must be at the start of the message body.
-    private String getMessageBody(MailboxEntry entry, RandomAccessFile raf, String charset)
-    {
+    private String getMessageBody(MailboxEntry entry, RandomAccessFile raf, String charset) {
         byte[] bytes = null;
         try {
             long bodyStart = raf.getFilePointer();
@@ -172,33 +162,27 @@ public class LocalMailboxBuffer extends MailboxBuffer
         return new String(bytes);
     }
 
-    public void getNewMessages()
-    {
+    public void getNewMessages() {
         Log.error("LocalMailboxBuffer.getNewMessages is not implemented");
     }
 
-    public void createFolder()
-    {
+    public void createFolder() {
         Log.error("LocalMailboxBuffer.createFolder is not implemented");
     }
 
-    public void deleteFolder()
-    {
+    public void deleteFolder() {
         Log.error("LocalMailboxBuffer.deleteFolder is not implemented");
     }
 
-    public void saveToFolder()
-    {
+    public void saveToFolder() {
         Log.error("LocalMailboxBuffer.saveToFolder is not implemented");
     }
 
-    public void moveToFolder()
-    {
+    public void moveToFolder() {
         Log.error("LocalMailboxBuffer.moveToFolder is not implemented");
     }
 
-    public void delete()
-    {
+    public void delete() {
         Editor editor = Editor.currentEditor();
         if (lock()) {
             try {
@@ -234,8 +218,7 @@ public class LocalMailboxBuffer extends MailboxBuffer
             editor.status("Mailbox is locked");
     }
 
-    public void undelete()
-    {
+    public void undelete() {
         Editor editor = Editor.currentEditor();
         if (lock()) {
             try {
@@ -272,8 +255,7 @@ public class LocalMailboxBuffer extends MailboxBuffer
             editor.status("Mailbox is locked");
     }
 
-    public void markRead()
-    {
+    public void markRead() {
         Editor editor = Editor.currentEditor();
         if (lock()) {
             try {
@@ -307,8 +289,7 @@ public class LocalMailboxBuffer extends MailboxBuffer
             editor.status("Mailbox is locked");
     }
 
-    public void markUnread()
-    {
+    public void markUnread() {
         Editor editor = Editor.currentEditor();
         if (lock()) {
             try {
@@ -342,8 +323,7 @@ public class LocalMailboxBuffer extends MailboxBuffer
             editor.status("Mailbox is locked");
     }
 
-    public void flag()
-    {
+    public void flag() {
         final Editor editor = Editor.currentEditor();
         if (lock()) {
             try {
@@ -354,7 +334,7 @@ public class LocalMailboxBuffer extends MailboxBuffer
                     if (!(line instanceof MailboxLine))
                         return;
                     list = new ArrayList<MailboxEntry>();
-                    list.add(((MailboxLine)line).getMailboxEntry());
+                    list.add(((MailboxLine) line).getMailboxEntry());
                     advanceDot = true;
                 }
                 for (MailboxEntry entry : list) {
@@ -372,8 +352,7 @@ public class LocalMailboxBuffer extends MailboxBuffer
             editor.status("Mailbox is locked");
     }
 
-    public void setAnsweredFlag(MailboxEntry entry)
-    {
+    public void setAnsweredFlag(MailboxEntry entry) {
         if ((entry.getFlags() & MailboxEntry.ANSWERED) == 0) {
             entry.setFlags(entry.getFlags() | MailboxEntry.ANSWERED);
             setDirty(true);
@@ -381,13 +360,11 @@ public class LocalMailboxBuffer extends MailboxBuffer
         }
     }
 
-    public void expunge()
-    {
+    public void expunge() {
         Log.error("LocalMailboxBuffer.expunge is not implemented");
     }
 
-    public int load()
-    {
+    public int load() {
         if (lock()) {
             setBusy(true);
             new Thread(loadRunnable).start();
@@ -421,8 +398,7 @@ public class LocalMailboxBuffer extends MailboxBuffer
         }
     };
 
-    protected void readMailboxFile(ProgressNotifier progressNotifier)
-    {
+    protected void readMailboxFile(ProgressNotifier progressNotifier) {
         Log.debug("LocalMailboxBuffer.readMailboxFile");
         long start = System.currentTimeMillis();
         Mbox mbox = Mbox.getInstance(mailboxFile);
@@ -435,25 +411,22 @@ public class LocalMailboxBuffer extends MailboxBuffer
         Log.debug("readMailboxFile " + (System.currentTimeMillis() - start) + " ms");
     }
 
-    public void readMessage(Line line)
-    {
+    public void readMessage(Line line) {
         readMessage(line, false);
     }
 
-    public void readMessageOtherWindow(Line line)
-    {
+    public void readMessageOtherWindow(Line line) {
         readMessage(line, true);
     }
 
-    private void readMessage(Line line, boolean useOtherWindow)
-    {
+    private void readMessage(Line line, boolean useOtherWindow) {
         Editor editor = Editor.currentEditor();
-        MailboxEntry entry = ((MailboxLine)line).getMailboxEntry();
+        MailboxEntry entry = ((MailboxLine) line).getMailboxEntry();
         Buffer buf = null;
         for (BufferIterator it = new BufferIterator(); it.hasNext();) {
             Buffer b = it.next();
             if (b instanceof MessageBuffer) {
-                if (((MessageBuffer)b).getMailboxEntry() == entry) {
+                if (((MessageBuffer) b).getMailboxEntry() == entry) {
                     buf = b;
                     break;
                 }
@@ -461,23 +434,30 @@ public class LocalMailboxBuffer extends MailboxBuffer
         }
         if (buf == null)
             buf = new LocalMessageBuffer(this, entry);
-        activateMessageBuffer(editor, (MessageBuffer)buf, useOtherWindow);
+        activateMessageBuffer(editor, (MessageBuffer) buf, useOtherWindow);
     }
 
-    protected boolean rewriteMailbox(boolean purge)
-    {
+    protected boolean rewriteMailbox(boolean purge) {
         Log.debug("rewriteMailbox");
         long start = System.currentTimeMillis();
         boolean succeeded = false;
         try {
             BufferedReader reader =
-                new BufferedReader(new InputStreamReader(mailboxFile.getInputStream(),
-                    "ISO8859_1"));
+                new BufferedReader(
+                    new InputStreamReader(
+                        mailboxFile.getInputStream(),
+                        "ISO8859_1"
+                    )
+                );
             File tempFile =
                 Utilities.getTempFile(mailboxFile.getParentFile());
             BufferedWriter writer =
-                new BufferedWriter(new OutputStreamWriter(tempFile.getOutputStream(),
-                    "ISO8859_1"));
+                new BufferedWriter(
+                    new OutputStreamWriter(
+                        tempFile.getOutputStream(),
+                        "ISO8859_1"
+                    )
+                );
             long newOffsets[] = new long[entries.size()];
             long offset = 0;
             boolean skip = false;
@@ -587,22 +567,19 @@ public class LocalMailboxBuffer extends MailboxBuffer
         return succeeded;
     }
 
-    private final int getMessageStatus(int i)
-    {
+    private final int getMessageStatus(int i) {
         return entries.get(i).getFlags();
     }
 
     private static String localPrefix;
 
-    private boolean isOwned()
-    {
+    private boolean isOwned() {
         if (localPrefix == null)
             localPrefix = Directories.getMailDirectory().canonicalPath().concat(LocalFile.getSeparator());
         return mailboxFile.canonicalPath().startsWith(localPrefix);
     }
 
-    public void dispose()
-    {
+    public void dispose() {
         Log.debug("LocalMailboxBuffer.dispose");
         Mbox.cleanup();
         MailboxProperties.saveProperties(this);
@@ -636,8 +613,7 @@ public class LocalMailboxBuffer extends MailboxBuffer
         new Thread(disposeRunnable).start();
     }
 
-    public String toString()
-    {
+    public String toString() {
         final String name;
         if (isOwned())
             name = mailboxFile.getParentFile().getName();

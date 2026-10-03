@@ -36,16 +36,14 @@ import org.armedbear.j.MessageDialog;
 import org.armedbear.j.ProgressNotifier;
 import org.armedbear.j.StatusBarProgressNotifier;
 
-public final class NewsBuffer extends Buffer
-{
+public final class NewsBuffer extends Buffer {
     private static final File newsDir =
         File.getInstance(Directories.getDataDirectory(), "news");
 
     private final NntpSession session;
     private boolean error;
 
-    public NewsBuffer(NntpSession session)
-    {
+    public NewsBuffer(NntpSession session) {
         this.session = session;
         supportsUndo = false;
         mode = NewsGroupsMode.getMode();
@@ -55,13 +53,11 @@ public final class NewsBuffer extends Buffer
         setInitialized(true);
     }
 
-    public String getHost()
-    {
+    public String getHost() {
         return session.getHost();
     }
 
-    public int load()
-    {
+    public int load() {
         setBusy(true);
         new Thread(loadRunnable).start();
         setLoaded(true);
@@ -69,8 +65,7 @@ public final class NewsBuffer extends Buffer
     }
 
     private Runnable loadRunnable = new Runnable() {
-        public void run()
-        {
+        public void run() {
             try {
                 lockWrite();
             }
@@ -91,8 +86,7 @@ public final class NewsBuffer extends Buffer
         }
     };
 
-    private void _load()
-    {
+    private void _load() {
         File file = File.getInstance(newsDir, session.getHost());
         if (newsDir.isDirectory()) {
             if (file.isFile()) {
@@ -132,8 +126,10 @@ public final class NewsBuffer extends Buffer
                         }
                         if (newsDir.isDirectory()) {
                             try (BufferedWriter writer = new BufferedWriter(
-                                     new OutputStreamWriter(
-                                         file.getOutputStream()))) {
+                                new OutputStreamWriter(
+                                    file.getOutputStream()
+                                )
+                            )) {
                                 for (Line line = getFirstLine(); line != null; line = line.next()) {
                                     writer.write(line.getText());
                                     writer.write('\n');
@@ -159,8 +155,7 @@ public final class NewsBuffer extends Buffer
     }
 
     private Runnable errorRunnable = new Runnable() {
-        public void run()
-        {
+        public void run() {
             kill();
             String errorText = session.getErrorText();
             if (errorText != null)
@@ -169,8 +164,7 @@ public final class NewsBuffer extends Buffer
     };
 
     private Runnable updateDisplayRunnable = new Runnable() {
-        public void run()
-        {
+        public void run() {
             setBusy(false);
             invalidate();
             for (EditorIterator it = new EditorIterator(); it.hasNext();) {

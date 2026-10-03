@@ -20,9 +20,6 @@
 
 package org.armedbear.j.mail;
 
-import java.util.Collections;
-import java.util.regex.Pattern;
-import java.util.regex.Matcher;
 import java.io.BufferedInputStream;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -32,13 +29,17 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
+import java.lang.StringBuilder;
 import java.net.MalformedURLException;
 import java.text.SimpleDateFormat;
-import java.util.Base64;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.Calendar;
+import java.util.Collections;
 import java.util.List;
 import java.util.Random;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import javax.swing.Icon;
 import javax.swing.SwingUtilities;
 import javax.swing.undo.CompoundEdit;
@@ -50,7 +51,6 @@ import org.armedbear.j.Editor;
 import org.armedbear.j.EditorIterator;
 import org.armedbear.j.Expansion;
 import org.armedbear.j.File;
-import java.lang.StringBuilder;
 import org.armedbear.j.Headers;
 import org.armedbear.j.InputDialog;
 import org.armedbear.j.Line;
@@ -65,11 +65,10 @@ import org.armedbear.j.Property;
 import org.armedbear.j.Region;
 import org.armedbear.j.Sidebar;
 import org.armedbear.j.SimpleEdit;
-import org.armedbear.j.util.Utilities;
 import org.armedbear.j.Version;
+import org.armedbear.j.util.Utilities;
 
-public final class SendMail extends Buffer
-{
+public final class SendMail extends Buffer {
     private final static String HEADER_SEPARATOR = "--text follows this line--";
     private final static String DEFAULT_TITLE = "Compose";
 
@@ -84,8 +83,7 @@ public final class SendMail extends Buffer
     private SmtpSession session;
     private boolean hasBeenSent;
 
-    public SendMail()
-    {
+    public SendMail() {
         super();
         init();
         try {
@@ -113,16 +111,14 @@ public final class SendMail extends Buffer
     }
 
     // Re-opening an unsent message.
-    public SendMail(File file)
-    {
+    public SendMail(File file) {
         super();
         setFile(file);
         init();
     }
 
     // Forward.
-    public SendMail(MessageBuffer messageBuffer)
-    {
+    public SendMail(MessageBuffer messageBuffer) {
         super();
         init();
         mailbox = messageBuffer.getMailbox();
@@ -156,8 +152,7 @@ public final class SendMail extends Buffer
     }
 
     // Reply.
-    public SendMail(MessageBuffer messageBuffer, boolean replyToGroup)
-    {
+    public SendMail(MessageBuffer messageBuffer, boolean replyToGroup) {
         super();
         init();
         mailbox = messageBuffer.getMailbox();
@@ -210,14 +205,14 @@ public final class SendMail extends Buffer
             // Gather addresses for reply to group.
             group = new ArrayList<MailAddress>();
             if (!skipTo && to != null) {
-                for (int i = 0;  i < to.length; i++) {
+                for (int i = 0; i < to.length; i++) {
                     MailAddress a = to[i];
                     if (!a.addressMatches(Mail.getUserMailAddress()))
                         group.add(a);
                 }
             }
             if (cc != null) {
-                for (int i = 0;  i < cc.length; i++) {
+                for (int i = 0; i < cc.length; i++) {
                     MailAddress a = cc[i];
                     if (!a.addressMatches(Mail.getUserMailAddress()))
                         group.add(a);
@@ -268,8 +263,7 @@ public final class SendMail extends Buffer
         }
     }
 
-    private void init()
-    {
+    private void init() {
         if (preferences == null)
             preferences = Editor.preferences();
         initializeUndo();
@@ -294,8 +288,7 @@ public final class SendMail extends Buffer
         setInitialized(true);
     }
 
-    public int load()
-    {
+    public int load() {
         super.load();
         title = getSubject();
         if (title == null || title.length() == 0)
@@ -303,8 +296,7 @@ public final class SendMail extends Buffer
         return LOAD_COMPLETED;
     }
 
-    public boolean save()
-    {
+    public boolean save() {
         boolean result = super.save();
         for (BufferIterator it = new BufferIterator(); it.hasNext();) {
             Buffer buf = it.next();
@@ -317,18 +309,16 @@ public final class SendMail extends Buffer
         return result;
     }
 
-    public boolean hasBeenSent()
-    {
+    public boolean hasBeenSent() {
         return hasBeenSent;
     }
 
-    private static void removeDuplicateAddresses(List<MailAddress> list)
-    {
+    private static void removeDuplicateAddresses(List<MailAddress> list) {
         // Remove duplicate entries from list.
         for (int i = list.size(); i-- > 0;) {
             MailAddress ma = list.get(i);
             String addr = ma.getAddress();
-            for (int j = i-1; j >= 0; j--) {
+            for (int j = i - 1; j >= 0; j--) {
                 MailAddress ma2 = list.get(j);
                 if (ma.equals(ma2)) {
                     list.remove(i);
@@ -350,8 +340,7 @@ public final class SendMail extends Buffer
         }
     }
 
-    private void appendAddressHeader(String prefix, List<MailAddress> list)
-    {
+    private void appendAddressHeader(String prefix, List<MailAddress> list) {
         if (list == null)
             return;
         if (list.size() == 0)
@@ -359,8 +348,7 @@ public final class SendMail extends Buffer
         append(MailUtilities.constructAddressHeader(prefix, list));
     }
 
-    private void appendFrom()
-    {
+    private void appendFrom() {
         if (!preferences.getBooleanProperty(Property.CONFIRM_SEND)) {
             MailAddress ma = Mail.getUserMailAddress();
             if (ma != null)
@@ -368,8 +356,7 @@ public final class SendMail extends Buffer
         }
     }
 
-    private void replaceFrom(String from)
-    {
+    private void replaceFrom(String from) {
         final Editor editor = Editor.currentEditor();
         final Position savedDot = editor.getDotCopy();
         try {
@@ -409,8 +396,7 @@ public final class SendMail extends Buffer
         repaint();
     }
 
-    private void replaceBcc(List<MailAddress> bccList)
-    {
+    private void replaceBcc(List<MailAddress> bccList) {
         final Editor editor = Editor.currentEditor();
         final Position savedDot = editor.getDotCopy();
         try {
@@ -430,8 +416,10 @@ public final class SendMail extends Buffer
                     editor.addUndo(SimpleEdit.MOVE);
                     editor.getDot().moveTo(line, 0);
                     editor.addUndo(SimpleEdit.INSERT_STRING);
-                    insertString(editor.getDot(),
-                        MailUtilities.constructAddressHeader("Bcc: ", bccList).concat("\n"));
+                    insertString(
+                        editor.getDot(),
+                        MailUtilities.constructAddressHeader("Bcc: ", bccList).concat("\n")
+                    );
                     break;
                 }
             }
@@ -455,8 +443,7 @@ public final class SendMail extends Buffer
         repaint();
     }
 
-    private void appendReferences()
-    {
+    private void appendReferences() {
         if (entryRepliedTo != null) {
             final String prefix = "References: ";
             StringBuilder sb = new StringBuilder(prefix);
@@ -464,11 +451,11 @@ public final class SendMail extends Buffer
             String[] oldReferences = entryRepliedTo.getReferences();
             final String[] references;
             if (oldReferences != null) {
-                references = new String[oldReferences.length+1];
+                references = new String[oldReferences.length + 1];
                 System.arraycopy(oldReferences, 0, references, 0, oldReferences.length);
             } else
                 references = new String[1];
-            references[references.length-1] = entryRepliedTo.getMessageId();
+            references[references.length - 1] = entryRepliedTo.getMessageId();
             for (int i = 0; i < references.length; i++) {
                 String s = references[i];
                 if (i > 0 && length + s.length() > 990) {
@@ -491,8 +478,7 @@ public final class SendMail extends Buffer
         }
     }
 
-    private void appendDefaultHeaders()
-    {
+    private void appendDefaultHeaders() {
         String replyTo = preferences.getStringProperty("replyTo");
         if (replyTo != null)
             appendLine("Reply-To: ".concat(replyTo));
@@ -501,15 +487,16 @@ public final class SendMail extends Buffer
             appendLine("Bcc: ".concat(bcc));
     }
 
-    private void appendSignature()
-    {
+    private void appendSignature() {
         File file = null;
         String fileName = preferences.getStringProperty(Property.SIGNATURE);
         if (fileName != null)
             file = File.getInstance(fileName);
         else if (Platform.isPlatformUnix())
-            file = File.getInstance(Directories.getUserHomeDirectory(),
-                ".signature");
+            file = File.getInstance(
+                Directories.getUserHomeDirectory(),
+                ".signature"
+            );
         if (file == null || !file.isFile())
             return;
         StringBuilder sb = new StringBuilder();
@@ -533,19 +520,16 @@ public final class SendMail extends Buffer
             append(sb.toString());
     }
 
-    public static final String getHeaderSeparator()
-    {
+    public static final String getHeaderSeparator() {
         return HEADER_SEPARATOR;
     }
 
-    public void modified()
-    {
+    public void modified() {
         super.modified();
         setTitle();
     }
 
-    private void setTitle()
-    {
+    private void setTitle() {
         String s = getSubject();
         if (s == null || s.length() == 0)
             s = DEFAULT_TITLE;
@@ -555,24 +539,24 @@ public final class SendMail extends Buffer
         }
     }
 
-    public void attachFile()
-    {
+    public void attachFile() {
         Editor editor = Editor.currentEditor();
         File file = OpenFileDialog.getLocalFile(editor, "Attach File");
         if (file != null && file.isFile()) {
             for (Line line = getFirstLine(); line != null; line = line.next()) {
                 if (line.getText().equals(HEADER_SEPARATOR)) {
                     Position pos = new Position(line, 0);
-                    insertString(pos,
-                        "Attachment: " + file.canonicalPath() + "\n");
+                    insertString(
+                        pos,
+                        "Attachment: " + file.canonicalPath() + "\n"
+                    );
                     break;
                 }
             }
         }
     }
 
-    public void send()
-    {
+    public void send() {
         if (!checkHeader())
             return;
         checkRecipients();
@@ -597,7 +581,6 @@ public final class SendMail extends Buffer
             return;
         }
 
-
         Runnable sendRunnable = () -> {
             final Editor editor = Editor.currentEditor();
             boolean succeeded = false;
@@ -606,15 +589,21 @@ public final class SendMail extends Buffer
             if (session == null) {
                 String user = url.getUser();
                 if (user == null || user.length() == 0) {
-                    user = InputDialog.showInputDialog(editor, "Login:",
-                            "Login on " + url.getHost());
+                    user = InputDialog.showInputDialog(
+                        editor,
+                        "Login:",
+                        "Login on " + url.getHost()
+                    );
                     if (user == null || user.length() == 0)
                         return;
                     session = SmtpSession.getSession(url, user);
                 }
                 if (session == null) {
-                    String password = PasswordDialog.showPasswordDialog(editor,
-                            "Password:", "Password");
+                    String password = PasswordDialog.showPasswordDialog(
+                        editor,
+                        "Password:",
+                        "Password"
+                    );
                     if (password == null || password.length() == 0)
                         return;
                     session = SmtpSession.getSession(url, user, password);
@@ -629,8 +618,10 @@ public final class SendMail extends Buffer
                     writeMessageText(writer);
                     writer.flush();
                     writer.close();
-                    succeeded = session.sendMessage(SendMail.this,
-                        messageFile);
+                    succeeded = session.sendMessage(
+                        SendMail.this,
+                        messageFile
+                    );
                     if (succeeded)
                         writeFcc(messageFile);
                     messageFile.delete();
@@ -640,15 +631,13 @@ public final class SendMail extends Buffer
                 }
             }
             hasBeenSent = succeeded;
-            SwingUtilities.invokeLater(succeeded ? succeededRunnable :
-                errorRunnable);
+            SwingUtilities.invokeLater(succeeded ? succeededRunnable : errorRunnable);
         };
         setBusy(true);
         new Thread(sendRunnable).start();
     }
 
-    private boolean confirmSend()
-    {
+    private boolean confirmSend() {
         final Editor editor = Editor.currentEditor();
         ConfirmSendDialog d = new ConfirmSendDialog(editor, this);
         editor.centerDialog(d);
@@ -680,28 +669,33 @@ public final class SendMail extends Buffer
         return true;
     }
 
-    private boolean checkHeader()
-    {
+    private boolean checkHeader() {
         for (Line line = getFirstLine(); line != null; line = line.next()) {
             if (line.getText().equals(HEADER_SEPARATOR))
                 return true;
         }
-        MessageDialog.showMessageDialog(Editor.currentEditor(),
-            "Message separator line is missing", "Error");
+        MessageDialog.showMessageDialog(
+            Editor.currentEditor(),
+            "Message separator line is missing",
+            "Error"
+        );
         return false;
         // BUG!! Should confirm here that we have a valid "From" address!
     }
 
     // Make sure all continued address header lines end with commas.
-    private void checkRecipients()
-    {
+    private void checkRecipients() {
         for (Line line = getFirstLine(); line != null; line = line.next()) {
             String text = line.getText();
             if (text.equals(HEADER_SEPARATOR))
                 return;
             String lower = text.toLowerCase();
-            if (lower.startsWith("to:") || lower.startsWith("cc:") ||
-                lower.startsWith("bcc:")) {
+            if (
+                lower.startsWith("to:")
+                    || lower.startsWith("cc:")
+                    ||
+                    lower.startsWith("bcc:")
+            ) {
                 Line continuation = line.next();
                 while (continuation != null && continuation.length() > 0) {
                     char c = continuation.charAt(0);
@@ -722,8 +716,7 @@ public final class SendMail extends Buffer
     }
 
     // Trims trailing whitespace.
-    private static String trimTrailing(String s)
-    {
+    private static String trimTrailing(String s) {
         int length = s.length();
         if (length == 0 || !Character.isWhitespace(s.charAt(length - 1)))
             return s;
@@ -733,8 +726,7 @@ public final class SendMail extends Buffer
         return s.substring(0, length);
     }
 
-    private void checkEmpty()
-    {
+    private void checkEmpty() {
         String eom = getStringProperty(Property.EOM);
         if (eom == null || eom.length() == 0)
             return;
@@ -794,13 +786,14 @@ public final class SendMail extends Buffer
         setBusy(false);
         final Editor editor = Editor.currentEditor();
         editor.updateDisplay();
-        MessageDialog.showMessageDialog(editor,
+        MessageDialog.showMessageDialog(
+            editor,
             session != null ? session.getErrorText() : "Unable to send message",
-            "Send Mail");
+            "Send Mail"
+        );
     };
 
-    private void writeMessageText(Writer writer)
-    {
+    private void writeMessageText(Writer writer) {
         final String separator = "\n";
         try {
             writer.write("Date: " + RFC822Date.getDateTimeString() + separator);
@@ -897,8 +890,13 @@ public final class SendMail extends Buffer
             for (line = startOfBody; line != null; line = line.next()) {
                 String s = line.getText();
                 if (qp) {
-                    writer.write(QuotedPrintableEncoder.encode(s,
-                        characterEncoding, separator));
+                    writer.write(
+                        QuotedPrintableEncoder.encode(
+                            s,
+                            characterEncoding,
+                            separator
+                        )
+                    );
                 } else {
                     // Dot stuffing.
                     if (s.length() > 0 && s.charAt(0) == '.')
@@ -940,8 +938,7 @@ public final class SendMail extends Buffer
         }
     }
 
-    private void writeEncodedFile(File file, Writer writer, String separator)
-    {
+    private void writeEncodedFile(File file, Writer writer, String separator) {
         if (file == null || !file.isFile() || !file.canRead())
             return;
         // 57 bytes encode to a 76 character line, the most MIME allows.
@@ -963,13 +960,11 @@ public final class SendMail extends Buffer
         }
     }
 
-    public String getFrom()
-    {
+    public String getFrom() {
         return getHeaderValue("from");
     }
 
-    public String getFromAddress()
-    {
+    public String getFromAddress() {
         String from = getFrom();
         if (from != null)
             return getAddress(from);
@@ -977,15 +972,13 @@ public final class SendMail extends Buffer
         return Mail.getUserMailAddress().getAddress();
     }
 
-    private final String getDefaultFromAddress()
-    {
+    private final String getDefaultFromAddress() {
         return Mail.getUserMailAddress().toString();
     }
 
     // Given "Piso Mojado <piso@armedbear.yi.org>", returns
     // "piso@armedbear.yi.org".
-    public static String getAddress(String s)
-    {
+    public static String getAddress(String s) {
         if (s == null)
             return null;
         int index = s.indexOf('@');
@@ -1010,26 +1003,22 @@ public final class SendMail extends Buffer
         return s.substring(begin, end);
     }
 
-    public String getTo()
-    {
+    public String getTo() {
         Log.debug("getTo to = |" + getHeaderValue("to") + "|");
         return getHeaderValue("to");
     }
 
-    public String getCc()
-    {
+    public String getCc() {
         Log.debug("getCc cc = |" + getHeaderValue("cc") + "|");
         return getHeaderValue("cc");
     }
 
-    public String getBcc()
-    {
+    public String getBcc() {
         Log.debug("getBcc bcc = |" + getHeaderValue("bcc") + "|");
         return getHeaderValue("bcc");
     }
 
-    public void ccGroup()
-    {
+    public void ccGroup() {
         if (group == null)
             return;
         // Entries from the original group will come first in the new list.
@@ -1054,9 +1043,9 @@ public final class SendMail extends Buffer
         // Make sure we don't duplicate entries in the "To:" header.
         MailAddress[] to = MailAddress.parseAddresses(getTo());
         if (to != null) {
-            for (int i = to.length-1; i >= 0; i--) {
+            for (int i = to.length - 1; i >= 0; i--) {
                 MailAddress toAddress = to[i];
-                for (int j = newList.size()-1; j >= 0; j--) {
+                for (int j = newList.size() - 1; j >= 0; j--) {
                     MailAddress a = newList.get(j);
                     if (a.equals(toAddress)) {
                         // It's a duplicate. Remove it from the new list.
@@ -1085,8 +1074,12 @@ public final class SendMail extends Buffer
                 if (line.getText().toLowerCase().startsWith("to:")) {
                     // Found first line of "To:" header.
                     for (Line next = line.next(); next != null; next = next.next()) {
-                        if (next.length() == 0 || next.charAt(0) == ' ' ||
-                            next.charAt(0) == '\t') {
+                        if (
+                            next.length() == 0
+                                || next.charAt(0) == ' '
+                                ||
+                                next.charAt(0) == '\t'
+                        ) {
                             // Continuation line.
                             continue;
                         } else {
@@ -1128,8 +1121,7 @@ public final class SendMail extends Buffer
     // Remove all header lines for hdr (e.g "from:", "cc:", "bcc:"). We assume
     // the buffer is write-locked and beginCompoundEdit has been called. The
     // current editor gets passed in to manage undo.
-    private void removeHeaders(Editor editor, String hdr)
-    {
+    private void removeHeaders(Editor editor, String hdr) {
         // Make sure hdr is all lower case and ends with a colon.
         hdr = hdr.toLowerCase();
         if (!hdr.endsWith(":"))
@@ -1173,8 +1165,11 @@ public final class SendMail extends Buffer
             if (endLine == null)
                 return;
             // Delete the region from beginLine to endLine.
-            Region r = new Region(this, new Position(beginLine, 0),
-                new Position(endLine, 0));
+            Region r = new Region(
+                this,
+                new Position(beginLine, 0),
+                new Position(endLine, 0)
+            );
             editor.addUndo(SimpleEdit.MOVE);
             editor.getDot().moveTo(r.getBegin());
             editor.addUndoDeleteRegion(r);
@@ -1182,8 +1177,7 @@ public final class SendMail extends Buffer
         }
     }
 
-    public List<String> getAddressees()
-    {
+    public List<String> getAddressees() {
         ArrayList<String> list = new ArrayList<String>();
         appendAddressesFromString(list, getTo());
         appendAddressesFromString(list, getCc());
@@ -1193,8 +1187,7 @@ public final class SendMail extends Buffer
         return list;
     }
 
-    private static void appendAddressesFromString(List<String> list, String s)
-    {
+    private static void appendAddressesFromString(List<String> list, String s) {
         if (s == null)
             return;
         s = s.trim();
@@ -1235,14 +1228,12 @@ public final class SendMail extends Buffer
         }
     }
 
-    public String getSubject()
-    {
+    public String getSubject() {
         return getHeaderValue("subject");
     }
 
     // Combines multiple occurrences of "To:", "Cc:", "Bcc:".
-    private String getHeaderValue(String headerName)
-    {
+    private String getHeaderValue(String headerName) {
         boolean combine = false;
         String key = headerName.toLowerCase() + ':';
         if (key.equals("to:") || key.equals("cc:") || key.equals("bcc:"))
@@ -1280,8 +1271,7 @@ public final class SendMail extends Buffer
         return sb != null ? sb.toString() : null;
     }
 
-    public Position getInitialDotPos()
-    {
+    public Position getInitialDotPos() {
         if (reply) {
             for (Line line = getFirstLine(); line != null; line = line.next()) {
                 if (line.getText().equals(HEADER_SEPARATOR)) {
@@ -1301,8 +1291,7 @@ public final class SendMail extends Buffer
         return new Position(getFirstLine(), 0);
     }
 
-    private List<String> parseAttachments()
-    {
+    private List<String> parseAttachments() {
         ArrayList<String> attachments = null;
         for (Line line = getFirstLine(); line != null; line = line.next()) {
             if (line.getText().equals(HEADER_SEPARATOR))
@@ -1319,8 +1308,7 @@ public final class SendMail extends Buffer
         return attachments;
     }
 
-    private String generateMimeHeaders(String separator)
-    {
+    private String generateMimeHeaders(String separator) {
         StringBuilder sb = new StringBuilder();
         sb.append("MIME-Version: 1.0");
         sb.append(separator);
@@ -1331,8 +1319,7 @@ public final class SendMail extends Buffer
         return sb.toString();
     }
 
-    private String getBoundary()
-    {
+    private String getBoundary() {
         if (boundary == null) {
             StringBuilder sb = new StringBuilder(16);
             Random random = new Random();
@@ -1350,16 +1337,14 @@ public final class SendMail extends Buffer
     // happens to qualify, which is why this used to borrow it.
     private static final char[] boundaryChars =
         ("ABCDEFGHIJKLMNOPQRSTUVWXYZ" +
-         "abcdefghijklmnopqrstuvwxyz" +
-         "0123456789+/").toCharArray();
+            "abcdefghijklmnopqrstuvwxyz" +
+            "0123456789+/").toCharArray();
 
-    private char[] getBoundaryChars()
-    {
+    private char[] getBoundaryChars() {
         return boundaryChars;
     }
 
-    private String getContentTypeForFile(File file)
-    {
+    private String getContentTypeForFile(File file) {
         boolean isBinary = false;
         try {
             BufferedInputStream inputStream =
@@ -1414,37 +1399,32 @@ public final class SendMail extends Buffer
         }
     }
 
-    public File getCurrentDirectory()
-    {
+    public File getCurrentDirectory() {
         return Directories.getUserHomeDirectory();
     }
 
-    public File getCompletionDirectory()
-    {
+    public File getCompletionDirectory() {
         return Directories.getUserHomeDirectory();
     }
 
     // For the buffer list.
-    public Icon getIcon()
-    {
+    public Icon getIcon() {
         if (isModified())
             return Utilities.getIconFromFile("compose_modified");
         return Utilities.getIconFromFile("compose");
     }
 
-    public String getFileNameForDisplay()
-    {
+    public String getFileNameForDisplay() {
         return "";
     }
 
-    private static boolean requiresEncoding(Line line)
-    {
+    private static boolean requiresEncoding(Line line) {
         final String text = line.getText();
         if (text.length() > 990)
             return true;
         if (text.length() == 0)
             return false;
-        for (int i = text.length()-1; i >= 0; i--) {
+        for (int i = text.length() - 1; i >= 0; i--) {
             char c = text.charAt(i);
             if (c < ' ' && c != '\t')
                 return true;
@@ -1458,8 +1438,7 @@ public final class SendMail extends Buffer
         return false;
     }
 
-    private static final String getCharSetName(String characterEncoding)
-    {
+    private static final String getCharSetName(String characterEncoding) {
         if (characterEncoding.equals("ASCII"))
             return "us-ascii";
         if (characterEncoding.startsWith("ISO8859_"))
@@ -1468,8 +1447,7 @@ public final class SendMail extends Buffer
         return characterEncoding;
     }
 
-    public boolean isHeaderLine(Line maybe)
-    {
+    public boolean isHeaderLine(Line maybe) {
         for (Line line = getFirstLine(); line != null; line = line.next()) {
             if (line == maybe)
                 return true;
@@ -1479,8 +1457,7 @@ public final class SendMail extends Buffer
         return false;
     }
 
-    public void tab(Editor editor)
-    {
+    public void tab(Editor editor) {
         Line dotLine = editor.getDotLine();
         if (dotLine.getText().equals(HEADER_SEPARATOR)) {
             Line line = dotLine.next();
@@ -1528,8 +1505,7 @@ public final class SendMail extends Buffer
         }
     }
 
-    public void backTab(Editor editor)
-    {
+    public void backTab(Editor editor) {
         Line dotLine = editor.getDotLine();
         // Check to see whether dot is in the header area or in the body of
         // the message.
@@ -1560,8 +1536,7 @@ public final class SendMail extends Buffer
             editor.moveDotTo(line, line.length());
     }
 
-    private static final boolean isContinuationLine(Line line)
-    {
+    private static final boolean isContinuationLine(Line line) {
         if (line.length() == 0)
             return false;
         char c = line.charAt(0);
@@ -1569,8 +1544,7 @@ public final class SendMail extends Buffer
     }
 
     // Append message to sent messages file (if so configured).
-    private void writeFcc(File messageFile)
-    {
+    private void writeFcc(File messageFile) {
         final File sentMessagesFile = Mail.getSentMessagesFile();
         if (sentMessagesFile == null)
             return;
@@ -1581,13 +1555,13 @@ public final class SendMail extends Buffer
                 new BufferedWriter(new FileWriter(sentMessagesFile.canonicalPath(), true));
             writer.write("From - ");
             SimpleDateFormat dateFormatter =
-                new SimpleDateFormat ("EEE MMM d HH:mm:ss yyyy");
+                new SimpleDateFormat("EEE MMM d HH:mm:ss yyyy");
             Calendar cal = Calendar.getInstance();
             String dateString = dateFormatter.format(cal.getTime());
             writer.write(dateString);
             writer.write('\n');
             String s;
-            while((s = reader.readLine()) != null) {
+            while ((s = reader.readLine()) != null) {
                 writer.write(s);
                 writer.write('\n');
             }
@@ -1601,8 +1575,7 @@ public final class SendMail extends Buffer
         }
     }
 
-    public Expansion getExpansion(Position dot)
-    {
+    public Expansion getExpansion(Position dot) {
         int endOfHeaders = -1;
         for (Line line = getFirstLine(); line != null; line = line.next()) {
             if (line.getText().equals(HEADER_SEPARATOR)) {
@@ -1621,8 +1594,7 @@ public final class SendMail extends Buffer
     private static final Pattern timeRE =
         Pattern.compile("[0-9:]+ ([+-][0-9][0-9][0-9][0-9]|[A-Z][A-Z][A-Z]+)");
 
-    private static String getAttribution(MessageBuffer messageBuffer)
-    {
+    private static String getAttribution(MessageBuffer messageBuffer) {
         if (messageBuffer == null)
             return null;
         MailboxBuffer mailboxBuffer = messageBuffer.getMailbox();
@@ -1677,8 +1649,10 @@ public final class SendMail extends Buffer
                         break;
                     }
                     default:
-                        Log.error("invalid format sequence \"%" + c + '"' +
-                                  " in attribution");
+                        Log.error(
+                            "invalid format sequence \"%" + c + '"' +
+                                " in attribution"
+                        );
                         return null;
                 }
             } else

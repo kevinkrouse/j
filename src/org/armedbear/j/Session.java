@@ -26,7 +26,6 @@ import java.io.InputStream;
 import java.io.OutputStreamWriter;
 import java.util.ArrayList;
 import java.util.List;
-
 import org.armedbear.j.mode.dir.DirectoryBuffer;
 import org.armedbear.j.mode.web.WebBuffer;
 import org.armedbear.j.util.Utilities;
@@ -36,8 +35,7 @@ import org.xml.sax.SAXException;
 import org.xml.sax.XMLReader;
 import org.xml.sax.helpers.DefaultHandler;
 
-public final class Session extends DefaultHandler implements Constants
-{
+public final class Session extends DefaultHandler implements Constants {
     private static File sessionDirectory;
 
     private final File file;
@@ -45,18 +43,15 @@ public final class Session extends DefaultHandler implements Constants
     private List<SessionBufferEntry> bufferEntries;
     private SessionBufferEntry currentBufferEntry;
 
-    private Session()
-    {
+    private Session() {
         file = File.getInstance(Directories.getStateDirectory(), "session.xml");
     }
 
-    private Session(File file)
-    {
+    private Session(File file) {
         this.file = file;
     }
 
-    public static File getSessionDirectory()
-    {
+    public static File getSessionDirectory() {
         if (sessionDirectory == null) {
             sessionDirectory =
                 File.getInstance(Directories.getStateDirectory(), "sessions");
@@ -69,31 +64,26 @@ public final class Session extends DefaultHandler implements Constants
         return sessionDirectory;
     }
 
-    private static File getSessionFile(String name)
-    {
+    private static File getSessionFile(String name) {
         return File.getInstance(getSessionDirectory(), name);
     }
 
-    public static Session getSession(String name)
-    {
+    public static Session getSession(String name) {
         File file = getSessionFile(name);
         if (file != null && file.isFile())
             return new Session(file);
         return null;
     }
 
-    public static Session getDefaultSession()
-    {
+    public static Session getDefaultSession() {
         return new Session();
     }
 
-    public static void saveDefaultSession()
-    {
+    public static void saveDefaultSession() {
         getDefaultSession().save();
     }
 
-    public static void saveCurrentSession()
-    {
+    public static void saveCurrentSession() {
         String name = Editor.getSessionName();
         if (name != null) {
             File file = getSessionFile(name);
@@ -104,8 +94,7 @@ public final class Session extends DefaultHandler implements Constants
         }
     }
 
-    public static void saveSession()
-    {
+    public static void saveSession() {
         String name = Editor.getSessionName();
         if (name == null) {
             ChooseSessionDialog d = new ChooseSessionDialog("Save Session");
@@ -116,8 +105,7 @@ public final class Session extends DefaultHandler implements Constants
             saveSession(name);
     }
 
-    public static void saveSession(String name)
-    {
+    public static void saveSession(String name) {
         File file = getSessionFile(name);
         if (file != null) {
             Session session = new Session(file);
@@ -127,8 +115,7 @@ public final class Session extends DefaultHandler implements Constants
         }
     }
 
-    public static void loadSession()
-    {
+    public static void loadSession() {
         ChooseSessionDialog d = new ChooseSessionDialog("Load Session");
         d.setVisible(true);
         String name = d.getInput();
@@ -136,8 +123,7 @@ public final class Session extends DefaultHandler implements Constants
             loadSession(name);
     }
 
-    public static void loadSession(String name)
-    {
+    public static void loadSession(String name) {
         File file = getSessionFile(name);
         if (file == null)
             return;
@@ -157,7 +143,8 @@ public final class Session extends DefaultHandler implements Constants
             Log.error("unable to load session from " + file);
             MessageDialog.showMessageDialog(
                 "Unable to load session from " + file,
-                "Load Session");
+                "Load Session"
+            );
             return;
         }
 
@@ -192,8 +179,7 @@ public final class Session extends DefaultHandler implements Constants
         editor.setDefaultCursor();
     }
 
-    public Buffer restore()
-    {
+    public Buffer restore() {
         if (file == null) {
             Debug.bug();
             return null;
@@ -207,8 +193,7 @@ public final class Session extends DefaultHandler implements Constants
         return createBuffers();
     }
 
-    private Buffer createBuffers()
-    {
+    private Buffer createBuffers() {
         long start = System.currentTimeMillis();
         Buffer toBeActivated = null;
         long lastActivated = 0;
@@ -231,8 +216,11 @@ public final class Session extends DefaultHandler implements Constants
                     }
                     if (buf != null) {
                         buf.setLastView(new View(entry));
-                        if (toBeActivated == null ||
-                                entry.getLastActivated() > lastActivated) {
+                        if (
+                            toBeActivated == null
+                                ||
+                                entry.getLastActivated() > lastActivated
+                        ) {
                             toBeActivated = buf;
                             lastActivated = entry.getLastActivated();
                         }
@@ -246,18 +234,22 @@ public final class Session extends DefaultHandler implements Constants
         if (toBeActivated == null)
             toBeActivated = Editor.getBufferList().getFirstBuffer();
         long elapsed = System.currentTimeMillis() - start;
-        Log.debug("createBuffers " + Editor.getBufferList().size() +
-            " buffers " + elapsed + " ms");
+        Log.debug(
+            "createBuffers " + Editor.getBufferList().size() +
+                " buffers " + elapsed + " ms"
+        );
         return toBeActivated;
     }
 
-    public void save()
-    {
+    public void save() {
         try {
             File tempFile = Utilities.getTempFile();
             BufferedWriter writer =
-                new BufferedWriter(new OutputStreamWriter(
-                    tempFile.getOutputStream()));
+                new BufferedWriter(
+                    new OutputStreamWriter(
+                        tempFile.getOutputStream()
+                    )
+                );
             writer.write("<?xml version=\"1.0\"?>");
             writer.newLine();
             writer.write("<session version=\"" + getVersion() + "\">");
@@ -290,8 +282,7 @@ public final class Session extends DefaultHandler implements Constants
         }
     }
 
-    private boolean load()
-    {
+    private boolean load() {
         InputStream inputStream = null;
         try {
             if (file != null && file.isFile())
@@ -329,9 +320,12 @@ public final class Session extends DefaultHandler implements Constants
         return false;
     }
 
-    public void startElement(String uri, String localName, String qName,
-        Attributes attributes) throws SAXException
-    {
+    public void startElement(
+        String uri,
+        String localName,
+        String qName,
+        Attributes attributes
+    ) throws SAXException {
         if (localName.equals("buffer") || qName.equals("buffer")) {
             currentBufferEntry = new SessionBufferEntry();
             String path = attributes.getValue("", "path");
@@ -361,8 +355,7 @@ public final class Session extends DefaultHandler implements Constants
         }
     }
 
-    public void endElement(String uri, String localName, String qName)
-    {
+    public void endElement(String uri, String localName, String qName) {
         if (localName.equals("buffer") || qName.equals("buffer")) {
             if (bufferEntries == null)
                 bufferEntries = new ArrayList<SessionBufferEntry>();
@@ -370,8 +363,7 @@ public final class Session extends DefaultHandler implements Constants
         }
     }
 
-    private final int getVersion()
-    {
+    private final int getVersion() {
         return 1;
     }
 }

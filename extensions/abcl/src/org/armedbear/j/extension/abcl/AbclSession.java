@@ -21,7 +21,6 @@
 package org.armedbear.j.extension.abcl;
 
 import java.util.Locale;
-
 import org.armedbear.j.File;
 import org.armedbear.j.Log;
 import org.armedbear.j.extension.EvalException;
@@ -50,29 +49,24 @@ import org.armedbear.lisp.Packages;
  * starts the first time something evaluates, which is why {@link #isReady} can
  * be false long after j is up.
  */
-public final class AbclSession implements Session
-{
+public final class AbclSession implements Session {
     private static boolean initialized;
 
     private final String key;
 
-    AbclSession(String key)
-    {
+    AbclSession(String key) {
         this.key = key != null ? key : LanguageClient.DEFAULT_SESSION;
     }
 
-    public String getKey()
-    {
+    public String getKey() {
         return key;
     }
 
-    public boolean isReady()
-    {
+    public boolean isReady() {
         return isInitialized();
     }
 
-    public static synchronized boolean isInitialized()
-    {
+    public static synchronized boolean isInitialized() {
         return initialized;
     }
 
@@ -80,8 +74,7 @@ public final class AbclSession implements Session
      * Called by JLispBuffer once its socket REPL has an interpreter up: that
      * counts as the runtime being started, and nothing should boot a second.
      */
-    public static synchronized void markInitialized()
-    {
+    public static synchronized void markInitialized() {
         initialized = true;
     }
 
@@ -96,16 +89,18 @@ public final class AbclSession implements Session
      * silently and j.lisp fails later on undefined {@code j::} functions, so
      * check for the package and repair it rather than trust the arrangement.
      */
-    public static synchronized void ensureInitialized() throws EvalException
-    {
+    public static synchronized void ensureInitialized() throws EvalException {
         if (initialized)
             return;
         Interpreter.initializeJLisp();
         if (Packages.findPackage("J") == null) {
             Log.warn("abcl: ABCL did not find LispAPI; loading it directly");
             try {
-                Class.forName("org.armedbear.j.LispAPI", true,
-                              AbclSession.class.getClassLoader());
+                Class.forName(
+                    "org.armedbear.j.LispAPI",
+                    true,
+                    AbclSession.class.getClassLoader()
+                );
                 Load.loadSystemFile("j.lisp", false);
             }
             catch (Throwable t) {
@@ -134,21 +129,20 @@ public final class AbclSession implements Session
      * REPL should ever see the debugger, so this is deliberately not a global
      * *debugger-hook*.
      */
-    static synchronized LispObject safeCaller()
-    {
+    static synchronized LispObject safeCaller() {
         if (safeCaller == null) {
             safeCaller = Interpreter.evaluate(
-                "(lambda (f) (handler-case (progn (funcall f) nil) (error (e) e)))");
+                "(lambda (f) (handler-case (progn (funcall f) nil) (error (e) e)))"
+            );
         }
         return safeCaller;
     }
 
     /** A condition object, as a line fit to log. Never throws. */
-    static String report(LispObject condition)
-    {
+    static String report(LispObject condition) {
         if (condition instanceof Condition) {
             try {
-                String message = ((Condition)condition).getConditionReport();
+                String message = ((Condition) condition).getConditionReport();
                 if (message != null && message.length() > 0)
                     return message;
             }
@@ -159,8 +153,7 @@ public final class AbclSession implements Session
         return "error";
     }
 
-    public EvalResult evalSync(EvalRequest request) throws EvalException
-    {
+    public EvalResult evalSync(EvalRequest request) throws EvalException {
         ensureInitialized();
         try {
             LispObject result = Interpreter.evaluate(form(request));
@@ -175,8 +168,7 @@ public final class AbclSession implements Session
         }
     }
 
-    public void eval(final EvalRequest request, final EvalHandler handler)
-    {
+    public void eval(final EvalRequest request, final EvalHandler handler) {
         Runnable r = () -> {
             EvalResult result;
             try {
@@ -193,8 +185,7 @@ public final class AbclSession implements Session
         new Thread(r, "abcl eval").start();
     }
 
-    public void loadFile(File file) throws EvalException
-    {
+    public void loadFile(File file) throws EvalException {
         ensureInitialized();
         try {
             Interpreter.evaluate("(load \"".concat(file.shellEscaped()).concat("\")"));
@@ -204,15 +195,15 @@ public final class AbclSession implements Session
         }
     }
 
-    public boolean hasFeature(String name)
-    {
+    public boolean hasFeature(String name) {
         // Deliberately does not boot the interpreter: "is slime loaded" is
         // asked while building a menu, and the answer before startup is no.
         if (!isInitialized() || name == null)
             return false;
         try {
             LispObject result = Interpreter.evaluate(
-                "(ext:featurep :".concat(name.toLowerCase(Locale.ROOT)).concat(")"));
+                "(ext:featurep :".concat(name.toLowerCase(Locale.ROOT)).concat(")")
+            );
             return result != Lisp.NIL;
         }
         catch (Throwable t) {
@@ -221,21 +212,20 @@ public final class AbclSession implements Session
         }
     }
 
-    public void interrupt()
-    {
+    public void interrupt() {
         if (isInitialized())
             Interpreter.getInstance().kill(0);
     }
 
     // The form actually handed to the reader.
 
-    private static String form(EvalRequest request)
-    {
+    private static String form(EvalRequest request) {
         String code = request.getCode();
         if (request.isCaptureOutput()) {
             // What CompilationBuffer used to wrap around the form itself.
             code = "(with-output-to-string (s) (let ((*standard-output* s)) "
-                   .concat(code).concat(" ))");
+                .concat(code)
+                .concat(" ))");
         }
         String context = request.getContext();
         if (context == null)
@@ -243,13 +233,18 @@ public final class AbclSession implements Session
         // *package* has to be bound before the form is read, not before it is
         // evaluated, so the form goes through read-from-string.
         return "(let ((*package* (or (find-package \"".concat(
-                   context.toUpperCase(Locale.ROOT)).concat(
-               "\") *package*))) (eval (read-from-string ").concat(
-                   quote(code)).concat(")))");
+            context.toUpperCase(Locale.ROOT)
+        )
+            .concat(
+                "\") *package*))) (eval (read-from-string "
+            )
+            .concat(
+                quote(code)
+            )
+            .concat(")))");
     }
 
-    private static String quote(String s)
-    {
+    private static String quote(String s) {
         StringBuilder sb = new StringBuilder(s.length() + 16);
         sb.append('"');
         for (int i = 0; i < s.length(); i++) {
@@ -266,15 +261,14 @@ public final class AbclSession implements Session
      * A condition, as a line fit to show the user. This unwrapping used to sit
      * in Editor.executeCommand; it belongs here, where the types are known.
      */
-    static String report(Throwable t)
-    {
+    static String report(Throwable t) {
         String message = null;
         if (t instanceof ControlTransfer) {
             try {
-                LispObject condition = ((ControlTransfer)t).getCondition();
+                LispObject condition = ((ControlTransfer) t).getCondition();
                 if (condition instanceof Condition) {
                     try {
-                        message = ((Condition)condition).getConditionReport();
+                        message = ((Condition) condition).getConditionReport();
                     }
                     catch (Throwable ignored) {
                         // At least we tried.

@@ -20,25 +20,22 @@
 
 package org.armedbear.j.mode.xml;
 
+import java.lang.StringBuilder;
 import org.armedbear.j.Editor;
 import org.armedbear.j.EditorIterator;
-import java.lang.StringBuilder;
 import org.armedbear.j.File;
 import org.armedbear.j.mode.compilation.CompilationErrorBuffer;
 
-public final class XmlErrorBuffer extends CompilationErrorBuffer
-{
+public final class XmlErrorBuffer extends CompilationErrorBuffer {
     private File file;
 
-    public XmlErrorBuffer(File file, String text)
-    {
+    public XmlErrorBuffer(File file, String text) {
         super();
         this.file = file;
         setText(text);
     }
 
-    public void recycle(File file, String text)
-    {
+    public void recycle(File file, String text) {
         if (!Editor.getBufferList().contains(this))
             relink();
         empty();
@@ -55,8 +52,7 @@ public final class XmlErrorBuffer extends CompilationErrorBuffer
         }
     }
 
-    public String toString()
-    {
+    public String toString() {
         if (file != null) {
             StringBuilder sb = new StringBuilder();
             sb.append(file.getName());

@@ -20,8 +20,6 @@
 
 package org.armedbear.j;
 
-import org.armedbear.j.Constants;
-import org.armedbear.j.util.Utilities;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.awt.event.MouseEvent;
@@ -30,16 +28,16 @@ import java.awt.event.MouseMotionListener;
 import java.util.List;
 import javax.swing.SwingUtilities;
 import javax.swing.ToolTipManager;
+import org.armedbear.j.Constants;
+import org.armedbear.j.util.Utilities;
 
 public class SidebarTagList extends SidebarList implements Constants,
-    NavigationComponent, KeyListener, MouseListener, MouseMotionListener
-{
+    NavigationComponent, KeyListener, MouseListener, MouseMotionListener {
     private Editor editor;
     private Buffer buffer;
     private List<LocalTag> tags;
 
-    public SidebarTagList(Sidebar sidebar, Editor editor)
-    {
+    public SidebarTagList(Sidebar sidebar, Editor editor) {
         super(sidebar);
         this.editor = editor;
         addKeyListener(this);
@@ -47,34 +45,28 @@ public class SidebarTagList extends SidebarList implements Constants,
         addMouseMotionListener(this);
     }
 
-    public final Editor getEditor()
-    {
+    public final Editor getEditor() {
         return editor;
     }
 
-    public synchronized final void setEditor(Editor editor)
-    {
+    public synchronized final void setEditor(Editor editor) {
         this.editor = editor;
     }
 
-    public final Buffer getBuffer()
-    {
+    public final Buffer getBuffer() {
         return buffer;
     }
 
-    public final void setBuffer(Buffer buffer)
-    {
+    public final void setBuffer(Buffer buffer) {
         this.buffer = buffer;
     }
 
-    public final String getLabelText()
-    {
+    public final String getLabelText() {
         File file = editor.getBuffer().getFile();
         return file != null ? file.getName() : null;
     }
 
-    public synchronized void refresh()
-    {
+    public synchronized void refresh() {
         if (!SwingUtilities.isEventDispatchThread())
             Debug.bug("SidebarTagList.refresh() called from background thread!");
         final Buffer buf = editor.getBuffer();
@@ -127,8 +119,7 @@ public class SidebarTagList extends SidebarList implements Constants,
         thread.start();
     }
 
-    private synchronized void replaceListData(Buffer buf, Object[] listData)
-    {
+    private synchronized void replaceListData(Buffer buf, Object[] listData) {
         if (editor.getBuffer() == buf) {
             setListData(listData);
             setBuffer(buf);
@@ -138,8 +129,7 @@ public class SidebarTagList extends SidebarList implements Constants,
 
     // Set the selection to the last tag before the position of the caret in
     // the current editor.
-    public synchronized void updatePosition()
-    {
+    public synchronized void updatePosition() {
         if (tags == null)
             return;
         final Position dot = editor.getDot();
@@ -173,8 +163,7 @@ public class SidebarTagList extends SidebarList implements Constants,
         }
     }
 
-    private synchronized void gotoTag()
-    {
+    private synchronized void gotoTag() {
         if (tags == null)
             return;
         int index = getSelectedIndex();
@@ -185,8 +174,7 @@ public class SidebarTagList extends SidebarList implements Constants,
         editor.setFocusToDisplay();
     }
 
-    public synchronized String getToolTipText(MouseEvent e)
-    {
+    public synchronized String getToolTipText(MouseEvent e) {
         if (tags != null) {
             int index = locationToIndex(e.getPoint());
             if (index >= 0 && index < tags.size()) {
@@ -197,8 +185,7 @@ public class SidebarTagList extends SidebarList implements Constants,
         return null;
     }
 
-    public void keyPressed(KeyEvent e)
-    {
+    public void keyPressed(KeyEvent e) {
         int keyCode = e.getKeyCode();
         int modifiers = Utilities.keyModifiers(e);
         modifiers &= 0x0f;
@@ -234,25 +221,25 @@ public class SidebarTagList extends SidebarList implements Constants,
         editor.getDispatcher().setEnabled(false);
     }
 
-    public void keyReleased(KeyEvent e)
-    {
+    public void keyReleased(KeyEvent e) {
         e.consume();
         editor.getDispatcher().setEnabled(true);
     }
 
-    public void keyTyped(KeyEvent e)
-    {
+    public void keyTyped(KeyEvent e) {
         e.consume();
     }
 
-    public void mousePressed(MouseEvent e)
-    {
+    public void mousePressed(MouseEvent e) {
         LocationBar.cancelInput();
         editor.ensureActive();
         final int button = e.getButton();
         final boolean unmodified = Utilities.isUnmodified(e);
-        if ((unmodified && button == MouseEvent.BUTTON1) ||
-            (unmodified && button == MouseEvent.BUTTON2)) {
+        if (
+            (unmodified && button == MouseEvent.BUTTON1)
+                ||
+                (unmodified && button == MouseEvent.BUTTON2)
+        ) {
             if ((unmodified && button == MouseEvent.BUTTON2))
                 setSelectedIndex(locationToIndex(e.getPoint()));
             paintImmediately(0, 0, getWidth(), getHeight());
@@ -267,16 +254,14 @@ public class SidebarTagList extends SidebarList implements Constants,
 
     public void mouseClicked(MouseEvent e) {}
 
-    public void mouseMoved(MouseEvent e)
-    {
+    public void mouseMoved(MouseEvent e) {
         String text = getToolTipText(e);
         sidebar.getFrame().setStatusText(text != null ? text : "");
     }
 
     public void mouseEntered(MouseEvent e) {}
 
-    public void mouseExited(MouseEvent e)
-    {
+    public void mouseExited(MouseEvent e) {
         final Frame frame = sidebar.getFrame();
         final StatusBar statusBar = frame.getStatusBar();
         if (statusBar != null) {

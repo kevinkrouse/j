@@ -23,14 +23,13 @@ package org.armedbear.j.mail;
 import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
+import java.lang.StringBuilder;
 import java.util.ArrayList;
 import java.util.HashMap;
 import javax.swing.Icon;
 import javax.swing.SwingUtilities;
 import org.armedbear.j.Editor;
 import org.armedbear.j.EditorIterator;
-import java.lang.StringBuilder;
-import org.armedbear.j.util.FastStringReader;
 import org.armedbear.j.File;
 import org.armedbear.j.InputDialog;
 import org.armedbear.j.Line;
@@ -39,11 +38,11 @@ import org.armedbear.j.MessageDialog;
 import org.armedbear.j.Position;
 import org.armedbear.j.ProgressNotifier;
 import org.armedbear.j.StatusBarProgressNotifier;
-import org.armedbear.j.util.Utilities;
 import org.armedbear.j.View;
+import org.armedbear.j.util.FastStringReader;
+import org.armedbear.j.util.Utilities;
 
-public final class NewsGroupSummaryBuffer extends MailboxBuffer
-{
+public final class NewsGroupSummaryBuffer extends MailboxBuffer {
     private final NntpSession session;
     private final String groupName;
     private final HashMap<String, String> map = new HashMap<String, String>();
@@ -52,8 +51,7 @@ public final class NewsGroupSummaryBuffer extends MailboxBuffer
     private String errorText;
     private int numberToGet;
 
-    public NewsGroupSummaryBuffer(NntpSession session, String groupName)
-    {
+    public NewsGroupSummaryBuffer(NntpSession session, String groupName) {
         super();
         this.session = session;
         this.groupName = groupName;
@@ -67,18 +65,15 @@ public final class NewsGroupSummaryBuffer extends MailboxBuffer
         setInitialized(true);
     }
 
-    public final NntpSession getSession()
-    {
+    public final NntpSession getSession() {
         return session;
     }
 
-    public final String getName()
-    {
+    public final String getName() {
         return groupName;
     }
 
-    public int load()
-    {
+    public int load() {
         setBusy(true);
         new Thread(loadRunnable).start();
         setLoaded(true);
@@ -86,10 +81,8 @@ public final class NewsGroupSummaryBuffer extends MailboxBuffer
     }
 
     private Runnable loadRunnable = new Runnable() {
-        public void run()
-        {
-            if (!session.connect())
-            {
+        public void run() {
+            if (!session.connect()) {
                 errorText = session.getErrorText();
                 SwingUtilities.invokeLater(errorRunnable);
                 return;
@@ -112,8 +105,12 @@ public final class NewsGroupSummaryBuffer extends MailboxBuffer
                     String prompt = "How many headers would you like?";
                     String defaultValue = String.valueOf(count);
                     String response =
-                        InputDialog.showInputDialog(editor, prompt,
-                            groupName, defaultValue);
+                        InputDialog.showInputDialog(
+                            editor,
+                            prompt,
+                            groupName,
+                            defaultValue
+                        );
                     editor.setWaitCursor();
                     numberToGet = 0;
                     if (response != null && response.length() > 0) {
@@ -149,8 +146,7 @@ public final class NewsGroupSummaryBuffer extends MailboxBuffer
     };
 
     private Runnable updateDisplayRunnable = new Runnable() {
-        public void run()
-        {
+        public void run() {
             setBusy(false);
             invalidate();
             for (EditorIterator it = new EditorIterator(); it.hasNext();) {
@@ -167,8 +163,7 @@ public final class NewsGroupSummaryBuffer extends MailboxBuffer
     };
 
     private Runnable errorRunnable = new Runnable() {
-        public void run()
-        {
+        public void run() {
             Editor editor = Editor.currentEditor();
             editor.setDefaultCursor();
             if (errorText != null)
@@ -180,19 +175,17 @@ public final class NewsGroupSummaryBuffer extends MailboxBuffer
         }
     };
 
-    public void readArticle(Editor editor, Line line, boolean useOtherWindow)
-    {
+    public void readArticle(Editor editor, Line line, boolean useOtherWindow) {
         if (line instanceof MailboxLine) {
             editor.setMark(null);
             NewsGroupSummaryEntry entry =
-                (NewsGroupSummaryEntry) ((MailboxLine)line).getMailboxEntry();
+                (NewsGroupSummaryEntry) ((MailboxLine) line).getMailboxEntry();
             NewsGroupMessageBuffer mb = new NewsGroupMessageBuffer(this, entry);
             activateMessageBuffer(editor, mb, useOtherWindow);
         }
     }
 
-    public String getArticle(int articleNumber, ProgressNotifier progressNotifier)
-    {
+    public String getArticle(int articleNumber, ProgressNotifier progressNotifier) {
         String key = String.valueOf(articleNumber);
         String filename = map.get(key);
         if (filename != null) {
@@ -201,7 +194,7 @@ public final class NewsGroupSummaryBuffer extends MailboxBuffer
                 try {
                     MailReader reader = new MailReader(file.getInputStream());
                     long length = file.length();
-                    StringBuilder sb = new StringBuilder((int)length);
+                    StringBuilder sb = new StringBuilder((int) length);
                     String s;
                     while ((s = reader.readLine()) != null) {
                         sb.append(s);
@@ -220,8 +213,11 @@ public final class NewsGroupSummaryBuffer extends MailboxBuffer
             try {
                 FastStringReader reader = new FastStringReader(text);
                 try (BufferedWriter writer = new BufferedWriter(
-                         new OutputStreamWriter(file.getOutputStream(),
-                                                "ISO-8859-1"))) {
+                    new OutputStreamWriter(
+                        file.getOutputStream(),
+                        "ISO-8859-1"
+                    )
+                )) {
                     String s;
                     while ((s = reader.readLine()) != null) {
                         writer.write(s);
@@ -238,8 +234,7 @@ public final class NewsGroupSummaryBuffer extends MailboxBuffer
         return text;
     }
 
-    private void addEntriesToBuffer()
-    {
+    private void addEntriesToBuffer() {
         if (entries != null) {
             try {
                 lockWrite();
@@ -251,7 +246,7 @@ public final class NewsGroupSummaryBuffer extends MailboxBuffer
             try {
                 int limit = entries.size();
                 for (int i = 0; i < limit; i++)
-                    appendLine((NewsGroupSummaryEntry)entries.get(i));
+                    appendLine((NewsGroupSummaryEntry) entries.get(i));
                 renumber();
             }
             finally {
@@ -260,18 +255,15 @@ public final class NewsGroupSummaryBuffer extends MailboxBuffer
         }
     }
 
-    public Position getInitialDotPos()
-    {
+    public Position getInitialDotPos() {
         return getFirstLine() != null ? new Position(getFirstLine(), 0) : null;
     }
 
-    private boolean selectGroup()
-    {
+    private boolean selectGroup() {
         return session.selectGroup(groupName);
     }
 
-    private void getHeaders()
-    {
+    private void getHeaders() {
         int last = session.getLast();
         int first = session.getFirst();
         if (last <= first)
@@ -303,10 +295,9 @@ public final class NewsGroupSummaryBuffer extends MailboxBuffer
         }
     }
 
-    public void dispose()
-    {
+    public void dispose() {
         if (session != null) {
-            Runnable r = () ->{
+            Runnable r = () -> {
                 session.disconnect();
             };
             new Thread(r).start();
@@ -314,66 +305,39 @@ public final class NewsGroupSummaryBuffer extends MailboxBuffer
     }
 
     // For the buffer list.
-    public Icon getIcon()
-    {
+    public Icon getIcon() {
         return Utilities.getIconFromFile("mailbox");
     }
 
-    public void getNewMessages()
-    {
-    }
+    public void getNewMessages() {}
 
-    public void readMessage(Line line)
-    {
-    }
+    public void readMessage(Line line) {}
 
-    public void createFolder()
-    {
-    }
+    public void createFolder() {}
 
-    public void deleteFolder()
-    {
-    }
+    public void deleteFolder() {}
 
-    public void saveToFolder()
-    {
-    }
+    public void saveToFolder() {}
 
-    public void moveToFolder()
-    {
-    }
+    public void moveToFolder() {}
 
-    public void delete()
-    {
-    }
+    public void delete() {}
 
-    public void undelete()
-    {
-    }
+    public void undelete() {}
 
-    public void markRead()
-    {
-    }
+    public void markRead() {}
 
-    public void markUnread()
-    {
-    }
+    public void markUnread() {}
 
-    public void setAnsweredFlag(MailboxEntry entry)
-    {
-    }
+    public void setAnsweredFlag(MailboxEntry entry) {}
 
-    public void expunge()
-    {
-    }
+    public void expunge() {}
 
-    public int getMessageCount()
-    {
+    public int getMessageCount() {
         return 0;
     }
 
-    public void saveView(Editor editor)
-    {
+    public void saveView(Editor editor) {
         final View view = saveViewInternal(editor);
         editor.setView(this, view);
         setLastView(view);

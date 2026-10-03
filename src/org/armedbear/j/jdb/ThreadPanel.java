@@ -20,7 +20,6 @@
 
 package org.armedbear.j.jdb;
 
-import org.armedbear.j.util.Utilities;
 import com.sun.jdi.IncompatibleThreadStateException;
 import com.sun.jdi.Location;
 import com.sun.jdi.Method;
@@ -30,8 +29,9 @@ import com.sun.jdi.VirtualMachine;
 import java.awt.Component;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
-import java.util.List;
+import java.lang.StringBuilder;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.List;
 import javax.swing.JList;
 import javax.swing.JScrollPane;
@@ -40,12 +40,11 @@ import org.armedbear.j.Buffer;
 import org.armedbear.j.Editor;
 import org.armedbear.j.EditorIterator;
 import org.armedbear.j.File;
-import java.lang.StringBuilder;
-import org.armedbear.j.mode.java.JavaSource;
 import org.armedbear.j.Log;
+import org.armedbear.j.mode.java.JavaSource;
+import org.armedbear.j.util.Utilities;
 
-public final class ThreadPanel implements ContextListener, MouseListener
-{
+public final class ThreadPanel implements ContextListener, MouseListener {
     private final Jdb jdb;
     private final JdbControlDialog dialog;
     private final JList<String> list;
@@ -53,8 +52,7 @@ public final class ThreadPanel implements ContextListener, MouseListener
 
     private List<ThreadReference> threads;
 
-    public ThreadPanel(Jdb jdb, JdbControlDialog dialog)
-    {
+    public ThreadPanel(Jdb jdb, JdbControlDialog dialog) {
         this.jdb = jdb;
         this.dialog = dialog;
         List<String> v = new ArrayList<String>();
@@ -64,13 +62,11 @@ public final class ThreadPanel implements ContextListener, MouseListener
         list.addMouseListener(this);
     }
 
-    public Component getComponent()
-    {
+    public Component getComponent() {
         return scrollPane;
     }
 
-    public void contextChanged()
-    {
+    public void contextChanged() {
         final List<String> v = new ArrayList<String>();
         int index = -1;
         VirtualMachine vm = jdb.getVM();
@@ -119,14 +115,16 @@ public final class ThreadPanel implements ContextListener, MouseListener
         SwingUtilities.invokeLater(r);
     }
 
-    public void mousePressed(MouseEvent e)
-    {
+    public void mousePressed(MouseEvent e) {
         if (!jdb.isSuspended())
             return;
         final int button = e.getButton();
         final boolean unmodified = Utilities.isUnmodified(e);
-        if ((unmodified && button == MouseEvent.BUTTON1) ||
-            (unmodified && button == MouseEvent.BUTTON2)) {
+        if (
+            (unmodified && button == MouseEvent.BUTTON1)
+                ||
+                (unmodified && button == MouseEvent.BUTTON2)
+        ) {
             if ((unmodified && button == MouseEvent.BUTTON2))
                 list.setSelectedIndex(list.locationToIndex(e.getPoint()));
             list.paintImmediately(0, 0, list.getWidth(), list.getHeight());

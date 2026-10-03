@@ -25,20 +25,17 @@ import org.armedbear.j.BufferIterator;
 import org.armedbear.j.Editor;
 import org.armedbear.j.IdleThreadTask;
 
-public final class RewriteMailboxesTask extends IdleThreadTask
-{
+public final class RewriteMailboxesTask extends IdleThreadTask {
     private static final long REWRITE_MAILBOXES_IDLE = 5000; // 5 seconds
 
     private static RewriteMailboxesTask instance;
 
-    private RewriteMailboxesTask()
-    {
+    private RewriteMailboxesTask() {
         setIdle(REWRITE_MAILBOXES_IDLE);
         setRunnable(runnable);
     }
 
-    public static synchronized RewriteMailboxesTask getInstance()
-    {
+    public static synchronized RewriteMailboxesTask getInstance() {
         if (instance == null)
             instance = new RewriteMailboxesTask();
         return instance;
@@ -47,8 +44,7 @@ public final class RewriteMailboxesTask extends IdleThreadTask
     private final Runnable runnable = new Runnable() {
         private long lastRun;
 
-        public void run()
-        {
+        public void run() {
             if (!Editor.isMailEnabled())
                 return;
             long now = System.currentTimeMillis();

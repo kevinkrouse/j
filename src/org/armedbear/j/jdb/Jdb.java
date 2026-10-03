@@ -46,6 +46,7 @@ import com.sun.jdi.request.ThreadStartRequest;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.lang.StringBuilder;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -61,19 +62,17 @@ import org.armedbear.j.Editor;
 import org.armedbear.j.EditorIterator;
 import org.armedbear.j.EditorList;
 import org.armedbear.j.File;
-import java.lang.StringBuilder;
-import org.armedbear.j.mode.java.JavaMode;
-import org.armedbear.j.mode.java.JavaSource;
 import org.armedbear.j.Line;
 import org.armedbear.j.Log;
 import org.armedbear.j.Platform;
 import org.armedbear.j.Position;
-import org.armedbear.j.util.ReaderThread;
 import org.armedbear.j.SimpleEdit;
+import org.armedbear.j.mode.java.JavaMode;
+import org.armedbear.j.mode.java.JavaSource;
+import org.armedbear.j.util.ReaderThread;
 import org.armedbear.j.util.Utilities;
 
-public final class Jdb extends Buffer implements JdbConstants
-{
+public final class Jdb extends Buffer implements JdbConstants {
     private static int catchMode = CATCH_UNCAUGHT;
 
     private JdbSession session;
@@ -97,8 +96,7 @@ public final class Jdb extends Buffer implements JdbConstants
     private int lastCommand;
     private final List<ResolvableBreakpoint> breakpoints = new ArrayList<ResolvableBreakpoint>();
 
-    public static synchronized void jdb()
-    {
+    public static synchronized void jdb() {
         final Editor editor = Editor.currentEditor();
         final Buffer buffer = editor.getBuffer();
         Jdb jdb = findJdb();
@@ -137,8 +135,7 @@ public final class Jdb extends Buffer implements JdbConstants
         editor.getFrame().setDefaultCursor();
     }
 
-    private Jdb(JdbSession session)
-    {
+    private Jdb(JdbSession session) {
         super();
         supportsUndo = false;
         mode = JdbMode.getMode();
@@ -147,13 +144,11 @@ public final class Jdb extends Buffer implements JdbConstants
         setSession(session);
     }
 
-    public VirtualMachine getVM()
-    {
+    public VirtualMachine getVM() {
         return vm;
     }
 
-    public void setVM(VirtualMachine vm)
-    {
+    public void setVM(VirtualMachine vm) {
         this.vm = vm;
         if (vm == null) {
             isSuspended = true;
@@ -162,109 +157,89 @@ public final class Jdb extends Buffer implements JdbConstants
         }
     }
 
-    public String getMainClass()
-    {
+    public String getMainClass() {
         return mainClass;
     }
 
-    public String getMainClassArgs()
-    {
+    public String getMainClassArgs() {
         return mainClassArgs;
     }
 
-    public String getClassPath()
-    {
+    public String getClassPath() {
         return classPath;
     }
 
-    public String getJavaHome()
-    {
+    public String getJavaHome() {
         return javaHome;
     }
 
-    public String getJavaExecutable()
-    {
+    public String getJavaExecutable() {
         return javaExecutable;
     }
 
-    public String getVMArgs()
-    {
+    public String getVMArgs() {
         return vmArgs;
     }
 
-    public boolean getStartSuspended()
-    {
+    public boolean getStartSuspended() {
         return startSuspended;
     }
 
-    public String getSourcePath()
-    {
+    public String getSourcePath() {
         return sourcePath;
     }
 
-    public int getLastCommand()
-    {
+    public int getLastCommand() {
         return lastCommand;
     }
 
-    public void setLocation(Location location)
-    {
+    public void setLocation(Location location) {
         this.location = location;
     }
 
-    public void setCurrentThread(ThreadReference threadRef)
-    {
+    public void setCurrentThread(ThreadReference threadRef) {
         currentThread = threadRef;
     }
 
-    public ThreadReference getCurrentThread()
-    {
+    public ThreadReference getCurrentThread() {
         return currentThread;
     }
 
-    public boolean isSuspended()
-    {
+    public boolean isSuspended() {
         return isSuspended;
     }
 
-    public void setSuspended(boolean b)
-    {
+    public void setSuspended(boolean b) {
         isSuspended = b;
     }
 
-    public synchronized void setCurrentStackFrame(StackFrame stackFrame)
-    {
+    public synchronized void setCurrentStackFrame(StackFrame stackFrame) {
         currentStackFrame = stackFrame;
     }
 
-    public synchronized StackFrame getCurrentStackFrame()
-    {
+    public synchronized StackFrame getCurrentStackFrame() {
         return currentStackFrame;
     }
 
-    public List<ResolvableBreakpoint> getBreakpoints()
-    {
+    public List<ResolvableBreakpoint> getBreakpoints() {
         return breakpoints;
     }
 
-    public void addBreakpointListener(BreakpointListener listener)
-    {
-        synchronized(breakpointListeners) {
+    public void addBreakpointListener(BreakpointListener listener) {
+        synchronized (breakpointListeners) {
             breakpointListeners.add(listener);
         }
     }
 
-    public void fireBreakpointChanged()
-    {
-        synchronized(breakpointListeners) {
+    public void fireBreakpointChanged() {
+        synchronized (breakpointListeners) {
             for (BreakpointListener listener : breakpointListeners)
                 listener.breakpointChanged();
         }
     }
 
-    public void addContextListener(ContextListener listener)
-    {
-        synchronized(contextListeners) {
+    public void addContextListener(ContextListener listener) {
+        synchronized (contextListeners) {
             contextListeners.add(listener);
         }
     }
@@ -276,21 +251,18 @@ public final class Jdb extends Buffer implements JdbConstants
         }
     };
 
-    public void fireContextChanged()
-    {
+    public void fireContextChanged() {
         if (SwingUtilities.isEventDispatchThread())
             fireContextChangedRunnable.run();
         else
             SwingUtilities.invokeLater(fireContextChangedRunnable);
     }
 
-    public void initialize()
-    {
+    public void initialize() {
         // Nothing to do.
     }
 
-    public synchronized int load()
-    {
+    public synchronized int load() {
         if (!isLoaded()) {
             try {
                 lockWrite();
@@ -311,27 +283,24 @@ public final class Jdb extends Buffer implements JdbConstants
         return LOAD_COMPLETED;
     }
 
-    private void showControlDialog()
-    {
+    private void showControlDialog() {
         if (controlDialog == null) {
             controlDialog = new JdbControlDialog(this);
             controlDialog.setVisible(true);
         }
     }
 
-    public JdbControlDialog getControlDialog()
-    {
+    public JdbControlDialog getControlDialog() {
         return controlDialog;
     }
 
-    public void doCommand(String input)
-    {
+    public void doCommand(String input) {
         String s = input.trim();
         String cmd, args;
         int index = s.indexOf(' ');
         if (index >= 0) {
             cmd = s.substring(0, index);
-            args = s.substring(index+1).trim();
+            args = s.substring(index + 1).trim();
         } else {
             cmd = s;
             args = null;
@@ -348,8 +317,7 @@ public final class Jdb extends Buffer implements JdbConstants
         }
     }
 
-    public void doCommand(int command, String args)
-    {
+    public void doCommand(int command, String args) {
         switch (command) {
             case JDB_BREAK:
                 logCommand("break", args);
@@ -415,13 +383,11 @@ public final class Jdb extends Buffer implements JdbConstants
 
     private static final String prompt = "jdb> ";
 
-    public static final String getPrompt()
-    {
+    public static final String getPrompt() {
         return prompt;
     }
 
-    public void prompt()
-    {
+    public void prompt() {
         Runnable r = () -> {
             appendString(prompt, true, JdbFormatter.JDB_FORMAT_PROMPT);
         };
@@ -431,13 +397,11 @@ public final class Jdb extends Buffer implements JdbConstants
             SwingUtilities.invokeLater(r);
     }
 
-    private void logCommand(String command)
-    {
+    private void logCommand(String command) {
         log(prompt.concat(command));
     }
 
-    private void logCommand(String command, String remainder)
-    {
+    private void logCommand(String command, String remainder) {
         StringBuilder sb = new StringBuilder(prompt);
         sb.append(command);
         if (remainder != null && remainder.length() > 0) {
@@ -447,22 +411,22 @@ public final class Jdb extends Buffer implements JdbConstants
         log(sb.toString());
     }
 
-    public void log(String s)
-    {
+    public void log(String s) {
         log(s, true);
     }
 
-    private void log(String s, boolean forceNewLine)
-    {
+    private void log(String s, boolean forceNewLine) {
         log(s, forceNewLine, JdbFormatter.JDB_FORMAT_LOG);
     }
 
-    private void log(final String s, final boolean forceNewLine, final int flags)
-    {
+    private void log(final String s, final boolean forceNewLine, final int flags) {
         Runnable r = () -> {
             Log.debug(s);
-            appendString(s.concat("\n"), forceNewLine,
-                flags);
+            appendString(
+                s.concat("\n"),
+                forceNewLine,
+                flags
+            );
         };
         if (SwingUtilities.isEventDispatchThread())
             r.run();
@@ -470,8 +434,7 @@ public final class Jdb extends Buffer implements JdbConstants
             SwingUtilities.invokeLater(r);
     }
 
-    private void appendString(String s, boolean forceNewLine, int flags)
-    {
+    private void appendString(String s, boolean forceNewLine, int flags) {
         try {
             lockWrite();
         }
@@ -518,13 +481,11 @@ public final class Jdb extends Buffer implements JdbConstants
         }
     }
 
-    public void printCurrentLocation(LocatableEvent event)
-    {
+    public void printCurrentLocation(LocatableEvent event) {
         printCurrentLocation(event.thread(), event.location());
     }
 
-    public void printCurrentLocation(ThreadReference threadRef, Location location)
-    {
+    public void printCurrentLocation(ThreadReference threadRef, Location location) {
         StringBuilder sb = new StringBuilder("[");
         sb.append(threadRef.name());
         sb.append("] ");
@@ -554,20 +515,18 @@ public final class Jdb extends Buffer implements JdbConstants
 
     public void displayRemoteOutput(InputStream inputStream) {
         ReaderThread readerThread = new ReaderThread(inputStream) {
-            public void update(final String s)
-            {
+            public void update(final String s) {
                 Runnable runnable = () -> {
                     appendString(s, false, JdbFormatter.JDB_FORMAT_OUTPUT);
                 };
                 SwingUtilities.invokeLater(runnable);
             }
         };
-        readerThread.setPriority(Thread.MAX_PRIORITY-1);
+        readerThread.setPriority(Thread.MAX_PRIORITY - 1);
         readerThread.start();
     }
 
-    private void addBreakpoint(ResolvableBreakpoint bp)
-    {
+    private void addBreakpoint(ResolvableBreakpoint bp) {
         breakpoints.add(bp);
         StringBuilder sb = new StringBuilder();
         if (bp.isTemporary())
@@ -581,8 +540,7 @@ public final class Jdb extends Buffer implements JdbConstants
             prompt();
     }
 
-    public void deleteBreakpoint(ResolvableBreakpoint bp)
-    {
+    public void deleteBreakpoint(ResolvableBreakpoint bp) {
         bp.clear();
         breakpoints.remove(bp);
         StringBuilder sb = new StringBuilder();
@@ -597,8 +555,7 @@ public final class Jdb extends Buffer implements JdbConstants
             prompt();
     }
 
-    public static void jdbToggleBreakpoint()
-    {
+    public static void jdbToggleBreakpoint() {
         Jdb jdb = findJdb();
         if (jdb == null)
             return;
@@ -611,13 +568,11 @@ public final class Jdb extends Buffer implements JdbConstants
             jdbSetBreakpoint();
     }
 
-    public static void jdbSetBreakpoint()
-    {
+    public static void jdbSetBreakpoint() {
         setBreakpointAtCurrentLine(false);
     }
 
-    public static void jdbRunToCurrentLine()
-    {
+    public static void jdbRunToCurrentLine() {
         Jdb jdb = findJdb();
         if (jdb == null)
             return;
@@ -626,8 +581,7 @@ public final class Jdb extends Buffer implements JdbConstants
         jdb.doContinue();
     }
 
-    private static void setBreakpointAtCurrentLine(boolean temporary)
-    {
+    private static void setBreakpointAtCurrentLine(boolean temporary) {
         Jdb jdb = findJdb();
         if (jdb == null)
             return;
@@ -665,7 +619,7 @@ public final class Jdb extends Buffer implements JdbConstants
                     }
                     if (classFilter.toLowerCase().endsWith(".java")) {
                         classFilter =
-                            classFilter.substring(0, classFilter.length()-5);
+                            classFilter.substring(0, classFilter.length() - 5);
                     }
                     cpr.addClassFilter(classFilter);
                     cpr.enable();
@@ -683,8 +637,7 @@ public final class Jdb extends Buffer implements JdbConstants
         }
     }
 
-    public static void jdbDeleteBreakpoint()
-    {
+    public static void jdbDeleteBreakpoint() {
         Jdb jdb = findJdb();
         if (jdb == null)
             return;
@@ -693,7 +646,7 @@ public final class Jdb extends Buffer implements JdbConstants
         Annotation annotation = line.getAnnotation();
         if (annotation instanceof BreakpointAnnotation) {
             ResolvableBreakpoint bp =
-                ((BreakpointAnnotation)annotation).getBreakpoint();
+                ((BreakpointAnnotation) annotation).getBreakpoint();
             jdb.log("clear " + bp.getLocationString());
             jdb.deleteBreakpoint(bp);
             File file = bp.getFile();
@@ -707,8 +660,7 @@ public final class Jdb extends Buffer implements JdbConstants
         }
     }
 
-    public synchronized void doContinue()
-    {
+    public synchronized void doContinue() {
         if (vm != null) {
             currentThread = null;
             currentStackFrame = null;
@@ -718,8 +670,7 @@ public final class Jdb extends Buffer implements JdbConstants
         }
     }
 
-    public synchronized void doSuspend()
-    {
+    public synchronized void doSuspend() {
         if (vm != null && !isSuspended) {
             vm.suspend();
             isSuspended = true;
@@ -740,21 +691,18 @@ public final class Jdb extends Buffer implements JdbConstants
         }
     }
 
-    public static Jdb findJdb()
-    {
+    public static Jdb findJdb() {
         return JavaMode.getJdb();
     }
 
-    public void startProcess()
-    {
+    public void startProcess() {
         Runnable r = () -> {
             startProcessInternal();
         };
         new Thread(r).start();
     }
 
-    private void startProcessInternal()
-    {
+    private void startProcessInternal() {
         VMConnection connection = VMConnection.getConnection(this);
         if (connection != null) {
             vm = connection.open(this);
@@ -762,8 +710,11 @@ public final class Jdb extends Buffer implements JdbConstants
                 EventRequestManager mgr = vm.eventRequestManager();
                 if (catchMode != CATCH_NONE) {
                     ExceptionRequest exceptionRequest =
-                        mgr.createExceptionRequest(null,
-                            catchMode == CATCH_ALL, true);
+                        mgr.createExceptionRequest(
+                            null,
+                            catchMode == CATCH_ALL,
+                            true
+                        );
                     exceptionRequest.enable();
                 }
                 ThreadStartRequest tsr = mgr.createThreadStartRequest();
@@ -776,15 +727,20 @@ public final class Jdb extends Buffer implements JdbConstants
                         if (className != null) {
                             Log.debug("adding class prepare request for |" + className + "|");
                             ClassPrepareRequest cpr =
-                                    mgr.createClassPrepareRequest();
+                                mgr.createClassPrepareRequest();
                             cpr.addClassFilter(className);
                             cpr.enable();
                         }
                     }
                 } else {
                     Log.debug("startProcessInternal adding default breakpoint");
-                    breakpoints.add(new MethodBreakpoint(this, mainClass,
-                        "main"));
+                    breakpoints.add(
+                        new MethodBreakpoint(
+                            this,
+                            mainClass,
+                            "main"
+                        )
+                    );
                     fireBreakpointChanged();
                 }
                 ClassPrepareRequest cpr = mgr.createClassPrepareRequest();
@@ -799,8 +755,7 @@ public final class Jdb extends Buffer implements JdbConstants
         }
     }
 
-    public void resolveDeferredRequests(ClassPrepareEvent event)
-    {
+    public void resolveDeferredRequests(ClassPrepareEvent event) {
         synchronized (breakpoints) {
             for (ResolvableBreakpoint bp : breakpoints) {
                 if (!bp.isResolved()) {
@@ -821,13 +776,11 @@ public final class Jdb extends Buffer implements JdbConstants
         }
     }
 
-    public JdbSession getSession()
-    {
+    public JdbSession getSession() {
         return session;
     }
 
-    private void setSession(JdbSession session)
-    {
+    private void setSession(JdbSession session) {
         this.session = session;
         mainClass = session.getMainClass();
         mainClassArgs = session.getMainClassArgs();
@@ -840,8 +793,7 @@ public final class Jdb extends Buffer implements JdbConstants
         initializeBreakpoints();
     }
 
-    private void initializeBreakpoints()
-    {
+    private void initializeBreakpoints() {
         breakpoints.clear();
         List<BreakpointSpecification> breakpointSpecifications = session.getBreakpointSpecifications();
         if (breakpointSpecifications != null) {
@@ -852,8 +804,12 @@ public final class Jdb extends Buffer implements JdbConstants
                     File file = File.getInstance(spec.getFileName());
                     if (file != null && file.isFile()) {
                         LineNumberBreakpoint bp =
-                                new LineNumberBreakpoint(this, spec.getClassName(),
-                                        file, lineNumber);
+                            new LineNumberBreakpoint(
+                                this,
+                                spec.getClassName(),
+                                file,
+                                lineNumber
+                            );
                         breakpoints.add(bp);
                     }
                 } else {
@@ -861,7 +817,7 @@ public final class Jdb extends Buffer implements JdbConstants
                     String methodName = spec.getMethodName();
                     if (className != null && methodName != null) {
                         MethodBreakpoint bp =
-                                new MethodBreakpoint(this, className, methodName);
+                            new MethodBreakpoint(this, className, methodName);
                         breakpoints.add(bp);
                     }
                 }
@@ -870,19 +826,16 @@ public final class Jdb extends Buffer implements JdbConstants
         fireBreakpointChanged();
     }
 
-    public void saveSession()
-    {
+    public void saveSession() {
         session.setBreakpoints(breakpoints);
         session.saveDefaults();
     }
 
-    public void source()
-    {
+    public void source() {
         source(Editor.currentEditor());
     }
 
-    public void source(final Editor editor)
-    {
+    public void source(final Editor editor) {
         Runnable r = () -> {
             if (location == null)
                 return;
@@ -910,16 +863,22 @@ public final class Jdb extends Buffer implements JdbConstants
             SwingUtilities.invokeLater(r);
     }
 
-    private boolean follow(Editor editor, String className, String fileName,
-        int lineNumber)
-    {
+    private boolean follow(
+        Editor editor,
+        String className,
+        String fileName,
+        int lineNumber
+    ) {
         int index = className.indexOf('$');
         if (index >= 0)
             className = className.substring(0, index);
         File file = JavaSource.findSource(className, sourcePath);
         if (file == null) {
-            file = Utilities.findFileInPath(fileName, sourcePath,
-                getCurrentDirectory());
+            file = Utilities.findFileInPath(
+                fileName,
+                sourcePath,
+                getCurrentDirectory()
+            );
         }
         if (file == null)
             return false;
@@ -957,8 +916,7 @@ public final class Jdb extends Buffer implements JdbConstants
         return true;
     }
 
-    public void dispose()
-    {
+    public void dispose() {
         killVM();
         if (controlDialog != null) {
             controlDialog.dispose();
@@ -973,8 +931,7 @@ public final class Jdb extends Buffer implements JdbConstants
         }
     }
 
-    private void removeAnnotations()
-    {
+    private void removeAnnotations() {
         for (ResolvableBreakpoint bp : breakpoints) {
             Line line = bp.getLine();
             if (line != null)
@@ -988,8 +945,7 @@ public final class Jdb extends Buffer implements JdbConstants
         }
     }
 
-    private void quit()
-    {
+    private void quit() {
         killVM();
         removeAnnotations();
         // Copy editor list since unsplitWindow() may close an editor.
@@ -1011,8 +967,7 @@ public final class Jdb extends Buffer implements JdbConstants
         kill();
     }
 
-    private void restart()
-    {
+    private void restart() {
         killVM();
         saveSession();
         removeAnnotations();
@@ -1022,8 +977,7 @@ public final class Jdb extends Buffer implements JdbConstants
         fireContextChanged();
     }
 
-    private synchronized void killVM()
-    {
+    private synchronized void killVM() {
         if (vm != null) {
             try {
                 vm.exit(0);
@@ -1035,8 +989,7 @@ public final class Jdb extends Buffer implements JdbConstants
         }
     }
 
-    private void doBreak(String arg, boolean temporary)
-    {
+    private void doBreak(String arg, boolean temporary) {
         try {
             if (vm == null)
                 return;
@@ -1072,9 +1025,11 @@ public final class Jdb extends Buffer implements JdbConstants
         }
     }
 
-    private void doBreakAtLineNumber(String fileName, int lineNumber,
-        boolean temporary)
-    {
+    private void doBreakAtLineNumber(
+        String fileName,
+        int lineNumber,
+        boolean temporary
+    ) {
         File file = findSourceFile(fileName);
         if (file == null) {
             log("File not found: ".concat(fileName));
@@ -1120,8 +1075,7 @@ public final class Jdb extends Buffer implements JdbConstants
         }
     }
 
-    private File findSourceFile(String fileName)
-    {
+    private File findSourceFile(String fileName) {
         String canonicalPath = null;
         if (Utilities.isFilenameAbsolute(fileName)) {
             File file = File.getInstance(fileName);
@@ -1172,9 +1126,11 @@ public final class Jdb extends Buffer implements JdbConstants
         return null;
     }
 
-    private void doBreakAtMethod(String className, String methodName,
-        boolean temporary)
-    {
+    private void doBreakAtMethod(
+        String className,
+        String methodName,
+        boolean temporary
+    ) {
         if (className.indexOf(".") < 0) {
             // No package prefix.
             String fileName = className.concat(".java");
@@ -1215,8 +1171,7 @@ public final class Jdb extends Buffer implements JdbConstants
     }
 
     // e.g. "clear Jdb.java:877"
-    private void doClear(String arg)
-    {
+    private void doClear(String arg) {
         if (arg == null) {
             log("No breakpoint specified");
             return;
@@ -1235,8 +1190,7 @@ public final class Jdb extends Buffer implements JdbConstants
         }
     }
 
-    private void doClearAll()
-    {
+    private void doClearAll() {
         // Disable resolved breakpoints.
         for (ResolvableBreakpoint bp : breakpoints) {
             bp.clear();
@@ -1248,8 +1202,7 @@ public final class Jdb extends Buffer implements JdbConstants
             prompt();
     }
 
-    private void doClearLineNumberBreakpoint(String arg)
-    {
+    private void doClearLineNumberBreakpoint(String arg) {
         int index = arg.indexOf(':');
         String fileName = arg.substring(0, index);
         if (!fileName.toLowerCase().endsWith(".java"))
@@ -1282,8 +1235,7 @@ public final class Jdb extends Buffer implements JdbConstants
         log("No breakpoint at " + arg);
     }
 
-    private void doClearMethodBreakpoint(String arg)
-    {
+    private void doClearMethodBreakpoint(String arg) {
         String className, methodName;
         int index = arg.lastIndexOf('.');
         if (index >= 0) {
@@ -1319,8 +1271,7 @@ public final class Jdb extends Buffer implements JdbConstants
         log("No breakpoint at " + arg);
     }
 
-    private synchronized void doCatch(String arg)
-    {
+    private synchronized void doCatch(String arg) {
         try {
             if (vm == null)
                 return;
@@ -1345,8 +1296,11 @@ public final class Jdb extends Buffer implements JdbConstants
             }
             if (newCatchMode != CATCH_NONE) {
                 ExceptionRequest exceptionRequest =
-                    mgr.createExceptionRequest(null,
-                        newCatchMode == CATCH_ALL, true);
+                    mgr.createExceptionRequest(
+                        null,
+                        newCatchMode == CATCH_ALL,
+                        true
+                    );
                 exceptionRequest.enable();
             }
             catchMode = newCatchMode;
@@ -1357,8 +1311,7 @@ public final class Jdb extends Buffer implements JdbConstants
         }
     }
 
-    private void doNext(String args)
-    {
+    private void doNext(String args) {
         if (vm == null)
             return;
         if (currentThread == null) {
@@ -1378,15 +1331,17 @@ public final class Jdb extends Buffer implements JdbConstants
         }
         clearStepForThread(currentThread);
         EventRequestManager erm = vm.eventRequestManager();
-        StepRequest request = erm.createStepRequest(currentThread,
-            StepRequest.STEP_LINE, StepRequest.STEP_OVER);
+        StepRequest request = erm.createStepRequest(
+            currentThread,
+            StepRequest.STEP_LINE,
+            StepRequest.STEP_OVER
+        );
         request.addCountFilter(count);
         request.enable();
         doContinue();
     }
 
-    private void doStep(String args)
-    {
+    private void doStep(String args) {
         if (vm == null)
             return;
         if (currentThread == null) {
@@ -1412,15 +1367,17 @@ public final class Jdb extends Buffer implements JdbConstants
         clearStepForThread(currentThread);
         EventRequestManager erm = vm.eventRequestManager();
         StepRequest request =
-            erm.createStepRequest(currentThread, StepRequest.STEP_LINE,
-                out ? StepRequest.STEP_OUT : StepRequest.STEP_INTO);
+            erm.createStepRequest(
+                currentThread,
+                StepRequest.STEP_LINE,
+                out ? StepRequest.STEP_OUT : StepRequest.STEP_INTO
+            );
         request.addCountFilter(count);
         request.enable();
         doContinue();
     }
 
-    private void doFinish()
-    {
+    private void doFinish() {
         if (vm == null)
             return;
         if (currentThread == null) {
@@ -1430,15 +1387,17 @@ public final class Jdb extends Buffer implements JdbConstants
         clearStepForThread(currentThread);
         EventRequestManager erm = vm.eventRequestManager();
         StepRequest request =
-            erm.createStepRequest(currentThread, StepRequest.STEP_LINE,
-                StepRequest.STEP_OUT);
+            erm.createStepRequest(
+                currentThread,
+                StepRequest.STEP_LINE,
+                StepRequest.STEP_OUT
+            );
         request.addCountFilter(1);
         request.enable();
         doContinue();
     }
 
-    private void doPrint(String what)
-    {
+    private void doPrint(String what) {
         if (!isSuspended()) {
             log("VM is not suspended");
             return;
@@ -1459,12 +1418,14 @@ public final class Jdb extends Buffer implements JdbConstants
                 log(value.toString());
             } else if (value instanceof ArrayReference) {
                 log(value.toString());
-                log(getStringValueOfArray(what, (ArrayReference)value));
+                log(getStringValueOfArray(what, (ArrayReference) value));
             } else {
                 log(value.toString());
                 if (value instanceof ObjectReference) {
-                    String s = getStringValueOfObject((ObjectReference)value,
-                        currentThread);
+                    String s = getStringValueOfObject(
+                        (ObjectReference) value,
+                        currentThread
+                    );
                     if (s != null) {
                         Log.debug(s);
                         log(s);
@@ -1494,8 +1455,7 @@ public final class Jdb extends Buffer implements JdbConstants
         }
     }
 
-    private void doStdin(String s)
-    {
+    private void doStdin(String s) {
         Process process = vm.process();
         if (process != null) {
             OutputStream out = process.getOutputStream();
@@ -1515,8 +1475,7 @@ public final class Jdb extends Buffer implements JdbConstants
         }
     }
 
-    private void doLocals()
-    {
+    private void doLocals() {
         if (vm == null)
             return;
         if (currentThread == null) {
@@ -1542,15 +1501,19 @@ public final class Jdb extends Buffer implements JdbConstants
                 if (value instanceof StringReference) {
                     ;
                 } else if (value instanceof ArrayReference) {
-                    String s = getStringValueOfArray(variable.name(),
-                            (ArrayReference) value);
+                    String s = getStringValueOfArray(
+                        variable.name(),
+                        (ArrayReference) value
+                    );
                     if (s.length() > 0) {
                         sb.append('\n');
                         sb.append(s);
                     }
                 } else if (value instanceof ObjectReference) {
-                    String s = getStringValueOfObject((ObjectReference) value,
-                            currentThread);
+                    String s = getStringValueOfObject(
+                        (ObjectReference) value,
+                        currentThread
+                    );
                     if (s != null) {
                         sb.append(' ');
                         sb.append(s);
@@ -1576,9 +1539,10 @@ public final class Jdb extends Buffer implements JdbConstants
             prompt();
     }
 
-    private String getStringValueOfObject(ObjectReference objRef,
-        ThreadReference threadRef)
-    {
+    private String getStringValueOfObject(
+        ObjectReference objRef,
+        ThreadReference threadRef
+    ) {
         try {
             // Get index of current stack frame so we can restore it later.
             List<StackFrame> frames = threadRef.frames();
@@ -1597,8 +1561,12 @@ public final class Jdb extends Buffer implements JdbConstants
             List<Method> methods =
                 refType.methodsByName("toString", "()Ljava/lang/String;");
             Method method = methods.get(0);
-            Value value = objRef.invokeMethod(threadRef, method,
-                new ArrayList<Value>(), ObjectReference.INVOKE_SINGLE_THREADED);
+            Value value = objRef.invokeMethod(
+                threadRef,
+                method,
+                new ArrayList<Value>(),
+                ObjectReference.INVOKE_SINGLE_THREADED
+            );
 
             // Restore current stack frame if possible.
             frames = threadRef.frames();
@@ -1614,8 +1582,7 @@ public final class Jdb extends Buffer implements JdbConstants
         return null;
     }
 
-    private static String getStringValueOfArray(String name, ArrayReference ar)
-    {
+    private static String getStringValueOfArray(String name, ArrayReference ar) {
         StringBuilder sb = new StringBuilder();
         final int limit = ar.length();
         for (int i = 0; i < limit; i++) {
@@ -1626,14 +1593,13 @@ public final class Jdb extends Buffer implements JdbConstants
             sb.append("]: ");
             Value v = ar.getValue(i);
             sb.append(v == null ? "null" : v.toString());
-            if (i < limit-1)
+            if (i < limit - 1)
                 sb.append('\n');
         }
         return sb.toString();
     }
 
-    private void clearStepForThread(ThreadReference threadRef)
-    {
+    private void clearStepForThread(ThreadReference threadRef) {
         EventRequestManager erm = vm.eventRequestManager();
         List<StepRequest> requests = erm.stepRequests();
         for (StepRequest request : requests) {
@@ -1645,8 +1611,7 @@ public final class Jdb extends Buffer implements JdbConstants
     }
 
     private static Value getValue(String expression, StackFrame frame)
-        throws Exception
-    {
+        throws Exception {
         Log.debug("getValue");
         StringTokenizer st = new StringTokenizer(expression, "[].");
         if (!st.hasMoreTokens()) {
@@ -1700,19 +1665,23 @@ public final class Jdb extends Buffer implements JdbConstants
             Object arg;
             try {
                 arg = token;
-            } catch (NumberFormatException e) {
+            }
+            catch (NumberFormatException e) {
                 arg = token;
             }
             if (currentValue instanceof ArrayReference) {
                 int count = -1;
                 if (arg instanceof Integer)
-                    count = ((Integer)arg).intValue();
-                if (count >= 0 && count < ((ArrayReference)currentValue).length())
-                    currentValue = ((ArrayReference)currentValue).getValue(count);
+                    count = ((Integer) arg).intValue();
+                if (count >= 0 && count < ((ArrayReference) currentValue).length())
+                    currentValue = ((ArrayReference) currentValue).getValue(count);
                 else
                     throw new ArrayIndexOutOfBoundsException();
-            } else if (currentValue instanceof ObjectReference &&
-                arg instanceof String) {
+            } else if (
+                currentValue instanceof ObjectReference
+                    &&
+                    arg instanceof String
+            ) {
                 Log.debug("object reference, string");
                 obj = (ObjectReference) currentValue;
                 ReferenceType refType = obj.referenceType();
@@ -1726,24 +1695,20 @@ public final class Jdb extends Buffer implements JdbConstants
         return currentValue;
     }
 
-    public boolean isModified()
-    {
+    public boolean isModified() {
         return false;
     }
 
     // For the buffer list.
-    public String toString()
-    {
+    public String toString() {
         return "jdb";
     }
 
-    public String getTitle()
-    {
+    public String getTitle() {
         return "jdb";
     }
 
-    public Icon getIcon()
-    {
+    public Icon getIcon() {
         return Utilities.getIconFromFile("jpty");
     }
 }

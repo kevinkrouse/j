@@ -20,15 +20,15 @@
 
 package org.armedbear.j;
 
-import java.util.regex.Pattern;
-import java.util.regex.Matcher;
-
 import java.awt.Component;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
+import java.lang.StringBuilder;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import javax.swing.JList;
 import javax.swing.JPopupMenu;
 import javax.swing.JScrollPane;
@@ -38,12 +38,10 @@ import javax.swing.SwingUtilities;
 import org.armedbear.j.mail.MailCommands;
 import org.armedbear.j.mode.web.WebBuffer;
 import org.armedbear.j.mode.web.WebMode;
-import java.lang.StringBuilder;
 import org.armedbear.j.util.Utilities;
 
 public final class OpenFileTextFieldHandler extends DefaultTextFieldHandler
-    implements Constants, MouseListener
-{
+    implements Constants, MouseListener {
     private static final boolean filenamesIgnoreCase =
         Platform.isPlatformWindows();
 
@@ -64,39 +62,32 @@ public final class OpenFileTextFieldHandler extends DefaultTextFieldHandler
     private String originalText;
     private String originalPrefix;
 
-    public OpenFileTextFieldHandler(Editor editor, HistoryTextField textField)
-    {
+    public OpenFileTextFieldHandler(Editor editor, HistoryTextField textField) {
         super(editor, textField);
         textField.addMouseListener(this);
     }
 
-    public final void setTitle(String s)
-    {
+    public final void setTitle(String s) {
         title = s;
     }
 
-    public final void setAllowRemote(boolean b)
-    {
+    public final void setAllowRemote(boolean b) {
         allowRemote = b;
     }
 
-    public final void setFileMustExist(boolean b)
-    {
+    public final void setFileMustExist(boolean b) {
         fileMustExist = b;
     }
 
-    public final void setCheckBuffers(boolean b)
-    {
+    public final void setCheckBuffers(boolean b) {
         checkBuffers = b;
     }
 
-    public final void setCheckSourcePath(boolean b)
-    {
+    public final void setCheckSourcePath(boolean b) {
         checkSourcePath = b;
     }
 
-    public void enter()
-    {
+    public void enter() {
         final Buffer buffer = editor.getBuffer();
         String entry = textField.getText();
         if (!entry.equals(buffer.getFileNameForDisplay()))
@@ -120,8 +111,12 @@ public final class OpenFileTextFieldHandler extends DefaultTextFieldHandler
         String value = editor.getAlias(entry);
         if (value != null)
             entry = value;
-        if (entry.startsWith("pop://") || entry.startsWith("{") ||
-            entry.startsWith("mailbox:")) {
+        if (
+            entry.startsWith("pop://")
+                || entry.startsWith("{")
+                ||
+                entry.startsWith("mailbox:")
+        ) {
             MailCommands.openMailbox(editor, entry);
             editor.ensureActive();
             editor.setFocusToDisplay();
@@ -238,25 +233,23 @@ public final class OpenFileTextFieldHandler extends DefaultTextFieldHandler
         done();
     }
 
-    private String preprocess(String s)
-    {
+    private String preprocess(String s) {
         encoding = null;
         s = s.trim();
         if (s.startsWith("-e ")) {
             s = s.substring(3).trim();
             int index = s.indexOf(' ');
             encoding = s.substring(0, index);
-            return s.substring(index+1).trim();
+            return s.substring(index + 1).trim();
         }
         int index = s.indexOf(" -e ");
         if (index < 0)
             return s; // No encoding specified.
-        encoding = s.substring(index+4).trim();
+        encoding = s.substring(index + 4).trim();
         return s.substring(0, index).trim();
     }
 
-    private boolean checkParentDirectory(File file, String context)
-    {
+    private boolean checkParentDirectory(File file, String context) {
         File parentDir = file.getParentFile();
         if (parentDir != null && parentDir.isDirectory())
             return true;
@@ -267,8 +260,7 @@ public final class OpenFileTextFieldHandler extends DefaultTextFieldHandler
         return false;
     }
 
-    private void done()
-    {
+    private void done() {
         OpenFileDialog owner = textField.getOwner();
         if (owner instanceof OpenFileDialog) {
             OpenFileDialog dialog = owner;
@@ -296,13 +288,15 @@ public final class OpenFileTextFieldHandler extends DefaultTextFieldHandler
                             // Current buffer is already a web buffer.
                             buf = editor.getBuffer();
                             Debug.assertTrue(buf instanceof WebBuffer);
-                            ((WebBuffer)buf).saveHistory(buf.getFile(),
-                                                         buf.getAbsoluteOffset(editor.getDot()),
-                                                         ((WebBuffer)buf).getContentType());
+                            ((WebBuffer) buf).saveHistory(
+                                buf.getFile(),
+                                buf.getAbsoluteOffset(editor.getDot()),
+                                ((WebBuffer) buf).getContentType()
+                            );
                             // If we don't call setCache(null), go() will use the
                             // existing cache.
                             buf.setCache(null);
-                            ((WebBuffer)buf).go(file, 0, null);
+                            ((WebBuffer) buf).go(file, 0, null);
                         } else {
                             // Look for existing buffer.
                             for (BufferIterator it = new BufferIterator(); it.hasNext();) {
@@ -336,8 +330,7 @@ public final class OpenFileTextFieldHandler extends DefaultTextFieldHandler
         }
     }
 
-    private void saveHistory()
-    {
+    private void saveHistory() {
         final History history = textField.getHistory();
         if (history != null) {
             String entry = textField.getText().trim();
@@ -348,8 +341,7 @@ public final class OpenFileTextFieldHandler extends DefaultTextFieldHandler
         }
     }
 
-    public void escape()
-    {
+    public void escape() {
         if (popup != null) {
             Debug.bug();
             popup.setVisible(false);
@@ -367,16 +359,18 @@ public final class OpenFileTextFieldHandler extends DefaultTextFieldHandler
         }
     }
 
-    public boolean wantTab()
-    {
+    public boolean wantTab() {
         return true;
     }
 
-    public void tab()
-    {
+    public void tab() {
         final String entry = textField.getText();
-        if (entry.startsWith("http:") || entry.startsWith("https:") ||
-            entry.startsWith("ftp:"))
+        if (
+            entry.startsWith("http:")
+                || entry.startsWith("https:")
+                ||
+                entry.startsWith("ftp:")
+        )
             return;
         final File dir = editor.getCompletionDirectory();
         if (dir == null)
@@ -403,16 +397,20 @@ public final class OpenFileTextFieldHandler extends DefaultTextFieldHandler
         if (textField.getOwner() instanceof OpenFileDialog) {
             showCompletionList = false;
         } else {
-            showCompletionList = Editor.preferences().getBooleanProperty(
-                Property.SHOW_COMPLETION_LIST);
+            showCompletionList = Editor.preferences()
+                .getBooleanProperty(
+                    Property.SHOW_COMPLETION_LIST
+                );
         }
         if (showCompletionList) {
             if (popup == null) {
                 long start = System.currentTimeMillis();
                 completions = getCompletions(prefix);
                 long elapsed = System.currentTimeMillis() - start;
-                Log.debug("getCompletions " + elapsed + " ms " +
-                          completions.size() + " completions");
+                Log.debug(
+                    "getCompletions " + elapsed + " ms " +
+                        completions.size() + " completions"
+                );
                 index = 0;
                 originalText = textField.getText();
                 originalPrefix = prefix;
@@ -453,17 +451,21 @@ public final class OpenFileTextFieldHandler extends DefaultTextFieldHandler
         editor.setDefaultCursor();
     }
 
-    public List<String> getCompletions(String prefix)
-    {
+    public List<String> getCompletions(String prefix) {
         final File dir = editor.getCompletionDirectory();
         ArrayList<String> completions = new ArrayList<String>();
         final String sourcePath = checkSourcePath ? getSourcePath() : null;
         prefix = File.normalize(prefix);
-        boolean ignoreCase = Platform.isPlatformWindows() ||
-            Editor.preferences().getBooleanProperty(
-                Property.FILENAME_COMPLETIONS_IGNORE_CASE);
-        String excludes = Editor.preferences().getStringProperty(
-            Property.FILENAME_COMPLETIONS_EXCLUDE_PATTERN);
+        boolean ignoreCase = Platform.isPlatformWindows()
+            ||
+            Editor.preferences()
+                .getBooleanProperty(
+                    Property.FILENAME_COMPLETIONS_IGNORE_CASE
+                );
+        String excludes = Editor.preferences()
+            .getStringProperty(
+                Property.FILENAME_COMPLETIONS_EXCLUDE_PATTERN
+            );
         FilenameCompletion completion =
             new FilenameCompletion(dir, prefix, sourcePath, excludes, ignoreCase);
         final File currentDirectory = getCurrentDirectory();
@@ -472,25 +474,39 @@ public final class OpenFileTextFieldHandler extends DefaultTextFieldHandler
             for (final File file : files) {
                 final String name = getNameForFile(file, currentDirectory);
                 if (file.isDirectory()) {
-                    addCompletion(completions, name.concat(file.getSeparator()),
-                            ignoreCase);
+                    addCompletion(
+                        completions,
+                        name.concat(file.getSeparator()),
+                        ignoreCase
+                    );
                     continue;
                 }
                 addCompletion(completions, name, ignoreCase);
             }
         }
-        if (checkBuffers && !Utilities.isFilenameAbsolute(prefix) &&
-            prefix.indexOf(LocalFile.getSeparatorChar()) < 0) {
+        if (
+            checkBuffers
+                && !Utilities.isFilenameAbsolute(prefix)
+                &&
+                prefix.indexOf(LocalFile.getSeparatorChar()) < 0
+        ) {
             // Short name.
-            addCompletionsFromBufferList(completions, prefix, currentDirectory,
-                                         ignoreCase);
+            addCompletionsFromBufferList(
+                completions,
+                prefix,
+                currentDirectory,
+                ignoreCase
+            );
         }
         return completions;
     }
 
-    private void addCompletionsFromBufferList(List<String> list, String prefix,
-        File currentDirectory, boolean ignoreCase)
-    {
+    private void addCompletionsFromBufferList(
+        List<String> list,
+        String prefix,
+        File currentDirectory,
+        boolean ignoreCase
+    ) {
         for (BufferIterator it = new BufferIterator(); it.hasNext();) {
             Buffer buf = it.next();
             if (buf.getType() != Buffer.TYPE_NORMAL)
@@ -501,21 +517,29 @@ public final class OpenFileTextFieldHandler extends DefaultTextFieldHandler
             if (file != null) {
                 boolean isMatch = false;
                 if (ignoreCase)
-                    isMatch = file.getName().regionMatches(true, 0, prefix, 0,
-                        prefix.length());
+                    isMatch = file.getName()
+                        .regionMatches(
+                            true,
+                            0,
+                            prefix,
+                            0,
+                            prefix.length()
+                        );
                 else
                     isMatch = file.getName().startsWith(prefix);
                 if (isMatch)
-                    addCompletion(list, getNameForFile(file, currentDirectory),
-                                  ignoreCase);
+                    addCompletion(
+                        list,
+                        getNameForFile(file, currentDirectory),
+                        ignoreCase
+                    );
             }
         }
     }
 
     // Returns file.netPath(), file.getName(), or file.getAbsolutePath(),
     // depending on the situation.
-    private String getNameForFile(File file, File currentDirectory)
-    {
+    private String getNameForFile(File file, File currentDirectory) {
         String name;
         if (currentDirectory != null) {
             if (currentDirectory.isLocal()) {
@@ -540,8 +564,7 @@ public final class OpenFileTextFieldHandler extends DefaultTextFieldHandler
     }
 
     // Add string to list if it's not already there.
-    private void addCompletion(List<String> list, String s, boolean ignoreCase)
-    {
+    private void addCompletion(List<String> list, String s, boolean ignoreCase) {
         if (s != null) {
             for (int i = list.size(); i-- > 0;) {
                 if (ignoreCase) {
@@ -555,8 +578,7 @@ public final class OpenFileTextFieldHandler extends DefaultTextFieldHandler
         }
     }
 
-    private boolean isExcluded(String pathname)
-    {
+    private boolean isExcluded(String pathname) {
         final int length = pathname.length();
         if (length > 0) {
             if (pathname.charAt(length - 1) == '~')
@@ -567,16 +589,21 @@ public final class OpenFileTextFieldHandler extends DefaultTextFieldHandler
             return false;
         if (Platform.isPlatformWindows())
             extension = extension.toLowerCase();
-        if (extension.equals(".class") ||
-            extension.equals(".cls") ||
-            extension.equals(".abcl"))
-        {
+        if (
+            extension.equals(".class")
+                ||
+                extension.equals(".cls")
+                ||
+                extension.equals(".abcl")
+        ) {
             return true;
         }
         if (Platform.isPlatformWindows()) {
-            if (extension.equals(".obj") ||
-                extension.equals(".exe"))
-            {
+            if (
+                extension.equals(".obj")
+                    ||
+                    extension.equals(".exe")
+            ) {
                 return true;
             }
         }
@@ -584,8 +611,7 @@ public final class OpenFileTextFieldHandler extends DefaultTextFieldHandler
     }
 
     // Returns null if there is no file associated with the current buffer.
-    private File getCurrentDirectory()
-    {
+    private File getCurrentDirectory() {
         File file = editor.getBuffer().getFile();
         if (file == null)
             return null;
@@ -594,8 +620,7 @@ public final class OpenFileTextFieldHandler extends DefaultTextFieldHandler
         return file.getParentFile();
     }
 
-    private String getSourcePath()
-    {
+    private String getSourcePath() {
         ArrayList<String> dirs = new ArrayList<String>();
         // We want to search the mode-specific source path first.
         String sourcePathForMode =
@@ -624,15 +649,13 @@ public final class OpenFileTextFieldHandler extends DefaultTextFieldHandler
         return sb.toString();
     }
 
-    private final void error(String message)
-    {
+    private final void error(String message) {
         MessageDialog.showMessageDialog(editor, message, title);
         editor.setFocusToDisplay();
         editor.updateLocation();
     }
 
-    private void showCompletionsPopup()
-    {
+    private void showCompletionsPopup() {
         String[] array = new String[completions.size()];
         completions.toArray(array);
         popup = new JPopupMenu();
@@ -645,8 +668,7 @@ public final class OpenFileTextFieldHandler extends DefaultTextFieldHandler
         SwingUtilities.invokeLater(r);
     }
 
-    private void tabPopup(int n, boolean wrap)
-    {
+    private void tabPopup(int n, boolean wrap) {
         int count = listbox.getModel().getSize();
         if (count == 0) {
             Debug.bug();
@@ -671,35 +693,49 @@ public final class OpenFileTextFieldHandler extends DefaultTextFieldHandler
         }
     }
 
-    private void updateTextField(String completion)
-    {
+    private void updateTextField(String completion) {
         if (completion == null)
             return;
         textField.setText(completion);
         if (Editor.preferences().getBooleanProperty(Property.SELECT_COMPLETION)) {
             if (originalText != null && originalText.length() > 0) {
                 boolean ignoreCase =
-                    Editor.preferences().getBooleanProperty(
-                        Property.FILENAME_COMPLETIONS_IGNORE_CASE);
+                    Editor.preferences()
+                        .getBooleanProperty(
+                            Property.FILENAME_COMPLETIONS_IGNORE_CASE
+                        );
                 boolean select =
-                    completion.regionMatches(ignoreCase, 0, originalPrefix, 0,
-                                             originalPrefix.length());
+                    completion.regionMatches(
+                        ignoreCase,
+                        0,
+                        originalPrefix,
+                        0,
+                        originalPrefix.length()
+                    );
                 if (select) {
                     textField.setCaretPosition(originalPrefix.length());
                     textField.moveCaretPosition(completion.length());
                     textField.getCaret().setVisible(false);
                 } else {
                     char c = originalText.charAt(0);
-                    if (c == '/' || c == '\\' ||
-                        (Platform.isPlatformWindows() &&
-                         originalText.length() >= 3 &&
-                         originalText.charAt(1) == ':' &&
-                         originalText.charAt(2) == '\\'))
-                    {
+                    if (
+                        c == '/'
+                            || c == '\\'
+                            ||
+                            (Platform.isPlatformWindows()
+                                &&
+                                originalText.length() >= 3
+                                &&
+                                originalText.charAt(1) == ':'
+                                &&
+                                originalText.charAt(2) == '\\')
+                    ) {
                         final int index;
                         if (ignoreCase) {
-                            index = completion.toLowerCase().lastIndexOf(
-                                originalText.toLowerCase());
+                            index = completion.toLowerCase()
+                                .lastIndexOf(
+                                    originalText.toLowerCase()
+                                );
                         } else {
                             index = completion.lastIndexOf(originalText);
                         }
@@ -709,8 +745,10 @@ public final class OpenFileTextFieldHandler extends DefaultTextFieldHandler
                             textField.getCaret().setVisible(false);
                         }
                     } else {
-                        Pattern re = Pattern.compile("[\\/]".concat(originalText),
-                                                ignoreCase ? Pattern.CASE_INSENSITIVE : 0);
+                        Pattern re = Pattern.compile(
+                            "[\\/]".concat(originalText),
+                            ignoreCase ? Pattern.CASE_INSENSITIVE : 0
+                        );
                         boolean found = false;
                         int index = 0;
                         Matcher matcher = re.matcher(completion);
@@ -729,12 +767,13 @@ public final class OpenFileTextFieldHandler extends DefaultTextFieldHandler
         }
     }
 
-    private void enterPopup()
-    {
+    private void enterPopup() {
         popup.setVisible(false);
         popup = null;
-        File file = File.getInstance(editor.getCompletionDirectory(),
-            textField.getText());
+        File file = File.getInstance(
+            editor.getCompletionDirectory(),
+            textField.getText()
+        );
         if (file == null || file.isDirectory()) {
             textField.requestFocus();
             end();
@@ -744,8 +783,7 @@ public final class OpenFileTextFieldHandler extends DefaultTextFieldHandler
         }
     }
 
-    private void end()
-    {
+    private void end() {
         Runnable r = () -> {
             textField.setCaretPosition(textField.getText().length());
             textField.getCaret().setVisible(true);
@@ -753,8 +791,7 @@ public final class OpenFileTextFieldHandler extends DefaultTextFieldHandler
         SwingUtilities.invokeLater(r);
     }
 
-    private void left()
-    {
+    private void left() {
         reset();
         final int pos;
         final int start = textField.getSelectionStart();
@@ -770,8 +807,7 @@ public final class OpenFileTextFieldHandler extends DefaultTextFieldHandler
         SwingUtilities.invokeLater(r);
     }
 
-    protected void reset()
-    {
+    protected void reset() {
         if (popup != null) {
             popup.setVisible(false);
             popup = null;
@@ -780,10 +816,8 @@ public final class OpenFileTextFieldHandler extends DefaultTextFieldHandler
     }
 
     private class CompletionsList extends JScrollPane implements MenuElement,
-        MouseListener
-    {
-        public CompletionsList(String[] completions)
-        {
+        MouseListener {
+        public CompletionsList(String[] completions) {
             super(listbox = new JList<String>(completions));
             listbox.setFont(textField.getFont());
             if (completions.length < 8)
@@ -793,12 +827,17 @@ public final class OpenFileTextFieldHandler extends DefaultTextFieldHandler
             listbox.addMouseListener(this);
         }
 
-        public void processMouseEvent(MouseEvent e, MenuElement[] path,
-            MenuSelectionManager manager) {}
+        public void processMouseEvent(
+            MouseEvent e,
+            MenuElement[] path,
+            MenuSelectionManager manager
+        ) {}
 
-        public void processKeyEvent(KeyEvent e, MenuElement[] path,
-            MenuSelectionManager manager)
-        {
+        public void processKeyEvent(
+            KeyEvent e,
+            MenuElement[] path,
+            MenuSelectionManager manager
+        ) {
             final int keyCode = e.getKeyCode();
             final int modifiers = Utilities.keyModifiers(e);
             final int id = e.getID();
@@ -867,23 +906,19 @@ public final class OpenFileTextFieldHandler extends DefaultTextFieldHandler
 
         public void menuSelectionChanged(boolean isIncluded) {}
 
-        public MenuElement[] getSubElements()
-        {
+        public MenuElement[] getSubElements() {
             return new MenuElement[0];
         }
 
-        public Component getComponent()
-        {
+        public Component getComponent() {
             return this;
         }
 
-        public void mouseClicked(MouseEvent e)
-        {
+        public void mouseClicked(MouseEvent e) {
             enterPopup();
         }
 
-        public void mousePressed(MouseEvent e)
-        {
+        public void mousePressed(MouseEvent e) {
             final int button = e.getButton();
             final boolean unmodified = Utilities.isUnmodified(e);
             if ((unmodified && button == MouseEvent.BUTTON1) || (unmodified && button == MouseEvent.BUTTON2)) {
@@ -900,8 +935,7 @@ public final class OpenFileTextFieldHandler extends DefaultTextFieldHandler
         public void mouseExited(MouseEvent e) {}
     }
 
-    public void keyPressed(KeyEvent e)
-    {
+    public void keyPressed(KeyEvent e) {
         if (popup != null) {
             int modifiers = Utilities.keyModifiers(e);
             switch (e.getKeyCode()) {
@@ -964,8 +998,7 @@ public final class OpenFileTextFieldHandler extends DefaultTextFieldHandler
         super.keyPressed(e);
     }
 
-    public void keyTyped(KeyEvent e)
-    {
+    public void keyTyped(KeyEvent e) {
         char c = e.getKeyChar();
         if (c == 8) {
             // backspace
@@ -989,8 +1022,12 @@ public final class OpenFileTextFieldHandler extends DefaultTextFieldHandler
                     originalPrefix = null;
                 } else {
                     StringBuilder sb =
-                        new StringBuilder(text.substring(0,
-                            textField.getSelectionStart()));
+                        new StringBuilder(
+                            text.substring(
+                                0,
+                                textField.getSelectionStart()
+                            )
+                        );
                     sb.append(text.substring(textField.getSelectionEnd()));
                     text = sb.toString();
                     textField.setCaretPosition(textField.getSelectionStart());
@@ -1019,8 +1056,7 @@ public final class OpenFileTextFieldHandler extends DefaultTextFieldHandler
         e.consume();
     }
 
-    public void mousePressed(MouseEvent e)
-    {
+    public void mousePressed(MouseEvent e) {
         Editor.setCurrentEditor(editor);
         originalText = null;
         originalPrefix = null;

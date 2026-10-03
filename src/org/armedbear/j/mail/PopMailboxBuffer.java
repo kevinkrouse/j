@@ -29,6 +29,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.RandomAccessFile;
+import java.lang.StringBuilder;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -40,20 +41,18 @@ import java.util.Properties;
 import javax.swing.SwingUtilities;
 import org.armedbear.j.BackgroundProcess;
 import org.armedbear.j.Debug;
-import org.armedbear.j.Editor;
 import org.armedbear.j.Directories;
+import org.armedbear.j.Editor;
 import org.armedbear.j.EditorIterator;
 import org.armedbear.j.File;
-import java.lang.StringBuilder;
 import org.armedbear.j.Log;
 import org.armedbear.j.PasswordDialog;
 import org.armedbear.j.Property;
 import org.armedbear.j.StatusBarProgressNotifier;
-import org.armedbear.j.util.Utilities;
 import org.armedbear.j.View;
+import org.armedbear.j.util.Utilities;
 
-public final class PopMailboxBuffer extends LocalMailboxBuffer
-{
+public final class PopMailboxBuffer extends LocalMailboxBuffer {
     private final PopSession session;
 
     private File localStore;
@@ -61,8 +60,7 @@ public final class PopMailboxBuffer extends LocalMailboxBuffer
     private boolean cancelled;
     private Thread backgroundThread;
 
-    public PopMailboxBuffer(PopURL url, PopSession session)
-    {
+    public PopMailboxBuffer(PopURL url, PopSession session) {
         super(url);
         this.session = session;
         if (url.getUser() == null)
@@ -71,8 +69,7 @@ public final class PopMailboxBuffer extends LocalMailboxBuffer
         setInitialized(true);
     }
 
-    public String getFileNameForDisplay()
-    {
+    public String getFileNameForDisplay() {
         StringBuilder sb = new StringBuilder(64);
         sb.append(url.toString());
         String limitPattern = getLimitPattern();
@@ -83,13 +80,11 @@ public final class PopMailboxBuffer extends LocalMailboxBuffer
         return sb.toString();
     }
 
-    public final String getName()
-    {
+    public final String getName() {
         return url.toString();
     }
 
-    public synchronized int load()
-    {
+    public synchronized int load() {
         if (isLoaded())
             return LOAD_COMPLETED;
         if (lock()) {
@@ -105,8 +100,7 @@ public final class PopMailboxBuffer extends LocalMailboxBuffer
     }
 
     private BackgroundProcess loadProcess = new BackgroundProcess() {
-        public void run()
-        {
+        public void run() {
             // Mailbox is already locked at this point.
             boolean abort = false;
             try {
@@ -168,8 +162,7 @@ public final class PopMailboxBuffer extends LocalMailboxBuffer
             }
         }
 
-        public void cancel()
-        {
+        public void cancel() {
             Log.debug("loadProcess.cancel");
             cancelled = true;
             progressNotifier.cancel();
@@ -180,12 +173,14 @@ public final class PopMailboxBuffer extends LocalMailboxBuffer
         }
     };
 
-    public void getNewMessages()
-    {
+    public void getNewMessages() {
         if (session.getPassword() == null) {
             String password =
-                PasswordDialog.showPasswordDialog(Editor.currentEditor(),
-                    "Password:", "Password");
+                PasswordDialog.showPasswordDialog(
+                    Editor.currentEditor(),
+                    "Password:",
+                    "Password"
+                );
             if (password == null || password.length() == 0)
                 return;
             session.setPassword(password);
@@ -196,8 +191,7 @@ public final class PopMailboxBuffer extends LocalMailboxBuffer
             Editor.currentEditor().status("Mailbox is locked");
     }
 
-    public void getNewMessages(boolean userInitiated)
-    {
+    public void getNewMessages(boolean userInitiated) {
         Debug.assertTrue(isLocked());
         // This method can get called in the background so we can't put up a
         // dialog.
@@ -213,18 +207,15 @@ public final class PopMailboxBuffer extends LocalMailboxBuffer
         backgroundThread.start();
     }
 
-    private class GetNewMessagesProcess implements BackgroundProcess
-    {
+    private class GetNewMessagesProcess implements BackgroundProcess {
         private boolean userInitiated;
 
         // If this constructor is private, we run into jikes 1.15 bug #2256.
-        /*private*/ GetNewMessagesProcess(boolean userInitiated)
-        {
+        /*private*/ GetNewMessagesProcess(boolean userInitiated) {
             this.userInitiated = userInitiated;
         }
 
-        public void run()
-        {
+        public void run() {
             try {
                 boolean changed = false;
                 if (userInitiated)
@@ -261,8 +252,7 @@ public final class PopMailboxBuffer extends LocalMailboxBuffer
             }
         }
 
-        public void cancel()
-        {
+        public void cancel() {
             Log.debug("GetNewMessagesProcess.cancel");
             cancelled = true;
             progressNotifier.cancel();
@@ -275,8 +265,7 @@ public final class PopMailboxBuffer extends LocalMailboxBuffer
         }
     }
 
-    private boolean retrieveNewMessages()
-    {
+    private boolean retrieveNewMessages() {
         Log.debug("PopMailboxBuffer.retrieveNewMessages");
         if (!connect())
             return false;
@@ -381,8 +370,7 @@ public final class PopMailboxBuffer extends LocalMailboxBuffer
         return true; // Success!
     }
 
-    private boolean connect()
-    {
+    private boolean connect() {
         if (progressNotifier != null)
             progressNotifier.setText("Connecting to " + session.getHost());
         if (session.connect()) {
@@ -394,8 +382,7 @@ public final class PopMailboxBuffer extends LocalMailboxBuffer
     }
 
     // Returns number of messages on server or -1 if there is an error.
-    private int stat()
-    {
+    private int stat() {
         int count = -1;
         session.write("stat");
         String response = session.readLine();
@@ -413,8 +400,7 @@ public final class PopMailboxBuffer extends LocalMailboxBuffer
         return count;
     }
 
-    private List<MessageListEntry> getServerMessageList(int count)
-    {
+    private List<MessageListEntry> getServerMessageList(int count) {
         long start = System.currentTimeMillis();
         session.write("uidl");
         String response = session.readLine();
@@ -443,8 +429,7 @@ public final class PopMailboxBuffer extends LocalMailboxBuffer
         return list;
     }
 
-    private List<MessageListEntry> getMessagesToBeRetrieved(List<MessageListEntry> serverMessageList)
-    {
+    private List<MessageListEntry> getMessagesToBeRetrieved(List<MessageListEntry> serverMessageList) {
         long start = System.currentTimeMillis();
         HashSet<String> hashSet = null;
         if (entries != null) {
@@ -470,12 +455,11 @@ public final class PopMailboxBuffer extends LocalMailboxBuffer
         return toBeReturned;
     }
 
-    private boolean retrieveMessages(List<MessageListEntry> messageList, MailboxFileWriter writer)
-    {
+    private boolean retrieveMessages(List<MessageListEntry> messageList, MailboxFileWriter writer) {
         Log.debug("entering retrieveMessages");
         long start = System.currentTimeMillis();
         for (int i = 0; i < messageList.size(); i++) {
-            String text = "Retrieving message " + (i + 1)  + " of " + messageList.size();
+            String text = "Retrieving message " + (i + 1) + " of " + messageList.size();
             if (i == 0)
                 progressNotifier.setText(text); // Make sure the user sees this.
             else
@@ -487,13 +471,12 @@ public final class PopMailboxBuffer extends LocalMailboxBuffer
             }
         }
         progressNotifier.setText(cancelled ? "Cancelled, cleaning up" : "");
-        Log.debug("leaving retrieveMessages " +(System.currentTimeMillis() - start) + " ms");
+        Log.debug("leaving retrieveMessages " + (System.currentTimeMillis() - start) + " ms");
         return true;
     }
 
     // Returns true if no error.
-    private boolean retrieveMessage(int i, String uidl, MailboxFileWriter writer)
-    {
+    private boolean retrieveMessage(int i, String uidl, MailboxFileWriter writer) {
         String command = "list " + i;
         session.write(command);
         int size = 0;
@@ -577,8 +560,11 @@ public final class PopMailboxBuffer extends LocalMailboxBuffer
             session.setEcho(echo);
             // Add a newline after the end of the message.
             writer.write('\n');
-            LocalMailboxEntry entry = new LocalMailboxEntry(entries.size()+1,
-                messageStart, sb.toString());
+            LocalMailboxEntry entry = new LocalMailboxEntry(
+                entries.size() + 1,
+                messageStart,
+                sb.toString()
+            );
             entry.setNextMessageStart(writer.getOffset());
             entry.setSize(size);
             entry.setFlags(MailboxEntry.RECENT);
@@ -592,8 +578,7 @@ public final class PopMailboxBuffer extends LocalMailboxBuffer
         }
     }
 
-    private boolean deleteMessagesOnServer(List<MessageListEntry> serverMessageList)
-    {
+    private boolean deleteMessagesOnServer(List<MessageListEntry> serverMessageList) {
         Log.debug("deleteMessagesOnServer need to delete " + serverMessageList.size() + " messages");
         for (MessageListEntry messageListEntry : serverMessageList) {
             session.write("dele " + messageListEntry.messageNumber);
@@ -609,8 +594,7 @@ public final class PopMailboxBuffer extends LocalMailboxBuffer
         return true;
     }
 
-    public void expunge()
-    {
+    public void expunge() {
         if (lock()) {
             setBusy(true);
             saveDisplayState();
@@ -621,8 +605,7 @@ public final class PopMailboxBuffer extends LocalMailboxBuffer
     }
 
     private Runnable expungeProcess = new BackgroundProcess() {
-        public void run()
-        {
+        public void run() {
             try {
                 setBackgroundProcess(this);
                 progressNotifier = new StatusBarProgressNotifier(PopMailboxBuffer.this);
@@ -645,8 +628,7 @@ public final class PopMailboxBuffer extends LocalMailboxBuffer
             }
         }
 
-        public void cancel()
-        {
+        public void cancel() {
             Log.debug("expungeProcess.cancel");
             cancelled = true;
             if (backgroundThread != null && backgroundThread.isAlive())
@@ -655,12 +637,14 @@ public final class PopMailboxBuffer extends LocalMailboxBuffer
         }
     };
 
-    private void expungeInternal()
-    {
+    private void expungeInternal() {
         if (entries == null)
             return; // No error.
-        if (getBooleanProperty(Property.POP_EXPUNGE_DELETED_MESSAGES_ON_SERVER) == false ||
-            getBooleanProperty(Property.POP_KEEP_MESSAGES_ON_SERVER) == false) {
+        if (
+            getBooleanProperty(Property.POP_EXPUNGE_DELETED_MESSAGES_ON_SERVER) == false
+                ||
+                getBooleanProperty(Property.POP_KEEP_MESSAGES_ON_SERVER) == false
+        ) {
             // This is the "local expunge only" case.
             Log.debug("expungeInternal \"local expunge only\" case");
             // First add all deleted entries to expunged list.
@@ -723,8 +707,7 @@ public final class PopMailboxBuffer extends LocalMailboxBuffer
         }
     }
 
-    private boolean expungeUidl(String uidl, List<MessageListEntry> serverMessageList)
-    {
+    private boolean expungeUidl(String uidl, List<MessageListEntry> serverMessageList) {
         if (uidl != null) {
             for (int j = serverMessageList.size() - 1; j >= 0; j--) {
                 MessageListEntry messageListEntry = serverMessageList.get(j);
@@ -753,15 +736,13 @@ public final class PopMailboxBuffer extends LocalMailboxBuffer
 
     private HashSet<String> expungedUidlsList;
 
-    private final boolean isExpunged(String uidl)
-    {
+    private final boolean isExpunged(String uidl) {
         if (expungedUidlsList == null)
             return false;
         return expungedUidlsList.contains(uidl);
     }
 
-    private final void addToExpungedUidlsList(String uidl)
-    {
+    private final void addToExpungedUidlsList(String uidl) {
         if (expungedUidlsList == null)
             expungedUidlsList = new HashSet<String>();
         expungedUidlsList.add(uidl);
@@ -769,8 +750,7 @@ public final class PopMailboxBuffer extends LocalMailboxBuffer
 
     // Prune our list of expunged uidls, removing entries that no longer exist
     // on the server.
-    private void pruneExpungedUidlsList(List<MessageListEntry> serverMessageList)
-    {
+    private void pruneExpungedUidlsList(List<MessageListEntry> serverMessageList) {
         Log.debug("pruneExpungedUidlsList");
         if (expungedUidlsList == null)
             return; // Nothing to do.
@@ -795,8 +775,7 @@ public final class PopMailboxBuffer extends LocalMailboxBuffer
         Log.debug("pruneExpungedUidlsList " + (System.currentTimeMillis() - start) + " ms");
     }
 
-    private void readExpungedUidlsList()
-    {
+    private void readExpungedUidlsList() {
         File mailboxFile = getMailboxFile();
         if (mailboxFile == null) {
             Debug.bug("readExpungedUidlsList mailboxFile is null");
@@ -819,8 +798,7 @@ public final class PopMailboxBuffer extends LocalMailboxBuffer
         }
     }
 
-    private void writeExpungedUidlsList()
-    {
+    private void writeExpungedUidlsList() {
         File mailboxFile = getMailboxFile();
         if (mailboxFile == null) {
             Debug.bug("writeExpungedUidls mailboxFile is null");
@@ -848,13 +826,11 @@ public final class PopMailboxBuffer extends LocalMailboxBuffer
     private static final SimpleDateFormat df =
         new SimpleDateFormat("EEE MMM dd HH:mm:ss yyyy", Locale.US);
 
-    private final String getDateTimeStamp()
-    {
+    private final String getDateTimeStamp() {
         return df.format(Calendar.getInstance().getTime());
     }
 
-    private File getLocalStore()
-    {
+    private File getLocalStore() {
         if (localStore != null)
             return localStore;
         File popDir = File.getInstance(Directories.getMailDirectory(), "pop");
@@ -899,8 +875,7 @@ public final class PopMailboxBuffer extends LocalMailboxBuffer
         }
     }
 
-    public void dispose()
-    {
+    public void dispose() {
         Log.debug("PopMailboxBuffer.dispose");
         Runnable disposeRunnable = () -> {
             try {
@@ -929,8 +904,7 @@ public final class PopMailboxBuffer extends LocalMailboxBuffer
         MailboxProperties.saveProperties(this);
     }
 
-    public String toString()
-    {
+    public String toString() {
         int newMessageCount = getNewMessageCount();
         if (newMessageCount > 0) {
             StringBuilder sb = new StringBuilder(url.toString());
@@ -942,19 +916,16 @@ public final class PopMailboxBuffer extends LocalMailboxBuffer
             return url.toString();
     }
 
-    public String getTitle()
-    {
+    public String getTitle() {
         return toString();
     }
 }
 
-class MessageListEntry
-{
+class MessageListEntry {
     int messageNumber;
     String uidl;
 
-    MessageListEntry(int messageNumber, String uidl)
-    {
+    MessageListEntry(int messageNumber, String uidl) {
         this.messageNumber = messageNumber;
         this.uidl = uidl;
     }

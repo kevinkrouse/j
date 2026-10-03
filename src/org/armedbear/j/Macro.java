@@ -24,19 +24,21 @@ import java.util.ArrayList;
 import javax.swing.undo.CompoundEdit;
 import org.armedbear.j.extension.ScriptFunction;
 
-public final class Macro implements Constants
-{
+public final class Macro implements Constants {
     private static Macro macro;
 
-    public static synchronized void recordMacro()
-    {
+    public static synchronized void recordMacro() {
         if (Editor.isRecordingMacro())
             Editor.setRecordingMacro(false);
         else {
             final Editor editor = Editor.currentEditor();
             if (macro != null && !macro.isEmpty()) {
-                if (!editor.confirm("Record Macro",
-                                    "Overwrite existing keyboard macro?"))
+                if (
+                    !editor.confirm(
+                        "Record Macro",
+                        "Overwrite existing keyboard macro?"
+                    )
+                )
                     return;
             }
             macro = new Macro(editor);
@@ -44,18 +46,22 @@ public final class Macro implements Constants
         }
     }
 
-    public static synchronized void startMacro()
-    {
+    public static synchronized void startMacro() {
         if (Editor.isRecordingMacro()) {
             MessageDialog.showMessageDialog(
                 Editor.currentEditor(),
                 "Command ignored (already recording a macro)",
-                "Start Macro");
+                "Start Macro"
+            );
         } else {
             final Editor editor = Editor.currentEditor();
             if (macro != null && !macro.isEmpty()) {
-                if (!editor.confirm("Start Macro",
-                                    "Overwrite existing keyboard macro?"))
+                if (
+                    !editor.confirm(
+                        "Start Macro",
+                        "Overwrite existing keyboard macro?"
+                    )
+                )
                     return;
             }
             macro = new Macro(editor);
@@ -63,28 +69,29 @@ public final class Macro implements Constants
         }
     }
 
-    public static synchronized void endMacro()
-    {
+    public static synchronized void endMacro() {
         if (Editor.isRecordingMacro()) {
             Editor.setRecordingMacro(false);
         } else {
             MessageDialog.showMessageDialog(
                 Editor.currentEditor(),
                 "Command ignored (not recording a macro)",
-                "End Macro");
+                "End Macro"
+            );
         }
     }
 
-    public static synchronized void playbackMacro()
-    {
+    public static synchronized void playbackMacro() {
         final Editor editor = Editor.currentEditor();
         if (Editor.isRecordingMacro()) {
-            MessageDialog.showMessageDialog(editor,
-                                            "Command ignored (playbackMacro is not allowed while recording a macro)",
-                                            "Record Macro");
+            MessageDialog.showMessageDialog(
+                editor,
+                "Command ignored (playbackMacro is not allowed while recording a macro)",
+                "Record Macro"
+            );
             return;
         }
-        if (macro == null || macro.isEmpty()){
+        if (macro == null || macro.isEmpty()) {
             editor.status("No keyboard macro defined");
             return;
         }
@@ -94,48 +101,45 @@ public final class Macro implements Constants
     private final Editor editor;
     private ArrayList<Object> list = new ArrayList<Object>();
 
-    private Macro(Editor editor)
-    {
+    private Macro(Editor editor) {
         this.editor = editor;
     }
 
-    public Editor getEditor()
-    {
+    public Editor getEditor() {
         return editor;
     }
 
-    private synchronized boolean isEmpty()
-    {
+    private synchronized boolean isEmpty() {
         return list.isEmpty();
     }
 
-    public static synchronized void record(Editor editor, Object command)
-    {
-        if (command == "recordMacro" || command == "playbackMacro" ||
-            command == "startMacro" || command == "endMacro")
+    public static synchronized void record(Editor editor, Object command) {
+        if (
+            command == "recordMacro"
+                || command == "playbackMacro"
+                ||
+                command == "startMacro"
+                || command == "endMacro"
+        )
             return;
         if (macro != null && macro.getEditor() == editor)
             macro.record(command);
     }
 
-    public static synchronized void record(Editor editor, char c)
-    {
+    public static synchronized void record(Editor editor, char c) {
         if (macro != null && macro.getEditor() == editor)
             macro.record(c);
     }
 
-    private synchronized void record(Object command)
-    {
+    private synchronized void record(Object command) {
         list.add(command);
     }
 
-    private synchronized void record(char c)
-    {
+    private synchronized void record(char c) {
         list.add(c);
     }
 
-    private synchronized void playback()
-    {
+    private synchronized void playback() {
         final Editor editor = Editor.currentEditor();
         final Buffer buffer = editor.getBuffer();
         try {
@@ -150,11 +154,11 @@ public final class Macro implements Constants
             for (Object object : list) {
                 editor.setCurrentCommand(COMMAND_NOTHING);
                 if (object instanceof String) {
-                    editor.executeCommand((String)object);
+                    editor.executeCommand((String) object);
                 } else if (object instanceof ScriptFunction) {
-                    ((ScriptFunction)object).invoke();
+                    ((ScriptFunction) object).invoke();
                 } else if (object instanceof Character) {
-                    editor.insertNormalChar(((Character)object).charValue());
+                    editor.insertNormalChar(((Character) object).charValue());
                 }
                 editor.setLastCommand(editor.getCurrentCommand());
             }

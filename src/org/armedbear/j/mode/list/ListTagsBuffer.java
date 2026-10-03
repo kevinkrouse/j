@@ -20,10 +20,11 @@
 
 package org.armedbear.j.mode.list;
 
+import java.lang.StringBuilder;
+import java.util.List;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Debug;
 import org.armedbear.j.Editor;
-import java.lang.StringBuilder;
 import org.armedbear.j.GlobalTag;
 import org.armedbear.j.JumpList;
 import org.armedbear.j.Line;
@@ -33,18 +34,14 @@ import org.armedbear.j.Position;
 import org.armedbear.j.Tag;
 import org.armedbear.j.TagLine;
 
-import java.util.List;
-
-public final class ListTagsBuffer extends Buffer
-{
+public final class ListTagsBuffer extends Buffer {
     private final String name; // The tag name.
     private Marker marker;
 
     private String lastFileName;
     private String lastClassName;
 
-    public ListTagsBuffer(Editor editor, String command, String name, List<? extends Tag> tags)
-    {
+    public ListTagsBuffer(Editor editor, String command, String name, List<? extends Tag> tags) {
         super();
         this.name = name;
         if (editor.getBuffer().getFile() != null)
@@ -64,8 +61,7 @@ public final class ListTagsBuffer extends Buffer
         setInitialized(true);
     }
 
-    public Position getInitialDotPos()
-    {
+    public Position getInitialDotPos() {
         for (Line line = getFirstLine(); line != null; line = line.next()) {
             if (line instanceof TagLine)
                 return new Position(line, 0);
@@ -73,8 +69,7 @@ public final class ListTagsBuffer extends Buffer
         return new Position(getFirstLine(), 0);
     }
 
-    private void load(List<? extends Tag> tags)
-    {
+    private void load(List<? extends Tag> tags) {
         try {
             lockWrite();
         }
@@ -96,12 +91,11 @@ public final class ListTagsBuffer extends Buffer
         }
     }
 
-    private void appendTag(Tag tag)
-    {
+    private void appendTag(Tag tag) {
         // In the current implementation, the tags for a given file will be
         // grouped together in the tag file.
         if (tag instanceof GlobalTag) {
-            String fileName = ((GlobalTag)tag).getFileName();
+            String fileName = ((GlobalTag) tag).getFileName();
             if (fileName != null && !fileName.equals(lastFileName)) {
                 appendLine(new FileLine(fileName));
                 lastFileName = fileName;
@@ -116,14 +110,13 @@ public final class ListTagsBuffer extends Buffer
         appendLine(new TagLine(tag));
     }
 
-    public void jumpToTag(Editor editor, boolean killList)
-    {
+    public void jumpToTag(Editor editor, boolean killList) {
         if (editor.getDot() == null)
             return;
         final Line dotLine = editor.getDotLine();
         if (!(dotLine instanceof TagLine))
             return;
-        final Tag tag = ((TagLine)dotLine).getTag();
+        final Tag tag = ((TagLine) dotLine).getTag();
         if (tag == null) {
             Debug.bug();
             return;

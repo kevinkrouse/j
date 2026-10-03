@@ -20,6 +20,7 @@
 
 package org.armedbear.j.mail;
 
+import java.lang.StringBuilder;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -32,7 +33,6 @@ import org.armedbear.j.Dispatcher;
 import org.armedbear.j.Display;
 import org.armedbear.j.Editor;
 import org.armedbear.j.EditorIterator;
-import java.lang.StringBuilder;
 import org.armedbear.j.History;
 import org.armedbear.j.InputDialog;
 import org.armedbear.j.Line;
@@ -43,11 +43,10 @@ import org.armedbear.j.ProgressNotifier;
 import org.armedbear.j.Property;
 import org.armedbear.j.PropertyList;
 import org.armedbear.j.Sidebar;
-import org.armedbear.j.util.Utilities;
 import org.armedbear.j.View;
+import org.armedbear.j.util.Utilities;
 
-public abstract class MailboxBuffer extends Buffer
-{
+public abstract class MailboxBuffer extends Buffer {
     public static final int SORT_BY_DATE_SENT = 0;
 
     protected MailboxURL url;
@@ -68,80 +67,66 @@ public abstract class MailboxBuffer extends Buffer
 
     private MessageBuffer previewBuffer;
 
-    protected MailboxBuffer()
-    {
-    }
+    protected MailboxBuffer() {}
 
-    protected MailboxBuffer(MailboxURL url)
-    {
+    protected MailboxBuffer(MailboxURL url) {
         this.url = url;
         PropertyList props = MailboxProperties.getProperties(url);
         if (props != null)
             properties.putAll(props);
     }
 
-    public MessageBuffer getPreviewBuffer()
-    {
+    public MessageBuffer getPreviewBuffer() {
         return previewBuffer;
     }
 
-    public void setPreviewBuffer(MessageBuffer buf)
-    {
+    public void setPreviewBuffer(MessageBuffer buf) {
         previewBuffer = buf;
     }
 
-    public Buffer getSecondary()
-    {
+    public Buffer getSecondary() {
         return previewBuffer;
     }
 
-    public final MailboxURL getUrl()
-    {
+    public final MailboxURL getUrl() {
         return url;
     }
 
-    public final int getSortBy()
-    {
+    public final int getSortBy() {
         return sortBy;
     }
 
     public abstract String getName();
 
-    public synchronized final void setEntries(List<MailboxEntry> entries)
-    {
+    public synchronized final void setEntries(List<MailboxEntry> entries) {
         this.entries = entries;
     }
 
-    public synchronized final long getLastCheckMillis()
-    {
+    public synchronized final long getLastCheckMillis() {
         return lastCheckMillis;
     }
 
-    protected synchronized final void setLastCheckMillis(long when)
-    {
+    protected synchronized final void setLastCheckMillis(long when) {
         lastCheckMillis = when;
     }
 
-    public synchronized long getLastErrorMillis()
-    {
+    public synchronized long getLastErrorMillis() {
         return 0;
     }
 
     public abstract void getNewMessages();
 
-    public void getNewMessages(boolean userInitiated)
-    {
-    }
+    public void getNewMessages(boolean userInitiated) {}
 
     public abstract void readMessage(Line line);
 
-    public void readMessageOtherWindow(Line line)
-    {
-    }
+    public void readMessageOtherWindow(Line line) {}
 
-    protected void activateMessageBuffer(Editor editor,
-        MessageBuffer messageBuffer, boolean useOtherWindow)
-    {
+    protected void activateMessageBuffer(
+        Editor editor,
+        MessageBuffer messageBuffer,
+        boolean useOtherWindow
+    ) {
         editor.makeNext(messageBuffer);
         if (useOtherWindow) {
             Buffer oldBuffer = null;
@@ -149,8 +134,10 @@ public abstract class MailboxBuffer extends Buffer
             if (ed != null)
                 oldBuffer = ed.getBuffer();
             messageBuffer.setTransient(true);
-            editor.activateInOtherWindow(messageBuffer,
-                                         messageBuffer.getSplit());
+            editor.activateInOtherWindow(
+                messageBuffer,
+                messageBuffer.getSplit()
+            );
             previewBuffer = messageBuffer;
             if (oldBuffer != null && oldBuffer != messageBuffer) {
                 if (oldBuffer.isTransient())
@@ -161,8 +148,11 @@ public abstract class MailboxBuffer extends Buffer
     }
 
     public abstract void createFolder();
+
     public abstract void deleteFolder();
+
     public abstract void saveToFolder();
+
     public abstract void moveToFolder();
 
     public abstract void delete();
@@ -173,30 +163,25 @@ public abstract class MailboxBuffer extends Buffer
 
     public abstract void markUnread();
 
-    public void flag()
-    {
-    }
+    public void flag() {}
 
     public abstract void setAnsweredFlag(MailboxEntry entry);
 
-    public final int getUnreadMessageCount()
-    {
+    public final int getUnreadMessageCount() {
         return unreadMessageCount;
     }
 
-    public final int getNewMessageCount()
-    {
+    public final int getNewMessageCount() {
         return newMessageCount;
     }
 
     // Count new and unread messages, respecting the limit that is in force
     // (if any).
-    public void countMessages()
-    {
+    public void countMessages() {
         unreadMessageCount = newMessageCount = 0;
         for (Line line = getFirstLine(); line != null; line = line.next()) {
             if (line instanceof MailboxLine) {
-                MailboxEntry entry = ((MailboxLine)line).getMailboxEntry();
+                MailboxEntry entry = ((MailboxLine) line).getMailboxEntry();
                 if (entry.isNew())
                     ++newMessageCount;
                 if (entry.isUnread())
@@ -207,8 +192,7 @@ public abstract class MailboxBuffer extends Buffer
 
     // Clear RECENT flag for all messages.
     // Returns true if there was any change.
-    protected boolean clearRecent()
-    {
+    protected boolean clearRecent() {
         if (!isLocked())
             Debug.bug("clearRecent mailbox not locked!");
         boolean changed = false;
@@ -226,20 +210,17 @@ public abstract class MailboxBuffer extends Buffer
         return changed;
     }
 
-    public final void setDirty(boolean b)
-    {
+    public final void setDirty(boolean b) {
         dirty = b;
     }
 
-    public final boolean isDirty()
-    {
+    public final boolean isDirty() {
         return dirty;
     }
 
-    public void tag(Editor editor, Line line)
-    {
+    public void tag(Editor editor, Line line) {
         if (line instanceof MailboxLine) {
-            MailboxEntry entry = ((MailboxLine)line).getMailboxEntry();
+            MailboxEntry entry = ((MailboxLine) line).getMailboxEntry();
             entry.toggleTag();
             Editor.updateInAllEditors(line);
             if (line.next() != null) {
@@ -250,8 +231,7 @@ public abstract class MailboxBuffer extends Buffer
         }
     }
 
-    public void tagPattern()
-    {
+    public void tagPattern() {
         Editor editor = Editor.currentEditor();
         InputDialog d = new InputDialog(editor, "Pattern:", "Tag Pattern", null);
         d.setHistory(new History("mailboxTagPattern"));
@@ -271,12 +251,11 @@ public abstract class MailboxBuffer extends Buffer
             MessageDialog.showMessageDialog("Bad pattern", "Tag Pattern");
     }
 
-    private void tag(MailboxFilter filter)
-    {
+    private void tag(MailboxFilter filter) {
         Editor.currentEditor().setWaitCursor();
         for (Line line = getFirstLine(); line != null; line = line.next()) {
             if (line instanceof MailboxLine) {
-                MailboxEntry entry = ((MailboxLine)line).getMailboxEntry();
+                MailboxEntry entry = ((MailboxLine) line).getMailboxEntry();
                 if (!entry.isTagged()) {
                     if (filter.accept(entry)) {
                         entry.tag();
@@ -287,12 +266,11 @@ public abstract class MailboxBuffer extends Buffer
         }
     }
 
-    public void untagAll()
-    {
+    public void untagAll() {
         Editor.currentEditor().setWaitCursor();
         for (Line line = getFirstLine(); line != null; line = line.next()) {
             if (line instanceof MailboxLine) {
-                MailboxEntry entry = ((MailboxLine)line).getMailboxEntry();
+                MailboxEntry entry = ((MailboxLine) line).getMailboxEntry();
                 if (entry.isTagged()) {
                     entry.untag();
                     Editor.updateInAllEditors(line);
@@ -301,19 +279,16 @@ public abstract class MailboxBuffer extends Buffer
         }
     }
 
-    public void toggleRaw()
-    {
+    public void toggleRaw() {
         showRawText = !showRawText;
         Editor.currentEditor().status("Raw mode " + (showRawText ? "on" : "off"));
     }
 
-    public List<MailboxEntry> getEntries()
-    {
+    public List<MailboxEntry> getEntries() {
         return entries;
     }
 
-    public List<MailboxEntry> getTaggedEntries()
-    {
+    public List<MailboxEntry> getTaggedEntries() {
         ArrayList<MailboxEntry> taggedEntries = null;
         final int size = entries.size();
         for (MailboxEntry entry : entries) {
@@ -326,11 +301,10 @@ public abstract class MailboxBuffer extends Buffer
         return taggedEntries;
     }
 
-    public MailboxEntry getEntryAtDot(Editor editor)
-    {
+    public MailboxEntry getEntryAtDot(Editor editor) {
         Line line = editor.getDotLine();
         if (line instanceof MailboxLine)
-            return ((MailboxLine)line).getMailboxEntry();
+            return ((MailboxLine) line).getMailboxEntry();
         else
             return null;
     }
@@ -339,25 +313,23 @@ public abstract class MailboxBuffer extends Buffer
 
     public abstract int getMessageCount();
 
-    public Message getMessage(MailboxEntry entry, ProgressNotifier progressNotifier)
-    {
+    public Message getMessage(MailboxEntry entry, ProgressNotifier progressNotifier) {
         Debug.assertTrue(false);
         return null;
     }
 
-    public MailboxEntry getNextUndeleted(MailboxEntry entry)
-    {
+    public MailboxEntry getNextUndeleted(MailboxEntry entry) {
         Line line;
         for (line = getFirstLine(); line != null; line = line.next()) {
             if (line instanceof MailboxLine) {
-                if (entry == ((MailboxLine)line).getMailboxEntry())
+                if (entry == ((MailboxLine) line).getMailboxEntry())
                     break;
             }
         }
         if (line != null) {
             for (line = line.next(); line != null; line = line.next()) {
                 if (line instanceof MailboxLine) {
-                    MailboxEntry maybe = ((MailboxLine)line).getMailboxEntry();
+                    MailboxEntry maybe = ((MailboxLine) line).getMailboxEntry();
                     if (!maybe.isDeleted())
                         return maybe;
                 }
@@ -366,19 +338,18 @@ public abstract class MailboxBuffer extends Buffer
         return null;
     }
 
-    public MailboxEntry getPreviousUndeleted(MailboxEntry entry)
-    {
+    public MailboxEntry getPreviousUndeleted(MailboxEntry entry) {
         Line line;
         for (line = getFirstLine(); line != null; line = line.next()) {
             if (line instanceof MailboxLine) {
-                if (entry == ((MailboxLine)line).getMailboxEntry())
+                if (entry == ((MailboxLine) line).getMailboxEntry())
                     break;
             }
         }
         if (line != null) {
             for (line = line.previous(); line != null; line = line.previous()) {
                 if (line instanceof MailboxLine) {
-                    MailboxEntry maybe = ((MailboxLine)line).getMailboxEntry();
+                    MailboxEntry maybe = ((MailboxLine) line).getMailboxEntry();
                     if (!maybe.isDeleted())
                         return maybe;
                 }
@@ -387,8 +358,7 @@ public abstract class MailboxBuffer extends Buffer
         return null;
     }
 
-    public MailboxEntry getNextInThread(MailboxEntry entry)
-    {
+    public MailboxEntry getNextInThread(MailboxEntry entry) {
         String subject = entry.getSubject();
         if (subject == null)
             return null; // But there are other things we could try...
@@ -398,14 +368,14 @@ public abstract class MailboxBuffer extends Buffer
         Line line;
         for (line = getFirstLine(); line != null; line = line.next()) {
             if (line instanceof MailboxLine)
-                if (entry == ((MailboxLine)line).getMailboxEntry())
+                if (entry == ((MailboxLine) line).getMailboxEntry())
                     break;
         }
         if (line != null) {
             // Search later entries.
             for (line = line.next(); line != null; line = line.next()) {
                 if (line instanceof MailboxLine) {
-                    MailboxEntry maybe = ((MailboxLine)line).getMailboxEntry();
+                    MailboxEntry maybe = ((MailboxLine) line).getMailboxEntry();
                     // Note that we don't skip over deleted messages here.
                     String s = maybe.getSubject();
                     if (s != null) {
@@ -420,8 +390,7 @@ public abstract class MailboxBuffer extends Buffer
         return null;
     }
 
-    public MailboxEntry getPreviousInThread(MailboxEntry entry)
-    {
+    public MailboxEntry getPreviousInThread(MailboxEntry entry) {
         String subject = entry.getSubject();
         if (subject == null)
             return null; // But there are other things we could try...
@@ -431,14 +400,14 @@ public abstract class MailboxBuffer extends Buffer
         Line line;
         for (line = getFirstLine(); line != null; line = line.next()) {
             if (line instanceof MailboxLine)
-                if (entry == ((MailboxLine)line).getMailboxEntry())
+                if (entry == ((MailboxLine) line).getMailboxEntry())
                     break;
         }
         if (line != null) {
             // Search earlier entries.
             for (line = line.previous(); line != null; line = line.previous()) {
                 if (line instanceof MailboxLine) {
-                    MailboxEntry maybe = ((MailboxLine)line).getMailboxEntry();
+                    MailboxEntry maybe = ((MailboxLine) line).getMailboxEntry();
                     // Note that we don't skip over deleted messages here.
                     String s = maybe.getSubject();
                     if (s != null) {
@@ -453,12 +422,11 @@ public abstract class MailboxBuffer extends Buffer
         return null;
     }
 
-    public MailboxEntry getEntryForMessageId(String messageId)
-    {
+    public MailboxEntry getEntryForMessageId(String messageId) {
         if (messageId == null)
             return null;
         if (entries != null) {
-            for (int i = entries.size()-1; i >= 0; i--) {
+            for (int i = entries.size() - 1; i >= 0; i--) {
                 MailboxEntry entry = entries.get(i);
                 if (entry != null) {
                     if (messageId.equals(entry.getMessageId()))
@@ -469,8 +437,7 @@ public abstract class MailboxBuffer extends Buffer
         return null;
     }
 
-    public void bounce()
-    {
+    public void bounce() {
         Debug.assertTrue(SwingUtilities.isEventDispatchThread());
         final Editor editor = Editor.currentEditor();
         List<MailboxEntry> list = getTaggedEntries();
@@ -521,8 +488,7 @@ public abstract class MailboxBuffer extends Buffer
             editor.status("Mailbox is locked");
     }
 
-    private boolean bounceMessages(List<MailboxEntry> toBeBounced, MailAddress[] to)
-    {
+    private boolean bounceMessages(List<MailboxEntry> toBeBounced, MailAddress[] to) {
         Log.debug("bounceMessages initializing SMTP session...");
         SmtpSession smtp = SmtpSession.getDefaultSession();
         if (smtp == null)
@@ -543,18 +509,15 @@ public abstract class MailboxBuffer extends Buffer
 
     private String limitPattern;
 
-    public final String getLimitPattern()
-    {
+    public final String getLimitPattern() {
         return limitPattern;
     }
 
-    public final void setLimitPattern(String pattern)
-    {
+    public final void setLimitPattern(String pattern) {
         limitPattern = pattern;
     }
 
-    public void limit()
-    {
+    public void limit() {
         Editor editor = Editor.currentEditor();
         InputDialog d = new InputDialog(editor, "Pattern:", "Limit", limitPattern);
         d.setHistory(new History("mailboxLimit"));
@@ -585,8 +548,7 @@ public abstract class MailboxBuffer extends Buffer
         }
     }
 
-    public void unlimit()
-    {
+    public void unlimit() {
         if (lock()) {
             try {
                 limitPattern = null;
@@ -602,18 +564,15 @@ public abstract class MailboxBuffer extends Buffer
     // The limit filter that's currently in effect.
     private MailboxFilter limitFilter;
 
-    public final MailboxFilter getLimitFilter()
-    {
+    public final MailboxFilter getLimitFilter() {
         return limitFilter;
     }
 
-    public final void setLimitFilter(MailboxFilter filter)
-    {
+    public final void setLimitFilter(MailboxFilter filter) {
         limitFilter = filter;
     }
 
-    public void limit(MailboxFilter filter)
-    {
+    public void limit(MailboxFilter filter) {
         Debug.assertTrue(SwingUtilities.isEventDispatchThread());
         final Editor editor = Editor.currentEditor();
         editor.repaintNow();
@@ -621,7 +580,7 @@ public abstract class MailboxBuffer extends Buffer
         // Remember where we are.
         MailboxEntry currentEntry = null;
         if (editor.getDot() != null && editor.getDotLine() instanceof MailboxLine)
-            currentEntry = ((MailboxLine)editor.getDotLine()).getMailboxEntry();
+            currentEntry = ((MailboxLine) editor.getDotLine()).getMailboxEntry();
         limitFilter = filter;
         refreshBuffer();
         // Update message count in sidebar buffer list.
@@ -633,7 +592,7 @@ public abstract class MailboxBuffer extends Buffer
                 boolean groupByThread =
                     getBooleanProperty(Property.GROUP_BY_THREAD);
                 for (Line line = getFirstLine(); line != null; line = line.next()) {
-                    MailboxEntry entry = ((MailboxLine)line).getMailboxEntry();
+                    MailboxEntry entry = ((MailboxLine) line).getMailboxEntry();
                     if (entry == currentEntry) {
                         dotLine = line;
                         break;
@@ -670,20 +629,18 @@ public abstract class MailboxBuffer extends Buffer
         editor.setDefaultCursor();
     }
 
-    public MailboxLine getLineForEntry(MailboxEntry entry)
-    {
+    public MailboxLine getLineForEntry(MailboxEntry entry) {
         if (entry != null) {
             for (Line line = getFirstLine(); line != null; line = line.next()) {
                 if (line instanceof MailboxLine)
-                    if (((MailboxLine)line).getMailboxEntry() == entry)
-                        return (MailboxLine)line;
+                    if (((MailboxLine) line).getMailboxEntry() == entry)
+                        return (MailboxLine) line;
             }
         }
         return null;
     }
 
-    public MailboxLine findLineForEntry(MailboxEntry entry)
-    {
+    public MailboxLine findLineForEntry(MailboxEntry entry) {
         if (entry != null) {
             // First look through all the entries for an exact match.
             for (Line l = getFirstLine(); l != null; l = l.next()) {
@@ -723,8 +680,7 @@ public abstract class MailboxBuffer extends Buffer
         return null;
     }
 
-    public int getLineNumberForEntry(MailboxEntry entry)
-    {
+    public int getLineNumberForEntry(MailboxEntry entry) {
         Line line = getLineForEntry(entry);
         if (line != null)
             return line.lineNumber();
@@ -733,14 +689,13 @@ public abstract class MailboxBuffer extends Buffer
     }
 
     // Find first message that's not seen and not deleted.
-    public Position getInitialDotPos()
-    {
+    public Position getInitialDotPos() {
         if (getFirstLine() == null)
             return null;
         Line line = getFirstLine();
         while (true) {
             if (line instanceof MailboxLine) {
-                MailboxEntry entry = ((MailboxLine)line).getMailboxEntry();
+                MailboxEntry entry = ((MailboxLine) line).getMailboxEntry();
                 if (entry != null) {
                     int flags = entry.getFlags();
                     if ((flags & MailboxEntry.SEEN) == 0)
@@ -755,14 +710,13 @@ public abstract class MailboxBuffer extends Buffer
         return new Position(line, 0);
     }
 
-    public MailboxEntry getInitialEntry()
-    {
+    public MailboxEntry getInitialEntry() {
         if (getFirstLine() == null)
             return null;
         Line line = getFirstLine();
         while (true) {
             if (line instanceof MailboxLine) {
-                MailboxEntry entry = ((MailboxLine)line).getMailboxEntry();
+                MailboxEntry entry = ((MailboxLine) line).getMailboxEntry();
                 if (entry != null) {
                     int flags = entry.getFlags();
                     if ((flags & MailboxEntry.SEEN) == 0)
@@ -774,11 +728,10 @@ public abstract class MailboxBuffer extends Buffer
                 break; // Reached last line.
             line = line.next();
         }
-        return ((MailboxLine)line).getMailboxEntry();
+        return ((MailboxLine) line).getMailboxEntry();
     }
 
-    public void updateEntry(MailboxEntry entry)
-    {
+    public void updateEntry(MailboxEntry entry) {
         MailboxLine line = getLineForEntry(entry);
         if (line != null) {
             line.setText(entry.toString(line.getDepth()));
@@ -786,20 +739,18 @@ public abstract class MailboxBuffer extends Buffer
         }
     }
 
-    public final void toggleGroupByThread()
-    {
+    public final void toggleGroupByThread() {
         boolean groupByThread = getBooleanProperty(Property.GROUP_BY_THREAD);
         setProperty(Property.GROUP_BY_THREAD, !groupByThread);
         sort();
     }
 
-    private void sort()
-    {
+    private void sort() {
         final Editor editor = Editor.currentEditor();
         // Remember where we are.
         final MailboxEntry currentEntry;
         if (editor.getDot() != null && editor.getDotLine() instanceof MailboxLine)
-            currentEntry = ((MailboxLine)editor.getDotLine()).getMailboxEntry();
+            currentEntry = ((MailboxLine) editor.getDotLine()).getMailboxEntry();
         else
             currentEntry = null;
         final Runnable completionRunnable = () -> {
@@ -832,8 +783,7 @@ public abstract class MailboxBuffer extends Buffer
         }
     }
 
-    public void foldThread(Line line)
-    {
+    public void foldThread(Line line) {
         if (!getBooleanProperty(Property.GROUP_BY_THREAD))
             return;
         if (line instanceof MailboxLine) {
@@ -855,7 +805,9 @@ public abstract class MailboxBuffer extends Buffer
                     else
                         break;
                 }
-                for (Line toBeHidden = begin.next(); toBeHidden != end && toBeHidden != null; toBeHidden = toBeHidden.next())
+                for (Line toBeHidden = begin.next();
+                    toBeHidden != end && toBeHidden != null;
+                    toBeHidden = toBeHidden.next())
                     toBeHidden.hide();
                 renumber();
                 Editor.unhideDotInAllFrames(this);
@@ -863,8 +815,7 @@ public abstract class MailboxBuffer extends Buffer
         }
     }
 
-    public void foldThreads()
-    {
+    public void foldThreads() {
         if (!getBooleanProperty(Property.GROUP_BY_THREAD))
             return;
         for (Line line = getFirstLine(); line != null; line = line.nextVisible()) {
@@ -880,7 +831,9 @@ public abstract class MailboxBuffer extends Buffer
                             else
                                 break;
                         }
-                        for (Line toBeHidden = begin.next(); toBeHidden != end && toBeHidden != null; toBeHidden = toBeHidden.next())
+                        for (Line toBeHidden = begin.next();
+                            toBeHidden != end && toBeHidden != null;
+                            toBeHidden = toBeHidden.next())
                             toBeHidden.hide();
                     }
                 }
@@ -890,8 +843,7 @@ public abstract class MailboxBuffer extends Buffer
         Editor.unhideDotInAllFrames(this);
     }
 
-    protected void refreshBuffer()
-    {
+    protected void refreshBuffer() {
         if (getBooleanProperty(Property.GROUP_BY_THREAD)) {
             long start = System.currentTimeMillis();
             SortByThread sort = new SortByThread(entries);
@@ -948,8 +900,7 @@ public abstract class MailboxBuffer extends Buffer
     }
 
     // Never returns null.
-    private static List<MailboxEntry> getMatchingEntries(List<MailboxEntry> list, MailboxFilter filter)
-    {
+    private static List<MailboxEntry> getMatchingEntries(List<MailboxEntry> list, MailboxFilter filter) {
         if (list == null)
             return new ArrayList<MailboxEntry>();
         if (filter == null)
@@ -963,18 +914,15 @@ public abstract class MailboxBuffer extends Buffer
         return matchingEntries;
     }
 
-    public final void appendLine(MailboxEntry entry)
-    {
+    public final void appendLine(MailboxEntry entry) {
         appendLine(new MailboxLine(entry));
     }
 
-    public final void appendLine(MailboxEntry entry, int depth)
-    {
+    public final void appendLine(MailboxEntry entry, int depth) {
         appendLine(new MailboxLine(entry, depth));
     }
 
-    private static void sortEntriesByDate(List<MailboxEntry> list)
-    {
+    private static void sortEntriesByDate(List<MailboxEntry> list) {
         Comparator<MailboxEntry> c =
             (e1, e2) -> RFC822Date.compare(e1.getDate(), e2.getDate());
         Collections.sort(list, c);
@@ -984,8 +932,7 @@ public abstract class MailboxBuffer extends Buffer
         }
     }
 
-    protected void addEntriesToAddressBook(List<MailboxEntry> list)
-    {
+    protected void addEntriesToAddressBook(List<MailboxEntry> list) {
         if (list == null)
             return;
         MailAddress userMailAddress = Mail.getUserMailAddress();
@@ -1052,18 +999,15 @@ public abstract class MailboxBuffer extends Buffer
     }
 
     // For the buffer list.
-    public Icon getIcon()
-    {
+    public Icon getIcon() {
         return Utilities.getIconFromFile(newMessageCount > 0 ? "mailbox_new.png" : "mailbox.png");
     }
 
-    public String getFileNameForDisplay()
-    {
+    public String getFileNameForDisplay() {
         return "";
     }
 
-    protected void newMessagesStatus()
-    {
+    protected void newMessagesStatus() {
         if (newMessageCount > 0) {
             StringBuilder sb = new StringBuilder(32);
             sb.append(String.valueOf(newMessageCount));
@@ -1075,8 +1019,7 @@ public abstract class MailboxBuffer extends Buffer
             status("No new messages");
     }
 
-    protected void status(final String s)
-    {
+    protected void status(final String s) {
         Runnable r = () -> {
             for (int i = 0; i < Editor.getFrameCount(); i++) {
                 Editor ed = Editor.getFrame(i).getCurrentEditor();
@@ -1087,20 +1030,18 @@ public abstract class MailboxBuffer extends Buffer
         SwingUtilities.invokeLater(r);
     }
 
-    public MailAddress getUserMailAddress()
-    {
+    public MailAddress getUserMailAddress() {
         String address = getStringProperty(Property.USER_MAIL_ADDRESS);
         if (address == null)
             return null;
         return new MailAddress(getStringProperty(Property.USER_FULL_NAME), address);
     }
 
-    public boolean isChildVisible()
-    {
+    public boolean isChildVisible() {
         for (EditorIterator it = new EditorIterator(); it.hasNext();) {
             Buffer buffer = it.next().getBuffer();
             if (buffer instanceof MessageBuffer)
-                if (((MessageBuffer)buffer).getMailbox() == this)
+                if (((MessageBuffer) buffer).getMailbox() == this)
                     return true;
         }
         return false;
@@ -1108,8 +1049,7 @@ public abstract class MailboxBuffer extends Buffer
 
     // Returns true if mailbox has been idle for the specified number of
     // seconds, depending on whether it's in the foreground or background.
-    public boolean isIdle(int fg, int bg)
-    {
+    public boolean isIdle(int fg, int bg) {
         if (!isVisible() && !isChildVisible()) {
             // Mailbox is in the background.
             if (bg == 0)
@@ -1129,8 +1069,7 @@ public abstract class MailboxBuffer extends Buffer
         }
     }
 
-    protected void error(final String text, final String title)
-    {
+    protected void error(final String text, final String title) {
         Runnable r = () -> {
             Editor editor = Editor.currentEditor();
             // Restore default cursor.
@@ -1141,16 +1080,14 @@ public abstract class MailboxBuffer extends Buffer
         SwingUtilities.invokeLater(r);
     }
 
-    protected void success(final String text)
-    {
+    protected void success(final String text) {
         Runnable r = () -> {
             Editor.currentEditor().status(text);
         };
         SwingUtilities.invokeLater(r);
     }
 
-    protected void saveDisplayState()
-    {
+    protected void saveDisplayState() {
         for (EditorIterator it = new EditorIterator(); it.hasNext();) {
             Editor ed = it.next();
             if (ed.getBuffer() == this)
@@ -1158,8 +1095,7 @@ public abstract class MailboxBuffer extends Buffer
         }
     }
 
-    protected void updateDisplay()
-    {
+    protected void updateDisplay() {
         SwingUtilities.invokeLater(updateDisplayRunnable);
     }
 
@@ -1224,22 +1160,19 @@ public abstract class MailboxBuffer extends Buffer
         Sidebar.repaintBufferListInAllFrames();
     };
 
-    protected void advanceDot(final Line dotLine)
-    {
+    protected void advanceDot(final Line dotLine) {
         final Line nextLine = dotLine.next();
         if (nextLine != null)
             setDotLine(nextLine);
     }
 
-    public void setDotEntry(MailboxEntry entry)
-    {
+    public void setDotEntry(MailboxEntry entry) {
         final MailboxLine line = findLineForEntry(entry);
         if (line != null && line.getMailboxEntry() == entry)
             setDotLine(line);
     }
 
-    private void setDotLine(final Line line)
-    {
+    private void setDotLine(final Line line) {
         Runnable r = () -> {
             for (EditorIterator it = new EditorIterator(); it.hasNext();) {
                 Editor ed = it.next();
@@ -1261,12 +1194,11 @@ public abstract class MailboxBuffer extends Buffer
             SwingUtilities.invokeLater(r);
     }
 
-    public String getStatusText(Editor editor)
-    {
+    public String getStatusText(Editor editor) {
         StringBuilder sb = new StringBuilder();
         if (editor.getDot() != null) {
             sb.append("Message ");
-            sb.append(String.valueOf(editor.getDotLineNumber()+1));
+            sb.append(String.valueOf(editor.getDotLineNumber() + 1));
             sb.append(" of ");
             sb.append(String.valueOf(getLineCount()));
             final int u = getUnreadMessageCount();
@@ -1286,23 +1218,21 @@ public abstract class MailboxBuffer extends Buffer
         return sb.toString();
     }
 
-    public void saveView(Editor editor)
-    {
+    public void saveView(Editor editor) {
         final View view = saveViewInternal(editor);
         final Line topLine = editor.getTopLine();
         if (topLine instanceof MailboxLine)
-            view.setTopEntry(((MailboxLine)topLine).getMailboxEntry());
+            view.setTopEntry(((MailboxLine) topLine).getMailboxEntry());
         if (editor.getDot() != null) {
             Line dotLine = editor.getDotLine();
             if (dotLine instanceof MailboxLine)
-                view.setDotEntry(((MailboxLine)dotLine).getMailboxEntry());
+                view.setDotEntry(((MailboxLine) dotLine).getMailboxEntry());
         }
         editor.setView(this, view);
         setLastView(view);
     }
 
-    public void restoreView(Editor editor)
-    {
+    public void restoreView(Editor editor) {
         final Display display = editor.getDisplay();
         final View view = editor.getView(this);
         Debug.assertTrue(view != null);
@@ -1333,8 +1263,7 @@ public abstract class MailboxBuffer extends Buffer
         }
     }
 
-    protected void notImplemented(String s)
-    {
+    protected void notImplemented(String s) {
         Log.error(s.concat(" is not implemented"));
     }
 }

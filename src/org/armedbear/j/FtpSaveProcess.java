@@ -22,8 +22,7 @@ package org.armedbear.j;
 
 import javax.swing.SwingUtilities;
 
-public class FtpSaveProcess implements BackgroundProcess, Constants
-{
+public class FtpSaveProcess implements BackgroundProcess, Constants {
     private final Buffer buffer;
     private final File source;
     private FtpFile destination;
@@ -43,9 +42,12 @@ public class FtpSaveProcess implements BackgroundProcess, Constants
     private String listing;
     private boolean force;
 
-    public FtpSaveProcess(Buffer buffer, File source, FtpFile destination,
-                          FtpSession session)
-    {
+    public FtpSaveProcess(
+        Buffer buffer,
+        File source,
+        FtpFile destination,
+        FtpSession session
+    ) {
         this.buffer = buffer;
         Debug.assertTrue(buffer != null);
         this.source = source;
@@ -57,33 +59,27 @@ public class FtpSaveProcess implements BackgroundProcess, Constants
         Debug.assertTrue(session.isLocked());
     }
 
-    public final void setConfirmOverwrite(boolean b)
-    {
+    public final void setConfirmOverwrite(boolean b) {
         confirmOverwrite = b;
     }
 
-    public final void setConfirmIfDestinationChanged(boolean b)
-    {
+    public final void setConfirmIfDestinationChanged(boolean b) {
         confirmIfDestinationChanged = b;
     }
 
-    public final void setTitle(String s)
-    {
+    public final void setTitle(String s) {
         title = s;
     }
 
-    public final void setSuccessRunnable(Runnable r)
-    {
+    public final void setSuccessRunnable(Runnable r) {
         successRunnable = r;
     }
 
-    public final String getListing()
-    {
+    public final String getListing() {
         return listing;
     }
 
-    public void start()
-    {
+    public void start() {
         Debug.assertTrue(SwingUtilities.isEventDispatchThread());
         if (!buffer.isLocked()) {
             Log.debug("start() buffer is not locked");
@@ -104,8 +100,7 @@ public class FtpSaveProcess implements BackgroundProcess, Constants
         new Thread(this).start();
     }
 
-    public void run()
-    {
+    public void run() {
         Debug.assertTrue(buffer.isLocked());
         try {
             buffer.setBackgroundProcess(this);
@@ -118,8 +113,7 @@ public class FtpSaveProcess implements BackgroundProcess, Constants
         }
     }
 
-    public void doSave()
-    {
+    public void doSave() {
         Log.debug("doSave force = " + force);
         Debug.assertTrue(buffer != null);
         Debug.assertTrue(source != null);
@@ -184,8 +178,7 @@ public class FtpSaveProcess implements BackgroundProcess, Constants
         session.unlock();
     }
 
-    public synchronized void cancel()
-    {
+    public synchronized void cancel() {
         if (progressNotifier != null) {
             progressNotifier.cancel();
             progressNotifier.progressStop();
@@ -196,8 +189,7 @@ public class FtpSaveProcess implements BackgroundProcess, Constants
     // Confirm overwrite of existing destination file for saveAs() and
     // saveCopy().
     private final Runnable confirmOverwriteRunnable = new Runnable() {
-        public void run()
-        {
+        public void run() {
             Debug.assertTrue(SwingUtilities.isEventDispatchThread());
             Debug.assertTrue(session.isLocked());
             final Editor editor = Editor.currentEditor();
@@ -217,8 +209,7 @@ public class FtpSaveProcess implements BackgroundProcess, Constants
     // Confirm save if destination file has changed on the remote host since
     // it was loaded.
     private final Runnable confirmDestinationChangedRunnable = new Runnable() {
-        public void run()
-        {
+        public void run() {
             Debug.assertTrue(SwingUtilities.isEventDispatchThread());
             final Editor editor = Editor.currentEditor();
             editor.setDefaultCursor();
@@ -235,8 +226,7 @@ public class FtpSaveProcess implements BackgroundProcess, Constants
     };
 
     private final Runnable cancelRunnable = new Runnable() {
-        public void run()
-        {
+        public void run() {
             buffer.setBusy(false);
             for (EditorIterator it = new EditorIterator(); it.hasNext();) {
                 Editor ed = it.next();

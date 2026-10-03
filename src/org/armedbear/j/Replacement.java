@@ -21,12 +21,10 @@
 package org.armedbear.j;
 
 import java.lang.StringBuilder;
+import java.util.regex.Matcher;
 import org.armedbear.j.util.Utilities;
 
-import java.util.regex.Matcher;
-
-public class Replacement extends Search
-{
+public class Replacement extends Search {
     private Editor editor;
 
     // This is the replacement string entered by the user. If we're working
@@ -38,44 +36,36 @@ public class Replacement extends Search
     private boolean confirmChanges = true;
     private int replacementCount;
 
-    public Replacement(Editor editor)
-    {
+    public Replacement(Editor editor) {
         super();
         this.editor = editor;
     }
 
-    public final Editor getEditor()
-    {
+    public final Editor getEditor() {
         return editor;
     }
 
-    public final String getReplaceWith()
-    {
+    public final String getReplaceWith() {
         return replaceWith;
     }
 
-    public final void setReplaceWith(String s)
-    {
+    public final void setReplaceWith(String s) {
         replaceWith = s;
     }
 
-    public final boolean confirmChanges()
-    {
+    public final boolean confirmChanges() {
         return confirmChanges;
     }
 
-    public final void setConfirmChanges(boolean b)
-    {
+    public final void setConfirmChanges(boolean b) {
         confirmChanges = b;
     }
 
-    public final int getReplacementCount()
-    {
+    public final int getReplacementCount() {
         return replacementCount;
     }
 
-    public void replaceOccurrence()
-    {
+    public void replaceOccurrence() {
         final Buffer buffer = editor.getBuffer();
         try {
             buffer.lockWrite();
@@ -125,8 +115,10 @@ public class Replacement extends Search
                     Debug.assertTrue(getMatch() != null);
                     toBeReplaced = getMatch().group();
                 } else {
-                    toBeReplaced = dotLine.substring(dotOffset,
-                        dotOffset + getPatternLength());
+                    toBeReplaced = dotLine.substring(
+                        dotOffset,
+                        dotOffset + getPatternLength()
+                    );
                 }
                 String tail = dotLine.substring(dotOffset + toBeReplaced.length());
                 String toBeInserted = getReplacementText(toBeReplaced);
@@ -152,8 +144,7 @@ public class Replacement extends Search
     // No editor, no region, no undo, does not set buffer's modified flag.
     // Used by replace in files when not confirming changes or keeping
     // modified buffers.
-    public void replaceOccurrence(Position pos)
-    {
+    public void replaceOccurrence(Position pos) {
         final Line line = pos.getLine();
         final int offset = pos.getOffset();
         final String head = line.substring(0, offset);
@@ -173,8 +164,7 @@ public class Replacement extends Search
         ++replacementCount;
     }
 
-    private String getReplacementText(String toBeReplaced)
-    {
+    private String getReplacementText(String toBeReplaced) {
         String replacementText;
         if (isRegularExpression()) {
             // Perform regular expression variable substitution as necessary.
@@ -208,11 +198,10 @@ public class Replacement extends Search
         return replacementText;
     }
 
-    private String substituteInto(Matcher match, String input)
-    {
+    private String substituteInto(Matcher match, String input) {
         StringBuilder sb = new StringBuilder();
         int i;
-        for (i = 0; i < input.length()-1; i++) {
+        for (i = 0; i < input.length() - 1; i++) {
             char c = input.charAt(i);
             if (c == '\\') {
                 c = input.charAt(++i);
@@ -224,7 +213,7 @@ public class Replacement extends Search
                 } else if (isMultilinePattern() && c == 'n') {
                     sb.append('\n');
                 } else {
-                     // Escape everything else.
+                    // Escape everything else.
                     sb.append(c);
                 }
             } else

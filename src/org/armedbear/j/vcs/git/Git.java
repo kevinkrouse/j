@@ -20,6 +20,8 @@
 
 package org.armedbear.j.vcs.git;
 
+import java.util.List;
+import javax.swing.SwingUtilities;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Constants;
 import org.armedbear.j.Editor;
@@ -28,18 +30,12 @@ import org.armedbear.j.MessageDialog;
 import org.armedbear.j.util.Utilities;
 import org.armedbear.j.vcs.VersionControl;
 
-import javax.swing.SwingUtilities;
-import java.util.List;
-
-public class Git extends VersionControl implements Constants
-{
-    public static void git()
-    {
+public class Git extends VersionControl implements Constants {
+    public static void git() {
         git("");
     }
 
-    public static void git(String s)
-    {
+    public static void git(String s) {
         if (!checkGitInstalled())
             return;
         List<String> args = Utilities.tokenize(s);
@@ -51,12 +47,10 @@ public class Git extends VersionControl implements Constants
         // Append current file name for diff
         final String cmd = parseArgs("git", s, true, command.startsWith("diff"));
         final Buffer parentBuffer = editor.getBuffer();
-        Runnable commandRunnable = () ->
-        {
+        Runnable commandRunnable = () -> {
             final String output =
-                    command(cmd, editor.getCurrentDirectory());
-            Runnable completionRunnable = () ->
-            {
+                command(cmd, editor.getCurrentDirectory());
+            Runnable completionRunnable = () -> {
                 gitCompleted(editor, parentBuffer, cmd, output);
             };
             SwingUtilities.invokeLater(completionRunnable);
@@ -64,14 +58,16 @@ public class Git extends VersionControl implements Constants
         new Thread(commandRunnable).start();
     }
 
-    private static void gitCompleted(Editor editor, Buffer buffer,
-                                     String cmd, String output)
-    {
+    private static void gitCompleted(
+        Editor editor,
+        Buffer buffer,
+        String cmd,
+        String output
+    ) {
         vcsCompleted(editor, buffer, cmd.startsWith("git diff"), cmd, output, VC_GIT, true);
     }
 
-    public static File findRoot(File dir)
-    {
+    public static File findRoot(File dir) {
         while (dir != null) {
             File file = File.getInstance(dir, ".git");
             if (file != null && file.isDirectory())
@@ -82,20 +78,19 @@ public class Git extends VersionControl implements Constants
         return null;
     }
 
-    protected static boolean checkGitInstalled()
-    {
+    protected static boolean checkGitInstalled() {
         if (haveGit())
             return true;
         MessageDialog.showMessageDialog(
-                "The Git command-line client does not appear to be in your PATH.",
-                "Error");
+            "The Git command-line client does not appear to be in your PATH.",
+            "Error"
+        );
         return false;
     }
 
     private static int haveGit = -1;
 
-    protected static boolean haveGit()
-    {
+    protected static boolean haveGit() {
         if (haveGit > 0)
             return true;
         if (Utilities.have("git")) {

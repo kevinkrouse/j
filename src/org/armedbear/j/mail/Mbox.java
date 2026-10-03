@@ -25,6 +25,7 @@ import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.StringReader;
+import java.lang.StringBuilder;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -34,13 +35,11 @@ import org.armedbear.j.Buffer;
 import org.armedbear.j.BufferIterator;
 import org.armedbear.j.Debug;
 import org.armedbear.j.File;
-import java.lang.StringBuilder;
 import org.armedbear.j.Log;
 import org.armedbear.j.Mutex;
 import org.armedbear.j.ProgressNotifier;
 
-public final class Mbox
-{
+public final class Mbox {
     private static ArrayList<Mbox> mboxList;
 
     private final Mutex mutex = new Mutex();
@@ -49,18 +48,16 @@ public final class Mbox
     private long lastModified;
     private ArrayList<LocalMailboxEntry> entries;
 
-    private Mbox(File file)
-    {
+    private Mbox(File file) {
         this.file = file;
         Debug.assertTrue(file != null);
     }
 
-    public static synchronized Mbox getInstance(File file)
-    {
+    public static synchronized Mbox getInstance(File file) {
         if (mboxList == null)
             mboxList = new ArrayList<Mbox>();
         else {
-            for (int i = mboxList.size()-1; i >= 0; i--) {
+            for (int i = mboxList.size() - 1; i >= 0; i--) {
                 Mbox mbox = mboxList.get(i);
                 if (mbox.getFile().equals(file))
                     return mbox;
@@ -72,8 +69,7 @@ public final class Mbox
         return mbox;
     }
 
-    public static synchronized void cleanup()
-    {
+    public static synchronized void cleanup() {
         Log.debug("Mbox.cleanup");
         if (mboxList == null || mboxList.size() == 0)
             return;
@@ -87,8 +83,7 @@ public final class Mbox
         }
     }
 
-    private static MailboxBuffer findMailbox(Mbox mbox)
-    {
+    private static MailboxBuffer findMailbox(Mbox mbox) {
         File file = mbox.getFile();
         BufferIterator iter = new BufferIterator();
         while (iter.hasNext()) {
@@ -102,14 +97,12 @@ public final class Mbox
         return null;
     }
 
-    public final File getFile()
-    {
+    public final File getFile() {
         return file;
     }
 
     // Return a copy.
-    public synchronized final List<MailboxEntry> getEntries(ProgressNotifier progressNotifier)
-    {
+    public synchronized final List<MailboxEntry> getEntries(ProgressNotifier progressNotifier) {
         Log.debug("Mbox.getEntries");
         Debug.assertTrue(isLocked());
         if (entries != null) {
@@ -141,8 +134,7 @@ public final class Mbox
         return new ArrayList<MailboxEntry>(entries);
     }
 
-    public synchronized boolean lock()
-    {
+    public synchronized boolean lock() {
         Log.debug("Mbox.lock " + file.canonicalPath());
         try {
             return mutex.attempt();
@@ -152,19 +144,16 @@ public final class Mbox
         }
     }
 
-    public synchronized void unlock()
-    {
+    public synchronized void unlock() {
         Log.debug("Mbox.unlock " + file.canonicalPath());
         mutex.release();
     }
 
-    public synchronized boolean isLocked()
-    {
+    public synchronized boolean isLocked() {
         return mutex.isInUse();
     }
 
-    private synchronized void read(ProgressNotifier progressNotifier)
-    {
+    private synchronized void read(ProgressNotifier progressNotifier) {
         Log.debug("entering Mbox.read");
         long start = System.currentTimeMillis();
         Debug.assertTrue(isLocked());
@@ -185,8 +174,8 @@ public final class Mbox
                     Log.debug("read - end of file");
                     if (entries.size() > 0) {
                         LocalMailboxEntry entry =
-                            entries.get(entries.size()-1);
-                        entry.setSize((int)(here - messageStart));
+                            entries.get(entries.size() - 1);
+                        entry.setSize((int) (here - messageStart));
                         entry.setNextMessageStart(here);
                     }
                     complete = true;
@@ -195,8 +184,8 @@ public final class Mbox
                 if (text.startsWith("From ")) {
                     if (entries.size() > 0) {
                         LocalMailboxEntry entry =
-                            entries.get(entries.size()-1);
-                        entry.setSize((int)(here - messageStart));
+                            entries.get(entries.size() - 1);
+                        entry.setSize((int) (here - messageStart));
                         entry.setNextMessageStart(here);
                         messageStart = here;
                     }
@@ -215,7 +204,7 @@ public final class Mbox
                         sb.append('\n');
                     }
                     LocalMailboxEntry entry =
-                        new LocalMailboxEntry(entries.size()+1, here, sb.toString());
+                        new LocalMailboxEntry(entries.size() + 1, here, sb.toString());
                     entries.add(entry);
                     if (progressNotifier != null) {
                         sb.setLength(0);
@@ -253,8 +242,7 @@ public final class Mbox
         }
     }
 
-    public synchronized boolean appendMessage(Message message, final int flags)
-    {
+    public synchronized boolean appendMessage(Message message, final int flags) {
         Log.debug("Mbox.appendMessage flags = " + flags);
         Debug.assertTrue(isLocked());
         try {
@@ -265,7 +253,7 @@ public final class Mbox
             final long messageStart = file.length();
             writer.write("From - ");
             SimpleDateFormat dateFormatter =
-                new SimpleDateFormat ("EEE MMM d HH:mm:ss yyyy");
+                new SimpleDateFormat("EEE MMM d HH:mm:ss yyyy");
             Calendar cal = Calendar.getInstance();
             String dateString = dateFormatter.format(cal.getTime());
             writer.write(dateString);
@@ -316,10 +304,13 @@ public final class Mbox
             if (entries != null) {
                 final long nextMessageStart = file.length();
                 LocalMailboxEntry entry =
-                    new LocalMailboxEntry(entries.size()+1, messageStart,
-                        sb.toString());
+                    new LocalMailboxEntry(
+                        entries.size() + 1,
+                        messageStart,
+                        sb.toString()
+                    );
                 entry.setNextMessageStart(nextMessageStart);
-                entry.setSize((int)(nextMessageStart - messageStart));
+                entry.setSize((int) (nextMessageStart - messageStart));
                 entries.add(entry);
             } else
                 Log.debug("appendMessage entries == null");
@@ -331,8 +322,7 @@ public final class Mbox
         }
     }
 
-    public synchronized void updateViews()
-    {
+    public synchronized void updateViews() {
         if (entries == null)
             return;
         for (BufferIterator it = new BufferIterator(); it.hasNext();) {
@@ -340,7 +330,7 @@ public final class Mbox
             if (buf instanceof LocalMailboxBuffer) {
                 LocalMailboxBuffer mb = (LocalMailboxBuffer) buf;
                 if (mb.getMailboxFile().equals(file)) {
-                    if (mb.lock()){
+                    if (mb.lock()) {
                         try {
                             mb.saveDisplayState();
                             mb.setEntries(new ArrayList<MailboxEntry>(entries));
@@ -356,14 +346,12 @@ public final class Mbox
         }
     }
 
-    private final File getSummaryFile()
-    {
+    private final File getSummaryFile() {
         return File.getInstance(file.canonicalPath() + ".summary");
     }
 
     // Called only from read().
-    private void writeSummary()
-    {
+    private void writeSummary() {
         Debug.assertTrue(isLocked());
         File summaryFile = getSummaryFile();
         MboxSummary summary = new MboxSummary(file, entries);

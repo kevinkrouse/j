@@ -20,26 +20,22 @@
 
 package org.armedbear.j;
 
-import org.armedbear.j.mode.java.JavaSource;
-import org.armedbear.j.mode.web.WebBuffer;
-import java.lang.StringBuilder;
-import org.armedbear.j.util.Utilities;
-
 import java.awt.AWTEvent;
 import java.awt.event.MouseEvent;
+import java.lang.StringBuilder;
 import java.util.List;
+import org.armedbear.j.mode.java.JavaSource;
+import org.armedbear.j.mode.web.WebBuffer;
+import org.armedbear.j.util.Utilities;
 
-public final class JDKHelp implements Constants
-{
-    public static void jdkHelp()
-    {
+public final class JDKHelp implements Constants {
+    public static void jdkHelp() {
         final String className = getClassNameInCurrentEditor();
         if (className != null && className.length() > 0)
             jdkHelp(className);
     }
 
-    public static void jdkHelp(final String className)
-    {
+    public static void jdkHelp(final String className) {
         if (className == null || className.length() == 0)
             return;
         final String jdkDocPath =
@@ -57,20 +53,28 @@ public final class JDKHelp implements Constants
         final int size = dirnames.size();
         for (final String dirname : dirnames) {
             final File dir = File.getInstance(dirname);
-            File file = JavaSource.findImport(className, imports, dir,
-                    ".html");
+            File file = JavaSource.findImport(
+                className,
+                imports,
+                dir,
+                ".html"
+            );
             if (file == null || !file.isFile()) {
                 // Not found. Look in "api" subdirectory if it exists.
                 final File apiDir = File.getInstance(dir, "api");
                 if (apiDir != null && apiDir.isDirectory()) {
-                    file = JavaSource.findImport(className, imports, apiDir,
-                            ".html");
+                    file = JavaSource.findImport(
+                        className,
+                        imports,
+                        apiDir,
+                        ".html"
+                    );
                 }
             }
             if (file != null && file.isFile()) {
                 Buffer buf = null;
                 // Look for existing buffer.
-                for (BufferIterator it = new BufferIterator(); it.hasNext(); ) {
+                for (BufferIterator it = new BufferIterator(); it.hasNext();) {
                     Buffer b = it.next();
                     if (b instanceof WebBuffer && b.getFile().equals(file)) {
                         buf = b;
@@ -90,19 +94,20 @@ public final class JDKHelp implements Constants
             }
         }
         frame.setDefaultCursor();
-        MessageDialog.showMessageDialog(editor,
-            "No help available for ".concat(className), "JDK Help");
+        MessageDialog.showMessageDialog(
+            editor,
+            "No help available for ".concat(className),
+            "JDK Help"
+        );
     }
 
-    public static void source()
-    {
+    public static void source() {
         final String className = getClassNameInCurrentEditor();
         if (className != null && className.length() > 0)
             source(className);
     }
 
-    public static void source(final String className)
-    {
+    public static void source(final String className) {
         if (className == null || className.length() == 0)
             return;
         final Editor editor = Editor.currentEditor();
@@ -128,13 +133,15 @@ public final class JDKHelp implements Constants
             frame.setDefaultCursor();
         } else {
             frame.setDefaultCursor();
-            MessageDialog.showMessageDialog(editor,
-                "No source available for ".concat(className), "Source");
+            MessageDialog.showMessageDialog(
+                editor,
+                "No source available for ".concat(className),
+                "Source"
+            );
         }
     }
 
-    private static List<String> getDirectoriesInPath(String path)
-    {
+    private static List<String> getDirectoriesInPath(String path) {
         final List<String> dirNames = Utilities.getDirectoriesInPath(path);
         final int size = dirNames.size();
         if (size == 0) {
@@ -153,12 +160,11 @@ public final class JDKHelp implements Constants
         return dirNames;
     }
 
-    private static String getClassNameInCurrentEditor()
-    {
+    private static String getClassNameInCurrentEditor() {
         final Editor editor = Editor.currentEditor();
         AWTEvent e = editor.getDispatcher().getLastEvent();
         if (e instanceof MouseEvent)
-            editor.mouseMoveDotToPoint((MouseEvent)e);
+            editor.mouseMoveDotToPoint((MouseEvent) e);
         String className = editor.getSelectionOnCurrentLine();
         if (className == null || className.length() == 0)
             className = getClassNameAtPosition(editor.getDot());
@@ -167,8 +173,7 @@ public final class JDKHelp implements Constants
 
     // Supports both simple names ("String") and canonical names
     // ("java.lang.String").
-    private static String getClassNameAtPosition(Position pos)
-    {
+    private static String getClassNameAtPosition(Position pos) {
         if (pos == null)
             return null;
         final Line line = pos.getLine();

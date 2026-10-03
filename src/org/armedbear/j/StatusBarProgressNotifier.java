@@ -21,11 +21,9 @@
 package org.armedbear.j;
 
 import java.lang.StringBuilder;
-
 import javax.swing.SwingUtilities;
 
-public class StatusBarProgressNotifier implements Cancellable, ProgressNotifier, Runnable
-{
+public class StatusBarProgressNotifier implements Cancellable, ProgressNotifier, Runnable {
     private Buffer buffer;
     private Thread updaterThread;
     private boolean go = true;
@@ -35,23 +33,19 @@ public class StatusBarProgressNotifier implements Cancellable, ProgressNotifier,
     private boolean cancelled;
     private String progressText;
 
-    public StatusBarProgressNotifier(Buffer buffer)
-    {
+    public StatusBarProgressNotifier(Buffer buffer) {
         this.buffer = buffer;
     }
 
-    public void cancel()
-    {
+    public void cancel() {
         cancelled = true;
     }
 
-    public boolean cancelled()
-    {
+    public boolean cancelled() {
         return cancelled;
     }
 
-    public void progressStart()
-    {
+    public void progressStart() {
         if (updaterThread == null) {
             updaterThread = new Thread(this);
             updaterThread.setDaemon(true);
@@ -59,32 +53,27 @@ public class StatusBarProgressNotifier implements Cancellable, ProgressNotifier,
         }
     }
 
-    public void progressStop()
-    {
+    public void progressStop() {
         go = false;
     }
 
-    public void progress(String prefix, long totalBytes, long fileSize)
-    {
+    public void progress(String prefix, long totalBytes, long fileSize) {
         this.prefix = prefix;
         this.totalBytes = totalBytes;
         this.fileSize = fileSize;
     }
 
-    public void progress(String progressText)
-    {
+    public void progress(String progressText) {
         this.progressText = progressText;
     }
 
-    public void setText(final String s)
-    {
+    public void setText(final String s) {
         progressText = s;
         if (s != null)
             update();
     }
 
-    private void update()
-    {
+    private void update() {
         Runnable r = () -> {
             for (EditorIterator it = new EditorIterator(); it.hasNext();) {
                 Editor ed = it.next();
@@ -95,8 +84,7 @@ public class StatusBarProgressNotifier implements Cancellable, ProgressNotifier,
         SwingUtilities.invokeLater(r);
     }
 
-    public void run()
-    {
+    public void run() {
         long start = System.currentTimeMillis();
         while (go) {
             try {
@@ -115,8 +103,7 @@ public class StatusBarProgressNotifier implements Cancellable, ProgressNotifier,
         }
     }
 
-    private String getProgressText(long elapsed)
-    {
+    private String getProgressText(long elapsed) {
         if (elapsed == 0)
             return null;
         StringBuilder sb = new StringBuilder(prefix);
