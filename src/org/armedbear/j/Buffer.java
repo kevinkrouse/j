@@ -383,8 +383,6 @@ public class Buffer extends SystemBuffer {
             readOnly = true;
         } else if (fileType == FILETYPE_BINARY) {
             readOnly = true;
-        } else if (fileType == FILETYPE_WORD) {
-            readOnly = true;
         } else if (file != null) {
             FileHistoryEntry entry =
                 FileHistory.getFileHistory().findEntry(file.netPath());
@@ -440,8 +438,6 @@ public class Buffer extends SystemBuffer {
                 return modeList.getMode(BINARY_MODE);
             case FILETYPE_JPEG:
                 return modeList.getMode(IMAGE_MODE);
-            case FILETYPE_WORD:
-                return modeList.getMode(WORD_MODE);
             case FILETYPE_TEXT:
             default: {
                 Mode m = grovelModeFromFile(file);
@@ -956,7 +952,7 @@ public class Buffer extends SystemBuffer {
     protected void loadFile(File toBeLoaded) {
         try {
             int modeId = getModeId();
-            if (modeId == ARCHIVE_MODE || modeId == WORD_MODE || modeId == XML_MODE)
+            if (modeId == ARCHIVE_MODE || modeId == XML_MODE)
                 mode.loadFile(this, toBeLoaded);
             else {
                 final String encoding = toBeLoaded.getEncoding();

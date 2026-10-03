@@ -115,7 +115,6 @@ public final class ModeList implements Constants, Iterable<ModeListEntry> {
         addEntry(VERILOG_MODE, VERILOG_MODE_NAME, "mode.verilog.VerilogMode", true, ".+\\.v");
         addEntry(VHDL_MODE, VHDL_MODE_NAME, "mode.vhdl.VHDLMode", true, ".+\\.vhdl?");
         addEntry(WEB_MODE, WEB_MODE_NAME, "mode.web.WebMode", false, null);
-        addEntry(WORD_MODE, WORD_MODE_NAME, "mode.word.WordMode", false, null);
         addEntry(XML_MODE, XML_MODE_NAME, "mode.xml.XmlMode", true, ".+\\.x[msu]l|.+\\.dtd");
         addEntry(VCS_STATUS_MODE, VCS_STATUS_MODE_NAME, "vcs.StatusMode", false, null);
     }

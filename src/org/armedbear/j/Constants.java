@@ -56,7 +56,6 @@ public interface Constants {
     int FILETYPE_BINARY = 5;
     int FILETYPE_ZIP = 6;
     int FILETYPE_GZIP = 7;
-    int FILETYPE_WORD = 8;
     int FILETYPE_JPEG = 9;
 
     int COMPRESSION_NONE = 0;
@@ -245,8 +244,6 @@ public interface Constants {
     String VHDL_MODE_NAME = "VHDL";
     int WEB_MODE = 44;
     String WEB_MODE_NAME = "Web";
-    int WORD_MODE = 45;
-    String WORD_MODE_NAME = "Word";
     int XML_MODE = 46;
     String XML_MODE_NAME = "XML";
     int VCS_STATUS_MODE = 47;

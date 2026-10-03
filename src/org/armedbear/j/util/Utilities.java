@@ -769,9 +769,7 @@ public final class Utilities implements Constants {
             }
             if (fileType == FILETYPE_BINARY) {
                 if (bytesRead > 2) {
-                    if (bytes[0] == (byte) 0xd0 && bytes[1] == (byte) 0xcf)
-                        fileType = FILETYPE_WORD;
-                    else if (bytes[0] == (byte) 0xff && bytes[1] == (byte) 0xd8)
+                    if (bytes[0] == (byte) 0xff && bytes[1] == (byte) 0xd8)
                         fileType = FILETYPE_JPEG;
                     else if (bytes[0] == (byte) 'P' && bytes[1] == 'K') {
                         // Looks like a zip file.
