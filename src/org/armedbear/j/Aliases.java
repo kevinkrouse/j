@@ -28,29 +28,31 @@ import org.armedbear.j.mail.ImapMailboxBuffer;
 import org.armedbear.j.mail.LocalMailboxBuffer;
 import org.armedbear.j.mail.PopMailboxBuffer;
 
-public final class Aliases implements PreferencesChangeListener
-{
+public final class Aliases implements PreferencesChangeListener {
     private static Properties systemAliases;
 
     private final File file;
 
     private Properties userAliases;
 
-    public Aliases()
-    {
+    public Aliases() {
         file = File.getInstance(Directories.getConfigDirectory(), "aliases");
         // Set up system aliases.
         if (systemAliases == null) {
             systemAliases = new Properties();
-            systemAliases.setProperty("prefs",
-                Preferences.getPreferencesFile().netPath());
+            systemAliases.setProperty(
+                "prefs",
+                Preferences.getPreferencesFile().netPath()
+            );
             systemAliases.setProperty("aliases", file.netPath());
             String inbox =
                 Editor.preferences().getStringProperty(Property.INBOX);
             if (inbox != null)
                 systemAliases.setProperty("inbox", inbox);
-            systemAliases.setProperty("drafts",
-                "mailbox:".concat(Directories.getDraftsFolder().netPath()));
+            systemAliases.setProperty(
+                "drafts",
+                "mailbox:".concat(Directories.getDraftsFolder().netPath())
+            );
         }
         // Sign up to be notified when preferences change so we can update the
         // "inbox" system alias.
@@ -59,23 +61,19 @@ public final class Aliases implements PreferencesChangeListener
         loadUserAliases();
     }
 
-    public final void reload()
-    {
+    public final void reload() {
         loadUserAliases();
     }
 
-    public final File getFile()
-    {
+    public final File getFile() {
         return file;
     }
 
-    public static final boolean isSystemAlias(String alias)
-    {
+    public static final boolean isSystemAlias(String alias) {
         return systemAliases.containsKey(alias);
     }
 
-    public final String get(String alias)
-    {
+    public final String get(String alias) {
         // Look for system alias first (system aliases cannot be overridden).
         String value = systemAliases.getProperty(alias);
         if (value != null)
@@ -84,8 +82,7 @@ public final class Aliases implements PreferencesChangeListener
         return userAliases.getProperty(alias);
     }
 
-    public final void setAlias(String alias, String value)
-    {
+    public final void setAlias(String alias, String value) {
         // Ignore attempt to set system alias.
         if (isSystemAlias(alias))
             return;
@@ -94,8 +91,7 @@ public final class Aliases implements PreferencesChangeListener
     }
 
     // "alias foo here"
-    public void setAliasForBuffer(String alias, Buffer buffer)
-    {
+    public void setAliasForBuffer(String alias, Buffer buffer) {
         // Ignore attempt to set system alias.
         if (isSystemAlias(alias))
             return;
@@ -112,14 +108,12 @@ public final class Aliases implements PreferencesChangeListener
             setAlias(alias, value);
     }
 
-    public final void remove(String alias)
-    {
+    public final void remove(String alias) {
         if (userAliases.remove(alias) != null)
             save();
     }
 
-    private void loadUserAliases()
-    {
+    private void loadUserAliases() {
         userAliases = new Properties();
         if (file.isFile()) {
             try (InputStream inputStream = file.getInputStream()) {
@@ -131,8 +125,7 @@ public final class Aliases implements PreferencesChangeListener
         }
     }
 
-    private void save()
-    {
+    private void save() {
         try (OutputStream outputStream = file.getOutputStream()) {
             userAliases.store(outputStream, null);
         }
@@ -141,8 +134,7 @@ public final class Aliases implements PreferencesChangeListener
         }
     }
 
-    public void preferencesChanged()
-    {
+    public void preferencesChanged() {
         String inbox = Editor.preferences().getStringProperty(Property.INBOX);
         if (inbox != null)
             systemAliases.setProperty("inbox", inbox);

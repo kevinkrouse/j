@@ -24,28 +24,25 @@ import org.armedbear.j.util.FastStringReader;
 import org.armedbear.j.util.FastStringReader;
 import org.armedbear.j.util.Utilities;
 
-public final class ToOrCcMailboxFilter extends MailboxFilter
-{
+public final class ToOrCcMailboxFilter extends MailboxFilter {
     private final String pattern;
     private final boolean ignoreCase;
 
-    public ToOrCcMailboxFilter(FastStringReader reader)
-    {
+    public ToOrCcMailboxFilter(FastStringReader reader) {
         this.pattern = reader.readToken();
         ignoreCase = Utilities.isLowerCase(pattern);
     }
 
-    public boolean accept(MailboxEntry entry)
-    {
+    public boolean accept(MailboxEntry entry) {
         MailAddress[] to = entry.getTo();
         if (to != null) {
             if (ignoreCase) {
-                for (int i = to.length-1; i >= 0; i--) {
+                for (int i = to.length - 1; i >= 0; i--) {
                     if (to[i].matchesIgnoreCase(pattern))
                         return true;
                 }
             } else {
-                for (int i = to.length-1; i >= 0; i--) {
+                for (int i = to.length - 1; i >= 0; i--) {
                     if (to[i].matches(pattern))
                         return true;
                 }
@@ -54,12 +51,12 @@ public final class ToOrCcMailboxFilter extends MailboxFilter
         MailAddress[] cc = entry.getCc();
         if (cc != null) {
             if (ignoreCase) {
-                for (int i = cc.length-1; i >= 0; i--) {
+                for (int i = cc.length - 1; i >= 0; i--) {
                     if (cc[i].matchesIgnoreCase(pattern))
                         return true;
                 }
             } else {
-                for (int i = cc.length-1; i >= 0; i--) {
+                for (int i = cc.length - 1; i >= 0; i--) {
                     if (cc[i].matches(pattern))
                         return true;
                 }

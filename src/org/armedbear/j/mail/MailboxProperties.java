@@ -23,12 +23,12 @@ package org.armedbear.j.mail;
 import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
+import java.lang.StringBuilder;
 import java.util.ArrayList;
 import java.util.Iterator;
 import org.armedbear.j.Debug;
 import org.armedbear.j.Directories;
 import org.armedbear.j.Editor;
-import java.lang.StringBuilder;
 import org.armedbear.j.File;
 import org.armedbear.j.Log;
 import org.armedbear.j.Property;
@@ -41,8 +41,7 @@ import org.xml.sax.SAXException;
 import org.xml.sax.XMLReader;
 import org.xml.sax.helpers.DefaultHandler;
 
-public final class MailboxProperties
-{
+public final class MailboxProperties {
     private static final int MAX_ENTRIES = 100;
 
     private static final String lineSeparator =
@@ -50,16 +49,13 @@ public final class MailboxProperties
 
     private static ArrayList<Entry> list;
 
-    private MailboxProperties()
-    {
-    }
+    private MailboxProperties() {}
 
-    public static synchronized PropertyList getProperties(MailboxURL url)
-    {
+    public static synchronized PropertyList getProperties(MailboxURL url) {
         if (list == null)
             initialize();
         String name = url.getCanonicalName();
-        for (int i = list.size()-1; i >= 0; i--) {
+        for (int i = list.size() - 1; i >= 0; i--) {
             Entry entry = list.get(i);
             if (entry.name.equals(name))
                 return entry.properties;
@@ -67,8 +63,7 @@ public final class MailboxProperties
         return null;
     }
 
-    public static synchronized void saveProperties(MailboxBuffer mb)
-    {
+    public static synchronized void saveProperties(MailboxBuffer mb) {
         MailboxURL url = mb.getUrl();
         if (url == null) {
             Debug.bug();
@@ -109,8 +104,7 @@ public final class MailboxProperties
         save();
     }
 
-    private static synchronized void initialize()
-    {
+    private static synchronized void initialize() {
         if (list == null) {
             Editor.protect(MailboxProperties.class);
             list = new ArrayList<Entry>();
@@ -132,20 +126,20 @@ public final class MailboxProperties
             // Delete old mailboxes.xml in the legacy ~/.j (if any). Under the
             // XDG layout it was never written, so there is nothing to find.
             File oldFile =
-                File.getInstance(Directories.getConfigDirectory(),
-                    "mailboxes.xml");
+                File.getInstance(
+                    Directories.getConfigDirectory(),
+                    "mailboxes.xml"
+                );
             if (oldFile != null && oldFile.isFile())
                 oldFile.delete();
         }
     }
 
-    private static void add(Entry entry)
-    {
+    private static void add(Entry entry) {
         list.add(entry);
     }
 
-    private static synchronized void save()
-    {
+    private static synchronized void save() {
         try {
             File file = getFile();
             BufferedWriter writer =
@@ -169,38 +163,34 @@ public final class MailboxProperties
         }
     }
 
-    private static final File getFile()
-    {
-        return File.getInstance(Directories.getMailDirectory(),
-            "mailboxes.xml");
+    private static final File getFile() {
+        return File.getInstance(
+            Directories.getMailDirectory(),
+            "mailboxes.xml"
+        );
     }
 
-    private static final String getVersion()
-    {
+    private static final String getVersion() {
         return "1";
     }
 
-    private static class Entry
-    {
+    private static class Entry {
         final String name;
         final PropertyList properties;
         long when;
 
-        Entry(String name, PropertyList properties)
-        {
+        Entry(String name, PropertyList properties) {
             this.name = name;
             this.properties = properties;
             when = System.currentTimeMillis();
         }
 
-        Entry(String name)
-        {
+        Entry(String name) {
             this.name = name;
             properties = new PropertyList();
         }
 
-        String toXml()
-        {
+        String toXml() {
             StringBuilder sb = new StringBuilder("  <mailbox name=\"");
             sb.append(name);
             sb.append("\"");
@@ -216,8 +206,12 @@ public final class MailboxProperties
                         Property property = it.next();
                         Object value = properties.getProperty(property);
                         if (value != null) {
-                            sb.append(propertyToXml(property.getDisplayName(),
-                                value.toString()));
+                            sb.append(
+                                propertyToXml(
+                                    property.getDisplayName(),
+                                    value.toString()
+                                )
+                            );
                         }
                     }
                 }
@@ -226,8 +220,7 @@ public final class MailboxProperties
             return sb.toString();
         }
 
-        private static String propertyToXml(String name, String value)
-        {
+        private static String propertyToXml(String name, String value) {
             StringBuilder sb = new StringBuilder("    <property name=\"");
             sb.append(name);
             sb.append("\" value=\"");
@@ -238,13 +231,15 @@ public final class MailboxProperties
         }
     }
 
-    private static class Handler extends DefaultHandler implements ContentHandler
-    {
+    private static class Handler extends DefaultHandler implements ContentHandler {
         private Entry currentEntry = null;
 
-        public void startElement(String uri, String localName, String qName,
-            Attributes attributes) throws SAXException
-        {
+        public void startElement(
+            String uri,
+            String localName,
+            String qName,
+            Attributes attributes
+        ) throws SAXException {
             if (localName.equals("mailboxes") || qName.equals("mailboxes")) {
                 String version = attributes.getValue("version");
                 if (!version.equals(MailboxProperties.getVersion()))
@@ -268,15 +263,16 @@ public final class MailboxProperties
                     if (value != null) {
                         Property property = Property.findProperty(key);
                         if (property != null)
-                            currentEntry.properties.setPropertyFromString(property,
-                                value);
+                            currentEntry.properties.setPropertyFromString(
+                                property,
+                                value
+                            );
                     }
                 }
             }
         }
 
-        public void endElement(String uri, String localName, String qName)
-        {
+        public void endElement(String uri, String localName, String qName) {
             if (localName.equals("mailbox") || qName.equals("mailbox")) {
                 MailboxProperties.add(currentEntry);
                 currentEntry = null;

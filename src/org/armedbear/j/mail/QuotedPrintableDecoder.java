@@ -23,24 +23,22 @@ package org.armedbear.j.mail;
 import org.armedbear.j.util.ByteBuffer;
 import org.armedbear.j.util.ByteBuffer;
 
-public final class QuotedPrintableDecoder
-{
-    public static byte[] decode(String encoded)
-    {
+public final class QuotedPrintableDecoder {
+    public static byte[] decode(String encoded) {
         ByteBuffer bb = new ByteBuffer();
         int limit = encoded.length();
         int i = 0;
         while (i < limit) {
             char c = encoded.charAt(i);
             if (c == '=') {
-                if (i+1 < limit && encoded.charAt(i+1) == '\n') {
+                if (i + 1 < limit && encoded.charAt(i + 1) == '\n') {
                     // Soft line break.
                     i += 2;
                     continue;
                 }
-                if (i+2 < limit) {
-                    char c1 = encoded.charAt(i+1);
-                    char c2 = encoded.charAt(i+2);
+                if (i + 2 < limit) {
+                    char c1 = encoded.charAt(i + 1);
+                    char c2 = encoded.charAt(i + 2);
                     if (c1 == '\r' && c2 == '\n') {
                         // Soft line break.
                         i += 3;
@@ -59,7 +57,7 @@ public final class QuotedPrintableDecoder
                 }
             }
             // Not encoded.
-            bb.append((byte)c);
+            bb.append((byte) c);
             ++i;
         }
         byte[] toBeReturned = new byte[bb.length()];
@@ -67,8 +65,7 @@ public final class QuotedPrintableDecoder
         return toBeReturned;
     }
 
-    private static int decodeHex(char c)
-    {
+    private static int decodeHex(char c) {
         if (c >= '0' && c <= '9')
             return c - '0';
         else if (c >= 'A' && c <= 'F')

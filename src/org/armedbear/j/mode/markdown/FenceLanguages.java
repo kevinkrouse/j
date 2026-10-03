@@ -18,27 +18,24 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
  */
 
-
 package org.armedbear.j.mode.markdown;
-
-import org.armedbear.j.Constants;
-import org.armedbear.j.Editor;
-import org.armedbear.j.Mode;
-import org.armedbear.j.ModeListEntry;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import org.armedbear.j.Constants;
+import org.armedbear.j.Editor;
+import org.armedbear.j.Mode;
+import org.armedbear.j.ModeListEntry;
 
 /**
  * The language a fence's info string names, as the mode that colors it:
  * "```java", "``` py", "~~~ {.sh}". Each language seen gets a small number,
  * a slot, that fits in a line's flags.
  */
-final class FenceLanguages implements Constants
-{
+final class FenceLanguages implements Constants {
     /** Slots fit in six bits of a line's flags; 0 is no language. */
     static final int MAX_SLOT = 63;
 
@@ -46,8 +43,17 @@ final class FenceLanguages implements Constants
     private static final Map<String, Integer> NAMES = new HashMap<String, Integer>();
     static {
         name(JAVA_MODE, "java", "jad");
-        name(JAVASCRIPT_MODE, "javascript", "js", "jsx", "mjs", "cjs", "json",
-             "typescript", "ts");
+        name(
+            JAVASCRIPT_MODE,
+            "javascript",
+            "js",
+            "jsx",
+            "mjs",
+            "cjs",
+            "json",
+            "typescript",
+            "ts"
+        );
         name(C_MODE, "c", "h");
         name(CPP_MODE, "cpp", "c++", "cc", "cxx", "hpp", "hxx");
         name(OBJC_MODE, "objc", "objective-c", "m");
@@ -56,10 +62,28 @@ final class FenceLanguages implements Constants
         name(PHP_MODE, "php");
         name(RUBY_MODE, "ruby", "rb");
         name(TCL_MODE, "tcl");
-        name(SHELL_SCRIPT_MODE, "sh", "bash", "zsh", "ksh", "csh", "shell",
-             "console", "shell-script");
-        name(LISP_MODE, "lisp", "elisp", "emacs-lisp", "el", "cl",
-             "common-lisp", "clojure", "clj");
+        name(
+            SHELL_SCRIPT_MODE,
+            "sh",
+            "bash",
+            "zsh",
+            "ksh",
+            "csh",
+            "shell",
+            "console",
+            "shell-script"
+        );
+        name(
+            LISP_MODE,
+            "lisp",
+            "elisp",
+            "emacs-lisp",
+            "el",
+            "cl",
+            "common-lisp",
+            "clojure",
+            "clj"
+        );
         name(SCHEME_MODE, "scheme", "scm", "racket");
         name(XML_MODE, "xml", "svg", "xsd", "xsl", "plist");
         name(HTML_MODE, "html", "htm", "xhtml");
@@ -73,8 +97,7 @@ final class FenceLanguages implements Constants
         name(ASM_MODE, "asm", "assembly", "nasm");
     }
 
-    private static void name(int modeId, String... names)
-    {
+    private static void name(int modeId, String... names) {
         for (String name : names)
             NAMES.put(name, modeId);
     }
@@ -85,8 +108,7 @@ final class FenceLanguages implements Constants
     private FenceLanguages() {}
 
     /** The slot of the language info names, or 0 if it names none j colors. */
-    static synchronized int slotFor(String info)
-    {
+    static synchronized int slotFor(String info) {
         final int id = modeIdFor(info);
         if (id < 0)
             return 0;
@@ -99,8 +121,7 @@ final class FenceLanguages implements Constants
     }
 
     /** The mode for a slot, or null. */
-    static synchronized Mode modeFor(int slot)
-    {
+    static synchronized Mode modeFor(int slot) {
         if (slot < 1 || slot > slots.size())
             return null;
         return Editor.getModeList().getMode(slots.get(slot - 1));
@@ -108,16 +129,19 @@ final class FenceLanguages implements Constants
 
     // The language is the info string's first word: "java title=x", or
     // pandoc's "{.java}".
-    private static int modeIdFor(String info)
-    {
+    private static int modeIdFor(String info) {
         String word = info.trim();
         if (word.startsWith("{"))
             word = word.substring(1);
         if (word.startsWith("."))
             word = word.substring(1);
         int end = 0;
-        while (end < word.length() && !Character.isWhitespace(word.charAt(end))
-               && word.charAt(end) != '}' && word.charAt(end) != ',')
+        while (
+            end < word.length()
+                && !Character.isWhitespace(word.charAt(end))
+                && word.charAt(end) != '}'
+                && word.charAt(end) != ','
+        )
             ++end;
         word = word.substring(0, end).toLowerCase(Locale.ROOT);
         if (word.isEmpty())
@@ -128,10 +152,13 @@ final class FenceLanguages implements Constants
         // j's own name for a mode it edits files in, but not one in which
         // Markdown would color Markdown.
         for (ModeListEntry entry : Editor.getModeList()) {
-            if (entry.isSelectable() && entry.getId() != MARKDOWN_MODE
-                && entry.getId() != PLAIN_TEXT_MODE
-                && entry.getId() != BINARY_MODE
-                && entry.getDisplayName().equalsIgnoreCase(word))
+            if (
+                entry.isSelectable()
+                    && entry.getId() != MARKDOWN_MODE
+                    && entry.getId() != PLAIN_TEXT_MODE
+                    && entry.getId() != BINARY_MODE
+                    && entry.getDisplayName().equalsIgnoreCase(word)
+            )
                 return entry.getId();
         }
         return -1;

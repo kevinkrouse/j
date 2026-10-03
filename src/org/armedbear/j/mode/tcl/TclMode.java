@@ -20,6 +20,7 @@
 
 package org.armedbear.j.mode.tcl;
 
+import java.awt.event.KeyEvent;
 import org.armedbear.j.AbstractMode;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Constants;
@@ -34,39 +35,31 @@ import org.armedbear.j.SyntaxIterator;
 import org.armedbear.j.SystemBuffer;
 import org.armedbear.j.Tagger;
 
-import java.awt.event.KeyEvent;
-
-public final class TclMode extends AbstractMode implements Constants, Mode
-{
-    private static final int STATE_NEUTRAL     = 0;
+public final class TclMode extends AbstractMode implements Constants, Mode {
+    private static final int STATE_NEUTRAL = 0;
     private static final int STATE_SINGLEQUOTE = 1;
     private static final int STATE_DOUBLEQUOTE = 2;
 
     private static final TclMode mode = new TclMode();
 
-    private TclMode()
-    {
+    private TclMode() {
         super(TCL_MODE, TCL_MODE_NAME);
         keywords = new Keywords(this);
     }
 
-    public static TclMode getMode()
-    {
+    public static TclMode getMode() {
         return mode;
     }
 
-    public String getCommentStart()
-    {
+    public String getCommentStart() {
         return "# ";
     }
 
-    public Formatter getFormatter(Buffer buffer)
-    {
+    public Formatter getFormatter(Buffer buffer) {
         return new TclFormatter(buffer);
     }
 
-    protected void setKeyMapDefaults(KeyMap km)
-    {
+    protected void setKeyMapDefaults(KeyMap km) {
         km.mapKey('{', "electricOpenBrace");
         km.mapKey('}', "electricCloseBrace");
         km.mapKey(KeyEvent.VK_TAB, CTRL_MASK, "insertTab");
@@ -80,23 +73,19 @@ public final class TclMode extends AbstractMode implements Constants, Mode
         km.mapKey(KeyEvent.VK_F12, 0, "wrapComment");
     }
 
-    public boolean isTaggable()
-    {
+    public boolean isTaggable() {
         return true;
     }
 
-    public Tagger getTagger(SystemBuffer buffer)
-    {
+    public Tagger getTagger(SystemBuffer buffer) {
         return new TclTagger(buffer);
     }
 
-    public boolean canIndent()
-    {
+    public boolean canIndent() {
         return true;
     }
 
-    public int getCorrectIndentation(Line line, Buffer buffer)
-    {
+    public int getCorrectIndentation(Line line, Buffer buffer) {
         final int indentSize = buffer.getIndentSize();
 
         // Is the current line a continuation line?
@@ -138,8 +127,7 @@ public final class TclMode extends AbstractMode implements Constants, Mode
         return modelIndent;
     }
 
-    private static Line findModel(Line line)
-    {
+    private static Line findModel(Line line) {
         Line model = line.previous();
         if (model == null)
             return null;
@@ -171,13 +159,11 @@ public final class TclMode extends AbstractMode implements Constants, Mode
         return model;
     }
 
-    private static boolean isContinued(Line line)
-    {
+    private static boolean isContinued(Line line) {
         return line.getText().endsWith("\\");
     }
 
-    private static Position matchClosingBrace(Position start)
-    {
+    private static Position matchClosingBrace(Position start) {
         int count = 1;
         TclSyntaxIterator it = new TclSyntaxIterator(start);
         char c;
@@ -195,19 +181,16 @@ public final class TclMode extends AbstractMode implements Constants, Mode
 
     // Replaces syntactic whitespace (quotes and comments) with actual space
     // characters and returns trimmed string.
-    private static String trimSyntacticWhitespace(Line line)
-    {
+    private static String trimSyntacticWhitespace(Line line) {
         TclSyntaxIterator it = new TclSyntaxIterator(null);
         return new String(it.hideSyntacticWhitespace(line.getText())).trim();
     }
 
-    public boolean isIdentifierStart(char c)
-    {
+    public boolean isIdentifierStart(char c) {
         return !Character.isWhitespace(c);
     }
 
-    public boolean isIdentifierPart(char c)
-    {
+    public boolean isIdentifierPart(char c) {
         return !Character.isWhitespace(c);
     }
 }

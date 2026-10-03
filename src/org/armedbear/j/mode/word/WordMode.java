@@ -20,52 +20,45 @@
 
 package org.armedbear.j.mode.word;
 
+import java.awt.event.KeyEvent;
+import java.io.IOException;
+import java.io.InputStream;
 import org.armedbear.j.AbstractMode;
 import org.armedbear.j.Buffer;
-import org.armedbear.j.Mode;
-import org.armedbear.j.util.ByteBuffer;
 import org.armedbear.j.Constants;
 import org.armedbear.j.Debug;
 import org.armedbear.j.File;
 import org.armedbear.j.Formatter;
 import org.armedbear.j.KeyMap;
 import org.armedbear.j.Log;
-import org.armedbear.j.mode.text.PlainTextFormatter;
+import org.armedbear.j.Mode;
 import org.armedbear.j.Property;
+import org.armedbear.j.mode.text.PlainTextFormatter;
+import org.armedbear.j.util.ByteBuffer;
 import org.armedbear.j.util.Utilities;
 
-import java.awt.event.KeyEvent;
-import java.io.IOException;
-import java.io.InputStream;
-
-public final class WordMode extends AbstractMode implements Constants, Mode
-{
+public final class WordMode extends AbstractMode implements Constants, Mode {
     private static final WordMode mode = new WordMode();
 
-    private WordMode()
-    {
+    private WordMode() {
         super(WORD_MODE, WORD_MODE_NAME);
         setProperty(Property.VERTICAL_RULE, 0);
         setProperty(Property.SHOW_LINE_NUMBERS, false);
     }
 
-    public static final WordMode getMode()
-    {
+    public static final WordMode getMode() {
         return mode;
     }
 
-    public final Formatter getFormatter(Buffer buffer)
-    {
+    public final Formatter getFormatter(Buffer buffer) {
         return new PlainTextFormatter(buffer);
     }
 
-    protected void setKeyMapDefaults(KeyMap km)
-    {
+    protected void setKeyMapDefaults(KeyMap km) {
         km.mapKey(KeyEvent.VK_B, CTRL_MASK | ALT_MASK, "binaryMode");
     }
 
-    public void loadFile(Buffer buffer, File toBeLoaded)
-    {
+    public void loadFile(Buffer buffer, File toBeLoaded) {
         try {
             load(buffer, toBeLoaded.getInputStream());
         }
@@ -74,8 +67,7 @@ public final class WordMode extends AbstractMode implements Constants, Mode
         }
     }
 
-    private static void load(Buffer buffer, InputStream inputStream)
-    {
+    private static void load(Buffer buffer, InputStream inputStream) {
         byte[] bytes = new byte[4096];
         int totalBytes = 0;
         try {
@@ -149,14 +141,12 @@ public final class WordMode extends AbstractMode implements Constants, Mode
         //buffer.loadFinished(buffer.isLoaded());
     }
 
-    private static final void wrapAndAppend(Buffer buffer, String s)
-    {
+    private static final void wrapAndAppend(Buffer buffer, String s) {
         buffer.append(Utilities.wrap(s, 65, 8));
     }
 
     // 4 bytes
-    private static long getLong(byte[] bytes, int offset)
-    {
+    private static long getLong(byte[] bytes, int offset) {
         long byte0 = bytes[offset] & 0xff;
         long byte1 = bytes[offset + 1] & 0xff;
         long byte2 = bytes[offset + 2] & 0xff;
@@ -165,8 +155,7 @@ public final class WordMode extends AbstractMode implements Constants, Mode
     }
 
     // 2 bytes
-    private static int getWord(byte[] bytes, int offset)
-    {
+    private static int getWord(byte[] bytes, int offset) {
         int hi = bytes[offset + 1] & 0xff;
         int lo = bytes[offset] & 0xff;
         return (hi << 8) + lo;

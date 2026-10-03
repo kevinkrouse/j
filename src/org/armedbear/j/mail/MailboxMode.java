@@ -22,10 +22,7 @@ package org.armedbear.j.mail;
 
 import java.awt.event.KeyEvent;
 import javax.swing.JCheckBoxMenuItem;
-
 import org.armedbear.j.AbstractMode;
-import org.armedbear.j.Line;
-import org.armedbear.j.Mode;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Constants;
 import org.armedbear.j.Dispatcher;
@@ -33,24 +30,23 @@ import org.armedbear.j.Editor;
 import org.armedbear.j.Formatter;
 import org.armedbear.j.Frame;
 import org.armedbear.j.KeyMap;
+import org.armedbear.j.Line;
 import org.armedbear.j.Menu;
+import org.armedbear.j.Mode;
 import org.armedbear.j.NavigationComponent;
 import org.armedbear.j.Position;
 import org.armedbear.j.Property;
 import org.armedbear.j.ToolBar;
 import org.armedbear.j.View;
 
-public class MailboxMode extends AbstractMode implements Constants, Mode
-{
+public class MailboxMode extends AbstractMode implements Constants, Mode {
     private static final MailboxMode mode = new MailboxMode();
 
-    private MailboxMode()
-    {
+    private MailboxMode() {
         this(MAILBOX_MODE, MAILBOX_MODE_NAME);
     }
 
-    protected MailboxMode(int id, String displayName)
-    {
+    protected MailboxMode(int id, String displayName) {
         super(id, displayName);
         setProperty(Property.VERTICAL_RULE, 0);
         setProperty(Property.SHOW_LINE_NUMBERS, false);
@@ -59,13 +55,11 @@ public class MailboxMode extends AbstractMode implements Constants, Mode
         setProperty(Property.HIGHLIGHT_BRACKETS, false);
     }
 
-    public static Mode getMode()
-    {
+    public static Mode getMode() {
         return mode;
     }
 
-    public NavigationComponent getSidebarComponent(Editor editor)
-    {
+    public NavigationComponent getSidebarComponent(Editor editor) {
         View view = editor.getCurrentView();
         if (view == null)
             return null; // Shouldn't happen.
@@ -74,13 +68,11 @@ public class MailboxMode extends AbstractMode implements Constants, Mode
         return view.getSidebarComponent();
     }
 
-    public Formatter getFormatter(Buffer buffer)
-    {
+    public Formatter getFormatter(Buffer buffer) {
         return new MailboxFormatter(buffer);
     }
 
-    protected void setKeyMapDefaults(KeyMap km)
-    {
+    protected void setKeyMapDefaults(KeyMap km) {
         km.mapKey(KeyEvent.VK_HOME, 0, "bol");
         km.mapKey(KeyEvent.VK_END, CTRL_MASK, "mailboxLastMessage");
         km.mapKey(KeyEvent.VK_ENTER, 0, "mailboxReadMessageOtherWindow");
@@ -107,8 +99,7 @@ public class MailboxMode extends AbstractMode implements Constants, Mode
         km.mapKey('F', "mailboxFlag");
     }
 
-    public void populateMenu(Editor editor, Menu menu)
-    {
+    public void populateMenu(Editor editor, Menu menu) {
         final String text = menu.getText();
         if (text == "View") {
             final Dispatcher dispatcher = editor.getDispatcher();
@@ -131,8 +122,7 @@ public class MailboxMode extends AbstractMode implements Constants, Mode
             groupByThread.setActionCommand("toggleGroupByThread");
             groupByThread.addActionListener(dispatcher);
             if (editor.getBuffer() instanceof MailboxBuffer) {
-                groupByThread.setSelected(editor.getBuffer().
-                    getBooleanProperty(Property.GROUP_BY_THREAD));
+                groupByThread.setSelected(editor.getBuffer().getBooleanProperty(Property.GROUP_BY_THREAD));
             }
             menu.add(groupByThread);
             menu.addSeparator();
@@ -145,18 +135,16 @@ public class MailboxMode extends AbstractMode implements Constants, Mode
             super.populateMenu(editor, menu);
     }
 
-    protected ToolBar getDefaultToolBar(Frame frame)
-    {
+    protected ToolBar getDefaultToolBar(Frame frame) {
         return new MailboxModeToolBar(frame);
     }
 
-    public String getContextString(Editor editor, boolean verbose)
-    {
+    public String getContextString(Editor editor, boolean verbose) {
         Position dot = editor.getDot();
         if (dot != null) {
             final Line dotLine = dot.getLine();
             if (dotLine instanceof MailboxLine) {
-                MailboxEntry entry = ((MailboxLine)dotLine).getMailboxEntry();
+                MailboxEntry entry = ((MailboxLine) dotLine).getMailboxEntry();
                 if (entry != null)
                     return entry.getSubject();
             }

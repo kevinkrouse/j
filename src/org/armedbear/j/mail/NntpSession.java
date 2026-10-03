@@ -22,21 +22,19 @@ package org.armedbear.j.mail;
 
 import java.io.IOException;
 import java.io.OutputStreamWriter;
+import java.lang.StringBuilder;
 import java.net.ConnectException;
 import java.net.Socket;
 import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.util.StringTokenizer;
-
 import org.armedbear.j.Debug;
 import org.armedbear.j.Editor;
-import java.lang.StringBuilder;
 import org.armedbear.j.Log;
 import org.armedbear.j.ProgressNotifier;
 import org.armedbear.j.Property;
 
-public final class NntpSession
-{
+public final class NntpSession {
     private static final int DEFAULT_PORT = 119;
 
     private String errorText;
@@ -54,62 +52,51 @@ public final class NntpSession
 
     private boolean echo = DEFAULT_ECHO;
 
-    private NntpSession(String host, int port)
-    {
+    private NntpSession(String host, int port) {
         this.host = host;
         this.port = port;
     }
 
-    public static NntpSession getSession()
-    {
+    public static NntpSession getSession() {
         return getSession(Editor.preferences().getStringProperty(Property.NEWS));
     }
 
-    public static NntpSession getSession(String host)
-    {
+    public static NntpSession getSession(String host) {
         if (host == null || host.length() == 0)
             return null;
 
         return new NntpSession(host, DEFAULT_PORT);
     }
 
-    public String getErrorText()
-    {
+    public String getErrorText() {
         return errorText;
     }
 
-    private void setErrorText(String s)
-    {
+    private void setErrorText(String s) {
         errorText = s;
     }
 
-    public void setEcho(boolean b)
-    {
+    public void setEcho(boolean b) {
         echo = b;
     }
 
-    public String getHost()
-    {
+    public String getHost() {
         return host;
     }
 
-    public int getCount()
-    {
+    public int getCount() {
         return count;
     }
 
-    public int getFirst()
-    {
+    public int getFirst() {
         return first;
     }
 
-    public int getLast()
-    {
+    public int getLast() {
         return last;
     }
 
-    public String getArticle(int articleNumber, ProgressNotifier progressNotifier)
-    {
+    public String getArticle(int articleNumber, ProgressNotifier progressNotifier) {
         if (socket == null)
             return _getArticle(articleNumber, progressNotifier);
 
@@ -137,8 +124,7 @@ public final class NntpSession
         return null;
     }
 
-    private String _getArticle(int articleNumber, ProgressNotifier progressNotifier)
-    {
+    private String _getArticle(int articleNumber, ProgressNotifier progressNotifier) {
         writeLine("ARTICLE ".concat(String.valueOf(articleNumber)));
         String response = readLine();
         if (response == null)
@@ -174,8 +160,7 @@ public final class NntpSession
         return sb.toString();
     }
 
-    public boolean connect()
-    {
+    public boolean connect() {
         boolean succeeded = false;
         try {
             socket = new Socket(host, port);
@@ -199,8 +184,7 @@ public final class NntpSession
         }
     }
 
-    public boolean reconnect()
-    {
+    public boolean reconnect() {
         if (connect())
             if (selectGroup(groupName))
                 return true;
@@ -208,8 +192,7 @@ public final class NntpSession
         return false;
     }
 
-    public void disconnect()
-    {
+    public void disconnect() {
         if (socket != null) {
             writeLine("QUIT");
             readLine();
@@ -217,8 +200,7 @@ public final class NntpSession
         abort();
     }
 
-    public void abort()
-    {
+    public void abort() {
         if (socket != null) {
             try {
                 socket.close();
@@ -232,8 +214,7 @@ public final class NntpSession
         }
     }
 
-    public boolean selectGroup(String groupName)
-    {
+    public boolean selectGroup(String groupName) {
         writeLine("GROUP " + groupName);
         String response = readLine();
         if (response == null)
@@ -249,8 +230,7 @@ public final class NntpSession
         return true;
     }
 
-    public String readLine()
-    {
+    public String readLine() {
         if (reader == null) {
             Debug.bug("readLine reader is null");
             return null;
@@ -267,8 +247,7 @@ public final class NntpSession
         }
     }
 
-    public boolean writeLine(String s)
-    {
+    public boolean writeLine(String s) {
         if (writer == null)
             if (!reconnect())
                 return false;

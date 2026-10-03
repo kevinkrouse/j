@@ -34,8 +34,7 @@ import org.armedbear.j.File;
 import org.armedbear.j.Log;
 import org.armedbear.j.util.Utilities;
 
-public final class AddressBook
-{
+public final class AddressBook {
     // The global address book.
     private static AddressBook addressBook;
 
@@ -44,13 +43,11 @@ public final class AddressBook
 
     private List<AddressBookEntry> entries;
 
-    private AddressBook()
-    {
+    private AddressBook() {
         entries = new ArrayList<AddressBookEntry>();
     }
 
-    public static AddressBook getGlobalAddressBook()
-    {
+    public static AddressBook getGlobalAddressBook() {
         if (addressBook == null) {
             file = File.getInstance(Directories.getDataDirectory(), "addresses");
             backupFile =
@@ -68,7 +65,7 @@ public final class AddressBook
                     BufferedReader reader =
                         new BufferedReader(new InputStreamReader(inputStream));
                     String s;
-                    while ((s = reader.readLine( )) != null) {
+                    while ((s = reader.readLine()) != null) {
                         AddressBookEntry entry =
                             AddressBookEntry.parseAddressBookEntry(s);
                         if (entry != null)
@@ -84,8 +81,7 @@ public final class AddressBook
         return addressBook;
     }
 
-    public static void saveGlobalAddressBook()
-    {
+    public static void saveGlobalAddressBook() {
         try {
             File tempFile = Utilities.getTempFile();
             OutputStream outputStream = tempFile.getOutputStream();
@@ -100,12 +96,16 @@ public final class AddressBook
             writer.flush();
             writer.close();
             if (!Utilities.deleteRename(file, backupFile)) {
-                Log.error("saveGlobalAddressBook deleteRename error file = " +
-                    file + " backupFile = " + backupFile);
+                Log.error(
+                    "saveGlobalAddressBook deleteRename error file = " +
+                        file + " backupFile = " + backupFile
+                );
             }
             if (!Utilities.deleteRename(tempFile, file)) {
-                Log.error("saveGlobalAddressBook deleteRename error tempFile = " +
-                    tempFile + " file = " + file);
+                Log.error(
+                    "saveGlobalAddressBook deleteRename error tempFile = " +
+                        tempFile + " file = " + file
+                );
             }
         }
         catch (IOException e) {
@@ -113,20 +113,18 @@ public final class AddressBook
         }
     }
 
-    public final int size()
-    {
+    public final int size() {
         return entries.size();
     }
 
-    public void maybeAddMailAddress(MailAddress a)
-    {
+    public void maybeAddMailAddress(MailAddress a) {
         String address = AddressBookEntry.canonicalizeAddress(a.getAddress());
         // Don't add entries without a valid address.
         if (address == null)
             return;
         String personal =
             AddressBookEntry.canonicalizePersonal(a.getPersonal());
-        for (int i = entries.size()-1; i >= 0; i--) {
+        for (int i = entries.size() - 1; i >= 0; i--) {
             AddressBookEntry entry = getEntry(i);
             if (address.equalsIgnoreCase(entry.getAddress())) {
                 // Give preference to lower case addresses.
@@ -149,8 +147,7 @@ public final class AddressBook
         addEntry(new AddressBookEntry(personal, address));
     }
 
-    public void promote(MailAddress a)
-    {
+    public void promote(MailAddress a) {
         String address = AddressBookEntry.canonicalizeAddress(a.getAddress());
         // Ignore entries without a valid address.
         if (address == null)
@@ -158,7 +155,7 @@ public final class AddressBook
         String personal =
             AddressBookEntry.canonicalizePersonal(a.getPersonal());
         AddressBookEntry toBePromoted = new AddressBookEntry(personal, address);
-        for (int i = entries.size()-1; i >= 0; i--) {
+        for (int i = entries.size() - 1; i >= 0; i--) {
             if (toBePromoted.equals(getEntry(i))) {
                 entries.remove(i);
                 entries.add(0, toBePromoted);
@@ -167,13 +164,11 @@ public final class AddressBook
         }
     }
 
-    private final void addEntry(AddressBookEntry entry)
-    {
+    private final void addEntry(AddressBookEntry entry) {
         entries.add(entry);
     }
 
-    public final AddressBookEntry getEntry(int i)
-    {
+    public final AddressBookEntry getEntry(int i) {
         return entries.get(i);
     }
 }

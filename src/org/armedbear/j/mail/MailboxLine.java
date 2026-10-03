@@ -23,32 +23,27 @@ package org.armedbear.j.mail;
 import org.armedbear.j.Line;
 import org.armedbear.j.TextLine;
 
-public final class MailboxLine extends TextLine implements Line
-{
+public final class MailboxLine extends TextLine implements Line {
     private final MailboxEntry entry;
     private final int depth;
 
-    public MailboxLine(MailboxEntry entry)
-    {
+    public MailboxLine(MailboxEntry entry) {
         super(entry.toString());
         this.entry = entry;
         this.depth = 1;
     }
 
-    public MailboxLine(MailboxEntry entry, int depth)
-    {
+    public MailboxLine(MailboxEntry entry, int depth) {
         super(entry.toString(depth));
         this.entry = entry;
         this.depth = depth;
     }
 
-    public final MailboxEntry getMailboxEntry()
-    {
+    public final MailboxEntry getMailboxEntry() {
         return entry;
     }
 
-    public final int getDepth()
-    {
+    public final int getDepth() {
         return depth;
     }
 }

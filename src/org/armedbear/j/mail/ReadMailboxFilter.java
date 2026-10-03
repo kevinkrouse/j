@@ -20,10 +20,8 @@
 
 package org.armedbear.j.mail;
 
-public final class ReadMailboxFilter extends MailboxFilter
-{
-    public final boolean accept(MailboxEntry entry)
-    {
+public final class ReadMailboxFilter extends MailboxFilter {
+    public final boolean accept(MailboxEntry entry) {
         return entry.isRead();
     }
 }

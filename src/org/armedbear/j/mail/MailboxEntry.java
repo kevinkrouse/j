@@ -21,17 +21,15 @@
 package org.armedbear.j.mail;
 
 import java.io.Serializable;
+import java.lang.StringBuilder;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Locale;
-
 import org.armedbear.j.Editor;
-import java.lang.StringBuilder;
 import org.armedbear.j.Property;
 import org.armedbear.j.util.Utilities;
 
-public abstract class MailboxEntry implements Serializable
-{
+public abstract class MailboxEntry implements Serializable {
     // If DEBUG is true, formatDate() prints the time even if the entry is
     // more than six months old.
     private static final boolean DEBUG =
@@ -41,21 +39,21 @@ public abstract class MailboxEntry implements Serializable
         Editor.preferences().getBooleanProperty(Property.SHOW_MESSAGE_NUMBERS);
 
     // Bit flags.
-    public static final int SEEN     = 0x001;
-    public static final int RECENT   = 0x002;
+    public static final int SEEN = 0x001;
+    public static final int RECENT = 0x002;
     public static final int ANSWERED = 0x004;
-    public static final int DELETED  = 0x008;
-    public static final int FLAGGED  = 0x010;
-    public static final int TAGGED   = 0x020; // Not persistent.
-    public static final int JUNK     = 0x040;
+    public static final int DELETED = 0x008;
+    public static final int FLAGGED = 0x010;
+    public static final int TAGGED = 0x020; // Not persistent.
+    public static final int JUNK = 0x040;
     public static final int NON_JUNK = 0x080;
-    public static final int DRAFT    = 0x100;
+    public static final int DRAFT = 0x100;
 
     protected static final String STRING_DEFAULT = " ";
     protected static final String STRING_DELETED = "D";
     protected static final String STRING_REPLIED = "r";
-    protected static final String STRING_NEW     = "N";
-    protected static final String STRING_OLD     = "O";
+    protected static final String STRING_NEW = "N";
+    protected static final String STRING_OLD = "O";
     protected static final String STRING_FLAGGED = "!";
 
     protected int flags;
@@ -76,75 +74,61 @@ public abstract class MailboxEntry implements Serializable
 
     private transient boolean orphan;
 
-    public final int getFlags()
-    {
+    public final int getFlags() {
         return flags;
     }
 
-    public final void setFlags(int flags)
-    {
+    public final void setFlags(int flags) {
         this.flags = flags;
     }
 
-    public final int getSize()
-    {
+    public final int getSize() {
         return size;
     }
 
-    public final void setSize(int size)
-    {
+    public final void setSize(int size) {
         this.size = size;
     }
 
-    public final int getMessageNumber()
-    {
+    public final int getMessageNumber() {
         return messageNumber;
     }
 
-    public final int getSequenceNumber()
-    {
+    public final int getSequenceNumber() {
         return sequenceNumber;
     }
 
-    public final void setSequenceNumber(int n)
-    {
+    public final void setSequenceNumber(int n) {
         sequenceNumber = n;
     }
 
-    public final RFC822Date getDate()
-    {
+    public final RFC822Date getDate() {
         return date;
     }
 
-    public final MailAddress[] getFrom()
-    {
+    public final MailAddress[] getFrom() {
         return from;
     }
 
-    public final MailAddress[] getReplyTo()
-    {
+    public final MailAddress[] getReplyTo() {
         return replyTo;
     }
 
-    public final MailAddress[] getTo()
-    {
+    public final MailAddress[] getTo() {
         return to;
     }
 
-    public final MailAddress[] getCc()
-    {
+    public final MailAddress[] getCc() {
         return cc;
     }
 
-    public final String getSubject()
-    {
+    public final String getSubject() {
         if (subject != null && subject.length() > 0)
             return subject;
         return "(no subject)";
     }
 
-    public final String getBaseSubject()
-    {
+    public final String getBaseSubject() {
         if (subject == null)
             return null;
         final int length = subject.length();
@@ -159,14 +143,14 @@ public abstract class MailboxEntry implements Serializable
             if (s.length() > 0 && s.charAt(0) == '[') {
                 int end = s.indexOf(']', 1);
                 if (end >= 0) {
-                    s = s.substring(end+1).trim();
+                    s = s.substring(end + 1).trim();
                     continue;
                 }
             }
             break;
         }
         while (s.toLowerCase().endsWith("(fwd)"))
-            s = s.substring(0, s.length()-5).trim();
+            s = s.substring(0, s.length() - 5).trim();
 
         // Some broken mailers (or MTAs) arbitrarily break the subject line
         // after 74 characters. If this happens to be in the middle of a word,
@@ -184,128 +168,105 @@ public abstract class MailboxEntry implements Serializable
         return sb.toString();
     }
 
-    public final boolean subjectIsReply()
-    {
+    public final boolean subjectIsReply() {
         if (subject != null && subject.toLowerCase().startsWith("re:"))
             return true;
         return false;
     }
 
-    public final String getMessageId()
-    {
+    public final String getMessageId() {
         return messageId;
     }
 
-    public final String getInReplyTo()
-    {
+    public final String getInReplyTo() {
         return inReplyTo;
     }
 
-    public final String[] getReferences()
-    {
+    public final String[] getReferences() {
         return references;
     }
 
-    public final void setOrphan(boolean b)
-    {
+    public final void setOrphan(boolean b) {
         orphan = b;
     }
 
-    public String getUidl()
-    {
+    public String getUidl() {
         return null;
     }
 
-    public String formatSubject()
-    {
+    public String formatSubject() {
         if (subject == null)
             return "";
         return subject;
     }
 
-    public final boolean isDeleted()
-    {
+    public final boolean isDeleted() {
         return (flags & DELETED) == DELETED;
     }
 
-    public final boolean isTagged()
-    {
+    public final boolean isTagged() {
         return (flags & TAGGED) == TAGGED;
     }
 
-    public final boolean isFlagged()
-    {
+    public final boolean isFlagged() {
         return (flags & FLAGGED) == FLAGGED;
     }
 
-    public final boolean isAnswered()
-    {
+    public final boolean isAnswered() {
         return (flags & ANSWERED) == ANSWERED;
     }
 
-    public final boolean isNew()
-    {
+    public final boolean isNew() {
         return (flags & (SEEN | DELETED | RECENT)) == RECENT;
     }
 
-    public final boolean isRead()
-    {
+    public final boolean isRead() {
         return (flags & SEEN) != 0;
     }
 
-    public final boolean isUnread()
-    {
+    public final boolean isUnread() {
         return (flags & (SEEN | DELETED)) == 0;
     }
 
-    public final boolean isNonJunk()
-    {
+    public final boolean isNonJunk() {
         return (flags & NON_JUNK) != 0;
     }
 
-    public final boolean isJunk()
-    {
+    public final boolean isJunk() {
         return (flags & JUNK) != 0;
     }
 
-    public final void tag()
-    {
+    public final void tag() {
         flags |= TAGGED;
     }
 
-    public final void untag()
-    {
+    public final void untag() {
         flags &= ~TAGGED;
     }
 
-    public final void toggleTag()
-    {
+    public final void toggleTag() {
         if ((flags & TAGGED) != 0)
             flags &= ~TAGGED;
         else
             flags |= TAGGED;
     }
 
-    public final void flag()
-    {
+    public final void flag() {
         flags |= FLAGGED;
     }
 
-    public final void unflag()
-    {
+    public final void unflag() {
         flags &= ~FLAGGED;
     }
 
-    public final void toggleFlag()
-    {
+    public final void toggleFlag() {
         if ((flags & FLAGGED) != 0)
             flags &= ~FLAGGED;
         else
             flags |= FLAGGED;
     }
 
-    protected String formatSize()
-    {
+    protected String formatSize() {
         if (size < 1000)
             return Utilities.rightJustify(size, 4);
         if (size < 10000) {
@@ -343,15 +304,14 @@ public abstract class MailboxEntry implements Serializable
         return Utilities.rightJustify(m, 3) + "M";
     }
 
-    protected char getToChar()
-    {
+    protected char getToChar() {
         if (isFlagged())
             return '!';
         if (isFromMe())
             return 'F';
         char c = ' ';
         if (to != null) {
-            for (int i = to.length-1; i >= 0; i--) {
+            for (int i = to.length - 1; i >= 0; i--) {
                 MailAddress a = to[i];
                 if (a.matches(Mail.getUserMailAddress())) {
                     // Addressed to me.
@@ -369,7 +329,7 @@ public abstract class MailboxEntry implements Serializable
             return c;
         }
         if (cc != null) {
-            for (int i = cc.length-1; i >= 0; i--) {
+            for (int i = cc.length - 1; i >= 0; i--) {
                 MailAddress a = cc[i];
                 if (a.matches(Mail.getUserMailAddress())) {
                     // Copied to me.
@@ -380,8 +340,7 @@ public abstract class MailboxEntry implements Serializable
         return ' ';
     }
 
-    private boolean isFromMe()
-    {
+    private boolean isFromMe() {
         if (from != null) {
             MailAddress a = from[0];
             if (a != null && a.matches(Mail.getUserMailAddress()))
@@ -390,8 +349,7 @@ public abstract class MailboxEntry implements Serializable
         return false;
     }
 
-    protected String formatFlags()
-    {
+    protected String formatFlags() {
         if (isAnswered())
             return STRING_REPLIED;
         else if ((flags & (SEEN | RECENT)) == RECENT) // Might be deleted.
@@ -412,8 +370,7 @@ public abstract class MailboxEntry implements Serializable
 
     private static final long SIX_MONTHS = (long) 6 * 30 * 24 * 60 * 60 * 1000;
 
-    protected String formatDate()
-    {
+    protected String formatDate() {
         if (date == null)
             return NULL_DATE;
         long millis = date.getTime();
@@ -424,8 +381,7 @@ public abstract class MailboxEntry implements Serializable
         return dateFormat2.format(date.getDate());
     }
 
-    protected String formatFrom(int fieldWidth)
-    {
+    protected String formatFrom(int fieldWidth) {
         String s = null;
         if (isFromMe() && to != null && to.length > 0) {
             MailAddress a = to[0];
@@ -450,13 +406,11 @@ public abstract class MailboxEntry implements Serializable
         return s;
     }
 
-    public String toString()
-    {
+    public String toString() {
         return toString(1);
     }
 
-    public String toString(int depth)
-    {
+    public String toString(int depth) {
         StringBuilder sb = new StringBuilder(128);
         if (SHOW_MESSAGE_NUMBERS) {
             sb.append(Utilities.rightJustify(sequenceNumber, 5));
@@ -480,21 +434,19 @@ public abstract class MailboxEntry implements Serializable
         return sb.toString();
     }
 
-    protected static String parseInReplyTo(String s)
-    {
+    protected static String parseInReplyTo(String s) {
         if (s != null) {
             int begin = s.indexOf('<');
             if (begin >= 0) {
-                int end = s.indexOf('>', begin+1);
+                int end = s.indexOf('>', begin + 1);
                 if (end > begin)
-                    return s.substring(begin, end+1);
+                    return s.substring(begin, end + 1);
             }
         }
         return null;
     }
 
-    protected static String[] parseReferences(String s)
-    {
+    protected static String[] parseReferences(String s) {
         if (s == null || s.length() == 0)
             return null;
 
@@ -504,7 +456,7 @@ public abstract class MailboxEntry implements Serializable
             begin = s.indexOf('<', begin);
             if (begin < 0)
                 break;
-            int end = s.indexOf('>', begin+1);
+            int end = s.indexOf('>', begin + 1);
             if (end < 0)
                 break;
             if (list == null)

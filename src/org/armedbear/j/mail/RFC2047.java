@@ -20,21 +20,18 @@
 
 package org.armedbear.j.mail;
 
-import java.util.regex.Pattern;
-import java.util.regex.Matcher;
 import java.io.UnsupportedEncodingException;
-
-import org.armedbear.j.util.Base64Decoder;
 import java.lang.StringBuilder;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import org.armedbear.j.Log;
+import org.armedbear.j.util.Base64Decoder;
 import org.armedbear.j.util.Utilities;
 
-public final class RFC2047
-{
+public final class RFC2047 {
     private static final Pattern prefixRE = Pattern.compile("=\\?[^?]+\\?[bq]\\?");
 
-    public static String decode(String encoded)
-    {
+    public static String decode(String encoded) {
         if (encoded == null)
             return null;
         // Fail fast.
@@ -48,7 +45,7 @@ public final class RFC2047
         }
         String prefix = matcher.group();
         int index = matcher.start();
-        String charset = prefix.substring(2, prefix.length()-3);
+        String charset = prefix.substring(2, prefix.length() - 3);
         String encoding = Utilities.getEncodingFromCharset(charset);
         StringBuilder sb = new StringBuilder();
         sb.append(encoded.substring(0, index));
@@ -81,7 +78,7 @@ public final class RFC2047
                 Log.error(e);
                 return encoded;
             }
-            remaining = remaining.substring(end+2);
+            remaining = remaining.substring(end + 2);
             index = remaining.toLowerCase().indexOf(prefix);
             if (index < 0) {
                 sb.append(remaining);

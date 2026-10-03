@@ -28,33 +28,27 @@ import org.armedbear.j.Mode;
 import org.armedbear.j.NavigationComponent;
 import org.armedbear.j.ToolBar;
 
-public final class NewsGroupSummaryMode extends MailboxMode
-{
+public final class NewsGroupSummaryMode extends MailboxMode {
     private static final NewsGroupSummaryMode mode = new NewsGroupSummaryMode();
 
-    private NewsGroupSummaryMode()
-    {
+    private NewsGroupSummaryMode() {
         super(NEWS_GROUP_SUMMARY_MODE, NEWS_GROUP_SUMMARY_MODE_NAME);
     }
 
-    public static final Mode getMode()
-    {
+    public static final Mode getMode() {
         return mode;
     }
 
-    public NavigationComponent getSidebarComponent(Editor editor)
-    {
+    public NavigationComponent getSidebarComponent(Editor editor) {
         return null;
     }
 
-    protected final void setKeyMapDefaults(KeyMap km)
-    {
+    protected final void setKeyMapDefaults(KeyMap km) {
         km.mapKey(KeyEvent.VK_ENTER, 0, "readArticleOtherWindow");
         km.mapKey(KeyEvent.VK_ENTER, CTRL_MASK, "readArticle");
     }
 
-    protected ToolBar getDefaultToolBar(Frame frame)
-    {
+    protected ToolBar getDefaultToolBar(Frame frame) {
         return frame.getDefaultToolBar();
     }
 }

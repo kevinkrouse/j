@@ -24,37 +24,30 @@ import java.lang.StringBuilder;
 import org.armedbear.j.LocalTag;
 import org.armedbear.j.Position;
 
-public final class ObjCTag extends LocalTag
-{
-    public ObjCTag(String name, Position pos)
-    {
+public final class ObjCTag extends LocalTag {
+    public ObjCTag(String name, Position pos) {
         super(name, pos);
         canonicalSignature = parseCanonicalSignatureForMethod();
     }
 
-    public String getMethodName()
-    {
+    public String getMethodName() {
         int index = name.indexOf(':');
         return index >= 0 ? name.substring(0, index) : name;
     }
 
-    public String getLongName()
-    {
+    public String getLongName() {
         return canonicalSignature;
     }
 
-    public String toString()
-    {
+    public String toString() {
         return name;
     }
 
-    public String getSidebarText()
-    {
+    public String getSidebarText() {
         return name;
     }
 
-    private String parseCanonicalSignatureForMethod()
-    {
+    private String parseCanonicalSignatureForMethod() {
         StringBuilder sb = new StringBuilder();
         Position pos = getPosition().copy();
         pos.setOffset(0);
@@ -86,8 +79,7 @@ public final class ObjCTag extends LocalTag
 
     // On entry, pos points at second char of "//" or "/*" (which might not
     // actually be '/' or '*').
-    private static void skipComment(Position pos)
-    {
+    private static void skipComment(Position pos) {
         char c = pos.getChar();
         if (!pos.next())
             return;

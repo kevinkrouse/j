@@ -23,25 +23,24 @@ package org.armedbear.j.mail;
 import java.util.regex.Pattern;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Debug;
-import org.armedbear.j.mode.diff.DiffFormatter;
 import org.armedbear.j.FormatTable;
 import org.armedbear.j.Formatter;
 import org.armedbear.j.Line;
 import org.armedbear.j.LineSegmentList;
+import org.armedbear.j.mode.diff.DiffFormatter;
 
-public final class MessageFormatter extends Formatter
-{
+public final class MessageFormatter extends Formatter {
     // Message formats must not overlap with diff formats!
     private static final int MESSAGE_FORMAT_FIRST =
         DiffFormatter.DIFF_FORMAT_LAST + 1;
 
-    private static final byte MESSAGE_FORMAT_TEXT         = MESSAGE_FORMAT_FIRST;
-    private static final byte MESSAGE_FORMAT_COMMENT      = MESSAGE_FORMAT_FIRST + 1;
-    private static final byte MESSAGE_FORMAT_HEADER_NAME  = MESSAGE_FORMAT_FIRST + 2;
+    private static final byte MESSAGE_FORMAT_TEXT = MESSAGE_FORMAT_FIRST;
+    private static final byte MESSAGE_FORMAT_COMMENT = MESSAGE_FORMAT_FIRST + 1;
+    private static final byte MESSAGE_FORMAT_HEADER_NAME = MESSAGE_FORMAT_FIRST + 2;
     private static final byte MESSAGE_FORMAT_HEADER_VALUE = MESSAGE_FORMAT_FIRST + 3;
-    private static final byte MESSAGE_FORMAT_QUOTE        = MESSAGE_FORMAT_FIRST + 4;
-    private static final byte MESSAGE_FORMAT_SIGNATURE    = MESSAGE_FORMAT_FIRST + 5;
-    private static final byte MESSAGE_FORMAT_DIFF         = MESSAGE_FORMAT_FIRST + 6;
+    private static final byte MESSAGE_FORMAT_QUOTE = MESSAGE_FORMAT_FIRST + 4;
+    private static final byte MESSAGE_FORMAT_SIGNATURE = MESSAGE_FORMAT_FIRST + 5;
+    private static final byte MESSAGE_FORMAT_DIFF = MESSAGE_FORMAT_FIRST + 6;
 
     private static final Pattern quoteRE = Pattern.compile("^[a-zA-Z]*>");
 
@@ -52,14 +51,12 @@ public final class MessageFormatter extends Formatter
 
     private final DiffFormatter diffFormatter;
 
-    public MessageFormatter(Buffer buffer)
-    {
+    public MessageFormatter(Buffer buffer) {
         this.buffer = buffer;
         diffFormatter = new DiffFormatter(buffer);
     }
 
-    public synchronized LineSegmentList formatLine(Line line)
-    {
+    public synchronized LineSegmentList formatLine(Line line) {
         if (line.flags() == MESSAGE_FORMAT_DIFF)
             return diffFormatter.formatLine(line);
         final String text = getDetabbedText(line);
@@ -81,8 +78,8 @@ public final class MessageFormatter extends Formatter
                 if (i >= 0 && headerRE.matcher(text).find()) {
                     String headerName = text.substring(0, i).trim();
                     if (isKeyword(headerName)) {
-                        addSegment(text, 0, i+1, MESSAGE_FORMAT_HEADER_NAME);
-                        addSegment(text, i+1, MESSAGE_FORMAT_HEADER_VALUE);
+                        addSegment(text, 0, i + 1, MESSAGE_FORMAT_HEADER_NAME);
+                        addSegment(text, i + 1, MESSAGE_FORMAT_HEADER_VALUE);
                         return segmentList;
                     }
                 }
@@ -113,8 +110,7 @@ public final class MessageFormatter extends Formatter
         return segmentList;
     }
 
-    public synchronized boolean parseBuffer()
-    {
+    public synchronized boolean parseBuffer() {
         startOfBody = null;
         boolean inDiff = false;
         boolean inSig = false;
@@ -122,7 +118,7 @@ public final class MessageFormatter extends Formatter
             buffer.renumber();
         for (Line line = buffer.getFirstLine(); line != null; line = line.next()) {
             if (buffer instanceof MessageBuffer) {
-                if (line.lineNumber() == ((MessageBuffer)buffer).getHeaderLineCount()) {
+                if (line.lineNumber() == ((MessageBuffer) buffer).getHeaderLineCount()) {
                     if (startOfBody != null)
                         Debug.bug();
                     startOfBody = line;
@@ -142,8 +138,7 @@ public final class MessageFormatter extends Formatter
                             line.setFlags(MESSAGE_FORMAT_HEADER_VALUE);
                         else
                             line.setFlags(0);
-                    }
-                    else if (line.previous() != null)
+                    } else if (line.previous() != null)
                         line.setFlags(line.previous().flags());
                 }
             } else {
@@ -201,8 +196,7 @@ public final class MessageFormatter extends Formatter
         return true;
     }
 
-    public static boolean isDiffStart(Line line)
-    {
+    public static boolean isDiffStart(Line line) {
         String text = line.trim();
         if (text.startsWith("+++ "))
             return true;
@@ -227,8 +221,7 @@ public final class MessageFormatter extends Formatter
         return false;
     }
 
-    public static boolean isDiffContinuation(Line line)
-    {
+    public static boolean isDiffContinuation(Line line) {
         if (line.length() == 0)
             return true;
         final char c = line.charAt(0);
@@ -258,8 +251,7 @@ public final class MessageFormatter extends Formatter
         return false;
     }
 
-    public FormatTable getFormatTable()
-    {
+    public FormatTable getFormatTable() {
         if (formatTable == null) {
             formatTable = diffFormatter.getFormatTable();
             formatTable.setModeName("MessageMode");
@@ -273,8 +265,7 @@ public final class MessageFormatter extends Formatter
         return formatTable;
     }
 
-    public void reset()
-    {
+    public void reset() {
         diffFormatter.reset();
         super.reset();
     }

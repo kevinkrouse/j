@@ -28,39 +28,34 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.UnsupportedEncodingException;
+import java.lang.StringBuilder;
 import java.net.MalformedURLException;
 import java.util.List;
 import java.util.Properties;
 import java.util.Set;
-
 import org.armedbear.j.Debug;
 import org.armedbear.j.Directories;
 import org.armedbear.j.File;
-import java.lang.StringBuilder;
 import org.armedbear.j.Headers;
 import org.armedbear.j.Log;
 import org.armedbear.j.util.Utilities;
 
-public final class ImapMessageCache
-{
+public final class ImapMessageCache {
     private static Properties catalog;
 
     private final File cacheDirectory;
     private final int uidValidity;
 
-    private ImapMessageCache(File cacheDirectory, int uidValidity)
-    {
+    private ImapMessageCache(File cacheDirectory, int uidValidity) {
         this.cacheDirectory = cacheDirectory;
         this.uidValidity = uidValidity;
     }
 
-    public int getUidValidity()
-    {
+    public int getUidValidity() {
         return uidValidity;
     }
 
-    public static ImapMessageCache getMessageCache(ImapMailboxBuffer mb)
-    {
+    public static ImapMessageCache getMessageCache(ImapMailboxBuffer mb) {
         File cacheDirectory = getCacheDirectory(mb);
         if (cacheDirectory == null)
             return null;
@@ -87,7 +82,7 @@ public final class ImapMessageCache
         if (!ok) {
             Log.debug("getMessageCache deleting old files");
             String[] files = cacheDirectory.list();
-            for (int i = files.length-1; i >= 0; i--)
+            for (int i = files.length - 1; i >= 0; i--)
                 File.getInstance(cacheDirectory, files[i]).delete();
             Log.debug("getMessageCache writing UIDVALIDITY " + uidValidity);
             try {
@@ -104,8 +99,7 @@ public final class ImapMessageCache
         return new ImapMessageCache(cacheDirectory, uidValidity);
     }
 
-    public void store(int uid, String message, String encoding)
-    {
+    public void store(int uid, String message, String encoding) {
         Log.debug("store encoding = |" + encoding + "|");
         if (encoding == null)
             encoding = "ISO-8859-1";
@@ -127,8 +121,12 @@ public final class ImapMessageCache
         try {
             BufferedWriter writer = null;
             writer =
-                new BufferedWriter(new OutputStreamWriter(file.getOutputStream(),
-                    encoding));
+                new BufferedWriter(
+                    new OutputStreamWriter(
+                        file.getOutputStream(),
+                        encoding
+                    )
+                );
             writer.write(message);
             writer.flush();
             writer.close();
@@ -141,8 +139,7 @@ public final class ImapMessageCache
         }
     }
 
-    public String getMessageText(int uid)
-    {
+    public String getMessageText(int uid) {
         try {
             File file =
                 File.getInstance(cacheDirectory, String.valueOf(uid));
@@ -197,15 +194,16 @@ public final class ImapMessageCache
         }
     }
 
-    public void removeDeletedEntries(List<MailboxEntry> mailboxEntries)
-    {
+    public void removeDeletedEntries(List<MailboxEntry> mailboxEntries) {
         Log.debug("ImapMessageCache.removeDeletedEntries");
         long start = System.currentTimeMillis();
         for (MailboxEntry entry : mailboxEntries) {
-            ImapMailboxEntry imapEntry = (ImapMailboxEntry)entry;
+            ImapMailboxEntry imapEntry = (ImapMailboxEntry) entry;
             if (imapEntry.isDeleted()) {
-                File file = File.getInstance(cacheDirectory,
-                        String.valueOf(imapEntry.getUid()));
+                File file = File.getInstance(
+                    cacheDirectory,
+                    String.valueOf(imapEntry.getUid())
+                );
                 if (file != null && file.isFile()) {
                     Log.debug("deleting " + file.netPath());
                     file.delete();
@@ -216,8 +214,7 @@ public final class ImapMessageCache
         Log.debug("ImapMessageCache.removeDeletedEntries " + elapsed + " ms");
     }
 
-    private static synchronized File getCacheDirectory(ImapMailboxBuffer mb)
-    {
+    private static synchronized File getCacheDirectory(ImapMailboxBuffer mb) {
         final File parentDirectory =
             File.getInstance(Directories.getMailDirectory(), "imap/cache");
         if (!parentDirectory.isDirectory()) {
@@ -246,7 +243,7 @@ public final class ImapMessageCache
             Properties temp = new Properties();
             Set<String> keys = catalog.stringPropertyNames();
             for (String key : keys) {
-                String value = (String)catalog.get(key);
+                String value = (String) catalog.get(key);
                 if (key.indexOf('@') < 0 || key.indexOf(':') < 0) {
                     // Obsolete format (i.e. not canonical mailbox name).
                     try {
@@ -262,7 +259,7 @@ public final class ImapMessageCache
                         if (dir != null && dir.isDirectory()) {
                             File[] files = dir.listFiles();
                             if (files != null) {
-                                for (int i = files.length-1; i >= 0; i--) {
+                                for (int i = files.length - 1; i >= 0; i--) {
                                     Log.debug("deleting " + files[i]);
                                     files[i].delete();
                                 }

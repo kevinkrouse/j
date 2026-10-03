@@ -23,13 +23,11 @@ package org.armedbear.j.mail;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import org.armedbear.j.Debug;
-import org.armedbear.j.util.FastStringReader;
 import org.armedbear.j.Log;
+import org.armedbear.j.util.FastStringReader;
 
-public abstract class MailboxFilter
-{
-    public static MailboxFilter getMailboxFilter(String input)
-    {
+public abstract class MailboxFilter {
+    public static MailboxFilter getMailboxFilter(String input) {
         input = input.trim();
         if (input.indexOf('~') < 0)
             return new GenericMailboxFilter(input);
@@ -43,8 +41,7 @@ public abstract class MailboxFilter
         }
     }
 
-    private static MailboxFilter parse(FastStringReader reader) throws Exception
-    {
+    private static MailboxFilter parse(FastStringReader reader) throws Exception {
         Deque<MailboxFilter> stack = new ArrayDeque<MailboxFilter>();
         while (parseNextTerm(reader, stack))
             ;
@@ -54,8 +51,7 @@ public abstract class MailboxFilter
 
     // Returns false if end of input is reached, true otherwise.
     private static boolean parseNextTerm(FastStringReader reader, Deque<MailboxFilter> stack)
-        throws Exception
-    {
+        throws Exception {
         reader.skipWhitespace();
         char c = reader.readChar();
         switch (c) {
@@ -119,8 +115,7 @@ public abstract class MailboxFilter
     }
 
     // We've just seen '|'.
-    private static MailboxFilter parseOr(FastStringReader reader) throws Exception
-    {
+    private static MailboxFilter parseOr(FastStringReader reader) throws Exception {
         reader.skipWhitespace();
         MailboxFilter filter = null;
         char c = reader.readChar();
@@ -142,8 +137,7 @@ public abstract class MailboxFilter
         return filter;
     }
 
-    private static NotTerm parseNot(FastStringReader reader) throws Exception
-    {
+    private static NotTerm parseNot(FastStringReader reader) throws Exception {
         reader.skipWhitespace();
         MailboxFilter filter = null;
         char c = reader.readChar();
@@ -161,8 +155,7 @@ public abstract class MailboxFilter
         return new NotTerm(filter);
     }
 
-    private static MailboxFilter parseTilde(FastStringReader reader) throws Exception
-    {
+    private static MailboxFilter parseTilde(FastStringReader reader) throws Exception {
         MailboxFilter filter = null;
         char c = reader.readChar();
         switch (c) {

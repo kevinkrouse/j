@@ -20,9 +20,6 @@
 
 package org.armedbear.j;
 
-import org.armedbear.j.mode.dir.DirectoryBuffer;
-import org.armedbear.j.mode.image.ImageBuffer;
-
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.IOException;
@@ -30,9 +27,10 @@ import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.util.ArrayList;
 import java.util.List;
+import org.armedbear.j.mode.dir.DirectoryBuffer;
+import org.armedbear.j.mode.image.ImageBuffer;
 
-public final class RecentFiles implements Constants
-{
+public final class RecentFiles implements Constants {
     private static final int MAX_ENTRIES = 100;
 
     // Singleton.
@@ -43,27 +41,23 @@ public final class RecentFiles implements Constants
     private int version;
     private boolean changed;
 
-    private RecentFiles()
-    {
+    private RecentFiles() {
         file = File.getInstance(Directories.getStateDirectory(), "recent");
         if (file != null && file.isFile())
             load();
     }
 
-    public static synchronized RecentFiles getInstance()
-    {
+    public static synchronized RecentFiles getInstance() {
         if (instance == null)
             Editor.protect(instance = new RecentFiles());
         return instance;
     }
 
-    public synchronized final List<RecentFilesEntry> getEntries()
-    {
+    public synchronized final List<RecentFilesEntry> getEntries() {
         return entries;
     }
 
-    private RecentFilesEntry findEntry(File file)
-    {
+    private RecentFilesEntry findEntry(File file) {
         if (file != null) {
             final int limit = entries.size();
             for (RecentFilesEntry entry : entries) {
@@ -74,8 +68,7 @@ public final class RecentFiles implements Constants
         return null;
     }
 
-    private static boolean excluded(Buffer buffer)
-    {
+    private static boolean excluded(Buffer buffer) {
         if (buffer.isTransient())
             return true;
         if (buffer instanceof DirectoryBuffer)
@@ -99,8 +92,7 @@ public final class RecentFiles implements Constants
         return false;
     }
 
-    public synchronized void bufferActivated(Buffer buffer)
-    {
+    public synchronized void bufferActivated(Buffer buffer) {
         if (excluded(buffer))
             return;
         File file = buffer.getFile();
@@ -117,8 +109,7 @@ public final class RecentFiles implements Constants
         }
     }
 
-    public synchronized void bufferDeactivated(Buffer buffer, Position dot)
-    {
+    public synchronized void bufferDeactivated(Buffer buffer, Position dot) {
         if (dot == null)
             return;
         if (excluded(buffer))
@@ -135,8 +126,7 @@ public final class RecentFiles implements Constants
         }
     }
 
-    private void store(RecentFilesEntry newEntry)
-    {
+    private void store(RecentFilesEntry newEntry) {
         Debug.assertTrue(newEntry != null);
         final int limit = entries.size();
         for (int i = 0; i < limit; i++) {
@@ -154,8 +144,7 @@ public final class RecentFiles implements Constants
         entries.add(0, newEntry);
     }
 
-    private void load()
-    {
+    private void load() {
         if (file == null)
             return;
         if (!file.isFile())
@@ -192,8 +181,7 @@ public final class RecentFiles implements Constants
             file.delete();
     }
 
-    public synchronized void save()
-    {
+    public synchronized void save() {
         if (!changed)
             return;
         if (file == null)

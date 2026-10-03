@@ -23,8 +23,7 @@ package org.armedbear.j;
 import org.armedbear.j.mail.MailboxEntry;
 import org.armedbear.j.mode.dir.DirectoryTree;
 
-public final class View implements Cloneable
-{
+public final class View implements Cloneable {
     Position dot;
     Position mark;
     Selection selection;
@@ -42,118 +41,94 @@ public final class View implements Cloneable
     private MailboxEntry dotEntry;
     private NavigationComponent sidebarComponent;
 
-    public View()
-    {
-    }
+    public View() {}
 
-    public View(SessionBufferEntry entry)
-    {
+    public View(SessionBufferEntry entry) {
         lineNumber = entry.getDotLineNumber();
         offs = entry.getDotOffset();
     }
 
-    public Position getDot()
-    {
+    public Position getDot() {
         return dot;
     }
 
-    public int getDotOffset()
-    {
+    public int getDotOffset() {
         return offs;
     }
 
-    public void setDot(Position pos)
-    {
+    public void setDot(Position pos) {
         dot = pos != null ? new Position(pos) : null;
     }
 
-    public Position getMark()
-    {
+    public Position getMark() {
         return mark;
     }
 
-    public void setMark(Position pos)
-    {
+    public void setMark(Position pos) {
         mark = pos != null ? new Position(pos) : null;
     }
 
-    public boolean isColumnSelection()
-    {
+    public boolean isColumnSelection() {
         return isColumnSelection;
     }
 
-    public void setColumnSelection(boolean b)
-    {
+    public void setColumnSelection(boolean b) {
         isColumnSelection = b;
     }
 
-    public int getDotLineNumber()
-    {
+    public int getDotLineNumber() {
         return lineNumber;
     }
 
-    public Line getTopLine()
-    {
+    public Line getTopLine() {
         return topLine;
     }
 
-    public int getTopLineNumber()
-    {
+    public int getTopLineNumber() {
         return topLineNumber;
     }
 
-    public MailboxEntry getTopEntry()
-    {
+    public MailboxEntry getTopEntry() {
         return topEntry;
     }
 
-    public void setTopEntry(MailboxEntry entry)
-    {
+    public void setTopEntry(MailboxEntry entry) {
         topEntry = entry;
     }
 
-    public MailboxEntry getDotEntry()
-    {
+    public MailboxEntry getDotEntry() {
         return dotEntry;
     }
 
-    public void setDotEntry(MailboxEntry entry)
-    {
+    public void setDotEntry(MailboxEntry entry) {
         dotEntry = entry;
     }
 
-    public Selection getSelection()
-    {
+    public Selection getSelection() {
         return selection;
     }
 
-    public int getShift()
-    {
+    public int getShift() {
         return shift;
     }
 
-    public int getCaretCol()
-    {
+    public int getCaretCol() {
         return caretCol;
     }
 
-    public void setCaretCol(int col)
-    {
+    public void setCaretCol(int col) {
         caretCol = col;
     }
 
-    public NavigationComponent getSidebarComponent()
-    {
+    public NavigationComponent getSidebarComponent() {
         return sidebarComponent;
     }
 
-    public void setSidebarComponent(NavigationComponent c)
-    {
+    public void setSidebarComponent(NavigationComponent c) {
         sidebarComponent = c;
     }
 
-    public void invalidate()
-    {
+    public void invalidate() {
         if (dot != null) {
             lineNumber = dot.lineNumber();
             offs = dot.getOffset();
@@ -170,8 +145,7 @@ public final class View implements Cloneable
             sidebarComponent = null;
     }
 
-    protected Object clone()
-    {
+    protected Object clone() {
         View view = new View();
         if (dot != null)
             view.dot = new Position(dot);

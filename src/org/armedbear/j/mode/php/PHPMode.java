@@ -34,11 +34,10 @@ import org.armedbear.j.Property;
 import org.armedbear.j.SyntaxIterator;
 import org.armedbear.j.SystemBuffer;
 import org.armedbear.j.Tagger;
-import org.armedbear.j.mode.web.WebMode;
 import org.armedbear.j.mode.java.JavaMode;
+import org.armedbear.j.mode.web.WebMode;
 
-public final class PHPMode extends JavaMode implements Constants, Mode
-{
+public final class PHPMode extends JavaMode implements Constants, Mode {
     private static final String[] phpConditionals = {
         "if",
         "else",
@@ -54,55 +53,46 @@ public final class PHPMode extends JavaMode implements Constants, Mode
     // instance right away.
     private static Mode mode = new PHPMode();
 
-    private PHPMode()
-    {
+    private PHPMode() {
         super(PHP_MODE, PHP_MODE_NAME);
         keywords = new Keywords(this);
         conditionals = phpConditionals;
         setProperty(Property.TAB_WIDTH, 4);
     }
 
-    public static final Mode getMode()
-    {
+    public static final Mode getMode() {
         return mode;
     }
 
-    public void populateModeMenu(Editor editor, Menu menu)
-    {
+    public void populateModeMenu(Editor editor, Menu menu) {
         // No mode menu yet.
     }
 
-    public SyntaxIterator getSyntaxIterator(Position pos)
-    {
+    public SyntaxIterator getSyntaxIterator(Position pos) {
         return new PHPSyntaxIterator(pos);
     }
 
-    public Formatter getFormatter(Buffer buffer)
-    {
+    public Formatter getFormatter(Buffer buffer) {
         return new PHPFormatter(buffer);
     }
 
-    public Tagger getTagger(SystemBuffer buffer)
-    {
+    public Tagger getTagger(SystemBuffer buffer) {
         return new PHPTagger(buffer);
     }
 
-    public final boolean isIdentifierStart(char c)
-    {
+    public final boolean isIdentifierStart(char c) {
         if (c > 255)
             return false;
         return values[c] == 1;
     }
 
-    public final boolean isIdentifierPart(char c)
-    {
+    public final boolean isIdentifierPart(char c) {
         if (c > 255)
             return false;
         return values[c] != 0;
     }
 
-    public boolean isInQuote(Buffer buffer, Position pos)
-    {
+    public boolean isInQuote(Buffer buffer, Position pos) {
         if (buffer.getMode() != this)
             Debug.bug();
         if (buffer.needsParsing())
@@ -134,8 +124,7 @@ public final class PHPMode extends JavaMode implements Constants, Mode
         return inQuote;
     }
 
-    public static void phpHelp()
-    {
+    public static void phpHelp() {
         final Editor editor = Editor.currentEditor();
         Position dot = editor.getDot();
         String s = dot.getIdentifier(PHPMode.mode);
@@ -143,8 +132,7 @@ public final class PHPMode extends JavaMode implements Constants, Mode
             phpHelp(s);
     }
 
-    public static void phpHelp(String s)
-    {
+    public static void phpHelp(String s) {
         WebMode.query("http://www.php.net/", s);
     }
 

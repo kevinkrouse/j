@@ -22,8 +22,7 @@ package org.armedbear.j.mail;
 
 import java.util.Calendar;
 
-public final class RelativeDateMailboxFilter extends MailboxFilter
-{
+public final class RelativeDateMailboxFilter extends MailboxFilter {
     private boolean after;
     private int days;
     private int months;
@@ -34,16 +33,14 @@ public final class RelativeDateMailboxFilter extends MailboxFilter
 
     private long initMillis;
 
-    private RelativeDateMailboxFilter(int days, int months, int years, boolean after)
-    {
+    private RelativeDateMailboxFilter(int days, int months, int years, boolean after) {
         this.after = after;
         this.days = days;
         this.months = months;
         this.years = years;
     }
 
-    public static MailboxFilter getMailboxFilter(String pattern)
-    {
+    public static MailboxFilter getMailboxFilter(String pattern) {
         // Shortest valid pattern is 3 chars (e.g. "<3d").
         if (pattern.length() < 3)
             return null;
@@ -81,19 +78,18 @@ public final class RelativeDateMailboxFilter extends MailboxFilter
         }
     }
 
-    private void init()
-    {
+    private void init() {
         Calendar cal = Calendar.getInstance();
         if (days != 0) {
-            cal.add(Calendar.DATE, - days);
+            cal.add(Calendar.DATE, -days);
             if (after)
                 cal.add(Calendar.DATE, 1);
         } else if (months != 0) {
-            cal.add(Calendar.MONTH, - months);
+            cal.add(Calendar.MONTH, -months);
             if (after)
                 cal.add(Calendar.DATE, 1);
         } else if (years != 0) {
-            cal.add(Calendar.YEAR, - years);
+            cal.add(Calendar.YEAR, -years);
             if (after)
                 cal.add(Calendar.DATE, 1);
         }
@@ -111,8 +107,7 @@ public final class RelativeDateMailboxFilter extends MailboxFilter
         initMillis = System.currentTimeMillis();
     }
 
-    public boolean accept(MailboxEntry entry)
-    {
+    public boolean accept(MailboxEntry entry) {
         if (initMillis == 0 || System.currentTimeMillis() - initMillis > 60000)
             init();
         RFC822Date date = entry.getDate();

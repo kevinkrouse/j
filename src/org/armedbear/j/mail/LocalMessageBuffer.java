@@ -22,10 +22,8 @@ package org.armedbear.j.mail;
 
 import org.armedbear.j.Editor;
 
-/*package*/ final class LocalMessageBuffer extends MessageBuffer
-{
-    /*package*/ LocalMessageBuffer(LocalMailboxBuffer mailbox, MailboxEntry entry)
-    {
+/*package*/ final class LocalMessageBuffer extends MessageBuffer {
+    /*package*/ LocalMessageBuffer(LocalMailboxBuffer mailbox, MailboxEntry entry) {
         super();
         this.mailbox = mailbox;
         showFullHeaders = mailbox.showFullHeaders;
@@ -39,8 +37,7 @@ import org.armedbear.j.Editor;
         readOnly = true;
     }
 
-    public int load()
-    {
+    public int load() {
         if (mailbox.lock()) {
             try {
                 loadMessage(null);
@@ -55,8 +52,7 @@ import org.armedbear.j.Editor;
         return LOAD_FAILED;
     }
 
-    public void deleteMessage()
-    {
+    public void deleteMessage() {
         if (mailbox.lock()) {
             try {
                 if (!entry.isDeleted()) {
@@ -80,8 +76,7 @@ import org.armedbear.j.Editor;
         }
     }
 
-    public void flagMessage()
-    {
+    public void flagMessage() {
         if (mailbox.lock()) {
             try {
                 if (entry.isFlagged())

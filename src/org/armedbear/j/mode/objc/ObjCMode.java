@@ -30,8 +30,7 @@ import org.armedbear.j.Tagger;
 import org.armedbear.j.mode.c.CFormatter;
 import org.armedbear.j.mode.c.CMode;
 
-public final class ObjCMode extends CMode implements Constants, Mode
-{
+public final class ObjCMode extends CMode implements Constants, Mode {
     private static final String[] objcConditionals = {
         "if",
         "else",
@@ -43,40 +42,33 @@ public final class ObjCMode extends CMode implements Constants, Mode
 
     private static ObjCMode mode = new ObjCMode();
 
-    private ObjCMode()
-    {
+    private ObjCMode() {
         super(OBJC_MODE, OBJC_MODE_NAME);
         keywords = new Keywords(this);
         conditionals = objcConditionals;
     }
 
-    public static Mode getMode()
-    {
+    public static Mode getMode() {
         return mode;
     }
 
-    public final String getCommentStart()
-    {
+    public final String getCommentStart() {
         return "// ";
     }
 
-    public final String getCommentEnd()
-    {
+    public final String getCommentEnd() {
         return null;
     }
 
-    public Formatter getFormatter(Buffer buffer)
-    {
+    public Formatter getFormatter(Buffer buffer) {
         return new CFormatter(buffer, LANGUAGE_OBJC);
     }
 
-    public Tagger getTagger(SystemBuffer buffer)
-    {
+    public Tagger getTagger(SystemBuffer buffer) {
         return new ObjCTagger(buffer);
     }
 
-    public boolean isIdentifierStart(char c)
-    {
+    public boolean isIdentifierStart(char c) {
         if (c == '@')
             return true;
         return super.isIdentifierStart(c);

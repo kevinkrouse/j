@@ -22,19 +22,17 @@ package org.armedbear.j;
 
 import java.awt.Color;
 import java.awt.event.MouseEvent;
+import java.lang.StringBuilder;
 import java.util.List;
 import javax.swing.JCheckBoxMenuItem;
 import javax.swing.JMenuItem;
 import javax.swing.JPopupMenu;
-
-import org.armedbear.j.mode.dir.DirectoryBuffer;
-import java.lang.StringBuilder;
-import org.armedbear.j.mode.text.PlainTextFormatter;
 import org.armedbear.j.extension.Extensions;
+import org.armedbear.j.mode.dir.DirectoryBuffer;
+import org.armedbear.j.mode.text.PlainTextFormatter;
 import org.armedbear.j.util.Utilities;
 
-public abstract class AbstractMode implements Constants, Mode
-{
+public abstract class AbstractMode implements Constants, Mode {
     private static final Preferences preferences = Editor.preferences();
 
     protected KeyMap keyMap;
@@ -45,8 +43,7 @@ public abstract class AbstractMode implements Constants, Mode
     private final int id;
     private final String displayName;
 
-    protected AbstractMode(int id, String displayName)
-    {
+    protected AbstractMode(int id, String displayName) {
         this.id = id;
         this.displayName = displayName;
         // The hook name -- "java-mode-hook" and the like -- is the extension's
@@ -54,34 +51,28 @@ public abstract class AbstractMode implements Constants, Mode
         Extensions.hooks().modeCreated(displayName);
     }
 
-    public final int getId()
-    {
+    public final int getId() {
         return id;
     }
 
-    public final String getDisplayName()
-    {
+    public final String getDisplayName() {
         return displayName;
     }
 
-    public Buffer createBuffer(File file)
-    {
+    public Buffer createBuffer(File file) {
         return null;
     }
 
-    public Formatter getFormatter(Buffer buffer)
-    {
+    public Formatter getFormatter(Buffer buffer) {
         return new PlainTextFormatter(buffer);
     }
 
-    public final String toString()
-    {
+    public final String toString() {
         return displayName;
     }
 
     // Should never return null.
-    public synchronized final KeyMap getKeyMap()
-    {
+    public synchronized final KeyMap getKeyMap() {
         if (keyMap == null) {
             KeyMap supplied = Extensions.keyMaps().getKeyMapForMode(displayName);
             if (supplied != null) {
@@ -96,8 +87,7 @@ public abstract class AbstractMode implements Constants, Mode
         return keyMap;
     }
 
-    private boolean loadKeyMapForMode()
-    {
+    private boolean loadKeyMapForMode() {
         keyMap = null;
         String filename = getModePreference("keyMap");
         if (filename != null) {
@@ -113,34 +103,28 @@ public abstract class AbstractMode implements Constants, Mode
         return false;
     }
 
-    protected void setKeyMapDefaults(KeyMap km)
-    {
+    protected void setKeyMapDefaults(KeyMap km) {
         // Default implementation just leaves keymap empty.
     }
 
-    public File getKeyMapFile()
-    {
+    public File getKeyMapFile() {
         return keyMapFile;
     }
 
-    public synchronized final void useDefaultKeyMap()
-    {
+    public synchronized final void useDefaultKeyMap() {
         keyMap = new KeyMap();
         setKeyMapDefaults(keyMap);
     }
 
-    public synchronized final void deleteKeyMap()
-    {
+    public synchronized final void deleteKeyMap() {
         keyMap = null;
     }
 
-    public String getMenuName()
-    {
+    public String getMenuName() {
         return "Default";
     }
 
-    public MenuBar createMenuBar(Frame frame)
-    {
+    public MenuBar createMenuBar(Frame frame) {
         MenuBar menuBar = new MenuBar("Default");
         menuBar.add(new Menu("File", 'F'));
         menuBar.add(new Menu("Edit", 'E'));
@@ -153,8 +137,7 @@ public abstract class AbstractMode implements Constants, Mode
         return menuBar;
     }
 
-    public void populateMenu(Editor editor, Menu menu)
-    {
+    public void populateMenu(Editor editor, Menu menu) {
         final String text = menu.getText();
         if (text == "File")
             populateFileMenu(editor, menu);
@@ -176,8 +159,7 @@ public abstract class AbstractMode implements Constants, Mode
             populateHelpMenu(editor, menu);
     }
 
-    private static void populateFileMenu(Editor editor, Menu menu)
-    {
+    private static void populateFileMenu(Editor editor, Menu menu) {
         final boolean isNotReadOnly = !editor.getBuffer().isReadOnly();
         menu.add(editor, "New", 'N', "newBuffer");
         menu.add(editor, "Open...", 'O', "openFile");
@@ -210,8 +192,7 @@ public abstract class AbstractMode implements Constants, Mode
         menu.add(editor, "Exit", 'X', "quit");
     }
 
-    private static void populateEditMenu(Editor editor, Menu menu)
-    {
+    private static void populateEditMenu(Editor editor, Menu menu) {
         final boolean isNotReadOnly = !editor.getBuffer().isReadOnly();
         menu.add(editor, "Undo", 'U', "undo");
         menu.add(editor, "Redo", 'O', "redo");
@@ -231,8 +212,7 @@ public abstract class AbstractMode implements Constants, Mode
         menu.add(editor, "Lower Case", 'L', "lowerCaseRegion", isNotReadOnly);
     }
 
-    private static void populateViewMenu(Editor editor, Menu menu)
-    {
+    private static void populateViewMenu(Editor editor, Menu menu) {
         JCheckBoxMenuItem toolbarMenuItem = new JCheckBoxMenuItem("Toolbar");
         toolbarMenuItem.setMnemonic('T');
         toolbarMenuItem.setActionCommand("toggleToolbar");
@@ -253,8 +233,7 @@ public abstract class AbstractMode implements Constants, Mode
         menu.add(editor, "Close Window", 'C', "killWindow");
     }
 
-    protected void populateSearchMenu(Editor editor, Menu menu)
-    {
+    protected void populateSearchMenu(Editor editor, Menu menu) {
         final File dir = editor.getCurrentDirectory();
         final boolean local = (dir != null && dir.isLocal());
         if (Editor.preferences().getBooleanProperty(Property.USE_INCREMENTAL_FIND))
@@ -264,10 +243,20 @@ public abstract class AbstractMode implements Constants, Mode
         menu.add(editor, "Find Previous", 'R', "findPrev");
         menu.add(editor, "Find in Files...", 'S', "findInFiles", local);
         menu.addSeparator();
-        menu.add(editor, "List Occurrences of Last Pattern", 'L', "listOccurrences",
-                 editor.getLastSearch() != null);
-        menu.add(editor, "List Occurrences of Pattern in Files", 'O', "listFiles",
-                 FindInFiles.getFindInFiles() != null);
+        menu.add(
+            editor,
+            "List Occurrences of Last Pattern",
+            'L',
+            "listOccurrences",
+            editor.getLastSearch() != null
+        );
+        menu.add(
+            editor,
+            "List Occurrences of Pattern in Files",
+            'O',
+            "listFiles",
+            FindInFiles.getFindInFiles() != null
+        );
         menu.addSeparator();
         final boolean isNotReadOnly = !editor.getBuffer().isReadOnly();
         if (!(editor.getBuffer() instanceof DirectoryBuffer))
@@ -279,8 +268,7 @@ public abstract class AbstractMode implements Constants, Mode
         }
     }
 
-    private static void populateGoMenu(Editor editor, Menu menu)
-    {
+    private static void populateGoMenu(Editor editor, Menu menu) {
         menu.add(editor, "Go to Line...", 'L', "jumpToLine");
         menu.add(editor, "Go to Column...", 'C', "jumpToColumn");
         menu.add(editor, "Go to Offset...", 'O', "jumpToOffset");
@@ -300,21 +288,22 @@ public abstract class AbstractMode implements Constants, Mode
         menu.add(editor, "Pop Position", 'P', "popPosition");
     }
 
-    public void populateModeMenu(Editor editor, Menu menu)
-    {
-    }
+    public void populateModeMenu(Editor editor, Menu menu) {}
 
-    public void populateLispMenu(Editor editor, Menu menu)
-    {
+    public void populateLispMenu(Editor editor, Menu menu) {
         menu.add(editor, "Run Lisp as Separate Process", 'L', "lisp");
         // The embedded REPL comes from an extension; grey it out when none is
         // installed rather than offering a command that cannot run.
-        menu.add(editor, "Run Embedded Lisp", 'E', "jlisp",
-                 CommandTable.getCommand("jlisp") != null);
+        menu.add(
+            editor,
+            "Run Embedded Lisp",
+            'E',
+            "jlisp",
+            CommandTable.getCommand("jlisp") != null
+        );
     }
 
-    private static void populateHelpMenu(Editor editor, Menu menu)
-    {
+    private static void populateHelpMenu(Editor editor, Menu menu) {
         menu.add(editor, "Help", 'P', "help");
         menu.add(editor, "Apropos...", 'A', "apropos");
         menu.add(editor, "Key Bindings", 'B', "describeBindings");
@@ -324,16 +313,14 @@ public abstract class AbstractMode implements Constants, Mode
             menu.add(editor, "About J", 'O', "about");
     }
 
-    public JPopupMenu getContextMenu(Editor editor)
-    {
+    public JPopupMenu getContextMenu(Editor editor) {
         final JPopupMenu popup = new JPopupMenu();
         addDefaultContextMenuItems(editor, popup);
         popup.pack();
         return popup;
     }
 
-    protected void addDefaultContextMenuItems(Editor editor, JPopupMenu popup)
-    {
+    protected void addDefaultContextMenuItems(Editor editor, JPopupMenu popup) {
         final Buffer buffer = editor.getBuffer();
         final Dispatcher dispatcher = editor.getDispatcher();
 
@@ -428,9 +415,12 @@ public abstract class AbstractMode implements Constants, Mode
         }
     }
 
-    protected JMenuItem addContextMenuItem(String text, String command,
-        JPopupMenu popup, Dispatcher dispatcher)
-    {
+    protected JMenuItem addContextMenuItem(
+        String text,
+        String command,
+        JPopupMenu popup,
+        Dispatcher dispatcher
+    ) {
         JMenuItem menuItem = new JMenuItem(text);
         menuItem.setActionCommand(command);
         menuItem.addActionListener(dispatcher);
@@ -438,16 +428,14 @@ public abstract class AbstractMode implements Constants, Mode
         return menuItem;
     }
 
-    public ToolBar getToolBar(Frame frame)
-    {
+    public ToolBar getToolBar(Frame frame) {
         ToolBar tb = getCustomToolBar(frame);
         if (tb != null)
             return tb;
         return getDefaultToolBar(frame);
     }
 
-    protected ToolBar getCustomToolBar(Frame frame)
-    {
+    protected ToolBar getCustomToolBar(Frame frame) {
         String filename =
             getModePreference("toolbar");
         if (filename != null) {
@@ -461,76 +449,62 @@ public abstract class AbstractMode implements Constants, Mode
         return null;
     }
 
-    protected ToolBar getDefaultToolBar(Frame frame)
-    {
+    protected ToolBar getDefaultToolBar(Frame frame) {
         return frame.getDefaultToolBar();
     }
 
-    public NavigationComponent getSidebarComponent(Editor editor)
-    {
+    public NavigationComponent getSidebarComponent(Editor editor) {
         if (isTaggable())
             return new SidebarTagList(editor.getSidebar(), editor);
         else
             return null;
     }
 
-    public Tagger getTagger(SystemBuffer buffer)
-    {
+    public Tagger getTagger(SystemBuffer buffer) {
         return null;
     }
 
-    public boolean isTaggable()
-    {
+    public boolean isTaggable() {
         return false;
     }
 
-    public boolean hasQualifiedNames()
-    {
+    public boolean hasQualifiedNames() {
         return false;
     }
 
-    public boolean isQualifiedName(String s)
-    {
+    public boolean isQualifiedName(String s) {
         return s.indexOf('.') >= 0 || s.indexOf("::") >= 0;
     }
 
-    public boolean canIndent()
-    {
+    public boolean canIndent() {
         return false;
     }
 
-    public boolean canIndentPaste()
-    {
+    public boolean canIndentPaste() {
         return canIndent();
     }
 
-    public boolean acceptsLinePaste(Editor editor)
-    {
+    public boolean acceptsLinePaste(Editor editor) {
         return true;
     }
 
-    public int getCorrectIndentation(Line line, Buffer buffer)
-    {
+    public int getCorrectIndentation(Line line, Buffer buffer) {
         return 0;
     }
 
-    public SyntaxIterator getSyntaxIterator(Position pos)
-    {
+    public SyntaxIterator getSyntaxIterator(Position pos) {
         return new DefaultSyntaxIterator(pos);
     }
 
-    public String getCommentStart()
-    {
+    public String getCommentStart() {
         return null;
     }
 
-    public String getCommentEnd()
-    {
+    public String getCommentEnd() {
         return null;
     }
 
-    public boolean getBooleanProperty(Property property)
-    {
+    public boolean getBooleanProperty(Property property) {
         String key = property.key();
 
         // Look for mode-specific setting in preferences.
@@ -561,11 +535,10 @@ public abstract class AbstractMode implements Constants, Mode
 
         // Not in preferences or property list for mode.
         // Use hard-coded default.
-        return ((Boolean)getDefaultValue(property)).booleanValue();
+        return ((Boolean) getDefaultValue(property)).booleanValue();
     }
 
-    public int getIntegerProperty(Property property)
-    {
+    public int getIntegerProperty(Property property) {
         String key = property.key();
 
         // Look for mode-specific setting in preferences.
@@ -595,11 +568,10 @@ public abstract class AbstractMode implements Constants, Mode
 
         // Not in preferences or property list for mode.
         // Use hard-coded default.
-        return ((Integer)getDefaultValue(property)).intValue();
+        return ((Integer) getDefaultValue(property)).intValue();
     }
 
-    public String getStringProperty(Property property)
-    {
+    public String getStringProperty(Property property) {
         String key = property.key();
 
         // Look for mode-specific setting in preferences.
@@ -628,8 +600,7 @@ public abstract class AbstractMode implements Constants, Mode
         return (String) getDefaultValue(property); // May be null.
     }
 
-    public Color getColorProperty(Property property)
-    {
+    public Color getColorProperty(Property property) {
         String key = property.key();
 
         // Look for mode-specific setting in preferences.
@@ -649,40 +620,34 @@ public abstract class AbstractMode implements Constants, Mode
             return null;
     }
 
-    public void setProperty(Property property, String value)
-    {
+    public void setProperty(Property property, String value) {
         if (properties == null)
             properties = new PropertyList();
         properties.setProperty(property, value);
     }
 
-    public void setProperty(Property property, boolean value)
-    {
+    public void setProperty(Property property, boolean value) {
         if (properties == null)
             properties = new PropertyList();
         properties.setProperty(property, value);
     }
 
-    public void setProperty(Property property, int value)
-    {
+    public void setProperty(Property property, int value) {
         if (properties == null)
             properties = new PropertyList();
         properties.setProperty(property, value);
     }
 
-    protected Object getDefaultValue(Property property)
-    {
+    protected Object getDefaultValue(Property property) {
         return property.getDefaultValue();
     }
 
-    public final boolean accepts(String filename)
-    {
+    public final boolean accepts(String filename) {
         return Editor.getModeList().modeAccepts(id, filename);
     }
 
     /** The preference key of a setting of this mode's: "JavaMode.indentSize". */
-    protected String getFullKey(String key)
-    {
+    protected String getFullKey(String key) {
         return (getClass().getSimpleName() + '.' + key).toLowerCase();
     }
 
@@ -691,8 +656,7 @@ public abstract class AbstractMode implements Constants, Mode
      * it, or "mode.java.JavaMode.indentSize", the only key that worked while
      * the modes were in packages of their own and this went unnoticed.
      */
-    private String getModePreference(String key)
-    {
+    private String getModePreference(String key) {
         final String s = preferences.getStringProperty(getFullKey(key));
         if (s != null)
             return s;
@@ -704,18 +668,15 @@ public abstract class AbstractMode implements Constants, Mode
         return preferences.getStringProperty((name + '.' + key).toLowerCase());
     }
 
-    public boolean isIdentifierStart(char c)
-    {
+    public boolean isIdentifierStart(char c) {
         return Character.isJavaIdentifierStart(c);
     }
 
-    public boolean isIdentifierPart(char c)
-    {
+    public boolean isIdentifierPart(char c) {
         return Character.isJavaIdentifierPart(c);
     }
 
-    public boolean isDelimited(Position pos, int length)
-    {
+    public boolean isDelimited(Position pos, int length) {
         final Line line = pos.getLine();
         final int offset = pos.getOffset();
         if (offset > 0) {
@@ -728,8 +689,7 @@ public abstract class AbstractMode implements Constants, Mode
         return true;
     }
 
-    public boolean isInQuote(Buffer buffer, Position pos)
-    {
+    public boolean isInQuote(Buffer buffer, Position pos) {
         // The default implementation considers both single and double quotes
         // (which is wrong for Lisp) and only looks at the current line (which
         // is wrong for C and C++).
@@ -755,40 +715,33 @@ public abstract class AbstractMode implements Constants, Mode
         return inQuote;
     }
 
-    public boolean isInComment(Buffer buffer, Position pos)
-    {
+    public boolean isInComment(Buffer buffer, Position pos) {
         return false;
     }
 
-    public boolean isCommentLine(Line line)
-    {
+    public boolean isCommentLine(Line line) {
         return false;
     }
 
     /** A URL, or an identifier whose definition the tags know. */
-    public TextLink getLinkAt(Editor editor, Position pos)
-    {
+    public TextLink getLinkAt(Editor editor, Position pos) {
         final TextLink url = FollowLink.urlAt(pos.getLine().getText(), pos.getOffset());
         return url != null ? url : FollowLink.definitionAt(editor, pos);
     }
 
-    public Line[] getFoldRange(Editor editor, Line line)
-    {
+    public Line[] getFoldRange(Editor editor, Line line) {
         return null;
     }
 
-    public void foldAll(Editor editor)
-    {
+    public void foldAll(Editor editor) {
         editor.status("Nothing to fold");
     }
 
-    public char fixCase(Editor editor, char c)
-    {
+    public char fixCase(Editor editor, char c) {
         return c;
     }
 
-    public String getContextString(Editor editor, boolean verbose)
-    {
+    public String getContextString(Editor editor, boolean verbose) {
         final List<LocalTag> tags = editor.getBuffer().getTags();
         if (tags != null) {
             Position pos = editor.getDot();
@@ -810,22 +763,17 @@ public abstract class AbstractMode implements Constants, Mode
         return null;
     }
 
-    public String getMouseMovedContextString(Editor editor, Position pos)
-    {
+    public String getMouseMovedContextString(Editor editor, Position pos) {
         return null;
     }
 
-    public String getToolTipText(Editor editor, MouseEvent e)
-    {
+    public String getToolTipText(Editor editor, MouseEvent e) {
         return null;
     }
 
-    public void loadFile(Buffer buffer, File file)
-    {
-    }
+    public void loadFile(Buffer buffer, File file) {}
 
-    public boolean confirmClose(Editor editor, Buffer buffer)
-    {
+    public boolean confirmClose(Editor editor, Buffer buffer) {
         if (!buffer.isModified())
             return true;
         if (buffer.getFile() == null)
@@ -833,15 +781,13 @@ public abstract class AbstractMode implements Constants, Mode
         return CloseBufferConfirmationDialog.confirmClose(editor, buffer);
     }
 
-    public boolean isKeyword(String s)
-    {
+    public boolean isKeyword(String s) {
         if (keywords != null)
             return keywords.isKeyword(s);
         return false;
     }
 
-    public Expression getExpressionAtDot(Editor editor, boolean exact)
-    {
+    public Expression getExpressionAtDot(Editor editor, boolean exact) {
         if (editor.getDot() == null)
             return null;
         final Position begin;
@@ -880,13 +826,11 @@ public abstract class AbstractMode implements Constants, Mode
         return null;
     }
 
-    public final String getIdentifier(Position pos)
-    {
+    public final String getIdentifier(Position pos) {
         return getIdentifier(pos.getLine(), pos.getOffset());
     }
 
-    public String getIdentifier(Line line, int offset)
-    {
+    public String getIdentifier(Line line, int offset) {
         final int limit = line.length();
         if (offset < limit) {
             char c = line.charAt(offset);
@@ -918,8 +862,7 @@ public abstract class AbstractMode implements Constants, Mode
         return null;
     }
 
-    public Position findIdentifierStart(Line line, int offset)
-    {
+    public Position findIdentifierStart(Line line, int offset) {
         if (!isIdentifierPart(line.charAt(offset)))
             return null;
         int start = offset;
@@ -931,8 +874,7 @@ public abstract class AbstractMode implements Constants, Mode
         return new Position(line, start);
     }
 
-    public String trimSyntacticWhitespace(String s)
-    {
+    public String trimSyntacticWhitespace(String s) {
         return s;
     }
 }

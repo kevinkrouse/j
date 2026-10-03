@@ -20,6 +20,7 @@
 
 package org.armedbear.j.mode.verilog;
 
+import java.util.HashSet;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Constants;
 import org.armedbear.j.Editor;
@@ -30,31 +31,26 @@ import org.armedbear.j.LineSegment;
 import org.armedbear.j.LineSegmentList;
 import org.armedbear.j.util.Utilities;
 
-import java.util.HashSet;
-
-public final class VerilogFormatter extends Formatter implements Constants
-{
-    private static final int VERILOG_FORMAT_TEXT               = 0;
-    private static final int VERILOG_FORMAT_COMMENT            = 1;
-    private static final int VERILOG_FORMAT_STRING             = 2;
-    private static final int VERILOG_FORMAT_IDENTIFIER         = 3;
-    private static final int VERILOG_FORMAT_KEYWORD            = 4;
+public final class VerilogFormatter extends Formatter implements Constants {
+    private static final int VERILOG_FORMAT_TEXT = 0;
+    private static final int VERILOG_FORMAT_COMMENT = 1;
+    private static final int VERILOG_FORMAT_STRING = 2;
+    private static final int VERILOG_FORMAT_IDENTIFIER = 3;
+    private static final int VERILOG_FORMAT_KEYWORD = 4;
     private static final int VERILOG_FORMAT_COMPILER_DIRECTIVE = 5;
-    private static final int VERILOG_FORMAT_FUNCTION           = 6;
-    private static final int VERILOG_FORMAT_OPERATOR           = 7;
-    private static final int VERILOG_FORMAT_NUMBER             = 8;
+    private static final int VERILOG_FORMAT_FUNCTION = 6;
+    private static final int VERILOG_FORMAT_OPERATOR = 7;
+    private static final int VERILOG_FORMAT_NUMBER = 8;
 
     private static final VerilogMode mode = VerilogMode.getMode();
 
-    public VerilogFormatter(Buffer buffer)
-    {
+    public VerilogFormatter(Buffer buffer) {
         this.buffer = buffer;
     }
 
     private int tokenBegin = 0;
 
-    private void endToken(String text, int tokenEnd, int state)
-    {
+    private void endToken(String text, int tokenEnd, int state) {
         if (tokenEnd - tokenBegin > 0) {
             int format = VERILOG_FORMAT_TEXT;
             switch (state) {
@@ -82,8 +78,7 @@ public final class VerilogFormatter extends Formatter implements Constants
         }
     }
 
-    private void parseLine(Line line)
-    {
+    private void parseLine(Line line) {
         if (line == null) {
             addSegment("", VERILOG_FORMAT_TEXT);
             return;
@@ -109,7 +104,7 @@ public final class VerilogFormatter extends Formatter implements Constants
         while (i < limit) {
             char c = text.charAt(i);
             if (state == STATE_COMMENT) {
-                if (i < limit-1 && c == '*' && text.charAt(i+1) == '/') {
+                if (i < limit - 1 && c == '*' && text.charAt(i + 1) == '/') {
                     endToken(text, i + 2, state);
                     state = STATE_NEUTRAL;
                     i += 2;
@@ -119,9 +114,9 @@ public final class VerilogFormatter extends Formatter implements Constants
             }
             if (state == STATE_QUOTE) {
                 if (c == '"') {
-                    endToken(text, i+1, state);
+                    endToken(text, i + 1, state);
                     state = STATE_NEUTRAL;
-                } else if (c == '\\' && i < limit-1) {
+                } else if (c == '\\' && i < limit - 1) {
                     // Escape char.
                     ++i;
                 }
@@ -136,12 +131,12 @@ public final class VerilogFormatter extends Formatter implements Constants
                 continue;
             }
             if (c == '/') {
-                if (i < limit-1) {
-                    if (text.charAt(i+1) == '*') {
+                if (i < limit - 1) {
+                    if (text.charAt(i + 1) == '*') {
                         endToken(text, i, state);
                         state = STATE_COMMENT;
                         i += 2;
-                    } else if (text.charAt(i+1) == '/') {
+                    } else if (text.charAt(i + 1) == '/') {
                         endToken(text, i, state);
                         endToken(text, limit, STATE_COMMENT);
                         return;
@@ -170,8 +165,8 @@ public final class VerilogFormatter extends Formatter implements Constants
             }
             if (state == STATE_OPERATOR) {
                 if (c == '\'') {
-                    if (i < limit-1) {
-                        c = text.charAt(i+1);
+                    if (i < limit - 1) {
+                        c = text.charAt(i + 1);
                         if ("bBoOdDhH".indexOf(c) >= 0) {
                             endToken(text, i, state);
                             state = STATE_NUMBER;
@@ -227,8 +222,8 @@ public final class VerilogFormatter extends Formatter implements Constants
                 else if ("xXzZ?_".indexOf(c) >= 0)
                     ; // Other legal values.
                 else if (c == '\'') {
-                    if (i < limit-1) {
-                        c = text.charAt(i+1);
+                    if (i < limit - 1) {
+                        c = text.charAt(i + 1);
                         if ("bBoOdDhH".indexOf(c) >= 0) {
                             i += 2;
                             continue;
@@ -246,8 +241,8 @@ public final class VerilogFormatter extends Formatter implements Constants
             }
             if (state == STATE_NEUTRAL) {
                 if (c == '\'') {
-                    if (i < limit-1) {
-                        c = text.charAt(i+1);
+                    if (i < limit - 1) {
+                        c = text.charAt(i + 1);
                         if ("bBoOdDhH".indexOf(c) >= 0) {
                             endToken(text, i, state);
                             state = STATE_NUMBER;
@@ -280,15 +275,13 @@ public final class VerilogFormatter extends Formatter implements Constants
         }
     }
 
-    public LineSegmentList formatLine(Line line)
-    {
+    public LineSegmentList formatLine(Line line) {
         clearSegmentList();
         parseLine(line);
         return segmentList;
     }
 
-    public boolean parseBuffer()
-    {
+    public boolean parseBuffer() {
         int state = STATE_NEUTRAL;
         Line line = buffer.getFirstLine();
         boolean changed = false;
@@ -304,14 +297,14 @@ public final class VerilogFormatter extends Formatter implements Constants
             final int limit = line.length();
             for (int i = 0; i < limit; i++) {
                 char c = line.charAt(i);
-                if (c == '\\' && i < limit-1) {
+                if (c == '\\' && i < limit - 1) {
                     // Escape.
                     ++i;
                     continue;
                 }
                 if (state == STATE_COMMENT) {
-                    if (c == '*' && i < limit-1) {
-                        c = line.charAt(i+1);
+                    if (c == '*' && i < limit - 1) {
+                        c = line.charAt(i + 1);
                         if (c == '/') {
                             ++i;
                             state = STATE_NEUTRAL;
@@ -325,7 +318,7 @@ public final class VerilogFormatter extends Formatter implements Constants
                     continue;
                 }
                 // Not in comment or quoted string.
-                if (c == '/' && i < limit-1) {
+                if (c == '/' && i < limit - 1) {
                     c = line.charAt(++i);
                     if (c == '/') {
                         // Single-line comment beginning.
@@ -342,13 +335,11 @@ public final class VerilogFormatter extends Formatter implements Constants
         return changed;
     }
 
-    private static final boolean isOperatorChar(char c)
-    {
+    private static final boolean isOperatorChar(char c) {
         return "!&|<>=+/*-".indexOf(c) >= 0;
     }
 
-    public FormatTable getFormatTable()
-    {
+    public FormatTable getFormatTable() {
         if (formatTable == null) {
             formatTable = new FormatTable("VerilogMode");
             formatTable.addEntryFromPrefs(VERILOG_FORMAT_TEXT, "text");
@@ -364,8 +355,7 @@ public final class VerilogFormatter extends Formatter implements Constants
         return formatTable;
     }
 
-    private static boolean isCompilerDirective(String s)
-    {
+    private static boolean isCompilerDirective(String s) {
         if (s.length() > 0 && s.charAt(0) == '`')
             return getCompilerDirectives().contains(s);
         return false;
@@ -373,8 +363,7 @@ public final class VerilogFormatter extends Formatter implements Constants
 
     private static HashSet<String> compilerDirectiveHashSet;
 
-    private static HashSet<String> getCompilerDirectives()
-    {
+    private static HashSet<String> getCompilerDirectives() {
         if (compilerDirectiveHashSet == null) {
             String[] array = compilerDirectives;
             int count = array.length;

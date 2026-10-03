@@ -34,7 +34,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.ServiceLoader;
 import java.util.Set;
-
 import org.armedbear.j.CommandTable;
 import org.armedbear.j.Directories;
 import org.armedbear.j.Editor;
@@ -59,8 +58,7 @@ import org.armedbear.j.Property;
  * org.armedbear.j.File: this runs before the editor is up, and j's File knows
  * about FTP, HTTP and SSH, none of which belong in a class path.
  */
-public final class Extensions
-{
+public final class Extensions {
     /** Where to look, overriding the installed location. Set by `bb run`. */
     public static final String DIRECTORY_PROPERTY = "j.extensions.dir";
 
@@ -72,36 +70,29 @@ public final class Extensions
 
     private static boolean disabled;
 
-    private Extensions()
-    {
-    }
+    private Extensions() {}
 
     // Accessors. These are on hot paths -- plain field reads, nothing more.
 
-    public static EditorHooks hooks()
-    {
+    public static EditorHooks hooks() {
         return hooks;
     }
 
-    public static KeyMapProvider keyMaps()
-    {
+    public static KeyMapProvider keyMaps() {
         return keyMaps;
     }
 
-    public static LanguageClient languageClient()
-    {
+    public static LanguageClient languageClient() {
         return languageClient;
     }
 
     /** The default session of the registered client; never null. */
-    public static Session session()
-    {
+    public static Session session() {
         return languageClient.getDefaultSession();
     }
 
     /** Names of the extensions that loaded, in load order. */
-    public static synchronized List<String> loadedNames()
-    {
+    public static synchronized List<String> loadedNames() {
         List<String> names = new ArrayList<String>(loaded.size());
         for (Extension extension : loaded)
             names.add(extension.getName());
@@ -109,8 +100,7 @@ public final class Extensions
     }
 
     /** Turn discovery off entirely; --no-extensions. */
-    public static void setDisabled(boolean b)
-    {
+    public static void setDisabled(boolean b) {
         disabled = b;
     }
 
@@ -118,8 +108,7 @@ public final class Extensions
      * Find and initialize every extension. Safe to call when nothing is
      * installed, which is the normal case for a core-only build.
      */
-    public static synchronized void load()
-    {
+    public static synchronized void load() {
         if (disabled) {
             Log.info("extensions disabled");
             return;
@@ -135,8 +124,7 @@ public final class Extensions
      * Load one extension directory. Package-visible so the tests can point it
      * at a temporary directory without going through the search path.
      */
-    static synchronized void loadFrom(Path directory, Set<String> skip)
-    {
+    static synchronized void loadFrom(Path directory, Set<String> skip) {
         URL[] urls = jarsIn(directory);
         if (urls.length == 0)
             return;
@@ -156,8 +144,7 @@ public final class Extensions
         }
     }
 
-    private static void initialize(Extension extension, ClassLoader loader)
-    {
+    private static void initialize(Extension extension, ClassLoader loader) {
         Thread thread = Thread.currentThread();
         ClassLoader saved = thread.getContextClassLoader();
         try {
@@ -166,8 +153,10 @@ public final class Extensions
             thread.setContextClassLoader(loader);
             extension.initialize(new Context(loader));
             loaded.add(extension);
-            Log.info("loaded extension " + extension.getName() + " " +
-                     extension.getVersion());
+            Log.info(
+                "loaded extension " + extension.getName() + " " +
+                    extension.getVersion()
+            );
         }
         catch (Throwable t) {
             // One broken extension must not stop j from starting.
@@ -179,8 +168,7 @@ public final class Extensions
         }
     }
 
-    public static synchronized void shutdown()
-    {
+    public static synchronized void shutdown() {
         for (int i = loaded.size(); i-- > 0;) {
             Extension extension = loaded.get(i);
             try {
@@ -199,8 +187,7 @@ public final class Extensions
 
     // Discovery
 
-    private static Set<String> disabledNames()
-    {
+    private static Set<String> disabledNames() {
         Set<String> names = new HashSet<String>();
         Preferences preferences = Editor.preferences();
         if (preferences == null)
@@ -215,8 +202,7 @@ public final class Extensions
     }
 
     /** lib/extensions beside the installed jar, then the user's config directory. */
-    private static List<Path> searchPath()
-    {
+    private static List<Path> searchPath() {
         List<Path> path = new ArrayList<Path>(2);
         String override = System.getProperty(DIRECTORY_PROPERTY);
         if (override != null && override.length() > 0) {
@@ -238,8 +224,7 @@ public final class Extensions
         return path;
     }
 
-    private static Path installedExtensionsDirectory()
-    {
+    private static Path installedExtensionsDirectory() {
         try {
             java.security.CodeSource source =
                 Editor.class.getProtectionDomain().getCodeSource();
@@ -257,8 +242,7 @@ public final class Extensions
         }
     }
 
-    private static List<Path> subdirectories(Path dir)
-    {
+    private static List<Path> subdirectories(Path dir) {
         if (dir == null || !Files.isDirectory(dir))
             return Collections.emptyList();
         List<Path> dirs = new ArrayList<Path>();
@@ -274,8 +258,7 @@ public final class Extensions
         return dirs;
     }
 
-    private static URL[] jarsIn(Path dir)
-    {
+    private static URL[] jarsIn(Path dir) {
         if (dir == null || !Files.isDirectory(dir))
             return new URL[0];
         List<URL> urls = new ArrayList<URL>();
@@ -295,52 +278,47 @@ public final class Extensions
 
     // Registration
 
-    private static final class Context implements ExtensionContext
-    {
+    private static final class Context implements ExtensionContext {
         private final ClassLoader loader;
 
-        Context(ClassLoader loader)
-        {
+        Context(ClassLoader loader) {
             this.loader = loader;
         }
 
-        public void registerCommand(String name, Class<?> owner, String methodName)
-        {
+        public void registerCommand(String name, Class<?> owner, String methodName) {
             CommandTable.registerCommand(name, owner, methodName);
         }
 
-        public void registerCommand(String name, Class<?> owner, String methodName,
-                                    String alias)
-        {
+        public void registerCommand(
+            String name,
+            Class<?> owner,
+            String methodName,
+            String alias
+        ) {
             CommandTable.registerCommand(name, owner, methodName);
             CommandTable.registerCommand(alias, owner, methodName);
         }
 
-        public void registerLanguageClient(LanguageClient client)
-        {
+        public void registerLanguageClient(LanguageClient client) {
             if (client != null)
                 languageClient = client;
         }
 
-        public void registerHooks(EditorHooks newHooks)
-        {
+        public void registerHooks(EditorHooks newHooks) {
             if (newHooks != null)
                 hooks = newHooks;
         }
 
-        public void registerKeyMapProvider(KeyMapProvider provider)
-        {
+        public void registerKeyMapProvider(KeyMapProvider provider) {
             if (provider != null)
                 keyMaps = provider;
         }
 
-        public ClassLoader getClassLoader()
-        {
+        public ClassLoader getClassLoader() {
             return loader;
         }
 
-        public Preferences getPreferences()
-        {
+        public Preferences getPreferences() {
             return Editor.preferences();
         }
     }

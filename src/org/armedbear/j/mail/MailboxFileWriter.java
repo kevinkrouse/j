@@ -28,22 +28,20 @@ import java.io.Writer;
 import org.armedbear.j.File;
 import org.armedbear.j.Log;
 
-public final class MailboxFileWriter extends BufferedWriter
-{
+public final class MailboxFileWriter extends BufferedWriter {
     private long offset;
 
-    private MailboxFileWriter(Writer out)
-    {
+    private MailboxFileWriter(Writer out) {
         super(out);
     }
 
-    public static MailboxFileWriter getInstance(File file, boolean append)
-    {
+    public static MailboxFileWriter getInstance(File file, boolean append) {
         try {
             FileOutputStream outputStream =
                 new FileOutputStream(file.canonicalPath(), append);
             MailboxFileWriter writer = new MailboxFileWriter(
-                new OutputStreamWriter(outputStream, "ISO-8859-1"));
+                new OutputStreamWriter(outputStream, "ISO-8859-1")
+            );
             if (append && file.isFile())
                 writer.offset = file.length();
             return writer;
@@ -54,42 +52,35 @@ public final class MailboxFileWriter extends BufferedWriter
         }
     }
 
-    public final long getOffset()
-    {
+    public final long getOffset() {
         return offset;
     }
 
-    public void write(int c) throws IOException
-    {
+    public void write(int c) throws IOException {
         super.write(c);
         ++offset;
     }
 
-    public void write(char[] cbuf, int off, int len) throws IOException
-    {
+    public void write(char[] cbuf, int off, int len) throws IOException {
         super.write(cbuf, off, len);
         offset += len;
     }
 
-    public void write(String s, int off, int len) throws IOException
-    {
+    public void write(String s, int off, int len) throws IOException {
         super.write(s, off, len);
         offset += len;
     }
 
-    public void newLine() throws IOException
-    {
+    public void newLine() throws IOException {
         super.write('\n'); // Always use '\n' as line terminator.
         ++offset;
     }
 
-    public void flush() throws IOException
-    {
+    public void flush() throws IOException {
         super.flush();
     }
 
-    public void close() throws IOException
-    {
+    public void close() throws IOException {
         super.close();
     }
 }

@@ -20,14 +20,10 @@
 
 package org.armedbear.j.mail;
 
-public final class MailException extends Exception
-{
-    public MailException()
-    {
-    }
+public final class MailException extends Exception {
+    public MailException() {}
 
-    public MailException(String s)
-    {
+    public MailException(String s) {
         super(s);
     }
 }

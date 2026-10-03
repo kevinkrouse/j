@@ -20,9 +20,10 @@
 
 package org.armedbear.j.mode.autoconf;
 
+import java.lang.StringBuilder;
+import java.util.Set;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Editor;
-import java.lang.StringBuilder;
 import org.armedbear.j.FormatTable;
 import org.armedbear.j.Formatter;
 import org.armedbear.j.Line;
@@ -31,17 +32,14 @@ import org.armedbear.j.LineSegmentList;
 import org.armedbear.j.util.Sets;
 import org.armedbear.j.util.Utilities;
 
-import java.util.Set;
-
-public final class AutoconfFormatter extends Formatter
-{
+public final class AutoconfFormatter extends Formatter {
     private static final int STATE_BACKQUOTE = STATE_LAST + 1;
 
     // Formats.
-    private static final int AUTOCONF_FORMAT_TEXT     = 0;
-    private static final int AUTOCONF_FORMAT_COMMENT  = 1;
-    private static final int AUTOCONF_FORMAT_STRING   = 2;
-    private static final int AUTOCONF_FORMAT_KEYWORD  = 3;
+    private static final int AUTOCONF_FORMAT_TEXT = 0;
+    private static final int AUTOCONF_FORMAT_COMMENT = 1;
+    private static final int AUTOCONF_FORMAT_STRING = 2;
+    private static final int AUTOCONF_FORMAT_KEYWORD = 3;
     private static final int AUTOCONF_FORMAT_FUNCTION = 4;
 
     private static Set<String> keywords;
@@ -50,15 +48,13 @@ public final class AutoconfFormatter extends Formatter
     private StringBuilder sb = new StringBuilder();
     private String token;
 
-    public AutoconfFormatter(Buffer buffer)
-    {
+    public AutoconfFormatter(Buffer buffer) {
         this.buffer = buffer;
         if (functions == null)
             functions = Sets.newHashSet(autoconfFunctions);
     }
 
-    public LineSegmentList formatLine(Line line)
-    {
+    public LineSegmentList formatLine(Line line) {
         clearSegmentList();
         if (line == null || line.length() == 0) {
             addSegment("", AUTOCONF_FORMAT_TEXT);
@@ -80,8 +76,7 @@ public final class AutoconfFormatter extends Formatter
         return segmentList;
     }
 
-    private void endToken(int state)
-    {
+    private void endToken(int state) {
         if (sb.length() > 0) {
             int format = -1;
             switch (state) {
@@ -103,8 +98,7 @@ public final class AutoconfFormatter extends Formatter
         }
     }
 
-    private void parseLine(Line line)
-    {
+    private void parseLine(Line line) {
         String text = line.getText();
         if (Editor.tabsAreVisible())
             text = Utilities.makeTabsVisible(text, buffer.getTabWidth());
@@ -135,8 +129,7 @@ public final class AutoconfFormatter extends Formatter
                 } else {
                     sb.append(c);
 
-                    if (c == '\\' && i < limit - 1)
-                    {
+                    if (c == '\\' && i < limit - 1) {
                         // Escape char.
                         sb.append(text.charAt(++i));
                     }
@@ -198,14 +191,19 @@ public final class AutoconfFormatter extends Formatter
             if (state == STATE_NEUTRAL) {
                 if (c == '#') {
                     boolean isComment = false;
-                    if (i == limit-1) {
+                    if (i == limit - 1) {
                         // '#' is last or only character.
                         isComment = true;
                     } else {
                         // Ignore "#include", "#define", etc. (AC_TRY_COMPILE)
                         char nextChar = text.charAt(i + 1);
-                        if (nextChar == ' ' || nextChar == '\t' ||
-                            nextChar == '#' || nextChar == '!')
+                        if (
+                            nextChar == ' '
+                                || nextChar == '\t'
+                                ||
+                                nextChar == '#'
+                                || nextChar == '!'
+                        )
                             isComment = true;
                     }
                     if (isComment) {
@@ -228,21 +226,19 @@ public final class AutoconfFormatter extends Formatter
         endToken(state);
     }
 
-    public FormatTable getFormatTable()
-    {
+    public FormatTable getFormatTable() {
         if (formatTable == null) {
             formatTable = new FormatTable("AutoconfMode");
             formatTable.addEntryFromPrefs(AUTOCONF_FORMAT_TEXT, "text");
             formatTable.addEntryFromPrefs(AUTOCONF_FORMAT_COMMENT, "comment");
-            formatTable.addEntryFromPrefs(AUTOCONF_FORMAT_STRING, "string" );
+            formatTable.addEntryFromPrefs(AUTOCONF_FORMAT_STRING, "string");
             formatTable.addEntryFromPrefs(AUTOCONF_FORMAT_KEYWORD, "keyword");
             formatTable.addEntryFromPrefs(AUTOCONF_FORMAT_FUNCTION, "function");
         }
         return formatTable;
     }
 
-    private final boolean isFunction(String s)
-    {
+    private final boolean isFunction(String s) {
         if (functions == null)
             return false;
         return functions.contains(s);

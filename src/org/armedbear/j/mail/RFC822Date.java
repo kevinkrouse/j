@@ -21,6 +21,7 @@
 package org.armedbear.j.mail;
 
 import java.io.Serializable;
+import java.lang.StringBuilder;
 import java.text.SimpleDateFormat;
 import java.time.LocalDate;
 import java.time.ZoneId;
@@ -30,36 +31,28 @@ import java.util.Date;
 import java.util.Locale;
 import java.util.StringTokenizer;
 import java.util.TimeZone;
-import java.lang.StringBuilder;
 import org.armedbear.j.util.Utilities;
 
-public final class RFC822Date implements Serializable
-{
+public final class RFC822Date implements Serializable {
     private Date date;
 
-    private RFC822Date()
-    {
-    }
+    private RFC822Date() {}
 
-    public RFC822Date(Date date)
-    {
+    public RFC822Date(Date date) {
         this.date = date;
     }
 
-    public Date getDate()
-    {
+    public Date getDate() {
         return date;
     }
 
-    public long getTime()
-    {
+    public long getTime() {
         if (date != null)
             return date.getTime();
         return 0;
     }
 
-    public static RFC822Date parseDate(String input)
-    {
+    public static RFC822Date parseDate(String input) {
         if (input == null || input.length() == 0)
             return new RFC822Date();
         final StringTokenizer st = new StringTokenizer(input, " ,");
@@ -120,7 +113,7 @@ public final class RFC822Date implements Serializable
             if (month >= 0) {
                 tokens.set(i, null);
                 if (i > 0) {
-                    String before = tokens.get(i-1);
+                    String before = tokens.get(i - 1);
                     try {
                         dayOfMonth = Integer.parseInt(before);
                     }
@@ -131,7 +124,7 @@ public final class RFC822Date implements Serializable
                     }
                 }
                 if (i < tokenCount - 1) {
-                    String after = tokens.get(i+1);
+                    String after = tokens.get(i + 1);
                     try {
                         dayOfMonth = Integer.parseInt(after);
                     }
@@ -289,15 +282,13 @@ public final class RFC822Date implements Serializable
     private static final SimpleDateFormat toStringFormat =
         new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss", Locale.US);
 
-    public String toString()
-    {
+    public String toString() {
         if (date == null)
             return "null";
         return toStringFormat.format(date);
     }
 
-    public static int compare(RFC822Date date1, RFC822Date date2)
-    {
+    public static int compare(RFC822Date date1, RFC822Date date2) {
         if (date1.date == null)
             return -1;
         if (date2.date == null)
@@ -309,8 +300,7 @@ public final class RFC822Date implements Serializable
         return 0;
     }
 
-    public final boolean equals(RFC822Date d)
-    {
+    public final boolean equals(RFC822Date d) {
         if (d == null)
             return false;
         else if (date == null)
@@ -320,8 +310,7 @@ public final class RFC822Date implements Serializable
     }
 
     // Compares date only (i.e. ignores hours, minutes, seconds).
-    public boolean before(RFC822Date d)
-    {
+    public boolean before(RFC822Date d) {
         if (date == null) {
             if (d.date == null)
                 return false;
@@ -334,8 +323,7 @@ public final class RFC822Date implements Serializable
     }
 
     // Compares date only (i.e. ignores hours, minutes, seconds).
-    public boolean after(RFC822Date d)
-    {
+    public boolean after(RFC822Date d) {
         if (date == null)
             return false;
         if (d.date == null)
@@ -347,21 +335,18 @@ public final class RFC822Date implements Serializable
      * The calendar day a date falls on, in the local time zone -- which is
      * the zone Date.getYear() and its siblings used.
      */
-    private static LocalDate day(Date d)
-    {
+    private static LocalDate day(Date d) {
         return d.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
     }
 
     // Used only by getDateTimeString.
     private static final SimpleDateFormat df = new SimpleDateFormat("EEE, d MMM yyyy HH:mm:ss ", Locale.US);
 
-    public static String getDateTimeString()
-    {
+    public static String getDateTimeString() {
         return getDateTimeString(Calendar.getInstance());
     }
 
-    public static String getDateTimeString(Calendar calendar)
-    {
+    public static String getDateTimeString(Calendar calendar) {
         StringBuilder sb = new StringBuilder(48);
         sb.append(df.format(calendar.getTime()));
         int offset = calendar.get(Calendar.ZONE_OFFSET) + calendar.get(Calendar.DST_OFFSET);
@@ -370,7 +355,7 @@ public final class RFC822Date implements Serializable
         } else {
             if (offset < 0) {
                 sb.append('-');
-                offset = - offset;
+                offset = -offset;
             }
             int hours = offset / (60 * 60 * 1000);
             if (hours >= 10) {
@@ -390,21 +375,20 @@ public final class RFC822Date implements Serializable
         return sb.toString();
     }
 
-    public static final int getOffset(Calendar calendar)
-    {
+    public static final int getOffset(Calendar calendar) {
         return calendar.get(Calendar.ZONE_OFFSET) + calendar.get(Calendar.DST_OFFSET);
     }
 
-//     public static void main(String[] args)
-//     {
-//         String input = "7 Nov 00 14:32:06 IST";
-//         System.out.print(input + " ==> " );
-//         System.out.println(parseDate(input));
-//         input = "Sun, 12 Nov 00 14:58:09 EST";
-//         System.out.print(input + " ==> " );
-//         System.out.println(parseDate(input));
-//         input = "Thu, 28 Dec 2000 09:47:08 -0800";
-//         System.out.print(input + " ==> " );
-//         System.out.println(parseDate(input));
-//     }
+    //     public static void main(String[] args)
+    //     {
+    //         String input = "7 Nov 00 14:32:06 IST";
+    //         System.out.print(input + " ==> " );
+    //         System.out.println(parseDate(input));
+    //         input = "Sun, 12 Nov 00 14:58:09 EST";
+    //         System.out.print(input + " ==> " );
+    //         System.out.println(parseDate(input));
+    //         input = "Thu, 28 Dec 2000 09:47:08 -0800";
+    //         System.out.print(input + " ==> " );
+    //         System.out.println(parseDate(input));
+    //     }
 }

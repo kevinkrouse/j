@@ -23,28 +23,24 @@ package org.armedbear.j.mail;
 import java.util.Calendar;
 import java.util.StringTokenizer;
 import org.armedbear.j.Debug;
-import org.armedbear.j.util.FastStringReader;
 import org.armedbear.j.Log;
 import org.armedbear.j.util.FastStringReader;
+import org.armedbear.j.util.FastStringReader;
 
-public final class DateSentMailboxFilter extends MailboxFilter
-{
+public final class DateSentMailboxFilter extends MailboxFilter {
     private RFC822Date begin;
     private RFC822Date end;
 
-    private DateSentMailboxFilter(RFC822Date date)
-    {
+    private DateSentMailboxFilter(RFC822Date date) {
         begin = end = date;
     }
 
-    private DateSentMailboxFilter(RFC822Date begin, RFC822Date end)
-    {
+    private DateSentMailboxFilter(RFC822Date begin, RFC822Date end) {
         this.begin = begin;
         this.end = end;
     }
 
-    public static MailboxFilter getMailboxFilter(FastStringReader reader)
-    {
+    public static MailboxFilter getMailboxFilter(FastStringReader reader) {
         final String pattern = reader.readToken();
         if (pattern.length() > 0) {
             char c = pattern.charAt(0);
@@ -66,8 +62,7 @@ public final class DateSentMailboxFilter extends MailboxFilter
         return null;
     }
 
-    public boolean accept(MailboxEntry entry)
-    {
+    public boolean accept(MailboxEntry entry) {
         RFC822Date date = entry.getDate();
         if (begin != null)
             if (date.before(begin))
@@ -79,8 +74,7 @@ public final class DateSentMailboxFilter extends MailboxFilter
     }
 
     // Input must be in DD/MM/YY format.
-    private static RFC822Date parseDate(String input) throws InvalidDateException
-    {
+    private static RFC822Date parseDate(String input) throws InvalidDateException {
         input = input.trim();
         if (input.length() == 0)
             return null; // Not an error (e.g. "~d -2/2/02").
@@ -146,7 +140,5 @@ public final class DateSentMailboxFilter extends MailboxFilter
         return new RFC822Date(cal.getTime());
     }
 
-    private static class InvalidDateException extends Exception
-    {
-    }
+    private static class InvalidDateException extends Exception {}
 }

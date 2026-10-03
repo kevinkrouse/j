@@ -20,6 +20,7 @@
 
 package org.armedbear.j.mode.verilog;
 
+import java.awt.event.KeyEvent;
 import org.armedbear.j.AbstractMode;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Constants;
@@ -32,35 +33,27 @@ import org.armedbear.j.SystemBuffer;
 import org.armedbear.j.Tagger;
 import org.armedbear.j.util.Utilities;
 
-import java.awt.event.KeyEvent;
-
-public final class VerilogMode extends AbstractMode implements Constants, Mode
-{
+public final class VerilogMode extends AbstractMode implements Constants, Mode {
     private static final VerilogMode mode = new VerilogMode();
 
-    private VerilogMode()
-    {
+    private VerilogMode() {
         super(VERILOG_MODE, VERILOG_MODE_NAME);
         keywords = new Keywords(this);
     }
 
-    public static VerilogMode getMode()
-    {
+    public static VerilogMode getMode() {
         return mode;
     }
 
-    public String getCommentStart()
-    {
+    public String getCommentStart() {
         return "// ";
     }
 
-    public Formatter getFormatter(Buffer buffer)
-    {
+    public Formatter getFormatter(Buffer buffer) {
         return new VerilogFormatter(buffer);
     }
 
-    protected void setKeyMapDefaults(KeyMap km)
-    {
+    protected void setKeyMapDefaults(KeyMap km) {
         km.mapKey(KeyEvent.VK_TAB, CTRL_MASK, "insertTab");
         km.mapKey(KeyEvent.VK_TAB, 0, "tab");
         km.mapKey(KeyEvent.VK_ENTER, 0, "newlineAndIndent");
@@ -69,23 +62,19 @@ public final class VerilogMode extends AbstractMode implements Constants, Mode
         km.mapKey(KeyEvent.VK_F12, 0, "wrapComment");
     }
 
-    public boolean isTaggable()
-    {
+    public boolean isTaggable() {
         return true;
     }
 
-    public Tagger getTagger(SystemBuffer buffer)
-    {
+    public Tagger getTagger(SystemBuffer buffer) {
         return new VerilogTagger(buffer);
     }
 
-    public boolean canIndent()
-    {
+    public boolean canIndent() {
         return true;
     }
 
-    public int getCorrectIndentation(Line line, Buffer buffer)
-    {
+    public int getCorrectIndentation(Line line, Buffer buffer) {
         final int indentSize = buffer.getIndentSize();
         final Line model = findModel(line);
         if (model == null)
@@ -120,8 +109,7 @@ public final class VerilogMode extends AbstractMode implements Constants, Mode
         return modelIndent;
     }
 
-    private static Line findModel(Line line)
-    {
+    private static Line findModel(Line line) {
         Line model = line.previous();
         if (line.flags() == STATE_COMMENT) {
             // Any non-blank line is an acceptable model.
@@ -134,8 +122,7 @@ public final class VerilogMode extends AbstractMode implements Constants, Mode
         return model;
     }
 
-    private static boolean isAcceptableModel(Line line)
-    {
+    private static boolean isAcceptableModel(Line line) {
         if (line.isBlank())
             return false;
         if (line.flags() == STATE_COMMENT)
@@ -144,8 +131,7 @@ public final class VerilogMode extends AbstractMode implements Constants, Mode
         return true;
     }
 
-    private Line findBeginLine(Line line)
-    {
+    private Line findBeginLine(Line line) {
         int count = 1;
         while (true) {
             line = line.previous();
@@ -162,13 +148,11 @@ public final class VerilogMode extends AbstractMode implements Constants, Mode
         }
     }
 
-    public boolean isIdentifierStart(char c)
-    {
+    public boolean isIdentifierStart(char c) {
         return startChars.indexOf(c) >= 0;
     }
 
-    public boolean isIdentifierPart(char c)
-    {
+    public boolean isIdentifierPart(char c) {
         return partChars.indexOf(c) >= 0;
     }
 

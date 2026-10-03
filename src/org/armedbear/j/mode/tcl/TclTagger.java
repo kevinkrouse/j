@@ -20,26 +20,22 @@
 
 package org.armedbear.j.mode.tcl;
 
+import java.util.ArrayList;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import org.armedbear.j.Line;
 import org.armedbear.j.LocalTag;
 import org.armedbear.j.SystemBuffer;
 import org.armedbear.j.Tagger;
 
-import java.util.regex.Pattern;
-import java.util.regex.Matcher;
-import java.util.ArrayList;
-
-public final class TclTagger extends Tagger
-{
+public final class TclTagger extends Tagger {
     private static final Pattern procRE = Pattern.compile("^proc\\s+(\\S+)");
 
-    public TclTagger(SystemBuffer buffer)
-    {
+    public TclTagger(SystemBuffer buffer) {
         super(buffer);
     }
 
-    public void run()
-    {
+    public void run() {
         ArrayList<LocalTag> tags = new ArrayList<LocalTag>();
         Line line = buffer.getFirstLine();
         while (line != null) {

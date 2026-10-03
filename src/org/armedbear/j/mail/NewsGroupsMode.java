@@ -21,32 +21,27 @@
 package org.armedbear.j.mail;
 
 import java.awt.event.KeyEvent;
-
 import org.armedbear.j.AbstractMode;
-import org.armedbear.j.Mode;
 import org.armedbear.j.Constants;
 import org.armedbear.j.KeyMap;
+import org.armedbear.j.Mode;
 import org.armedbear.j.Property;
 
 public final class NewsGroupsMode extends AbstractMode implements Constants,
-    Mode
-{
+    Mode {
     private static final Mode mode = new NewsGroupsMode();
 
-    private NewsGroupsMode()
-    {
+    private NewsGroupsMode() {
         super(NEWS_GROUPS_MODE, NEWS_GROUPS_MODE_NAME);
         setProperty(Property.VERTICAL_RULE, 0);
         setProperty(Property.SHOW_LINE_NUMBERS, false);
     }
 
-    public static final Mode getMode()
-    {
+    public static final Mode getMode() {
         return mode;
     }
 
-    protected final void setKeyMapDefaults(KeyMap km)
-    {
+    protected final void setKeyMapDefaults(KeyMap km) {
         km.mapKey(KeyEvent.VK_ENTER, 0, "openGroupAtDot");
     }
 }

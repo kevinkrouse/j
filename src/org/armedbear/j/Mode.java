@@ -36,8 +36,7 @@ import javax.swing.JPopupMenu;
  *
  * @see AbstractMode
  */
-public interface Mode
-{
+public interface Mode {
     /**
      * Returns the unique identifier of this mode.  All identifiers should
      * be defined in <code>Constants</code>.

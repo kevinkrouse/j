@@ -29,8 +29,8 @@ import java.awt.event.MouseListener;
 import java.util.Enumeration;
 import javax.swing.JTree;
 import javax.swing.tree.DefaultMutableTreeNode;
-import javax.swing.tree.TreeNode;
 import javax.swing.tree.DefaultTreeCellRenderer;
+import javax.swing.tree.TreeNode;
 import javax.swing.tree.TreePath;
 import javax.swing.tree.TreeSelectionModel;
 import org.armedbear.j.Buffer;
@@ -41,12 +41,10 @@ import org.armedbear.j.NavigationComponent;
 import org.armedbear.j.util.Utilities;
 
 public final class FolderTree extends JTree implements NavigationComponent,
-    MouseListener
-{
+    MouseListener {
     private final Frame frame;
 
-    private FolderTree(Frame frame)
-    {
+    private FolderTree(Frame frame) {
         super(FolderTreeModel.getDefaultModel());
         this.frame = frame;
         getSelectionModel().setSelectionMode(TreeSelectionModel.SINGLE_TREE_SELECTION);
@@ -56,8 +54,7 @@ public final class FolderTree extends JTree implements NavigationComponent,
         addMouseListener(this);
     }
 
-    public static FolderTree getInstance(Frame frame)
-    {
+    public static FolderTree getInstance(Frame frame) {
         FolderTree tree = frame.getFolderTree();
         if (tree == null) {
             tree = new FolderTree(frame);
@@ -68,15 +65,14 @@ public final class FolderTree extends JTree implements NavigationComponent,
 
     public void refresh() {}
 
-    public void updatePosition()
-    {
+    public void updatePosition() {
         int row = -1;
         final Buffer buf = frame.getCurrentEditor().getBuffer();
         MailboxURL url = null;
         if (buf instanceof MailboxBuffer)
-            url = ((MailboxBuffer)buf).getUrl();
+            url = ((MailboxBuffer) buf).getUrl();
         else if (buf instanceof MessageBuffer) {
-            MailboxBuffer mailboxBuffer = ((MessageBuffer)buf).getMailbox();
+            MailboxBuffer mailboxBuffer = ((MessageBuffer) buf).getMailbox();
             if (mailboxBuffer != null)
                 url = mailboxBuffer.getUrl();
         }
@@ -95,8 +91,11 @@ public final class FolderTree extends JTree implements NavigationComponent,
                             final int limit = getRowCount();
                             for (int i = 0; i < limit; i++) {
                                 TreePath treepath = getPathForRow(i);
-                                if (treepath != null &&
-                                    treepath.getLastPathComponent() == node) {
+                                if (
+                                    treepath != null
+                                        &&
+                                        treepath.getLastPathComponent() == node
+                                ) {
                                     row = i;
                                     break;
                                 }
@@ -113,8 +112,7 @@ public final class FolderTree extends JTree implements NavigationComponent,
         repaint();
     }
 
-    public final String getLabelText()
-    {
+    public final String getLabelText() {
         return "Folders";
     }
 
@@ -122,13 +120,15 @@ public final class FolderTree extends JTree implements NavigationComponent,
 
     public void mouseReleased(MouseEvent e) {}
 
-    public void mouseClicked(MouseEvent e)
-    {
+    public void mouseClicked(MouseEvent e) {
         final Editor editor = frame.getCurrentEditor();
         final int button = e.getButton();
         final boolean unmodified = Utilities.isUnmodified(e);
-        if (!(unmodified && button == MouseEvent.BUTTON1) &&
-            !(unmodified && button == MouseEvent.BUTTON2)) {
+        if (
+            !(unmodified && button == MouseEvent.BUTTON1)
+                &&
+                !(unmodified && button == MouseEvent.BUTTON2)
+        ) {
             e.consume();
             editor.setFocusToDisplay();
             return;
@@ -153,29 +153,25 @@ public final class FolderTree extends JTree implements NavigationComponent,
 
     public void mouseEntered(MouseEvent e) {}
 
-    public void mouseExited(MouseEvent e)
-    {
+    public void mouseExited(MouseEvent e) {
         updatePosition();
         frame.getCurrentEditor().setFocusToDisplay();
     }
 
-    private static class TreeCellRenderer extends DefaultTreeCellRenderer
-    {
+    private static class TreeCellRenderer extends DefaultTreeCellRenderer {
         private static final Color noFocusSelectionBackground =
             new Color(208, 208, 208);
 
         private JTree tree;
         private Color oldBackgroundSelectionColor;
 
-        TreeCellRenderer(JTree tree)
-        {
+        TreeCellRenderer(JTree tree) {
             super();
             this.tree = tree;
             oldBackgroundSelectionColor = getBackgroundSelectionColor();
         }
 
-        public void updateUI()
-        {
+        public void updateUI() {
             super.updateUI();
             setOpenIcon(Utilities.getIconFromFile("dir_open"));
             setClosedIcon(Utilities.getIconFromFile("dir_close"));
@@ -189,10 +185,17 @@ public final class FolderTree extends JTree implements NavigationComponent,
             boolean expanded,
             boolean leaf,
             int row,
-            boolean hasFocus)
-        {
-            super.getTreeCellRendererComponent(tree, value, selected, expanded,
-                leaf, row, hasFocus);
+            boolean hasFocus
+        ) {
+            super.getTreeCellRendererComponent(
+                tree,
+                value,
+                selected,
+                expanded,
+                leaf,
+                row,
+                hasFocus
+            );
             if (selected)
                 super.setForeground(getTextSelectionColor());
             else
@@ -204,8 +207,7 @@ public final class FolderTree extends JTree implements NavigationComponent,
             return this;
         }
 
-        public void paintComponent(Graphics g)
-        {
+        public void paintComponent(Graphics g) {
             Display.setRenderingHints(g);
             super.paintComponent(g);
         }

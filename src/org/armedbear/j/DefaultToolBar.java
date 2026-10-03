@@ -19,12 +19,11 @@
  */
 
 package org.armedbear.j;
+
 import static org.armedbear.j.ToolBarIcon.*;
 
-public final class DefaultToolBar extends ToolBar
-{
-    public DefaultToolBar(Frame frame)
-    {
+public final class DefaultToolBar extends ToolBar {
+    public DefaultToolBar(Frame frame) {
         super(frame);
         addButton("New", ICON_NEW, "newBuffer");
         addButton("Open", ICON_OPEN, "openFile");

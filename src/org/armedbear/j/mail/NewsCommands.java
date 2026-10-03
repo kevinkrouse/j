@@ -24,10 +24,8 @@ import org.armedbear.j.Buffer;
 import org.armedbear.j.Editor;
 import org.armedbear.j.InputDialog;
 
-public final class NewsCommands
-{
-    public static void news()
-    {
+public final class NewsCommands {
+    public static void news() {
         if (!Editor.checkExperimental())
             return;
         final Editor editor = Editor.currentEditor();
@@ -39,8 +37,7 @@ public final class NewsCommands
         }
     }
 
-    public static void news(String host)
-    {
+    public static void news(String host) {
         if (!Editor.checkExperimental())
             return;
         final Editor editor = Editor.currentEditor();
@@ -52,27 +49,25 @@ public final class NewsCommands
         }
     }
 
-    public static void openGroupAtDot()
-    {
+    public static void openGroupAtDot() {
         final Editor editor = Editor.currentEditor();
         final Buffer buffer = editor.getBuffer();
         if (buffer instanceof NewsBuffer && editor.getDot() != null) {
             String groupName = editor.getDotLine().getText();
             NntpSession session =
-                NntpSession.getSession(((NewsBuffer)buffer).getHost());
+                NntpSession.getSession(((NewsBuffer) buffer).getHost());
             NewsGroupSummaryBuffer summary = new NewsGroupSummaryBuffer(session, groupName);
             editor.makeNext(summary);
             editor.activate(summary);
         }
     }
 
-    public static void openGroup()
-    {
+    public static void openGroup() {
         if (!Editor.checkExperimental())
             return;
         final Editor editor = Editor.currentEditor();
         String groupName =
-            InputDialog.showInputDialog(editor, "Group:","Open Group", null);
+            InputDialog.showInputDialog(editor, "Group:", "Open Group", null);
         if (groupName == null || groupName.length() == 0)
             return;
         editor.repaintNow();
@@ -82,22 +77,22 @@ public final class NewsCommands
         editor.activate(summary);
     }
 
-    public static void readArticle()
-    {
+    public static void readArticle() {
         readArticle(false);
     }
 
-    public static void readArticleOtherWindow()
-    {
+    public static void readArticleOtherWindow() {
         readArticle(true);
     }
 
-    private static void readArticle(boolean useOtherWindow)
-    {
+    private static void readArticle(boolean useOtherWindow) {
         final Editor editor = Editor.currentEditor();
         final Buffer buffer = editor.getBuffer();
         if (buffer instanceof NewsGroupSummaryBuffer && editor.getDot() != null)
-            ((NewsGroupSummaryBuffer)buffer).readArticle(editor,
-                editor.getDotLine(), useOtherWindow);
+            ((NewsGroupSummaryBuffer) buffer).readArticle(
+                editor,
+                editor.getDotLine(),
+                useOtherWindow
+            );
     }
 }

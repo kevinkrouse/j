@@ -23,8 +23,7 @@ package org.armedbear.j.mail;
 import java.io.IOException;
 import java.io.InputStream;
 
-public final class MailReader
-{
+public final class MailReader {
     private final InputStream inputStream;
 
     private byte[] buf = new byte[16384];
@@ -33,18 +32,15 @@ public final class MailReader
     private char[] chars = new char[1024];
     private long offset;
 
-    public MailReader(InputStream inputStream)
-    {
+    public MailReader(InputStream inputStream) {
         this.inputStream = inputStream;
     }
 
-    public final long getOffset()
-    {
+    public final long getOffset() {
         return offset;
     }
 
-    public String readLine() throws IOException
-    {
+    public String readLine() throws IOException {
         int i = 0;
         while (true) {
             if (pos >= count) {
@@ -78,13 +74,11 @@ public final class MailReader
         }
     }
 
-    public void close() throws IOException
-    {
+    public void close() throws IOException {
         inputStream.close();
     }
 
-    private final void fill() throws IOException
-    {
+    private final void fill() throws IOException {
         pos = 0;
         count = inputStream.read(buf);
     }

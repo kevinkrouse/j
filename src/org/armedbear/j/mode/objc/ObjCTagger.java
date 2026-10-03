@@ -20,34 +20,30 @@
 
 package org.armedbear.j.mode.objc;
 
-import org.armedbear.j.Mode;
 import java.lang.StringBuilder;
-import org.armedbear.j.mode.java.JavaTagger;
+import java.util.ArrayList;
 import org.armedbear.j.LocalTag;
+import org.armedbear.j.Mode;
 import org.armedbear.j.Position;
 import org.armedbear.j.SystemBuffer;
 import org.armedbear.j.mode.c.CMode;
 import org.armedbear.j.mode.c.CTag;
+import org.armedbear.j.mode.java.JavaTagger;
 
-import java.util.ArrayList;
-
-public final class ObjCTagger extends JavaTagger
-{
+public final class ObjCTagger extends JavaTagger {
     // States.
-    private static final int NEUTRAL        = 0;
-    private static final int METHOD_PROLOG  = 1;
-    private static final int METHOD_NAME    = 2;
+    private static final int NEUTRAL = 0;
+    private static final int METHOD_PROLOG = 1;
+    private static final int METHOD_NAME = 2;
     private static final int PARAMETER_LIST = 3;
 
     private Mode mode = ObjCMode.getMode();
 
-    public ObjCTagger(SystemBuffer buffer)
-    {
+    public ObjCTagger(SystemBuffer buffer) {
         super(buffer);
     }
 
-    public void run()
-    {
+    public void run() {
         ArrayList<LocalTag> tags = new ArrayList<LocalTag>();
         pos = new Position(buffer.getFirstLine(), 0);
         token = null;
@@ -155,8 +151,7 @@ public final class ObjCTagger extends JavaTagger
         buffer.setTags(tags);
     }
 
-    private String gatherToken(Position pos)
-    {
+    private String gatherToken(Position pos) {
         StringBuilder sb = new StringBuilder();
         char c;
         while (isIdentifierPart(c = pos.getChar()) || c == ':') {
@@ -167,13 +162,11 @@ public final class ObjCTagger extends JavaTagger
         return sb.toString();
     }
 
-    private static final boolean isIdentifierStart(char c)
-    {
+    private static final boolean isIdentifierStart(char c) {
         return CMode.getMode().isIdentifierStart(c);
     }
 
-    private static final boolean isIdentifierPart(char c)
-    {
+    private static final boolean isIdentifierPart(char c) {
         return CMode.getMode().isIdentifierPart(c);
     }
 }

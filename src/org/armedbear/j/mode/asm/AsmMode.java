@@ -20,6 +20,7 @@
 
 package org.armedbear.j.mode.asm;
 
+import java.awt.event.KeyEvent;
 import org.armedbear.j.AbstractMode;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Constants;
@@ -29,52 +30,41 @@ import org.armedbear.j.Line;
 import org.armedbear.j.Mode;
 import org.armedbear.j.Property;
 
-import java.awt.event.KeyEvent;
-
-public final class AsmMode extends AbstractMode implements Constants, Mode
-{
+public final class AsmMode extends AbstractMode implements Constants, Mode {
     private static final AsmMode mode = new AsmMode();
 
-    private AsmMode()
-    {
+    private AsmMode() {
         super(ASM_MODE, ASM_MODE_NAME);
         setProperty(Property.INDENT_SIZE, 8);
     }
 
-    public static AsmMode getMode()
-    {
+    public static AsmMode getMode() {
         return mode;
     }
 
-    public String getCommentStart()
-    {
+    public String getCommentStart() {
         return "; ";
     }
 
-    public Formatter getFormatter(Buffer buffer)
-    {
+    public Formatter getFormatter(Buffer buffer) {
         return new AsmFormatter(buffer);
     }
 
-    protected void setKeyMapDefaults(KeyMap km)
-    {
+    protected void setKeyMapDefaults(KeyMap km) {
         km.mapKey(KeyEvent.VK_ENTER, 0, "newlineAndIndent");
         km.mapKey(KeyEvent.VK_F9, 0, "compile");
         km.mapKey(KeyEvent.VK_F9, CTRL_MASK, "recompile");
     }
 
-    public boolean canIndent()
-    {
+    public boolean canIndent() {
         return true;
     }
 
-    public boolean canIndentPaste()
-    {
+    public boolean canIndentPaste() {
         return false;
     }
 
-    public int getCorrectIndentation(Line line, Buffer buffer)
-    {
+    public int getCorrectIndentation(Line line, Buffer buffer) {
         final int indentSize = buffer.getIndentSize();
         final Line model = findModel(line);
         if (model == null)
@@ -84,8 +74,7 @@ public final class AsmMode extends AbstractMode implements Constants, Mode
         return buffer.getIndentation(model);
     }
 
-    private Line findModel(Line line)
-    {
+    private Line findModel(Line line) {
         Line model = line.previous();
         while (model != null && model.isBlank())
             model = model.previous();

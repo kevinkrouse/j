@@ -20,6 +20,8 @@
 
 package org.armedbear.j.mode.perl;
 
+import java.awt.event.KeyEvent;
+import java.util.regex.Pattern;
 import org.armedbear.j.AbstractMode;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Constants;
@@ -35,46 +37,35 @@ import org.armedbear.j.SyntaxIterator;
 import org.armedbear.j.SystemBuffer;
 import org.armedbear.j.Tagger;
 
-import java.util.regex.Pattern;
-import java.awt.event.KeyEvent;
-
-public final class PerlMode extends AbstractMode implements Constants, Mode
-{
+public final class PerlMode extends AbstractMode implements Constants, Mode {
     private static final PerlMode mode = new PerlMode();
 
-    private PerlMode()
-    {
+    private PerlMode() {
         super(PERL_MODE, PERL_MODE_NAME);
         keywords = new Keywords(this);
     }
 
-    public static final PerlMode getMode()
-    {
+    public static final PerlMode getMode() {
         return mode;
     }
 
-    public final boolean canIndent()
-    {
+    public final boolean canIndent() {
         return true;
     }
 
-    public final String getCommentStart()
-    {
+    public final String getCommentStart() {
         return "# ";
     }
 
-    public final SyntaxIterator getSyntaxIterator(Position pos)
-    {
+    public final SyntaxIterator getSyntaxIterator(Position pos) {
         return new PerlSyntaxIterator(pos);
     }
 
-    public final Formatter getFormatter(Buffer buffer)
-    {
+    public final Formatter getFormatter(Buffer buffer) {
         return new PerlFormatter(buffer);
     }
 
-    protected void setKeyMapDefaults(KeyMap km)
-    {
+    protected void setKeyMapDefaults(KeyMap km) {
         km.mapKey('{', "electricOpenBrace");
         km.mapKey('}', "electricCloseBrace");
         km.mapKey(';', "electricSemi");
@@ -98,47 +89,49 @@ public final class PerlMode extends AbstractMode implements Constants, Mode
         km.mapKey(KeyEvent.VK_CLOSE_BRACKET, CTRL_MASK, "unfold");
     }
 
-    public Tagger getTagger(SystemBuffer buffer)
-    {
+    public Tagger getTagger(SystemBuffer buffer) {
         return new PerlTagger(buffer);
     }
 
-    public boolean isTaggable()
-    {
+    public boolean isTaggable() {
         return true;
     }
 
-    public void foldAll(Editor editor)
-    {
+    public void foldAll(Editor editor) {
         editor.foldMethods();
     }
 
-    public boolean hasQualifiedNames()
-    {
+    public boolean hasQualifiedNames() {
         return true;
     }
 
-    public boolean isQualifiedName(String s)
-    {
+    public boolean isQualifiedName(String s) {
         return s.indexOf("::") >= 0;
     }
 
-    public int getCorrectIndentation(Line line, Buffer buffer)
-    {
+    public int getCorrectIndentation(Line line, Buffer buffer) {
         String trim = line.trim();
         if (trim.length() > 0) {
             Position pos = null;
             char c = trim.charAt(0);
             if (c == '}') {
-                pos = matchClosingBrace(new Position(line,
-                    line.getText().indexOf('}')));
+                pos = matchClosingBrace(
+                    new Position(
+                        line,
+                        line.getText().indexOf('}')
+                    )
+                );
                 if (pos == null)
                     return 0;
                 if (!pos.getLine().trim().startsWith("{"))
                     pos = findBeginningOfStatement(pos);
             } else if (c == ')') {
-                pos = findEnclosingParen(new Position(line,
-                    line.getText().indexOf(')')));
+                pos = findEnclosingParen(
+                    new Position(
+                        line,
+                        line.getText().indexOf(')')
+                    )
+                );
                 if (pos == null)
                     return 0;
                 if (!pos.getLine().trim().startsWith("("))
@@ -177,10 +170,13 @@ public final class PerlMode extends AbstractMode implements Constants, Mode
             return modelIndent;
         if (modelText.endsWith(";"))
             return modelIndent;
-        pos = findEnclosingParen(new Position(line, 0) );
+        pos = findEnclosingParen(new Position(line, 0));
         if (pos != null) {
-            if (pos.getLine().trim().endsWith("(") ||
-                !buffer.getBooleanProperty(Property.LINEUP_ARGLIST)) {
+            if (
+                pos.getLine().trim().endsWith("(")
+                    ||
+                    !buffer.getBooleanProperty(Property.LINEUP_ARGLIST)
+            ) {
                 return buffer.getIndentation(pos.getLine()) + indentSize;
             } else {
                 // Advance past '('.
@@ -208,9 +204,9 @@ public final class PerlMode extends AbstractMode implements Constants, Mode
         return modelIndent;
     }
 
-    private static Line findModel(Line line)
-    {
-        for (Line modelLine = line.previous(); modelLine != null;
+    private static Line findModel(Line line) {
+        for (Line modelLine = line.previous();
+            modelLine != null;
             modelLine = modelLine.previous()) {
             if (modelLine.isBlank())
                 continue;
@@ -226,15 +222,13 @@ public final class PerlMode extends AbstractMode implements Constants, Mode
 
     private static Pattern labelRE = Pattern.compile("^\\s*[A-Za-z0-9_]+:\\s*$");
 
-    private static boolean isLabel(Line line)
-    {
+    private static boolean isLabel(Line line) {
         return labelRE.matcher(line.getText()).find();
     }
 
     // Scan backwards from starting position, looking for unmatched opening
     // parenthesis.
-    private static Position findEnclosingParen(Position start)
-    {
+    private static Position findEnclosingParen(Position start) {
         PerlSyntaxIterator it = new PerlSyntaxIterator(start);
         int count = 0;
         char c;
@@ -253,8 +247,7 @@ public final class PerlMode extends AbstractMode implements Constants, Mode
         return null;
     }
 
-    static Position findBeginningOfStatement(Position start)
-    {
+    static Position findBeginningOfStatement(Position start) {
         Position pos = new Position(start);
         if (pos.getLine().trim().startsWith("}")) {
             Position posMatch =
@@ -295,8 +288,7 @@ public final class PerlMode extends AbstractMode implements Constants, Mode
         return pos;
     }
 
-    private static Position matchClosingBrace(Position start)
-    {
+    private static Position matchClosingBrace(Position start) {
         int count = 1;
         PerlSyntaxIterator it = new PerlSyntaxIterator(start);
         char c;
@@ -311,37 +303,31 @@ public final class PerlMode extends AbstractMode implements Constants, Mode
         return null;
     }
 
-    private static String _trimSyntacticWhitespace(String s)
-    {
+    private static String _trimSyntacticWhitespace(String s) {
         PerlSyntaxIterator it = new PerlSyntaxIterator(null);
         return (new String(it.hideSyntacticWhitespace(s))).trim();
     }
 
-    public String trimSyntacticWhitespace(String s)
-    {
+    public String trimSyntacticWhitespace(String s) {
         return _trimSyntacticWhitespace(s);
     }
 
     private static final String validChars =
         "$@%ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz_0123456789";
 
-    static final boolean isIdentifierChar(char c)
-    {
+    static final boolean isIdentifierChar(char c) {
         return (validChars.indexOf(c) >= 0);
     }
 
-    public boolean isIdentifierStart(char c)
-    {
+    public boolean isIdentifierStart(char c) {
         return isIdentifierChar(c);
     }
 
-    public boolean isIdentifierPart(char c)
-    {
+    public boolean isIdentifierPart(char c) {
         return isIdentifierChar(c);
     }
 
-    public boolean isCommentLine(Line line)
-    {
+    public boolean isCommentLine(Line line) {
         return line.trim().startsWith("#");
     }
 }

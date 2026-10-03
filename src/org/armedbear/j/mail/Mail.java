@@ -22,26 +22,23 @@ package org.armedbear.j.mail;
 
 import java.io.UnsupportedEncodingException;
 import java.io.Writer;
+import java.lang.StringBuilder;
 import java.net.InetAddress;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
-
 import org.armedbear.j.Directories;
 import org.armedbear.j.Editor;
 import org.armedbear.j.File;
-import java.lang.StringBuilder;
-import org.armedbear.j.util.FastStringReader;
 import org.armedbear.j.Headers;
 import org.armedbear.j.Log;
 import org.armedbear.j.Property;
+import org.armedbear.j.util.FastStringReader;
 import org.armedbear.j.util.Utilities;
 
-public final class Mail
-{
+public final class Mail {
     private static File sentMessagesFile;
 
-    public static final File getSentMessagesFile()
-    {
+    public static final File getSentMessagesFile() {
         final String fcc = Editor.preferences().getStringProperty(Property.FCC);
         if (fcc == null)
             return null;
@@ -62,16 +59,14 @@ public final class Mail
         return sentMessagesFile;
     }
 
-    public static final MailAddress getUserMailAddress()
-    {
+    public static final MailAddress getUserMailAddress() {
         String address = Editor.preferences().getStringProperty(Property.USER_MAIL_ADDRESS);
         if (address == null)
             return null;
         return new MailAddress(Editor.preferences().getStringProperty(Property.USER_FULL_NAME), address);
     }
 
-    public static boolean bounceMessage(Message message, MailAddress[] to)
-    {
+    public static boolean bounceMessage(Message message, MailAddress[] to) {
         if (message == null)
             return false;
         if (to == null)
@@ -84,9 +79,11 @@ public final class Mail
         return succeeded;
     }
 
-    public static boolean bounceMessage(Message message, MailAddress[] to,
-        SmtpSession session)
-    {
+    public static boolean bounceMessage(
+        Message message,
+        MailAddress[] to,
+        SmtpSession session
+    ) {
         if (message == null)
             return false;
         if (to == null)
@@ -130,14 +127,16 @@ public final class Mail
         return succeeded;
     }
 
-    private static boolean writeMessageText(Message message, MailAddress[] to,
-        Writer writer)
-    {
+    private static boolean writeMessageText(
+        Message message,
+        MailAddress[] to,
+        Writer writer
+    ) {
         try {
             FastStringReader reader =
                 new FastStringReader(message.getRawHeaders());
             String s;
-            while((s = reader.readLine()) != null) {
+            while ((s = reader.readLine()) != null) {
                 if (s.startsWith("X-J-Status"))
                     continue;
                 if (s.startsWith("X-UIDL"))
@@ -165,7 +164,7 @@ public final class Mail
                 }
                 writer.write(address);
                 length += address.length();
-                if (i < to.length-1) {
+                if (i < to.length - 1) {
                     writer.write(", ");
                     length += 2;
                 }
@@ -189,8 +188,10 @@ public final class Mail
                 if (!encoding.equalsIgnoreCase("iso-8859-1")) {
                     try {
                         byte[] bytes = body.getBytes(encoding);
-                        body = new String(bytes,
-                            java.nio.charset.StandardCharsets.ISO_8859_1);
+                        body = new String(
+                            bytes,
+                            java.nio.charset.StandardCharsets.ISO_8859_1
+                        );
                     }
                     catch (UnsupportedEncodingException e) {
                         Log.error(e);
@@ -210,8 +211,7 @@ public final class Mail
 
     private static long messageIdentifier = System.currentTimeMillis() % 10000;
 
-    public static String generateMessageId()
-    {
+    public static String generateMessageId() {
         String hostName = null;
         try {
             InetAddress addr = InetAddress.getLocalHost();
@@ -222,7 +222,7 @@ public final class Mail
         }
         if (hostName == null)
             hostName = "unknown"; // Avoid NPE below.
-        SimpleDateFormat df = new SimpleDateFormat ("yyyyMMddHHmmss");
+        SimpleDateFormat df = new SimpleDateFormat("yyyyMMddHHmmss");
         Calendar cal = Calendar.getInstance();
         StringBuilder sb = new StringBuilder(128);
         sb.append('<');
@@ -235,8 +235,7 @@ public final class Mail
         return sb.toString();
     }
 
-    public static boolean writeFcc(Message message, String destination, int flags)
-    {
+    public static boolean writeFcc(Message message, String destination, int flags) {
         if (destination.startsWith("mailbox:"))
             destination = destination.substring(8);
         File file = File.getInstance(destination);

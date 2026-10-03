@@ -27,41 +27,34 @@ import org.armedbear.j.Formatter;
 import org.armedbear.j.Keywords;
 import org.armedbear.j.Mode;
 
-public final class AutoconfMode extends AbstractMode implements Constants, Mode
-{
+public final class AutoconfMode extends AbstractMode implements Constants, Mode {
     private static final AutoconfMode mode = new AutoconfMode();
 
-    private AutoconfMode()
-    {
+    private AutoconfMode() {
         super(AUTOCONF_MODE, AUTOCONF_MODE_NAME);
         keywords = new Keywords(this);
     }
 
-    public static final AutoconfMode getMode()
-    {
+    public static final AutoconfMode getMode() {
         return mode;
     }
 
-    public final String getCommentStart()
-    {
+    public final String getCommentStart() {
         return "dnl ";
     }
 
-    public final Formatter getFormatter(Buffer buffer)
-    {
+    public final Formatter getFormatter(Buffer buffer) {
         return new AutoconfFormatter(buffer);
     }
 
     private static final String validChars =
         "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz_0123456789";
 
-    public final boolean isIdentifierStart(char c)
-    {
+    public final boolean isIdentifierStart(char c) {
         return (validChars.indexOf(c) >= 0);
     }
 
-    public final boolean isIdentifierPart(char c)
-    {
+    public final boolean isIdentifierPart(char c) {
         return (validChars.indexOf(c) >= 0);
     }
 }

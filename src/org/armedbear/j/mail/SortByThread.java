@@ -31,20 +31,17 @@ import javax.swing.tree.TreeNode;
 import org.armedbear.j.Debug;
 import org.armedbear.j.Log;
 
-public final class SortByThread
-{
+public final class SortByThread {
     private final List<MailboxEntry> entries;
 
     private final Node root = new Node();
     private final Map<String, Node> idMap = new HashMap<String, Node>();
 
-    public SortByThread(List<? extends MailboxEntry> entries)
-    {
+    public SortByThread(List<? extends MailboxEntry> entries) {
         this.entries = Collections.unmodifiableList(entries);
     }
 
-    public void run()
-    {
+    public void run() {
         final int count = entries.size();
         // Create all the nodes and populate the ID map.
         ArrayList<Node> nodes = new ArrayList<Node>(count);
@@ -104,8 +101,7 @@ public final class SortByThread
         sort(root);
     }
 
-    private void removeEmptyContainers(final Node parent)
-    {
+    private void removeEmptyContainers(final Node parent) {
         for (int i = 0; i < parent.getChildCount(); i++) {
             Node node = (Node) parent.getChildAt(i);
             if (node.getMailboxEntry() == null && node.getChildCount() == 0) {
@@ -137,17 +133,16 @@ public final class SortByThread
         }
     }
 
-    private void groupMessagesBySubject()
-    {
+    private void groupMessagesBySubject() {
         HashMap<String, Node> subjectMap = createSubjectMap();
 
         // Iterate through top-level nodes.
-        for (int i = root.getChildCount(); i-- > 0; ) {
+        for (int i = root.getChildCount(); i-- > 0;) {
             final Node node = (Node) root.getChildAt(i);
             MailboxEntry entry = node.getMailboxEntry();
             if (entry == null) {
                 if (node.getChildCount() > 0)
-                    entry = ((Node)node.getChildAt(0)).getMailboxEntry();
+                    entry = ((Node) node.getChildAt(0)).getMailboxEntry();
                 if (entry == null)
                     continue;
             }
@@ -214,8 +209,7 @@ public final class SortByThread
         subjectMap = null;
     }
 
-    private HashMap<String, Node> createSubjectMap()
-    {
+    private HashMap<String, Node> createSubjectMap() {
         HashMap<String, Node> subjectMap = new HashMap<String, Node>();
         for (int i = 0, limit = root.getChildCount(); i < limit; i++) {
             final Node node = (Node) root.getChildAt(i);
@@ -223,7 +217,7 @@ public final class SortByThread
             if (entry == null) {
                 // Dummy node.
                 if (node.getChildCount() > 0)
-                    entry = ((Node)node.getChildAt(0)).getMailboxEntry();
+                    entry = ((Node) node.getChildAt(0)).getMailboxEntry();
                 else {
                     Log.debug("dummy node child count is zero");
                     continue;
@@ -237,8 +231,12 @@ public final class SortByThread
                         subjectMap.put(baseSubject, node);
                     } else {
                         MailboxEntry oldEntry = oldNode.getMailboxEntry();
-                        if (oldEntry != null && oldEntry.subjectIsReply() &&
-                            !entry.subjectIsReply()) {
+                        if (
+                            oldEntry != null
+                                && oldEntry.subjectIsReply()
+                                &&
+                                !entry.subjectIsReply()
+                        ) {
                             subjectMap.put(baseSubject, node);
                         } else if (node.getMailboxEntry() == null && oldEntry != null) {
                             subjectMap.put(baseSubject, node);
@@ -250,17 +248,15 @@ public final class SortByThread
         return subjectMap;
     }
 
-    private void sort(Node node)
-    {
+    private void sort(Node node) {
         // Depth first!
         for (int i = 0, limit = node.getChildCount(); i < limit; i++)
-            sort((Node)node.getChildAt(i));
+            sort((Node) node.getChildAt(i));
         if (node.getChildCount() > 1)
             node.sortChildren();
     }
 
-    private Node findParentForNode(Node node)
-    {
+    private Node findParentForNode(Node node) {
         final MailboxEntry entry = node.getMailboxEntry();
         if (entry == null)
             return null;
@@ -285,15 +281,17 @@ public final class SortByThread
 
     private int sequenceNumber;
 
-    public void addEntries(MailboxBuffer mb, MailboxFilter filter)
-    {
+    public void addEntries(MailboxBuffer mb, MailboxFilter filter) {
         sequenceNumber = 1;
         addEntriesForNode(root, mb, filter, 0);
     }
 
-    private void addEntriesForNode(Node node, MailboxBuffer mb, MailboxFilter filter,
-        int depth)
-    {
+    private void addEntriesForNode(
+        Node node,
+        MailboxBuffer mb,
+        MailboxFilter filter,
+        int depth
+    ) {
         if (node != root) {
             MailboxEntry entry = node.getMailboxEntry();
             if (entry != null) {
@@ -310,53 +308,44 @@ public final class SortByThread
             }
         }
         for (int i = 0, limit = node.getChildCount(); i < limit; i++)
-            addEntriesForNode((Node)node.getChildAt(i), mb, filter, depth + 1);
+            addEntriesForNode((Node) node.getChildAt(i), mb, filter, depth + 1);
     }
 }
 
-class Node extends DefaultMutableTreeNode
-{
+class Node extends DefaultMutableTreeNode {
     private String messageId;
     private String baseSubject;
 
-    Node()
-    {
+    Node() {
         super();
     }
 
-    Node(MailboxEntry entry)
-    {
+    Node(MailboxEntry entry) {
         super(entry);
     }
 
-    Node(String messageId, String baseSubject)
-    {
+    Node(String messageId, String baseSubject) {
         this.messageId = messageId;
         this.baseSubject = baseSubject;
     }
 
-    MailboxEntry getMailboxEntry()
-    {
+    MailboxEntry getMailboxEntry() {
         return (MailboxEntry) getUserObject();
     }
 
-    String getBaseSubject()
-    {
+    String getBaseSubject() {
         return baseSubject;
     }
 
-    void setBaseSubject(String s)
-    {
+    void setBaseSubject(String s) {
         baseSubject = s;
     }
 
-    String getMessageId()
-    {
+    String getMessageId() {
         return messageId;
     }
 
-    RFC822Date getDate()
-    {
+    RFC822Date getDate() {
         MailboxEntry entry = getMailboxEntry();
         if (entry != null)
             return entry.getDate();
@@ -370,13 +359,11 @@ class Node extends DefaultMutableTreeNode
         return null;
     }
 
-    boolean isDummy()
-    {
+    boolean isDummy() {
         return getUserObject() == null;
     }
 
-    void sortChildren()
-    {
+    void sortChildren() {
         if (children != null)
             sortEntriesByDate(children);
     }
@@ -384,11 +371,12 @@ class Node extends DefaultMutableTreeNode
     // Typed to TreeNode because the list being sorted is the children field
     // DefaultMutableTreeNode declares, and every element in it is a Node.
     private static final Comparator<TreeNode> comparator =
-        (n1, n2) -> RFC822Date.compare(((Node) n1).getDate(),
-                                       ((Node) n2).getDate());
+        (n1, n2) -> RFC822Date.compare(
+            ((Node) n1).getDate(),
+            ((Node) n2).getDate()
+        );
 
-    private static final void sortEntriesByDate(List<TreeNode> list)
-    {
+    private static final void sortEntriesByDate(List<TreeNode> list) {
         Collections.sort(list, comparator);
     }
 }

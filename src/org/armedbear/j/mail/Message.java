@@ -24,27 +24,22 @@ import java.util.ArrayList;
 import java.util.List;
 import org.armedbear.j.Headers;
 
-public final class Message extends MimePart
-{
+public final class Message extends MimePart {
     private List<MimePart> messageParts;
 
-    public Message(String raw)
-    {
+    public Message(String raw) {
         super(raw);
     }
 
-    public Message(String raw, Headers headers)
-    {
+    public Message(String raw, Headers headers) {
         super(raw, headers);
     }
 
-    public List<MimePart> getParts()
-    {
+    public List<MimePart> getParts() {
         return messageParts;
     }
 
-    public MimePart getPart(int i)
-    {
+    public MimePart getPart(int i) {
         if (messageParts == null)
             return null;
         if (i < 0)
@@ -54,8 +49,7 @@ public final class Message extends MimePart
         return messageParts.get(i);
     }
 
-    public void parse()
-    {
+    public void parse() {
         super.parse();
         List<? extends MimePart> parts = super.getParts();
         if (parts == null || parts.size() == 0)

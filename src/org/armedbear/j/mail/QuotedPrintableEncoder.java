@@ -24,11 +24,12 @@ import java.io.UnsupportedEncodingException;
 import java.lang.StringBuilder;
 import org.armedbear.j.Log;
 
-public final class QuotedPrintableEncoder
-{
-    public static String encode(String input, String characterEncoding,
-        String separator)
-    {
+public final class QuotedPrintableEncoder {
+    public static String encode(
+        String input,
+        String characterEncoding,
+        String separator
+    ) {
         if (input.length() == 0)
             return input;
         byte[] bytes;
@@ -47,24 +48,30 @@ public final class QuotedPrintableEncoder
                 sb.append(encode(b));
                 outputLength += 3;
             } else if (outputLength == 0 && b == 'F') {
-                if (i+4 < bytes.length &&
-                    bytes[i+1] == 'r' &&
-                    bytes[i+2] == 'o' &&
-                    bytes[i+3] == 'm' &&
-                    bytes[i+4] == ' ') {
+                if (
+                    i + 4 < bytes.length
+                        &&
+                        bytes[i + 1] == 'r'
+                        &&
+                        bytes[i + 2] == 'o'
+                        &&
+                        bytes[i + 3] == 'm'
+                        &&
+                        bytes[i + 4] == ' '
+                ) {
                     // Need to encode the 'F'.
                     sb.append(encode(b));
                     outputLength += 3;
                 } else {
                     // 'F' but not "From ". Don't encode it.
-                    sb.append((char) (b < 0 ? b+256 : b));
+                    sb.append((char) (b < 0 ? b + 256 : b));
                     ++outputLength;
                 }
             } else if (outputLength == 0 && b == '.') {
                 sb.append(encode(b));
                 outputLength += 3;
             } else {
-                sb.append((char) (b < 0 ? b+256 : b));
+                sb.append((char) (b < 0 ? b + 256 : b));
                 ++outputLength;
             }
             if (outputLength >= 73) {
@@ -76,7 +83,7 @@ public final class QuotedPrintableEncoder
         }
         // Check for whitespace at end of line.
         if (sb.length() > 0) {
-            char c = sb.charAt(sb.length()-1);
+            char c = sb.charAt(sb.length() - 1);
             if (c == ' ' || c == '\t') {
                 sb.append('=');
                 sb.append(separator);
@@ -85,8 +92,7 @@ public final class QuotedPrintableEncoder
         return sb.toString();
     }
 
-    private static String encode(byte b)
-    {
+    private static String encode(byte b) {
         int n = b;
         if (n < 0)
             n += 256;

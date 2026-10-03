@@ -21,61 +21,52 @@
 package org.armedbear.j.mail;
 
 import java.io.Serializable;
+import java.lang.StringBuilder;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.TimeZone;
-import java.lang.StringBuilder;
 import org.armedbear.j.Headers;
 import org.armedbear.j.Log;
 import org.armedbear.j.util.Tuple2;
 
-/*package*/ final class ImapMailboxEntry extends MailboxEntry implements Serializable
-{
-  private transient ImapMailboxBuffer mailbox;
+/*package*/ final class ImapMailboxEntry extends MailboxEntry implements Serializable {
+    private transient ImapMailboxBuffer mailbox;
 
-  private int uid;
-  private RFC822Date arrival;
+    private int uid;
+    private RFC822Date arrival;
 
-  private ImapMailboxEntry()
-  {
-  }
+    private ImapMailboxEntry() {}
 
-  // For testing only!
-  /*package*/ ImapMailboxEntry(int uid)
-  {
-    this.uid = uid;
-  }
+    // For testing only!
+    /*package*/ ImapMailboxEntry(int uid) {
+        this.uid = uid;
+    }
 
-  public final ImapMailboxBuffer getMailbox()
-  {
-    return mailbox;
-  }
+    public final ImapMailboxBuffer getMailbox() {
+        return mailbox;
+    }
 
-  public final void setMailbox(ImapMailboxBuffer mailbox)
-  {
-    this.mailbox = mailbox;
-  }
+    public final void setMailbox(ImapMailboxBuffer mailbox) {
+        this.mailbox = mailbox;
+    }
 
-  public final int getUid()
-  {
-    return uid;
-  }
+    public final int getUid() {
+        return uid;
+    }
 
-  public final RFC822Date getArrival()
-  {
-    return arrival;
-  }
+    public final RFC822Date getArrival() {
+        return arrival;
+    }
 
-  private static final String UID_START = "UID ";
-  private static final String INTERNALDATE_START = "INTERNALDATE ";
-  private static final String RFC822_SIZE_START = "RFC822.SIZE ";
-  private static final String FLAGS_START = "FLAGS ";
-  private static final String ENVELOPE_START = "ENVELOPE ";
-  private static final String BODY_START = "BODY[";
+    private static final String UID_START = "UID ";
+    private static final String INTERNALDATE_START = "INTERNALDATE ";
+    private static final String RFC822_SIZE_START = "RFC822.SIZE ";
+    private static final String FLAGS_START = "FLAGS ";
+    private static final String ENVELOPE_START = "ENVELOPE ";
+    private static final String BODY_START = "BODY[";
 
-    public static ImapMailboxEntry parseEntry(String s)
-    {
+    public static ImapMailboxEntry parseEntry(String s) {
         ImapMailboxEntry entry = new ImapMailboxEntry();
         entry.messageNumber = parseMessageNumber(s);
         if (entry.messageNumber < 1) {
@@ -84,32 +75,25 @@ import org.armedbear.j.util.Tuple2;
         }
 
         int index = s.indexOf('(');
-        s = s.substring(index+1);
-        while (s != null && s.length() > 0)
-        {
+        s = s.substring(index + 1);
+        while (s != null && s.length() > 0) {
             s = skipWhitespace(s);
             if (test(s, ")"))
                 break;
 
             if (test(s, UID_START)) {
                 s = readUid(entry, s);
-            }
-            else if (test(s, RFC822_SIZE_START)) {
+            } else if (test(s, RFC822_SIZE_START)) {
                 s = readRFC822Size(entry, s);
-            }
-            else if (test(s, INTERNALDATE_START)) {
+            } else if (test(s, INTERNALDATE_START)) {
                 s = readInternalDate(entry, s);
-            }
-            else if (test(s, FLAGS_START)) {
+            } else if (test(s, FLAGS_START)) {
                 s = readFlags(entry, s);
-            }
-            else if (test(s, ENVELOPE_START)) {
+            } else if (test(s, ENVELOPE_START)) {
                 s = readEnvelope(entry, s);
-            }
-            else if (test(s, BODY_START)) {
+            } else if (test(s, BODY_START)) {
                 s = readBodyHeaders(entry, s);
-            }
-            else {
+            } else {
                 Log.error("Unexpected text: " + s);
                 break;
             }
@@ -147,8 +131,7 @@ import org.armedbear.j.util.Tuple2;
         return entry;
     }
 
-    private static String skipWhitespace(String s)
-    {
+    private static String skipWhitespace(String s) {
         int i;
         for (i = 0; i < s.length(); i++)
             if (!Character.isWhitespace(s.charAt(i)))
@@ -157,8 +140,7 @@ import org.armedbear.j.util.Tuple2;
     }
 
     // Case-insensitive prefix match
-    private static boolean test(String s, String test)
-    {
+    private static boolean test(String s, String test) {
         if (s.length() < test.length())
             return false;
 
@@ -170,8 +152,7 @@ import org.armedbear.j.util.Tuple2;
         return true;
     }
 
-    private static String match(String s, String test)
-    {
+    private static String match(String s, String test) {
         if (test(s, test)) {
             return s.substring(test.length());
         }
@@ -180,8 +161,7 @@ import org.armedbear.j.util.Tuple2;
         return null;
     }
 
-    private static String readUid(ImapMailboxEntry entry, String s)
-    {
+    private static String readUid(ImapMailboxEntry entry, String s) {
         Tuple2<Integer, String> p = _parseUid(s);
         if (p == null || p.first < 1) {
             Log.error("can't parse UID");
@@ -191,8 +171,7 @@ import org.armedbear.j.util.Tuple2;
         return p.second;
     }
 
-    private static String readRFC822Size(ImapMailboxEntry entry, String s)
-    {
+    private static String readRFC822Size(ImapMailboxEntry entry, String s) {
         s = match(s, RFC822_SIZE_START);
         Tuple2<Integer, String> p = parseNumber(s);
         if (p == null || p.first < 1) {
@@ -203,8 +182,7 @@ import org.armedbear.j.util.Tuple2;
         return p.second;
     }
 
-    private static String readInternalDate(ImapMailboxEntry entry, String s)
-    {
+    private static String readInternalDate(ImapMailboxEntry entry, String s) {
         s = match(s, INTERNALDATE_START);
         Tuple2<String, String> p = parseQuoted(s);
         if (p == null || p.first.length() == 0) {
@@ -215,8 +193,7 @@ import org.armedbear.j.util.Tuple2;
         return p.second;
     }
 
-    private static String readFlags(ImapMailboxEntry entry, String s)
-    {
+    private static String readFlags(ImapMailboxEntry entry, String s) {
         s = match(s, FLAGS_START);
         Tuple2<Integer, String> p = _parseFlags(s);
         if (p == null) {
@@ -227,8 +204,7 @@ import org.armedbear.j.util.Tuple2;
         return p.second;
     }
 
-    private static String readEnvelope(ImapMailboxEntry entry, String s)
-    {
+    private static String readEnvelope(ImapMailboxEntry entry, String s) {
         String remaining = match(s, ENVELOPE_START);
 
         // Next field is date (quoted string).
@@ -327,8 +303,7 @@ import org.armedbear.j.util.Tuple2;
         return match(remaining, ")");
     }
 
-    private static String readBodyHeaders(ImapMailboxEntry entry, String s)
-    {
+    private static String readBodyHeaders(ImapMailboxEntry entry, String s) {
         String remaining = match(s, BODY_START);
         int end = remaining.indexOf("]");
         Tuple2<String, String> p = parseQuoted(remaining.substring(end + "]".length()));
@@ -348,8 +323,7 @@ import org.armedbear.j.util.Tuple2;
         return match(p.second, ")");
     }
 
-    private static Tuple2<Integer, String> parseNumber(String s)
-    {
+    private static Tuple2<Integer, String> parseNumber(String s) {
         final int limit = s.length();
         int i;
         for (i = 0; i < limit; i++) {
@@ -359,8 +333,7 @@ import org.armedbear.j.util.Tuple2;
         if (i == 0) // No digit found.
             return null;
 
-        try
-        {
+        try {
             int num = Integer.parseInt(s.substring(0, i));
             return new Tuple2<Integer, String>(num, s.substring(i));
         }
@@ -370,26 +343,20 @@ import org.armedbear.j.util.Tuple2;
         }
     }
 
-    private static String parseSubject(String subject)
-    {
+    private static String parseSubject(String subject) {
         subject = subject == null ? "" : RFC2047.decode(subject);
-        if (subject.indexOf('\\') >= 0)
-        {
+        if (subject.indexOf('\\') >= 0) {
             // strip out escape chars
             String temp = subject;
             final int limit = temp.length();
             StringBuilder sb = new StringBuilder();
             boolean escaped = false;
-            for (int i = 0; i < limit; i++)
-            {
+            for (int i = 0; i < limit; i++) {
                 char c = temp.charAt(i);
-                if (escaped)
-                {
+                if (escaped) {
                     sb.append(c);
-                    escaped =false;
-                }
-                else
-                {
+                    escaped = false;
+                } else {
                     // not escaped
                     if (c == '\\')
                         escaped = true;
@@ -402,38 +369,33 @@ import org.armedbear.j.util.Tuple2;
         return subject;
     }
 
-  private static int parseMessageNumber(String s)
-  {
-    if (s == null)
-      return 0; // Error.
-    final int length = s.length();
-    if (length < 2)
-      return 0; // Error.
-    // String must start with "* ".
-    if (s.charAt(0) != '*' || s.charAt(1) != ' ')
-      return 0; // Error.
-    StringBuilder sb = new StringBuilder();
-    for (int i = 2; i < length; i++)
-      {
-        char c = s.charAt(i);
-        if (c >= '0' && c <= '9')
-          sb.append(c);
-        else
-          break;
-      }
-    try
-      {
-        return Integer.parseInt(sb.toString());
-      }
-    catch (NumberFormatException e)
-      {
-        Log.error(e);
-        return 0;
-      }
-  }
+    private static int parseMessageNumber(String s) {
+        if (s == null)
+            return 0; // Error.
+        final int length = s.length();
+        if (length < 2)
+            return 0; // Error.
+        // String must start with "* ".
+        if (s.charAt(0) != '*' || s.charAt(1) != ' ')
+            return 0; // Error.
+        StringBuilder sb = new StringBuilder();
+        for (int i = 2; i < length; i++) {
+            char c = s.charAt(i);
+            if (c >= '0' && c <= '9')
+                sb.append(c);
+            else
+                break;
+        }
+        try {
+            return Integer.parseInt(sb.toString());
+        }
+        catch (NumberFormatException e) {
+            Log.error(e);
+            return 0;
+        }
+    }
 
-    public static int parseUid(String s)
-    {
+    public static int parseUid(String s) {
         final int length = s.length();
         if (length < 2)
             return 0; // Error.
@@ -446,16 +408,14 @@ import org.armedbear.j.util.Tuple2;
         return p.first;
     }
 
-    private static Tuple2<Integer, String> _parseUid(String s)
-    {
+    private static Tuple2<Integer, String> _parseUid(String s) {
         int index = s.indexOf(UID_START);
         if (index < 0)
             return null;
         return parseNumber(s.substring(index + UID_START.length()));
     }
 
-    public static int parseFlags(String s)
-    {
+    public static int parseFlags(String s) {
         if (s == null || s.length() == 0)
             return 0;
 
@@ -469,18 +429,15 @@ import org.armedbear.j.util.Tuple2;
         return flags;
     }
 
-    private static Tuple2<Integer, String> _parseFlags(String s)
-    {
+    private static Tuple2<Integer, String> _parseFlags(String s) {
         Tuple2<String, String> p = parseParenthesized(s);
         if (p == null)
             return null;
 
         int flags = 0;
-        if (p.first != null)
-        {
+        if (p.first != null) {
             String flagsList = p.first.toLowerCase();
-            if (flagsList.length() > 0)
-            {
+            if (flagsList.length() > 0) {
                 if (flagsList.indexOf("seen") >= 0)
                     flags |= SEEN;
                 if (flagsList.indexOf("answered") >= 0)
@@ -493,8 +450,13 @@ import org.armedbear.j.util.Tuple2;
                     flags |= FLAGGED;
                 if (flagsList.indexOf("draft") >= 0)
                     flags |= DRAFT;
-                if (flagsList.indexOf("nonjunk") >= 0 || flagsList.indexOf("notjunk") >= 0 ||
-                    flagsList.indexOf("nonspam") >= 0 || flagsList.indexOf("notspam") >= 0)
+                if (
+                    flagsList.indexOf("nonjunk") >= 0
+                        || flagsList.indexOf("notjunk") >= 0
+                        ||
+                        flagsList.indexOf("nonspam") >= 0
+                        || flagsList.indexOf("notspam") >= 0
+                )
                     flags |= NON_JUNK;
                 else if (flagsList.indexOf("junk") >= 0 || flagsList.indexOf("spam") >= 0)
                     flags |= JUNK;
@@ -503,261 +465,219 @@ import org.armedbear.j.util.Tuple2;
         return new Tuple2<Integer, String>(flags, p.second);
     }
 
+    private static Tuple2<String, String> parseQuoted(String s) {
+        s = s.trim();
+        final int slen = s.length();
+        if (slen == 0)
+            return null;
+        String quoted = null;
+        String remaining = null;
+        if (s.charAt(0) == '{') {
+            int end = s.indexOf('}', 1);
+            if (end < 0) {
+                Log.error("parseQuoted: bad literal");
+                return null;
+            }
+            int length = 0;
+            try {
+                length = Integer.parseInt(s.substring(1, end));
+            }
+            catch (NumberFormatException e) {
+                Log.error(e);
+            }
+            if (length == 0) {
+                Log.error("parseQuoted: length of literal is zero");
+                return null;
+            }
+            int begin = s.indexOf('\n', end + 1);
+            if (begin < 0) {
+                Log.error("parseQuoted: no LF after literal");
+                return null;
+            }
+            ++begin; // Skip LF.
+            end = begin + length;
+            if (end > slen) {
+                Log.error("parseQuoted end > slen");
+                return null;
+            }
+            quoted = s.substring(begin, end);
+            remaining = s.substring(end);
+        } else if (s.startsWith("NIL")) {
+            quoted = null;
+            remaining = s.substring(3).trim();
+        } else {
+            final int begin = s.indexOf('"');
+            if (begin < 0)
+                return null;
+            int end = begin + 1;
+            while (end < slen) {
+                char c = s.charAt(end);
+                if (c == '\\') {
+                    if (end < slen - 1)
+                        ++end;
+                    else
+                        return null; // REVIEW
+                } else if (c == '"')
+                    break;
+                ++end;
+            }
+            if (end == slen)
+                // reached end of string without closing quote
+                return null;
+            quoted = s.substring(begin + 1, end);
+            remaining = s.substring(end + 1);
+        }
+        return new Tuple2<String, String>(quoted, remaining);
+    }
 
-  private static Tuple2<String, String> parseQuoted(String s)
-  {
-    s = s.trim();
-    final int slen = s.length();
-    if (slen == 0)
-      return null;
-    String quoted = null;
-    String remaining = null;
-    if (s.charAt(0) == '{')
-      {
-        int end = s.indexOf('}', 1);
+    private static Tuple2<String, String> parseParenthesized(String s) {
+        int begin = s.indexOf('(');
+        if (begin < 0)
+            return null;
+        int end = -1;
+        final int limit = s.length();
+        boolean inQuote = false;
+        char quoteChar = '\0';
+        for (int i = begin + 1; i < limit; i++) {
+            char c = s.charAt(i);
+            if (inQuote) {
+                if (c == quoteChar && s.charAt(i - 1) != '\\')
+                    inQuote = false;
+            } else {
+                // Not in quote.
+                if (c == '"' || c == '\'') {
+                    inQuote = true;
+                    quoteChar = c;
+                } else if (c == ')') {
+                    end = i;
+                    break;
+                }
+            }
+        }
         if (end < 0)
-          {
-            Log.error("parseQuoted: bad literal");
             return null;
-          }
-        int length = 0;
-        try
-          {
-            length = Integer.parseInt(s.substring(1, end));
-          }
-        catch (NumberFormatException e)
-          {
-            Log.error(e);
-          }
-        if (length == 0)
-          {
-            Log.error("parseQuoted: length of literal is zero");
-            return null;
-          }
-        int begin = s.indexOf('\n', end + 1);
+        String parenthesized = s.substring(begin + 1, end);
+        String remaining = s.substring(end + 1);
+        return new Tuple2<String, String>(parenthesized, remaining);
+    }
+
+    static private Tuple2<String, String> parseParenthesizedList(String s) {
+        s = s.trim();
+        if (s.startsWith("NIL"))
+            return new Tuple2<String, String>(null, s.substring(3).trim());
+        final int begin = s.indexOf("((");
         if (begin < 0)
-          {
-            Log.error("parseQuoted: no LF after literal");
             return null;
-          }
-        ++begin; // Skip LF.
-        end = begin + length;
-        if (end > slen)
-          {
-            Log.error("parseQuoted end > slen");
+        int end = -1;
+        final int slen = s.length();
+        boolean in_quote = false;
+        char quote_char = '\0';
+        for (int i = begin + 2; i < slen; i++) {
+            char c = s.charAt(i);
+            if (in_quote) {
+                if (c == quote_char && s.charAt(i - 1) != '\\')
+                    in_quote = false;
+            } else {
+                // not in quote
+                if (c == '"' || c == '\'') {
+                    in_quote = true;
+                    quote_char = c;
+                } else if (c == ')' && i < slen - 1 && s.charAt(i + 1) == ')') {
+                    end = i;
+                    break;
+                }
+            }
+        }
+        if (end < 0)
             return null;
-          }
-        quoted = s.substring(begin, end);
-        remaining = s.substring(end);
-      }
-    else if (s.startsWith("NIL"))
-      {
-        quoted = null;
-        remaining = s.substring(3).trim();
-      }
-    else
-      {
-        final int begin = s.indexOf('"');
-        if (begin < 0)
-          return null;
-        int end = begin + 1;
-        while (end < slen)
-          {
-            char c = s.charAt(end);
-            if (c == '\\')
-              {
-                if (end < slen - 1)
-                  ++end;
-                else
-                  return null; // REVIEW
-              }
-            else if (c == '"')
-              break;
-            ++end;
-          }
-        if (end == slen)
-          // reached end of string without closing quote
-          return null;
-        quoted = s.substring(begin + 1, end);
-        remaining = s.substring(end + 1);
-      }
-    return new Tuple2<String, String>(quoted, remaining);
-  }
+        String list = s.substring(begin, end + 2);
+        String remaining = s.substring(end + 2);
+        return new Tuple2<String, String>(list, remaining);
+    }
 
-  private static Tuple2<String, String> parseParenthesized(String s)
-  {
-    int begin = s.indexOf('(');
-    if (begin < 0)
-      return null;
-    int end = -1;
-    final int limit = s.length();
-    boolean inQuote = false;
-    char quoteChar = '\0';
-    for (int i = begin + 1; i < limit; i++)
-      {
-        char c = s.charAt(i);
-        if (inQuote)
-          {
-            if (c == quoteChar && s.charAt(i-1) != '\\')
-              inQuote = false;
-          }
-        else
-          {
-            // Not in quote.
-            if (c == '"' || c == '\'')
-              {
-                inQuote = true;
-                quoteChar = c;
-              }
-            else if (c == ')')
-              {
-                end = i;
-                break;
-              }
-          }
-      }
-    if (end < 0)
-      return null;
-    String parenthesized = s.substring(begin + 1, end);
-    String remaining = s.substring(end + 1);
-    return new Tuple2<String, String>(parenthesized, remaining);
-  }
-
-  static private Tuple2<String, String> parseParenthesizedList(String s)
-  {
-    s = s.trim();
-    if (s.startsWith("NIL"))
-      return new Tuple2<String, String>(null, s.substring(3).trim());
-    final int begin = s.indexOf("((");
-    if (begin < 0)
-      return null;
-    int end = -1;
-    final int slen = s.length();
-    boolean in_quote = false;
-    char quote_char = '\0';
-    for (int i = begin + 2; i < slen; i++)
-      {
-        char c = s.charAt(i);
-        if (in_quote)
-          {
-            if (c == quote_char && s.charAt(i-1) != '\\')
-                in_quote = false;
-          }
-        else
-          {
-            // not in quote
-            if (c == '"' || c == '\'')
-              {
-                in_quote = true;
-                quote_char = c;
-              }
-            else if (c == ')' && i < slen - 1 && s.charAt(i + 1) == ')')
-              {
-                end = i;
-                break;
-              }
-          }
-      }
-    if (end < 0)
-      return null;
-    String list = s.substring(begin, end + 2);
-    String remaining = s.substring(end + 2);
-    return new Tuple2<String, String>(list, remaining);
-  }
-
-  private static MailAddress[] parseAddressList(String list)
-  {
-    if (list == null)
-      return null;
-    ArrayList<MailAddress> addresses = new ArrayList<MailAddress>();
-    String remaining = list.substring(1, list.length() - 1);
-    while (remaining.length() > 0)
-      {
-        Tuple2<String, String> p = parseParenthesized(remaining);
-        if (p == null)
-          {
-            Log.error("parseAddressList error");
-            Log.error("list = |" + list + "|");
-            Log.error("remaining = |" + remaining + "|");
+    private static MailAddress[] parseAddressList(String list) {
+        if (list == null)
             return null;
-          }
-        String s = p.first; // The address.
-        MailAddress address = parseAddress(s);
-        if (address == null)
-          {
-            Log.error("**** parseAddress returned null");
-            Log.error("s = |" + s + "|");
-          }
-        if (address != null)
-          addresses.add(address);
+        ArrayList<MailAddress> addresses = new ArrayList<MailAddress>();
+        String remaining = list.substring(1, list.length() - 1);
+        while (remaining.length() > 0) {
+            Tuple2<String, String> p = parseParenthesized(remaining);
+            if (p == null) {
+                Log.error("parseAddressList error");
+                Log.error("list = |" + list + "|");
+                Log.error("remaining = |" + remaining + "|");
+                return null;
+            }
+            String s = p.first; // The address.
+            MailAddress address = parseAddress(s);
+            if (address == null) {
+                Log.error("**** parseAddress returned null");
+                Log.error("s = |" + s + "|");
+            }
+            if (address != null)
+                addresses.add(address);
+            remaining = p.second;
+        }
+        if (addresses.size() == 0)
+            return null;
+        MailAddress[] array = new MailAddress[addresses.size()];
+        return addresses.toArray(array);
+    }
+
+    private static MailAddress parseAddress(String s) {
+        Tuple2<String, String> p = parseQuoted(s);
+        if (p == null) // Error.
+            return null;
+        String encodedPersonal = p.first;
+        String remaining = p.second;
+        p = parseQuoted(remaining);
+        if (p == null) // Error.
+            return null;
+        String sourceRoute = p.first;
         remaining = p.second;
-      }
-    if (addresses.size() == 0)
-      return null;
-    MailAddress[] array = new MailAddress[addresses.size()];
-    return addresses.toArray(array);
-  }
+        p = parseQuoted(remaining);
+        if (p == null) // Error.
+            return null;
+        String mailName = p.first;
+        remaining = p.second;
+        p = parseQuoted(remaining);
+        if (p == null) // Error.
+            return null;
+        String domainName = p.first;
+        remaining = p.second;
+        if (remaining.length() > 0)
+            Log.error("**** parseAddress: unexpected string remaining ****");
+        return new MailAddress(encodedPersonal, mailName + '@' + domainName);
+    }
 
-  private static MailAddress parseAddress(String s)
-  {
-    Tuple2<String, String> p = parseQuoted(s);
-    if (p == null) // Error.
-      return null;
-    String encodedPersonal = p.first;
-    String remaining = p.second;
-    p = parseQuoted(remaining);
-    if (p == null) // Error.
-      return null;
-    String sourceRoute = p.first;
-    remaining = p.second;
-    p = parseQuoted(remaining);
-    if (p == null) // Error.
-      return null;
-    String mailName = p.first;
-    remaining = p.second;
-    p = parseQuoted(remaining);
-    if (p == null) // Error.
-      return null;
-    String domainName = p.first;
-    remaining = p.second;
-    if (remaining.length() > 0)
-      Log.error("**** parseAddress: unexpected string remaining ****");
-    return new MailAddress(encodedPersonal, mailName + '@' + domainName);
-  }
+    private static SimpleDateFormat internalDateFormat = new SimpleDateFormat("dd-MMM-yyyy HH:mm:ss");
 
-  private static SimpleDateFormat internalDateFormat = new SimpleDateFormat("dd-MMM-yyyy HH:mm:ss");
+    private static RFC822Date parseInternalDate(String internalDate) {
+        Date date = null;
+        int index = internalDate.indexOf(' ');
+        if (index >= 0) {
+            index = internalDate.indexOf(' ', index + 1);
+            if (index >= 0) {
+                String dateString = internalDate.substring(0, index);
+                String timeZone = internalDate.substring(index + 1);
+                TimeZone tz = TimeZone.getTimeZone("GMT" + timeZone);
+                if (tz != null)
+                    internalDateFormat.setTimeZone(tz);
+                try {
+                    date = internalDateFormat.parse(dateString);
+                }
+                catch (Throwable t) {
+                    Log.error(t);
+                }
+            }
+        }
+        return new RFC822Date(date);
+    }
 
-  private static RFC822Date parseInternalDate(String internalDate)
-  {
-    Date date = null;
-    int index = internalDate.indexOf(' ');
-    if (index >= 0)
-      {
-        index = internalDate.indexOf(' ', index+1);
-        if (index >= 0)
-          {
-            String dateString = internalDate.substring(0, index);
-            String timeZone = internalDate.substring(index + 1);
-            TimeZone tz = TimeZone.getTimeZone("GMT" + timeZone);
-            if (tz != null)
-              internalDateFormat.setTimeZone(tz);
-            try
-              {
-                date = internalDateFormat.parse(dateString);
-              }
-            catch (Throwable t)
-              {
-                Log.error(t);
-              }
-          }
-      }
-    return new RFC822Date(date);
-  }
-
-  /** Exposes private methods for testing. */
-  static final class TestHelper {
-      static int parseMessageNumber(String s) {
-          return ImapMailboxEntry.parseMessageNumber(s);
-      }
-  }
+    /** Exposes private methods for testing. */
+    static final class TestHelper {
+        static int parseMessageNumber(String s) {
+            return ImapMailboxEntry.parseMessageNumber(s);
+        }
+    }
 }

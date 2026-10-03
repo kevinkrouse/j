@@ -20,6 +20,7 @@
 
 package org.armedbear.j.mode.scheme;
 
+import java.awt.event.KeyEvent;
 import org.armedbear.j.AbstractMode;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Constants;
@@ -33,37 +34,29 @@ import org.armedbear.j.Property;
 import org.armedbear.j.SystemBuffer;
 import org.armedbear.j.Tagger;
 
-import java.awt.event.KeyEvent;
-
-public final class SchemeMode extends AbstractMode implements Constants, Mode
-{
+public final class SchemeMode extends AbstractMode implements Constants, Mode {
     private static final SchemeMode mode = new SchemeMode();
 
-    private SchemeMode()
-    {
+    private SchemeMode() {
         super(SCHEME_MODE, SCHEME_MODE_NAME);
         keywords = new Keywords(this);
         setProperty(Property.INDENT_SIZE, 2);
         setProperty(Property.HIGHLIGHT_BRACKETS, true);
     }
 
-    public static final SchemeMode getMode()
-    {
+    public static final SchemeMode getMode() {
         return mode;
     }
 
-    public final String getCommentStart()
-    {
+    public final String getCommentStart() {
         return "; ";
     }
 
-    public final Formatter getFormatter(Buffer buffer)
-    {
+    public final Formatter getFormatter(Buffer buffer) {
         return new SchemeFormatter(buffer);
     }
 
-    protected void setKeyMapDefaults(KeyMap km)
-    {
+    protected void setKeyMapDefaults(KeyMap km) {
         km.mapKey(KeyEvent.VK_ENTER, 0, "newlineAndIndent");
         km.mapKey(KeyEvent.VK_T, CTRL_MASK, "findTag");
         km.mapKey(KeyEvent.VK_PERIOD, ALT_MASK, "findTagAtDot");
@@ -71,31 +64,26 @@ public final class SchemeMode extends AbstractMode implements Constants, Mode
         km.mapKey(')', "closeParen");
     }
 
-    public boolean isTaggable()
-    {
+    public boolean isTaggable() {
         return true;
     }
 
-    public Tagger getTagger(SystemBuffer buffer)
-    {
+    public Tagger getTagger(SystemBuffer buffer) {
         return new SchemeTagger(buffer);
     }
 
     private static final String validChars =
         "!$%&*+-./0123456789:<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[]^_abcdefghijklmnopqrstuvwxyz{}~";
 
-    public final boolean isIdentifierStart(char c)
-    {
+    public final boolean isIdentifierStart(char c) {
         return validChars.indexOf(c) >= 0;
     }
 
-    public final boolean isIdentifierPart(char c)
-    {
+    public final boolean isIdentifierPart(char c) {
         return validChars.indexOf(c) >= 0;
     }
 
-    public boolean isInQuote(Buffer buffer, Position pos)
-    {
+    public boolean isInQuote(Buffer buffer, Position pos) {
         // This implementation only considers the current line.
         Line line = pos.getLine();
         int offset = pos.getOffset();

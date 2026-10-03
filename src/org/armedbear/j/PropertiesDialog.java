@@ -20,19 +20,15 @@
 
 package org.armedbear.j;
 
-import org.armedbear.j.mode.properties.PropertiesFormatter;
-import java.lang.StringBuilder;
-import org.armedbear.j.vcs.VersionControlEntry;
-import org.armedbear.j.vcs.p4.P4;
-
 import java.awt.Cursor;
 import java.awt.Dimension;
+import java.lang.StringBuilder;
+import java.util.ArrayList;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
-import java.util.Set;
-import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
@@ -40,11 +36,13 @@ import javax.swing.JComboBox;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
 import javax.swing.border.Border;
+import org.armedbear.j.mode.properties.PropertiesFormatter;
+import org.armedbear.j.vcs.VersionControlEntry;
+import org.armedbear.j.vcs.p4.P4;
 
-public final class PropertiesDialog extends AbstractDialog implements Constants
-{
-    private static final String TEXT_LF   = "LF";
-    private static final String TEXT_CR   = "CR";
+public final class PropertiesDialog extends AbstractDialog implements Constants {
+    private static final String TEXT_LF = "LF";
+    private static final String TEXT_CR = "CR";
     private static final String TEXT_CRLF = "CR+LF";
 
     private final Editor editor;
@@ -59,8 +57,7 @@ public final class PropertiesDialog extends AbstractDialog implements Constants
     private CheckBox indentAfterBraceCheckBox;
     private JComboBox<String> lineSeparatorComboBox;
 
-    public PropertiesDialog()
-    {
+    public PropertiesDialog() {
         super(Editor.currentEditor(), "Properties", true);
 
         editor = Editor.currentEditor();
@@ -79,8 +76,7 @@ public final class PropertiesDialog extends AbstractDialog implements Constants
 
             final File file = buffer.getFile();
             StaticTextField fileTextField =
-                new StaticTextField(file.isRemote() ? file.netPath() :
-                                    file.canonicalPath());
+                new StaticTextField(file.isRemote() ? file.netPath() : file.canonicalPath());
             group.add(fileTextField);
 
             StaticTextField modificationTextField = null;
@@ -153,7 +149,7 @@ public final class PropertiesDialog extends AbstractDialog implements Constants
             mainPanel.add(group);
         }
 
-        if (modeId != IMAGE_MODE && modeId != WEB_MODE){
+        if (modeId != IMAGE_MODE && modeId != WEB_MODE) {
             // Mode combo box.
             modeComboBox = new JComboBox<String>(getPermissibleModes());
             Dimension dim = modeComboBox.getPreferredSize();
@@ -241,14 +237,18 @@ public final class PropertiesDialog extends AbstractDialog implements Constants
                     case PERL_MODE:
                     case TCL_MODE:
                         indentBeforeBraceCheckBox =
-                            new CheckBox("Indent before '{'",
-                                         buffer.getBooleanProperty(Property.INDENT_BEFORE_BRACE));
+                            new CheckBox(
+                                "Indent before '{'",
+                                buffer.getBooleanProperty(Property.INDENT_BEFORE_BRACE)
+                            );
                         indentBeforeBraceCheckBox.setMnemonic('b');
                         addVerticalStrut();
                         addCheckBox(indentBeforeBraceCheckBox);
                         indentAfterBraceCheckBox =
-                            new CheckBox("Indent after '{'",
-                                         buffer.getBooleanProperty(Property.INDENT_AFTER_BRACE));
+                            new CheckBox(
+                                "Indent after '{'",
+                                buffer.getBooleanProperty(Property.INDENT_AFTER_BRACE)
+                            );
                         indentAfterBraceCheckBox.setMnemonic('a');
                         addVerticalStrut();
                         addCheckBox(indentAfterBraceCheckBox);
@@ -317,8 +317,7 @@ public final class PropertiesDialog extends AbstractDialog implements Constants
             tabWidthTextField.requestFocus();
     }
 
-    private String[] getPermissibleModes()
-    {
+    private String[] getPermissibleModes() {
         ModeList modeList = Editor.getModeList();
         int fileType = buffer.getFileType();
         if (fileType == FILETYPE_ZIP) {
@@ -349,8 +348,7 @@ public final class PropertiesDialog extends AbstractDialog implements Constants
         return list.toArray(new String[list.size()]);
     }
 
-    private boolean save()
-    {
+    private boolean save() {
         if (modeComboBox != null) {
             String modeName = (String) modeComboBox.getSelectedItem();
             if (modeName != null && !modeName.equals(buffer.getModeName())) {
@@ -447,8 +445,7 @@ public final class PropertiesDialog extends AbstractDialog implements Constants
         return true;
     }
 
-    protected void ok()
-    {
+    protected void ok() {
         if (save()) {
             buffer.saveProperties();
             buffer.repaint();
@@ -456,8 +453,7 @@ public final class PropertiesDialog extends AbstractDialog implements Constants
         }
     }
 
-    public static void properties()
-    {
+    public static void properties() {
         final Editor editor = Editor.currentEditor();
         final Buffer buffer = editor.getBuffer();
         switch (buffer.getType()) {
@@ -479,8 +475,7 @@ public final class PropertiesDialog extends AbstractDialog implements Constants
         d.setVisible(true);
     }
 
-    public static void listProperties()
-    {
+    public static void listProperties() {
         final Editor editor = Editor.currentEditor();
         final Buffer buffer = editor.getBuffer();
         StringBuilder sb = new StringBuilder();

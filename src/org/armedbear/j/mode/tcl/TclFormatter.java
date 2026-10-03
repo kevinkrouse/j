@@ -30,39 +30,36 @@ import org.armedbear.j.LineSegment;
 import org.armedbear.j.LineSegmentList;
 import org.armedbear.j.util.Utilities;
 
-public final class TclFormatter extends Formatter implements Constants
-{
-    private static final int TCL_STATE_NEUTRAL     = 0;
-    private static final int TCL_STATE_COMMENT     = 1;
-    private static final int TCL_STATE_QUOTE       = 2;
-    private static final int TCL_STATE_IDENTIFIER  = 3;
-    private static final int TCL_STATE_OPERATOR    = 4;
-    private static final int TCL_STATE_BRACE       = 5;
-    private static final int TCL_STATE_BRACKET     = 6;
-    private static final int TCL_STATE_NUMBER      = 7;
+public final class TclFormatter extends Formatter implements Constants {
+    private static final int TCL_STATE_NEUTRAL = 0;
+    private static final int TCL_STATE_COMMENT = 1;
+    private static final int TCL_STATE_QUOTE = 2;
+    private static final int TCL_STATE_IDENTIFIER = 3;
+    private static final int TCL_STATE_OPERATOR = 4;
+    private static final int TCL_STATE_BRACE = 5;
+    private static final int TCL_STATE_BRACKET = 6;
+    private static final int TCL_STATE_NUMBER = 7;
 
-    private static final int TCL_FORMAT_TEXT       = 0;
-    private static final int TCL_FORMAT_COMMENT    = 1;
-    private static final int TCL_FORMAT_STRING     = 2;
+    private static final int TCL_FORMAT_TEXT = 0;
+    private static final int TCL_FORMAT_COMMENT = 1;
+    private static final int TCL_FORMAT_STRING = 2;
     private static final int TCL_FORMAT_IDENTIFIER = 3;
-    private static final int TCL_FORMAT_KEYWORD    = 4;
-    private static final int TCL_FORMAT_ARRAY      = 5;
-    private static final int TCL_FORMAT_OPERATOR   = 6;
-    private static final int TCL_FORMAT_BRACE      = 7;
-    private static final int TCL_FORMAT_BRACKET    = 8;
-    private static final int TCL_FORMAT_NUMBER     = 9;
+    private static final int TCL_FORMAT_KEYWORD = 4;
+    private static final int TCL_FORMAT_ARRAY = 5;
+    private static final int TCL_FORMAT_OPERATOR = 6;
+    private static final int TCL_FORMAT_BRACE = 7;
+    private static final int TCL_FORMAT_BRACKET = 8;
+    private static final int TCL_FORMAT_NUMBER = 9;
 
     private static final TclMode mode = TclMode.getMode();
 
-    public TclFormatter(Buffer buffer)
-    {
+    public TclFormatter(Buffer buffer) {
         this.buffer = buffer;
     }
 
     private int tokenBegin = 0;
 
-    private void endToken(String text, int tokenEnd, int state)
-    {
+    private void endToken(String text, int tokenEnd, int state) {
         if (tokenEnd - tokenBegin > 0) {
             int format = TCL_FORMAT_TEXT;
             switch (state) {
@@ -96,8 +93,7 @@ public final class TclFormatter extends Formatter implements Constants
         }
     }
 
-    private void parseLine(Line line)
-    {
+    private void parseLine(Line line) {
         if (line == null) {
             addSegment("", TCL_FORMAT_TEXT);
             return;
@@ -124,13 +120,13 @@ public final class TclFormatter extends Formatter implements Constants
 
         while (i < limit) {
             char c = text.charAt(i);
-            if (c == '\\' && i < limit-1) {
+            if (c == '\\' && i < limit - 1) {
                 i += 2;
                 continue;
             }
             if (state == TCL_STATE_QUOTE) {
                 if (c == '"') {
-                    endToken(text, i+1, state);
+                    endToken(text, i + 1, state);
                     state = TCL_STATE_NEUTRAL;
                 }
                 ++i;
@@ -147,7 +143,7 @@ public final class TclFormatter extends Formatter implements Constants
                 // character on the line or if it is immediately preceded by a
                 // semicolon, opening brace, or opening bracket.
                 boolean isComment = true;
-                for (int j = i-1; j >= 0; j--) {
+                for (int j = i - 1; j >= 0; j--) {
                     char cc = text.charAt(j);
                     if (Character.isWhitespace(cc))
                         continue;
@@ -251,29 +247,25 @@ public final class TclFormatter extends Formatter implements Constants
         }
     }
 
-    public LineSegmentList formatLine(Line line)
-    {
+    public LineSegmentList formatLine(Line line) {
         clearSegmentList();
         parseLine(line);
         return segmentList;
     }
 
-    private static final boolean isOperator(String s)
-    {
-        for (int i = s.length()-1; i >= 0; i--) {
+    private static final boolean isOperator(String s) {
+        for (int i = s.length() - 1; i >= 0; i--) {
             if (!isOperatorChar(s.charAt(i)))
                 return false;
         }
         return true;
     }
 
-    private static final boolean isOperatorChar(char c)
-    {
+    private static final boolean isOperatorChar(char c) {
         return "!&|<>=+/*-".indexOf(c) >= 0;
     }
 
-    public FormatTable getFormatTable()
-    {
+    public FormatTable getFormatTable() {
         if (formatTable == null) {
             formatTable = new FormatTable("TclMode");
             formatTable.addEntryFromPrefs(TCL_FORMAT_TEXT, "text");

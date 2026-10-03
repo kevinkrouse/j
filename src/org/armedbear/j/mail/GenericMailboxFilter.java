@@ -22,19 +22,16 @@ package org.armedbear.j.mail;
 
 import org.armedbear.j.util.Utilities;
 
-public final class GenericMailboxFilter extends MailboxFilter
-{
+public final class GenericMailboxFilter extends MailboxFilter {
     private String pattern;
     private boolean ignoreCase;
 
-    public GenericMailboxFilter(String pattern)
-    {
+    public GenericMailboxFilter(String pattern) {
         this.pattern = pattern;
         ignoreCase = Utilities.isLowerCase(pattern);
     }
 
-    public boolean accept(MailboxEntry entry)
-    {
+    public boolean accept(MailboxEntry entry) {
         String subject = entry.getSubject();
         if (subject != null) {
             if (ignoreCase) {
@@ -48,12 +45,12 @@ public final class GenericMailboxFilter extends MailboxFilter
         MailAddress[] from = entry.getFrom();
         if (from != null) {
             if (ignoreCase) {
-                for (int i = from.length-1; i >= 0; i--) {
+                for (int i = from.length - 1; i >= 0; i--) {
                     if (from[i].matchesIgnoreCase(pattern))
                         return true;
                 }
             } else {
-                for (int i = from.length-1; i >= 0; i--) {
+                for (int i = from.length - 1; i >= 0; i--) {
                     if (from[i].matches(pattern))
                         return true;
                 }

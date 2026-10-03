@@ -20,17 +20,15 @@
 
 package org.armedbear.j.mode.verilog;
 
+import java.util.ArrayList;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import org.armedbear.j.Line;
 import org.armedbear.j.LocalTag;
 import org.armedbear.j.SystemBuffer;
 import org.armedbear.j.Tagger;
 
-import java.util.regex.Pattern;
-import java.util.regex.Matcher;
-import java.util.ArrayList;
-
-public final class VerilogTagger extends Tagger
-{
+public final class VerilogTagger extends Tagger {
     // We trim before matching, so "module" or "primitive" will appear without
     // any preceding whitespace.
     private static final Pattern moduleRE =
@@ -38,13 +36,11 @@ public final class VerilogTagger extends Tagger
     private static final Pattern primitiveRE =
         Pattern.compile("^primitive\\s+([a-zA-Z_][a-zA-Z0-9_$]*)");
 
-    public VerilogTagger(SystemBuffer buffer)
-    {
+    public VerilogTagger(SystemBuffer buffer) {
         super(buffer);
     }
 
-    public void run()
-    {
+    public void run() {
         ArrayList<LocalTag> tags = new ArrayList<LocalTag>();
         Line line = buffer.getFirstLine();
         while (line != null) {

@@ -25,8 +25,7 @@ import org.armedbear.j.Preferences;
 /**
  * What an {@link Extension} is handed to register itself with.
  */
-public interface ExtensionContext
-{
+public interface ExtensionContext {
     /**
      * Register a command.
      *

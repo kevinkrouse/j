@@ -20,15 +20,13 @@
 
 package org.armedbear.j.mode.dir;
 
+import static org.armedbear.j.ToolBarIcon.*;
+
 import org.armedbear.j.Frame;
 import org.armedbear.j.ToolBar;
 
-import static org.armedbear.j.ToolBarIcon.*;
-
-public final class DirectoryModeToolBar extends ToolBar
-{
-    public DirectoryModeToolBar(Frame frame)
-    {
+public final class DirectoryModeToolBar extends ToolBar {
+    public DirectoryModeToolBar(Frame frame) {
         super(frame);
         addButton("New", ICON_NEW, "newBuffer");
         addButton("Open", ICON_OPEN, "openFile");

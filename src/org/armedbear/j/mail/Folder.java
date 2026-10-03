@@ -20,24 +20,20 @@
 
 package org.armedbear.j.mail;
 
-public final class Folder
-{
+public final class Folder {
     private final String displayName;
     private final MailboxURL url;
 
-    public Folder(String displayName, MailboxURL url)
-    {
+    public Folder(String displayName, MailboxURL url) {
         this.displayName = displayName;
         this.url = url;
     }
 
-    public final MailboxURL getUrl()
-    {
+    public final MailboxURL getUrl() {
         return url;
     }
 
-    public String toString()
-    {
+    public String toString() {
         return displayName;
     }
 }

@@ -20,6 +20,7 @@
 
 package org.armedbear.j.mode.vhdl;
 
+import java.util.HashSet;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Constants;
 import org.armedbear.j.Editor;
@@ -30,31 +31,26 @@ import org.armedbear.j.LineSegment;
 import org.armedbear.j.LineSegmentList;
 import org.armedbear.j.util.Utilities;
 
-import java.util.HashSet;
-
-public final class VHDLFormatter extends Formatter implements Constants
-{
-    private static final int VHDL_FORMAT_TEXT       = 0;
-    private static final int VHDL_FORMAT_COMMENT    = 1;
-    private static final int VHDL_FORMAT_STRING     = 2;
+public final class VHDLFormatter extends Formatter implements Constants {
+    private static final int VHDL_FORMAT_TEXT = 0;
+    private static final int VHDL_FORMAT_COMMENT = 1;
+    private static final int VHDL_FORMAT_STRING = 2;
     private static final int VHDL_FORMAT_IDENTIFIER = 3;
-    private static final int VHDL_FORMAT_KEYWORD    = 4;
-    private static final int VHDL_FORMAT_TYPE       = 5;
-    private static final int VHDL_FORMAT_FUNCTION   = 6;
-    private static final int VHDL_FORMAT_OPERATOR   = 7;
-    private static final int VHDL_FORMAT_NUMBER     = 8;
+    private static final int VHDL_FORMAT_KEYWORD = 4;
+    private static final int VHDL_FORMAT_TYPE = 5;
+    private static final int VHDL_FORMAT_FUNCTION = 6;
+    private static final int VHDL_FORMAT_OPERATOR = 7;
+    private static final int VHDL_FORMAT_NUMBER = 8;
 
     private static final VHDLMode mode = VHDLMode.getMode();
 
-    public VHDLFormatter(Buffer buffer)
-    {
+    public VHDLFormatter(Buffer buffer) {
         this.buffer = buffer;
     }
 
     private int tokenBegin = 0;
 
-    private void endToken(String text, int tokenEnd, int state)
-    {
+    private void endToken(String text, int tokenEnd, int state) {
         if (tokenEnd - tokenBegin > 0) {
             int format = VHDL_FORMAT_TEXT;
             switch (state) {
@@ -82,8 +78,7 @@ public final class VHDLFormatter extends Formatter implements Constants
         }
     }
 
-    private void parseLine(Line line)
-    {
+    private void parseLine(Line line) {
         if (line == null) {
             addSegment("", VHDL_FORMAT_TEXT);
             return;
@@ -110,9 +105,9 @@ public final class VHDLFormatter extends Formatter implements Constants
             char c = text.charAt(i);
             if (state == STATE_QUOTE) {
                 if (c == '"') {
-                    endToken(text, i+1, state);
+                    endToken(text, i + 1, state);
                     state = STATE_NEUTRAL;
-                } else if (c == '\\' && i < limit-1) {
+                } else if (c == '\\' && i < limit - 1) {
                     // Escape char.
                     ++i;
                 }
@@ -127,8 +122,8 @@ public final class VHDLFormatter extends Formatter implements Constants
                 continue;
             }
             if (c == '-') {
-                if (i < limit-1) {
-                    if (text.charAt(i+1) == '-') {
+                if (i < limit - 1) {
+                    if (text.charAt(i + 1) == '-') {
                         endToken(text, i, state);
                         endToken(text, limit, STATE_COMMENT);
                         return;
@@ -237,20 +232,17 @@ public final class VHDLFormatter extends Formatter implements Constants
         }
     }
 
-    public LineSegmentList formatLine(Line line)
-    {
+    public LineSegmentList formatLine(Line line) {
         clearSegmentList();
         parseLine(line);
         return segmentList;
     }
 
-    private static final boolean isOperatorChar(char c)
-    {
+    private static final boolean isOperatorChar(char c) {
         return "!&|<>=+/*-".indexOf(c) >= 0;
     }
 
-    public FormatTable getFormatTable()
-    {
+    public FormatTable getFormatTable() {
         if (formatTable == null) {
             formatTable = new FormatTable("VHDLMode");
             formatTable.addEntryFromPrefs(VHDL_FORMAT_TEXT, "text");
@@ -266,15 +258,13 @@ public final class VHDLFormatter extends Formatter implements Constants
         return formatTable;
     }
 
-    private static boolean isType(String s)
-    {
+    private static boolean isType(String s) {
         return getTypes().contains(s.toLowerCase());
     }
 
     private static HashSet<String> typeHashSet;
 
-    private static HashSet<String> getTypes()
-    {
+    private static HashSet<String> getTypes() {
         if (typeHashSet == null) {
             String[] array = types;
             int count = array.length;

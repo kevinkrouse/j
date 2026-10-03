@@ -30,17 +30,14 @@ import org.armedbear.j.Editor;
 import org.armedbear.j.File;
 import org.armedbear.j.Property;
 
-public final class FolderTreeModel extends DefaultTreeModel
-{
+public final class FolderTreeModel extends DefaultTreeModel {
     private static FolderTreeModel model;
 
-    private FolderTreeModel(TreeNode root)
-    {
+    private FolderTreeModel(TreeNode root) {
         super(root);
     }
 
-    public static synchronized FolderTreeModel getDefaultModel()
-    {
+    public static synchronized FolderTreeModel getDefaultModel() {
         if (model == null) {
             // Root will not be visible.
             DefaultMutableTreeNode root = new DefaultMutableTreeNode();
@@ -51,8 +48,10 @@ public final class FolderTreeModel extends DefaultTreeModel
                     new DefaultMutableTreeNode("Local Folders");
                 root.add(localFolders);
                 // Add the drafts folder.
-                Folder drafts = new Folder("drafts",
-                    new LocalMailboxURL(Directories.getDraftsFolder()));
+                Folder drafts = new Folder(
+                    "drafts",
+                    new LocalMailboxURL(Directories.getDraftsFolder())
+                );
                 localFolders.add(new DefaultMutableTreeNode(drafts));
                 // Enumerate directories under ~/.j/mail/local.
                 String[] list = local.list();
@@ -82,14 +81,12 @@ public final class FolderTreeModel extends DefaultTreeModel
         return model;
     }
 
-    public void maybeAddNodeForFolder(MailboxURL url)
-    {
+    public void maybeAddNodeForFolder(MailboxURL url) {
         if (findNodeForFolder(url) == null)
             addNodeForFolder(url);
     }
 
-    private DefaultMutableTreeNode findNodeForFolder(MailboxURL url)
-    {
+    private DefaultMutableTreeNode findNodeForFolder(MailboxURL url) {
         Enumeration<TreeNode> nodes =
             ((DefaultMutableTreeNode) root).depthFirstEnumeration();
         while (nodes.hasMoreElements()) {
@@ -102,8 +99,7 @@ public final class FolderTreeModel extends DefaultTreeModel
         return null;
     }
 
-    private void addNodeForFolder(MailboxURL url)
-    {
+    private void addNodeForFolder(MailboxURL url) {
         if (url instanceof ImapURL) {
             Enumeration<? extends TreeNode> nodes = root.children();
             DefaultMutableTreeNode parent = null;
@@ -123,8 +119,8 @@ public final class FolderTreeModel extends DefaultTreeModel
                 parent = new DefaultMutableTreeNode(url.getHost());
                 ((DefaultMutableTreeNode) root).add(parent);
             }
-            List<String> list = ((ImapURL)url).getFolderPathComponents();
-            for (int i = 0; i < list.size()-1; i++) {
+            List<String> list = ((ImapURL) url).getFolderPathComponents();
+            for (int i = 0; i < list.size() - 1; i++) {
                 boolean add = true;
                 nodes = parent.children();
                 while (nodes.hasMoreElements()) {
@@ -148,9 +144,9 @@ public final class FolderTreeModel extends DefaultTreeModel
                 }
             }
             // Last component.
-            parent.add(new DefaultMutableTreeNode(new Folder(list.get(list.size()-1), url)));
+            parent.add(new DefaultMutableTreeNode(new Folder(list.get(list.size() - 1), url)));
         } else
-            ((DefaultMutableTreeNode)root).add(new DefaultMutableTreeNode(new Folder(url.toString(), url)));
+            ((DefaultMutableTreeNode) root).add(new DefaultMutableTreeNode(new Folder(url.toString(), url)));
         reload();
     }
 }

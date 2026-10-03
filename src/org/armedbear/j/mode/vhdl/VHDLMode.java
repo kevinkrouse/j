@@ -20,6 +20,8 @@
 
 package org.armedbear.j.mode.vhdl;
 
+import java.awt.event.KeyEvent;
+import java.util.regex.Pattern;
 import org.armedbear.j.AbstractMode;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Constants;
@@ -31,64 +33,50 @@ import org.armedbear.j.Mode;
 import org.armedbear.j.SystemBuffer;
 import org.armedbear.j.Tagger;
 
-import java.util.regex.Pattern;
-import java.awt.event.KeyEvent;
-
-public final class VHDLMode extends AbstractMode implements Constants, Mode
-{
+public final class VHDLMode extends AbstractMode implements Constants, Mode {
     private static final VHDLMode mode = new VHDLMode();
 
-    private VHDLMode()
-    {
+    private VHDLMode() {
         super(VHDL_MODE, VHDL_MODE_NAME);
         keywords = new Keywords(this);
     }
 
-    public static VHDLMode getMode()
-    {
+    public static VHDLMode getMode() {
         return mode;
     }
 
-    public String getCommentStart()
-    {
+    public String getCommentStart() {
         return "-- ";
     }
 
-    public Formatter getFormatter(Buffer buffer)
-    {
+    public Formatter getFormatter(Buffer buffer) {
         return new VHDLFormatter(buffer);
     }
 
-    public boolean isKeyword(String s)
-    {
+    public boolean isKeyword(String s) {
         return keywords.isKeyword(s.toLowerCase());
     }
 
-    protected void setKeyMapDefaults(KeyMap km)
-    {
+    protected void setKeyMapDefaults(KeyMap km) {
         km.mapKey(KeyEvent.VK_ENTER, 0, "newlineAndIndent");
         km.mapKey(KeyEvent.VK_T, CTRL_MASK, "findTag");
         km.mapKey(KeyEvent.VK_PERIOD, ALT_MASK, "findTagAtDot");
         km.mapKey(KeyEvent.VK_F12, 0, "wrapComment");
     }
 
-    public boolean isTaggable()
-    {
+    public boolean isTaggable() {
         return true;
     }
 
-    public Tagger getTagger(SystemBuffer buffer)
-    {
+    public Tagger getTagger(SystemBuffer buffer) {
         return new VHDLTagger(buffer);
     }
 
-    public boolean canIndent()
-    {
+    public boolean canIndent() {
         return true;
     }
 
-    public boolean canIndentPaste()
-    {
+    public boolean canIndentPaste() {
         return false;
     }
 
@@ -96,8 +84,7 @@ public final class VHDLMode extends AbstractMode implements Constants, Mode
     private static final Pattern thenRE = Pattern.compile("\\s+then$");
     private static final Pattern loopRE = Pattern.compile("\\s+loop$");
 
-    public int getCorrectIndentation(Line line, Buffer buffer)
-    {
+    public int getCorrectIndentation(Line line, Buffer buffer) {
         final int indentSize = buffer.getIndentSize();
         final Line model = findModel(line);
         if (model == null)
@@ -121,8 +108,7 @@ public final class VHDLMode extends AbstractMode implements Constants, Mode
         return modelIndent;
     }
 
-    private Line findModel(Line line)
-    {
+    private Line findModel(Line line) {
         Line model = line.previous();
         while (model != null && model.isBlank())
             model = model.previous();
@@ -131,19 +117,16 @@ public final class VHDLMode extends AbstractMode implements Constants, Mode
 
     // Replaces syntactic whitespace (quotes and comments) with actual space
     // characters and returns trimmed string.
-    private static String trimSyntacticWhitespace(Line line)
-    {
+    private static String trimSyntacticWhitespace(Line line) {
         VHDLSyntaxIterator it = new VHDLSyntaxIterator(null);
         return new String(it.hideSyntacticWhitespace(line.getText())).trim();
     }
 
-    public boolean isIdentifierStart(char c)
-    {
+    public boolean isIdentifierStart(char c) {
         return startChars.indexOf(c) >= 0;
     }
 
-    public boolean isIdentifierPart(char c)
-    {
+    public boolean isIdentifierPart(char c) {
         return partChars.indexOf(c) >= 0;
     }
 

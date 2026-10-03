@@ -20,26 +20,23 @@
 
 package org.armedbear.j.vcs.cvs;
 
+import java.lang.StringBuilder;
+import java.util.Calendar;
+import java.util.NoSuchElementException;
+import java.util.StringTokenizer;
+import java.util.TimeZone;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Constants;
-import java.lang.StringBuilder;
 import org.armedbear.j.File;
 import org.armedbear.j.Line;
 import org.armedbear.j.Log;
 import org.armedbear.j.SystemBuffer;
 import org.armedbear.j.vcs.VersionControlEntry;
 
-import java.util.Calendar;
-import java.util.NoSuchElementException;
-import java.util.StringTokenizer;
-import java.util.TimeZone;
-
-public final class CVSEntry extends VersionControlEntry
-{
+public final class CVSEntry extends VersionControlEntry {
     private long checkoutTime;
 
-    private CVSEntry(Buffer buffer, String revision, long checkoutTime)
-    {
+    private CVSEntry(Buffer buffer, String revision, long checkoutTime) {
         super(buffer, revision);
         this.checkoutTime = checkoutTime;
     }
@@ -60,8 +57,7 @@ public final class CVSEntry extends VersionControlEntry
         return statusText(false);
     }
 
-    private String statusText(boolean brief)
-    {
+    private String statusText(boolean brief) {
         StringBuilder sb = new StringBuilder("CVS");
         final String revision = getRevision();
         if (revision.equals("0")) {
@@ -80,8 +76,7 @@ public final class CVSEntry extends VersionControlEntry
         return sb.toString();
     }
 
-    public static CVSEntry getEntry(Buffer buffer)
-    {
+    public static CVSEntry getEntry(Buffer buffer) {
         final File file = buffer.getFile();
         final String text = getEntryText(file);
         if (text != null) {
@@ -97,9 +92,14 @@ public final class CVSEntry extends VersionControlEntry
             String timeString = null;
             if (st.hasMoreTokens())
                 timeString = st.nextToken();
-            if (timeString == null || timeString.length() == 0 ||
-                timeString.equals("dummy timestamp") ||
-                timeString.equals("Result of merge"))
+            if (
+                timeString == null
+                    || timeString.length() == 0
+                    ||
+                    timeString.equals("dummy timestamp")
+                    ||
+                    timeString.equals("Result of merge")
+            )
                 return new CVSEntry(buffer, revision, 0);
             st = new StringTokenizer(timeString, " :");
             try {
@@ -133,8 +133,7 @@ public final class CVSEntry extends VersionControlEntry
         return null;
     }
 
-    private static String getEntryText(File file)
-    {
+    private static String getEntryText(File file) {
         if (file == null)
             return null;
         if (file.isRemote())

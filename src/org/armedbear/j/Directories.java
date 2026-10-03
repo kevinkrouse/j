@@ -52,20 +52,19 @@ import java.util.List;
  * always <code>.config</code>, <code>.local/share</code>,
  * <code>.local/state</code> and <code>.cache</code> below the directory given.
  */
-public final class Directories
-{
+public final class Directories {
     private static final String LEGACY_DIRECTORY_NAME = ".j";
 
-    private static File userHomeDirectory;      // ~
-    private static File configDirectory;        // ~/.config/j
-    private static File dataDirectory;          // ~/.local/share/j
-    private static File stateDirectory;         // ~/.local/state/j
-    private static File cacheDirectory;         // ~/.cache/j
-    private static File runtimeDirectory;       // $XDG_RUNTIME_DIR/j
-    private static File tempDirectory;          // ~/.cache/j/temp
-    private static File mailDirectory;          // ~/.local/share/j/mail
-    private static File draftsFolder;           // ~/.local/share/j/mail/local/drafts
-    private static File registersDirectory;     // ~/.local/share/j/registers
+    private static File userHomeDirectory; // ~
+    private static File configDirectory; // ~/.config/j
+    private static File dataDirectory; // ~/.local/share/j
+    private static File stateDirectory; // ~/.local/state/j
+    private static File cacheDirectory; // ~/.cache/j
+    private static File runtimeDirectory; // $XDG_RUNTIME_DIR/j
+    private static File tempDirectory; // ~/.cache/j/temp
+    private static File mailDirectory; // ~/.local/share/j/mail
+    private static File draftsFolder; // ~/.local/share/j/mail/local/drafts
+    private static File registersDirectory; // ~/.local/share/j/registers
 
     // True when an existing ~/.j was found and every root points at it.
     private static boolean legacyLayout;
@@ -74,13 +73,11 @@ public final class Directories
     // ignored so that everything stays below the directory the user named.
     private static boolean homeSpecified;
 
-    public static void initialize(File userHome)
-    {
+    public static void initialize(File userHome) {
         initialize(userHome, false);
     }
 
-    public static void initialize(File userHome, boolean migrate)
-    {
+    public static void initialize(File userHome, boolean migrate) {
         homeSpecified = userHome != null;
         userHomeDirectory = userHome;
         if (userHomeDirectory == null) {
@@ -151,8 +148,7 @@ public final class Directories
         Editor.protect(Directories.class);
     }
 
-    private static File appDirectory(File home)
-    {
+    private static File appDirectory(File home) {
         return home != null ? File.getInstance(home, "j") : null;
     }
 
@@ -161,8 +157,7 @@ public final class Directories
      * <code>null</code> if it is unset, empty, or overridden by
      * <code>--home</code>.
      */
-    private static File fromEnvironment(String name)
-    {
+    private static File fromEnvironment(String name) {
         if (homeSpecified)
             return null;
         String value = System.getenv(name);
@@ -171,47 +166,49 @@ public final class Directories
         return File.getInstance(value);
     }
 
-    private static File configHome()
-    {
+    private static File configHome() {
         File dir = fromEnvironment("XDG_CONFIG_HOME");
         if (dir == null && Platform.isPlatformWindows())
             dir = fromEnvironment("APPDATA");
         if (dir == null && Platform.isPlatformMacOSX())
-            dir = File.getInstance(userHomeDirectory,
-                                   "Library/Application Support");
+            dir = File.getInstance(
+                userHomeDirectory,
+                "Library/Application Support"
+            );
         if (dir == null)
             dir = File.getInstance(userHomeDirectory, ".config");
         return dir;
     }
 
-    private static File dataHome()
-    {
+    private static File dataHome() {
         File dir = fromEnvironment("XDG_DATA_HOME");
         if (dir == null && Platform.isPlatformWindows())
             dir = fromEnvironment("APPDATA");
         if (dir == null && Platform.isPlatformMacOSX())
-            dir = File.getInstance(userHomeDirectory,
-                                   "Library/Application Support");
+            dir = File.getInstance(
+                userHomeDirectory,
+                "Library/Application Support"
+            );
         if (dir == null)
             dir = File.getInstance(userHomeDirectory, ".local/share");
         return dir;
     }
 
-    private static File stateHome()
-    {
+    private static File stateHome() {
         File dir = fromEnvironment("XDG_STATE_HOME");
         if (dir == null && Platform.isPlatformWindows())
             dir = fromEnvironment("LOCALAPPDATA");
         if (dir == null && Platform.isPlatformMacOSX())
-            dir = File.getInstance(userHomeDirectory,
-                                   "Library/Application Support");
+            dir = File.getInstance(
+                userHomeDirectory,
+                "Library/Application Support"
+            );
         if (dir == null)
             dir = File.getInstance(userHomeDirectory, ".local/state");
         return dir;
     }
 
-    private static File cacheHome()
-    {
+    private static File cacheHome() {
         File dir = fromEnvironment("XDG_CACHE_HOME");
         if (dir == null && Platform.isPlatformWindows()) {
             File local = fromEnvironment("LOCALAPPDATA");
@@ -248,22 +245,28 @@ public final class Directories
      * mistaken for a legacy directory on the next run: whatever cannot be
      * moved is renamed aside rather than deleted.
      */
-    private static void migrateLegacyDirectory(File legacy)
-    {
-        System.out.println("Migrating " + legacy.canonicalPath() +
-                           " to the XDG layout...");
+    private static void migrateLegacyDirectory(File legacy) {
+        System.out.println(
+            "Migrating " + legacy.canonicalPath() +
+                " to the XDG layout..."
+        );
         int moved = 0;
         moved += move(legacy, CONFIG_ENTRIES, appDirectory(configHome()));
-        moved += move(legacy, extensionEntries(legacy),
-                      appDirectory(configHome()));
+        moved += move(
+            legacy,
+            extensionEntries(legacy),
+            appDirectory(configHome())
+        );
         moved += move(legacy, DATA_ENTRIES, appDirectory(dataHome()));
         moved += move(legacy, STATE_ENTRIES, appDirectory(stateHome()));
         moved += move(legacy, CACHE_ENTRIES, appDirectory(cacheHome()));
         // The port, swank and log files are recreated every run; there is
         // nothing worth carrying over.
         int discarded = discardTransientEntries(legacy);
-        System.out.println("Moved " + moved + " entries, discarded " +
-                           discarded + ".");
+        System.out.println(
+            "Moved " + moved + " entries, discarded " +
+                discarded + "."
+        );
         String[] remaining = legacy.list();
         if (remaining == null || remaining.length == 0) {
             legacy.delete();
@@ -271,21 +274,26 @@ public final class Directories
         }
         // Something is left. Rename the directory so that it is not picked up
         // as a legacy layout again, and say where it went.
-        File aside = File.getInstance(userHomeDirectory,
-                                      LEGACY_DIRECTORY_NAME.concat(".migrated"));
+        File aside = File.getInstance(
+            userHomeDirectory,
+            LEGACY_DIRECTORY_NAME.concat(".migrated")
+        );
         if (aside != null && !aside.exists() && legacy.renameTo(aside))
-            System.out.println(remaining.length +
-                               " unrecognized entries were left in " +
-                               aside.canonicalPath());
+            System.out.println(
+                remaining.length +
+                    " unrecognized entries were left in " +
+                    aside.canonicalPath()
+            );
         else
-            System.out.println("Unable to move " + remaining.length +
-                               " remaining entries out of " +
-                               legacy.canonicalPath() +
-                               "; J will keep using it.");
+            System.out.println(
+                "Unable to move " + remaining.length +
+                    " remaining entries out of " +
+                    legacy.canonicalPath() +
+                    "; J will keep using it."
+            );
     }
 
-    private static int move(File from, String[] names, File to)
-    {
+    private static int move(File from, String[] names, File to) {
         int count = 0;
         for (int i = 0; i < names.length; i++) {
             File source = File.getInstance(from, names[i]);
@@ -295,20 +303,26 @@ public final class Directories
             if (destination == null)
                 continue;
             if (destination.exists()) {
-                System.out.println("  " + names[i] + ": " +
-                                   destination.canonicalPath() +
-                                   " already exists, not moved");
+                System.out.println(
+                    "  " + names[i] + ": " +
+                        destination.canonicalPath() +
+                        " already exists, not moved"
+                );
                 continue;
             }
             provideDirectory(to);
             if (source.renameTo(destination)) {
-                System.out.println("  " + names[i] + " -> " +
-                                   destination.canonicalPath());
+                System.out.println(
+                    "  " + names[i] + " -> " +
+                        destination.canonicalPath()
+                );
                 ++count;
             } else {
                 // Most likely the two roots are on different filesystems.
-                System.out.println("  unable to move " + source.canonicalPath() +
-                                   " to " + destination.canonicalPath());
+                System.out.println(
+                    "  unable to move " + source.canonicalPath() +
+                        " to " + destination.canonicalPath()
+                );
             }
         }
         return count;
@@ -316,8 +330,7 @@ public final class Directories
 
     /** Extension classes and jars, which are loaded by name from the config
      *  directory and so cannot be listed up front. */
-    private static String[] extensionEntries(File dir)
-    {
+    private static String[] extensionEntries(File dir) {
         String[] names = dir.list();
         if (names == null)
             return new String[0];
@@ -328,16 +341,20 @@ public final class Directories
         return extensions.toArray(new String[extensions.size()]);
     }
 
-    private static int discardTransientEntries(File dir)
-    {
+    private static int discardTransientEntries(File dir) {
         String[] names = dir.list();
         if (names == null)
             return 0;
         int count = 0;
         for (int i = 0; i < names.length; i++) {
             String name = names[i];
-            if (name.equals("port") || name.equals("swank") ||
-                name.equals("log") || name.startsWith("log.")) {
+            if (
+                name.equals("port")
+                    || name.equals("swank")
+                    ||
+                    name.equals("log")
+                    || name.startsWith("log.")
+            ) {
                 if (File.getInstance(dir, name).delete())
                     ++count;
             }
@@ -345,13 +362,11 @@ public final class Directories
         return count;
     }
 
-    private static File provideDirectory(final File dir)
-    {
+    private static File provideDirectory(final File dir) {
         return provideDirectory(dir, false);
     }
 
-    private static File provideDirectory(final File dir, boolean verbose)
-    {
+    private static File provideDirectory(final File dir, boolean verbose) {
         if (dir == null)
             return null;
         if (!dir.isDirectory()) {
@@ -365,8 +380,7 @@ public final class Directories
         return dir;
     }
 
-    public static final File getUserHomeDirectory()
-    {
+    public static final File getUserHomeDirectory() {
         return userHomeDirectory;
     }
 
@@ -377,39 +391,33 @@ public final class Directories
      *             is the same directory.
      */
     @Deprecated
-    public static File getEditorDirectory()
-    {
+    public static File getEditorDirectory() {
         return configDirectory;
     }
 
     /** Hand-edited configuration: prefs, aliases, init.lisp, extensions. */
-    public static File getConfigDirectory()
-    {
+    public static File getConfigDirectory() {
         return configDirectory;
     }
 
     /** User data worth keeping: mail, registers, addresses, news. */
-    public static File getDataDirectory()
-    {
+    public static File getDataDirectory() {
         return dataDirectory;
     }
 
     /** State that survives a restart but nobody would miss: sessions, history,
      *  autosaves, logs. */
-    public static File getStateDirectory()
-    {
+    public static File getStateDirectory() {
         return stateDirectory;
     }
 
     /** Regenerable data: the file cache, tag files, temporaries. */
-    public static File getCacheDirectory()
-    {
+    public static File getCacheDirectory() {
         return cacheDirectory;
     }
 
     /** Files belonging to the running instance: the server port, swank. */
-    public static File getRuntimeDirectory()
-    {
+    public static File getRuntimeDirectory() {
         return runtimeDirectory;
     }
 
@@ -418,25 +426,25 @@ public final class Directories
      * the legacy layout that is the same directory five times over, so follow
      * it with what migrating would give instead.
      */
-    public static void printDirectories()
-    {
+    public static void printDirectories() {
         print(resolvedDirectories(), "");
         if (legacyLayout) {
             System.out.println();
-            System.out.println("j is using the legacy " +
-                               LEGACY_DIRECTORY_NAME +
-                               " directory. Start j with --migrate-to-xdg to move to:");
+            System.out.println(
+                "j is using the legacy " +
+                    LEGACY_DIRECTORY_NAME +
+                    " directory. Start j with --migrate-to-xdg to move to:"
+            );
             print(xdgDirectories(), "  ");
         }
     }
 
-    private static String[][] resolvedDirectories()
-    {
+    private static String[][] resolvedDirectories() {
         return new String[][] {
-            { "config",  pathOf(configDirectory) },
-            { "data",    pathOf(dataDirectory) },
-            { "state",   pathOf(stateDirectory) },
-            { "cache",   pathOf(cacheDirectory) },
+            { "config", pathOf(configDirectory) },
+            { "data", pathOf(dataDirectory) },
+            { "state", pathOf(stateDirectory) },
+            { "cache", pathOf(cacheDirectory) },
             { "runtime", pathOf(runtimeDirectory) }
         };
     }
@@ -446,60 +454,59 @@ public final class Directories
      * rather than read from the fields above, which under the legacy layout
      * all point at ~/.j.
      */
-    private static String[][] xdgDirectories()
-    {
+    private static String[][] xdgDirectories() {
         File state = appDirectory(stateHome());
         File runtimeHome = fromEnvironment("XDG_RUNTIME_DIR");
         return new String[][] {
-            { "config",  pathOf(appDirectory(configHome())) },
-            { "data",    pathOf(appDirectory(dataHome())) },
-            { "state",   pathOf(state) },
-            { "cache",   pathOf(appDirectory(cacheHome())) },
-            { "runtime", pathOf(runtimeHome != null
-                                ? appDirectory(runtimeHome) : state) }
+            { "config", pathOf(appDirectory(configHome())) },
+            { "data", pathOf(appDirectory(dataHome())) },
+            { "state", pathOf(state) },
+            { "cache", pathOf(appDirectory(cacheHome())) },
+            { "runtime", pathOf(
+                runtimeHome != null
+                    ? appDirectory(runtimeHome)
+                    : state
+            ) }
         };
     }
 
-    private static void print(String[][] entries, String indent)
-    {
+    private static void print(String[][] entries, String indent) {
         for (int i = 0; i < entries.length; i++)
-            System.out.println(indent + String.format("%-9s%s", entries[i][0],
-                                                      entries[i][1]));
+            System.out.println(
+                indent + String.format(
+                    "%-9s%s",
+                    entries[i][0],
+                    entries[i][1]
+                )
+            );
     }
 
-    private static String pathOf(File dir)
-    {
+    private static String pathOf(File dir) {
         return dir != null ? dir.canonicalPath() : "(none)";
     }
 
     /** True when an existing ~/.j was found and is being used for everything. */
-    public static boolean isLegacyLayout()
-    {
+    public static boolean isLegacyLayout() {
         return legacyLayout;
     }
 
-    public static File getTempDirectory()
-    {
+    public static File getTempDirectory() {
         return tempDirectory;
     }
 
-    public static final File getMailDirectory()
-    {
+    public static final File getMailDirectory() {
         return mailDirectory;
     }
 
-    public static final File getDraftsFolder()
-    {
+    public static final File getDraftsFolder() {
         return draftsFolder;
     }
 
-    public static final File getRegistersDirectory()
-    {
+    public static final File getRegistersDirectory() {
         return registersDirectory;
     }
 
-    public static final void cleanTempDirectory()
-    {
+    public static final void cleanTempDirectory() {
         if (tempDirectory != null && tempDirectory.isDirectory()) {
             String[] files = tempDirectory.list();
             for (int i = files.length; i-- > 0;)
@@ -507,8 +514,7 @@ public final class Directories
         }
     }
 
-    public static final void moveUnsentMessagesToDraftsFolder()
-    {
+    public static final void moveUnsentMessagesToDraftsFolder() {
         File unsentMessagesDirectory =
             File.getInstance(mailDirectory, "unsent");
         if (unsentMessagesDirectory == null) {
@@ -552,7 +558,9 @@ public final class Directories
             Log.debug("removing empty directory " + unsentMessagesDirectory);
             unsentMessagesDirectory.delete();
         } else
-            Log.debug("not removing directory " + unsentMessagesDirectory +
-                " (directory is not empty)");
+            Log.debug(
+                "not removing directory " + unsentMessagesDirectory +
+                    " (directory is not empty)"
+            );
     }
 }

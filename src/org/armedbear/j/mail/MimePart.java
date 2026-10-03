@@ -34,31 +34,26 @@ import org.armedbear.j.Log;
 import org.armedbear.j.util.Base64Decoder;
 import org.armedbear.j.util.Utilities;
 
-public class MimePart
-{
+public class MimePart {
     protected String raw;
     protected Headers headers;
 
     private List<MimePart> parts;
 
-    public MimePart(String raw)
-    {
+    public MimePart(String raw) {
         this.raw = raw;
     }
 
-    public MimePart(String raw, Headers headers)
-    {
+    public MimePart(String raw, Headers headers) {
         this.raw = raw;
         this.headers = headers;
     }
 
-    public final String getRawText()
-    {
+    public final String getRawText() {
         return raw;
     }
 
-    public String getAllHeaders()
-    {
+    public String getAllHeaders() {
         if (raw.startsWith("\r\n"))
             return "\r\n";
         if (raw.startsWith("\n"))
@@ -72,8 +67,7 @@ public class MimePart
         return raw;
     }
 
-    public String getRawHeaders()
-    {
+    public String getRawHeaders() {
         if (raw.startsWith("\r\n"))
             return "\r\n";
         if (raw.startsWith("\n"))
@@ -87,8 +81,7 @@ public class MimePart
         return raw;
     }
 
-    public String getRawBody()
-    {
+    public String getRawBody() {
         if (raw.startsWith("\r\n"))
             return raw.substring(2);
         else if (raw.startsWith("\n"))
@@ -107,8 +100,7 @@ public class MimePart
         }
     }
 
-    public String getDecodedBody()
-    {
+    public String getDecodedBody() {
         final String rawBody = getRawBody();
         final String contentType = getContentType();
         final String transferEncoding = getTransferEncoding();
@@ -116,10 +108,15 @@ public class MimePart
             Utilities.getCharsetFromContentType(getHeaderValue(Headers.CONTENT_TYPE));
         final String characterEncoding = Utilities.getEncodingFromCharset(charset);
         if (contentType == null || contentType.toLowerCase().startsWith("text/")) {
-            if (transferEncoding == null ||
-                transferEncoding.equals("7bit") ||
-                transferEncoding.equals("8bit") ||
-                transferEncoding.equals("binary"))
+            if (
+                transferEncoding == null
+                    ||
+                    transferEncoding.equals("7bit")
+                    ||
+                    transferEncoding.equals("8bit")
+                    ||
+                    transferEncoding.equals("binary")
+            )
                 return rawBody;
             else if (transferEncoding.equals("quoted-printable")) {
                 byte[] bytes = QuotedPrintableDecoder.decode(rawBody);
@@ -137,8 +134,12 @@ public class MimePart
                     byte[] bytes = out.toByteArray();
                     if (bytes != null) {
                         try {
-                            return new String(bytes, 0, bytes.length,
-                                characterEncoding);
+                            return new String(
+                                bytes,
+                                0,
+                                bytes.length,
+                                characterEncoding
+                            );
                         }
                         catch (UnsupportedEncodingException e) {
                             Log.error(e);
@@ -160,15 +161,19 @@ public class MimePart
             return null;
     }
 
-    private byte[] getDecodedBodyAsByteArray()
-    {
+    private byte[] getDecodedBodyAsByteArray() {
         final String rawBody = getRawBody();
         final String encoding = getTransferEncoding();
-        if (encoding == null || encoding.equals("7bit") ||
-            encoding.equals("8bit") || encoding.equals("binary")) {
+        if (
+            encoding == null
+                || encoding.equals("7bit")
+                ||
+                encoding.equals("8bit")
+                || encoding.equals("binary")
+        ) {
             byte[] bytes = null;
             try {
-                 bytes = rawBody.getBytes("ISO8859_1");
+                bytes = rawBody.getBytes("ISO8859_1");
             }
             catch (UnsupportedEncodingException e) {
                 Log.error(e);
@@ -191,13 +196,11 @@ public class MimePart
         return null;
     }
 
-    public List<MimePart> getParts()
-    {
+    public List<MimePart> getParts() {
         return parts;
     }
 
-    public MimePart getPart(int i)
-    {
+    public MimePart getPart(int i) {
         if (parts == null)
             return null;
         if (i < 0)
@@ -207,8 +210,7 @@ public class MimePart
         return parts.get(i);
     }
 
-    protected void addParts(List<MimePart> v)
-    {
+    protected void addParts(List<MimePart> v) {
         v.add(this);
         // Recurse.
         if (parts != null) {
@@ -222,24 +224,21 @@ public class MimePart
         }
     }
 
-    public final Headers getHeaders()
-    {
+    public final Headers getHeaders() {
         if (headers == null)
             headers = Headers.parse(raw);
         return headers;
     }
 
-    public final String getHeaderValue(int index)
-    {
+    public final String getHeaderValue(int index) {
         if (headers == null)
             headers = Headers.parse(raw);
         return headers.getValue(index);
     }
 
-    public final String getContentType()
-    {
+    public final String getContentType() {
         String s = getHeaderValue(Headers.CONTENT_TYPE);
-        if (s == null )
+        if (s == null)
             return null;
         s = s.trim();
         if (s.length() == 0)
@@ -250,34 +249,30 @@ public class MimePart
         return s.toLowerCase();
     }
 
-    public final String getTransferEncoding()
-    {
+    public final String getTransferEncoding() {
         String s = getHeaderValue(Headers.CONTENT_TRANSFER_ENCODING);
-        if (s == null )
+        if (s == null)
             return null;
         return s.toLowerCase();
     }
 
-    public final String getDisposition()
-    {
+    public final String getDisposition() {
         String s = getHeaderValue(Headers.CONTENT_DISPOSITION);
         if (s == null)
             return null;
         s = s.trim();
         int index = s.indexOf(';');
-        if (index >= 0 )
+        if (index >= 0)
             s = s.substring(0, index);
         return s;
     }
 
-    public final int getSize()
-    {
+    public final int getSize() {
         String s = getRawBody();
         return s == null ? 0 : s.length();
     }
 
-    public final boolean isAttachment()
-    {
+    public final boolean isAttachment() {
         String s = getHeaderValue(Headers.CONTENT_DISPOSITION);
         if (s != null && s.trim().startsWith("attachment"))
             return true;
@@ -285,16 +280,14 @@ public class MimePart
             return false;
     }
 
-    public final boolean isInline()
-    {
+    public final boolean isInline() {
         String s = getHeaderValue(Headers.CONTENT_DISPOSITION);
         if (s != null && s.trim().startsWith("inline"))
             return true;
         return false;
     }
 
-    public String getAttachmentFileName()
-    {
+    public String getAttachmentFileName() {
         String filename =
             getHeaderParameter(Headers.CONTENT_DISPOSITION, "filename");
         if (filename == null)
@@ -303,9 +296,13 @@ public class MimePart
             filename = filename.trim();
             int length = filename.length();
             // Strip quotes.
-            if (length >= 2 && filename.charAt(0) == '"' &&
-                filename.charAt(length-1) == '"')
-                filename = filename.substring(1, length-1);
+            if (
+                length >= 2
+                    && filename.charAt(0) == '"'
+                    &&
+                    filename.charAt(length - 1) == '"'
+            )
+                filename = filename.substring(1, length - 1);
             // Filename might be RFC2047-encoded.
             filename = RFC2047.decode(filename);
             // Remove path prefix, if any.
@@ -313,13 +310,12 @@ public class MimePart
             if (index < 0)
                 index = filename.lastIndexOf('\\');
             if (index >= 0)
-                filename = filename.substring(index+1);
+                filename = filename.substring(index + 1);
         }
         return filename;
     }
 
-    private String getHeaderParameter(int header, String parameterName)
-    {
+    private String getHeaderParameter(int header, String parameterName) {
         String s = getHeaderValue(header);
         if (s != null) {
             s = s.trim();
@@ -337,8 +333,7 @@ public class MimePart
         return null;
     }
 
-    public File cacheDecoded()
-    {
+    public File cacheDecoded() {
         String filename = getAttachmentFileName();
         String extension = null;
         if (filename != null && filename.length() > 0) {
@@ -363,12 +358,17 @@ public class MimePart
             return null;
     }
 
-    public boolean saveDecoded(File file)
-    {
+    public boolean saveDecoded(File file) {
         String encoding = getTransferEncoding();
-        if (encoding == null || encoding.equals("7bit") ||
-            encoding.equals("8bit") || encoding.equals("binary") ||
-            encoding.equals("quoted-printable")) {
+        if (
+            encoding == null
+                || encoding.equals("7bit")
+                ||
+                encoding.equals("8bit")
+                || encoding.equals("binary")
+                ||
+                encoding.equals("quoted-printable")
+        ) {
             try {
                 byte[] bytes = getDecodedBodyAsByteArray();
                 if (bytes == null)
@@ -394,8 +394,7 @@ public class MimePart
         }
     }
 
-    private boolean saveDecodedBase64(File file)
-    {
+    private boolean saveDecodedBase64(File file) {
         boolean success = false;
         try {
             BufferedOutputStream out =
@@ -416,8 +415,7 @@ public class MimePart
 
     private static final String BOUNDARY_START = "boundary=";
 
-    public void parse()
-    {
+    public void parse() {
         final String contentType = getHeaderValue(Headers.CONTENT_TYPE);
         if (contentType == null)
             return;
@@ -450,8 +448,7 @@ public class MimePart
         }
     }
 
-    private List<MimePart> parseParts(String boundary)
-    {
+    private List<MimePart> parseParts(String boundary) {
         final String marker = "--" + boundary;
         final String endMarker = marker + "--";
         final int veryEnd = raw.indexOf(endMarker);

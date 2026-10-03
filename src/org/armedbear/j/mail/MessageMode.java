@@ -21,31 +21,28 @@
 package org.armedbear.j.mail;
 
 import java.awt.event.KeyEvent;
-
 import org.armedbear.j.AbstractMode;
-import org.armedbear.j.Mode;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Constants;
 import org.armedbear.j.Editor;
 import org.armedbear.j.Formatter;
 import org.armedbear.j.Frame;
-import org.armedbear.j.mode.html.HtmlLineSegment;
 import org.armedbear.j.KeyMap;
 import org.armedbear.j.Keywords;
 import org.armedbear.j.Link;
+import org.armedbear.j.Mode;
 import org.armedbear.j.NavigationComponent;
 import org.armedbear.j.Position;
 import org.armedbear.j.Property;
 import org.armedbear.j.ToolBar;
 import org.armedbear.j.View;
+import org.armedbear.j.mode.html.HtmlLineSegment;
 import org.armedbear.j.mode.web.WebLine;
 
-public final class MessageMode extends AbstractMode implements Constants, Mode
-{
+public final class MessageMode extends AbstractMode implements Constants, Mode {
     private static final Mode mode = new MessageMode();
 
-    private MessageMode()
-    {
+    private MessageMode() {
         super(MESSAGE_MODE, MESSAGE_MODE_NAME);
         keywords = new Keywords(this, true); // Ignore case.
         setProperty(Property.VERTICAL_RULE, 0);
@@ -54,13 +51,11 @@ public final class MessageMode extends AbstractMode implements Constants, Mode
         setProperty(Property.HIGHLIGHT_BRACKETS, false);
     }
 
-    public static final Mode getMode()
-    {
+    public static final Mode getMode() {
         return mode;
     }
 
-    public NavigationComponent getSidebarComponent(Editor editor)
-    {
+    public NavigationComponent getSidebarComponent(Editor editor) {
         View view = editor.getCurrentView();
         if (view == null)
             return null; // Shouldn't happen.
@@ -69,13 +64,11 @@ public final class MessageMode extends AbstractMode implements Constants, Mode
         return view.getSidebarComponent();
     }
 
-    public final Formatter getFormatter(Buffer buffer)
-    {
+    public final Formatter getFormatter(Buffer buffer) {
         return new MessageFormatter(buffer);
     }
 
-    protected void setKeyMapDefaults(KeyMap km)
-    {
+    protected void setKeyMapDefaults(KeyMap km) {
         km.mapKey('h', "messageToggleHeaders");
         km.mapKey('f', "messageForward");
         km.mapKey('F', "messageFlag");
@@ -97,29 +90,25 @@ public final class MessageMode extends AbstractMode implements Constants, Mode
         km.mapKey('q', "tempBufferQuit");
     }
 
-    protected final ToolBar getDefaultToolBar(Frame frame)
-    {
+    protected final ToolBar getDefaultToolBar(Frame frame) {
         return new MessageModeToolBar(frame);
     }
 
-    public final String getContextString(Editor editor, boolean verbose /*ignored*/)
-    {
+    public final String getContextString(Editor editor, boolean verbose /*ignored*/) {
         return getContextString(editor.getDot());
     }
 
-    public final String getMouseMovedContextString(Editor editor, Position pos)
-    {
+    public final String getMouseMovedContextString(Editor editor, Position pos) {
         // We want to clear the status text if the mouse is not over a link, so
         // return "" instead of null.
         final String s = getContextString(pos);
         return s != null ? s : "";
     }
 
-    private String getContextString(Position pos)
-    {
+    private String getContextString(Position pos) {
         if (pos != null && pos.getLine() instanceof WebLine) {
             HtmlLineSegment segment =
-                ((WebLine)pos.getLine()).findSegment(pos.getOffset());
+                ((WebLine) pos.getLine()).findSegment(pos.getOffset());
             if (segment != null) {
                 Link link = segment.getLink();
                 if (link != null)

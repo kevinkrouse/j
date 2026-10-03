@@ -23,27 +23,37 @@ package org.armedbear.j.mail;
 import org.armedbear.j.Headers;
 import org.armedbear.j.Log;
 
-public final class LocalMailboxEntry extends MailboxEntry
-{
+public final class LocalMailboxEntry extends MailboxEntry {
     private long messageStart;
     private long nextMessageStart;
     private String uidl;
 
-    public LocalMailboxEntry(int messageNumber, long messageStart, String s)
-    {
+    public LocalMailboxEntry(int messageNumber, long messageStart, String s) {
         this.messageNumber = messageNumber;
         this.messageStart = messageStart;
         Headers headers = Headers.parse(s);
         subject = RFC2047.decode(headers.getValue(Headers.SUBJECT));
         date = RFC822Date.parseDate(headers.getValue(Headers.DATE));
-        from = MailAddress.parseAddresses(RFC2047.decode(
-            headers.getValue(Headers.FROM)));
-        replyTo = MailAddress.parseAddresses(RFC2047.decode(
-            headers.getValue(Headers.REPLY_TO)));
-        to = MailAddress.parseAddresses(RFC2047.decode(
-            headers.getValue(Headers.TO)));
-        cc = MailAddress.parseAddresses(RFC2047.decode(
-            headers.getValue(Headers.CC)));
+        from = MailAddress.parseAddresses(
+            RFC2047.decode(
+                headers.getValue(Headers.FROM)
+            )
+        );
+        replyTo = MailAddress.parseAddresses(
+            RFC2047.decode(
+                headers.getValue(Headers.REPLY_TO)
+            )
+        );
+        to = MailAddress.parseAddresses(
+            RFC2047.decode(
+                headers.getValue(Headers.TO)
+            )
+        );
+        cc = MailAddress.parseAddresses(
+            RFC2047.decode(
+                headers.getValue(Headers.CC)
+            )
+        );
         messageId = headers.getValue(Headers.MESSAGE_ID);
         inReplyTo = parseInReplyTo(headers.getValue(Headers.IN_REPLY_TO));
         String refs = headers.getValue(Headers.REFERENCES);
@@ -61,28 +71,23 @@ public final class LocalMailboxEntry extends MailboxEntry
         }
     }
 
-    public final long getMessageStart()
-    {
+    public final long getMessageStart() {
         return messageStart;
     }
 
-    public final void setMessageStart(long offset)
-    {
+    public final void setMessageStart(long offset) {
         messageStart = offset;
     }
 
-    public final long getNextMessageStart()
-    {
+    public final long getNextMessageStart() {
         return nextMessageStart;
     }
 
-    public final void setNextMessageStart(long offset)
-    {
+    public final void setNextMessageStart(long offset) {
         nextMessageStart = offset;
     }
 
-    public final String getUidl()
-    {
+    public final String getUidl() {
         return uidl;
     }
 }

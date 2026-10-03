@@ -20,17 +20,14 @@
 
 package org.armedbear.j.mail;
 
-public final class NotTerm extends MailboxFilter
-{
+public final class NotTerm extends MailboxFilter {
     private final MailboxFilter filter;
 
-    public NotTerm(MailboxFilter filter)
-    {
+    public NotTerm(MailboxFilter filter) {
         this.filter = filter;
     }
 
-    public final boolean accept(MailboxEntry entry)
-    {
+    public final boolean accept(MailboxEntry entry) {
         return !filter.accept(entry);
     }
 }

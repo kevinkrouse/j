@@ -24,28 +24,25 @@ import org.armedbear.j.util.FastStringReader;
 import org.armedbear.j.util.FastStringReader;
 import org.armedbear.j.util.Utilities;
 
-public final class FromMailboxFilter extends MailboxFilter
-{
+public final class FromMailboxFilter extends MailboxFilter {
     private String pattern;
     private boolean ignoreCase;
 
-    public FromMailboxFilter(FastStringReader reader)
-    {
+    public FromMailboxFilter(FastStringReader reader) {
         this.pattern = reader.readToken();
         ignoreCase = Utilities.isLowerCase(pattern);
     }
 
-    public boolean accept(MailboxEntry entry)
-    {
+    public boolean accept(MailboxEntry entry) {
         MailAddress[] from = entry.getFrom();
         if (from != null) {
             if (ignoreCase) {
-                for (int i = from.length-1; i >= 0; i--) {
+                for (int i = from.length - 1; i >= 0; i--) {
                     if (from[i].matchesIgnoreCase(pattern))
                         return true;
                 }
             } else {
-                for (int i = from.length-1; i >= 0; i--) {
+                for (int i = from.length - 1; i >= 0; i--) {
                     if (from[i].matches(pattern))
                         return true;
                 }

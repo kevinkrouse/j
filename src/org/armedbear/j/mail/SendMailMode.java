@@ -21,10 +21,7 @@
 package org.armedbear.j.mail;
 
 import java.awt.event.KeyEvent;
-
 import org.armedbear.j.AbstractMode;
-import org.armedbear.j.Line;
-import org.armedbear.j.Mode;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Constants;
 import org.armedbear.j.Editor;
@@ -33,17 +30,17 @@ import org.armedbear.j.Formatter;
 import org.armedbear.j.Frame;
 import org.armedbear.j.KeyMap;
 import org.armedbear.j.Keywords;
+import org.armedbear.j.Line;
+import org.armedbear.j.Mode;
 import org.armedbear.j.NavigationComponent;
 import org.armedbear.j.Property;
 import org.armedbear.j.ToolBar;
 import org.armedbear.j.View;
 
-public final class SendMailMode extends AbstractMode implements Constants, Mode
-{
+public final class SendMailMode extends AbstractMode implements Constants, Mode {
     private static final SendMailMode mode = new SendMailMode();
 
-    private SendMailMode()
-    {
+    private SendMailMode() {
         super(SEND_MAIL_MODE, SEND_MAIL_MODE_NAME);
         keywords = new Keywords(this, true); // Ignore case.
         setProperty(Property.WRAP_COL, 72);
@@ -60,18 +57,15 @@ public final class SendMailMode extends AbstractMode implements Constants, Mode
         setProperty(Property.HIGHLIGHT_BRACKETS, false);
     }
 
-    public static SendMailMode getMode()
-    {
+    public static SendMailMode getMode() {
         return mode;
     }
 
-    public Buffer createBuffer(File file)
-    {
+    public Buffer createBuffer(File file) {
         return new SendMail(file);
     }
 
-    public NavigationComponent getSidebarComponent(Editor editor)
-    {
+    public NavigationComponent getSidebarComponent(Editor editor) {
         View view = editor.getCurrentView();
         if (view == null)
             return null; // Shouldn't happen.
@@ -80,56 +74,54 @@ public final class SendMailMode extends AbstractMode implements Constants, Mode
         return view.getSidebarComponent();
     }
 
-    public Formatter getFormatter(Buffer buffer)
-    {
+    public Formatter getFormatter(Buffer buffer) {
         return new MessageFormatter(buffer);
     }
 
-    protected void setKeyMapDefaults(KeyMap km)
-    {
+    protected void setKeyMapDefaults(KeyMap km) {
         km.mapKey(KeyEvent.VK_ENTER, 0, "newlineAndIndent");
         km.mapKey(':', "sendMailElectricColon");
         km.mapKey(KeyEvent.VK_ENTER, CTRL_MASK, "send");
         km.mapKey(KeyEvent.VK_TAB, 0, "sendMailTab");
         km.mapKey(KeyEvent.VK_TAB, SHIFT_MASK, "sendMailBackTab");
-        km.mapKey(KeyEvent.VK_F12, CTRL_MASK | SHIFT_MASK,
-                  "wrapParagraphsInRegion");
+        km.mapKey(
+            KeyEvent.VK_F12,
+            CTRL_MASK | SHIFT_MASK,
+            "wrapParagraphsInRegion"
+        );
     }
 
-    protected ToolBar getDefaultToolBar(Frame frame)
-    {
+    protected ToolBar getDefaultToolBar(Frame frame) {
         return new SendMailModeToolBar(frame);
     }
 
-    public boolean canIndent()
-    {
+    public boolean canIndent() {
         return true;
     }
 
-    public boolean canIndentPaste()
-    {
+    public boolean canIndentPaste() {
         return false;
     }
 
-    public int getCorrectIndentation(Line line, Buffer buffer)
-    {
+    public int getCorrectIndentation(Line line, Buffer buffer) {
         if (buffer instanceof SendMail)
-            if (((SendMail)buffer).isHeaderLine(line))
+            if (((SendMail) buffer).isHeaderLine(line))
                 return buffer.getIndentSize();
 
         return 0;
     }
 
-    public boolean confirmClose(Editor editor, Buffer buffer)
-    {
+    public boolean confirmClose(Editor editor, Buffer buffer) {
         if (buffer instanceof SendMail) {
-            if (((SendMail)buffer).hasBeenSent())
+            if (((SendMail) buffer).hasBeenSent())
                 return true;
             else if (!buffer.isModified())
                 return true;
             else
-                return editor.confirm(buffer.toString(),
-                    "Message has not been sent; kill anyway?");
+                return editor.confirm(
+                    buffer.toString(),
+                    "Message has not been sent; kill anyway?"
+                );
         }
         return super.confirmClose(editor, buffer);
     }

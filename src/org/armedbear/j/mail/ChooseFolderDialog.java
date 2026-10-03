@@ -27,26 +27,25 @@ import org.armedbear.j.History;
 import org.armedbear.j.InputDialog;
 import org.armedbear.j.MessageDialog;
 
-public final class ChooseFolderDialog extends InputDialog
-{
-    private ChooseFolderDialog(Editor editor, String prompt, String title)
-    {
+public final class ChooseFolderDialog extends InputDialog {
+    private ChooseFolderDialog(Editor editor, String prompt, String title) {
         super(editor, prompt, title, null);
         History history = new History("chooseFolder");
         setHistory(history);
         setDefaultValue(history.getPrevious());
     }
 
-    public static String chooseFolder(Editor editor, String title)
-    {
+    public static String chooseFolder(Editor editor, String title) {
         return chooseFolder(editor, "Folder:", title);
     }
 
     // Returns null if user cancels.
     // Returns null if user input (or dereferenced alias) is empty string.
-    public static String chooseFolder(Editor editor, String prompt,
-        String title)
-    {
+    public static String chooseFolder(
+        Editor editor,
+        String prompt,
+        String title
+    ) {
         String errorText = null;
         while (true) {
             if (errorText != null)

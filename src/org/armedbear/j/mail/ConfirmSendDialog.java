@@ -20,7 +20,6 @@
 
 package org.armedbear.j.mail;
 
-import org.armedbear.j.util.Utilities;
 import java.awt.event.ActionEvent;
 import java.awt.event.KeyEvent;
 import javax.swing.Box;
@@ -36,16 +35,16 @@ import org.armedbear.j.Label;
 import org.armedbear.j.MessageDialog;
 import org.armedbear.j.Property;
 import org.armedbear.j.SessionProperties;
+import org.armedbear.j.util.Utilities;
 
-public final class ConfirmSendDialog extends AbstractDialog
-{
+public final class ConfirmSendDialog extends AbstractDialog {
     private static final int TEXTFIELD_WIDTH = 22;
 
-    private static final String fromKey         = "confirmSend.from";
+    private static final String fromKey = "confirmSend.from";
     private static final String bccAddSenderKey = "confirmSend.bccAddSender";
-    private static final String bccAddOtherKey  = "confirmSend.bccAddOther";
-    private static final String bccOtherKey     = "confirmSend.bccOther";
-    private static final String smtpKey         = "confirmSend.smtp";
+    private static final String bccAddOtherKey = "confirmSend.bccAddOther";
+    private static final String bccOtherKey = "confirmSend.bccOther";
+    private static final String smtpKey = "confirmSend.smtp";
 
     private final Editor editor;
     private final SendMail sm;
@@ -67,8 +66,7 @@ public final class ConfirmSendDialog extends AbstractDialog
     private boolean bccAddOther;
     private String bccOther;
 
-    public ConfirmSendDialog(Editor editor, SendMail sm)
-    {
+    public ConfirmSendDialog(Editor editor, SendMail sm) {
         super(editor, "Confirm Send", true);
         this.editor = editor;
         this.sm = sm;
@@ -86,13 +84,17 @@ public final class ConfirmSendDialog extends AbstractDialog
         fromTextField.recallLast();
         addLabelAndTextField(label, fromTextField);
         addVerticalStrut();
-        bccAddSenderCheckBox = new CheckBox("Bcc sender",
-            sessionProperties.getBooleanProperty(bccAddSenderKey, false));
+        bccAddSenderCheckBox = new CheckBox(
+            "Bcc sender",
+            sessionProperties.getBooleanProperty(bccAddSenderKey, false)
+        );
         bccAddSenderCheckBox.setMnemonic('S');
         bccAddSenderCheckBox.addKeyListener(this);
         mainPanel.add(bccAddSenderCheckBox);
-        bccAddOtherCheckBox = new CheckBox("Bcc other:",
-            sessionProperties.getBooleanProperty(bccAddOtherKey, false));
+        bccAddOtherCheckBox = new CheckBox(
+            "Bcc other:",
+            sessionProperties.getBooleanProperty(bccAddOtherKey, false)
+        );
         bccAddOtherCheckBox.setMnemonic('O');
         bccAddOtherCheckBox.addKeyListener(this);
         bccAddOtherCheckBox.addActionListener(this);
@@ -128,33 +130,27 @@ public final class ConfirmSendDialog extends AbstractDialog
         fromTextField.requestFocus();
     }
 
-    public String getFrom()
-    {
+    public String getFrom() {
         return from;
     }
 
-    public String getSmtp()
-    {
+    public String getSmtp() {
         return smtp;
     }
 
-    public boolean bccAddSender()
-    {
+    public boolean bccAddSender() {
         return bccAddSender;
     }
 
-    public boolean bccAddOther()
-    {
+    public boolean bccAddOther() {
         return bccAddOther;
     }
 
-    public String getBccOther()
-    {
+    public String getBccOther() {
         return bccOther;
     }
 
-    protected void ok()
-    {
+    protected void ok() {
         from = fromTextField.getText().trim();
         bccAddSender = bccAddSenderCheckBox.isSelected();
         bccAddOther = bccAddOtherCheckBox.isSelected();
@@ -164,7 +160,8 @@ public final class ConfirmSendDialog extends AbstractDialog
         if (from.length() == 0 || from.indexOf('@') < 0) {
             MessageDialog.showMessageDialog(
                 "You must enter a valid \"From\" address",
-                "Error");
+                "Error"
+            );
             fromTextField.requestFocus();
             return;
         }
@@ -172,7 +169,8 @@ public final class ConfirmSendDialog extends AbstractDialog
             if (bccOther.length() == 0 || bccOther.indexOf('@') < 0) {
                 MessageDialog.showMessageDialog(
                     "You must enter a valid \"Bcc\" address",
-                    "Error");
+                    "Error"
+                );
                 bccOtherTextField.requestFocus();
                 return;
             }
@@ -180,7 +178,8 @@ public final class ConfirmSendDialog extends AbstractDialog
         if (smtp.length() == 0) {
             MessageDialog.showMessageDialog(
                 "You must specify the SMTP server",
-                "Error");
+                "Error"
+            );
             smtpTextField.requestFocus();
             return;
         }
@@ -198,12 +197,14 @@ public final class ConfirmSendDialog extends AbstractDialog
         dispose();
     }
 
-    public void keyPressed(KeyEvent e)
-    {
+    public void keyPressed(KeyEvent e) {
         // Treat the user's mapping(s) for the send command like Enter.
         KeyMapping mapping =
-            editor.getKeyMapping(e.getKeyChar(), e.getKeyCode(),
-                                 Utilities.keyModifiers(e));
+            editor.getKeyMapping(
+                e.getKeyChar(),
+                e.getKeyCode(),
+                Utilities.keyModifiers(e)
+            );
         if (mapping != null && mapping.getCommand() == "send") {
             e.consume();
             enter();
@@ -211,8 +212,7 @@ public final class ConfirmSendDialog extends AbstractDialog
             super.keyPressed(e);
     }
 
-    public void actionPerformed(ActionEvent e)
-    {
+    public void actionPerformed(ActionEvent e) {
         String cmd = e.getActionCommand();
         if (cmd != null && cmd.equals(bccAddOtherCheckBox.getText()))
             bccOtherTextField.setEnabled(bccAddOtherCheckBox.isSelected());

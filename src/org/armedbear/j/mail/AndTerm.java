@@ -22,24 +22,20 @@ package org.armedbear.j.mail;
 
 import java.util.ArrayList;
 
-public final class AndTerm extends MailboxFilter
-{
+public final class AndTerm extends MailboxFilter {
     private final ArrayList<MailboxFilter> filters;
 
-    public AndTerm(MailboxFilter first, MailboxFilter second)
-    {
+    public AndTerm(MailboxFilter first, MailboxFilter second) {
         filters = new ArrayList<MailboxFilter>();
         filters.add(first);
         filters.add(second);
     }
 
-    public void add(MailboxFilter filter)
-    {
+    public void add(MailboxFilter filter) {
         filters.add(filter);
     }
 
-    public final boolean accept(MailboxEntry entry)
-    {
+    public final boolean accept(MailboxEntry entry) {
         for (MailboxFilter filter : filters) {
             if (!filter.accept(entry))
                 return false;

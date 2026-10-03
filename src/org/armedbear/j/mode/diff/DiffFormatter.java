@@ -26,26 +26,23 @@ import org.armedbear.j.Formatter;
 import org.armedbear.j.Line;
 import org.armedbear.j.LineSegmentList;
 
-public final class DiffFormatter extends Formatter
-{
+public final class DiffFormatter extends Formatter {
     // Formats.
-    private static final int DIFF_FORMAT_TEXT     = 0;
-    private static final int DIFF_FORMAT_FILE     = 1;
-    private static final int DIFF_FORMAT_HEADER   = 2;
-    private static final int DIFF_FORMAT_CONTEXT  = 3;
+    private static final int DIFF_FORMAT_TEXT = 0;
+    private static final int DIFF_FORMAT_FILE = 1;
+    private static final int DIFF_FORMAT_HEADER = 2;
+    private static final int DIFF_FORMAT_CONTEXT = 3;
     private static final int DIFF_FORMAT_INSERTED = 4;
-    private static final int DIFF_FORMAT_DELETED  = 5;
-    private static final int DIFF_FORMAT_CHANGED  = 6;
+    private static final int DIFF_FORMAT_DELETED = 5;
+    private static final int DIFF_FORMAT_CHANGED = 6;
 
     public static final int DIFF_FORMAT_LAST = 6;
 
-    public DiffFormatter(Buffer buffer)
-    {
+    public DiffFormatter(Buffer buffer) {
         this.buffer = buffer;
     }
 
-    public LineSegmentList formatLine(Line line)
-    {
+    public LineSegmentList formatLine(Line line) {
         clearSegmentList();
         if (line == null || line.length() == 0) {
             addSegment("", DIFF_FORMAT_TEXT);
@@ -149,18 +146,28 @@ public final class DiffFormatter extends Formatter
         return segmentList;
     }
 
-    private static boolean isDiffHeader(String s)
-    {
-        if ((s.startsWith("cvs server: ") ||
-            s.startsWith("========") ||
-            s.startsWith("RCS file: ") ||
-            s.startsWith("retrieving revision ") ||
-            s.startsWith("diff ") ||
-            s.startsWith("*** ") ||
-            s.startsWith("--- ") ||
-            s.startsWith("+++ ") ||
-            (s.startsWith("@@ ") || s.endsWith(" @@")) ||
-            (s.startsWith("@ ") && s.endsWith(" @"))))
+    private static boolean isDiffHeader(String s) {
+        if (
+            (s.startsWith("cvs server: ")
+                ||
+                s.startsWith("========")
+                ||
+                s.startsWith("RCS file: ")
+                ||
+                s.startsWith("retrieving revision ")
+                ||
+                s.startsWith("diff ")
+                ||
+                s.startsWith("*** ")
+                ||
+                s.startsWith("--- ")
+                ||
+                s.startsWith("+++ ")
+                ||
+                (s.startsWith("@@ ") || s.endsWith(" @@"))
+                ||
+                (s.startsWith("@ ") && s.endsWith(" @")))
+        )
             return true;
         if (s.equals("***************"))
             return true;
@@ -174,8 +181,7 @@ public final class DiffFormatter extends Formatter
         return false;
     }
 
-    public FormatTable getFormatTable()
-    {
+    public FormatTable getFormatTable() {
         if (formatTable == null) {
             formatTable = new FormatTable("DiffMode");
             formatTable.addEntryFromPrefs(DIFF_FORMAT_TEXT, "text");

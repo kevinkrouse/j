@@ -20,12 +20,13 @@
 
 package org.armedbear.j;
 
+import static org.armedbear.j.ToolBarIcon.*;
+
 import java.awt.Color;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import javax.swing.BorderFactory;
 import javax.swing.JToolBar;
-
 import org.armedbear.j.util.Utilities;
 import org.xml.sax.Attributes;
 import org.xml.sax.ContentHandler;
@@ -33,11 +34,9 @@ import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 import org.xml.sax.XMLReader;
 import org.xml.sax.helpers.DefaultHandler;
-import static org.armedbear.j.ToolBarIcon.*;
 
-public class ToolBar extends JToolBar implements ActionListener
-{
-    private static final int STYLE_DEFAULT   = 0;
+public class ToolBar extends JToolBar implements ActionListener {
+    private static final int STYLE_DEFAULT = 0;
     private static final int STYLE_TEXT_ONLY = 1;
     private static final int STYLE_ICON_ONLY = 2;
 
@@ -46,34 +45,37 @@ public class ToolBar extends JToolBar implements ActionListener
     protected Frame frame;
     protected int style = STYLE_DEFAULT;
 
-    public ToolBar(Frame frame)
-    {
+    public ToolBar(Frame frame) {
         this(frame, STYLE_DEFAULT);
     }
 
-    public ToolBar(Frame frame, int style)
-    {
+    public ToolBar(Frame frame, int style) {
         this.frame = frame;
         this.style = style;
         setFloatable(false);
         setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, Color.gray));
     }
 
-    public ToolBarButton addButton(String text, ToolBarIcon icon, String methodName)
-    {
+    public ToolBarButton addButton(String text, ToolBarIcon icon, String methodName) {
         return addButton(text, icon, methodName, true);
     }
 
-    public ToolBarButton addButton(String text, ToolBarIcon icon, String methodName,
-                                   boolean enabled)
-    {
+    public ToolBarButton addButton(
+        String text,
+        ToolBarIcon icon,
+        String methodName,
+        boolean enabled
+    ) {
         String iconFile = icon.getFile();
         return addButton(text, iconFile, methodName, enabled);
     }
 
-    private ToolBarButton addButton(String text, String iconFile, String methodName,
-                                   boolean enabled)
-    {
+    private ToolBarButton addButton(
+        String text,
+        String iconFile,
+        String methodName,
+        boolean enabled
+    ) {
         ToolBarButton button = new ToolBarButton(frame, methodName, this);
         switch (style) {
             case STYLE_DEFAULT:
@@ -100,49 +102,41 @@ public class ToolBar extends JToolBar implements ActionListener
         return button;
     }
 
-    public ToolBarButton maybeAddInboxButton()
-    {
+    public ToolBarButton maybeAddInboxButton() {
         if (Editor.isMailEnabled())
             if (preferences.getStringProperty(Property.INBOX) != null)
                 return addButton("Inbox", ICON_MAIL_INBOX, "inbox");
         return null;
     }
 
-    public static boolean isToolBarEnabled()
-    {
+    public static boolean isToolBarEnabled() {
         return textEnabled() || iconsEnabled();
     }
 
-    private static boolean textEnabled()
-    {
+    private static boolean textEnabled() {
         return preferences.getBooleanProperty(Property.TOOL_BAR_SHOW_TEXT);
     }
 
-    private static boolean iconsEnabled()
-    {
+    private static boolean iconsEnabled() {
         // Defaults to true in all cases.
         return preferences.getBooleanProperty(Property.TOOL_BAR_SHOW_ICONS);
     }
 
-    public static boolean isRolloverEnabled()
-    {
+    public static boolean isRolloverEnabled() {
         return preferences.getBooleanProperty(Property.TOOL_BAR_IS_ROLLOVER);
     }
 
-    public static int iconSize()
-    {
+    public static int iconSize() {
         return UIScale.scaledProperty(preferences, Property.TOOL_BAR_ICON_SIZE);
     }
 
-    public void actionPerformed(ActionEvent e)
-    {
+    public void actionPerformed(ActionEvent e) {
         final Editor editor = frame.getCurrentEditor();
         editor.setFocusToDisplay();
         editor.getDispatcher().actionPerformed(e);
     }
 
-    public static ToolBar createToolBar(Frame frame, File file)
-    {
+    public static ToolBar createToolBar(Frame frame, File file) {
         if (file == null)
             return null;
         if (!file.isFile())
@@ -164,18 +158,19 @@ public class ToolBar extends JToolBar implements ActionListener
         }
     }
 
-    private static class Handler extends DefaultHandler implements ContentHandler
-    {
+    private static class Handler extends DefaultHandler implements ContentHandler {
         private final ToolBar toolBar;
 
-        public Handler(ToolBar toolBar)
-        {
+        public Handler(ToolBar toolBar) {
             this.toolBar = toolBar;
         }
 
-        public void startElement(String uri, String localName, String qName,
-            Attributes attributes) throws SAXException
-        {
+        public void startElement(
+            String uri,
+            String localName,
+            String qName,
+            Attributes attributes
+        ) throws SAXException {
             if (localName.equals("button") || qName.equals("button")) {
                 String label = attributes.getValue("", "label");
                 String icon = attributes.getValue("", "icon");

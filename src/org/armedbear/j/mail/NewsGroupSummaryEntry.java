@@ -24,17 +24,13 @@ import java.lang.StringBuilder;
 import org.armedbear.j.Log;
 import org.armedbear.j.util.Utilities;
 
-public final class NewsGroupSummaryEntry extends MailboxEntry
-{
+public final class NewsGroupSummaryEntry extends MailboxEntry {
     private String from;
     private int lineCount;
 
-    private NewsGroupSummaryEntry()
-    {
-    }
+    private NewsGroupSummaryEntry() {}
 
-    public static NewsGroupSummaryEntry parseOverviewEntry(String s)
-    {
+    public static NewsGroupSummaryEntry parseOverviewEntry(String s) {
         NewsGroupSummaryEntry entry = new NewsGroupSummaryEntry();
         while (true) {
             int begin = 0;
@@ -108,18 +104,15 @@ public final class NewsGroupSummaryEntry extends MailboxEntry
         return entry;
     }
 
-    public final int getArticleNumber()
-    {
+    public final int getArticleNumber() {
         return messageNumber;
     }
 
-    public String toString()
-    {
+    public String toString() {
         return toString(1);
     }
 
-    public String toString(int depth)
-    {
+    public String toString(int depth) {
         StringBuilder sb = new StringBuilder();
         if (SHOW_MESSAGE_NUMBERS) {
             sb.append(Utilities.rightJustify(getSequenceNumber(), 4));
@@ -133,14 +126,13 @@ public final class NewsGroupSummaryEntry extends MailboxEntry
         sb.append(formatFrom(20));
         sb.append("  ");
         sb.append(formatSize());
-        sb.append(Utilities.spaces(depth+1));
+        sb.append(Utilities.spaces(depth + 1));
         if (subject != null)
             sb.append(subject);
         return sb.toString();
     }
 
-    protected String formatFrom(int fieldWidth)
-    {
+    protected String formatFrom(int fieldWidth) {
         String s = from;
         int index = s.indexOf('<');
         if (index > 0)
@@ -151,8 +143,8 @@ public final class NewsGroupSummaryEntry extends MailboxEntry
                 s = s.substring(0, index).trim();
         }
         if (s.length() >= 2) {
-            if (s.charAt(0) == '"' && s.charAt(s.length()-1) == '"') {
-                s = s.substring(1, s.length()-1);
+            if (s.charAt(0) == '"' && s.charAt(s.length() - 1) == '"') {
+                s = s.substring(1, s.length() - 1);
             }
         }
         if (fieldWidth > 0) {

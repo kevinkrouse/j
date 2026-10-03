@@ -24,11 +24,10 @@ import java.util.ArrayList;
 import java.util.List;
 import org.armedbear.j.Log;
 
-public final class IncomingFilter
-{
-    public static final int NOTHING           = 0;
-    public static final int MOVE              = 1;
-    public static final int BOUNCE            = 2;
+public final class IncomingFilter {
+    public static final int NOTHING = 0;
+    public static final int MOVE = 1;
+    public static final int BOUNCE = 2;
     public static final int BOUNCE_AND_DELETE = 3;
 
     private static ArrayList<IncomingFilter> filterList;
@@ -39,9 +38,13 @@ public final class IncomingFilter
     private final int action;
     private final String parameter;
 
-    private IncomingFilter(String mailbox, String pattern, MailboxFilter filter,
-        int action, String parameter)
-    {
+    private IncomingFilter(
+        String mailbox,
+        String pattern,
+        MailboxFilter filter,
+        int action,
+        String parameter
+    ) {
         this.mailbox = mailbox;
         this.pattern = pattern;
         this.filter = filter;
@@ -49,23 +52,19 @@ public final class IncomingFilter
         this.parameter = parameter;
     }
 
-    public final String getPattern()
-    {
+    public final String getPattern() {
         return pattern;
     }
 
-    public final MailboxFilter getFilter()
-    {
+    public final MailboxFilter getFilter() {
         return filter;
     }
 
-    public final int getAction()
-    {
+    public final int getAction() {
         return action;
     }
 
-    public final String getParameter()
-    {
+    public final String getParameter() {
         return parameter;
     }
 
@@ -73,12 +72,16 @@ public final class IncomingFilter
         String mailbox,
         String pattern,
         String actionName,
-        String parameter)
-    {
-        if (mailbox == null) return;
-        if (pattern == null) return;
-        if (actionName == null) return;
-        if (parameter == null) return;
+        String parameter
+    ) {
+        if (mailbox == null)
+            return;
+        if (pattern == null)
+            return;
+        if (actionName == null)
+            return;
+        if (parameter == null)
+            return;
         if (!mailbox.equals("inbox")) {
             Log.error("addIncomingFilter - only \"inbox\" is supported");
             return;
@@ -96,23 +99,30 @@ public final class IncomingFilter
         else if (actionName.equalsIgnoreCase("bounce_and_delete"))
             action = BOUNCE_AND_DELETE;
         else {
-            Log.error("addIncomingFilter - action \"" + actionName +
-                "\" is not supported");
+            Log.error(
+                "addIncomingFilter - action \"" + actionName +
+                    "\" is not supported"
+            );
             return;
         }
         if (filterList == null)
             filterList = new ArrayList<IncomingFilter>();
-        filterList.add(new IncomingFilter(mailbox, pattern, filter, action,
-            parameter));
+        filterList.add(
+            new IncomingFilter(
+                mailbox,
+                pattern,
+                filter,
+                action,
+                parameter
+            )
+        );
     }
 
-    public static synchronized final void resetIncomingFilters()
-    {
+    public static synchronized final void resetIncomingFilters() {
         filterList = null;
     }
 
-    public static synchronized final List<? extends IncomingFilter> getFilterList()
-    {
+    public static synchronized final List<? extends IncomingFilter> getFilterList() {
         return filterList == null ? null : new ArrayList<IncomingFilter>(filterList);
     }
 }

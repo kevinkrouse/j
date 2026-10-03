@@ -20,22 +20,20 @@
 
 package org.armedbear.j.mode.scheme;
 
-import org.armedbear.j.Mode;
 import java.lang.StringBuilder;
+import java.util.ArrayList;
 import org.armedbear.j.Line;
 import org.armedbear.j.LocalTag;
+import org.armedbear.j.Mode;
 import org.armedbear.j.Position;
 import org.armedbear.j.SystemBuffer;
 import org.armedbear.j.Tagger;
 import org.armedbear.j.mode.lisp.LispTag;
 
-import java.util.ArrayList;
-
-public final class SchemeTagger extends Tagger
-{
+public final class SchemeTagger extends Tagger {
     // States.
     private static final int NEUTRAL = 0;
-    private static final int DEFUN   = 1;
+    private static final int DEFUN = 1;
 
     protected Position pos;
     protected String token;
@@ -43,13 +41,11 @@ public final class SchemeTagger extends Tagger
 
     private static final Mode schemeMode = SchemeMode.getMode();
 
-    public SchemeTagger(SystemBuffer buffer)
-    {
+    public SchemeTagger(SystemBuffer buffer) {
         super(buffer);
     }
 
-    public void run()
-    {
+    public void run() {
         ArrayList<LocalTag> tags = new ArrayList<LocalTag>();
         pos = new Position(buffer.getFirstLine(), 0);
         token = null;
@@ -100,8 +96,7 @@ public final class SchemeTagger extends Tagger
         buffer.setTags(tags);
     }
 
-    private void gatherToken()
-    {
+    private void gatherToken() {
         tokenStart = new Position(pos);
         StringBuilder sb = new StringBuilder();
         char c;

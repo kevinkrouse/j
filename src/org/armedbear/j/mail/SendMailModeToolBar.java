@@ -20,14 +20,13 @@
 
 package org.armedbear.j.mail;
 
-import org.armedbear.j.Frame;
-import org.armedbear.j.ToolBar;
 import static org.armedbear.j.ToolBarIcon.*;
 
-/*package*/ final class SendMailModeToolBar extends ToolBar
-{
-    /*package*/ SendMailModeToolBar(Frame frame)
-    {
+import org.armedbear.j.Frame;
+import org.armedbear.j.ToolBar;
+
+/*package*/ final class SendMailModeToolBar extends ToolBar {
+    /*package*/ SendMailModeToolBar(Frame frame) {
         super(frame);
         addButton("New", ICON_NEW, "newBuffer");
         addButton("Open", ICON_OPEN, "openFile");

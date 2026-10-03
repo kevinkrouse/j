@@ -26,20 +26,17 @@ import org.armedbear.j.Formatter;
 import org.armedbear.j.Line;
 import org.armedbear.j.LineSegmentList;
 
-public final class P4ChangelistFormatter extends Formatter
-{
-    private static final byte FORMAT_TEXT      = 0;
-    private static final byte FORMAT_COMMENT   = 1;
-    private static final byte FORMAT_KEY       = 2;
-    private static final byte FORMAT_VALUE     = 3;
+public final class P4ChangelistFormatter extends Formatter {
+    private static final byte FORMAT_TEXT = 0;
+    private static final byte FORMAT_COMMENT = 1;
+    private static final byte FORMAT_KEY = 2;
+    private static final byte FORMAT_VALUE = 3;
 
-    public P4ChangelistFormatter(Buffer buffer)
-    {
+    public P4ChangelistFormatter(Buffer buffer) {
         this.buffer = buffer;
     }
 
-    public LineSegmentList formatLine(Line line)
-    {
+    public LineSegmentList formatLine(Line line) {
         clearSegmentList();
         String text = getDetabbedText(line);
         final String comment;
@@ -55,8 +52,8 @@ public final class P4ChangelistFormatter extends Formatter
             if (space < 0)
                 space = text.indexOf(' ');
             if (space < 0 || colon < space) {
-                addSegment(text, 0, colon+1, FORMAT_KEY);
-                addSegment(text, colon+1, FORMAT_VALUE);
+                addSegment(text, 0, colon + 1, FORMAT_KEY);
+                addSegment(text, colon + 1, FORMAT_VALUE);
             } else
                 addSegment(text, FORMAT_TEXT);
         } else
@@ -66,8 +63,7 @@ public final class P4ChangelistFormatter extends Formatter
         return segmentList;
     }
 
-    public FormatTable getFormatTable()
-    {
+    public FormatTable getFormatTable() {
         if (formatTable == null) {
             formatTable = new FormatTable("P4Changelist");
             formatTable.addEntryFromPrefs(FORMAT_TEXT, "text");

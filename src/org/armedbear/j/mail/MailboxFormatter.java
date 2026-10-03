@@ -20,58 +20,55 @@
 
 package org.armedbear.j.mail;
 
-import org.armedbear.j.Formatter;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Editor;
+import org.armedbear.j.FormatTable;
+import org.armedbear.j.Formatter;
 import org.armedbear.j.Line;
 import org.armedbear.j.LineSegmentList;
 import org.armedbear.j.Property;
 import org.armedbear.j.util.Utilities;
-import org.armedbear.j.FormatTable;
 
-public final class MailboxFormatter extends Formatter
-{
+public final class MailboxFormatter extends Formatter {
     private static final boolean SHOW_MESSAGE_NUMBERS =
         Editor.preferences().getBooleanProperty(Property.SHOW_MESSAGE_NUMBERS);
 
-    private static final byte FORMAT_TEXT            =  0;
-    private static final byte FORMAT_DELETED         =  1;
-    private static final byte FORMAT_TAGGED          =  2;
+    private static final byte FORMAT_TEXT = 0;
+    private static final byte FORMAT_DELETED = 1;
+    private static final byte FORMAT_TAGGED = 2;
 
-    private static final byte FORMAT_TO              =  3; // '+', 'T', 'C', 'F', '!'
-    private static final byte FORMAT_FLAGS           =  4;
-    private static final byte FORMAT_DATE            =  5;
-    private static final byte FORMAT_FROM            =  6;
-    private static final byte FORMAT_SIZE            =  7;
-    private static final byte FORMAT_SUBJECT         =  8;
+    private static final byte FORMAT_TO = 3; // '+', 'T', 'C', 'F', '!'
+    private static final byte FORMAT_FLAGS = 4;
+    private static final byte FORMAT_DATE = 5;
+    private static final byte FORMAT_FROM = 6;
+    private static final byte FORMAT_SIZE = 7;
+    private static final byte FORMAT_SUBJECT = 8;
 
-    private static final byte FORMAT_FLAGGED_TO      =  9;
-    private static final byte FORMAT_FLAGGED_FLAGS   = 10;
-    private static final byte FORMAT_FLAGGED_DATE    = 11;
-    private static final byte FORMAT_FLAGGED_FROM    = 12;
-    private static final byte FORMAT_FLAGGED_SIZE    = 13;
+    private static final byte FORMAT_FLAGGED_TO = 9;
+    private static final byte FORMAT_FLAGGED_FLAGS = 10;
+    private static final byte FORMAT_FLAGGED_DATE = 11;
+    private static final byte FORMAT_FLAGGED_FROM = 12;
+    private static final byte FORMAT_FLAGGED_SIZE = 13;
     private static final byte FORMAT_FLAGGED_SUBJECT = 14;
 
-    private static final int TO_COLUMN_WIDTH    =  2;
-    private static final int FLAGS_COLUMN_WIDTH =  3;
-    private static final int DATE_COLUMN_WIDTH  = 14;
-    private static final int FROM_COLUMN_WIDTH  = 22;
-    private static final int SIZE_COLUMN_WIDTH  =  6;
+    private static final int TO_COLUMN_WIDTH = 2;
+    private static final int FLAGS_COLUMN_WIDTH = 3;
+    private static final int DATE_COLUMN_WIDTH = 14;
+    private static final int FROM_COLUMN_WIDTH = 22;
+    private static final int SIZE_COLUMN_WIDTH = 6;
 
-    private static final int TO_COLUMN      = SHOW_MESSAGE_NUMBERS ? 6 : 0;
-    private static final int FLAGS_COLUMN   = TO_COLUMN + TO_COLUMN_WIDTH;
-    private static final int DATE_COLUMN    = FLAGS_COLUMN + FLAGS_COLUMN_WIDTH;
-    private static final int FROM_COLUMN    = DATE_COLUMN + DATE_COLUMN_WIDTH;
-    private static final int SIZE_COLUMN    = FROM_COLUMN + FROM_COLUMN_WIDTH;
+    private static final int TO_COLUMN = SHOW_MESSAGE_NUMBERS ? 6 : 0;
+    private static final int FLAGS_COLUMN = TO_COLUMN + TO_COLUMN_WIDTH;
+    private static final int DATE_COLUMN = FLAGS_COLUMN + FLAGS_COLUMN_WIDTH;
+    private static final int FROM_COLUMN = DATE_COLUMN + DATE_COLUMN_WIDTH;
+    private static final int SIZE_COLUMN = FROM_COLUMN + FROM_COLUMN_WIDTH;
     private static final int SUBJECT_COLUMN = SIZE_COLUMN + SIZE_COLUMN_WIDTH;
 
-    public MailboxFormatter(Buffer buffer)
-    {
+    public MailboxFormatter(Buffer buffer) {
         this.buffer = buffer;
     }
 
-    public LineSegmentList formatLine(Line line)
-    {
+    public LineSegmentList formatLine(Line line) {
         String text;
         if (Editor.tabsAreVisible())
             text = Utilities.makeTabsVisible(line.getText(), buffer.getTabWidth());
@@ -109,8 +106,7 @@ public final class MailboxFormatter extends Formatter
         return segmentList;
     }
 
-    public FormatTable getFormatTable()
-    {
+    public FormatTable getFormatTable() {
         if (formatTable == null) {
             formatTable = new FormatTable("MailboxMode");
             formatTable.addEntryFromPrefs(FORMAT_TEXT, "text");

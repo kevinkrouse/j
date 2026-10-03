@@ -27,10 +27,8 @@ import org.armedbear.j.Line;
 import org.armedbear.j.Position;
 import org.armedbear.j.util.Utilities;
 
-public final class MailAddressExpansion extends Expansion
-{
-    public MailAddressExpansion(Position dot)
-    {
+public final class MailAddressExpansion extends Expansion {
+    public MailAddressExpansion(Position dot) {
         savedDot = new Position(dot);
         final Line dotLine = dot.getLine();
         final int dotOffset = dot.getOffset();
@@ -41,7 +39,7 @@ public final class MailAddressExpansion extends Expansion
             return;
         while (begin > 0) {
             char c = dotLine.charAt(begin);
-            if (c == ',' || c ==':') {
+            if (c == ',' || c == ':') {
                 ++begin;
                 break;
             }
@@ -50,7 +48,7 @@ public final class MailAddressExpansion extends Expansion
         Debug.assertTrue(begin >= 0);
         while (begin < dotLine.length()) {
             char c = dotLine.charAt(begin);
-            if (c ==',' || c == ':' || c == ' ' || c == '\t')
+            if (c == ',' || c == ':' || c == ' ' || c == '\t')
                 ++begin;
             else
                 break;
@@ -82,8 +80,7 @@ public final class MailAddressExpansion extends Expansion
         }
     }
 
-    public String getNextCandidate()
-    {
+    public String getNextCandidate() {
         if (candidates == null || candidates.size() == 0)
             return null;
         int index = last + 1;

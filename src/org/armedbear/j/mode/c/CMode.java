@@ -20,25 +20,23 @@
 
 package org.armedbear.j.mode.c;
 
+import java.awt.event.KeyEvent;
+import java.lang.StringBuilder;
 import org.armedbear.j.Buffer;
-import org.armedbear.j.Mode;
-import org.armedbear.j.mode.compilation.CompilationCommands;
 import org.armedbear.j.Constants;
 import org.armedbear.j.Editor;
-import java.lang.StringBuilder;
 import org.armedbear.j.Formatter;
-import org.armedbear.j.mode.java.JavaMode;
 import org.armedbear.j.KeyMap;
 import org.armedbear.j.Keywords;
 import org.armedbear.j.Line;
 import org.armedbear.j.Menu;
+import org.armedbear.j.Mode;
 import org.armedbear.j.SystemBuffer;
 import org.armedbear.j.Tagger;
+import org.armedbear.j.mode.compilation.CompilationCommands;
+import org.armedbear.j.mode.java.JavaMode;
 
-import java.awt.event.KeyEvent;
-
-public class CMode extends JavaMode implements Constants, Mode
-{
+public class CMode extends JavaMode implements Constants, Mode {
     private static final String[] cConditionals = {
         "if",
         "else",
@@ -50,53 +48,45 @@ public class CMode extends JavaMode implements Constants, Mode
 
     private static CMode mode;
 
-    private CMode()
-    {
+    private CMode() {
         super(C_MODE, C_MODE_NAME);
         keywords = new Keywords(this);
         conditionals = cConditionals;
     }
 
-    protected CMode(int id, String displayName)
-    {
+    protected CMode(int id, String displayName) {
         super(id, displayName);
     }
 
     // Don't construct the singleton class instance until we actually need it,
     // to avoid unnecessary overhead for CppMode which is derived from this
     // class.
-    public static Mode getMode()
-    {
+    public static Mode getMode() {
         if (mode == null)
             mode = new CMode();
         return mode;
     }
 
-    public String getCommentStart()
-    {
+    public String getCommentStart() {
         return "/*";
     }
 
-    public String getCommentEnd()
-    {
+    public String getCommentEnd() {
         return "*/";
     }
 
-    public Formatter getFormatter(Buffer buffer)
-    {
+    public Formatter getFormatter(Buffer buffer) {
         return new CFormatter(buffer, LANGUAGE_C);
     }
 
-    protected void setKeyMapDefaults(KeyMap km)
-    {
+    protected void setKeyMapDefaults(KeyMap km) {
         super.setKeyMapDefaults(km);
         km.mapKey('#', "electricPound");
         km.mapKey(KeyEvent.VK_M, CTRL_MASK, "cppFindMatch");
         km.mapKey(KeyEvent.VK_F6, CTRL_MASK, "iList");
     }
 
-    public void populateModeMenu(Editor editor, Menu menu)
-    {
+    public void populateModeMenu(Editor editor, Menu menu) {
         menu.add(editor, "Compile...", 'C', "compile");
         menu.add(editor, "Recompile", 'R', "recompile");
         boolean enabled = CompilationCommands.getCompilationBuffer() != null;
@@ -106,31 +96,26 @@ public class CMode extends JavaMode implements Constants, Mode
         menu.add(editor, "Show Error Message", 'M', "showMessage", enabled);
     }
 
-    public Tagger getTagger(SystemBuffer buffer)
-    {
+    public Tagger getTagger(SystemBuffer buffer) {
         return new CTagger(buffer);
     }
 
-    public boolean hasQualifiedNames()
-    {
+    public boolean hasQualifiedNames() {
         return false;
     }
 
-    public boolean isQualifiedName(String s)
-    {
+    public boolean isQualifiedName(String s) {
         return false;
     }
 
-    public int getCorrectIndentation(Line line, Buffer buffer)
-    {
+    public int getCorrectIndentation(Line line, Buffer buffer) {
         if (line.trim().startsWith("#"))
             return 0; // Preprocessor directive.
 
         return super.getCorrectIndentation(line, buffer);
     }
 
-    protected static String getPreprocessorToken(Line line)
-    {
+    protected static String getPreprocessorToken(Line line) {
         String s = line.trim();
         if (s.length() == 0 || s.charAt(0) != '#')
             return null;
@@ -144,7 +129,7 @@ public class CMode extends JavaMode implements Constants, Mode
         StringBuilder sb = new StringBuilder();
         for (; i < limit; i++) {
             char c = s.charAt(i);
-            if (c >= 'a' && c <='z')
+            if (c >= 'a' && c <= 'z')
                 sb.append(c);
             else
                 break;
@@ -156,8 +141,7 @@ public class CMode extends JavaMode implements Constants, Mode
     // so we can handle #else/#elif correctly in successive calls.
     private static boolean matchBackwards = false;
 
-    public static Line findMatchPreprocessor(Line startLine)
-    {
+    public static Line findMatchPreprocessor(Line startLine) {
         final String patternIf = "if";
         final String patternElse = "el";
         final String patternEndif = "endif";
@@ -192,7 +176,8 @@ public class CMode extends JavaMode implements Constants, Mode
                 line = line.previous();
             else
                 line = line.next();
-            if (line == null) break;
+            if (line == null)
+                break;
             s = getPreprocessorToken(line);
             if (s != null) {
                 if (count == 1 && s.startsWith(patternElse))
@@ -208,22 +193,20 @@ public class CMode extends JavaMode implements Constants, Mode
         return null;
     }
 
-    public boolean isIdentifierStart(char c)
-    {
+    public boolean isIdentifierStart(char c) {
         if (c >= 'a' && c <= 'z')
             return true;
-        if (c >='A' && c <= 'Z')
+        if (c >= 'A' && c <= 'Z')
             return true;
         if (c == '_')
             return true;
         return false;
     }
 
-    public boolean isIdentifierPart(char c)
-    {
+    public boolean isIdentifierPart(char c) {
         if (c >= 'a' && c <= 'z')
             return true;
-        if (c >='A' && c <= 'Z')
+        if (c >= 'A' && c <= 'Z')
             return true;
         if (c >= '0' && c <= '9')
             return true;

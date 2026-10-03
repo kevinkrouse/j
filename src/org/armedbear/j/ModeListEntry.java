@@ -20,17 +20,15 @@
 
 package org.armedbear.j;
 
+import java.lang.reflect.Method;
+import java.util.regex.Pattern;
+import java.util.regex.PatternSyntaxException;
 import org.armedbear.j.Editor;
 import org.armedbear.j.Log;
 import org.armedbear.j.Mode;
 import org.armedbear.j.Property;
 
-import java.util.regex.Pattern;
-import java.util.regex.PatternSyntaxException;
-import java.lang.reflect.Method;
-
-public final class ModeListEntry
-{
+public final class ModeListEntry {
     private final int id;
     private final String displayName;
     private final String className;
@@ -38,9 +36,13 @@ public final class ModeListEntry
     private final String defaultFiles;
     private Mode mode;
 
-    public ModeListEntry(int id, String displayName, String className,
-        boolean selectable, String defaultFiles)
-    {
+    public ModeListEntry(
+        int id,
+        String displayName,
+        String className,
+        boolean selectable,
+        String defaultFiles
+    ) {
         this.id = id;
         this.displayName = displayName;
         this.className = className;
@@ -56,28 +58,23 @@ public final class ModeListEntry
         }
     }
 
-    public final int getId()
-    {
+    public final int getId() {
         return id;
     }
 
-    public final String getDisplayName()
-    {
+    public final String getDisplayName() {
         return displayName;
     }
 
-    public final String getClassName()
-    {
+    public final String getClassName() {
         return className;
     }
 
-    public final boolean isSelectable()
-    {
+    public final boolean isSelectable() {
         return selectable;
     }
 
-    public Mode getMode(boolean create)
-    {
+    public Mode getMode(boolean create) {
         if (mode == null && create) {
             if (className != null) {
                 try {
@@ -94,18 +91,21 @@ public final class ModeListEntry
         return mode;
     }
 
-    public boolean accepts(String filename)
-    {
+    public boolean accepts(String filename) {
         if (defaultFiles == null)
             return false;
         // "JavaMode.files", or as it was keyed while that was broken,
         // "mode.java.JavaMode.files".
         final String simpleName = className.substring(className.lastIndexOf('.') + 1);
-        String userFiles = Editor.preferences().getStringProperty(
-            simpleName.concat(".").concat(Property.FILES.key()));
+        String userFiles = Editor.preferences()
+            .getStringProperty(
+                simpleName.concat(".").concat(Property.FILES.key())
+            );
         if (userFiles == null)
-            userFiles = Editor.preferences().getStringProperty(
-                className.concat(".").concat(Property.FILES.key()));
+            userFiles = Editor.preferences()
+                .getStringProperty(
+                    className.concat(".").concat(Property.FILES.key())
+                );
         Pattern filesRE = null;
         if (userFiles != null) {
             if (userFiles.trim().length() == 0)
@@ -130,8 +130,7 @@ public final class ModeListEntry
             return false;
     }
 
-    public String toString()
-    {
+    public String toString() {
         return displayName;
     }
 }
