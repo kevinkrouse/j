@@ -31,8 +31,6 @@ import org.armedbear.j.Line;
 import org.armedbear.j.LineSegment;
 import org.armedbear.j.LineSegmentList;
 import org.armedbear.j.Mode;
-import org.armedbear.j.mode.cpp.CppMode;
-import org.armedbear.j.mode.objc.ObjCMode;
 import org.armedbear.j.util.Utilities;
 
 public final class CFormatter extends Formatter implements Constants {
@@ -52,23 +50,10 @@ public final class CFormatter extends Formatter implements Constants {
 
     private final Mode mode;
 
-    public CFormatter(Buffer buffer, int language) {
+    /** For C, C++ or Objective-C, as mode says. */
+    public CFormatter(Buffer buffer, Mode mode) {
         this.buffer = buffer;
-        switch (language) {
-            case LANGUAGE_C:
-                mode = CMode.getMode();
-                break;
-            case LANGUAGE_CPP:
-                mode = CppMode.getMode();
-                break;
-            case LANGUAGE_OBJC:
-                mode = ObjCMode.getMode();
-                break;
-            default:
-                Debug.assertTrue(false);
-                mode = null;
-                break;
-        }
+        this.mode = mode;
     }
 
     private int tokenBegin = 0;

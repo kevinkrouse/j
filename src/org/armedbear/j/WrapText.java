@@ -141,30 +141,8 @@ public final class WrapText implements Constants {
     }
 
     private void wrapCommentInternal() {
-        String commentStart = null;
         final Line dotLine = dot.getLine();
-        final String trim = dotLine.trim();
-
-        switch (buffer.getModeId()) {
-            case JAVA_MODE:
-            case JAVASCRIPT_MODE:
-            case C_MODE:
-            case CPP_MODE:
-            case VERILOG_MODE:
-                if (trim.startsWith("// "))
-                    commentStart = "// ";
-                else if (trim.startsWith("* "))
-                    commentStart = "* ";
-                break;
-            case PERL_MODE:
-            case PROPERTIES_MODE:
-                if (trim.startsWith("# "))
-                    commentStart = "# ";
-                break;
-            default:
-                commentStart = buffer.getMode().getCommentStart();
-                break;
-        }
+        final String commentStart = buffer.getMode().getWrapCommentStart(dotLine.trim());
 
         if (commentStart != null) {
             int index = dotLine.getText().indexOf(commentStart);

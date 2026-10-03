@@ -1209,9 +1209,12 @@ public class JavaMode extends AbstractMode implements Constants, Mode {
         return null;
     }
 
+    // AbstractMode's, for a subclass whose expressions aren't Java's.
+    protected final Expression getPlainExpressionAtDot(Editor editor, boolean exact) {
+        return super.getExpressionAtDot(editor, exact);
+    }
+
     public Expression getExpressionAtDot(final Editor editor, final boolean exact) {
-        if (editor.getModeId() == OBJC_MODE)
-            return super.getExpressionAtDot(editor, exact);
         if (editor.getDot() == null)
             return null;
         Position begin;
@@ -1341,4 +1344,14 @@ public class JavaMode extends AbstractMode implements Constants, Mode {
         }
         return -1;
     }
+
+    // Line comments and the "* " lines of block comments.
+    public String getWrapCommentStart(String trimmed) {
+        return Mode.wrapPrefix(trimmed, "// ", "* ");
+    }
+
+    public boolean supportsIndentBeforeBrace() {
+        return true;
+    }
+
 }

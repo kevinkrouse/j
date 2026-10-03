@@ -35,9 +35,13 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 import java.util.jar.JarEntry;
 import java.util.jar.JarOutputStream;
+import org.armedbear.j.AbstractMode;
+import org.armedbear.j.Editor;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -195,6 +199,49 @@ public class ExtensionsTest {
         assertSame(LanguageClient.NONE, Extensions.languageClient());
         assertTrue(Extensions.loadedNames().isEmpty());
         assertTrue(FakeExtension.shutdownCalled);
+    }
+
+    /** Modes for a jar with no Extension class. */
+    public static final class FakeModes implements ModeProvider {
+        public List<ModeDescriptor> modes() {
+            return List.of(fakeMode("Extensions Test Mode"));
+        }
+    }
+
+    public static final class DisabledModes implements ModeProvider {
+        public List<ModeDescriptor> modes() {
+            return List.of(fakeMode("Extensions Test Disabled Mode"));
+        }
+    }
+
+    private static ModeDescriptor fakeMode(String name) {
+        return new ModeDescriptor(0, name, AbstractMode.class, id -> null, false, null, List.of(), List.of());
+    }
+
+    @Test
+    public void aJarOfModesAloneRegistersThem() throws IOException {
+        dir = Files.createTempDirectory("j-extensions-test");
+        writeServiceJar(dir.resolve("modes.jar"), ModeProvider.class, FakeModes.class);
+        Extensions.loadFrom(dir, Collections.<String>emptySet());
+        assertTrue(Editor.getModeList().getModeIdFromModeName("Extensions Test Mode") > 0);
+    }
+
+    @Test
+    public void aJarOfModesIsDisabledByItsDirectoryName() throws IOException {
+        dir = Files.createTempDirectory("j-extensions-test");
+        writeServiceJar(dir.resolve("modes.jar"), ModeProvider.class, DisabledModes.class);
+        String name = dir.getFileName().toString().toLowerCase(Locale.ROOT);
+        Extensions.loadFrom(dir, Set.of(name));
+        assertEquals(-1, Editor.getModeList().getModeIdFromModeName("Extensions Test Disabled Mode"));
+    }
+
+    private static void writeServiceJar(Path jar, Class<?> service, Class<?> provider) throws IOException {
+        try (JarOutputStream out = new JarOutputStream(Files.newOutputStream(jar))) {
+            copyClass(out, provider);
+            out.putNextEntry(new JarEntry("META-INF/services/" + service.getName()));
+            out.write((provider.getName() + "\n").getBytes(StandardCharsets.UTF_8));
+            out.closeEntry();
+        }
     }
 
     /**

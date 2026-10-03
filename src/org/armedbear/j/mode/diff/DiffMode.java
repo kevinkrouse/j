@@ -25,6 +25,8 @@ import java.awt.event.KeyEvent;
 import java.awt.event.MouseEvent;
 import java.lang.StringBuilder;
 import java.util.List;
+import java.util.function.Function;
+import java.util.function.UnaryOperator;
 import org.armedbear.j.AbstractMode;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.ConfirmDialog;
@@ -41,8 +43,8 @@ import org.armedbear.j.Mode;
 import org.armedbear.j.Position;
 import org.armedbear.j.ShellCommand;
 import org.armedbear.j.util.Utilities;
-import org.armedbear.j.vcs.darcs.Darcs;
-import org.armedbear.j.vcs.git.Git;
+import org.armedbear.j.vcs.VcsBackend;
+import org.armedbear.j.vcs.VcsBackends;
 
 public final class DiffMode extends AbstractMode implements Constants, Mode {
     private static final DiffMode mode = new DiffMode();
@@ -193,30 +195,23 @@ public final class DiffMode extends AbstractMode implements Constants, Mode {
             editor.mouseMoveDotToPoint((MouseEvent) e);
 
         DiffOutputBuffer diffOutputBuffer = (DiffOutputBuffer) buffer;
-        int vcType = diffOutputBuffer.getVCType();
-        switch (vcType) {
-            case VC_CVS:
-            case VC_SVN:
-            case VC_GIT:
-                cvsGotoFile(editor, diffOutputBuffer);
-                break;
-            case VC_P4:
-                p4GotoFile(editor, diffOutputBuffer);
-                break;
-            case VC_DARCS:
-                darcsGotoFile(editor, diffOutputBuffer);
-                break;
-            default:
-                localGotoFile(editor, diffOutputBuffer);
-                break;
-        }
+        VcsBackend backend = VcsBackends.get(diffOutputBuffer.getVCType());
+        if (backend == null || !backend.gotoDiffSource(editor, diffOutputBuffer))
+            localGotoFile(editor, diffOutputBuffer);
     }
 
-    private static void cvsGotoFile(
+    /**
+     * Goes to the source of the unified diff line at the caret.
+     *
+     * @param filename the file a line names, or null if it names none
+     * @param root maps the buffer's directory to the one file names are relative to
+     */
+    public static void gotoUnifiedDiffSource(
         Editor editor,
-        DiffOutputBuffer diffOutputBuffer
+        DiffOutputBuffer diffOutputBuffer,
+        Function<String, String> filename,
+        UnaryOperator<File> root
     ) {
-        final int vcType = diffOutputBuffer.getVCType();
         final Line dotLine = editor.getDotLine();
         final int dotOffset = editor.getDotOffset();
 
@@ -228,12 +223,11 @@ public final class DiffMode extends AbstractMode implements Constants, Mode {
             if (line == null)
                 return;
             String lineText = line.getText();
-            if (isHunkFilename(lineText, vcType)) {
-                // If we've found a filename, the cursor was in the diff hunk header.
-                // Go directly to the buffer without changing the dot location.
-                String filename = hunkFilename(lineText, vcType);
-                if (filename != null)
-                    gotoLocation(editor, vcType, diffOutputBuffer.getDirectory(), filename, -1, -1);
+            String name = filename.apply(lineText);
+            if (name != null) {
+                // The caret was in the hunk header: go to the file without
+                // moving its dot.
+                gotoLocation(editor, root.apply(diffOutputBuffer.getDirectory()), name, -1, -1);
                 return;
             } else if (lineText.startsWith("@@")) {
                 // Found the start of a diff hunk.  Grab the line number.
@@ -259,186 +253,12 @@ public final class DiffMode extends AbstractMode implements Constants, Mode {
             dir = diffOutputBuffer.getDirectory();
 
         // Continue walking up the diff looking for the filename.
-        line = line.previous();
-        while (line != null && !isHunkFilename(line.getText(), vcType))
-            line = line.previous();
-        if (line == null)
-            return;
-        if (isHunkFilename(line.getText(), vcType)) {
-            String filename = hunkFilename(line.getText(), vcType);
-            if (filename != null) {
-                gotoLocation(editor, vcType, dir, filename, lineNumber, dotOffset);
-            } else
-                Debug.bug("Failed to find filename on diff hunk line = |" + line.getText() + "|");
-        } else
-            Debug.bug();
-    }
-
-    // Returns true if the line is a hunk filename
-    private static boolean isHunkFilename(String s, int vcType) {
-        switch (vcType) {
-            case VC_CVS:
-                // unknown file
-                if (s.startsWith("? "))
-                    return true;
-            case VC_SVN:
-                if (s.startsWith("Index: "))
-                    return true;
-                break;
-
-            case VC_GIT:
-                if (s.startsWith("+++ b/") || s.startsWith("renamed to ")) // || s.startsWith("git --diff "))
-                    return true;
-                break;
-
-            default:
-                throw new IllegalArgumentException();
-        }
-        return false;
-    }
-
-    // Extracts the hunk filename from the line
-    private static String hunkFilename(String s, int vcType) {
-        Debug.bugIfNot(isHunkFilename(s, vcType));
-
-        String filename = null;
-        switch (vcType) {
-            case VC_CVS:
-            case VC_SVN:
-                // "? filename" or "Index: filename"
-                filename = s.substring(s.indexOf(' ') + 1);
-                break;
-
-            case VC_GIT: {
-                if (s.startsWith("+++ b/"))
-                    filename = s.substring("+++ b/".length());
-                else if (s.startsWith("renamed to "))
-                    filename = s.substring("renamed to ".length());
-                else if (s.startsWith("git --diff ")) {
-                    // "git --diff a/old-filename b/new-filename"
-                    // Not yet implemented:
-                    //  - need to find the filename (a/ and b/ prefix may change)
-                    //  - filename may be quoted with whitespace and other chars backslash-escaped
-                    filename = null;
-                }
-                break;
-            }
-
-            default:
-                throw new IllegalArgumentException();
-        }
-
-        return filename;
-    }
-
-    private static void p4GotoFile(
-        Editor editor,
-        DiffOutputBuffer diffOutputBuffer
-    ) {
-        final Line dotLine = editor.getDotLine();
-        final int dotOffset = editor.getDotOffset();
-        final String text = dotLine.getText();
-        int lineNumber = 0;
-        int count = 0;
-        Line line = dotLine;
-        if (line.getText().startsWith("@@")) {
-            lineNumber = parseLineNumber(line);
-        } else {
-            line = line.previous();
-            while (line != null && !line.getText().startsWith("@@")) {
-                if (!line.getText().startsWith("-"))
-                    ++count;
-                line = line.previous();
-            }
-            if (line == null)
+        for (line = line.previous(); line != null; line = line.previous()) {
+            String name = filename.apply(line.getText());
+            if (name != null) {
+                gotoLocation(editor, root.apply(dir), name, lineNumber, dotOffset);
                 return;
-            Debug.assertTrue(line.getText().startsWith("@@"));
-            lineNumber = parseLineNumber(line);
-        }
-        // Our line numbers are zero-based.
-        if (--lineNumber < 0)
-            return;
-        lineNumber += count;
-        Buffer parentBuffer = diffOutputBuffer.getParentBuffer();
-        File dir;
-        if (parentBuffer != null)
-            dir = parentBuffer.getCurrentDirectory();
-        else
-            dir = diffOutputBuffer.getDirectory();
-        line = line.previous();
-        while (line != null && !line.getText().endsWith(" ===="))
-            line = line.previous();
-        if (line == null)
-            return;
-        int index = line.getText().lastIndexOf(" - ");
-        if (index >= 0) {
-            String filename = line.getText().substring(index + 3);
-            if (filename.endsWith(" ===="))
-                filename = filename.substring(0, filename.length() - 5);
-            File file = File.getInstance(dir, filename);
-            if (file != null && file.isFile()) {
-                Buffer buf = editor.getBuffer(file);
-                if (buf != null)
-                    gotoLocation(
-                        editor,
-                        buf,
-                        lineNumber,
-                        dotOffset > 0 ? dotOffset - 1 : 0
-                    );
             }
-        }
-    }
-
-    private static void darcsGotoFile(
-        Editor editor,
-        DiffOutputBuffer diffOutputBuffer
-    ) {
-        final Line dotLine = editor.getDotLine();
-        final int dotOffset = editor.getDotOffset();
-        int lineNumber = 0;
-        int context = 0;
-        int added = 0;
-        Line line = dotLine;
-        File dir;
-        Buffer parentBuffer = diffOutputBuffer.getParentBuffer();
-        if (parentBuffer != null)
-            dir = parentBuffer.getCurrentDirectory();
-        else
-            dir = diffOutputBuffer.getDirectory();
-        while (line != null && !line.getText().startsWith("hunk ")) {
-            if (line != dotLine && line.getText().startsWith("+"))
-                ++added;
-            else if (!line.getText().startsWith("-"))
-                ++context;
-            line = line.previous();
-        }
-        if (line == null)
-            return;
-        Debug.assertTrue(line.getText().startsWith("hunk "));
-        String text = line.getText();
-        int index = text.lastIndexOf(' ');
-        try {
-            lineNumber = Utilities.parseInt(text.substring(index + 1));
-        }
-        catch (NumberFormatException e) {
-            Log.error(e);
-            return;
-        }
-        Log.debug("lineNumber = " + lineNumber);
-        // Our line numbers are zero-based.
-        if (--lineNumber < 0)
-            return;
-        String filename = text.substring(5, index);
-        Log.debug("filename = " + filename);
-        File darcs_root = Darcs.findRoot(dir);
-        Log.debug("darcs_root = " + darcs_root);
-        if (darcs_root != null)
-            dir = darcs_root;
-        File file = File.getInstance(dir, filename);
-        if (file != null && file.isFile()) {
-            Buffer buf = editor.getBuffer(file);
-            if (buf != null)
-                gotoLocation(editor, buf, lineNumber + added, 0);
         }
     }
 
@@ -565,21 +385,11 @@ public final class DiffMode extends AbstractMode implements Constants, Mode {
 
     private static void gotoLocation(
         Editor editor,
-        int vcType,
         File dir,
         String filename,
         int lineNumber,
         int dotOffset
     ) {
-        Debug.bugIf(filename == null);
-
-        // git and darcs report paths relative to the root
-        if (vcType == VC_GIT) {
-            dir = Git.findRoot(dir);
-        } else if (vcType == VC_DARCS) {
-            dir = Darcs.findRoot(dir);
-        }
-
         File file = File.getInstance(dir, filename);
         if (file != null && file.isFile()) {
             Buffer buf = Editor.getBuffer(file);
@@ -594,7 +404,8 @@ public final class DiffMode extends AbstractMode implements Constants, Mode {
         }
     }
 
-    private static void gotoLocation(
+    /** Shows buf in the other window at lineNumber (zero-based; -1 leaves its dot). */
+    public static void gotoLocation(
         Editor editor,
         Buffer buf,
         int lineNumber,
@@ -612,7 +423,8 @@ public final class DiffMode extends AbstractMode implements Constants, Mode {
         }
     }
 
-    private static int parseLineNumber(Line line) {
+    /** The number after the '+' in a hunk header. */
+    public static int parseLineNumber(Line line) {
         return parseLineNumber(line, '+');
     }
 

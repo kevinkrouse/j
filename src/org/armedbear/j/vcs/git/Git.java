@@ -71,7 +71,7 @@ public class Git extends VersionControl implements Constants {
     public static File findRoot(File dir) {
         while (dir != null) {
             File file = File.getInstance(dir, ".git");
-            if (file != null && file.isDirectory())
+            if (file != null && file.exists())
                 return dir;
             dir = dir.getParentFile();
         }

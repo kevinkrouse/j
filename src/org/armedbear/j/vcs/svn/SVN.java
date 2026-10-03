@@ -46,7 +46,6 @@ import org.armedbear.j.util.Utilities;
 import org.armedbear.j.vcs.StatusOutputBuffer;
 import org.armedbear.j.vcs.VersionControl;
 import org.armedbear.j.vcs.VersionControlBuffer;
-import org.armedbear.j.vcs.cvs.CVS;
 
 public class SVN extends VersionControl implements Constants {
     public static void svn() {
@@ -423,14 +422,6 @@ public class SVN extends VersionControl implements Constants {
         public String getChangelist() {
             return changelist;
         }
-    }
-
-    public static void replaceComment(final Editor editor, final String comment) {
-        CVS.replaceComment(editor, comment);
-    }
-
-    public static String extractComment(CheckinBuffer cb) {
-        return CVS.extractComment(cb);
     }
 
     public static void finish(final Editor editor, final CheckinBuffer cb) {

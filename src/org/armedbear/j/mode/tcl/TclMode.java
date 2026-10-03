@@ -193,4 +193,9 @@ public final class TclMode extends AbstractMode implements Constants, Mode {
     public boolean isIdentifierPart(char c) {
         return !Character.isWhitespace(c);
     }
+
+    public boolean supportsIndentBeforeBrace() {
+        return true;
+    }
+
 }

@@ -51,4 +51,9 @@ public final class PropertiesMode extends AbstractMode implements Constants, Mod
     public String getCommentStart() {
         return "# ";
     }
+
+    public String getWrapCommentStart(String trimmed) {
+        return Mode.wrapPrefix(trimmed, "# ");
+    }
+
 }

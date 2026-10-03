@@ -330,4 +330,13 @@ public final class PerlMode extends AbstractMode implements Constants, Mode {
     public boolean isCommentLine(Line line) {
         return line.trim().startsWith("#");
     }
+
+    public String getWrapCommentStart(String trimmed) {
+        return Mode.wrapPrefix(trimmed, "# ");
+    }
+
+    public boolean supportsIndentBeforeBrace() {
+        return true;
+    }
+
 }

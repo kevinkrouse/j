@@ -20,117 +20,108 @@
 
 package org.armedbear.j;
 
-import java.lang.reflect.Method;
+import java.util.List;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
-import org.armedbear.j.Editor;
-import org.armedbear.j.Log;
-import org.armedbear.j.Mode;
-import org.armedbear.j.Property;
+import org.armedbear.j.extension.ModeDescriptor;
 
 public final class ModeListEntry {
     private final int id;
-    private final String displayName;
-    private final String className;
-    private final boolean selectable;
-    private final String defaultFiles;
+    private final ModeDescriptor descriptor;
+    private final Object lock;
+    private final Pattern defaultFiles;
     private Mode mode;
+    private String userFiles;
+    private Pattern userFilesPattern;
 
-    public ModeListEntry(
-        int id,
-        String displayName,
-        String className,
-        boolean selectable,
-        String defaultFiles
-    ) {
+    // The list's lock, so making a mode takes one lock, not two.
+    ModeListEntry(int id, ModeDescriptor descriptor, Object lock) {
         this.id = id;
-        this.displayName = displayName;
-        this.className = className;
-        this.selectable = selectable;
-        this.defaultFiles = defaultFiles;
-        if (className != null && Editor.isDebugEnabled()) {
-            try {
-                Class.forName("org.armedbear.j." + className);
-            }
-            catch (ClassNotFoundException e) {
-                Log.debug(e.getMessage());
-            }
-        }
+        this.descriptor = descriptor;
+        this.lock = lock;
+        defaultFiles = descriptor.files() == null ? null : compile(descriptor.files());
     }
 
-    public final int getId() {
+    public int getId() {
         return id;
     }
 
-    public final String getDisplayName() {
-        return displayName;
+    public String getDisplayName() {
+        return descriptor.name();
     }
 
-    public final String getClassName() {
-        return className;
+    public boolean isSelectable() {
+        return descriptor.selectable();
     }
 
-    public final boolean isSelectable() {
-        return selectable;
+    List<String> getAliases() {
+        return descriptor.aliases();
+    }
+
+    List<String> getFenceNames() {
+        return descriptor.fenceNames();
     }
 
     public Mode getMode(boolean create) {
-        if (mode == null && create) {
-            if (className != null) {
+        synchronized (lock) {
+            if (mode == null && create) {
                 try {
-                    Class<?> c =
-                        Class.forName("org.armedbear.j.".concat(className));
-                    Method method = c.getMethod("getMode");
-                    mode = (Mode) method.invoke(null);
+                    mode = descriptor.factory().apply(id);
                 }
                 catch (Throwable t) {
                     Log.error(t);
                 }
             }
+            return mode;
         }
-        return mode;
     }
 
+    /**
+     * Whether the mode edits filename, by the user's JavaMode.files or the
+     * default. "mode.java.JavaMode.files", the key that worked while the
+     * modes moved into packages, is read too.
+     */
     public boolean accepts(String filename) {
         if (defaultFiles == null)
             return false;
-        // "JavaMode.files", or as it was keyed while that was broken,
-        // "mode.java.JavaMode.files".
-        final String simpleName = className.substring(className.lastIndexOf('.') + 1);
-        String userFiles = Editor.preferences()
-            .getStringProperty(
-                simpleName.concat(".").concat(Property.FILES.key())
-            );
-        if (userFiles == null)
-            userFiles = Editor.preferences()
-                .getStringProperty(
-                    className.concat(".").concat(Property.FILES.key())
-                );
-        Pattern filesRE = null;
-        if (userFiles != null) {
-            if (userFiles.trim().length() == 0)
+        Class<? extends Mode> c = descriptor.modeClass();
+        String user = filesPreference(c.getSimpleName());
+        if (user == null && c.getName().startsWith("org.armedbear.j."))
+            user = filesPreference(c.getName().substring("org.armedbear.j.".length()));
+        Pattern files = defaultFiles;
+        if (user != null) {
+            if (user.trim().isEmpty())
                 return false;
-            try {
-                filesRE = Pattern.compile(userFiles, Pattern.CASE_INSENSITIVE);
-            }
-            catch (PatternSyntaxException e) {
-                Log.error(e);
-            }
-        } else {
-            try {
-                filesRE = Pattern.compile(defaultFiles, Pattern.CASE_INSENSITIVE);
-            }
-            catch (PatternSyntaxException e) {
-                Log.error(e);
-            }
+            files = userFilesPattern(user);
         }
-        if (filesRE != null && filesRE.matcher(filename).matches())
-            return true;
-        else
-            return false;
+        return files != null && files.matcher(filename).matches();
+    }
+
+    private Pattern userFilesPattern(String user) {
+        synchronized (lock) {
+            if (!user.equals(userFiles)) {
+                userFiles = user;
+                userFilesPattern = compile(user);
+            }
+            return userFilesPattern;
+        }
+    }
+
+    private static String filesPreference(String prefix) {
+        return Editor.preferences().getStringProperty(prefix + "." + Property.FILES.key());
+    }
+
+    private static Pattern compile(String regex) {
+        try {
+            return Pattern.compile(regex, Pattern.CASE_INSENSITIVE);
+        }
+        catch (PatternSyntaxException e) {
+            Log.error(e);
+            return null;
+        }
     }
 
     public String toString() {
-        return displayName;
+        return descriptor.name();
     }
 }

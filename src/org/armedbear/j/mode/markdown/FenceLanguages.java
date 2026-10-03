@@ -21,10 +21,8 @@
 package org.armedbear.j.mode.markdown;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 import org.armedbear.j.Constants;
 import org.armedbear.j.Editor;
 import org.armedbear.j.Mode;
@@ -38,69 +36,6 @@ import org.armedbear.j.ModeListEntry;
 final class FenceLanguages implements Constants {
     /** Slots fit in six bits of a line's flags; 0 is no language. */
     static final int MAX_SLOT = 63;
-
-    // The names, beyond j's own names for its modes, that fences use.
-    private static final Map<String, Integer> NAMES = new HashMap<String, Integer>();
-    static {
-        name(JAVA_MODE, "java", "jad");
-        name(
-            JAVASCRIPT_MODE,
-            "javascript",
-            "js",
-            "jsx",
-            "mjs",
-            "cjs",
-            "json",
-            "typescript",
-            "ts"
-        );
-        name(C_MODE, "c", "h");
-        name(CPP_MODE, "cpp", "c++", "cc", "cxx", "hpp", "hxx");
-        name(OBJC_MODE, "objc", "objective-c", "m");
-        name(PYTHON_MODE, "python", "py", "python3");
-        name(PERL_MODE, "perl", "pl", "pm");
-        name(PHP_MODE, "php");
-        name(RUBY_MODE, "ruby", "rb");
-        name(TCL_MODE, "tcl");
-        name(
-            SHELL_SCRIPT_MODE,
-            "sh",
-            "bash",
-            "zsh",
-            "ksh",
-            "csh",
-            "shell",
-            "console",
-            "shell-script"
-        );
-        name(
-            LISP_MODE,
-            "lisp",
-            "elisp",
-            "emacs-lisp",
-            "el",
-            "cl",
-            "common-lisp",
-            "clojure",
-            "clj"
-        );
-        name(SCHEME_MODE, "scheme", "scm", "racket");
-        name(XML_MODE, "xml", "svg", "xsd", "xsl", "plist");
-        name(HTML_MODE, "html", "htm", "xhtml");
-        name(CSS_MODE, "css");
-        name(DIFF_MODE, "diff", "patch");
-        name(MAKEFILE_MODE, "make", "makefile", "mk");
-        name(PROPERTIES_MODE, "properties", "ini", "conf", "cfg", "toml");
-        name(AUTOCONF_MODE, "autoconf", "m4");
-        name(VERILOG_MODE, "verilog", "v");
-        name(VHDL_MODE, "vhdl");
-        name(ASM_MODE, "asm", "assembly", "nasm");
-    }
-
-    private static void name(int modeId, String... names) {
-        for (String name : names)
-            NAMES.put(name, modeId);
-    }
 
     // The mode id of each slot, from slot 1.
     private static final List<Integer> slots = new ArrayList<Integer>();
@@ -146,8 +81,8 @@ final class FenceLanguages implements Constants {
         word = word.substring(0, end).toLowerCase(Locale.ROOT);
         if (word.isEmpty())
             return -1;
-        final Integer id = NAMES.get(word);
-        if (id != null)
+        final int id = Editor.getModeList().getModeIdForFenceName(word);
+        if (id > 0)
             return id;
         // j's own name for a mode it edits files in, but not one in which
         // Markdown would color Markdown.

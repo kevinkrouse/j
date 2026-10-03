@@ -36,10 +36,7 @@ import org.armedbear.j.ShellCommand;
 import org.armedbear.j.mode.diff.DiffOutputBuffer;
 import org.armedbear.j.util.Background;
 import org.armedbear.j.util.Utilities;
-import org.armedbear.j.vcs.cvs.CVSEntry;
-import org.armedbear.j.vcs.git.GitEntry;
 import org.armedbear.j.vcs.git.GitStatusCache;
-import org.armedbear.j.vcs.svn.SVNEntry;
 
 public abstract class VersionControl implements Constants {
     public static void invalidate() {
@@ -47,52 +44,37 @@ public abstract class VersionControl implements Constants {
     }
 
     public static VersionControlEntry getEntry(Buffer buffer) {
-        int vc;
         final VersionControlEntry prevEntry = buffer.getVCSEntry();
-        if (prevEntry != null)
-            vc = prevEntry.getVersionControl();
-        else
-            vc = guessVCS(buffer);
-
-        if (vc < 0)
-            return null;
-
-        switch (vc) {
-            case VC_CVS:
-                return CVSEntry.getEntry(buffer);
-            case VC_SVN:
-                return SVNEntry.getEntry(buffer);
-            //          case VC_P4:    return P4Entry.getEntry(buffer);
-            //          case VC_DARCS: return DarcsEntry.getEntry(buffer);
-            case VC_GIT:
-                return GitEntry.getEntry(buffer);
-            default:
-                return null;
-        }
+        final int vc = prevEntry != null ? prevEntry.getVersionControl() : guessVCS(buffer);
+        final VcsBackend backend = VcsBackends.get(vc);
+        return backend == null ? null : backend.getEntry(buffer);
     }
 
+    /**
+     * The id of the backend whose tree holds the file: the nearest
+     * directory, up to the home directory, that a backend recognizes.
+     * Otherwise a backend that claims untracked files, or -1.
+     */
     public static int guessVCS(Buffer buffer) {
-        final File file = buffer.getFile();
+        return guessVCS(buffer.getFile());
+    }
+
+    public static int guessVCS(File file) {
         if (file == null || file.isRemote())
             return -1;
-        File parentDir = file.getParentFile();
-        if (parentDir == null)
-            return -1;
-        File dir = null;
-        if (null != (dir = File.getInstance(parentDir, "CVS")) && dir.isDirectory())
-            return VC_CVS;
-        if (System.getenv("P4CONFIG") != null || System.getenv("P4PORT") != null)
-            return VC_P4;
-        do {
-            assert parentDir != null;
-            if (null != (dir = File.getInstance(parentDir, ".svn")) && dir.isDirectory())
-                return VC_SVN;
-            if (null != (dir = File.getInstance(parentDir, "_darcs")) && dir.isDirectory())
-                return VC_DARCS;
-            if (null != (dir = File.getInstance(parentDir, ".git")) && dir.isDirectory())
-                return VC_GIT;
-            parentDir = parentDir.getParentFile();
-        } while (parentDir != null || parentDir == Directories.getUserHomeDirectory());
+        final File home = Directories.getUserHomeDirectory();
+        for (File dir = file.getParentFile(); dir != null; dir = dir.getParentFile()) {
+            for (VcsBackend backend : VcsBackends.all()) {
+                if (backend.isRoot(dir))
+                    return backend.id();
+            }
+            if (dir.equals(home))
+                break;
+        }
+        for (VcsBackend backend : VcsBackends.all()) {
+            if (backend.claimsUntracked())
+                return backend.id();
+        }
         return -1;
     }
 
@@ -255,7 +237,7 @@ public abstract class VersionControl implements Constants {
             final int modeId = buf.getModeId();
             if (modeId == SEND_MAIL_MODE)
                 continue;
-            if (modeId == CHECKIN_MODE)
+            if (buf.getModeId() == CHECKIN_MODE)
                 continue;
             if (buf.getFile() != null && buf.getFile().isLocal()) {
                 if (list == null)

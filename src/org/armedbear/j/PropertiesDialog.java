@@ -37,8 +37,9 @@ import javax.swing.JPanel;
 import javax.swing.JTextField;
 import javax.swing.border.Border;
 import org.armedbear.j.mode.properties.PropertiesFormatter;
+import org.armedbear.j.vcs.VcsBackend;
+import org.armedbear.j.vcs.VcsBackends;
 import org.armedbear.j.vcs.VersionControlEntry;
-import org.armedbear.j.vcs.p4.P4;
 
 public final class PropertiesDialog extends AbstractDialog implements Constants {
     private static final String TEXT_LF = "LF";
@@ -122,10 +123,12 @@ public final class PropertiesDialog extends AbstractDialog implements Constants 
             }
 
             if (Editor.checkExperimental()) {
-                String s = P4.getStatusString(file);
-                if (s != null) {
-                    group.add(Box.createVerticalStrut(6));
-                    group.add(new StaticTextField(s));
+                for (VcsBackend backend : VcsBackends.all()) {
+                    String s = backend.getStatusString(file);
+                    if (s != null) {
+                        group.add(Box.createVerticalStrut(6));
+                        group.add(new StaticTextField(s));
+                    }
                 }
             }
 
@@ -229,31 +232,23 @@ public final class PropertiesDialog extends AbstractDialog implements Constants 
                 addCheckBox(useTabsCheckBox);
                 useTabsCheckBox.setEnabled(true);
 
-                switch (modeId) {
-                    case JAVA_MODE:
-                    case JAVASCRIPT_MODE:
-                    case C_MODE:
-                    case CPP_MODE:
-                    case PERL_MODE:
-                    case TCL_MODE:
-                        indentBeforeBraceCheckBox =
-                            new CheckBox(
-                                "Indent before '{'",
-                                buffer.getBooleanProperty(Property.INDENT_BEFORE_BRACE)
-                            );
-                        indentBeforeBraceCheckBox.setMnemonic('b');
-                        addVerticalStrut();
-                        addCheckBox(indentBeforeBraceCheckBox);
-                        indentAfterBraceCheckBox =
-                            new CheckBox(
-                                "Indent after '{'",
-                                buffer.getBooleanProperty(Property.INDENT_AFTER_BRACE)
-                            );
-                        indentAfterBraceCheckBox.setMnemonic('a');
-                        addVerticalStrut();
-                        addCheckBox(indentAfterBraceCheckBox);
-                    default:
-                        break;
+                if (buffer.getMode().supportsIndentBeforeBrace()) {
+                    indentBeforeBraceCheckBox =
+                        new CheckBox(
+                            "Indent before '{'",
+                            buffer.getBooleanProperty(Property.INDENT_BEFORE_BRACE)
+                        );
+                    indentBeforeBraceCheckBox.setMnemonic('b');
+                    addVerticalStrut();
+                    addCheckBox(indentBeforeBraceCheckBox);
+                    indentAfterBraceCheckBox =
+                        new CheckBox(
+                            "Indent after '{'",
+                            buffer.getBooleanProperty(Property.INDENT_AFTER_BRACE)
+                        );
+                    indentAfterBraceCheckBox.setMnemonic('a');
+                    addVerticalStrut();
+                    addCheckBox(indentAfterBraceCheckBox);
                 }
 
                 addVerticalStrut();

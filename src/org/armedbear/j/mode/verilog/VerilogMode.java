@@ -187,4 +187,9 @@ public final class VerilogMode extends AbstractMode implements Constants, Mode {
         "repeat",
         "while"
     };
+
+    public String getWrapCommentStart(String trimmed) {
+        return Mode.wrapPrefix(trimmed, "// ", "* ");
+    }
+
 }

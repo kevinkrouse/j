@@ -265,6 +265,25 @@ public interface Mode {
      */
     public String getCommentStart();
 
+    /** The comment prefix that wrapping continues a line with, given its trimmed text, or null. */
+    default String getWrapCommentStart(String trimmed) {
+        return getCommentStart();
+    }
+
+    /** The first of prefixes that trimmed starts with, or null; for getWrapCommentStart. */
+    static String wrapPrefix(String trimmed, String... prefixes) {
+        for (String prefix : prefixes) {
+            if (trimmed.startsWith(prefix))
+                return prefix;
+        }
+        return null;
+    }
+
+    /** Whether the "indent before '{'" preference applies. */
+    default boolean supportsIndentBeforeBrace() {
+        return false;
+    }
+
     /**
      * Returns a string that signifies the end of a comment for the
      * given mode, or <code>null</code> if the concept of comments is

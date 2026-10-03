@@ -20,6 +20,7 @@
 
 package org.armedbear.j.mode.checkin;
 
+import javax.swing.undo.CompoundEdit;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.CommentRing;
 import org.armedbear.j.Constants;
@@ -29,10 +30,9 @@ import org.armedbear.j.Expansion;
 import org.armedbear.j.Log;
 import org.armedbear.j.Position;
 import org.armedbear.j.mode.diff.DiffOutputBuffer;
+import org.armedbear.j.vcs.VcsBackend;
+import org.armedbear.j.vcs.VcsBackends;
 import org.armedbear.j.vcs.VersionControlBuffer;
-import org.armedbear.j.vcs.cvs.CVS;
-import org.armedbear.j.vcs.p4.P4;
-import org.armedbear.j.vcs.svn.SVN;
 
 public class CheckinBuffer extends VersionControlBuffer implements Constants {
     private final boolean editOnly;
@@ -102,20 +102,11 @@ public class CheckinBuffer extends VersionControlBuffer implements Constants {
             return;
         }
         commentIndex = index;
-        switch (getVCType()) {
-            case VC_CVS:
-                CVS.replaceComment(editor, comment);
-                break;
-            case VC_SVN:
-                SVN.replaceComment(editor, comment);
-                break;
-            case VC_P4:
-                P4.replaceComment(editor, comment);
-                break;
-            default:
-                Debug.bug();
-                break;
-        }
+        VcsBackend backend = VcsBackends.get(getVCType());
+        if (backend != null)
+            backend.replaceComment(editor, comment);
+        else
+            Debug.bug();
     }
 
     public static void finish() {
@@ -123,21 +114,40 @@ public class CheckinBuffer extends VersionControlBuffer implements Constants {
         final Buffer buffer = editor.getBuffer();
         if (buffer instanceof CheckinBuffer) {
             CheckinBuffer cb = (CheckinBuffer) buffer;
-            switch (cb.getVCType()) {
-                case VC_CVS:
-                    CommentRing.getInstance().appendNew(CVS.extractComment(cb));
-                    CVS.finish(editor, cb);
-                    break;
-                case VC_SVN:
-                    CommentRing.getInstance().appendNew(SVN.extractComment(cb));
-                    SVN.finish(editor, cb);
-                    break;
-                case VC_P4:
-                    CommentRing.getInstance().appendNew(P4.extractComment(cb));
-                    P4.finish(editor, cb);
-                    break;
-                default:
-                    break;
+            VcsBackend backend = VcsBackends.get(cb.getVCType());
+            if (backend != null) {
+                CommentRing.getInstance().appendNew(backend.extractComment(cb));
+                backend.finish(editor, cb);
+            }
+        }
+    }
+
+    /** Replaces the editor's checkin buffer's text with comment, leaving the caret at the end. */
+    public static void replaceText(Editor editor, String comment) {
+        if (!(editor.getBuffer() instanceof CheckinBuffer)) {
+            Debug.bug();
+            return;
+        }
+        final CheckinBuffer buffer = (CheckinBuffer) editor.getBuffer();
+        if (buffer.getText().equals(comment))
+            return;
+        if (!buffer.withWriteLock(() -> {
+            CompoundEdit compoundEdit = editor.beginCompoundEdit();
+            editor.selectAll();
+            editor.deleteRegion();
+            editor.insertString(comment);
+            editor.endCompoundEdit(compoundEdit);
+            buffer.modified();
+        }))
+            return;
+        final Position end = buffer.getEnd();
+        for (Editor ed : Editor.getEditorList()) {
+            if (ed.getBuffer() == buffer) {
+                ed.setTopLine(buffer.getFirstLine());
+                ed.setDot(end.copy()); // No undo.
+                ed.moveCaretToDotCol();
+                ed.setUpdateFlag(REPAINT);
+                ed.updateDisplay();
             }
         }
     }

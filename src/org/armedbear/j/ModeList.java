@@ -22,8 +22,16 @@ package org.armedbear.j;
 
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
+import java.util.Locale;
+import org.armedbear.j.extension.ModeDescriptor;
+import org.armedbear.j.extension.ModeProvider;
 
+/** Every mode j knows: core's, then any an extension provides. */
 public final class ModeList implements Constants, Iterable<ModeListEntry> {
+    // Ids for modes that don't have a Constants id start here.
+    private static final int FIRST_ASSIGNED_ID = 1000;
+
     private static ModeList modeList;
 
     public static synchronized ModeList getInstance() {
@@ -32,91 +40,36 @@ public final class ModeList implements Constants, Iterable<ModeListEntry> {
         return modeList;
     }
 
-    private ArrayList<ModeListEntry> list;
+    private final ArrayList<ModeListEntry> list = new ArrayList<ModeListEntry>();
+    private int nextId = FIRST_ASSIGNED_ID;
 
     private ModeList() {
-        list = new ArrayList<ModeListEntry>();
-        addEntry(ARCHIVE_MODE, ARCHIVE_MODE_NAME, "mode.archive.ArchiveMode", false, null);
-        addEntry(ASM_MODE, ASM_MODE_NAME, "mode.asm.AsmMode", true, ".+\\.asm|.+\\.inc");
-        addEntry(
-            AUTOCONF_MODE,
-            AUTOCONF_MODE_NAME,
-            "mode.autoconf.AutoconfMode",
-            true,
-            "configure.ac|configure.in|aclocal.m4"
-        );
-        addEntry(BINARY_MODE, BINARY_MODE_NAME, "mode.binary.BinaryMode", true, null);
-        addEntry(CHECKIN_MODE, CHECKIN_MODE_NAME, "mode.checkin.CheckinMode", false, null);
-        addEntry(COMPILATION_MODE, COMPILATION_MODE_NAME, "mode.compilation.CompilationMode", false, null);
-        addEntry(
-            CPP_MODE,
-            CPP_MODE_NAME,
-            "mode.cpp.CppMode",
-            true,
-            "(.+\\.cpp)|(.+\\.cxx)|(.+\\.cc)|(.+\\.hpp)|(.+\\.hxx)|(.+\\.h)"
-        );
-        addEntry(CSS_MODE, CSS_MODE_NAME, "mode.css.CSSMode", true, ".+\\.css");
-        addEntry(C_MODE, C_MODE_NAME, "mode.c.CMode", true, ".+\\.c");
-        addEntry(DIFF_MODE, DIFF_MODE_NAME, "mode.diff.DiffMode", true, ".+\\.diff|.+\\.patch");
-        addEntry(DIRECTORY_MODE, DIRECTORY_MODE_NAME, "mode.dir.DirectoryMode", false, null);
-        addEntry(HTML_MODE, HTML_MODE_NAME, "mode.html.HtmlMode", true, ".+\\.html?");
-        addEntry(IMAGE_MODE, IMAGE_MODE_NAME, "mode.image.ImageMode", false, ".+\\.gif|.+\\.jpe?g|.+\\.png");
-        addEntry(JAVASCRIPT_MODE, JAVASCRIPT_MODE_NAME, "mode.js.JavaScriptMode", true, ".+\\.js");
-        addEntry(JAVA_MODE, JAVA_MODE_NAME, "mode.java.JavaMode", true, ".+\\.java|.+\\.jad");
-        addEntry(JDB_MODE, JDB_MODE_NAME, "mode.jdb.JdbMode", false, null);
-        addEntry(
-            LISP_MODE,
-            LISP_MODE_NAME,
-            "mode.lisp.LispMode",
-            true,
-            ".+\\.[ej]l|.*\\.li?sp|.*\\.cl|.*\\.emacs|.*\\.asd"
-        );
-        addEntry(LISP_SHELL_MODE, LISP_SHELL_MODE_NAME, "mode.lisp.LispShellMode", false, null);
-        addEntry(LIST_OCCURRENCES_MODE, LIST_OCCURRENCES_MODE_NAME, "mode.list.ListOccurrencesMode", false, null);
-        addEntry(LIST_REGISTERS_MODE, LIST_REGISTERS_MODE_NAME, "mode.list.ListRegistersMode", false, null);
-        addEntry(LIST_TAGS_MODE, LIST_TAGS_MODE_NAME, "mode.list.ListTagsMode", false, null);
-        addEntry(MAILBOX_MODE, MAILBOX_MODE_NAME, "mail.MailboxMode", false, null);
-        addEntry(MAKEFILE_MODE, MAKEFILE_MODE_NAME, "mode.make.MakefileMode", true, "makefile(\\.in)?");
-        addEntry(MAN_MODE, MAN_MODE_NAME, "mode.man.ManMode", false, null);
-        addEntry(
-            MARKDOWN_MODE,
-            MARKDOWN_MODE_NAME,
-            "mode.markdown.MarkdownMode",
-            true,
-            ".+\\.md|.+\\.markdown|.+\\.mkd"
-        );
-        addEntry(MESSAGE_MODE, MESSAGE_MODE_NAME, "mail.MessageMode", false, null);
-        addEntry(NEWS_GROUPS_MODE, NEWS_GROUPS_MODE_NAME, "mail.NewsGroupsMode", false, null);
-        addEntry(NEWS_GROUP_SUMMARY_MODE, NEWS_GROUP_SUMMARY_MODE_NAME, "mail.NewsGroupSummaryMode", false, null);
-        addEntry(OBJC_MODE, OBJC_MODE_NAME, "mode.objc.ObjCMode", true, ".+\\.m");
-        addEntry(PERL_MODE, PERL_MODE_NAME, "mode.perl.PerlMode", true, ".+\\.p[lm]");
-        addEntry(PHP_MODE, PHP_MODE_NAME, "mode.php.PHPMode", true, ".+\\.php[34]?");
-        addEntry(PLAIN_TEXT_MODE, PLAIN_TEXT_MODE_NAME, "mode.text.PlainTextMode", true, null);
-        addEntry(
-            PROPERTIES_MODE,
-            PROPERTIES_MODE_NAME,
-            "mode.properties.PropertiesMode",
-            true,
-            "(.+\\.config)|(.+\\.co?nf)|(.+\\.cfg)|(.+\\.ini)|(.+\\.properties)|prefs"
-        );
-        addEntry(PYTHON_MODE, PYTHON_MODE_NAME, "mode.python.PythonMode", true, ".+\\.py");
-        addEntry(RUBY_MODE, RUBY_MODE_NAME, "mode.ruby.RubyMode", true, ".+\\.rb");
-        addEntry(SCHEME_MODE, SCHEME_MODE_NAME, "mode.scheme.SchemeMode", true, ".+\\.sc[ehm]?|.+\\.ss");
-        addEntry(SEND_MAIL_MODE, SEND_MAIL_MODE_NAME, "mail.SendMailMode", false, null);
-        addEntry(SHELL_MODE, SHELL_MODE_NAME, "mode.shell.ShellMode", false, null);
-        addEntry(
-            SHELL_SCRIPT_MODE,
-            SHELL_SCRIPT_MODE_NAME,
-            "mode.sh.ShellScriptMode",
-            true,
-            ".+\\.[ck]?sh|\\.bashrc|\\.bash_profile"
-        );
-        addEntry(TCL_MODE, TCL_MODE_NAME, "mode.tcl.TclMode", true, ".+\\.tcl");
-        addEntry(VERILOG_MODE, VERILOG_MODE_NAME, "mode.verilog.VerilogMode", true, ".+\\.v");
-        addEntry(VHDL_MODE, VHDL_MODE_NAME, "mode.vhdl.VHDLMode", true, ".+\\.vhdl?");
-        addEntry(WEB_MODE, WEB_MODE_NAME, "mode.web.WebMode", false, null);
-        addEntry(XML_MODE, XML_MODE_NAME, "mode.xml.XmlMode", true, ".+\\.x[msu]l|.+\\.dtd");
-        addEntry(VCS_STATUS_MODE, VCS_STATUS_MODE_NAME, "vcs.StatusMode", false, null);
+        register(new BuiltinModes());
+    }
+
+    /** Adds a provider's modes, skipping one whose id, name or an alias is taken. */
+    public synchronized void register(ModeProvider provider) {
+        for (ModeDescriptor descriptor : provider.modes()) {
+            String taken = taken(descriptor);
+            if (taken != null) {
+                Log.error("mode " + descriptor.name() + " not registered: " + taken + " is taken");
+                continue;
+            }
+            int id = descriptor.id() > 0 ? descriptor.id() : nextId++;
+            list.add(new ModeListEntry(id, descriptor, this));
+        }
+    }
+
+    private String taken(ModeDescriptor descriptor) {
+        if (descriptor.id() > 0 && (descriptor.id() >= FIRST_ASSIGNED_ID || getEntry(descriptor.id()) != null))
+            return "id " + descriptor.id();
+        if (getEntry(descriptor.name()) != null)
+            return descriptor.name();
+        for (String alias : descriptor.aliases()) {
+            if (getEntry(alias) != null)
+                return alias;
+        }
+        return null;
     }
 
     public synchronized Mode getMode(int id) {
@@ -133,36 +86,22 @@ public final class ModeList implements Constants, Iterable<ModeListEntry> {
         return entry.accepts(filename);
     }
 
+    /** The mode by its name or an alias, ignoring case. */
     public synchronized Mode getModeFromModeName(String modeName) {
-        if (modeName != null) {
-            for (int i = list.size(); i-- > 0;) {
-                ModeListEntry entry = list.get(i);
-                if (modeName.equalsIgnoreCase(entry.getDisplayName()))
-                    return entry.getMode(true);
-            }
-            if (modeName.equalsIgnoreCase("asm"))
-                return getMode(ASM_MODE);
-            if (modeName.equalsIgnoreCase("objc"))
-                return getMode(OBJC_MODE);
-            if (modeName.equalsIgnoreCase("text"))
-                return getMode(PLAIN_TEXT_MODE);
-        }
-        return null;
+        final ModeListEntry entry = getEntry(modeName);
+        return entry == null ? null : entry.getMode(true);
     }
 
     public synchronized int getModeIdFromModeName(String modeName) {
-        if (modeName != null) {
-            for (int i = list.size(); i-- > 0;) {
-                ModeListEntry entry = list.get(i);
-                if (modeName.equalsIgnoreCase(entry.getDisplayName()))
-                    return entry.getId();
-            }
-            if (modeName.equalsIgnoreCase("asm"))
-                return ASM_MODE;
-            if (modeName.equalsIgnoreCase("objc"))
-                return OBJC_MODE;
-            if (modeName.equalsIgnoreCase("text"))
-                return PLAIN_TEXT_MODE;
+        final ModeListEntry entry = getEntry(modeName);
+        return entry == null ? -1 : entry.getId();
+    }
+
+    /** The id of the mode a Markdown fence language names, or -1. */
+    public synchronized int getModeIdForFenceName(String fenceName) {
+        for (ModeListEntry entry : list) {
+            if (entry.getFenceNames().contains(fenceName))
+                return entry.getId();
         }
         return -1;
     }
@@ -172,6 +111,7 @@ public final class ModeList implements Constants, Iterable<ModeListEntry> {
         return id > 0 ? getMode(id) : null;
     }
 
+    // Later entries win, so an extension's mode can claim core's files.
     public synchronized int getModeIdForFileName(String fileName) {
         if (fileName != null) {
             for (int i = list.size(); i-- > 0;) {
@@ -186,33 +126,36 @@ public final class ModeList implements Constants, Iterable<ModeListEntry> {
     // Hard-coded for now.
     public synchronized Mode getModeForContentType(String contentType) {
         if (contentType != null) {
-            if (contentType.toLowerCase().startsWith("text/css"))
+            if (contentType.toLowerCase(Locale.ROOT).startsWith("text/css"))
                 return getMode(CSS_MODE);
         }
         return null;
     }
 
-    public synchronized final Iterator<ModeListEntry> iterator() {
-        return list.iterator();
+    /** A snapshot, so a mode may be registered while a caller iterates. */
+    public synchronized Iterator<ModeListEntry> iterator() {
+        return List.copyOf(list).iterator();
     }
 
-    // Does not check for duplicate entries.
-    private final void addEntry(
-        int id,
-        String displayName,
-        String className,
-        boolean selectable,
-        String defaultFiles
-    ) {
-        list.add(new ModeListEntry(id, displayName, className, selectable, defaultFiles));
-    }
-
-    private final ModeListEntry getEntry(int id) {
-        for (int i = list.size(); i-- > 0;) {
-            ModeListEntry entry = list.get(i);
-            if (entry.getId() == id) {
-                // Found entry.
+    private ModeListEntry getEntry(int id) {
+        for (ModeListEntry entry : list) {
+            if (entry.getId() == id)
                 return entry;
+        }
+        return null;
+    }
+
+    private ModeListEntry getEntry(String name) {
+        if (name == null)
+            return null;
+        for (ModeListEntry entry : list) {
+            if (name.equalsIgnoreCase(entry.getDisplayName()))
+                return entry;
+        }
+        for (ModeListEntry entry : list) {
+            for (String alias : entry.getAliases()) {
+                if (name.equalsIgnoreCase(alias))
+                    return entry;
             }
         }
         return null;

@@ -81,7 +81,8 @@ import org.armedbear.j.mode.java.JavaMode;
 import org.armedbear.j.mode.list.ListOccurrencesInFilesBuffer;
 import org.armedbear.j.mode.perl.PerlMode;
 import org.armedbear.j.util.Utilities;
-import org.armedbear.j.vcs.p4.P4;
+import org.armedbear.j.vcs.VcsBackend;
+import org.armedbear.j.vcs.VcsBackends;
 import org.jdesktop.swingx.MultiSplitLayout;
 
 public final class Editor extends JPanel implements Constants,
@@ -7356,12 +7357,12 @@ public final class Editor extends JPanel implements Constants,
 
     public boolean checkReadOnly() {
         boolean readOnly = buffer.isReadOnly();
-        if (readOnly && buffer.getBooleanProperty(Property.P4_AUTO_EDIT)) {
-            if (buffer.getType() == Buffer.TYPE_NORMAL) {
-                File file = buffer.getFile();
-                if (file != null && file.isLocal() && file.isFile())
-                    if (P4.autoEdit(this))
-                        readOnly = buffer.isReadOnly();
+        if (readOnly) {
+            for (VcsBackend backend : VcsBackends.all()) {
+                if (backend.autoEdit(this)) {
+                    readOnly = buffer.isReadOnly();
+                    break;
+                }
             }
         }
         if (readOnly) {

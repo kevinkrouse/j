@@ -22,6 +22,8 @@ package org.armedbear.j.mode.objc;
 
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Constants;
+import org.armedbear.j.Editor;
+import org.armedbear.j.Expression;
 import org.armedbear.j.Formatter;
 import org.armedbear.j.Keywords;
 import org.armedbear.j.Mode;
@@ -61,7 +63,7 @@ public final class ObjCMode extends CMode implements Constants, Mode {
     }
 
     public Formatter getFormatter(Buffer buffer) {
-        return new CFormatter(buffer, LANGUAGE_OBJC);
+        return new CFormatter(buffer, this);
     }
 
     public Tagger getTagger(SystemBuffer buffer) {
@@ -73,4 +75,19 @@ public final class ObjCMode extends CMode implements Constants, Mode {
             return true;
         return super.isIdentifierStart(c);
     }
+
+    // Not JavaMode's: wrap after this mode's own comment start.
+    public String getWrapCommentStart(String trimmed) {
+        return getCommentStart();
+    }
+
+    public Expression getExpressionAtDot(Editor editor, boolean exact) {
+        return getPlainExpressionAtDot(editor, exact);
+    }
+
+    // Unlike JavaMode, its properties dialog offers no brace indentation.
+    public boolean supportsIndentBeforeBrace() {
+        return false;
+    }
+
 }

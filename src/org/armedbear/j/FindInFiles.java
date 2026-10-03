@@ -37,7 +37,8 @@ import javax.swing.SwingUtilities;
 import javax.swing.undo.CompoundEdit;
 import org.armedbear.j.mode.list.ListOccurrencesInFilesBuffer;
 import org.armedbear.j.util.Background;
-import org.armedbear.j.vcs.p4.P4;
+import org.armedbear.j.vcs.VcsBackend;
+import org.armedbear.j.vcs.VcsBackends;
 
 public final class FindInFiles extends Replacement implements Constants,
     BackgroundProcess {
@@ -735,9 +736,11 @@ public final class FindInFiles extends Replacement implements Constants,
             checkFileError(file, "file is not readable");
         boolean writable = file.canWrite();
         if (!writable) {
-            if (Editor.preferences().getBooleanProperty(Property.P4_AUTO_EDIT)) {
-                if (P4.autoEdit(file))
+            for (VcsBackend backend : VcsBackends.all()) {
+                if (backend.autoEdit(file)) {
                     writable = file.canWrite();
+                    break;
+                }
             }
             if (!writable)
                 checkFileError(file, "file is read only");

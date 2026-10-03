@@ -38,8 +38,11 @@ import org.armedbear.j.CommandTable;
 import org.armedbear.j.Directories;
 import org.armedbear.j.Editor;
 import org.armedbear.j.Log;
+import org.armedbear.j.ModeList;
 import org.armedbear.j.Preferences;
 import org.armedbear.j.Property;
+import org.armedbear.j.vcs.VcsBackend;
+import org.armedbear.j.vcs.VcsBackends;
 
 /**
  * Finds extensions and holds what they register.
@@ -130,17 +133,45 @@ public final class Extensions {
             return;
         ClassLoader loader =
             new URLClassLoader(urls, Extensions.class.getClassLoader());
+        // Modes and backends register first, so initialize() can use them.
+        // All are skipped when every Extension here is disabled or, if there
+        // is none, when the directory's name is.
+        List<Extension> enabled = new ArrayList<Extension>();
+        boolean found = false;
         for (Extension extension : ServiceLoader.load(Extension.class, loader)) {
+            found = true;
             String name = extension.getName();
-            if (name == null) {
+            if (name == null)
                 Log.error("extension in " + directory + " has no name; skipped");
-                continue;
-            }
-            if (skip.contains(name.toLowerCase(Locale.ROOT))) {
+            else if (skip.contains(name.toLowerCase(Locale.ROOT)))
                 Log.info("extension " + name + " disabled by preference");
-                continue;
-            }
+            else
+                enabled.add(extension);
+        }
+        String directoryName = directory.getFileName().toString().toLowerCase(Locale.ROOT);
+        if (found ? enabled.isEmpty() : skip.contains(directoryName))
+            return;
+        registerServices(loader, directory);
+        for (Extension extension : enabled)
             initialize(extension, loader);
+    }
+
+    private static void registerServices(ClassLoader loader, Path directory) {
+        try {
+            for (ModeProvider provider : ServiceLoader.load(ModeProvider.class, loader))
+                ModeList.getInstance().register(provider);
+        }
+        catch (Throwable t) {
+            Log.error("modes in " + directory + " failed to register");
+            Log.error(t);
+        }
+        try {
+            for (VcsBackend backend : ServiceLoader.load(VcsBackend.class, loader))
+                VcsBackends.register(backend);
+        }
+        catch (Throwable t) {
+            Log.error("version control in " + directory + " failed to register");
+            Log.error(t);
         }
     }
 

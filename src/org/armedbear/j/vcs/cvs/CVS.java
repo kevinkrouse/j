@@ -273,45 +273,6 @@ public final class CVS extends VersionControl implements Constants {
         Background.start("CVS command", commandRunnable);
     }
 
-    public static void replaceComment(final Editor editor, final String comment) {
-        if (!(editor.getBuffer() instanceof CheckinBuffer)) {
-            Debug.bug();
-            return;
-        }
-        final CheckinBuffer buffer = (CheckinBuffer) editor.getBuffer();
-        String oldComment = extractComment(buffer);
-        if (oldComment.equals(comment))
-            return;
-        insertComment(editor, comment);
-    }
-
-    public static String extractComment(final CheckinBuffer buffer) {
-        return buffer.getText();
-    }
-
-    private static void insertComment(final Editor editor, final String comment) {
-        final CheckinBuffer buffer = (CheckinBuffer) editor.getBuffer();
-        if (!buffer.withWriteLock(() -> {
-            CompoundEdit compoundEdit = editor.beginCompoundEdit();
-            editor.selectAll();
-            editor.deleteRegion();
-            editor.insertString(comment);
-            editor.endCompoundEdit(compoundEdit);
-            buffer.modified();
-        }))
-            return;
-        final Position end = buffer.getEnd();
-        for (Editor ed : Editor.getEditorList()) {
-            if (ed.getBuffer() == buffer) {
-                ed.setTopLine(buffer.getFirstLine());
-                ed.setDot(end.copy()); // No undo.
-                ed.moveCaretToDotCol();
-                ed.setUpdateFlag(REPAINT);
-                ed.updateDisplay();
-            }
-        }
-    }
-
     public static void finish(final Editor editor, final CheckinBuffer checkinBuffer) {
         final Buffer parentBuffer = checkinBuffer.getParentBuffer();
         if (parentBuffer.getFile() == null)

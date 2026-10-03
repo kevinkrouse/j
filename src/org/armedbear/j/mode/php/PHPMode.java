@@ -170,4 +170,15 @@ public final class PHPMode extends JavaMode implements Constants, Mode {
         1, 1, 1, 1, 1, 1, 1, 1,
         1, 1, 1, 1, 1, 1, 1, 1
     };
+
+    // Not JavaMode's: wrap after this mode's own comment start.
+    public String getWrapCommentStart(String trimmed) {
+        return getCommentStart();
+    }
+
+    // Unlike JavaMode, its properties dialog offers no brace indentation.
+    public boolean supportsIndentBeforeBrace() {
+        return false;
+    }
+
 }

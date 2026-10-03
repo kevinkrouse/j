@@ -76,7 +76,7 @@ public class CMode extends JavaMode implements Constants, Mode {
     }
 
     public Formatter getFormatter(Buffer buffer) {
-        return new CFormatter(buffer, LANGUAGE_C);
+        return new CFormatter(buffer, this);
     }
 
     protected void setKeyMapDefaults(KeyMap km) {

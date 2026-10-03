@@ -69,7 +69,7 @@ public final class CppMode extends CMode implements Constants, Mode {
     }
 
     public final Formatter getFormatter(Buffer buffer) {
-        return new CFormatter(buffer, LANGUAGE_CPP);
+        return new CFormatter(buffer, this);
     }
 
     protected void setKeyMapDefaults(KeyMap km) {
