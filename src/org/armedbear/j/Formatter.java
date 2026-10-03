@@ -20,12 +20,10 @@
 
 package org.armedbear.j;
 
+import java.awt.Color;
 import org.armedbear.j.util.Utilities;
 
-import java.awt.Color;
-
-public abstract class Formatter implements Constants
-{
+public abstract class Formatter implements Constants {
     protected Buffer buffer;
 
     protected FormatTable formatTable;
@@ -40,10 +38,10 @@ public abstract class Formatter implements Constants
     protected LineSegmentList segmentList = new LineSegmentList();
 
     public abstract LineSegmentList formatLine(Line line);
+
     public abstract FormatTable getFormatTable();
 
-    public boolean parseBuffer()
-    {
+    public boolean parseBuffer() {
         buffer.setNeedsParsing(false);
         return false;
     }
@@ -54,36 +52,31 @@ public abstract class Formatter implements Constants
     private Mode languageMode;
 
     /** Formats language's text, keywords and all, in a buffer of another. */
-    public final void setLanguageMode(Mode language)
-    {
+    public final void setLanguageMode(Mode language) {
         languageMode = language;
     }
 
-    protected final Mode getLanguageMode()
-    {
+    protected final Mode getLanguageMode() {
         return languageMode != null ? languageMode : buffer.getMode();
     }
 
-    protected final boolean isKeyword(String s)
-    {
+    protected final boolean isKeyword(String s) {
         return getLanguageMode().isKeyword(s);
     }
 
-    public Color getCaretColor()
-    {
+    public Color getCaretColor() {
         if (colorCaret == null) {
-             colorCaret = buffer.getMode().getColorProperty(Property.COLOR_CARET);
-             if (colorCaret == null) {
-                 colorCaret = buffer.getMode().getColorProperty(Property.COLOR_TEXT);
-                 if (colorCaret == null)
-                     colorCaret = DefaultTheme.getColor("caret");
-             }
+            colorCaret = buffer.getMode().getColorProperty(Property.COLOR_CARET);
+            if (colorCaret == null) {
+                colorCaret = buffer.getMode().getColorProperty(Property.COLOR_TEXT);
+                if (colorCaret == null)
+                    colorCaret = DefaultTheme.getColor("caret");
+            }
         }
         return colorCaret;
     }
 
-    public Color getBackgroundColor()
-    {
+    public Color getBackgroundColor() {
         if (colorBackground == null) {
             colorBackground = buffer.getMode().getColorProperty(Property.COLOR_BACKGROUND);
             if (colorBackground == null)
@@ -92,8 +85,7 @@ public abstract class Formatter implements Constants
         return colorBackground;
     }
 
-    public Color getCurrentLineBackgroundColor()
-    {
+    public Color getCurrentLineBackgroundColor() {
         if (colorCurrentLineBackground == null) {
             colorCurrentLineBackground = buffer.getMode().getColorProperty(Property.COLOR_CURRENT_LINE_BACKGROUND);
             if (colorCurrentLineBackground == null)
@@ -102,8 +94,7 @@ public abstract class Formatter implements Constants
         return colorCurrentLineBackground;
     }
 
-    public Color getSelectionBackgroundColor()
-    {
+    public Color getSelectionBackgroundColor() {
         if (colorSelectionBackground == null) {
             colorSelectionBackground = buffer.getMode().getColorProperty(Property.COLOR_SELECTION_BACKGROUND);
             if (colorSelectionBackground == null)
@@ -112,10 +103,10 @@ public abstract class Formatter implements Constants
         return colorSelectionBackground;
     }
 
-    public Color getMatchingBracketBackgroundColor()
-    {
+    public Color getMatchingBracketBackgroundColor() {
         if (colorMatchingBracketBackground == null) {
-            colorMatchingBracketBackground = buffer.getMode().getColorProperty(Property.COLOR_MATCHING_BRACKET_BACKGROUND);
+            colorMatchingBracketBackground =
+                buffer.getMode().getColorProperty(Property.COLOR_MATCHING_BRACKET_BACKGROUND);
             if (colorMatchingBracketBackground == null)
                 colorMatchingBracketBackground = DefaultTheme.getColor("matchingBracketBackground");
         }
@@ -127,15 +118,15 @@ public abstract class Formatter implements Constants
      * that does not say falls back to its matching bracket background, which
      * it has already made readable behind its text.
      */
-    public Color getSearchMatchBackgroundColor()
-    {
+    public Color getSearchMatchBackgroundColor() {
         if (colorSearchMatchBackground == null) {
             final Mode mode = buffer.getMode();
             colorSearchMatchBackground =
                 mode.getColorProperty(Property.COLOR_SEARCH_MATCH_BACKGROUND);
             if (colorSearchMatchBackground == null)
                 colorSearchMatchBackground = mode.getColorProperty(
-                    Property.COLOR_MATCHING_BRACKET_BACKGROUND);
+                    Property.COLOR_MATCHING_BRACKET_BACKGROUND
+                );
             if (colorSearchMatchBackground == null)
                 colorSearchMatchBackground =
                     DefaultTheme.getColor("searchMatchBackground");
@@ -147,8 +138,7 @@ public abstract class Formatter implements Constants
      * Behind the match a search being typed has the caret on. Unless a theme
      * says, the selection's color, which it has made to stand out.
      */
-    public Color getCurrentSearchMatchBackgroundColor()
-    {
+    public Color getCurrentSearchMatchBackgroundColor() {
         if (colorCurrentSearchMatchBackground == null) {
             colorCurrentSearchMatchBackground = buffer.getMode()
                 .getColorProperty(Property.COLOR_CURRENT_SEARCH_MATCH_BACKGROUND);
@@ -162,14 +152,14 @@ public abstract class Formatter implements Constants
     // Bracket colors by depth, for a light background and a dark: hues far
     // enough apart that neighbouring depths read as different.
     private static final int[][] RAINBOW_LIGHT = {
-        {0x70, 0x70, 0x70}, {0x22, 0x88, 0xcc}, {0x99, 0x66, 0xcc},
-        {0x00, 0x88, 0x55}, {0xcc, 0x66, 0x00}, {0x00, 0x66, 0x99},
-        {0xaa, 0x44, 0x99}, {0x66, 0x88, 0x00}, {0x88, 0x55, 0x33},
+        { 0x70, 0x70, 0x70 }, { 0x22, 0x88, 0xcc }, { 0x99, 0x66, 0xcc },
+        { 0x00, 0x88, 0x55 }, { 0xcc, 0x66, 0x00 }, { 0x00, 0x66, 0x99 },
+        { 0xaa, 0x44, 0x99 }, { 0x66, 0x88, 0x00 }, { 0x88, 0x55, 0x33 },
     };
     private static final int[][] RAINBOW_DARK = {
-        {0xbb, 0xbb, 0xbb}, {0x77, 0xbb, 0xff}, {0xcc, 0x99, 0xff},
-        {0x66, 0xdd, 0x99}, {0xff, 0xaa, 0x55}, {0x55, 0xcc, 0xdd},
-        {0xff, 0x88, 0xcc}, {0xbb, 0xdd, 0x55}, {0xdd, 0xaa, 0x88},
+        { 0xbb, 0xbb, 0xbb }, { 0x77, 0xbb, 0xff }, { 0xcc, 0x99, 0xff },
+        { 0x66, 0xdd, 0x99 }, { 0xff, 0xaa, 0x55 }, { 0x55, 0xcc, 0xdd },
+        { 0xff, 0x88, 0xcc }, { 0xbb, 0xdd, 0x55 }, { 0xdd, 0xaa, 0x88 },
     };
 
     private Color[] rainbowColors;
@@ -182,14 +172,17 @@ public abstract class Formatter implements Constants
      * the background. Depth 0 is a closing bracket nothing opened, in
      * color.unmatchedDelimiter.
      */
-    public Color getRainbowColor(int depth)
-    {
+    public Color getRainbowColor(int depth) {
         if (rainbowColors == null) {
             final Preferences prefs = Editor.preferences();
             java.util.ArrayList<Color> colors = new java.util.ArrayList<>();
             Color c;
-            while ((c = prefs.getColorProperty("color.rainbowDelimiter" +
-                                                (colors.size() + 1))) != null)
+            while (
+                (c = prefs.getColorProperty(
+                    "color.rainbowDelimiter" +
+                        (colors.size() + 1)
+                )) != null
+            )
                 colors.add(c);
             if (colors.isEmpty()) {
                 final boolean dark = DefaultTheme.isDark(getBackgroundColor());
@@ -207,8 +200,7 @@ public abstract class Formatter implements Constants
         return rainbowColors[(depth - 1) % rainbowColors.length];
     }
 
-    public Color getColor(int format)
-    {
+    public Color getColor(int format) {
         FormatTableEntry entry = getFormatTable().lookup(format);
         if (entry != null)
             return entry.getColor();
@@ -216,8 +208,7 @@ public abstract class Formatter implements Constants
     }
 
     /** The format's TextStyle: bold, italic, underline, strikethrough. */
-    public int getStyle(int format)
-    {
+    public int getStyle(int format) {
         FormatTableEntry entry = getFormatTable().lookup(format);
         if (entry != null)
             return entry.getStyle();
@@ -235,8 +226,7 @@ public abstract class Formatter implements Constants
      * A color to show a swatch of in the gutter beside line, as for a line
      * that defines one, or null.
      */
-    public Color getGutterColor(Line line)
-    {
+    public Color getGutterColor(Line line) {
         return null;
     }
 
@@ -246,8 +236,7 @@ public abstract class Formatter implements Constants
      * The color of a link under a Ctrl-hovered mouse: link, as this mode's
      * format table resolves it.
      */
-    public Color getHoverLinkColor()
-    {
+    public Color getHoverLinkColor() {
         if (hoverLinkColor == null)
             hoverLinkColor = getFormatTable().resolveColor("link", true);
         return hoverLinkColor;
@@ -257,8 +246,7 @@ public abstract class Formatter implements Constants
      * The background of a whole line, from the gutter to the right edge, as
      * a code block's is shaded; or null for the display's own.
      */
-    public Color getLineBackground(Line line)
-    {
+    public Color getLineBackground(Line line) {
         return null;
     }
 
@@ -266,8 +254,7 @@ public abstract class Formatter implements Constants
      * The background behind the text of a format, as inline code's is
      * shaded; or null for none.
      */
-    public Color getRunBackground(int format)
-    {
+    public Color getRunBackground(int format) {
         return null;
     }
 
@@ -280,8 +267,7 @@ public abstract class Formatter implements Constants
      * usually gray. On a dark one, the background with a little of the text
      * mixed in.
      */
-    protected Color getShade(String thing)
-    {
+    protected Color getShade(String thing) {
         final Color color = getFormatTable().resolveColor(thing, false);
         if (color != null)
             return color;
@@ -292,21 +278,27 @@ public abstract class Formatter implements Constants
             return new Color(
                 (int) Math.round(bg.getRed() + (fg.getRed() - bg.getRed()) * amount),
                 (int) Math.round(bg.getGreen() + (fg.getGreen() - bg.getGreen()) * amount),
-                (int) Math.round(bg.getBlue() + (fg.getBlue() - bg.getBlue()) * amount));
+                (int) Math.round(bg.getBlue() + (fg.getBlue() - bg.getBlue()) * amount)
+            );
         }
         // How much darker the current line is, halved; at least enough to
         // see where a theme's current line is not darker at all.
         final Color line = getCurrentLineBackgroundColor();
-        final double step = Math.max(6, ((bg.getRed() - line.getRed())
-            + (bg.getGreen() - line.getGreen())
-            + (bg.getBlue() - line.getBlue())) / 6.0);
+        final double step = Math.max(
+            6,
+            ((bg.getRed() - line.getRed())
+                + (bg.getGreen() - line.getGreen())
+                + (bg.getBlue() - line.getBlue())) / 6.0
+        );
         // Darker in red than in blue: cool.
-        return new Color(darker(bg.getRed(), step), darker(bg.getGreen(), step * 0.78),
-                         darker(bg.getBlue(), step * 0.55));
+        return new Color(
+            darker(bg.getRed(), step),
+            darker(bg.getGreen(), step * 0.78),
+            darker(bg.getBlue(), step * 0.55)
+        );
     }
 
-    private static int darker(int value, double by)
-    {
+    private static int darker(int value, double by) {
         return Math.max(0, (int) Math.round(value - by));
     }
 
@@ -315,8 +307,7 @@ public abstract class Formatter implements Constants
      * so that the display shows it only around the caret. A formatter that
      * can hide markup says so, as conceals lets it.
      */
-    public boolean hidesMarkup()
-    {
+    public boolean hidesMarkup() {
         return false;
     }
 
@@ -325,8 +316,7 @@ public abstract class Formatter implements Constants
      * kind: what markup of its own a formatter may hide. "none", or nothing,
      * hides none.
      */
-    protected final boolean conceals(String kind)
-    {
+    protected final boolean conceals(String kind) {
         if (concealed == null) {
             final java.util.Set<String> set = new java.util.HashSet<String>();
             final String value = buffer.getStringProperty(Property.CONCEAL);
@@ -346,9 +336,14 @@ public abstract class Formatter implements Constants
      * Adds a segment the display hides unless the caret is in item, a
      * number of the line's own from 1, or LineSegment.BLOCK.
      */
-    protected final void addSegment(String text, int begin, int end, int format,
-                                    boolean hidden, int item)
-    {
+    protected final void addSegment(
+        String text,
+        int begin,
+        int end,
+        int format,
+        boolean hidden,
+        int item
+    ) {
         final LineSegment segment = new LineSegment(text, begin, end, format);
         segment.setHidden(hidden);
         segment.setItem(item);
@@ -360,18 +355,15 @@ public abstract class Formatter implements Constants
      * markup shows together, as a fence's opening and closing lines do with
      * the caret anywhere in it; or null.
      */
-    public Line[] getHiddenBlock(Line line)
-    {
+    public Line[] getHiddenBlock(Line line) {
         return null;
     }
 
-    public boolean getUnderline(int format)
-    {
+    public boolean getUnderline(int format) {
         return (getStyle(format) & TextStyle.UNDERLINE) != 0;
     }
 
-    public void reset()
-    {
+    public void reset() {
         colorCaret = null;
         colorBackground = null;
         colorCurrentLineBackground = null;
@@ -386,33 +378,27 @@ public abstract class Formatter implements Constants
         formatTable = null;
     }
 
-    protected final void addSegment(String text, int begin, int end, int format)
-    {
+    protected final void addSegment(String text, int begin, int end, int format) {
         segmentList.addSegment(new LineSegment(text, begin, end, format));
     }
 
-    protected final void addSegment(String text, int begin, int format)
-    {
+    protected final void addSegment(String text, int begin, int format) {
         segmentList.addSegment(new LineSegment(text, begin, text.length(), format));
     }
 
-    protected final void addSegment(String text, int format)
-    {
+    protected final void addSegment(String text, int format) {
         segmentList.addSegment(new LineSegment(text, format));
     }
 
-    protected final LineSegment getLastSegment()
-    {
+    protected final LineSegment getLastSegment() {
         return segmentList.getLastSegment();
     }
 
-    protected final void clearSegmentList()
-    {
+    protected final void clearSegmentList() {
         segmentList.clear();
     }
 
-    protected final String getDetabbedText(Line line)
-    {
+    protected final String getDetabbedText(Line line) {
         if (Editor.tabsAreVisible())
             return Utilities.makeTabsVisible(line.getText(), buffer.getTabWidth());
         return Utilities.detab(line.getText(), buffer.getTabWidth());

@@ -21,15 +21,13 @@
 package org.armedbear.j;
 
 import java.lang.StringBuilder;
-import org.armedbear.j.util.Utilities;
-
 import java.util.Arrays;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
-import java.util.regex.Matcher;
+import org.armedbear.j.util.Utilities;
 
-public class Search implements Cloneable
-{
+public class Search implements Cloneable {
     private String pattern;
     private String lowerCasePattern;
     private int patternLength;
@@ -45,25 +43,21 @@ public class Search implements Cloneable
 
     private Region region;
 
-    public Search()
-    {
+    public Search() {
         setPattern(new String());
     }
 
-    public Search(String pattern, boolean ignoreCase, boolean wholeWordsOnly)
-    {
+    public Search(String pattern, boolean ignoreCase, boolean wholeWordsOnly) {
         setPattern(pattern);
         this.ignoreCase = ignoreCase;
         this.wholeWordsOnly = wholeWordsOnly;
     }
 
-    public final String getPattern()
-    {
+    public final String getPattern() {
         return pattern;
     }
 
-    public final void setPattern(String s)
-    {
+    public final void setPattern(String s) {
         if (s != null) {
             pattern = s;
             lowerCasePattern = s.toLowerCase();
@@ -74,110 +68,89 @@ public class Search implements Cloneable
         }
     }
 
-    public final void appendCharToPattern(char c)
-    {
+    public final void appendCharToPattern(char c) {
         pattern += c;
         lowerCasePattern = pattern.toLowerCase();
         ++patternLength;
     }
 
-    public final int getPatternLength()
-    {
+    public final int getPatternLength() {
         return patternLength;
     }
 
-    public final String getLowerCasePattern()
-    {
+    public final String getLowerCasePattern() {
         return lowerCasePattern;
     }
 
-    public final Pattern getRE()
-    {
+    public final Pattern getRE() {
         return re;
     }
 
-    public final void setRE(Pattern re)
-    {
+    public final void setRE(Pattern re) {
         this.re = re;
     }
 
-    public final Matcher getMatch()
-    {
+    public final Matcher getMatch() {
         return match;
     }
 
-    public final boolean ignoreCase()
-    {
+    public final boolean ignoreCase() {
         return ignoreCase;
     }
 
-    public final void setIgnoreCase(boolean b)
-    {
+    public final void setIgnoreCase(boolean b) {
         ignoreCase = b;
     }
 
-    public final boolean wholeWordsOnly()
-    {
+    public final boolean wholeWordsOnly() {
         return wholeWordsOnly;
     }
 
-    public final void setWholeWordsOnly(boolean b)
-    {
+    public final void setWholeWordsOnly(boolean b) {
         wholeWordsOnly = b;
     }
 
-    public final boolean isRegularExpression()
-    {
+    public final boolean isRegularExpression() {
         return regularExpression;
     }
 
-    public final void setRegularExpression(boolean b)
-    {
+    public final void setRegularExpression(boolean b) {
         regularExpression = b;
     }
 
-    public final boolean isMultilinePattern()
-    {
+    public final boolean isMultilinePattern() {
         return isMultilinePattern;
     }
 
-    public final void setMultiline(boolean b)
-    {
+    public final void setMultiline(boolean b) {
         isMultilinePattern = b;
     }
 
-    public final boolean restrictToSelection()
-    {
+    public final boolean restrictToSelection() {
         return restrictToSelection;
     }
 
-    public final void setRestrictToSelection(boolean b)
-    {
+    public final void setRestrictToSelection(boolean b) {
         restrictToSelection = b;
     }
 
-    public final Region getRegion()
-    {
+    public final Region getRegion() {
         return region;
     }
 
-    public final void setRegion(Region r)
-    {
+    public final void setRegion(Region r) {
         region = r;
     }
 
-    protected Position findInBuffer(Buffer buffer)
-    {
+    protected Position findInBuffer(Buffer buffer) {
         return find(buffer, new Position(buffer.getFirstLine(), 0));
     }
 
-    public final Position find(Buffer buffer, Position start)
-    {
+    public final Position find(Buffer buffer, Position start) {
         return regularExpression ? findRegExp(buffer, start) : findString(buffer, start);
     }
 
-    public final Position reverseFind(Buffer buffer, Position start)
-    {
+    public final Position reverseFind(Buffer buffer, Position start) {
         if (regularExpression) {
             if (isMultilinePattern)
                 return reverseFindMultilineRegExp(buffer, start);
@@ -187,19 +160,25 @@ public class Search implements Cloneable
             return reverseFindString(buffer, start);
     }
 
-    public final Position find(Mode mode, Position start)
-    {
+    public final Position find(Mode mode, Position start) {
         return regularExpression ? findRegExp(mode, start) : findString(mode, start);
     }
 
-    public final Position findInLine(Mode mode, Position start)
-    {
+    public final Position findInLine(Mode mode, Position start) {
         if (regularExpression)
-            return findRegExpInLine(mode, start.getLine(), start.getOffset(),
-                start.getLineLength());
+            return findRegExpInLine(
+                mode,
+                start.getLine(),
+                start.getOffset(),
+                start.getLineLength()
+            );
         else
-            return findStringInLine(mode, start.getLine(), start.getOffset(),
-                start.getLineLength());
+            return findStringInLine(
+                mode,
+                start.getLine(),
+                start.getOffset(),
+                start.getLineLength()
+            );
     }
 
     /**
@@ -208,8 +187,7 @@ public class Search implements Cloneable
      * from the line's start, as findNext finds them; an empty match is
      * stepped past and stays empty.
      */
-    public final int[] matchesOnLine(Mode mode, Line line)
-    {
+    public final int[] matchesOnLine(Mode mode, Line line) {
         int[] spans = new int[8];
         int n = 0;
         int offset = 0;
@@ -219,7 +197,8 @@ public class Search implements Cloneable
                 break;
             final Matcher matcher = getMatch();
             final int length = regularExpression && matcher != null
-                ? matcher.group().length() : getPatternLength();
+                ? matcher.group().length()
+                : getPatternLength();
             if (n == spans.length)
                 spans = Arrays.copyOf(spans, n * 2);
             spans[n++] = found.getOffset();
@@ -229,27 +208,23 @@ public class Search implements Cloneable
         return n == 0 ? null : Arrays.copyOf(spans, n);
     }
 
-    public final boolean find(String s)
-    {
+    public final boolean find(String s) {
         return regularExpression ? findRegExp(s) : findString(s);
     }
 
-    public final boolean findDelimited(String s, Mode mode)
-    {
+    public final boolean findDelimited(String s, Mode mode) {
         return regularExpression ? findRegExpDelimited(s, mode) : findStringDelimited(s, mode);
     }
 
     // Search is restricted to region if restrictToSelection is true and
     // region is not null.
-    public final Position findString(Buffer buffer, Position start)
-    {
+    public final Position findString(Buffer buffer, Position start) {
         return findString(buffer.getMode(), start);
     }
 
     // Search is restricted to region if restrictToSelection is true and
     // region is not null.
-    private Position findString(Mode mode, Position start)
-    {
+    private Position findString(Mode mode, Position start) {
         Debug.assertTrue(lowerCasePattern.equals(pattern.toLowerCase()));
         Debug.assertTrue(patternLength == pattern.length());
         Line line = start.getLine();
@@ -275,8 +250,7 @@ public class Search implements Cloneable
     }
 
     // Region is ignored.
-    public Position findString(Buffer buffer, Position start, boolean wrapBuffer)
-    {
+    public Position findString(Buffer buffer, Position start, boolean wrapBuffer) {
         Debug.assertTrue(lowerCasePattern.equals(pattern.toLowerCase()));
         Debug.assertTrue(patternLength == pattern.length());
         Mode mode = buffer.getMode();
@@ -302,8 +276,7 @@ public class Search implements Cloneable
         return null;
     }
 
-    private Position findStringInLine(Mode mode, Line line, int begin, int end)
-    {
+    private Position findStringInLine(Mode mode, Line line, int begin, int end) {
         String toBeSearched;
         if (end < line.length())
             toBeSearched = line.substring(0, end);
@@ -326,8 +299,7 @@ public class Search implements Cloneable
         return null;
     }
 
-    private boolean findString(String s)
-    {
+    private boolean findString(String s) {
         Debug.assertTrue(patternLength == pattern.length());
         int index = 0;
         int limit = s.length() - patternLength;
@@ -345,8 +317,7 @@ public class Search implements Cloneable
         return false;
     }
 
-    private boolean findStringDelimited(String s, Mode mode)
-    {
+    private boolean findStringDelimited(String s, Mode mode) {
         Debug.assertTrue(wholeWordsOnly);
         Debug.assertTrue(patternLength == pattern.length());
         int index = 0;
@@ -366,8 +337,7 @@ public class Search implements Cloneable
     }
 
     // Region is ignored.
-    public Position reverseFindString(Buffer buffer, Position start)
-    {
+    public Position reverseFindString(Buffer buffer, Position start) {
         Debug.assertTrue(lowerCasePattern.equals(pattern.toLowerCase()));
         Debug.assertTrue(patternLength == pattern.length());
         Line line = start.getLine();
@@ -384,8 +354,7 @@ public class Search implements Cloneable
         return null;
     }
 
-    private Position reverseFindStringInLine(Buffer buffer, Line line, int begin, int end)
-    {
+    private Position reverseFindStringInLine(Buffer buffer, Line line, int begin, int end) {
         int index = end;
         while (index >= begin) {
             if (ignoreCase)
@@ -404,16 +373,14 @@ public class Search implements Cloneable
 
     // Search is restricted to region if restrictToSelection is true and
     // region is not null.
-    public final Position findRegExp(Buffer buffer, Position start)
-    {
+    public final Position findRegExp(Buffer buffer, Position start) {
         if (isMultilinePattern)
             return findMultilineRegExp(buffer, start);
         else
             return findRegExp(buffer.getMode(), start);
     }
 
-    public void setREFromPattern() throws PatternSyntaxException
-    {
+    public void setREFromPattern() throws PatternSyntaxException {
         int cflags = 0;
         if (isMultilinePattern)
             cflags |= Pattern.MULTILINE;
@@ -424,8 +391,7 @@ public class Search implements Cloneable
 
     // Search is restricted to region if restrictToSelection is true and
     // region is not null.
-    private Position findMultilineRegExp(Buffer buffer, Position start)
-    {
+    private Position findMultilineRegExp(Buffer buffer, Position start) {
         if (re == null) {
             try {
                 setREFromPattern();
@@ -446,16 +412,21 @@ public class Search implements Cloneable
                 return null;
             if (!wholeWordsOnly)
                 break;
-            if (Utilities.isDelimited(buffer.getMode(), s,
-                match.start(), match.end()))
+            if (
+                Utilities.isDelimited(
+                    buffer.getMode(),
+                    s,
+                    match.start(),
+                    match.end()
+                )
+            )
                 break;
             startIndex = match.start() + 1;
         }
         return buffer.getPosition(match.start());
     }
 
-    private Position reverseFindMultilineRegExp(Buffer buffer, Position start)
-    {
+    private Position reverseFindMultilineRegExp(Buffer buffer, Position start) {
         if (re == null) {
             try {
                 setREFromPattern();
@@ -475,9 +446,14 @@ public class Search implements Cloneable
                 break;
             if (!wholeWordsOnly)
                 lastMatch = match;
-            else if (Utilities.isDelimited(buffer.getMode(), s,
-                                             match.start(),
-                                             match.end()))
+            else if (
+                Utilities.isDelimited(
+                    buffer.getMode(),
+                    s,
+                    match.start(),
+                    match.end()
+                )
+            )
                 lastMatch = match;
             startIndex = match.start() + 1;
         }
@@ -488,8 +464,7 @@ public class Search implements Cloneable
     }
 
     // Search is restricted to region if endIndex >= 0.
-    private Matcher findMatch(String s, int startIndex, int endIndex)
-    {
+    private Matcher findMatch(String s, int startIndex, int endIndex) {
         Matcher m = re.matcher(s);
         int end = endIndex >= 0 ? endIndex : s.length();
         m.region(startIndex, end);
@@ -500,8 +475,7 @@ public class Search implements Cloneable
 
     // Search is restricted to region if restrictToSelection is true and
     // region is not null.
-    private Position findRegExp(Mode mode, Position start)
-    {
+    private Position findRegExp(Mode mode, Position start) {
         if (re == null) {
             try {
                 setREFromPattern();
@@ -534,8 +508,7 @@ public class Search implements Cloneable
         return pos;
     }
 
-    private Position findRegExpInLine(Mode mode, Line line, int begin, int end)
-    {
+    private Position findRegExpInLine(Mode mode, Line line, int begin, int end) {
         String toBeSearched;
         if (end < line.length())
             toBeSearched = line.substring(0, end);
@@ -557,8 +530,7 @@ public class Search implements Cloneable
         return null;
     }
 
-    private boolean findRegExp(String toBeSearched)
-    {
+    private boolean findRegExp(String toBeSearched) {
         int index = 0;
         int limit = toBeSearched.length();
         match = re.matcher(toBeSearched);
@@ -574,8 +546,7 @@ public class Search implements Cloneable
         return false;
     }
 
-    private boolean findRegExpDelimited(String s, Mode mode)
-    {
+    private boolean findRegExpDelimited(String s, Mode mode) {
         Debug.assertTrue(wholeWordsOnly);
         int index = 0;
         int limit = s.length();
@@ -593,8 +564,7 @@ public class Search implements Cloneable
     }
 
     // Region is ignored.
-    public Position reverseFindRegExp(Buffer buffer, Position start)
-    {
+    public Position reverseFindRegExp(Buffer buffer, Position start) {
         if (re == null) {
             try {
                 re = Pattern.compile(pattern, ignoreCase ? Pattern.CASE_INSENSITIVE : 0);
@@ -619,8 +589,7 @@ public class Search implements Cloneable
         return null;
     }
 
-    private Position reverseFindRegExpInLine(Buffer buffer, Line line, int begin, int end)
-    {
+    private Position reverseFindRegExpInLine(Buffer buffer, Line line, int begin, int end) {
         int index = end;
         match = re.matcher(line.getText());
         while (index >= begin) {
@@ -635,8 +604,7 @@ public class Search implements Cloneable
         return null;
     }
 
-    public void notFound(Editor editor)
-    {
+    public void notFound(Editor editor) {
         StringBuilder sb = new StringBuilder();
         if (regularExpression)
             sb.append("Regular expression ");
@@ -646,8 +614,7 @@ public class Search implements Cloneable
         editor.status(sb.toString());
     }
 
-    public boolean equals(Object object)
-    {
+    public boolean equals(Object object) {
         if (this == object)
             return true;
         if (object instanceof Search) {
@@ -674,8 +641,7 @@ public class Search implements Cloneable
         return false;
     }
 
-    public Object clone()
-    {
+    public Object clone() {
         try {
             return super.clone();
         }

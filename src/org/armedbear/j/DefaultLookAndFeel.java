@@ -20,8 +20,6 @@
 
 package org.armedbear.j;
 
-import org.armedbear.j.util.Utilities;
-
 import java.awt.Color;
 import java.awt.Font;
 import javax.swing.BorderFactory;
@@ -31,17 +29,16 @@ import javax.swing.plaf.ColorUIResource;
 import javax.swing.plaf.FontUIResource;
 import javax.swing.plaf.metal.DefaultMetalTheme;
 import javax.swing.plaf.metal.MetalLookAndFeel;
+import org.armedbear.j.util.Utilities;
 
-public final class DefaultLookAndFeel extends DefaultMetalTheme
-{
+public final class DefaultLookAndFeel extends DefaultMetalTheme {
     private static final Preferences preferences = Editor.preferences();
 
     private final ColorUIResource primary1 = new ColorUIResource(0, 0, 0); // Black.
 
     private FontUIResource plainFont;
 
-    public static void setLookAndFeel()
-    {
+    public static void setLookAndFeel() {
         // This is the default.
         String lookAndFeelClassName =
             "javax.swing.plaf.metal.MetalLookAndFeel";
@@ -58,8 +55,7 @@ public final class DefaultLookAndFeel extends DefaultMetalTheme
             // User has indicated a preference.
             if (Editor.lookAndFeel.equals("System")) {
                 lookAndFeelClassName = UIManager.getSystemLookAndFeelClassName();
-            }
-            else if (Editor.lookAndFeel.equals("Metal")) {
+            } else if (Editor.lookAndFeel.equals("Metal")) {
                 ; // Default look and feel, but don't do customizations.
             } else if (Editor.lookAndFeel.equals("Motif")) {
                 lookAndFeelClassName =
@@ -83,10 +79,14 @@ public final class DefaultLookAndFeel extends DefaultMetalTheme
         if (Editor.lookAndFeel == null) {
             // Default customizations.
             MetalLookAndFeel.setCurrentTheme(new DefaultLookAndFeel());
-            UIManager.put("Tree.collapsedIcon",
-                          Utilities.getIconFromFile("collapsed"));
-            UIManager.put("Tree.expandedIcon",
-                          Utilities.getIconFromFile("expanded"));
+            UIManager.put(
+                "Tree.collapsedIcon",
+                Utilities.getIconFromFile("collapsed")
+            );
+            UIManager.put(
+                "Tree.expandedIcon",
+                Utilities.getIconFromFile("expanded")
+            );
         } else {
             MetalLookAndFeel.setCurrentTheme(new DefaultMetalTheme());
         }
@@ -103,16 +103,14 @@ public final class DefaultLookAndFeel extends DefaultMetalTheme
         UIManager.put("SplitPane.dividerSize", 1);
     }
 
-    private DefaultLookAndFeel()
-    {
+    private DefaultLookAndFeel() {
         String name = preferences.getStringProperty(Property.DIALOG_FONT_NAME);
         int size = UIScale.scaledProperty(preferences, Property.DIALOG_FONT_SIZE);
         Font font = new Font(name, Font.PLAIN, size);
         plainFont = new FontUIResource(font);
     }
 
-    public void addCustomEntriesToTable(UIDefaults table)
-    {
+    public void addCustomEntriesToTable(UIDefaults table) {
         table.put("Button.border", BorderFactory.createRaisedBevelBorder());
         table.put("TextField.border", BorderFactory.createLoweredBevelBorder());
         table.put("SplitPaneUI", "javax.swing.plaf.basic.BasicSplitPaneUI");
@@ -139,38 +137,31 @@ public final class DefaultLookAndFeel extends DefaultMetalTheme
         table.put("ToolTipUI", "org.armedbear.j.ToolTipUI");
     }
 
-    protected ColorUIResource getPrimary1()
-    {
+    protected ColorUIResource getPrimary1() {
         return primary1;
     }
 
-    public FontUIResource getControlTextFont()
-    {
+    public FontUIResource getControlTextFont() {
         return plainFont;
     }
 
-    public FontUIResource getSystemTextFont()
-    {
+    public FontUIResource getSystemTextFont() {
         return plainFont;
     }
 
-    public FontUIResource getUserTextFont()
-    {
+    public FontUIResource getUserTextFont() {
         return plainFont;
     }
 
-    public FontUIResource getMenuTextFont()
-    {
+    public FontUIResource getMenuTextFont() {
         return plainFont;
     }
 
-    public FontUIResource getWindowTitleFont()
-    {
+    public FontUIResource getWindowTitleFont() {
         return plainFont;
     }
 
-    public FontUIResource getSubTextFont()
-    {
+    public FontUIResource getSubTextFont() {
         return plainFont;
     }
 }

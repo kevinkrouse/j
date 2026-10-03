@@ -20,21 +20,27 @@
 
 package org.armedbear.j.mail;
 
+import java.lang.StringBuilder;
 import java.net.MalformedURLException;
 import java.util.ArrayList;
 import java.util.List;
-import java.lang.StringBuilder;
 
-public final class ImapURL extends MailboxURL
-{
+public final class ImapURL extends MailboxURL {
     static final int DEFAULT_PORT = 143;
     static final int DEFAULT_SSL_PORT = 993;
 
     private String folderName;
 
-    public ImapURL(String folderName, String user, String host, int port,
-                   boolean ssl, boolean tls, boolean validateCert, boolean debug)
-    {
+    public ImapURL(
+        String folderName,
+        String user,
+        String host,
+        int port,
+        boolean ssl,
+        boolean tls,
+        boolean validateCert,
+        boolean debug
+    ) {
         super(user, host, port, ssl, tls, validateCert, debug);
         this.folderName = folderName;
 
@@ -42,18 +48,15 @@ public final class ImapURL extends MailboxURL
             this.folderName = "inbox";
     }
 
-    public static ImapURL parseURL(String s) throws MalformedURLException
-    {
-        return (ImapURL)MailboxURL.parseRemote(s, "imap");
+    public static ImapURL parseURL(String s) throws MalformedURLException {
+        return (ImapURL) MailboxURL.parseRemote(s, "imap");
     }
 
-    public final String getFolderName()
-    {
+    public final String getFolderName() {
         return folderName;
     }
 
-    public final List<String> getFolderPathComponents()
-    {
+    public final List<String> getFolderPathComponents() {
         ArrayList<String> list = new ArrayList<String>();
         int begin = 0;
         while (true) {
@@ -71,8 +74,7 @@ public final class ImapURL extends MailboxURL
         return list;
     }
 
-    public boolean equals(Object object)
-    {
+    public boolean equals(Object object) {
         if (!(object instanceof ImapURL))
             return false;
         ImapURL url = (ImapURL) object;
@@ -105,8 +107,7 @@ public final class ImapURL extends MailboxURL
         return true;
     }
 
-    public String toString()
-    {
+    public String toString() {
         StringBuilder sb = new StringBuilder();
         sb.append('{');
         if (user != null) {
@@ -123,16 +124,14 @@ public final class ImapURL extends MailboxURL
         return sb.toString();
     }
 
-    public String getCanonicalName()
-    {
+    public String getCanonicalName() {
         StringBuilder sb = baseCanonicalURL();
         sb.append(folderName);
         return sb.toString();
     }
 
     @Override
-    protected int getDefaultPort(boolean ssl)
-    {
+    protected int getDefaultPort(boolean ssl) {
         return ssl ? DEFAULT_SSL_PORT : DEFAULT_PORT;
     }
 }

@@ -20,19 +20,17 @@
 
 package org.armedbear.j;
 
-import java.lang.StringBuilder;
-import org.armedbear.j.util.Utilities;
-
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
+import java.lang.StringBuilder;
 import java.net.Socket;
 import javax.net.ssl.SSLSocketFactory;
 import javax.swing.SwingUtilities;
+import org.armedbear.j.util.Utilities;
 
 public final class HttpLoadProcess extends LoadProcess implements BackgroundProcess,
-    Runnable, Cancellable
-{
+    Runnable, Cancellable {
     private Socket socket;
     private boolean render = true;
 
@@ -44,33 +42,27 @@ public final class HttpLoadProcess extends LoadProcess implements BackgroundProc
 
     private StringBuilder sbHeaders = new StringBuilder();
 
-    public HttpLoadProcess(Buffer buffer, HttpFile file)
-    {
+    public HttpLoadProcess(Buffer buffer, HttpFile file) {
         super(buffer, file);
     }
 
-    public final String getRequest()
-    {
+    public final String getRequest() {
         return request;
     }
 
-    public final String getResponseHeaders()
-    {
+    public final String getResponseHeaders() {
         return responseHeaders;
     }
 
-    public final String getContentType()
-    {
+    public final String getContentType() {
         return contentType;
     }
 
-    private final void setContentType(String s)
-    {
+    private final void setContentType(String s) {
         contentType = s;
     }
 
-    public void run()
-    {
+    public void run() {
         if (buffer != null) {
             buffer.setBusy(true);
             buffer.setBackgroundProcess(this);
@@ -83,8 +75,7 @@ public final class HttpLoadProcess extends LoadProcess implements BackgroundProc
         }
     }
 
-    private void load()
-    {
+    private void load() {
         boolean usingProxy = false;
         cache = Utilities.getTempFile();
         if (cache == null) {
@@ -262,7 +253,7 @@ public final class HttpLoadProcess extends LoadProcess implements BackgroundProc
             File parent = file.getParentFile();
             if (parent != null) {
                 // Recurse.
-                file = HttpFile.getHttpFile((HttpFile)parent, location);
+                file = HttpFile.getHttpFile((HttpFile) parent, location);
                 ++redirectionCount;
                 load();
                 return;
@@ -285,8 +276,7 @@ public final class HttpLoadProcess extends LoadProcess implements BackgroundProc
             SwingUtilities.invokeLater(errorRunnable);
     }
 
-    private void connect(final String hostName, final int port)
-    {
+    private void connect(final String hostName, final int port) {
         Debug.assertTrue(socket == null);
         Log.debug("Connecting to " + hostName + " on port " + port + "...");
         if (progressNotifier != null)
@@ -300,8 +290,7 @@ public final class HttpLoadProcess extends LoadProcess implements BackgroundProc
             setErrorText(sc.getErrorText());
     }
 
-    private Socket createSSLSocket(String hostName, int port)
-    {
+    private Socket createSSLSocket(String hostName, int port) {
         try {
             return SSLSocketFactory.getDefault().createSocket(hostName, port);
         }
@@ -311,8 +300,7 @@ public final class HttpLoadProcess extends LoadProcess implements BackgroundProc
         }
     }
 
-    private static int getStatusCode(String responseHeaders)
-    {
+    private static int getStatusCode(String responseHeaders) {
         int begin = responseHeaders.indexOf(' ') + 1;
         if (begin == 0)
             return -1;
@@ -327,8 +315,7 @@ public final class HttpLoadProcess extends LoadProcess implements BackgroundProc
         }
     }
 
-    private static String getLocation(String responseHeaders)
-    {
+    private static String getLocation(String responseHeaders) {
         final String lookFor = "\nlocation:";
         final int index = responseHeaders.toLowerCase().indexOf(lookFor);
         if (index < 0)
@@ -345,8 +332,7 @@ public final class HttpLoadProcess extends LoadProcess implements BackgroundProc
         return location;
     }
 
-    private static int getContentLength(String responseHeaders)
-    {
+    private static int getContentLength(String responseHeaders) {
         final String lookFor = "\r\ncontent-length:";
         final int index = responseHeaders.toLowerCase().indexOf(lookFor);
         if (index < 0)
@@ -360,8 +346,7 @@ public final class HttpLoadProcess extends LoadProcess implements BackgroundProc
         }
     }
 
-    private void error(String errorText)
-    {
+    private void error(String errorText) {
         Log.error(errorText);
         if (errorRunnable != null) {
             errorRunnable.setMessage(errorText);
@@ -369,8 +354,7 @@ public final class HttpLoadProcess extends LoadProcess implements BackgroundProc
         }
     }
 
-    public static void httpShowHeaders()
-    {
+    public static void httpShowHeaders() {
         final Editor editor = Editor.currentEditor();
         final Buffer buffer = editor.getBuffer();
         final File file = buffer.getFile();
@@ -388,7 +372,7 @@ public final class HttpLoadProcess extends LoadProcess implements BackgroundProc
                 }
             }
             if (buf == null) {
-                buf = OutputBuffer.getOutputBuffer(((HttpFile)file).getHeaders());
+                buf = OutputBuffer.getOutputBuffer(((HttpFile) file).getHeaders());
                 buf.setParentBuffer(buffer);
                 buf.setTitle(title);
             }

@@ -23,12 +23,10 @@ package org.armedbear.j.mail;
 import java.net.MalformedURLException;
 import org.armedbear.j.File;
 
-public final class LocalMailboxURL extends MailboxURL
-{
+public final class LocalMailboxURL extends MailboxURL {
     private final File file;
 
-    public static LocalMailboxURL parseURL(String s) throws MalformedURLException
-    {
+    public static LocalMailboxURL parseURL(String s) throws MalformedURLException {
         if (s.startsWith("mailbox:"))
             s = s.substring(8);
         File file = File.getInstance(s);
@@ -38,32 +36,27 @@ public final class LocalMailboxURL extends MailboxURL
         return new LocalMailboxURL(file);
     }
 
-    public LocalMailboxURL(File file)
-    {
+    public LocalMailboxURL(File file) {
         this.file = file;
         setBaseName("mailbox:" + file.canonicalPath());
     }
 
-    public final File getFile()
-    {
+    public final File getFile() {
         return file;
     }
 
-    public boolean equals(Object object)
-    {
+    public boolean equals(Object object) {
         if (!(object instanceof LocalMailboxURL))
             return false;
-        return file.equals(((LocalMailboxURL)object).getFile());
+        return file.equals(((LocalMailboxURL) object).getFile());
     }
 
-    public String getCanonicalName()
-    {
+    public String getCanonicalName() {
         return file.canonicalPath();
     }
 
     @Override
-    protected int getDefaultPort(boolean ssl)
-    {
+    protected int getDefaultPort(boolean ssl) {
         return -1;
     }
 }

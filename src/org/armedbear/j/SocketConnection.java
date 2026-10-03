@@ -27,8 +27,7 @@ import java.net.UnknownHostException;
 import javax.net.SocketFactory;
 import javax.net.ssl.SSLSocketFactory;
 
-public final class SocketConnection
-{
+public final class SocketConnection {
     private final String hostName;
     private final int port;
     private final int timeout; // milliseconds
@@ -39,9 +38,14 @@ public final class SocketConnection
     private Socket socket;
     private String errorText;
 
-    public SocketConnection(String hostName, int port, boolean ssl,
-        int timeout, int checkInterval, Cancellable client)
-    {
+    public SocketConnection(
+        String hostName,
+        int port,
+        boolean ssl,
+        int timeout,
+        int checkInterval,
+        Cancellable client
+    ) {
         this.hostName = hostName;
         this.port = port;
         this.ssl = ssl;
@@ -50,18 +54,15 @@ public final class SocketConnection
         this.client = client;
     }
 
-    public final String getErrorText()
-    {
+    public final String getErrorText() {
         return errorText;
     }
 
-    private final void setErrorText(String s)
-    {
+    private final void setErrorText(String s) {
         errorText = s;
     }
 
-    public Socket connect()
-    {
+    public Socket connect() {
         socket = null;
         long start = System.currentTimeMillis();
         connectThread.start();
@@ -87,8 +88,7 @@ public final class SocketConnection
     }
 
     private final Thread connectThread = new Thread("connect") {
-        public void run()
-        {
+        public void run() {
             try {
                 SocketFactory factory = ssl ? SSLSocketFactory.getDefault() : SocketFactory.getDefault();
                 socket = factory.createSocket(hostName, port);

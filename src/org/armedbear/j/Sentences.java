@@ -18,15 +18,12 @@ package org.armedbear.j;
  * non-blank after that. An empty line, and the start of a paragraph or a
  * section ({@link Paragraphs#isStart}), is a sentence boundary too.
  */
-public final class Sentences
-{
+public final class Sentences {
     private static final String END = ".!?";
     private static final String CLOSING = ")]\"'";
     private static final String END_OR_CLOSING = END + CLOSING;
 
-    private Sentences()
-    {
-    }
+    private Sentences() {}
 
     /**
      * Where the start of the sentence {@code count} away is.
@@ -35,8 +32,7 @@ public final class Sentences
      *         that only just reaches it stops at the edge, forward at the
      *         end of the last line
      */
-    public static Position find(Position from, boolean forward, int count)
-    {
+    public static Position find(Position from, boolean forward, int count) {
         final Scan pos = new Scan(from);
         boolean noSkip = false;
         while (count-- > 0) {
@@ -50,8 +46,11 @@ public final class Sentences
                     } while (pos.at() == 0);
                     if (forward)
                         break found;
-                } else if (forward && pos.offset == 0
-                           && Paragraphs.isStart(pos.line, (char) 0, false)) {
+                } else if (
+                    forward
+                        && pos.offset == 0
+                        && Paragraphs.isStart(pos.line, (char) 0, false)
+                ) {
                     final Line next = pos.line.nextVisible();
                     if (next == null)
                         return null;
@@ -67,15 +66,19 @@ public final class Sentences
                 int c;
                 while (isWhite(c = pos.at()) || END_OR_CLOSING.indexOf(c) >= 0) {
                     final Scan before = new Scan(pos);
-                    if (before.decl() == -1
-                        || before.line.length() == 0 && forward)
+                    if (
+                        before.decl() == -1
+                            || before.line.length() == 0 && forward
+                    )
                         break;
                     if (foundDot)
                         break;
                     if (END.indexOf(c) >= 0)
                         foundDot = true;
-                    if (CLOSING.indexOf(c) >= 0
-                        && END_OR_CLOSING.indexOf(before.at()) < 0)
+                    if (
+                        CLOSING.indexOf(c) >= 0
+                            && END_OR_CLOSING.indexOf(before.at()) < 0
+                    )
                         break;
                     pos.decl();
                 }
@@ -84,8 +87,11 @@ public final class Sentences
                 final Line startLine = pos.line;
                 while (true) {
                     c = pos.at();
-                    if (c == 0 || pos.offset == 0
-                        && Paragraphs.isStart(pos.line, (char) 0, false)) {
+                    if (
+                        c == 0
+                            || pos.offset == 0
+                                && Paragraphs.isStart(pos.line, (char) 0, false)
+                    ) {
                         if (!forward && pos.line != startLine) {
                             pos.line = pos.line.nextVisible();
                             pos.offset = 0;
@@ -131,8 +137,7 @@ public final class Sentences
         return new Position(pos.line, pos.offset);
     }
 
-    private static boolean isWhite(int c)
-    {
+    private static boolean isWhite(int c) {
         return c == ' ' || c == '\t';
     }
 
@@ -141,37 +146,31 @@ public final class Sentences
      * as vim's inc() and dec() do: by whole characters, stopping on each
      * line end, or with incl() and decl() on the end of an empty line only.
      */
-    private static final class Scan
-    {
+    private static final class Scan {
         Line line;
         int offset;
 
-        Scan(Position pos)
-        {
+        Scan(Position pos) {
             line = pos.getLine();
             offset = pos.getOffset();
         }
 
-        Scan(Scan other)
-        {
+        Scan(Scan other) {
             set(other);
         }
 
-        void set(Scan other)
-        {
+        void set(Scan other) {
             line = other.line;
             offset = other.offset;
         }
 
         /** The character here, 0 at the end of the line. */
-        int at()
-        {
+        int at() {
             return offset < line.length() ? line.charAt(offset) : 0;
         }
 
         /** 0 within a line, 2 onto its end, 1 onto the next, -1 if none. */
-        int inc()
-        {
+        int inc() {
             if (offset < line.length()) {
                 offset += Character.charCount(line.getText().codePointAt(offset));
                 return offset < line.length() ? 0 : 2;
@@ -185,8 +184,7 @@ public final class Sentences
         }
 
         /** 0 within a line, 1 onto the end of the one before, -1 if none. */
-        int dec()
-        {
+        int dec() {
             if (offset > 0) {
                 offset = Character.offsetByCodePoints(line.getText(), offset, -1);
                 return 0;
@@ -199,37 +197,33 @@ public final class Sentences
             return 1;
         }
 
-        int incl()
-        {
+        int incl() {
             int r = inc();
             if (r >= 1 && offset != 0)
                 r = inc();
             return r;
         }
 
-        int decl()
-        {
+        int decl() {
             int r = dec();
             if (r == 1 && offset != 0)
                 r = dec();
             return r;
         }
 
-        int step(boolean forward)
-        {
+        int step(boolean forward) {
             return forward ? incl() : decl();
         }
 
         @Override
-        public boolean equals(Object o)
-        {
-            return o instanceof Scan && ((Scan) o).line == line
+        public boolean equals(Object o) {
+            return o instanceof Scan
+                && ((Scan) o).line == line
                 && ((Scan) o).offset == offset;
         }
 
         @Override
-        public int hashCode()
-        {
+        public int hashCode() {
             return System.identityHashCode(line) + offset;
         }
     }
@@ -237,19 +231,16 @@ public final class Sentences
     // ------------------------------------------------------------ commands
 
     /** {@code forwardSentence} -- to the start of the next sentence. */
-    public static void forwardSentence()
-    {
+    public static void forwardSentence() {
         moveTo(true);
     }
 
     /** {@code backwardSentence} -- to the start of this one, or the last. */
-    public static void backwardSentence()
-    {
+    public static void backwardSentence() {
         moveTo(false);
     }
 
-    private static void moveTo(boolean forward)
-    {
+    private static void moveTo(boolean forward) {
         final Editor editor = Editor.currentEditor();
         final Position dot = editor.getDot();
         if (dot == null)

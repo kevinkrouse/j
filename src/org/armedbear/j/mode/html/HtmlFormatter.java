@@ -25,40 +25,37 @@ import org.armedbear.j.Constants;
 import org.armedbear.j.Editor;
 import org.armedbear.j.FormatTable;
 import org.armedbear.j.Formatter;
-import org.armedbear.j.mode.java.JavaFormatter;
 import org.armedbear.j.Line;
 import org.armedbear.j.LineSegment;
 import org.armedbear.j.LineSegmentList;
 import org.armedbear.j.Position;
+import org.armedbear.j.mode.java.JavaFormatter;
 import org.armedbear.j.util.Utilities;
 
-public final class HtmlFormatter extends Formatter implements Constants
-{
+public final class HtmlFormatter extends Formatter implements Constants {
     // HTML formats must not overlap with Java formats!
     private static final int HTML_FORMAT_FIRST = JavaFormatter.JAVA_FORMAT_LAST + 1;
 
-    private static final int HTML_FORMAT_TEXT           = HTML_FORMAT_FIRST;
-    private static final int HTML_FORMAT_COMMENT        = HTML_FORMAT_FIRST + 1;
-    private static final int HTML_FORMAT_TAG            = HTML_FORMAT_FIRST + 2;
-    private static final int HTML_FORMAT_TAG_IMAGE      = HTML_FORMAT_FIRST + 3;
-    private static final int HTML_FORMAT_TAG_ANCHOR     = HTML_FORMAT_FIRST + 4;
-    private static final int HTML_FORMAT_TAG_TABLE      = HTML_FORMAT_FIRST + 5;
-    private static final int HTML_FORMAT_TAG_TABLE_ROW  = HTML_FORMAT_FIRST + 6;
+    private static final int HTML_FORMAT_TEXT = HTML_FORMAT_FIRST;
+    private static final int HTML_FORMAT_COMMENT = HTML_FORMAT_FIRST + 1;
+    private static final int HTML_FORMAT_TAG = HTML_FORMAT_FIRST + 2;
+    private static final int HTML_FORMAT_TAG_IMAGE = HTML_FORMAT_FIRST + 3;
+    private static final int HTML_FORMAT_TAG_ANCHOR = HTML_FORMAT_FIRST + 4;
+    private static final int HTML_FORMAT_TAG_TABLE = HTML_FORMAT_FIRST + 5;
+    private static final int HTML_FORMAT_TAG_TABLE_ROW = HTML_FORMAT_FIRST + 6;
     private static final int HTML_FORMAT_TAG_TABLE_DATA = HTML_FORMAT_FIRST + 7;
-    private static final int HTML_FORMAT_SCRIPT         = HTML_FORMAT_FIRST + 8;
+    private static final int HTML_FORMAT_SCRIPT = HTML_FORMAT_FIRST + 8;
 
     private StringBuilder sb = new StringBuilder();
 
     private JavaFormatter javaFormatter;
 
-    public HtmlFormatter(Buffer buffer)
-    {
+    public HtmlFormatter(Buffer buffer) {
         this.buffer = buffer;
         javaFormatter = new JavaFormatter(buffer, LANGUAGE_JAVASCRIPT);
     }
 
-    private void endToken(int state)
-    {
+    private void endToken(int state) {
         if (sb.length() > 0) {
             int format = HTML_FORMAT_TEXT;
             switch (state) {
@@ -81,8 +78,7 @@ public final class HtmlFormatter extends Formatter implements Constants
         }
     }
 
-    public LineSegmentList formatLine(Line line)
-    {
+    public LineSegmentList formatLine(Line line) {
         if (line == null) {
             clearSegmentList();
             addSegment("", HTML_FORMAT_TEXT);
@@ -105,7 +101,7 @@ public final class HtmlFormatter extends Formatter implements Constants
             if (segment.getFormat() != HTML_FORMAT_TAG)
                 continue;
             String token = segment.getText().toLowerCase();
-            if (token.startsWith("<a ") || token.equals("<a>")|| token.equals("</a>"))
+            if (token.startsWith("<a ") || token.equals("<a>") || token.equals("</a>"))
                 segment.setFormat(HTML_FORMAT_TAG_ANCHOR);
             else if (token.startsWith("<img ") || token.equals("<img>"))
                 segment.setFormat(HTML_FORMAT_TAG_IMAGE);
@@ -119,8 +115,7 @@ public final class HtmlFormatter extends Formatter implements Constants
         return segmentList;
     }
 
-    private void parseLine(String text, int state)
-    {
+    private void parseLine(String text, int state) {
         if (Editor.tabsAreVisible())
             text = Utilities.makeTabsVisible(text, buffer.getTabWidth());
         else
@@ -132,7 +127,7 @@ public final class HtmlFormatter extends Formatter implements Constants
         while (i < limit) {
             char c = text.charAt(i);
             if (state == STATE_HTML_COMMENT) {
-                if (i < limit-2 && text.substring(i, i+3).equals("-->")) {
+                if (i < limit - 2 && text.substring(i, i + 3).equals("-->")) {
                     sb.append("-->");
                     endToken(state);
                     state = STATE_NEUTRAL;
@@ -158,7 +153,7 @@ public final class HtmlFormatter extends Formatter implements Constants
                     if (text.regionMatches(true, i, "</script>", 0, 4)) {
                         endToken(state);
                         state = STATE_TAG;
-                        sb.append(text.substring(i, i+9));
+                        sb.append(text.substring(i, i + 9));
                         endToken(state);
                         state = STATE_NEUTRAL;
                         i += 9;
@@ -197,8 +192,7 @@ public final class HtmlFormatter extends Formatter implements Constants
         endToken(state);
     }
 
-    public boolean parseBuffer()
-    {
+    public boolean parseBuffer() {
         Line line = buffer.getFirstLine();
         if (line == null)
             return false;
@@ -244,8 +238,8 @@ public final class HtmlFormatter extends Formatter implements Constants
                             state = STATE_NEUTRAL;
                             i += 8;
                         }
-                    } else if (c == '/' && i < limit-1) {
-                        c = line.charAt(i+1);
+                    } else if (c == '/' && i < limit - 1) {
+                        c = line.charAt(i + 1);
                         if (c == '*') {
                             pos.moveTo(line, i);
                             state = STATE_COMMENT;
@@ -255,8 +249,8 @@ public final class HtmlFormatter extends Formatter implements Constants
                     continue;
                 }
                 if (state == STATE_COMMENT) {
-                    if (c == '*' && i < limit-1) {
-                        c = line.charAt(i+1);
+                    if (c == '*' && i < limit - 1) {
+                        c = line.charAt(i + 1);
                         if (c == '/') {
                             pos.moveTo(line, i);
                             state = STATE_SCRIPT;
@@ -293,8 +287,7 @@ public final class HtmlFormatter extends Formatter implements Constants
         return changed;
     }
 
-    public FormatTable getFormatTable()
-    {
+    public FormatTable getFormatTable() {
         if (formatTable == null) {
             formatTable = javaFormatter.getFormatTable();
             formatTable.setModeName("HtmlMode");
@@ -311,8 +304,7 @@ public final class HtmlFormatter extends Formatter implements Constants
         return formatTable;
     }
 
-    public void reset()
-    {
+    public void reset() {
         javaFormatter.reset();
         super.reset();
     }

@@ -20,20 +20,20 @@
 
 package org.armedbear.j.mail;
 
-import java.util.List;
 import java.lang.StringBuilder;
+import java.util.List;
 import org.armedbear.j.util.Utilities;
 
-public class MailUtilities
-{
-    public static String constructAddressHeader(String prefix, List<MailAddress> list)
-    {
+public class MailUtilities {
+    public static String constructAddressHeader(String prefix, List<MailAddress> list) {
         return constructAddressHeader(prefix, list, 8);
     }
 
-    public static String constructAddressHeader(String prefix, List<MailAddress> list,
-        int indent)
-    {
+    public static String constructAddressHeader(
+        String prefix,
+        List<MailAddress> list,
+        int indent
+    ) {
         StringBuilder sb = new StringBuilder(prefix);
         int length = prefix.length();
         if (list != null) {

@@ -30,12 +30,10 @@ import org.armedbear.j.MessageDialog;
 import org.armedbear.j.ProgressNotifier;
 import org.armedbear.j.StatusBarProgressNotifier;
 
-public final class ImapMessageBuffer extends MessageBuffer
-{
+public final class ImapMessageBuffer extends MessageBuffer {
     private boolean cancelled;
 
-    /*package*/ ImapMessageBuffer(ImapMailboxBuffer mailbox, ImapMailboxEntry entry)
-    {
+    /*package*/ ImapMessageBuffer(ImapMailboxBuffer mailbox, ImapMailboxEntry entry) {
         super();
         // Mailbox is locked in ImapMailboxBuffer.readMessage() before this
         // constructor is called.
@@ -43,9 +41,11 @@ public final class ImapMessageBuffer extends MessageBuffer
         init(mailbox, entry);
     }
 
-    /*package*/ ImapMessageBuffer(ImapMailboxBuffer mailbox, ImapMailboxEntry entry,
-        String rawText)
-    {
+    /*package*/ ImapMessageBuffer(
+        ImapMailboxBuffer mailbox,
+        ImapMailboxEntry entry,
+        String rawText
+    ) {
         super();
         init(mailbox, entry);
         message = new Message(rawText);
@@ -63,8 +63,7 @@ public final class ImapMessageBuffer extends MessageBuffer
         setLoaded(true);
     }
 
-    private void init(ImapMailboxBuffer mailbox, ImapMailboxEntry entry)
-    {
+    private void init(ImapMailboxBuffer mailbox, ImapMailboxEntry entry) {
         this.mailbox = mailbox;
         showRawText = mailbox.showRawText;
         showFullHeaders = mailbox.showFullHeaders;
@@ -77,8 +76,7 @@ public final class ImapMessageBuffer extends MessageBuffer
         readOnly = true;
     }
 
-    public int load()
-    {
+    public int load() {
         if (isLoaded())
             return LOAD_COMPLETED;
         if (!mailbox.isLocked()) {
@@ -94,8 +92,7 @@ public final class ImapMessageBuffer extends MessageBuffer
     private BackgroundProcess loadProcess = new BackgroundProcess() {
         private ProgressNotifier progressNotifier;
 
-        public void run()
-        {
+        public void run() {
             // Mailbox is locked in ImapMailboxBuffer.readMessage() before calling
             // ImapMessageBuffer constructor.
             if (!mailbox.isLocked()) {
@@ -120,8 +117,7 @@ public final class ImapMessageBuffer extends MessageBuffer
             }
         }
 
-        public void cancel()
-        {
+        public void cancel() {
             Log.debug("loadProcess.cancel cancelled!");
             cancelled = true;
             progressNotifier.cancel();
@@ -132,37 +128,34 @@ public final class ImapMessageBuffer extends MessageBuffer
         }
     };
 
-    public void deleteMessage()
-    {
+    public void deleteMessage() {
         storeFlagsInternal(ACTION_DELETE);
     }
 
-    public void flagMessage()
-    {
+    public void flagMessage() {
         storeFlagsInternal(ACTION_FLAG);
     }
 
     private static final int ACTION_DELETE = 0;
-    private static final int ACTION_FLAG   = 1;
+    private static final int ACTION_FLAG = 1;
 
-    private void storeFlagsInternal(final int action)
-    {
+    private void storeFlagsInternal(final int action) {
         final Editor editor = Editor.currentEditor();
         if (!mailbox.lock()) {
             editor.status("Mailbox is locked");
             return;
         }
-        final int uid = ((ImapMailboxEntry)entry).getUid();
+        final int uid = ((ImapMailboxEntry) entry).getUid();
         Runnable deleteMessageRunnable = () -> {
             try {
-                ImapSession session = ((ImapMailboxBuffer)mailbox).getSession();
-                String folderName = ((ImapMailboxBuffer)mailbox).getFolderName();
+                ImapSession session = ((ImapMailboxBuffer) mailbox).getSession();
+                String folderName = ((ImapMailboxBuffer) mailbox).getFolderName();
                 if (session.verifyConnected() && session.verifySelected(folderName)) {
                     if (session.isReadOnly()) {
                         Log.debug("deleteMessage - read-only - reselecting...");
                         session.reselect(folderName);
                         if (session.isReadOnly()) {
-                            ((ImapMailboxBuffer)mailbox).readOnlyError();
+                            ((ImapMailboxBuffer) mailbox).readOnlyError();
                             return;
                         }
                     }
@@ -222,8 +215,7 @@ public final class ImapMessageBuffer extends MessageBuffer
         new Thread(deleteMessageRunnable).start();
     }
 
-    public void moveMessage()
-    {
+    public void moveMessage() {
         final Editor editor = Editor.currentEditor();
         final ImapMailboxEntry toBeMoved = (ImapMailboxEntry) entry;
         String title = "Move Message to Folder";
@@ -232,10 +224,13 @@ public final class ImapMessageBuffer extends MessageBuffer
             return;
         if (!s.startsWith("mailbox:")) {
             // Not local. Extract folder name from URL.
-            s = ((ImapMailboxBuffer)mailbox).extractFolderName(s);
+            s = ((ImapMailboxBuffer) mailbox).extractFolderName(s);
             if (s == null) {
-                MessageDialog.showMessageDialog(editor, "Invalid destination",
-                    "Error");
+                MessageDialog.showMessageDialog(
+                    editor,
+                    "Invalid destination",
+                    "Error"
+                );
                 return;
             }
         }
@@ -248,8 +243,11 @@ public final class ImapMessageBuffer extends MessageBuffer
             try {
                 ImapSession session = ((ImapMailboxBuffer) mailbox).getSession();
                 String folderName = ((ImapMailboxBuffer) mailbox).getFolderName();
-                if (session.verifyConnected() &&
-                    session.verifySelected(folderName)) {
+                if (
+                    session.verifyConnected()
+                        &&
+                        session.verifySelected(folderName)
+                ) {
                     if (session.isReadOnly()) {
                         Log.debug("moveMessage - read-only - reselecting...");
                         session.reselect(folderName);
@@ -261,8 +259,11 @@ public final class ImapMessageBuffer extends MessageBuffer
                     session.setEcho(true);
                     boolean succeeded = false;
                     if (destination.startsWith("mailbox:")) {
-                        succeeded = Mail.writeFcc(message, destination,
-                            toBeMoved.getFlags() & ~MailboxEntry.TAGGED);
+                        succeeded = Mail.writeFcc(
+                            message,
+                            destination,
+                            toBeMoved.getFlags() & ~MailboxEntry.TAGGED
+                        );
                     } else {
                         session.writeTagged("uid copy " + toBeMoved.getUid() + " " + destination);
                         succeeded = session.getResponse() == ImapSession.OK;

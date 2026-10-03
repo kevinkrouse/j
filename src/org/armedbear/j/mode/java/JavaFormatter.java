@@ -28,37 +28,33 @@ import org.armedbear.j.Line;
 import org.armedbear.j.LineSegment;
 import org.armedbear.j.LineSegmentList;
 
-public final class JavaFormatter extends Formatter implements Constants
-{
-    private static final int JAVA_FORMAT_TEXT       = 0;
-    private static final int JAVA_FORMAT_COMMENT    = 1;
-    private static final int JAVA_FORMAT_STRING     = 2;
+public final class JavaFormatter extends Formatter implements Constants {
+    private static final int JAVA_FORMAT_TEXT = 0;
+    private static final int JAVA_FORMAT_COMMENT = 1;
+    private static final int JAVA_FORMAT_STRING = 2;
     private static final int JAVA_FORMAT_IDENTIFIER = 3;
-    private static final int JAVA_FORMAT_KEYWORD    = 4;
-    private static final int JAVA_FORMAT_FUNCTION   = 5;
-    private static final int JAVA_FORMAT_OPERATOR   = 6;
-    private static final int JAVA_FORMAT_BRACE      = 7;
-    private static final int JAVA_FORMAT_NUMBER     = 8;
+    private static final int JAVA_FORMAT_KEYWORD = 4;
+    private static final int JAVA_FORMAT_FUNCTION = 5;
+    private static final int JAVA_FORMAT_OPERATOR = 6;
+    private static final int JAVA_FORMAT_BRACE = 7;
+    private static final int JAVA_FORMAT_NUMBER = 8;
 
     public static final int JAVA_FORMAT_LAST = 8;
 
     private final int language;
 
-    public JavaFormatter(Buffer buffer)
-    {
+    public JavaFormatter(Buffer buffer) {
         this(buffer, LANGUAGE_JAVA);
     }
 
-    public JavaFormatter(Buffer buffer, int language)
-    {
+    public JavaFormatter(Buffer buffer, int language) {
         this.buffer = buffer;
         this.language = language;
     }
 
     private int tokenBegin = 0;
 
-    private void endToken(String text, int tokenEnd, int state)
-    {
+    private void endToken(String text, int tokenEnd, int state) {
         if (tokenEnd - tokenBegin > 0) {
             int format = JAVA_FORMAT_TEXT;
             switch (state) {
@@ -90,8 +86,7 @@ public final class JavaFormatter extends Formatter implements Constants
         }
     }
 
-    private void parseLine(Line line)
-    {
+    private void parseLine(Line line) {
         final String text = getDetabbedText(line);
         tokenBegin = 0;
         boolean isPreprocessorLine = false;
@@ -116,20 +111,19 @@ public final class JavaFormatter extends Formatter implements Constants
         while (i < limit) {
             c = text.charAt(i);
             if (state == STATE_COMMENT) {
-                if (i < limit - 1 && c == '*' && text.charAt(i+1) == '/') {
+                if (i < limit - 1 && c == '*' && text.charAt(i + 1) == '/') {
                     endToken(text, i + 2, state);
                     state = STATE_NEUTRAL;
                     i += 2;
-                }
-                else
+                } else
                     ++i;
                 continue;
             }
             if (state == STATE_QUOTE) {
                 if (c == quoteChar) {
-                    endToken(text, i+1, state);
+                    endToken(text, i + 1, state);
                     state = STATE_NEUTRAL;
-                } else if (c == '\\' && i < limit-1) {
+                } else if (c == '\\' && i < limit - 1) {
                     // Escape char.
                     ++i;
                 }
@@ -145,12 +139,12 @@ public final class JavaFormatter extends Formatter implements Constants
                 continue;
             }
             if (c == '/') {
-                if (i < limit-1) {
-                    if (text.charAt(i+1) == '*') {
+                if (i < limit - 1) {
+                    if (text.charAt(i + 1) == '*') {
                         endToken(text, i, state);
                         state = STATE_COMMENT;
                         i += 2;
-                    } else if (text.charAt(i+1) == '/') {
+                    } else if (text.charAt(i + 1) == '/') {
                         endToken(text, i, state);
                         endToken(text, limit, STATE_COMMENT);
                         return;
@@ -278,8 +272,7 @@ public final class JavaFormatter extends Formatter implements Constants
         }
     }
 
-    public LineSegmentList formatLine(Line line)
-    {
+    public LineSegmentList formatLine(Line line) {
         clearSegmentList();
         if (line == null) {
             addSegment("", JAVA_FORMAT_TEXT);
@@ -289,8 +282,7 @@ public final class JavaFormatter extends Formatter implements Constants
         return segmentList;
     }
 
-    public boolean parseBuffer()
-    {
+    public boolean parseBuffer() {
         int state = STATE_NEUTRAL;
         Line line = buffer.getFirstLine();
         boolean changed = false;
@@ -308,14 +300,14 @@ public final class JavaFormatter extends Formatter implements Constants
             final int limit = line.length();
             for (int i = 0; i < limit; i++) {
                 char c = line.charAt(i);
-                if (c == '\\' && i < limit-1) {
+                if (c == '\\' && i < limit - 1) {
                     // Escape.
                     ++i;
                     continue;
                 }
                 if (state == STATE_COMMENT) {
-                    if (c == '*' && i < limit-1) {
-                        c = line.charAt(i+1);
+                    if (c == '*' && i < limit - 1) {
+                        c = line.charAt(i + 1);
                         if (c == '/') {
                             ++i;
                             state = STATE_NEUTRAL;
@@ -332,7 +324,7 @@ public final class JavaFormatter extends Formatter implements Constants
                 }
 
                 // Not in comment or quoted string.
-                if (c == '/' && i < limit-1) {
+                if (c == '/' && i < limit - 1) {
                     c = line.charAt(++i);
                     if (c == '/') {
                         // Single-line comment beginning.
@@ -351,13 +343,11 @@ public final class JavaFormatter extends Formatter implements Constants
         return changed;
     }
 
-    private static final boolean isOperatorChar(char c)
-    {
+    private static final boolean isOperatorChar(char c) {
         return "!&|<>=+/*-^".indexOf(c) >= 0;
     }
 
-    public FormatTable getFormatTable()
-    {
+    public FormatTable getFormatTable() {
         if (formatTable == null) {
             formatTable = new FormatTable("JavaMode");
             formatTable.addEntryFromPrefs(JAVA_FORMAT_TEXT, "text");

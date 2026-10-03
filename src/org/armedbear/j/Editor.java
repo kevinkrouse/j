@@ -20,19 +20,17 @@
 
 package org.armedbear.j;
 
-import java.util.regex.Pattern;
-import java.util.regex.Matcher;
 import java.awt.AWTEvent;
 import java.awt.BorderLayout;
 import java.awt.Cursor;
 import java.awt.Desktop;
+import java.awt.Dimension;
 import java.awt.GraphicsConfiguration;
 import java.awt.GraphicsDevice;
 import java.awt.GraphicsEnvironment;
-import java.awt.Toolkit;
-import java.awt.Dimension;
-import java.awt.Rectangle;
 import java.awt.Point;
+import java.awt.Rectangle;
+import java.awt.Toolkit;
 import java.awt.dnd.DropTarget;
 import java.awt.event.ComponentEvent;
 import java.awt.event.ComponentListener;
@@ -47,29 +45,37 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.UnsupportedEncodingException;
+import java.lang.StringBuilder;
 import java.lang.reflect.Method;
 import java.net.ConnectException;
 import java.net.Socket;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
-import java.util.Map;
 import java.util.HashMap;
 import java.util.List;
-import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.FocusManager;
 import javax.swing.JComponent;
 import javax.swing.JDialog;
 import javax.swing.JPanel;
-import javax.swing.RepaintManager;
 import javax.swing.JPopupMenu;
+import javax.swing.RepaintManager;
 import javax.swing.SwingUtilities;
 import javax.swing.undo.CompoundEdit;
+import org.armedbear.j.extension.EvalException;
+import org.armedbear.j.extension.EvalRequest;
+import org.armedbear.j.extension.EvalResult;
+import org.armedbear.j.extension.Extensions;
+import org.armedbear.j.extension.ScriptFunction;
 import org.armedbear.j.mail.MailCommands;
 import org.armedbear.j.mail.MailboxURL;
 import org.armedbear.j.mode.c.CMode;
@@ -78,21 +84,14 @@ import org.armedbear.j.mode.dir.DirectoryBuffer;
 import org.armedbear.j.mode.dir.DirectoryTree;
 import org.armedbear.j.mode.image.ImageBuffer;
 import org.armedbear.j.mode.java.JavaMode;
-import org.armedbear.j.extension.EvalException;
-import org.armedbear.j.extension.EvalRequest;
-import org.armedbear.j.extension.EvalResult;
-import org.armedbear.j.extension.Extensions;
-import org.armedbear.j.extension.ScriptFunction;
 import org.armedbear.j.mode.list.ListOccurrencesInFilesBuffer;
 import org.armedbear.j.mode.perl.PerlMode;
-import java.lang.StringBuilder;
 import org.armedbear.j.util.Utilities;
 import org.armedbear.j.vcs.p4.P4;
 import org.jdesktop.swingx.MultiSplitLayout;
 
 public final class Editor extends JPanel implements Constants,
-    ComponentListener, MouseWheelListener
-{
+    ComponentListener, MouseWheelListener {
     private static final long startTimeMillis = System.currentTimeMillis();
 
     private static boolean debug = false;
@@ -108,8 +107,7 @@ public final class Editor extends JPanel implements Constants,
 
     private static KillRing killRing = new KillRing();
 
-    public static final KillRing getKillRing()
-    {
+    public static final KillRing getKillRing() {
         return killRing;
     }
 
@@ -117,27 +115,23 @@ public final class Editor extends JPanel implements Constants,
 
     private static SessionProperties sessionProperties;
 
-    public static SessionProperties getSessionProperties()
-    {
+    public static SessionProperties getSessionProperties() {
         return sessionProperties;
     }
 
     private static final Preferences prefs = new Preferences();
 
-    public static final Preferences preferences()
-    {
+    public static final Preferences preferences() {
         return prefs;
     }
 
     private static boolean isRecordingMacro;
 
-    public static synchronized boolean isRecordingMacro()
-    {
+    public static synchronized boolean isRecordingMacro() {
         return isRecordingMacro;
     }
 
-    public static synchronized void setRecordingMacro(boolean b)
-    {
+    public static synchronized void setRecordingMacro(boolean b) {
         isRecordingMacro = b;
     }
 
@@ -161,19 +155,16 @@ public final class Editor extends JPanel implements Constants,
     private static boolean sharedSearchHighlightHidden;
 
     /** The shareSearch preference, which vim edit mode's n reads too. */
-    public static boolean isSearchShared()
-    {
+    public static boolean isSearchShared() {
         return preferences().getBooleanProperty(Property.SHARE_SEARCH);
     }
 
-    public final Search getLastSearch()
-    {
+    public final Search getLastSearch() {
         return isSearchShared() ? sharedLastSearch : lastSearch;
     }
 
     /** A new search, whose matches show again after clearSearchHighlight. */
-    public final void setLastSearch(Search search)
-    {
+    public final void setLastSearch(Search search) {
         if (isSearchShared())
             sharedLastSearch = search;
         else
@@ -182,15 +173,14 @@ public final class Editor extends JPanel implements Constants,
         repaintSearchWindows();
     }
 
-    public final boolean isSearchHighlightHidden()
-    {
-        return isSearchShared() ? sharedSearchHighlightHidden
-                                : searchHighlightHidden;
+    public final boolean isSearchHighlightHidden() {
+        return isSearchShared()
+            ? sharedSearchHighlightHidden
+            : searchHighlightHidden;
     }
 
     /** Hides the matches highlighted until the next search, or shows them. */
-    public final void setSearchHighlightHidden(boolean hidden)
-    {
+    public final void setSearchHighlightHidden(boolean hidden) {
         if (hidden == isSearchHighlightHidden())
             return;
         if (isSearchShared())
@@ -204,8 +194,7 @@ public final class Editor extends JPanel implements Constants,
      * {@code clearSearchHighlight} -- stops highlighting the matches of the
      * last search until the next one, as vim's {@code :nohlsearch}.
      */
-    public void clearSearchHighlight()
-    {
+    public void clearSearchHighlight() {
         setSearchHighlightHidden(true);
     }
 
@@ -214,18 +203,17 @@ public final class Editor extends JPanel implements Constants,
      * pairs, or null: with the highlightSearchMatches preference, or as an
      * input handler says, which may show a search being typed instead.
      */
-    public final int[] getSearchMatches(Line line)
-    {
+    public final int[] getSearchMatches(Line line) {
         final InputHandler handler = getInputHandler();
         if (handler != null)
             return handler.getSearchMatches(this, line);
         return buffer.getBooleanProperty(Property.HIGHLIGHT_SEARCH_MATCHES)
-            ? lastSearchMatches(line) : null;
+            ? lastSearchMatches(line)
+            : null;
     }
 
     /** The last search's matches on a line, unless they are hidden. */
-    public final int[] lastSearchMatches(Line line)
-    {
+    public final int[] lastSearchMatches(Line line) {
         final Search search = getLastSearch();
         if (search == null || isSearchHighlightHidden())
             return null;
@@ -233,16 +221,15 @@ public final class Editor extends JPanel implements Constants,
     }
 
     /** The match a search being typed is on, as an input handler says. */
-    public final int[] getCurrentSearchMatch(Line line)
-    {
+    public final int[] getCurrentSearchMatch(Line line) {
         final InputHandler handler = getInputHandler();
-        return handler == null ? null
+        return handler == null
+            ? null
             : handler.getCurrentSearchMatch(this, line);
     }
 
     /** Every window a shared search shows in, or just this one. */
-    private void repaintSearchWindows()
-    {
+    private void repaintSearchWindows() {
         if (!isSearchShared()) {
             repaintDisplay();
             return;
@@ -266,23 +253,19 @@ public final class Editor extends JPanel implements Constants,
     private int currentCommand = COMMAND_NOTHING;
     private int lastCommand = COMMAND_NOTHING;
 
-    public final int getCurrentCommand()
-    {
+    public final int getCurrentCommand() {
         return currentCommand;
     }
 
-    public final void setCurrentCommand(int command)
-    {
+    public final void setCurrentCommand(int command) {
         currentCommand = command;
     }
 
-    public final int getLastCommand()
-    {
+    public final int getLastCommand() {
         return lastCommand;
     }
 
-    public final void setLastCommand(int command)
-    {
+    public final void setLastCommand(int command) {
         lastCommand = command;
     }
 
@@ -296,8 +279,7 @@ public final class Editor extends JPanel implements Constants,
 
     private static boolean tabsAreVisible = false;
 
-    public static final boolean tabsAreVisible()
-    {
+    public static final boolean tabsAreVisible() {
         return tabsAreVisible;
     }
 
@@ -308,8 +290,7 @@ public final class Editor extends JPanel implements Constants,
 
     private static ModeList modeList;
 
-    public static final ModeList getModeList()
-    {
+    public static final ModeList getModeList() {
         if (modeList == null)
             modeList = ModeList.getInstance();
         return modeList;
@@ -317,23 +298,19 @@ public final class Editor extends JPanel implements Constants,
 
     private static final BufferList bufferList = new BufferList();
 
-    public static final BufferList getBufferList()
-    {
+    public static final BufferList getBufferList() {
         return bufferList;
     }
 
-    public static long getStartTimeMillis()
-    {
+    public static long getStartTimeMillis() {
         return startTimeMillis;
     }
 
-    private static String when()
-    {
+    private static String when() {
         return String.valueOf(System.currentTimeMillis() - startTimeMillis) + " ms";
     }
 
-    public static void main(String[] args)
-    {
+    public static void main(String[] args) {
         final File currentDir = File.getInstance(System.getProperty("user.dir"));
         boolean dumpEnv = false;
         boolean dumpProps = false;
@@ -380,7 +357,7 @@ public final class Editor extends JPanel implements Constants,
                     continue;
                 }
                 if (arg.equals("-session")) {
-                    if (i < args.length-1)
+                    if (i < args.length - 1)
                         sessionName = args[++i];
                     continue;
                 }
@@ -412,7 +389,7 @@ public final class Editor extends JPanel implements Constants,
                 if (arg.startsWith("--home")) {
                     String home = null;
                     if (arg.equals("--home")) {
-                        if (i < args.length-1)
+                        if (i < args.length - 1)
                             home = args[++i];
                     } else if (arg.startsWith("--home="))
                         home = arg.substring(7);
@@ -425,15 +402,19 @@ public final class Editor extends JPanel implements Constants,
                     userHomeDir = File.getInstance(currentDir, home);
 
                     if (userHomeDir == null || !userHomeDir.isDirectory()) {
-                        fatal("Specified home directory \"" +
-                            userHomeDir.canonicalPath() +
-                            "\" does not exist.");
+                        fatal(
+                            "Specified home directory \"" +
+                                userHomeDir.canonicalPath() +
+                                "\" does not exist."
+                        );
                     }
 
                     if (!userHomeDir.canWrite()) {
-                        fatal("Specified home directory \"" +
-                            userHomeDir.canonicalPath() +
-                            "\" is not writable.");
+                        fatal(
+                            "Specified home directory \"" +
+                                userHomeDir.canonicalPath() +
+                                "\" is not writable."
+                        );
                     }
 
                     // Specified directory is OK.
@@ -463,7 +444,8 @@ public final class Editor extends JPanel implements Constants,
             try {
                 String s;
                 try (BufferedReader in = new BufferedReader(
-                         new InputStreamReader(portfile.getInputStream()))) {
+                    new InputStreamReader(portfile.getInputStream())
+                )) {
                     s = in.readLine();
                 }
 
@@ -573,8 +555,7 @@ public final class Editor extends JPanel implements Constants,
         Log.debug("leaving main " + when());
     }
 
-    private static final void usage()
-    {
+    private static final void usage() {
         version();
         System.out.println("Usage: j [options] [+linenum] file");
         System.out.println("Options:");
@@ -591,8 +572,7 @@ public final class Editor extends JPanel implements Constants,
         System.out.println("  --no-extensions");
     }
 
-    private static final void version()
-    {
+    private static final void version() {
         String longVersionString = Version.getLongVersionString();
         if (longVersionString != null)
             System.out.println(longVersionString);
@@ -611,25 +591,24 @@ public final class Editor extends JPanel implements Constants,
     private static final Map<String, String> commandProviders =
         Map.of("jlisp", "abcl");
 
-    static String unknownCommandMessage(String command)
-    {
-        String extension = command == null ? null
+    static String unknownCommandMessage(String command) {
+        String extension = command == null
+            ? null
             : commandProviders.get(command.toLowerCase());
         if (extension == null)
             return "Unknown command \"".concat(String.valueOf(command)).concat("\"");
-        return "\"".concat(command).concat("\" is provided by the ")
-                   .concat(extension)
-                   .concat(" extension, which is not installed.");
+        return "\"".concat(command)
+            .concat("\" is provided by the ")
+            .concat(extension)
+            .concat(" extension, which is not installed.");
     }
 
-    public static final void fatal(String message)
-    {
+    public static final void fatal(String message) {
         System.err.println(message);
         System.exit(1);
     }
 
-    private static final void unknown(String arg)
-    {
+    private static final void unknown(String arg) {
         usage();
         fatal("Unknown option \"" + arg + "\"");
     }
@@ -643,8 +622,7 @@ public final class Editor extends JPanel implements Constants,
     //   IllegalArgumentException: Width (0) and height (0) cannot be <= 0
     //       at java.awt.GraphicsConfiguration.createCompatibleVolatileImage
     //       at javax.swing.RepaintManager.getVolatileOffscreenBuffer
-    private static final void initDoubleBufferSize()
-    {
+    private static final void initDoubleBufferSize() {
         try {
             if (GraphicsEnvironment.isHeadless())
                 return;
@@ -673,10 +651,16 @@ public final class Editor extends JPanel implements Constants,
             }
 
             RepaintManager.currentManager((JComponent) null)
-                .setDoubleBufferMaximumSize(new Dimension(virtualBounds.width,
-                                                          virtualBounds.height));
-            Log.debug("initDoubleBufferSize: " + virtualBounds.width + "x" +
-                      virtualBounds.height);
+                .setDoubleBufferMaximumSize(
+                    new Dimension(
+                        virtualBounds.width,
+                        virtualBounds.height
+                    )
+                );
+            Log.debug(
+                "initDoubleBufferSize: " + virtualBounds.width + "x" +
+                    virtualBounds.height
+            );
         }
         catch (Throwable t) {
             // Nothing here is worth failing to start over.
@@ -684,8 +668,7 @@ public final class Editor extends JPanel implements Constants,
         }
     }
 
-    private static final void initMacOSX()
-    {
+    private static final void initMacOSX() {
         if (!Platform.isPlatformMacOSX())
             return;
 
@@ -699,13 +682,11 @@ public final class Editor extends JPanel implements Constants,
                 desktop.setAboutHandler(e -> AboutDialog.about());
 
             if (desktop.isSupported(Desktop.Action.APP_QUIT_HANDLER))
-                desktop.setQuitHandler((e,r) -> Editor.currentEditor().quit());
+                desktop.setQuitHandler((e, r) -> Editor.currentEditor().quit());
         }
     }
 
-
-    public Editor(Frame f)
-    {
+    public Editor(Frame f) {
         display = new Display(this);
         dispatcher = new Dispatcher(this);
         init();
@@ -721,45 +702,41 @@ public final class Editor extends JPanel implements Constants,
      * and do nothing. Package private: this is for tests and for exercising
      * the editing engine headlessly, not for ordinary use.
      */
-    Editor()
-    {
+    Editor() {
         display = new Display(this);
         dispatcher = new Dispatcher(this);
         init();
         frame = null;
     }
 
-    private void init()
-    {
-      // Add this editor to the global editor list.
-      editorList.add(this);
+    private void init() {
+        // Add this editor to the global editor list.
+        editorList.add(this);
 
-      setLayout(new BorderLayout());
-      display.setDoubleBuffered(true);
-      add(display, BorderLayout.CENTER);
+        setLayout(new BorderLayout());
+        display.setDoubleBuffered(true);
+        add(display, BorderLayout.CENTER);
 
-      if (!GraphicsEnvironment.isHeadless())
-          new DropTarget(display, dispatcher);
+        if (!GraphicsEnvironment.isHeadless())
+            new DropTarget(display, dispatcher);
 
-      addLocationBar();
-      addVerticalScrollBar();
-      maybeAddHorizontalScrollBar();
+        addLocationBar();
+        addVerticalScrollBar();
+        maybeAddHorizontalScrollBar();
 
-      display.addKeyListener(dispatcher);
-      display.addMouseListener(dispatcher);
-      display.addMouseMotionListener(dispatcher);
+        display.addKeyListener(dispatcher);
+        display.addMouseListener(dispatcher);
+        display.addMouseMotionListener(dispatcher);
 
-      addMouseWheelListener(this);
-      addComponentListener(this);
+        addMouseWheelListener(this);
+        addComponentListener(this);
     }
 
-    public static final boolean isDebugEnabled()
-    {
+    public static final boolean isDebugEnabled() {
         return debug;
     }
 
-    public static final boolean isMailEnabled()
-    {
+    public static final boolean isMailEnabled() {
         if (!prefs.getBooleanProperty(Property.ENABLE_EXPERIMENTAL_FEATURES))
             return false;
         if (!prefs.getBooleanProperty(Property.ENABLE_MAIL))
@@ -772,84 +749,69 @@ public final class Editor extends JPanel implements Constants,
 
     private LocationBar locationBar;
 
-    public final LocationBar getLocationBar()
-    {
+    public final LocationBar getLocationBar() {
         return locationBar;
     }
 
-    public final int getLocationBarHeight()
-    {
-      if (locationBar != null)
-        return locationBar.getHeight();
-      else
-        return 0;
+    public final int getLocationBarHeight() {
+        if (locationBar != null)
+            return locationBar.getHeight();
+        else
+            return 0;
     }
 
-    public final HistoryTextField getLocationBarTextField()
-    {
-      return locationBar == null ? null : locationBar.getTextField();
+    public final HistoryTextField getLocationBarTextField() {
+        return locationBar == null ? null : locationBar.getTextField();
     }
 
-    public final void repaintLocationBar()
-    {
-      if (locationBar != null)
-        locationBar.repaint();
+    public final void repaintLocationBar() {
+        if (locationBar != null)
+            locationBar.repaint();
     }
 
-    public void addLocationBar()
-    {
-      if (locationBar == null)
-        {
-          locationBar = new LocationBar(this);
-          add(locationBar, BorderLayout.NORTH);
+    public void addLocationBar() {
+        if (locationBar == null) {
+            locationBar = new LocationBar(this);
+            add(locationBar, BorderLayout.NORTH);
         }
     }
 
-    public void removeLocationBar()
-    {
-      if (locationBar != null)
-        {
-          remove(locationBar);
-          locationBar = null;
+    public void removeLocationBar() {
+        if (locationBar != null) {
+            remove(locationBar);
+            locationBar = null;
         }
     }
 
-    public void updateLocation()
-    {
-      if (locationBar != null)
-        {
-          HistoryTextField textField = locationBar.getTextField();
-          if (textField == null || textField != frame.getFocusedComponent())
-            locationBar.update();
+    public void updateLocation() {
+        if (locationBar != null) {
+            HistoryTextField textField = locationBar.getTextField();
+            if (textField == null || textField != frame.getFocusedComponent())
+                locationBar.update();
         }
     }
 
     private MultiSplitLayout.Leaf layoutLeaf;
 
     /** The LayoutLeaf is used by the EditorPane to locate each Editor in the MultiSplitLayout. */
-    MultiSplitLayout.Leaf getLayoutLeaf()
-    {
+    MultiSplitLayout.Leaf getLayoutLeaf() {
         return layoutLeaf;
     }
 
-    void setLayoutLeaf(MultiSplitLayout.Leaf layoutLeaf)
-    {
+    void setLayoutLeaf(MultiSplitLayout.Leaf layoutLeaf) {
         this.layoutLeaf = layoutLeaf;
     }
 
     // XXX: check usages. semantics changed from 'get the editor across the split' to 'get the paired editor or parent editor or null'
-    public final Editor getOtherEditor()
-    {
+    public final Editor getOtherEditor() {
         return frame.getOtherEditor(this);
     }
 
-    public final Editor getPairedEditor()
-    {
+    public final Editor getPairedEditor() {
         return frame.getPairedEditor(this);
     }
 
-    public static int indexOf(Editor editor)
-    {
+    public static int indexOf(Editor editor) {
         for (int i = getEditorCount() - 1; i >= 0; i--) {
             if (editor == getEditor(i))
                 return i;
@@ -858,51 +820,42 @@ public final class Editor extends JPanel implements Constants,
         return -1;
     }
 
-    public static final EditorList getEditorList()
-    {
+    public static final EditorList getEditorList() {
         return editorList;
     }
 
-    public static final int getEditorCount()
-    {
+    public static final int getEditorCount() {
         return editorList.size();
     }
 
-    public static final Editor getEditor(int i)
-    {
+    public static final Editor getEditor(int i) {
         return editorList.get(i);
     }
 
-    public static final void removeEditor(Editor editor)
-    {
+    public static final void removeEditor(Editor editor) {
         editorList.remove(editor);
     }
 
-    public static final void removeEditors(Collection<Editor> editors)
-    {
+    public static final void removeEditors(Collection<Editor> editors) {
         editorList.removeAll(editors);
     }
 
-    public final Frame getFrame()
-    {
+    public final Frame getFrame() {
         return frame;
     }
 
     // Returns height in lines.
-    public int getWindowHeight()
-    {
+    public int getWindowHeight() {
         return getDisplay().getHeight() / Display.getCharHeight();
     }
 
-    public void setWindowHeight(int n)
-    {
+    public void setWindowHeight(int n) {
         frame.setWindowHeight(this, n);
     }
 
     static List<Frame> frames = new ArrayList<Frame>();
 
-    public static int indexOf(Frame frame)
-    {
+    public static int indexOf(Frame frame) {
         for (int i = getFrameCount() - 1; i >= 0; i--) {
             if (frame == getFrame(i))
                 return i;
@@ -911,20 +864,17 @@ public final class Editor extends JPanel implements Constants,
         return -1;
     }
 
-    public static final int getFrameCount()
-    {
+    public static final int getFrameCount() {
         return frames.size();
     }
 
-    public static final Frame getFrame(int i)
-    {
+    public static final Frame getFrame(int i) {
         if (i >= 0 && i < frames.size())
             return frames.get(i);
         return null;
     }
 
-    public final Buffer getBuffer()
-    {
+    public final Buffer getBuffer() {
         return buffer;
     }
 
@@ -943,8 +893,7 @@ public final class Editor extends JPanel implements Constants,
      * buffers bind bare letters as commands already, and a modal layer on top
      * of them would make them unusable.
      */
-    public final InputHandler getInputHandler()
-    {
+    public final InputHandler getInputHandler() {
         if (buffer == null || buffer.getType() != SystemBuffer.TYPE_NORMAL)
             return null;
         final String editMode = buffer.getStringProperty(Property.EDIT_MODE);
@@ -952,7 +901,8 @@ public final class Editor extends JPanel implements Constants,
             return null;
         if (!editMode.equals(inputHandlerEditMode)) {
             inputHandler = "vim".equals(editMode)
-                ? new org.armedbear.j.vim.VimInputHandler() : null;
+                ? new org.armedbear.j.vim.VimInputHandler()
+                : null;
             inputHandlerEditMode = editMode;
             if (inputHandler == null)
                 Log.error("unknown editMode \"" + editMode + "\"");
@@ -966,54 +916,44 @@ public final class Editor extends JPanel implements Constants,
      * dialogs, no sidebar update. Only for an editor with no frame, where
      * there is nothing to keep in sync. Use activate() everywhere else.
      */
-    void setBufferDirectly(Buffer buf)
-    {
+    void setBufferDirectly(Buffer buf) {
         Debug.assertTrue(frame == null);
         buffer = buf;
     }
 
-    public final Mode getMode()
-    {
+    public final Mode getMode() {
         return buffer.getMode();
     }
 
-    public final int getModeId()
-    {
+    public final int getModeId() {
         return buffer.getModeId();
     }
 
-    public final Formatter getFormatter()
-    {
+    public final Formatter getFormatter() {
         return buffer.getFormatter();
     }
 
-    public final Display getDisplay()
-    {
+    public final Display getDisplay() {
         return display;
     }
 
-    public final Dispatcher getDispatcher()
-    {
+    public final Dispatcher getDispatcher() {
         return dispatcher;
     }
 
-    public static final TagFileManager getTagFileManager()
-    {
+    public static final TagFileManager getTagFileManager() {
         return tagFileManager;
     }
 
-    public final Sidebar getSidebar()
-    {
+    public final Sidebar getSidebar() {
         return frame != null ? frame.getSidebar() : null;
     }
 
-    public final StatusBar getStatusBar()
-    {
+    public final StatusBar getStatusBar() {
         return frame != null ? frame.getStatusBar() : null;
     }
 
-    public static final PendingOperations getPendingOperations()
-    {
+    public static final PendingOperations getPendingOperations() {
         return pendingOperations;
     }
 
@@ -1021,8 +961,7 @@ public final class Editor extends JPanel implements Constants,
 
     private VerticalScrollBarListener verticalScrollBarListener;
 
-    public void addVerticalScrollBar()
-    {
+    public void addVerticalScrollBar() {
         if (verticalScrollBar == null) {
             verticalScrollBar = new VerticalScrollBar(this);
             verticalScrollBar.setMinimum(0);
@@ -1032,8 +971,7 @@ public final class Editor extends JPanel implements Constants,
         }
     }
 
-    public void removeVerticalScrollBar()
-    {
+    public void removeVerticalScrollBar() {
         if (verticalScrollBar != null) {
             if (verticalScrollBarListener == null) {
                 verticalScrollBar.removeAdjustmentListener(verticalScrollBarListener);
@@ -1046,55 +984,46 @@ public final class Editor extends JPanel implements Constants,
 
     private HorizontalScrollBar horizontalScrollBar;
 
-    public HorizontalScrollBar getHorizontalScrollBar()
-    {
+    public HorizontalScrollBar getHorizontalScrollBar() {
         return horizontalScrollBar;
     }
 
     private HorizontalScrollBarListener horizontalScrollBarListener;
 
-    public void maybeAddHorizontalScrollBar()
-    {
-      if (horizontalScrollBar == null)
-        {
-          if (prefs.getBooleanProperty(Property.ENABLE_HORIZONTAL_SCROLL_BAR))
-            {
-              horizontalScrollBar = new HorizontalScrollBar(this);
-              horizontalScrollBar.setMinimum(0);
-              JPanel panel = new JPanel();
-              panel.setLayout(new BoxLayout(panel, BoxLayout.X_AXIS));
-              panel.add(horizontalScrollBar);
-              final int height = horizontalScrollBar.getPreferredSize().height;
-              panel.add(Box.createRigidArea(new Dimension(height, height)));
-              add(panel, BorderLayout.SOUTH);
-              horizontalScrollBarListener = new HorizontalScrollBarListener(this);
-              horizontalScrollBar.addAdjustmentListener(horizontalScrollBarListener);
+    public void maybeAddHorizontalScrollBar() {
+        if (horizontalScrollBar == null) {
+            if (prefs.getBooleanProperty(Property.ENABLE_HORIZONTAL_SCROLL_BAR)) {
+                horizontalScrollBar = new HorizontalScrollBar(this);
+                horizontalScrollBar.setMinimum(0);
+                JPanel panel = new JPanel();
+                panel.setLayout(new BoxLayout(panel, BoxLayout.X_AXIS));
+                panel.add(horizontalScrollBar);
+                final int height = horizontalScrollBar.getPreferredSize().height;
+                panel.add(Box.createRigidArea(new Dimension(height, height)));
+                add(panel, BorderLayout.SOUTH);
+                horizontalScrollBarListener = new HorizontalScrollBarListener(this);
+                horizontalScrollBar.addAdjustmentListener(horizontalScrollBarListener);
             }
         }
     }
 
-    public void removeHorizontalScrollBar()
-    {
-      if (horizontalScrollBar != null)
-        {
-          if (horizontalScrollBarListener == null)
-            {
-              horizontalScrollBar.removeAdjustmentListener(horizontalScrollBarListener);
-              horizontalScrollBarListener = null;
+    public void removeHorizontalScrollBar() {
+        if (horizontalScrollBar != null) {
+            if (horizontalScrollBarListener == null) {
+                horizontalScrollBar.removeAdjustmentListener(horizontalScrollBarListener);
+                horizontalScrollBarListener = null;
             }
-          // Remove JPanel containing scroll bar.
-          remove(horizontalScrollBar.getParent());
-          horizontalScrollBar = null;
+            // Remove JPanel containing scroll bar.
+            remove(horizontalScrollBar.getParent());
+            horizontalScrollBar = null;
         }
     }
 
-    public static synchronized final Editor currentEditor()
-    {
+    public static synchronized final Editor currentEditor() {
         return currentEditor;
     }
 
-    public static synchronized final void setCurrentEditor(Editor editor)
-    {
+    public static synchronized final void setCurrentEditor(Editor editor) {
         Editor oldCurrentEditor = currentEditor;
         currentEditor = editor;
         if (editor.getFrame() != null)
@@ -1108,26 +1037,22 @@ public final class Editor extends JPanel implements Constants,
         }
     }
 
-    public static synchronized final Buffer currentBuffer()
-    {
+    public static synchronized final Buffer currentBuffer() {
         return currentEditor.buffer;
     }
 
-    public static synchronized final Frame getCurrentFrame()
-    {
+    public static synchronized final Frame getCurrentFrame() {
         return currentEditor.getFrame();
     }
 
-    public static Editor createNewFrame()
-    {
+    public static Editor createNewFrame() {
         Editor ed = new Editor(null);
         ed.getFrame().updateControls();
         ed.getFrame().placeWindow();
         return ed;
     }
 
-    public void newFrame()
-    {
+    public void newFrame() {
         saveView();
         Editor ed = createNewFrame();
         ed.activate(buffer);
@@ -1141,30 +1066,25 @@ public final class Editor extends JPanel implements Constants,
         SwingUtilities.invokeLater(r);
     }
 
-    public View getCurrentView()
-    {
+    public View getCurrentView() {
         return views.get(buffer);
     }
 
     // Might return null.
-    public final View getView(SystemBuffer buf)
-    {
+    public final View getView(SystemBuffer buf) {
         return views.get(buf);
     }
 
-    public final void setView(SystemBuffer buf, View view)
-    {
+    public final void setView(SystemBuffer buf, View view) {
         views.put(buf, view);
     }
 
-    public void removeView(SystemBuffer buf)
-    {
+    public void removeView(SystemBuffer buf) {
         views.remove(buf);
     }
 
     // Find or create a view of buf.
-    private View findOrCreateView(Buffer buf)
-    {
+    private View findOrCreateView(Buffer buf) {
         View view = views.get(buf);
         if (view == null) {
             view = buf.getLastView();
@@ -1175,81 +1095,66 @@ public final class Editor extends JPanel implements Constants,
         return view;
     }
 
-    public final void saveView()
-    {
+    public final void saveView() {
         buffer.saveView(this);
     }
 
-    private final void restoreView()
-    {
+    private final void restoreView() {
         buffer.restoreView(this);
     }
 
-    public final Position getDot()
-    {
+    public final Position getDot() {
         return dot;
     }
 
-    public final Position getDotCopy()
-    {
+    public final Position getDotCopy() {
         return dot != null ? new Position(dot) : null;
     }
 
-    public final void setDot(Position pos)
-    {
+    public final void setDot(Position pos) {
         dot = pos;
     }
 
-    public final void setDot(Line line, int offset)
-    {
+    public final void setDot(Line line, int offset) {
         dot = new Position(line, offset);
     }
 
-    public void setDot(int lineNumber, int offset)
-    {
+    public void setDot(int lineNumber, int offset) {
         Line line = buffer.getLine(lineNumber);
         if (line != null)
             setDot(line, offset);
     }
 
-    public final Line getDotLine()
-    {
+    public final Line getDotLine() {
         return dot.getLine();
     }
 
-    public final int getDotLineNumber()
-    {
+    public final int getDotLineNumber() {
         return dot.lineNumber();
     }
 
-    public final int getDotOffset()
-    {
+    public final int getDotOffset() {
         return dot.getOffset();
     }
 
-    public final Selection getSelection()
-    {
+    public final Selection getSelection() {
         return selection;
     }
 
-    public final void setSelection(Selection selection)
-    {
+    public final void setSelection(Selection selection) {
         this.selection = selection;
     }
 
-    public final Position getMark()
-    {
+    public final Position getMark() {
         return mark;
     }
 
-    public void setMarkAtDot()
-    {
+    public void setMarkAtDot() {
         setMark(new Position(dot));
         selection = new Selection();
     }
 
-    public void setMark(Position pos)
-    {
+    public void setMark(Position pos) {
         mark = pos;
         if (mark == null) {
             selection = null;
@@ -1257,58 +1162,51 @@ public final class Editor extends JPanel implements Constants,
         }
     }
 
-    public void setMark(int lineNumber, int offset)
-    {
+    public void setMark(int lineNumber, int offset) {
         Line line = buffer.getLine(lineNumber);
         if (line != null)
             setMark(new Position(line, offset));
     }
 
-    public final void setColumnSelection(boolean b)
-    {
+    public final void setColumnSelection(boolean b) {
         isColumnSelection = b;
     }
 
-    public final boolean isColumnSelection()
-    {
+    public final boolean isColumnSelection() {
         return isColumnSelection;
     }
 
-    public final void notSupportedForColumnSelections()
-    {
-        MessageDialog.showMessageDialog(this,
-            "Operation not supported for column selections", "Error");
+    public final void notSupportedForColumnSelections() {
+        MessageDialog.showMessageDialog(
+            this,
+            "Operation not supported for column selections",
+            "Error"
+        );
     }
 
-    public final Line getMarkLine()
-    {
+    public final Line getMarkLine() {
         return mark.getLine();
     }
 
-    public final int getMarkLineNumber()
-    {
+    public final int getMarkLineNumber() {
         return mark.lineNumber();
     }
 
-    public final int getMarkOffset()
-    {
+    public final int getMarkOffset() {
         return mark.getOffset();
     }
 
-    public File getCurrentDirectory()
-    {
+    public File getCurrentDirectory() {
         return buffer.getCurrentDirectory();
     }
 
-    public File getCompletionDirectory()
-    {
+    public File getCompletionDirectory() {
         return buffer.getCompletionDirectory();
     }
 
     // Cycle through the most plausible possibilities for the tab width of the
     // current buffer.
-    public void cycleTabWidth()
-    {
+    public void cycleTabWidth() {
         switch (buffer.getTabWidth()) {
             case 2:
                 buffer.setTabWidth(4);
@@ -1328,8 +1226,7 @@ public final class Editor extends JPanel implements Constants,
 
     // Cycle through the most plausible possibilities for the indent size of
     // the current buffer.
-    public void cycleIndentSize()
-    {
+    public void cycleIndentSize() {
         switch (buffer.getIndentSize()) {
             case 2:
                 buffer.setIndentSize(3);
@@ -1349,11 +1246,10 @@ public final class Editor extends JPanel implements Constants,
         status("Indent size set to " + buffer.getIndentSize());
     }
 
-    public void adjustMarkers(Line line)
-    {
+    public void adjustMarkers(Line line) {
         if (line == null)
             return;
-        Position pos = null;  // Where all displaced markers go.
+        Position pos = null; // Where all displaced markers go.
         if (line.next() != null)
             pos = new Position(line.next(), 0);
         else if (line.previous() != null)
@@ -1393,14 +1289,12 @@ public final class Editor extends JPanel implements Constants,
         }
     }
 
-    public static Marker[] getBookmarks()
-    {
+    public static Marker[] getBookmarks() {
         return bookmarks;
     }
 
     /** Where a bookmark's name is kept, or -1 for a name that is not one. */
-    private static int bookmarkIndex(char name)
-    {
+    private static int bookmarkIndex(char name) {
         if (name >= '0' && name <= '9')
             return name - '0';
         if (name >= 'A' && name <= 'Z')
@@ -1409,23 +1303,20 @@ public final class Editor extends JPanel implements Constants,
     }
 
     /** A bookmark by name, 0 to 9 or A to Z, or null. */
-    public static Marker getBookmark(char name)
-    {
+    public static Marker getBookmark(char name) {
         final int index = bookmarkIndex(name);
         return index < 0 ? null : bookmarks[index];
     }
 
     /** Sets a bookmark by name, or with null forgets it. */
-    public static void setBookmark(char name, Marker marker)
-    {
+    public static void setBookmark(char name, Marker marker) {
         final int index = bookmarkIndex(name);
         if (index >= 0)
             bookmarks[index] = marker;
     }
 
     /** The digit key that ran the command, as the default bindings name it. */
-    private String bookmarkKey()
-    {
+    private String bookmarkKey() {
         final AWTEvent e = dispatcher.getLastEvent();
         if (e == null || e.getID() != KeyEvent.KEY_PRESSED)
             return null;
@@ -1434,8 +1325,7 @@ public final class Editor extends JPanel implements Constants,
     }
 
     /** {@code dropBookmark} -- by the digit key it is bound to. */
-    public void dropBookmark()
-    {
+    public void dropBookmark() {
         dropBookmark(bookmarkKey());
     }
 
@@ -1443,31 +1333,34 @@ public final class Editor extends JPanel implements Constants,
      * {@code dropBookmark NAME} -- a bookmark here, named 0 to 9 or A to Z,
      * asking before one already set is replaced.
      */
-    public void dropBookmark(String name)
-    {
-        if (name == null || name.trim().length() != 1
-            || bookmarkIndex(name.trim().charAt(0)) < 0) {
+    public void dropBookmark(String name) {
+        if (
+            name == null
+                || name.trim().length() != 1
+                || bookmarkIndex(name.trim().charAt(0)) < 0
+        ) {
             status("A bookmark is named 0 to 9 or A to Z");
             return;
         }
         final char c = name.trim().charAt(0);
-        if (getBookmark(c) == null
-            || confirm("Drop Bookmark", "Overwrite existing bookmark?")) {
+        if (
+            getBookmark(c) == null
+                || confirm("Drop Bookmark", "Overwrite existing bookmark?")
+        ) {
             setBookmark(c, new Marker(buffer, dot));
             status("Bookmark dropped");
         }
     }
 
     /** {@code gotoBookmark} -- by the digit key it is bound to. */
-    public void gotoBookmark()
-    {
+    public void gotoBookmark() {
         gotoBookmark(bookmarkKey());
     }
 
     /** {@code gotoBookmark NAME} -- to a bookmark, in whatever file it is. */
-    public void gotoBookmark(String name)
-    {
-        final Marker m = name == null || name.trim().length() != 1 ? null
+    public void gotoBookmark(String name) {
+        final Marker m = name == null || name.trim().length() != 1
+            ? null
             : getBookmark(name.trim().charAt(0));
         if (m != null)
             m.gotoMarker(this);
@@ -1475,21 +1368,18 @@ public final class Editor extends JPanel implements Constants,
 
     // Drop a temporary bookmark, overwriting the existing temporary bookmark
     // if one exists.
-    public void dropTemporaryMarker()
-    {
+    public void dropTemporaryMarker() {
         bookmarks[10] = new Marker(buffer, dot);
         status("Temporary marker dropped");
     }
 
-    public void gotoTemporaryMarker()
-    {
+    public void gotoTemporaryMarker() {
         Marker m = bookmarks[10];
         if (m != null)
             m.gotoMarker(this);
     }
 
-    public void deleteLineSeparator()
-    {
+    public void deleteLineSeparator() {
         final Line dotLine = getDotLine();
         final Line nextLine = dotLine.next();
         if (nextLine == null)
@@ -1561,8 +1451,7 @@ public final class Editor extends JPanel implements Constants,
         }
     }
 
-    private void deleteNormalChar()
-    {
+    private void deleteNormalChar() {
         addUndo(SimpleEdit.LINE_EDIT);
         final Line dotLine = getDotLine();
         final int dotOffset = getDotOffset();
@@ -1576,8 +1465,7 @@ public final class Editor extends JPanel implements Constants,
     }
 
     // A deletion, not a kill!
-    public void delete()
-    {
+    public void delete() {
         if (!checkReadOnly())
             return;
         try {
@@ -1617,8 +1505,7 @@ public final class Editor extends JPanel implements Constants,
     }
 
     // A deletion, not a kill!
-    public void backspace()
-    {
+    public void backspace() {
         if (!checkReadOnly())
             return;
         try {
@@ -1656,8 +1543,7 @@ public final class Editor extends JPanel implements Constants,
         }
     }
 
-    private boolean nextChar()
-    {
+    private boolean nextChar() {
         if (getDotOffset() < getDotLine().length()) {
             dot.skip(1);
             return true;
@@ -1669,8 +1555,7 @@ public final class Editor extends JPanel implements Constants,
         return false;
     }
 
-    private boolean prevChar()
-    {
+    private boolean prevChar() {
         if (getDotOffset() > 0) {
             dot.skip(-1);
             return true;
@@ -1683,14 +1568,12 @@ public final class Editor extends JPanel implements Constants,
         return false;
     }
 
-    public char getDotChar()
-    {
+    public char getDotChar() {
         Debug.assertTrue(dot != null);
         return dot.getChar();
     }
 
-    public void cppFindMatch()
-    {
+    public void cppFindMatch() {
         if (getDotLine().trim().startsWith("#")) {
             Line line = CMode.findMatchPreprocessor(getDotLine());
             if (line != null)
@@ -1703,8 +1586,7 @@ public final class Editor extends JPanel implements Constants,
 
     // If numLines is non-zero, limit the search to that many lines either
     // forward or backward in the buffer.
-    public Position findMatchInternal(Position start, int numLines)
-    {
+    public Position findMatchInternal(Position start, int numLines) {
         return findMatchInternal(start, numLines, false);
     }
 
@@ -1714,8 +1596,7 @@ public final class Editor extends JPanel implements Constants,
      * "..." counted from the start, in a 'x' literal, or escaped differently
      * from the start.
      */
-    public Position findMatchInternal(Position start, int numLines, boolean vim)
-    {
+    public Position findMatchInternal(Position start, int numLines, boolean vim) {
         if (start == null)
             return null;
         final String s1 = new String("{([})]");
@@ -1734,8 +1615,15 @@ public final class Editor extends JPanel implements Constants,
             }
         }
         final String s2 = new String("})]{([");
-        return scanForMatch(start, origChar, s2.charAt(index), index > 2,
-                            numLines, vim, isEscaped(start.getLine(), offset));
+        return scanForMatch(
+            start,
+            origChar,
+            s2.charAt(index),
+            index > 2,
+            numLines,
+            vim,
+            isEscaped(start.getLine(), offset)
+        );
     }
 
     /**
@@ -1745,14 +1633,20 @@ public final class Editor extends JPanel implements Constants,
      * skipped as {@link #findMatchInternal(Position, int, boolean)} skips
      * them, but for an escaped start: vim does not look at the caret's.
      */
-    public Position findUnmatched(Position start, char bracket, boolean vim)
-    {
+    public Position findUnmatched(Position start, char bracket, boolean vim) {
         final int index = "{([})]".indexOf(bracket);
         if (index < 0)
             return null;
         // Back to a '(' counts the ')'s on the way, forward the '('s.
-        return scanForMatch(start, "})]{([".charAt(index), bracket, index < 3,
-                            0, vim, false);
+        return scanForMatch(
+            start,
+            "})]{([".charAt(index),
+            bracket,
+            index < 3,
+            0,
+            vim,
+            false
+        );
     }
 
     /**
@@ -1760,8 +1654,7 @@ public final class Editor extends JPanel implements Constants,
      * mode's isInQuote sees strings, or null. If numLines is non-zero, looks
      * no further than that many lines away.
      */
-    public Position findMatchingQuote(Position pos, int numLines)
-    {
+    public Position findMatchingQuote(Position pos, int numLines) {
         final char c = pos.getChar();
         if (c != '"' && c != '\'' && c != '`')
             return null;
@@ -1770,9 +1663,13 @@ public final class Editor extends JPanel implements Constants,
         if (isEscaped(line, offset))
             return null;
         // The apostrophe of a word.
-        if (c == '\'' && offset > 0 && offset + 1 < line.length()
-            && Character.isLetter(line.charAt(offset - 1))
-            && Character.isLetter(line.charAt(offset + 1)))
+        if (
+            c == '\''
+                && offset > 0
+                && offset + 1 < line.length()
+                && Character.isLetter(line.charAt(offset - 1))
+                && Character.isLetter(line.charAt(offset + 1))
+        )
             return null;
         final Mode mode = buffer.getMode();
         if (mode.isInComment(buffer, pos))
@@ -1782,11 +1679,17 @@ public final class Editor extends JPanel implements Constants,
             return null;
         final Position p = new Position(pos);
         while (closing ? p.prev() : p.next()) {
-            if (numLines != 0 &&
-                Math.abs(p.lineNumber() - pos.lineNumber()) > numLines)
+            if (
+                numLines != 0
+                    &&
+                    Math.abs(p.lineNumber() - pos.lineNumber()) > numLines
+            )
                 return null;
-            if (p.getOffset() < p.getLine().length() && p.getChar() == c
-                && !isEscaped(p.getLine(), p.getOffset())) {
+            if (
+                p.getOffset() < p.getLine().length()
+                    && p.getChar() == c
+                    && !isEscaped(p.getLine(), p.getOffset())
+            ) {
                 // The first one there must be the string's other end.
                 if (mode.isInQuote(buffer, p) != closing)
                     return p;
@@ -1797,10 +1700,15 @@ public final class Editor extends JPanel implements Constants,
     }
 
     /** The first match after start not paired with an origChar on the way. */
-    private Position scanForMatch(Position start, char origChar, char match,
-                                  boolean searchBackwards, int numLines,
-                                  boolean vim, boolean escaped)
-    {
+    private Position scanForMatch(
+        Position start,
+        char origChar,
+        char match,
+        boolean searchBackwards,
+        int numLines,
+        boolean vim,
+        boolean escaped
+    ) {
         final Mode mode = buffer.getMode();
         int stopLineNumber = searchBackwards ? 0 : buffer.getLineCount();
         if (numLines != 0)
@@ -1823,8 +1731,11 @@ public final class Editor extends JPanel implements Constants,
             }
             if (c == SyntaxIterator.DONE)
                 return null;
-            if (vim && (c == origChar || c == match)
-                && isSkippedByVim(start, it.getPosition(), escaped))
+            if (
+                vim
+                    && (c == origChar || c == match)
+                    && isSkippedByVim(start, it.getPosition(), escaped)
+            )
                 continue;
             if (c == origChar)
                 ++count;
@@ -1837,9 +1748,11 @@ public final class Editor extends JPanel implements Constants,
         }
     }
 
-    private static boolean isSkippedByVim(Position start, Position pos,
-                                          boolean startEscaped)
-    {
+    private static boolean isSkippedByVim(
+        Position start,
+        Position pos,
+        boolean startEscaped
+    ) {
         final Line line = pos.getLine();
         final int offset = pos.getOffset();
         if (isEscaped(line, offset) != startEscaped)
@@ -1848,10 +1761,14 @@ public final class Editor extends JPanel implements Constants,
         if (text == null)
             return false;
         // 'x' and '\x'.
-        if (offset + 1 < text.length() && text.charAt(offset + 1) == '\''
-            && (offset >= 1 && text.charAt(offset - 1) == '\''
-                || offset >= 2 && text.charAt(offset - 2) == '\''
-                   && text.charAt(offset - 1) == '\\'))
+        if (
+            offset + 1 < text.length()
+                && text.charAt(offset + 1) == '\''
+                && (offset >= 1 && text.charAt(offset - 1) == '\''
+                    || offset >= 2
+                        && text.charAt(offset - 2) == '\''
+                        && text.charAt(offset - 1) == '\\')
+        )
             return true;
         // Quotes say nothing on a line with an odd number of them. Counted
         // from the start on its own line, from the line's start on others.
@@ -1871,8 +1788,7 @@ public final class Editor extends JPanel implements Constants,
     }
 
     /** After an odd number of backslashes. */
-    private static boolean isEscaped(Line line, int offset)
-    {
+    private static boolean isEscaped(Line line, int offset) {
         int i = offset;
         while (i > 0 && line.charAt(i - 1) == '\\')
             --i;
@@ -1880,16 +1796,16 @@ public final class Editor extends JPanel implements Constants,
     }
 
     /** A double quote, but not the one in the literal '"'. */
-    private static boolean isQuote(String text, int i)
-    {
+    private static boolean isQuote(String text, int i) {
         return text.charAt(i) == '"'
-            && (i == 0 || text.charAt(i - 1) != '\''
-                || i + 1 == text.length() || text.charAt(i + 1) != '\'');
+            && (i == 0
+                || text.charAt(i - 1) != '\''
+                || i + 1 == text.length()
+                || text.charAt(i + 1) != '\'');
     }
 
     /** Vim's count, which leaves out \" and '"'. */
-    private static boolean hasEvenQuotes(String text)
-    {
+    private static boolean hasEvenQuotes(String text) {
         int quotes = 0;
         for (int i = 0; i < text.length(); i++) {
             if (isQuote(text, i))
@@ -1900,8 +1816,7 @@ public final class Editor extends JPanel implements Constants,
         return (quotes & 1) == 0;
     }
 
-    public void findMatchingChar()
-    {
+    public void findMatchingChar() {
         setWaitCursor();
         Position pos = findDelimiterNearDot();
         if (pos != null) {
@@ -1923,8 +1838,7 @@ public final class Editor extends JPanel implements Constants,
         setDefaultCursor();
     }
 
-    public void selectSyntax()
-    {
+    public void selectSyntax() {
         setWaitCursor();
         Position pos = findDelimiterNearDot();
         if (pos != null) {
@@ -1976,8 +1890,7 @@ public final class Editor extends JPanel implements Constants,
         setDefaultCursor();
     }
 
-    private Position findDelimiterNearDot()
-    {
+    private Position findDelimiterNearDot() {
         Position pos = dot.copy();
         if ("{([".indexOf(pos.getChar()) >= 0) {
             // The character to the right of the caret is a left delimiter.
@@ -2017,15 +1930,17 @@ public final class Editor extends JPanel implements Constants,
         return null;
     }
 
-    public void closeParen()
-    {
+    public void closeParen() {
         insertNormalChar(')');
-        if (prefs.getBooleanProperty(Property.HIGHLIGHT_MATCHING_BRACKET) ||
-            prefs.getBooleanProperty(Property.HIGHLIGHT_BRACKETS))
+        if (
+            prefs.getBooleanProperty(Property.HIGHLIGHT_MATCHING_BRACKET)
+                ||
+                prefs.getBooleanProperty(Property.HIGHLIGHT_BRACKETS)
+        )
             return;
         // Limit search to 50 lines.
         Position match =
-            findMatchInternal(new Position(getDotLine(), getDotOffset()-1), 50);
+            findMatchInternal(new Position(getDotLine(), getDotOffset() - 1), 50);
         if (match == null)
             return;
         // We don't want to reframe.
@@ -2051,8 +1966,7 @@ public final class Editor extends JPanel implements Constants,
     }
 
     // No undo.
-    public void insertLineSeparator()
-    {
+    public void insertLineSeparator() {
         Debug.assertTrue(mark == null);
         try {
             buffer.lockWrite();
@@ -2075,8 +1989,7 @@ public final class Editor extends JPanel implements Constants,
         }
     }
 
-    public void newline()
-    {
+    public void newline() {
         if (!checkReadOnly())
             return;
         CompoundEdit compoundEdit = beginCompoundEdit();
@@ -2088,8 +2001,7 @@ public final class Editor extends JPanel implements Constants,
         endCompoundEdit(compoundEdit);
     }
 
-    public void newlineAndIndent()
-    {
+    public void newlineAndIndent() {
         if (isColumnSelection()) {
             notSupportedForColumnSelections();
             return;
@@ -2141,8 +2053,7 @@ public final class Editor extends JPanel implements Constants,
         setUpdateFlag(REFRAME);
     }
 
-    public void insertNormalChar(char c)
-    {
+    public void insertNormalChar(char c) {
         if (isColumnSelection()) {
             notSupportedForColumnSelections();
             return;
@@ -2165,9 +2076,11 @@ public final class Editor extends JPanel implements Constants,
                 endCompoundEdit(compoundEdit);
             } else {
                 // No selection.
-                if (buffer.getBooleanProperty(Property.WRAP) &&
-                    getDotCol() >= buffer.getIntegerProperty(Property.WRAP_COL))
-                {
+                if (
+                    buffer.getBooleanProperty(Property.WRAP)
+                        &&
+                        getDotCol() >= buffer.getIntegerProperty(Property.WRAP_COL)
+                ) {
                     CompoundEdit compoundEdit = beginCompoundEdit();
                     insertChar(c);
                     new WrapText(this).wrapLine();
@@ -2182,8 +2095,7 @@ public final class Editor extends JPanel implements Constants,
         moveCaretToDotCol();
     }
 
-    public void tab()
-    {
+    public void tab() {
         if (isColumnSelection()) {
             notSupportedForColumnSelections();
             return;
@@ -2213,8 +2125,7 @@ public final class Editor extends JPanel implements Constants,
             insertTab();
     }
 
-    public void insertTab()
-    {
+    public void insertTab() {
         if (isColumnSelection()) {
             notSupportedForColumnSelections();
             return;
@@ -2251,8 +2162,7 @@ public final class Editor extends JPanel implements Constants,
         }
     }
 
-    public void moveDotToIndentation()
-    {
+    public void moveDotToIndentation() {
         final Line dotLine = getDotLine();
         final int limit = dotLine.length();
         int i;
@@ -2263,8 +2173,7 @@ public final class Editor extends JPanel implements Constants,
         dot.setOffset(i);
     }
 
-    public void indentLineOrRegion()
-    {
+    public void indentLineOrRegion() {
         if (isColumnSelection()) {
             notSupportedForColumnSelections();
             return;
@@ -2279,71 +2188,59 @@ public final class Editor extends JPanel implements Constants,
         }
     }
 
-    public void indentRegion()
-    {
-      if (isColumnSelection())
-        {
-          notSupportedForColumnSelections();
-          return;
+    public void indentRegion() {
+        if (isColumnSelection()) {
+            notSupportedForColumnSelections();
+            return;
         }
-      if (getMode().canIndent() && mark != null)
-        {
-          Region r = new Region(this);
-          if (r.getBeginLine() == r.getEndLine())
-            indentLine();
-          else
-            {
-              if (!checkReadOnly())
-                return;
-              setWaitCursor();
-              Position savedDot = new Position(dot);
-              try
-                {
-                  buffer.lockWrite();
+        if (getMode().canIndent() && mark != null) {
+            Region r = new Region(this);
+            if (r.getBeginLine() == r.getEndLine())
+                indentLine();
+            else {
+                if (!checkReadOnly())
+                    return;
+                setWaitCursor();
+                Position savedDot = new Position(dot);
+                try {
+                    buffer.lockWrite();
                 }
-              catch (InterruptedException e)
-                {
-                  Log.error(e);
-                  return;
+                catch (InterruptedException e) {
+                    Log.error(e);
+                    return;
                 }
-              try
-                {
-                  if (buffer.needsParsing())
-                    {
-                      if (getFormatter().parseBuffer())
-                        buffer.repaint();
+                try {
+                    if (buffer.needsParsing()) {
+                        if (getFormatter().parseBuffer())
+                            buffer.repaint();
                     }
-                  CompoundEdit compoundEdit = beginCompoundEdit();
-                  addUndo(SimpleEdit.MOVE);
-                  dot.moveTo(r.getBeginLine(), 0);
-                  do
-                    {
-                      if (!dot.getLine().isBlank())
-                        indentLineInternal();
-                      dot.moveTo(dot.getNextLine(), 0);
-                    }
-                  while (dot.getLine() != r.getEndLine());
-                  addUndo(SimpleEdit.MOVE);
-                  dot = savedDot;
-                  if (dot.getOffset() > getDotLine().length())
-                    dot.setOffset(getDotLine().length());
-                  if (mark.getOffset() > getMarkLine().length())
-                    mark.setOffset(getMarkLine().length());
-                  moveCaretToDotCol();
-                  endCompoundEdit(compoundEdit);
+                    CompoundEdit compoundEdit = beginCompoundEdit();
+                    addUndo(SimpleEdit.MOVE);
+                    dot.moveTo(r.getBeginLine(), 0);
+                    do {
+                        if (!dot.getLine().isBlank())
+                            indentLineInternal();
+                        dot.moveTo(dot.getNextLine(), 0);
+                    } while (dot.getLine() != r.getEndLine());
+                    addUndo(SimpleEdit.MOVE);
+                    dot = savedDot;
+                    if (dot.getOffset() > getDotLine().length())
+                        dot.setOffset(getDotLine().length());
+                    if (mark.getOffset() > getMarkLine().length())
+                        mark.setOffset(getMarkLine().length());
+                    moveCaretToDotCol();
+                    endCompoundEdit(compoundEdit);
                 }
-              finally
-                {
-                  buffer.unlockWrite();
+                finally {
+                    buffer.unlockWrite();
                 }
-              setUpdateFlag(REFRAME);
-              setDefaultCursor();
+                setUpdateFlag(REFRAME);
+                setDefaultCursor();
             }
         }
     }
 
-    public void commentRegion()
-    {
+    public void commentRegion() {
         if (isColumnSelection()) {
             notSupportedForColumnSelections();
             return;
@@ -2360,8 +2257,7 @@ public final class Editor extends JPanel implements Constants,
     }
 
     // If argument is false, uncomment the region.
-    private void commentRegion(boolean comment)
-    {
+    private void commentRegion(boolean comment) {
         if (!checkReadOnly())
             return;
         if (dot == null)
@@ -2382,8 +2278,7 @@ public final class Editor extends JPanel implements Constants,
     }
 
     // If argument is false, uncomment the region.
-    private void commentRegionInternal(boolean comment)
-    {
+    private void commentRegionInternal(boolean comment) {
         String commentStart = buffer.getCommentStart();
         if (commentStart == null)
             return;
@@ -2487,14 +2382,12 @@ public final class Editor extends JPanel implements Constants,
         endCompoundEdit(compoundEdit);
     }
 
-    public final void moveDotTo(Position pos)
-    {
+    public final void moveDotTo(Position pos) {
         if (pos != null)
             moveDotTo(pos.getLine(), pos.getOffset());
     }
 
-    public void moveDotTo(Line line, int offset)
-    {
+    public void moveDotTo(Line line, int offset) {
         if (dot == null)
             return;
         addUndo(SimpleEdit.MOVE);
@@ -2510,8 +2403,7 @@ public final class Editor extends JPanel implements Constants,
         moveCaretToDotCol();
     }
 
-    public void indentLine()
-    {
+    public void indentLine() {
         if (isColumnSelection()) {
             notSupportedForColumnSelections();
             return;
@@ -2540,8 +2432,7 @@ public final class Editor extends JPanel implements Constants,
         setUpdateFlag(REFRAME);
     }
 
-    private void indentLineInternal()
-    {
+    private void indentLineInternal() {
         final Line dotLine = getDotLine();
         final int indent = getMode().getCorrectIndentation(dotLine, buffer);
         final int shift = display.getShift();
@@ -2616,13 +2507,11 @@ public final class Editor extends JPanel implements Constants,
         moveDotToCaretCol();
     }
 
-    public void save()
-    {
+    public void save() {
         save(buffer);
     }
 
-    public void save(Buffer toBeSaved)
-    {
+    public void save(Buffer toBeSaved) {
         if (toBeSaved.isLocked())
             return;
         if (toBeSaved.getType() == Buffer.TYPE_NORMAL) {
@@ -2645,8 +2534,7 @@ public final class Editor extends JPanel implements Constants,
         }
     }
 
-    public void saveAs()
-    {
+    public void saveAs() {
         saveAs(buffer);
     }
 
@@ -2658,8 +2546,7 @@ public final class Editor extends JPanel implements Constants,
      *
      * @return true when the buffer was saved
      */
-    public boolean saveAs(String path)
-    {
+    public boolean saveAs(String path) {
         if (path == null || path.trim().isEmpty()) {
             saveAs();
             return !buffer.isModified();
@@ -2671,15 +2558,14 @@ public final class Editor extends JPanel implements Constants,
     }
 
     /** A path typed by the user, resolved against this buffer's directory. */
-    public File fileNamed(String path)
-    {
+    public File fileNamed(String path) {
         final File dir = buffer.getCurrentDirectory();
-        return dir == null ? File.getInstance(path)
-                           : File.getInstance(dir, path);
+        return dir == null
+            ? File.getInstance(path)
+            : File.getInstance(dir, path);
     }
 
-    private void saveAs(Buffer toBeSaved)
-    {
+    private void saveAs(Buffer toBeSaved) {
         if (toBeSaved.isLocked())
             return;
         if (toBeSaved.getType() == Buffer.TYPE_NORMAL) {
@@ -2697,10 +2583,11 @@ public final class Editor extends JPanel implements Constants,
     }
 
     /** The checks and the save shared by saveAs, with and without a dialog. */
-    private boolean saveAsTo(Buffer toBeSaved, File destination)
-    {
-        if (toBeSaved.isLocked()
-            || toBeSaved.getType() != Buffer.TYPE_NORMAL)
+    private boolean saveAsTo(Buffer toBeSaved, File destination) {
+        if (
+            toBeSaved.isLocked()
+                || toBeSaved.getType() != Buffer.TYPE_NORMAL
+        )
             return false;
         final String dialogTitle = "Save As";
         // Do we have the target file in a buffer?
@@ -2730,16 +2617,14 @@ public final class Editor extends JPanel implements Constants,
      *
      * @return true when the copy was written
      */
-    public boolean saveCopy(String path)
-    {
+    public boolean saveCopy(String path) {
         if (path == null || path.trim().isEmpty())
             return false;
         final File destination = fileNamed(path.trim());
         return destination != null && saveCopyTo(destination);
     }
 
-    public void saveCopy()
-    {
+    public void saveCopy() {
         if (buffer.isLocked())
             return;
         if (buffer.getType() == Buffer.TYPE_NORMAL) {
@@ -2755,8 +2640,7 @@ public final class Editor extends JPanel implements Constants,
     }
 
     /** The checks and the write shared by saveCopy, with and without a dialog. */
-    private boolean saveCopyTo(File destination)
-    {
+    private boolean saveCopyTo(File destination) {
         if (buffer.isLocked() || buffer.getType() != Buffer.TYPE_NORMAL)
             return false;
         // Do we have the target file in a buffer?
@@ -2778,8 +2662,7 @@ public final class Editor extends JPanel implements Constants,
         return true;
     }
 
-    public void saveAll()
-    {
+    public void saveAll() {
         setWaitCursor();
         int numModified = 0;
         int numErrors = 0;
@@ -2814,8 +2697,7 @@ public final class Editor extends JPanel implements Constants,
         setDefaultCursor();
     }
 
-    public boolean okToClose(Buffer buf)
-    {
+    public boolean okToClose(Buffer buf) {
         if (buf.getType() != Buffer.TYPE_NORMAL)
             return true;
         if (buf.isUntitled() || buf.isModified()) {
@@ -2828,8 +2710,7 @@ public final class Editor extends JPanel implements Constants,
         return true;
     }
 
-    public void closeAll()
-    {
+    public void closeAll() {
         repaintNow();
 
         for (BufferIterator it = new BufferIterator(); it.hasNext();) {
@@ -2879,8 +2760,7 @@ public final class Editor extends JPanel implements Constants,
         setDefaultCursor();
     }
 
-    public void closeOthers()
-    {
+    public void closeOthers() {
         repaintNow();
 
         Buffer toBeActivated = buffer;
@@ -2921,8 +2801,7 @@ public final class Editor extends JPanel implements Constants,
         setDefaultCursor();
     }
 
-    public boolean execute(String command) throws NoSuchMethodException
-    {
+    public boolean execute(String command) throws NoSuchMethodException {
         String[] array = parseCommand(command);
         if (array == null)
             return false;
@@ -2931,8 +2810,7 @@ public final class Editor extends JPanel implements Constants,
         return execute(methodName, parameters);
     }
 
-    public boolean execute(String commandName, String parameters) throws NoSuchMethodException
-    {
+    public boolean execute(String commandName, String parameters) throws NoSuchMethodException {
         if (commandName == null)
             return false;
 
@@ -2958,10 +2836,10 @@ public final class Editor extends JPanel implements Constants,
                 if (index < 0) {
                     // No class name.  Must be a method in the Editor class.
                     method = Editor.class.getMethod(commandName, parameterTypes);
-                } else if (commandName.length() > index+1) {
+                } else if (commandName.length() > index + 1) {
                     // Class name was provided.
                     className = commandName.substring(0, index);
-                    methodName = commandName.substring(index+1);
+                    methodName = commandName.substring(index + 1);
                     Class<? extends Object> c = null;
                     try {
                         c = Class.forName("org.armedbear.j." + className);
@@ -2987,8 +2865,7 @@ public final class Editor extends JPanel implements Constants,
         return false;
     }
 
-    public boolean execute(Command command, String parameters) throws NoSuchMethodException
-    {
+    public boolean execute(Command command, String parameters) throws NoSuchMethodException {
         try {
             String className = null;
             String methodName = null;
@@ -3045,8 +2922,7 @@ public final class Editor extends JPanel implements Constants,
         return false;
     }
 
-    private void invoke(Method method, String parameters) throws IllegalArgumentException
-    {
+    private void invoke(Method method, String parameters) throws IllegalArgumentException {
         Object[] args;
         if (parameters == null)
             args = new Object[0]; // No arguments.
@@ -3066,8 +2942,7 @@ public final class Editor extends JPanel implements Constants,
     }
 
     // FIXME Removed hard-coded Control G!
-    public static boolean checkKeyboardQuit(Object object)
-    {
+    public static boolean checkKeyboardQuit(Object object) {
         if (object instanceof JEvent) {
             JEvent e = (JEvent) object;
             if (e.getID() == JEvent.KEY_PRESSED) {
@@ -3091,8 +2966,7 @@ public final class Editor extends JPanel implements Constants,
     private EventSequence currentEventSequence;
     private boolean local;
 
-    public boolean handleJEvent(JEvent event)
-    {
+    public boolean handleJEvent(JEvent event) {
         char keyChar = event.getKeyChar();
         int keyCode = event.getKeyCode();
         int modifiers = event.getModifiers();
@@ -3128,8 +3002,7 @@ public final class Editor extends JPanel implements Constants,
      *
      * @return false when nothing is bound
      */
-    public boolean handleKeyMapEvent(JEvent event)
-    {
+    public boolean handleKeyMapEvent(JEvent event) {
         final char keyChar = event.getKeyChar();
         final int keyCode = event.getKeyCode();
         final int modifiers = event.getModifiers();
@@ -3165,8 +3038,12 @@ public final class Editor extends JPanel implements Constants,
                 local = true;
             else
                 // Look in global key map.
-                mapping = KeyMap.getGlobalKeyMap().lookup(keyChar, keyCode,
-                                                          modifiers);
+                mapping = KeyMap.getGlobalKeyMap()
+                    .lookup(
+                        keyChar,
+                        keyCode,
+                        modifiers
+                    );
         }
         if (mapping == null) {
             if (event.getID() == JEvent.KEY_TYPED) {
@@ -3213,7 +3090,7 @@ public final class Editor extends JPanel implements Constants,
                 requestedKeyMap = null;
                 currentEventSequence = null;
                 local = false;
-                Command c = (Command)command;
+                Command c = (Command) command;
                 try {
                     execute(c, null);
                 }
@@ -3226,7 +3103,7 @@ public final class Editor extends JPanel implements Constants,
                 currentEventSequence = null;
                 local = false;
                 try {
-                    ((ScriptFunction)command).invoke();
+                    ((ScriptFunction) command).invoke();
                 }
                 catch (Throwable t) {
                     Log.error(t);
@@ -3237,8 +3114,7 @@ public final class Editor extends JPanel implements Constants,
         return false;
     }
 
-    public KeyMapping getKeyMapping(char keyChar, int keyCode, int modifiers)
-    {
+    public KeyMapping getKeyMapping(char keyChar, int keyCode, int modifiers) {
         if (requestedKeyMap != null)
             return requestedKeyMap.lookup(keyChar, keyCode, modifiers);
         // Look in mode-specific key map.
@@ -3252,8 +3128,7 @@ public final class Editor extends JPanel implements Constants,
 
     // Returns multiple values: mapping, mode.
     // mode == null means it's a global mapping.
-    public Object[] getKeyMapping(String command)
-    {
+    public Object[] getKeyMapping(String command) {
         Mode mode = null;
         // Look in buffer-local keymap first.
         KeyMapping mapping = buffer.getKeyMapForMode().getKeyMapping(command);
@@ -3264,8 +3139,10 @@ public final class Editor extends JPanel implements Constants,
             // keystroke in the buffer-local keymap!
             if (mapping != null) {
                 javax.swing.KeyStroke keyStroke =
-                    javax.swing.KeyStroke.getKeyStroke(mapping.getKeyCode(),
-                        mapping.getModifiers());
+                    javax.swing.KeyStroke.getKeyStroke(
+                        mapping.getKeyCode(),
+                        mapping.getModifiers()
+                    );
                 if (buffer.getKeyMapForMode().lookup(keyStroke) != null)
                     mapping = null;
             }
@@ -3277,8 +3154,7 @@ public final class Editor extends JPanel implements Constants,
         return values;
     }
 
-    public void pageDown()
-    {
+    public void pageDown() {
         if (dot == null)
             return;
         maybeResetGoalColumn();
@@ -3294,8 +3170,7 @@ public final class Editor extends JPanel implements Constants,
         setCurrentCommand(COMMAND_PAGE_DOWN);
     }
 
-    public void pageDownOtherWindow()
-    {
+    public void pageDownOtherWindow() {
         final Editor ed = getOtherEditor();
         if (ed != null) {
             ed.pageDown();
@@ -3303,8 +3178,7 @@ public final class Editor extends JPanel implements Constants,
         }
     }
 
-    public void selectPageDown()
-    {
+    public void selectPageDown() {
         if (dot == null)
             return;
         maybeResetGoalColumn();
@@ -3320,8 +3194,7 @@ public final class Editor extends JPanel implements Constants,
     }
 
     /** {@code pageDown vim} scrolls the way vim's CTRL-F does. */
-    public void pageDown(String parameters)
-    {
+    public void pageDown(String parameters) {
         if (wantsVim(parameters))
             vimPage(true);
         else
@@ -3329,8 +3202,7 @@ public final class Editor extends JPanel implements Constants,
     }
 
     /** {@code pageUp vim} scrolls the way vim's CTRL-B does. */
-    public void pageUp(String parameters)
-    {
+    public void pageUp(String parameters) {
         if (wantsVim(parameters))
             vimPage(false);
         else
@@ -3347,8 +3219,7 @@ public final class Editor extends JPanel implements Constants,
      *
      * @return false when there is nowhere further to scroll
      */
-    boolean vimPage(boolean forward)
-    {
+    boolean vimPage(boolean forward) {
         if (dot == null)
             return false;
         final Line top = display.getTopLine();
@@ -3399,8 +3270,7 @@ public final class Editor extends JPanel implements Constants,
         return true;
     }
 
-    public void pageUp()
-    {
+    public void pageUp() {
         if (dot == null)
             return;
         maybeResetGoalColumn();
@@ -3416,8 +3286,7 @@ public final class Editor extends JPanel implements Constants,
         setCurrentCommand(COMMAND_PAGE_UP);
     }
 
-    public void pageUpOtherWindow()
-    {
+    public void pageUpOtherWindow() {
         final Editor ed = getOtherEditor();
         if (ed != null) {
             ed.pageUp();
@@ -3425,8 +3294,7 @@ public final class Editor extends JPanel implements Constants,
         }
     }
 
-    public void selectPageUp()
-    {
+    public void selectPageUp() {
         if (dot == null)
             return;
         maybeResetGoalColumn();
@@ -3441,8 +3309,7 @@ public final class Editor extends JPanel implements Constants,
         setCurrentCommand(COMMAND_PAGE_UP);
     }
 
-    private void pageDownInternal()
-    {
+    private void pageDownInternal() {
         Debug.assertTrue(buffer.needsRenumbering == false);
         Line dotLine = getDotLine();
         int numRows = display.getRows();
@@ -3488,8 +3355,7 @@ public final class Editor extends JPanel implements Constants,
         }
     }
 
-    private void pageUpInternal()
-    {
+    private void pageUpInternal() {
         if (dot.getLine() == buffer.getFirstLine())
             return;
         Debug.assertTrue(buffer.needsRenumbering == false);
@@ -3527,8 +3393,7 @@ public final class Editor extends JPanel implements Constants,
     }
 
     // Move dot to beginning of block, no undo.
-    public void beginningOfBlock()
-    {
+    public void beginningOfBlock() {
         if (mark != null) {
             Region r = new Region(buffer, mark, dot);
             dot.moveTo(r.getBegin());
@@ -3542,8 +3407,7 @@ public final class Editor extends JPanel implements Constants,
     }
 
     // Move dot to end of block, no undo.
-    public void endOfBlock()
-    {
+    public void endOfBlock() {
         if (mark != null) {
             Region r = new Region(buffer, mark, dot);
             dot.moveTo(r.getEnd());
@@ -3556,8 +3420,7 @@ public final class Editor extends JPanel implements Constants,
         }
     }
 
-    public void right()
-    {
+    public void right() {
         if (dot == null)
             return;
         if (buffer.getBooleanProperty(Property.RESTRICT_CARET)) {
@@ -3585,8 +3448,7 @@ public final class Editor extends JPanel implements Constants,
         setUpdateFlag(REFRAME);
     }
 
-    public void selectRight()
-    {
+    public void selectRight() {
         if (dot == null)
             return;
         if (getDotOffset() < getDotLine().length()) {
@@ -3620,8 +3482,7 @@ public final class Editor extends JPanel implements Constants,
         setUpdateFlag(REFRAME);
     }
 
-    public void left()
-    {
+    public void left() {
         if (dot == null)
             return;
         final Line dotLine = getDotLine();
@@ -3657,8 +3518,7 @@ public final class Editor extends JPanel implements Constants,
         setUpdateFlag(REFRAME);
     }
 
-    public void selectLeft()
-    {
+    public void selectLeft() {
         if (dot == null)
             return;
         final Line dotLine = getDotLine();
@@ -3696,25 +3556,21 @@ public final class Editor extends JPanel implements Constants,
         setUpdateFlag(REFRAME);
     }
 
-    public final int getAbsoluteCaretCol()
-    {
+    public final int getAbsoluteCaretCol() {
         return display.getAbsoluteCaretCol();
     }
 
-    public final void setAbsoluteCaretCol(int col)
-    {
+    public final void setAbsoluteCaretCol(int col) {
         display.setAbsoluteCaretCol(col);
     }
 
     private int goalColumn;
 
-    public final void setGoalColumn(int col)
-    {
+    public final void setGoalColumn(int col) {
         goalColumn = col;
     }
 
-    public void moveDotToGoalCol()
-    {
+    public void moveDotToGoalCol() {
         if (buffer.getBooleanProperty(Property.RESTRICT_CARET)) {
             final int limit =
                 buffer.getCol(getDotLine(), getDotLine().length());
@@ -3728,15 +3584,13 @@ public final class Editor extends JPanel implements Constants,
 
     // Move caret down one line, keeping it in the same column if possible.
     // Synchronize dot with caret.
-    public void down()
-    {
+    public void down() {
         maybeResetGoalColumn();
         display.down(false);
         setCurrentCommand(COMMAND_DOWN);
     }
 
-    public void selectDown()
-    {
+    public void selectDown() {
         maybeResetGoalColumn();
         display.down(true);
         setCurrentCommand(COMMAND_DOWN);
@@ -3744,22 +3598,19 @@ public final class Editor extends JPanel implements Constants,
 
     // Move caret up one line, keeping it in the same column if possible.
     // Synchronize dot with caret.
-    public void up()
-    {
+    public void up() {
         maybeResetGoalColumn();
         display.up(false);
         setCurrentCommand(COMMAND_UP);
     }
 
-    public void selectUp()
-    {
+    public void selectUp() {
         maybeResetGoalColumn();
         display.up(true);
         setCurrentCommand(COMMAND_UP);
     }
 
-    private void maybeResetGoalColumn()
-    {
+    private void maybeResetGoalColumn() {
         switch (lastCommand) {
             case COMMAND_UP:
             case COMMAND_DOWN:
@@ -3774,24 +3625,21 @@ public final class Editor extends JPanel implements Constants,
         }
     }
 
-    public void windowUp()
-    {
+    public void windowUp() {
         maybeResetGoalColumn();
         display.windowUp();
         maybeScrollCaret();
         setCurrentCommand(COMMAND_WINDOW_UP);
     }
 
-    public void windowDown()
-    {
+    public void windowDown() {
         maybeResetGoalColumn();
         display.windowDown();
         maybeScrollCaret();
         setCurrentCommand(COMMAND_WINDOW_DOWN);
     }
 
-    public void maybeScrollCaret()
-    {
+    public void maybeScrollCaret() {
         if (dot == null)
             return;
         // Don't scroll the caret if a region is selected!
@@ -3822,25 +3670,24 @@ public final class Editor extends JPanel implements Constants,
         }
     }
 
-    public void toCenter()
-    {
+    public void toCenter() {
         display.toCenter();
     }
 
-    public void toBottom()
-    {
+    public void toBottom() {
         display.toBottom();
     }
 
-    public void toTop()
-    {
+    public void toTop() {
         display.toTop();
     }
 
-    private void selectToPosition(Position pos)
-    {
-        if (!pos.equals(dot) ||
-            buffer.getCol(pos) != display.getAbsoluteCaretCol()) {
+    private void selectToPosition(Position pos) {
+        if (
+            !pos.equals(dot)
+                ||
+                buffer.getCol(pos) != display.getAbsoluteCaretCol()
+        ) {
             addUndo(SimpleEdit.MOVE);
             if (mark == null)
                 setMarkAtDot();
@@ -3853,14 +3700,12 @@ public final class Editor extends JPanel implements Constants,
         }
     }
 
-    public void bol()
-    {
+    public void bol() {
         if (dot != null)
             moveDotTo(dot.getLine(), 0);
     }
 
-    public void home()
-    {
+    public void home() {
         if (dot == null)
             return;
         final boolean extend = prefs.getBooleanProperty(Property.EXTEND_HOME);
@@ -3883,8 +3728,12 @@ public final class Editor extends JPanel implements Constants,
             else
                 pos.setOffset(indent);
         }
-        if (mark != null || !pos.equals(dot) ||
-            buffer.getCol(pos) != display.getAbsoluteCaretCol()) {
+        if (
+            mark != null
+                || !pos.equals(dot)
+                ||
+                buffer.getCol(pos) != display.getAbsoluteCaretCol()
+        ) {
             moveDotTo(pos);
             setCurrentCommand(COMMAND_HOME);
             return;
@@ -3909,13 +3758,15 @@ public final class Editor extends JPanel implements Constants,
             setCurrentCommand(COMMAND_HOME);
             return;
         }
-        if (!pos.equals(dot) ||
-            buffer.getCol(pos) != display.getAbsoluteCaretCol())
+        if (
+            !pos.equals(dot)
+                ||
+                buffer.getCol(pos) != display.getAbsoluteCaretCol()
+        )
             moveDotTo(pos);
     }
 
-    public void selectHome()
-    {
+    public void selectHome() {
         if (dot == null)
             return;
         final boolean extend = prefs.getBooleanProperty(Property.EXTEND_HOME);
@@ -3938,8 +3789,12 @@ public final class Editor extends JPanel implements Constants,
             else
                 pos.setOffset(indent);
         }
-        if (mark != null || !pos.equals(dot) ||
-            buffer.getCol(pos) != display.getAbsoluteCaretCol()) {
+        if (
+            mark != null
+                || !pos.equals(dot)
+                ||
+                buffer.getCol(pos) != display.getAbsoluteCaretCol()
+        ) {
             selectToPosition(pos);
             setUpdateFlag(REFRAME);
             setCurrentCommand(COMMAND_SELECT_HOME);
@@ -3965,22 +3820,27 @@ public final class Editor extends JPanel implements Constants,
             setCurrentCommand(COMMAND_SELECT_HOME);
             return;
         }
-        if (!pos.equals(dot) ||
-            buffer.getCol(pos) != display.getAbsoluteCaretCol())
+        if (
+            !pos.equals(dot)
+                ||
+                buffer.getCol(pos) != display.getAbsoluteCaretCol()
+        )
             selectToPosition(pos);
     }
 
-    public void eol()
-    {
+    public void eol() {
         if (dot == null)
             return;
-        if (mark != null || dot.getOffset() != dot.getLineLength() ||
-            buffer.getCol(dot) != display.getCaretCol() + display.getShift())
+        if (
+            mark != null
+                || dot.getOffset() != dot.getLineLength()
+                ||
+                buffer.getCol(dot) != display.getCaretCol() + display.getShift()
+        )
             moveDotTo(dot.getLine(), dot.getLineLength());
     }
 
-    public void end()
-    {
+    public void end() {
         if (dot == null)
             return;
         Position pos;
@@ -3989,8 +3849,12 @@ public final class Editor extends JPanel implements Constants,
         else
             pos = new Position(dot);
         pos.setOffset(pos.getLineLength());
-        if (mark != null || !pos.equals(dot) ||
-            buffer.getCol(pos) != display.getAbsoluteCaretCol()) {
+        if (
+            mark != null
+                || !pos.equals(dot)
+                ||
+                buffer.getCol(pos) != display.getAbsoluteCaretCol()
+        ) {
             moveDotTo(pos);
             setUpdateFlag(REFRAME);
             setCurrentCommand(COMMAND_END);
@@ -4020,13 +3884,15 @@ public final class Editor extends JPanel implements Constants,
             setCurrentCommand(COMMAND_END);
             return;
         }
-        if (!pos.equals(dot) ||
-            buffer.getCol(pos) != display.getAbsoluteCaretCol())
+        if (
+            !pos.equals(dot)
+                ||
+                buffer.getCol(pos) != display.getAbsoluteCaretCol()
+        )
             moveDotTo(pos);
     }
 
-    public void selectEnd()
-    {
+    public void selectEnd() {
         if (dot == null)
             return;
         Position pos;
@@ -4035,8 +3901,11 @@ public final class Editor extends JPanel implements Constants,
         else
             pos = new Position(dot);
         pos.setOffset(pos.getLineLength());
-        if (!pos.equals(dot) ||
-            buffer.getCol(pos) != display.getAbsoluteCaretCol()) {
+        if (
+            !pos.equals(dot)
+                ||
+                buffer.getCol(pos) != display.getAbsoluteCaretCol()
+        ) {
             selectToPosition(pos);
             setUpdateFlag(REFRAME);
             setCurrentCommand(COMMAND_END);
@@ -4065,21 +3934,22 @@ public final class Editor extends JPanel implements Constants,
             setCurrentCommand(COMMAND_END);
             return;
         }
-        if (!pos.equals(dot) ||
-            buffer.getCol(pos) != display.getAbsoluteCaretCol())
+        if (
+            !pos.equals(dot)
+                ||
+                buffer.getCol(pos) != display.getAbsoluteCaretCol()
+        )
             selectToPosition(pos);
     }
 
-    public void bob()
-    {
+    public void bob() {
         if (buffer.getFirstLine() != null) {
             recordJump();
             moveDotTo(buffer.getFirstLine(), 0);
         }
     }
 
-    public void selectBob()
-    {
+    public void selectBob() {
         if (dot == null)
             return;
         if (buffer.getFirstLine() == null)
@@ -4092,19 +3962,16 @@ public final class Editor extends JPanel implements Constants,
         setUpdateFlag(REPAINT);
     }
 
-    private final Position getEob()
-    {
+    private final Position getEob() {
         return buffer.getEnd();
     }
 
-    public void eob()
-    {
+    public void eob() {
         recordJump();
         moveDotTo(getEob());
     }
 
-    public void selectEob()
-    {
+    public void selectEob() {
         if (buffer.getFirstLine() == null)
             return;
         Line line = buffer.getFirstLine();
@@ -4118,8 +3985,7 @@ public final class Editor extends JPanel implements Constants,
         setUpdateFlag(REPAINT);
     }
 
-    public void top()
-    {
+    public void top() {
         if (dot == null)
             return;
         if (getDotLine() != getTopLine()) {
@@ -4130,8 +3996,7 @@ public final class Editor extends JPanel implements Constants,
         }
     }
 
-    public void bottom()
-    {
+    public void bottom() {
         if (dot == null)
             return;
         Line line = display.getBottomLine();
@@ -4144,15 +4009,14 @@ public final class Editor extends JPanel implements Constants,
         }
     }
 
-    public void selectWord()
-    {
+    public void selectWord() {
         if (dot == null)
             return;
         AWTEvent e = dispatcher.getLastEvent();
         CompoundEdit compoundEdit = null;
         if (e instanceof MouseEvent) {
             compoundEdit = beginCompoundEdit();
-            mouseMoveDotToPoint((MouseEvent)e);
+            mouseMoveDotToPoint((MouseEvent) e);
         }
         if (inWord()) {
             addUndo(SimpleEdit.MOVE);
@@ -4173,15 +4037,13 @@ public final class Editor extends JPanel implements Constants,
             endCompoundEdit(compoundEdit);
     }
 
-    public void mouseMoveDotToPoint()
-    {
+    public void mouseMoveDotToPoint() {
         AWTEvent e = dispatcher.getLastEvent();
         if (e instanceof MouseEvent)
-            mouseMoveDotToPoint((MouseEvent)e);
+            mouseMoveDotToPoint((MouseEvent) e);
     }
 
-    public void mouseMoveDotToPoint(MouseEvent e)
-    {
+    public void mouseMoveDotToPoint(MouseEvent e) {
         addUndo(SimpleEdit.MOVE);
         if (mark != null)
             unmark();
@@ -4196,8 +4058,7 @@ public final class Editor extends JPanel implements Constants,
         Editor.restoreFocus();
     }
 
-    public void mouseSelect()
-    {
+    public void mouseSelect() {
         if (dot != null) {
             AWTEvent e = dispatcher.getLastEvent();
             if (e instanceof MouseEvent) {
@@ -4250,8 +4111,7 @@ public final class Editor extends JPanel implements Constants,
         }
     }
 
-    public void mouseSelectColumn()
-    {
+    public void mouseSelectColumn() {
         if (dot != null) {
             AWTEvent e = dispatcher.getLastEvent();
             if (e instanceof MouseEvent) {
@@ -4267,8 +4127,7 @@ public final class Editor extends JPanel implements Constants,
 
     private JPopupMenu popup;
 
-    public void mouseShowContextMenu()
-    {
+    public void mouseShowContextMenu() {
         AWTEvent e = dispatcher.getLastEvent();
         if (e instanceof MouseEvent) {
             MouseEvent mouseEvent = (MouseEvent) e;
@@ -4293,18 +4152,15 @@ public final class Editor extends JPanel implements Constants,
         }
     }
 
-    public final JPopupMenu getPopup()
-    {
+    public final JPopupMenu getPopup() {
         return popup;
     }
 
-    public final void setPopup(JPopupMenu popup)
-    {
+    public final void setPopup(JPopupMenu popup) {
         this.popup = popup;
     }
 
-    public void killPopup()
-    {
+    public void killPopup() {
         if (popup != null) {
             popup.setVisible(false);
             popup = null;
@@ -4312,25 +4168,21 @@ public final class Editor extends JPanel implements Constants,
         }
     }
 
-    private boolean inWord()
-    {
+    private boolean inWord() {
         return getMode().isIdentifierPart(getDotChar());
     }
 
-    private boolean inWhitespace()
-    {
+    private boolean inWhitespace() {
         return Character.isWhitespace(getDotChar());
     }
 
-    private void skipWhitespace()
-    {
+    private void skipWhitespace() {
         while (inWhitespace())
             if (!nextChar())
                 break;
     }
 
-    private void nextWord()
-    {
+    private void nextWord() {
         if (dot == null)
             return;
         if (inWord()) {
@@ -4348,8 +4200,7 @@ public final class Editor extends JPanel implements Constants,
         }
     }
 
-    private void prevWord()
-    {
+    private void prevWord() {
         if (dot == null)
             return;
         if (!prevChar())
@@ -4398,19 +4249,16 @@ public final class Editor extends JPanel implements Constants,
      *
      * @param parameters "vim" for vim's rule, anything else for j's
      */
-    static boolean wantsVim(String parameters)
-    {
+    static boolean wantsVim(String parameters) {
         return parameters != null && parameters.trim().equalsIgnoreCase("vim");
     }
 
-    public void wordRight()
-    {
+    public void wordRight() {
         wordRight(null);
     }
 
     /** {@code wordRight vim} moves the way vim's {@code w} does. */
-    public void wordRight(String parameters)
-    {
+    public void wordRight(String parameters) {
         if (dot == null)
             return;
         updateDotLine();
@@ -4428,14 +4276,12 @@ public final class Editor extends JPanel implements Constants,
         updateDotLine();
     }
 
-    public void wordLeft()
-    {
+    public void wordLeft() {
         wordLeft(null);
     }
 
     /** {@code wordLeft vim} moves the way vim's {@code b} does. */
-    public void wordLeft(String parameters)
-    {
+    public void wordLeft(String parameters) {
         if (dot == null)
             return;
         updateDotLine();
@@ -4453,14 +4299,12 @@ public final class Editor extends JPanel implements Constants,
         updateDotLine();
     }
 
-    public void selectWordRight()
-    {
+    public void selectWordRight() {
         selectWordRight(null);
     }
 
     /** {@code selectWordRight vim} extends by vim's {@code w}. */
-    public void selectWordRight(String parameters)
-    {
+    public void selectWordRight(String parameters) {
         if (dot == null)
             return;
         addUndo(SimpleEdit.MOVE);
@@ -4478,14 +4322,12 @@ public final class Editor extends JPanel implements Constants,
         updateDotLine();
     }
 
-    public void selectWordLeft()
-    {
+    public void selectWordLeft() {
         selectWordLeft(null);
     }
 
     /** {@code selectWordLeft vim} extends by vim's {@code b}. */
-    public void selectWordLeft(String parameters)
-    {
+    public void selectWordLeft(String parameters) {
         if (dot == null)
             return;
         addUndo(SimpleEdit.MOVE);
@@ -4503,8 +4345,7 @@ public final class Editor extends JPanel implements Constants,
         updateDotLine();
     }
 
-    public void selectAll()
-    {
+    public void selectAll() {
         if (dot == null)
             return;
         recordJump();
@@ -4525,8 +4366,7 @@ public final class Editor extends JPanel implements Constants,
     // Moves dot to the requested absolute column, based on the tab size of
     // the buffer. If the requested column is past the end of the line, dot is
     // moved to the end of the line.
-    public void moveDotToCol(int goal)
-    {
+    public void moveDotToCol(int goal) {
         if (dot == null)
             return;
 
@@ -4539,24 +4379,20 @@ public final class Editor extends JPanel implements Constants,
             moveCaretToDotCol();
     }
 
-    public final void moveDotToCaretCol()
-    {
+    public final void moveDotToCaretCol() {
         moveDotToCol(display.getAbsoluteCaretCol());
     }
 
-    public final void moveCaretToDotCol()
-    {
+    public final void moveCaretToDotCol() {
         display.moveCaretToDotCol();
     }
 
-    public final void repaintDisplay()
-    {
+    public final void repaintDisplay() {
         display.setUpdateFlag(REPAINT);
         display.repaint();
     }
 
-    public final void repaintNow()
-    {
+    public final void repaintNow() {
         display.repaintNow();
     }
 
@@ -4564,8 +4400,7 @@ public final class Editor extends JPanel implements Constants,
     // a line and the location of the caret, if it's beyond the end of the
     // text. Dot is moved to the end of the appended whitespace. Does nothing
     // if caret is not past end of text.
-    public void fillToCaret()
-    {
+    public void fillToCaret() {
         final int where = display.getAbsoluteCaretCol();
         final Line dotLine = getDotLine();
         String s = getFillString(dotLine, where);
@@ -4589,8 +4424,7 @@ public final class Editor extends JPanel implements Constants,
         }
     }
 
-    private String getFillString(Line line, int where)
-    {
+    private String getFillString(Line line, int where) {
         int end = buffer.getCol(line, line.length());
         if (where <= end)
             return null;
@@ -4614,29 +4448,28 @@ public final class Editor extends JPanel implements Constants,
             return Utilities.spaces(width);
     }
 
-    public final int getDotCol()
-    {
+    public final int getDotCol() {
         return buffer.getCol(dot);
     }
 
     // Insert string at dot, put dot at end of inserted string.
     // No undo.
-    public void insertStringInternal(String s)
-    {
+    public void insertStringInternal(String s) {
         updateInAllEditors(getDotLine());
         buffer.insertString(dot, s);
     }
 
     // Fills the space (if any) between dot and caret and inserts
     // the char in question.
-    public void insertChar(char c)
-    {
+    public void insertChar(char c) {
         final Line dotLine = getDotLine();
         if (getDotOffset() > dotLine.length()) {
             // Shouldn't happen.
             Debug.bug();
-            Log.error("insertChar dot offset = " + getDotOffset() +
-                      " dotLine length = " + dotLine.length());
+            Log.error(
+                "insertChar dot offset = " + getDotOffset() +
+                    " dotLine length = " + dotLine.length()
+            );
             // Enforce sanity and carry on.
             dot.setOffset(dotLine.length());
         }
@@ -4665,8 +4498,7 @@ public final class Editor extends JPanel implements Constants,
         updateInAllEditors(dotLine);
     }
 
-    public void insertChar()
-    {
+    public void insertChar() {
         if (!checkReadOnly())
             return;
         String input = InputDialog.showInputDialog(this, "Character:", "Insert Character");
@@ -4680,8 +4512,7 @@ public final class Editor extends JPanel implements Constants,
             MessageDialog.showMessageDialog(this, "Invalid character", "Insert Character");
     }
 
-    public void insertByte()
-    {
+    public void insertByte() {
         if (!checkReadOnly())
             return;
         String input = InputDialog.showInputDialog(this, "Byte:", "Insert Byte");
@@ -4699,18 +4530,23 @@ public final class Editor extends JPanel implements Constants,
             }
             catch (UnsupportedEncodingException e) {
                 Log.error(e);
-                MessageDialog.showMessageDialog(this,
-                    "Unsupported encoding \"" + encoding + "\"", "Insert Byte");
+                MessageDialog.showMessageDialog(
+                    this,
+                    "Unsupported encoding \"" + encoding + "\"",
+                    "Insert Byte"
+                );
             }
         } else
-            MessageDialog.showMessageDialog(this,
-                "Invalid byte \"" + input + "\"", "Insert Byte");
+            MessageDialog.showMessageDialog(
+                this,
+                "Invalid byte \"" + input + "\"",
+                "Insert Byte"
+            );
     }
 
     // Used only by insertChar and insertByte. Doesn't understand a leading
     // minus sign.
-    private static int parseNumericInput(String input)
-    {
+    private static int parseNumericInput(String input) {
         int n = -1;
         input = input.trim();
         try {
@@ -4727,12 +4563,15 @@ public final class Editor extends JPanel implements Constants,
         return n;
     }
 
-    public void electricSemi()
-    {
+    public void electricSemi() {
         if (!checkReadOnly())
             return;
-        if (mark != null || getDotLine().flags() == STATE_COMMENT ||
-            getMode().isInQuote(buffer, dot)) {
+        if (
+            mark != null
+                || getDotLine().flags() == STATE_COMMENT
+                ||
+                getMode().isInQuote(buffer, dot)
+        ) {
             insertNormalChar(';');
         } else {
             CompoundEdit compoundEdit = beginCompoundEdit();
@@ -4754,8 +4593,7 @@ public final class Editor extends JPanel implements Constants,
         }
     }
 
-    public void electricColon()
-    {
+    public void electricColon() {
         if (!checkReadOnly())
             return;
         try {
@@ -4773,8 +4611,7 @@ public final class Editor extends JPanel implements Constants,
         }
     }
 
-    private void electricColonInternal()
-    {
+    private void electricColonInternal() {
         final Line dotLine = getDotLine();
         final int dotOffset = getDotOffset();
         if (mark != null || dotOffset != dotLine.length()) {
@@ -4794,8 +4631,7 @@ public final class Editor extends JPanel implements Constants,
         endCompoundEdit(compoundEdit);
     }
 
-    public void electricStar()
-    {
+    public void electricStar() {
         if (!checkReadOnly())
             return;
 
@@ -4815,8 +4651,7 @@ public final class Editor extends JPanel implements Constants,
             insertNormalChar('*');
     }
 
-    public void electricPound()
-    {
+    public void electricPound() {
         if (!checkReadOnly())
             return;
         if (mark == null && getDotLine().isBlank()) {
@@ -4842,18 +4677,15 @@ public final class Editor extends JPanel implements Constants,
             insertNormalChar('#');
     }
 
-    public void electricOpenBrace()
-    {
+    public void electricOpenBrace() {
         electricBraceInternal('{');
     }
 
-    public void electricCloseBrace()
-    {
+    public void electricCloseBrace() {
         electricBraceInternal('}');
     }
 
-    private void electricBraceInternal(char c)
-    {
+    private void electricBraceInternal(char c) {
         if (!checkReadOnly())
             return;
         CompoundEdit compoundEdit = beginCompoundEdit();
@@ -4873,8 +4705,7 @@ public final class Editor extends JPanel implements Constants,
         endCompoundEdit(compoundEdit);
     }
 
-    public void electricCloseAngleBracket()
-    {
+    public void electricCloseAngleBracket() {
         if (!checkReadOnly())
             return;
         if (mark == null) {
@@ -4884,9 +4715,14 @@ public final class Editor extends JPanel implements Constants,
                 insertChar('>');
                 moveCaretToDotCol();
                 if (buffer.getBooleanProperty(Property.AUTO_INDENT)) {
-                    if (modeId == HTML_MODE &&
-                        getDotLine().substring(0, getDotOffset()).endsWith(
-                            "</pre>")) {
+                    if (
+                        modeId == HTML_MODE
+                            &&
+                            getDotLine().substring(0, getDotOffset())
+                                .endsWith(
+                                    "</pre>"
+                                )
+                    ) {
                         ; // No autoindent after "</pre>" in HTML mode.
                     } else {
                         indentLine();
@@ -4900,15 +4736,13 @@ public final class Editor extends JPanel implements Constants,
         insertNormalChar('>');
     }
 
-    public void gotoline(int lineNumber)
-    {
+    public void gotoline(int lineNumber) {
         Line line = buffer.getLine(lineNumber);
         if (line != null)
             setDot(line, 0);
     }
 
-    public void saveState()
-    {
+    public void saveState() {
         if (saveSession) {
             // Make sure information about current buffer is up-to-date.
             saveView();
@@ -4923,8 +4757,7 @@ public final class Editor extends JPanel implements Constants,
     }
 
     // It might make sense to move this code into the Buffer class.
-    public void reload(Buffer buf)
-    {
+    public void reload(Buffer buf) {
         setWaitCursor();
         if (buf.getFile() instanceof SshFile)
             return; // Not supported.
@@ -4940,8 +4773,7 @@ public final class Editor extends JPanel implements Constants,
         setDefaultCursor();
     }
 
-    public void revertBuffer()
-    {
+    public void revertBuffer() {
         final File file = buffer.getFile();
         if (file instanceof SshFile)
             return; // Not supported.
@@ -4956,10 +4788,9 @@ public final class Editor extends JPanel implements Constants,
     // Returns true if the buffer is active and there has been some change
     // that requires us to redraw the menus, title bar or display, false
     // otherwise.
-    public boolean reactivate(Buffer buf)
-    {
+    public boolean reactivate(Buffer buf) {
         if (buf instanceof ImageBuffer)
-            return ((ImageBuffer)buf).reactivate();
+            return ((ImageBuffer) buf).reactivate();
 
         if (buf.getType() != Buffer.TYPE_NORMAL)
             return false;
@@ -4987,7 +4818,8 @@ public final class Editor extends JPanel implements Constants,
             if (buf.readOnly && buf.isLoaded() && buf.isModified())
                 MessageDialog.showMessageDialog(
                     file.canonicalPath().concat(" is no longer writable"),
-                    "Warning");
+                    "Warning"
+                );
         }
 
         if (buf.isLoaded()) {
@@ -5011,24 +4843,20 @@ public final class Editor extends JPanel implements Constants,
         return changed;
     }
 
-    public void setFocus(JComponent c)
-    {
+    public void setFocus(JComponent c) {
         frame.setFocus(c);
     }
 
-    public JComponent getFocusedComponent()
-    {
+    public JComponent getFocusedComponent() {
         return frame.getFocusedComponent();
     }
 
-    public void setFocusToDisplay()
-    {
+    public void setFocusToDisplay() {
         if (frame != null)
             frame.setFocus(display);
     }
 
-    public static final void restoreFocus()
-    {
+    public static final void restoreFocus() {
         Runnable r = () -> {
             if (currentEditor != null)
                 currentEditor.setFocusToDisplay();
@@ -5036,25 +4864,17 @@ public final class Editor extends JPanel implements Constants,
         SwingUtilities.invokeLater(r);
     }
 
-    public void componentHidden(ComponentEvent e)
-    {
-    }
+    public void componentHidden(ComponentEvent e) {}
 
-    public void componentMoved(ComponentEvent e)
-    {
-    }
+    public void componentMoved(ComponentEvent e) {}
 
-    public void componentResized(ComponentEvent e)
-    {
+    public void componentResized(ComponentEvent e) {
         updateScrollBars();
     }
 
-    public void componentShown(ComponentEvent e)
-    {
-    }
+    public void componentShown(ComponentEvent e) {}
 
-    public void mouseWheelMoved(MouseWheelEvent e)
-    {
+    public void mouseWheelMoved(MouseWheelEvent e) {
         // Without this, focus ends up in the location bar textfield if you use
         // the mouse wheel in the edit window after using the openFile
         // completion list to open a file.
@@ -5063,15 +4883,12 @@ public final class Editor extends JPanel implements Constants,
 
         int rotation = e.getWheelRotation();
         int absRotation = Math.abs(rotation);
-        if (e.isShiftDown())
-        {
+        if (e.isShiftDown()) {
             if (rotation < 0)
                 display.windowLeft(absRotation);
             else if (rotation > 0)
                 display.windowRight(absRotation);
-        }
-        else
-        {
+        } else {
             if (rotation < 0)
                 display.windowUp(absRotation);
             else if (rotation > 0)
@@ -5079,8 +4896,7 @@ public final class Editor extends JPanel implements Constants,
         }
     }
 
-    public void ensureActive()
-    {
+    public void ensureActive() {
         if (frame == null)
             return;
         if (!frame.isActive()) {
@@ -5095,21 +4911,18 @@ public final class Editor extends JPanel implements Constants,
         }
     }
 
-    public void quit()
-    {
+    public void quit() {
         maybeExit();
     }
 
-    public void saveAllExit()
-    {
+    public void saveAllExit() {
         tagFileManager.setEnabled(false);
         saveAll();
         maybeExit(); // May never return.
         tagFileManager.setEnabled(true);
     }
 
-    private void maybeExit()
-    {
+    private void maybeExit() {
         int numModifiedBuffers = 0;
 
         for (BufferIterator it = new BufferIterator(); it.hasNext();) {
@@ -5124,7 +4937,7 @@ public final class Editor extends JPanel implements Constants,
             if (numModifiedBuffers > 1)
                 sb.append('s');
             sb.append('?');
-            if  (!confirm("Really exit?", sb.toString()))
+            if (!confirm("Really exit?", sb.toString()))
                 return;
         }
 
@@ -5155,8 +4968,7 @@ public final class Editor extends JPanel implements Constants,
         System.exit(0);
     }
 
-    public void killFrame()
-    {
+    public void killFrame() {
         if (getFrameCount() == 1) {
             // Does not return if OK to exit.
             maybeExit();
@@ -5178,8 +4990,7 @@ public final class Editor extends JPanel implements Constants,
 
     // See if we have the requested file in a buffer. If not, and if the file
     // actually exists, make a new buffer for it.
-    public static Buffer getBuffer(File file)
-    {
+    public static Buffer getBuffer(File file) {
         if (file == null)
             return null;
         Buffer buf = bufferList.findBuffer(file);
@@ -5191,8 +5002,10 @@ public final class Editor extends JPanel implements Constants,
             return new DirectoryBuffer(file);
         if (file.isFile()) {
             if (!file.canRead()) {
-                MessageDialog.showMessageDialog("File is not readable",
-                    "Error");
+                MessageDialog.showMessageDialog(
+                    "File is not readable",
+                    "Error"
+                );
                 return null;
             }
             return Buffer.createBuffer(file);
@@ -5208,8 +5021,7 @@ public final class Editor extends JPanel implements Constants,
         return null;
     }
 
-    public void nextBuffer()
-    {
+    public void nextBuffer() {
         Buffer buf = bufferList.getNextPrimaryBuffer(buffer);
         if (buf == null)
             return;
@@ -5229,10 +5041,11 @@ public final class Editor extends JPanel implements Constants,
      * before this one -- vim's alternate file, CTRL-^ -- rather than to the
      * one before this in the buffer list.
      */
-    public void prevBuffer(String parameters)
-    {
-        if (parameters == null
-            || !parameters.trim().equalsIgnoreCase("alternate")) {
+    public void prevBuffer(String parameters) {
+        if (
+            parameters == null
+                || !parameters.trim().equalsIgnoreCase("alternate")
+        ) {
             prevBuffer();
             return;
         }
@@ -5245,8 +5058,7 @@ public final class Editor extends JPanel implements Constants,
     }
 
     /** The buffer activated most recently, other than this one. */
-    Buffer alternateBuffer()
-    {
+    Buffer alternateBuffer() {
         Buffer best = null;
         for (BufferIterator it = new BufferIterator(); it.hasNext();) {
             final Buffer b = it.next();
@@ -5258,8 +5070,7 @@ public final class Editor extends JPanel implements Constants,
         return best;
     }
 
-    public void prevBuffer()
-    {
+    public void prevBuffer() {
         Buffer buf = bufferList.getPreviousPrimaryBuffer(buffer);
         if (buf == null)
             return;
@@ -5274,8 +5085,7 @@ public final class Editor extends JPanel implements Constants,
             switchToBuffer(buf);
     }
 
-    public void switchToBuffer(Buffer buf)
-    {
+    public void switchToBuffer(Buffer buf) {
         if (buf != null) {
             if (!buf.isPaired() && (buffer == null || !buffer.isPaired())) {
                 // This is the easy case. Both the buffer we're switching in
@@ -5294,20 +5104,17 @@ public final class Editor extends JPanel implements Constants,
             Debug.bug();
     }
 
-    public void makeNext(final Buffer buf)
-    {
+    public void makeNext(final Buffer buf) {
         bufferList.makeNext(buf, buffer);
     }
 
-    public void newBuffer()
-    {
+    public void newBuffer() {
         Buffer buf = new Buffer(0);
         makeNext(buf);
         switchToBuffer(buf);
     }
 
-    public final void openFile()
-    {
+    public final void openFile() {
         AWTEvent e = dispatcher.getLastEvent();
         if (e != null && e.getSource() instanceof MenuItem) {
             Runnable r = () -> {
@@ -5322,19 +5129,16 @@ public final class Editor extends JPanel implements Constants,
      * {@code openFileInSplit FILE} -- splits the window and opens FILE in
      * the top one, with the caret, as vim's {@code :split FILE}.
      */
-    public void openFileInSplit(String file)
-    {
+    public void openFileInSplit(String file) {
         splitAndOpen(file, false);
     }
 
     /** {@code openFileInVsplit FILE} -- the same, side by side, on the left. */
-    public void openFileInVsplit(String file)
-    {
+    public void openFileInVsplit(String file) {
         splitAndOpen(file, true);
     }
 
-    private void splitAndOpen(String file, boolean vertical)
-    {
+    private void splitAndOpen(String file, boolean vertical) {
         if (frame == null)
             return;
         if (vertical)
@@ -5352,32 +5156,27 @@ public final class Editor extends JPanel implements Constants,
         }
     }
 
-    public void openFileInOtherWindow()
-    {
-      saveView();
-      boolean alreadySplit = frame.hasSplit();
-      if (!alreadySplit)
-        splitWindow();
-      final Editor ed = getOtherEditor();
-      if (ed.getLocationBar() != null)
-        {
-          Runnable r = () ->
-            {
-              frame.setFocus(ed.getLocationBar().getTextField());
+    public void openFileInOtherWindow() {
+        saveView();
+        boolean alreadySplit = frame.hasSplit();
+        if (!alreadySplit)
+            splitWindow();
+        final Editor ed = getOtherEditor();
+        if (ed.getLocationBar() != null) {
+            Runnable r = () -> {
+                frame.setFocus(ed.getLocationBar().getTextField());
             };
-          SwingUtilities.invokeLater(r);
-          setCurrentEditor(ed);
-          if (alreadySplit)
-            {
-              // Current editor has changed.
-              repaint();
-              ed.repaint();
+            SwingUtilities.invokeLater(r);
+            setCurrentEditor(ed);
+            if (alreadySplit) {
+                // Current editor has changed.
+                repaint();
+                ed.repaint();
             }
         }
     }
 
-    public Buffer openFile(File file)
-    {
+    public Buffer openFile(File file) {
         Buffer buf = getBuffer(file);
         if (buf != null) {
             Debug.assertTrue(bufferList.contains(buf));
@@ -5387,15 +5186,18 @@ public final class Editor extends JPanel implements Constants,
             return null;
         // File is local.
         if (!file.exists()) {
-            if (confirm("Create file?",
-                        file.canonicalPath() + " does not exist. Create?"))
+            if (
+                confirm(
+                    "Create file?",
+                    file.canonicalPath() + " does not exist. Create?"
+                )
+            )
                 return Buffer.createBuffer(file);
         }
         return null;
     }
 
-    public Buffer openFiles(List<String> list)
-    {
+    public Buffer openFiles(List<String> list) {
         if (list == null)
             return null;
         final int listSize = list.size();
@@ -5435,8 +5237,11 @@ public final class Editor extends JPanel implements Constants,
             }
             File file = File.getInstance(directory, s);
             if (file == null) {
-                MessageDialog.showMessageDialog(this, "Invalid path ".concat(s),
-                    "Invalid Path");
+                MessageDialog.showMessageDialog(
+                    this,
+                    "Invalid path ".concat(s),
+                    "Invalid Path"
+                );
                 continue;
             }
             if (Utilities.isFilenameAbsolute(s) || s.startsWith("./") || s.startsWith(".\\"))
@@ -5530,24 +5335,21 @@ public final class Editor extends JPanel implements Constants,
         return toBeActivated;
     }
 
-    public void unmark()
-    {
+    public void unmark() {
         if (mark != null) {
             setMark(null);
             display.setUpdateFlag(REPAINT); // BUG! Not always necessary!
         }
     }
 
-    public void cancelBackgroundProcess()
-    {
+    public void cancelBackgroundProcess() {
         BackgroundProcess backgroundProcess = buffer.getBackgroundProcess();
         if (backgroundProcess != null)
             backgroundProcess.cancel();
     }
 
     // Calls buffer.setMark(null), then returns after doing exactly one thing.
-    public void escape()
-    {
+    public void escape() {
         buffer.setMark(null); // keyboard-quit
 
         // Cancel background process (if any).
@@ -5588,8 +5390,7 @@ public final class Editor extends JPanel implements Constants,
             moveDotTo(mark);
     }
 
-    public boolean escapeInternal()
-    {
+    public boolean escapeInternal() {
         if (buffer instanceof CompilationBuffer || buffer.isTransient()) {
             if (buffer.unsplitOnClose()) {
                 buffer.windowClosing();
@@ -5632,8 +5433,7 @@ public final class Editor extends JPanel implements Constants,
         return false;
     }
 
-    public void tempBufferQuit()
-    {
+    public void tempBufferQuit() {
         if (buffer instanceof CompilationBuffer || buffer.isTransient()) {
             if (buffer.unsplitOnClose()) {
                 buffer.windowClosing();
@@ -5647,8 +5447,7 @@ public final class Editor extends JPanel implements Constants,
         }
     }
 
-    public void stamp()
-    {
+    public void stamp() {
         if (!checkReadOnly())
             return;
         Date now = new Date(System.currentTimeMillis());
@@ -5691,8 +5490,7 @@ public final class Editor extends JPanel implements Constants,
         }
     }
 
-    public Search getSearchAtDot()
-    {
+    public Search getSearchAtDot() {
         if (dot == null)
             return null;
         String pattern = null;
@@ -5712,8 +5510,7 @@ public final class Editor extends JPanel implements Constants,
     }
 
     // Assumes dot is on first char of found pattern.
-    public void markFoundPattern(Search search)
-    {
+    public void markFoundPattern(Search search) {
         if (search.isRegularExpression() && search.isMultilinePattern()) {
             Matcher matcher = search.getMatch();
             if (matcher != null) {
@@ -5763,8 +5560,7 @@ public final class Editor extends JPanel implements Constants,
         }
     }
 
-    public void findNext()
-    {
+    public void findNext() {
         final Search search = getLastSearch();
         if (search != null) {
             // Shows the matches again after clearSearchHighlight.
@@ -5787,7 +5583,7 @@ public final class Editor extends JPanel implements Constants,
                 if (search instanceof FindInFiles) {
                     if (buffer.getFile() != null) {
                         ListOccurrencesInFilesBuffer buf =
-                            ((FindInFiles)search).getOutputBuffer();
+                            ((FindInFiles) search).getOutputBuffer();
                         if (buf != null)
                             buf.follow(buffer.getFile(), getDotLine());
                     }
@@ -5798,7 +5594,7 @@ public final class Editor extends JPanel implements Constants,
                 Editor ed = getOtherEditor();
                 if (ed != null) {
                     ListOccurrencesInFilesBuffer buf =
-                        ((FindInFiles)search).getOutputBuffer();
+                        ((FindInFiles) search).getOutputBuffer();
                     if (ed.getBuffer() == buf) {
                         buf.findNextOccurrence(ed);
                         return;
@@ -5809,8 +5605,7 @@ public final class Editor extends JPanel implements Constants,
         }
     }
 
-    public void findPrev()
-    {
+    public void findPrev() {
         final Search search = getLastSearch();
         if (search != null) {
             setSearchHighlightHidden(false);
@@ -5832,7 +5627,7 @@ public final class Editor extends JPanel implements Constants,
                 if (search instanceof FindInFiles) {
                     if (buffer.getFile() != null) {
                         ListOccurrencesInFilesBuffer buf =
-                            ((FindInFiles)search).getOutputBuffer();
+                            ((FindInFiles) search).getOutputBuffer();
                         if (buf != null)
                             buf.follow(buffer.getFile(), getDotLine());
                     }
@@ -5843,7 +5638,7 @@ public final class Editor extends JPanel implements Constants,
                 Editor ed = getOtherEditor();
                 if (ed != null) {
                     ListOccurrencesInFilesBuffer buf =
-                        ((FindInFiles)search).getOutputBuffer();
+                        ((FindInFiles) search).getOutputBuffer();
                     if (ed.getBuffer() == buf) {
                         buf.findPreviousOccurrence(ed);
                         return;
@@ -5854,41 +5649,36 @@ public final class Editor extends JPanel implements Constants,
         }
     }
 
-    public void incrementalFind()
-    {
-      if (dot == null)
-        return;
+    public void incrementalFind() {
+        if (dot == null)
+            return;
 
         // Use location bar.
-      if (locationBar != null)
-        {
-          locationBar.setLabelText(LocationBar.PROMPT_PATTERN);
-          HistoryTextField textField = locationBar.getTextField();
-          textField.setHandler(new IncrementalFindTextFieldHandler(this, textField));
-          textField.setHistory(new History("incrementalFind.pattern"));
-          textField.setText("");
-          setFocusToTextField();
+        if (locationBar != null) {
+            locationBar.setLabelText(LocationBar.PROMPT_PATTERN);
+            HistoryTextField textField = locationBar.getTextField();
+            textField.setHandler(new IncrementalFindTextFieldHandler(this, textField));
+            textField.setHistory(new History("incrementalFind.pattern"));
+            textField.setText("");
+            setFocusToTextField();
         }
     }
 
-    public String getCurrentText()
-    {
+    public String getCurrentText() {
         String s = getSelectionOnCurrentLine();
         if (s == null)
             s = getTokenAtDot();
         return (s != null && s.length() > 0) ? s : null;
     }
 
-    public String getSelectionOnCurrentLine()
-    {
-        if (dot !=  null && mark != null && getMarkLine() == getDotLine())
+    public String getSelectionOnCurrentLine() {
+        if (dot != null && mark != null && getMarkLine() == getDotLine())
             return new Region(this).toString();
         else
             return null;
     }
 
-    public String getFilenameAtDot()
-    {
+    public String getFilenameAtDot() {
         if (dot == null)
             return null;
         Position pos;
@@ -5915,7 +5705,7 @@ public final class Editor extends JPanel implements Constants,
             if (Utilities.isFilenameChar(c)) {
                 while (offset > 0) {
                     c = line.charAt(--offset);
-                    if (!Utilities.isFilenameChar(c)){
+                    if (!Utilities.isFilenameChar(c)) {
                         ++offset;
                         break;
                     }
@@ -5944,7 +5734,7 @@ public final class Editor extends JPanel implements Constants,
                 // case with links embedded in text).
                 int length = sb.length();
                 while (length > 0) {
-                    c = sb.charAt(length-1);
+                    c = sb.charAt(length - 1);
                     if (".,:;)]>".indexOf(c) >= 0)
                         --length;
                     else
@@ -5961,8 +5751,7 @@ public final class Editor extends JPanel implements Constants,
         return sb.toString();
     }
 
-    private String getTokenAtDot()
-    {
+    private String getTokenAtDot() {
         // If a selection is marked, return the token at the beginning of the
         // marked region.
         if (mark != null) {
@@ -5972,13 +5761,11 @@ public final class Editor extends JPanel implements Constants,
         return tokenAt(dot);
     }
 
-    private String tokenAt(Position pos)
-    {
+    private String tokenAt(Position pos) {
         return getMode().getIdentifier(pos);
     }
 
-    public void findNextWord()
-    {
+    public void findNextWord() {
         if (dot == null)
             return;
         String pattern = getTokenAtDot();
@@ -6004,8 +5791,7 @@ public final class Editor extends JPanel implements Constants,
             search.notFound(this);
     }
 
-    public void findPrevWord()
-    {
+    public void findPrevWord() {
         if (dot == null)
             return;
         String pattern = getTokenAtDot();
@@ -6042,8 +5828,7 @@ public final class Editor extends JPanel implements Constants,
             search.notFound(this);
     }
 
-    public void findFirstOccurrence()
-    {
+    public void findFirstOccurrence() {
         if (dot == null)
             return;
         String pattern = getTokenAtDot();
@@ -6051,8 +5836,10 @@ public final class Editor extends JPanel implements Constants,
             return;
         final Search search = new Search(pattern, false, true);
         setLastSearch(search);
-        Position pos = search.find(buffer.getMode(),
-                                       new Position(buffer.getFirstLine(), 0));
+        Position pos = search.find(
+            buffer.getMode(),
+            new Position(buffer.getFirstLine(), 0)
+        );
         if (pos != null) {
             recordJump();
             moveDotTo(pos);
@@ -6061,8 +5848,7 @@ public final class Editor extends JPanel implements Constants,
             search.notFound(this);
     }
 
-    public void copyPath()
-    {
+    public void copyPath() {
         if (buffer instanceof DirectoryBuffer) {
             String path = ((DirectoryBuffer) buffer).getPathAtDot();
             if (path != null) {
@@ -6073,8 +5859,7 @@ public final class Editor extends JPanel implements Constants,
         }
     }
 
-    public void copyRegion()
-    {
+    public void copyRegion() {
         if (dot == null)
             return;
         String message = null;
@@ -6102,8 +5887,7 @@ public final class Editor extends JPanel implements Constants,
             status(message);
     }
 
-    public void copyAppend()
-    {
+    public void copyAppend() {
         if (isColumnSelection()) {
             notSupportedForColumnSelections();
             return;
@@ -6136,8 +5920,7 @@ public final class Editor extends JPanel implements Constants,
      * even when there is nothing to delete: an insert there is padded out
      * to the display's column.
      */
-    public void deleteRegion(Position start, Position end)
-    {
+    public void deleteRegion(Position start, Position end) {
         setMark(end);
         setDot(start);
         moveCaretToDotCol();
@@ -6145,8 +5928,7 @@ public final class Editor extends JPanel implements Constants,
     }
 
     // Handles undo, updates display and marks buffer modified.
-    public void deleteRegion()
-    {
+    public void deleteRegion() {
         if (mark == null)
             return;
         if (getMarkLine() != getDotLine() || getMarkOffset() != getDotOffset()) {
@@ -6195,15 +5977,13 @@ public final class Editor extends JPanel implements Constants,
     // Leaves dot at beginning of deleted region.
     // Block splits a tab the region's edge cuts through, and leaves the
     // caret at its top left.
-    private void deleteColumn(Region r)
-    {
+    private void deleteColumn(Region r) {
         Debug.assertTrue(r.isColumnRegion());
         r.toBlock().delete(this);
     }
 
     // This really is a kill!
-    public void killRegion()
-    {
+    public void killRegion() {
         if (!checkReadOnly())
             return;
         try {
@@ -6221,8 +6001,7 @@ public final class Editor extends JPanel implements Constants,
         }
     }
 
-    private void killRegionInternal()
-    {
+    private void killRegionInternal() {
         if (mark == null)
             mark = buffer.getMark();
         if (mark != null) {
@@ -6309,8 +6088,7 @@ public final class Editor extends JPanel implements Constants,
         }
     }
 
-    public void killAppend()
-    {
+    public void killAppend() {
         if (isColumnSelection()) {
             notSupportedForColumnSelections();
             return;
@@ -6322,8 +6100,7 @@ public final class Editor extends JPanel implements Constants,
     // Copies text from dot to end of line to kill ring and then deletes that
     // text. If dot is already at end of line, deletes newline and copies it
     // to kill ring.
-    public void killLine()
-    {
+    public void killLine() {
         if (!checkReadOnly())
             return;
 
@@ -6335,7 +6112,7 @@ public final class Editor extends JPanel implements Constants,
         addUndo(SimpleEdit.MOVE);
         unmark();
 
-        if (getDotOffset() < getDotLine().length()){
+        if (getDotOffset() < getDotLine().length()) {
             setMarkAtDot();
             if (dot.getLine().isBlank() && dot.getNextLine() != null)
                 dot.moveTo(dot.getNextLine(), 0);
@@ -6352,18 +6129,15 @@ public final class Editor extends JPanel implements Constants,
         endCompoundEdit(compoundEdit);
     }
 
-    public void deleteWordRight()
-    {
+    public void deleteWordRight() {
         deleteOrKillWordRight(false);
     }
 
-    public void killWordRight()
-    {
+    public void killWordRight() {
         deleteOrKillWordRight(true);
     }
 
-    private void deleteOrKillWordRight(boolean isKill)
-    {
+    private void deleteOrKillWordRight(boolean isKill) {
         if (!checkReadOnly())
             return;
         CompoundEdit compoundEdit = beginCompoundEdit();
@@ -6392,18 +6166,15 @@ public final class Editor extends JPanel implements Constants,
         endCompoundEdit(compoundEdit);
     }
 
-    public void deleteWordLeft()
-    {
+    public void deleteWordLeft() {
         deleteOrKillWordLeft(false);
     }
 
-    public void killWordLeft()
-    {
+    public void killWordLeft() {
         deleteOrKillWordLeft(true);
     }
 
-    private void deleteOrKillWordLeft(boolean isKill)
-    {
+    private void deleteOrKillWordLeft(boolean isKill) {
         if (!checkReadOnly())
             return;
         if (getDotOffset() == 0 && getDotLine().previous() == null)
@@ -6437,8 +6208,7 @@ public final class Editor extends JPanel implements Constants,
         endCompoundEdit(compoundEdit);
     }
 
-    public boolean canPaste()
-    {
+    public boolean canPaste() {
         if (buffer.isReadOnly())
             return false;
         if (killRing.size() > 0)
@@ -6446,8 +6216,7 @@ public final class Editor extends JPanel implements Constants,
         return KillRing.getText(KillRing.systemClipboard()) != null;
     }
 
-    public void paste()
-    {
+    public void paste() {
         if (!checkReadOnly())
             return;
         setWaitCursor();
@@ -6463,8 +6232,7 @@ public final class Editor extends JPanel implements Constants,
         setDefaultCursor();
     }
 
-    public void cyclePaste()
-    {
+    public void cyclePaste() {
         if (lastCommand == COMMAND_PASTE) {
             setWaitCursor();
             String s = killRing.popNext();
@@ -6478,8 +6246,7 @@ public final class Editor extends JPanel implements Constants,
             paste();
     }
 
-    public void mousePaste()
-    {
+    public void mousePaste() {
         if (dot == null)
             return;
         if (!checkReadOnly())
@@ -6504,18 +6271,15 @@ public final class Editor extends JPanel implements Constants,
         endCompoundEdit(compoundEdit);
     }
 
-    public static void promoteLastPaste()
-    {
+    public static void promoteLastPaste() {
         killRing.promoteLastPaste();
     }
 
-    public void paste(String toBeInserted)
-    {
+    public void paste(String toBeInserted) {
         paste(toBeInserted, false);
     }
 
-    public void paste(String toBeInserted, boolean leavePasteSelected)
-    {
+    public void paste(String toBeInserted, boolean leavePasteSelected) {
         if (!checkReadOnly())
             return;
         if (toBeInserted == null || toBeInserted.length() == 0)
@@ -6536,13 +6300,16 @@ public final class Editor extends JPanel implements Constants,
         setUpdateFlag(REFRAME);
     }
 
-    private void pasteInternal(String toBeInserted, boolean leavePasteSelected)
-    {
+    private void pasteInternal(String toBeInserted, boolean leavePasteSelected) {
         final Mode mode = buffer.getMode();
         CompoundEdit compoundEdit = beginCompoundEdit();
-        if (mark == null && Utilities.isLinePaste(toBeInserted) &&
-            mode.acceptsLinePaste(this) && buffer.getBooleanProperty(Property.AUTO_PASTE_LINES))
-        {
+        if (
+            mark == null
+                && Utilities.isLinePaste(toBeInserted)
+                &&
+                mode.acceptsLinePaste(this)
+                && buffer.getBooleanProperty(Property.AUTO_PASTE_LINES)
+        ) {
             // We want to the caret to be in the same column when we're done.
             final int absCaretCol = display.getAbsoluteCaretCol();
 
@@ -6618,8 +6385,7 @@ public final class Editor extends JPanel implements Constants,
             buffer.repaint();
     }
 
-    public void pasteColumn()
-    {
+    public void pasteColumn() {
         if (!checkReadOnly())
             return;
         if (killedColumn == null || killedColumn.length() == 0)
@@ -6641,8 +6407,7 @@ public final class Editor extends JPanel implements Constants,
 
     // A block at the caret's column, one piece a line, as Block.put does it;
     // the caret ends after the last piece.
-    private void pasteColumnInternal(String toBeInserted)
-    {
+    private void pasteColumnInternal(String toBeInserted) {
         final int col = display.getAbsoluteCaretCol();
         final List<String> pieces =
             Arrays.asList(toBeInserted.split("\n", -1));
@@ -6657,8 +6422,7 @@ public final class Editor extends JPanel implements Constants,
         moveCaretToDotCol();
     }
 
-    public void insertString(String toBeInserted)
-    {
+    public void insertString(String toBeInserted) {
         if (toBeInserted == null || toBeInserted.length() == 0)
             return;
         CompoundEdit compoundEdit = beginCompoundEdit();
@@ -6674,32 +6438,30 @@ public final class Editor extends JPanel implements Constants,
             buffer.repaint();
     }
 
-    public void centerDialog(JDialog d)
-    {
+    public void centerDialog(JDialog d) {
         Dimension parent = frame.getSize();
         Dimension window = d.getSize();
         Point p = frame.getLocation();
-        p.translate((parent.width - window.width) / 2,
-            (parent.height - window.height) / 2);
+        p.translate(
+            (parent.width - window.width) / 2,
+            (parent.height - window.height) / 2
+        );
         d.setLocation(p);
     }
 
-    public boolean confirm(String title, String text)
-    {
+    public boolean confirm(String title, String text) {
         int response = ConfirmDialog.showConfirmDialog(this, text, title);
         repaintNow();
         return response == RESPONSE_YES;
     }
 
-    public int confirmAll(String title, String text)
-    {
+    public int confirmAll(String title, String text) {
         int response = ConfirmDialog.showConfirmAllDialog(this, text, title);
         repaintNow();
         return response;
     }
 
-    public void killBuffer()
-    {
+    public void killBuffer() {
         try {
             if (buffer.isSecondary()) {
                 buffer.windowClosing();
@@ -6727,8 +6489,7 @@ public final class Editor extends JPanel implements Constants,
         }
     }
 
-    public void maybeKillBuffer(Buffer toBeKilled)
-    {
+    public void maybeKillBuffer(Buffer toBeKilled) {
         if (!bufferList.contains(toBeKilled)) {
             Debug.bug("maybeKillBuffer buffer not in list " + toBeKilled);
             return;
@@ -6756,8 +6517,7 @@ public final class Editor extends JPanel implements Constants,
             toBeKilled.kill();
     }
 
-    public void clearStatusText()
-    {
+    public void clearStatusText() {
         StatusBar statusBar = getStatusBar();
         if (statusBar != null) {
             statusBar.setText(null);
@@ -6766,8 +6526,7 @@ public final class Editor extends JPanel implements Constants,
     }
 
     // Save information about buffer being deactivated.
-    public void deactivate()
-    {
+    public void deactivate() {
         Debug.bugIfNot(buffer != null && bufferList.contains(buffer));
         // Through getInputHandler(), not the raw field: the field is a cache
         // that getInputHandler() only refreshes for a TYPE_NORMAL buffer, so
@@ -6782,8 +6541,7 @@ public final class Editor extends JPanel implements Constants,
         buffer.windowClosing();
     }
 
-    public void activate(Buffer buf)
-    {
+    public void activate(Buffer buf) {
         if (buf == null)
             return;
         Debug.assertTrue(bufferList.contains(buf));
@@ -6813,9 +6571,11 @@ public final class Editor extends JPanel implements Constants,
             catch (OutOfMemoryError e) {
                 buf.kill();
                 Sidebar.setUpdateFlagInAllFrames(SIDEBAR_ALL);
-                MessageDialog.showMessageDialog(this,
-                                                "Insufficient memory to load buffer",
-                                                "Error");
+                MessageDialog.showMessageDialog(
+                    this,
+                    "Insufficient memory to load buffer",
+                    "Error"
+                );
                 return;
             }
             switch (result) {
@@ -6832,9 +6592,11 @@ public final class Editor extends JPanel implements Constants,
                     setDefaultCursor();
                     buffer = buf;
                     bufferActivated(true);
-                    MessageDialog.showMessageDialog(this,
-                                                    "Unable to load buffer",
-                                                    "Error");
+                    MessageDialog.showMessageDialog(
+                        this,
+                        "Unable to load buffer",
+                        "Error"
+                    );
                     break;
                 default:
                     Debug.assertTrue(false);
@@ -6842,23 +6604,19 @@ public final class Editor extends JPanel implements Constants,
         }
     }
 
-    public Editor activateInOtherWindow(Buffer buf)
-    {
+    public Editor activateInOtherWindow(Buffer buf) {
         return frame.activateInOtherWindow(this, buf);
     }
 
-    public Editor activateInOtherWindow(Buffer buf, float split)
-    {
+    public Editor activateInOtherWindow(Buffer buf, float split) {
         return frame.activateInOtherWindow(this, buf, split);
     }
 
-    public Editor displayInOtherWindow(Buffer buf)
-    {
+    public Editor displayInOtherWindow(Buffer buf) {
         return frame.displayInOtherWindow(this, buf);
     }
 
-    public void bufferActivated(boolean firstTime)
-    {
+    public void bufferActivated(boolean firstTime) {
         if (buffer.getModeId() == IMAGE_MODE) {
             setDot(null);
             setMark(null);
@@ -6896,8 +6654,10 @@ public final class Editor extends JPanel implements Constants,
         RecentFiles.getInstance().bufferActivated(buffer);
 
         if (buffer.isTaggable()) {
-            tagFileManager.addToQueue(buffer.getCurrentDirectory(),
-                buffer.getMode());
+            tagFileManager.addToQueue(
+                buffer.getCurrentDirectory(),
+                buffer.getMode()
+            );
         }
 
         Sidebar.setUpdateFlagInAllFrames(SIDEBAR_ALL);
@@ -6907,8 +6667,7 @@ public final class Editor extends JPanel implements Constants,
         Extensions.hooks().bufferActivated(buffer);
     }
 
-    private void bufferPending()
-    {
+    private void bufferPending() {
         // Find or create a view of this buffer.
         findOrCreateView(buffer);
         restoreView();
@@ -6926,8 +6685,7 @@ public final class Editor extends JPanel implements Constants,
     }
 
     // Find or create another frame in which to activate the specified buffer.
-    public Editor activateInOtherFrame(Buffer buf)
-    {
+    public Editor activateInOtherFrame(Buffer buf) {
         Editor ed = null;
         if (getEditorCount() == 1) {
             ed = createNewFrame();
@@ -6947,8 +6705,7 @@ public final class Editor extends JPanel implements Constants,
         return ed;
     }
 
-    public void nextFrame()
-    {
+    public void nextFrame() {
         int count = getEditorCount();
         if (count > 1) {
             Editor ed = null;
@@ -6966,21 +6723,18 @@ public final class Editor extends JPanel implements Constants,
         }
     }
 
-    private void requestFocusLater()
-    {
+    private void requestFocusLater() {
         Runnable r = () -> {
             Editor.this.requestFocus();
         };
         SwingUtilities.invokeLater(r);
     }
 
-    public void toggleSidebar()
-    {
+    public void toggleSidebar() {
         frame.frameToggleSidebar();
     }
 
-    public void sidebarListBuffers()
-    {
+    public void sidebarListBuffers() {
         ensureActive();
 
         if (frame.getSidebar() == null)
@@ -6990,8 +6744,7 @@ public final class Editor extends JPanel implements Constants,
             frame.getSidebar().activateBufferList();
     }
 
-    public void sidebarListTags()
-    {
+    public void sidebarListTags() {
         if (!frame.isActive())
             return;
 
@@ -7003,34 +6756,28 @@ public final class Editor extends JPanel implements Constants,
         }
     }
 
-    public void toggleToolbar()
-    {
+    public void toggleToolbar() {
         frame.frameToggleToolbar();
     }
 
-    public final boolean addUndo(int type)
-    {
+    public final boolean addUndo(int type) {
         return SimpleEdit.addUndo(this, type);
     }
 
-    public final boolean addUndoDeleteRegion(Region r)
-    {
+    public final boolean addUndoDeleteRegion(Region r) {
         buffer.addEdit(new UndoDeleteRegion(this, r));
         return true;
     }
 
-    public final CompoundEdit beginCompoundEdit()
-    {
+    public final CompoundEdit beginCompoundEdit() {
         return buffer.beginCompoundEdit();
     }
 
-    public final void endCompoundEdit(CompoundEdit compoundEdit)
-    {
+    public final void endCompoundEdit(CompoundEdit compoundEdit) {
         buffer.endCompoundEdit(compoundEdit);
     }
 
-    public void undo()
-    {
+    public void undo() {
         setWaitCursor();
         try {
             buffer.lockWrite();
@@ -7053,8 +6800,7 @@ public final class Editor extends JPanel implements Constants,
         }
     }
 
-    public void redo()
-    {
+    public void redo() {
         setWaitCursor();
         try {
             buffer.lockWrite();
@@ -7076,8 +6822,7 @@ public final class Editor extends JPanel implements Constants,
         }
     }
 
-    private void checkDotInOtherFrames()
-    {
+    private void checkDotInOtherFrames() {
         if (getEditorCount() > 1) {
             for (int i = 0; i < getEditorCount(); i++) {
                 Editor ed = getEditor(i);
@@ -7092,13 +6837,11 @@ public final class Editor extends JPanel implements Constants,
         }
     }
 
-    public final void jumpToLine(int lineNumber)
-    {
+    public final void jumpToLine(int lineNumber) {
         jumpToLine(lineNumber, 0);
     }
 
-    public void jumpToLine(int lineNumber, int offset)
-    {
+    public void jumpToLine(int lineNumber, int offset) {
         Line line = buffer.getLine(lineNumber);
         if (line != null) {
             recordJump();
@@ -7112,40 +6855,35 @@ public final class Editor extends JPanel implements Constants,
             eob();
     }
 
-    public void offset()
-    {
+    public void offset() {
         status(String.valueOf(buffer.getAbsoluteOffset(dot)));
     }
 
-    public void executeCommand()
-    {
-      // Use location bar.
-      if (locationBar != null)
-        {
-          locationBar.setLabelText(LocationBar.PROMPT_COMMAND);
-          HistoryTextField textField = locationBar.getTextField();
-          textField.setHandler(new ExecuteCommandTextFieldHandler(this, textField));
-          textField.setHistory(new History("executeCommand.input", 30));
-          textField.recallLast();
-          textField.selectAll();
-          AWTEvent e = dispatcher.getLastEvent();
-          if (e != null && e.getSource() instanceof MenuItem) {
-            Runnable r = () -> {
-              setFocusToTextField();
-            };
-            SwingUtilities.invokeLater(r);
-          } else
-            setFocusToTextField();
+    public void executeCommand() {
+        // Use location bar.
+        if (locationBar != null) {
+            locationBar.setLabelText(LocationBar.PROMPT_COMMAND);
+            HistoryTextField textField = locationBar.getTextField();
+            textField.setHandler(new ExecuteCommandTextFieldHandler(this, textField));
+            textField.setHistory(new History("executeCommand.input", 30));
+            textField.recallLast();
+            textField.selectAll();
+            AWTEvent e = dispatcher.getLastEvent();
+            if (e != null && e.getSource() instanceof MenuItem) {
+                Runnable r = () -> {
+                    setFocusToTextField();
+                };
+                SwingUtilities.invokeLater(r);
+            } else
+                setFocusToTextField();
         }
     }
 
-    public void executeCommand(String input)
-    {
+    public void executeCommand(String input) {
         executeCommand(input, false);
     }
 
-    private void showEvalError(String message)
-    {
+    private void showEvalError(String message) {
         if (message == null || message.length() == 0)
             message = "Error";
         else {
@@ -7156,8 +6894,7 @@ public final class Editor extends JPanel implements Constants,
         MessageDialog.showMessageDialog(this, message, "Error");
     }
 
-    public void executeCommand(String input, final boolean interactive)
-    {
+    public void executeCommand(String input, final boolean interactive) {
         input = Utilities.trimLeading(input);
         if (input.length() == 0)
             return;
@@ -7166,8 +6903,10 @@ public final class Editor extends JPanel implements Constants,
             // runtime's own condition types is the client's job; what arrives
             // here is already a message fit to show.
             try {
-                EvalResult result = Extensions.session().evalSync(
-                    EvalRequest.of(input).origin("command-line"));
+                EvalResult result = Extensions.session()
+                    .evalSync(
+                        EvalRequest.of(input).origin("command-line")
+                    );
                 if (result.isError())
                     showEvalError(result.getError());
                 else if (interactive)
@@ -7182,7 +6921,7 @@ public final class Editor extends JPanel implements Constants,
         if (index >= 0) {
             String key = input.substring(0, index).trim();
             if (key.indexOf(' ') < 0 && key.indexOf('\t') < 0) {
-                String value = input.substring(index+1).trim();
+                String value = input.substring(index + 1).trim();
                 setProperty(key, value);
                 return;
             }
@@ -7227,8 +6966,11 @@ public final class Editor extends JPanel implements Constants,
                     }
                 }
                 catch (NoSuchMethodException e) {
-                    MessageDialog.showMessageDialog(Editor.this,
-                        unknownCommandMessage(command), "Error");
+                    MessageDialog.showMessageDialog(
+                        Editor.this,
+                        unknownCommandMessage(command),
+                        "Error"
+                    );
                 }
             };
             if (SwingUtilities.isEventDispatchThread()) {
@@ -7251,8 +6993,7 @@ public final class Editor extends JPanel implements Constants,
      *   command args
      *   command("args")
      */
-    private static String[] parseCommand(String command)
-    {
+    private static String[] parseCommand(String command) {
         command = Utilities.trimLeading(command);
         // Command name is terminated by whitespace or '('.
         char delimiter = '\0';
@@ -7305,13 +7046,13 @@ public final class Editor extends JPanel implements Constants,
     }
 
     // Set a buffer-specific property.
-    private void setProperty(String key, String value)
-    {
+    private void setProperty(String key, String value) {
         Property property = Property.findProperty(key);
         if (property == null) {
             MessageDialog.showMessageDialog(
                 "Property \"" + key + "\" not found",
-                "Error");
+                "Error"
+            );
             return;
         }
         final boolean succeeded;
@@ -7327,34 +7068,29 @@ public final class Editor extends JPanel implements Constants,
     }
 
     // No error checking.
-    public static void setGlobalProperty(String key, String value)
-    {
+    public static void setGlobalProperty(String key, String value) {
         if (value == null || value.length() == 0)
             prefs.removeProperty(key);
         else
             prefs.setProperty(key, value);
     }
 
-    private void invalidPropertyValue(Property property, String value)
-    {
+    private void invalidPropertyValue(Property property, String value) {
         if (property.isIntegerProperty())
             status("Invalid integer value \"" + value + "\"");
         else if (property.isBooleanProperty())
             status("Invalid boolean value \"" + value + "\"");
     }
 
-    public void slideIn()
-    {
+    public void slideIn() {
         slide(buffer.getIndentSize());
     }
 
-    public void slideOut()
-    {
+    public void slideOut() {
         slide(-buffer.getIndentSize());
     }
 
-    private void slide(int amount)
-    {
+    private void slide(int amount) {
         if (!checkReadOnly())
             return;
         Region r = mark != null ? new Region(this) : null;
@@ -7397,8 +7133,10 @@ public final class Editor extends JPanel implements Constants,
                     addUndo(SimpleEdit.MOVE);
                     dot.moveTo(line, 0);
                     addUndo(SimpleEdit.LINE_EDIT);
-                    buffer.setIndentation(getDotLine(),
-                        buffer.getIndentation(getDotLine()) + amount);
+                    buffer.setIndentation(
+                        getDotLine(),
+                        buffer.getIndentation(getDotLine()) + amount
+                    );
                     updateInAllEditors(getDotLine());
                     line = line.next();
                 }
@@ -7413,63 +7151,58 @@ public final class Editor extends JPanel implements Constants,
         }
     }
 
-    public void dirHome()
-    {
+    public void dirHome() {
         if (buffer instanceof DirectoryBuffer)
             ((DirectoryBuffer) buffer).home();
     }
 
-    public void dirTagFile()
-    {
+    public void dirTagFile() {
         if (buffer instanceof DirectoryBuffer)
             ((DirectoryBuffer) buffer).tagFileAtDot();
     }
 
-    public void dirBrowseFile()
-    {
+    public void dirBrowseFile() {
         if (buffer instanceof DirectoryBuffer && !buffer.getFile().isRemote()) {
             DirectoryBuffer d = (DirectoryBuffer) buffer;
             d.browseFileAtDot();
         }
     }
 
-    public void dirDeleteFiles()
-    {
+    public void dirDeleteFiles() {
         if (mark != null && getMarkLine() != getDotLine()) {
-            MessageDialog.showMessageDialog(this,
+            MessageDialog.showMessageDialog(
+                this,
                 "This operation is not supported with multi-line text selections.",
-                "Delete Files");
+                "Delete Files"
+            );
             return;
         }
         if (buffer instanceof DirectoryBuffer) {
             if (buffer.getFile() instanceof SshFile) {
-                MessageDialog.showMessageDialog(this, "Deletions are not yet supported in ssh directory buffers.", "Error");
+                MessageDialog
+                    .showMessageDialog(this, "Deletions are not yet supported in ssh directory buffers.", "Error");
                 return;
             }
-            ((DirectoryBuffer)buffer).deleteFiles();
+            ((DirectoryBuffer) buffer).deleteFiles();
         }
     }
 
-    public void dirCopyFile()
-    {
+    public void dirCopyFile() {
         if (buffer instanceof DirectoryBuffer && buffer.getFile().isLocal())
             ((DirectoryBuffer) buffer).copyFileAtDot();
     }
 
-    public void dirGetFile()
-    {
+    public void dirGetFile() {
         if (buffer instanceof DirectoryBuffer && buffer.getFile() instanceof FtpFile)
             ((DirectoryBuffer) buffer).getFileAtDot();
     }
 
-    public void dirMoveFile()
-    {
+    public void dirMoveFile() {
         if (buffer instanceof DirectoryBuffer && buffer.getFile().isLocal())
             ((DirectoryBuffer) buffer).moveFileAtDot();
     }
 
-    public void dirRescan()
-    {
+    public void dirRescan() {
         if (buffer instanceof DirectoryBuffer) {
             setWaitCursor();
             ((DirectoryBuffer) buffer).rescan();
@@ -7477,8 +7210,7 @@ public final class Editor extends JPanel implements Constants,
         }
     }
 
-    public void dirHomeDir()
-    {
+    public void dirHomeDir() {
         File homeDir = File.getInstance(Utilities.getUserHome());
         if (buffer instanceof DirectoryBuffer) {
             if (!buffer.getFile().equals(homeDir))
@@ -7492,20 +7224,17 @@ public final class Editor extends JPanel implements Constants,
         }
     }
 
-    public void dirUpDir()
-    {
+    public void dirUpDir() {
         if (buffer instanceof DirectoryBuffer)
             ((DirectoryBuffer) buffer).upDir();
     }
 
-    public void setFocusToTextField()
-    {
-      if (locationBar != null)
-        frame.setFocus(locationBar.getTextField());
+    public void setFocusToTextField() {
+        if (locationBar != null)
+            frame.setFocus(locationBar.getTextField());
     }
 
-    public void wrapRegion()
-    {
+    public void wrapRegion() {
         if (!checkReadOnly())
             return;
         if (dot == null || mark == null)
@@ -7516,29 +7245,25 @@ public final class Editor extends JPanel implements Constants,
         new WrapText(this).wrapRegion();
     }
 
-    public void wrapParagraph()
-    {
+    public void wrapParagraph() {
         if (!checkReadOnly())
             return;
         new WrapText(this).wrapParagraph();
     }
 
-    public void unwrapParagraph()
-    {
+    public void unwrapParagraph() {
         if (!checkReadOnly())
             return;
         new WrapText(this).unwrapParagraph();
     }
 
-    public void wrapParagraphsInRegion()
-    {
+    public void wrapParagraphsInRegion() {
         if (!checkReadOnly())
             return;
         new WrapText(this).wrapParagraphsInRegion();
     }
 
-    public void visibleTabs()
-    {
+    public void visibleTabs() {
         tabsAreVisible = !tabsAreVisible;
         if (tabsAreVisible)
             status("Tabs are visible");
@@ -7550,8 +7275,7 @@ public final class Editor extends JPanel implements Constants,
         }
     }
 
-    public void insertBraces()
-    {
+    public void insertBraces() {
         CompoundEdit compoundEdit = beginCompoundEdit();
         insertChar('{');
         indentLine();
@@ -7565,8 +7289,7 @@ public final class Editor extends JPanel implements Constants,
         endCompoundEdit(compoundEdit);
     }
 
-    public void insertParentheses()
-    {
+    public void insertParentheses() {
         if (!checkReadOnly())
             return;
         boolean parensRequireSpaces =
@@ -7603,8 +7326,7 @@ public final class Editor extends JPanel implements Constants,
         endCompoundEdit(compoundEdit);
     }
 
-    public void movePastCloseAndReindent()
-    {
+    public void movePastCloseAndReindent() {
         Position pos = new Position(dot);
         int count = 1;
         if (pos.getChar() == ')') {
@@ -7650,8 +7372,7 @@ public final class Editor extends JPanel implements Constants,
         }
     }
 
-    public void electricQuote()
-    {
+    public void electricQuote() {
         CompoundEdit compoundEdit = beginCompoundEdit();
         if (getDotChar() == '"') {
             addUndo(SimpleEdit.MOVE);
@@ -7668,8 +7389,7 @@ public final class Editor extends JPanel implements Constants,
         endCompoundEdit(compoundEdit);
     }
 
-    public void justOneSpace()
-    {
+    public void justOneSpace() {
         try {
             buffer.lockWrite();
         }
@@ -7700,14 +7420,12 @@ public final class Editor extends JPanel implements Constants,
         }
     }
 
-    public final void updateDotLine()
-    {
+    public final void updateDotLine() {
         display.lineChanged(dot.getLine());
     }
 
     // Adds line to changed line list of current frame only.
-    public final void update(Line line)
-    {
+    public final void update(Line line) {
         display.lineChanged(line);
     }
 
@@ -7717,8 +7435,7 @@ public final class Editor extends JPanel implements Constants,
      *
      * @param line      the line
      */
-    public static void updateInAllEditors(Line line)
-    {
+    public static void updateInAllEditors(Line line) {
         if (line != null) {
             for (EditorIterator it = new EditorIterator(); it.hasNext();) {
                 Editor ed = it.next();
@@ -7735,8 +7452,7 @@ public final class Editor extends JPanel implements Constants,
      * @param buffer    the buffer
      * @param line      the line
      */
-    public static void updateInAllEditors(Buffer buffer, Line line)
-    {
+    public static void updateInAllEditors(Buffer buffer, Line line) {
         if (line != null) {
             for (EditorIterator it = new EditorIterator(); it.hasNext();) {
                 Editor ed = it.next();
@@ -7746,8 +7462,7 @@ public final class Editor extends JPanel implements Constants,
         }
     }
 
-    public void updateScrollBars()
-    {
+    public void updateScrollBars() {
         if (buffer == null)
             return; // Avoid NPE.
         if (!displayReady)
@@ -7758,8 +7473,7 @@ public final class Editor extends JPanel implements Constants,
 
     boolean inScrollBarUpdate = false;
 
-    public void updateVerticalScrollBar()
-    {
+    public void updateVerticalScrollBar() {
         if (verticalScrollBar != null) {
             inScrollBarUpdate = true;
             int y;
@@ -7772,15 +7486,17 @@ public final class Editor extends JPanel implements Constants,
         }
     }
 
-    public void updateHorizontalScrollBar()
-    {
+    public void updateHorizontalScrollBar() {
         if (horizontalScrollBar != null)
-            horizontalScrollBar.setValues(display.getShift() * Display.getCharWidth(),
-                display.getWidth(), 0, buffer.getDisplayWidth());
+            horizontalScrollBar.setValues(
+                display.getShift() * Display.getCharWidth(),
+                display.getWidth(),
+                0,
+                buffer.getDisplayWidth()
+            );
     }
 
-    public void updateDisplay()
-    {
+    public void updateDisplay() {
         if (dot != null) {
             if (dot.isHidden()) {
                 buffer.appendUndoFold(this);
@@ -7801,8 +7517,7 @@ public final class Editor extends JPanel implements Constants,
             setDefaultCursor();
     }
 
-    public void updateDisplayLater()
-    {
+    public void updateDisplayLater() {
         Runnable r = () -> {
             updateDisplay();
         };
@@ -7810,8 +7525,7 @@ public final class Editor extends JPanel implements Constants,
     }
 
     // Update display of buf in all windows showing it.
-    public static void updateDisplayLater(final Buffer buf)
-    {
+    public static void updateDisplayLater(final Buffer buf) {
         Runnable r = () -> {
             for (int i = 0; i < getEditorCount(); i++) {
                 Editor ed = getEditor(i);
@@ -7822,28 +7536,23 @@ public final class Editor extends JPanel implements Constants,
         SwingUtilities.invokeLater(r);
     }
 
-    public final Line getTopLine()
-    {
+    public final Line getTopLine() {
         return display.getTopLine();
     }
 
-    public final void setTopLine(Line line)
-    {
+    public final void setTopLine(Line line) {
         display.setTopLine(line);
     }
 
-    public final void setUpdateFlag(int mask)
-    {
+    public final void setUpdateFlag(int mask) {
         display.setUpdateFlag(mask);
     }
 
-    public final void reframe()
-    {
+    public final void reframe() {
         display.reframe();
     }
 
-    public boolean checkReadOnly()
-    {
+    public boolean checkReadOnly() {
         boolean readOnly = buffer.isReadOnly();
         if (readOnly && buffer.getBooleanProperty(Property.P4_AUTO_EDIT)) {
             if (buffer.getType() == Buffer.TYPE_NORMAL) {
@@ -7864,13 +7573,11 @@ public final class Editor extends JPanel implements Constants,
         return true;
     }
 
-    public static boolean checkExperimental()
-    {
+    public static boolean checkExperimental() {
         return prefs.getBooleanProperty(Property.ENABLE_EXPERIMENTAL_FEATURES);
     }
 
-    public void status(String s)
-    {
+    public void status(String s) {
         lastStatus = s;
         if (frame != null)
             frame.setStatusText(s);
@@ -7885,8 +7592,7 @@ public final class Editor extends JPanel implements Constants,
      * private, for the test harness; the same trade as
      * Display.isRepaintPending.
      */
-    String getLastStatus()
-    {
+    String getLastStatus() {
         return lastStatus;
     }
 
@@ -7894,26 +7600,22 @@ public final class Editor extends JPanel implements Constants,
 
     private static boolean displayReady;
 
-    public static final boolean displayReady()
-    {
+    public static final boolean displayReady() {
         return displayReady;
     }
 
-    public static final void setDisplayReady(boolean b)
-    {
+    public static final void setDisplayReady(boolean b) {
         displayReady = b;
     }
 
     private static final Cursor waitCursor =
         Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR);
 
-    public final void setWaitCursor()
-    {
+    public final void setWaitCursor() {
         display.setCursor(waitCursor);
     }
 
-    public final void setDefaultCursor()
-    {
+    public final void setDefaultCursor() {
         final Cursor cursor;
         if (displayReady && buffer != null)
             cursor = buffer.getDefaultCursor();
@@ -7922,28 +7624,24 @@ public final class Editor extends JPanel implements Constants,
         display.setCursor(cursor);
     }
 
-    public final void setCursor(Cursor cursor)
-    {
+    public final void setCursor(Cursor cursor) {
         display.setCursor(cursor);
     }
 
-    public static void loadPreferences()
-    {
+    public static void loadPreferences() {
         prefs.reload();
         debug = prefs.getBooleanProperty(Property.DEBUG, Editor.debug);
     }
 
     private boolean insertingKeyText = false;
 
-    public void insertKeyText()
-    {
+    public void insertKeyText() {
         if (!checkReadOnly())
             return;
         insertingKeyText = true; // The real work is done in handleKeyEvent.
     }
 
-    private void insertKeyTextInternal(char keyChar, int keyCode, int modifiers)
-    {
+    private void insertKeyTextInternal(char keyChar, int keyCode, int modifiers) {
         Log.debug("keycode = 0x" + Integer.toString(keyCode, 16));
         Log.debug("modifiers = 0x" + Integer.toString(modifiers, 16));
         Log.debug("character = " + String.valueOf(keyChar));
@@ -7980,8 +7678,7 @@ public final class Editor extends JPanel implements Constants,
         }
     }
 
-    public void whatChar()
-    {
+    public void whatChar() {
         if (dot.getOffset() < dot.getLineLength()) {
             char c = getDotChar();
             StringBuilder sb = new StringBuilder(Integer.toString(c));
@@ -7998,8 +7695,7 @@ public final class Editor extends JPanel implements Constants,
         }
     }
 
-    public void jmips()
-    {
+    public void jmips() {
         setWaitCursor();
         long loopsPerSecond = 0;
         long loops = 1;
@@ -8023,13 +7719,11 @@ public final class Editor extends JPanel implements Constants,
         setDefaultCursor();
     }
 
-    public void httpDeleteCookies()
-    {
+    public void httpDeleteCookies() {
         Cookie.deleteCookies();
     }
 
-    private static void runStartupScript()
-    {
+    private static void runStartupScript() {
         File file =
             File.getInstance(Directories.getConfigDirectory(), "init.lisp");
         if (file != null && file.isFile()) {
@@ -8067,8 +7761,7 @@ public final class Editor extends JPanel implements Constants,
      * {@code Extensions.session().eval(EvalRequest.of(code), handler)}.
      */
     @Deprecated
-    public static void runLispCommand(String command)
-    {
+    public static void runLispCommand(String command) {
         try {
             Extensions.session().evalSync(EvalRequest.of(command).origin("hook"));
         }
@@ -8082,8 +7775,7 @@ public final class Editor extends JPanel implements Constants,
      * because it has been public since J 0.x.
      */
     @Deprecated
-    public static boolean isLispInitialized()
-    {
+    public static boolean isLispInitialized() {
         return Extensions.session().isReady();
     }
 
@@ -8091,14 +7783,11 @@ public final class Editor extends JPanel implements Constants,
      * @deprecated Does nothing. A session tracks its own readiness now.
      */
     @Deprecated
-    public static void setLispInitialized(boolean b)
-    {
-    }
+    public static void setLispInitialized(boolean b) {}
 
     /** @deprecated Use {@code Extensions.hooks().invoke(hook)}. */
     @Deprecated
-    public static void invokeHook(String hook)
-    {
+    public static void invokeHook(String hook) {
         Extensions.hooks().invoke(hook);
     }
 
@@ -8108,16 +7797,14 @@ public final class Editor extends JPanel implements Constants,
      * Lisp -- because quoting belongs to whoever implements the hook.
      */
     @Deprecated
-    public static void invokeHook(String hook, String args)
-    {
+    public static void invokeHook(String hook, String args) {
         if (args == null || args.length() == 0)
             Extensions.hooks().invoke(hook);
         else
             Extensions.hooks().invoke(hook, args);
     }
 
-    public void mode()
-    {
+    public void mode() {
         String modeName =
             InputDialog.showInputDialog(this, "New mode:", "Change Mode");
         if (modeName != null) {
@@ -8129,14 +7816,15 @@ public final class Editor extends JPanel implements Constants,
         }
     }
 
-    public void mode(String modeName)
-    {
+    public void mode(String modeName) {
         int modeId = getModeList().getModeIdFromModeName(modeName);
         if (modeId < 0) {
-            MessageDialog.showMessageDialog("Unknown mode \"" + modeName + '"',
-                    "Error");
+            MessageDialog.showMessageDialog(
+                "Unknown mode \"" + modeName + '"',
+                "Error"
+            );
         } else if (modeId != buffer.getMode().getId()) {
-            if (buffer.isModified() && modeId == BINARY_MODE ) {
+            if (buffer.isModified() && modeId == BINARY_MODE) {
                 String prompt =
                     "Buffer will be reloaded in binary mode; discard changes?";
                 if (!confirm("Change Mode", prompt))
@@ -8152,8 +7840,7 @@ public final class Editor extends JPanel implements Constants,
         }
     }
 
-    public void defaultMode()
-    {
+    public void defaultMode() {
         Mode mode = buffer.getDefaultMode();
         if (mode != null && mode != buffer.getMode()) {
             if (buffer.isModified()) {
@@ -8170,8 +7857,7 @@ public final class Editor extends JPanel implements Constants,
         }
     }
 
-    public void textMode()
-    {
+    public void textMode() {
         if (buffer.getModeId() == BINARY_MODE) {
             if (buffer.isModified()) {
                 String prompt =
@@ -8185,18 +7871,15 @@ public final class Editor extends JPanel implements Constants,
         }
     }
 
-    public boolean isSibling(Editor other)
-    {
+    public boolean isSibling(Editor other) {
         return frame.isEditorSibling(this, other);
     }
 
-    public boolean isTopLeftOf(Editor other)
-    {
+    public boolean isTopLeftOf(Editor other) {
         return frame.isEditorTopLeftOf(this, other);
     }
 
-    public void splitWindow()
-    {
+    public void splitWindow() {
         currentEditor.getFrame().splitWindow();
     }
 
@@ -8205,24 +7888,20 @@ public final class Editor extends JPanel implements Constants,
      * what vim's split looks like -- the new window above, and the caret in
      * it -- with both showing the same.
      */
-    public void splitWindow(String arg)
-    {
+    public void splitWindow(String arg) {
         frame.splitWindow(this, false, !"vim".equals(arg));
     }
 
-    public void vsplitWindow()
-    {
+    public void vsplitWindow() {
         currentEditor.getFrame().vsplitWindow();
     }
 
     /** {@code vsplitWindow vim}: the caret stays in the left window. */
-    public void vsplitWindow(String arg)
-    {
+    public void vsplitWindow(String arg) {
         frame.splitWindow(this, true, !"vim".equals(arg));
     }
 
-    public void unsplitWindow()
-    {
+    public void unsplitWindow() {
         IdleThread.killFollowContextTask();
         frame.unsplitWindow();
     }
@@ -8231,8 +7910,7 @@ public final class Editor extends JPanel implements Constants,
      * {@code killWindow vim}: the caret goes to the window that takes this
      * one's space, the next in its row or column, as in vim.
      */
-    public void killWindow(String arg)
-    {
+    public void killWindow(String arg) {
         frame.closeEditor(currentEditor, "vim".equals(arg));
         Sidebar sidebar = getSidebar();
         if (sidebar != null) {
@@ -8245,16 +7923,14 @@ public final class Editor extends JPanel implements Constants,
      * {@code adjacentWindow h|j|k|l} -- to the window left, below, above or
      * right of this one; of several, the one level with the caret.
      */
-    public void adjacentWindow(String direction)
-    {
+    public void adjacentWindow(String direction) {
         if (direction == null || direction.length() != 1)
             return;
         switchWindow(frame.getAdjacentEditor(this, direction.charAt(0)));
     }
 
     /** {@code gotoWindow n} -- to the nth window, the top left first. */
-    public void gotoWindow(String n)
-    {
+    public void gotoWindow(String n) {
         if (n == null)
             return;
         int target;
@@ -8273,36 +7949,31 @@ public final class Editor extends JPanel implements Constants,
     }
 
     /** Every window in each row or column the same size again. */
-    public void balanceWindows()
-    {
+    public void balanceWindows() {
         frame.balanceWindows();
     }
 
-    public void killWindow()
-    {
+    public void killWindow() {
         killWindow(null);
     }
 
     // Close all other windows except for this Editor window.
     // Also aliased as 'killOtherWindows' in CommandTable
-    public void unsplitAllWindows()
-    {
+    public void unsplitAllWindows() {
         frame.unsplitAll(this);
     }
 
     // Switch to the Editor that is paired with this Editor's buffer
     // or to this Editor's parent buffer.  If neither exist, switch
     // to the most recent Editor or the previous primary buffer.
-    public void otherWindow()
-    {
+    public void otherWindow() {
         final Editor ed = getOtherEditor();
         if (ed != null)
             switchWindow(ed);
     }
 
     // Switch to most recent Editor or the previous Editor.
-    public void priorWindow()
-    {
+    public void priorWindow() {
         Editor ed = frame.getPriorEditor();
         if (ed == null || ed == currentEditor)
             ed = frame.getNextEditor(-1);
@@ -8310,13 +7981,11 @@ public final class Editor extends JPanel implements Constants,
         switchWindow(ed);
     }
 
-    public void nextWindow()
-    {
+    public void nextWindow() {
         _nextWindow(1);
     }
 
-    public void nextWindow(String arg)
-    {
+    public void nextWindow(String arg) {
         int count = 1;
         if (arg != null)
             try {
@@ -8325,20 +7994,19 @@ public final class Editor extends JPanel implements Constants,
             catch (NumberFormatException e) {
                 MessageDialog.showMessageDialog(
                     "Invalid number \"" + arg + '"',
-                    "Error");
+                    "Error"
+                );
                 return;
             }
 
         _nextWindow(count);
     }
 
-    public void previousWindow()
-    {
+    public void previousWindow() {
         _nextWindow(-1);
     }
 
-    public void previousWindow(String arg)
-    {
+    public void previousWindow(String arg) {
         int count = 1;
         if (arg != null)
             try {
@@ -8347,21 +8015,20 @@ public final class Editor extends JPanel implements Constants,
             catch (NumberFormatException e) {
                 MessageDialog.showMessageDialog(
                     "Invalid number \"" + arg + '"',
-                    "Error");
+                    "Error"
+                );
                 return;
             }
 
-        _nextWindow(-1*count);
+        _nextWindow(-1 * count);
     }
 
-    private void _nextWindow(int count)
-    {
+    private void _nextWindow(int count) {
         final Editor ed = frame.getNextEditor(count);
         switchWindow(ed);
     }
 
-    private void switchWindow(Editor ed)
-    {
+    private void switchWindow(Editor ed) {
         if (ed != null) {
             saveView();
             setCurrentEditor(ed);
@@ -8385,26 +8052,22 @@ public final class Editor extends JPanel implements Constants,
         }
     }
 
-    public void enlargeWindow()
-    {
+    public void enlargeWindow() {
         frame.enlargeWindow(this, 1);
     }
 
-    public void enlargeWindow(int n)
-    {
+    public void enlargeWindow(int n) {
         frame.enlargeWindow(this, n);
     }
 
-    public void shrinkWindowIfLargerThanBuffer()
-    {
+    public void shrinkWindowIfLargerThanBuffer() {
         final Frame frame = getFrame();
         int n = getBuffer().getLineCount();
         if (n < getWindowHeight())
             frame.setWindowHeight(this, n);
     }
 
-    public void fold()
-    {
+    public void fold() {
         if (dot == null)
             return;
         if (!foldRegionInternal() && !foldExplicit() && !foldByMode())
@@ -8412,8 +8075,7 @@ public final class Editor extends JPanel implements Constants,
     }
 
     /** Unfolds the fold just below the caret's line, else folds there. */
-    public void toggleFold()
-    {
+    public void toggleFold() {
         if (dot == null)
             return;
         final Line next = getDotLine().next();
@@ -8427,8 +8089,7 @@ public final class Editor extends JPanel implements Constants,
      * Unfolds the fold just below the caret's line, as vim's zo does,
      * where unfold opens the next one wherever it is.
      */
-    public void unfoldHere()
-    {
+    public void unfoldHere() {
         if (dot == null)
             return;
         final Line next = getDotLine().next();
@@ -8439,16 +8100,14 @@ public final class Editor extends JPanel implements Constants,
     }
 
     /** Folds everything that can be, as the mode says. */
-    public void foldAll()
-    {
+    public void foldAll() {
         if (dot == null)
             return;
         getMode().foldAll(this);
     }
 
     // Folds what the mode says folding at the caret does, if it says.
-    private boolean foldByMode()
-    {
+    private boolean foldByMode() {
         final Line[] range = getMode().getFoldRange(this, getDotLine());
         if (range == null)
             return false;
@@ -8463,8 +8122,7 @@ public final class Editor extends JPanel implements Constants,
      * Unfolds everything, then hides the lines from begin on that shown does
      * not take, as one fold that undo puts back: an outline of a buffer.
      */
-    public void showOnly(Line begin, java.util.function.Predicate<Line> shown)
-    {
+    public void showOnly(Line begin, java.util.function.Predicate<Line> shown) {
         addUndo(SimpleEdit.FOLD);
         for (Line line = buffer.getFirstLine(); line != null; line = line.next())
             line.show();
@@ -8479,30 +8137,26 @@ public final class Editor extends JPanel implements Constants,
      * Hides the lines from begin up to end, or to the end of the buffer if
      * end is null, as one fold that undo puts back.
      */
-    public void hideLines(Line begin, Line end)
-    {
+    public void hideLines(Line begin, Line end) {
         addUndo(SimpleEdit.FOLD);
         hide(begin, end);
     }
 
     // Hides the lines from begin up to end and keeps the caret in sight.
-    private void hide(Line begin, Line end)
-    {
+    private void hide(Line begin, Line end) {
         for (Line line = begin; line != end; line = line.next())
             line.hide();
         buffer.renumber();
         unhideDotInAllFrames(buffer);
     }
 
-    public void foldRegion()
-    {
+    public void foldRegion() {
         if (dot == null)
             return;
         foldRegionInternal();
     }
 
-    private boolean foldRegionInternal()
-    {
+    private boolean foldRegionInternal() {
         if (mark == null)
             return false;
         if (dot.getLine() == mark.getLine())
@@ -8518,8 +8172,7 @@ public final class Editor extends JPanel implements Constants,
         return true;
     }
 
-    private boolean foldExplicit()
-    {
+    private boolean foldExplicit() {
         final Line dotLine = getDotLine();
         String text = dotLine.getText();
         Line begin = null;
@@ -8568,8 +8221,7 @@ public final class Editor extends JPanel implements Constants,
         return true;
     }
 
-    public void foldNearLine(Line line)
-    {
+    public void foldNearLine(Line line) {
         while (line != null && line.isBlank())
             line = line.previous();
         if (line == null)
@@ -8656,8 +8308,7 @@ public final class Editor extends JPanel implements Constants,
         fold(line);
     }
 
-    private void fold(Line target)
-    {
+    private void fold(Line target) {
         if (target == null)
             return;
         int indent = buffer.getCol(target, target.getIndentation());
@@ -8668,8 +8319,13 @@ public final class Editor extends JPanel implements Constants,
             Line prev = begin.previous();
             if (prev == null)
                 break;
-            if (prev.isBlank() || getMode().isCommentLine(prev) ||
-                isLabelLine(prev) || isPreprocessorLine(prev)) {
+            if (
+                prev.isBlank()
+                    || getMode().isCommentLine(prev)
+                    ||
+                    isLabelLine(prev)
+                    || isPreprocessorLine(prev)
+            ) {
                 begin = prev;
                 continue;
             }
@@ -8681,8 +8337,13 @@ public final class Editor extends JPanel implements Constants,
         }
         Line end = target.next();
         while (end != null) {
-            if (end.isBlank() || getMode().isCommentLine(end) ||
-                isLabelLine(end) || isPreprocessorLine(end)) {
+            if (
+                end.isBlank()
+                    || getMode().isCommentLine(end)
+                    ||
+                    isLabelLine(end)
+                    || isPreprocessorLine(end)
+            ) {
                 end = end.next();
                 continue;
             }
@@ -8695,16 +8356,14 @@ public final class Editor extends JPanel implements Constants,
 
     private static Pattern labelRE = Pattern.compile("^\\s*\\w+:");
 
-    private boolean isLabelLine(Line line)
-    {
+    private boolean isLabelLine(Line line) {
         Mode mode = getMode();
         if (mode instanceof JavaMode || mode instanceof PerlMode)
             return labelRE.matcher(line.getText()).find();
         return false;
     }
 
-    private boolean isPreprocessorLine(Line line)
-    {
+    private boolean isPreprocessorLine(Line line) {
         if (getMode() instanceof CMode)
             if (line.trim().startsWith("#"))
                 return true;
@@ -8713,8 +8372,7 @@ public final class Editor extends JPanel implements Constants,
     }
 
     // BUG! This method does more than its name suggests...
-    public static void unhideDotInAllFrames(Buffer buffer)
-    {
+    public static void unhideDotInAllFrames(Buffer buffer) {
         for (int i = 0; i < Editor.getEditorCount(); i++) {
             Editor ed = Editor.getEditor(i);
             if (ed.getBuffer() == buffer) {
@@ -8734,8 +8392,7 @@ public final class Editor extends JPanel implements Constants,
         }
     }
 
-    public void unfold()
-    {
+    public void unfold() {
         if (dot == null)
             return;
         Line dotLine = getDotLine();
@@ -8776,8 +8433,7 @@ public final class Editor extends JPanel implements Constants,
         }
     }
 
-    public void unfold(Line line)
-    {
+    public void unfold(Line line) {
         if (line == null)
             return;
         if (!line.isHidden())
@@ -8799,8 +8455,7 @@ public final class Editor extends JPanel implements Constants,
         }
     }
 
-    private void show(Line target)
-    {
+    private void show(Line target) {
         if (target == null)
             return;
         if (!target.isHidden())
@@ -8821,8 +8476,7 @@ public final class Editor extends JPanel implements Constants,
         }
     }
 
-    public void unfoldAll()
-    {
+    public void unfoldAll() {
         addUndo(SimpleEdit.FOLD);
         for (Line line = buffer.getFirstLine(); line != null; line = line.next())
             line.show();
@@ -8834,8 +8488,7 @@ public final class Editor extends JPanel implements Constants,
         }
     }
 
-    public void foldMethods()
-    {
+    public void foldMethods() {
         Mode mode = getMode();
         if (mode instanceof JavaMode || mode instanceof PerlMode) {
             setWaitCursor();
@@ -8854,18 +8507,15 @@ public final class Editor extends JPanel implements Constants,
         }
     }
 
-    private final void foldMethod(Line line)
-    {
+    private final void foldMethod(Line line) {
         foldOrUnfoldMethod(line, true);
     }
 
-    public final void unfoldMethod(Line line)
-    {
+    public final void unfoldMethod(Line line) {
         foldOrUnfoldMethod(line, false);
     }
 
-    private void foldOrUnfoldMethod(Line line, boolean fold)
-    {
+    private void foldOrUnfoldMethod(Line line, boolean fold) {
         Mode mode = getMode();
         while (line != null) {
             String s = line.trim();
@@ -8912,51 +8562,47 @@ public final class Editor extends JPanel implements Constants,
 
     private static Aliases aliases;
 
-    private static final Aliases getAliases()
-    {
+    private static final Aliases getAliases() {
         if (aliases == null)
             aliases = new Aliases();
         return aliases;
     }
 
-    public static final File getAliasesFile()
-    {
+    public static final File getAliasesFile() {
         return aliases != null ? aliases.getFile() : null;
     }
 
-    public static final void reloadAliases()
-    {
+    public static final void reloadAliases() {
         if (aliases != null)
             aliases.reload();
     }
 
-    public final String getAlias(String alias)
-    {
+    public final String getAlias(String alias) {
         return getAliases().get(alias);
     }
 
-    public final void setAlias(String alias, String value)
-    {
+    public final void setAlias(String alias, String value) {
         getAliases().setAlias(alias, value);
     }
 
-    public final void setAliasForBuffer(String alias, Buffer buf)
-    {
+    public final void setAliasForBuffer(String alias, Buffer buf) {
         getAliases().setAliasForBuffer(alias, buf);
     }
 
-    public final void removeAlias(String alias)
-    {
+    public final void removeAlias(String alias) {
         getAliases().remove(alias);
     }
 
-    public void setEncoding()
-    {
+    public void setEncoding() {
         File file = buffer.getFile();
         if (file != null) {
             InputDialog d =
-                new InputDialog(this, "Encoding:", "Set Encoding",
-                    buffer.getSaveEncoding());
+                new InputDialog(
+                    this,
+                    "Encoding:",
+                    "Set Encoding",
+                    buffer.getSaveEncoding()
+                );
             d.setHistory(new History("setEncoding"));
             centerDialog(d);
             d.setVisible(true);
@@ -8966,8 +8612,7 @@ public final class Editor extends JPanel implements Constants,
         }
     }
 
-    public void setEncoding(String encoding)
-    {
+    public void setEncoding(String encoding) {
         File file = buffer.getFile();
         if (file != null) {
             if (Utilities.isSupportedEncoding(encoding)) {
@@ -8986,20 +8631,17 @@ public final class Editor extends JPanel implements Constants,
     private static final ArrayList<Object> protectList = new ArrayList<Object>();
 
     // Add reference to global list to protect obj from garbage collection.
-    public static synchronized void protect(Object obj)
-    {
+    public static synchronized void protect(Object obj) {
         protectList.add(obj);
     }
 
     private static String sessionName;
 
-    public static String getSessionName()
-    {
+    public static String getSessionName() {
         return sessionName;
     }
 
-    public static void setSessionName(String name)
-    {
+    public static void setSessionName(String name) {
         sessionName = name;
         // The session name is displayed in the frame's title bar.
         for (int i = 0; i < getFrameCount(); i++) {
@@ -9010,27 +8652,23 @@ public final class Editor extends JPanel implements Constants,
     }
 
     /** A jump is leaving the caret's position: onto the {@link JumpList}. */
-    public void recordJump()
-    {
+    public void recordJump() {
         if (dot != null)
             JumpList.record(buffer, dot);
     }
 
     /** {@code pushPosition} -- puts the caret's position on the jump list. */
-    public void pushPosition()
-    {
+    public void pushPosition() {
         recordJump();
         status("Position saved");
     }
 
     /** {@code popPosition} -- back along the jump list, as jumpBack. */
-    public void popPosition()
-    {
+    public void popPosition() {
         JumpList.jumpBack();
     }
 
-    public static void resetDisplay()
-    {
+    public static void resetDisplay() {
         if (!displayReady())
             return;
         // Force formatters to be re-initialized.

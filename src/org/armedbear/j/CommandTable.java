@@ -25,8 +25,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-public class CommandTable
-{
+public class CommandTable {
     // The default load factor is 0.75, so an initial capacity of 600 will
     // accommodate 450 entries without rehashing.
     private static final int INITIAL_CAPACITY = 600;
@@ -35,8 +34,7 @@ public class CommandTable
     // init() may be running on another thread.
     private static Map<String, Command> map;
 
-    public static final Command getCommand(String name)
-    {
+    public static final Command getCommand(String name) {
         if (name == null)
             return null;
         init();
@@ -51,16 +49,14 @@ public class CommandTable
      * see anything in an extension's loader. The method must be public static,
      * taking either no arguments or a single String.
      */
-    public static void registerCommand(String name, Class<?> owner, String methodName)
-    {
+    public static void registerCommand(String name, Class<?> owner, String methodName) {
         if (name == null || owner == null || methodName == null)
             throw new IllegalArgumentException("name, owner and method are all required");
         init();
         map.put(name.toLowerCase(), new Command(name, owner, methodName));
     }
 
-    private static synchronized void init()
-    {
+    private static synchronized void init() {
         if (map == null) {
             map = new ConcurrentHashMap<String, Command>(INITIAL_CAPACITY);
 
@@ -266,7 +262,7 @@ public class CommandTable
             // Commands implemented in other classes.
             addCommand("about", "AboutDialog");
             addCommand("alias", "AliasDialog");
-            addCommand("alignStrings",  "AlignStrings");
+            addCommand("alignStrings", "AlignStrings");
             addCommand("apropos", "Help");
             addCommand("archiveOpenFile", "mode.archive.ArchiveMode");
             addCommand("backwardSexp", "mode.lisp.LispMode");
@@ -575,25 +571,21 @@ public class CommandTable
 
     // For commands that are implemented by a method of the same name in the
     // org.armedbear.j.Editor class.
-    private static final void addCommand(String commandName)
-    {
+    private static final void addCommand(String commandName) {
         map.put(commandName.toLowerCase(), new Command(commandName));
     }
 
     // For commands that are implemented by a method of the same name in the
     // specified class.
-    private static final void addCommand(String commandName, String className)
-    {
+    private static final void addCommand(String commandName, String className) {
         map.put(commandName.toLowerCase(), new Command(commandName, className, commandName));
     }
 
-    private static final void addCommand(String commandName, String className, String methodName)
-    {
+    private static final void addCommand(String commandName, String className, String methodName) {
         map.put(commandName.toLowerCase(), new Command(commandName, className, methodName));
     }
 
-    public static List<String> getCompletionsForPrefix(String prefix)
-    {
+    public static List<String> getCompletionsForPrefix(String prefix) {
         init();
         String lower = prefix.toLowerCase();
         ArrayList<String> list = new ArrayList<String>();
@@ -604,8 +596,7 @@ public class CommandTable
         return list;
     }
 
-    public static List<String> apropos(String s)
-    {
+    public static List<String> apropos(String s) {
         init();
         String lower = s.toLowerCase();
         ArrayList<String> list = new ArrayList<String>();

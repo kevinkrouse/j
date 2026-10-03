@@ -20,21 +20,19 @@
 
 package org.armedbear.j;
 
-import org.armedbear.j.util.Utilities;
-
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.util.ArrayList;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import java.util.ArrayList;
 import java.util.List;
+import org.armedbear.j.util.Utilities;
 
-public final class TagFileManager extends Thread
-{
+public final class TagFileManager extends Thread {
     // Version of tag file format.
     private static final String VERSION = "1";
 
@@ -46,8 +44,7 @@ public final class TagFileManager extends Thread
 
     private TagFileCache cache;
 
-    public TagFileManager()
-    {
+    public TagFileManager() {
         super("tag file manager");
         setPriority(Thread.MIN_PRIORITY);
         setDaemon(true);
@@ -58,16 +55,14 @@ public final class TagFileManager extends Thread
             start();
     }
 
-    public void run()
-    {
+    public void run() {
         while (true) {
             QueueEntry entry = getEntryFromQueue();
             refreshTagFile(entry);
         }
     }
 
-    private synchronized boolean initialize()
-    {
+    private synchronized boolean initialize() {
         if (!tagFileDir.isDirectory()) {
             tagFileDir.mkdirs();
             if (!tagFileDir.isDirectory()) {
@@ -81,14 +76,13 @@ public final class TagFileManager extends Thread
         return true;
     }
 
-    public synchronized void addToQueue(File dir, Mode mode)
-    {
+    public synchronized void addToQueue(File dir, Mode mode) {
         if (queue == null)
             return;
         if (dir.isRemote())
             return;
         QueueEntry entry = new QueueEntry(dir, mode);
-        for (int i = queue.size()-1; i >= 0; i--) {
+        for (int i = queue.size() - 1; i >= 0; i--) {
             if (entry.equals(queue.get(i)))
                 return;
         }
@@ -96,21 +90,18 @@ public final class TagFileManager extends Thread
         notify();
     }
 
-    public synchronized void setEnabled(boolean b)
-    {
+    public synchronized void setEnabled(boolean b) {
         boolean wasEnabled = enabled;
         enabled = b;
         if (enabled && !wasEnabled)
             notify();
     }
 
-    private boolean ready()
-    {
+    private boolean ready() {
         return enabled && queue.size() > 0;
     }
 
-    private synchronized QueueEntry getEntryFromQueue()
-    {
+    private synchronized QueueEntry getEntryFromQueue() {
         while (!ready()) {
             try {
                 wait();
@@ -122,13 +113,11 @@ public final class TagFileManager extends Thread
         return queue.remove(0);
     }
 
-    private final File getTagFile(File dir, Mode mode)
-    {
+    private final File getTagFile(File dir, Mode mode) {
         return catalog.getTagFile(dir, mode);
     }
 
-    public void makeTagFile(File dir, Mode mode)
-    {
+    public void makeTagFile(File dir, Mode mode) {
         Debug.assertTrue(mode != null);
         try {
             if (dir.isRemote())
@@ -139,8 +128,11 @@ public final class TagFileManager extends Thread
                 String[] files = dir.list();
                 if (files != null) {
                     BufferedWriter writer =
-                        new BufferedWriter(new OutputStreamWriter(
-                            tagfile.getOutputStream()));
+                        new BufferedWriter(
+                            new OutputStreamWriter(
+                                tagfile.getOutputStream()
+                            )
+                        );
                     writer.write(VERSION);
                     writer.write('\n');
                     for (String s : files) {
@@ -175,8 +167,7 @@ public final class TagFileManager extends Thread
         }
     }
 
-    private boolean isTagFileOutOfDate(QueueEntry entry)
-    {
+    private boolean isTagFileOutOfDate(QueueEntry entry) {
         if (entry.directory.isRemote())
             return false;
         File tagfile = getTagFile(entry.directory, entry.mode);
@@ -199,14 +190,12 @@ public final class TagFileManager extends Thread
         return false;
     }
 
-    private void refreshTagFile(QueueEntry queueEntry)
-    {
+    private void refreshTagFile(QueueEntry queueEntry) {
         if (isTagFileOutOfDate(queueEntry))
             makeTagFile(queueEntry.directory, queueEntry.mode);
     }
 
-    private synchronized void cleanup()
-    {
+    private synchronized void cleanup() {
         final int days = 5;
         final long cutoff = System.currentTimeMillis() - 24 * 60 * 60 * 1000 * days;
         String[] files = tagFileDir.list();
@@ -226,8 +215,7 @@ public final class TagFileManager extends Thread
         catalog.update();
     }
 
-    public List<GlobalTag> getTags(File directory, Mode mode)
-    {
+    public List<GlobalTag> getTags(File directory, Mode mode) {
         File tagFile = getTagFile(directory, mode);
         if (tagFile == null) {
             Log.debug("getTags no tag file " + directory + " " + mode);
@@ -254,8 +242,10 @@ public final class TagFileManager extends Thread
                             tags.add(tag);
                     }
                 } else {
-                    Log.warn("getTags wrong version " + directory + " " +
-                        mode);
+                    Log.warn(
+                        "getTags wrong version " + directory + " " +
+                            mode
+                    );
                 }
                 reader.close();
             }
@@ -272,19 +262,16 @@ public final class TagFileManager extends Thread
         return tags;
     }
 
-    private static class QueueEntry
-    {
+    private static class QueueEntry {
         final File directory;
         final Mode mode;
 
-        QueueEntry(File directory, Mode mode)
-        {
+        QueueEntry(File directory, Mode mode) {
             this.directory = directory;
             this.mode = mode;
         }
 
-        public boolean equals(Object obj)
-        {
+        public boolean equals(Object obj) {
             if (this == obj)
                 return true;
             if (obj instanceof QueueEntry) {
@@ -301,16 +288,14 @@ public final class TagFileManager extends Thread
         }
     }
 
-    private static class TagFileCache
-    {
+    private static class TagFileCache {
         private static final int MAX_FILES = 5;
 
         private ArrayList<CacheEntry> list = new ArrayList<CacheEntry>(MAX_FILES);
 
         TagFileCache() {}
 
-        synchronized List<GlobalTag> getTags(File tagFile)
-        {
+        synchronized List<GlobalTag> getTags(File tagFile) {
             for (CacheEntry entry : list) {
                 if (entry.tagFile.equals(tagFile)) {
                     entry.lastAccess = System.currentTimeMillis();
@@ -330,9 +315,12 @@ public final class TagFileManager extends Thread
             return null;
         }
 
-        synchronized void add(File directory, String modeName,
-            File tagFile, List<GlobalTag> tags)
-        {
+        synchronized void add(
+            File directory,
+            String modeName,
+            File tagFile,
+            List<GlobalTag> tags
+        ) {
             CacheEntry entry = new CacheEntry(directory, modeName, tagFile, tags);
             ArrayList<CacheEntry> newList = new ArrayList<CacheEntry>(MAX_FILES);
             newList.add(entry);
@@ -348,8 +336,7 @@ public final class TagFileManager extends Thread
             checkOrder();
         }
 
-        synchronized void remove(File tagFile)
-        {
+        synchronized void remove(File tagFile) {
             Iterator<CacheEntry> iter = list.iterator();
             while (iter.hasNext()) {
                 CacheEntry entry = iter.next();
@@ -364,38 +351,39 @@ public final class TagFileManager extends Thread
         }
 
         // Only called from synchronized methods.
-        void checkOrder()
-        {
+        void checkOrder() {
             if (Editor.isDebugEnabled()) {
-                for (int i = 0; i < list.size()-1; i++) {
+                for (int i = 0; i < list.size() - 1; i++) {
                     CacheEntry entry1 = list.get(i);
-                    CacheEntry entry2 = list.get(i+1);
+                    CacheEntry entry2 = list.get(i + 1);
                     if (entry1.lastAccess < entry2.lastAccess)
                         Debug.bug();
                 }
-//                 dump();
+                //                 dump();
             }
         }
 
         // Only called from synchronized methods.
-//         void dump()
-//         {
-//             for (int i = 0; i < list.size(); i++)
-//                 Log.debug(String.valueOf(i) + " " + list.get(i).toString());
-//         }
+        //         void dump()
+        //         {
+        //             for (int i = 0; i < list.size(); i++)
+        //                 Log.debug(String.valueOf(i) + " " + list.get(i).toString());
+        //         }
     }
 
-    private static class CacheEntry
-    {
+    private static class CacheEntry {
         final File directory; // Needed for debugging only!
         final String modeName; // Needed for debugging only!
         final File tagFile;
         List<GlobalTag> tags;
         long lastAccess; // Needed for debugging only!
 
-        CacheEntry(File directory, String modeName, File tagFile,
-            List<GlobalTag> tags)
-        {
+        CacheEntry(
+            File directory,
+            String modeName,
+            File tagFile,
+            List<GlobalTag> tags
+        ) {
             this.directory = directory;
             this.modeName = modeName;
             this.tagFile = tagFile;
@@ -403,8 +391,7 @@ public final class TagFileManager extends Thread
             this.lastAccess = System.currentTimeMillis();
         }
 
-        public String toString()
-        {
+        public String toString() {
             return directory.canonicalPath() + " " + modeName + " " +
                 String.valueOf(lastAccess);
         }

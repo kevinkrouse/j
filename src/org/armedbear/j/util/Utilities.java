@@ -20,17 +20,12 @@
 
 package org.armedbear.j.util;
 
-import java.util.Collections;
-import java.util.LinkedHashSet;
-import java.util.Set;
-import java.util.regex.Pattern;
-import java.util.regex.Matcher;
+import java.awt.AlphaComposite;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Font;
 import java.awt.FontMetrics;
 import java.awt.Graphics;
-import java.awt.AlphaComposite;
 import java.awt.Graphics2D;
 import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
@@ -40,20 +35,25 @@ import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.net.MalformedURLException;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.net.URL;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
+import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URL;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Properties;
+import java.util.Set;
 import java.util.StringTokenizer;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.ZipInputStream;
 import javax.imageio.ImageIO;
@@ -64,7 +64,7 @@ import javax.swing.JPanel;
 import javax.swing.KeyStroke;
 import javax.swing.border.Border;
 import javax.swing.border.TitledBorder;
-
+import javax.xml.parsers.SAXParserFactory;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Constants;
 import org.armedbear.j.Debug;
@@ -78,21 +78,18 @@ import org.armedbear.j.MessageDialog;
 import org.armedbear.j.Mode;
 import org.armedbear.j.Path;
 import org.armedbear.j.Platform;
-import org.armedbear.j.Preferences;
 import org.armedbear.j.Position;
+import org.armedbear.j.Preferences;
 import org.armedbear.j.Property;
 import org.armedbear.j.UIScale;
 import org.armedbear.j.mode.java.JavaMode;
 import org.xml.sax.XMLReader;
-import javax.xml.parsers.SAXParserFactory;
 
-public final class Utilities implements Constants
-{
+public final class Utilities implements Constants {
     // Returns false if the string contains any upper case letters, true
     // otherwise. "abc123" and "123" are lower case.
-    public static boolean isLowerCase(String s)
-    {
-        for (int i = s.length()-1; i >= 0; i--) {
+    public static boolean isLowerCase(String s) {
+        for (int i = s.length() - 1; i >= 0; i--) {
             if (Character.isUpperCase(s.charAt(i)))
                 return false;
         }
@@ -102,10 +99,9 @@ public final class Utilities implements Constants
     // For a string to be upper case, it must have at least one upper case
     // letter, and no lower case letters. "ABC123" is upper case, but "123" is
     // not.
-    public static boolean isUpperCase(String s)
-    {
+    public static boolean isUpperCase(String s) {
         boolean containsLetter = false;
-        for (int i = s.length()-1; i >= 0; i--) {
+        for (int i = s.length() - 1; i >= 0; i--) {
             char c = s.charAt(i);
             if (Character.isLetter(c)) {
                 if (!Character.isUpperCase(c))
@@ -117,17 +113,15 @@ public final class Utilities implements Constants
         return containsLetter;
     }
 
-    public static boolean isWhitespace(String s)
-    {
-        for (int i = s.length()-1; i >= 0; i--) {
+    public static boolean isWhitespace(String s) {
+        for (int i = s.length() - 1; i >= 0; i--) {
             if (!Character.isWhitespace(s.charAt(i)))
                 return false;
         }
         return true;
     }
 
-    public static int countLines(String s)
-    {
+    public static int countLines(String s) {
         int count = 0;
         for (int i = s.length(); i-- > 0;)
             if (s.charAt(i) == '\n')
@@ -135,23 +129,20 @@ public final class Utilities implements Constants
         return count;
     }
 
-    public static boolean isDelimited(Buffer buffer, Position pos, int length)
-    {
+    public static boolean isDelimited(Buffer buffer, Position pos, int length) {
         if (buffer != null)
             return isDelimited(buffer.getMode(), pos, length);
         else
             return isDelimited(pos, length);
     }
 
-    public static boolean isDelimited(Mode mode, Position pos, int length)
-    {
+    public static boolean isDelimited(Mode mode, Position pos, int length) {
         if (mode == null)
             return isDelimited(pos, length);
         return mode.isDelimited(pos, length);
     }
 
-    public static boolean isDelimited(Position pos, int length)
-    {
+    public static boolean isDelimited(Position pos, int length) {
         final int before = pos.getOffset() - 1;
         if (before >= 0 && Character.isJavaIdentifierPart(pos.getLine().charAt(before)))
             return false;
@@ -161,8 +152,7 @@ public final class Utilities implements Constants
         return true;
     }
 
-    public static boolean isDelimited(String s, int index, int length)
-    {
+    public static boolean isDelimited(String s, int index, int length) {
         final int before = index - 1;
         if (before >= 0 && Character.isJavaIdentifierPart(s.charAt(before)))
             return false;
@@ -172,9 +162,12 @@ public final class Utilities implements Constants
         return true;
     }
 
-    public static boolean isDelimited(String s, int index, int length,
-                                      Mode mode)
-    {
+    public static boolean isDelimited(
+        String s,
+        int index,
+        int length,
+        Mode mode
+    ) {
         if (mode == null)
             return isDelimited(s, index, length);
         final int before = index - 1;
@@ -186,9 +179,12 @@ public final class Utilities implements Constants
         return true;
     }
 
-    public static boolean isDelimited(Mode mode, String s,
-                                      int startIndex, int endIndex)
-    {
+    public static boolean isDelimited(
+        Mode mode,
+        String s,
+        int startIndex,
+        int endIndex
+    ) {
         if (mode == null)
             mode = JavaMode.getMode();
         final int before = startIndex - 1;
@@ -200,8 +196,7 @@ public final class Utilities implements Constants
     }
 
     // Returns extension including leading '.'
-    public static String getExtension(String filename)
-    {
+    public static String getExtension(String filename) {
         int indexOfLastDot = filename.lastIndexOf('.');
         if (indexOfLastDot < 0)
             return null;
@@ -213,8 +208,7 @@ public final class Utilities implements Constants
     }
 
     // Returns extension including leading '.'
-    public static String getExtension(File file)
-    {
+    public static String getExtension(File file) {
         // Only consider last component of filename.
         String name = file.getName();
         int index = name.lastIndexOf('.');
@@ -224,18 +218,15 @@ public final class Utilities implements Constants
             return name.substring(index);
     }
 
-    public static final File getTempFile()
-    {
+    public static final File getTempFile() {
         return getTempFile(Directories.getTempDirectory());
     }
 
-    public static final File getTempFile(File dir)
-    {
+    public static final File getTempFile(File dir) {
         return getTempFile(dir, "");
     }
 
-    public static final File getTempFile(String dir)
-    {
+    public static final File getTempFile(String dir) {
         return getTempFile(File.getInstance(dir), "");
     }
 
@@ -244,8 +235,7 @@ public final class Utilities implements Constants
     // it's called twice with the same value of System.currentTimeMillis().
     private static int tempFileCount = 0;
 
-    public static synchronized File getTempFile(File dir, String extension)
-    {
+    public static synchronized File getTempFile(File dir, String extension) {
         if (dir == null)
             return null;
 
@@ -259,8 +249,10 @@ public final class Utilities implements Constants
         long date = System.currentTimeMillis();
 
         for (int i = 0; i < 100; i++) {
-            File file = File.getInstance(dir,
-                String.valueOf(date + tempFileCount).concat(extension));
+            File file = File.getInstance(
+                dir,
+                String.valueOf(date + tempFileCount).concat(extension)
+            );
             ++tempFileCount;
             if (!file.exists())
                 return file;
@@ -269,8 +261,7 @@ public final class Utilities implements Constants
         return null;
     }
 
-    public static boolean isDirectoryWritable(File dir)
-    {
+    public static boolean isDirectoryWritable(File dir) {
         boolean isWritable = false;
         File file = getTempFile(dir);
         if (file != null) {
@@ -288,8 +279,7 @@ public final class Utilities implements Constants
         return isWritable;
     }
 
-    public static String detab(String s, int tabWidth, int startCol)
-    {
+    public static String detab(String s, int tabWidth, int startCol) {
         if (tabWidth <= 0)
             return s;
         int limit = s.length();
@@ -330,13 +320,11 @@ public final class Utilities implements Constants
         return charArray == null ? s : new String(charArray, 0, col - startCol);
     }
 
-    public static final String detab(String s, int tabWidth)
-    {
+    public static final String detab(String s, int tabWidth) {
         return detab(s, tabWidth, 0);
     }
 
-    public static String entab(String s, int tabWidth, int startCol)
-    {
+    public static String entab(String s, int tabWidth, int startCol) {
         if (tabWidth <= 0)
             return s;
         int limit = s.length();
@@ -375,13 +363,11 @@ public final class Utilities implements Constants
         return sb.toString();
     }
 
-    public static final String entab(String s, int tabWidth)
-    {
+    public static final String entab(String s, int tabWidth) {
         return entab(s, tabWidth, 0);
     }
 
-    public static String makeTabsVisible(String s, int tabWidth)
-    {
+    public static String makeTabsVisible(String s, int tabWidth) {
         if (tabWidth <= 0)
             return s;
         int limit = s.length();
@@ -407,8 +393,7 @@ public final class Utilities implements Constants
         return sb.toString();
     }
 
-    public static String wrap(String s, int wrapCol, int tabWidth)
-    {
+    public static String wrap(String s, int wrapCol, int tabWidth) {
         StringBuilder sb = new StringBuilder();
         int i = 0;
         final int limit = s.length();
@@ -462,8 +447,7 @@ public final class Utilities implements Constants
         return sb.toString();
     }
 
-    public static int getDetabbedLength(String s, int tabWidth)
-    {
+    public static int getDetabbedLength(String s, int tabWidth) {
         final int limit = s.length();
         int detabbedLength = 0;
         for (int i = 0; i < limit; i++) {
@@ -476,8 +460,7 @@ public final class Utilities implements Constants
     }
 
     // Trims leading space characters only, not all whitespace.
-    public static String trimLeading(String s)
-    {
+    public static String trimLeading(String s) {
         final int length = s.length();
         int i = 0;
         while (i < length) {
@@ -489,26 +472,23 @@ public final class Utilities implements Constants
     }
 
     // Trims trailing space characters only, not all whitespace.
-    public static String trimTrailing(String s)
-    {
+    public static String trimTrailing(String s) {
         int length = s.length();
-        if (length == 0 || s.charAt(length-1) != ' ')
+        if (length == 0 || s.charAt(length - 1) != ' ')
             return s;
         do {
             --length;
-        } while (length > 0 && s.charAt(length-1) == ' ');
+        } while (length > 0 && s.charAt(length - 1) == ' ');
         return s.substring(0, length);
     }
 
     // Returns true if the string to be inserted looks like a block of lines.
-    public static boolean isLinePaste(String s)
-    {
-        final char c = s.charAt(s.length()-1);
+    public static boolean isLinePaste(String s) {
+        final char c = s.charAt(s.length() - 1);
         return c == '\r' || c == '\n';
     }
 
-    public static int getIntegerProperty(Properties props, String key, int defaultValue)
-    {
+    public static int getIntegerProperty(Properties props, String key, int defaultValue) {
         try {
             String s = props.getProperty(key);
             if (s != null)
@@ -528,8 +508,7 @@ public final class Utilities implements Constants
      *                  the line in question is not a valid #include line.
      * @since           0.16.2
      */
-    public static String extractInclude(String line)
-    {
+    public static String extractInclude(String line) {
         String s = line.trim();
         if (s.length() < 12) // "#include <a>"
             return null;
@@ -549,7 +528,7 @@ public final class Utilities implements Constants
             lastIndex = s.indexOf('>', 1);
         if (lastIndex < 0)
             return null;
-        return s.substring(0, lastIndex+1);
+        return s.substring(0, lastIndex + 1);
     }
 
     private static final Pattern includeRE = Pattern.compile("#[ \t]*include[ \t]");
@@ -567,11 +546,13 @@ public final class Utilities implements Constants
      * @return                  the file, or <code>null</code> if not found
      * @since                   0.16.2
      */
-    public static File findInclude(String s, String path,
-        File currentDirectory)
-    {
+    public static File findInclude(
+        String s,
+        String path,
+        File currentDirectory
+    ) {
         char c = s.charAt(0);
-        final String fileName = s.substring(1, s.length()-1);
+        final String fileName = s.substring(1, s.length() - 1);
         if (c == '"') {
             // The filename is enclosed in quotes. Look in the current
             // directory first.
@@ -583,9 +564,11 @@ public final class Utilities implements Constants
     }
 
     // We pass in currentDirectory in order to support relative paths.
-    public static File findFileInPath(String filename, String path,
-        File currentDirectory)
-    {
+    public static File findFileInPath(
+        String filename,
+        String path,
+        File currentDirectory
+    ) {
         if (path != null) {
             int index;
             do {
@@ -613,8 +596,7 @@ public final class Utilities implements Constants
     }
 
     // Returns a list of strings.
-    public static List<String> getDirectoriesInPath(String path)
-    {
+    public static List<String> getDirectoriesInPath(String path) {
         ArrayList<String> list = new ArrayList<String>();
         if (path != null) {
             final char sep = LocalFile.getPathSeparatorChar();
@@ -638,8 +620,7 @@ public final class Utilities implements Constants
 
     // Looks for specified file in the source path and (if applicable) the
     // include path.
-    public static File findFile(Editor editor, String filename)
-    {
+    public static File findFile(Editor editor, String filename) {
         final Buffer buffer = editor.getBuffer();
         final File currentDirectory =
             buffer != null ? buffer.getCurrentDirectory() : null;
@@ -695,8 +676,7 @@ public final class Utilities implements Constants
 
     // If parent directory exists, returns true; otherwise displays standard
     // error dialog using context as title and returns false.
-    public static boolean checkParentDirectory(File file, String context)
-    {
+    public static boolean checkParentDirectory(File file, String context) {
         File parent = file.getParentFile();
         if (parent != null && parent.isDirectory())
             return true;
@@ -707,8 +687,7 @@ public final class Utilities implements Constants
         return false;
     }
 
-    public static boolean isFilenameAbsolute(String filename)
-    {
+    public static boolean isFilenameAbsolute(String filename) {
         final int length = filename.length();
         if (length > 0) {
             char c0 = filename.charAt(0);
@@ -738,9 +717,12 @@ public final class Utilities implements Constants
     }
 
     // Helper for getFileType.
-    private static String getStringFromUnicodeBytes(byte[] bytes, int start,
-        int length, boolean isLittleEndian)
-    {
+    private static String getStringFromUnicodeBytes(
+        byte[] bytes,
+        int start,
+        int length,
+        boolean isLittleEndian
+    ) {
         StringBuilder sb = new StringBuilder(length);
         int i = start;
         int limit = start + length;
@@ -756,8 +738,7 @@ public final class Utilities implements Constants
     }
 
     // Returns FILETYPE_UNKNOWN if file is null or does not exist.
-    public static int getFileType(File file)
-    {
+    public static int getFileType(File file) {
         if (file == null)
             return FILETYPE_UNKNOWN;
         int fileType = FILETYPE_UNKNOWN;
@@ -770,10 +751,10 @@ public final class Utilities implements Constants
             boolean isUnicode = false;
             boolean isLittleEndian = false;
             if (bytesRead >= 2) {
-                if (bytes[0] == (byte)0xfe && bytes[1] == (byte)0xff) {
+                if (bytes[0] == (byte) 0xfe && bytes[1] == (byte) 0xff) {
                     isUnicode = true;
                     isLittleEndian = false;
-                } else if (bytes[0] == (byte)0xff && bytes[1] == (byte)0xfe)
+                } else if (bytes[0] == (byte) 0xff && bytes[1] == (byte) 0xfe)
                     isUnicode = true;
             }
             if (!isUnicode) {
@@ -814,8 +795,12 @@ public final class Utilities implements Constants
                 fileType = FILETYPE_TEXT;
                 String s;
                 if (isUnicode)
-                    s = getStringFromUnicodeBytes(bytes, 2, bytesRead,
-                                                  isLittleEndian);
+                    s = getStringFromUnicodeBytes(
+                        bytes,
+                        2,
+                        bytesRead,
+                        isLittleEndian
+                    );
                 else
                     s = new String(bytes, 0, bytesRead);
                 if (s.length() >= 3) {
@@ -827,9 +812,13 @@ public final class Utilities implements Constants
                         index = s.indexOf('\r');
                         if (index >= 0)
                             s = s.substring(0, index);
-                        if (s.indexOf("/bin/sh") >=0 ||
-                            s.indexOf("/bin/bash") >= 0 ||
-                            s.indexOf("/bin/tcsh") >= 0)
+                        if (
+                            s.indexOf("/bin/sh") >= 0
+                                ||
+                                s.indexOf("/bin/bash") >= 0
+                                ||
+                                s.indexOf("/bin/tcsh") >= 0
+                        )
                             fileType = FILETYPE_SHELLSCRIPT;
                         else if (s.indexOf("/bin/perl") >= 0)
                             fileType = FILETYPE_PERL;
@@ -837,8 +826,11 @@ public final class Utilities implements Constants
                         fileType = FILETYPE_XML;
                     } else if (s.startsWith("<?php")) {
                         fileType = FILETYPE_PHP;
-                    } else if (s.startsWith("<?") &&
-                        Character.isWhitespace(s.charAt(2))) {
+                    } else if (
+                        s.startsWith("<?")
+                            &&
+                            Character.isWhitespace(s.charAt(2))
+                    ) {
                         fileType = FILETYPE_PHP;
                     }
                 }
@@ -848,8 +840,7 @@ public final class Utilities implements Constants
         return fileType;
     }
 
-    public static boolean deleteRename(File source, File destination)
-    {
+    public static boolean deleteRename(File source, File destination) {
         if (!source.isFile()) {
             Log.warn("deleteRename source file " + source + " does not exist");
             return false;
@@ -880,8 +871,7 @@ public final class Utilities implements Constants
         return false;
     }
 
-    public static boolean copyFile(File source, File destination)
-    {
+    public static boolean copyFile(File source, File destination) {
         if (!source.isFile()) {
             Log.error("copyFile error - source is not a file: " + source);
             return false;
@@ -962,8 +952,7 @@ public final class Utilities implements Constants
         return true; // Success!
     }
 
-    private static boolean overwriteFile(File source, File destination)
-    {
+    private static boolean overwriteFile(File source, File destination) {
         if (!source.isFile())
             return false;
         boolean error = false;
@@ -1009,14 +998,15 @@ public final class Utilities implements Constants
         return true;
     }
 
-    public static boolean makeBackup(File file, boolean keepOriginal)
-    {
+    public static boolean makeBackup(File file, boolean keepOriginal) {
         return makeBackup(file, file.getName(), keepOriginal);
     }
 
-    public static boolean makeBackup(File file, String name,
-        boolean keepOriginal)
-    {
+    public static boolean makeBackup(
+        File file,
+        String name,
+        boolean keepOriginal
+    ) {
         // No need to back it up if it doesn't exist.
         if (!file.isFile())
             return true;
@@ -1027,8 +1017,10 @@ public final class Utilities implements Constants
             backupDir = File.getInstance(backupDirectory);
         } else {
             // Use default location.
-            backupDir = File.getInstance(Directories.getUserHomeDirectory(),
-                                         "backup");
+            backupDir = File.getInstance(
+                Directories.getUserHomeDirectory(),
+                "backup"
+            );
         }
         if (backupDir == null)
             return false;
@@ -1058,8 +1050,7 @@ public final class Utilities implements Constants
         return false;
     }
 
-    public static Color getColor(String s)
-    {
+    public static Color getColor(String s) {
         return parseColor(s);
     }
 
@@ -1069,19 +1060,25 @@ public final class Utilities implements Constants
      * green and blue. Returns null for anything else, and says nothing about
      * it, so it can be asked of any text.
      */
-    public static Color parseColor(String s)
-    {
+    public static Color parseColor(String s) {
         if (s == null)
             return null;
         s = s.trim();
         switch (s) {
-            case "black":  return Color.black;
-            case "white":  return Color.white;
-            case "yellow": return Color.yellow;
-            case "blue":   return Color.blue;
-            case "red":    return Color.red;
-            case "gray":   return Color.gray;
-            case "green":  return Color.green;
+            case "black":
+                return Color.black;
+            case "white":
+                return Color.white;
+            case "yellow":
+                return Color.yellow;
+            case "blue":
+                return Color.blue;
+            case "red":
+                return Color.red;
+            case "gray":
+                return Color.gray;
+            case "green":
+                return Color.green;
         }
         if (s.startsWith("#"))
             return parseHexColor(s);
@@ -1106,8 +1103,7 @@ public final class Utilities implements Constants
      * "#rgb" or "#rrggbb", as CSS writes them; null for anything else. In
      * "#rgb" each digit is doubled, so "#f80" is "#ff8800".
      */
-    public static Color parseHexColor(String s)
-    {
+    public static Color parseHexColor(String s) {
         final int length = s.length();
         if (length != 4 && length != 7 || s.charAt(0) != '#')
             return null;
@@ -1127,14 +1123,12 @@ public final class Utilities implements Constants
     private static final String filenameChars =
         "#-./0123456789:ABCDEFGHIJKLMNOPQRSTUVWXYZ\\_abcdefghijklmnopqrstuvwxyz~";
 
-    public static boolean isFilenameChar(char c)
-    {
+    public static boolean isFilenameChar(char c) {
         return (filenameChars.indexOf(c) >= 0);
     }
 
     // Enclose string in quotes if it contains any embedded spaces.
-    public static String maybeQuote(String s)
-    {
+    public static String maybeQuote(String s) {
         if (s.indexOf(' ') < 0)
             return s;
         StringBuilder sb = new StringBuilder();
@@ -1144,8 +1138,7 @@ public final class Utilities implements Constants
         return sb.toString();
     }
 
-    public static boolean isProcessAlive(Process process)
-    {
+    public static boolean isProcessAlive(Process process) {
         if (process == null)
             return false;
         try {
@@ -1159,8 +1152,7 @@ public final class Utilities implements Constants
         }
     }
 
-    public static void kill(int pid)
-    {
+    public static void kill(int pid) {
         if (Platform.isPlatformUnix()) {
             try {
                 String[] cmdarray = { "/bin/sh", "-c", "kill -9 " + pid };
@@ -1177,18 +1169,15 @@ public final class Utilities implements Constants
 
     private static String jpty = null;
 
-    public static String jptyPath()
-    {
+    public static String jptyPath() {
         if (Utilities.haveJpty())
             return jpty;
 
         return null;
     }
 
-    public static boolean haveJpty()
-    {
-        if (jpty == null)
-        {
+    public static boolean haveJpty() {
+        if (jpty == null) {
             String bin = which("jpty");
             if (bin == null)
                 jpty = NOT_FOUND;
@@ -1200,8 +1189,7 @@ public final class Utilities implements Constants
 
     private static int haveLs = -1;
 
-    public static boolean haveLs()
-    {
+    public static boolean haveLs() {
         if (haveLs == -1)
             haveLs = have("ls") ? 1 : 0;
         return haveLs == 1;
@@ -1210,8 +1198,7 @@ public final class Utilities implements Constants
     // Find the binary on the PATH
     // - on unix and mac, uses "which"
     // - on windows, uses "where.exe"
-    public static String which(final String s)
-    {
+    public static String which(final String s) {
         String which = "which";
         if (Platform.isPlatformWindows())
             which = "where.exe";
@@ -1226,8 +1213,7 @@ public final class Utilities implements Constants
         return binary;
     }
 
-    public static URL toURL(String s) throws MalformedURLException
-    {
+    public static URL toURL(String s) throws MalformedURLException {
         try {
             return new URI(s).toURL();
         }
@@ -1249,8 +1235,7 @@ public final class Utilities implements Constants
      * middle button and Alt as the same bit, and the right button and Meta as
      * the same bit.
      */
-    public static int keyModifiers(InputEvent e)
-    {
+    public static int keyModifiers(InputEvent e) {
         final int ex = e.getModifiersEx();
         int modifiers = 0;
         if ((ex & InputEvent.SHIFT_DOWN_MASK) != 0)
@@ -1265,13 +1250,11 @@ public final class Utilities implements Constants
     }
 
     /** True when the event carries no keyboard modifier. */
-    public static boolean isUnmodified(InputEvent e)
-    {
+    public static boolean isUnmodified(InputEvent e) {
         return keyModifiers(e) == 0;
     }
 
-    public static Process exec(String command) throws IOException
-    {
+    public static Process exec(String command) throws IOException {
         StringTokenizer st = new StringTokenizer(command);
         String[] args = new String[st.countTokens()];
         for (int i = 0; i < args.length; i++)
@@ -1279,14 +1262,12 @@ public final class Utilities implements Constants
         return Runtime.getRuntime().exec(args);
     }
 
-    public static boolean have(final String s)
-    {
+    public static boolean have(final String s) {
         try {
             final Process p = exec(s);
             if (p != null) {
                 Thread t = new Thread("Utilities.have(\"" + s + "\") destroy") {
-                    public void run()
-                    {
+                    public void run() {
                         try {
                             final BufferedReader reader =
                                 new BufferedReader(new InputStreamReader(p.getInputStream()));
@@ -1320,19 +1301,17 @@ public final class Utilities implements Constants
 
     private static String userHome;
 
-    public static final void setUserHome(String s)
-    {
+    public static final void setUserHome(String s) {
         Log.debug("setting userHome = " + s);
         Debug.dumpStack();
         Debug.bugIfNot(userHome == null, "userHome already set to '" + userHome + "'"); // We only want to do this once!
         userHome = s;
     }
 
-    public static String getUserHome()
-    {
+    public static String getUserHome() {
         if (userHome == null) {
             if (Platform.isPlatformWindows()) {
-                String[] cmdarray = {"bash", "-c", "echo $HOME"};
+                String[] cmdarray = { "bash", "-c", "echo $HOME" };
                 String output = exec(cmdarray);
                 if (output != null) {
                     output = output.trim();
@@ -1356,16 +1335,14 @@ public final class Utilities implements Constants
         return userHome;
     }
 
-    public static String cygnify(String s)
-    {
-        String[] cmdArray = {"cygpath", "-u", s};
+    public static String cygnify(String s) {
+        String[] cmdArray = { "cygpath", "-u", s };
         String converted = Utilities.exec(cmdArray);
         return converted != null ? converted : s;
     }
 
-    public static String uncygnify(String s)
-    {
-        String[] cmdArray = {"cygpath", "-w", s};
+    public static String uncygnify(String s) {
+        String[] cmdArray = { "cygpath", "-w", s };
         String converted = Utilities.exec(cmdArray);
         return converted != null ? converted : s;
     }
@@ -1373,8 +1350,7 @@ public final class Utilities implements Constants
     /**
      * Find possible resource directories using classpath, relative from 'src' dir or 'j.jar'.
      */
-    public static Set<File> resourceDirs()
-    {
+    public static Set<File> resourceDirs() {
         String classPath = System.getProperty("java.class.path");
         if (classPath == null)
             return Collections.emptySet();
@@ -1432,13 +1408,11 @@ public final class Utilities implements Constants
         return dirs;
     }
 
-    public static String exec(String... cmdarray)
-    {
+    public static String exec(String... cmdarray) {
         return exec(List.of(cmdarray), null);
     }
 
-    public static String exec(List<String> cmd, java.io.File dir)
-    {
+    public static String exec(List<String> cmd, java.io.File dir) {
         try {
             ProcessBuilder pb = new ProcessBuilder(cmd);
             if (dir != null) {
@@ -1504,14 +1478,12 @@ public final class Utilities implements Constants
     private static Color iconColor;
 
     /** An icon from j's own set, at the standard size, scaled for the display. */
-    public static ImageIcon getIconFromFile(String name)
-    {
+    public static ImageIcon getIconFromFile(String name) {
         return getIconFromFile(name, UIScale.scale(ICON_SIZE));
     }
 
     /** The icon rendered at exactly {@code size} pixels. */
-    public static synchronized ImageIcon getIconFromFile(String name, int size)
-    {
+    public static synchronized ImageIcon getIconFromFile(String name, int size) {
         if (size <= 0)
             return null;
         final String key = name + '@' + size;
@@ -1553,14 +1525,15 @@ public final class Utilities implements Constants
      * @param badges drawn in order; nulls are skipped so a caller can pass a
      *               badge it may not have without branching.
      */
-    public static ImageIcon getBadgedIcon(String base, String... badges)
-    {
+    public static ImageIcon getBadgedIcon(String base, String... badges) {
         return getBadgedIcon(UIScale.scale(ICON_SIZE), base, badges);
     }
 
-    public static synchronized ImageIcon getBadgedIcon(int size, String base,
-                                                       String... badges)
-    {
+    public static synchronized ImageIcon getBadgedIcon(
+        int size,
+        String base,
+        String... badges
+    ) {
         if (size <= 0 || base == null)
             return null;
         StringBuilder sb = new StringBuilder(base);
@@ -1611,8 +1584,7 @@ public final class Utilities implements Constants
     // 16 unit coordinates.
     private static final float BADGE_GAP = 1.6f;
 
-    private static SvgIcon getSvgIcon(String name) throws Exception
-    {
+    private static SvgIcon getSvgIcon(String name) throws Exception {
         if (svgCache.containsKey(name))
             return svgCache.get(name);
         SvgIcon svg = null;
@@ -1626,9 +1598,7 @@ public final class Utilities implements Constants
         return svg;
     }
 
-
-    public static synchronized Color getIconColor()
-    {
+    public static synchronized Color getIconColor() {
         if (iconColor == null) {
             Preferences preferences = Editor.preferences();
             if (preferences != null) {
@@ -1641,35 +1611,30 @@ public final class Utilities implements Constants
     }
 
     /** Called when uiScale, the theme, or any other icon input changes. */
-    public static synchronized void clearIconCache()
-    {
+    public static synchronized void clearIconCache() {
         iconCache.clear();
         svgCache.clear();
         iconColor = null;
     }
 
-    public static BufferedImage getImageFromFile(String iconFile)
-    {
+    public static BufferedImage getImageFromFile(String iconFile) {
         String path = "images/".concat(iconFile);
         InputStream is = Editor.class.getResourceAsStream(path);
         if (is == null) {
             Log.warn("failed to get icon: " + path);
             return null;
         }
-        try
-        {
+        try {
             return ImageIO.read(is);
         }
-        catch (IOException e)
-        {
+        catch (IOException e) {
             Log.error(e);
             return null;
         }
     }
 
     // Parses integer from string. Parsing stops when we encounter a non-digit.
-    public static int parseInt(String s) throws NumberFormatException
-    {
+    public static int parseInt(String s) throws NumberFormatException {
         final int limit = s.length();
         int i;
         for (i = 0; i < limit; i++) {
@@ -1681,8 +1646,7 @@ public final class Utilities implements Constants
         return Integer.parseInt(s.substring(0, i));
     }
 
-    public static String rightJustify(int n, int fieldWidth)
-    {
+    public static String rightJustify(int n, int fieldWidth) {
         String s = String.valueOf(n);
         int pad = fieldWidth - s.length();
         if (pad <= 0)
@@ -1692,8 +1656,7 @@ public final class Utilities implements Constants
         return sb.toString();
     }
 
-    public static String rightJustify(String s, int fieldWidth)
-    {
+    public static String rightJustify(String s, int fieldWidth) {
         int pad = fieldWidth - s.length();
         if (pad <= 0)
             return s;
@@ -1702,16 +1665,18 @@ public final class Utilities implements Constants
         return sb.toString();
     }
 
-    public static final boolean lookingAt(String s, int i, String pattern,
-        boolean ignoreCase)
-    {
+    public static final boolean lookingAt(
+        String s,
+        int i,
+        String pattern,
+        boolean ignoreCase
+    ) {
         return s.regionMatches(ignoreCase, i, pattern, 0, pattern.length());
     }
 
-    public static boolean isOneOf(String s, String[] strings)
-    {
+    public static boolean isOneOf(String s, String[] strings) {
         if (s != null) {
-            for (int i = strings.length-1; i >= 0; i--)
+            for (int i = strings.length - 1; i >= 0; i--)
                 if (s.equals(strings[i]))
                     return true;
         }
@@ -1728,22 +1693,20 @@ public final class Utilities implements Constants
         SPACES = new String(chars);
     }
 
-    public static String spaces(int count)
-    {
+    public static String spaces(int count) {
         if (count <= 0)
             return "";
         else if (count <= SPACES_LENGTH)
             return SPACES.substring(0, count);
         else {
-            StringBuilder sb =  new StringBuilder(count);
+            StringBuilder sb = new StringBuilder(count);
             for (int i = 0; i < count; i++)
                 sb.append(' ');
             return sb.toString();
         }
     }
 
-    public static final String getCharsetFromContentType(String contentType)
-    {
+    public static final String getCharsetFromContentType(String contentType) {
         if (contentType == null)
             return null;
         int index = contentType.toLowerCase().indexOf("charset=");
@@ -1767,22 +1730,26 @@ public final class Utilities implements Constants
         return sb.toString();
     }
 
-    public static final String getEncodingFromCharset(String charset)
-    {
+    public static final String getEncodingFromCharset(String charset) {
         if (charset == null)
             return "iso-8859-1";
         String lower = charset.toLowerCase();
-        if (lower.equals("unknown-8bit") ||
-            lower.equals("x-unknown") ||
-            lower.equals("us-ascii") ||
-            lower.equals("default_charset") ||
-            lower.equals("latin-iso8859-1"))
+        if (
+            lower.equals("unknown-8bit")
+                ||
+                lower.equals("x-unknown")
+                ||
+                lower.equals("us-ascii")
+                ||
+                lower.equals("default_charset")
+                ||
+                lower.equals("latin-iso8859-1")
+        )
             return "iso-8859-1";
         return charset;
     }
 
-    public static boolean isSupportedEncoding(String encoding)
-    {
+    public static boolean isSupportedEncoding(String encoding) {
         if (encoding != null) {
             try {
                 "test".getBytes(encoding);
@@ -1794,8 +1761,7 @@ public final class Utilities implements Constants
     }
 
     // Extracts XML or HTML tag name (e.g. "a" or "/a") from string.
-    public static String getTagName(String s)
-    {
+    public static String getTagName(String s) {
         Debug.assertTrue(s != null);
         Debug.assertTrue(s.length() > 0);
         Debug.assertTrue(s.charAt(0) == '<');
@@ -1815,8 +1781,7 @@ public final class Utilities implements Constants
     }
 
     // Does not handle embedded single-quoted strings.
-    public static List<String> tokenize(String s)
-    {
+    public static List<String> tokenize(String s) {
         ArrayList<String> list = new ArrayList<String>();
         if (s != null) {
             StringBuilder sb = new StringBuilder();
@@ -1854,8 +1819,7 @@ public final class Utilities implements Constants
         return list;
     }
 
-    public static String getFirstIdentifier(String s, Mode mode)
-    {
+    public static String getFirstIdentifier(String s, Mode mode) {
         StringBuilder sb = new StringBuilder();
         int length = s.length();
         if (length > 0) {
@@ -1874,8 +1838,7 @@ public final class Utilities implements Constants
         return sb.toString();
     }
 
-    public static KeyStroke getKeyStroke(String keyText)
-    {
+    public static KeyStroke getKeyStroke(String keyText) {
         if (keyText == null)
             return null;
         keyText = keyText.trim();
@@ -1902,12 +1865,12 @@ public final class Utilities implements Constants
                 keyText = keyText.substring(6).trim();
                 continue;
             }
-            if (keyText.startsWith("Alt ") || keyText.startsWith("Alt\t")){
+            if (keyText.startsWith("Alt ") || keyText.startsWith("Alt\t")) {
                 modifiers |= ALT_MASK;
                 keyText = keyText.substring(4).trim();
                 continue;
             }
-            if (keyText.startsWith("Meta ") || keyText.startsWith("Meta\t")){
+            if (keyText.startsWith("Meta ") || keyText.startsWith("Meta\t")) {
                 modifiers |= META_MASK;
                 keyText = keyText.substring(5).trim();
                 continue;
@@ -1932,13 +1895,11 @@ public final class Utilities implements Constants
         return KeyStroke.getKeyStroke(keyCode, modifiers);
     }
 
-    public static final String getKeyText(KeyStroke keyStroke)
-    {
+    public static final String getKeyText(KeyStroke keyStroke) {
         return getKeyText(keyStroke.getKeyChar(), keyStroke.getKeyCode(), keyStroke.getModifiers());
     }
 
-    public static String getKeyText(char keyChar, int keyCode, int modifiers)
-    {
+    public static String getKeyText(char keyChar, int keyCode, int modifiers) {
         StringBuilder sb = new StringBuilder();
         if (keyChar >= ' ' && keyChar != 0xffff) {
             // Mapping is defined by character.
@@ -2031,8 +1992,7 @@ public final class Utilities implements Constants
         VK_DOUBLE_MOUSE_3
     };
 
-    private static int getKeyCode(String keyName)
-    {
+    private static int getKeyCode(String keyName) {
         if (keyName.length() == 0)
             return 0;
         if (keyName.length() == 1)
@@ -2062,23 +2022,23 @@ public final class Utilities implements Constants
         return 0;
     }
 
-    private static String getKeyName(int keyCode)
-    {
-        if (keyCode >= KeyEvent.VK_0 && keyCode <= KeyEvent.VK_9 || keyCode >= KeyEvent.VK_A && keyCode <= KeyEvent.VK_Z)
+    private static String getKeyName(int keyCode) {
+        if (
+            keyCode >= KeyEvent.VK_0 && keyCode <= KeyEvent.VK_9 || keyCode >= KeyEvent.VK_A && keyCode <= KeyEvent.VK_Z
+        )
             return String.valueOf((char) keyCode);
         if (keyCode >= KeyEvent.VK_F1 && keyCode <= KeyEvent.VK_F12)
             return "F" + Integer.toString(keyCode - KeyEvent.VK_F1 + 1);
         if (",./;=[\\]".indexOf(keyCode) >= 0)
             return String.valueOf((char) keyCode);
-        for (int i = 0; i < keyCodes.length; i++){
+        for (int i = 0; i < keyCodes.length; i++) {
             if (keyCode == keyCodes[i])
                 return keyNames[i];
         }
         return "0x" + Integer.toString(keyCode, 16);
     }
 
-    public static String propertyToXml(String name, String value)
-    {
+    public static String propertyToXml(String name, String value) {
         StringBuilder sb = new StringBuilder("<property name=\"");
         sb.append(name);
         sb.append("\" value=\"");
@@ -2087,25 +2047,28 @@ public final class Utilities implements Constants
         return sb.toString();
     }
 
-    public static JPanel createPanel(String title)
-    {
+    public static JPanel createPanel(String title) {
         JPanel panel = new JPanel();
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
         Border border =
             new TitledBorder(BorderFactory.createEtchedBorder(), title) {
-            public void paintBorder(Component c, Graphics g, int x, int y,
-                                    int width, int height)
-            {
-                Display.setRenderingHints(g);
-                super.paintBorder(c, g, x, y, width, height);
-            }
-        };
+                public void paintBorder(
+                    Component c,
+                    Graphics g,
+                    int x,
+                    int y,
+                    int width,
+                    int height
+                ) {
+                    Display.setRenderingHints(g);
+                    super.paintBorder(c, g, x, y, width, height);
+                }
+            };
         panel.setBorder(border);
         return panel;
     }
 
-    public static synchronized XMLReader getDefaultXMLReader()
-    {
+    public static synchronized XMLReader getDefaultXMLReader() {
         try {
             SAXParserFactory factory = SAXParserFactory.newInstance();
             factory.setNamespaceAware(true);
@@ -2125,8 +2088,7 @@ public final class Utilities implements Constants
      * rendering hints the display uses, so the advances it reports are the
      * ones the text will actually occupy.
      */
-    public static FontMetrics getFontMetrics(Font font)
-    {
+    public static FontMetrics getFontMetrics(Font font) {
         BufferedImage image =
             new BufferedImage(1, 1, BufferedImage.TYPE_INT_ARGB);
         Graphics2D g = image.createGraphics();

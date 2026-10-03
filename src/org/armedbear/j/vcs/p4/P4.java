@@ -20,6 +20,12 @@
 
 package org.armedbear.j.vcs.p4;
 
+import java.lang.StringBuilder;
+import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import javax.swing.SwingUtilities;
+import javax.swing.undo.CompoundEdit;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.BufferIterator;
 import org.armedbear.j.ConfirmDialog;
@@ -27,7 +33,6 @@ import org.armedbear.j.Constants;
 import org.armedbear.j.Debug;
 import org.armedbear.j.Editor;
 import org.armedbear.j.EditorIterator;
-import java.lang.StringBuilder;
 import org.armedbear.j.File;
 import org.armedbear.j.Log;
 import org.armedbear.j.MessageDialog;
@@ -36,587 +41,401 @@ import org.armedbear.j.Position;
 import org.armedbear.j.Property;
 import org.armedbear.j.ShellCommand;
 import org.armedbear.j.Sidebar;
-import org.armedbear.j.util.Utilities;
-import org.armedbear.j.vcs.VersionControl;
 import org.armedbear.j.mode.checkin.CheckinBuffer;
 import org.armedbear.j.mode.diff.DiffOutputBuffer;
+import org.armedbear.j.util.Utilities;
+import org.armedbear.j.vcs.VersionControl;
 
-import java.util.regex.Pattern;
-import java.util.regex.Matcher;
-import java.util.List;
-import javax.swing.SwingUtilities;
-import javax.swing.undo.CompoundEdit;
+public class P4 extends VersionControl implements Constants {
+    public static void p4() {
+        if (!checkP4Installed())
+            return;
+        MessageDialog.showMessageDialog(
+            "The command \"p4\" requires an argument.",
+            "Error"
+        );
+    }
 
-public class P4 extends VersionControl implements Constants
-{
-  public static void p4()
-  {
-    if (!checkP4Installed())
-      return;
-    MessageDialog.showMessageDialog("The command \"p4\" requires an argument.",
-            "Error");
-  }
+    public static void p4(String s) {
+        if (!checkP4Installed())
+            return;
+        List<String> args = Utilities.tokenize(s);
+        if (args.size() == 0)
+            return;
+        String command = args.get(0);
+        if (command.equals("submit")) {
+            MessageDialog.showMessageDialog("Use \"p4Submit\".", "Error");
+            return;
+        }
+        if (command.equals("change")) {
+            MessageDialog.showMessageDialog("Use \"p4Change\".", "Error");
+            return;
+        }
+        final Editor editor = Editor.currentEditor();
+        editor.setWaitCursor();
+        final String cmd = parseArgs("p4", s, true, false);
+        final Buffer parentBuffer = editor.getBuffer();
+        Runnable commandRunnable = () -> {
+            final String output =
+                command(cmd, editor.getCurrentDirectory());
+            Runnable completionRunnable = () -> {
+                p4Completed(editor, parentBuffer, cmd, output);
+            };
+            SwingUtilities.invokeLater(completionRunnable);
+        };
+        new Thread(commandRunnable).start();
+    }
 
-  public static void p4(String s)
-  {
-    if (!checkP4Installed())
-      return;
-    List<String> args = Utilities.tokenize(s);
-    if (args.size() == 0)
-      return;
-    String command = args.get(0);
-    if (command.equals("submit"))
-      {
-        MessageDialog.showMessageDialog("Use \"p4Submit\".", "Error");
-        return;
-      }
-    if (command.equals("change"))
-      {
-        MessageDialog.showMessageDialog("Use \"p4Change\".", "Error");
-        return;
-      }
-    final Editor editor = Editor.currentEditor();
-    editor.setWaitCursor();
-    final String cmd = parseArgs("p4", s, true, false);
-    final Buffer parentBuffer = editor.getBuffer();
-    Runnable commandRunnable = () ->
-      {
-        final String output =
-          command(cmd, editor.getCurrentDirectory());
-        Runnable completionRunnable = () ->
-          {
-            p4Completed(editor, parentBuffer, cmd, output);
-          };
-        SwingUtilities.invokeLater(completionRunnable);
-      };
-    new Thread(commandRunnable).start();
-  }
+    private static void p4Completed(
+        Editor editor,
+        Buffer parentBuffer,
+        String cmd,
+        String output
+    ) {
+        vcsCompleted(editor, parentBuffer, cmd.startsWith("p4 diff"), cmd, output, VC_P4, false);
+    }
 
-  private static void p4Completed(Editor editor, Buffer parentBuffer,
-                                  String cmd, String output)
-  {
-    vcsCompleted(editor, parentBuffer, cmd.startsWith("p4 diff"), cmd, output, VC_P4, false);
-  }
+    public static void add() {
+        if (!checkP4Installed())
+            return;
+        final Editor editor = Editor.currentEditor();
+        final Buffer buffer = editor.getBuffer();
+        if (buffer.getFile() == null)
+            return;
+        editor.setWaitCursor();
+        final String name = buffer.getFile().getName();
+        StringBuilder sb = new StringBuilder("p4 add ");
+        sb.append(Utilities.maybeQuote(name));
+        final String cmd = sb.toString();
+        outputBufferCommand(editor, cmd, buffer.getCurrentDirectory());
+    }
 
-  public static void add()
-  {
-    if (!checkP4Installed())
-      return;
-    final Editor editor = Editor.currentEditor();
-    final Buffer buffer = editor.getBuffer();
-    if (buffer.getFile() == null)
-      return;
-    editor.setWaitCursor();
-    final String name = buffer.getFile().getName();
-    StringBuilder sb = new StringBuilder("p4 add ");
-    sb.append(Utilities.maybeQuote(name));
-    final String cmd = sb.toString();
-    outputBufferCommand(editor, cmd, buffer.getCurrentDirectory());
-  }
+    public static void edit() {
+        if (!checkP4Installed())
+            return;
+        final Editor editor = Editor.currentEditor();
+        final Buffer buffer = editor.getBuffer();
+        final File file = buffer.getFile();
+        if (file == null)
+            return;
+        buffer.setBusy(true);
+        editor.setWaitCursor();
+        StringBuilder sb = new StringBuilder("p4 edit ");
+        sb.append(Utilities.maybeQuote(file.getName()));
+        final String cmd = sb.toString();
+        Runnable commandRunnable = () -> {
+            final String output = command(cmd, buffer.getCurrentDirectory());
+            Runnable completionRunnable = () -> {
+                editCompleted(editor, buffer, cmd, output);
+            };
+            SwingUtilities.invokeLater(completionRunnable);
+        };
+        new Thread(commandRunnable).start();
+    }
 
-  public static void edit()
-  {
-    if (!checkP4Installed())
-      return;
-    final Editor editor = Editor.currentEditor();
-    final Buffer buffer = editor.getBuffer();
-    final File file = buffer.getFile();
-    if (file == null)
-      return;
-    buffer.setBusy(true);
-    editor.setWaitCursor();
-    StringBuilder sb = new StringBuilder("p4 edit ");
-    sb.append(Utilities.maybeQuote(file.getName()));
-    final String cmd = sb.toString();
-    Runnable commandRunnable = () ->
-      {
-        final String output = command(cmd, buffer.getCurrentDirectory());
-        Runnable completionRunnable = () ->
-          {
-            editCompleted(editor, buffer, cmd, output);
-          };
-        SwingUtilities.invokeLater(completionRunnable);
-      };
-    new Thread(commandRunnable).start();
-  }
+    private static void editCompleted(
+        Editor editor,
+        Buffer buffer,
+        String cmd,
+        String output
+    ) {
+        // Don't bother with output buffer unless there's an error.
+        if (output.trim().endsWith(" - opened for edit"))
+            editor.status("File opened for edit");
+        else {
+            OutputBuffer buf = OutputBuffer.getOutputBuffer(output);
+            buf.setTitle(cmd);
+            editor.makeNext(buf);
+            editor.activateInOtherWindow(buf);
+        }
+        // Update read-only status.
+        if (editor.reactivate(buffer))
+            Sidebar.repaintBufferListInAllFrames();
+        buffer.setBusy(false);
+        EditorIterator iter = new EditorIterator();
+        while (iter.hasNext()) {
+            Editor ed = iter.next();
+            if (ed.getBuffer() == buffer)
+                ed.setDefaultCursor();
+        }
+    }
 
-  private static void editCompleted(Editor editor, Buffer buffer,
-                                    String cmd, String output)
-  {
-    // Don't bother with output buffer unless there's an error.
-    if (output.trim().endsWith(" - opened for edit"))
-      editor.status("File opened for edit");
-    else
-      {
-        OutputBuffer buf = OutputBuffer.getOutputBuffer(output);
+    // For Editor.checkReadOnly(). Displays output buffer if necessary.
+    public static boolean autoEdit(Editor editor) {
+        if (editor == null)
+            return false;
+        final Buffer buffer = editor.getBuffer();
+        final File file = buffer.getFile();
+        String output = _autoEdit(file);
+        if (output == null)
+            return false;
+        StringBuilder sb = new StringBuilder("p4 edit ");
+        sb.append(Utilities.maybeQuote(file.getName()));
+        editCompleted(editor, buffer, sb.toString(), output);
+        return !buffer.isReadOnly();
+    }
+
+    // For replaceInFiles(). Returns false if there are any complications.
+    public static boolean autoEdit(File file) {
+        final String output = _autoEdit(file);
+        if (output == null)
+            return false;
+        return output.trim().endsWith(" - opened for edit");
+    }
+
+    // Returns output from "p4 edit" command or null if error.
+    private static String _autoEdit(File file) {
+        Editor editor = Editor.currentEditor();
+        Buffer buffer = editor.getBuffer();
+        if (file == null)
+            return null;
+        if (file.isRemote())
+            return null;
+        if (!haveP4())
+            return null;
+        StringBuilder sb = new StringBuilder("p4 edit ");
+        sb.append(Utilities.maybeQuote(file.getName()));
+        return command(sb.toString(), buffer.getCurrentDirectory());
+    }
+
+    public static void revert() {
+        if (!checkP4Installed())
+            return;
+        final Editor editor = Editor.currentEditor();
+        final Buffer buffer = editor.getBuffer();
+        final File file = buffer.getFile();
+        if (file == null)
+            return;
+        //    if (buffer.isModified())
+        {
+            String prompt =
+                "Discard changes to " + Utilities.maybeQuote(file.getName()) + "?";
+            if (!editor.confirm("Revert Buffer", prompt))
+                return;
+        }
+        final String cmd = "p4 revert " + Utilities.maybeQuote(file.getName());
+        Runnable commandRunnable = () -> {
+            final String output = command(cmd, buffer.getCurrentDirectory());
+            Runnable completionRunnable = () -> {
+                if (output.trim().endsWith(" - was edit, reverted"))
+                    editor.status("File reverted");
+                else {
+                    OutputBuffer buf = OutputBuffer.getOutputBuffer(output);
+                    buf.setTitle(cmd);
+                    editor.makeNext(buf);
+                    editor.activateInOtherWindow(buf);
+                }
+                editor.reload(buffer);
+                // Update read-only status.
+                if (editor.reactivate(buffer))
+                    Sidebar.repaintBufferListInAllFrames();
+            };
+            SwingUtilities.invokeLater(completionRunnable);
+        };
+        new Thread(commandRunnable).start();
+    }
+
+    public static void diff() {
+        if (!checkP4Installed())
+            return;
+        final Editor editor = Editor.currentEditor();
+        final Buffer buffer = editor.getBuffer();
+        final Buffer parentBuffer;
+        if (buffer instanceof CheckinBuffer)
+            parentBuffer = buffer.getParentBuffer();
+        else
+            parentBuffer = buffer;
+        final File file = parentBuffer.getFile();
+        if (file == null)
+            return;
+        final String baseCmd = "p4 diff -f -du ";
+        final String name = file.getName();
+        final String title = baseCmd + Utilities.maybeQuote(name);
+        boolean save = false;
+        if (parentBuffer.isModified()) {
+            int response =
+                ConfirmDialog.showConfirmDialogWithCancelButton(
+                    editor,
+                    CHECK_SAVE_PROMPT,
+                    "P4 diff"
+                );
+            switch (response) {
+                case RESPONSE_YES:
+                    save = true;
+                    break;
+                case RESPONSE_NO:
+                    break;
+                case RESPONSE_CANCEL:
+                    return;
+            }
+            editor.repaintNow();
+        }
+        editor.setWaitCursor();
+        if (!save || parentBuffer.save()) {
+            // Kill existing diff output buffer if any for same parent buffer.
+            for (BufferIterator it = new BufferIterator(); it.hasNext();) {
+                Buffer b = it.next();
+                if (b instanceof DiffOutputBuffer) {
+                    if (b.getParentBuffer() == parentBuffer) {
+                        editor.maybeKillBuffer(b);
+                        break; // There should be one at most.
+                    }
+                }
+            }
+            final String cmd = baseCmd + Utilities.maybeQuote(file.canonicalPath());
+            Runnable commandRunnable = () -> {
+                final String output =
+                    command(cmd, parentBuffer.getCurrentDirectory());
+                Runnable completionRunnable = () -> {
+                    diffCompleted(editor, parentBuffer, title, output, VC_P4);
+                };
+                SwingUtilities.invokeLater(completionRunnable);
+            };
+            new Thread(commandRunnable).start();
+        }
+    }
+
+    public static void diffDir() {
+        if (!checkP4Installed())
+            return;
+        final Editor editor = Editor.currentEditor();
+        final Buffer buffer = editor.getBuffer();
+        editor.setWaitCursor();
+        final String cmd = "p4 diff -du";
+        final File directory = buffer.getCurrentDirectory();
+        // Kill existing diff output buffer if any for same directory.
+        for (BufferIterator it = new BufferIterator(); it.hasNext();) {
+            Buffer b = it.next();
+            if (b instanceof DiffOutputBuffer) {
+                if (directory.equals(((DiffOutputBuffer) b).getDirectory())) {
+                    b.kill();
+                    break; // There should be one at most.
+                }
+            }
+        }
+        final DiffOutputBuffer buf = new DiffOutputBuffer(directory, null, VC_P4);
         buf.setTitle(cmd);
         editor.makeNext(buf);
-        editor.activateInOtherWindow(buf);
-      }
-    // Update read-only status.
-    if (editor.reactivate(buffer))
-      Sidebar.repaintBufferListInAllFrames();
-    buffer.setBusy(false);
-    EditorIterator iter = new EditorIterator();
-    while (iter.hasNext())
-      {
-        Editor ed = iter.next();
-        if (ed.getBuffer() == buffer)
-          ed.setDefaultCursor();
-      }
-  }
-
-  // For Editor.checkReadOnly(). Displays output buffer if necessary.
-  public static boolean autoEdit(Editor editor)
-  {
-    if (editor == null)
-      return false;
-    final Buffer buffer = editor.getBuffer();
-    final File file = buffer.getFile();
-    String output = _autoEdit(file);
-    if (output == null)
-      return false;
-    StringBuilder sb = new StringBuilder("p4 edit ");
-    sb.append(Utilities.maybeQuote(file.getName()));
-    editCompleted(editor, buffer, sb.toString(), output);
-    return !buffer.isReadOnly();
-  }
-
-  // For replaceInFiles(). Returns false if there are any complications.
-  public static boolean autoEdit(File file)
-  {
-    final String output = _autoEdit(file);
-    if (output == null)
-      return false;
-    return output.trim().endsWith(" - opened for edit");
-  }
-
-  // Returns output from "p4 edit" command or null if error.
-  private static String _autoEdit(File file)
-  {
-    Editor editor = Editor.currentEditor();
-    Buffer buffer = editor.getBuffer();
-    if (file == null)
-      return null;
-    if (file.isRemote())
-      return null;
-    if (!haveP4())
-      return null;
-    StringBuilder sb = new StringBuilder("p4 edit ");
-    sb.append(Utilities.maybeQuote(file.getName()));
-    return command(sb.toString(), buffer.getCurrentDirectory());
-  }
-
-  public static void revert()
-  {
-    if (!checkP4Installed())
-      return;
-    final Editor editor = Editor.currentEditor();
-    final Buffer buffer = editor.getBuffer();
-    final File file = buffer.getFile();
-    if (file == null)
-      return;
-//    if (buffer.isModified())
-      {
-        String prompt =
-          "Discard changes to " + Utilities.maybeQuote(file.getName()) + "?";
-        if (!editor.confirm("Revert Buffer", prompt))
-          return;
-      }
-    final String cmd = "p4 revert " + Utilities.maybeQuote(file.getName());
-    Runnable commandRunnable = () ->
-      {
-        final String output = command(cmd, buffer.getCurrentDirectory());
-        Runnable completionRunnable = () ->
-          {
-            if (output.trim().endsWith(" - was edit, reverted"))
-              editor.status("File reverted");
-            else
-              {
-                OutputBuffer buf = OutputBuffer.getOutputBuffer(output);
-                buf.setTitle(cmd);
-                editor.makeNext(buf);
-                editor.activateInOtherWindow(buf);
-              }
-            editor.reload(buffer);
-            // Update read-only status.
-            if (editor.reactivate(buffer))
-              Sidebar.repaintBufferListInAllFrames();
-          };
-        SwingUtilities.invokeLater(completionRunnable);
-      };
-    new Thread(commandRunnable).start();
-  }
-
-  public static void diff()
-  {
-    if (!checkP4Installed())
-      return;
-    final Editor editor = Editor.currentEditor();
-    final Buffer buffer = editor.getBuffer();
-    final Buffer parentBuffer;
-    if (buffer instanceof CheckinBuffer)
-      parentBuffer = buffer.getParentBuffer();
-    else
-      parentBuffer = buffer;
-    final File file = parentBuffer.getFile();
-    if (file == null)
-      return;
-    final String baseCmd = "p4 diff -f -du ";
-    final String name = file.getName();
-    final String title = baseCmd + Utilities.maybeQuote(name);
-    boolean save = false;
-    if (parentBuffer.isModified())
-      {
-        int response =
-          ConfirmDialog.showConfirmDialogWithCancelButton(editor,
-                  CHECK_SAVE_PROMPT,
-                  "P4 diff");
-        switch (response)
-          {
-          case RESPONSE_YES:
-            save = true;
-            break;
-          case RESPONSE_NO:
-            break;
-          case RESPONSE_CANCEL:
-            return;
-          }
-        editor.repaintNow();
-      }
-    editor.setWaitCursor();
-    if (!save || parentBuffer.save())
-      {
-        // Kill existing diff output buffer if any for same parent buffer.
-        for (BufferIterator it = new BufferIterator(); it.hasNext();)
-          {
-            Buffer b = it.next();
-            if (b instanceof DiffOutputBuffer)
-              {
-                if (b.getParentBuffer() == parentBuffer)
-                  {
-                    editor.maybeKillBuffer(b);
-                    break; // There should be one at most.
-                  }
-              }
-          }
-        final String cmd = baseCmd + Utilities.maybeQuote(file.canonicalPath());
-        Runnable commandRunnable = () ->
-          {
-            final String output =
-              command(cmd, parentBuffer.getCurrentDirectory());
-            Runnable completionRunnable = () ->
-              {
-                diffCompleted(editor, parentBuffer, title, output, VC_P4);
-              };
+        Editor ed = editor.activateInOtherWindow(buf);
+        ed.setWaitCursor();
+        buf.setBusy(true);
+        Runnable commandRunnable = () -> {
+            final String output = command(cmd, directory);
+            Runnable completionRunnable = () -> {
+                processCompleted(buf, output);
+            };
             SwingUtilities.invokeLater(completionRunnable);
-          };
+        };
         new Thread(commandRunnable).start();
-      }
-  }
-
-  public static void diffDir()
-  {
-    if (!checkP4Installed())
-      return;
-    final Editor editor = Editor.currentEditor();
-    final Buffer buffer = editor.getBuffer();
-    editor.setWaitCursor();
-    final String cmd = "p4 diff -du";
-    final File directory = buffer.getCurrentDirectory();
-    // Kill existing diff output buffer if any for same directory.
-    for (BufferIterator it = new BufferIterator(); it.hasNext();)
-      {
-        Buffer b = it.next();
-        if (b instanceof DiffOutputBuffer)
-          {
-            if (directory.equals(((DiffOutputBuffer) b).getDirectory()))
-              {
-                b.kill();
-                break; // There should be one at most.
-              }
-          }
-      }
-    final DiffOutputBuffer buf = new DiffOutputBuffer(directory, null, VC_P4);
-    buf.setTitle(cmd);
-    editor.makeNext(buf);
-    Editor ed = editor.activateInOtherWindow(buf);
-    ed.setWaitCursor();
-    buf.setBusy(true);
-    Runnable commandRunnable = () ->
-      {
-        final String output = command(cmd, directory);
-        Runnable completionRunnable = () ->
-          {
-            processCompleted(buf, output);
-          };
-        SwingUtilities.invokeLater(completionRunnable);
-      };
-    new Thread(commandRunnable).start();
-  }
-
-  public static void log()
-  {
-    log(null);
-  }
-
-  public static void log(String args)
-  {
-    final Editor editor = Editor.currentEditor();
-    final Buffer parentBuffer = editor.getBuffer();
-    boolean useCurrentFile = true;
-    List<String> list = Utilities.tokenize(args);
-    for (int i = 0; i < list.size(); i++)
-      {
-        String arg = list.get(i);
-        if (arg.charAt(0) != '-')
-          {
-            // Must be a filename. Use its canonical path.
-            File file =
-              File.getInstance(parentBuffer.getCurrentDirectory(), arg);
-            list.set(i, file.canonicalPath());
-            useCurrentFile = false;
-          }
-        else if (arg.equals("-l"))
-          {
-            // We use this option by default.
-            list.set(i, "");
-          }
-      }
-    final String baseCmd = "p4 filelog -l ";
-    final String title;
-    StringBuilder sb = new StringBuilder(baseCmd);
-    for (String s : list) {
-        sb.append(s);
-        sb.append(' ');
     }
-    if (useCurrentFile)
-      {
-        File file = parentBuffer.getFile();
-        if (file == null)
-          return;
-        sb.append(Utilities.maybeQuote(file.getName()));
-        title = baseCmd + Utilities.maybeQuote(file.getName());
-      }
-    else
-      title = sb.toString();
-    final String cmd = sb.toString();
-    final OutputBuffer outputBuffer = OutputBuffer.getOutputBuffer("");
-    outputBuffer.setTitle(title);
-    outputBuffer.setBusy(true);
-    editor.makeNext(outputBuffer);
-    Editor ed = editor.activateInOtherWindow(outputBuffer);
-    ed.setWaitCursor();
-    Runnable commandRunnable = () ->
-      {
-        final String output = command(cmd, parentBuffer.getCurrentDirectory());
-        Runnable completionRunnable = () ->
-          {
-            processCompleted(outputBuffer, output);
-          };
-        SwingUtilities.invokeLater(completionRunnable);
-    };
-    new Thread(commandRunnable).start();
-  }
 
-  public static void change(String arg)
-  {
-    arg = arg.trim();
-    try
-      {
-        // Make sure arg is a number.
-        Integer.parseInt(arg);
-        _change(arg);
-      }
-    catch (NumberFormatException e)
-      {
-        MessageDialog.showMessageDialog("Argument must be a changelist number.",
-                                        "Error");
-      }
-  }
+    public static void log() {
+        log(null);
+    }
 
-  public static void change()
-  {
-    _change(null);
-  }
-
-  // arg must be a changelist number or null.
-  private static void _change(String arg)
-  {
-    if (!checkP4Installed())
-      return;
-    final Editor editor = Editor.currentEditor();
-    Buffer parentBuffer = editor.getBuffer();
-    if (parentBuffer instanceof DiffOutputBuffer)
-      {
-        Log.debug("parentBuffer is DiffOutputBuffer");
-        parentBuffer = parentBuffer.getParentBuffer();
-        Log.debug("==> parentBuffer is " + parentBuffer);
-      }
-    if (parentBuffer == null)
-      return;
-    if (parentBuffer.getFile() == null)
-      return;
-    StringBuilder sb = new StringBuilder("p4 change");
-    if (arg != null)
-      {
-        sb.append(' ');
-        sb.append(arg);
-      }
-    final String title = sb.toString();
-    Buffer buf = null;
-    for (BufferIterator it = new BufferIterator(); it.hasNext();)
-      {
-        buf = it.next();
-        if (buf instanceof CheckinBuffer)
-          if (title.equals(buf.getTitle()))
-            break;
-      }
-    if (buf instanceof CheckinBuffer)
-      {
-        editor.makeNext(buf);
-        editor.activate(buf);
-        return;
-      }
-    final CheckinBuffer checkinBuffer = new CheckinBuffer(parentBuffer, VC_P4, true);
-    checkinBuffer.setProperty(Property.USE_TABS, true);
-    checkinBuffer.setFormatter(new P4ChangelistFormatter(checkinBuffer));
-    checkinBuffer.setTitle(title);
-    checkinBuffer.setBusy(true);
-    editor.makeNext(checkinBuffer);
-    editor.activate(checkinBuffer);
-    sb.setLength(0);
-    sb.append("p4 change -o");
-    if (arg != null)
-      {
-        sb.append(' ');
-        sb.append(arg);
-      }
-    final ShellCommand shellCommand =
-      new ShellCommand(sb.toString(), parentBuffer.getCurrentDirectory());
-    Runnable commandRunnable = () ->
-      {
-        shellCommand.run();
-        Runnable completionRunnable = () ->
-          {
-            checkinBuffer.setText(shellCommand.getOutput());
-            Position dot = findStartOfComment(checkinBuffer);
-            Position mark = null;
-            if (dot != null)
-              mark = findEndOfComment(checkinBuffer, dot);
-            checkinBuffer.setBusy(false);
-            for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-              Editor ed = it.next();
-              if (ed.getBuffer() == checkinBuffer) {
-                ed.setTopLine(checkinBuffer.getFirstLine());
-                ed.setDot(dot);
-                ed.setMark(mark);
-                ed.setUpdateFlag(REPAINT);
-                ed.updateDisplay();
-              }
+    public static void log(String args) {
+        final Editor editor = Editor.currentEditor();
+        final Buffer parentBuffer = editor.getBuffer();
+        boolean useCurrentFile = true;
+        List<String> list = Utilities.tokenize(args);
+        for (int i = 0; i < list.size(); i++) {
+            String arg = list.get(i);
+            if (arg.charAt(0) != '-') {
+                // Must be a filename. Use its canonical path.
+                File file =
+                    File.getInstance(parentBuffer.getCurrentDirectory(), arg);
+                list.set(i, file.canonicalPath());
+                useCurrentFile = false;
+            } else if (arg.equals("-l")) {
+                // We use this option by default.
+                list.set(i, "");
             }
-          };
-        SwingUtilities.invokeLater(completionRunnable);
-      };
-    new Thread(commandRunnable).start();
-  }
-
-  public static void submit(String args)
-  {
-    String message = null;
-    List<String> list = Utilities.tokenize(args);
-    if (list.size() == 2)
-      {
-        String arg = list.get(0);
-        if (arg.equals("-c"))
-          {
-            arg = list.get(1);
-            try
-              {
-                Integer.parseInt(arg);
-                // Success!
-                _submit(arg);
+        }
+        final String baseCmd = "p4 filelog -l ";
+        final String title;
+        StringBuilder sb = new StringBuilder(baseCmd);
+        for (String s : list) {
+            sb.append(s);
+            sb.append(' ');
+        }
+        if (useCurrentFile) {
+            File file = parentBuffer.getFile();
+            if (file == null)
                 return;
-              }
-            catch (NumberFormatException e)
-              {
-                message = "Invalid changelist number";
-              }
-          }
-      }
-    if (message == null)
-      {
-        StringBuilder sb = new StringBuilder("Unrecognized argument \"");
-        sb.append(args.trim());
-        sb.append('"');
-        message = sb.toString();
-      }
-    MessageDialog.showMessageDialog(message, "Error");
-  }
+            sb.append(Utilities.maybeQuote(file.getName()));
+            title = baseCmd + Utilities.maybeQuote(file.getName());
+        } else
+            title = sb.toString();
+        final String cmd = sb.toString();
+        final OutputBuffer outputBuffer = OutputBuffer.getOutputBuffer("");
+        outputBuffer.setTitle(title);
+        outputBuffer.setBusy(true);
+        editor.makeNext(outputBuffer);
+        Editor ed = editor.activateInOtherWindow(outputBuffer);
+        ed.setWaitCursor();
+        Runnable commandRunnable = () -> {
+            final String output = command(cmd, parentBuffer.getCurrentDirectory());
+            Runnable completionRunnable = () -> {
+                processCompleted(outputBuffer, output);
+            };
+            SwingUtilities.invokeLater(completionRunnable);
+        };
+        new Thread(commandRunnable).start();
+    }
 
-  public static void submit()
-  {
-    _submit(null);
-  }
+    public static void change(String arg) {
+        arg = arg.trim();
+        try {
+            // Make sure arg is a number.
+            Integer.parseInt(arg);
+            _change(arg);
+        }
+        catch (NumberFormatException e) {
+            MessageDialog.showMessageDialog(
+                "Argument must be a changelist number.",
+                "Error"
+            );
+        }
+    }
 
-  // arg must be a changelist number or null.
-  private static void _submit(String arg)
-  {
-    if (!checkP4Installed())
-      return;
-    final Editor editor = Editor.currentEditor();
-    final Buffer buffer = editor.getBuffer();
-    final Buffer parentBuffer;
-    if (buffer instanceof DiffOutputBuffer)
-      parentBuffer = buffer.getParentBuffer();
-    else
-      parentBuffer = buffer;
-    StringBuilder sb = new StringBuilder("p4 submit");
-    if (arg != null)
-      {
-        sb.append(" -c ");
-        sb.append(arg);
-      }
-    final String title = sb.toString();
-    boolean save = false;
-    List<Buffer> list = getModifiedBuffers();
-    if (list != null && list.size() > 0)
-      {
-        int response =
-          ConfirmDialog.showConfirmDialogWithCancelButton(editor,
-                                                          "Save modified buffers first?",
-                                                          title);
-        switch (response)
-          {
-          case RESPONSE_YES:
-            save = true;
-            break;
-          case RESPONSE_NO:
-            break;
-          case RESPONSE_CANCEL:
+    public static void change() {
+        _change(null);
+    }
+
+    // arg must be a changelist number or null.
+    private static void _change(String arg) {
+        if (!checkP4Installed())
             return;
-          }
-        editor.repaintNow();
-      }
-    if (!save || saveModifiedBuffers(editor, list))
-      {
-        // Look for existing checkin buffer before making a new one.
+        final Editor editor = Editor.currentEditor();
+        Buffer parentBuffer = editor.getBuffer();
+        if (parentBuffer instanceof DiffOutputBuffer) {
+            Log.debug("parentBuffer is DiffOutputBuffer");
+            parentBuffer = parentBuffer.getParentBuffer();
+            Log.debug("==> parentBuffer is " + parentBuffer);
+        }
+        if (parentBuffer == null)
+            return;
+        if (parentBuffer.getFile() == null)
+            return;
+        StringBuilder sb = new StringBuilder("p4 change");
+        if (arg != null) {
+            sb.append(' ');
+            sb.append(arg);
+        }
+        final String title = sb.toString();
         Buffer buf = null;
-        for (BufferIterator it = new BufferIterator(); it.hasNext();)
-          {
+        for (BufferIterator it = new BufferIterator(); it.hasNext();) {
             buf = it.next();
             if (buf instanceof CheckinBuffer)
-              if (title.equals(buf.getTitle()))
-                break;
-          }
-        if (buf instanceof CheckinBuffer)
-          {
+                if (title.equals(buf.getTitle()))
+                    break;
+        }
+        if (buf instanceof CheckinBuffer) {
             editor.makeNext(buf);
             editor.activate(buf);
             return;
-          }
-        final CheckinBuffer checkinBuffer =
-          new CheckinBuffer(parentBuffer, VC_P4);
+        }
+        final CheckinBuffer checkinBuffer = new CheckinBuffer(parentBuffer, VC_P4, true);
         checkinBuffer.setProperty(Property.USE_TABS, true);
         checkinBuffer.setFormatter(new P4ChangelistFormatter(checkinBuffer));
         checkinBuffer.setTitle(title);
@@ -625,18 +444,15 @@ public class P4 extends VersionControl implements Constants
         editor.activate(checkinBuffer);
         sb.setLength(0);
         sb.append("p4 change -o");
-        if (arg != null)
-          {
+        if (arg != null) {
             sb.append(' ');
             sb.append(arg);
-          }
+        }
         final ShellCommand shellCommand =
             new ShellCommand(sb.toString(), parentBuffer.getCurrentDirectory());
-        Runnable commandRunnable = () ->
-          {
+        Runnable commandRunnable = () -> {
             shellCommand.run();
-            Runnable completionRunnable = () ->
-              {
+            Runnable completionRunnable = () -> {
                 checkinBuffer.setText(shellCommand.getOutput());
                 Position dot = findStartOfComment(checkinBuffer);
                 Position mark = null;
@@ -644,321 +460,406 @@ public class P4 extends VersionControl implements Constants
                     mark = findEndOfComment(checkinBuffer, dot);
                 checkinBuffer.setBusy(false);
                 for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-                  Editor ed = it.next();
-                  if (ed.getBuffer() == checkinBuffer) {
-                    ed.setTopLine(checkinBuffer.getFirstLine());
-                    ed.setDot(dot);
-                    ed.setMark(mark);
-                    ed.setUpdateFlag(REPAINT);
-                    ed.updateDisplay();
-                  }
-                }
-              };
-            SwingUtilities.invokeLater(completionRunnable);
-          };
-        new Thread(commandRunnable).start();
-      }
-  }
-
-  public static void replaceComment(final Editor editor, final String comment)
-  {
-    if (!(editor.getBuffer() instanceof CheckinBuffer))
-      {
-        Debug.bug();
-        return;
-      }
-    final CheckinBuffer buffer = (CheckinBuffer) editor.getBuffer();
-    String oldComment = extractComment(buffer);
-    if (oldComment.equals(comment))
-      return;
-    insertComment(editor, comment);
-  }
-
-  public static String extractComment(final CheckinBuffer buffer)
-  {
-    Position begin = findStartOfComment(buffer);
-    if (begin != null)
-      {
-        Position end = findEndOfComment(buffer, begin);
-        if (end != null)
-          {
-            int offset1 = buffer.getAbsoluteOffset(begin);
-            int offset2 = buffer.getAbsoluteOffset(end);
-            if (offset1 >= 0 && offset2 > offset1)
-              {
-                String s = buffer.getText().substring(offset1, offset2);
-                if (!s.equals("<enter description here>"))
-                  return s;
-              }
-          }
-      }
-    return "";
-  }
-
-  private static void insertComment(final Editor editor, final String comment)
-  {
-    final CheckinBuffer buffer = (CheckinBuffer) editor.getBuffer();
-    Position dot = findStartOfComment(buffer);
-    if (dot == null)
-      return;
-    Position mark = findEndOfComment(buffer, dot);
-    if (mark == null)
-      return;
-    try
-      {
-        buffer.lockWrite();
-      }
-    catch (InterruptedException e)
-      {
-        Log.error(e);
-        return;
-      }
-    try
-      {
-        CompoundEdit compoundEdit = editor.beginCompoundEdit();
-        editor.moveDotTo(dot);
-        editor.setMark(mark);
-        editor.deleteRegion();
-        editor.insertString(comment);
-        editor.endCompoundEdit(compoundEdit);
-        buffer.modified();
-      }
-    finally
-      {
-        buffer.unlockWrite();
-      }
-    final Position end = findEndOfComment(buffer, null);
-    for (EditorIterator it = new EditorIterator(); it.hasNext();)
-      {
-        Editor ed = it.next();
-        if (ed.getBuffer() == buffer) {
-          ed.setTopLine(buffer.getFirstLine());
-          ed.setDot(end.copy()); // No undo.
-          ed.moveCaretToDotCol();
-          ed.setUpdateFlag(REPAINT);
-          ed.updateDisplay();
-        }
-      }
-  }
-
-  private static Position findStartOfComment(CheckinBuffer buffer)
-  {
-    String s = buffer.getText();
-    String lookFor = "\nDescription:\n\t";
-    Pattern re = Pattern.compile(lookFor);
-    Matcher match = re.matcher(s);
-    if (match.find())
-      return buffer.getPosition(match.start() + lookFor.length());
-    return null;
-  }
-
-  private static Position findEndOfComment(CheckinBuffer buffer, Position start)
-  {
-    String s = buffer.getText();
-    String lookFor = "\n\nFiles:\n\t";
-    Pattern re = Pattern.compile(lookFor);
-    int offset = -1;
-    if (start != null)
-      offset = buffer.getAbsoluteOffset(start);
-    if (offset < 0)
-      offset = 0;
-    Matcher match = re.matcher(s);
-    if (match.find(offset))
-      return buffer.getPosition(match.start());
-    return null;
-  }
-
-  public static void finish(final Editor editor,
-                            final CheckinBuffer checkinBuffer)
-  {
-    final Buffer parentBuffer = checkinBuffer.getParentBuffer();
-
-    checkinBuffer.setBusy(true);
-    final boolean editOnly = checkinBuffer.isEditOnly();
-    final String cmd;
-    final String title;
-    if (editOnly)
-      {
-        cmd = "p4 change -i";
-        title = "Output from p4 change";
-      }
-    else
-      {
-        cmd = "p4 submit -i";
-        title = "Output from p4 submit";
-      }
-    final String input = checkinBuffer.getText();
-    final ShellCommand shellCommand =
-      new ShellCommand(cmd, parentBuffer.getCurrentDirectory(), input);
-    Runnable commandRunnable = () ->
-      {
-        shellCommand.run();
-        if (shellCommand.exitValue() != 0)
-          {
-            Log.error("P4.finish input = |" + input + "|");
-            Log.error("P4.finish exit value = " + shellCommand.exitValue());
-          }
-        Runnable completionRunnable = () ->
-          {
-            finishCompleted(editor, checkinBuffer, title, editOnly, shellCommand);
-          };
-        SwingUtilities.invokeLater(completionRunnable);
-      };
-    new Thread(commandRunnable).start();
-  }
-
-  private static void finishCompleted(Editor editor,
-                                      CheckinBuffer checkinBuffer,
-                                      String title,
-                                      boolean editOnly,
-                                      ShellCommand shellCommand)
-  {
-    final Buffer parentBuffer = checkinBuffer.getParentBuffer();
-    OutputBuffer buf = null;
-
-    if (shellCommand.exitValue() != 0)
-      {
-        // Error.
-      }
-    else
-      {
-        // Success. Kill old diff and output buffers, if any: their
-        // contents are no longer correct.
-        if (!editOnly && parentBuffer != null)
-          {
-            for (BufferIterator it = new BufferIterator(); it.hasNext();)
-              {
-                Buffer b = it.next();
-                if (b instanceof DiffOutputBuffer)
-                  {
-                    if (b.getParentBuffer() == parentBuffer) {
-                      Debug.assertTrue(Editor.getBufferList().contains(b));
-                      Log.debug("P4.finish killing diff output buffer");
-                      b.kill();
-                      Debug.assertFalse(Editor.getBufferList().contains(b));
-                      Debug.assertTrue(editor.getBuffer() != b);
-                      Editor otherEditor = editor.getOtherEditor();
-                      if (otherEditor != null)
-                        Debug.assertTrue(otherEditor.getBuffer() != b);
-                      break; // There should be one at most.
+                    Editor ed = it.next();
+                    if (ed.getBuffer() == checkinBuffer) {
+                        ed.setTopLine(checkinBuffer.getFirstLine());
+                        ed.setDot(dot);
+                        ed.setMark(mark);
+                        ed.setUpdateFlag(REPAINT);
+                        ed.updateDisplay();
                     }
-                  }
-              }
-          }
-        for (BufferIterator it = new BufferIterator(); it.hasNext();)
-          {
+                }
+            };
+            SwingUtilities.invokeLater(completionRunnable);
+        };
+        new Thread(commandRunnable).start();
+    }
+
+    public static void submit(String args) {
+        String message = null;
+        List<String> list = Utilities.tokenize(args);
+        if (list.size() == 2) {
+            String arg = list.get(0);
+            if (arg.equals("-c")) {
+                arg = list.get(1);
+                try {
+                    Integer.parseInt(arg);
+                    // Success!
+                    _submit(arg);
+                    return;
+                }
+                catch (NumberFormatException e) {
+                    message = "Invalid changelist number";
+                }
+            }
+        }
+        if (message == null) {
+            StringBuilder sb = new StringBuilder("Unrecognized argument \"");
+            sb.append(args.trim());
+            sb.append('"');
+            message = sb.toString();
+        }
+        MessageDialog.showMessageDialog(message, "Error");
+    }
+
+    public static void submit() {
+        _submit(null);
+    }
+
+    // arg must be a changelist number or null.
+    private static void _submit(String arg) {
+        if (!checkP4Installed())
+            return;
+        final Editor editor = Editor.currentEditor();
+        final Buffer buffer = editor.getBuffer();
+        final Buffer parentBuffer;
+        if (buffer instanceof DiffOutputBuffer)
+            parentBuffer = buffer.getParentBuffer();
+        else
+            parentBuffer = buffer;
+        StringBuilder sb = new StringBuilder("p4 submit");
+        if (arg != null) {
+            sb.append(" -c ");
+            sb.append(arg);
+        }
+        final String title = sb.toString();
+        boolean save = false;
+        List<Buffer> list = getModifiedBuffers();
+        if (list != null && list.size() > 0) {
+            int response =
+                ConfirmDialog.showConfirmDialogWithCancelButton(
+                    editor,
+                    "Save modified buffers first?",
+                    title
+                );
+            switch (response) {
+                case RESPONSE_YES:
+                    save = true;
+                    break;
+                case RESPONSE_NO:
+                    break;
+                case RESPONSE_CANCEL:
+                    return;
+            }
+            editor.repaintNow();
+        }
+        if (!save || saveModifiedBuffers(editor, list)) {
+            // Look for existing checkin buffer before making a new one.
+            Buffer buf = null;
+            for (BufferIterator it = new BufferIterator(); it.hasNext();) {
+                buf = it.next();
+                if (buf instanceof CheckinBuffer)
+                    if (title.equals(buf.getTitle()))
+                        break;
+            }
+            if (buf instanceof CheckinBuffer) {
+                editor.makeNext(buf);
+                editor.activate(buf);
+                return;
+            }
+            final CheckinBuffer checkinBuffer =
+                new CheckinBuffer(parentBuffer, VC_P4);
+            checkinBuffer.setProperty(Property.USE_TABS, true);
+            checkinBuffer.setFormatter(new P4ChangelistFormatter(checkinBuffer));
+            checkinBuffer.setTitle(title);
+            checkinBuffer.setBusy(true);
+            editor.makeNext(checkinBuffer);
+            editor.activate(checkinBuffer);
+            sb.setLength(0);
+            sb.append("p4 change -o");
+            if (arg != null) {
+                sb.append(' ');
+                sb.append(arg);
+            }
+            final ShellCommand shellCommand =
+                new ShellCommand(sb.toString(), parentBuffer.getCurrentDirectory());
+            Runnable commandRunnable = () -> {
+                shellCommand.run();
+                Runnable completionRunnable = () -> {
+                    checkinBuffer.setText(shellCommand.getOutput());
+                    Position dot = findStartOfComment(checkinBuffer);
+                    Position mark = null;
+                    if (dot != null)
+                        mark = findEndOfComment(checkinBuffer, dot);
+                    checkinBuffer.setBusy(false);
+                    for (EditorIterator it = new EditorIterator(); it.hasNext();) {
+                        Editor ed = it.next();
+                        if (ed.getBuffer() == checkinBuffer) {
+                            ed.setTopLine(checkinBuffer.getFirstLine());
+                            ed.setDot(dot);
+                            ed.setMark(mark);
+                            ed.setUpdateFlag(REPAINT);
+                            ed.updateDisplay();
+                        }
+                    }
+                };
+                SwingUtilities.invokeLater(completionRunnable);
+            };
+            new Thread(commandRunnable).start();
+        }
+    }
+
+    public static void replaceComment(final Editor editor, final String comment) {
+        if (!(editor.getBuffer() instanceof CheckinBuffer)) {
+            Debug.bug();
+            return;
+        }
+        final CheckinBuffer buffer = (CheckinBuffer) editor.getBuffer();
+        String oldComment = extractComment(buffer);
+        if (oldComment.equals(comment))
+            return;
+        insertComment(editor, comment);
+    }
+
+    public static String extractComment(final CheckinBuffer buffer) {
+        Position begin = findStartOfComment(buffer);
+        if (begin != null) {
+            Position end = findEndOfComment(buffer, begin);
+            if (end != null) {
+                int offset1 = buffer.getAbsoluteOffset(begin);
+                int offset2 = buffer.getAbsoluteOffset(end);
+                if (offset1 >= 0 && offset2 > offset1) {
+                    String s = buffer.getText().substring(offset1, offset2);
+                    if (!s.equals("<enter description here>"))
+                        return s;
+                }
+            }
+        }
+        return "";
+    }
+
+    private static void insertComment(final Editor editor, final String comment) {
+        final CheckinBuffer buffer = (CheckinBuffer) editor.getBuffer();
+        Position dot = findStartOfComment(buffer);
+        if (dot == null)
+            return;
+        Position mark = findEndOfComment(buffer, dot);
+        if (mark == null)
+            return;
+        try {
+            buffer.lockWrite();
+        }
+        catch (InterruptedException e) {
+            Log.error(e);
+            return;
+        }
+        try {
+            CompoundEdit compoundEdit = editor.beginCompoundEdit();
+            editor.moveDotTo(dot);
+            editor.setMark(mark);
+            editor.deleteRegion();
+            editor.insertString(comment);
+            editor.endCompoundEdit(compoundEdit);
+            buffer.modified();
+        }
+        finally {
+            buffer.unlockWrite();
+        }
+        final Position end = findEndOfComment(buffer, null);
+        for (EditorIterator it = new EditorIterator(); it.hasNext();) {
+            Editor ed = it.next();
+            if (ed.getBuffer() == buffer) {
+                ed.setTopLine(buffer.getFirstLine());
+                ed.setDot(end.copy()); // No undo.
+                ed.moveCaretToDotCol();
+                ed.setUpdateFlag(REPAINT);
+                ed.updateDisplay();
+            }
+        }
+    }
+
+    private static Position findStartOfComment(CheckinBuffer buffer) {
+        String s = buffer.getText();
+        String lookFor = "\nDescription:\n\t";
+        Pattern re = Pattern.compile(lookFor);
+        Matcher match = re.matcher(s);
+        if (match.find())
+            return buffer.getPosition(match.start() + lookFor.length());
+        return null;
+    }
+
+    private static Position findEndOfComment(CheckinBuffer buffer, Position start) {
+        String s = buffer.getText();
+        String lookFor = "\n\nFiles:\n\t";
+        Pattern re = Pattern.compile(lookFor);
+        int offset = -1;
+        if (start != null)
+            offset = buffer.getAbsoluteOffset(start);
+        if (offset < 0)
+            offset = 0;
+        Matcher match = re.matcher(s);
+        if (match.find(offset))
+            return buffer.getPosition(match.start());
+        return null;
+    }
+
+    public static void finish(
+        final Editor editor,
+        final CheckinBuffer checkinBuffer
+    ) {
+        final Buffer parentBuffer = checkinBuffer.getParentBuffer();
+
+        checkinBuffer.setBusy(true);
+        final boolean editOnly = checkinBuffer.isEditOnly();
+        final String cmd;
+        final String title;
+        if (editOnly) {
+            cmd = "p4 change -i";
+            title = "Output from p4 change";
+        } else {
+            cmd = "p4 submit -i";
+            title = "Output from p4 submit";
+        }
+        final String input = checkinBuffer.getText();
+        final ShellCommand shellCommand =
+            new ShellCommand(cmd, parentBuffer.getCurrentDirectory(), input);
+        Runnable commandRunnable = () -> {
+            shellCommand.run();
+            if (shellCommand.exitValue() != 0) {
+                Log.error("P4.finish input = |" + input + "|");
+                Log.error("P4.finish exit value = " + shellCommand.exitValue());
+            }
+            Runnable completionRunnable = () -> {
+                finishCompleted(editor, checkinBuffer, title, editOnly, shellCommand);
+            };
+            SwingUtilities.invokeLater(completionRunnable);
+        };
+        new Thread(commandRunnable).start();
+    }
+
+    private static void finishCompleted(
+        Editor editor,
+        CheckinBuffer checkinBuffer,
+        String title,
+        boolean editOnly,
+        ShellCommand shellCommand
+    ) {
+        final Buffer parentBuffer = checkinBuffer.getParentBuffer();
+        OutputBuffer buf = null;
+
+        if (shellCommand.exitValue() != 0) {
+            // Error.
+        } else {
+            // Success. Kill old diff and output buffers, if any: their
+            // contents are no longer correct.
+            if (!editOnly && parentBuffer != null) {
+                for (BufferIterator it = new BufferIterator(); it.hasNext();) {
+                    Buffer b = it.next();
+                    if (b instanceof DiffOutputBuffer) {
+                        if (b.getParentBuffer() == parentBuffer) {
+                            Debug.assertTrue(Editor.getBufferList().contains(b));
+                            Log.debug("P4.finish killing diff output buffer");
+                            b.kill();
+                            Debug.assertFalse(Editor.getBufferList().contains(b));
+                            Debug.assertTrue(editor.getBuffer() != b);
+                            Editor otherEditor = editor.getOtherEditor();
+                            if (otherEditor != null)
+                                Debug.assertTrue(otherEditor.getBuffer() != b);
+                            break; // There should be one at most.
+                        }
+                    }
+                }
+            }
+            for (BufferIterator it = new BufferIterator(); it.hasNext();) {
+                Buffer b = it.next();
+                if (b instanceof OutputBuffer) {
+                    if (title.equals(b.getTitle())) {
+                        editor.maybeKillBuffer(b);
+                        break; // One at most.
+                    }
+                }
+            }
+            if (!editOnly)
+                // Read-only status of some buffers may have changed.
+                editor.getFrame().reactivate();
+            editor.otherWindow();
+            editor.unsplitWindow();
+            checkinBuffer.kill();
+        }
+
+        // Re-use existing output buffer if possible.
+        for (BufferIterator it = new BufferIterator(); it.hasNext();) {
             Buffer b = it.next();
-            if (b instanceof OutputBuffer)
-              {
-                if (title.equals(b.getTitle()))
-                  {
-                    editor.maybeKillBuffer(b);
-                    break; // One at most.
-                  }
-              }
-          }
-        if (!editOnly)
-          // Read-only status of some buffers may have changed.
-          editor.getFrame().reactivate();
-        editor.otherWindow();
-        editor.unsplitWindow();
-        checkinBuffer.kill();
-      }
+            if (b instanceof OutputBuffer) {
+                if (title.equals(b.getTitle())) {
+                    buf = (OutputBuffer) b;
+                    break; // There should be one at most.
+                }
+            }
+        }
 
-    // Re-use existing output buffer if possible.
-    for (BufferIterator it = new BufferIterator(); it.hasNext();)
-      {
-        Buffer b = it.next();
-        if (b instanceof OutputBuffer)
-          {
-            if (title.equals(b.getTitle()))
-              {
-                buf = (OutputBuffer) b;
-                break; // There should be one at most.
-              }
-          }
-      }
+        if (buf != null)
+            buf.setText(shellCommand.getOutput());
+        else
+            buf = OutputBuffer.getOutputBuffer(shellCommand.getOutput());
 
-    if (buf != null)
-      buf.setText(shellCommand.getOutput());
-    else
-      buf = OutputBuffer.getOutputBuffer(shellCommand.getOutput());
+        buf.setTitle(title);
+        editor.makeNext(buf);
+        checkinBuffer.setBusy(false);
+        editor.displayInOtherWindow(buf);
 
-    buf.setTitle(title);
-    editor.makeNext(buf);
-    checkinBuffer.setBusy(false);
-    editor.displayInOtherWindow(buf);
+        editor.getFrame().setDefaultCursor();
+    }
 
-    editor.getFrame().setDefaultCursor();
-  }
+    public static String getStatusString(File file) {
+        Editor editor = Editor.currentEditor();
+        Buffer buffer = editor.getBuffer();
 
-  public static String getStatusString(File file)
-  {
-    Editor editor = Editor.currentEditor();
-    Buffer buffer = editor.getBuffer();
+        if (file != null && haveP4()) {
+            StringBuilder sb = null;
+            String output =
+                command("p4 fstat ".concat(file.getName()), buffer.getCurrentDirectory());
+            String HAVE_REV = "... haveRev ";
+            int begin = output.indexOf(HAVE_REV);
+            if (begin >= 0) {
+                begin += HAVE_REV.length();
+                int end = output.indexOf('\n', begin);
+                if (end > begin) {
+                    if (sb == null)
+                        sb = new StringBuilder("Perforce");
+                    sb.append(" revision ");
+                    sb.append(output.substring(begin, end).trim());
+                }
+            }
+            String ACTION = "... action ";
+            begin = output.indexOf(ACTION);
+            if (begin >= 0) {
+                begin += ACTION.length();
+                int end = output.indexOf('\n', begin);
+                if (end > begin) {
+                    if (sb == null)
+                        sb = new StringBuilder("Perforce");
+                    sb.append(" (opened for ");
+                    sb.append(output.substring(begin, end).trim());
+                    sb.append(')');
+                }
+            }
+            if (sb != null)
+                return sb.toString();
+        }
+        return null;
+    }
 
-    if (file != null && haveP4())
-      {
-        StringBuilder sb = null;
-        String output =
-          command("p4 fstat ".concat(file.getName()), buffer.getCurrentDirectory());
-        String HAVE_REV = "... haveRev ";
-        int begin = output.indexOf(HAVE_REV);
-        if (begin >= 0)
-          {
-            begin += HAVE_REV.length();
-            int end = output.indexOf('\n', begin);
-            if (end > begin)
-              {
-                if (sb == null)
-                  sb = new StringBuilder("Perforce");
-                sb.append(" revision ");
-                sb.append(output.substring(begin, end).trim());
-              }
-          }
-        String ACTION = "... action ";
-        begin = output.indexOf(ACTION);
-        if (begin >= 0)
-          {
-            begin += ACTION.length();
-            int end = output.indexOf('\n', begin);
-            if (end > begin)
-              {
-                if (sb == null)
-                  sb = new StringBuilder("Perforce");
-                sb.append(" (opened for ");
-                sb.append(output.substring(begin, end).trim());
-                sb.append(')');
-              }
-          }
-        if (sb != null)
-          return sb.toString();
-      }
-    return null;
-  }
+    private static boolean checkP4Installed() {
+        if (haveP4())
+            return true;
+        MessageDialog.showMessageDialog(
+            "The Perforce command-line client does not appear to be in your PATH.",
+            "Error"
+        );
+        return false;
+    }
 
-  private static boolean checkP4Installed()
-  {
-    if (haveP4())
-      return true;
-    MessageDialog.showMessageDialog(
-      "The Perforce command-line client does not appear to be in your PATH.",
-      "Error");
-    return false;
-  }
+    private static int haveP4 = -1;
 
-  private static int haveP4 = -1;
-
-  private static boolean haveP4()
-  {
-    if (haveP4 > 0)
-      return true;
-    if (Utilities.have("p4"))
-      {
-        haveP4 = 1; // Cache positive result.
-        return true;
-      }
-    return false;
-  }
+    private static boolean haveP4() {
+        if (haveP4 > 0)
+            return true;
+        if (Utilities.have("p4")) {
+            haveP4 = 1; // Cache positive result.
+            return true;
+        }
+        return false;
+    }
 
 }

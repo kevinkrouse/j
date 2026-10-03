@@ -20,25 +20,23 @@
 
 package org.armedbear.j.vcs.svn;
 
+import java.io.StringReader;
+import java.lang.StringBuilder;
+import java.util.LinkedList;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Constants;
-import java.lang.StringBuilder;
 import org.armedbear.j.File;
 import org.armedbear.j.Log;
 import org.armedbear.j.ShellCommand;
 import org.armedbear.j.util.Utilities;
 import org.armedbear.j.vcs.VersionControlEntry;
-import org.xml.sax.InputSource;
-import org.xml.sax.XMLReader;
 import org.xml.sax.Attributes;
+import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
+import org.xml.sax.XMLReader;
 import org.xml.sax.helpers.DefaultHandler;
 
-import java.io.StringReader;
-import java.util.LinkedList;
-
-public final class SVNEntry extends VersionControlEntry
-{
+public final class SVNEntry extends VersionControlEntry {
     private String status;
     private String author;
     private String changelist;
@@ -80,8 +78,7 @@ public final class SVNEntry extends VersionControlEntry
                     sb.append(" R");
                 else if (status.equals("unversioned"))
                     sb.append(" ?");
-            }
-            else
+            } else
                 sb.append(" ").append(status);
         }
         if (revision != null)
@@ -99,8 +96,9 @@ public final class SVNEntry extends VersionControlEntry
 
         final File file = buffer.getFile();
         ShellCommand cmd = new ShellCommand(
-                "svn -v --xml st " + Utilities.maybeQuote(file.getName()),
-                file.getParentFile());
+            "svn -v --xml st " + Utilities.maybeQuote(file.getName()),
+            file.getParentFile()
+        );
         cmd.run();
         String output = cmd.getOutput();
         if (output == null || output.length() == 0)
@@ -122,8 +120,7 @@ public final class SVNEntry extends VersionControlEntry
         return new SVNEntry(buffer, handler.revision, handler.status, handler.author, handler.changelist);
     }
 
-    private static class Handler extends DefaultHandler
-    {
+    private static class Handler extends DefaultHandler {
         private LinkedList<String> stack = new LinkedList<String>();
 
         public String changelist = null;
@@ -132,15 +129,14 @@ public final class SVNEntry extends VersionControlEntry
         public String author = null;
         public String status = null;
 
-        public void startElement(String uri, String localName, String qName, Attributes attributes) throws SAXException {
+        public void startElement(String uri, String localName, String qName, Attributes attributes)
+            throws SAXException {
             stack.addFirst(localName);
             if (localName.equals("changelist")) {
                 changelist = attributes.getValue("", "name");
-            }
-            else if (localName.equals("wc-status")) {
+            } else if (localName.equals("wc-status")) {
                 status = attributes.getValue("", "item");
-            }
-            else if (localName.equals("commit")) {
+            } else if (localName.equals("commit")) {
                 revision = attributes.getValue("", "revision");
             }
         }

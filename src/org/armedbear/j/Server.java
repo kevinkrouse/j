@@ -30,15 +30,13 @@ import java.util.ArrayList;
 import java.util.List;
 import javax.swing.SwingUtilities;
 
-public class Server implements Runnable
-{
+public class Server implements Runnable {
     private static Server server;
 
     private ServerSocket socket;
     private Thread thread;
 
-    public static void startServer()
-    {
+    public static void startServer() {
         try {
             server = new Server();
             server.socket = new ServerSocket(0);
@@ -57,20 +55,19 @@ public class Server implements Runnable
         }
     }
 
-    public static void stopServer()
-    {
+    public static void stopServer() {
         Editor.portfile.delete();
     }
 
-    public void run()
-    {
+    public void run() {
         while (true) {
             try {
                 List<String> v = null;
                 // Process request.
                 try (Socket sock = socket.accept(); // Blocks.
-                     BufferedReader in = new BufferedReader(
-                         new InputStreamReader(sock.getInputStream()))) {
+                    BufferedReader in = new BufferedReader(
+                        new InputStreamReader(sock.getInputStream())
+                    )) {
                     while (true) {
                         String s = in.readLine();
                         if (s == null)
@@ -91,18 +88,15 @@ public class Server implements Runnable
         }
     }
 
-    class Messenger implements Runnable
-    {
+    class Messenger implements Runnable {
         List<String> v = null;
 
         // If this constructor is private, we run into jikes 1.15 bug #2256.
-        Messenger(List<String> v)
-        {
+        Messenger(List<String> v) {
             this.v = v;
         }
 
-        public void run()
-        {
+        public void run() {
             Editor editor = Editor.currentEditor();
             if (v != null && v.size() > 0) {
                 Editor other = editor.getOtherEditor();

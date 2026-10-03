@@ -26,26 +26,21 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
+import java.lang.StringBuilder;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-
-import org.armedbear.j.mode.web.WebBuffer;
-import java.lang.StringBuilder;
 import java.util.Set;
-
-import org.armedbear.j.util.Utilities;
 import org.armedbear.j.extension.ScriptFunction;
+import org.armedbear.j.mode.web.WebBuffer;
+import org.armedbear.j.util.Utilities;
 
-public final class Help
-{
-    public static final void help()
-    {
+public final class Help {
+    public static final void help() {
         help(null);
     }
 
-    public static void help(String arg)
-    {
+    public static void help(String arg) {
         final Editor editor = Editor.currentEditor();
         final Frame frame = editor.getFrame();
         final File dir = getDocumentationDirectory();
@@ -104,11 +99,14 @@ public final class Help
                             offset = buf.getAbsoluteOffset(dot);
                     }
                 }
-                ((WebBuffer)buf).saveHistory(buf.getFile(), offset,
-                    ((WebBuffer)buf).getContentType());
+                ((WebBuffer) buf).saveHistory(
+                    buf.getFile(),
+                    offset,
+                    ((WebBuffer) buf).getContentType()
+                );
                 if (!buf.getFile().equals(file)) {
                     // Existing buffer is not looking at the right file.
-                    ((WebBuffer)buf).go(file, 0, null);
+                    ((WebBuffer) buf).go(file, 0, null);
                 }
                 Position pos = ((WebBuffer) buf).findRef(ref);
                 if (editor.getBuffer() == buf) {
@@ -141,8 +139,7 @@ public final class Help
         }
     }
 
-    private static boolean isHelpBuffer(Buffer buffer)
-    {
+    private static boolean isHelpBuffer(Buffer buffer) {
         if (!(buffer instanceof WebBuffer))
             return false;
         File file = buffer.getFile();
@@ -154,13 +151,11 @@ public final class Help
         return false;
     }
 
-    public static final File getBindingsFile()
-    {
+    public static final File getBindingsFile() {
         return File.getInstance(Directories.getTempDirectory(), "bindings.html");
     }
 
-    public static void describeBindings()
-    {
+    public static void describeBindings() {
         final Editor editor = Editor.currentEditor();
         final Frame frame = editor.getFrame();
         frame.setWaitCursor();
@@ -175,8 +170,12 @@ public final class Help
             writer.write(editor.getMode().toString());
             writer.write(" mode)");
             writer.write("</b><br><br>");
-            addBindingsFromKeyMap(editor.getBuffer().getKeyMapForMode(), docDir,
-                                  writer, "");
+            addBindingsFromKeyMap(
+                editor.getBuffer().getKeyMapForMode(),
+                docDir,
+                writer,
+                ""
+            );
             writer.write("<br>");
             writer.write("<b>");
             writer.write("Global Bindings");
@@ -186,7 +185,7 @@ public final class Help
             writer.flush();
             writer.close();
             if (isListBindingsBuffer(editor.getBuffer())) {
-                ((WebBuffer)editor.getBuffer()).go(file, 0, "text/html");
+                ((WebBuffer) editor.getBuffer()).go(file, 0, "text/html");
             } else {
                 Buffer buf = null;
                 for (BufferIterator it = new BufferIterator(); it.hasNext();) {
@@ -197,7 +196,7 @@ public final class Help
                     }
                 }
                 if (buf != null)
-                    ((WebBuffer)buf).go(file, 0, "text/html");
+                    ((WebBuffer) buf).go(file, 0, "text/html");
                 else
                     buf = WebBuffer.createWebBuffer(file, null, null);
                 Editor otherEditor = editor.getOtherEditor();
@@ -219,10 +218,13 @@ public final class Help
         }
     }
 
-    private static void addBindingsFromKeyMap(KeyMap keyMap, File docDir,
-                                              Writer writer, String prefix)
-        throws IOException
-    {
+    private static void addBindingsFromKeyMap(
+        KeyMap keyMap,
+        File docDir,
+        Writer writer,
+        String prefix
+    )
+        throws IOException {
         KeyMapping[] mappings = keyMap.getMappings();
         int count = mappings.length;
         if (count == 0) {
@@ -258,7 +260,7 @@ public final class Help
                     sb.append(commandString);
             } else if (command instanceof ScriptFunction) {
                 try {
-                    sb.append(sanitize(((ScriptFunction)command).describe()));
+                    sb.append(sanitize(((ScriptFunction) command).describe()));
                 }
                 catch (Throwable t) {
                     Log.debug(t);
@@ -290,8 +292,7 @@ public final class Help
         }
     }
 
-    private static String sanitize(String s)
-    {
+    private static String sanitize(String s) {
         StringBuilder sb = null;
         final int limit = s.length();
         for (int i = 0; i < limit; i++) {
@@ -327,15 +328,13 @@ public final class Help
         return (sb != null) ? sb.toString() : s;
     }
 
-    private static boolean isListBindingsBuffer(Buffer buffer)
-    {
+    private static boolean isListBindingsBuffer(Buffer buffer) {
         if (!(buffer instanceof WebBuffer))
             return false;
         return buffer.getFile().equals(getBindingsFile());
     }
 
-    public static void apropos()
-    {
+    public static void apropos() {
         final Editor editor = Editor.currentEditor();
         InputDialog d = new InputDialog(editor, "Apropos:", "Apropos", null);
         d.setHistory(new History("apropos"));
@@ -350,8 +349,7 @@ public final class Help
         apropos(arg);
     }
 
-    public static void apropos(String arg)
-    {
+    public static void apropos(String arg) {
         final File dir = getDocumentationDirectory();
         if (dir == null)
             return;
@@ -392,7 +390,7 @@ public final class Help
             writer.close();
             Editor ed;
             if (isAproposBuffer(editor.getBuffer())) {
-                ((WebBuffer)editor.getBuffer()).go(file, 0, "text/html");
+                ((WebBuffer) editor.getBuffer()).go(file, 0, "text/html");
                 ed = editor;
             } else {
                 Buffer buf = null;
@@ -404,7 +402,7 @@ public final class Help
                     }
                 }
                 if (buf != null)
-                    ((WebBuffer)buf).go(file, 0, "text/html");
+                    ((WebBuffer) buf).go(file, 0, "text/html");
                 else {
                     buf = WebBuffer.createWebBuffer(file, null, null);
                     buf.setTransient(true);
@@ -442,14 +440,15 @@ public final class Help
         }
     }
 
-    private static void sort(List<String> list)
-    {
+    private static void sort(List<String> list) {
         Collections.sort(list, String.CASE_INSENSITIVE_ORDER);
     }
 
-    private static void addAproposEntries(List<String> list, File helpFile,
-        Writer writer) throws IOException
-    {
+    private static void addAproposEntries(
+        List<String> list,
+        File helpFile,
+        Writer writer
+    ) throws IOException {
         if (list != null && !list.isEmpty()) {
             for (String s : list) {
                 if (helpFile != null) {
@@ -468,20 +467,17 @@ public final class Help
             writer.write("&nbsp;&nbsp;<i>None</i><br>\n");
     }
 
-    private static boolean isAproposBuffer(Buffer buffer)
-    {
+    private static boolean isAproposBuffer(Buffer buffer) {
         if (!(buffer instanceof WebBuffer))
             return false;
         return buffer.getFile().equals(getAproposFile());
     }
 
-    private static final File getAproposFile()
-    {
+    private static final File getAproposFile() {
         return File.getInstance(Directories.getTempDirectory(), "apropos.html");
     }
 
-    public static File getDocumentationDirectory()
-    {
+    public static File getDocumentationDirectory() {
         String s = Editor.preferences().getStringProperty(Property.DOC_PATH);
         if (s != null) {
             Path path = new Path(s);
@@ -521,9 +517,8 @@ public final class Help
         return null;
     }
 
-    private static String cygpath(String s)
-    {
-        String[] cmdarray = {"cygpath", "-w", s};
+    private static String cygpath(String s) {
+        String[] cmdarray = { "cygpath", "-w", s };
         try {
             Process process = Runtime.getRuntime().exec(cmdarray);
             BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
@@ -535,9 +530,8 @@ public final class Help
     }
 
     // Return true if dir seems to contain j's documentation.
-    private static boolean isDocDir(File dir)
-    {
-        if (dir == null ||!dir.isDirectory())
+    private static boolean isDocDir(File dir) {
+        if (dir == null || !dir.isDirectory())
             return false;
         File check = File.getInstance(dir, "commands.html");
         if (check == null || !check.isFile())

@@ -21,10 +21,10 @@
 
 package org.armedbear.j.mode.ruby;
 
+import java.lang.StringBuilder;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Debug;
 import org.armedbear.j.Editor;
-import java.lang.StringBuilder;
 import org.armedbear.j.FormatTable;
 import org.armedbear.j.Formatter;
 import org.armedbear.j.Line;
@@ -32,45 +32,42 @@ import org.armedbear.j.LineSegment;
 import org.armedbear.j.LineSegmentList;
 import org.armedbear.j.util.Utilities;
 
-public final class RubyFormatter extends Formatter
-{
-    private static final int RUBY_STATE_NEUTRAL          =  0;
-    private static final int RUBY_STATE_SINGLE_QUOTE     =  1;
-    private static final int RUBY_STATE_DOUBLE_QUOTE     =  2;
-    private static final int RUBY_STATE_IDENTIFIER       =  3;
-    private static final int RUBY_STATE_COMMENT          =  4;
-    private static final int RUBY_STATE_BRACE            =  5;
-    private static final int RUBY_STATE_NUMBER           =  6;
-    private static final int RUBY_STATE_HEXNUMBER        =  7;
-    private static final int RUBY_STATE_OPERATOR         =  8;
-    private static final int RUBY_STATE_HERE_DOCUMENT    =  9;
-    private static final int RUBY_STATE_POD              = 10;
-    private static final int RUBY_STATE_REGEXP           = 11;
+public final class RubyFormatter extends Formatter {
+    private static final int RUBY_STATE_NEUTRAL = 0;
+    private static final int RUBY_STATE_SINGLE_QUOTE = 1;
+    private static final int RUBY_STATE_DOUBLE_QUOTE = 2;
+    private static final int RUBY_STATE_IDENTIFIER = 3;
+    private static final int RUBY_STATE_COMMENT = 4;
+    private static final int RUBY_STATE_BRACE = 5;
+    private static final int RUBY_STATE_NUMBER = 6;
+    private static final int RUBY_STATE_HEXNUMBER = 7;
+    private static final int RUBY_STATE_OPERATOR = 8;
+    private static final int RUBY_STATE_HERE_DOCUMENT = 9;
+    private static final int RUBY_STATE_POD = 10;
+    private static final int RUBY_STATE_REGEXP = 11;
     private static final int RUBY_STATE_REGEXP_DELIMITER = 12;
 
-    private static final int RUBY_FORMAT_TEXT       =  0;
-    private static final int RUBY_FORMAT_COMMENT    =  1;
-    private static final int RUBY_FORMAT_STRING     =  2;
-    private static final int RUBY_FORMAT_IDENTIFIER =  3;
-    private static final int RUBY_FORMAT_KEYWORD    =  4;
-    private static final int RUBY_FORMAT_FUNCTION   =  5;
-    private static final int RUBY_FORMAT_OPERATOR   =  6;
-    private static final int RUBY_FORMAT_BRACE      =  7;
-    private static final int RUBY_FORMAT_NUMBER     =  8;
+    private static final int RUBY_FORMAT_TEXT = 0;
+    private static final int RUBY_FORMAT_COMMENT = 1;
+    private static final int RUBY_FORMAT_STRING = 2;
+    private static final int RUBY_FORMAT_IDENTIFIER = 3;
+    private static final int RUBY_FORMAT_KEYWORD = 4;
+    private static final int RUBY_FORMAT_FUNCTION = 5;
+    private static final int RUBY_FORMAT_OPERATOR = 6;
+    private static final int RUBY_FORMAT_BRACE = 7;
+    private static final int RUBY_FORMAT_NUMBER = 8;
 
     private static final RubyMode mode = RubyMode.getMode();
 
     private String endOfText;
 
-    public RubyFormatter(Buffer buffer)
-    {
+    public RubyFormatter(Buffer buffer) {
         this.buffer = buffer;
     }
 
     private int begin = 0;
 
-    private void endSegment(String text, int offset, int state)
-    {
+    private void endSegment(String text, int offset, int state) {
         if (offset - begin > 0) {
             int format;
             switch (state) {
@@ -112,8 +109,7 @@ public final class RubyFormatter extends Formatter
         }
     }
 
-    private void parseLine(Line line)
-    {
+    private void parseLine(Line line) {
         String text;
         if (Editor.tabsAreVisible())
             text = Utilities.makeTabsVisible(line.getText(), buffer.getTabWidth());
@@ -146,14 +142,14 @@ public final class RubyFormatter extends Formatter
         }
         while (i < limit) {
             char c = text.charAt(i);
-            if (c == '\\' && i < limit-1) {
+            if (c == '\\' && i < limit - 1) {
                 // Escape char.
                 i += 2;
                 continue;
             }
             if (state == RUBY_STATE_SINGLE_QUOTE) {
                 if (c == '\'') {
-                    endSegment(text, i+1, state);
+                    endSegment(text, i + 1, state);
                     state = RUBY_STATE_NEUTRAL;
                 }
                 ++i;
@@ -161,7 +157,7 @@ public final class RubyFormatter extends Formatter
             }
             if (state == RUBY_STATE_DOUBLE_QUOTE) {
                 if (c == '"') {
-                    endSegment(text, i+1, state);
+                    endSegment(text, i + 1, state);
                     state = RUBY_STATE_NEUTRAL;
                 }
                 ++i;
@@ -170,7 +166,7 @@ public final class RubyFormatter extends Formatter
             if (state == RUBY_STATE_REGEXP) {
                 if (c == '/') {
                     endSegment(text, i, state);
-                    endSegment(text, i+1, RUBY_STATE_REGEXP_DELIMITER);
+                    endSegment(text, i + 1, RUBY_STATE_REGEXP_DELIMITER);
                     state = RUBY_STATE_NEUTRAL;
                 }
                 ++i;
@@ -178,7 +174,7 @@ public final class RubyFormatter extends Formatter
             }
             // Reaching here, we're not in a quoted string or regexp.
             if (c == '\'') {
-                if (i == 0 || text.charAt(i-1) != '$') {
+                if (i == 0 || text.charAt(i - 1) != '$') {
                     endSegment(text, i, state);
                     state = RUBY_STATE_SINGLE_QUOTE;
                 }
@@ -186,7 +182,7 @@ public final class RubyFormatter extends Formatter
                 continue;
             }
             if (c == '"') {
-                if (i == 0 || text.charAt(i-1) != '$') {
+                if (i == 0 || text.charAt(i - 1) != '$') {
                     endSegment(text, i, state);
                     state = RUBY_STATE_DOUBLE_QUOTE;
                 }
@@ -196,7 +192,7 @@ public final class RubyFormatter extends Formatter
             if (c == '/') {
                 if (isRegExp(text, i)) {
                     endSegment(text, i, state);
-                    endSegment(text, i+1, RUBY_STATE_REGEXP_DELIMITER);
+                    endSegment(text, i + 1, RUBY_STATE_REGEXP_DELIMITER);
                     state = RUBY_STATE_REGEXP;
                 }
                 ++i;
@@ -254,7 +250,7 @@ public final class RubyFormatter extends Formatter
                             segment.setFormat(RUBY_FORMAT_FUNCTION);
                         } else if (Character.isWhitespace(c)) {
                             // Look ahead to see if next non-whitespace char is '('.
-                            int j = i+1;
+                            int j = i + 1;
                             while (j < limit && Character.isWhitespace(c = text.charAt(j)))
                                 ++j;
                             if (c == '(')
@@ -305,7 +301,7 @@ public final class RubyFormatter extends Formatter
                     endSegment(text, i, state);
                     state = RUBY_STATE_IDENTIFIER;
                 } else if (Character.isDigit(c)) {
-                    if (i == 0 || text.charAt(i-1) != '$') {
+                    if (i == 0 || text.charAt(i - 1) != '$') {
                         endSegment(text, i, state);
                         state = RUBY_STATE_NUMBER;
                     }
@@ -324,15 +320,14 @@ public final class RubyFormatter extends Formatter
     }
 
     // Make sure the '/' at i is not the division operator.
-    public static boolean isRegExp(String text, int i)
-    {
+    public static boolean isRegExp(String text, int i) {
         Debug.assertTrue(text.charAt(i) == '/');
         if (i == 0) {
             // It's the first character on the line.
             return true;
         }
         // Consider the previous character.
-        char c = text.charAt(i-1);
+        char c = text.charAt(i - 1);
         if (c == '(')
             return true;
 
@@ -343,13 +338,13 @@ public final class RubyFormatter extends Formatter
             return false;
 
         // The immediately previous character is whitespace.
-        final String s = text.substring(0, i-1).trim();
+        final String s = text.substring(0, i - 1).trim();
         final int length = s.length();
         if (length == 0) {
             // The '/' is the first non-whitespace character on the line.
             return true;
         }
-        c = s.charAt(length-1);
+        c = s.charAt(length - 1);
         if (c == ')')
             return false; // "(a + b) / c"
         if (c == '}')
@@ -360,7 +355,7 @@ public final class RubyFormatter extends Formatter
         // Last non-whitespace character is a valid identifier character.
         StringBuilder sb = new StringBuilder();
         sb.append(c);
-        for (int j = s.length()-2; j >= 0; j--) {
+        for (int j = s.length() - 2; j >= 0; j--) {
             c = s.charAt(j);
             if (mode.isIdentifierPart(c))
                 sb.append(c);
@@ -375,15 +370,13 @@ public final class RubyFormatter extends Formatter
         return false;
     }
 
-    public LineSegmentList formatLine(Line line)
-    {
+    public LineSegmentList formatLine(Line line) {
         clearSegmentList();
         parseLine(line);
         return segmentList;
     }
 
-    public boolean parseBuffer()
-    {
+    public boolean parseBuffer() {
         int state = RUBY_STATE_NEUTRAL;
         Line line = buffer.getFirstLine();
         boolean changed = false;
@@ -450,13 +443,13 @@ public final class RubyFormatter extends Formatter
                     ++i;
                     continue;
                 }
-                if (c == '<' && i < limit-3 && line.charAt(i+1) == '<') {
+                if (c == '<' && i < limit - 3 && line.charAt(i + 1) == '<') {
                     // There must be no space between "<<" and the terminator.
-                    if (!Character.isWhitespace(line.charAt(i+2))) {
-                        endOfText = line.substring(i+2).trim();
+                    if (!Character.isWhitespace(line.charAt(i + 2))) {
+                        endOfText = line.substring(i + 2).trim();
                         int length = endOfText.length();
                         // Remove ';' at end of line.
-                        if (length > 0 && endOfText.charAt(length-1) == ';')
+                        if (length > 0 && endOfText.charAt(length - 1) == ';')
                             endOfText = endOfText.substring(0, --length);
                         // Remove leading '-'.
                         if (length > 0 && endOfText.charAt(0) == '-') {
@@ -467,8 +460,8 @@ public final class RubyFormatter extends Formatter
                         if (length > 2) {
                             char firstChar = endOfText.charAt(0);
                             if ("\"'`".indexOf(firstChar) >= 0)
-                                if (endOfText.charAt(length-1) == firstChar)
-                                    endOfText = endOfText.substring(1, length-1);
+                                if (endOfText.charAt(length - 1) == firstChar)
+                                    endOfText = endOfText.substring(1, length - 1);
                         }
                         if (endOfText.length() > 0) {
                             // Make sure "<<" is not shift operator.
@@ -482,13 +475,13 @@ public final class RubyFormatter extends Formatter
                     continue;
                 }
                 if (c == '\'') {
-                    if (i == 0 || line.charAt(i-1) != '$')
+                    if (i == 0 || line.charAt(i - 1) != '$')
                         state = RUBY_STATE_SINGLE_QUOTE;
                     ++i;
                     continue;
                 }
                 if (c == '"') {
-                    if (i == 0 || line.charAt(i-1) != '$')
+                    if (i == 0 || line.charAt(i - 1) != '$')
                         state = RUBY_STATE_DOUBLE_QUOTE;
                     ++i;
                     continue;
@@ -503,13 +496,11 @@ public final class RubyFormatter extends Formatter
         return changed;
     }
 
-    private static final boolean isOperatorChar(char c)
-    {
+    private static final boolean isOperatorChar(char c) {
         return "!&|<>=+/*-".indexOf(c) >= 0;
     }
 
-    public FormatTable getFormatTable()
-    {
+    public FormatTable getFormatTable() {
         if (formatTable == null) {
             formatTable = new FormatTable(null);
             formatTable.addEntryFromPrefs(RUBY_FORMAT_TEXT, "text");

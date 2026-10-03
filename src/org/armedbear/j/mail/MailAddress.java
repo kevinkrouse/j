@@ -21,35 +21,33 @@
 package org.armedbear.j.mail;
 
 import java.io.Serializable;
-import java.util.ArrayList;
 import java.lang.StringBuilder;
+import java.util.ArrayList;
 
-public final class MailAddress implements Serializable
-{
+public final class MailAddress implements Serializable {
     private final String personal;
     private final String encodedPersonal;
     private final String address;
 
-    public MailAddress(String encodedPersonal, String address)
-    {
+    public MailAddress(String encodedPersonal, String address) {
         if (encodedPersonal != null && encodedPersonal.length() > 0) {
             // Remove enclosing quotes if any.
             // Handle cases like "'mikol@onebox.com'" where the actual string
             // is enclosed in both single and double quotes.
             char c = encodedPersonal.charAt(0);
-            if (c == '"' || c =='\'') {
+            if (c == '"' || c == '\'') {
                 int length = encodedPersonal.length();
                 if (length >= 2) {
-                    if (encodedPersonal.charAt(length-1) == c) {
+                    if (encodedPersonal.charAt(length - 1) == c) {
                         encodedPersonal =
-                            encodedPersonal.substring(1, length-1);
+                            encodedPersonal.substring(1, length - 1);
                         length -= 2;
                         if (length >= 2) {
                             c = encodedPersonal.charAt(0);
                             if (c == '"' || c == '\'') {
-                                if (encodedPersonal.charAt(length-1) == c) {
+                                if (encodedPersonal.charAt(length - 1) == c) {
                                     encodedPersonal =
-                                        encodedPersonal.substring(1, length-1);
+                                        encodedPersonal.substring(1, length - 1);
                                 }
                             }
                         }
@@ -66,8 +64,8 @@ public final class MailAddress implements Serializable
             if (address.charAt(0) == '<') {
                 final int length = address.length();
                 if (length >= 2) {
-                    if (address.charAt(length-1) == '>')
-                        address = address.substring(1, length-1);
+                    if (address.charAt(length - 1) == '>')
+                        address = address.substring(1, length - 1);
                 }
             }
             this.address = address.intern();
@@ -75,23 +73,19 @@ public final class MailAddress implements Serializable
             this.address = null;
     }
 
-    public final String getPersonal()
-    {
+    public final String getPersonal() {
         return personal;
     }
 
-    public final String getEncodedPersonal()
-    {
+    public final String getEncodedPersonal() {
         return encodedPersonal;
     }
 
-    public final String getAddress()
-    {
+    public final String getAddress() {
         return address;
     }
 
-    public String toString()
-    {
+    public String toString() {
         StringBuilder sb = new StringBuilder();
         if (personal != null && personal.length() > 0) {
             if (personal.indexOf(',') >= 0 || personal.indexOf('.') >= 0) {
@@ -110,8 +104,7 @@ public final class MailAddress implements Serializable
         return sb.toString();
     }
 
-    public String toEncodedString()
-    {
+    public String toEncodedString() {
         if (encodedPersonal == null || encodedPersonal.length() == 0)
             return toString();
         StringBuilder sb = new StringBuilder();
@@ -129,8 +122,7 @@ public final class MailAddress implements Serializable
         return sb.toString();
     }
 
-    public boolean equals(Object o)
-    {
+    public boolean equals(Object o) {
         if (this == o)
             return true;
         if (o instanceof MailAddress) {
@@ -146,8 +138,7 @@ public final class MailAddress implements Serializable
             return false;
     }
 
-    public final boolean matches(String pattern)
-    {
+    public final boolean matches(String pattern) {
         if (personal != null)
             if (personal.indexOf(pattern) >= 0)
                 return true; // Personal name matches.
@@ -158,8 +149,7 @@ public final class MailAddress implements Serializable
     }
 
     // Pattern is already lower case.
-    public final boolean matchesIgnoreCase(String pattern)
-    {
+    public final boolean matchesIgnoreCase(String pattern) {
         if (personal != null)
             if (personal.toLowerCase().indexOf(pattern) >= 0)
                 return true; // Personal name matches.
@@ -169,8 +159,7 @@ public final class MailAddress implements Serializable
         return false;
     }
 
-    public final boolean matches(MailAddress a)
-    {
+    public final boolean matches(MailAddress a) {
         if (a != null) {
             // Personal name must be exact match.
             if (personal != null && personal.equals(a.personal))
@@ -181,16 +170,14 @@ public final class MailAddress implements Serializable
         return false;
     }
 
-    public final boolean addressMatches(MailAddress a)
-    {
+    public final boolean addressMatches(MailAddress a) {
         if (address != null && address.equalsIgnoreCase(a.address))
             return true;
         else
             return false;
     }
 
-    public static MailAddress parseAddress(String s)
-    {
+    public static MailAddress parseAddress(String s) {
         int index = s.lastIndexOf('<');
         if (index >= 0) {
             String encodedPersonal = s.substring(0, index).trim();
@@ -212,8 +199,7 @@ public final class MailAddress implements Serializable
         return new MailAddress(null, s);
     }
 
-    public static MailAddress[] parseAddresses(String input)
-    {
+    public static MailAddress[] parseAddresses(String input) {
         if (input == null)
             return null;
         input = input.trim();

@@ -20,18 +20,16 @@
 
 package org.armedbear.j;
 
-import java.lang.StringBuilder;
-import org.armedbear.j.util.ReaderThread;
-import org.armedbear.j.util.Utilities;
-
 import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStreamWriter;
+import java.lang.StringBuilder;
 import java.util.ArrayList;
+import org.armedbear.j.util.ReaderThread;
+import org.armedbear.j.util.Utilities;
 
-public final class ShellCommand implements Runnable
-{
+public final class ShellCommand implements Runnable {
     private final String cmdline;
     private final File workingDirectory;
     private final String input;
@@ -40,45 +38,37 @@ public final class ShellCommand implements Runnable
     private final StringBuffer output = new StringBuffer();
     private int exitValue = -1;
 
-    public ShellCommand(String cmdline)
-    {
+    public ShellCommand(String cmdline) {
         this(cmdline, null, null);
     }
 
-    public ShellCommand(String cmdline, File workingDirectory)
-    {
+    public ShellCommand(String cmdline, File workingDirectory) {
         this(cmdline, workingDirectory, null);
     }
 
-    public ShellCommand(String cmdline, File workingDirectory, String input)
-    {
+    public ShellCommand(String cmdline, File workingDirectory, String input) {
         this.cmdline = cmdline;
         this.workingDirectory = workingDirectory;
         this.input = input;
     }
 
-    public final String getCmdLine()
-    {
+    public final String getCmdLine() {
         return cmdline;
     }
 
-    public final String getOutput()
-    {
+    public final String getOutput() {
         return output.toString();
     }
 
-    public final int exitValue()
-    {
+    public final int exitValue() {
         return exitValue;
     }
 
-    private void appendOutput(String s)
-    {
+    private void appendOutput(String s) {
         output.append(s);
     }
 
-    public void run()
-    {
+    public void run() {
         Process process = null;
         try {
             if (cmdline != null) {
@@ -88,10 +78,10 @@ public final class ShellCommand implements Runnable
                         sb.append(workingDirectory.canonicalPath());
                         sb.append("\" && ");
                         sb.append(cmdline);
-                        String[] cmdarray = {"/bin/sh", "-c", sb.toString()};
+                        String[] cmdarray = { "/bin/sh", "-c", sb.toString() };
                         process = Runtime.getRuntime().exec(cmdarray);
                     } else {
-                        String[] cmdarray = {"/bin/sh", "-c", cmdline};
+                        String[] cmdarray = { "/bin/sh", "-c", cmdline };
                         process = Runtime.getRuntime().exec(cmdarray);
                     }
                 } else if (Platform.isPlatformWindows()) {
@@ -157,22 +147,18 @@ public final class ShellCommand implements Runnable
         }
     }
 
-    private class ShellCommandReaderThread extends ReaderThread
-    {
+    private class ShellCommandReaderThread extends ReaderThread {
         // If this constructor is private, we run into jikes 1.15 bug #2256.
-        ShellCommandReaderThread(InputStream inputStream)
-        {
+        ShellCommandReaderThread(InputStream inputStream) {
             super(inputStream);
         }
 
-        public void update(final String s)
-        {
+        public void update(final String s) {
             appendOutput(s);
         }
     }
 
-    public static void shellCommand()
-    {
+    public static void shellCommand() {
         if (!Platform.isPlatformUnix())
             return;
         final Editor editor = Editor.currentEditor();
@@ -190,11 +176,12 @@ public final class ShellCommand implements Runnable
         AsynchronousShellCommand.startShellCommand(editor, command);
     }
 
-    public static void shellCommand(String command)
-    {
+    public static void shellCommand(String command) {
         if (!Platform.isPlatformUnix())
             return;
-        AsynchronousShellCommand.startShellCommand(Editor.currentEditor(),
-            command);
+        AsynchronousShellCommand.startShellCommand(
+            Editor.currentEditor(),
+            command
+        );
     }
 }

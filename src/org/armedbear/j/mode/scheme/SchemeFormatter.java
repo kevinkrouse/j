@@ -20,9 +20,9 @@
 
 package org.armedbear.j.mode.scheme;
 
+import java.lang.StringBuilder;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Editor;
-import java.lang.StringBuilder;
 import org.armedbear.j.FormatTable;
 import org.armedbear.j.Formatter;
 import org.armedbear.j.Line;
@@ -30,26 +30,23 @@ import org.armedbear.j.LineSegment;
 import org.armedbear.j.LineSegmentList;
 import org.armedbear.j.util.Utilities;
 
-public final class SchemeFormatter extends Formatter
-{
+public final class SchemeFormatter extends Formatter {
     // Formats.
-    private static final int SCHEME_FORMAT_TEXT     = 0;
-    private static final int SCHEME_FORMAT_COMMENT  = 1;
-    private static final int SCHEME_FORMAT_STRING   = 2;
-    private static final int SCHEME_FORMAT_KEYWORD  = 3;
+    private static final int SCHEME_FORMAT_TEXT = 0;
+    private static final int SCHEME_FORMAT_COMMENT = 1;
+    private static final int SCHEME_FORMAT_STRING = 2;
+    private static final int SCHEME_FORMAT_KEYWORD = 3;
     private static final int SCHEME_FORMAT_FUNCTION = 4;
-    private static final int SCHEME_FORMAT_NUMBER   = 5;
+    private static final int SCHEME_FORMAT_NUMBER = 5;
 
     private StringBuilder sb = new StringBuilder();
     private int tokStart;
 
-    public SchemeFormatter(Buffer buffer)
-    {
+    public SchemeFormatter(Buffer buffer) {
         this.buffer = buffer;
     }
 
-    private void endToken(int state)
-    {
+    private void endToken(int state) {
         if (sb.length() > 0) {
             int format = -1;
             switch (state) {
@@ -74,8 +71,7 @@ public final class SchemeFormatter extends Formatter
         }
     }
 
-    private void parseLine(String text, int state)
-    {
+    private void parseLine(String text, int state) {
         if (Editor.tabsAreVisible())
             text = Utilities.makeTabsVisible(text, buffer.getTabWidth());
         else
@@ -98,15 +94,15 @@ public final class SchemeFormatter extends Formatter
         }
         while (i < limit) {
             char c = text.charAt(i);
-            if (c == '\\' && i < limit-1) {
+            if (c == '\\' && i < limit - 1) {
                 sb.append(c);
                 sb.append(text.charAt(++i));
                 ++i;
                 continue;
             }
             if (state == STATE_COMMENT) {
-                if (c == '|' && i < limit-1) {
-                    c = text.charAt(i+1);
+                if (c == '|' && i < limit - 1) {
+                    c = text.charAt(i + 1);
                     if (c == '#') {
                         sb.append("|#");
                         endToken(state);
@@ -143,8 +139,8 @@ public final class SchemeFormatter extends Formatter
                 endToken(state);
                 return;
             }
-            if (c == '#' && i < limit-1) {
-                if (text.charAt(i+1) == '|') {
+            if (c == '#' && i < limit - 1) {
+                if (text.charAt(i + 1) == '|') {
                     endToken(state);
                     state = STATE_COMMENT;
                     sb.append("#|");
@@ -217,8 +213,7 @@ public final class SchemeFormatter extends Formatter
         endToken(state);
     }
 
-    public LineSegmentList formatLine(Line line)
-    {
+    public LineSegmentList formatLine(Line line) {
         if (line == null) {
             clearSegmentList();
             addSegment("", SCHEME_FORMAT_TEXT);
@@ -236,7 +231,7 @@ public final class SchemeFormatter extends Formatter
             else {
                 boolean isFunction = false;
                 if (i >= 2) {
-                    LineSegment prevSegment = segmentList.getSegment(i-2);
+                    LineSegment prevSegment = segmentList.getSegment(i - 2);
                     String prevToken = prevSegment.getText();
                     String trim = prevToken.trim();
                     if (trim.equals("define"))
@@ -248,8 +243,7 @@ public final class SchemeFormatter extends Formatter
         return segmentList;
     }
 
-    public boolean parseBuffer()
-    {
+    public boolean parseBuffer() {
         int state = STATE_NEUTRAL;
         boolean changed = false;
         Line line = buffer.getFirstLine();
@@ -262,13 +256,13 @@ public final class SchemeFormatter extends Formatter
             final int limit = line.length();
             for (int i = 0; i < limit; i++) {
                 char c = line.charAt(i);
-                if (c == '\\' && i < limit-1) {
+                if (c == '\\' && i < limit - 1) {
                     // Escape.
                     ++i;
                     continue;
                 }
                 if (state == STATE_COMMENT) {
-                    if (c == '|' && i < limit-1 && line.charAt(i+1) == '#') {
+                    if (c == '|' && i < limit - 1 && line.charAt(i + 1) == '#') {
                         ++i;
                         state = STATE_NEUTRAL;
                     }
@@ -285,7 +279,7 @@ public final class SchemeFormatter extends Formatter
                     break;
                 }
                 if (c == '#') {
-                    if (i < limit-1 && line.charAt(i+1) == '|') {
+                    if (i < limit - 1 && line.charAt(i + 1) == '|') {
                         state = STATE_COMMENT;
                         ++i;
                     }
@@ -300,8 +294,7 @@ public final class SchemeFormatter extends Formatter
         return changed;
     }
 
-    public FormatTable getFormatTable()
-    {
+    public FormatTable getFormatTable() {
         if (formatTable == null) {
             formatTable = new FormatTable("SchemeMode");
             formatTable.addEntryFromPrefs(SCHEME_FORMAT_TEXT, "text");

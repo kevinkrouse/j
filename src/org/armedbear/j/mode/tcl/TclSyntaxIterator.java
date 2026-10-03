@@ -26,32 +26,28 @@ import org.armedbear.j.Position;
 
 // Supports movement through the syntactically important text of a buffer, i.e.
 // skipping whitespace and comments.
-public final class TclSyntaxIterator extends DefaultSyntaxIterator
-{
-    private static final int STATE_NEUTRAL     = 0;
+public final class TclSyntaxIterator extends DefaultSyntaxIterator {
+    private static final int STATE_NEUTRAL = 0;
     private static final int STATE_SINGLEQUOTE = 1;
     private static final int STATE_DOUBLEQUOTE = 2;
 
-    public TclSyntaxIterator(Position pos)
-    {
+    public TclSyntaxIterator(Position pos) {
         super(pos);
     }
 
-    public char[] hideSyntacticWhitespace(Line line)
-    {
+    public char[] hideSyntacticWhitespace(Line line) {
         return hideSyntacticWhitespace(line.getText());
     }
 
     // Returns char array with syntactic whitespace (quotes and comments)
     // replaced with actual space characters.
-    public char[] hideSyntacticWhitespace(String s)
-    {
+    public char[] hideSyntacticWhitespace(String s) {
         final char[] chars = s.toCharArray();
         int state = STATE_NEUTRAL;
         final int length = chars.length;
         for (int i = 0; i < length; i++) {
             char c = chars[i];
-            if (c == '\\' && i < length-1) {
+            if (c == '\\' && i < length - 1) {
                 // Escape character.
                 chars[i++] = ' ';
                 chars[i] = ' ';
@@ -81,8 +77,8 @@ public final class TclSyntaxIterator extends DefaultSyntaxIterator
                 continue;
             }
             if (c == '/') {
-                if (i < length-1) {
-                    if (chars[i+1] == '/') {
+                if (i < length - 1) {
+                    if (chars[i + 1] == '/') {
                         // "//" comment starting
                         for (int j = i; j < length; j++)
                             chars[j] = ' ';

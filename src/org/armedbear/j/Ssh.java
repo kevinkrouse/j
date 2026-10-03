@@ -20,17 +20,14 @@
 
 package org.armedbear.j;
 
-import org.armedbear.j.util.Utilities;
-
-import java.lang.StringBuilder;
-
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
+import java.lang.StringBuilder;
 import java.util.ArrayList;
+import org.armedbear.j.util.Utilities;
 
-public final class Ssh
-{
+public final class Ssh {
     private InputStreamReader reader;
     private OutputStreamWriter writer;
     private String[] cmdarray;
@@ -38,17 +35,13 @@ public final class Ssh
     private String errorText;
     private boolean succeeded;
 
-    public Ssh()
-    {
-    }
+    public Ssh() {}
 
-    public final String getErrorText()
-    {
+    public final String getErrorText() {
         return errorText;
     }
 
-    public boolean copy(File source, File destination)
-    {
+    public boolean copy(File source, File destination) {
         SshFile remote = null;
         if (source instanceof SshFile)
             remote = (SshFile) source;
@@ -100,8 +93,7 @@ public final class Ssh
         "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_-./\\";
 
     // Escapes unsafe characters.
-    private static final String escape(String s)
-    {
+    private static final String escape(String s) {
         final int length = s.length();
         StringBuilder sb = new StringBuilder(length * 2);
         for (int i = 0; i < length; i++) {
@@ -113,8 +105,7 @@ public final class Ssh
         return sb.toString();
     }
 
-    public void run()
-    {
+    public void run() {
         Process process = null;
         int result = -1; // Assume error.
         try {
@@ -154,8 +145,7 @@ public final class Ssh
         }
     }
 
-    private void sendPassword()
-    {
+    private void sendPassword() {
         if (password != null) {
             try {
                 writer.write(password);
@@ -169,24 +159,19 @@ public final class Ssh
             Debug.bug();
     }
 
-    private class SshReaderThread extends Thread
-    {
+    private class SshReaderThread extends Thread {
         private char[] buf = new char[4096];
         private boolean done = false;
         private String response;
 
         // If this constructor is private, we run into jikes 1.15 bug #2256.
-        /*private*/ SshReaderThread()
-        {
-        }
+        /*private*/ SshReaderThread() {}
 
-        public final String getResponse()
-        {
+        public final String getResponse() {
             return response;
         }
 
-        public void run()
-        {
+        public void run() {
             StringBuilder sb = new StringBuilder();
             while (true) {
                 final String s = read();
@@ -208,8 +193,7 @@ public final class Ssh
             }
         }
 
-        private String read()
-        {
+        private String read() {
             StringBuilder sb = new StringBuilder();
             try {
                 do {
@@ -230,8 +214,7 @@ public final class Ssh
         }
     }
 
-    private boolean isPasswordPrompt(String s)
-    {
+    private boolean isPasswordPrompt(String s) {
         String trim = s.trim().toLowerCase();
         if (trim.endsWith("password:"))
             return true;

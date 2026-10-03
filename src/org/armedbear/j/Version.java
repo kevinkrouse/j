@@ -20,15 +20,13 @@
 
 package org.armedbear.j;
 
-import java.lang.StringBuilder;
-
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.lang.StringBuilder;
 
-public final class Version
-{
+public final class Version {
     private static String version;
     private static String build;
     private static String hostName;
@@ -38,15 +36,13 @@ public final class Version
     private static boolean initialized;
 
     // "0.16.0+"
-    public static String getVersion()
-    {
+    public static String getVersion() {
         initialize();
         return version;
     }
 
     // returns subversion revision number of build, "r12345", or null
-    public static String getRevision()
-    {
+    public static String getRevision() {
         initialize();
         if (revision == null || revision.length() == 0)
             return null;
@@ -54,8 +50,7 @@ public final class Version
     }
 
     // "J 0.16.0+"
-    public static String getShortVersionString()
-    {
+    public static String getShortVersionString() {
         initialize();
         StringBuilder sb = new StringBuilder("J");
         if (version != null && version.length() > 0) {
@@ -66,8 +61,7 @@ public final class Version
     }
 
     // "J 0.16.0+ (r12345 built Fri Jul 26 2002 07:03:12 PDT on merlin)"
-    public static String getLongVersionString()
-    {
+    public static String getLongVersionString() {
         StringBuilder sb = new StringBuilder(getShortVersionString());
         String longBuild = getLongBuildString();
         if (longBuild.length() > 0)
@@ -75,12 +69,10 @@ public final class Version
         return sb.toString();
     }
 
-    public static String getLongBuildString()
-    {
+    public static String getLongBuildString() {
         StringBuilder sb = new StringBuilder();
         String rev = getRevision();
-        if ((build != null && build.length() > 0) || (rev != null))
-        {
+        if ((build != null && build.length() > 0) || (rev != null)) {
             if (rev != null) {
                 sb.append(rev);
                 sb.append(" ");
@@ -103,8 +95,7 @@ public final class Version
      *          if not applicable.
      * @since   0.16.1
      */
-    public static String getSnapshotInformation()
-    {
+    public static String getSnapshotInformation() {
         if (version != null && version.endsWith("+") && snapshot != null) {
             if (!snapshot.equals(build)) {
                 StringBuilder sb =
@@ -117,8 +108,7 @@ public final class Version
         return null;
     }
 
-    private static void initialize()
-    {
+    private static void initialize() {
         if (!initialized) {
             InputStream inputStream =
                 Editor.class.getResourceAsStream("version");

@@ -25,7 +25,6 @@ import java.io.OutputStreamWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
 import javax.swing.SwingUtilities;
-
 import org.armedbear.j.Buffer;
 import org.armedbear.j.BufferIterator;
 import org.armedbear.j.Directories;
@@ -39,8 +38,7 @@ import org.armedbear.j.extension.abcl.AbclSession;
 import org.armedbear.lisp.Interpreter;
 import org.armedbear.lisp.Lisp;
 
-public final class JLispBuffer extends LispShellBuffer
-{
+public final class JLispBuffer extends LispShellBuffer {
     private Thread thread;
     private final File initialDir;
 
@@ -48,8 +46,7 @@ public final class JLispBuffer extends LispShellBuffer
     private Socket socket;
     private Interpreter interpreter;
 
-    private JLispBuffer(File initialDir)
-    {
+    private JLispBuffer(File initialDir) {
         super();
         this.initialDir = initialDir;
         title = "jlisp";
@@ -58,27 +55,22 @@ public final class JLispBuffer extends LispShellBuffer
         setInitialized(true);
     }
 
-    protected void initializeHistory()
-    {
+    protected void initializeHistory() {
         history = new History("jlisp.history", 30);
     }
 
-    public String toString()
-    {
+    public String toString() {
         return "jlisp";
     }
 
     // Returns true if underlying process is alive and well.
-    protected boolean checkProcess()
-    {
+    protected boolean checkProcess() {
         return true;
     }
 
-    protected void startProcess()
-    {
+    protected void startProcess() {
         thread = new Thread("JLispBuffer interpreter") {
-            public void run()
-            {
+            public void run() {
                 try {
                     startServer();
                     if (interpreter != null) {
@@ -120,7 +112,7 @@ public final class JLispBuffer extends LispShellBuffer
 
         try {
             socket = new Socket("localhost", port);
-            stdin  = new OutputStreamWriter(socket.getOutputStream());
+            stdin = new OutputStreamWriter(socket.getOutputStream());
             stdoutThread = new StdoutThread(socket.getInputStream());
             stdoutThread.setName("JLispBuffer reader");
             stdoutThread.setDaemon(true);
@@ -131,8 +123,7 @@ public final class JLispBuffer extends LispShellBuffer
         }
     }
 
-    private void startServer()
-    {
+    private void startServer() {
         try {
             ServerSocket serverSocket = new ServerSocket(0);
             port = serverSocket.getLocalPort();
@@ -141,21 +132,21 @@ public final class JLispBuffer extends LispShellBuffer
             }
             Socket socket = serverSocket.accept(); // Blocks.
             interpreter =
-                Interpreter.createJLispInstance(socket.getInputStream(),
-                                                socket.getOutputStream(),
-                                                initialDir.canonicalPath(),
-                                                Version.getLongVersionString());
+                Interpreter.createJLispInstance(
+                    socket.getInputStream(),
+                    socket.getOutputStream(),
+                    initialDir.canonicalPath(),
+                    Version.getLongVersionString()
+                );
         }
         catch (Throwable t) {
             Log.error(t);
         }
     }
 
-    public synchronized void dispose()
-    {
+    public synchronized void dispose() {
         Thread disposeThread = new Thread("JLispBuffer dispose") {
-            public void run()
-            {
+            public void run() {
                 Log.debug("JLispBuffer.dispose");
                 if (interpreter != null)
                     interpreter.kill(0);
@@ -180,8 +171,7 @@ public final class JLispBuffer extends LispShellBuffer
         disposeThread.start();
     }
 
-    public static void jlisp()
-    {
+    public static void jlisp() {
         final Editor editor = Editor.currentEditor();
         // Look for existing jlisp buffer.
         for (BufferIterator it = new BufferIterator(); it.hasNext();) {

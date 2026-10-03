@@ -20,28 +20,6 @@
 
 package org.armedbear.j.mode.html;
 
-import org.armedbear.j.AbstractMode;
-import org.armedbear.j.Buffer;
-import org.armedbear.j.Constants;
-import org.armedbear.j.Debug;
-import org.armedbear.j.Editor;
-import org.armedbear.j.Mode;
-import java.lang.StringBuilder;
-import org.armedbear.j.Formatter;
-import org.armedbear.j.InsertTagDialog;
-import org.armedbear.j.mode.js.JavaScriptMode;
-import org.armedbear.j.KeyMap;
-import org.armedbear.j.Keywords;
-import org.armedbear.j.Line;
-import org.armedbear.j.Log;
-import org.armedbear.j.Position;
-import org.armedbear.j.Property;
-import org.armedbear.j.SimpleEdit;
-import org.armedbear.j.util.Utilities;
-
-import java.util.regex.Pattern;
-import java.util.regex.PatternSyntaxException;
-import java.util.regex.Matcher;
 import java.awt.event.KeyEvent;
 import java.io.BufferedReader;
 import java.io.FileInputStream;
@@ -49,11 +27,31 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.lang.StringBuilder;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.regex.PatternSyntaxException;
 import javax.swing.undo.CompoundEdit;
+import org.armedbear.j.AbstractMode;
+import org.armedbear.j.Buffer;
+import org.armedbear.j.Constants;
+import org.armedbear.j.Debug;
+import org.armedbear.j.Editor;
+import org.armedbear.j.Formatter;
+import org.armedbear.j.InsertTagDialog;
+import org.armedbear.j.KeyMap;
+import org.armedbear.j.Keywords;
+import org.armedbear.j.Line;
+import org.armedbear.j.Log;
+import org.armedbear.j.Mode;
+import org.armedbear.j.Position;
+import org.armedbear.j.Property;
+import org.armedbear.j.SimpleEdit;
+import org.armedbear.j.mode.js.JavaScriptMode;
+import org.armedbear.j.util.Utilities;
 
-public final class HtmlMode extends AbstractMode implements Constants, Mode
-{
+public final class HtmlMode extends AbstractMode implements Constants, Mode {
     private static final Mode mode = new HtmlMode();
     private static List<HtmlElement> elements;
     private static Pattern tagNameRE;
@@ -61,25 +59,21 @@ public final class HtmlMode extends AbstractMode implements Constants, Mode
     private static Pattern quotedValueRE;
     private static Pattern unquotedValueRE;
 
-    private HtmlMode()
-    {
+    private HtmlMode() {
         super(HTML_MODE, HTML_MODE_NAME);
         // Support embedded JavaScript.
         keywords = new Keywords(JavaScriptMode.getMode());
     }
 
-    public static final Mode getMode()
-    {
+    public static final Mode getMode() {
         return mode;
     }
 
-    public Formatter getFormatter(Buffer buffer)
-    {
+    public Formatter getFormatter(Buffer buffer) {
         return new HtmlFormatter(buffer);
     }
 
-    protected void setKeyMapDefaults(KeyMap km)
-    {
+    protected void setKeyMapDefaults(KeyMap km) {
         km.mapKey(KeyEvent.VK_TAB, 0, "tab");
         km.mapKey(KeyEvent.VK_TAB, CTRL_MASK, "insertTab");
         km.mapKey(KeyEvent.VK_ENTER, 0, "newlineAndIndent");
@@ -101,18 +95,15 @@ public final class HtmlMode extends AbstractMode implements Constants, Mode
         km.mapKey(0x7e, CTRL_MASK | SHIFT_MASK, "htmlEndTag");
     }
 
-    public boolean canIndent()
-    {
+    public boolean canIndent() {
         return true;
     }
 
-    public boolean canIndentPaste()
-    {
+    public boolean canIndentPaste() {
         return false;
     }
 
-    public int getCorrectIndentation(Line line, Buffer buffer)
-    {
+    public int getCorrectIndentation(Line line, Buffer buffer) {
         if (line.flags() == STATE_SCRIPT)
             return JavaScriptMode.getMode().getCorrectIndentation(line, buffer);
         // Ignore comments.
@@ -148,16 +139,20 @@ public final class HtmlMode extends AbstractMode implements Constants, Mode
                 int count = 1;
                 int limit = trim.length();
                 for (int i = startTag.length(); i < limit; i++) {
-		    // Handle empty tags (e.g., <div />).
-		    if (trim.charAt(i) == '/' &&
-			i + 1 < limit && trim.charAt(i+1) == '>') {
-			--count;
-		    } else if (trim.charAt(i) == '<') {
-			if (lookingAtIgnoreCase(trim, i, endTag))
-			    --count;
-			else if (lookingAtIgnoreCase(trim, i, startTag))
-			    ++count;
-		    }
+                    // Handle empty tags (e.g., <div />).
+                    if (
+                        trim.charAt(i) == '/'
+                            &&
+                            i + 1 < limit
+                            && trim.charAt(i + 1) == '>'
+                    ) {
+                        --count;
+                    } else if (trim.charAt(i) == '<') {
+                        if (lookingAtIgnoreCase(trim, i, endTag))
+                            --count;
+                        else if (lookingAtIgnoreCase(trim, i, startTag))
+                            ++count;
+                    }
 
                 }
                 if (count > 0)
@@ -168,8 +163,7 @@ public final class HtmlMode extends AbstractMode implements Constants, Mode
     }
 
     // Line must start with an end tag.
-    private Position findMatchingStartTag(Line line)
-    {
+    private Position findMatchingStartTag(Line line) {
         String s = line.trim();
         if (!s.startsWith("</"))
             return null;
@@ -199,10 +193,10 @@ public final class HtmlMode extends AbstractMode implements Constants, Mode
                 do {
                     pos.prev();
                 } while (!pos.atStart() && !pos.lookingAt(commentStart));
-	    } else if (pos.lookingAt(emptyTagEnd)) {
-		do {
-		    pos.prev();
-		} while (!pos.atStart() && !pos.lookingAt(emptyTagStart));
+            } else if (pos.lookingAt(emptyTagEnd)) {
+                do {
+                    pos.prev();
+                } while (!pos.atStart() && !pos.lookingAt(emptyTagStart));
             } else if (pos.lookingAtIgnoreCase(toBeMatched)) {
                 ++count;
             } else if (pos.lookingAtIgnoreCase(match)) {
@@ -224,13 +218,11 @@ public final class HtmlMode extends AbstractMode implements Constants, Mode
         return null;
     }
 
-    private static final boolean lookingAtIgnoreCase(String s, int i, String pattern)
-    {
+    private static final boolean lookingAtIgnoreCase(String s, int i, String pattern) {
         return s.regionMatches(true, i, pattern, 0, pattern.length());
     }
 
-    private static Line getModel(Line line)
-    {
+    private static Line getModel(Line line) {
         Line model = line;
         while ((model = model.previous()) != null) {
             if (model.flags() == STATE_HTML_COMMENT)
@@ -244,8 +236,7 @@ public final class HtmlMode extends AbstractMode implements Constants, Mode
         return model;
     }
 
-    public char fixCase(Editor editor, char c)
-    {
+    public char fixCase(Editor editor, char c) {
         if (!editor.getBuffer().getBooleanProperty(Property.FIX_CASE))
             return c;
         if (!initRegExps())
@@ -292,8 +283,7 @@ public final class HtmlMode extends AbstractMode implements Constants, Mode
         return c;
     }
 
-    private static boolean checkElectricEquals(Editor editor)
-    {
+    private static boolean checkElectricEquals(Editor editor) {
         Position pos = findStartOfTag(editor.getDot());
         if (pos == null)
             return false;
@@ -303,8 +293,7 @@ public final class HtmlMode extends AbstractMode implements Constants, Mode
         return false;
     }
 
-    private static Position findStartOfTag(Position pos)
-    {
+    private static Position findStartOfTag(Position pos) {
         int offset = pos.getOffset();
         String text = pos.getLine().getText();
         while (--offset >= 0) {
@@ -317,15 +306,13 @@ public final class HtmlMode extends AbstractMode implements Constants, Mode
         return null;
     }
 
-    public static List<HtmlElement> elements()
-    {
+    public static List<HtmlElement> elements() {
         if (elements == null)
             loadElementList();
         return elements;
     }
 
-    private static boolean wantsEndTag(String elementName)
-    {
+    private static boolean wantsEndTag(String elementName) {
         elementName = elementName.trim().toLowerCase();
         if (elements == null)
             loadElementList();
@@ -339,8 +326,7 @@ public final class HtmlMode extends AbstractMode implements Constants, Mode
         return true; // Default.
     }
 
-    private static void loadElementList()
-    {
+    private static void loadElementList() {
         elements = HtmlElement.getDefaultElements();
         String filename = Editor.preferences().getStringProperty(Property.HTML_MODE_TAGS);
         if (filename != null && filename.length() > 0) {
@@ -354,8 +340,7 @@ public final class HtmlMode extends AbstractMode implements Constants, Mode
         }
     }
 
-    private static void loadElementsFromStream(InputStream istream)
-    {
+    private static void loadElementsFromStream(InputStream istream) {
         Debug.assertTrue(elements != null);
         if (istream != null) {
             try {
@@ -397,8 +382,7 @@ public final class HtmlMode extends AbstractMode implements Constants, Mode
         }
     }
 
-    private static boolean initRegExps()
-    {
+    private static boolean initRegExps() {
         if (tagNameRE == null) {
             try {
                 tagNameRE = Pattern.compile("</?[A-Za-z0-9]*");
@@ -414,18 +398,15 @@ public final class HtmlMode extends AbstractMode implements Constants, Mode
         return true;
     }
 
-    public static void htmlStartTag()
-    {
+    public static void htmlStartTag() {
         htmlTag(Editor.currentEditor(), false);
     }
 
-    public static void htmlEndTag()
-    {
+    public static void htmlEndTag() {
         htmlTag(Editor.currentEditor(), true);
     }
 
-    private static void htmlTag(Editor editor, boolean isEndTag)
-    {
+    private static void htmlTag(Editor editor, boolean isEndTag) {
         if (!editor.checkReadOnly())
             return;
         CompoundEdit compoundEdit = editor.beginCompoundEdit();
@@ -439,8 +420,7 @@ public final class HtmlMode extends AbstractMode implements Constants, Mode
         editor.endCompoundEdit(compoundEdit);
     }
 
-    public static void htmlInsertTag()
-    {
+    public static void htmlInsertTag() {
         final Editor editor = Editor.currentEditor();
         if (!editor.checkReadOnly())
             return;
@@ -450,16 +430,14 @@ public final class HtmlMode extends AbstractMode implements Constants, Mode
         _htmlInsertTag(editor, d.getInput());
     }
 
-    public static void htmlInsertTag(String input)
-    {
+    public static void htmlInsertTag(String input) {
         final Editor editor = Editor.currentEditor();
         if (!editor.checkReadOnly())
             return;
         _htmlInsertTag(editor, input);
     }
 
-    private static void _htmlInsertTag(Editor editor, String input)
-    {
+    private static void _htmlInsertTag(Editor editor, String input) {
         if (input != null && input.length() > 0) {
             final String tagName, extra;
             int index = input.indexOf(' ');
@@ -474,8 +452,7 @@ public final class HtmlMode extends AbstractMode implements Constants, Mode
         }
     }
 
-    public static void htmlInsertMatchingEndTag()
-    {
+    public static void htmlInsertMatchingEndTag() {
         final Editor editor = Editor.currentEditor();
         if (!editor.checkReadOnly())
             return;
@@ -526,8 +503,7 @@ public final class HtmlMode extends AbstractMode implements Constants, Mode
         }
     }
 
-    public static void htmlBold()
-    {
+    public static void htmlBold() {
         final Editor editor = Editor.currentEditor();
         final Buffer buffer = editor.getBuffer();
         if (!editor.checkReadOnly())
@@ -536,12 +512,11 @@ public final class HtmlMode extends AbstractMode implements Constants, Mode
         if (editor.getMark() == null)
             editor.fillToCaret();
         boolean upper = buffer.getBooleanProperty(Property.UPPER_CASE_TAG_NAMES);
-        InsertTagDialog.insertTag(editor,  upper ? "B" : "b", "", true);
+        InsertTagDialog.insertTag(editor, upper ? "B" : "b", "", true);
         editor.endCompoundEdit(compoundEdit);
     }
 
-    public static void htmlElectricEquals()
-    {
+    public static void htmlElectricEquals() {
         final Editor editor = Editor.currentEditor();
         if (!editor.checkReadOnly())
             return;
@@ -564,8 +539,7 @@ public final class HtmlMode extends AbstractMode implements Constants, Mode
             editor.insertNormalChar('=');
     }
 
-    public static void htmlFindMatch()
-    {
+    public static void htmlFindMatch() {
         final Editor editor = Editor.currentEditor();
         final String special = "{([})]";
         final String commentStart = "<!--";
@@ -600,16 +574,16 @@ public final class HtmlMode extends AbstractMode implements Constants, Mode
         }
         if (c == '>')
             sb.append(c);
-	else {
-	    Position probe = dot.copy();
-	    while (probe.next() && probe.getChar() != '>') {
-		if (probe.lookingAt(emptyTagEnd)) {
-		    editor.status("Nothing to match");
-		    dot.moveTo(saved);
-		    return;
-		}
-	    }
-	}
+        else {
+            Position probe = dot.copy();
+            while (probe.next() && probe.getChar() != '>') {
+                if (probe.lookingAt(emptyTagEnd)) {
+                    editor.status("Nothing to match");
+                    dot.moveTo(saved);
+                    return;
+                }
+            }
+        }
         String toBeMatched = sb.toString();
         String match = null;
         boolean searchForward = true;
@@ -621,11 +595,11 @@ public final class HtmlMode extends AbstractMode implements Constants, Mode
         } else if (toBeMatched.startsWith("</")) {
             match = "<".concat(toBeMatched.substring(2));
             if (match.endsWith(">"))
-                match = match.substring(0, match.length()-1);
+                match = match.substring(0, match.length() - 1);
             searchForward = false;
         } else if (toBeMatched.startsWith("<") && !toBeMatched.endsWith(emptyTagEnd)) {
             if (toBeMatched.endsWith(">"))
-                toBeMatched = toBeMatched.substring(0, toBeMatched.length()-1);
+                toBeMatched = toBeMatched.substring(0, toBeMatched.length() - 1);
             match = "</" + toBeMatched.substring(1);
             if (!match.endsWith(">"))
                 match += '>';
@@ -668,12 +642,12 @@ public final class HtmlMode extends AbstractMode implements Constants, Mode
                                 break;
                             }
 
-			    c = dot.getChar();
-			    if (c == '>') {
-				++count;
-				dot.next();
-				break;
-			    }
+                            c = dot.getChar();
+                            if (c == '>') {
+                                ++count;
+                                dot.next();
+                                break;
+                            }
 
                             dot.next();
                         }
@@ -695,12 +669,11 @@ public final class HtmlMode extends AbstractMode implements Constants, Mode
                 if (dot.lookingAt(commentEnd)) {
                     do {
                         dot.prev();
-                    }
-                    while (!dot.atStart() && !dot.lookingAt(commentStart));
-		} else if (dot.lookingAt(emptyTagEnd)) {
-		    do {
-			dot.prev();
-		    } while (!dot.atStart() && !dot.lookingAt(emptyTagStart));
+                    } while (!dot.atStart() && !dot.lookingAt(commentStart));
+                } else if (dot.lookingAt(emptyTagEnd)) {
+                    do {
+                        dot.prev();
+                    } while (!dot.atStart() && !dot.lookingAt(emptyTagStart));
                 } else if (dot.lookingAtIgnoreCase(toBeMatched)) {
                     ++count;
                 } else if (dot.lookingAtIgnoreCase(match)) {

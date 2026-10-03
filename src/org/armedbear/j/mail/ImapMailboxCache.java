@@ -31,15 +31,13 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
 import java.util.Set;
-
 import org.armedbear.j.Debug;
 import org.armedbear.j.Directories;
 import org.armedbear.j.File;
 import org.armedbear.j.Log;
 import org.armedbear.j.util.Utilities;
 
-public final class ImapMailboxCache implements Serializable
-{
+public final class ImapMailboxCache implements Serializable {
     private static Properties catalog;
 
     private transient ImapMailboxBuffer mailbox;
@@ -50,37 +48,34 @@ public final class ImapMailboxCache implements Serializable
     // Force serialization to be dependent on ImapMailboxEntry.
     private final ImapMailboxEntry dummy = new ImapMailboxEntry(0);
 
-    public ImapMailboxCache(ImapMailboxBuffer mailbox)
-    {
+    public ImapMailboxCache(ImapMailboxBuffer mailbox) {
         this.mailbox = mailbox;
         mailboxName = mailbox.getName();
         uidValidity = mailbox.getUidValidity();
         entries = new ArrayList<MailboxEntry>(mailbox.getEntries());
     }
 
-    private final void setMailbox(ImapMailboxBuffer mailbox)
-    {
+    private final void setMailbox(ImapMailboxBuffer mailbox) {
         this.mailbox = mailbox;
     }
 
-    public final List<MailboxEntry> getEntries()
-    {
+    public final List<MailboxEntry> getEntries() {
         return entries;
     }
 
-    public void writeCache()
-    {
+    public void writeCache() {
         Runnable r = () -> {
             writeCacheInternal();
         };
         new Thread(r).start();
     }
 
-    private void writeCacheInternal()
-    {
+    private void writeCacheInternal() {
         try {
-            Log.debug("ImapMailboxCache.writeCacheInternal " + entries.size() +
-                " entries");
+            Log.debug(
+                "ImapMailboxCache.writeCacheInternal " + entries.size() +
+                    " entries"
+            );
             Debug.assertTrue(uidValidity != 0);
             File temp = Utilities.getTempFile();
             ObjectOutputStream objectOut =
@@ -96,15 +91,17 @@ public final class ImapMailboxCache implements Serializable
         }
     }
 
-    public static ImapMailboxCache readCache(ImapMailboxBuffer mb)
-    {
+    public static ImapMailboxCache readCache(ImapMailboxBuffer mb) {
         File file = ImapMailboxCache.getCacheFile(mb);
         if (file == null || !file.isFile())
             return null;
         ObjectInputStream in = null;
         try {
-            in = new ObjectInputStream(new BufferedInputStream(
-                file.getInputStream()));
+            in = new ObjectInputStream(
+                new BufferedInputStream(
+                    file.getInputStream()
+                )
+            );
             ImapMailboxCache cache = (ImapMailboxCache) in.readObject();
             cache.setMailbox(mb);
             return cache;
@@ -125,8 +122,7 @@ public final class ImapMailboxCache implements Serializable
         }
     }
 
-    public boolean isValid()
-    {
+    public boolean isValid() {
         if (entries == null)
             return false;
         if (entries.size() == 0)
@@ -138,8 +134,7 @@ public final class ImapMailboxCache implements Serializable
         return uidValidity == mailbox.getSession().getUidValidity();
     }
 
-    private static synchronized File getCacheFile(ImapMailboxBuffer mb)
-    {
+    private static synchronized File getCacheFile(ImapMailboxBuffer mb) {
         File directory =
             File.getInstance(Directories.getMailDirectory(), "imap");
         if (!directory.isDirectory()) {

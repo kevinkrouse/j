@@ -19,18 +19,15 @@
 
 package org.armedbear.j;
 
+import java.io.OutputStreamWriter;
 import java.lang.StringBuilder;
+import javax.swing.SwingUtilities;
 import org.armedbear.j.util.Utilities;
 
-import java.io.OutputStreamWriter;
-import javax.swing.SwingUtilities;
-
-public class RemoteShellBuffer extends ShellBuffer
-{
+public class RemoteShellBuffer extends ShellBuffer {
     private String host;
 
-    private RemoteShellBuffer(int type, String host)
-    {
+    private RemoteShellBuffer(int type, String host) {
         super();
         if (type != TYPE_TELNET && type != TYPE_SSH)
             throw new NotSupportedException();
@@ -49,13 +46,11 @@ public class RemoteShellBuffer extends ShellBuffer
     }
 
     // Called in ShellBuffer constructor, so we override it here.
-    protected void initializeHistory()
-    {
+    protected void initializeHistory() {
         history = new History("remoteShell.history");
     }
 
-    protected void startProcess()
-    {
+    protected void startProcess() {
         Process process = null;
         try {
             process = Utilities.exec(Utilities.jptyPath() + " " + shellCommand + " " + host);
@@ -86,7 +81,7 @@ public class RemoteShellBuffer extends ShellBuffer
         if (property != null)
             setPromptRE(Editor.preferences().getStringProperty(property));
         try {
-            stdin  = new OutputStreamWriter(process.getOutputStream());
+            stdin = new OutputStreamWriter(process.getOutputStream());
             stdoutThread = new StdoutThread(process.getInputStream());
             stderrThread = new StderrThread(process.getErrorStream());
             stdoutThread.start();
@@ -98,8 +93,7 @@ public class RemoteShellBuffer extends ShellBuffer
         }
     }
 
-    private static RemoteShellBuffer createRemoteShell(int type, String host)
-    {
+    private static RemoteShellBuffer createRemoteShell(int type, String host) {
         RemoteShellBuffer remoteShell = new RemoteShellBuffer(type, host);
         remoteShell.startProcess();
         if (remoteShell.getProcess() == null) {
@@ -120,8 +114,7 @@ public class RemoteShellBuffer extends ShellBuffer
         return remoteShell;
     }
 
-    private static RemoteShellBuffer findRemoteShell(int type, String host)
-    {
+    private static RemoteShellBuffer findRemoteShell(int type, String host) {
         if (host == null)
             return null;
         for (BufferIterator it = new BufferIterator(); it.hasNext();) {
@@ -138,8 +131,7 @@ public class RemoteShellBuffer extends ShellBuffer
 
     private StringBuilder sbFilter;
 
-    private String telnetStdOutFilter(String s)
-    {
+    private String telnetStdOutFilter(String s) {
         if (stripEcho && input != null) {
             if (sbFilter == null)
                 sbFilter = new StringBuilder(s);
@@ -157,8 +149,7 @@ public class RemoteShellBuffer extends ShellBuffer
         return s;
     }
 
-    private String sshStdOutFilter(String s)
-    {
+    private String sshStdOutFilter(String s) {
         if (stripEcho && input != null) {
             if (s.startsWith(input)) {
                 s = stripEcho(s);
@@ -168,8 +159,7 @@ public class RemoteShellBuffer extends ShellBuffer
         return s;
     }
 
-    protected String stdOutFilter(String s)
-    {
+    protected String stdOutFilter(String s) {
         if (type == TYPE_TELNET)
             return telnetStdOutFilter(s);
         if (type == TYPE_SSH)
@@ -177,8 +167,7 @@ public class RemoteShellBuffer extends ShellBuffer
         return s;
     }
 
-    private String stripEcho(String s)
-    {
+    private String stripEcho(String s) {
         if (s.startsWith(input)) {
             int begin = input.length();
             if (s.length() > begin && s.charAt(begin) == '\r')
@@ -190,8 +179,7 @@ public class RemoteShellBuffer extends ShellBuffer
         return s;
     }
 
-    protected void stdOutUpdate(final String s)
-    {
+    protected void stdOutUpdate(final String s) {
         // Filter to prevent two carriage returns in a row.
         final StringBuilder sb = new StringBuilder(s.length());
         boolean skipCR = false;
@@ -221,34 +209,28 @@ public class RemoteShellBuffer extends ShellBuffer
         SwingUtilities.invokeLater(r);
     }
 
-    protected String stdErrFilter(String s)
-    {
+    protected String stdErrFilter(String s) {
         return s;
     }
 
-    private final String getHost()
-    {
+    private final String getHost() {
         return host;
     }
 
-    public final File getCurrentDirectory()
-    {
+    public final File getCurrentDirectory() {
         return Directories.getUserHomeDirectory();
     }
 
     // For the buffer list.
-    public String toString()
-    {
+    public String toString() {
         return title;
     }
 
-    public String getTitle()
-    {
+    public String getTitle() {
         return title;
     }
 
-    public static void telnet()
-    {
+    public static void telnet() {
         if (!Editor.checkExperimental())
             return;
         if (Platform.isPlatformWindows()) {
@@ -261,8 +243,7 @@ public class RemoteShellBuffer extends ShellBuffer
         telnet(host);
     }
 
-    public static void telnet(String host)
-    {
+    public static void telnet(String host) {
         if (!Editor.checkExperimental())
             return;
         if (Platform.isPlatformWindows()) {
@@ -282,8 +263,7 @@ public class RemoteShellBuffer extends ShellBuffer
         }
     }
 
-    public static void ssh()
-    {
+    public static void ssh() {
         if (!Editor.checkExperimental())
             return;
         if (Platform.isPlatformWindows()) {
@@ -296,8 +276,7 @@ public class RemoteShellBuffer extends ShellBuffer
         ssh(host);
     }
 
-    public static void ssh(String host)
-    {
+    public static void ssh(String host) {
         if (!Editor.checkExperimental())
             return;
         if (Platform.isPlatformWindows()) {

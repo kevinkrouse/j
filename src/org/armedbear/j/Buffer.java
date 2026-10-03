@@ -20,18 +20,6 @@
 
 package org.armedbear.j;
 
-import org.armedbear.j.extension.Extensions;
-import org.armedbear.j.mode.dir.DirectoryBuffer;
-import org.armedbear.j.mode.image.ImageBuffer;
-import org.armedbear.j.mode.image.ImageLine;
-import org.armedbear.j.mode.text.PlainTextMode;
-import org.armedbear.j.mode.web.WebBuffer;
-import java.lang.StringBuilder;
-import org.armedbear.j.util.FastStringReader;
-import org.armedbear.j.util.Utilities;
-import org.armedbear.j.vcs.VersionControl;
-import org.armedbear.j.vcs.VersionControlEntry;
-
 import java.awt.Cursor;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
@@ -40,6 +28,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
+import java.lang.StringBuilder;
 import java.lang.ref.SoftReference;
 import java.util.ArrayList;
 import java.util.List;
@@ -51,9 +40,18 @@ import javax.swing.undo.CannotRedoException;
 import javax.swing.undo.CannotUndoException;
 import javax.swing.undo.CompoundEdit;
 import javax.swing.undo.UndoableEdit;
+import org.armedbear.j.extension.Extensions;
+import org.armedbear.j.mode.dir.DirectoryBuffer;
+import org.armedbear.j.mode.image.ImageBuffer;
+import org.armedbear.j.mode.image.ImageLine;
+import org.armedbear.j.mode.text.PlainTextMode;
+import org.armedbear.j.mode.web.WebBuffer;
+import org.armedbear.j.util.FastStringReader;
+import org.armedbear.j.util.Utilities;
+import org.armedbear.j.vcs.VersionControl;
+import org.armedbear.j.vcs.VersionControlEntry;
 
-public class Buffer extends SystemBuffer
-{
+public class Buffer extends SystemBuffer {
     private static int untitledCount;
 
     protected boolean isUntitled;
@@ -66,13 +64,11 @@ public class Buffer extends SystemBuffer
 
     boolean needsRenumbering;
 
-    public final boolean needsRenumbering()
-    {
+    public final boolean needsRenumbering() {
         return needsRenumbering;
     }
 
-    public final void needsRenumbering(boolean b)
-    {
+    public final void needsRenumbering(boolean b) {
         needsRenumbering = b;
     }
 
@@ -80,8 +76,7 @@ public class Buffer extends SystemBuffer
 
     protected boolean supportsUndo = true;
 
-    public final boolean supportsUndo()
-    {
+    public final boolean supportsUndo() {
         return supportsUndo;
     }
 
@@ -95,12 +90,12 @@ public class Buffer extends SystemBuffer
 
     private File cache;
     private String listing;
-    public final String getListing()
-    {
+
+    public final String getListing() {
         return listing;
     }
-    public final void setListing(String s)
-    {
+
+    public final void setListing(String s) {
         this.listing = s;
     }
 
@@ -112,13 +107,11 @@ public class Buffer extends SystemBuffer
 
     private Compression compression;
 
-    public final Compression getCompression()
-    {
+    public final Compression getCompression() {
         return compression;
     }
 
-    public final void setCompression(Compression compression)
-    {
+    public final void setCompression(Compression compression) {
         this.compression = compression;
     }
 
@@ -133,86 +126,69 @@ public class Buffer extends SystemBuffer
 
     protected Buffer parentBuffer;
 
-    public final Buffer getParentBuffer()
-    {
+    public final Buffer getParentBuffer() {
         return parentBuffer;
     }
 
-    public final void setParentBuffer(Buffer b)
-    {
+    public final void setParentBuffer(Buffer b) {
         this.parentBuffer = b;
     }
 
     private Position mark;
 
-    public final Position getMark()
-    {
+    public final Position getMark() {
         return mark;
     }
 
-    public final void setMark(Position pos)
-    {
+    public final void setMark(Position pos) {
         mark = pos;
     }
 
-    public boolean isPrimary()
-    {
+    public boolean isPrimary() {
         return true;
     }
 
-    public boolean isSecondary()
-    {
+    public boolean isSecondary() {
         return false;
     }
 
-    public boolean isPaired()
-    {
+    public boolean isPaired() {
         return isSecondary() || getSecondary() != null;
     }
 
-    public boolean isPairedTo(Buffer other)
-    {
+    public boolean isPairedTo(Buffer other) {
         return other.equals(getPrimary()) || other.equals(getSecondary());
     }
 
-    public Buffer getPrimary()
-    {
+    public Buffer getPrimary() {
         return null;
     }
 
-    public Buffer getSecondary()
-    {
+    public Buffer getSecondary() {
         return null;
     }
 
-    public float getSplit()
-    {
+    public float getSplit() {
         return 0.5F;
     }
 
-    public void promote()
-    {
-    }
+    public void promote() {}
 
-    public final boolean isNewFile()
-    {
+    public final boolean isNewFile() {
         return isNewFile;
     }
 
-    private final void setNewFile(boolean b)
-    {
+    private final void setNewFile(boolean b) {
         isNewFile = b;
     }
 
-    protected Buffer()
-    {
+    protected Buffer() {
         // Add new buffer to global buffer list.
         Editor.getBufferList().add(this);
     }
 
     // Called only by Editor.newBuffer().
-    public Buffer(int i /*ignored*/)
-    {
+    public Buffer(int i /*ignored*/) {
         this();
         Debug.assertTrue(Editor.getBufferList().contains(this));
         initializeUndo();
@@ -246,8 +222,7 @@ public class Buffer extends SystemBuffer
         }
     }
 
-    public Buffer(File file)
-    {
+    public Buffer(File file) {
         this();
         Debug.assertTrue(Editor.getBufferList().contains(this));
         initializeUndo();
@@ -256,13 +231,12 @@ public class Buffer extends SystemBuffer
         autosaveEnabled = true;
     }
 
-    public static Buffer createBuffer(File file)
-    {
+    public static Buffer createBuffer(File file) {
         if (file instanceof FtpFile) {
-            FtpSession session = FtpSession.getSession((FtpFile)file);
+            FtpSession session = FtpSession.getSession((FtpFile) file);
             if (session == null)
                 return null;
-            return new RemoteBuffer((FtpFile)file, session);
+            return new RemoteBuffer((FtpFile) file, session);
         }
         if (file instanceof HttpFile) {
             if (Editor.getModeList().modeAccepts(IMAGE_MODE, file.getName()))
@@ -310,8 +284,7 @@ public class Buffer extends SystemBuffer
         return createBuffer(file, null, null);
     }
 
-    protected static Buffer createBuffer(File file, File cache, String listing)
-    {
+    protected static Buffer createBuffer(File file, File cache, String listing) {
         Compression compression = null;
         int fileType = Utilities.getFileType(cache != null ? cache : file);
         if (fileType == FILETYPE_GZIP) {
@@ -325,8 +298,11 @@ public class Buffer extends SystemBuffer
             } else
                 fileType = FILETYPE_BINARY; // Something went wrong.
         }
-        if (fileType == FILETYPE_JPEG ||
-            Editor.getModeList().modeAccepts(IMAGE_MODE, file.getName())) {
+        if (
+            fileType == FILETYPE_JPEG
+                ||
+                Editor.getModeList().modeAccepts(IMAGE_MODE, file.getName())
+        ) {
             Buffer buffer =
                 ImageBuffer.createImageBuffer(file, cache, listing);
             if (buffer != null) {
@@ -347,8 +323,7 @@ public class Buffer extends SystemBuffer
     }
 
     // For Session.createBuffers().
-    public static Buffer precreateBuffer(File file)
-    {
+    public static Buffer precreateBuffer(File file) {
         if (file == null) {
             Debug.bug();
             return null;
@@ -370,18 +345,15 @@ public class Buffer extends SystemBuffer
 
     private boolean initialized;
 
-    public synchronized boolean initialized()
-    {
+    public synchronized boolean initialized() {
         return initialized;
     }
 
-    public synchronized void setInitialized(boolean b)
-    {
+    public synchronized void setInitialized(boolean b) {
         initialized = b;
     }
 
-    public synchronized void initialize()
-    {
+    public synchronized void initialize() {
         Debug.assertTrue(!initialized);
         final File file = getFile();
         if (fileType == FILETYPE_UNKNOWN) {
@@ -430,15 +402,17 @@ public class Buffer extends SystemBuffer
             }
         }
         if (file != null) {
-            if (file.getProtocol() == File.PROTOCOL_HTTP ||
-                file.getProtocol() == File.PROTOCOL_HTTPS)
+            if (
+                file.getProtocol() == File.PROTOCOL_HTTP
+                    ||
+                    file.getProtocol() == File.PROTOCOL_HTTPS
+            )
                 readOnly = true;
         }
         initialized = true;
     }
 
-    public Mode getDefaultMode()
-    {
+    public Mode getDefaultMode() {
         final File file = cache != null ? cache : getFile();
         final ModeList modeList = Editor.getModeList();
         switch (fileType) {
@@ -483,8 +457,11 @@ public class Buffer extends SystemBuffer
                             m = modeList.getMode(BINARY_MODE);
                     } else if (m == null) {
                         if (file != null) {
-                            if (file.getProtocol() == File.PROTOCOL_HTTP ||
-                                file.getProtocol() == File.PROTOCOL_HTTPS)
+                            if (
+                                file.getProtocol() == File.PROTOCOL_HTTP
+                                    ||
+                                    file.getProtocol() == File.PROTOCOL_HTTPS
+                            )
                                 m = modeList.getMode(HTML_MODE);
                         }
                         if (m == null)
@@ -496,8 +473,7 @@ public class Buffer extends SystemBuffer
         }
     }
 
-    private static final Mode grovelModeFromFile(File file)
-    {
+    private static final Mode grovelModeFromFile(File file) {
         if (file == null)
             return null;
         if (!file.isLocal())
@@ -526,8 +502,7 @@ public class Buffer extends SystemBuffer
         return mode;
     }
 
-    private static final Mode grovelModeFromString(String s)
-    {
+    private static final Mode grovelModeFromString(String s) {
         if (s != null) {
             int begin = s.indexOf("-*-");
             if (begin >= 0) {
@@ -558,38 +533,31 @@ public class Buffer extends SystemBuffer
     }
 
     // Locking.
-    public final boolean isInUse()
-    {
+    public final boolean isInUse() {
         return mutex.isInUse();
     }
 
-    public void acquire() throws InterruptedException
-    {
+    public void acquire() throws InterruptedException {
         mutex.acquire();
     }
 
-    public synchronized void release()
-    {
+    public synchronized void release() {
         mutex.release();
     }
 
-    public boolean attempt() throws InterruptedException
-    {
+    public boolean attempt() throws InterruptedException {
         return mutex.attempt();
     }
 
-    public boolean attempt(long msecs) throws InterruptedException
-    {
+    public boolean attempt(long msecs) throws InterruptedException {
         return mutex.attempt(msecs);
     }
 
-    public final boolean isLocked()
-    {
+    public final boolean isLocked() {
         return isInUse();
     }
 
-    public synchronized boolean lock()
-    {
+    public synchronized boolean lock() {
         try {
             return attempt();
         }
@@ -598,33 +566,27 @@ public class Buffer extends SystemBuffer
         }
     }
 
-    public synchronized void unlock()
-    {
+    public synchronized void unlock() {
         release();
     }
 
-    public final void lockRead() throws InterruptedException
-    {
+    public final void lockRead() throws InterruptedException {
         rwlock.lockRead();
     }
 
-    public final void unlockRead()
-    {
+    public final void unlockRead() {
         rwlock.unlockRead();
     }
 
-    public final void lockWrite() throws InterruptedException
-    {
+    public final void lockWrite() throws InterruptedException {
         rwlock.lockWrite();
     }
 
-    public final void unlockWrite()
-    {
+    public final void unlockWrite() {
         rwlock.unlockWrite();
     }
 
-    public final boolean isWriteLocked()
-    {
+    public final boolean isWriteLocked() {
         return rwlock.isWriteLocked();
     }
 
@@ -633,8 +595,7 @@ public class Buffer extends SystemBuffer
      * modified() and undo all expect. The lock is reentrant, so an edit
      * that calls another is fine. False, and nothing run, if interrupted.
      */
-    public final boolean withWriteLock(Runnable edit)
-    {
+    public final boolean withWriteLock(Runnable edit) {
         try {
             lockWrite();
         }
@@ -651,8 +612,7 @@ public class Buffer extends SystemBuffer
         return true;
     }
 
-    public boolean isVisible()
-    {
+    public boolean isVisible() {
         for (EditorIterator it = new EditorIterator(); it.hasNext();)
             if (it.next().getBuffer() == this)
                 return true;
@@ -660,8 +620,7 @@ public class Buffer extends SystemBuffer
         return false;
     }
 
-    public void setWaitCursor()
-    {
+    public void setWaitCursor() {
         for (EditorIterator it = new EditorIterator(); it.hasNext();) {
             Editor ed = it.next();
             if (ed.getBuffer() == this)
@@ -669,8 +628,7 @@ public class Buffer extends SystemBuffer
         }
     }
 
-    public void setDefaultCursor()
-    {
+    public void setDefaultCursor() {
         for (EditorIterator it = new EditorIterator(); it.hasNext();) {
             Editor ed = it.next();
             if (ed.getBuffer() == this)
@@ -678,28 +636,23 @@ public class Buffer extends SystemBuffer
         }
     }
 
-    public final PropertyList getProperties()
-    {
+    public final PropertyList getProperties() {
         return properties;
     }
 
-    public final void setCache(File file)
-    {
+    public final void setCache(File file) {
         cache = file;
     }
 
-    public final File getCache()
-    {
+    public final File getCache() {
         return cache;
     }
 
-    public final Formatter getFormatter()
-    {
+    public final Formatter getFormatter() {
         return formatter;
     }
 
-    public final void setFormatter(Formatter formatter)
-    {
+    public final void setFormatter(Formatter formatter) {
         this.formatter = formatter;
         // A new formatter means a new mode, which may see other strings.
         bracketDepths = null;
@@ -708,48 +661,40 @@ public class Buffer extends SystemBuffer
     private BracketDepths bracketDepths;
 
     /** How deeply its brackets nest, for rainbowDelimiters. */
-    public final synchronized BracketDepths getBracketDepths()
-    {
+    public final synchronized BracketDepths getBracketDepths() {
         if (bracketDepths == null)
             bracketDepths = new BracketDepths(this);
         return bracketDepths;
     }
 
-    public boolean isReadOnly()
-    {
+    public boolean isReadOnly() {
         return readOnly || forceReadOnly;
     }
 
     private boolean busy;
 
-    public synchronized final boolean isBusy()
-    {
+    public synchronized final boolean isBusy() {
         return busy;
     }
 
-    public synchronized final void setBusy(boolean b)
-    {
+    public synchronized final void setBusy(boolean b) {
         busy = b;
     }
 
-    public final BackgroundProcess getBackgroundProcess()
-    {
+    public final BackgroundProcess getBackgroundProcess() {
         return backgroundProcess;
     }
 
-    public final void setBackgroundProcess(BackgroundProcess backgroundProcess)
-    {
+    public final void setBackgroundProcess(BackgroundProcess backgroundProcess) {
         this.backgroundProcess = backgroundProcess;
     }
 
-    public File getCurrentDirectory()
-    {
+    public File getCurrentDirectory() {
         return getFile() != null ? getFile().getParentFile() : Directories.getUserHomeDirectory();
     }
 
     // Subclasses should override this method if appropriate!
-    public File getCompletionDirectory()
-    {
+    public File getCompletionDirectory() {
         final File file = getFile();
         if (file != null) {
             if (file.isLocal() || file instanceof SshFile)
@@ -758,8 +703,7 @@ public class Buffer extends SystemBuffer
         return Directories.getUserHomeDirectory();
     }
 
-    public View getInitialView()
-    {
+    public View getInitialView() {
         View view = new View();
         view.setDot(getInitialDotPos());
         return view;
@@ -768,8 +712,7 @@ public class Buffer extends SystemBuffer
     private int initialLineNumber;
     private int initialOffset;
 
-    public Position getInitialDotPos()
-    {
+    public Position getInitialDotPos() {
         Line line = getLine(initialLineNumber);
         if (line == null) {
             line = getFirstLine();
@@ -778,76 +721,64 @@ public class Buffer extends SystemBuffer
         return new Position(line, Math.min(initialOffset, line.length()));
     }
 
-    public void setInitialDotPos(int lineNumber, int offset)
-    {
+    public void setInitialDotPos(int lineNumber, int offset) {
         initialLineNumber = lineNumber;
         initialOffset = offset;
     }
 
     private long lastActivated;
 
-    public final long getLastActivated()
-    {
+    public final long getLastActivated() {
         return lastActivated;
     }
 
-    public final void setLastActivated(long l)
-    {
+    public final void setLastActivated(long l) {
         lastActivated = l;
     }
 
-    public final int getLineCount()
-    {
+    public final int getLineCount() {
         return lineCount;
     }
 
-    public final int getModCount()
-    {
+    public final int getModCount() {
         return modCount;
     }
 
-    public final synchronized void setModCount(int count)
-    {
+    public final synchronized void setModCount(int count) {
         if (count != modCount) {
             modCount = count;
             srText = null;
         }
     }
 
-    public final synchronized void incrementModCount()
-    {
+    public final synchronized void incrementModCount() {
         ++modCount;
         srText = null;
     }
 
-    public final void setModCountWhenLastSaved(int count)
-    {
+    public final void setModCountWhenLastSaved(int count) {
         autosaveModCount = count;
     }
 
-    public final KeyMap getKeyMapForMode()
-    {
+    public final KeyMap getKeyMapForMode() {
         // Should never return null.
         return mode.getKeyMap();
     }
 
-    public final int getFileType()
-    {
+    public final int getFileType() {
         return fileType;
     }
 
-    private final void setFileType(int fileType)
-    {
+    private final void setFileType(int fileType) {
         this.fileType = fileType;
     }
 
-    private static File cacheGZIP(File f)
-    {
+    private static File cacheGZIP(File f) {
         try {
             File tempFile = Utilities.getTempFile();
             if (tempFile != null) {
                 try (InputStream in = new GZIPInputStream(f.getInputStream());
-                     OutputStream out = tempFile.getOutputStream()) {
+                    OutputStream out = tempFile.getOutputStream()) {
                     byte[] buf = new byte[4096];
                     int bytesRead;
                     while ((bytesRead = in.read(buf)) > 0)
@@ -863,8 +794,7 @@ public class Buffer extends SystemBuffer
     }
 
     // Handles all the paperwork when we rename a buffer.
-    public void changeFile(File f)
-    {
+    public void changeFile(File f) {
         if (f == null)
             return;
         String newName = f.canonicalPath();
@@ -903,16 +833,14 @@ public class Buffer extends SystemBuffer
         }
     }
 
-    protected void setModeFromFilename(String filename)
-    {
+    protected void setModeFromFilename(String filename) {
         mode = Editor.getModeList().getModeForFileName(filename);
         if (mode == null)
             mode = Editor.getModeList().getMode(PLAIN_TEXT_MODE);
         formatter = mode.getFormatter(this);
     }
 
-    private static Mode getModeForFileName(String filename)
-    {
+    private static Mode getModeForFileName(String filename) {
         if (filename.endsWith(".gz"))
             filename = filename.substring(0, filename.length() - 3);
 
@@ -932,14 +860,12 @@ public class Buffer extends SystemBuffer
         return Editor.getModeList().getModeForFileName(filename);
     }
 
-    public final void setMode(Mode mode)
-    {
+    public final void setMode(Mode mode) {
         this.mode = mode;
         formatter = mode.getFormatter(this);
     }
 
-    public void changeMode(Mode newMode)
-    {
+    public void changeMode(Mode newMode) {
         final int oldModeId = mode.getId();
         if (oldModeId == DIRECTORY_MODE)
             return;
@@ -982,30 +908,25 @@ public class Buffer extends SystemBuffer
         }
     }
 
-    public final String getCommentStart()
-    {
+    public final String getCommentStart() {
         return mode.getCommentStart();
     }
 
-    public final String getCommentEnd()
-    {
+    public final String getCommentEnd() {
         return mode.getCommentEnd();
     }
 
     private long lastModified;
 
-    public final long getLastModified()
-    {
+    public final long getLastModified() {
         return lastModified;
     }
 
-    public final void setLastModified(long lastModified)
-    {
+    public final void setLastModified(long lastModified) {
         this.lastModified = lastModified;
     }
 
-    protected void loadFile(File toBeLoaded)
-    {
+    protected void loadFile(File toBeLoaded) {
         try {
             int modeId = getModeId();
             if (modeId == ARCHIVE_MODE || modeId == WORD_MODE || modeId == XML_MODE)
@@ -1031,8 +952,7 @@ public class Buffer extends SystemBuffer
         renumberOriginal();
     }
 
-    public int load()
-    {
+    public int load() {
         if (!isLoaded()) {
             try {
                 lockWrite();
@@ -1095,8 +1015,7 @@ public class Buffer extends SystemBuffer
         return LOAD_COMPLETED;
     }
 
-    private void reloadSucceeded()
-    {
+    private void reloadSucceeded() {
         Debug.assertTrue(!rwlock.isWriteLocked());
         Debug.assertTrue(SwingUtilities.isEventDispatchThread());
         for (EditorIterator it = new EditorIterator(); it.hasNext();) {
@@ -1129,13 +1048,11 @@ public class Buffer extends SystemBuffer
         Sidebar.setUpdateFlagInAllFrames(SIDEBAR_REPAINT_BUFFER_LIST);
     }
 
-    private void reloadFailed()
-    {
+    private void reloadFailed() {
         MessageDialog.showMessageDialog("Reload failed", "Error");
     }
 
-    public void reload()
-    {
+    public void reload() {
         final File file = getFile();
         if (file == null)
             return;
@@ -1166,8 +1083,7 @@ public class Buffer extends SystemBuffer
     }
 
     // Asynchronous.
-    private void reloadFtp(FtpFile file)
-    {
+    private void reloadFtp(FtpFile file) {
         Log.debug("reloadFtp");
         Debug.assertTrue(SwingUtilities.isEventDispatchThread());
         FtpSession session = FtpSession.getSession(file);
@@ -1188,8 +1104,7 @@ public class Buffer extends SystemBuffer
             reloadSucceeded();
         };
         ErrorRunnable errorRunnable = new ErrorRunnable("Reload failed") {
-            public void run()
-            {
+            public void run() {
                 setBusy(false);
                 reloadFailed();
             }
@@ -1200,8 +1115,7 @@ public class Buffer extends SystemBuffer
         ftpLoadProcess.start();
     }
 
-    private void reloadHttp(HttpFile file)
-    {
+    private void reloadHttp(HttpFile file) {
         Log.debug("reloadHttp");
         Debug.assertTrue(SwingUtilities.isEventDispatchThread());
         final HttpLoadProcess httpLoadProcess = new HttpLoadProcess(this, file);
@@ -1221,8 +1135,7 @@ public class Buffer extends SystemBuffer
             reloadSucceeded();
         };
         ErrorRunnable errorRunnable = new ErrorRunnable("Reload failed") {
-            public void run()
-            {
+            public void run() {
                 setBusy(false);
                 reloadFailed();
             }
@@ -1234,8 +1147,7 @@ public class Buffer extends SystemBuffer
         new Thread(httpLoadProcess).start();
     }
 
-    private void reloadLocal(File file)
-    {
+    private void reloadLocal(File file) {
         try {
             lockWrite();
         }
@@ -1256,8 +1168,7 @@ public class Buffer extends SystemBuffer
         resetUndo();
     }
 
-    public synchronized void kill()
-    {
+    public synchronized void kill() {
         BufferList bufferList = Editor.getBufferList();
         if (!bufferList.contains(this)) {
             Debug.bug("buffer.kill() buffer not in list");
@@ -1291,12 +1202,13 @@ public class Buffer extends SystemBuffer
         deleteAutosaveFile();
         bufferList.remove(this);
         dispose();
-        Sidebar.setUpdateFlagInAllFrames(SIDEBAR_BUFFER_LIST_CHANGED |
-            SIDEBAR_MODIFIED_BUFFER_COUNT);
+        Sidebar.setUpdateFlagInAllFrames(
+            SIDEBAR_BUFFER_LIST_CHANGED |
+                SIDEBAR_MODIFIED_BUFFER_COUNT
+        );
     }
 
-    public synchronized void relink()
-    {
+    public synchronized void relink() {
         BufferList bufferList = Editor.getBufferList();
         if (bufferList.contains(this)) {
             Debug.bug();
@@ -1305,8 +1217,7 @@ public class Buffer extends SystemBuffer
         bufferList.add(this);
     }
 
-    private Thread startTaggerThread(int priority)
-    {
+    private Thread startTaggerThread(int priority) {
         if (mode != null) {
             Tagger tagger = mode.getTagger(this);
             if (tagger != null) {
@@ -1321,8 +1232,7 @@ public class Buffer extends SystemBuffer
         return null;
     }
 
-    public boolean isTaggable()
-    {
+    public boolean isTaggable() {
         final File file = getFile();
         if (file == null)
             return false;
@@ -1332,8 +1242,7 @@ public class Buffer extends SystemBuffer
     }
 
     // Runs tagger if tags == null.
-    public List<LocalTag> getTags(boolean update)
-    {
+    public List<LocalTag> getTags(boolean update) {
         List<LocalTag> tags = getTags();
         if (tags != null)
             return tags;
@@ -1345,8 +1254,7 @@ public class Buffer extends SystemBuffer
         return getTags();
     }
 
-    public boolean saveToCache()
-    {
+    public boolean saveToCache() {
         if (lineSeparator == null)
             lineSeparator = System.getProperty("line.separator");
         final File tempFile = Utilities.getTempFile();
@@ -1365,8 +1273,7 @@ public class Buffer extends SystemBuffer
         return false;
     }
 
-    private boolean maybeWriteBackupFromCache()
-    {
+    private boolean maybeWriteBackupFromCache() {
         if (cache == null) {
             Log.error("maybeWriteBackupFromCache cache is null");
             return false;
@@ -1395,8 +1302,7 @@ public class Buffer extends SystemBuffer
             Utilities.makeBackup(cache, name, false);
     }
 
-    public boolean save()
-    {
+    public boolean save() {
         Debug.assertTrue(SwingUtilities.isEventDispatchThread());
         if (!isModified())
             return true;
@@ -1409,15 +1315,14 @@ public class Buffer extends SystemBuffer
             if (file instanceof FtpFile)
                 succeeded = saveFtp();
             if (file instanceof SshFile)
-                succeeded = saveSsh((SshFile)file);
+                succeeded = saveSsh((SshFile) file);
         }
         if (succeeded)
             Extensions.hooks().afterSave(this);
         return succeeded;
     }
 
-    private boolean saveLocal(final File file)
-    {
+    private boolean saveLocal(final File file) {
         Debug.assertTrue(file.isLocal());
 
         if (compression != null && compression.getType() == COMPRESSION_GZIP)
@@ -1521,8 +1426,7 @@ public class Buffer extends SystemBuffer
         return true;
     }
 
-    private boolean saveLocalCompressed(File file)
-    {
+    private boolean saveLocalCompressed(File file) {
         final String dialogTitle = "Save";
         final Editor editor = Editor.currentEditor();
         // Do this before saving changes to cache!
@@ -1548,8 +1452,7 @@ public class Buffer extends SystemBuffer
         return true;
     }
 
-    private boolean compress(File source, File destination)
-    {
+    private boolean compress(File source, File destination) {
         if (source == null) {
             Debug.bug();
             return false;
@@ -1568,8 +1471,10 @@ public class Buffer extends SystemBuffer
             BufferedInputStream in =
                 new BufferedInputStream(source.getInputStream());
             GZIPOutputStream out =
-                new GZIPOutputStream(new BufferedOutputStream(tempFile.getOutputStream()),
-                                     bufSize);
+                new GZIPOutputStream(
+                    new BufferedOutputStream(tempFile.getOutputStream()),
+                    bufSize
+                );
             byte[] buffer = new byte[bufSize];
             while (true) {
                 int bytesRead = in.read(buffer, 0, bufSize);
@@ -1589,8 +1494,7 @@ public class Buffer extends SystemBuffer
         }
     }
 
-    private boolean saveFtp()
-    {
+    private boolean saveFtp() {
         Debug.assertTrue(SwingUtilities.isEventDispatchThread());
         Debug.assertTrue(getFile() instanceof FtpFile);
         final FtpFile file = (FtpFile) getFile();
@@ -1657,8 +1561,7 @@ public class Buffer extends SystemBuffer
         return true;
     }
 
-    private boolean saveSsh(final SshFile file)
-    {
+    private boolean saveSsh(final SshFile file) {
         final String title = "Save";
         final Editor editor = Editor.currentEditor();
         boolean succeeded = false;
@@ -1710,21 +1613,19 @@ public class Buffer extends SystemBuffer
         return succeeded;
     }
 
-    public void saveAs(File destination)
-    {
+    public void saveAs(File destination) {
         File file = getFile();
         if (file != null)
             destination.setEncoding(file.getEncoding());
         if (destination.isLocal())
             saveAsLocal(destination);
         else if (destination instanceof FtpFile)
-            saveAsFtp((FtpFile)destination);
+            saveAsFtp((FtpFile) destination);
         else
             MessageDialog.showMessageDialog("Invalid destination", "Save As");
     }
 
-    private boolean saveAsLocal(File destination)
-    {
+    private boolean saveAsLocal(File destination) {
         Debug.assertTrue(SwingUtilities.isEventDispatchThread());
         if (destination == null)
             return false;
@@ -1753,9 +1654,11 @@ public class Buffer extends SystemBuffer
                     if (tempFile.renameTo(destination)) {
                         succeeded = true;
                     } else {
-                        Log.error("unable to rename " +
-                            tempFile.canonicalPath() + " to " +
-                            destination.canonicalPath());
+                        Log.error(
+                            "unable to rename " +
+                                tempFile.canonicalPath() + " to " +
+                                destination.canonicalPath()
+                        );
                         message = "Unable to rename temporary file";
                     }
                 } else {
@@ -1780,9 +1683,11 @@ public class Buffer extends SystemBuffer
             if (encoding != null)
                 saveProperties(); // Remember encoding for next time.
             if (isTaggable())
-                Editor.getTagFileManager().addToQueue(
-                    destination.getParentFile(),
-                    mode);
+                Editor.getTagFileManager()
+                    .addToQueue(
+                        destination.getParentFile(),
+                        mode
+                    );
             Sidebar.setUpdateFlagInAllFrames(SIDEBAR_REPAINT_BUFFER_LIST);
         } else {
             // Tell user exactly what error occurred.
@@ -1793,8 +1698,7 @@ public class Buffer extends SystemBuffer
         return succeeded;
     }
 
-    private void saveAsFtp(final FtpFile destination)
-    {
+    private void saveAsFtp(final FtpFile destination) {
         Debug.assertTrue(SwingUtilities.isEventDispatchThread());
         FtpSession session = FtpSession.getSession(destination);
         if (session == null)
@@ -1802,8 +1706,10 @@ public class Buffer extends SystemBuffer
         Debug.assertTrue(session.isLocked());
         if (!lock()) {
             session.unlock();
-            MessageDialog.showMessageDialog("Buffer is busy",
-                getFile().netPath());
+            MessageDialog.showMessageDialog(
+                "Buffer is busy",
+                getFile().netPath()
+            );
             return;
         }
         final Editor editor = Editor.currentEditor();
@@ -1838,18 +1744,16 @@ public class Buffer extends SystemBuffer
         saveProcess.start();
     }
 
-    public void saveCopy(File destination)
-    {
+    public void saveCopy(File destination) {
         if (destination.isLocal())
             saveCopyLocal(destination);
         else if (destination instanceof FtpFile)
-            saveCopyFtp((FtpFile)destination);
+            saveCopyFtp((FtpFile) destination);
         else
             MessageDialog.showMessageDialog("Invalid destination", "Save Copy");
     }
 
-    private void saveCopyLocal(File destination)
-    {
+    private void saveCopyLocal(File destination) {
         boolean succeeded = false;
         String message = null;
         if (lineSeparator == null)
@@ -1867,9 +1771,11 @@ public class Buffer extends SystemBuffer
                     if (tempFile.renameTo(destination)) {
                         succeeded = true;
                     } else {
-                        Log.error("unable to rename " +
-                            tempFile.canonicalPath() + " to " +
-                            destination.canonicalPath());
+                        Log.error(
+                            "unable to rename " +
+                                tempFile.canonicalPath() + " to " +
+                                destination.canonicalPath()
+                        );
                         message = "Unable to rename temporary file";
                     }
                 } else {
@@ -1894,8 +1800,7 @@ public class Buffer extends SystemBuffer
         }
     }
 
-    private void saveCopyFtp(FtpFile destination)
-    {
+    private void saveCopyFtp(FtpFile destination) {
         Debug.assertTrue(SwingUtilities.isEventDispatchThread());
         FtpSession session = FtpSession.getSession(destination);
         if (session == null)
@@ -1934,8 +1839,7 @@ public class Buffer extends SystemBuffer
     }
 
     // Removes tabs and spaces only.
-    public void removeTrailingWhitespace()
-    {
+    public void removeTrailingWhitespace() {
         boolean bufferChanged = false;
         CompoundEdit compoundEdit = null;
         try {
@@ -1998,8 +1902,7 @@ public class Buffer extends SystemBuffer
         }
     }
 
-    public synchronized void autosave()
-    {
+    public synchronized void autosave() {
         if (autosaveEnabled && Autosave.isAutosaveEnabled())
             if (modCount != autosaveModCount)
                 new Thread(autosaveRunnable, "autosave").start();
@@ -2021,8 +1924,7 @@ public class Buffer extends SystemBuffer
         }
     };
 
-    private void autosaveInternal()
-    {
+    private void autosaveInternal() {
         if (autosaveFile == null) {
             final File autosaveDirectory = Autosave.getAutosaveDirectory();
             if (autosaveDirectory == null)
@@ -2041,14 +1943,12 @@ public class Buffer extends SystemBuffer
             Log.error("autosave writeFile failed");
     }
 
-    public void deleteAutosaveFile()
-    {
+    public void deleteAutosaveFile() {
         if (autosaveFile != null)
             autosaveFile.delete();
     }
 
-    public void setFirstLine(Line line)
-    {
+    public void setFirstLine(Line line) {
         if (!rwlock.isWriteLocked()) {
             Log.error("----- setFirstLine() called without write lock -----");
             Debug.dumpStack();
@@ -2056,8 +1956,7 @@ public class Buffer extends SystemBuffer
         super.setFirstLine(line);
     }
 
-    public void modified()
-    {
+    public void modified() {
         if (!rwlock.isWriteLocked()) {
             Log.error("----- modified() called without write lock -----");
             Debug.dumpStack();
@@ -2074,8 +1973,7 @@ public class Buffer extends SystemBuffer
         invalidate();
     }
 
-    public void unmodified()
-    {
+    public void unmodified() {
         setModCount(0);
         saveModCount = 0;
         autosaveModCount = 0;
@@ -2083,8 +1981,7 @@ public class Buffer extends SystemBuffer
         Sidebar.repaintBufferListInAllFrames();
     }
 
-    public void saved()
-    {
+    public void saved() {
         saveModCount = modCount;
         autosaveModCount = modCount;
         if (isNewFile()) {
@@ -2107,8 +2004,7 @@ public class Buffer extends SystemBuffer
         deleteAutosaveFile();
     }
 
-    public void empty()
-    {
+    public void empty() {
         try {
             lockWrite();
         }
@@ -2140,36 +2036,31 @@ public class Buffer extends SystemBuffer
         }
     }
 
-    public void invalidate()
-    {
+    public void invalidate() {
         needsParsing = true;
         maxColsValid = false;
         setTags(null);
         setMark(null);
     }
 
-    public final View getLastView()
-    {
+    public final View getLastView() {
         if (lastView != null)
             return (View) lastView.clone();
         else
             return null;
     }
 
-    public final void setLastView(View view)
-    {
+    public final void setLastView(View view) {
         lastView = (View) view.clone();
     }
 
-    public void saveView(Editor editor)
-    {
+    public void saveView(Editor editor) {
         final View view = saveViewInternal(editor);
         editor.setView(this, view);
         setLastView(view);
     }
 
-    protected View saveViewInternal(Editor editor)
-    {
+    protected View saveViewInternal(Editor editor) {
         final Display display = editor.getDisplay();
         View view = editor.getView(this);
         if (view == null)
@@ -2197,23 +2088,19 @@ public class Buffer extends SystemBuffer
         return view;
     }
 
-    public boolean needsParsing()
-    {
+    public boolean needsParsing() {
         return needsParsing;
     }
 
-    public final void setNeedsParsing(boolean b)
-    {
+    public final void setNeedsParsing(boolean b) {
         needsParsing = b;
     }
 
-    public boolean isModified()
-    {
+    public boolean isModified() {
         return modCount != saveModCount;
     }
 
-    public Line getLine(int lineNumber)
-    {
+    public Line getLine(int lineNumber) {
         if (lineNumber < 0)
             return null;
         int n = 0;
@@ -2233,8 +2120,7 @@ public class Buffer extends SystemBuffer
      * @param offset            the offset within the line
      * @return                  the position.
      */
-    public Position findOriginal(int lineNumber, int offset)
-    {
+    public Position findOriginal(int lineNumber, int offset) {
         if (offset < 0)
             offset = 0;
         Line line = getFirstLine();
@@ -2255,8 +2141,7 @@ public class Buffer extends SystemBuffer
     }
 
     // Convert position into absolute character offset from start of buffer.
-    public int getAbsoluteOffset(Position pos)
-    {
+    public int getAbsoluteOffset(Position pos) {
         Line targetLine = pos.getLine();
         int offset = 0;
         Line line = getFirstLine();
@@ -2271,8 +2156,7 @@ public class Buffer extends SystemBuffer
     }
 
     // Convert absolute character offset from start of buffer into position.
-    public Position getPosition(int goal)
-    {
+    public Position getPosition(int goal) {
         int offset = 0;
         Line line = getFirstLine();
         while (line != null) {
@@ -2295,51 +2179,41 @@ public class Buffer extends SystemBuffer
 
     private UndoManager undoManager;
 
-    protected void initializeUndo()
-    {
+    protected void initializeUndo() {
         undoManager = new UndoManager();
     }
 
-    public void resetUndo()
-    {
+    public void resetUndo() {
         if (supportsUndo)
             undoManager.discardAllEdits();
     }
 
-    public void resetRedo()
-    {
-    }
+    public void resetRedo() {}
 
-    public final UndoManager getUndoManager()
-    {
+    public final UndoManager getUndoManager() {
         return undoManager;
     }
 
-    public final void addEdit(UndoableEdit edit)
-    {
+    public final void addEdit(UndoableEdit edit) {
         if (undoManager != null)
             undoManager.addEdit(edit);
     }
 
-    public final void addUndoBoundary()
-    {
+    public final void addUndoBoundary() {
         if (undoManager != null)
             undoManager.addEdit(UndoBoundary.getInstance());
     }
 
-    public final void appendUndoFold(Editor editor)
-    {
+    public final void appendUndoFold(Editor editor) {
         if (undoManager != null)
             undoManager.appendUndoFold(editor);
     }
 
-    public boolean canUndo()
-    {
+    public boolean canUndo() {
         return (undoManager != null && undoManager.canUndo());
     }
 
-    public void undo()
-    {
+    public void undo() {
         if (undoManager != null) {
             if (needsRenumbering)
                 renumber();
@@ -2352,13 +2226,11 @@ public class Buffer extends SystemBuffer
         }
     }
 
-    public boolean canRedo()
-    {
+    public boolean canRedo() {
         return (undoManager != null && undoManager.canRedo());
     }
 
-    public void redo()
-    {
+    public void redo() {
         if (undoManager != null) {
             if (needsRenumbering)
                 renumber();
@@ -2371,8 +2243,7 @@ public class Buffer extends SystemBuffer
         }
     }
 
-    public CompoundEdit beginCompoundEdit()
-    {
+    public CompoundEdit beginCompoundEdit() {
         if (supportsUndo) {
             CompoundEdit compoundEdit = new CompoundEdit();
             undoManager.addEdit(compoundEdit);
@@ -2381,14 +2252,12 @@ public class Buffer extends SystemBuffer
             return null;
     }
 
-    public void endCompoundEdit(CompoundEdit compoundEdit)
-    {
+    public void endCompoundEdit(CompoundEdit compoundEdit) {
         if (compoundEdit != null)
             compoundEdit.end();
     }
 
-    public void setText(String text)
-    {
+    public void setText(String text) {
         try {
             lockWrite();
         }
@@ -2416,8 +2285,7 @@ public class Buffer extends SystemBuffer
     }
 
     // Inserts s at pos, moves pos past s.
-    public void insertString(Position pos, String s)
-    {
+    public void insertString(Position pos, String s) {
         try {
             lockWrite();
         }
@@ -2463,8 +2331,7 @@ public class Buffer extends SystemBuffer
 
     // Inserts s at pos, moves pos past s.
     // String must not contain a line separator!
-    public void insertChars(Position pos, String s)
-    {
+    public void insertChars(Position pos, String s) {
         final int length = s.length();
         if (length > 0) {
             String text = pos.getLine().getText();
@@ -2478,8 +2345,7 @@ public class Buffer extends SystemBuffer
         }
     }
 
-    public void insertLineSeparator(Position pos)
-    {
+    public void insertLineSeparator(Position pos) {
         final Line line = pos.getLine();
         final int offset = pos.getOffset();
         if (offset == 0) {
@@ -2537,8 +2403,7 @@ public class Buffer extends SystemBuffer
     }
 
     // Repaint all windows displaying this buffer.
-    public final void repaint()
-    {
+    public final void repaint() {
         for (EditorIterator it = new EditorIterator(); it.hasNext();) {
             Editor ed = it.next();
             if (ed.getBuffer() == this)
@@ -2546,8 +2411,7 @@ public class Buffer extends SystemBuffer
         }
     }
 
-    public String getTitle()
-    {
+    public String getTitle() {
         if (title != null)
             return title;
         final File file = getFile();
@@ -2557,13 +2421,11 @@ public class Buffer extends SystemBuffer
             return "";
     }
 
-    public final void setTitle(String s)
-    {
+    public final void setTitle(String s) {
         title = s;
     }
 
-    public String getFileNameForDisplay()
-    {
+    public String getFileNameForDisplay() {
         final File file = getFile();
         if (file != null)
             return file.isRemote() ? file.netPath() : file.getAbsolutePath();
@@ -2571,8 +2433,7 @@ public class Buffer extends SystemBuffer
     }
 
     // For the buffer list.
-    public String toString()
-    {
+    public String toString() {
         if (title != null)
             return title;
         final File file = getFile();
@@ -2597,8 +2458,7 @@ public class Buffer extends SystemBuffer
     }
 
     // For the buffer list.
-    public Icon getIcon()
-    {
+    public Icon getIcon() {
         String badge = null;
         if (isModified())
             badge = "modified";
@@ -2607,20 +2467,17 @@ public class Buffer extends SystemBuffer
         return Utilities.getBadgedIcon("buffer", badge);
     }
 
-    public final int getCol(Position pos)
-    {
+    public final int getCol(Position pos) {
         return getCol(pos.getLine(), pos.getOffset());
     }
 
     // Returns the absolute column for a given line and offset, based on the
     // tab width of the buffer.
-    public final int getCol(Line line, int offset)
-    {
+    public final int getCol(Line line, int offset) {
         return getCol(line, offset, getTabWidth());
     }
 
-    public final static int getCol(Line line, int offset, int tabWidth)
-    {
+    public final static int getCol(Line line, int offset, int tabWidth) {
         final int limit = Math.min(offset, line.length());
         int col = 0;
         for (int i = 0; i < limit; i++) {
@@ -2633,8 +2490,7 @@ public class Buffer extends SystemBuffer
     }
 
     // Return existing indentation of line (number of columns).
-    public int getIndentation(Line line)
-    {
+    public int getIndentation(Line line) {
         int indent = 0;
         final int tabWidth = getTabWidth();
         final int limit = line.length();
@@ -2651,8 +2507,7 @@ public class Buffer extends SystemBuffer
     }
 
     // No write locking, does not call modified().
-    public void setIndentation(Line line, int indent)
-    {
+    public void setIndentation(Line line, int indent) {
         // Skip over existing indentation.
         final int length = line.length();
         int i = 0;
@@ -2671,8 +2526,7 @@ public class Buffer extends SystemBuffer
             line.setText("");
     }
 
-    public StringBuilder getCorrectIndentationString(int indent)
-    {
+    public StringBuilder getCorrectIndentationString(int indent) {
         StringBuilder sb = new StringBuilder(256);
         if (getUseTabs()) {
             final int tabWidth = getTabWidth();
@@ -2692,8 +2546,7 @@ public class Buffer extends SystemBuffer
 
     private boolean folded;
 
-    public final void renumber()
-    {
+    public final void renumber() {
         folded = false;
         lineCount = 0;
         visibleLineCount = 0;
@@ -2707,8 +2560,7 @@ public class Buffer extends SystemBuffer
         needsRenumbering = false;
     }
 
-    protected void renumberOriginal()
-    {
+    protected void renumberOriginal() {
         folded = false;
         lineCount = 0;
         visibleLineCount = 0;
@@ -2723,8 +2575,7 @@ public class Buffer extends SystemBuffer
         needsRenumbering = false;
     }
 
-    protected void enforceOutputLimit(Property property)
-    {
+    protected void enforceOutputLimit(Property property) {
         Debug.assertTrue(property != null);
         final int outputLimit =
             Editor.preferences().getIntegerProperty(property);
@@ -2757,8 +2608,7 @@ public class Buffer extends SystemBuffer
         }
     }
 
-    public void saveProperties()
-    {
+    public void saveProperties() {
         if (type != TYPE_NORMAL)
             return;
         if (isUntitled)
@@ -2782,12 +2632,9 @@ public class Buffer extends SystemBuffer
         fileHistory.save();
     }
 
-    public void windowClosing()
-    {
-    }
+    public void windowClosing() {}
 
-    public void dispose()
-    {
+    public void dispose() {
         if (cache != null && cache.isFile()) {
             // Only delete the cache file if no other buffer is using it.
             for (BufferIterator it = new BufferIterator(); it.hasNext();) {
@@ -2800,8 +2647,7 @@ public class Buffer extends SystemBuffer
         }
     }
 
-    public final boolean canBeRestored()
-    {
+    public final boolean canBeRestored() {
         final File file = getFile();
         if (file != null && file.isRemote())
             return false;
@@ -2817,32 +2663,27 @@ public class Buffer extends SystemBuffer
         }
     }
 
-    public final boolean isUntitled()
-    {
+    public final boolean isUntitled() {
         return isUntitled;
     }
 
     private boolean isTransient;
 
-    public boolean isTransient()
-    {
+    public boolean isTransient() {
         return isTransient;
     }
 
-    public final void setTransient(boolean b)
-    {
+    public final void setTransient(boolean b) {
         unsplitOnClose = isTransient = b;
     }
 
     private boolean unsplitOnClose;
 
-    public boolean unsplitOnClose()
-    {
+    public boolean unsplitOnClose() {
         return unsplitOnClose;
     }
 
-    public final void setUnsplitOnClose(boolean b)
-    {
+    public final void setUnsplitOnClose(boolean b) {
         unsplitOnClose = b;
     }
 
@@ -2850,8 +2691,7 @@ public class Buffer extends SystemBuffer
     private SoftReference<String> srText;
 
     // Never returns null.
-    public synchronized String getText()
-    {
+    public synchronized String getText() {
         if (srText != null) {
             final String text = srText.get();
             if (text != null)
@@ -2878,8 +2718,7 @@ public class Buffer extends SystemBuffer
         return text;
     }
 
-    public boolean isEmpty()
-    {
+    public boolean isEmpty() {
         Line first = getFirstLine();
         if (first == null)
             return true;
@@ -2888,14 +2727,12 @@ public class Buffer extends SystemBuffer
         return first.length() == 0;
     }
 
-    public int getDisplayHeight()
-    {
+    public int getDisplayHeight() {
         return visibleLineCount * Display.getCharHeight();
     }
 
     // Returns cumulative height to top of target line.
-    public int getY(Line line)
-    {
+    public int getY(Line line) {
         Debug.assertTrue(!line.isHidden());
         if (folded) {
             final int charHeight = Display.getCharHeight();
@@ -2911,17 +2748,15 @@ public class Buffer extends SystemBuffer
             return line.lineNumber() * Display.getCharHeight();
     }
 
-    public int getDisplayWidth()
-    {
+    public int getDisplayWidth() {
         return Display.getGutterWidth(this) +
-            (getMaximumColumns()+1) * Display.getCharWidth();
+            (getMaximumColumns() + 1) * Display.getCharWidth();
     }
 
     private int maxCols = 0;
     private boolean maxColsValid = false;
 
-    public int getMaximumColumns()
-    {
+    public int getMaximumColumns() {
         if (maxCols == 0) {
             maxCols = calculateMaximumColumns();
             maxColsValid = true;
@@ -2929,8 +2764,7 @@ public class Buffer extends SystemBuffer
         return maxCols;
     }
 
-    private int calculateMaximumColumns()
-    {
+    private int calculateMaximumColumns() {
         if (getModeId() == BINARY_MODE)
             return getFirstLine().length();
         final int tabWidth = getTabWidth();
@@ -2944,8 +2778,7 @@ public class Buffer extends SystemBuffer
     }
 
     // Returns true if there was a change.
-    public boolean validateMaximumColumns()
-    {
+    public boolean validateMaximumColumns() {
         if (maxColsValid)
             return false;
         final int oldMaxCols = maxCols;
@@ -2954,33 +2787,27 @@ public class Buffer extends SystemBuffer
         return maxCols != oldMaxCols;
     }
 
-    public void setProperty(Property property, String value)
-    {
+    public void setProperty(Property property, String value) {
         properties.setProperty(property, value);
     }
 
-    public void setProperty(Property property, boolean value)
-    {
+    public void setProperty(Property property, boolean value) {
         properties.setProperty(property, value);
     }
 
-    public void setProperty(Property property, int value)
-    {
+    public void setProperty(Property property, int value) {
         properties.setProperty(property, value);
     }
 
-    boolean setPropertyFromString(Property property, String value)
-    {
+    boolean setPropertyFromString(Property property, String value) {
         return properties.setPropertyFromString(property, value);
     }
 
-    boolean removeProperty(Property property)
-    {
+    boolean removeProperty(Property property) {
         return properties.removeProperty(property);
     }
 
-    public String getStringProperty(Property property)
-    {
+    public String getStringProperty(Property property) {
         Object value = properties.getProperty(property);
         if (value instanceof String)
             return (String) value;
@@ -2989,20 +2816,18 @@ public class Buffer extends SystemBuffer
         return (String) property.getDefaultValue();
     }
 
-    public int getIntegerProperty(Property property)
-    {
+    public int getIntegerProperty(Property property) {
         if (!property.isIntegerProperty())
             Debug.bug();
         Object value = properties.getProperty(property);
         if (value instanceof Integer)
-            return ((Integer)value).intValue();
+            return ((Integer) value).intValue();
         if (mode != null)
             return mode.getIntegerProperty(property);
-        return ((Integer)property.getDefaultValue()).intValue();
+        return ((Integer) property.getDefaultValue()).intValue();
     }
 
-    public boolean getBooleanProperty(Property property)
-    {
+    public boolean getBooleanProperty(Property property) {
         if (!property.isBooleanProperty())
             Debug.bug();
         Object value = properties.getProperty(property);
@@ -3012,52 +2837,44 @@ public class Buffer extends SystemBuffer
             return false;
         if (mode != null)
             return mode.getBooleanProperty(property);
-        return ((Boolean)property.getDefaultValue()).booleanValue();
+        return ((Boolean) property.getDefaultValue()).booleanValue();
     }
 
-    public final int getTabWidth()
-    {
+    public final int getTabWidth() {
         return getIntegerProperty(Property.TAB_WIDTH);
     }
 
-    public void setTabWidth(int tabWidth)
-    {
+    public void setTabWidth(int tabWidth) {
         properties.setProperty(Property.TAB_WIDTH, tabWidth);
     }
 
-    public final boolean getUseTabs()
-    {
+    public final boolean getUseTabs() {
         return getBooleanProperty(Property.USE_TABS);
     }
 
-    public final int getIndentSize()
-    {
+    public final int getIndentSize() {
         return getIntegerProperty(Property.INDENT_SIZE);
     }
 
-    public final void setIndentSize(int indentSize)
-    {
+    public final void setIndentSize(int indentSize) {
         properties.setProperty(Property.INDENT_SIZE, indentSize);
     }
 
     private static final Cursor textCursor =
         Cursor.getPredefinedCursor(Cursor.TEXT_CURSOR);
 
-    public Cursor getDefaultCursor()
-    {
+    public Cursor getDefaultCursor() {
         return textCursor;
     }
 
-    public Cursor getDefaultCursor(Position pos)
-    {
+    public Cursor getDefaultCursor(Position pos) {
         if (pos == null || pos.getLine() instanceof ImageLine)
             return Cursor.getDefaultCursor();
         else
             return textCursor;
     }
 
-    public String getStatusText(Editor editor)
-    {
+    public String getStatusText(Editor editor) {
         Debug.assertTrue(editor.getBuffer() == this);
         Position dot = editor.getDotCopy();
         if (dot == null)
@@ -3078,14 +2895,14 @@ public class Buffer extends SystemBuffer
             }
         }
         sb.append("Line ");
-        sb.append(String.valueOf(dot.lineNumber()+1));
+        sb.append(String.valueOf(dot.lineNumber() + 1));
         if (Editor.preferences().getBooleanProperty(Property.STATUS_BAR_DISPLAY_LINE_COUNT)) {
             sb.append(" of ");
             sb.append(String.valueOf(getLineCount()));
         }
         sb.append("  Col ");
         final Display display = editor.getDisplay();
-        sb.append(String.valueOf(display.getAbsoluteCaretCol()+1));
+        sb.append(String.valueOf(display.getAbsoluteCaretCol() + 1));
         if (getBooleanProperty(Property.WRAP))
             sb.append("   Wrap");
         if (Editor.isRecordingMacro())
@@ -3093,13 +2910,11 @@ public class Buffer extends SystemBuffer
         return sb.toString();
     }
 
-    public Expansion getExpansion(Position dot)
-    {
+    public Expansion getExpansion(Position dot) {
         return new Expansion(dot, mode);
     }
 
-    public void restoreView(Editor editor)
-    {
+    public void restoreView(Editor editor) {
         final Display display = editor.getDisplay();
         final View view = editor.getView(this);
         Debug.assertTrue(view != null);
@@ -3123,7 +2938,7 @@ public class Buffer extends SystemBuffer
             editor.setMark(view.getMark() == null ? null : new Position(view.getMark()));
             editor.setSelection(view.getSelection());
             editor.setColumnSelection(view.isColumnSelection());
-            if (view.getTopLine() == null){
+            if (view.getTopLine() == null) {
                 view.topLine = getFirstLine();
                 view.pixelsAboveTopLine = 0;
             }
@@ -3137,25 +2952,21 @@ public class Buffer extends SystemBuffer
     private VersionControlEntry vcsEntry;
     private boolean vcsChecked;
 
-    public final VersionControlEntry getVCSEntry()
-    {
+    public final VersionControlEntry getVCSEntry() {
         return vcsEntry;
     }
 
     /** The version control status of this buffer, as a VCS_ constant. */
-    public final int getVCStatusKind()
-    {
+    public final int getVCStatusKind() {
         return vcsEntry != null ? vcsEntry.getStatusKind() : VCS_UNKNOWN;
     }
 
     /** True once this buffer's version control status has been looked up. */
-    public final boolean isVCSChecked()
-    {
+    public final boolean isVCSChecked() {
         return vcsChecked;
     }
 
-    public final void checkVCS()
-    {
+    public final void checkVCS() {
         vcsEntry = VersionControl.getEntry(this);
         vcsChecked = true;
     }
@@ -3166,21 +2977,23 @@ public class Buffer extends SystemBuffer
      * Not very efficient since we shell out once for every buffer, but
      * it is fine for a small buffer list.
      */
-    public static void checkVCSForAllBuffers(final Runnable whenDone)
-    {
+    public static void checkVCSForAllBuffers(final Runnable whenDone) {
         final List<Buffer> pending = new ArrayList<Buffer>();
         for (BufferIterator it = new BufferIterator(); it.hasNext();) {
             Buffer buf = it.next();
-            if (buf != null && !buf.isVCSChecked() && buf.getFile() != null
-                && !buf.getFile().isRemote())
+            if (
+                buf != null
+                    && !buf.isVCSChecked()
+                    && buf.getFile() != null
+                    && !buf.getFile().isRemote()
+            )
                 pending.add(buf);
         }
         if (pending.isEmpty())
             return;
         VersionControl.invalidate();
         Thread thread = new Thread("check version control") {
-            public void run()
-            {
+            public void run() {
                 for (int i = 0; i < pending.size(); i++) {
                     try {
                         pending.get(i).checkVCS();
@@ -3200,8 +3013,7 @@ public class Buffer extends SystemBuffer
         thread.start();
     }
 
-    public final boolean isKeyword(String s)
-    {
+    public final boolean isKeyword(String s) {
         return mode.isKeyword(s);
     }
 }

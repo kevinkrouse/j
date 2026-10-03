@@ -22,20 +22,17 @@ package org.armedbear.j.mail;
 
 import java.lang.StringBuilder;
 
-public final class AddressBookEntry
-{
+public final class AddressBookEntry {
     private String personal;
     private String address;
 
-    public AddressBookEntry(String personal, String address)
-    {
+    public AddressBookEntry(String personal, String address) {
         this.personal = personal;
         this.address = address;
     }
 
     // Constructs an address book entry from a line from ~/.j/addresses.
-    public static AddressBookEntry parseAddressBookEntry(String s)
-    {
+    public static AddressBookEntry parseAddressBookEntry(String s) {
         int index = s.lastIndexOf('<');
         if (index >= 0) {
             String personal = s.substring(0, index).trim();
@@ -43,25 +40,22 @@ public final class AddressBookEntry
                 personal = null;
             String address = s.substring(index);
             // Strip '<' and '>'.
-            address = address.substring(1, address.length()-1);
+            address = address.substring(1, address.length() - 1);
             return new AddressBookEntry(personal, address);
         } else
             return new AddressBookEntry(null, s);
     }
 
-    public String getPersonal()
-    {
+    public String getPersonal() {
         return personal;
     }
 
-    public void setPersonal(String s)
-    {
+    public void setPersonal(String s) {
         personal = s;
     }
 
     // Returns canonical form of personal name.
-    public static String canonicalizePersonal(String s)
-    {
+    public static String canonicalizePersonal(String s) {
         if (s == null)
             return null;
         // Reject the name if it looks like an address.
@@ -69,8 +63,8 @@ public final class AddressBookEntry
             return null;
         s = s.trim();
         // Strip single quotes.
-        if (s.length() >= 2 && s.charAt(0) == '\'' && s.charAt(s.length()-1) == '\'')
-            s = s.substring(1, s.length()-1);
+        if (s.length() >= 2 && s.charAt(0) == '\'' && s.charAt(s.length() - 1) == '\'')
+            s = s.substring(1, s.length() - 1);
         if (s.length() == 0)
             return null;
         // Strip any bogus text starting with '<'.
@@ -84,14 +78,13 @@ public final class AddressBookEntry
         if (index >= 0) {
             // Last name first.
             String lastName = s.substring(0, index);
-            String firstName = s.substring(index+1).trim();
+            String firstName = s.substring(index + 1).trim();
             return firstName + ' ' + lastName;
         }
         return s;
     }
 
-    public static String canonicalizeAddress(String s)
-    {
+    public static String canonicalizeAddress(String s) {
         if (s == null)
             return null;
         if (s.length() == 0)
@@ -99,18 +92,15 @@ public final class AddressBookEntry
         return s;
     }
 
-    public String getAddress()
-    {
+    public String getAddress() {
         return address;
     }
 
-    public void setAddress(String s)
-    {
+    public void setAddress(String s) {
         address = s;
     }
 
-    public boolean equals(Object object)
-    {
+    public boolean equals(Object object) {
         if (this == object)
             return true;
         if (object instanceof AddressBookEntry) {
@@ -130,8 +120,7 @@ public final class AddressBookEntry
         return false;
     }
 
-    public String toString()
-    {
+    public String toString() {
         StringBuilder sb = new StringBuilder();
         if (personal != null) {
             sb.append(personal);

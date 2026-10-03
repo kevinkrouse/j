@@ -20,6 +20,7 @@
 
 package org.armedbear.j.mode.css;
 
+import java.awt.event.KeyEvent;
 import org.armedbear.j.AbstractMode;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Constants;
@@ -28,44 +29,34 @@ import org.armedbear.j.KeyMap;
 import org.armedbear.j.Line;
 import org.armedbear.j.Mode;
 
-import java.awt.event.KeyEvent;
-
-public final class CSSMode extends AbstractMode implements Constants, Mode
-{
+public final class CSSMode extends AbstractMode implements Constants, Mode {
     private static final CSSMode mode = new CSSMode();
 
-    private CSSMode()
-    {
+    private CSSMode() {
         super(CSS_MODE, CSS_MODE_NAME);
     }
 
-    public static CSSMode getMode()
-    {
+    public static CSSMode getMode() {
         return mode;
     }
 
-    public Formatter getFormatter(Buffer buffer)
-    {
+    public Formatter getFormatter(Buffer buffer) {
         return new CSSFormatter(buffer);
     }
 
-    protected void setKeyMapDefaults(KeyMap km)
-    {
+    protected void setKeyMapDefaults(KeyMap km) {
         km.mapKey(KeyEvent.VK_ENTER, 0, "newlineAndIndent");
     }
 
-    public boolean canIndent()
-    {
+    public boolean canIndent() {
         return true;
     }
 
-    public boolean canIndentPaste()
-    {
+    public boolean canIndentPaste() {
         return false;
     }
 
-    public int getCorrectIndentation(Line line, Buffer buffer)
-    {
+    public int getCorrectIndentation(Line line, Buffer buffer) {
         final int indentSize = buffer.getIndentSize();
         final Line model = findModel(line);
         if (model == null)
@@ -76,21 +67,18 @@ public final class CSSMode extends AbstractMode implements Constants, Mode
         return modelIndent;
     }
 
-    private Line findModel(Line line)
-    {
+    private Line findModel(Line line) {
         Line model = line.previous();
         while (model != null && model.isBlank())
             model = model.previous();
         return model;
     }
 
-    public boolean isIdentifierStart(char c)
-    {
+    public boolean isIdentifierStart(char c) {
         return startChars.indexOf(c) >= 0;
     }
 
-    public boolean isIdentifierPart(char c)
-    {
+    public boolean isIdentifierPart(char c) {
         return partChars.indexOf(c) >= 0;
     }
 

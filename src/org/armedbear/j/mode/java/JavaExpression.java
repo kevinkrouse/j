@@ -20,37 +20,32 @@
 
 package org.armedbear.j.mode.java;
 
+import java.lang.StringBuilder;
 import org.armedbear.j.Constants;
 import org.armedbear.j.Expression;
-import java.lang.StringBuilder;
 import org.armedbear.j.LocalTag;
 
 /**
  * A JavaExpression represents an instance of a method call in Java source.
  */
-public final class JavaExpression extends Expression implements Constants
-{
+public final class JavaExpression extends Expression implements Constants {
     private final int type; // TAG_METHOD etc.
 
-    public JavaExpression(String name, int arity)
-    {
+    public JavaExpression(String name, int arity) {
         super(name, arity);
         type = TAG_METHOD;
     }
 
-    public JavaExpression(String name, int arity, int type)
-    {
+    public JavaExpression(String name, int arity, int type) {
         super(name, arity);
         this.type = type;
     }
 
-    public final int getType()
-    {
+    public final int getType() {
         return type;
     }
 
-    public boolean matches(LocalTag tag)
-    {
+    public boolean matches(LocalTag tag) {
         if (!name.equals(tag.getMethodName()))
             return false;
         if (type == TAG_METHOD && tag.getType() != TAG_METHOD)
@@ -67,8 +62,7 @@ public final class JavaExpression extends Expression implements Constants
         return true;
     }
 
-    public boolean equals(Object obj)
-    {
+    public boolean equals(Object obj) {
         if (this == obj)
             return true;
         if (obj instanceof JavaExpression) {
@@ -83,8 +77,7 @@ public final class JavaExpression extends Expression implements Constants
         return false;
     }
 
-    public String toString()
-    {
+    public String toString() {
         StringBuilder sb = new StringBuilder();
         switch (type) {
             case TAG_UNKNOWN:

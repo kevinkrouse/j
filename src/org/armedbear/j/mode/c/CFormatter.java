@@ -20,10 +20,9 @@
 
 package org.armedbear.j.mode.c;
 
+import java.util.regex.Pattern;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Constants;
-import org.armedbear.j.Mode;
-import org.armedbear.j.mode.cpp.CppMode;
 import org.armedbear.j.Debug;
 import org.armedbear.j.Editor;
 import org.armedbear.j.FormatTable;
@@ -31,31 +30,29 @@ import org.armedbear.j.Formatter;
 import org.armedbear.j.Line;
 import org.armedbear.j.LineSegment;
 import org.armedbear.j.LineSegmentList;
+import org.armedbear.j.Mode;
+import org.armedbear.j.mode.cpp.CppMode;
 import org.armedbear.j.mode.objc.ObjCMode;
 import org.armedbear.j.util.Utilities;
 
-import java.util.regex.Pattern;
-
-public final class CFormatter extends Formatter implements Constants
-{
-    private static final int C_FORMAT_TEXT         =  0;
-    private static final int C_FORMAT_COMMENT      =  1;
-    private static final int C_FORMAT_STRING       =  2;
-    private static final int C_FORMAT_IDENTIFIER   =  3;
-    private static final int C_FORMAT_KEYWORD      =  4;
-    private static final int C_FORMAT_FUNCTION     =  5;
-    private static final int C_FORMAT_OPERATOR     =  6;
-    private static final int C_FORMAT_BRACE        =  7;
-    private static final int C_FORMAT_NUMBER       =  8;
-    private static final int C_FORMAT_PREPROCESSOR =  9;
-    private static final int C_FORMAT_DISABLED     = 10;
+public final class CFormatter extends Formatter implements Constants {
+    private static final int C_FORMAT_TEXT = 0;
+    private static final int C_FORMAT_COMMENT = 1;
+    private static final int C_FORMAT_STRING = 2;
+    private static final int C_FORMAT_IDENTIFIER = 3;
+    private static final int C_FORMAT_KEYWORD = 4;
+    private static final int C_FORMAT_FUNCTION = 5;
+    private static final int C_FORMAT_OPERATOR = 6;
+    private static final int C_FORMAT_BRACE = 7;
+    private static final int C_FORMAT_NUMBER = 8;
+    private static final int C_FORMAT_PREPROCESSOR = 9;
+    private static final int C_FORMAT_DISABLED = 10;
 
     private static final Pattern lynxArgsRE = Pattern.compile("ARGS[0-9][0-9]?");
 
     private final Mode mode;
 
-    public CFormatter(Buffer buffer, int language)
-    {
+    public CFormatter(Buffer buffer, int language) {
         this.buffer = buffer;
         switch (language) {
             case LANGUAGE_C:
@@ -76,8 +73,7 @@ public final class CFormatter extends Formatter implements Constants
 
     private int tokenBegin = 0;
 
-    private void endToken(String text, int tokenEnd, int state)
-    {
+    private void endToken(String text, int tokenEnd, int state) {
         if (tokenEnd - tokenBegin > 0) {
             int format = C_FORMAT_TEXT;
             switch (state) {
@@ -112,8 +108,7 @@ public final class CFormatter extends Formatter implements Constants
         }
     }
 
-    private void parseLine(Line line)
-    {
+    private void parseLine(Line line) {
         if (line == null) {
             addSegment("", C_FORMAT_TEXT);
             return;
@@ -167,7 +162,7 @@ public final class CFormatter extends Formatter implements Constants
         while (i < limit) {
             c = text.charAt(i);
             if (state == STATE_COMMENT) {
-                if (i < limit-1 && c == '*' && text.charAt(i+1) == '/') {
+                if (i < limit - 1 && c == '*' && text.charAt(i + 1) == '/') {
                     endToken(text, i + 2, state);
                     state = STATE_NEUTRAL;
                     i += 2;
@@ -177,9 +172,9 @@ public final class CFormatter extends Formatter implements Constants
             }
             if (state == STATE_QUOTE) {
                 if (c == quoteChar) {
-                    endToken(text, i+1, state);
+                    endToken(text, i + 1, state);
                     state = STATE_NEUTRAL;
-                } else if (c == '\\' && i < limit-1) {
+                } else if (c == '\\' && i < limit - 1) {
                     // Escape char.
                     ++i;
                 }
@@ -196,12 +191,12 @@ public final class CFormatter extends Formatter implements Constants
                 continue;
             }
             if (c == '/') {
-                if (i < limit-1) {
-                    if (text.charAt(i+1) == '*') {
+                if (i < limit - 1) {
+                    if (text.charAt(i + 1) == '*') {
                         endToken(text, i, state);
                         state = STATE_COMMENT;
                         i += 2;
-                    } else if (text.charAt(i+1) == '/') {
+                    } else if (text.charAt(i + 1) == '/') {
                         endToken(text, i, state);
                         endToken(text, limit, STATE_COMMENT);
                         return;
@@ -258,8 +253,11 @@ public final class CFormatter extends Formatter implements Constants
                     LineSegment segment = getLastSegment();
                     if (segment != null) {
                         final String segmentText = segment.getText();
-                        if (segmentText.startsWith("ARGS") &&
-                            lynxArgsRE.matcher(segmentText).matches()) {
+                        if (
+                            segmentText.startsWith("ARGS")
+                                &&
+                                lynxArgsRE.matcher(segmentText).matches()
+                        ) {
                             // Lynx source "ARGSnn" macro.
                             ;
                         } else if (!isPreprocessorLine && isKeyword(segmentText)) {
@@ -344,15 +342,13 @@ public final class CFormatter extends Formatter implements Constants
         }
     }
 
-    public LineSegmentList formatLine(Line line)
-    {
+    public LineSegmentList formatLine(Line line) {
         clearSegmentList();
         parseLine(line);
         return segmentList;
     }
 
-    public boolean parseBuffer()
-    {
+    public boolean parseBuffer() {
         int state = STATE_NEUTRAL;
         boolean continued = false;
         Line line = buffer.getFirstLine();
@@ -395,14 +391,14 @@ public final class CFormatter extends Formatter implements Constants
             continued = false;
             for (int i = 0; i < limit; i++) {
                 c = line.charAt(i);
-                if (c == '\\' && i < limit-1) {
+                if (c == '\\' && i < limit - 1) {
                     // Escape.
                     ++i;
                     continue;
                 }
                 if (state == STATE_COMMENT) {
-                    if (c == '*' && i < limit-1) {
-                        c = line.charAt(i+1);
+                    if (c == '*' && i < limit - 1) {
+                        c = line.charAt(i + 1);
                         if (c == '/') {
                             ++i;
                             state = STATE_NEUTRAL;
@@ -418,7 +414,7 @@ public final class CFormatter extends Formatter implements Constants
                     continue;
                 }
                 // Not in comment or quoted string.
-                if (c == '/' && i < limit-1) {
+                if (c == '/' && i < limit - 1) {
                     c = line.charAt(++i);
                     if (c == '/') {
                         // Single-line comment beginning.
@@ -439,13 +435,11 @@ public final class CFormatter extends Formatter implements Constants
         return changed;
     }
 
-    private static final boolean isOperatorChar(char c)
-    {
+    private static final boolean isOperatorChar(char c) {
         return "!&|<>=+/*-".indexOf(c) >= 0;
     }
 
-    public FormatTable getFormatTable()
-    {
+    public FormatTable getFormatTable() {
         if (formatTable == null) {
             formatTable = new FormatTable("CMode");
             formatTable.addEntryFromPrefs(C_FORMAT_TEXT, "text");

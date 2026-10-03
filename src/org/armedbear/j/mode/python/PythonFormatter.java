@@ -29,41 +29,38 @@ import org.armedbear.j.LineSegment;
 import org.armedbear.j.LineSegmentList;
 import org.armedbear.j.util.Utilities;
 
-public final class PythonFormatter extends Formatter
-{
-    private static final int PYTHON_STATE_NEUTRAL       =  0;
-    private static final int PYTHON_STATE_SINGLE_QUOTE  =  1;
-    private static final int PYTHON_STATE_DOUBLE_QUOTE  =  2;
-    private static final int PYTHON_STATE_IDENTIFIER    =  3;
-    private static final int PYTHON_STATE_COMMENT       =  4;
-    private static final int PYTHON_STATE_BRACE         =  5;
-    private static final int PYTHON_STATE_NUMBER        =  6;
-    private static final int PYTHON_STATE_HEXNUMBER     =  7;
-    private static final int PYTHON_STATE_OPERATOR      =  8;
-    private static final int PYTHON_STATE_TRIPLE_SINGLE =  9;
+public final class PythonFormatter extends Formatter {
+    private static final int PYTHON_STATE_NEUTRAL = 0;
+    private static final int PYTHON_STATE_SINGLE_QUOTE = 1;
+    private static final int PYTHON_STATE_DOUBLE_QUOTE = 2;
+    private static final int PYTHON_STATE_IDENTIFIER = 3;
+    private static final int PYTHON_STATE_COMMENT = 4;
+    private static final int PYTHON_STATE_BRACE = 5;
+    private static final int PYTHON_STATE_NUMBER = 6;
+    private static final int PYTHON_STATE_HEXNUMBER = 7;
+    private static final int PYTHON_STATE_OPERATOR = 8;
+    private static final int PYTHON_STATE_TRIPLE_SINGLE = 9;
     private static final int PYTHON_STATE_TRIPLE_DOUBLE = 10;
 
-    private static final int PYTHON_FORMAT_TEXT         =  0;
-    private static final int PYTHON_FORMAT_COMMENT      =  1;
-    private static final int PYTHON_FORMAT_STRING       =  2;
-    private static final int PYTHON_FORMAT_IDENTIFIER   =  3;
-    private static final int PYTHON_FORMAT_KEYWORD      =  4;
-    private static final int PYTHON_FORMAT_FUNCTION     =  5;
-    private static final int PYTHON_FORMAT_OPERATOR     =  6;
-    private static final int PYTHON_FORMAT_BRACE        =  7;
-    private static final int PYTHON_FORMAT_NUMBER       =  8;
+    private static final int PYTHON_FORMAT_TEXT = 0;
+    private static final int PYTHON_FORMAT_COMMENT = 1;
+    private static final int PYTHON_FORMAT_STRING = 2;
+    private static final int PYTHON_FORMAT_IDENTIFIER = 3;
+    private static final int PYTHON_FORMAT_KEYWORD = 4;
+    private static final int PYTHON_FORMAT_FUNCTION = 5;
+    private static final int PYTHON_FORMAT_OPERATOR = 6;
+    private static final int PYTHON_FORMAT_BRACE = 7;
+    private static final int PYTHON_FORMAT_NUMBER = 8;
 
     private static final PythonMode mode = PythonMode.getMode();
 
-    public PythonFormatter(Buffer buffer)
-    {
+    public PythonFormatter(Buffer buffer) {
         this.buffer = buffer;
     }
 
     private int begin = 0;
 
-    private void endSegment(String text, int offset, int state)
-    {
+    private void endSegment(String text, int offset, int state) {
         if (offset - begin > 0) {
             int format;
             switch (state) {
@@ -101,8 +98,7 @@ public final class PythonFormatter extends Formatter
         }
     }
 
-    private void parseLine(Line line)
-    {
+    private void parseLine(Line line) {
         String text;
         if (Editor.tabsAreVisible())
             text = Utilities.makeTabsVisible(line.getText(), buffer.getTabWidth());
@@ -125,7 +121,7 @@ public final class PythonFormatter extends Formatter
 
         while (i < limit) {
             char c = text.charAt(i);
-            if (c == '\\' && i < limit-1) {
+            if (c == '\\' && i < limit - 1) {
                 // Escape char.
                 i += 2;
                 continue;
@@ -133,7 +129,7 @@ public final class PythonFormatter extends Formatter
 
             if (state == PYTHON_STATE_SINGLE_QUOTE) {
                 if (c == '\'') {
-                    endSegment(text, i+1, state);
+                    endSegment(text, i + 1, state);
                     state = PYTHON_STATE_NEUTRAL;
                 }
                 ++i;
@@ -142,7 +138,7 @@ public final class PythonFormatter extends Formatter
 
             if (state == PYTHON_STATE_DOUBLE_QUOTE) {
                 if (c == '"') {
-                    endSegment(text, i+1, state);
+                    endSegment(text, i + 1, state);
                     state = PYTHON_STATE_NEUTRAL;
                 }
                 ++i;
@@ -154,9 +150,13 @@ public final class PythonFormatter extends Formatter
                     i += 3;
                     endSegment(text, i, state);
                     state = PYTHON_STATE_NEUTRAL;
-                } else if (((c == '>' && text.regionMatches(i, ">>>", 0, 3)) ||
-                            (c == '.' && text.regionMatches(i, "...", 0, 3))) &&
-                           (text.substring(0, i).trim().length() == 0)) {
+                } else if (
+                    ((c == '>' && text.regionMatches(i, ">>>", 0, 3))
+                        ||
+                        (c == '.' && text.regionMatches(i, "...", 0, 3)))
+                        &&
+                        (text.substring(0, i).trim().length() == 0)
+                ) {
                     endSegment(text, i, state);
                     state = PYTHON_STATE_NEUTRAL;
                 } else
@@ -169,9 +169,13 @@ public final class PythonFormatter extends Formatter
                     i += 3;
                     endSegment(text, i, state);
                     state = PYTHON_STATE_NEUTRAL;
-                } else if (((c == '>' && text.regionMatches(i, ">>>", 0, 3)) ||
-                            (c == '.' && text.regionMatches(i, "...", 0, 3))) &&
-                           (text.substring(0, i).trim().length() == 0)) {
+                } else if (
+                    ((c == '>' && text.regionMatches(i, ">>>", 0, 3))
+                        ||
+                        (c == '.' && text.regionMatches(i, "...", 0, 3)))
+                        &&
+                        (text.substring(0, i).trim().length() == 0)
+                ) {
                     endSegment(text, i, state);
                     state = PYTHON_STATE_NEUTRAL;
                 } else
@@ -260,7 +264,7 @@ public final class PythonFormatter extends Formatter
                             segment.setFormat(PYTHON_FORMAT_FUNCTION);
                         } else if (Character.isWhitespace(c)) {
                             // Look ahead to see if next non-whitespace char is '('.
-                            int j = i+1;
+                            int j = i + 1;
                             while (j < limit && Character.isWhitespace(c = text.charAt(j)))
                                 ++j;
                             if (c == '(')
@@ -332,15 +336,13 @@ public final class PythonFormatter extends Formatter
         }
     }
 
-    public LineSegmentList formatLine(Line line)
-    {
+    public LineSegmentList formatLine(Line line) {
         clearSegmentList();
         parseLine(line);
         return segmentList;
     }
 
-    public boolean parseBuffer()
-    {
+    public boolean parseBuffer() {
         int state = PYTHON_STATE_NEUTRAL;
         Line line = buffer.getFirstLine();
         boolean changed = false;
@@ -418,13 +420,11 @@ public final class PythonFormatter extends Formatter
         return changed;
     }
 
-    private static final boolean isOperatorChar(char c)
-    {
+    private static final boolean isOperatorChar(char c) {
         return "!&|<>=+/*-".indexOf(c) >= 0;
     }
 
-    public FormatTable getFormatTable()
-    {
+    public FormatTable getFormatTable() {
         if (formatTable == null) {
             formatTable = new FormatTable(null);
             formatTable.addEntryFromPrefs(PYTHON_FORMAT_TEXT, "text");

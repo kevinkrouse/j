@@ -35,6 +35,8 @@ import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.List;
+import javax.net.ssl.SSLSocket;
+import javax.net.ssl.SSLSocketFactory;
 import org.armedbear.j.Debug;
 import org.armedbear.j.Editor;
 import org.armedbear.j.File;
@@ -44,11 +46,7 @@ import org.armedbear.j.Netrc;
 import org.armedbear.j.Property;
 import org.armedbear.j.util.Utilities;
 
-import javax.net.ssl.SSLSocket;
-import javax.net.ssl.SSLSocketFactory;
-
-public final class SmtpSession extends Writer
-{
+public final class SmtpSession extends Writer {
     private static final int DEFAULT_PORT = 25;
     //private static final int LEGACY_TLS_PORT = 465;
     private static final int DEFAULT_TLS_PORT = 587;
@@ -65,39 +63,33 @@ public final class SmtpSession extends Writer
     private String responseText;
     private boolean echo;
 
-    private SmtpSession(SmtpURL url, String user, String password)
-    {
+    private SmtpSession(SmtpURL url, String user, String password) {
         this.url = url;
         this.user = user;
         this.password = password;
         this.echo = url.isDebug();
     }
 
-    public final void setEcho(boolean b)
-    {
+    public final void setEcho(boolean b) {
         echo = b;
     }
 
-    public final String getHost()
-    {
+    public final String getHost() {
         return url.getHost();
     }
 
-    public final int getPort()
-    {
+    public final int getPort() {
         return url.getPort();
     }
 
     // Returns session with connection already established (or null).
-    public static SmtpSession getDefaultSession()
-    {
+    public static SmtpSession getDefaultSession() {
         return getSession(Editor.preferences().getStringProperty(Property.SMTP));
     }
 
     // Returns session with connection already established (or null).
     // [username[:password]@]host[:port][/user=username][/tls]
-    public static SmtpSession getSession(String server)
-    {
+    public static SmtpSession getSession(String server) {
         if (server == null)
             return null;
 
@@ -118,24 +110,21 @@ public final class SmtpSession extends Writer
         return getSession(url);
     }
 
-    public static SmtpSession getSession(SmtpURL url)
-    {
+    public static SmtpSession getSession(SmtpURL url) {
         String user = url.getUser();
         if (user == null || user.length() == 0)
             user = System.getProperty("user.name");
         return getSession(url, user);
     }
 
-    public static SmtpSession getSession(SmtpURL url, String user)
-    {
+    public static SmtpSession getSession(SmtpURL url, String user) {
         String password = Netrc.getPassword(url.getHost(), user);
         if (password == null)
             return null;
         return getSession(url, user, password);
     }
 
-    public static SmtpSession getSession(SmtpURL url, String user, String password)
-    {
+    public static SmtpSession getSession(SmtpURL url, String user, String password) {
         SmtpSession session = new SmtpSession(url, user, password);
         Debug.assertTrue(session != null);
         session.setEcho(true);
@@ -145,13 +134,11 @@ public final class SmtpSession extends Writer
         return session;
     }
 
-    public final String getErrorText()
-    {
+    public final String getErrorText() {
         return errorText;
     }
 
-    public boolean sendMessage(SendMail sm, File messageFile)
-    {
+    public boolean sendMessage(SendMail sm, File messageFile) {
         List<String> addressees = sm.getAddressees();
         if (addressees == null || addressees.size() == 0)
             return false;
@@ -215,8 +202,7 @@ public final class SmtpSession extends Writer
         return true;
     }
 
-    public boolean connect()
-    {
+    public boolean connect() {
         if (connected)
             return true;
         Log.debug("connecting to port " + getPort() + " on " + getHost() + " ...");
@@ -258,8 +244,7 @@ public final class SmtpSession extends Writer
                                 connected = true;
                         }
                     }
-                }
-                else {
+                } else {
                     if (authenticate())
                         connected = true;
                 }
@@ -271,23 +256,23 @@ public final class SmtpSession extends Writer
         return connected;
     }
 
-    private boolean startTLS()
-    {
+    private boolean startTLS() {
         Log.debug("staring TLS");
-        SSLSocketFactory sf = (SSLSocketFactory)SSLSocketFactory.getDefault();
+        SSLSocketFactory sf = (SSLSocketFactory) SSLSocketFactory.getDefault();
         try {
-            SSLSocket sslsocket = (SSLSocket)sf.createSocket(this.socket, getHost(), getPort(), true);
+            SSLSocket sslsocket = (SSLSocket) sf.createSocket(this.socket, getHost(), getPort(), true);
             // XXX: check certificates
             // XXX: set protocols and cyphers
             sslsocket.startHandshake();
             Log.debug("TLS handshake successful");
             socket = sslsocket;
             reader =
-                    new BufferedReader(new InputStreamReader(socket.getInputStream()));
+                new BufferedReader(new InputStreamReader(socket.getInputStream()));
             writer =
-                    new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
+                new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
             return true;
-        } catch (IOException e) {
+        }
+        catch (IOException e) {
             Log.error(e);
             errorText = e.toString();
             return false;
@@ -296,8 +281,7 @@ public final class SmtpSession extends Writer
 
     // Use "PLAIN" authentication
     // UNDONE: support for "LOGIN", "MD5", "NTLM"
-    private boolean authenticate() throws IOException
-    {
+    private boolean authenticate() throws IOException {
         if (user == null && password == null) {
             Log.debug("no credentials, not authenticating");
             return true;
@@ -323,8 +307,10 @@ public final class SmtpSession extends Writer
             sb.append(password);
 
             // RFC 4616: the SASL PLAIN message is UTF-8.
-            String b64encoded = Base64.getEncoder().encodeToString(
-                sb.toString().getBytes(StandardCharsets.UTF_8));
+            String b64encoded = Base64.getEncoder()
+                .encodeToString(
+                    sb.toString().getBytes(StandardCharsets.UTF_8)
+                );
             writeLine(b64encoded);
             if (235 == getResponse())
                 return true;
@@ -337,8 +323,7 @@ public final class SmtpSession extends Writer
         return false;
     }
 
-    public void quit()
-    {
+    public void quit() {
         setEcho(true);
         writeLine("QUIT");
         getResponse();
@@ -346,8 +331,7 @@ public final class SmtpSession extends Writer
         disconnect();
     }
 
-    public synchronized void disconnect()
-    {
+    public synchronized void disconnect() {
         if (connected) {
             try {
                 socket.close();
@@ -362,8 +346,7 @@ public final class SmtpSession extends Writer
         }
     }
 
-    public int getResponse()
-    {
+    public int getResponse() {
         responseText = "";
         while (true) {
             String s = readLine();
@@ -385,8 +368,7 @@ public final class SmtpSession extends Writer
         return 0;
     }
 
-    private String readLine()
-    {
+    private String readLine() {
         try {
             String s = reader.readLine();
             if (echo && s != null)
@@ -399,43 +381,35 @@ public final class SmtpSession extends Writer
         }
     }
 
-    public void write(int c) throws IOException
-    {
+    public void write(int c) throws IOException {
         writer.write(c);
     }
 
-    public void write(char[] chars) throws IOException
-    {
+    public void write(char[] chars) throws IOException {
         writer.write(chars);
     }
 
-    public void write(char[] chars, int offset, int length) throws IOException
-    {
+    public void write(char[] chars, int offset, int length) throws IOException {
         writer.write(chars, offset, length);
     }
 
-    public void write(String s) throws IOException
-    {
+    public void write(String s) throws IOException {
         writer.write(s);
     }
 
-    public void write(String s, int offset, int length) throws IOException
-    {
+    public void write(String s, int offset, int length) throws IOException {
         writer.write(s, offset, length);
     }
 
-    public void flush() throws IOException
-    {
+    public void flush() throws IOException {
         writer.flush();
     }
 
-    public void close() throws IOException
-    {
+    public void close() throws IOException {
         writer.close();
     }
 
-    public boolean writeLine(String s)
-    {
+    public boolean writeLine(String s) {
         if (echo)
             Log.debug("==> " + s);
         try {

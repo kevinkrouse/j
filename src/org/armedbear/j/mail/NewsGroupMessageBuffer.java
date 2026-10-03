@@ -27,6 +27,7 @@ import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.StringReader;
+import java.lang.StringBuilder;
 import java.util.List;
 import javax.swing.SwingUtilities;
 import org.armedbear.j.BackgroundProcess;
@@ -34,10 +35,8 @@ import org.armedbear.j.Buffer;
 import org.armedbear.j.Directories;
 import org.armedbear.j.Editor;
 import org.armedbear.j.EditorIterator;
-import java.lang.StringBuilder;
 import org.armedbear.j.File;
 import org.armedbear.j.Headers;
-import org.armedbear.j.mode.image.ImageLine;
 import org.armedbear.j.ImageLoader;
 import org.armedbear.j.Line;
 import org.armedbear.j.Log;
@@ -47,16 +46,17 @@ import org.armedbear.j.Property;
 import org.armedbear.j.Sidebar;
 import org.armedbear.j.StatusBarProgressNotifier;
 import org.armedbear.j.TextLine;
+import org.armedbear.j.mode.image.ImageLine;
 import org.armedbear.j.util.Utilities;
 
-public final class NewsGroupMessageBuffer extends MessageBuffer
-{
+public final class NewsGroupMessageBuffer extends MessageBuffer {
     private NewsGroupSummaryBuffer summary;
     private boolean cancelled;
 
-    public NewsGroupMessageBuffer(NewsGroupSummaryBuffer summary,
-        NewsGroupSummaryEntry entry)
-    {
+    public NewsGroupMessageBuffer(
+        NewsGroupSummaryBuffer summary,
+        NewsGroupSummaryEntry entry
+    ) {
         super();
         this.mailbox = this.summary = summary;
         setEntry(entry);
@@ -71,26 +71,22 @@ public final class NewsGroupMessageBuffer extends MessageBuffer
         new Thread(loadProcess).start();
     }
 
-    public NewsGroupSummaryBuffer getSummary()
-    {
+    public NewsGroupSummaryBuffer getSummary() {
         return summary;
     }
 
-    public NewsGroupSummaryEntry getNewsGroupSummaryEntry()
-    {
+    public NewsGroupSummaryEntry getNewsGroupSummaryEntry() {
         return (NewsGroupSummaryEntry) entry;
     }
 
-    private void setEntry(NewsGroupSummaryEntry entry)
-    {
+    private void setEntry(NewsGroupSummaryEntry entry) {
         this.entry = entry;
         reset();
         title = entry.formatSubject();
         Sidebar.setUpdateFlagInAllFrames(SIDEBAR_REPAINT_BUFFER_LIST);
     }
 
-    public void nextArticle()
-    {
+    public void nextArticle() {
         NewsGroupSummaryEntry nextEntry =
             (NewsGroupSummaryEntry) summary.getNextUndeleted(entry);
         if (nextEntry != null) {
@@ -111,8 +107,7 @@ public final class NewsGroupMessageBuffer extends MessageBuffer
             Editor.currentEditor().status("Last article");
     }
 
-    public void previousArticle()
-    {
+    public void previousArticle() {
         NewsGroupSummaryEntry prevEntry =
             (NewsGroupSummaryEntry) summary.getPreviousUndeleted(entry);
         if (prevEntry != null) {
@@ -133,12 +128,10 @@ public final class NewsGroupMessageBuffer extends MessageBuffer
             Editor.currentEditor().status("First article");
     }
 
-    private final BackgroundProcess loadProcess = new BackgroundProcess()
-    {
+    private final BackgroundProcess loadProcess = new BackgroundProcess() {
         private ProgressNotifier progressNotifier;
 
-        public void run()
-        {
+        public void run() {
             setBackgroundProcess(this);
             progressNotifier =
                 new StatusBarProgressNotifier(NewsGroupMessageBuffer.this);
@@ -149,8 +142,7 @@ public final class NewsGroupMessageBuffer extends MessageBuffer
             setBackgroundProcess(null);
         }
 
-        public void cancel()
-        {
+        public void cancel() {
             cancelled = true;
             progressNotifier.cancel();
             summary.getSession().abort();
@@ -159,11 +151,12 @@ public final class NewsGroupMessageBuffer extends MessageBuffer
         }
     };
 
-    protected void loadMessage(ProgressNotifier progressNotifier)
-    {
+    protected void loadMessage(ProgressNotifier progressNotifier) {
         final String rawText =
-            summary.getArticle(((NewsGroupSummaryEntry)entry).getArticleNumber(),
-                progressNotifier);
+            summary.getArticle(
+                ((NewsGroupSummaryEntry) entry).getArticleNumber(),
+                progressNotifier
+            );
         if (cancelled)
             return;
         message = new Message(rawText != null ? rawText : "");
@@ -213,8 +206,7 @@ public final class NewsGroupMessageBuffer extends MessageBuffer
         SwingUtilities.invokeLater(completionRunnable);
     }
 
-    private static boolean containsBinary(String text)
-    {
+    private static boolean containsBinary(String text) {
         BufferedReader reader = new BufferedReader(new StringReader(text));
         try {
             String s;
@@ -234,8 +226,7 @@ public final class NewsGroupMessageBuffer extends MessageBuffer
         return false;
     }
 
-    private void appendBody(String rawBody)
-    {
+    private void appendBody(String rawBody) {
         BufferedReader reader = new BufferedReader(new StringReader(rawBody));
         try {
             String s;
@@ -250,20 +241,27 @@ public final class NewsGroupMessageBuffer extends MessageBuffer
                     int index = trim.indexOf(' ');
                     if (index >= 0) {
                         permission = trim.substring(0, index);
-                        trim = trim.substring(index+1);
+                        trim = trim.substring(index + 1);
                     }
                     String extension = Utilities.getExtension(trim);
                     File encoded =
-                        Utilities.getTempFile(Directories.getTempDirectory(),
-                                              ".encoded");
+                        Utilities.getTempFile(
+                            Directories.getTempDirectory(),
+                            ".encoded"
+                        );
                     File decoded =
-                        Utilities.getTempFile(Directories.getTempDirectory(),
-                                              extension);
+                        Utilities.getTempFile(
+                            Directories.getTempDirectory(),
+                            extension
+                        );
                     StringBuilder sb = new StringBuilder("begin 644 ");
                     sb.append(decoded.getName());
                     try (BufferedWriter writer = new BufferedWriter(
-                             new OutputStreamWriter(encoded.getOutputStream(),
-                                                    "ISO-8859-1"))) {
+                        new OutputStreamWriter(
+                            encoded.getOutputStream(),
+                            "ISO-8859-1"
+                        )
+                    )) {
                         writer.write(sb.toString());
                         writer.write('\n');
                         while ((s = reader.readLine()) != null) {
@@ -290,17 +288,24 @@ public final class NewsGroupMessageBuffer extends MessageBuffer
                     String name = s.substring(index);
                     String extension = Utilities.getExtension(name);
                     File encoded =
-                        Utilities.getTempFile(Directories.getTempDirectory(),
-                                              ".encoded");
+                        Utilities.getTempFile(
+                            Directories.getTempDirectory(),
+                            ".encoded"
+                        );
                     File decoded =
-                        Utilities.getTempFile(Directories.getTempDirectory(),
-                                              extension);
+                        Utilities.getTempFile(
+                            Directories.getTempDirectory(),
+                            extension
+                        );
                     StringBuilder sb =
                         new StringBuilder(s.substring(0, index));
                     sb.append(decoded.getName());
                     try (BufferedWriter writer = new BufferedWriter(
-                             new OutputStreamWriter(encoded.getOutputStream(),
-                                                    "ISO-8859-1"))) {
+                        new OutputStreamWriter(
+                            encoded.getOutputStream(),
+                            "ISO-8859-1"
+                        )
+                    )) {
                         writer.write(sb.toString());
                         writer.write('\n');
                         while ((s = reader.readLine()) != null) {
@@ -339,8 +344,7 @@ public final class NewsGroupMessageBuffer extends MessageBuffer
         }
     }
 
-    private boolean decode(File encoded, String decodeCommand)
-    {
+    private boolean decode(File encoded, String decodeCommand) {
         StringBuilder sb = new StringBuilder("(\\cd \"");
         sb.append(Directories.getTempDirectory().canonicalPath());
         sb.append("\" && ");
@@ -348,7 +352,7 @@ public final class NewsGroupMessageBuffer extends MessageBuffer
         sb.append(" \"");
         sb.append(encoded.getName());
         sb.append("\")");
-        String[] cmdarray = {"/bin/sh", "-c", sb.toString()};
+        String[] cmdarray = { "/bin/sh", "-c", sb.toString() };
         try {
             Process process = Runtime.getRuntime().exec(cmdarray);
             if (process != null) {
@@ -362,8 +366,7 @@ public final class NewsGroupMessageBuffer extends MessageBuffer
         return false;
     }
 
-    private void appendImageLine(File decoded)
-    {
+    private void appendImageLine(File decoded) {
         ImageLoader loader = new ImageLoader(decoded);
         Image image = loader.loadImage();
         if (image != null) {
@@ -372,8 +375,12 @@ public final class NewsGroupMessageBuffer extends MessageBuffer
             final int imageWidth = image.getWidth(null);
             int y = 0;
             while (y < imageHeight) {
-                Rectangle r = new Rectangle(0, y, imageWidth,
-                    Math.min(lineHeight, imageHeight - y));
+                Rectangle r = new Rectangle(
+                    0,
+                    y,
+                    imageWidth,
+                    Math.min(lineHeight, imageHeight - y)
+                );
                 appendLine(new ImageLine(image, r));
                 y += lineHeight;
             }
@@ -384,22 +391,19 @@ public final class NewsGroupMessageBuffer extends MessageBuffer
     private static int haveUudecode = Platform.isPlatformUnix() ? -1 : 0;
     private static int haveYydecode = Platform.isPlatformUnix() ? -1 : 0;
 
-    private static boolean haveUudecode()
-    {
+    private static boolean haveUudecode() {
         if (haveUudecode < 0)
             haveUudecode = Utilities.have("uudecode -h") ? 1 : 0;
         return haveUudecode == 1;
     }
 
-    private static boolean haveYydecode()
-    {
+    private static boolean haveYydecode() {
         if (haveYydecode < 0)
             haveYydecode = Utilities.have("yydecode -h") ? 1 : 0;
         return haveYydecode == 1;
     }
 
-    public void viewInline()
-    {
+    public void viewInline() {
         Line line;
         for (line = getFirstLine(); line != null; line = line.next()) {
             if (line.length() == 0)
@@ -423,8 +427,7 @@ public final class NewsGroupMessageBuffer extends MessageBuffer
         }
     }
 
-    public void toggleHeaders()
-    {
+    public void toggleHeaders() {
         showFullHeaders = !showFullHeaders;
         empty();
         setText();
@@ -440,8 +443,7 @@ public final class NewsGroupMessageBuffer extends MessageBuffer
         }
     }
 
-    public void toggleRaw()
-    {
+    public void toggleRaw() {
         showRawText = !showRawText;
         empty();
         setText();
@@ -458,8 +460,7 @@ public final class NewsGroupMessageBuffer extends MessageBuffer
         Editor.currentEditor().status("Raw mode ".concat((showRawText ? "on" : "off")));
     }
 
-    protected void setText()
-    {
+    protected void setText() {
         empty();
         if (showRawText) {
             super.setText();

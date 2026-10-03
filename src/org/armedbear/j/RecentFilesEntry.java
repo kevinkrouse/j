@@ -21,11 +21,9 @@
 package org.armedbear.j;
 
 import java.lang.StringBuilder;
-
 import java.util.StringTokenizer;
 
-public final class RecentFilesEntry
-{
+public final class RecentFilesEntry {
     private static boolean ignoreCase = Platform.isPlatformWindows();
 
     String name;
@@ -35,8 +33,7 @@ public final class RecentFilesEntry
     int lineNumber;
     int offs;
 
-    public RecentFilesEntry(File file)
-    {
+    public RecentFilesEntry(File file) {
         name = file.getName();
         if (file.isRemote()) {
             if (file.getProtocol() == File.PROTOCOL_HTTP) {
@@ -62,8 +59,7 @@ public final class RecentFilesEntry
             location = file.getParent();
     }
 
-    public RecentFilesEntry(String s)
-    {
+    public RecentFilesEntry(String s) {
         StringTokenizer st = new StringTokenizer(s, "\t");
         name = st.nextToken();
         location = st.nextToken();
@@ -75,14 +71,18 @@ public final class RecentFilesEntry
             name = "";
     }
 
-    public boolean matches(File file)
-    {
+    public boolean matches(File file) {
         if (!name.equals(file.getName()))
-             return false;
-        if (location.startsWith(File.PREFIX_FTP) ||
-            location.startsWith(File.PREFIX_HTTP) ||
-            location.startsWith(File.PREFIX_HTTPS) ||
-            location.startsWith(File.PREFIX_SSH)) {
+            return false;
+        if (
+            location.startsWith(File.PREFIX_FTP)
+                ||
+                location.startsWith(File.PREFIX_HTTP)
+                ||
+                location.startsWith(File.PREFIX_HTTPS)
+                ||
+                location.startsWith(File.PREFIX_SSH)
+        ) {
             File parent = File.getInstance(location);
             return file.equals(File.getInstance(parent, name));
         }
@@ -92,8 +92,7 @@ public final class RecentFilesEntry
         return ignoreCase ? location.equalsIgnoreCase(file.getParent()) : location.equals(file.getParent());
     }
 
-    public boolean equals(Object obj)
-    {
+    public boolean equals(Object obj) {
         if (!(obj instanceof RecentFilesEntry))
             return false;
         RecentFilesEntry entry = (RecentFilesEntry) obj;
@@ -109,8 +108,7 @@ public final class RecentFilesEntry
         return false;
     }
 
-    public String toString()
-    {
+    public String toString() {
         StringBuilder sb = new StringBuilder(name);
         if (sb.length() == 0)
             sb.append("\"\"");
@@ -127,8 +125,7 @@ public final class RecentFilesEntry
         return sb.toString();
     }
 
-    public static final int getVersion()
-    {
+    public static final int getVersion() {
         return 1;
     }
 }

@@ -20,6 +20,23 @@
 
 package org.armedbear.j.mode.dir;
 
+import java.awt.AWTEvent;
+import java.awt.event.MouseEvent;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.StringReader;
+import java.lang.StringBuilder;
+import java.util.ArrayList;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
+import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import javax.swing.Icon;
+import javax.swing.SwingUtilities;
 import org.armedbear.j.BrowseFile;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.BufferIterator;
@@ -31,8 +48,6 @@ import org.armedbear.j.Display;
 import org.armedbear.j.Editor;
 import org.armedbear.j.EditorIterator;
 import org.armedbear.j.ErrorRunnable;
-import org.armedbear.j.RemoteSession;
-import java.lang.StringBuilder;
 import org.armedbear.j.File;
 import org.armedbear.j.FtpFile;
 import org.armedbear.j.FtpLoadProcess;
@@ -50,6 +65,7 @@ import org.armedbear.j.Position;
 import org.armedbear.j.Preferences;
 import org.armedbear.j.Property;
 import org.armedbear.j.RemoteBuffer;
+import org.armedbear.j.RemoteSession;
 import org.armedbear.j.ShellCommand;
 import org.armedbear.j.Sidebar;
 import org.armedbear.j.SimpleEdit;
@@ -58,25 +74,7 @@ import org.armedbear.j.SshSession;
 import org.armedbear.j.StatusBarProgressNotifier;
 import org.armedbear.j.util.Utilities;
 
-import java.util.regex.Pattern;
-import java.util.regex.Matcher;
-import java.awt.AWTEvent;
-import java.awt.event.MouseEvent;
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.StringReader;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
-import java.util.ArrayList;
-import java.util.List;
-import javax.swing.Icon;
-import javax.swing.SwingUtilities;
-
-public final class DirectoryBuffer extends Buffer
-{
+public final class DirectoryBuffer extends Buffer {
     private static final Preferences preferences = Editor.preferences();
 
     // This is the flag for this particular directory buffer.
@@ -151,18 +149,15 @@ public final class DirectoryBuffer extends Buffer
         internalMoveToFilenameRegExp = Pattern.compile(":[0-5][0-9]" + " ");
     }
 
-    public static final Pattern getNativeMoveToFilenameRegExp()
-    {
+    public static final Pattern getNativeMoveToFilenameRegExp() {
         return nativeMoveToFilenameRegExp;
     }
 
-    public static final Pattern getInternalMoveToFilenameRegExp()
-    {
+    public static final Pattern getInternalMoveToFilenameRegExp() {
         return internalMoveToFilenameRegExp;
     }
 
-    public DirectoryBuffer(File dir)
-    {
+    public DirectoryBuffer(File dir) {
         super();
         supportsUndo = false;
         setFile(dir);
@@ -173,29 +168,24 @@ public final class DirectoryBuffer extends Buffer
         setInitialized(true);
     }
 
-    public DirectoryBuffer(File dir, String listing)
-    {
+    public DirectoryBuffer(File dir, String listing) {
         this(dir);
         setListing(listing);
     }
 
-    public final boolean isUsingNativeFormat()
-    {
+    public final boolean isUsingNativeFormat() {
         return usingNativeFormat;
     }
 
-    public File getCurrentDirectory()
-    {
+    public File getCurrentDirectory() {
         return getFile();
     }
 
-    public int getSortBy()
-    {
+    public int getSortBy() {
         return sortBy;
     }
 
-    public Position getInitialDotPos()
-    {
+    public Position getInitialDotPos() {
         Line line = getFirstLine();
         Line upLine = null; // We'll put dot here if directory is empty.
         while (true) {
@@ -217,27 +207,28 @@ public final class DirectoryBuffer extends Buffer
             return new Position(line, getNameOffset(line));
     }
 
-    private void setLimitPattern(String s)
-    {
+    private void setLimitPattern(String s) {
         if (s == null || s.length() == 0)
             limitPattern = null;
         else
             limitPattern = s;
     }
 
-    public final String getLimitPattern()
-    {
+    public final String getLimitPattern() {
         return limitPattern;
     }
 
-    public static void dirLimit()
-    {
+    public static void dirLimit() {
         final Editor editor = Editor.currentEditor();
         final Buffer buffer = editor.getBuffer();
         if (buffer instanceof DirectoryBuffer) {
             DirectoryBuffer directory = (DirectoryBuffer) buffer;
-            InputDialog dialog = new InputDialog(editor, "Pattern:", "Limit",
-                                                 directory.getLimitPattern());
+            InputDialog dialog = new InputDialog(
+                editor,
+                "Pattern:",
+                "Limit",
+                directory.getLimitPattern()
+            );
             dialog.setHistory(new History("dirLimit"));
             editor.centerDialog(dialog);
             dialog.setVisible(true);
@@ -250,16 +241,14 @@ public final class DirectoryBuffer extends Buffer
         }
     }
 
-    public static void dirLimit(String pattern)
-    {
+    public static void dirLimit(String pattern) {
         final Editor editor = Editor.currentEditor();
         final Buffer buffer = editor.getBuffer();
         if (buffer instanceof DirectoryBuffer)
-            ((DirectoryBuffer)buffer).limit(pattern);
+            ((DirectoryBuffer) buffer).limit(pattern);
     }
 
-    public static void dirUnlimit()
-    {
+    public static void dirUnlimit() {
         final Editor editor = Editor.currentEditor();
         final Buffer buffer = editor.getBuffer();
         if (buffer instanceof DirectoryBuffer) {
@@ -269,8 +258,7 @@ public final class DirectoryBuffer extends Buffer
         }
     }
 
-    private void limit(String pattern)
-    {
+    private void limit(String pattern) {
         if (pattern != null) {
             pattern = pattern.trim();
             if (pattern.length() == 0)
@@ -313,8 +301,7 @@ public final class DirectoryBuffer extends Buffer
         }
     }
 
-    public void rescan()
-    {
+    public void rescan() {
         final File file = getFile();
         if (file.isRemote())
             DirectoryCache.getDirectoryCache().purge(file.getHostName());
@@ -341,8 +328,7 @@ public final class DirectoryBuffer extends Buffer
         }
     }
 
-    public synchronized void reload()
-    {
+    public synchronized void reload() {
         ArrayList<Editor> editors = new ArrayList<Editor>();
 
         // Remember the name of the current file in every editor.
@@ -416,8 +402,7 @@ public final class DirectoryBuffer extends Buffer
         }
     }
 
-    private synchronized void reloadFromListing()
-    {
+    private synchronized void reloadFromListing() {
         Debug.assertTrue(getListing() != null);
         empty();
         entries.clear();
@@ -440,8 +425,7 @@ public final class DirectoryBuffer extends Buffer
     }
 
     // Called only from synchronized methods.
-    private void addEntry(String name)
-    {
+    private void addEntry(String name) {
         Debug.assertTrue(!usingNativeFormat);
         File f = File.getInstance(getFile(), name);
         if (f == null)
@@ -458,7 +442,7 @@ public final class DirectoryBuffer extends Buffer
                 if (!cp.equals(ap)) {
                     final String canonicalPath = getFile().canonicalPath();
                     if (cp.startsWith(canonicalPath + LocalFile.getSeparator()))
-                        de.setLinkedTo(cp.substring(canonicalPath.length()+1));
+                        de.setLinkedTo(cp.substring(canonicalPath.length() + 1));
                     else
                         de.setLinkedTo(cp);
                 }
@@ -470,13 +454,11 @@ public final class DirectoryBuffer extends Buffer
         entries.add(de);
     }
 
-    private final void appendLine(DirectoryEntry entry)
-    {
+    private final void appendLine(DirectoryEntry entry) {
         appendLine(new DirectoryLine(entry));
     }
 
-    private synchronized DirectoryEntry findEntry(String name)
-    {
+    private synchronized DirectoryEntry findEntry(String name) {
         for (DirectoryEntry entry : entries) {
             if (name.equals(entry.getName()))
                 return entry;
@@ -484,8 +466,7 @@ public final class DirectoryBuffer extends Buffer
         return null;
     }
 
-    private synchronized DirectoryEntry findNativeEntry(String string)
-    {
+    private synchronized DirectoryEntry findNativeEntry(String string) {
         for (DirectoryEntry entry : entries) {
             if (string.equals(entry.getString()))
                 return entry;
@@ -493,8 +474,7 @@ public final class DirectoryBuffer extends Buffer
         return null;
     }
 
-    private synchronized void sort()
-    {
+    private synchronized void sort() {
         if (usingNativeFormat) {
             Debug.bug();
             return;
@@ -508,8 +488,7 @@ public final class DirectoryBuffer extends Buffer
     }
 
     // Called only from sort().
-    private void sortByName()
-    {
+    private void sortByName() {
         Debug.assertTrue(!usingNativeFormat);
         Comparator<DirectoryEntry> comparator =
             (e1, e2) -> e1.getName().compareToIgnoreCase(e2.getName());
@@ -525,8 +504,7 @@ public final class DirectoryBuffer extends Buffer
     }
 
     // Called only from sort().
-    private void sortBySize()
-    {
+    private void sortBySize() {
         // Biggest files first.
         Comparator<DirectoryEntry> comparator =
             (e1, e2) -> Long.compare(e2.getSize(), e1.getSize());
@@ -534,8 +512,7 @@ public final class DirectoryBuffer extends Buffer
     }
 
     // Called only from synchronized methods.
-    private void addEntriesToBuffer()
-    {
+    private void addEntriesToBuffer() {
         final int size = entries.size();
         if (preferences.getBooleanProperty(Property.DIR_SORT_DIRECTORIES_FIRST, !usingNativeFormat)) {
             // Add lines to the buffer in two passes so directories will always be on top.
@@ -557,19 +534,17 @@ public final class DirectoryBuffer extends Buffer
         setLoaded(true);
     }
 
-    public static void dirCycleSortBy()
-    {
+    public static void dirCycleSortBy() {
         final Editor editor = Editor.currentEditor();
         final Buffer buffer = editor.getBuffer();
         if (buffer instanceof DirectoryBuffer) {
             editor.setWaitCursor();
-            ((DirectoryBuffer)buffer).cycleSortBy();
+            ((DirectoryBuffer) buffer).cycleSortBy();
             editor.setDefaultCursor();
         }
     }
 
-    private synchronized void cycleSortBy()
-    {
+    private synchronized void cycleSortBy() {
         if (sortBy == SORT_BY_NAME)
             sortBy = SORT_BY_DATE;
         else if (sortBy == SORT_BY_DATE)
@@ -579,16 +554,14 @@ public final class DirectoryBuffer extends Buffer
         resort();
     }
 
-    public void resort(int sortBy)
-    {
+    public void resort(int sortBy) {
         if (this.sortBy != sortBy) {
             this.sortBy = sortBy;
             resort();
         }
     }
 
-    private void resort()
-    {
+    private void resort() {
         if (usingNativeFormat) {
             reload();
         } else {
@@ -624,12 +597,13 @@ public final class DirectoryBuffer extends Buffer
         }
     }
 
-    private synchronized void loadInternal()
-    {
+    private synchronized void loadInternal() {
         // Default is true for Unix, false otherwise. User can override default.
         boolean useNativeFormat =
-            preferences.getBooleanProperty(Property.DIR_USE_NATIVE_FORMAT,
-                                           Platform.isPlatformUnix());
+            preferences.getBooleanProperty(
+                Property.DIR_USE_NATIVE_FORMAT,
+                Platform.isPlatformUnix()
+            );
         if (useNativeFormat) {
             if (!Utilities.haveLs())
                 useNativeFormat = false;
@@ -671,8 +645,8 @@ public final class DirectoryBuffer extends Buffer
                     if (Platform.isPlatformUnix()) {
                         String cmd =
                             "(\\cd \"" + file.canonicalPath() + "\" && \\ls " +
-                            flags + ")";
-                        String[] cmdarray = {"/bin/sh", "-c", cmd};
+                                flags + ")";
+                        String[] cmdarray = { "/bin/sh", "-c", cmd };
                         process = Runtime.getRuntime().exec(cmdarray);
                     } else {
                         // Windows.
@@ -680,7 +654,7 @@ public final class DirectoryBuffer extends Buffer
                         // Convert "C:\" into "//c" for Cygwin ls.
                         if (cp.length() == 3 && cp.charAt(1) == ':' && cp.charAt(2) == '\\')
                             cp = "//" + Character.toLowerCase(cp.charAt(0));
-                        String[] cmdarray = {"ls", flags, cp};
+                        String[] cmdarray = { "ls", flags, cp };
                         process = Runtime.getRuntime().exec(cmdarray);
                     }
                     reader =
@@ -752,7 +726,7 @@ public final class DirectoryBuffer extends Buffer
                     int begin = end - s.length();
                     if (begin < 0)
                         begin = 0;
-                    StringBuilder sb =  new StringBuilder(80);
+                    StringBuilder sb = new StringBuilder(80);
                     sb.append(Utilities.spaces(begin));
                     for (int i = s.length(); i > 0; i--)
                         sb.append('-');
@@ -773,8 +747,7 @@ public final class DirectoryBuffer extends Buffer
         }
     }
 
-    private long getTotalSize()
-    {
+    private long getTotalSize() {
         long totalSize = 0;
         int endOffset = -1;
         final int limit = entries.size();
@@ -829,8 +802,7 @@ public final class DirectoryBuffer extends Buffer
         return totalSize;
     }
 
-    public int load()
-    {
+    public int load() {
         if (!isLoaded()) {
             final Editor editor = Editor.currentEditor();
             String reading = "Reading directory...";
@@ -843,8 +815,7 @@ public final class DirectoryBuffer extends Buffer
         return LOAD_COMPLETED;
     }
 
-    public void tagFileAtDot()
-    {
+    public void tagFileAtDot() {
         final Editor editor = Editor.currentEditor();
         Line line = editor.getDotLine();
         if (!(line instanceof DirectoryLine))
@@ -878,8 +849,7 @@ public final class DirectoryBuffer extends Buffer
         }
     }
 
-    public void upDir()
-    {
+    public void upDir() {
         final Editor editor = Editor.currentEditor();
         editor.setWaitCursor();
         final File parent = getFile().getParentFile();
@@ -905,8 +875,7 @@ public final class DirectoryBuffer extends Buffer
         Sidebar.setUpdateFlagInAllFrames(SIDEBAR_REPAINT_BUFFER_LIST);
     }
 
-    public String getPathAtDot()
-    {
+    public String getPathAtDot() {
         Editor editor = Editor.currentEditor();
         if (!(editor.getDotLine() instanceof DirectoryLine))
             return null;
@@ -930,8 +899,7 @@ public final class DirectoryBuffer extends Buffer
             return file.netPath();
     }
 
-    public static void dir()
-    {
+    public static void dir() {
         final Editor editor = Editor.currentEditor();
         final Buffer buffer = editor.getBuffer();
         if (buffer instanceof DirectoryBuffer)
@@ -960,18 +928,15 @@ public final class DirectoryBuffer extends Buffer
         }
     }
 
-    public static void dirOpenFile()
-    {
+    public static void dirOpenFile() {
         _dirOpenFile(false);
     }
 
-    public static void dirOpenFileAndKillDirectory()
-    {
+    public static void dirOpenFileAndKillDirectory() {
         _dirOpenFile(true);
     }
 
-    private static void _dirOpenFile(boolean killDirectory)
-    {
+    private static void _dirOpenFile(boolean killDirectory) {
         final Editor editor = Editor.currentEditor();
         final Buffer buffer = editor.getBuffer();
         if (buffer instanceof DirectoryBuffer) {
@@ -980,12 +945,11 @@ public final class DirectoryBuffer extends Buffer
             AWTEvent e = editor.getDispatcher().getLastEvent();
             if (e instanceof MouseEvent)
                 editor.mouseMoveDotToPoint((MouseEvent) e);
-            ((DirectoryBuffer)buffer).openFileAtDot(killDirectory);
+            ((DirectoryBuffer) buffer).openFileAtDot(killDirectory);
         }
     }
 
-    private synchronized void openFileAtDot(boolean killDirectory)
-    {
+    private synchronized void openFileAtDot(boolean killDirectory) {
         final Editor editor = Editor.currentEditor();
         editor.setWaitCursor();
         if (!(editor.getDotLine() instanceof DirectoryLine))
@@ -1022,8 +986,11 @@ public final class DirectoryBuffer extends Buffer
             if (isDirectory) {
                 setBusy(true);
                 history.truncate();
-                history.append(dir, getName(editor.getDotLine()),
-                    editor.getDotOffset());
+                history.append(
+                    dir,
+                    getName(editor.getDotLine()),
+                    editor.getDotOffset()
+                );
                 history.reset();
                 empty();
                 entries.clear();
@@ -1062,8 +1029,10 @@ public final class DirectoryBuffer extends Buffer
             } else {
                 // Not a directory.
                 if (newFile instanceof FtpFile)
-                    buf = new RemoteBuffer((FtpFile) newFile,
-                        FtpSession.getSession((FtpFile) newFile));
+                    buf = new RemoteBuffer(
+                        (FtpFile) newFile,
+                        FtpSession.getSession((FtpFile) newFile)
+                    );
                 else if (newFile instanceof SshFile)
                     buf = new RemoteBuffer(newFile);
                 else
@@ -1093,8 +1062,7 @@ public final class DirectoryBuffer extends Buffer
             kill();
     }
 
-    public synchronized void changeDirectory(File f)
-    {
+    public synchronized void changeDirectory(File f) {
         if (f.isDirectory()) {
             final Editor editor = Editor.currentEditor();
             if (f.isLocal() && !f.canRead()) {
@@ -1135,8 +1103,7 @@ public final class DirectoryBuffer extends Buffer
     }
 
     // No history.
-    private synchronized void changeDirectory(DirectoryHistoryEntry entry)
-    {
+    private synchronized void changeDirectory(DirectoryHistoryEntry entry) {
         empty();
         entries.clear();
         numMarked = 0;
@@ -1161,19 +1128,17 @@ public final class DirectoryBuffer extends Buffer
         Sidebar.setUpdateFlagInAllFrames(SIDEBAR_REPAINT_BUFFER_LIST);
     }
 
-    public static void dirBack()
-    {
+    public static void dirBack() {
         final Editor editor = Editor.currentEditor();
         final Buffer buffer = editor.getBuffer();
         if (buffer instanceof DirectoryBuffer) {
             editor.setWaitCursor();
-            ((DirectoryBuffer)buffer).back(editor);
+            ((DirectoryBuffer) buffer).back(editor);
             editor.setDefaultCursor();
         }
     }
 
-    private void back(Editor editor)
-    {
+    private void back(Editor editor) {
         boolean atEnd = history.atEnd();
         DirectoryHistoryEntry entry = history.getPrevious();
         if (entry != null) {
@@ -1187,19 +1152,17 @@ public final class DirectoryBuffer extends Buffer
             editor.status("Can't go back");
     }
 
-    public static void dirForward()
-    {
+    public static void dirForward() {
         final Editor editor = Editor.currentEditor();
         final Buffer buffer = editor.getBuffer();
         if (buffer instanceof DirectoryBuffer) {
             editor.setWaitCursor();
-            ((DirectoryBuffer)buffer).forward(editor);
+            ((DirectoryBuffer) buffer).forward(editor);
             editor.setDefaultCursor();
         }
     }
 
-    private void forward(Editor editor)
-    {
+    private void forward(Editor editor) {
         DirectoryHistoryEntry entry = history.getNext();
         if (entry != null)
             changeDirectory(entry);
@@ -1207,8 +1170,7 @@ public final class DirectoryBuffer extends Buffer
             editor.status("Can't go forward");
     }
 
-    public void browseFileAtDot()
-    {
+    public void browseFileAtDot() {
         Editor editor = Editor.currentEditor();
         String name = getName(editor.getDotLine());
         if (name == null)
@@ -1222,21 +1184,18 @@ public final class DirectoryBuffer extends Buffer
             BrowseFile.openUrl("file://".concat(f.canonicalPath()));
     }
 
-    public void deleteFiles()
-    {
+    public void deleteFiles() {
         if (numMarked > 0)
             deleteMarkedFiles();
         else
             deleteFileAtDot();
     }
 
-    private void showMessageDialog(String message)
-    {
+    private void showMessageDialog(String message) {
         MessageDialog.showMessageDialog(message, "Error");
     }
 
-    private synchronized void deleteMarkedFiles()
-    {
+    private synchronized void deleteMarkedFiles() {
         if (numMarked == 0)
             return;
         Debug.assertTrue(numMarked > 0);
@@ -1296,11 +1255,15 @@ public final class DirectoryBuffer extends Buffer
             } else {
                 // Deletion failed.
                 if (isDirectory) {
-                    confirmed = editor.confirm("Delete Files",
-                            "Unable to remove directory " + displayName + ".  Continue?");
+                    confirmed = editor.confirm(
+                        "Delete Files",
+                        "Unable to remove directory " + displayName + ".  Continue?"
+                    );
                 } else {
-                    confirmed = editor.confirm("Delete Files",
-                            "Unable to delete " + displayName + ".  Continue?");
+                    confirmed = editor.confirm(
+                        "Delete Files",
+                        "Unable to delete " + displayName + ".  Continue?"
+                    );
                 }
                 if (!confirmed)
                     break;
@@ -1317,8 +1280,7 @@ public final class DirectoryBuffer extends Buffer
         }
     }
 
-    private void deleteFileAtDot()
-    {
+    private void deleteFileAtDot() {
         final Editor editor = Editor.currentEditor();
         String name = getName(editor.getDotLine());
         if (name == null)
@@ -1383,8 +1345,7 @@ public final class DirectoryBuffer extends Buffer
         }
     }
 
-    public static void dirDoShellCommand()
-    {
+    public static void dirDoShellCommand() {
         if (!Editor.checkExperimental())
             return;
         if (!Platform.isPlatformUnix())
@@ -1393,17 +1354,18 @@ public final class DirectoryBuffer extends Buffer
         final Buffer buffer = editor.getBuffer();
         if (buffer instanceof DirectoryBuffer) {
             if (buffer.getFile().isRemote()) {
-                MessageDialog.showMessageDialog(editor,
+                MessageDialog.showMessageDialog(
+                    editor,
                     "Shell commands are not supported in remote directory buffers.",
-                    "Error");
+                    "Error"
+                );
                 return;
             }
-            ((DirectoryBuffer)buffer).doShellCommand(editor);
+            ((DirectoryBuffer) buffer).doShellCommand(editor);
         }
     }
 
-    private void doShellCommand(Editor editor)
-    {
+    private void doShellCommand(Editor editor) {
         List<String> names = getMarkedNames();
         if (names == null) {
             names = new ArrayList<String>();
@@ -1452,8 +1414,7 @@ public final class DirectoryBuffer extends Buffer
         editor.setDefaultCursor();
     }
 
-    private String doCommandOnFile(String command, String filename)
-    {
+    private String doCommandOnFile(String command, String filename) {
         StringBuilder sb = new StringBuilder(command);
         sb.append(' ');
         sb.append(Utilities.maybeQuote(filename));
@@ -1462,8 +1423,7 @@ public final class DirectoryBuffer extends Buffer
         return shellCommand.getOutput();
     }
 
-    private String doCommandOnMultipleFiles(String command, List<String> files)
-    {
+    private String doCommandOnMultipleFiles(String command, List<String> files) {
         if (files.size() < 1)
             return null;
         String before, after;
@@ -1494,8 +1454,7 @@ public final class DirectoryBuffer extends Buffer
         return shellCommand.getOutput();
     }
 
-    private synchronized List<String> getMarkedNames()
-    {
+    private synchronized List<String> getMarkedNames() {
         if (numMarked > 0) {
             ArrayList<String> names = new ArrayList<String>(numMarked);
             final int size = entries.size();
@@ -1511,18 +1470,15 @@ public final class DirectoryBuffer extends Buffer
         return null;
     }
 
-    public void copyFileAtDot()
-    {
+    public void copyFileAtDot() {
         copyFiles();
     }
 
-    public void moveFileAtDot()
-    {
+    public void moveFileAtDot() {
         moveFiles();
     }
 
-    private List<File> getSourceFiles(Editor editor)
-    {
+    private List<File> getSourceFiles(Editor editor) {
         ArrayList<File> sources = new ArrayList<File>();
         if (numMarked > 0) {
             List<String> names = getMarkedNames();
@@ -1538,18 +1494,15 @@ public final class DirectoryBuffer extends Buffer
         return sources;
     }
 
-    private File getDestinationForCopy(Editor editor, List<File> sources)
-    {
+    private File getDestinationForCopy(Editor editor, List<File> sources) {
         return getDestination(editor, sources, "Copy");
     }
 
-    private File getDestinationForMove(Editor editor, List<File> sources)
-    {
+    private File getDestinationForMove(Editor editor, List<File> sources) {
         return getDestination(editor, sources, "Move");
     }
 
-    private File getDestination(Editor editor, List<File> sources, String operation)
-    {
+    private File getDestination(Editor editor, List<File> sources, String operation) {
         String title = operation + " File";
         String prompt = operation + " ";
         String name = null;
@@ -1567,8 +1520,7 @@ public final class DirectoryBuffer extends Buffer
         return d.getDestination();
     }
 
-    private void copyFiles()
-    {
+    private void copyFiles() {
         final Editor editor = Editor.currentEditor();
         List<File> sources = getSourceFiles(editor);
         File destination = getDestinationForCopy(editor, sources);
@@ -1581,8 +1533,7 @@ public final class DirectoryBuffer extends Buffer
             MessageDialog.showMessageDialog(editor, "Destination must be local!", title);
     }
 
-    private void copyLocalToLocal(List<File> sources, File destination, Editor editor, String title)
-    {
+    private void copyLocalToLocal(List<File> sources, File destination, Editor editor, String title) {
         int numFilesCopied = 0;
         boolean mustConfirm = true;
         boolean cancelled = false;
@@ -1597,7 +1548,7 @@ public final class DirectoryBuffer extends Buffer
                 to = destination;
             if (mustConfirm && to.isFile()) {
                 String message = "Overwrite existing file " + to.canonicalPath() + "?";
-                if (i < limit-1) {
+                if (i < limit - 1) {
                     // More than one file is left. Provide "Yes To All" and
                     // "Cancel" buttons.
                     int response = editor.confirmAll(title, message);
@@ -1626,7 +1577,7 @@ public final class DirectoryBuffer extends Buffer
                 ++numFilesCopied;
             } else {
                 String text = "Unable to copy " + from.getName() + " to " + to.canonicalPath() + ".";
-                if (i < limit-1) {
+                if (i < limit - 1) {
                     text += " Continue?";
                     if (!editor.confirm(title, text))
                         break;
@@ -1642,15 +1593,14 @@ public final class DirectoryBuffer extends Buffer
         for (EditorIterator it = new EditorIterator(); it.hasNext();) {
             Editor ed = it.next();
             if (destDir.equals(ed.getBuffer().getFile())) {
-                ((DirectoryBuffer)ed.getBuffer()).reload();
+                ((DirectoryBuffer) ed.getBuffer()).reload();
                 if (ed != Editor.currentEditor())
                     ed.updateDisplay();
             }
         }
     }
 
-    private void moveFiles()
-    {
+    private void moveFiles() {
         final Editor editor = Editor.currentEditor();
         List<File> sources = getSourceFiles(editor);
         File destination = getDestinationForMove(editor, sources);
@@ -1658,8 +1608,11 @@ public final class DirectoryBuffer extends Buffer
             return;
         Log.debug("ready to move");
         if (destination.isRemote()) {
-            MessageDialog.showMessageDialog(editor,
-                "Destination must be local!", "Move Files");
+            MessageDialog.showMessageDialog(
+                editor,
+                "Destination must be local!",
+                "Move Files"
+            );
             return;
         }
         final int count = sources.size();
@@ -1682,7 +1635,7 @@ public final class DirectoryBuffer extends Buffer
             if (success) {
                 // Change file information for any buffers (there should only
                 // be one!) associated with moved file.
-                for (BufferIterator it = new BufferIterator(); it.hasNext(); ) {
+                for (BufferIterator it = new BufferIterator(); it.hasNext();) {
                     Buffer buf = it.next();
                     if (source.equals(buf.getFile()))
                         buf.changeFile(destination);
@@ -1697,8 +1650,7 @@ public final class DirectoryBuffer extends Buffer
         reload();
     }
 
-    public void getFileAtDot()
-    {
+    public void getFileAtDot() {
         final Editor editor = Editor.currentEditor();
         final Line dotLine = editor.getDotLine();
         final String name = getName(dotLine);
@@ -1729,7 +1681,8 @@ public final class DirectoryBuffer extends Buffer
         if (status == 2) {
             MessageDialog.showMessageDialog(
                 sourceFile.canonicalPath() + " is a directory",
-                "Get File");
+                "Get File"
+            );
             return;
         }
         if (status != 1) {
@@ -1750,7 +1703,7 @@ public final class DirectoryBuffer extends Buffer
             return;
         }
         final File destinationFile = destination.isDirectory() ? File.getInstance(destination, name) : destination;
-        final FtpSession session = FtpSession.getSession((FtpFile)getFile());
+        final FtpSession session = FtpSession.getSession((FtpFile) getFile());
         if (session == null)
             return;
         final long fileSize = getFileSize(dotLine.getText());
@@ -1766,8 +1719,7 @@ public final class DirectoryBuffer extends Buffer
             }
         };
         final ErrorRunnable errorRunnable = new ErrorRunnable("Operation failed") {
-            public void run()
-            {
+            public void run() {
                 File cache = loadProcess.getCache();
                 if (cache != null && cache.isFile())
                     cache.delete();
@@ -1788,13 +1740,11 @@ public final class DirectoryBuffer extends Buffer
         loadProcess.start();
     }
 
-    public boolean isModified()
-    {
+    public boolean isModified() {
         return false;
     }
 
-    public String getTitle()
-    {
+    public String getTitle() {
         File dir = getFile();
         title = dir.canonicalPath();
         if (limitPattern != null) {
@@ -1813,13 +1763,11 @@ public final class DirectoryBuffer extends Buffer
         return title;
     }
 
-    private String getName(Line line)
-    {
+    private String getName(Line line) {
         return getName(line.getText());
     }
 
-    private String getName(String s)
-    {
+    private String getName(String s) {
         // Strip symbolic link (if any) from end of line.
         int end = s.indexOf(" ->");
 
@@ -1839,8 +1787,7 @@ public final class DirectoryBuffer extends Buffer
         return null;
     }
 
-    private long getFileSize(String s)
-    {
+    private long getFileSize(String s) {
         if (usingNativeFormat) {
             try {
                 Matcher matcher = nativeMoveToFilenameRegExp.matcher(s);
@@ -1860,8 +1807,7 @@ public final class DirectoryBuffer extends Buffer
         return 0;
     }
 
-    public void home()
-    {
+    public void home() {
         final Editor editor = Editor.currentEditor();
         if (editor.getDotOffset() == 0)
             return;
@@ -1878,8 +1824,7 @@ public final class DirectoryBuffer extends Buffer
         editor.moveCaretToDotCol();
     }
 
-    public static void chmod()
-    {
+    public static void chmod() {
         final Editor editor = Editor.currentEditor();
         if (!(editor.getDotLine() instanceof DirectoryLine))
             return;
@@ -1926,7 +1871,7 @@ public final class DirectoryBuffer extends Buffer
             file.setPermissions(permissions);
             editor.setDefaultCursor();
         } else if (file instanceof FtpFile) {
-            final FtpSession session = FtpSession.getSession((FtpFile)file);
+            final FtpSession session = FtpSession.getSession((FtpFile) file);
             if (session != null) {
                 final Runnable completionRunnable = () -> {
                     for (EditorIterator it = new EditorIterator(); it.hasNext();) {
@@ -1943,7 +1888,7 @@ public final class DirectoryBuffer extends Buffer
                             ed.setWaitCursor();
                     }
                     if (session.verifyConnected()) {
-                        session.chmod((FtpFile)file, permissions);
+                        session.chmod((FtpFile) file, permissions);
                         session.unlock();
                     }
                     directory.setBusy(false);
@@ -1952,7 +1897,7 @@ public final class DirectoryBuffer extends Buffer
                 new Thread(chmodRunnable).start();
             }
         } else if (file instanceof SshFile) {
-            final RemoteSession session = SshSession.getSession((SshFile)file);
+            final RemoteSession session = SshSession.getSession((SshFile) file);
             if (session != null) {
                 final Runnable completionRunnable = () -> {
                     for (EditorIterator it = new EditorIterator(); it.hasNext();) {
@@ -1969,7 +1914,7 @@ public final class DirectoryBuffer extends Buffer
                             ed.setWaitCursor();
                     }
                     if (session.connect()) {
-                        session.chmod((SshFile)file, permissions);
+                        session.chmod((SshFile) file, permissions);
                         session.unlock();
                     }
                     directory.setBusy(false);
@@ -1980,8 +1925,7 @@ public final class DirectoryBuffer extends Buffer
         }
     }
 
-    private int getNameOffset(Line line)
-    {
+    private int getNameOffset(Line line) {
         if (line != null) {
             Matcher matcher;
             if (usingNativeFormat)
@@ -1994,13 +1938,11 @@ public final class DirectoryBuffer extends Buffer
         return 0;
     }
 
-    private int getNameOffset()
-    {
+    private int getNameOffset() {
         return getNameOffset(getFirstLine());
     }
 
-    private int getFileSizeEndOffset()
-    {
+    private int getFileSizeEndOffset() {
         Line line = getFirstLine();
         if (line != null) {
             final String text = line.getText();
@@ -2018,8 +1960,7 @@ public final class DirectoryBuffer extends Buffer
         return -1; // Error!
     }
 
-    private Line findName(String name)
-    {
+    private Line findName(String name) {
         if (name != null) {
             if (Platform.isPlatformWindows()) {
                 // Case-insensitive filesystem.
@@ -2041,8 +1982,7 @@ public final class DirectoryBuffer extends Buffer
         return null;
     }
 
-    public final String toString()
-    {
+    public final String toString() {
         File file = getFile();
         if (file.isRemote()) {
             StringBuilder sb = new StringBuilder(file.canonicalPath());
@@ -2065,39 +2005,31 @@ public final class DirectoryBuffer extends Buffer
     }
 
     // For the buffer list.
-    public final Icon getIcon()
-    {
+    public final Icon getIcon() {
         return Utilities.getIconFromFile("directory");
     }
 }
 
-class DirectoryHistory
-{
+class DirectoryHistory {
     private List<DirectoryHistoryEntry> v = new ArrayList<DirectoryHistoryEntry>();
     private int index = -1;
 
-    DirectoryHistory()
-    {
-    }
+    DirectoryHistory() {}
 
-    boolean atEnd()
-    {
+    boolean atEnd() {
         return index == -1;
     }
 
-    void truncate()
-    {
+    void truncate() {
         if (index != -1)
             v.subList(index, v.size()).clear();
     }
 
-    void append(File file, String name, int offset)
-    {
+    void append(File file, String name, int offset) {
         v.add(new DirectoryHistoryEntry(file, name, offset));
     }
 
-    DirectoryHistoryEntry getPrevious()
-    {
+    DirectoryHistoryEntry getPrevious() {
         if (v.size() == 0)
             return null;
         if (index == -1)
@@ -2107,31 +2039,27 @@ class DirectoryHistory
         return null;
     }
 
-    DirectoryHistoryEntry getNext()
-    {
+    DirectoryHistoryEntry getNext() {
         if (v.size() == 0)
             return null;
         if (index == -1)
             return null;
-        if (index < v.size()-1)
+        if (index < v.size() - 1)
             return v.get(++index);
         return null;
     }
 
-    public void reset()
-    {
+    public void reset() {
         index = -1;
     }
 }
 
-class DirectoryHistoryEntry
-{
+class DirectoryHistoryEntry {
     File file;
     String name;
     int offset;
 
-    DirectoryHistoryEntry(File file, String name, int offset)
-    {
+    DirectoryHistoryEntry(File file, String name, int offset) {
         this.file = file;
         this.name = name;
         this.offset = offset;

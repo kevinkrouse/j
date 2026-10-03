@@ -34,44 +34,42 @@ import org.armedbear.j.Position;
 import org.armedbear.j.StringPosition;
 import org.armedbear.j.util.Utilities;
 
-public final class PHPFormatter extends Formatter implements Constants
-{
-    private static final int PHP_STATE_IDENTIFIER           = STATE_LAST +  1;
-    private static final int PHP_STATE_OPERATOR             = STATE_LAST +  2;
-    private static final int PHP_STATE_BRACE                = STATE_LAST +  3;
-    private static final int PHP_STATE_NUMBER               = STATE_LAST +  4;
-    private static final int PHP_STATE_HEXNUMBER            = STATE_LAST +  5;
-    private static final int PHP_STATE_IGNORE               = STATE_LAST +  6;
-    private static final int PHP_STATE_KEYWORD              = STATE_LAST +  7;
-    private static final int PHP_STATE_TAG_STARTING         = STATE_LAST +  8;
-    private static final int PHP_STATE_TAG                  = STATE_LAST +  9;
-    private static final int PHP_STATE_ATTNAME              = STATE_LAST + 10;
-    private static final int PHP_STATE_EQUALS               = STATE_LAST + 11;
-    private static final int PHP_STATE_ATTVALUE             = STATE_LAST + 12;
-    private static final int PHP_STATE_ATTVALUE_QUOTE       = STATE_LAST + 13;
+public final class PHPFormatter extends Formatter implements Constants {
+    private static final int PHP_STATE_IDENTIFIER = STATE_LAST + 1;
+    private static final int PHP_STATE_OPERATOR = STATE_LAST + 2;
+    private static final int PHP_STATE_BRACE = STATE_LAST + 3;
+    private static final int PHP_STATE_NUMBER = STATE_LAST + 4;
+    private static final int PHP_STATE_HEXNUMBER = STATE_LAST + 5;
+    private static final int PHP_STATE_IGNORE = STATE_LAST + 6;
+    private static final int PHP_STATE_KEYWORD = STATE_LAST + 7;
+    private static final int PHP_STATE_TAG_STARTING = STATE_LAST + 8;
+    private static final int PHP_STATE_TAG = STATE_LAST + 9;
+    private static final int PHP_STATE_ATTNAME = STATE_LAST + 10;
+    private static final int PHP_STATE_EQUALS = STATE_LAST + 11;
+    private static final int PHP_STATE_ATTVALUE = STATE_LAST + 12;
+    private static final int PHP_STATE_ATTVALUE_QUOTE = STATE_LAST + 13;
     private static final int PHP_STATE_ATTVALUE_SINGLEQUOTE = STATE_LAST + 14;
-    private static final int PHP_STATE_TAG_ENDING           = STATE_LAST + 15;
-    private static final int PHP_STATE_HTML_COMMENT         = STATE_LAST + 16;
+    private static final int PHP_STATE_TAG_ENDING = STATE_LAST + 15;
+    private static final int PHP_STATE_HTML_COMMENT = STATE_LAST + 16;
 
-    private static final int PHP_FORMAT_TEXT       =  0;
-    private static final int PHP_FORMAT_COMMENT    =  1;
-    private static final int PHP_FORMAT_STRING     =  2;
-    private static final int PHP_FORMAT_IDENTIFIER =  3;
-    private static final int PHP_FORMAT_KEYWORD    =  4;
-    private static final int PHP_FORMAT_FUNCTION   =  5;
-    private static final int PHP_FORMAT_OPERATOR   =  6;
-    private static final int PHP_FORMAT_BRACE      =  7;
-    private static final int PHP_FORMAT_NUMBER     =  8;
-    private static final int PHP_FORMAT_VAR        =  9;
-    private static final int PHP_FORMAT_DELIMITER  = 10;
-    private static final int PHP_FORMAT_TAG        = 11;
-    private static final int PHP_FORMAT_ATTRIBUTE  = 12;
-    private static final int PHP_FORMAT_EQUALS     = 13;
+    private static final int PHP_FORMAT_TEXT = 0;
+    private static final int PHP_FORMAT_COMMENT = 1;
+    private static final int PHP_FORMAT_STRING = 2;
+    private static final int PHP_FORMAT_IDENTIFIER = 3;
+    private static final int PHP_FORMAT_KEYWORD = 4;
+    private static final int PHP_FORMAT_FUNCTION = 5;
+    private static final int PHP_FORMAT_OPERATOR = 6;
+    private static final int PHP_FORMAT_BRACE = 7;
+    private static final int PHP_FORMAT_NUMBER = 8;
+    private static final int PHP_FORMAT_VAR = 9;
+    private static final int PHP_FORMAT_DELIMITER = 10;
+    private static final int PHP_FORMAT_TAG = 11;
+    private static final int PHP_FORMAT_ATTRIBUTE = 12;
+    private static final int PHP_FORMAT_EQUALS = 13;
 
     private static PHPMode mode;
 
-    public PHPFormatter(Buffer buffer)
-    {
+    public PHPFormatter(Buffer buffer) {
         this.buffer = buffer;
         if (mode == null)
             mode = (PHPMode) PHPMode.getMode();
@@ -79,13 +77,11 @@ public final class PHPFormatter extends Formatter implements Constants
 
     private int tokenBegin = 0;
 
-    private final void endToken(StringPosition pos, int state)
-    {
+    private final void endToken(StringPosition pos, int state) {
         endToken(pos.getText(), pos.getOffset(), state);
     }
 
-    private void endToken(String text, int tokenEnd, int state)
-    {
+    private void endToken(String text, int tokenEnd, int state) {
         if (tokenEnd - tokenBegin > 0) {
             int format;
             switch (state) {
@@ -144,8 +140,7 @@ public final class PHPFormatter extends Formatter implements Constants
         }
     }
 
-    private void parseLine(Line line)
-    {
+    private void parseLine(Line line) {
         String text;
         if (Editor.tabsAreVisible())
             text = Utilities.makeTabsVisible(line.getText(), buffer.getTabWidth());
@@ -190,13 +185,11 @@ public final class PHPFormatter extends Formatter implements Constants
         }
     }
 
-    private final void parseLinePHP(StringPosition pos, int state)
-    {
+    private final void parseLinePHP(StringPosition pos, int state) {
         parseLinePHP(pos, state, PHP_STATE_IGNORE);
     }
 
-    private void parseLinePHP(StringPosition pos, int state, int htmlState)
-    {
+    private void parseLinePHP(StringPosition pos, int state, int htmlState) {
         while (!pos.atEnd()) {
             char c = pos.getChar();
             if (c == '\\') {
@@ -387,8 +380,7 @@ public final class PHPFormatter extends Formatter implements Constants
         }
     }
 
-    private void parseLineHTML(StringPosition pos, int state)
-    {
+    private void parseLineHTML(StringPosition pos, int state) {
         if (state == 0)
             state = PHP_STATE_IGNORE;
         while (!pos.atEnd()) {
@@ -535,8 +527,7 @@ public final class PHPFormatter extends Formatter implements Constants
         endToken(pos, state);
     }
 
-    private void checkLastSegment()
-    {
+    private void checkLastSegment() {
         final LineSegment segment = getLastSegment();
         if (segment != null) {
             if (isVar(segment.getText()))
@@ -546,8 +537,7 @@ public final class PHPFormatter extends Formatter implements Constants
         }
     }
 
-    public LineSegmentList formatLine(Line line)
-    {
+    public LineSegmentList formatLine(Line line) {
         clearSegmentList();
         if (line == null) {
             addSegment("", PHP_FORMAT_TEXT);
@@ -557,8 +547,7 @@ public final class PHPFormatter extends Formatter implements Constants
         return segmentList;
     }
 
-    public boolean parseBuffer()
-    {
+    public boolean parseBuffer() {
         Line line = buffer.getFirstLine();
         if (line == null)
             return false;
@@ -568,15 +557,21 @@ public final class PHPFormatter extends Formatter implements Constants
             line.setFlags(newFlags);
             changed = true;
         }
-        changed = parseBufferHTML(new Position(line, 0), PHP_STATE_IGNORE,
-                                  changed);
+        changed = parseBufferHTML(
+            new Position(line, 0),
+            PHP_STATE_IGNORE,
+            changed
+        );
         buffer.setNeedsParsing(false);
         return changed;
     }
 
-    private boolean parseBufferPHP(Position pos, int state, int htmlState,
-        boolean changed)
-    {
+    private boolean parseBufferPHP(
+        Position pos,
+        int state,
+        int htmlState,
+        boolean changed
+    ) {
         char quoteChar = '\0';
         while (!pos.atEnd()) {
             char c = pos.getChar();
@@ -657,8 +652,7 @@ public final class PHPFormatter extends Formatter implements Constants
         return changed;
     }
 
-    private boolean parseBufferHTML(Position pos, int state, boolean changed)
-    {
+    private boolean parseBufferHTML(Position pos, int state, boolean changed) {
         while (!pos.atEnd()) {
             char c = pos.getChar();
             if (c == EOL) {
@@ -729,8 +723,12 @@ public final class PHPFormatter extends Formatter implements Constants
                             state = PHP_STATE_ATTVALUE_SINGLEQUOTE;
                         else if (pos.lookingAt("<?php")) {
                             pos.skip(5);
-                            changed = parseBufferPHP(pos, STATE_NEUTRAL,
-                                PHP_STATE_ATTNAME, changed);
+                            changed = parseBufferPHP(
+                                pos,
+                                STATE_NEUTRAL,
+                                PHP_STATE_ATTNAME,
+                                changed
+                            );
                             state = PHP_STATE_ATTNAME;
                             continue;
                         } else
@@ -749,8 +747,12 @@ public final class PHPFormatter extends Formatter implements Constants
                 case PHP_STATE_ATTVALUE_QUOTE:
                     if (pos.lookingAt("<?php")) {
                         pos.skip(5);
-                        changed = parseBufferPHP(pos, STATE_NEUTRAL,
-                            PHP_STATE_ATTVALUE_QUOTE, changed);
+                        changed = parseBufferPHP(
+                            pos,
+                            STATE_NEUTRAL,
+                            PHP_STATE_ATTVALUE_QUOTE,
+                            changed
+                        );
                     } else {
                         pos.next();
                         if (c == '"')
@@ -760,8 +762,12 @@ public final class PHPFormatter extends Formatter implements Constants
                 case PHP_STATE_ATTVALUE_SINGLEQUOTE:
                     if (pos.lookingAt("<?php")) {
                         pos.skip(5);
-                        changed = parseBufferPHP(pos, STATE_NEUTRAL,
-                            PHP_STATE_ATTVALUE_SINGLEQUOTE, changed);
+                        changed = parseBufferPHP(
+                            pos,
+                            STATE_NEUTRAL,
+                            PHP_STATE_ATTVALUE_SINGLEQUOTE,
+                            changed
+                        );
                     } else {
                         pos.next();
                         if (c == '\'')
@@ -776,35 +782,29 @@ public final class PHPFormatter extends Formatter implements Constants
         return changed;
     }
 
-    private static final int makeFlags(int state, int htmlState)
-    {
+    private static final int makeFlags(int state, int htmlState) {
         return (htmlState << 8) + state;
     }
 
-    public static final int getState(int flags)
-    {
+    public static final int getState(int flags) {
         return flags & 0xff;
     }
 
-    private static final int getHtmlState(int flags)
-    {
+    private static final int getHtmlState(int flags) {
         return (flags & 0xff00) >> 8;
     }
 
-    private final boolean isVar(String s)
-    {
+    private final boolean isVar(String s) {
         return s.length() > 0 && s.charAt(0) == '$';
     }
 
     private static final String opchars = "!&|<>=+/*-";
 
-    private static final boolean isOperatorChar(char c)
-    {
+    private static final boolean isOperatorChar(char c) {
         return opchars.indexOf(c) >= 0;
     }
 
-    public FormatTable getFormatTable()
-    {
+    public FormatTable getFormatTable() {
         if (formatTable == null) {
             formatTable = new FormatTable("PHPMode");
             formatTable.addEntryFromPrefs(PHP_FORMAT_TEXT, "text");

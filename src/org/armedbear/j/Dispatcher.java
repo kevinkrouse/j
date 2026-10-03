@@ -20,10 +20,9 @@
 
 package org.armedbear.j;
 
-import org.armedbear.j.extension.Extensions;
-
 import java.awt.AWTEvent;
 import java.awt.Cursor;
+import java.awt.Dimension;
 import java.awt.GraphicsEnvironment;
 import java.awt.Image;
 import java.awt.Point;
@@ -49,23 +48,22 @@ import java.awt.event.ActionListener;
 import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
-import java.awt.Dimension;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.awt.event.MouseMotionListener;
 import java.net.URL;
 import java.util.List;
-import javax.swing.JPopupMenu;
 import javax.swing.ImageIcon;
+import javax.swing.JPopupMenu;
 import javax.swing.SwingUtilities;
-import org.armedbear.j.util.Utilities;
 import javax.swing.ToolTipManager;
 import javax.swing.undo.CompoundEdit;
+import org.armedbear.j.extension.Extensions;
+import org.armedbear.j.util.Utilities;
 
 public final class Dispatcher implements Constants, KeyListener, MouseListener,
     MouseMotionListener, ActionListener, DragGestureListener, DragSourceListener,
-    DropTargetListener
-{
+    DropTargetListener {
     // For IdleThread.run.
     private static long lastEventMillis = System.currentTimeMillis();
 
@@ -95,21 +93,22 @@ public final class Dispatcher implements Constants, KeyListener, MouseListener,
     private static boolean isLineRegion;
 
     // Cursors for drag/drop.
-    private static final int CURSOR_NO   = 0;
+    private static final int CURSOR_NO = 0;
     private static final int CURSOR_MOVE = 1;
     private static final int CURSOR_COPY = 2;
     private static final Cursor[] cursors = new Cursor[3];
 
-    public Dispatcher(Editor editor)
-    {
+    public Dispatcher(Editor editor) {
         this.editor = editor;
         display = editor.getDisplay();
 
-
         if (!GraphicsEnvironment.isHeadless()) {
             dragSource = DragSource.getDefaultDragSource();
-            dragSource.createDefaultDragGestureRecognizer(display,
-                DnDConstants.ACTION_COPY_OR_MOVE, this);
+            dragSource.createDefaultDragGestureRecognizer(
+                display,
+                DnDConstants.ACTION_COPY_OR_MOVE,
+                this
+            );
         }
     }
 
@@ -119,34 +118,28 @@ public final class Dispatcher implements Constants, KeyListener, MouseListener,
      * An editor with no frame (headless) is always focused: there is no other
      * component that could hold the focus instead.
      */
-    private boolean displayHasFocus()
-    {
+    private boolean displayHasFocus() {
         final Frame frame = editor.getFrame();
         return frame == null || frame.getFocusedComponent() == display;
     }
 
-    public final AWTEvent getLastEvent()
-    {
+    public final AWTEvent getLastEvent() {
         return lastEvent;
     }
 
-    public static synchronized final long getLastEventMillis()
-    {
+    public static synchronized final long getLastEventMillis() {
         return lastEventMillis;
     }
 
-    private static synchronized final void setLastEventMillis(long when)
-    {
+    private static synchronized final void setLastEventMillis(long when) {
         lastEventMillis = when;
     }
 
-    public  void setEnabled(boolean enabled)
-    {
+    public void setEnabled(boolean enabled) {
         this.enabled = enabled;
     }
 
-    private void dispatch(AWTEvent e)
-    {
+    private void dispatch(AWTEvent e) {
         // Ignore events that don't come from the normal event queue thread.
         if (eventQueueThread == null)
             eventQueueThread = Thread.currentThread();
@@ -161,21 +154,21 @@ public final class Dispatcher implements Constants, KeyListener, MouseListener,
 
         switch (e.getID()) {
             case KeyEvent.KEY_PRESSED:
-                handled = dispatchKeyPressed((KeyEvent)e);
+                handled = dispatchKeyPressed((KeyEvent) e);
                 break;
             case KeyEvent.KEY_TYPED:
-                handled = dispatchKeyTyped((KeyEvent)e);
+                handled = dispatchKeyTyped((KeyEvent) e);
                 break;
             case KeyEvent.KEY_RELEASED:
                 break;
             case MouseEvent.MOUSE_PRESSED:
-                handled = dispatchMousePressed((MouseEvent)e);
+                handled = dispatchMousePressed((MouseEvent) e);
                 break;
             case MouseEvent.MOUSE_DRAGGED:
-                handled = dispatchMouseDragged((MouseEvent)e);
+                handled = dispatchMouseDragged((MouseEvent) e);
                 break;
             case ActionEvent.ACTION_PERFORMED:
-                handled = dispatchActionPerformed((ActionEvent)e);
+                handled = dispatchActionPerformed((ActionEvent) e);
                 break;
         }
 
@@ -185,8 +178,7 @@ public final class Dispatcher implements Constants, KeyListener, MouseListener,
             setLastEventMillis(System.currentTimeMillis());
     }
 
-    public void eventHandled()
-    {
+    public void eventHandled() {
         final Buffer buffer = editor.getBuffer();
         if (buffer.needsRenumbering())
             buffer.renumber();
@@ -225,8 +217,7 @@ public final class Dispatcher implements Constants, KeyListener, MouseListener,
         setLastEventMillis(System.currentTimeMillis());
     }
 
-    private boolean dispatchKeyPressed(KeyEvent e)
-    {
+    private boolean dispatchKeyPressed(KeyEvent e) {
         if (editor.getStatusBar() != null)
             editor.getStatusBar().setText(null);
 
@@ -239,8 +230,13 @@ public final class Dispatcher implements Constants, KeyListener, MouseListener,
         int keycode = e.getKeyCode();
 
         // Ignore modifier keystrokes.
-        if (keycode == KeyEvent.VK_SHIFT || keycode == KeyEvent.VK_CONTROL ||
-            keycode == KeyEvent.VK_ALT || keycode == KeyEvent.VK_META)
+        if (
+            keycode == KeyEvent.VK_SHIFT
+                || keycode == KeyEvent.VK_CONTROL
+                ||
+                keycode == KeyEvent.VK_ALT
+                || keycode == KeyEvent.VK_META
+        )
             return false;
 
         int modifiers = Utilities.keyModifiers(e);
@@ -260,8 +256,14 @@ public final class Dispatcher implements Constants, KeyListener, MouseListener,
         if (DEBUG_KEY_PRESSED)
             Log.debug("modifiers = 0x" + Integer.toString(modifiers, 16));
 
-        boolean handled = editor.handleJEvent(new JEvent(JEvent.KEY_PRESSED,
-                                                         keycode, c, modifiers));
+        boolean handled = editor.handleJEvent(
+            new JEvent(
+                JEvent.KEY_PRESSED,
+                keycode,
+                c,
+                modifiers
+            )
+        );
 
         if (handled) {
             ignoreKeyTyped = true;
@@ -277,8 +279,7 @@ public final class Dispatcher implements Constants, KeyListener, MouseListener,
         return handled;
     }
 
-    private boolean dispatchKeyTyped(KeyEvent e)
-    {
+    private boolean dispatchKeyTyped(KeyEvent e) {
         if (Editor.isMenuSelected)
             return false;
 
@@ -294,8 +295,14 @@ public final class Dispatcher implements Constants, KeyListener, MouseListener,
 
         char c = e.getKeyChar();
 
-        boolean handled = editor.handleJEvent(new JEvent(JEvent.KEY_TYPED,
-                                                         0, c, 0));
+        boolean handled = editor.handleJEvent(
+            new JEvent(
+                JEvent.KEY_TYPED,
+                0,
+                c,
+                0
+            )
+        );
 
         Buffer buffer = editor.getBuffer();
 
@@ -327,8 +334,7 @@ public final class Dispatcher implements Constants, KeyListener, MouseListener,
         return handled;
     }
 
-    public void keyPressed(KeyEvent e)
-    {
+    public void keyPressed(KeyEvent e) {
         // Force tool tip to be hidden.
         ToolTipManager.sharedInstance().setEnabled(false);
         ToolTipManager.sharedInstance().setEnabled(true);
@@ -353,8 +359,7 @@ public final class Dispatcher implements Constants, KeyListener, MouseListener,
         }
     }
 
-    public void keyReleased(KeyEvent e)
-    {
+    public void keyReleased(KeyEvent e) {
         e.consume();
         if (e.getKeyCode() == KeyEvent.VK_CONTROL) {
             hoverTimer.stop();
@@ -380,8 +385,7 @@ public final class Dispatcher implements Constants, KeyListener, MouseListener,
         lastKeyEvent = KeyEvent.KEY_RELEASED;
     }
 
-    public void keyTyped(KeyEvent e)
-    {
+    public void keyTyped(KeyEvent e) {
         if (!displayHasFocus())
             return;
 
@@ -389,8 +393,7 @@ public final class Dispatcher implements Constants, KeyListener, MouseListener,
         dispatch(e);
     }
 
-    public void mouseClicked(MouseEvent e)
-    {
+    public void mouseClicked(MouseEvent e) {
         final int modifiers = Utilities.keyModifiers(e);
         final int button = e.getButton();
         if (button != MouseEvent.BUTTON1 || modifiers != 0)
@@ -414,8 +417,7 @@ public final class Dispatcher implements Constants, KeyListener, MouseListener,
 
     private boolean dragTextStarting;
 
-    public void mousePressed(MouseEvent e)
-    {
+    public void mousePressed(MouseEvent e) {
         if (editor.getFocusedComponent() == editor.getLocationBarTextField()) {
             TextFieldHandler handler = editor.getLocationBarTextField().getHandler();
             if (handler instanceof IncrementalFindTextFieldHandler) {
@@ -466,28 +468,23 @@ public final class Dispatcher implements Constants, KeyListener, MouseListener,
         dispatch(e);
     }
 
-    public void mouseReleased(MouseEvent e)
-    {
-    }
+    public void mouseReleased(MouseEvent e) {}
 
     public void mouseEntered(MouseEvent e) {}
 
-    public void mouseExited(MouseEvent e)
-    {
+    public void mouseExited(MouseEvent e) {
         lastMousePoint = null;
         forgetLink();
         hideLink();
     }
 
     // The buffer may change before Ctrl is held again.
-    private void forgetLink()
-    {
+    private void forgetLink() {
         hoverAskedLine = null;
         hoverAnswer = null;
     }
 
-    private boolean dispatchMousePressed(MouseEvent e)
-    {
+    private boolean dispatchMousePressed(MouseEvent e) {
         editor.setFocusToDisplay();
 
         enabled = true;
@@ -561,12 +558,17 @@ public final class Dispatcher implements Constants, KeyListener, MouseListener,
         }
         if (keycode == 0)
             return false;
-        return editor.handleJEvent(new JEvent(JEvent.MOUSE_PRESSED,
-                                              keycode, (char) 0, modifiers));
+        return editor.handleJEvent(
+            new JEvent(
+                JEvent.MOUSE_PRESSED,
+                keycode,
+                (char) 0,
+                modifiers
+            )
+        );
     }
 
-    public void mouseDragged(MouseEvent e)
-    {
+    public void mouseDragged(MouseEvent e) {
         dispatch(e);
     }
 
@@ -590,13 +592,16 @@ public final class Dispatcher implements Constants, KeyListener, MouseListener,
     private int hoverAskedOffset = -1;
     private TextLink hoverAnswer;
 
-    private TextLink linkAt(Position pos)
-    {
+    private TextLink linkAt(Position pos) {
         final Line line = pos.getLine();
         final int offset = pos.getOffset();
-        if (line == hoverAskedLine && (offset == hoverAskedOffset
-                || hoverAnswer != null && hoverAnswer.getBegin() <= offset
-                   && offset < hoverAnswer.getEnd()))
+        if (
+            line == hoverAskedLine
+                && (offset == hoverAskedOffset
+                    || hoverAnswer != null
+                        && hoverAnswer.getBegin() <= offset
+                        && offset < hoverAnswer.getEnd())
+        )
             return hoverAnswer;
         hoverAskedLine = line;
         hoverAskedOffset = offset;
@@ -609,8 +614,7 @@ public final class Dispatcher implements Constants, KeyListener, MouseListener,
      * does under Ctrl, with a hand for the mouse. Returns whether there was
      * one.
      */
-    private boolean showLinkAt(Point point)
-    {
+    private boolean showLinkAt(Point point) {
         final Position pos = point != null ? display.positionFromPoint(point) : null;
         final TextLink link = pos != null ? linkAt(pos) : null;
         if (link == null || link.getTarget() == null) {
@@ -622,16 +626,14 @@ public final class Dispatcher implements Constants, KeyListener, MouseListener,
         return true;
     }
 
-    private void hideLink()
-    {
+    private void hideLink() {
         if (display.getHoverLine() != null) {
             display.setHoverLink(null, null);
             editor.setDefaultCursor();
         }
     }
 
-    public void mouseMoved(MouseEvent e)
-    {
+    public void mouseMoved(MouseEvent e) {
         lastMousePoint = e.getPoint();
         if (e.isControlDown()) {
             if (showLinkAt(lastMousePoint))
@@ -655,8 +657,7 @@ public final class Dispatcher implements Constants, KeyListener, MouseListener,
             editor.setCursor(buffer.getDefaultCursor(pos));
     }
 
-    private boolean dispatchMouseDragged(MouseEvent e)
-    {
+    private boolean dispatchMouseDragged(MouseEvent e) {
         if (editor.getModeId() == IMAGE_MODE)
             return false;
         final Position dot = editor.getDot();
@@ -668,8 +669,10 @@ public final class Dispatcher implements Constants, KeyListener, MouseListener,
         final int ex = e.getModifiersEx();
         if ((ex & InputEvent.BUTTON1_DOWN_MASK) == 0)
             return false;
-        if ((ex & (InputEvent.BUTTON2_DOWN_MASK
-                   | InputEvent.BUTTON3_DOWN_MASK)) != 0)
+        if (
+            (ex & (InputEvent.BUTTON2_DOWN_MASK
+                | InputEvent.BUTTON3_DOWN_MASK)) != 0
+        )
             return false;
         if (!Utilities.isUnmodified(e))
             return false;
@@ -730,22 +733,19 @@ public final class Dispatcher implements Constants, KeyListener, MouseListener,
         return true;
     }
 
-    private boolean dispatchActionPerformed(ActionEvent event)
-    {
+    private boolean dispatchActionPerformed(ActionEvent event) {
         editor.executeCommand(event.getActionCommand());
         return true;
     }
 
-    public void actionPerformed(final ActionEvent e)
-    {
+    public void actionPerformed(final ActionEvent e) {
         Runnable r = () -> {
             dispatch(e);
         };
         SwingUtilities.invokeLater(r);
     }
 
-    public void dragEnter(DropTargetDragEvent event)
-    {
+    public void dragEnter(DropTargetDragEvent event) {
         if (editor.getBuffer().isReadOnly()) {
             event.rejectDrag();
         } else {
@@ -755,15 +755,13 @@ public final class Dispatcher implements Constants, KeyListener, MouseListener,
         }
     }
 
-    public void dragExit(DropTargetEvent e)
-    {
+    public void dragExit(DropTargetEvent e) {
         display.setDragCaretPos(null);
         if (Platform.isPlatformUnix() && dragSourceContext != null)
             dragSourceContext.setCursor(getDragCursor(CURSOR_NO));
     }
 
-    public void dragOver(DropTargetDragEvent event)
-    {
+    public void dragOver(DropTargetDragEvent event) {
         if (event.isDataFlavorSupported(DataFlavor.stringFlavor)) {
             Point pt = event.getLocation();
 
@@ -804,8 +802,7 @@ public final class Dispatcher implements Constants, KeyListener, MouseListener,
         }
     }
 
-    public void drop(DropTargetDropEvent event)
-    {
+    public void drop(DropTargetDropEvent event) {
         Transferable t = event.getTransferable();
         if (t.isDataFlavorSupported(DataFlavor.javaFileListFlavor))
             acceptFileDrop(event, t);
@@ -815,8 +812,7 @@ public final class Dispatcher implements Constants, KeyListener, MouseListener,
             event.rejectDrop();
     }
 
-    private void acceptFileDrop(DropTargetDropEvent event, Transferable t)
-    {
+    private void acceptFileDrop(DropTargetDropEvent event, Transferable t) {
         event.acceptDrop(DnDConstants.ACTION_LINK);
         try {
             @SuppressWarnings("unchecked")
@@ -840,12 +836,14 @@ public final class Dispatcher implements Constants, KeyListener, MouseListener,
         editor.updateDisplay();
     }
 
-    private void acceptTextDrop(DropTargetDropEvent event, Transferable t)
-    {
+    private void acceptTextDrop(DropTargetDropEvent event, Transferable t) {
         final int dropAction = event.getDropAction(); // copy = 1, move = 2
-        if (dropAction != DnDConstants.ACTION_COPY &&
-            dropAction != DnDConstants.ACTION_MOVE) {
-             // Not copy or move.
+        if (
+            dropAction != DnDConstants.ACTION_COPY
+                &&
+                dropAction != DnDConstants.ACTION_MOVE
+        ) {
+            // Not copy or move.
             event.rejectDrop();
             return;
         }
@@ -926,8 +924,7 @@ public final class Dispatcher implements Constants, KeyListener, MouseListener,
         editor.repaint();
     }
 
-    private void moveCaretToDropPoint(Point point)
-    {
+    private void moveCaretToDropPoint(Point point) {
         editor.addUndo(SimpleEdit.MOVE);
         editor.setMark(null);
         display.moveCaretToPoint(point);
@@ -935,14 +932,12 @@ public final class Dispatcher implements Constants, KeyListener, MouseListener,
             display.moveCaretToDotCol();
     }
 
-    public void dropActionChanged(DropTargetDragEvent event)
-    {
+    public void dropActionChanged(DropTargetDragEvent event) {
         if (Platform.isPlatformUnix() && dragSourceContext != null)
             dragSourceContext.setCursor(getCursorForAction(event.getDropAction()));
     }
 
-    public void dragGestureRecognized(DragGestureEvent event)
-    {
+    public void dragGestureRecognized(DragGestureEvent event) {
         if (!Editor.preferences().getBooleanProperty(Property.ENABLE_DRAG_TEXT))
             return;
         if (editor.getMark() != null) {
@@ -964,8 +959,7 @@ public final class Dispatcher implements Constants, KeyListener, MouseListener,
         }
     }
 
-    public void dragDropEnd(DragSourceDropEvent event)
-    {
+    public void dragDropEnd(DragSourceDropEvent event) {
         if (dragTextRegion != null && !editor.getBuffer().isReadOnly())
             if (event.getDropAction() == DnDConstants.ACTION_MOVE)
                 editor.deleteRegion();
@@ -976,20 +970,16 @@ public final class Dispatcher implements Constants, KeyListener, MouseListener,
         display.repaintChangedLines();
     }
 
-    public void dragEnter(DragSourceDragEvent event)
-    {
+    public void dragEnter(DragSourceDragEvent event) {
         if (Platform.isPlatformUnix()) {
             DragSourceContext dsc = event.getDragSourceContext();
             dsc.setCursor(getCursorForAction(event.getDropAction()));
         }
     }
 
-    public void dragOver(DragSourceDragEvent event)
-    {
-    }
+    public void dragOver(DragSourceDragEvent event) {}
 
-    public void dropActionChanged(DragSourceDragEvent event)
-    {
+    public void dropActionChanged(DragSourceDragEvent event) {
         if (Platform.isPlatformUnix()) {
             DragSourceContext dsc = event.getDragSourceContext();
             int dropAction = event.getDropAction();
@@ -1000,8 +990,7 @@ public final class Dispatcher implements Constants, KeyListener, MouseListener,
         }
     }
 
-    public void dragExit(DragSourceEvent event)
-    {
+    public void dragExit(DragSourceEvent event) {
         DragSourceContext dsc = event.getDragSourceContext();
         if (Platform.isPlatformUnix())
             dsc.setCursor(getDragCursor(CURSOR_NO));
@@ -1009,8 +998,7 @@ public final class Dispatcher implements Constants, KeyListener, MouseListener,
     }
 
     // Only used on Unix.
-    public static Cursor getCursorForAction(int action)
-    {
+    public static Cursor getCursorForAction(int action) {
         int index;
         if (action == DnDConstants.ACTION_COPY)
             index = CURSOR_COPY;
@@ -1022,8 +1010,7 @@ public final class Dispatcher implements Constants, KeyListener, MouseListener,
     }
 
     // Only used on Unix.
-    private static Cursor getDragCursor(int index)
-    {
+    private static Cursor getDragCursor(int index) {
         if (cursors[index] != null)
             return cursors[index];
         // Need to create cursor.
@@ -1054,8 +1041,11 @@ public final class Dispatcher implements Constants, KeyListener, MouseListener,
                 ImageIcon icon =
                     Utilities.getIconFromFile(iconName, size.width);
                 if (icon != null)
-                    cursor = toolkit.createCustomCursor(icon.getImage(),
-                                                        new Point(1, 1), name);
+                    cursor = toolkit.createCustomCursor(
+                        icon.getImage(),
+                        new Point(1, 1),
+                        name
+                    );
             }
         }
         catch (Throwable t) {

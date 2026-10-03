@@ -20,33 +20,31 @@
 
 package org.armedbear.j.mode.compilation;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.lang.StringBuilder;
+import java.util.ArrayList;
+import javax.swing.SwingUtilities;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.BufferIterator;
 import org.armedbear.j.Constants;
 import org.armedbear.j.Editor;
 import org.armedbear.j.EditorIterator;
-import org.armedbear.j.extension.EvalException;
-import org.armedbear.j.extension.EvalRequest;
-import org.armedbear.j.extension.EvalResult;
-import org.armedbear.j.extension.Extensions;
-import java.lang.StringBuilder;
 import org.armedbear.j.File;
 import org.armedbear.j.Log;
 import org.armedbear.j.Platform;
 import org.armedbear.j.Position;
+import org.armedbear.j.extension.EvalException;
+import org.armedbear.j.extension.EvalRequest;
+import org.armedbear.j.extension.EvalResult;
+import org.armedbear.j.extension.Extensions;
 import org.armedbear.j.util.ReaderThread;
 import org.armedbear.j.util.Utilities;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.util.ArrayList;
-import javax.swing.SwingUtilities;
-
 public final class CompilationBuffer extends CompilationErrorBuffer
-    implements Runnable
-{
+    implements Runnable {
     private String command;
     private String expandedCommand;
     private Position posEndOfBuffer;
@@ -55,8 +53,7 @@ public final class CompilationBuffer extends CompilationErrorBuffer
     private int exitValue;
     private File exitValueFile;
 
-    public CompilationBuffer(String command, File directory)
-    {
+    public CompilationBuffer(String command, File directory) {
         setCommand(command);
         currentDir = directory;
         mode = CompilationMode.getMode();
@@ -78,24 +75,20 @@ public final class CompilationBuffer extends CompilationErrorBuffer
         posEndOfBuffer = new Position(getFirstLine(), 0);
     }
 
-    public synchronized final void initialize()
-    {
+    public synchronized final void initialize() {
         setTitle(expandedCommand = expandCommand(command));
         setInitialized(true);
     }
 
-    public final void setCommand(String command)
-    {
+    public final void setCommand(String command) {
         this.command = command;
     }
 
-    public final int exitValue()
-    {
+    public final int exitValue() {
         return exitValue;
     }
 
-    public void empty()
-    {
+    public void empty() {
         try {
             lockWrite();
         }
@@ -124,17 +117,18 @@ public final class CompilationBuffer extends CompilationErrorBuffer
         }
     }
 
-    public void run()
-    {
+    public void run() {
         long start = System.currentTimeMillis();
         if (expandedCommand.startsWith("(")) {
             // A form: the client redirects the runtime's standard output for us,
             // which is what the with-output-to-string wrapper used to do here.
             try {
-                EvalResult result = Extensions.session().evalSync(
-                    EvalRequest.of(expandedCommand)
-                               .origin("compile")
-                               .captureOutput(true));
+                EvalResult result = Extensions.session()
+                    .evalSync(
+                        EvalRequest.of(expandedCommand)
+                            .origin("compile")
+                            .captureOutput(true)
+                    );
                 appendLater(result.display());
             }
             catch (EvalException e) {
@@ -179,8 +173,7 @@ public final class CompilationBuffer extends CompilationErrorBuffer
         Editor.getTagFileManager().setEnabled(true);
     }
 
-    private void startProcess()
-    {
+    private void startProcess() {
         process = null;
         exitValue = -1;
         try {
@@ -209,12 +202,12 @@ public final class CompilationBuffer extends CompilationErrorBuffer
                     sb.append(exitValueFile.canonicalPath());
                     sb.append(')');
                     final String cmd = sb.toString();
-                    String[] cmdarray = {Utilities.jptyPath(), "/bin/sh", "-c", cmd};
+                    String[] cmdarray = { Utilities.jptyPath(), "/bin/sh", "-c", cmd };
                     process = Runtime.getRuntime().exec(cmdarray);
                 } else {
                     String cmd = "(\\cd \"" + currentDir.canonicalPath() +
                         "\" && " + expandedCommand + ")";
-                    String[] cmdarray = {"/bin/sh", "-c", cmd};
+                    String[] cmdarray = { "/bin/sh", "-c", cmd };
                     process = Runtime.getRuntime().exec(cmdarray);
                 }
             }
@@ -224,8 +217,7 @@ public final class CompilationBuffer extends CompilationErrorBuffer
         }
     }
 
-    private String expandCommand(String s)
-    {
+    private String expandCommand(String s) {
         int length = s.length();
         StringBuilder sb = new StringBuilder();
         boolean inQuote = false;
@@ -244,8 +236,8 @@ public final class CompilationBuffer extends CompilationErrorBuffer
                     boolean replaced = false;
                     if (s.regionMatches(i, "here", 0, 4)) {
                         // "here" must be delimited by spaces.
-                        if (i == 0 || s.charAt(i-1) == ' ') {
-                            if (i+4 == length || s.charAt(i+4) == ' ') {
+                        if (i == 0 || s.charAt(i - 1) == ' ') {
+                            if (i + 4 == length || s.charAt(i + 4) == ' ') {
                                 File file = parentBuffer.getFile();
                                 if (file != null) {
                                     sb.append(Utilities.maybeQuote(file.canonicalPath()));
@@ -265,8 +257,7 @@ public final class CompilationBuffer extends CompilationErrorBuffer
         return sb.toString();
     }
 
-    private int getExitValueFromFile(File file)
-    {
+    private int getExitValueFromFile(File file) {
         int ret = -1;
         if (file != null) {
             try {
@@ -285,19 +276,17 @@ public final class CompilationBuffer extends CompilationErrorBuffer
         return ret;
     }
 
-    public static void killCompilation()
-    {
+    public static void killCompilation() {
         for (BufferIterator it = new BufferIterator(); it.hasNext();) {
             Buffer buf = it.next();
             if (buf instanceof CompilationBuffer) {
-                ((CompilationBuffer)buf).killProcess();
+                ((CompilationBuffer) buf).killProcess();
                 break;
             }
         }
     }
 
-    private synchronized void killProcess()
-    {
+    private synchronized void killProcess() {
         if (process != null) {
             process.destroy();
             try {
@@ -310,13 +299,11 @@ public final class CompilationBuffer extends CompilationErrorBuffer
         }
     }
 
-    public void dispose()
-    {
+    public void dispose() {
         killProcess();
     }
 
-    private void appendLater(final String s)
-    {
+    private void appendLater(final String s) {
         Runnable runnable = () -> {
             Position pos = posEndOfBuffer;
             insertString(pos, s);
@@ -336,36 +323,29 @@ public final class CompilationBuffer extends CompilationErrorBuffer
         SwingUtilities.invokeLater(runnable);
     }
 
-    public String getFileNameForDisplay()
-    {
+    public String getFileNameForDisplay() {
         return getTitle();
     }
 
-    public File getCurrentDirectory()
-    {
+    public File getCurrentDirectory() {
         return currentDir;
     }
 
-    public void setCurrentDirectory(File directory)
-    {
+    public void setCurrentDirectory(File directory) {
         currentDir = directory;
     }
 
     // For the buffer list.
-    public String toString()
-    {
+    public String toString() {
         return command;
     }
 
-    private class CompilationBufferReaderThread extends ReaderThread
-    {
-        public CompilationBufferReaderThread(InputStream inputStream)
-        {
+    private class CompilationBufferReaderThread extends ReaderThread {
+        public CompilationBufferReaderThread(InputStream inputStream) {
             super(inputStream);
         }
 
-        public void update(final String s)
-        {
+        public void update(final String s) {
             appendLater(s);
         }
     }

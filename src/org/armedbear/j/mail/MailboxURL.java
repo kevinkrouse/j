@@ -20,13 +20,11 @@
 
 package org.armedbear.j.mail;
 
-import java.net.MalformedURLException;
-
 import java.lang.StringBuilder;
+import java.net.MalformedURLException;
 import org.armedbear.j.Log;
 
-public abstract class MailboxURL
-{
+public abstract class MailboxURL {
     private String baseName;
     private String limitPattern;
 
@@ -38,12 +36,17 @@ public abstract class MailboxURL
     protected boolean validateCert = true;
     protected boolean debug = true;
 
-    protected MailboxURL()
-    {
-    }
-    
-    protected MailboxURL(String user, String host, int port, boolean ssl, boolean tls, boolean validateCert, boolean debug)
-    {
+    protected MailboxURL() {}
+
+    protected MailboxURL(
+        String user,
+        String host,
+        int port,
+        boolean ssl,
+        boolean tls,
+        boolean validateCert,
+        boolean debug
+    ) {
         this.user = user;
         this.host = host;
         this.port = port != -1 ? port : getDefaultPort(ssl);
@@ -53,78 +56,63 @@ public abstract class MailboxURL
         this.debug = debug;
     }
 
-    public final String getBaseName()
-    {
+    public final String getBaseName() {
         return baseName;
     }
 
-    public final void setBaseName(String baseName)
-    {
+    public final void setBaseName(String baseName) {
         this.baseName = baseName;
     }
 
-    public final String getLimitPattern()
-    {
+    public final String getLimitPattern() {
         return limitPattern;
     }
 
-    public final void setLimitPattern(String limitPattern)
-    {
+    public final void setLimitPattern(String limitPattern) {
         this.limitPattern = limitPattern;
     }
 
-    public final String getUser()
-    {
+    public final String getUser() {
         return user;
     }
 
-    public final void setUser(String user)
-    {
+    public final void setUser(String user) {
         this.user = user;
     }
 
-    public final String getHost()
-    {
+    public final String getHost() {
         return host;
     }
 
-    public final int getPort()
-    {
+    public final int getPort() {
         return port;
     }
 
-    public final boolean isSSL()
-    {
+    public final boolean isSSL() {
         return ssl;
     }
 
-    public final void setSSL(boolean ssl)
-    {
+    public final void setSSL(boolean ssl) {
         this.ssl = ssl;
     }
 
-    public final boolean isTLS()
-    {
+    public final boolean isTLS() {
         return tls;
     }
 
-    public final void setTLS(boolean tls)
-    {
+    public final void setTLS(boolean tls) {
         this.tls = tls;
     }
 
-    public final boolean isDebug()
-    {
+    public final boolean isDebug() {
         return debug;
     }
 
-    public final void setDebug(boolean debug)
-    {
+    public final void setDebug(boolean debug) {
         this.debug = debug;
     }
 
-    public static MailboxURL parse(String input)
-    {
+    public static MailboxURL parse(String input) {
         if (input == null)
             return null;
         input = input.trim();
@@ -137,8 +125,8 @@ public abstract class MailboxURL
             if (index < 0)
                 return null;
             baseName = input.substring(1, index);
-            if (index < input.length()-1)
-                limitPattern = input.substring(index+1).trim();
+            if (index < input.length() - 1)
+                limitPattern = input.substring(index + 1).trim();
         } else if (input.charAt(0) == '{') {
             int index = input.indexOf('}', 1);
             if (index < 0)
@@ -201,8 +189,7 @@ public abstract class MailboxURL
     //   /imap            - use imap; the default
     //   /nntp            - use nntp
     //   /pop3            - use pop3
-    static MailboxURL parseRemote(String s, String defaultType) throws MalformedURLException
-    {
+    static MailboxURL parseRemote(String s, String defaultType) throws MalformedURLException {
         String type = defaultType;
         String user = null;
         String host = null;
@@ -253,7 +240,7 @@ public abstract class MailboxURL
             // Get port
             index = s.indexOf(':');
             if (index >= 0) {
-                int digit = index+1;
+                int digit = index + 1;
                 while (digit < s.length() && Character.isDigit(s.charAt(digit))) {
                     digit++;
                 }
@@ -272,8 +259,7 @@ public abstract class MailboxURL
                     if (user != null)
                         Log.info("Username specified twice in mailbox url");
                     user = s.substring(index + "/user=".length());
-                }
-                else if (s.startsWith("/pop3", index) || s.startsWith("/service=pop3", index))
+                } else if (s.startsWith("/pop3", index) || s.startsWith("/service=pop3", index))
                     type = "pop3";
                 else if (s.startsWith("/nntp", index) || s.startsWith("/service=nntp", index))
                     type = "nntp";
@@ -299,11 +285,18 @@ public abstract class MailboxURL
         return createURL(type, remaining, user, host, port, ssl, tls, validateCert, debug);
     }
 
-    private static MailboxURL createURL(String type, String remaining,
-                                        String user, String host, int port,
-                                        boolean ssl, boolean tls, boolean validateCert, boolean debug)
-            throws MalformedURLException
-    {
+    private static MailboxURL createURL(
+        String type,
+        String remaining,
+        String user,
+        String host,
+        int port,
+        boolean ssl,
+        boolean tls,
+        boolean validateCert,
+        boolean debug
+    )
+        throws MalformedURLException {
         if (type.equals("imap"))
             return new ImapURL(remaining, user, host, port, ssl, tls, validateCert, debug);
         else if (type.equals("pop3"))
@@ -316,8 +309,7 @@ public abstract class MailboxURL
 
     public abstract String getCanonicalName();
 
-    protected StringBuilder baseCanonicalURL()
-    {
+    protected StringBuilder baseCanonicalURL() {
         StringBuilder sb = new StringBuilder();
         sb.append('{');
         if (user != null)

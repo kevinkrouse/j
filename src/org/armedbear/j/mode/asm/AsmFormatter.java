@@ -20,30 +20,26 @@
 
 package org.armedbear.j.mode.asm;
 
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.FormatTable;
 import org.armedbear.j.Formatter;
 import org.armedbear.j.Line;
 import org.armedbear.j.LineSegmentList;
 
-import java.util.regex.Pattern;
-import java.util.regex.Matcher;
-
-public final class AsmFormatter extends Formatter
-{
+public final class AsmFormatter extends Formatter {
     private static final Pattern labelRE = Pattern.compile("^[_a-zA-z0-9]+:");
 
-    private static final int ASM_FORMAT_TEXT    = 0;
+    private static final int ASM_FORMAT_TEXT = 0;
     private static final int ASM_FORMAT_COMMENT = 1;
-    private static final int ASM_FORMAT_LABEL   = 2;
+    private static final int ASM_FORMAT_LABEL = 2;
 
-    public AsmFormatter(Buffer buffer)
-    {
+    public AsmFormatter(Buffer buffer) {
         this.buffer = buffer;
     }
 
-    public LineSegmentList formatLine(Line line)
-    {
+    public LineSegmentList formatLine(Line line) {
         clearSegmentList();
         final String text = getDetabbedText(line);
         if (text.length() > 0) {
@@ -68,8 +64,7 @@ public final class AsmFormatter extends Formatter
         return segmentList;
     }
 
-    public FormatTable getFormatTable()
-    {
+    public FormatTable getFormatTable() {
         if (formatTable == null) {
             formatTable = new FormatTable(null);
             formatTable.addEntryFromPrefs(ASM_FORMAT_TEXT, "text");

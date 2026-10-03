@@ -20,7 +20,6 @@
 
 package org.armedbear.j;
 
-
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -28,12 +27,11 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Map;
 
-public final class Log
-{
+public final class Log {
     // Levels.
     private static final int DEBUG = 1;
-    private static final int INFO  = 2;
-    private static final int WARN  = 3;
+    private static final int INFO = 2;
+    private static final int WARN = 3;
     private static final int ERROR = 4;
     private static final int FATAL = 5;
 
@@ -55,58 +53,47 @@ public final class Log
     private static long fileSize;
     private static boolean rollOverEnabled;
 
-    private static final void setRollOverEnabled(boolean b)
-    {
+    private static final void setRollOverEnabled(boolean b) {
         rollOverEnabled = b;
     }
 
-    public static final int getLevel()
-    {
+    public static final int getLevel() {
         return minLevel;
     }
 
-    public static final void setLevel(int level)
-    {
+    public static final void setLevel(int level) {
         minLevel = level;
     }
 
-    public static final void debug(String s)
-    {
+    public static final void debug(String s) {
         log(DEBUG, s);
     }
 
-    public static final void debug(Throwable t)
-    {
+    public static final void debug(Throwable t) {
         log(DEBUG, t);
     }
 
-    public static final void info(String s)
-    {
+    public static final void info(String s) {
         log(INFO, s);
     }
 
-    public static final void warn(String s)
-    {
+    public static final void warn(String s) {
         log(WARN, s);
     }
 
-    public static final void warn(Throwable t)
-    {
+    public static final void warn(Throwable t) {
         log(WARN, t);
     }
 
-    public static final void error(String s)
-    {
+    public static final void error(String s) {
         log(ERROR, s);
     }
 
-    public static final void error(Throwable t)
-    {
+    public static final void error(Throwable t) {
         log(ERROR, t);
     }
 
-    public static final void fatal(String s)
-    {
+    public static final void fatal(String s) {
         log(FATAL, s);
     }
 
@@ -116,15 +103,13 @@ public final class Log
      */
     static volatile java.util.function.Consumer<String> errorListener;
 
-    private static void heard(int level, String s)
-    {
+    private static void heard(int level, String s) {
         final java.util.function.Consumer<String> listener = errorListener;
         if (listener != null && level >= ERROR)
             listener.accept(s);
     }
 
-    private static final void log(int level, String s)
-    {
+    private static final void log(int level, String s) {
         heard(level, s);
         if (Editor.isDebugEnabled()) {
             System.err.println(s);
@@ -134,8 +119,7 @@ public final class Log
             writeLog(level, s);
     }
 
-    private static final void forceLog(int level, String s)
-    {
+    private static final void forceLog(int level, String s) {
         if (Editor.isDebugEnabled()) {
             System.err.println(s);
             System.err.flush();
@@ -143,9 +127,8 @@ public final class Log
         writeLog(level, s);
     }
 
-    private static final void writeLog(int level, String s)
-    {
-        synchronized(lock) {
+    private static final void writeLog(int level, String s) {
+        synchronized (lock) {
             if (logWriter != null) {
                 String dt = getDateTimeString();
                 logWriter.print(dt);
@@ -158,8 +141,7 @@ public final class Log
         }
     }
 
-    private static final void log(int level, Throwable t)
-    {
+    private static final void log(int level, Throwable t) {
         if (errorListener != null && level >= ERROR) {
             final StringWriter sw = new StringWriter();
             t.printStackTrace(new PrintWriter(sw));
@@ -168,7 +150,7 @@ public final class Log
         if (Editor.isDebugEnabled())
             t.printStackTrace();
         if (logEnabled && level >= minLevel) {
-            synchronized(lock) {
+            synchronized (lock) {
                 if (logWriter != null) {
                     String dt = getDateTimeString();
                     logWriter.print(dt);
@@ -187,16 +169,15 @@ public final class Log
     }
 
     // Called only from synchronized methods.
-    private static final void rollOver()
-    {
+    private static final void rollOver() {
         if (!rollOverEnabled)
             Debug.bug();
         setRollOverEnabled(false);
         long start = System.currentTimeMillis();
         Log.debug("rotating log files...");
-        for (int i = maxBackupIndex-1; i >= 0; i--) {
+        for (int i = maxBackupIndex - 1; i >= 0; i--) {
             File source = getBackupLogFile(i);
-            File destination = getBackupLogFile(i+1);
+            File destination = getBackupLogFile(i + 1);
             if (destination.exists())
                 destination.delete();
             if (source.isFile())
@@ -231,20 +212,19 @@ public final class Log
         setRollOverEnabled(true);
     }
 
-    private static final File getLogFile()
-    {
+    private static final File getLogFile() {
         return File.getInstance(Directories.getStateDirectory(), "log");
     }
 
-    private static final File getBackupLogFile(int index)
-    {
-        return File.getInstance(Directories.getStateDirectory(),
-            "log.".concat(String.valueOf(index)));
+    private static final File getBackupLogFile(int index) {
+        return File.getInstance(
+            Directories.getStateDirectory(),
+            "log.".concat(String.valueOf(index))
+        );
     }
 
-    public static final void initialize(boolean dumpEnv, boolean dumpProps)
-    {
-        synchronized(lock) {
+    public static final void initialize(boolean dumpEnv, boolean dumpProps) {
+        synchronized (lock) {
             Preferences preferences = Editor.preferences();
             if (preferences != null) {
                 preferences.addPreferencesChangeListener(preferencesChangeListener);
@@ -265,8 +245,7 @@ public final class Log
         }
     }
 
-    private static final void initializeLogWriter()
-    {
+    private static final void initializeLogWriter() {
         Debug.assertTrue(logWriter == null);
         File logFile = getLogFile();
         if (logFile.isFile())
@@ -281,13 +260,11 @@ public final class Log
         }
     }
 
-    private static final void logSystemInformation()
-    {
+    private static final void logSystemInformation() {
         logSystemInformation();
     }
 
-    private static final void logSystemInformation(boolean dumpEnv, boolean dumpProps)
-    {
+    private static final void logSystemInformation(boolean dumpEnv, boolean dumpProps) {
         info(Version.getLongVersionString());
         String snapshotInformation = Version.getSnapshotInformation();
         if (snapshotInformation != null)
@@ -311,58 +288,51 @@ public final class Log
             dumpProps();
     }
 
-    private static final void dumpEnv()
-    {
+    private static final void dumpEnv() {
         Log.info("== environment start ==");
-        Map<String,String> map = System.getenv();
-        for (Map.Entry<String,String> entry : map.entrySet()) {
+        Map<String, String> map = System.getenv();
+        for (Map.Entry<String, String> entry : map.entrySet()) {
             Log.info(entry.getKey() + "=" + entry.getValue());
         }
         Log.info("== environment end ==");
     }
 
-    private static final void dumpProps()
-    {
+    private static final void dumpProps() {
         Log.info("== properties start ==");
-        Map<Object,Object> map = System.getProperties();
-        for (Map.Entry<Object,Object> entry : map.entrySet()) {
+        Map<Object, Object> map = System.getProperties();
+        for (Map.Entry<Object, Object> entry : map.entrySet()) {
             Log.info(entry.getKey() + ": " + entry.getValue());
         }
         Log.info("== properties end ==");
     }
 
-    private static final void logUptime()
-    {
+    private static final void logUptime() {
         info("up since ".concat(getDateTimeString(Editor.getStartTimeMillis())));
     }
 
-    private static final String getDateTimeString()
-    {
+    private static final String getDateTimeString() {
         return getDateTimeString(System.currentTimeMillis());
     }
 
-    private static final String getDateTimeString(long millis)
-    {
+    private static final String getDateTimeString(long millis) {
         return dateFormat.format(new Date(millis));
     }
 
     // String returned is always 6 characters long and ends with a space.
-    private static final String levelToString(int level)
-    {
+    private static final String levelToString(int level) {
         return switch (level) {
             case DEBUG -> "DEBUG ";
-            case INFO  -> " INFO ";
-            case WARN  -> " WARN ";
+            case INFO -> " INFO ";
+            case WARN -> " WARN ";
             case ERROR -> "ERROR ";
             case FATAL -> "FATAL ";
             // Shouldn't happen
-            default    -> "????? ";
+            default -> "????? ";
         };
     }
 
-    private static final void loadPreferences()
-    {
-        synchronized(lock) {
+    private static final void loadPreferences() {
+        synchronized (lock) {
             Preferences preferences = Editor.preferences();
             logEnabled = preferences.getBooleanProperty(Property.LOG_ENABLED);
             maxFileSize =
@@ -411,5 +381,5 @@ public final class Log
                 else
                     setLevel(INFO);
             }
-    };
+        };
 }

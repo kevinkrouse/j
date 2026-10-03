@@ -20,17 +20,13 @@
 
 package org.armedbear.j;
 
-import org.armedbear.j.util.Utilities;
-import org.armedbear.j.mode.image.ImageBuffer;
-import org.armedbear.j.mode.image.ImageLine;
-
 import java.awt.Color;
 import java.awt.Font;
 import java.awt.FontMetrics;
+import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.GraphicsConfiguration;
 import java.awt.GraphicsEnvironment;
-import java.awt.Graphics;
 import java.awt.Image;
 import java.awt.Point;
 import java.awt.Rectangle;
@@ -50,10 +46,12 @@ import java.util.Map;
 import javax.swing.JComponent;
 import javax.swing.SwingUtilities;
 import javax.swing.Timer;
+import org.armedbear.j.mode.image.ImageBuffer;
+import org.armedbear.j.mode.image.ImageLine;
+import org.armedbear.j.util.Utilities;
 
 public final class Display extends JComponent implements Constants,
-    ActionListener, FocusListener
-{
+    ActionListener, FocusListener {
     private static final int MAX_LINE_NUMBER_CHARS = 6;
 
     private static final Preferences preferences = Editor.preferences();
@@ -124,8 +122,7 @@ public final class Display extends JComponent implements Constants,
     private Timer timer;
     private boolean caretVisible = true;
 
-    public Display(Editor editor)
-    {
+    public Display(Editor editor) {
         this.editor = editor;
         if (plainFont == null)
             initializeStaticValues();
@@ -134,8 +131,7 @@ public final class Display extends JComponent implements Constants,
         setToolTipText("");
     }
 
-    public static void initializeStaticValues()
-    {
+    public static void initializeStaticValues() {
         // Preferences may have been reloaded, and uiScale is one of them.
         UIScale.reset();
 
@@ -161,8 +157,15 @@ public final class Display extends JComponent implements Constants,
         charWidth = fm.charWidth('a');
         // A chevron pointing at what is folded away, if the font has one.
         foldMarker = plainFont.canDisplay('\u203a') ? '\u203a' : '>';
-        strikethroughRise = Math.max(1, Math.round(-plainFont.getLineMetrics(
-            "x", fm.getFontRenderContext()).getStrikethroughOffset()));
+        strikethroughRise = Math.max(
+            1,
+            Math.round(
+                -plainFont.getLineMetrics(
+                    "x",
+                    fm.getFontRenderContext()
+                ).getStrikethroughOffset()
+            )
+        );
         spaceWidth = fm.charWidth(' ');
         minCharWidth = getMinCharWidth(fm);
 
@@ -202,7 +205,9 @@ public final class Display extends JComponent implements Constants,
         underlineBold = preferences.getBooleanProperty(Property.UNDERLINE_BOLD);
         emulateBold = preferences.getBooleanProperty(Property.EMULATE_BOLD);
         ligatures = resolveLigatures(
-            preferences.getStringProperty(Property.LIGATURES), plainFont);
+            preferences.getStringProperty(Property.LIGATURES),
+            plainFont
+        );
 
         String gutterFontName = preferences.getStringProperty(Property.GUTTER_FONT_NAME);
         if (gutterFontName == null)
@@ -219,8 +224,7 @@ public final class Display extends JComponent implements Constants,
             UIScale.scaledProperty(preferences, Property.CHANGE_MARK_WIDTH);
     }
 
-    public synchronized void initialize()
-    {
+    public synchronized void initialize() {
         // Explicitly set this to null here. We might be resetting the display.
         paintLineImage = null;
 
@@ -231,8 +235,9 @@ public final class Display extends JComponent implements Constants,
         // display. Any plausible width will do here; these arrays are only a
         // scratch buffer for formatting one line.
         final int screenWidth =
-            GraphicsEnvironment.isHeadless() ? 1920
-            : Toolkit.getDefaultToolkit().getScreenSize().width;
+            GraphicsEnvironment.isHeadless()
+                ? 1920
+                : Toolkit.getDefaultToolkit().getScreenSize().width;
         int size = screenWidth * 5 / (minCharWidth * 4);
         textArray = new char[size];
         formatArray = new int[size];
@@ -252,8 +257,7 @@ public final class Display extends JComponent implements Constants,
         }
     }
 
-    private static final int getMinCharWidth(FontMetrics fm)
-    {
+    private static final int getMinCharWidth(FontMetrics fm) {
         int minWidth = Integer.MAX_VALUE;
         int[] widths = fm.getWidths();
         int limit = widths.length > 0x7e ? 0x7e : widths.length;
@@ -277,29 +281,38 @@ public final class Display extends JComponent implements Constants,
      * font, so that the cost of shaping is paid only by a font that has
      * something to show for it.
      */
-    private static boolean resolveLigatures(String pref, Font font)
-    {
+    private static boolean resolveLigatures(String pref, Font font) {
         boolean enabled;
         String reason;
         if (pref == null || pref.equalsIgnoreCase("auto")) {
             enabled = fontHasLigatures(font);
             reason = "auto";
-        } else if (pref.equalsIgnoreCase("true") || pref.equalsIgnoreCase("yes")
-                   || pref.equalsIgnoreCase("on")) {
+        } else if (
+            pref.equalsIgnoreCase("true")
+                || pref.equalsIgnoreCase("yes")
+                || pref.equalsIgnoreCase("on")
+        ) {
             enabled = true;
             reason = "ligatures = " + pref;
-        } else if (pref.equalsIgnoreCase("false") || pref.equalsIgnoreCase("no")
-                   || pref.equalsIgnoreCase("off")) {
+        } else if (
+            pref.equalsIgnoreCase("false")
+                || pref.equalsIgnoreCase("no")
+                || pref.equalsIgnoreCase("off")
+        ) {
             enabled = false;
             reason = "ligatures = " + pref;
         } else {
-            Log.warn("unrecognized value for ligatures: \"" + pref +
-                     "\" (expected auto, true or false)");
+            Log.warn(
+                "unrecognized value for ligatures: \"" + pref +
+                    "\" (expected auto, true or false)"
+            );
             enabled = fontHasLigatures(font);
             reason = "auto";
         }
-        Log.debug("ligatures " + (enabled ? "enabled" : "disabled") + " for " +
-                  font.getFamily() + " (" + reason + ")");
+        Log.debug(
+            "ligatures " + (enabled ? "enabled" : "disabled") + " for " +
+                font.getFamily() + " (" + reason + ")"
+        );
         return enabled;
     }
 
@@ -311,8 +324,7 @@ public final class Display extends JComponent implements Constants,
      * <p>Programming fonts (CaskaydiaCove, Fira Code, JetBrains Mono, Cascadia
      * Code) do; Monospaced, Courier and the plain monospaced faces do not.
      */
-    static boolean fontHasLigatures(Font font)
-    {
+    static boolean fontHasLigatures(Font font) {
         // The same FontRenderContext the painting will use, so that detection
         // can never disagree with what gets drawn.
         FontRenderContext frc =
@@ -320,85 +332,85 @@ public final class Display extends JComponent implements Constants,
         for (String probe : LIGATURE_PROBES) {
             char[] chars = probe.toCharArray();
             GlyphVector shaped =
-                font.layoutGlyphVector(frc, chars, 0, chars.length,
-                                       Font.LAYOUT_LEFT_TO_RIGHT);
+                font.layoutGlyphVector(
+                    frc,
+                    chars,
+                    0,
+                    chars.length,
+                    Font.LAYOUT_LEFT_TO_RIGHT
+                );
             if (shaped.getNumGlyphs() != chars.length)
                 return true;
             for (int i = 0; i < chars.length; i++) {
                 GlyphVector alone =
-                    font.layoutGlyphVector(frc, chars, i, i + 1,
-                                           Font.LAYOUT_LEFT_TO_RIGHT);
-                if (alone.getNumGlyphs() != 1 ||
-                    alone.getGlyphCode(0) != shaped.getGlyphCode(i))
+                    font.layoutGlyphVector(
+                        frc,
+                        chars,
+                        i,
+                        i + 1,
+                        Font.LAYOUT_LEFT_TO_RIGHT
+                    );
+                if (
+                    alone.getNumGlyphs() != 1
+                        ||
+                        alone.getGlyphCode(0) != shaped.getGlyphCode(i)
+                )
                     return true;
             }
         }
         return false;
     }
 
-    public static final int getCharHeight()
-    {
+    public static final int getCharHeight() {
         return charHeight;
     }
 
-    public static final int getCharWidth()
-    {
+    public static final int getCharWidth() {
         return charWidth;
     }
 
-    public static final int getImageBorderHeight()
-    {
+    public static final int getImageBorderHeight() {
         return 5;
     }
 
-    public static final int getImageBorderWidth()
-    {
+    public static final int getImageBorderWidth() {
         return 5;
     }
 
-    public final Line getTopLine()
-    {
+    public final Line getTopLine() {
         return topLine;
     }
 
-    public final int getTopLineNumber()
-    {
+    public final int getTopLineNumber() {
         return topLine.lineNumber();
     }
 
-    public final void setTopLine(Line line)
-    {
+    public final void setTopLine(Line line) {
         topLine = line;
         pixelsAboveTopLine = 0;
     }
 
-    public final int getPixelsAboveTopLine()
-    {
+    public final int getPixelsAboveTopLine() {
         return pixelsAboveTopLine;
     }
 
-    public final void setPixelsAboveTopLine(int pixels)
-    {
+    public final void setPixelsAboveTopLine(int pixels) {
         pixelsAboveTopLine = pixels;
     }
 
-    public final int getShift()
-    {
+    public final int getShift() {
         return shift;
     }
 
-    public final void setShift(int n)
-    {
+    public final void setShift(int n) {
         this.shift = n;
     }
 
-    public final int getCaretCol()
-    {
+    public final int getCaretCol() {
         return caretCol;
     }
 
-    public final void setCaretCol(int n)
-    {
+    public final void setCaretCol(int n) {
         caretCol = n;
     }
 
@@ -407,8 +419,7 @@ public final class Display extends JComponent implements Constants,
      * of its cell, taking each character as wide as a space. For choosing
      * a window by position, not for painting.
      */
-    public Point getCaretPoint()
-    {
+    public Point getCaretPoint() {
         final Line dotLine = editor.getDotLine();
         int y = 0;
         if (dotLine != null && topLine != null) {
@@ -417,28 +428,26 @@ public final class Display extends JComponent implements Constants,
             if (dotLine.lineNumber() >= topLine.lineNumber())
                 y = Math.min(getY(dotLine), Math.max(0, getHeight() - 1));
         }
-        return new Point(gutterWidth + Math.max(0, caretCol) * spaceWidth
-                         + spaceWidth / 2,
-                         y + charHeight / 2);
+        return new Point(
+            gutterWidth + Math.max(0, caretCol) * spaceWidth
+                + spaceWidth / 2,
+            y + charHeight / 2
+        );
     }
 
-    public int getAbsoluteCaretCol()
-    {
+    public int getAbsoluteCaretCol() {
         return caretCol + shift;
     }
 
-    public void setAbsoluteCaretCol(int col)
-    {
+    public void setAbsoluteCaretCol(int col) {
         caretCol = col - shift;
     }
 
-    public final void repaintNow()
-    {
+    public final void repaintNow() {
         paintImmediately(0, 0, getWidth(), getHeight());
     }
 
-    public synchronized void repaintChangedLines()
-    {
+    public synchronized void repaintChangedLines() {
         if (!Editor.displayReady())
             return;
         if ((updateFlag & REPAINT) == REPAINT) {
@@ -460,7 +469,7 @@ public final class Display extends JComponent implements Constants,
             Graphics2D g2d = (Graphics2D) getGraphics();
             if (g2d != null) {
                 Line line = topLine;
-                int y = - pixelsAboveTopLine;
+                int y = -pixelsAboveTopLine;
                 final int limit = getHeight();
                 while (line != null && y < limit) {
                     if (changedLines.containsKey(line))
@@ -486,8 +495,7 @@ public final class Display extends JComponent implements Constants,
     }
 
     // Set caret column to be where dot is.
-    public void moveCaretToDotCol()
-    {
+    public void moveCaretToDotCol() {
         if (editor.getDot() == null)
             return;
         int absCol = editor.getDotCol();
@@ -499,9 +507,8 @@ public final class Display extends JComponent implements Constants,
     }
 
     // Assumes line is after topLine.
-    private int getY(Line line)
-    {
-        int y = - pixelsAboveTopLine;
+    private int getY(Line line) {
+        int y = -pixelsAboveTopLine;
         int limit = getHeight();
         for (Line l = topLine; y < limit && l != null && l != line; l = l.nextVisible())
             y += l.getHeight();
@@ -509,16 +516,14 @@ public final class Display extends JComponent implements Constants,
     }
 
     // Does NOT assume line is after topLine.
-    private int getAbsoluteY(Line line)
-    {
+    private int getAbsoluteY(Line line) {
         int y = 0;
         for (Line l = editor.getBuffer().getFirstLine(); l != null && l != line; l = l.nextVisible())
             y += l.getHeight();
         return y;
     }
 
-    private void initializePaint()
-    {
+    private void initializePaint() {
         final Buffer buffer = editor.getBuffer();
         final Mode mode = editor.getMode();
         showChangeMarks = buffer.getBooleanProperty(Property.SHOW_CHANGE_MARKS);
@@ -552,7 +557,8 @@ public final class Display extends JComponent implements Constants,
             verticalRuleX = 0;
         highlightBrackets =
             buffer.getBooleanProperty(Property.HIGHLIGHT_BRACKETS);
-        highlightMatchingBracket = highlightBrackets ||
+        highlightMatchingBracket = highlightBrackets
+            ||
             buffer.getBooleanProperty(Property.HIGHLIGHT_MATCHING_BRACKET);
         rainbowDelimiters =
             buffer.getBooleanProperty(Property.RAINBOW_DELIMITERS);
@@ -568,26 +574,35 @@ public final class Display extends JComponent implements Constants,
                 if (c == '{' || c == '[' || c == '(') {
                     posBracket = dot;
                     posMatch = editor.findMatchInternal(dot, 200);
-                } else if ((c == '}' || c == ']' || c == ')')
-                           && caretShape() != InputHandler.CaretShape.BAR) {
+                } else if (
+                    (c == '}' || c == ']' || c == ')')
+                        && caretShape() != InputHandler.CaretShape.BAR
+                ) {
                     // A block caret is on the character, as vim's is.
                     posBracket = dot;
                     posMatch = editor.findMatchInternal(dot, 200);
                 } else if ((quote = editor.findMatchingQuote(dot, 200)) != null) {
                     posBracket = dot;
                     posMatch = quote;
-                } else if (dot.getOffset() > 0
-                           && caretShape() == InputHandler.CaretShape.BAR) {
-                    int end = editor.getBuffer().getCol(dot.getLine(),
-                        dot.getLine().length());
+                } else if (
+                    dot.getOffset() > 0
+                        && caretShape() == InputHandler.CaretShape.BAR
+                ) {
+                    int end = editor.getBuffer()
+                        .getCol(
+                            dot.getLine(),
+                            dot.getLine().length()
+                        );
                     if (shift + caretCol <= end) {
                         dot.skip(-1);
                         c = dot.getChar();
                         if (c == '}' || c == ']' || c == ')') {
                             posBracket = dot;
                             posMatch = editor.findMatchInternal(dot, 200);
-                        } else if ((quote = editor.findMatchingQuote(dot, 200)) != null
-                                   && quote.isBefore(dot)) {
+                        } else if (
+                            (quote = editor.findMatchingQuote(dot, 200)) != null
+                                && quote.isBefore(dot)
+                        ) {
                             // Just past a closing quote.
                             posBracket = dot;
                             posMatch = quote;
@@ -605,13 +620,11 @@ public final class Display extends JComponent implements Constants,
     }
 
     /** The bracket or quote highlightMatchingBracket highlights, or null. */
-    Position getMatchingBracketPosition()
-    {
+    Position getMatchingBracketPosition() {
         return posMatch;
     }
 
-    private void drawVerticalRule(Graphics g, int y, int height)
-    {
+    private void drawVerticalRule(Graphics g, int y, int height) {
         if (verticalRuleX > gutterWidth) {
             g.setColor(verticalRuleColor);
             g.drawLine(verticalRuleX, y, verticalRuleX, y + height);
@@ -620,8 +633,7 @@ public final class Display extends JComponent implements Constants,
 
     private Position dragCaretPos;
 
-    public void setDragCaretPos(Position pos)
-    {
+    public void setDragCaretPos(Position pos) {
         if (dragCaretPos != null)
             lineChanged(dragCaretPos.getLine());
         dragCaretPos = pos;
@@ -631,14 +643,12 @@ public final class Display extends JComponent implements Constants,
 
     private int dragCaretCol;
 
-    public void setDragCaretCol(int col)
-    {
+    public void setDragCaretCol(int col) {
         dragCaretCol = col;
     }
 
     // Called only from synchronized methods.
-    private void drawDragCaret()
-    {
+    private void drawDragCaret() {
         if (dragCaretPos == null)
             return;
         if (topLine == null)
@@ -675,8 +685,7 @@ public final class Display extends JComponent implements Constants,
     private Line caretLine;
 
     // Called only from synchronized methods.
-    private void drawCaret(Graphics2D g2d)
-    {
+    private void drawCaret(Graphics2D g2d) {
         if (dragCaretPos != null) {
             drawDragCaret();
             return;
@@ -695,9 +704,11 @@ public final class Display extends JComponent implements Constants,
         // it is not drawn over one. A block caret is the cursor itself and has
         // to stay visible: visual mode is the selection plus where you are in
         // it.
-        if (caretShape == InputHandler.CaretShape.BAR
-            && editor.getMark() != null
-            && !editor.getMark().equals(editor.getDot()))
+        if (
+            caretShape == InputHandler.CaretShape.BAR
+                && editor.getMark() != null
+                && !editor.getMark().equals(editor.getDot())
+        )
             return;
         if (caretCol < 0)
             return;
@@ -705,8 +716,10 @@ public final class Display extends JComponent implements Constants,
         // lose focus to. This is also what lets a test paint one and look at
         // the pixels.
         final Frame frame = editor.getFrame();
-        if (frame != null
-            && (!frame.isActive() || frame.getFocusedComponent() != this))
+        if (
+            frame != null
+                && (!frame.isActive() || frame.getFocusedComponent() != this)
+        )
             return;
         final Line dotLine = editor.getDotLine();
         if (dotLine instanceof ImageLine)
@@ -751,7 +764,7 @@ public final class Display extends JComponent implements Constants,
                 break;
             default:
                 // Caret width is 2 pixel.
-                g2d.fillRect(x-1, y, 2, height);
+                g2d.fillRect(x - 1, y, 2, height);
                 break;
         }
     }
@@ -762,8 +775,7 @@ public final class Display extends JComponent implements Constants,
      * Safe to call while painting: paintLine draws no caret, so this cannot
      * recurse.
      */
-    private void eraseCaretFromOldLine(Graphics2D g2d, Line dotLine)
-    {
+    private void eraseCaretFromOldLine(Graphics2D g2d, Line dotLine) {
         final Line previous = caretLine;
         caretLine = dotLine;
         if (previous == null || previous == dotLine)
@@ -782,8 +794,7 @@ public final class Display extends JComponent implements Constants,
      * Shows link on line as a click would follow it, blue and underlined;
      * or nothing, with a null link.
      */
-    public synchronized void setHoverLink(Line line, TextLink link)
-    {
+    public synchronized void setHoverLink(Line line, TextLink link) {
         final Line newLine = link != null ? line : null;
         final int begin = link != null ? Math.min(link.getBegin(), line.length()) : 0;
         final int end = link != null ? Math.min(link.getEnd(), line.length()) : 0;
@@ -796,8 +807,7 @@ public final class Display extends JComponent implements Constants,
     }
 
     /** The line of the link a Ctrl-hovered mouse is over, or null. */
-    synchronized Line getHoverLine()
-    {
+    synchronized Line getHoverLine() {
         return hoverLine;
     }
 
@@ -812,13 +822,13 @@ public final class Display extends JComponent implements Constants,
      * moved: its line, which shows the markup of the item it is in, and the
      * ends of a block it is in or was, a fence's two lines.
      */
-    private void showRevealed(Graphics2D g2d, Line dotLine)
-    {
+    private void showRevealed(Graphics2D g2d, Line dotLine) {
         final int offset = editor.getDotOffset();
         if (dotLine == revealedDotLine && offset == revealedDotOffset)
             return;
         final Line[] block = editor.getFormatter().getHiddenBlock(dotLine);
-        final Line[] lines = block == null ? new Line[] { dotLine }
+        final Line[] lines = block == null
+            ? new Line[] { dotLine }
             : new Line[] { dotLine, block[0], block[1] };
         final java.util.Set<Line> toPaint = new java.util.LinkedHashSet<Line>();
         java.util.Collections.addAll(toPaint, revealedLines);
@@ -841,12 +851,12 @@ public final class Display extends JComponent implements Constants,
      * objects -- and an orphan would otherwise be given the y of wherever the
      * walk happened to stop, and painted there.
      */
-    private int visibleY(Line target)
-    {
-        int y = - pixelsAboveTopLine;
+    private int visibleY(Line target) {
+        int y = -pixelsAboveTopLine;
         final int limit = getHeight();
-        for (Line line = topLine; line != null && y < limit;
-             line = line.nextVisible()) {
+        for (Line line = topLine;
+            line != null && y < limit;
+            line = line.nextVisible()) {
             if (line == target)
                 return y;
             y += line.getHeight();
@@ -861,8 +871,7 @@ public final class Display extends JComponent implements Constants,
      * block cursor looks like anywhere else: a terminal draws the cell
      * inverted, so the character is still there to read.
      */
-    private void drawCharacterInCaret(Graphics2D g2d, Line dotLine, int x, int y)
-    {
+    private void drawCharacterInCaret(Graphics2D g2d, Line dotLine, int x, int y) {
         final int offset = editor.getDotOffset();
         if (dotLine.length() == 0 || offset >= dotLine.length())
             return;
@@ -884,21 +893,18 @@ public final class Display extends JComponent implements Constants,
      * How many columns the character under the caret takes in textArray: two
      * for a surrogate pair such as an emoji, which is one character on screen.
      */
-    private int caretSpan()
-    {
+    private int caretSpan() {
         return caretCol + 1 < textArray.length
             && Character.isHighSurrogate(textArray[caretCol])
             && Character.isLowSurrogate(textArray[caretCol + 1]) ? 2 : 1;
     }
 
-    private Font fontForFormat(int format)
-    {
+    private Font fontForFormat(int format) {
         return fontFor(editor.getFormatter().getStyle(formatterFormat(format)));
     }
 
     /** The font for a TextStyle; underline and strikethrough are drawn. */
-    private static Font fontFor(int style)
-    {
+    private static Font fontFor(int style) {
         switch (TextStyle.fontStyle(style)) {
             case TextStyle.BOLD:
                 return boldFont;
@@ -911,11 +917,11 @@ public final class Display extends JComponent implements Constants,
         }
     }
 
-    private InputHandler.CaretShape caretShape()
-    {
+    private InputHandler.CaretShape caretShape() {
         final InputHandler handler = editor.getInputHandler();
-        return handler == null ? InputHandler.CaretShape.BAR
-                               : handler.getCaretShape();
+        return handler == null
+            ? InputHandler.CaretShape.BAR
+            : handler.getCaretShape();
     }
 
     /**
@@ -925,8 +931,7 @@ public final class Display extends JComponent implements Constants,
      * as wide as it needs to be. Past the end of the line there is no
      * character, so a space's worth is used.
      */
-    private int characterWidth(Graphics2D g2d, Line dotLine)
-    {
+    private int characterWidth(Graphics2D g2d, Line dotLine) {
         final int offset = editor.getDotOffset();
         if (dotLine.length() == 0 || offset >= dotLine.length())
             return spaceWidth;
@@ -936,21 +941,23 @@ public final class Display extends JComponent implements Constants,
         // second half of a surrogate pair.
         formatLine(dotLine, shift, caretCol + 2);
         final int start = measureLine(g2d, textArray, caretCol, formatArray);
-        final int end = measureLine(g2d, textArray, caretCol + caretSpan(),
-                                    formatArray);
+        final int end = measureLine(
+            g2d,
+            textArray,
+            caretCol + caretSpan(),
+            formatArray
+        );
         final int width = end - start;
         return width > 0 ? width : spaceWidth;
     }
 
-    public synchronized void setCaretVisible(boolean b)
-    {
+    public synchronized void setCaretVisible(boolean b) {
         caretVisible = b;
         if (b && timer != null && timer.isRunning())
             timer.restart();
     }
 
-    private synchronized void blinkCaret()
-    {
+    private synchronized void blinkCaret() {
         Position dot = editor.getDot();
         if (dot != null) {
             caretVisible = !caretVisible;
@@ -962,8 +969,7 @@ public final class Display extends JComponent implements Constants,
         }
     }
 
-    private synchronized void repaintLine(Line l)
-    {
+    private synchronized void repaintLine(Line l) {
         if (!Editor.displayReady())
             return;
         if ((updateFlag & REPAINT) == REPAINT) {
@@ -983,7 +989,7 @@ public final class Display extends JComponent implements Constants,
             Graphics2D g2d = (Graphics2D) getGraphics();
             if (g2d != null) {
                 Line line = topLine;
-                int y = - pixelsAboveTopLine;
+                int y = -pixelsAboveTopLine;
                 final int limit = getHeight();
                 while (line != null && y < limit) {
                     if (line == l) {
@@ -1002,25 +1008,21 @@ public final class Display extends JComponent implements Constants,
     }
 
     // Timer event handler.
-    public void actionPerformed(ActionEvent e)
-    {
+    public void actionPerformed(ActionEvent e) {
         blinkCaret();
     }
 
-    public synchronized void focusGained(FocusEvent e)
-    {
+    public synchronized void focusGained(FocusEvent e) {
         if (timer != null)
             timer.start();
     }
 
-    public synchronized void focusLost(FocusEvent e)
-    {
+    public synchronized void focusLost(FocusEvent e) {
         if (timer != null)
             timer.stop();
     }
 
-    private int formatLine(final Line line, final int begin, final int maxCols)
-    {
+    private int formatLine(final Line line, final int begin, final int maxCols) {
         // Avoid getfield overhead.
         final int[] fa = formatArray;
         final char[] ta = textArray;
@@ -1068,8 +1070,11 @@ public final class Display extends JComponent implements Constants,
             int format = segment.getFormat();
             if (segment.isBar())
                 format |= BAR;
-            if (revealed != null && segment.isHidden()
-                && !contains(revealed, segment.getItem()))
+            if (
+                revealed != null
+                    && segment.isHidden()
+                    && !contains(revealed, segment.getItem())
+            )
                 format |= HIDDEN;
             int k = segmentStart - begin;
             if (k > limit)
@@ -1103,8 +1108,7 @@ public final class Display extends JComponent implements Constants,
      * Over the formatter's colors, colors each bracket of the line by how
      * deeply it is nested, for rainbowDelimiters.
      */
-    private void colorBrackets(Line line, int begin, int limit)
-    {
+    private void colorBrackets(Line line, int begin, int limit) {
         final Buffer buffer = editor.getBuffer();
         final int[] levels = buffer.getBracketDepths().levels(line);
         final int tabWidth = buffer.getTabWidth();
@@ -1112,8 +1116,12 @@ public final class Display extends JComponent implements Constants,
         for (int i = 0; i < levels.length; i++) {
             final char c = line.charAt(i);
             final int k = col - begin;
-            if (levels[i] != BracketDepths.NONE && k >= 0 && k < limit
-                && textArray[k] == c)
+            if (
+                levels[i] != BracketDepths.NONE
+                    && k >= 0
+                    && k < limit
+                    && textArray[k] == c
+            )
                 formatArray[k] |= RAINBOW |
                     Math.min(levels[i], MAX_RAINBOW_DEPTH) << RAINBOW_SHIFT;
             if (c == '\t' && tabWidth > 0)
@@ -1128,9 +1136,11 @@ public final class Display extends JComponent implements Constants,
      * on its line, between an item's first column and just past its last;
      * for a block, anywhere in it. Null if line hides nothing.
      */
-    private int[] revealedItems(Formatter formatter, Line line,
-                                LineSegmentList segments)
-    {
+    private int[] revealedItems(
+        Formatter formatter,
+        Line line,
+        LineSegmentList segments
+    ) {
         boolean hides = false;
         boolean block = false;
         int items = 0;
@@ -1173,8 +1183,7 @@ public final class Display extends JComponent implements Constants,
     }
 
     /** The text of line as it is drawn, without the markup it hides. */
-    synchronized String drawnText(Line line)
-    {
+    synchronized String drawnText(Line line) {
         final int total = formatLine(line, 0, textArray.length);
         final StringBuilder sb = new StringBuilder();
         for (int i = 0; i < total; i++) {
@@ -1186,16 +1195,14 @@ public final class Display extends JComponent implements Constants,
         return sb.toString();
     }
 
-    private static boolean isIn(Line line, Line[] block)
-    {
+    private static boolean isIn(Line line, Line[] block) {
         if (block == null)
             return false;
         final int n = line.lineNumber();
         return block[0].lineNumber() <= n && n <= block[1].lineNumber();
     }
 
-    private static boolean contains(int[] array, int value)
-    {
+    private static boolean contains(int[] array, int value) {
         for (int x : array)
             if (x == value)
                 return true;
@@ -1214,22 +1221,21 @@ public final class Display extends JComponent implements Constants,
     // Above the rainbow depth, which stops at bit 27.
     private static final int BAR = 1 << 29;
 
-    private static int formatterFormat(int format)
-    {
+    private static int formatterFormat(int format) {
         format &= ~(HIDDEN | BAR | HOVER);
         if ((format & RAINBOW) != 0)
             return format & ((1 << RAINBOW_SHIFT) - 1);
         return format;
     }
 
-    private static Color colorOf(Formatter formatter, int format)
-    {
+    private static Color colorOf(Formatter formatter, int format) {
         if ((format & HOVER) != 0)
             return formatter.getHoverLinkColor();
         format &= ~(HIDDEN | BAR);
         if ((format & RAINBOW) != 0)
             return formatter.getRainbowColor(
-                (format & ~RAINBOW) >>> RAINBOW_SHIFT);
+                (format & ~RAINBOW) >>> RAINBOW_SHIFT
+            );
         return formatter.getColor(format);
     }
 
@@ -1241,8 +1247,7 @@ public final class Display extends JComponent implements Constants,
 
     // How many device pixels the display gets per logical pixel. 1.0 unless
     // the JDK is scaling the UI for a high resolution display.
-    private double getDeviceScale()
-    {
+    private double getDeviceScale() {
         GraphicsConfiguration gc = getGraphicsConfiguration();
         if (gc == null)
             return 1.0;
@@ -1252,14 +1257,18 @@ public final class Display extends JComponent implements Constants,
         return Math.max(t.getScaleX(), t.getScaleY());
     }
 
-    private final void providePaintLineImage(int width, int height)
-    {
+    private final void providePaintLineImage(int width, int height) {
         final double deviceScale = getDeviceScale();
 
-        if (paintLineImage != null &&
-            paintLineImageWidth == width &&
-            paintLineImageHeight == height &&
-            paintLineImageScale == deviceScale)
+        if (
+            paintLineImage != null
+                &&
+                paintLineImageWidth == width
+                &&
+                paintLineImageHeight == height
+                &&
+                paintLineImageScale == deviceScale
+        )
             return;
 
         // Otherwise...
@@ -1274,8 +1283,11 @@ public final class Display extends JComponent implements Constants,
         final int deviceHeight = (int) Math.ceil(height * deviceScale);
 
         paintLineImage =
-            new BufferedImage(Math.max(deviceWidth, 1), Math.max(deviceHeight, 1),
-                              BufferedImage.TYPE_INT_RGB);
+            new BufferedImage(
+                Math.max(deviceWidth, 1),
+                Math.max(deviceHeight, 1),
+                BufferedImage.TYPE_INT_RGB
+            );
         paintLineImageWidth = width;
         paintLineImageHeight = height;
         paintLineImageScale = deviceScale;
@@ -1286,16 +1298,14 @@ public final class Display extends JComponent implements Constants,
         setRenderingHints(paintLineGraphics);
     }
 
-    private final void paintLine(Line line, Graphics2D g2d, int y)
-    {
+    private final void paintLine(Line line, Graphics2D g2d, int y) {
         if (line instanceof ImageLine)
-            paintImageLine((ImageLine)line, g2d, y);
+            paintImageLine((ImageLine) line, g2d, y);
         else
             paintTextLine(line, g2d, y);
     }
 
-    private synchronized void paintTextLine(Line line, Graphics g, int y)
-    {
+    private synchronized void paintTextLine(Line line, Graphics g, int y) {
         int displayWidth = getWidth();
         int maxCols = getMaxCols();
 
@@ -1318,27 +1328,48 @@ public final class Display extends JComponent implements Constants,
             handleSelection(selection, line, formatArray, paintLineGraphics, 0);
         } else if (posMatch != null) {
             if (posMatch.getLine() == line)
-                highlightBracket(posMatch, line, formatArray,
-                    paintLineGraphics, 0);
+                highlightBracket(
+                    posMatch,
+                    line,
+                    formatArray,
+                    paintLineGraphics,
+                    0
+                );
             if (posBracket != null && posBracket.getLine() == line)
-                highlightBracket(posBracket, line, formatArray,
-                    paintLineGraphics, 0);
+                highlightBracket(
+                    posBracket,
+                    line,
+                    formatArray,
+                    paintLineGraphics,
+                    0
+                );
         }
 
         drawGutterText(paintLineGraphics, line, 0);
         if (showLineNumbers && editor.getDot() != null)
             drawGutterBorder(paintLineGraphics, 0, line.getHeight());
         drawVerticalRule(paintLineGraphics, 0, line.getHeight());
-        drawText(paintLineGraphics, textArray, totalChars, formatArray, 0,
-                 caretBreakCol(line, totalChars));
+        drawText(
+            paintLineGraphics,
+            textArray,
+            totalChars,
+            formatArray,
+            0,
+            caretBreakCol(line, totalChars)
+        );
         changedLines.remove(line);
 
-        g.drawImage(paintLineImage, 0, y,
-                    paintLineImageWidth, paintLineImageHeight, null);
+        g.drawImage(
+            paintLineImage,
+            0,
+            y,
+            paintLineImageWidth,
+            paintLineImageHeight,
+            null
+        );
     }
 
-    private void paintImageLine(ImageLine imageLine, Graphics g, int y)
-    {
+    private void paintImageLine(ImageLine imageLine, Graphics g, int y) {
         final int displayWidth = getWidth();
         final int lineHeight = imageLine.getHeight();
         final int imageWidth = imageLine.getImageWidth();
@@ -1358,19 +1389,34 @@ public final class Display extends JComponent implements Constants,
         g.fillRect(x + imageWidth, y, displayWidth - (x + imageWidth), lineHeight);
         // Bottom.
         if (imageHeight < lineHeight)
-            g.fillRect(0, y + imageHeight, displayWidth,
-                lineHeight - imageHeight);
+            g.fillRect(
+                0,
+                y + imageHeight,
+                displayWidth,
+                lineHeight - imageHeight
+            );
 
         Rectangle rect = imageLine.getRect();
-        g.drawImage(imageLine.getImage(),
-            x, y, x + rect.width, y + rect.height,
-            rect.x, rect.y, rect.x + rect.width, rect.y + rect.height,
-            null);
+        g.drawImage(
+            imageLine.getImage(),
+            x,
+            y,
+            x + rect.width,
+            y + rect.height,
+            rect.x,
+            rect.y,
+            rect.x + rect.width,
+            rect.y + rect.height,
+            null
+        );
     }
 
-    private void drawBackgroundForLine(Graphics2D g2d, Color backgroundColor,
-        Line line, int y)
-    {
+    private void drawBackgroundForLine(
+        Graphics2D g2d,
+        Color backgroundColor,
+        Line line,
+        int y
+    ) {
         if (enableChangeMarks && line.isModified()) {
             g2d.setColor(line.isSaved() ? savedChangeColor : changeColor);
             g2d.fillRect(0, y, changeMarkWidth, line.getHeight());
@@ -1386,8 +1432,12 @@ public final class Display extends JComponent implements Constants,
             final Color shade = editor.getFormatter().getLineBackground(line);
             if (shade != null) {
                 g2d.setColor(shade);
-                g2d.fillRect(gutterWidth, y, getWidth() - gutterWidth,
-                             line.getHeight());
+                g2d.fillRect(
+                    gutterWidth,
+                    y,
+                    getWidth() - gutterWidth,
+                    line.getHeight()
+                );
             }
         }
     }
@@ -1396,8 +1446,7 @@ public final class Display extends JComponent implements Constants,
      * The backgrounds the formatter gives runs of the line formatLine last
      * formatted, as inline code's: a rounded chip behind the text.
      */
-    private void drawRunBackgrounds(Graphics2D g2d, int totalChars, int y)
-    {
+    private void drawRunBackgrounds(Graphics2D g2d, int totalChars, int y) {
         final Formatter formatter = editor.getFormatter();
         int i = 0;
         while (i < totalChars) {
@@ -1412,9 +1461,15 @@ public final class Display extends JComponent implements Constants,
                 continue;
             // Through the runs after it that share it.
             int end = i;
-            while (end < totalChars && ((formatArray[end] & HIDDEN) != 0
-                   || color.equals(formatter.getRunBackground(
-                          formatterFormat(formatArray[end])))))
+            while (
+                end < totalChars
+                    && ((formatArray[end] & HIDDEN) != 0
+                        || color.equals(
+                            formatter.getRunBackground(
+                                formatterFormat(formatArray[end])
+                            )
+                        ))
+            )
                 ++end;
             while (end > i && (formatArray[end - 1] & HIDDEN) != 0)
                 --end;
@@ -1426,8 +1481,7 @@ public final class Display extends JComponent implements Constants,
         }
     }
 
-    private void drawGutterText(Graphics g, Line line, int y)
-    {
+    private void drawGutterText(Graphics g, Line line, int y) {
         int x = showChangeMarks ? changeMarkWidth : 0;
         char c = 0;
         Color color = null; // The default text color.
@@ -1466,8 +1520,7 @@ public final class Display extends JComponent implements Constants,
      * A small square of color in the gutter's first column, outlined in the
      * text's color so that one like the background still shows.
      */
-    private void drawSwatch(Graphics g, Color color, int x, int y)
-    {
+    private void drawSwatch(Graphics g, Color color, int x, int y) {
         final int size = Math.max(4, Math.min(charWidth, charAscent) - 2);
         final int left = x + (charWidth - size) / 2;
         final int top = y + (charAscent + charDescent - size) / 2;
@@ -1477,31 +1530,31 @@ public final class Display extends JComponent implements Constants,
         g.drawRect(left, top, size - 1, size - 1);
     }
 
-    private void drawGutterBorder(Graphics g)
-    {
+    private void drawGutterBorder(Graphics g) {
         int x = getGutterWidth(editor.getBuffer()) - 4;
         g.setColor(gutterBorderColor);
         g.drawLine(x, 0, x, getHeight());
     }
 
-    private void drawGutterBorder(Graphics g, int y, int height)
-    {
+    private void drawGutterBorder(Graphics g, int y, int height) {
         int x = getGutterWidth(editor.getBuffer()) - 4;
         g.setColor(gutterBorderColor);
         g.drawLine(x, y, x, y + height);
     }
 
     // Returns width in pixels.
-    public static final int getGutterWidth(Buffer buffer)
-    {
-        return getGutterWidth(buffer.getBooleanProperty(Property.SHOW_CHANGE_MARKS),
-            buffer.getBooleanProperty(Property.SHOW_LINE_NUMBERS));
+    public static final int getGutterWidth(Buffer buffer) {
+        return getGutterWidth(
+            buffer.getBooleanProperty(Property.SHOW_CHANGE_MARKS),
+            buffer.getBooleanProperty(Property.SHOW_LINE_NUMBERS)
+        );
     }
 
     // Returns width in pixels.
-    private static final int getGutterWidth(boolean showChangeMarks,
-        boolean showLineNumbers)
-    {
+    private static final int getGutterWidth(
+        boolean showChangeMarks,
+        boolean showLineNumbers
+    ) {
         int width = charWidth;
         if (showChangeMarks)
             width += changeMarkWidth;
@@ -1517,8 +1570,7 @@ public final class Display extends JComponent implements Constants,
      * <p>Deliberately independent of the blink state: a ligature that came and
      * went with the caret would flicker.
      */
-    private int caretBreakCol(Line line, int totalChars)
-    {
+    private int caretBreakCol(Line line, int totalChars) {
         if (!ligatures)
             return -1;
         if (line != editor.getDotLine())
@@ -1538,12 +1590,21 @@ public final class Display extends JComponent implements Constants,
      * without moving anything -- drawText relies on that to let the caret sit
      * inside a ligature.
      */
-    private static GlyphVector glyphs(Font font, FontRenderContext frc,
-        char[] textArray, int start, int limit)
-    {
+    private static GlyphVector glyphs(
+        Font font,
+        FontRenderContext frc,
+        char[] textArray,
+        int start,
+        int limit
+    ) {
         if (ligatures)
-            return font.layoutGlyphVector(frc, textArray, start, limit,
-                                          Font.LAYOUT_LEFT_TO_RIGHT);
+            return font.layoutGlyphVector(
+                frc,
+                textArray,
+                start,
+                limit,
+                Font.LAYOUT_LEFT_TO_RIGHT
+            );
         char[] chars = new char[limit - start];
         System.arraycopy(textArray, start, chars, 0, limit - start);
         return font.createGlyphVector(frc, chars);
@@ -1554,9 +1615,14 @@ public final class Display extends JComponent implements Constants,
      *     has not changed, so that a ligature straddling it comes apart, or -1
      *     for none. Used to show the caret's own character inside a ligature.
      */
-    private void drawText(Graphics2D g2d, char[] textArray, int length,
-        int[] formatArray, int y, int breakCol)
-    {
+    private void drawText(
+        Graphics2D g2d,
+        char[] textArray,
+        int length,
+        int[] formatArray,
+        int y,
+        int breakCol
+    ) {
         int i = 0;
         double x = gutterWidth;
         final Formatter formatter = editor.getFormatter();
@@ -1577,8 +1643,13 @@ public final class Display extends JComponent implements Constants,
             g2d.setColor(colorOf(formatter, format));
             final int style = formatter.getStyle(formatterFormat(format));
             final Font font = fontFor(style);
-            GlyphVector gv = glyphs(font, g2d.getFontRenderContext(),
-                                    textArray, start, i);
+            GlyphVector gv = glyphs(
+                font,
+                g2d.getFontRenderContext(),
+                textArray,
+                start,
+                i
+            );
             final double width = gv.getLogicalBounds().getWidth();
             if ((format & HIDDEN) != 0) {
                 x += width; // The bar in the character's room.
@@ -1587,27 +1658,28 @@ public final class Display extends JComponent implements Constants,
             if ((style & TextStyle.BOLD) != 0) {
                 if (boldFont == plainFont) {
                     if (underlineBold)
-                        g2d.drawLine((int)x, y + charAscent + 1, (int)(x + width), y + charAscent + 1);
+                        g2d.drawLine((int) x, y + charAscent + 1, (int) (x + width), y + charAscent + 1);
                     else
-                        g2d.drawGlyphVector(gv, (int)x + 1, y + charAscent);
+                        g2d.drawGlyphVector(gv, (int) x + 1, y + charAscent);
                 } else if (emulateBold)
-                    g2d.drawGlyphVector(gv, (float)x + 1, y + charAscent);
+                    g2d.drawGlyphVector(gv, (float) x + 1, y + charAscent);
             }
-            if (formatter.getUnderline(formatterFormat(format))
-                || (format & HOVER) != 0)
-                g2d.drawLine((int)x, y + charAscent + 1, (int)(x + width), y + charAscent + 1);
+            if (
+                formatter.getUnderline(formatterFormat(format))
+                    || (format & HOVER) != 0
+            )
+                g2d.drawLine((int) x, y + charAscent + 1, (int) (x + width), y + charAscent + 1);
             if ((style & TextStyle.STRIKETHROUGH) != 0) {
                 // Through the middle of the lower case letters.
                 final int strikeY = y + charAscent - strikethroughRise;
-                g2d.drawLine((int)x, strikeY, (int)(x + width), strikeY);
+                g2d.drawLine((int) x, strikeY, (int) (x + width), strikeY);
             }
-            g2d.drawGlyphVector(gv, (float)x, y + charAscent);
+            g2d.drawGlyphVector(gv, (float) x, y + charAscent);
             x += width;
         }
     }
 
-    private int measureLine(Graphics2D g2d, char[] textArray, int length, int[] formatArray)
-    {
+    private int measureLine(Graphics2D g2d, char[] textArray, int length, int[] formatArray) {
         if (length == 0)
             return 0;
         final int limit = Math.min(length, textArray.length);
@@ -1622,15 +1694,19 @@ public final class Display extends JComponent implements Constants,
             if ((format & (HIDDEN | BAR)) == HIDDEN)
                 continue;
             final Font font = fontFor(formatter.getStyle(formatterFormat(format)));
-            GlyphVector gv = glyphs(font, g2d.getFontRenderContext(),
-                                    textArray, startCol, i);
+            GlyphVector gv = glyphs(
+                font,
+                g2d.getFontRenderContext(),
+                textArray,
+                startCol,
+                i
+            );
             totalWidth += gv.getLogicalBounds().getWidth();
         }
         return (int) totalWidth;
     }
 
-    public void paintComponent(Graphics g)
-    {
+    public void paintComponent(Graphics g) {
         final Buffer buffer = editor.getBuffer();
         if (!Editor.displayReady()) {
             if (buffer != null && buffer.getModeId() == IMAGE_MODE)
@@ -1658,8 +1734,7 @@ public final class Display extends JComponent implements Constants,
         }
     }
 
-    private void paintImage(Graphics g)
-    {
+    private void paintImage(Graphics g) {
         ImageBuffer ib = (ImageBuffer) editor.getBuffer();
         g.setColor(ib.getBackgroundColor());
         g.fillRect(0, 0, getWidth(), getHeight());
@@ -1683,8 +1758,7 @@ public final class Display extends JComponent implements Constants,
         }
     }
 
-    private synchronized void paintComponentInternal(Graphics g)
-    {
+    private synchronized void paintComponentInternal(Graphics g) {
         initializePaint();
         Graphics2D g2d = (Graphics2D) g;
         setRenderingHints(g2d);
@@ -1699,7 +1773,7 @@ public final class Display extends JComponent implements Constants,
         final Line currentLine = getCurrentLine();
 
         final Color colorBackground = editor.getFormatter().getBackgroundColor();
-        int y = - pixelsAboveTopLine;
+        int y = -pixelsAboveTopLine;
         Line line = topLine;
         while (line != null && y + line.getHeight() < clipBounds.y) {
             y += line.getHeight();
@@ -1708,7 +1782,7 @@ public final class Display extends JComponent implements Constants,
         final int limit = clipBounds.y + clipBounds.height;
         while (line != null && y < limit) {
             if (line instanceof ImageLine) {
-                paintImageLine((ImageLine)line, g2d, y);
+                paintImageLine((ImageLine) line, g2d, y);
             } else {
                 Color backgroundColor;
                 if (line == currentLine) {
@@ -1732,8 +1806,14 @@ public final class Display extends JComponent implements Constants,
                 if (totalChars > 0) {
                     // Draw vertical rule first so it will be behind the text.
                     drawVerticalRule(g2d, y, line.getHeight());
-                    drawText(g2d, textArray, totalChars, formatArray, y,
-                             caretBreakCol(line, totalChars));
+                    drawText(
+                        g2d,
+                        textArray,
+                        totalChars,
+                        formatArray,
+                        y,
+                        caretBreakCol(line, totalChars)
+                    );
                 } else
                     drawVerticalRule(g2d, y, line.getHeight());
                 changedLines.remove(line);
@@ -1752,8 +1832,7 @@ public final class Display extends JComponent implements Constants,
         updateFlag &= ~REPAINT;
     }
 
-    private Line getCurrentLine()
-    {
+    private Line getCurrentLine() {
         if (editor.getDot() != null && editor.getMark() == null)
             return editor.getDotLine();
         return null;
@@ -1767,14 +1846,12 @@ public final class Display extends JComponent implements Constants,
      * the whole of both end lines is covered however far along them the caret
      * is.
      */
-    private boolean isLinewiseSelection()
-    {
+    private boolean isLinewiseSelection() {
         final InputHandler handler = editor.getInputHandler();
         return handler != null && handler.isLinewiseSelection();
     }
 
-    private Region selectionRegion()
-    {
+    private Region selectionRegion() {
         final Position mark = editor.getMark();
         if (mark == null)
             return null;
@@ -1785,23 +1862,35 @@ public final class Display extends JComponent implements Constants,
         final Line first = markFirst ? mark.getLine() : dot.getLine();
         final Line last = markFirst ? dot.getLine() : mark.getLine();
         final Line after = last.nextVisible();
-        return new Region(editor.getBuffer(), new Position(first, 0),
-                          after != null ? new Position(after, 0)
-                                        : new Position(last, last.length()));
+        return new Region(
+            editor.getBuffer(),
+            new Position(first, 0),
+            after != null
+                ? new Position(after, 0)
+                : new Position(last, last.length())
+        );
     }
 
-    private void handleSelection(Region r, Line line, int[] formatArray,
-                                 Graphics2D g2d, int y)
-    {
+    private void handleSelection(
+        Region r,
+        Line line,
+        int[] formatArray,
+        Graphics2D g2d,
+        int y
+    ) {
         if (r == null)
             return;
 
         // A block: the input handler says where it falls on each line.
         final InputHandler handler = editor.getInputHandler();
         if (handler != null && handler.isBlockSelection()) {
-            fillSpans(line, handler.getBlockSelection(editor, line),
-                      editor.getFormatter().getSelectionBackgroundColor(),
-                      g2d, y);
+            fillSpans(
+                line,
+                handler.getBlockSelection(editor, line),
+                editor.getFormatter().getSelectionBackgroundColor(),
+                g2d,
+                y
+            );
             return;
         }
 
@@ -1813,10 +1902,13 @@ public final class Display extends JComponent implements Constants,
         // Only when this line is really in the selection: a region ending at
         // offset 0 of this line means the line *after* the selection, and
         // filling that paints a line nobody selected.
-        if (line.nextVisible() == null && isLinewiseSelection()
-            && line.lineNumber() >= r.getBeginLineNumber()
-            && line.lineNumber() <= r.getEndLineNumber()
-            && (r.getEndOffset() > 0 || line == r.getBeginLine())) {
+        if (
+            line.nextVisible() == null
+                && isLinewiseSelection()
+                && line.lineNumber() >= r.getBeginLineNumber()
+                && line.lineNumber() <= r.getEndLineNumber()
+                && (r.getEndOffset() > 0 || line == r.getBeginLine())
+        ) {
             g2d.setColor(editor.getFormatter().getSelectionBackgroundColor());
             g2d.fillRect(gutterWidth, y, getWidth(), charHeight);
             return;
@@ -1829,8 +1921,11 @@ public final class Display extends JComponent implements Constants,
         int x = 0;
 
         if (r.isColumnRegion()) {
-            if (line.lineNumber() >= r.getBeginLineNumber() &&
-                line.lineNumber() <= r.getEndLineNumber()) {
+            if (
+                line.lineNumber() >= r.getBeginLineNumber()
+                    &&
+                    line.lineNumber() <= r.getEndLineNumber()
+            ) {
                 beginCol = r.getBeginCol() - shift;
                 endCol = r.getEndCol() - shift;
 
@@ -1867,8 +1962,11 @@ public final class Display extends JComponent implements Constants,
                 fillWidth = getWidth();
                 x = gutterWidth + measureLine(g2d, textArray, beginCol, formatArray);
             }
-        } else if (line.lineNumber() > r.getBeginLineNumber() &&
-            line.lineNumber() < r.getEndLineNumber()) {
+        } else if (
+            line.lineNumber() > r.getBeginLineNumber()
+                &&
+                line.lineNumber() < r.getEndLineNumber()
+        ) {
             // Entire line is selected.
             fillWidth = getWidth();
             x = gutterWidth;
@@ -1898,22 +1996,35 @@ public final class Display extends JComponent implements Constants,
      * search being typed is on, behind the text. See
      * {@link Editor#getSearchMatches}.
      */
-    private void highlightSearchMatches(Line line, Graphics2D g2d, int y)
-    {
+    private void highlightSearchMatches(Line line, Graphics2D g2d, int y) {
         final Formatter formatter = editor.getFormatter();
-        fillSpans(line, editor.getSearchMatches(line),
-                  formatter.getSearchMatchBackgroundColor(), g2d, y);
-        fillSpans(line, editor.getCurrentSearchMatch(line),
-                  formatter.getCurrentSearchMatchBackgroundColor(), g2d, y);
+        fillSpans(
+            line,
+            editor.getSearchMatches(line),
+            formatter.getSearchMatchBackgroundColor(),
+            g2d,
+            y
+        );
+        fillSpans(
+            line,
+            editor.getCurrentSearchMatch(line),
+            formatter.getCurrentSearchMatchBackgroundColor(),
+            g2d,
+            y
+        );
     }
 
     /**
      * Fills spans of a line, offsets in pairs. An empty span, or the line end
      * a span takes in, is one character wide.
      */
-    private void fillSpans(Line line, int[] spans, Color color, Graphics2D g2d,
-                           int y)
-    {
+    private void fillSpans(
+        Line line,
+        int[] spans,
+        Color color,
+        Graphics2D g2d,
+        int y
+    ) {
         if (spans == null)
             return;
         final Buffer buffer = editor.getBuffer();
@@ -1942,9 +2053,13 @@ public final class Display extends JComponent implements Constants,
         }
     }
 
-    private void highlightBracket(Position pos, Line line, int[] formatArray,
-        Graphics2D g2d, int y)
-    {
+    private void highlightBracket(
+        Position pos,
+        Line line,
+        int[] formatArray,
+        Graphics2D g2d,
+        int y
+    ) {
         if (pos == null) {
             Debug.bug();
             return;
@@ -1971,8 +2086,7 @@ public final class Display extends JComponent implements Constants,
     }
 
     // Scroll up in the buffer, moving the content in the window down.
-    private void scrollUp()
-    {
+    private void scrollUp() {
         if (editor.getModeId() == IMAGE_MODE) {
             if (pixelsAboveTopLine >= charHeight) {
                 pixelsAboveTopLine -= charHeight;
@@ -2008,8 +2122,7 @@ public final class Display extends JComponent implements Constants,
     }
 
     // Scroll down in the buffer, moving the content in the window up.
-    private void scrollDown()
-    {
+    private void scrollDown() {
         if (editor.getModeId() == IMAGE_MODE) {
             pixelsAboveTopLine += charHeight;
             repaint();
@@ -2043,8 +2156,7 @@ public final class Display extends JComponent implements Constants,
     }
 
     // Move content down.
-    private void scrollPixelsUp(int dy)
-    {
+    private void scrollPixelsUp(int dy) {
         if (!isShowing() || !editor.isShowing())
             return;
         Point pt1 = editor.getLocationOnScreen();
@@ -2055,19 +2167,17 @@ public final class Display extends JComponent implements Constants,
     }
 
     // Move content up.
-    private void scrollPixelsDown(int dy)
-    {
+    private void scrollPixelsDown(int dy) {
         if (!isShowing() || !editor.isShowing())
             return;
         Point pt1 = editor.getLocationOnScreen();
         Point pt2 = getLocationOnScreen();
         int x = pt2.x - pt1.x;
         int y = pt2.y - pt1.y + dy;
-        editor.getGraphics().copyArea(x, y, getWidth(), getHeight() - dy, 0, - dy);
+        editor.getGraphics().copyArea(x, y, getWidth(), getHeight() - dy, 0, -dy);
     }
 
-    public Line getBottomLine()
-    {
+    public Line getBottomLine() {
         Line line = topLine;
         int y = line.getHeight() - pixelsAboveTopLine;
         final int limit = getHeight();
@@ -2083,8 +2193,7 @@ public final class Display extends JComponent implements Constants,
         return line;
     }
 
-    public void up(boolean select)
-    {
+    public void up(boolean select) {
         if (editor.getDot() == null)
             return;
 
@@ -2146,8 +2255,7 @@ public final class Display extends JComponent implements Constants,
         editor.moveDotToGoalCol();
     }
 
-    public void down(boolean select)
-    {
+    public void down(boolean select) {
         if (editor.getDot() == null)
             return;
         if (select) {
@@ -2164,8 +2272,7 @@ public final class Display extends JComponent implements Constants,
                 editor.setGoalColumn(editor.getDotCol());
                 if (isLineBlock)
                     return;
-            }
-            else if (editor.getLastCommand() != COMMAND_DOWN)
+            } else if (editor.getLastCommand() != COMMAND_DOWN)
                 editor.addUndo(SimpleEdit.MOVE);
         }
         final Line dotLine = editor.getDotLine();
@@ -2205,14 +2312,12 @@ public final class Display extends JComponent implements Constants,
         editor.moveDotToGoalCol();
     }
 
-    public void windowUp()
-    {
+    public void windowUp() {
         if (getHeight() < editor.getBuffer().getDisplayHeight())
             scrollUp();
     }
 
-    public void windowDown()
-    {
+    public void windowDown() {
         final int totalHeight = editor.getBuffer().getDisplayHeight();
         final int windowHeight = getHeight();
         if (windowHeight < totalHeight) {
@@ -2227,8 +2332,7 @@ public final class Display extends JComponent implements Constants,
         }
     }
 
-    public void windowUp(int lines)
-    {
+    public void windowUp(int lines) {
         Line line = topLine;
         if (line == null) {
             if (editor.getModeId() == IMAGE_MODE) {
@@ -2262,8 +2366,7 @@ public final class Display extends JComponent implements Constants,
         editor.updateDisplay();
     }
 
-    private void imageLineWindowUp(int lines)
-    {
+    private void imageLineWindowUp(int lines) {
         int oldY = getAbsoluteY(topLine) + pixelsAboveTopLine;
         int newY = oldY - lines * charHeight;
         if (newY < 0)
@@ -2278,8 +2381,7 @@ public final class Display extends JComponent implements Constants,
         }
     }
 
-    public void windowDown(final int lines)
-    {
+    public void windowDown(final int lines) {
         Line top = topLine;
         if (top == null) {
             if (editor.getModeId() == IMAGE_MODE) {
@@ -2324,8 +2426,7 @@ public final class Display extends JComponent implements Constants,
         editor.updateDisplay();
     }
 
-    private void imageLineWindowDown(int lines)
-    {
+    private void imageLineWindowDown(int lines) {
         Line top = topLine;
         int oldY = getAbsoluteY(top) + pixelsAboveTopLine;
         int newY = oldY + lines * charHeight;
@@ -2345,8 +2446,7 @@ public final class Display extends JComponent implements Constants,
         }
     }
 
-    public void windowLeft(int characters)
-    {
+    public void windowLeft(int characters) {
         int absCaretCol = getShift() + getCaretCol();
         if (getShift() - characters < 0)
             characters = getShift();
@@ -2356,8 +2456,7 @@ public final class Display extends JComponent implements Constants,
         editor.updateScrollBars();
     }
 
-    public void windowRight(final int characters)
-    {
+    public void windowRight(final int characters) {
         int absCaretCol = getShift() + getCaretCol();
         setShift(getShift() + characters);
         setCaretCol(absCaretCol - getShift());
@@ -2365,8 +2464,7 @@ public final class Display extends JComponent implements Constants,
         editor.updateScrollBars();
     }
 
-    public void setUpdateFlag(int mask)
-    {
+    public void setUpdateFlag(int mask) {
         updateFlag |= mask;
     }
 
@@ -2375,25 +2473,21 @@ public final class Display extends JComponent implements Constants,
     // changes what is on screen without changing any line -- clearing a
     // selection, say -- is otherwise indistinguishable from one that does
     // nothing at all.
-    boolean isRepaintPending()
-    {
+    boolean isRepaintPending() {
         return (updateFlag & REPAINT) == REPAINT;
     }
 
-    void clearRepaintPending()
-    {
+    void clearRepaintPending() {
         updateFlag &= ~REPAINT;
     }
 
     private int reframeParam = 0;
 
-    public void setReframe(int n)
-    {
+    public void setReframe(int n) {
         reframeParam = n;
     }
 
-    public void reframe()
-    {
+    public void reframe() {
         if (!Editor.displayReady())
             return;
         if (editor.getDot() == null)
@@ -2420,8 +2514,7 @@ public final class Display extends JComponent implements Constants,
         }
     }
 
-    private void reframeVertically()
-    {
+    private void reframeVertically() {
         if (topLine != null && topLine.isHidden()) {
             Line prev = topLine.previousVisible();
             setTopLine(prev != null ? prev : topLine.nextVisible());
@@ -2456,12 +2549,11 @@ public final class Display extends JComponent implements Constants,
     }
 
     // Returns true if necessary to reframe vertically.
-    private boolean mustReframe()
-    {
+    private boolean mustReframe() {
         final int height = getHeight();
         final Line dotLine = editor.getDotLine();
         Line line = topLine;
-        int y = - pixelsAboveTopLine;
+        int y = -pixelsAboveTopLine;
         while (y < height) {
             if (line == dotLine) {
                 // Whole line must fit.
@@ -2477,8 +2569,7 @@ public final class Display extends JComponent implements Constants,
     }
 
     // Helper for reframeVertically().
-    private Line findNewTopLine(final Line dotLine)
-    {
+    private Line findNewTopLine(final Line dotLine) {
         int y;
         if (reframeParam == 0)
             y = getHeight() / 2; // Default.
@@ -2501,8 +2592,7 @@ public final class Display extends JComponent implements Constants,
         return line;
     }
 
-    private void reframeHorizontally()
-    {
+    private void reframeHorizontally() {
         if (editor.getDot() == null)
             return;
         if (editor.getDotLine() instanceof ImageLine)
@@ -2513,8 +2603,7 @@ public final class Display extends JComponent implements Constants,
         caretCol = absCaretCol - shift;
     }
 
-    public synchronized void ensureColumnVisible(Line line, int absCol)
-    {
+    public synchronized void ensureColumnVisible(Line line, int absCol) {
         final int oldShift = shift;
         if (absCol < 50)
             shift = 0;
@@ -2551,8 +2640,7 @@ public final class Display extends JComponent implements Constants,
             setUpdateFlag(REPAINT);
     }
 
-    public void toCenter()
-    {
+    public void toCenter() {
         Line line = editor.getDotLine();
         int limit = getRows() / 2;
         for (int i = 0; i < limit; i++) {
@@ -2565,8 +2653,7 @@ public final class Display extends JComponent implements Constants,
         setUpdateFlag(REPAINT);
     }
 
-    public void toTop()
-    {
+    public void toTop() {
         Line goal = editor.getDotLine().previousVisible();
         if (goal == null)
             goal = editor.getDotLine();
@@ -2577,8 +2664,7 @@ public final class Display extends JComponent implements Constants,
     }
 
     /** Scrolls so the caret's line is the last one on screen. */
-    public void toBottom()
-    {
+    public void toBottom() {
         Line line = editor.getDotLine();
         for (int i = getRows() - 1; i > 0; i--) {
             Line prev = line.previousVisible();
@@ -2593,8 +2679,7 @@ public final class Display extends JComponent implements Constants,
     }
 
     // Does nothing if entire region is already visible.
-    public void centerRegion(Line begin, Line end)
-    {
+    public void centerRegion(Line begin, Line end) {
         if (begin == null)
             return;
         if (end != null) {
@@ -2621,8 +2706,7 @@ public final class Display extends JComponent implements Constants,
                 else
                     break;
                 --linesAbove;
-            }
-            while (linesAbove > 0);
+            } while (linesAbove > 0);
         }
         if (newTopLine == null) {
             Line prev = begin.previousVisible();
@@ -2634,31 +2718,27 @@ public final class Display extends JComponent implements Constants,
         }
     }
 
-    private boolean isLineVisible(Line line)
-    {
-        return (line.lineNumber() >= getTopLineNumber() &&
+    private boolean isLineVisible(Line line) {
+        return (line.lineNumber() >= getTopLineNumber()
+            &&
             line.lineNumber() < getTopLineNumber() + getRows());
     }
 
-    private final int getMaxCols()
-    {
+    private final int getMaxCols() {
         // We need some slack here (runs of italics tend to get compressed).
         // An extra 25% should be plenty.
         return (getWidth() / charWidth) * 5 / 4;
     }
 
-    public final int getColumns()
-    {
-        return (getWidth()-getGutterWidth(editor.getBuffer()))/charWidth - 1;
+    public final int getColumns() {
+        return (getWidth() - getGutterWidth(editor.getBuffer())) / charWidth - 1;
     }
 
-    public final int getRows()
-    {
+    public final int getRows() {
         return getHeight() / charHeight;
     }
 
-    public void moveCaretToPoint(Point point)
-    {
+    public void moveCaretToPoint(Point point) {
         final Position dot = editor.getDot();
         if (dot == null)
             return;
@@ -2673,8 +2753,7 @@ public final class Display extends JComponent implements Constants,
         editor.moveDotToCol(caretCol + shift);
     }
 
-    public synchronized Position positionFromPoint(Point point, int shift)
-    {
+    public synchronized Position positionFromPoint(Point point, int shift) {
         int savedShift = this.shift;
         this.shift = shift;
         Position pos = positionFromPoint(point);
@@ -2682,13 +2761,11 @@ public final class Display extends JComponent implements Constants,
         return pos;
     }
 
-    public Position positionFromPoint(Point point)
-    {
+    public Position positionFromPoint(Point point) {
         return positionFromPoint(point.x, point.y);
     }
 
-    public Position positionFromPoint(int x, int y)
-    {
+    public Position positionFromPoint(int x, int y) {
         Line line = lineFromY(y);
         if (line == null)
             return null;
@@ -2699,12 +2776,11 @@ public final class Display extends JComponent implements Constants,
     }
 
     // y is offset from top of window.
-    public Line lineFromY(int y)
-    {
+    public Line lineFromY(int y) {
         if (topLine == null)
             return null;
         Line line = topLine;
-        int total = - pixelsAboveTopLine;
+        int total = -pixelsAboveTopLine;
         final int limit = getHeight();
         while (true) {
             total += line.getHeight();
@@ -2721,8 +2797,7 @@ public final class Display extends JComponent implements Constants,
     }
 
     // y is absolute offset from start of buffer.
-    private Line lineFromAbsoluteY(int y)
-    {
+    private Line lineFromAbsoluteY(int y) {
         Line line = editor.getBuffer().getFirstLine();
         if (line != null) {
             int total = 0;
@@ -2740,8 +2815,7 @@ public final class Display extends JComponent implements Constants,
         return line;
     }
 
-    public synchronized int getColumn(Line line, int x)
-    {
+    public synchronized int getColumn(Line line, int x) {
         if (line instanceof ImageLine)
             return 0;
         int maxCols = getMaxCols();
@@ -2765,13 +2839,11 @@ public final class Display extends JComponent implements Constants,
         return 0; // Shouldn't happen.
     }
 
-    public boolean isOpaque()
-    {
+    public boolean isOpaque() {
         return true;
     }
 
-    public synchronized final void lineChanged(Line line)
-    {
+    public synchronized final void lineChanged(Line line) {
         // A null line would go into the map as a null key and never be found.
         if (line == null) {
             Debug.bug("lineChanged line is null");
@@ -2780,8 +2852,7 @@ public final class Display extends JComponent implements Constants,
         changedLines.put(line, line);
     }
 
-    public static void resetDisplay()
-    {
+    public static void resetDisplay() {
         if (plainFont == null)
             return; // Not initialized yet. Nothing to do.
         initializeStaticValues();
@@ -2792,8 +2863,7 @@ public final class Display extends JComponent implements Constants,
         }
     }
 
-    private static Object getDesktopAntialiasingHint()
-    {
+    private static Object getDesktopAntialiasingHint() {
         try {
             Object hints = Toolkit.getDefaultToolkit()
                 .getDesktopProperty("awt.font.desktophints");
@@ -2802,9 +2872,13 @@ public final class Display extends JComponent implements Constants,
                     ((Map) hints).get(RenderingHints.KEY_TEXT_ANTIALIASING);
                 // A desktop with antialiasing switched off still leaves j's
                 // own antialias preference in charge, so ignore OFF here.
-                if (value != null &&
-                    value != RenderingHints.VALUE_TEXT_ANTIALIAS_OFF &&
-                    value != RenderingHints.VALUE_TEXT_ANTIALIAS_DEFAULT)
+                if (
+                    value != null
+                        &&
+                        value != RenderingHints.VALUE_TEXT_ANTIALIAS_OFF
+                        &&
+                        value != RenderingHints.VALUE_TEXT_ANTIALIAS_DEFAULT
+                )
                     return value;
             }
         }
@@ -2826,21 +2900,24 @@ public final class Display extends JComponent implements Constants,
      * and the error accumulates along the string until the caret sits visibly
      * inside the wrong character.
      */
-    public static void setRenderingHints(Graphics g)
-    {
+    public static void setRenderingHints(Graphics g) {
         if (!antialias)
             return;
         Graphics2D g2d = (Graphics2D) g;
         Object hint = desktopAntialiasingHint;
-        g2d.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING,
-                             hint != null ? hint
-                                          : RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
-        g2d.setRenderingHint(RenderingHints.KEY_FRACTIONALMETRICS,
-                             RenderingHints.VALUE_FRACTIONALMETRICS_OFF);
+        g2d.setRenderingHint(
+            RenderingHints.KEY_TEXT_ANTIALIASING,
+            hint != null
+                ? hint
+                : RenderingHints.VALUE_TEXT_ANTIALIAS_ON
+        );
+        g2d.setRenderingHint(
+            RenderingHints.KEY_FRACTIONALMETRICS,
+            RenderingHints.VALUE_FRACTIONALMETRICS_OFF
+        );
     }
 
-    public String getToolTipText(MouseEvent e)
-    {
+    public String getToolTipText(MouseEvent e) {
         return editor.getMode().getToolTipText(editor, e);
     }
 }

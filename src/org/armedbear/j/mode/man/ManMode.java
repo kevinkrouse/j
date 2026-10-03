@@ -18,6 +18,10 @@
 
 package org.armedbear.j.mode.man;
 
+import java.awt.AWTEvent;
+import java.awt.event.KeyEvent;
+import java.awt.event.MouseEvent;
+import javax.swing.JPopupMenu;
 import org.armedbear.j.AbstractMode;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.BufferIterator;
@@ -37,17 +41,10 @@ import org.armedbear.j.SystemBuffer;
 import org.armedbear.j.Tagger;
 import org.armedbear.j.util.Utilities;
 
-import java.awt.AWTEvent;
-import java.awt.event.KeyEvent;
-import java.awt.event.MouseEvent;
-import javax.swing.JPopupMenu;
-
-public final class ManMode extends AbstractMode implements Constants, Mode
-{
+public final class ManMode extends AbstractMode implements Constants, Mode {
     private static final ManMode mode = new ManMode();
 
-    private ManMode()
-    {
+    private ManMode() {
         super(MAN_MODE, MAN_MODE_NAME);
         setProperty(Property.VERTICAL_RULE, 0);
         setProperty(Property.SHOW_LINE_NUMBERS, false);
@@ -55,43 +52,36 @@ public final class ManMode extends AbstractMode implements Constants, Mode
         setProperty(Property.HIGHLIGHT_BRACKETS, false);
     }
 
-    public static final ManMode getMode()
-    {
+    public static final ManMode getMode() {
         return mode;
     }
 
-    public JPopupMenu getContextMenu(Editor editor)
-    {
+    public JPopupMenu getContextMenu(Editor editor) {
         return null;
     }
 
-    public Formatter getFormatter(Buffer buffer)
-    {
+    public Formatter getFormatter(Buffer buffer) {
         if (buffer.getType() != Buffer.TYPE_MAN)
             return null;
-        return new ManFormatter(buffer, ((ManBuffer)buffer).isApropos());
+        return new ManFormatter(buffer, ((ManBuffer) buffer).isApropos());
     }
 
-    protected void setKeyMapDefaults(KeyMap km)
-    {
+    protected void setKeyMapDefaults(KeyMap km) {
         km.mapKey(KeyEvent.VK_ENTER, 0, "manFollowLink");
         km.mapKey(KeyEvent.VK_G, CTRL_MASK | SHIFT_MASK, "manFollowLink");
         km.mapKey(VK_DOUBLE_MOUSE_1, 0, "manFollowLink");
         km.mapKey(VK_MOUSE_2, 0, "manFollowLink");
     }
 
-    public Tagger getTagger(SystemBuffer buffer)
-    {
+    public Tagger getTagger(SystemBuffer buffer) {
         return new ManTagger(buffer);
     }
 
-    public boolean isTaggable()
-    {
+    public boolean isTaggable() {
         return true;
     }
 
-    private static void followLink(Editor editor)
-    {
+    private static void followLink(Editor editor) {
         if (editor.getBuffer().getType() == Buffer.TYPE_MAN) {
             final ManBuffer manBuffer = (ManBuffer) editor.getBuffer();
             final Line line = editor.getDotLine();
@@ -151,13 +141,11 @@ public final class ManMode extends AbstractMode implements Constants, Mode
         }
     }
 
-    public static String getTitle(String topic)
-    {
+    public static String getTitle(String topic) {
         return "man " + topic;
     }
 
-    public static void man()
-    {
+    public static void man() {
         if (!Platform.isPlatformUnix())
             return;
         final Editor editor = Editor.currentEditor();
@@ -169,15 +157,13 @@ public final class ManMode extends AbstractMode implements Constants, Mode
             man(topic);
     }
 
-    public static void man(String topic)
-    {
+    public static void man(String topic) {
         if (!Platform.isPlatformUnix())
             return;
         man(Editor.currentEditor(), topic);
     }
 
-    private static void man(Editor editor, String topic)
-    {
+    private static void man(Editor editor, String topic) {
         editor.setWaitCursor();
         try {
             final String title = ManMode.getTitle(topic);
@@ -191,7 +177,7 @@ public final class ManMode extends AbstractMode implements Constants, Mode
             }
             File tempFile = Utilities.getTempFile();
             String cmd = "man " + topic + " > " + tempFile.canonicalPath();
-            String[] cmdarray = {"/bin/sh", "-c", cmd};
+            String[] cmdarray = { "/bin/sh", "-c", cmd };
             try {
                 Process process = Runtime.getRuntime().exec(cmdarray);
                 process.waitFor();
@@ -213,8 +199,7 @@ public final class ManMode extends AbstractMode implements Constants, Mode
         }
     }
 
-    public static void manFollowLink()
-    {
+    public static void manFollowLink() {
         final Editor editor = Editor.currentEditor();
         final Buffer buffer = editor.getBuffer();
         if (buffer.getType() != Buffer.TYPE_MAN)
@@ -223,7 +208,7 @@ public final class ManMode extends AbstractMode implements Constants, Mode
         // location of mouse click before following link.
         AWTEvent e = editor.getDispatcher().getLastEvent();
         if (e instanceof MouseEvent)
-            editor.mouseMoveDotToPoint((MouseEvent)e);
+            editor.mouseMoveDotToPoint((MouseEvent) e);
         followLink(editor);
     }
 }

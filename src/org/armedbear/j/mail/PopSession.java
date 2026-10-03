@@ -28,15 +28,14 @@ import org.armedbear.j.Log;
 import org.armedbear.j.Netrc;
 import org.armedbear.j.SocketConnection;
 
-public final class PopSession
-{
+public final class PopSession {
     // States.
-    private static final int DISCONNECTED  = 0;
+    private static final int DISCONNECTED = 0;
     private static final int AUTHORIZATION = 1;
-    private static final int TRANSACTION   = 2;
+    private static final int TRANSACTION = 2;
 
     // Responses.
-    public static final int OK  = 0;
+    public static final int OK = 0;
     public static final int ERR = 1;
 
     private final PopURL url;
@@ -50,56 +49,46 @@ public final class PopSession
     private OutputStreamWriter writer;
     private String errorText;
 
-    private PopSession(PopURL url, String user, String password)
-    {
+    private PopSession(PopURL url, String user, String password) {
         this.url = url;
         this.user = user;
         this.password = password;
         this.echo = url.isDebug();
     }
 
-    public final String getHost()
-    {
+    public final String getHost() {
         return url.getHost();
     }
 
-    public final int getPort()
-    {
+    public final int getPort() {
         return url.getPort();
     }
 
-    public final String getUser()
-    {
+    public final String getUser() {
         return user;
     }
 
-    public final String getPassword()
-    {
+    public final String getPassword() {
         return password;
     }
 
-    public final void setPassword(String password)
-    {
+    public final void setPassword(String password) {
         this.password = password;
     }
 
-    public final void setEcho(boolean b)
-    {
+    public final void setEcho(boolean b) {
         echo = b;
     }
 
-    public final boolean getEcho()
-    {
+    public final boolean getEcho() {
         return echo;
     }
 
-    public final String getErrorText()
-    {
+    public final String getErrorText() {
         return errorText;
     }
 
-    public static PopSession getSession(PopURL url)
-    {
+    public static PopSession getSession(PopURL url) {
         if (url.getHost() == null)
             return null;
         String user = url.getUser();
@@ -111,21 +100,18 @@ public final class PopSession
         return new PopSession(url, user, password);
     }
 
-    public static PopSession getSession(PopURL url, String user)
-    {
+    public static PopSession getSession(PopURL url, String user) {
         String password = Netrc.getPassword(url.getHost(), user);
         if (password == null)
             return null;
         return new PopSession(url, user, password);
     }
 
-    public static PopSession getSession(PopURL url, String user, String password)
-    {
+    public static PopSession getSession(PopURL url, String user, String password) {
         return new PopSession(url, user, password);
     }
 
-    public boolean connect()
-    {
+    public boolean connect() {
         setEcho(true);
         socket = null;
         errorText = null;
@@ -167,8 +153,7 @@ public final class PopSession
     }
 
     // Set specified timeout (in milliseconds).
-    private synchronized void setTimeout(int ms)
-    {
+    private synchronized void setTimeout(int ms) {
         if (socket != null) {
             try {
                 socket.setSoTimeout(ms);
@@ -180,8 +165,7 @@ public final class PopSession
             Log.debug("PopSession.setTimeout socket is null");
     }
 
-    public synchronized boolean logout()
-    {
+    public synchronized boolean logout() {
         Log.debug("PopSession.logout");
         boolean succeeded = false;
         if (state > DISCONNECTED) {
@@ -194,8 +178,7 @@ public final class PopSession
         return succeeded;
     }
 
-    public void disconnect()
-    {
+    public void disconnect() {
         if (socket != null) {
             try {
                 socket.close();
@@ -207,8 +190,7 @@ public final class PopSession
         state = DISCONNECTED;
     }
 
-    public synchronized String readLine()
-    {
+    public synchronized String readLine() {
         try {
             String s = reader.readLine();
             if (echo && s != null)
@@ -222,8 +204,7 @@ public final class PopSession
         }
     }
 
-    public synchronized boolean write(String s)
-    {
+    public synchronized boolean write(String s) {
         if (writer == null)
             return false;
         if (echo)
@@ -241,8 +222,7 @@ public final class PopSession
         }
     }
 
-    public synchronized int getResponse()
-    {
+    public synchronized int getResponse() {
         while (true) {
             String s = readLine();
             if (s == null) {

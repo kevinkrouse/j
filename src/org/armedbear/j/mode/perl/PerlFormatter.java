@@ -20,10 +20,13 @@
 
 package org.armedbear.j.mode.perl;
 
+import java.lang.StringBuilder;
+import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Debug;
 import org.armedbear.j.Editor;
-import java.lang.StringBuilder;
 import org.armedbear.j.FormatTable;
 import org.armedbear.j.Formatter;
 import org.armedbear.j.Line;
@@ -32,31 +35,26 @@ import org.armedbear.j.LineSegmentList;
 import org.armedbear.j.util.Sets;
 import org.armedbear.j.util.Utilities;
 
-import java.util.Set;
-import java.util.regex.Pattern;
-import java.util.regex.Matcher;
-
-public final class PerlFormatter extends Formatter
-{
-    private static final int STATE_VARIABLE         = STATE_LAST + 1;
-    private static final int STATE_HERE_DOCUMENT    = STATE_LAST + 2;
-    private static final int STATE_POD              = STATE_LAST + 3;
+public final class PerlFormatter extends Formatter {
+    private static final int STATE_VARIABLE = STATE_LAST + 1;
+    private static final int STATE_HERE_DOCUMENT = STATE_LAST + 2;
+    private static final int STATE_POD = STATE_LAST + 3;
     private static final int STATE_REGEXP_DELIMITER = STATE_LAST + 4;
-    private static final int STATE_REGEXP           = STATE_LAST + 5;
-    private static final int STATE_SUBST            = STATE_LAST + 6;
+    private static final int STATE_REGEXP = STATE_LAST + 5;
+    private static final int STATE_SUBST = STATE_LAST + 6;
 
     private static final String punctuation = "&`^:+#-%'\"/~_";
 
     // Formats.
-    private static final int PERL_FORMAT_TEXT     = 0;
-    private static final int PERL_FORMAT_COMMENT  = 1;
-    private static final int PERL_FORMAT_STRING   = 2;
-    private static final int PERL_FORMAT_KEYWORD  = 3;
+    private static final int PERL_FORMAT_TEXT = 0;
+    private static final int PERL_FORMAT_COMMENT = 1;
+    private static final int PERL_FORMAT_STRING = 2;
+    private static final int PERL_FORMAT_KEYWORD = 3;
     private static final int PERL_FORMAT_FUNCTION = 4;
-    private static final int PERL_FORMAT_BRACE    = 5;
-    private static final int PERL_FORMAT_NUMBER   = 6;
-    private static final int PERL_FORMAT_SCALAR   = 7;
-    private static final int PERL_FORMAT_LIST     = 8;
+    private static final int PERL_FORMAT_BRACE = 5;
+    private static final int PERL_FORMAT_NUMBER = 6;
+    private static final int PERL_FORMAT_SCALAR = 7;
+    private static final int PERL_FORMAT_LIST = 8;
 
     private static Set<String> functions;
 
@@ -66,15 +64,13 @@ public final class PerlFormatter extends Formatter
 
     private static Pattern matchRE = Pattern.compile("(=~|!~)[ \t]+m[^a-zA-Z0-9]");
 
-    public PerlFormatter(Buffer buffer)
-    {
+    public PerlFormatter(Buffer buffer) {
         this.buffer = buffer;
         if (functions == null)
             functions = Sets.newHashSet(perlFunctions);
     }
 
-    private void endToken(int state)
-    {
+    private void endToken(int state) {
         if (sb.length() > 0) {
             int format = -1;
             switch (state) {
@@ -109,8 +105,7 @@ public final class PerlFormatter extends Formatter
         }
     }
 
-    private void parseLine(String text, int state)
-    {
+    private void parseLine(String text, int state) {
         if (Editor.tabsAreVisible())
             text = Utilities.makeTabsVisible(text, buffer.getTabWidth());
         else
@@ -151,7 +146,7 @@ public final class PerlFormatter extends Formatter
             if (c == '\\') {
                 // Escape.
                 sb.append(c);
-                if (i < limit-1)
+                if (i < limit - 1)
                     sb.append(text.charAt(++i));
                 ++i;
                 continue;
@@ -267,7 +262,7 @@ public final class PerlFormatter extends Formatter
                 } else if (isRegExp(text, i)) {
                     delimiter = '/';
                     // End the previous token unless we've got "m/".
-                    if (i > 0 && text.charAt(i-1) != 'm')
+                    if (i > 0 && text.charAt(i - 1) != 'm')
                         endToken(state);
                     sb.append(c);
                     endToken(STATE_REGEXP_DELIMITER);
@@ -352,31 +347,30 @@ public final class PerlFormatter extends Formatter
     }
 
     // i is the index of '/'.
-    public static boolean isSubst(String text, int i)
-    {
+    public static boolean isSubst(String text, int i) {
         Debug.assertTrue(text.charAt(i) == '/');
-        if (text.regionMatches(i-2, "tr/", 0, 3)) {
+        if (text.regionMatches(i - 2, "tr/", 0, 3)) {
             if (i < 3)
                 return true;
-            char c = text.charAt(i-3);
+            char c = text.charAt(i - 3);
             if (PerlMode.getMode().isIdentifierPart(c))
                 return false;
             else
                 return true;
         }
-        if (text.regionMatches(i-1, "s/", 0, 2)) {
+        if (text.regionMatches(i - 1, "s/", 0, 2)) {
             if (i < 2)
                 return true;
-            char c = text.charAt(i-2);
+            char c = text.charAt(i - 2);
             if (PerlMode.getMode().isIdentifierPart(c))
                 return false;
             else
                 return true;
         }
-        if (text.regionMatches(i-1, "y/", 0, 2)) {
+        if (text.regionMatches(i - 1, "y/", 0, 2)) {
             if (i < 2)
                 return true;
-            char c = text.charAt(i-2);
+            char c = text.charAt(i - 2);
             if (PerlMode.getMode().isIdentifierPart(c))
                 return false;
             else
@@ -386,24 +380,23 @@ public final class PerlFormatter extends Formatter
     }
 
     // Make sure the '/' at i is not the division operator.
-    public static boolean isRegExp(String text, int i)
-    {
+    public static boolean isRegExp(String text, int i) {
         Debug.assertTrue(text.charAt(i) == '/');
         if (i == 0) {
             // It's the first character on the line.
             return true;
         }
         // Consider the previous character.
-        char c = text.charAt(i-1);
+        char c = text.charAt(i - 1);
         if (c == '(')
             return true;
         if (c == 'm') {
-            if (i-2 < 0)
+            if (i - 2 < 0)
                 return true;
-            c = text.charAt(i-2);
+            c = text.charAt(i - 2);
             if (c == '(' || Character.isWhitespace(c))
                 return true;
-             return false;
+            return false;
         }
         // If it's an identifier character, we're not looking at a regexp,
         // since we've already tested for substitution and translation
@@ -415,13 +408,13 @@ public final class PerlFormatter extends Formatter
             return false;
 
         // The immediately previous character is whitespace.
-        final String s = text.substring(0, i-1).trim();
+        final String s = text.substring(0, i - 1).trim();
         final int length = s.length();
         if (length == 0) {
             // The '/' is the first non-whitespace character on the line.
             return true;
         }
-        c = s.charAt(length-1);
+        c = s.charAt(length - 1);
         if (c == ')')
             return false; // "(a + b) / c"
         if (c == '}')
@@ -431,21 +424,20 @@ public final class PerlFormatter extends Formatter
 
         // Last non-whitespace character is an identifier character.
         if (s.endsWith("and")) {
-            if (length == 3 || Character.isWhitespace(s.charAt(length-4)))
+            if (length == 3 || Character.isWhitespace(s.charAt(length - 4)))
                 return true;
         } else if (s.endsWith("or")) {
-            if (length == 2 || Character.isWhitespace(s.charAt(length-3)))
+            if (length == 2 || Character.isWhitespace(s.charAt(length - 3)))
                 return true;
         } else if (s.endsWith("not")) {
-            if (length == 3 || Character.isWhitespace(s.charAt(length-4)))
+            if (length == 3 || Character.isWhitespace(s.charAt(length - 4)))
                 return true;
         }
 
         return false;
     }
 
-    public LineSegmentList formatLine(Line line)
-    {
+    public LineSegmentList formatLine(Line line) {
         if (line == null) {
             clearSegmentList();
             addSegment("", PERL_FORMAT_TEXT);
@@ -487,12 +479,12 @@ public final class PerlFormatter extends Formatter
                     else if (i > 1) {
                         // See if "sub" is two segments back (one segment back
                         // would be intervening whitespace).
-                        LineSegment prevSegment = segmentList.getSegment(i-2);
+                        LineSegment prevSegment = segmentList.getSegment(i - 2);
                         if (prevSegment.getText().trim().equals("sub"))
                             isFunction = true;
                     }
-                    if (!isFunction && i < segmentList.size()-1) {
-                        LineSegment nextSegment = segmentList.getSegment(i+1);
+                    if (!isFunction && i < segmentList.size() - 1) {
+                        LineSegment nextSegment = segmentList.getSegment(i + 1);
                         if (nextSegment.getText().trim().startsWith("("))
                             isFunction = true;
                     }
@@ -503,8 +495,7 @@ public final class PerlFormatter extends Formatter
         return segmentList;
     }
 
-    public boolean parseBuffer()
-    {
+    public boolean parseBuffer() {
         int state = STATE_NEUTRAL;
         Line line = buffer.getFirstLine();
         boolean changed = false;
@@ -542,7 +533,7 @@ public final class PerlFormatter extends Formatter
             final int limit = line.length();
             for (int i = 0; i < limit; i++) {
                 char c = line.charAt(i);
-                if (c == '\\' && i < limit-1) {
+                if (c == '\\' && i < limit - 1) {
                     // Escape.
                     ++i;
                     continue;
@@ -558,29 +549,29 @@ public final class PerlFormatter extends Formatter
                     continue;
                 }
                 // Not in comment or quoted string.
-                if (c == '$' && i < limit-1) {
+                if (c == '$' && i < limit - 1) {
                     // In effect, another kind of escape.
                     // Next char can be quote or single quote but should be ignored.
                     ++i;
                     continue;
                 }
-                if (c == '<' && i < limit-2) {
-                    if (line.charAt(i+1) == '<') {
+                if (c == '<' && i < limit - 2) {
+                    if (line.charAt(i + 1) == '<') {
                         // Line must have semicolon at end.
                         if (line.trim().endsWith(";")) {
-                            endOfText = line.substring(i+2).trim();
+                            endOfText = line.substring(i + 2).trim();
                             int length = endOfText.length();
                             // Remove ';' at end of line.
-                            if (length > 0 && endOfText.charAt(length-1) == ';')
+                            if (length > 0 && endOfText.charAt(length - 1) == ';')
                                 endOfText = endOfText.substring(0, --length);
                             // Remove ')' if any.
-                            if (length > 0 && endOfText.charAt(length-1) == ')')
+                            if (length > 0 && endOfText.charAt(length - 1) == ')')
                                 endOfText = endOfText.substring(0, --length);
                             if (length > 2) {
-                                if (endOfText.charAt(0) == '"' && endOfText.charAt(length-1) == '"')
+                                if (endOfText.charAt(0) == '"' && endOfText.charAt(length - 1) == '"')
                                     // Removed enclosing double quotes.
                                     endOfText = endOfText.substring(1, length - 1);
-                                else if (endOfText.charAt(0) == '\'' && endOfText.charAt(length-1) == '\'')
+                                else if (endOfText.charAt(0) == '\'' && endOfText.charAt(length - 1) == '\'')
                                     // Removed enclosing single quotes.
                                     endOfText = endOfText.substring(1, length - 1);
                             }
@@ -610,186 +601,184 @@ public final class PerlFormatter extends Formatter
     }
 
     private static final String[] perlFunctions =
-    {
-        "abs",
-        "accept",
-        "alarm",
-        "atan2",
-        "bind",
-        "binmode",
-        "bless",
-        "caller",
-        "chdir",
-        "chmod",
-        "chomp",
-        "chop",
-        "chown",
-        "chr",
-        "chroot",
-        "close",
-        "closedir",
-        "connect",
-        "cos",
-        "crypt",
-        "dbmclose",
-        "dbmopen",
-        "defined",
-        "delete",
-        "die",
-        "dump",
-        "each",
-        "eof",
-        "eval",
-        "exec",
-        "exists",
-        "exit",
-        "exp",
-        "fcntl",
-        "fileno",
-        "flock",
-        "fork",
-        "format",
-        "formline",
-        "getc",
-        "getgrent",
-        "getgrgid",
-        "getgrnam",
-        "gethostbyaddr",
-        "gethostbyname",
-        "gethostent",
-        "getlogin",
-        "getnetbyaddr",
-        "getnetbyname",
-        "getnetent",
-        "getpeername",
-        "getpgrp",
-        "getppid",
-        "getpriority",
-        "getprotobyname",
-        "getprotobynumber",
-        "getprotoent",
-        "getpwent",
-        "getpwnam",
-        "getpwuid",
-        "getservbyname",
-        "getservbyport",
-        "getservent",
-        "getsockname",
-        "getsockopt",
-        "glob",
-        "gmtime",
-        "grep",
-        "hex",
-        "import",
-        "index",
-        "int",
-        "ioctl",
-        "join",
-        "keys",
-        "kill",
-        "lc",
-        "lcfirst",
-        "length",
-        "link",
-        "listen",
-        "localtime",
-        "log",
-        "lstat",
-        "map",
-        "mkdir",
-        "msgctl",
-        "msgget",
-        "msgrcv",
-        "msgsnd",
-        "oct",
-        "open",
-        "opendir",
-        "ord",
-        "pack",
-        "pipe",
-        "pop",
-        "pos",
-        "print",
-        "printf",
-        "push",
-        "quotemeta",
-        "rand",
-        "read",
-        "readdir",
-        "readlink",
-        "recv",
-        "rename",
-        "reset",
-        "reverse",
-        "rewinddir",
-        "rindex",
-        "rmdir",
-        "scalar",
-        "seek",
-        "seekdir",
-        "select",
-        "semctl",
-        "semget",
-        "semop",
-        "send",
-        "setpgrp",
-        "setpriority",
-        "setsockopt",
-        "shift",
-        "shmctl",
-        "shmget",
-        "shmread",
-        "shmwrite",
-        "shutdown",
-        "sin",
-        "sleep",
-        "socket",
-        "socketpair",
-        "sort",
-        "splice",
-        "split",
-        "sprintf",
-        "sqrt",
-        "srand",
-        "stat",
-        "study",
-        "substr",
-        "symlink",
-        "syscall",
-        "sysopen",
-        "sysread",
-        "system",
-        "syswrite",
-        "tell",
-        "telldir",
-        "time",
-        "times",
-        "truncate",
-        "uc",
-        "ucfirst",
-        "umask",
-        "unlink",
-        "unpack",
-        "unshift",
-        "utime",
-        "values",
-        "vec",
-        "wait",
-        "waitpid",
-        "wantarray",
-        "warn",
-        "write"
-    };
+        {
+            "abs",
+            "accept",
+            "alarm",
+            "atan2",
+            "bind",
+            "binmode",
+            "bless",
+            "caller",
+            "chdir",
+            "chmod",
+            "chomp",
+            "chop",
+            "chown",
+            "chr",
+            "chroot",
+            "close",
+            "closedir",
+            "connect",
+            "cos",
+            "crypt",
+            "dbmclose",
+            "dbmopen",
+            "defined",
+            "delete",
+            "die",
+            "dump",
+            "each",
+            "eof",
+            "eval",
+            "exec",
+            "exists",
+            "exit",
+            "exp",
+            "fcntl",
+            "fileno",
+            "flock",
+            "fork",
+            "format",
+            "formline",
+            "getc",
+            "getgrent",
+            "getgrgid",
+            "getgrnam",
+            "gethostbyaddr",
+            "gethostbyname",
+            "gethostent",
+            "getlogin",
+            "getnetbyaddr",
+            "getnetbyname",
+            "getnetent",
+            "getpeername",
+            "getpgrp",
+            "getppid",
+            "getpriority",
+            "getprotobyname",
+            "getprotobynumber",
+            "getprotoent",
+            "getpwent",
+            "getpwnam",
+            "getpwuid",
+            "getservbyname",
+            "getservbyport",
+            "getservent",
+            "getsockname",
+            "getsockopt",
+            "glob",
+            "gmtime",
+            "grep",
+            "hex",
+            "import",
+            "index",
+            "int",
+            "ioctl",
+            "join",
+            "keys",
+            "kill",
+            "lc",
+            "lcfirst",
+            "length",
+            "link",
+            "listen",
+            "localtime",
+            "log",
+            "lstat",
+            "map",
+            "mkdir",
+            "msgctl",
+            "msgget",
+            "msgrcv",
+            "msgsnd",
+            "oct",
+            "open",
+            "opendir",
+            "ord",
+            "pack",
+            "pipe",
+            "pop",
+            "pos",
+            "print",
+            "printf",
+            "push",
+            "quotemeta",
+            "rand",
+            "read",
+            "readdir",
+            "readlink",
+            "recv",
+            "rename",
+            "reset",
+            "reverse",
+            "rewinddir",
+            "rindex",
+            "rmdir",
+            "scalar",
+            "seek",
+            "seekdir",
+            "select",
+            "semctl",
+            "semget",
+            "semop",
+            "send",
+            "setpgrp",
+            "setpriority",
+            "setsockopt",
+            "shift",
+            "shmctl",
+            "shmget",
+            "shmread",
+            "shmwrite",
+            "shutdown",
+            "sin",
+            "sleep",
+            "socket",
+            "socketpair",
+            "sort",
+            "splice",
+            "split",
+            "sprintf",
+            "sqrt",
+            "srand",
+            "stat",
+            "study",
+            "substr",
+            "symlink",
+            "syscall",
+            "sysopen",
+            "sysread",
+            "system",
+            "syswrite",
+            "tell",
+            "telldir",
+            "time",
+            "times",
+            "truncate",
+            "uc",
+            "ucfirst",
+            "umask",
+            "unlink",
+            "unpack",
+            "unshift",
+            "utime",
+            "values",
+            "vec",
+            "wait",
+            "waitpid",
+            "wantarray",
+            "warn",
+            "write"
+        };
 
-    private final boolean isFunction(String s)
-    {
+    private final boolean isFunction(String s) {
         if (functions == null)
             return false;
         return functions.contains(s);
     }
 
-    public FormatTable getFormatTable()
-    {
+    public FormatTable getFormatTable() {
         if (formatTable == null) {
             formatTable = new FormatTable("PerlMode");
             formatTable.addEntryFromPrefs(PERL_FORMAT_TEXT, "text");

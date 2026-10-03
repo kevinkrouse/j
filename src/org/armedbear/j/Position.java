@@ -22,80 +22,66 @@ package org.armedbear.j;
 
 import java.lang.StringBuilder;
 
-public final class Position implements Constants
-{
+public final class Position implements Constants {
     private Line line;
     private int offset;
 
-    public Position(Position pos)
-    {
+    public Position(Position pos) {
         line = pos.line;
         offset = pos.offset;
         Debug.assertTrue(line != null);
     }
 
-    public Position(Line line, int offset)
-    {
+    public Position(Line line, int offset) {
         this.line = line;
         this.offset = offset;
         Debug.assertTrue(line != null);
     }
 
-    public final Position copy()
-    {
+    public final Position copy() {
         return new Position(this);
     }
 
-    public final Line getLine()
-    {
+    public final Line getLine() {
         return line;
     }
 
-    public final void setLine(Line line)
-    {
+    public final void setLine(Line line) {
         this.line = line;
     }
 
-    public final int getOffset()
-    {
+    public final int getOffset() {
         return offset;
     }
 
-    public final void setOffset(int offset)
-    {
+    public final void setOffset(int offset) {
         this.offset = offset;
     }
 
-    public final int getLineLength()
-    {
+    public final int getLineLength() {
         return line.length();
     }
 
-    public final int lineNumber()
-    {
+    public final int lineNumber() {
         return line.lineNumber();
     }
 
-    public final Line getNextLine()
-    {
+    public final Line getNextLine() {
         return line.next();
     }
 
-    public final Line getPreviousLine()
-    {
+    public final Line getPreviousLine() {
         return line.previous();
     }
 
-    public final boolean equals(Object obj)
-    {
+    public final boolean equals(Object obj) {
         if (!(obj instanceof Position))
             return false;
         Position pos = (Position) obj;
         return (line == pos.line && offset == pos.offset);
     }
 
-    public final boolean isBefore(Position pos)
-    {
+    public final boolean isBefore(Position pos) {
         if (line.lineNumber() < pos.line.lineNumber())
             return true;
 
@@ -106,8 +92,7 @@ public final class Position implements Constants
         return false;
     }
 
-    public final boolean isAfter(Position pos)
-    {
+    public final boolean isAfter(Position pos) {
         if (line.lineNumber() > pos.line.lineNumber())
             return true;
 
@@ -118,27 +103,23 @@ public final class Position implements Constants
         return false;
     }
 
-    public final void moveLeft()
-    {
+    public final void moveLeft() {
         if (offset > 0)
             --offset;
     }
 
-    public final void moveRight()
-    {
+    public final void moveRight() {
         if (offset < line.length())
             ++offset;
     }
 
-    public final void moveTo(Position pos)
-    {
+    public final void moveTo(Position pos) {
         line = pos.line;
         offset = pos.offset;
         Debug.assertTrue(line != null);
     }
 
-    public final void moveTo(Line line, int offset)
-    {
+    public final void moveTo(Line line, int offset) {
         this.line = line;
         this.offset = offset;
         Debug.assertTrue(line != null);
@@ -147,8 +128,7 @@ public final class Position implements Constants
     // Moves position to the requested absolute column, based on the specified
     // tab size. If the requested column is past the end of the line, position
     // is moved to the end of the line.
-    public void moveToCol(int goal, int tabWidth)
-    {
+    public void moveToCol(int goal, int tabWidth) {
         final int limit = line.length();
         int i, col;
         for (i = 0, col = 0; i < limit && col < goal; i++) {
@@ -162,8 +142,7 @@ public final class Position implements Constants
 
     // Like moveToCol, but a column inside a tab stays on the tab instead of
     // going past it: the character a block cursor on that column covers.
-    public void moveOntoCol(int goal, int tabWidth)
-    {
+    public void moveOntoCol(int goal, int tabWidth) {
         final int limit = line.length();
         int i = 0;
         int col = 0;
@@ -178,18 +157,15 @@ public final class Position implements Constants
         offset = i;
     }
 
-    public final boolean lookingAt(String s)
-    {
+    public final boolean lookingAt(String s) {
         return s.regionMatches(0, line.getText(), offset, s.length());
     }
 
-    public final boolean lookingAtIgnoreCase(String s)
-    {
+    public final boolean lookingAtIgnoreCase(String s) {
         return s.regionMatches(true, 0, line.getText(), offset, s.length());
     }
 
-    public boolean atStart()
-    {
+    public boolean atStart() {
         if (line.previous() != null)
             return false;
         if (offset > 0)
@@ -197,8 +173,7 @@ public final class Position implements Constants
         return true;
     }
 
-    public boolean atEnd()
-    {
+    public boolean atEnd() {
         if (line != null) {
             if (offset < line.length())
                 return false;
@@ -208,8 +183,7 @@ public final class Position implements Constants
         return true;
     }
 
-    public boolean next()
-    {
+    public boolean next() {
         if (offset < line.length()) {
             ++offset;
             return true;
@@ -222,8 +196,7 @@ public final class Position implements Constants
         return false;
     }
 
-    public boolean prev()
-    {
+    public boolean prev() {
         if (offset > 0) {
             --offset;
             return true;
@@ -236,8 +209,7 @@ public final class Position implements Constants
         return false;
     }
 
-    public boolean nextLine()
-    {
+    public boolean nextLine() {
         if (line.next() != null) {
             line = line.next();
             offset = 0;
@@ -247,33 +219,28 @@ public final class Position implements Constants
     }
 
     // No range checking!
-    public final void skip()
-    {
+    public final void skip() {
         ++offset;
     }
 
     // No range checking!
-    public final void skip(int count)
-    {
+    public final void skip(int count) {
         offset += count;
     }
 
-    public void skipWhitespace()
-    {
+    public void skipWhitespace() {
         while (Character.isWhitespace(getChar()) && next())
             ;
     }
 
-    public void skipWhitespaceOnCurrentLine()
-    {
+    public void skipWhitespaceOnCurrentLine() {
         int limit = line.length();
         while (offset < limit && Character.isWhitespace(line.charAt(offset)))
             ++offset;
     }
 
     // If we're looking at a single or double quote char, skip over quoted string.
-    public void skipQuote()
-    {
+    public void skipQuote() {
         char quoteChar = getChar();
         if (quoteChar == '\'' || quoteChar == '"') {
             while (next()) {
@@ -292,11 +259,12 @@ public final class Position implements Constants
         }
     }
 
-    public char getChar()
-    {
+    public char getChar() {
         if (offset < 0 || offset > line.length()) {
-            Log.error("Position.getChar() offset = " + offset +
-                " line.length() = " + line.length());
+            Log.error(
+                "Position.getChar() offset = " + offset +
+                    " line.length() = " + line.length()
+            );
             Debug.assertTrue(false);
         }
         if (offset == line.length())
@@ -305,14 +273,12 @@ public final class Position implements Constants
     }
 
     // Returns substring from position to end of line.
-    public final String getString()
-    {
+    public final String getString() {
         return line.substring(offset);
     }
 
     // Returns identifier starting at this position.
-    public String getIdentifier(Mode mode)
-    {
+    public String getIdentifier(Mode mode) {
         int begin = offset;
         int end = offset;
         final int limit = line.length();
@@ -324,8 +290,7 @@ public final class Position implements Constants
         return line.substring(begin, end);
     }
 
-    public String toString()
-    {
+    public String toString() {
         StringBuilder sb = new StringBuilder("line ");
         if (line != null)
             sb.append(line.lineNumber() + 1);
@@ -336,14 +301,12 @@ public final class Position implements Constants
         return sb.toString();
     }
 
-    public final boolean isHidden()
-    {
+    public final boolean isHidden() {
         return line.isHidden();
     }
 
     // Returns -1 if there's an error.
-    public static int getDistance(Position a, Position b)
-    {
+    public static int getDistance(Position a, Position b) {
         if (a == null || b == null)
             return -1;
         Debug.assertTrue(a.getLine() != null);

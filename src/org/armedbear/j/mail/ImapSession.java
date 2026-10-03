@@ -23,31 +23,30 @@ package org.armedbear.j.mail;
 import java.io.IOException;
 import java.io.InterruptedIOException;
 import java.io.OutputStreamWriter;
+import java.lang.StringBuilder;
 import java.net.Socket;
 import java.net.SocketException;
 import org.armedbear.j.Debug;
 import org.armedbear.j.Editor;
-import java.lang.StringBuilder;
 import org.armedbear.j.Log;
 import org.armedbear.j.Netrc;
 import org.armedbear.j.SocketConnection;
 import org.armedbear.j.util.Utilities;
 
-public final class ImapSession
-{
+public final class ImapSession {
 
     // States.
-    private static final int DISCONNECTED     = 0;
+    private static final int DISCONNECTED = 0;
     private static final int NONAUTHENTICATED = 1;
-    private static final int AUTHENTICATED    = 2;
-    private static final int SELECTED         = 3;
+    private static final int AUTHENTICATED = 2;
+    private static final int SELECTED = 3;
 
     // Responses.
-    public static final int OK      = 0;
-    public static final int NO      = 1;
-    public static final int BAD     = 2;
+    public static final int OK = 0;
+    public static final int NO = 1;
+    public static final int BAD = 2;
     public static final int PREAUTH = 3;
-    public static final int BYE     = 4;
+    public static final int BYE = 4;
 
     public static final int UNKNOWN = -1;
 
@@ -72,8 +71,7 @@ public final class ImapSession
     private String errorText;
     private long lastErrorMillis;
 
-    private ImapSession(ImapURL url, String user, String password)
-    {
+    private ImapSession(ImapURL url, String user, String password) {
         this.url = url;
         this.folderName = url.getFolderName();
         this.echo = url.isDebug();
@@ -81,65 +79,53 @@ public final class ImapSession
         this.password = password;
     }
 
-    public final void setMailbox(ImapMailboxBuffer mb)
-    {
+    public final void setMailbox(ImapMailboxBuffer mb) {
         if (mailbox != null)
             Debug.bug();
         mailbox = mb;
     }
 
-    public final boolean isReadOnly()
-    {
+    public final boolean isReadOnly() {
         return readOnly;
     }
 
-    public final String getHost()
-    {
+    public final String getHost() {
         return url.getHost();
     }
 
-    public final int getPort()
-    {
+    public final int getPort() {
         return url.getPort();
     }
 
-    public final String getUser()
-    {
+    public final String getUser() {
         return user;
     }
 
-    public final String getFolderName()
-    {
+    public final String getFolderName() {
         return folderName;
     }
 
-    public final int getMessageCount()
-    {
+    public final int getMessageCount() {
         return messageCount;
     }
 
-    public final int getRecent()
-    {
+    public final int getRecent() {
         return recent;
     }
 
-    public final int getUidNext()
-    {
+    public final int getUidNext() {
         return uidNext;
     }
 
-    public final int getUidValidity()
-    {
+    public final int getUidValidity() {
         return uidValidity;
     }
 
-    public final String getErrorText()
-    {
+    public final String getErrorText() {
         return errorText;
     }
 
-    public void setTunnel(String tunnel)
-    {
+    public void setTunnel(String tunnel) {
         if (tunnel != null) {
             tunnel = tunnel.trim();
             int colon = tunnel.indexOf(':');
@@ -147,7 +133,7 @@ public final class ImapSession
                 tunnelHost = tunnel.substring(0, colon);
                 try {
                     tunnelPort =
-                        Integer.parseInt(tunnel.substring(colon+1).trim());
+                        Integer.parseInt(tunnel.substring(colon + 1).trim());
                 }
                 catch (NumberFormatException e) {
                     Log.error(e);
@@ -159,19 +145,16 @@ public final class ImapSession
         Log.debug("setTunnel host = |" + tunnelHost + "| port = " + tunnelPort);
     }
 
-    public synchronized final long getLastErrorMillis()
-    {
+    public synchronized final long getLastErrorMillis() {
         return lastErrorMillis;
     }
 
-    private synchronized final void setLastErrorMillis(long millis)
-    {
+    private synchronized final void setLastErrorMillis(long millis) {
         Log.debug("setLastErrorMillis");
         lastErrorMillis = millis;
     }
 
-    public static ImapSession getSession(ImapURL url)
-    {
+    public static ImapSession getSession(ImapURL url) {
         if (url.getHost() == null || url.getFolderName() == null)
             return null;
         String user = url.getUser();
@@ -180,22 +163,22 @@ public final class ImapSession
         return getSession(url, user);
     }
 
-    public static ImapSession getSession(ImapURL url, String user)
-    {
+    public static ImapSession getSession(ImapURL url, String user) {
         String password = Netrc.getPassword(url.getHost(), user);
         if (password == null)
             return null;
         return new ImapSession(url, user, password);
     }
 
-    public static ImapSession getSession(ImapURL url, String user,
-        String password)
-    {
+    public static ImapSession getSession(
+        ImapURL url,
+        String user,
+        String password
+    ) {
         return new ImapSession(url, user, password);
     }
 
-    public boolean verifyConnected()
-    {
+    public boolean verifyConnected() {
         if (state != DISCONNECTED) {
             // We send a NOOP command here both to verify that we really are
             // connected and to give the server a chance to report changes to
@@ -208,15 +191,13 @@ public final class ImapSession
         return connect();
     }
 
-    public boolean verifySelected(String folderName)
-    {
+    public boolean verifySelected(String folderName) {
         if (state == SELECTED && this.folderName.equals(folderName))
             return true;
         return reselect(folderName);
     }
 
-    private boolean connect()
-    {
+    private boolean connect() {
         socket = null;
         errorText = null;
         final String h; // Host.
@@ -247,8 +228,10 @@ public final class ImapSession
             echo = true;
         try {
             reader = new MailReader(socket.getInputStream());
-            writer = new OutputStreamWriter(socket.getOutputStream(),
-                "iso-8859-1");
+            writer = new OutputStreamWriter(
+                socket.getOutputStream(),
+                "iso-8859-1"
+            );
             if (readLine() != null) {
                 writeTagged("login " + user + " " + password);
                 if (getResponse() == OK) {
@@ -267,17 +250,19 @@ public final class ImapSession
     }
 
     private static final String UIDVALIDITY = "* OK [UIDVALIDITY ";
-    private static final String UIDNEXT     = "* OK [UIDNEXT ";
+    private static final String UIDNEXT = "* OK [UIDNEXT ";
 
-    public boolean reselect(String folderName)
-    {
+    public boolean reselect(String folderName) {
         long start = System.currentTimeMillis();
         boolean oldEcho = echo;
         if (Editor.isDebugEnabled())
             echo = true;
         try {
-            if (state < AUTHENTICATED ||
-                !writeTagged("select \"" + folderName + "\"")) {
+            if (
+                state < AUTHENTICATED
+                    ||
+                    !writeTagged("select \"" + folderName + "\"")
+            ) {
                 connect();
                 if (state < AUTHENTICATED)
                     return false;
@@ -325,12 +310,16 @@ public final class ImapSession
                         this.folderName = folderName;
                         readOnly = upper.indexOf("[READ-ONLY]") >= 0;
                         if (readOnly) {
-                            Log.warn("reselect mailbox " + folderName +
-                                " is read-only!");
+                            Log.warn(
+                                "reselect mailbox " + folderName +
+                                    " is read-only!"
+                            );
                             setLastErrorMillis(System.currentTimeMillis());
                         } else {
-                            Log.debug("reselect mailbox " + folderName +
-                                " is read-write");
+                            Log.debug(
+                                "reselect mailbox " + folderName +
+                                    " is read-write"
+                            );
                         }
                         return true;
                     } else {
@@ -361,8 +350,7 @@ public final class ImapSession
         }
     }
 
-    public boolean close()
-    {
+    public boolean close() {
         if (state != SELECTED) {
             Log.debug("already closed");
             return true;
@@ -377,8 +365,7 @@ public final class ImapSession
         return true;
     }
 
-    public void logout()
-    {
+    public void logout() {
         Log.debug("ImapSession.logout " + getHost());
         if (state > DISCONNECTED) {
             if (writeTagged("logout"))
@@ -388,8 +375,7 @@ public final class ImapSession
         }
     }
 
-    public synchronized void disconnect()
-    {
+    public synchronized void disconnect() {
         if (socket != null) {
             try {
                 socket.close();
@@ -404,8 +390,7 @@ public final class ImapSession
         state = DISCONNECTED;
     }
 
-    public String readLine()
-    {
+    public String readLine() {
         if (reader == null)
             return null;
         try {
@@ -439,8 +424,7 @@ public final class ImapSession
         }
     }
 
-    public void uidStore(int uid, String arg)
-    {
+    public void uidStore(int uid, String arg) {
         StringBuilder sb = new StringBuilder("uid store ");
         sb.append(uid);
         sb.append(' ');
@@ -448,8 +432,7 @@ public final class ImapSession
         writeTagged(sb.toString());
     }
 
-    public void uidStore(String messageSet, String arg)
-    {
+    public void uidStore(String messageSet, String arg) {
         StringBuilder sb = new StringBuilder("uid store ");
         sb.append(messageSet);
         sb.append(' ');
@@ -457,8 +440,7 @@ public final class ImapSession
         writeTagged(sb.toString());
     }
 
-    public boolean writeTagged(String s)
-    {
+    public boolean writeTagged(String s) {
         if (writer == null)
             return false;
         // Store command.
@@ -488,8 +470,7 @@ public final class ImapSession
         }
     }
 
-    public int getResponse()
-    {
+    public int getResponse() {
         while (true) {
             String s = readLine();
             if (s == null)
@@ -497,7 +478,7 @@ public final class ImapSession
             String upper = s.toUpperCase();
             int index = upper.indexOf("[ALERT]");
             if (index >= 0)
-                mailbox.setAlertText(s.substring(index+7).trim());
+                mailbox.setAlertText(s.substring(index + 7).trim());
             if (upper.startsWith("* BYE ")) {
                 Log.debug("getResponse |" + s + "|");
                 disconnect();
@@ -528,14 +509,13 @@ public final class ImapSession
         }
     }
 
-    private void processUntaggedResponse(String s)
-    {
+    private void processUntaggedResponse(String s) {
         Log.debug("processUntaggedResponse |" + s + "|");
         if (s.startsWith("* ")) {
             final String upper = s.toUpperCase();
             if (upper.endsWith(" EXISTS")) {
                 try {
-                    messageCount = Integer.parseInt(upper.substring(2, upper.length()-7));
+                    messageCount = Integer.parseInt(upper.substring(2, upper.length() - 7));
                     Log.debug("messageCount = " + messageCount);
                 }
                 catch (NumberFormatException e) {
@@ -543,7 +523,7 @@ public final class ImapSession
                 }
             } else if (upper.endsWith(" RECENT")) {
                 try {
-                    recent = Integer.parseInt(upper.substring(2, upper.length()-7));
+                    recent = Integer.parseInt(upper.substring(2, upper.length() - 7));
                     Log.debug("recent = " + recent);
                 }
                 catch (NumberFormatException e) {
@@ -552,13 +532,15 @@ public final class ImapSession
             } else if (upper.endsWith(" EXPUNGE")) {
                 try {
                     int messageNumber =
-                        Integer.parseInt(upper.substring(2, upper.length()-8));
+                        Integer.parseInt(upper.substring(2, upper.length() - 8));
                     if (messageCount > 0) {
                         --messageCount;
                         Log.debug("EXPUNGE messageCount = " + messageCount);
                     } else
-                        Log.error("received untagged EXPUNGE response with messageCount = " +
-                            messageCount);
+                        Log.error(
+                            "received untagged EXPUNGE response with messageCount = " +
+                                messageCount
+                        );
                     mailbox.messageExpunged(messageNumber);
                 }
                 catch (NumberFormatException e) {
@@ -568,8 +550,7 @@ public final class ImapSession
         }
     }
 
-    private static String getTaggedResponseText(String taggedResponse)
-    {
+    private static String getTaggedResponseText(String taggedResponse) {
         // Skip tag.
         int index = taggedResponse.indexOf(' ');
         if (index < 0)
@@ -585,19 +566,16 @@ public final class ImapSession
     private int tagNumber;
     private String lastTag;
 
-    public final String lastTag()
-    {
+    public final String lastTag() {
         return lastTag;
     }
 
     // Upper case.
-    private final String nextTag()
-    {
+    private final String nextTag() {
         return lastTag = "A".concat(String.valueOf(++tagNumber));
     }
 
-    public final void setEcho(boolean b)
-    {
+    public final void setEcho(boolean b) {
         echo = b;
     }
 }

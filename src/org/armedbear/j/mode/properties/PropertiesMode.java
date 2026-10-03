@@ -20,6 +20,7 @@
 
 package org.armedbear.j.mode.properties;
 
+import java.awt.event.KeyEvent;
 import org.armedbear.j.AbstractMode;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Constants;
@@ -27,29 +28,22 @@ import org.armedbear.j.Formatter;
 import org.armedbear.j.KeyMap;
 import org.armedbear.j.Mode;
 
-import java.awt.event.KeyEvent;
-
-public final class PropertiesMode extends AbstractMode implements Constants, Mode
-{
+public final class PropertiesMode extends AbstractMode implements Constants, Mode {
     private static final PropertiesMode mode = new PropertiesMode();
 
-    private PropertiesMode()
-    {
+    private PropertiesMode() {
         super(PROPERTIES_MODE, PROPERTIES_MODE_NAME);
     }
 
-    public static final PropertiesMode getMode()
-    {
+    public static final PropertiesMode getMode() {
         return mode;
     }
 
-    public final Formatter getFormatter(Buffer buffer)
-    {
+    public final Formatter getFormatter(Buffer buffer) {
         return new PropertiesFormatter(buffer);
     }
 
-    protected void setKeyMapDefaults(KeyMap km)
-    {
+    protected void setKeyMapDefaults(KeyMap km) {
         km.mapKey(KeyEvent.VK_F12, 0, "wrapComment");
     }
 }

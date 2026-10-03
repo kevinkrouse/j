@@ -20,18 +20,16 @@
 
 package org.armedbear.j;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.List;
+import javax.swing.SwingUtilities;
 import org.armedbear.j.mode.text.PlainTextFormatter;
 import org.armedbear.j.mode.text.PlainTextMode;
 import org.armedbear.j.util.ReaderThread;
 import org.armedbear.j.util.Utilities;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.List;
-import javax.swing.SwingUtilities;
-
-public final class AsynchronousShellCommand implements Constants, Runnable
-{
+public final class AsynchronousShellCommand implements Constants, Runnable {
     private final String command;
     private final File directory;
     private final String cmdline;
@@ -42,9 +40,11 @@ public final class AsynchronousShellCommand implements Constants, Runnable
     private Thread thread;
     private ProcessTable processTable;
 
-    public AsynchronousShellCommand(String command, File directory,
-        ShellCommandOutputBuffer buf)
-    {
+    public AsynchronousShellCommand(
+        String command,
+        File directory,
+        ShellCommandOutputBuffer buf
+    ) {
         this.command = command;
         this.directory = directory;
         cmdline = "(\\cd " + directory.canonicalPath() + " && " + command + ")";
@@ -53,21 +53,19 @@ public final class AsynchronousShellCommand implements Constants, Runnable
         buf.setShellCommand(this);
     }
 
-    private void start()
-    {
+    private void start() {
         thread = new Thread(this);
         thread.start();
     }
 
-    public void run()
-    {
+    public void run() {
         if (!Platform.isPlatformUnix()) {
             Debug.bug();
             return;
         }
         try {
             if (cmdline != null) {
-                String[] cmdarray = {"/bin/sh", "-c", cmdline};
+                String[] cmdarray = { "/bin/sh", "-c", cmdline };
                 process = Runtime.getRuntime().exec(cmdarray);
             }
         }
@@ -92,20 +90,18 @@ public final class AsynchronousShellCommand implements Constants, Runnable
         }
     }
 
-    private void interrupt()
-    {
+    private void interrupt() {
         if (thread != null)
             thread.interrupt();
     }
 
-    private void killProcess()
-    {
+    private void killProcess() {
         if (processTable != null) {
             List<ProcessTableEntry> entries = processTable.findMatchingEntries(cmdline);
             if (entries != null && entries.size() > 0) {
                 // We want the last matching entry.
                 ProcessTableEntry parent =
-                    entries.get(entries.size()-1);
+                    entries.get(entries.size() - 1);
                 if (parent != null) {
                     List<ProcessTableEntry> children = processTable.findChildren(parent.pid);
                     if (children != null) {
@@ -124,8 +120,7 @@ public final class AsynchronousShellCommand implements Constants, Runnable
         }
     }
 
-    private void appendLater(final String s)
-    {
+    private void appendLater(final String s) {
         Runnable runnable = () -> {
             outputBuffer.insertString(posEndOfBuffer, s);
             if (outputBuffer.needsRenumbering())
@@ -144,26 +139,21 @@ public final class AsynchronousShellCommand implements Constants, Runnable
         SwingUtilities.invokeLater(runnable);
     }
 
-    private class ShellCommandReaderThread extends ReaderThread
-    {
-        public ShellCommandReaderThread(InputStream inputStream)
-        {
+    private class ShellCommandReaderThread extends ReaderThread {
+        public ShellCommandReaderThread(InputStream inputStream) {
             super(inputStream);
         }
 
-        public void update(final String s)
-        {
+        public void update(final String s) {
             appendLater(s);
         }
     }
 
-    private static class ShellCommandOutputBuffer extends Buffer
-    {
+    private static class ShellCommandOutputBuffer extends Buffer {
         private AsynchronousShellCommand shellCommand;
 
-        public ShellCommandOutputBuffer()
-        {
-            supportsUndo  = false;
+        public ShellCommandOutputBuffer() {
+            supportsUndo = false;
             type = TYPE_OUTPUT;
             mode = PlainTextMode.getMode();
             formatter = new PlainTextFormatter(this);
@@ -192,35 +182,29 @@ public final class AsynchronousShellCommand implements Constants, Runnable
             setInitialized(true);
         }
 
-        public void setShellCommand(AsynchronousShellCommand shellCommand)
-        {
+        public void setShellCommand(AsynchronousShellCommand shellCommand) {
             this.shellCommand = shellCommand;
         }
 
-        public int load()
-        {
+        public int load() {
             return LOAD_COMPLETED;
         }
 
-        public String getFileNameForDisplay()
-        {
+        public String getFileNameForDisplay() {
             return title != null ? title : "";
         }
 
-        public boolean isModified()
-        {
+        public boolean isModified() {
             return false;
         }
 
-        public void dispose()
-        {
+        public void dispose() {
             if (shellCommand != null)
                 shellCommand.interrupt();
         }
     }
 
-    public static void startShellCommand(Editor editor, String command)
-    {
+    public static void startShellCommand(Editor editor, String command) {
         final File dir = editor.getCurrentDirectory();
         if (dir == null || !dir.isDirectory())
             return;

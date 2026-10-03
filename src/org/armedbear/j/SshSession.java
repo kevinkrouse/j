@@ -20,29 +20,27 @@
 
 package org.armedbear.j;
 
+import java.io.IOException;
+import java.io.OutputStreamWriter;
 import java.lang.StringBuilder;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.regex.PatternSyntaxException;
+import javax.swing.SwingUtilities;
 import org.armedbear.j.util.ReaderThread;
 import org.armedbear.j.util.Utilities;
 
-import java.util.regex.Pattern;
-import java.util.regex.PatternSyntaxException;
-import java.util.regex.Matcher;
-import java.io.IOException;
-import java.io.OutputStreamWriter;
-import java.util.ArrayList;
-import java.util.List;
-import javax.swing.SwingUtilities;
-
-public final class SshSession implements Constants, RemoteSession
-{
+public final class SshSession implements Constants, RemoteSession {
     public static final int DEFAULT_PORT = 22;
 
-    private static final int TRY_AGAIN     = 0;
+    private static final int TRY_AGAIN = 0;
     private static final int AUTHENTICATED = 1;
-    private static final int PASSWORD      = 2;
-    private static final int PASSPHRASE    = 3;
-    private static final int YES           = 4;
-    private static final int NO            = 5;
+    private static final int PASSWORD = 2;
+    private static final int PASSPHRASE = 3;
+    private static final int YES = 4;
+    private static final int NO = 5;
 
     private static final String PROMPT = "$ ";
 
@@ -80,8 +78,7 @@ public final class SshSession implements Constants, RemoteSession
     private String passwordTitle;
     private String passwordPrompt;
 
-    private SshSession(SshFile file, boolean locked)
-    {
+    private SshSession(SshFile file, boolean locked) {
         hostName = file.getHostName();
         Debug.assertTrue(hostName != null);
         userName = file.getUserName();
@@ -91,8 +88,7 @@ public final class SshSession implements Constants, RemoteSession
         register(this);
     }
 
-    private SshSession(SshSession other, boolean locked)
-    {
+    private SshSession(SshSession other, boolean locked) {
         hostName = other.getHostName();
         Debug.assertTrue(hostName != null);
         userName = other.getUserName();
@@ -103,8 +99,7 @@ public final class SshSession implements Constants, RemoteSession
         register(this);
     }
 
-    private static synchronized void register(SshSession session)
-    {
+    private static synchronized void register(SshSession session) {
         if (sessionList == null)
             sessionList = new ArrayList<SshSession>();
         sessionList.add(session);
@@ -115,8 +110,7 @@ public final class SshSession implements Constants, RemoteSession
         Log.debug("leaving register() session count = " + sessionList.size());
     }
 
-    private static synchronized void unregister(SshSession session)
-    {
+    private static synchronized void unregister(SshSession session) {
         if (sessionList == null) {
             Debug.bug();
             return;
@@ -124,12 +118,13 @@ public final class SshSession implements Constants, RemoteSession
         if (!sessionList.contains(session))
             Debug.bug();
         sessionList.remove(session);
-        Log.debug("leaving unregister() session count = "
-            + sessionList.size());
+        Log.debug(
+            "leaving unregister() session count = "
+                + sessionList.size()
+        );
     }
 
-    public static synchronized SshSession getSession(SshFile file)
-    {
+    public static synchronized SshSession getSession(SshFile file) {
         if (file == null) {
             Debug.bug();
             return null;
@@ -154,8 +149,7 @@ public final class SshSession implements Constants, RemoteSession
     }
 
     // Called only from synchronized methods.
-    private static SshSession lockSession(SshFile file)
-    {
+    private static SshSession lockSession(SshFile file) {
         if (sessionList != null) {
             for (int i = sessionList.size(); i-- > 0;) {
                 SshSession session = sessionList.get(i);
@@ -174,8 +168,7 @@ public final class SshSession implements Constants, RemoteSession
     }
 
     // Called only from synchronized methods.
-    private static SshSession findSession(SshFile file)
-    {
+    private static SshSession findSession(SshFile file) {
         if (sessionList != null) {
             for (int i = sessionList.size(); i-- > 0;) {
                 SshSession session = sessionList.get(i);
@@ -191,21 +184,18 @@ public final class SshSession implements Constants, RemoteSession
         return null;
     }
 
-    public final synchronized boolean isLocked()
-    {
+    public final synchronized boolean isLocked() {
         return locked;
     }
 
-    private synchronized boolean lock()
-    {
+    private synchronized boolean lock() {
         if (locked)
             return false;
         locked = true;
         return true;
     }
 
-    public synchronized void unlock()
-    {
+    public synchronized void unlock() {
         if (locked)
             locked = false;
         else
@@ -218,48 +208,39 @@ public final class SshSession implements Constants, RemoteSession
         }
     }
 
-    public final String getHostName()
-    {
+    public final String getHostName() {
         return hostName;
     }
 
-    public final String getUserName()
-    {
+    public final String getUserName() {
         return userName;
     }
 
-    public final String getPassword()
-    {
+    public final String getPassword() {
         return password;
     }
 
-    public final void setPassword(String password)
-    {
+    public final void setPassword(String password) {
         this.password = password;
     }
 
-    public final String getPassphrase()
-    {
+    public final String getPassphrase() {
         return passphrase;
     }
 
-    public final int getPort()
-    {
+    public final int getPort() {
         return port;
     }
 
-    public final String getLoginDirectory()
-    {
+    public final String getLoginDirectory() {
         return loginDirectory;
     }
 
-    public void setOutputBuffer(Buffer buf)
-    {
+    public void setOutputBuffer(Buffer buf) {
         outputBuffer = buf;
     }
 
-    public boolean isDirectory(String canonicalPath)
-    {
+    public boolean isDirectory(String canonicalPath) {
         SshFile file =
             new SshFile(hostName, canonicalPath, userName, null, port);
         if (DirectoryCache.getDirectoryCache().getListing(file) != null)
@@ -293,13 +274,11 @@ public final class SshSession implements Constants, RemoteSession
         }
     }
 
-    public boolean isFile(String canonicalPath)
-    {
+    public boolean isFile(String canonicalPath) {
         throw new RuntimeException("NYI");
     }
 
-    private String stat(String canonicalPath)
-    {
+    private String stat(String canonicalPath) {
         StringBuilder sb = new StringBuilder("stat -t \"");
         sb.append(canonicalPath);
         sb.append('"');
@@ -312,8 +291,7 @@ public final class SshSession implements Constants, RemoteSession
     }
 
     // Determines file type from string returned by stat.
-    private static int getType(String s)
-    {
+    private static int getType(String s) {
         if (s != null) {
             List<String> tokens = Utilities.tokenize(s);
             if (tokens.size() == 14) {
@@ -336,8 +314,7 @@ public final class SshSession implements Constants, RemoteSession
     }
 
     // Throws an exception if we don't recognize the response.
-    private boolean changeDirectory(String canonicalPath) throws Exception
-    {
+    private boolean changeDirectory(String canonicalPath) throws Exception {
         StringBuilder sb = new StringBuilder(cd);
         sb.append(" \"");
         sb.append(canonicalPath);
@@ -378,10 +355,10 @@ public final class SshSession implements Constants, RemoteSession
             Log.debug("beginning = |" + beginning + "|");
             if (cmd.startsWith(beginning)) {
                 Log.debug("cmd starts with beginning!");
-                index = response.lastIndexOf((char)8);
+                index = response.lastIndexOf((char) 8);
                 if (index >= 0) {
                     Log.debug("backspace found!");
-                    String end = response.substring(index+1);
+                    String end = response.substring(index + 1);
                     Log.debug("end = |" + end + "|");
                     if (cmd.endsWith(end)) {
                         Log.debug("cmd ends with end!");
@@ -394,8 +371,7 @@ public final class SshSession implements Constants, RemoteSession
         throw new Exception();
     }
 
-    public boolean exists(String canonicalPath)
-    {
+    public boolean exists(String canonicalPath) {
         if (connect()) {
             String response = lsld(canonicalPath);
             if (response != null && response.length() > 0) {
@@ -407,15 +383,14 @@ public final class SshSession implements Constants, RemoteSession
         return false;
     }
 
-    public static String getDirectoryListing(File file)
-    {
+    public static String getDirectoryListing(File file) {
         if (!(file instanceof SshFile)) {
             Debug.assertTrue(false);
             return null;
         }
         String listing = DirectoryCache.getDirectoryCache().getListing(file);
         if (listing == null) {
-            SshSession session = getSession((SshFile)file);
+            SshSession session = getSession((SshFile) file);
             if (session != null) {
                 listing = session.retrieveDirectoryListing(file);
                 session.unlock();
@@ -426,8 +401,7 @@ public final class SshSession implements Constants, RemoteSession
         return listing;
     }
 
-    public String retrieveDirectoryListing(File file)
-    {
+    public String retrieveDirectoryListing(File file) {
         if (!(file instanceof SshFile)) {
             Debug.bug();
             return null;
@@ -450,8 +424,7 @@ public final class SshSession implements Constants, RemoteSession
         return null;
     }
 
-    public synchronized boolean chmod(File file, int permissions)
-    {
+    public synchronized boolean chmod(File file, int permissions) {
         Debug.bugIfNot(file instanceof SshFile);
         if (permissions != 0 && connect()) {
             StringBuilder sb = new StringBuilder("chmod ");
@@ -469,13 +442,11 @@ public final class SshSession implements Constants, RemoteSession
         return false;
     }
 
-    public synchronized boolean isConnected()
-    {
+    public synchronized boolean isConnected() {
         return connected;
     }
 
-    public synchronized boolean connect()
-    {
+    public synchronized boolean connect() {
         if (connected) {
             Log.debug("SshSession.connect(): already connected");
             return true;
@@ -530,8 +501,7 @@ public final class SshSession implements Constants, RemoteSession
         return connected;
     }
 
-    private void initializeConnection()
-    {
+    private void initializeConnection() {
         boolean oldEcho = echo;
         echo = true;
         String response = command("exec /bin/sh");
@@ -548,8 +518,7 @@ public final class SshSession implements Constants, RemoteSession
         echo = oldEcho;
     }
 
-    private boolean authenticate()
-    {
+    private boolean authenticate() {
         output.setLength(0);
         int response;
         while ((response = checkInitialResponse()) == TRY_AGAIN) {
@@ -577,8 +546,7 @@ public final class SshSession implements Constants, RemoteSession
         return false;
     }
 
-    private boolean authenticateWithPassword()
-    {
+    private boolean authenticateWithPassword() {
         if (password == null) {
             password = Netrc.getPassword(hostName, userName);
             if (password == null) {
@@ -601,8 +569,7 @@ public final class SshSession implements Constants, RemoteSession
         return _authenticate(password);
     }
 
-    private boolean authenticateWithPassphrase()
-    {
+    private boolean authenticateWithPassphrase() {
         if (passphrase == null) {
             if (SwingUtilities.isEventDispatchThread())
                 getPassphraseRunnable.run();
@@ -622,8 +589,7 @@ public final class SshSession implements Constants, RemoteSession
         return _authenticate(passphrase);
     }
 
-    private boolean _authenticate(String pass)
-    {
+    private boolean _authenticate(String pass) {
         output.setLength(0);
         boolean oldEcho = echo;
         echo = true;
@@ -640,17 +606,16 @@ public final class SshSession implements Constants, RemoteSession
         }
     }
 
-    private int checkInitialResponse()
-    {
+    private int checkInitialResponse() {
         final String s = output.toString().trim();
         String check;
         int index = s.lastIndexOf("\r\n");
         if (index >= 0) {
-            check = s.substring(index+2);
+            check = s.substring(index + 2);
         } else {
             index = s.lastIndexOf('\n');
-            if (index >=0 )
-                check = s.substring(index+1);
+            if (index >= 0)
+                check = s.substring(index + 1);
             else
                 check = s;
         }
@@ -681,8 +646,7 @@ public final class SshSession implements Constants, RemoteSession
         return TRY_AGAIN;
     }
 
-    private boolean checkAuthenticationResponse()
-    {
+    private boolean checkAuthenticationResponse() {
         String s = output.toString();
         Log.debug("checkAuthenticationResponse output = |" + output + "|");
         int result = checkResponse(s);
@@ -705,15 +669,14 @@ public final class SshSession implements Constants, RemoteSession
     }
 
     // Helper for checkAuthenticationResponse().
-    private int checkResponse(String s)
-    {
+    private int checkResponse(String s) {
         if (s.toLowerCase().indexOf("denied") >= 0)
             return NO;
         String prompt = null;
         for (int i = s.length(); i-- > 0;) {
             char c = s.charAt(i);
             if (c == '\r' || c == '\n') {
-                prompt = s.substring(i+1);
+                prompt = s.substring(i + 1);
                 break;
             }
         }
@@ -730,12 +693,10 @@ public final class SshSession implements Constants, RemoteSession
 
     private Pattern _promptRE;
 
-    public Pattern getPromptRE()
-    {
+    public Pattern getPromptRE() {
         if (_promptRE == null) {
             try {
-                _promptRE = Pattern.compile(Editor.preferences().
-                    getStringProperty(Property.SSH_PROMPT_PATTERN));
+                _promptRE = Pattern.compile(Editor.preferences().getStringProperty(Property.SSH_PROMPT_PATTERN));
             }
             catch (PatternSyntaxException e) {
                 Log.error(e);
@@ -749,21 +710,26 @@ public final class SshSession implements Constants, RemoteSession
     private Runnable getPasswordRunnable = () -> {
         final Editor editor = Editor.currentEditor();
         editor.setDefaultCursor();
-        password = PasswordDialog.showPasswordDialog(editor, passwordPrompt,
-            passwordTitle);
+        password = PasswordDialog.showPasswordDialog(
+            editor,
+            passwordPrompt,
+            passwordTitle
+        );
         editor.setWaitCursor();
     };
 
     private Runnable getPassphraseRunnable = () -> {
         final Editor editor = Editor.currentEditor();
         editor.setDefaultCursor();
-        passphrase = PasswordDialog.showPasswordDialog(editor, passwordPrompt,
-            passwordTitle);
+        passphrase = PasswordDialog.showPasswordDialog(
+            editor,
+            passwordPrompt,
+            passwordTitle
+        );
         editor.setWaitCursor();
     };
 
-    private String getCurrentDirectory()
-    {
+    private String getCurrentDirectory() {
         final String s = command("pwd");
         if (s == null)
             return null; // Lost connection.
@@ -775,8 +741,7 @@ public final class SshSession implements Constants, RemoteSession
         return dir;
     }
 
-    private void disconnect()
-    {
+    private void disconnect() {
         if (connected) {
             try {
                 stdin.write("exit\n");
@@ -788,8 +753,7 @@ public final class SshSession implements Constants, RemoteSession
         }
     }
 
-    private void killProcess()
-    {
+    private void killProcess() {
         Process p = process; // Avoid races.
         if (p != null) {
             try {
@@ -825,16 +789,14 @@ public final class SshSession implements Constants, RemoteSession
         connected = false;
     }
 
-    public synchronized final void dispose()
-    {
+    public synchronized final void dispose() {
         Log.debug("SshSession.dispose");
         if (connected)
             disconnect();
         unregister(this);
     }
 
-    private synchronized String command(String cmd)
-    {
+    private synchronized String command(String cmd) {
         if (!write(cmd.concat("\n")))
             return null;
         output.setLength(0);
@@ -874,8 +836,7 @@ public final class SshSession implements Constants, RemoteSession
 
     private static final Pattern totalRE = Pattern.compile("\\n?[^0-9]+ [0-9]+");
 
-    private synchronized String lsla()
-    {
+    private synchronized String lsla() {
         boolean valid = false;
         if (!write("\\ls -la\n"))
             return null;
@@ -926,8 +887,7 @@ public final class SshSession implements Constants, RemoteSession
     }
 
     // Do ls -ld on one file or directory.
-    private synchronized String lsld(String path)
-    {
+    private synchronized String lsld(String path) {
         Debug.assertTrue(path != null);
         Debug.assertTrue(path.length() != 0);
         StringBuilder sb = new StringBuilder("\\ls -ld \"");
@@ -937,7 +897,7 @@ public final class SshSession implements Constants, RemoteSession
         if (!write(sb.toString()))
             return null;
         output.setLength(0);
-        while (output.length() == 0){
+        while (output.length() == 0) {
             try {
                 wait();
             }
@@ -977,8 +937,7 @@ public final class SshSession implements Constants, RemoteSession
     }
 
     // Password or passphrase.
-    private void sendPass(String pass)
-    {
+    private void sendPass(String pass) {
         Debug.assertTrue(pass != null);
         try {
             stdin.write(pass);
@@ -997,8 +956,7 @@ public final class SshSession implements Constants, RemoteSession
         }
     }
 
-    private boolean write(String s)
-    {
+    private boolean write(String s) {
         try {
             if (echo || Editor.preferences().getBooleanProperty(Property.SSH_ECHO))
                 Log.debug("==> |" + s + "|");
@@ -1015,8 +973,7 @@ public final class SshSession implements Constants, RemoteSession
         }
     }
 
-    private void writeToOutputBuffer(final String s)
-    {
+    private void writeToOutputBuffer(final String s) {
         Runnable r = () -> {
             // Avoid race (and NPE) if setOutputBuffer(null) gets called in
             // another thread.
@@ -1050,8 +1007,7 @@ public final class SshSession implements Constants, RemoteSession
         SwingUtilities.invokeLater(r);
     }
 
-    public boolean checkLogin()
-    {
+    public boolean checkLogin() {
         if (userName == null)
             userName = System.getProperty("user.name");
         if (password == null) {
@@ -1074,8 +1030,7 @@ public final class SshSession implements Constants, RemoteSession
         return true;
     }
 
-    private static synchronized void cleanup()
-    {
+    private static synchronized void cleanup() {
         // Walk buffer list in event dispatch thread.
         if (!SwingUtilities.isEventDispatchThread()) {
             Debug.bug();
@@ -1114,13 +1069,11 @@ public final class SshSession implements Constants, RemoteSession
         cleanup();
     };
 
-    private String stdOutFilter(String s)
-    {
+    private String stdOutFilter(String s) {
         return s;
     }
 
-    private synchronized void stdOutUpdate(final String s)
-    {
+    private synchronized void stdOutUpdate(final String s) {
         if (echo || Editor.preferences().getBooleanProperty(Property.SSH_ECHO))
             Log.debug("<== |" + s + "|");
         if (outputBuffer != null)
@@ -1129,18 +1082,15 @@ public final class SshSession implements Constants, RemoteSession
         notify();
     }
 
-    private String stdErrFilter(String s)
-    {
+    private String stdErrFilter(String s) {
         return s;
     }
 
-    private void stdErrUpdate(final String s)
-    {
+    private void stdErrUpdate(final String s) {
         Log.debug("stderr: |" + s + "|");
     }
 
-    private static String reveal(String s)
-    {
+    private static String reveal(String s) {
         StringBuilder sb = new StringBuilder();
         final int length = s.length();
         for (int i = 0; i < length; i++) {
@@ -1163,40 +1113,32 @@ public final class SshSession implements Constants, RemoteSession
         return sb.toString();
     }
 
-    class StdoutThread extends ReaderThread
-    {
+    class StdoutThread extends ReaderThread {
         // If this constructor is private, we run into jikes 1.15 bug #2256.
-        StdoutThread()
-        {
+        StdoutThread() {
             super(process.getInputStream());
         }
 
-        public String filter(String s)
-        {
+        public String filter(String s) {
             return stdOutFilter(s);
         }
 
-        public void update(String s)
-        {
+        public void update(String s) {
             stdOutUpdate(s);
         }
     }
 
-    class StderrThread extends ReaderThread
-    {
+    class StderrThread extends ReaderThread {
         // If this constructor is private, we run into jikes 1.15 bug #2256.
-        StderrThread()
-        {
+        StderrThread() {
             super(process.getErrorStream());
         }
 
-        public String filter(String s)
-        {
+        public String filter(String s) {
             return stdErrFilter(s);
         }
 
-        public void update(String s)
-        {
+        public void update(String s) {
             stdErrUpdate(s);
         }
     }

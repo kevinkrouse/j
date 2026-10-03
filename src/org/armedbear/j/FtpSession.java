@@ -20,9 +20,6 @@
 
 package org.armedbear.j;
 
-import org.armedbear.j.mode.dir.DirectoryEntry;
-import java.lang.StringBuilder;
-
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -30,6 +27,7 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.StringReader;
+import java.lang.StringBuilder;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -38,9 +36,9 @@ import java.util.ArrayList;
 import java.util.Random;
 import java.util.StringTokenizer;
 import javax.swing.SwingUtilities;
+import org.armedbear.j.mode.dir.DirectoryEntry;
 
-public class FtpSession implements Constants, RemoteSession
-{
+public class FtpSession implements Constants, RemoteSession {
     private static final boolean echo = true;
     private static final ArrayList<FtpSession> sessionList = new ArrayList<FtpSession>();
 
@@ -65,13 +63,11 @@ public class FtpSession implements Constants, RemoteSession
     private ProgressNotifier progressNotifier;
     private boolean locked;
 
-    private FtpSession()
-    {
+    private FtpSession() {
         register(this);
     }
 
-    private FtpSession(Login login, int port)
-    {
+    private FtpSession(Login login, int port) {
         host = login.host;
         user = login.user;
         password = login.password;
@@ -81,8 +77,7 @@ public class FtpSession implements Constants, RemoteSession
         register(this);
     }
 
-    private static synchronized void register(FtpSession session)
-    {
+    private static synchronized void register(FtpSession session) {
         sessionList.add(session);
         if (cleanupThread == null) {
             cleanupThread = new CleanupThread(cleanupRunnable);
@@ -90,15 +85,13 @@ public class FtpSession implements Constants, RemoteSession
         }
     }
 
-    private static synchronized void unregister(FtpSession session)
-    {
+    private static synchronized void unregister(FtpSession session) {
         if (!sessionList.contains(session))
             Debug.bug();
         sessionList.remove(session);
     }
 
-    protected Object clone()
-    {
+    protected Object clone() {
         FtpSession session = new FtpSession();
         session.host = host;
         session.user = user;
@@ -108,56 +101,46 @@ public class FtpSession implements Constants, RemoteSession
         return session;
     }
 
-    public final String getHostName()
-    {
+    public final String getHostName() {
         return host;
     }
 
-    public String getUserName()
-    {
+    public String getUserName() {
         return user;
     }
 
-    public String getPassword()
-    {
+    public String getPassword() {
         return password;
     }
 
-    public int getPort()
-    {
+    public int getPort() {
         return port;
     }
 
-    public final String getErrorText()
-    {
+    public final String getErrorText() {
         return errorText;
     }
 
-    public final String getLoginDirectory()
-    {
+    public final String getLoginDirectory() {
         return loginDirectory;
     }
 
-    public final void setProgressNotifier(ProgressNotifier progressNotifier)
-    {
+    public final void setProgressNotifier(ProgressNotifier progressNotifier) {
         this.progressNotifier = progressNotifier;
     }
 
-    public final boolean isLocked()
-    {
+    public final boolean isLocked() {
         return locked;
     }
 
-    private synchronized boolean lock()
-    {
+    private synchronized boolean lock() {
         if (locked)
             return false;
         locked = true;
         return true;
     }
 
-    public synchronized void unlock()
-    {
+    public synchronized void unlock() {
         if (locked) {
             progressNotifier = null;
             locked = false;
@@ -165,20 +148,18 @@ public class FtpSession implements Constants, RemoteSession
             Debug.bug("FtpSession.unlock session was not locked");
     }
 
-    private boolean changeDirectory(String dirname)
-    {
+    private boolean changeDirectory(String dirname) {
         if (dirname.equals(currentDirectory))
             return true;
         command("CWD " + dirname);
-        String s= getReplyString();
+        String s = getReplyString();
         int code = getCode(s);
         if (code == 421) {
             connect();
             if (connected) {
                 command("CWD " + dirname);
                 s = getReplyString();
-            }
-            else
+            } else
                 return false;
         }
         if (getCode(s) == 250) {
@@ -188,16 +169,14 @@ public class FtpSession implements Constants, RemoteSession
         return false;
     }
 
-    public boolean isDirectory(String remotePath)
-    {
+    public boolean isDirectory(String remotePath) {
         if (changeDirectory(remotePath))
             return true;
 
         return false;
     }
 
-    public boolean isFile(String remotePath)
-    {
+    public boolean isFile(String remotePath) {
         command("SIZE " + remotePath);
         String s = getReplyString();
         int code = getCode(s);
@@ -215,13 +194,11 @@ public class FtpSession implements Constants, RemoteSession
         return false;
     }
 
-    public boolean exists(String remotePath)
-    {
+    public boolean exists(String remotePath) {
         return isDirectory(remotePath) || isFile(remotePath);
     }
 
-    private long getFileSize(String remotePath)
-    {
+    private long getFileSize(String remotePath) {
         long fileSize = -1;
         command("SIZE " + remotePath);
         String s = getReplyString();
@@ -237,20 +214,17 @@ public class FtpSession implements Constants, RemoteSession
         return fileSize;
     }
 
-    public boolean deleteFile(String remotePath)
-    {
+    public boolean deleteFile(String remotePath) {
         command("DELE " + remotePath);
         return getReply() == 250;
     }
 
-    public boolean removeDirectory(String remotePath)
-    {
+    public boolean removeDirectory(String remotePath) {
         command("RMD " + remotePath);
         return getReply() == 250;
     }
 
-    public boolean chmod(File file, int permissions)
-    {
+    public boolean chmod(File file, int permissions) {
         Debug.bugIfNot(file instanceof FtpFile);
         if (permissions != 0) {
             StringBuilder sb = new StringBuilder("SITE CHMOD ");
@@ -259,13 +233,11 @@ public class FtpSession implements Constants, RemoteSession
             sb.append(file.canonicalPath());
             command(sb.toString());
             return getReply() == 200;
-        }
-        else
+        } else
             return false;
     }
 
-    public int getPermissions(FtpFile file)
-    {
+    public int getPermissions(FtpFile file) {
         int permissions = 0;
         String listing = getDirectoryListingForFile(file.canonicalPath());
         if (listing != null) {
@@ -295,8 +267,7 @@ public class FtpSession implements Constants, RemoteSession
         return permissions;
     }
 
-    int getFileStatus(String filename)
-    {
+    int getFileStatus(String filename) {
         if (!connected) {
             connect();
             if (!connected)
@@ -347,8 +318,7 @@ public class FtpSession implements Constants, RemoteSession
         return status;
     }
 
-    public String retrieveDirectoryListing(File file)
-    {
+    public String retrieveDirectoryListing(File file) {
         if (!(file instanceof FtpFile)) {
             Debug.bug();
             return null;
@@ -363,8 +333,7 @@ public class FtpSession implements Constants, RemoteSession
         return listing;
     }
 
-    String getDirectoryListing(String dirname)
-    {
+    String getDirectoryListing(String dirname) {
         Debug.assertTrue(isLocked());
         String listing = null;
         if (verifyConnected()) {
@@ -388,8 +357,7 @@ public class FtpSession implements Constants, RemoteSession
         return listing;
     }
 
-    String getDirectoryListingForFile(String filename)
-    {
+    String getDirectoryListingForFile(String filename) {
         String listing = null;
         if (connected) {
             if (openDataSocket()) {
@@ -448,8 +416,7 @@ public class FtpSession implements Constants, RemoteSession
         return listing;
     }
 
-    public int put(File localFile, File remoteFile, long fileSize, boolean saveInPlace)
-    {
+    public int put(File localFile, File remoteFile, long fileSize, boolean saveInPlace) {
         boolean succeeded = false;
         boolean cancelled = false;
         String tempName = null;
@@ -474,7 +441,7 @@ public class FtpSession implements Constants, RemoteSession
                     int bytesRead;
                     if (progressNotifier != null)
                         progressNotifier.progressStart();
-                    while((bytesRead = in.read(bytes)) > 0) {
+                    while ((bytesRead = in.read(bytes)) > 0) {
                         out.write(bytes, 0, bytesRead);
                         totalBytes += bytesRead;
                         if (progressNotifier != null) {
@@ -539,8 +506,7 @@ public class FtpSession implements Constants, RemoteSession
 
     private static Random random;
 
-    private String getUniqueName(File dir)
-    {
+    private String getUniqueName(File dir) {
         long now = System.currentTimeMillis();
         if (random == null) {
             // Use uptime as seed.
@@ -559,8 +525,7 @@ public class FtpSession implements Constants, RemoteSession
         return null;
     }
 
-    public int get(File remoteFile, File localFile, long fileSize)
-    {
+    public int get(File remoteFile, File localFile, long fileSize) {
         boolean succeeded = false;
         boolean cancelled = false;
         if (fileSize == 0) {
@@ -568,7 +533,7 @@ public class FtpSession implements Constants, RemoteSession
             if (fileSize < 0) // Error.
                 fileSize = 0;
         }
-        InputStream  in = getInputStreamForFile(remoteFile.canonicalPath());
+        InputStream in = getInputStreamForFile(remoteFile.canonicalPath());
         if (in == null)
             return ERROR;
         try (OutputStream out = localFile.getOutputStream()) {
@@ -600,7 +565,7 @@ public class FtpSession implements Constants, RemoteSession
                         cancelled = true;
                         break;
                     }
-                    progressNotifier.progress("Received ",  totalBytes, fileSize);
+                    progressNotifier.progress("Received ", totalBytes, fileSize);
                 }
                 // Slow things down for debugging, maybe.
                 Debug.throttle();
@@ -641,13 +606,11 @@ public class FtpSession implements Constants, RemoteSession
             return ERROR;
     }
 
-    public synchronized boolean isConnected()
-    {
+    public synchronized boolean isConnected() {
         return connected;
     }
 
-    public synchronized boolean verifyConnected()
-    {
+    public synchronized boolean verifyConnected() {
         if (connected) {
             command("NOOP");
             if (getReply() == 421) {
@@ -661,8 +624,7 @@ public class FtpSession implements Constants, RemoteSession
         return connected;
     }
 
-    public synchronized boolean connect()
-    {
+    public synchronized boolean connect() {
         if (progressNotifier != null)
             progressNotifier.setText("Connecting to " + host);
         Log.debug("connecting to " + host);
@@ -738,8 +700,7 @@ public class FtpSession implements Constants, RemoteSession
         return true;
     }
 
-    private void command(String s)
-    {
+    private void command(String s) {
         boolean reconnect = false;
         if (echo)
             Log.debug("==> " + (s.startsWith("PASS ") ? "PASS" : s));
@@ -776,8 +737,7 @@ public class FtpSession implements Constants, RemoteSession
     private String lastReply;
 
     // Returns final line of reply.
-    private String getReplyString()
-    {
+    private String getReplyString() {
         String s = null;
         try {
             do {
@@ -791,40 +751,42 @@ public class FtpSession implements Constants, RemoteSession
         return s;
     }
 
-    private static boolean isEndOfReply(String s)
-    {
+    private static boolean isEndOfReply(String s) {
         // If it's not the last line of the reply, the 4th char will be '-'.
-        if (s != null &&
-            s.length() >= 4 &&
-            s.charAt(3) == ' ' &&
-            Character.isDigit(s.charAt(0)) &&
-            Character.isDigit(s.charAt(1)) &&
-            Character.isDigit(s.charAt(2)))
-        {
+        if (
+            s != null
+                &&
+                s.length() >= 4
+                &&
+                s.charAt(3) == ' '
+                &&
+                Character.isDigit(s.charAt(0))
+                &&
+                Character.isDigit(s.charAt(1))
+                &&
+                Character.isDigit(s.charAt(2))
+        ) {
             return true;
         }
 
         return false;
     }
 
-    private boolean getReply(int required)
-    {
+    private boolean getReply(int required) {
         String s = getReplyString();
         if (s == null)
             return false;
         return getCode(s) == required;
     }
 
-    private int getReply()
-    {
+    private int getReply() {
         String s = getReplyString();
-        if (s ==  null)
+        if (s == null)
             return 421;
         return getCode(s);
     }
 
-    private static int getCode(String reply)
-    {
+    private static int getCode(String reply) {
         int code = -1;
         if (reply != null) {
             // We do sanity checking when we get the reply string, so we don't
@@ -839,8 +801,7 @@ public class FtpSession implements Constants, RemoteSession
         return code;
     }
 
-    private String getData()
-    {
+    private String getData() {
         if (!usePassiveMode)
             acceptConnectionFromServer();
         byte[] buf = new byte[16384];
@@ -859,8 +820,7 @@ public class FtpSession implements Constants, RemoteSession
         return sb.toString();
     }
 
-    private void closeDataSocket()
-    {
+    private void closeDataSocket() {
         if (dataSocket != null) {
             if (dataIn != null) {
                 try {
@@ -881,7 +841,7 @@ public class FtpSession implements Constants, RemoteSession
             try {
                 dataSocket.close();
             }
-            catch (IOException e){
+            catch (IOException e) {
                 Log.error(e);
             }
             dataSocket = null;
@@ -890,8 +850,7 @@ public class FtpSession implements Constants, RemoteSession
         }
     }
 
-    private boolean openDataSocket()
-    {
+    private boolean openDataSocket() {
         if (!connected) {
             connect();
             if (!connected)
@@ -901,7 +860,7 @@ public class FtpSession implements Constants, RemoteSession
         if (usePassiveMode) {
             command("PASV");
             String reply;
-            while (true){
+            while (true) {
                 reply = getReplyString();
                 if (reply == null) {
                     Log.error("openDataSocket null reply to PASV");
@@ -921,7 +880,7 @@ public class FtpSession implements Constants, RemoteSession
             int end = reply.indexOf(')');
             if (end < 0)
                 return false;
-            String s = reply.substring(begin+1, end);
+            String s = reply.substring(begin + 1, end);
             StringTokenizer st = new StringTokenizer(s, ",", false);
             if (st.countTokens() != 6)
                 return false;
@@ -960,7 +919,8 @@ public class FtpSession implements Constants, RemoteSession
                     if (addr[i] < 0)
                         addr[i] += 256;
                 }
-                String s = "PORT " + addr[0] + "," + addr[1] + "," + addr[2] + "," + addr[3] + "," + hibyte + "," + lobyte;
+                String s =
+                    "PORT " + addr[0] + "," + addr[1] + "," + addr[2] + "," + addr[3] + "," + hibyte + "," + lobyte;
                 command(s);
                 return getReply(200);
             }
@@ -971,8 +931,7 @@ public class FtpSession implements Constants, RemoteSession
         }
     }
 
-    private void acceptConnectionFromServer()
-    {
+    private void acceptConnectionFromServer() {
         try {
             dataSocket = serverSocket.accept();
             if (dataSocket != null) {
@@ -985,8 +944,7 @@ public class FtpSession implements Constants, RemoteSession
         }
     }
 
-    private InputStream getInputStreamForFile(String filename)
-    {
+    private InputStream getInputStreamForFile(String filename) {
         if (openDataSocket()) {
             command("RETR " + filename);
             int code = getCode(getReplyString());
@@ -999,8 +957,7 @@ public class FtpSession implements Constants, RemoteSession
         return null;
     }
 
-    private OutputStream getOutputStreamForFile(String filename)
-    {
+    private OutputStream getOutputStreamForFile(String filename) {
         if (filename == null)
             return null;
         if (openDataSocket()) {
@@ -1017,8 +974,7 @@ public class FtpSession implements Constants, RemoteSession
         return null;
     }
 
-    private static synchronized void cleanup()
-    {
+    private static synchronized void cleanup() {
         // Walk buffer list in event dispatch thread.
         if (!SwingUtilities.isEventDispatchThread()) {
             Debug.bug();
@@ -1034,8 +990,8 @@ public class FtpSession implements Constants, RemoteSession
                 Buffer buf = it.next();
                 if (buf.getFile() instanceof FtpFile) {
                     if (host.equals(buf.getFile().getHostName())) {
-                         inUse = true;
-                         break;
+                        inUse = true;
+                        break;
                     }
                 }
             }
@@ -1056,8 +1012,7 @@ public class FtpSession implements Constants, RemoteSession
         cleanup();
     };
 
-    private synchronized void disconnect()
-    {
+    private synchronized void disconnect() {
         Log.debug("disconnect");
         if (controlSocket != null) {
             Log.debug("closing control socket...");
@@ -1086,8 +1041,7 @@ public class FtpSession implements Constants, RemoteSession
         connected = false;
     }
 
-    private void close()
-    {
+    private void close() {
         Log.debug("FtpSession.close");
         if (connected) {
             final Editor editor = Editor.currentEditor();
@@ -1121,8 +1075,7 @@ public class FtpSession implements Constants, RemoteSession
         Log.debug("leaving close");
     }
 
-    public static synchronized FtpSession getSession(FtpFile file)
-    {
+    public static synchronized FtpSession getSession(FtpFile file) {
         if (file == null)
             return null;
         Login login = new Login(file.getHostName(), file.getUserName(), file.getPassword());
@@ -1201,8 +1154,7 @@ public class FtpSession implements Constants, RemoteSession
     // Make sure the login is complete. Get the user to enter the username
     // and/or password if missing. Don't look in .netrc or preferences; we may
     // be here because the information in .netrc or preferences didn't work.
-    public boolean checkLogin()
-    {
+    public boolean checkLogin() {
         final Editor editor = Editor.currentEditor();
         if (user == null) {
             // Nothing relevant in ~/.netrc.  Ask the user.
@@ -1227,8 +1179,7 @@ public class FtpSession implements Constants, RemoteSession
         return true;
     }
 
-    private static synchronized FtpSession lockSession(String host, int port)
-    {
+    private static synchronized FtpSession lockSession(String host, int port) {
         for (FtpSession session : sessionList) {
             if (session.host.equals(host) && session.port == port) {
                 if (session.lock())
@@ -1238,8 +1189,7 @@ public class FtpSession implements Constants, RemoteSession
         return null;
     }
 
-    private static synchronized FtpSession findSession(String host, int port)
-    {
+    private static synchronized FtpSession findSession(String host, int port) {
         for (FtpSession session : sessionList) {
             if (session.host.equals(host) && session.port == port)
                 return session;

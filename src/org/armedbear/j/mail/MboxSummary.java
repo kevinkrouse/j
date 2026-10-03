@@ -21,8 +21,8 @@
 package org.armedbear.j.mail;
 
 import java.io.BufferedInputStream;
-import java.io.InvalidClassException;
 import java.io.IOException;
+import java.io.InvalidClassException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
@@ -32,38 +32,32 @@ import org.armedbear.j.File;
 import org.armedbear.j.Log;
 import org.armedbear.j.util.Utilities;
 
-public final class MboxSummary implements Serializable
-{
+public final class MboxSummary implements Serializable {
     private final ArrayList<LocalMailboxEntry> entries;
     private final String path;
     private long lastModified;
     private long length;
 
-    public MboxSummary(File mailboxFile, List<LocalMailboxEntry> entries)
-    {
+    public MboxSummary(File mailboxFile, List<LocalMailboxEntry> entries) {
         this.entries = new ArrayList<LocalMailboxEntry>(entries);
         path = mailboxFile.canonicalPath();
         lastModified = mailboxFile.lastModified();
         length = mailboxFile.length();
     }
 
-    public synchronized ArrayList<LocalMailboxEntry> getEntries()
-    {
+    public synchronized ArrayList<LocalMailboxEntry> getEntries() {
         return entries;
     }
 
-    public synchronized long length()
-    {
+    public synchronized long length() {
         return length;
     }
 
-    public synchronized long lastModified()
-    {
+    public synchronized long lastModified() {
         return lastModified;
     }
 
-    public synchronized void write(File file)
-    {
+    public synchronized void write(File file) {
         try {
             Log.debug("MboxSummary.write");
             long start = System.currentTimeMillis();
@@ -81,8 +75,7 @@ public final class MboxSummary implements Serializable
         }
     }
 
-    public static MboxSummary read(File file)
-    {
+    public static MboxSummary read(File file) {
         Log.debug("MboxSummary.read");
         if (file == null || !file.isFile())
             return null;
