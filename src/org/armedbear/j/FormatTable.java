@@ -169,6 +169,23 @@ public final class FormatTable
     }
 
     /**
+     * The color thing has as an entry would have it, through its links: the
+     * theme's or yours for it or what it links to, and if withDefaults,
+     * else DefaultTheme's; else null. For a color no format draws text in,
+     * as a background.
+     */
+    public synchronized Color resolveColor(String thing, boolean withDefaults)
+    {
+        final List<List<String>> chains = new ArrayList<List<String>>();
+        addChain(chains, new ArrayList<String>(), thing);
+        final boolean dark = DefaultTheme.isDark(getBackground());
+        final Found<Color> found = resolve(chains,
+            name -> findPreference("color", name, preferences::getColorProperty),
+            name -> withDefaults ? DefaultTheme.getColor(modeName, name, dark) : null);
+        return found != null ? found.value : null;
+    }
+
+    /**
      * The entries, in order of format, with the names each was resolved
      * through and where its color and style came from: for listStyles.
      */

@@ -24,7 +24,6 @@ package org.armedbear.j.mode.markdown;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Editor;
 import org.armedbear.j.Line;
-import org.armedbear.j.SimpleEdit;
 
 /**
  * What folding hides in Markdown: a fence's code, a list item's children,
@@ -253,21 +252,14 @@ public final class MarkdownFolding
             editor.status("No headings");
             return;
         }
-        editor.addUndo(SimpleEdit.FOLD);
-        for (Line line = buffer.getFirstLine(); line != null; line = line.next())
-            line.show();
         // What comes before the first heading stays: there is nothing above
         // it to fold it into.
-        for (Line line = first; line != null; line = line.next()) {
+        editor.showOnly(first, line -> {
             final int n = level(line);
-            final boolean shown = n > 0 && n <= depth
+            return n > 0 && n <= depth
                 || line.previous() != null
                    && MarkdownFormatter.isSetextHeading(line.previous())
                    && level(line.previous()) <= depth;
-            if (!shown)
-                line.hide();
-        }
-        buffer.renumber();
-        Editor.unhideDotInAllFrames(buffer);
+        });
     }
 }

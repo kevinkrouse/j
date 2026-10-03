@@ -8460,6 +8460,22 @@ public final class Editor extends JPanel implements Constants,
     }
 
     /**
+     * Unfolds everything, then hides the lines from begin on that shown does
+     * not take, as one fold that undo puts back: an outline of a buffer.
+     */
+    public void showOnly(Line begin, java.util.function.Predicate<Line> shown)
+    {
+        addUndo(SimpleEdit.FOLD);
+        for (Line line = buffer.getFirstLine(); line != null; line = line.next())
+            line.show();
+        for (Line line = begin; line != null; line = line.next())
+            if (!shown.test(line))
+                line.hide();
+        buffer.renumber();
+        unhideDotInAllFrames(buffer);
+    }
+
+    /**
      * Hides the lines from begin up to end, or to the end of the buffer if
      * end is null, as one fold that undo puts back.
      */

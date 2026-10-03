@@ -585,7 +585,7 @@ public final class MarkdownFormatter extends Formatter
     private Color codeBackground()
     {
         if (codeBackground == null)
-            codeBackground = getShade("MarkdownMode", "codeBackground");
+            codeBackground = getShade("codeBackground");
         return codeBackground;
     }
 

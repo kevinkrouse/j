@@ -243,17 +243,13 @@ public abstract class Formatter implements Constants
     private Color hoverLinkColor;
 
     /**
-     * The color of a link under a Ctrl-hovered mouse: the theme's
-     * color.link, or the shared link style's for the background.
+     * The color of a link under a Ctrl-hovered mouse: link, as this mode's
+     * format table resolves it.
      */
     public Color getHoverLinkColor()
     {
-        if (hoverLinkColor == null) {
-            hoverLinkColor = Editor.preferences().getColorProperty("color.link");
-            if (hoverLinkColor == null)
-                hoverLinkColor = DefaultTheme.getColor(null, "link",
-                    DefaultTheme.isDark(getBackgroundColor()));
-        }
+        if (hoverLinkColor == null)
+            hoverLinkColor = getFormatTable().resolveColor("link", true);
         return hoverLinkColor;
     }
 
@@ -277,19 +273,16 @@ public abstract class Formatter implements Constants
 
     /**
      * A shade of the background that sets text apart without fighting it,
-     * as code's: a theme's color.thing, if it has one. On a light background,
-     * half as far from it as the current line's highlight, so as not to be
-     * mistaken for it, and a little cool, as GitHub's code is, where the
-     * highlight is usually gray. On a dark one, the background with a little
-     * of the text mixed in.
+     * as code's: the color thing has from the theme or you, if it has one,
+     * as the format table resolves it. On a light background, half as far
+     * from it as the current line's highlight, so as not to be mistaken for
+     * it, and a little cool, as GitHub's code is, where the highlight is
+     * usually gray. On a dark one, the background with a little of the text
+     * mixed in.
      */
-    protected Color getShade(String modeName, String thing)
+    protected Color getShade(String thing)
     {
-        final Preferences prefs = Editor.preferences();
-        Color color = modeName != null
-            ? prefs.getColorProperty(modeName + ".color." + thing) : null;
-        if (color == null)
-            color = prefs.getColorProperty("color." + thing);
+        final Color color = getFormatTable().resolveColor(thing, false);
         if (color != null)
             return color;
         final Color bg = getBackgroundColor();
@@ -334,14 +327,20 @@ public abstract class Formatter implements Constants
      */
     protected final boolean conceals(String kind)
     {
-        final String value = buffer.getStringProperty(Property.CONCEAL);
-        if (value == null)
-            return false;
-        for (String name : value.split("[\\s,]+"))
-            if (name.equalsIgnoreCase(kind))
-                return true;
-        return false;
+        if (concealed == null) {
+            final java.util.Set<String> set = new java.util.HashSet<String>();
+            final String value = buffer.getStringProperty(Property.CONCEAL);
+            if (value != null)
+                for (String name : value.split("[\\s,]+"))
+                    set.add(name.toLowerCase(java.util.Locale.ROOT));
+            concealed = set;
+        }
+        return concealed.contains(kind.toLowerCase(java.util.Locale.ROOT));
     }
+
+    // The conceal property's kinds, until a reset: it is asked of every line
+    // painted.
+    private java.util.Set<String> concealed;
 
     /**
      * Adds a segment the display hides unless the caret is in item, a
@@ -383,6 +382,7 @@ public abstract class Formatter implements Constants
         rainbowColors = null;
         unmatchedDelimiterColor = null;
         hoverLinkColor = null;
+        concealed = null;
         formatTable = null;
     }
 
