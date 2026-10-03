@@ -475,14 +475,7 @@ public final class HtmlMode extends AbstractMode implements Constants, Mode {
                         return;
                     final String endTag = "</" + sb.toString() + ">";
                     final Buffer buffer = editor.getBuffer();
-                    try {
-                        buffer.lockWrite();
-                    }
-                    catch (InterruptedException e) {
-                        Log.error(e);
-                        return;
-                    }
-                    try {
+                    buffer.withWriteLock(() -> {
                         CompoundEdit compoundEdit = editor.beginCompoundEdit();
                         editor.fillToCaret();
                         editor.addUndo(SimpleEdit.INSERT_STRING);
@@ -493,10 +486,7 @@ public final class HtmlMode extends AbstractMode implements Constants, Mode {
                         if (buffer.getBooleanProperty(Property.AUTO_INDENT))
                             editor.indentLine();
                         editor.endCompoundEdit(compoundEdit);
-                    }
-                    finally {
-                        buffer.unlockWrite();
-                    }
+                    });
                 }
                 return;
             }

@@ -142,14 +142,7 @@ public final class Macro implements Constants {
     private synchronized void playback() {
         final Editor editor = Editor.currentEditor();
         final Buffer buffer = editor.getBuffer();
-        try {
-            buffer.lockWrite();
-        }
-        catch (InterruptedException e) {
-            Log.debug(e);
-            return;
-        }
-        try {
+        buffer.withWriteLock(() -> {
             CompoundEdit compoundEdit = buffer.beginCompoundEdit();
             for (Object object : list) {
                 editor.setCurrentCommand(COMMAND_NOTHING);
@@ -163,9 +156,6 @@ public final class Macro implements Constants {
                 editor.setLastCommand(editor.getCurrentCommand());
             }
             buffer.endCompoundEdit(compoundEdit);
-        }
-        finally {
-            buffer.unlockWrite();
-        }
+        });
     }
 }

@@ -300,14 +300,7 @@ public final class Region implements Constants {
     // deletes whole lines at beginning of buffer
     public void deleteLines() {
         adjustMarkers();
-        try {
-            buffer.lockWrite();
-        }
-        catch (InterruptedException e) {
-            Log.error(e);
-            return;
-        }
-        try {
+        buffer.withWriteLock(() -> {
             beginLine.setText(endLine.getText());
             beginLine.setOriginalText(null);
             Line nextLine = endLine.next();
@@ -325,9 +318,6 @@ public final class Region implements Constants {
                 nextLine.setPrevious(beginLine);
             buffer.needsRenumbering = true;
             buffer.modified();
-        }
-        finally {
-            buffer.unlockWrite();
-        }
+        });
     }
 }

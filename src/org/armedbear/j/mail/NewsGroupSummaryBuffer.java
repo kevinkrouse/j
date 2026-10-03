@@ -235,22 +235,12 @@ public final class NewsGroupSummaryBuffer extends MailboxBuffer {
 
     private void addEntriesToBuffer() {
         if (entries != null) {
-            try {
-                lockWrite();
-            }
-            catch (InterruptedException e) {
-                Log.error(e);
-                return;
-            }
-            try {
+            withWriteLock(() -> {
                 int limit = entries.size();
                 for (int i = 0; i < limit; i++)
                     appendLine((NewsGroupSummaryEntry) entries.get(i));
                 renumber();
-            }
-            finally {
-                unlockWrite();
-            }
+            });
         }
     }
 

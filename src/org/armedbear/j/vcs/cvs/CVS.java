@@ -291,24 +291,15 @@ public final class CVS extends VersionControl implements Constants {
 
     private static void insertComment(final Editor editor, final String comment) {
         final CheckinBuffer buffer = (CheckinBuffer) editor.getBuffer();
-        try {
-            buffer.lockWrite();
-        }
-        catch (InterruptedException e) {
-            Log.error(e);
-            return;
-        }
-        try {
+        if (!buffer.withWriteLock(() -> {
             CompoundEdit compoundEdit = editor.beginCompoundEdit();
             editor.selectAll();
             editor.deleteRegion();
             editor.insertString(comment);
             editor.endCompoundEdit(compoundEdit);
             buffer.modified();
-        }
-        finally {
-            buffer.unlockWrite();
-        }
+        }))
+            return;
         final Position end = buffer.getEnd();
         for (Editor ed : Editor.getEditorList()) {
             if (ed.getBuffer() == buffer) {

@@ -70,14 +70,7 @@ public final class ListTagsBuffer extends Buffer {
     }
 
     private void load(List<? extends Tag> tags) {
-        try {
-            lockWrite();
-        }
-        catch (InterruptedException e) {
-            Log.debug(e);
-            return;
-        }
-        try {
+        withWriteLock(() -> {
             lastFileName = lastClassName = null;
             appendLine("Tag: \"" + name + '"');
             for (Tag tag : tags) {
@@ -85,10 +78,7 @@ public final class ListTagsBuffer extends Buffer {
             }
             renumber();
             setLoaded(true);
-        }
-        finally {
-            unlockWrite();
-        }
+        });
     }
 
     private void appendTag(Tag tag) {

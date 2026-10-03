@@ -85,14 +85,7 @@ public final class SendMail extends Buffer {
     public SendMail() {
         super();
         init();
-        try {
-            lockWrite();
-        }
-        catch (InterruptedException e) {
-            Log.debug(e);
-            return;
-        }
-        try {
+        withWriteLock(() -> {
             appendFrom();
             appendLine("To: ");
             appendLine("Subject: ");
@@ -103,10 +96,7 @@ public final class SendMail extends Buffer {
             renumber();
             formatter.parseBuffer();
             setLoaded(true);
-        }
-        finally {
-            unlockWrite();
-        }
+        });
     }
 
     // Re-opening an unsent message.
@@ -122,14 +112,7 @@ public final class SendMail extends Buffer {
         init();
         mailbox = messageBuffer.getMailbox();
         entryRepliedTo = messageBuffer.getMailboxEntry();
-        try {
-            lockWrite();
-        }
-        catch (InterruptedException e) {
-            Log.debug(e);
-            return;
-        }
-        try {
+        withWriteLock(() -> {
             appendFrom();
             appendLine("To: ");
             appendLine("Subject: [Fwd: " + entryRepliedTo.getSubject() + "]");
@@ -144,10 +127,7 @@ public final class SendMail extends Buffer {
             renumber();
             formatter.parseBuffer();
             setLoaded(true);
-        }
-        finally {
-            unlockWrite();
-        }
+        });
     }
 
     // Reply.
@@ -357,14 +337,7 @@ public final class SendMail extends Buffer {
     private void replaceFrom(String from) {
         final Editor editor = Editor.currentEditor();
         final Position savedDot = editor.getDotCopy();
-        try {
-            lockWrite();
-        }
-        catch (InterruptedException e) {
-            Log.error(e);
-            return;
-        }
-        try {
+        if (!withWriteLock(() -> {
             CompoundEdit compoundEdit = editor.beginCompoundEdit();
             // Remove existing "From:" header(s).
             removeHeaders(editor, "from:");
@@ -387,10 +360,8 @@ public final class SendMail extends Buffer {
             editor.moveCaretToDotCol();
             editor.endCompoundEdit(compoundEdit);
             getFormatter().parseBuffer();
-        }
-        finally {
-            unlockWrite();
-        }
+        }))
+            return;
         repaint();
     }
 

@@ -67,14 +67,7 @@ public class Replacement extends Search {
 
     public void replaceOccurrence() {
         final Buffer buffer = editor.getBuffer();
-        try {
-            buffer.lockWrite();
-        }
-        catch (InterruptedException e) {
-            Log.error(e);
-            return;
-        }
-        try {
+        buffer.withWriteLock(() -> {
             final Line dotLine = editor.getDotLine();
             final int dotOffset = editor.getDotOffset();
             if (isMultilinePattern()) {
@@ -135,10 +128,7 @@ public class Replacement extends Search {
                 buffer.modified();
             }
             ++replacementCount;
-        }
-        finally {
-            buffer.unlockWrite();
-        }
+        });
     }
 
     // No editor, no region, no undo, does not set buffer's modified flag.

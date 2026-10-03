@@ -98,41 +98,21 @@ public final class BufferStream extends Stream {
     }
 
     public void _writeString(String s) {
-        try {
-            buffer.lockWrite();
-        }
-        catch (InterruptedException e) {
-            Log.error(e);
-            return;
-        }
-        try {
+        buffer.withWriteLock(() -> {
             buffer.insertString(buffer.getEnd(), s);
             buffer.modified();
             if (s.indexOf('\n') >= 0)
                 buffer.needsRenumbering(true);
-        }
-        finally {
-            buffer.unlockWrite();
-        }
+        });
     }
 
     public void _writeLine(String s) {
-        try {
-            buffer.lockWrite();
-        }
-        catch (InterruptedException e) {
-            Log.error(e);
-            return;
-        }
-        try {
+        buffer.withWriteLock(() -> {
             buffer.append(s);
             buffer.appendLine("");
             buffer.modified();
             buffer.needsRenumbering(true);
-        }
-        finally {
-            buffer.unlockWrite();
-        }
+        });
     }
 
     public void _finishOutput() {

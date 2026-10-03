@@ -53,20 +53,11 @@ public class CheckinBuffer extends VersionControlBuffer implements Constants {
         type = TYPE_NORMAL;
         isUntitled = true;
         mode = CheckinMode.getMode();
-        try {
-            lockWrite();
-        }
-        catch (InterruptedException e) {
-            Log.debug(e);
-            return;
-        }
-        try {
+        if (!withWriteLock(() -> {
             appendLine("");
             renumber();
-        }
-        finally {
-            unlockWrite();
-        }
+        }))
+            return;
         setLoaded(true);
         setInitialized(true);
     }

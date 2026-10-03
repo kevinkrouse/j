@@ -629,14 +629,7 @@ public class P4 extends VersionControl implements Constants {
         Position mark = findEndOfComment(buffer, dot);
         if (mark == null)
             return;
-        try {
-            buffer.lockWrite();
-        }
-        catch (InterruptedException e) {
-            Log.error(e);
-            return;
-        }
-        try {
+        if (!buffer.withWriteLock(() -> {
             CompoundEdit compoundEdit = editor.beginCompoundEdit();
             editor.moveDotTo(dot);
             editor.setMark(mark);
@@ -644,10 +637,8 @@ public class P4 extends VersionControl implements Constants {
             editor.insertString(comment);
             editor.endCompoundEdit(compoundEdit);
             buffer.modified();
-        }
-        finally {
-            buffer.unlockWrite();
-        }
+        }))
+            return;
         final Position end = findEndOfComment(buffer, null);
         for (Editor ed : Editor.getEditorList()) {
             if (ed.getBuffer() == buffer) {

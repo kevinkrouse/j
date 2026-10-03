@@ -1174,21 +1174,12 @@ public class Buffer extends SystemBuffer {
     }
 
     private void reloadLocal(File file) {
-        try {
-            lockWrite();
-        }
-        catch (InterruptedException e) {
-            Log.error(e);
-            return;
-        }
-        try {
+        if (!withWriteLock(() -> {
             empty();
             loadFile(file);
             formatter.parseBuffer();
-        }
-        finally {
-            unlockWrite();
-        }
+        }))
+            return;
         unmodified();
         deleteAutosaveFile();
         resetUndo();
@@ -2016,19 +2007,10 @@ public class Buffer extends SystemBuffer {
     }
 
     public void empty() {
-        try {
-            lockWrite();
-        }
-        catch (InterruptedException e) {
-            Log.debug(e);
-            return;
-        }
-        try {
+        if (!withWriteLock(() -> {
             _empty();
-        }
-        finally {
-            unlockWrite();
-        }
+        }))
+            return;
         setTags(null);
         // Invalidate any stored views that are referencing the old contents
         // of this buffer.
@@ -2268,14 +2250,7 @@ public class Buffer extends SystemBuffer {
     }
 
     public void setText(String text) {
-        try {
-            lockWrite();
-        }
-        catch (InterruptedException e) {
-            Log.debug(e);
-            return;
-        }
-        try {
+        withWriteLock(() -> {
             empty();
             if (text != null) {
                 FastStringReader reader = new FastStringReader(text);
@@ -2288,22 +2263,12 @@ public class Buffer extends SystemBuffer {
             renumber();
             invalidate();
             setLoaded(true);
-        }
-        finally {
-            unlockWrite();
-        }
+        });
     }
 
     // Inserts s at pos, moves pos past s.
     public void insertString(Position pos, String s) {
-        try {
-            lockWrite();
-        }
-        catch (InterruptedException e) {
-            Log.error(e);
-            return;
-        }
-        try {
+        withWriteLock(() -> {
             StringBuilder sb = new StringBuilder();
             final int limit = s.length();
             boolean skipLF = false;
@@ -2333,10 +2298,7 @@ public class Buffer extends SystemBuffer {
             }
             if (sb.length() > 0)
                 insertChars(pos, sb.toString());
-        }
-        finally {
-            unlockWrite();
-        }
+        });
     }
 
     // Inserts s at pos, moves pos past s.

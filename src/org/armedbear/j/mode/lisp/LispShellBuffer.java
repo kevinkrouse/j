@@ -553,14 +553,7 @@ public class LispShellBuffer extends ShellBuffer {
         final Line dotLine = editor.getDotLine();
         if (dotLine.length() > 0)
             return;
-        try {
-            lockWrite();
-        }
-        catch (InterruptedException e) {
-            Log.error(e);
-            return;
-        }
-        try {
+        withWriteLock(() -> {
             getFormatter().parseBuffer();
             int indent = mode.getCorrectIndentation(dotLine, this);
             if (indent != getIndentation(dotLine)) {
@@ -579,10 +572,7 @@ public class LispShellBuffer extends ShellBuffer {
                     editor.fillToCaret();
             }
             resetUndo(); // Why?
-        }
-        finally {
-            unlockWrite();
-        }
+        });
     }
 
     @Override

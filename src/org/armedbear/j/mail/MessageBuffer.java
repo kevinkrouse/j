@@ -169,22 +169,12 @@ public class MessageBuffer extends Buffer {
     }
 
     protected void reset() {
-        try {
-            lockWrite();
-        }
-        catch (InterruptedException e) {
-            Log.debug(e);
-            return;
-        }
-        try {
+        withWriteLock(() -> {
             empty();
             message = null;
             mimeBody = null;
             selectedPart = null;
-        }
-        finally {
-            unlockWrite();
-        }
+        });
     }
 
     public int load() {
@@ -827,20 +817,10 @@ public class MessageBuffer extends Buffer {
     }
 
     protected void setText() {
-        try {
-            lockWrite();
-        }
-        catch (InterruptedException e) {
-            Log.debug(e);
-            return;
-        }
-        try {
+        withWriteLock(() -> {
             _setText();
             setLoaded(true);
-        }
-        finally {
-            unlockWrite();
-        }
+        });
     }
 
     private void _setText() {

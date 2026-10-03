@@ -70,14 +70,7 @@ public class ListOccurrencesBuffer extends Buffer {
         formatter = mode.getFormatter(this);
         readOnly = true;
         setTransient(true);
-        try {
-            lockWrite();
-        }
-        catch (InterruptedException e) {
-            Log.debug(e);
-            return;
-        }
-        try {
+        if (!withWriteLock(() -> {
             if (search.isRegularExpression())
                 appendLine("Regular expression: \"" + search.getPattern() + '"');
             else
@@ -88,10 +81,8 @@ public class ListOccurrencesBuffer extends Buffer {
                     appendLine("Replace with: \"" + replaceWith + '"');
             }
             appendLine("Options: " + getOptions());
-        }
-        finally {
-            unlockWrite();
-        }
+        }))
+            return;
         setInitialized(true);
     }
 

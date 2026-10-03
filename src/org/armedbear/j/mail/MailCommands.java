@@ -314,21 +314,12 @@ public final class MailCommands implements Constants {
                     return;
                 }
             }
-            try {
-                sm.lockWrite();
-            }
-            catch (InterruptedException e) {
-                Log.error(e);
-                return;
-            }
-            try {
+            if (!sm.withWriteLock(() -> {
                 editor.addUndo(SimpleEdit.LINE_EDIT);
                 dotLine.setText(dotLine.substring(begin).concat(":"));
                 sm.modified();
-            }
-            finally {
-                sm.unlockWrite();
-            }
+            }))
+                return;
             editor.getDot().setOffset(dotLine.length());
             editor.moveCaretToDotCol();
             Editor.updateInAllEditors(dotLine);

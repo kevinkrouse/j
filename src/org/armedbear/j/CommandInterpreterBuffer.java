@@ -349,14 +349,7 @@ public class CommandInterpreterBuffer extends Buffer {
     }
 
     protected void appendString(String s) {
-        try {
-            lockWrite();
-        }
-        catch (InterruptedException e) {
-            Log.error(e);
-            return;
-        }
-        try {
+        withWriteLock(() -> {
             Position pos = getEnd();
             if (pos != null) {
                 insertString(pos, s);
@@ -368,10 +361,7 @@ public class CommandInterpreterBuffer extends Buffer {
                 setText(s);
                 setEndOfOutput(getEnd().copy());
             }
-        }
-        finally {
-            unlockWrite();
-        }
+        });
     }
 
     protected void updateDisplayInAllFrames() {

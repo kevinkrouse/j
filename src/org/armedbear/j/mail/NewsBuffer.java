@@ -66,19 +66,10 @@ public final class NewsBuffer extends Buffer {
 
     private Runnable loadRunnable = new Runnable() {
         public void run() {
-            try {
-                lockWrite();
-            }
-            catch (InterruptedException e) {
-                Log.error(e);
-                return;
-            }
-            try {
+            if (!withWriteLock(() -> {
                 _load();
-            }
-            finally {
-                unlockWrite();
-            }
+            }))
+                return;
             if (error)
                 SwingUtilities.invokeLater(errorRunnable);
             else

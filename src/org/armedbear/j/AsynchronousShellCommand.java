@@ -151,20 +151,11 @@ public final class AsynchronousShellCommand implements Constants, Runnable {
             setProperty(Property.SHOW_LINE_NUMBERS, false);
             setProperty(Property.HIGHLIGHT_MATCHING_BRACKET, false);
             setProperty(Property.HIGHLIGHT_BRACKETS, false);
-            try {
-                lockWrite();
-            }
-            catch (InterruptedException e) {
-                Log.debug(e);
-                return;
-            }
-            try {
+            if (!withWriteLock(() -> {
                 appendLine("");
                 renumber();
-            }
-            finally {
-                unlockWrite();
-            }
+            }))
+                return;
             setInitialized(true);
         }
 

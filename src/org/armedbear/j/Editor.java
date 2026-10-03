@@ -1378,14 +1378,7 @@ public final class Editor extends JPanel implements Constants,
         final Line nextLine = dotLine.next();
         if (nextLine == null)
             return;
-        try {
-            buffer.lockWrite();
-        }
-        catch (InterruptedException e) {
-            Log.error(e);
-            return;
-        }
-        try {
+        buffer.withWriteLock(() -> {
             if (dotLine.length() == 0) {
                 adjustMarkers(dotLine);
                 // Save original text.
@@ -1439,10 +1432,7 @@ public final class Editor extends JPanel implements Constants,
             setUpdateFlag(REFRAME);
             buffer.needsRenumbering = true;
             buffer.modified();
-        }
-        finally {
-            buffer.unlockWrite();
-        }
+        });
     }
 
     private void deleteNormalChar() {
@@ -1462,14 +1452,7 @@ public final class Editor extends JPanel implements Constants,
     public void delete() {
         if (!checkReadOnly())
             return;
-        try {
-            buffer.lockWrite();
-        }
-        catch (InterruptedException e) {
-            Log.error(e);
-            return;
-        }
-        try {
+        buffer.withWriteLock(() -> {
             if (mark != null) {
                 deleteRegion();
             } else {
@@ -1492,24 +1475,14 @@ public final class Editor extends JPanel implements Constants,
                     Debug.bug();
                 }
             }
-        }
-        finally {
-            buffer.unlockWrite();
-        }
+        });
     }
 
     // A deletion, not a kill!
     public void backspace() {
         if (!checkReadOnly())
             return;
-        try {
-            buffer.lockWrite();
-        }
-        catch (InterruptedException e) {
-            Log.error(e);
-            return;
-        }
-        try {
+        buffer.withWriteLock(() -> {
             if (mark != null) {
                 delete();
             } else if (display.getCaretCol() > buffer.getCol(getDotLine(), getDotLine().length())) {
@@ -1531,10 +1504,7 @@ public final class Editor extends JPanel implements Constants,
                 endCompoundEdit(compoundEdit);
                 moveCaretToDotCol();
             }
-        }
-        finally {
-            buffer.unlockWrite();
-        }
+        });
     }
 
     private boolean nextChar() {
@@ -1965,19 +1935,10 @@ public final class Editor extends JPanel implements Constants,
     // No undo.
     public void insertLineSeparator() {
         Debug.assertTrue(mark == null);
-        try {
-            buffer.lockWrite();
-        }
-        catch (InterruptedException e) {
-            Log.error(e);
-            return;
-        }
-        try {
+        if (!buffer.withWriteLock(() -> {
             buffer.insertLineSeparator(dot);
-        }
-        finally {
-            buffer.unlockWrite();
-        }
+        }))
+            return;
         final Line dotLine = getDotLine();
         for (int i = 0; i < getEditorCount(); i++) {
             Editor ed = getEditor(i);
@@ -2005,14 +1966,7 @@ public final class Editor extends JPanel implements Constants,
         }
         if (!checkReadOnly())
             return;
-        try {
-            buffer.lockWrite();
-        }
-        catch (InterruptedException e) {
-            Log.error(e);
-            return;
-        }
-        try {
+        if (!buffer.withWriteLock(() -> {
             CompoundEdit compoundEdit = beginCompoundEdit();
             if (mark != null)
                 deleteRegion();
@@ -2043,10 +1997,8 @@ public final class Editor extends JPanel implements Constants,
                     fillToCaret();
             }
             endCompoundEdit(compoundEdit);
-        }
-        finally {
-            buffer.unlockWrite();
-        }
+        }))
+            return;
         setUpdateFlag(REFRAME);
     }
 
@@ -2131,14 +2083,7 @@ public final class Editor extends JPanel implements Constants,
         if (!checkReadOnly())
             return;
 
-        try {
-            buffer.lockWrite();
-        }
-        catch (InterruptedException e) {
-            Log.error(e);
-            return;
-        }
-        try {
+        buffer.withWriteLock(() -> {
             CompoundEdit compoundEdit = beginCompoundEdit();
             if (mark != null)
                 deleteRegion();
@@ -2153,10 +2098,7 @@ public final class Editor extends JPanel implements Constants,
             }
             moveCaretToDotCol();
             endCompoundEdit(compoundEdit);
-        }
-        finally {
-            buffer.unlockWrite();
-        }
+        });
     }
 
     public void moveDotToIndentation() {
@@ -2199,14 +2141,7 @@ public final class Editor extends JPanel implements Constants,
                     return;
                 setWaitCursor();
                 Position savedDot = new Position(dot);
-                try {
-                    buffer.lockWrite();
-                }
-                catch (InterruptedException e) {
-                    Log.error(e);
-                    return;
-                }
-                try {
+                if (!buffer.withWriteLock(() -> {
                     if (buffer.needsParsing()) {
                         if (getFormatter().parseBuffer())
                             buffer.repaint();
@@ -2227,10 +2162,8 @@ public final class Editor extends JPanel implements Constants,
                         mark.setOffset(getMarkLine().length());
                     moveCaretToDotCol();
                     endCompoundEdit(compoundEdit);
-                }
-                finally {
-                    buffer.unlockWrite();
-                }
+                }))
+                    return;
                 setUpdateFlag(REFRAME);
                 setDefaultCursor();
             }
@@ -2259,19 +2192,9 @@ public final class Editor extends JPanel implements Constants,
             return;
         if (dot == null)
             return;
-        try {
-            buffer.lockWrite();
-        }
-        catch (InterruptedException e) {
-            Log.error(e);
-            return;
-        }
-        try {
+        buffer.withWriteLock(() -> {
             commentRegionInternal(comment);
-        }
-        finally {
-            buffer.unlockWrite();
-        }
+        });
     }
 
     // If argument is false, uncomment the region.
@@ -2407,23 +2330,14 @@ public final class Editor extends JPanel implements Constants,
             return;
         if (!getMode().canIndent())
             return; // No change.
-        try {
-            buffer.lockWrite();
-        }
-        catch (InterruptedException e) {
-            Log.error(e);
-            return;
-        }
-        try {
+        if (!buffer.withWriteLock(() -> {
             if (buffer.needsParsing()) {
                 if (getFormatter().parseBuffer())
                     buffer.repaint();
             }
             indentLineInternal();
-        }
-        finally {
-            buffer.unlockWrite();
-        }
+        }))
+            return;
         setUpdateFlag(REFRAME);
     }
 
@@ -4393,22 +4307,12 @@ public final class Editor extends JPanel implements Constants,
         final Line dotLine = getDotLine();
         String s = getFillString(dotLine, where);
         if (s != null) {
-            try {
-                buffer.lockWrite();
-            }
-            catch (InterruptedException e) {
-                Log.error(e);
-                return;
-            }
-            try {
+            buffer.withWriteLock(() -> {
                 addUndo(SimpleEdit.LINE_EDIT);
                 dotLine.setText(dotLine.getText().concat(s));
                 buffer.modified();
                 dot.setOffset(dotLine.length());
-            }
-            finally {
-                buffer.unlockWrite();
-            }
+            });
         }
     }
 
@@ -4461,14 +4365,7 @@ public final class Editor extends JPanel implements Constants,
             // Enforce sanity and carry on.
             dot.setOffset(dotLine.length());
         }
-        try {
-            buffer.lockWrite();
-        }
-        catch (InterruptedException e) {
-            Log.error(e);
-            return;
-        }
-        try {
+        if (!buffer.withWriteLock(() -> {
             addUndo(SimpleEdit.LINE_EDIT);
             fillToCaret();
             StringBuilder sb =
@@ -4479,10 +4376,8 @@ public final class Editor extends JPanel implements Constants,
             dot.moveRight();
             moveCaretToDotCol();
             buffer.modified();
-        }
-        finally {
-            buffer.unlockWrite();
-        }
+        }))
+            return;
         updateInAllEditors(dotLine);
     }
 
@@ -4584,19 +4479,9 @@ public final class Editor extends JPanel implements Constants,
     public void electricColon() {
         if (!checkReadOnly())
             return;
-        try {
-            buffer.lockWrite();
-        }
-        catch (InterruptedException e) {
-            Log.error(e);
-            return;
-        }
-        try {
+        buffer.withWriteLock(() -> {
             electricColonInternal();
-        }
-        finally {
-            buffer.unlockWrite();
-        }
+        });
     }
 
     private void electricColonInternal() {
@@ -4643,22 +4528,13 @@ public final class Editor extends JPanel implements Constants,
         if (!checkReadOnly())
             return;
         if (mark == null && getDotLine().isBlank()) {
-            try {
-                buffer.lockWrite();
-            }
-            catch (InterruptedException e) {
-                Log.error(e);
-                return;
-            }
-            try {
+            if (!buffer.withWriteLock(() -> {
                 addUndo(SimpleEdit.LINE_EDIT);
                 getDotLine().setText("#");
                 dot.setOffset(1);
                 buffer.modified();
-            }
-            finally {
-                buffer.unlockWrite();
-            }
+            }))
+                return;
             updateInAllEditors(getDotLine());
             moveCaretToDotCol();
         } else
@@ -5918,14 +5794,7 @@ public final class Editor extends JPanel implements Constants,
         if (mark == null)
             return;
         if (getMarkLine() != getDotLine() || getMarkOffset() != getDotOffset()) {
-            try {
-                buffer.lockWrite();
-            }
-            catch (InterruptedException e) {
-                Log.error(e);
-                return;
-            }
-            try {
+            if (!buffer.withWriteLock(() -> {
                 Region r = new Region(this);
                 if (isColumnSelection()) {
                     deleteColumn(r);
@@ -5951,10 +5820,8 @@ public final class Editor extends JPanel implements Constants,
                     else
                         updateInAllEditors(getDotLine());
                 }
-            }
-            finally {
-                buffer.unlockWrite();
-            }
+            }))
+                return;
             moveCaretToDotCol();
         }
         setMark(null);
@@ -5972,19 +5839,9 @@ public final class Editor extends JPanel implements Constants,
     public void killRegion() {
         if (!checkReadOnly())
             return;
-        try {
-            buffer.lockWrite();
-        }
-        catch (InterruptedException e) {
-            Log.error(e);
-            return;
-        }
-        try {
+        buffer.withWriteLock(() -> {
             killRegionInternal();
-        }
-        finally {
-            buffer.unlockWrite();
-        }
+        });
     }
 
     private void killRegionInternal() {
@@ -6270,19 +6127,10 @@ public final class Editor extends JPanel implements Constants,
             return;
         if (toBeInserted == null || toBeInserted.length() == 0)
             return;
-        try {
-            buffer.lockWrite();
-        }
-        catch (InterruptedException e) {
-            Log.error(e);
-            return;
-        }
-        try {
+        if (!buffer.withWriteLock(() -> {
             pasteInternal(toBeInserted, leavePasteSelected);
-        }
-        finally {
-            buffer.unlockWrite();
-        }
+        }))
+            return;
         setUpdateFlag(REFRAME);
     }
 
@@ -6376,19 +6224,9 @@ public final class Editor extends JPanel implements Constants,
             return;
         if (killedColumn == null || killedColumn.length() == 0)
             return;
-        try {
-            buffer.lockWrite();
-        }
-        catch (InterruptedException e) {
-            Log.error(e);
-            return;
-        }
-        try {
+        buffer.withWriteLock(() -> {
             pasteColumnInternal(killedColumn);
-        }
-        finally {
-            buffer.unlockWrite();
-        }
+        });
     }
 
     // A block at the caret's column, one piece a line, as Block.put does it;
@@ -7082,14 +6920,7 @@ public final class Editor extends JPanel implements Constants,
         Region r = mark != null ? new Region(this) : null;
         if (r != null && (r.getBeginOffset() != 0 || r.getEndOffset() != 0))
             return; // If a block is marked, it must be a block of full lines.
-        try {
-            buffer.lockWrite();
-        }
-        catch (InterruptedException e) {
-            Log.error(e);
-            return;
-        }
-        try {
+        buffer.withWriteLock(() -> {
             if (r == null) {
                 CompoundEdit compoundEdit = beginCompoundEdit();
                 int dotCol = getDotCol();
@@ -7131,10 +6962,7 @@ public final class Editor extends JPanel implements Constants,
                 endCompoundEdit(compoundEdit);
                 buffer.modified();
             }
-        }
-        finally {
-            buffer.unlockWrite();
-        }
+        });
     }
 
     public void dirHome() {
@@ -7329,14 +7157,7 @@ public final class Editor extends JPanel implements Constants,
             }
         }
         if (count == 0) {
-            try {
-                buffer.lockWrite();
-            }
-            catch (InterruptedException e) {
-                Log.error(e);
-                return;
-            }
-            try {
+            buffer.withWriteLock(() -> {
                 CompoundEdit compoundEdit = beginCompoundEdit();
                 addUndo(SimpleEdit.MOVE);
                 unmark();
@@ -7351,10 +7172,7 @@ public final class Editor extends JPanel implements Constants,
                 dot.next();
                 newlineAndIndent();
                 endCompoundEdit(compoundEdit);
-            }
-            finally {
-                buffer.unlockWrite();
-            }
+            });
         }
     }
 
@@ -7633,14 +7451,7 @@ public final class Editor extends JPanel implements Constants,
 
         insertingKeyText = false;
 
-        try {
-            buffer.lockWrite();
-        }
-        catch (InterruptedException e) {
-            Log.error(e);
-            return;
-        }
-        try {
+        buffer.withWriteLock(() -> {
             KeyMapping km;
             if (keyCode != 0)
                 km = new KeyMapping(keyCode, modifiers, null);
@@ -7656,10 +7467,7 @@ public final class Editor extends JPanel implements Constants,
             buffer.modified();
             moveCaretToDotCol();
             endCompoundEdit(compoundEdit);
-        }
-        finally {
-            buffer.unlockWrite();
-        }
+        });
     }
 
     public void whatChar() {

@@ -108,19 +108,9 @@ public final class MarkdownTasks {
             return;
         }
         final Buffer buffer = editor.getBuffer();
-        try {
-            buffer.lockWrite();
-        }
-        catch (InterruptedException e) {
-            Log.error(e);
-            return;
-        }
-        try {
+        buffer.withWriteLock(() -> {
             setTasks(editor, buffer, state);
-        }
-        finally {
-            buffer.unlockWrite();
-        }
+        });
     }
 
     private static void setTasks(Editor editor, Buffer buffer, String state) {

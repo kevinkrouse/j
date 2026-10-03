@@ -211,22 +211,13 @@ public final class WebBuffer extends Buffer implements WebConstants {
         WebLoader loader = new WebLoader(localFile);
         LineSequence lines = loader.load();
         if (lines != null) {
-            try {
-                lockWrite();
-            }
-            catch (InterruptedException e) {
-                Log.debug(e);
-                return;
-            }
-            try {
+            if (!withWriteLock(() -> {
                 setFirstLine(lines.getFirstLine());
                 setLastLine(lines.getLastLine());
                 renumberOriginal();
                 empty = false;
-            }
-            finally {
-                unlockWrite();
-            }
+            }))
+                return;
         }
         refs = loader.getRefs();
         final File file = getFile();

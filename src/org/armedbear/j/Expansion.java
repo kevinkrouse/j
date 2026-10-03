@@ -190,24 +190,14 @@ public class Expansion implements Constants {
 
     public void undo(Editor editor) {
         final Buffer buffer = editor.getBuffer();
-        try {
-            buffer.lockWrite();
-        }
-        catch (InterruptedException e) {
-            Log.error(e);
-            return;
-        }
-        try {
+        buffer.withWriteLock(() -> {
             editor.addUndo(SimpleEdit.LINE_EDIT);
             editor.getDotLine().setText(savedText);
             editor.getBuffer().modified();
             editor.getDot().moveTo(savedDot);
             editor.getDisplay().moveCaretToDotCol();
             Editor.updateInAllEditors(editor.getDotLine());
-        }
-        finally {
-            buffer.unlockWrite();
-        }
+        });
     }
 
     public static Expansion getLastExpansion() {
@@ -234,14 +224,7 @@ public class Expansion implements Constants {
         final String candidate = expansion.getNextCandidate();
         if (candidate == null)
             return;
-        try {
-            buffer.lockWrite();
-        }
-        catch (InterruptedException e) {
-            Log.error(e);
-            return;
-        }
-        try {
+        buffer.withWriteLock(() -> {
             if (again)
                 editor.undo();
 
@@ -264,9 +247,6 @@ public class Expansion implements Constants {
             buffer.endCompoundEdit(compoundEdit);
             Editor.updateInAllEditors(line);
             editor.setCurrentCommand(COMMAND_EXPAND);
-        }
-        finally {
-            buffer.unlockWrite();
-        }
+        });
     }
 }

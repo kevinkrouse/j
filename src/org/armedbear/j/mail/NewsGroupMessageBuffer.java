@@ -473,22 +473,13 @@ public final class NewsGroupMessageBuffer extends MessageBuffer {
                         headers = getBeautifiedHeaders();
                     else
                         headers = defaultHeaders;
-                    try {
-                        lockWrite();
-                    }
-                    catch (InterruptedException e) {
-                        Log.error(e);
-                        return;
-                    }
-                    try {
+                    if (!withWriteLock(() -> {
                         appendHeaderLines(headers);
                         headerLineCount = Utilities.countLines(headers);
                         appendHeaderLine("");
                         appendBody(rawBody);
-                    }
-                    finally {
-                        unlockWrite();
-                    }
+                    }))
+                        return;
                 } else
                     super.setText();
             }

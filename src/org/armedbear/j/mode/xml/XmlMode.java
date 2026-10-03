@@ -1071,14 +1071,7 @@ public final class XmlMode extends AbstractMode implements Constants, Mode {
         if (tag != null) {
             final String name = Utilities.getTagName(tag);
             final String endTag = "</" + name + ">";
-            try {
-                buffer.lockWrite();
-            }
-            catch (InterruptedException e) {
-                Log.error(e);
-                return;
-            }
-            try {
+            buffer.withWriteLock(() -> {
                 CompoundEdit compoundEdit = editor.beginCompoundEdit();
                 editor.fillToCaret();
                 editor.addUndo(SimpleEdit.INSERT_STRING);
@@ -1087,10 +1080,7 @@ public final class XmlMode extends AbstractMode implements Constants, Mode {
                 editor.addUndo(SimpleEdit.MOVE);
                 editor.moveCaretToDotCol();
                 editor.endCompoundEdit(compoundEdit);
-            }
-            finally {
-                buffer.unlockWrite();
-            }
+            });
         }
     }
 
@@ -1109,14 +1099,7 @@ public final class XmlMode extends AbstractMode implements Constants, Mode {
             if (tag != null) {
                 final String name = Utilities.getTagName(tag);
                 final String endTag = "/" + name + ">";
-                try {
-                    buffer.lockWrite();
-                }
-                catch (InterruptedException e) {
-                    Log.error(e);
-                    return;
-                }
-                try {
+                buffer.withWriteLock(() -> {
                     // We don't need a compound edit here since all the
                     // changes are line edits.
                     editor.fillToCaret();
@@ -1126,10 +1109,7 @@ public final class XmlMode extends AbstractMode implements Constants, Mode {
                     editor.moveCaretToDotCol();
                     if (buffer.getBooleanProperty(Property.AUTO_INDENT))
                         editor.indentLine();
-                }
-                finally {
-                    buffer.unlockWrite();
-                }
+                });
                 return;
             }
 

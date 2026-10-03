@@ -63,19 +63,9 @@ public final class AlignStrings {
             return;
         }
         final Buffer buffer = editor.getBuffer();
-        try {
-            buffer.lockWrite();
-        }
-        catch (InterruptedException e) {
-            Log.error(e);
-            return;
-        }
-        try {
+        buffer.withWriteLock(() -> {
             _alignStrings(editor, buffer, region, re);
-        }
-        finally {
-            buffer.unlockWrite();
-        }
+        });
     }
 
     private static void _alignStrings(

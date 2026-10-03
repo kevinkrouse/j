@@ -62,19 +62,10 @@ public final class RegionCommands {
         }
         final Region r = new Region(editor);
         final int tabWidth = buffer.getTabWidth();
-        try {
-            buffer.lockWrite();
-        }
-        catch (InterruptedException e) {
-            Log.error(e);
-            return;
-        }
-        try {
+        if (!buffer.withWriteLock(() -> {
             detabOrEntabRegion(editor, buffer, r, entab, tabWidth);
-        }
-        finally {
-            buffer.unlockWrite();
-        }
+        }))
+            return;
         for (i = 0; i < count; i++) {
             Editor ed = editors[i];
             if (ed.getBuffer() == buffer) {
@@ -241,14 +232,7 @@ public final class RegionCommands {
         // A hard update is only necessary if the region spans a line boundary.
         boolean hard = editor.getDotLine() != editor.getMarkLine();
 
-        try {
-            buffer.lockWrite();
-        }
-        catch (InterruptedException e) {
-            Log.error(e);
-            return;
-        }
-        try {
+        buffer.withWriteLock(() -> {
             CompoundEdit compoundEdit = editor.beginCompoundEdit();
             editor.addUndo(SimpleEdit.MOVE);
             final Region r = new Region(editor);
@@ -271,10 +255,7 @@ public final class RegionCommands {
             else
                 Editor.updateInAllEditors(editor.getDotLine());
             editor.setMark(null);
-        }
-        finally {
-            buffer.unlockWrite();
-        }
+        });
     }
 
     public static void decodeRegion() {

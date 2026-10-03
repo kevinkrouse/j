@@ -141,22 +141,12 @@ public final class ChangeMarks implements Constants {
         if (!line.isModified())
             return;
         final Buffer buffer = editor.getBuffer();
-        try {
-            buffer.lockWrite();
-        }
-        catch (InterruptedException e) {
-            Log.error(e);
-            return;
-        }
-        try {
+        buffer.withWriteLock(() -> {
             if (line.isNew())
                 revertNewLine(editor, line);
             else
                 revertChangedLine(editor, line);
-        }
-        finally {
-            buffer.unlockWrite();
-        }
+        });
     }
 
     private static void revertNewLine(Editor editor, final Line dotLine) {

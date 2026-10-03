@@ -406,20 +406,11 @@ public final class FindInFiles extends Replacement implements Constants,
 
     private void processFile(File file, Mode mode, Position pos) {
         Debug.assertTrue(outputBuffer != null);
-        try {
-            outputBuffer.lockWrite();
-        }
-        catch (InterruptedException e) {
-            Log.error(e);
-            return;
-        }
-        try {
+        if (!outputBuffer.withWriteLock(() -> {
             processFileInternal(file, mode, pos);
             outputBuffer.renumber();
-        }
-        finally {
-            outputBuffer.unlockWrite();
-        }
+        }))
+            return;
         // Update display once per file.
         SwingUtilities.invokeLater(updateDisplayRunnable);
     }
@@ -584,14 +575,7 @@ public final class FindInFiles extends Replacement implements Constants,
             }
             final boolean wasModified = buffer.isModified();
             int oldReplacementCount = getReplacementCount();
-            try {
-                buffer.lockWrite();
-            }
-            catch (InterruptedException e) {
-                Log.error(e);
-                return;
-            }
-            try {
+            if (!buffer.withWriteLock(() -> {
                 CompoundEdit compoundEdit = new CompoundEdit();
                 Position pos = new Position(buffer.getFirstLine(), 0);
                 while ((pos = find(mode, pos)) != null) {
@@ -601,10 +585,8 @@ public final class FindInFiles extends Replacement implements Constants,
                 }
                 compoundEdit.end();
                 buffer.addEdit(compoundEdit);
-            }
-            finally {
-                buffer.unlockWrite();
-            }
+            }))
+                return;
             if (buffer.isModified() != wasModified)
                 Sidebar.setUpdateFlagInAllFrames(SIDEBAR_REPAINT_BUFFER_LIST);
             if (getReplacementCount() > oldReplacementCount)

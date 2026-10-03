@@ -206,14 +206,7 @@ public final class Sort {
             return;
         }
         final Buffer buffer = editor.getBuffer();
-        try {
-            buffer.lockWrite();
-        }
-        catch (InterruptedException e) {
-            Log.error(e);
-            return;
-        }
-        try {
+        buffer.withWriteLock(() -> {
             // getEndLine() is the line after the last one selected, so the
             // last line to sort is the one before it.
             sortLines(
@@ -222,10 +215,7 @@ public final class Sort {
                 region.getEndLine().previous(),
                 options
             );
-        }
-        finally {
-            buffer.unlockWrite();
-        }
+        });
     }
 
     /**

@@ -175,19 +175,9 @@ public final class WrapText implements Constants {
             Position begin = findStartOfComment(dot, commentStart);
             Position end = findEndOfComment(dot, commentStart);
             if (begin != null && end != null) {
-                try {
-                    buffer.lockWrite();
-                }
-                catch (InterruptedException e) {
-                    Log.error(e);
-                    return;
-                }
-                try {
+                buffer.withWriteLock(() -> {
                     processRegion(new Region(buffer, begin, end), prefix, true);
-                }
-                finally {
-                    buffer.unlockWrite();
-                }
+                });
             }
         }
     }

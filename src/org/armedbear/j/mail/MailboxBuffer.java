@@ -846,14 +846,7 @@ public abstract class MailboxBuffer extends Buffer {
             long start = System.currentTimeMillis();
             SortByThread sort = new SortByThread(entries);
             sort.run();
-            try {
-                lockWrite();
-            }
-            catch (InterruptedException e) {
-                Log.error(e);
-                return;
-            }
-            try {
+            if (!withWriteLock(() -> {
                 synchronized (this) {
                     empty();
                     sort.addEntries(this, limitFilter);
@@ -861,10 +854,8 @@ public abstract class MailboxBuffer extends Buffer {
                     countMessages();
                     setLoaded(true);
                 }
-            }
-            finally {
-                unlockWrite();
-            }
+            }))
+                return;
             long elapsed = System.currentTimeMillis() - start;
             Log.debug("refreshBuffer " + elapsed + " ms");
         } else {
@@ -873,14 +864,7 @@ public abstract class MailboxBuffer extends Buffer {
             ArrayList<MailboxEntry> temp = new ArrayList<MailboxEntry>(entries);
             sortEntriesByDate(temp);
             List<MailboxEntry> matchingEntries = getMatchingEntries(temp, limitFilter);
-            try {
-                lockWrite();
-            }
-            catch (InterruptedException e) {
-                Log.error(e);
-                return;
-            }
-            try {
+            if (!withWriteLock(() -> {
                 synchronized (this) {
                     empty();
                     final int size = matchingEntries.size();
@@ -890,10 +874,8 @@ public abstract class MailboxBuffer extends Buffer {
                     countMessages();
                     setLoaded(true);
                 }
-            }
-            finally {
-                unlockWrite();
-            }
+            }))
+                return;
         }
     }
 
