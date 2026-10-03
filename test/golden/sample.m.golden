@@ -1,0 +1,52 @@
+mode Objective C
+
+## format
+1: preprocessor"#import" text" <" identifier"Foundation/Foundation" text"." identifier"h" text">"
+2:
+3: keyword"@interface" text" " identifier"Greeter" text" : " identifier"NSObject"
+4: operator"-" text" (" keyword"void" text")" identifier"greet" text":(" identifier"NSString" text" " operator"*" text")" identifier"name" text";"
+5: keyword"@end"
+6:
+7: keyword"@implementation" text" " identifier"Greeter"
+8: operator"-" text" (" keyword"void" text")" identifier"greet" text":(" identifier"NSString" text" " operator"*" text")" identifier"name"
+9: brace"{"
+10: text"    " comment"// say hello"
+11: text"    " function"NSLog" text"(" identifier"@" string""Hello, %@ %d"" text", " identifier"name" text", " number"0X2A" text");"
+12: brace"}"
+13: keyword"@end"
+
+## indent
+1: 0
+2: 0
+3: 0
+4: 0
+5: 0
+6: 0
+7: 0
+8: 0
+9: 0
+10: 4
+11: 4
+12: 0
+13: 0
+
+## tags
+4: greet:greet: (3)
+
+## comment
+// #import <Foundation/Foundation.h>
+
+// @interface Greeter : NSObject
+// - (void)greet:(NSString *)name;
+// @end
+
+// @implementation Greeter
+// - (void)greet:(NSString *)name
+// {
+//     // say hello
+//     NSLog(@"Hello, %@ %d", name, 0X2A);
+// }
+@end
+
+## uncomment
+(restored)

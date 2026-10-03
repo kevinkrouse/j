@@ -1,0 +1,64 @@
+mode PHP
+
+## format
+1: delimiter"<" tag"html" delimiter">"
+2: delimiter"<" tag"body" attribute" class" equals"=" string""main"" delimiter">"
+3: delimiter"<?" tag"php"
+4: comment"// line comment"
+5: keyword"function" text" " function"greet" text"(" var"$name" text", " var"$n" text" " operator"=" text" " number"0X10" text") " brace"{"
+6: text"    " var"$s" text" " operator"=" text" " string""Hello, $name"" text";"
+7: text"    " keyword"if" text" (" var"$n" text" " operator">" text" " number"0" text") " brace"{"
+8: text"        " keyword"echo" text" " var"$s" text";"
+9: text"    " brace"}" text" " keyword"else" text" " brace"{"
+10: text"        " comment"# hash comment"
+11: text"        " keyword"return" text" " string"'none'" text";"
+12: text"    " brace"}"
+13: brace"}"
+14: delimiter"?>"
+15: delimiter"<" tag"p" delimiter">" text"done" delimiter"<" tag"/p" delimiter">"
+16: delimiter"<" tag"/body" delimiter">"
+17: delimiter"<" tag"/html" delimiter">"
+
+## indent
+1: 0
+2: 0
+3: 0
+4: 0
+5: 0
+6: 4
+7: 4
+8: 8
+9: 4
+10: 8
+11: 8
+12: 4
+13: 0
+14: 0
+15: 0
+16: 0
+17: 0
+
+## tags
+5: greet (3)
+
+## comment
+// <html>
+// <body class="main">
+// <?php
+// // line comment
+// function greet($name, $n = 0X10) {
+//     $s = "Hello, $name";
+//     if ($n > 0) {
+//         echo $s;
+//     } else {
+//         # hash comment
+//         return 'none';
+//     }
+// }
+// ?>
+// <p>done</p>
+// </body>
+</html>
+
+## uncomment
+(restored)

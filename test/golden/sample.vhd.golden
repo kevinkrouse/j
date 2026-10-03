@@ -1,0 +1,88 @@
+mode VHDL
+
+## format
+1: comment"-- A comment."
+2: keyword"library" text" " identifier"ieee" text";"
+3: keyword"use" text" " identifier"ieee" text"." identifier"std_logic_1164" text"." keyword"all" text";"
+4:
+5: keyword"entity" text" " identifier"counter" text" " keyword"is"
+6: text"    " keyword"port" text" (" identifier"clk" text" : " keyword"in" text" " type"std_logic" text";"
+7: text"          " identifier"q" text"   : " keyword"out" text" " type"integer" text");"
+8: keyword"end" text" " identifier"counter" text";"
+9:
+10: keyword"architecture" text" " identifier"rtl" text" " keyword"of" text" " identifier"counter" text" " keyword"is"
+11: text"    " keyword"signal" text" " identifier"n" text" : " type"integer" text" :" operator"=" text" " number"16" text"#" identifier"FF" text"#;"
+12: keyword"begin"
+13: text"    " keyword"process" text" (" identifier"clk" text")"
+14: text"    " keyword"begin"
+15: text"        " keyword"if" text" " function"rising_edge" text"(" identifier"clk" text") " keyword"then"
+16: text"            " identifier"n" text" " operator"<=" text" " identifier"n" text" " operator"+" text" " number"1" text";"
+17: text"        " keyword"end" text" " keyword"if" text";"
+18: text"    " keyword"end" text" " keyword"process" text";"
+19: keyword"end" text" " identifier"rtl" text";"
+
+## indent
+1: 0
+2: 0
+3: 0
+4: 0
+5: 0
+6: 0
+7: 4
+8: 10
+9: 0
+10: 0
+11: 0
+12: 4
+13: 4
+14: 4
+15: 8
+16: 12
+17: 12
+18: 8
+19: 4
+
+## tags
+5: counter (3)
+
+## comment
+-- -- A comment.
+-- library ieee;
+-- use ieee.std_logic_1164.all;
+
+-- entity counter is
+--     port (clk : in std_logic;
+--           q   : out integer);
+-- end counter;
+
+-- architecture rtl of counter is
+--     signal n : integer := 16#FF#;
+-- begin
+--     process (clk)
+--     begin
+--         if rising_edge(clk) then
+--             n <= n + 1;
+--         end if;
+--     end process;
+end rtl;
+
+## uncomment
+-- A comment.
+library ieee;
+use ieee.std_logic_1164.all;
+
+entity counter is
+port (clk : in std_logic;
+q   : out integer);
+end counter;
+
+architecture rtl of counter is
+signal n : integer := 16#FF#;
+begin
+    process (clk)
+    begin
+        if rising_edge(clk) then
+            n <= n + 1;
+            end if;
+            end process;
+end rtl;

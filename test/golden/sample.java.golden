@@ -1,0 +1,155 @@
+mode Java
+
+## format
+1: keyword"package" text" " identifier"demo" text";"
+2:
+3: keyword"import" text" " identifier"java" text"." identifier"util" text"." identifier"List" text";"
+4:
+5: comment"/** A sample. */"
+6: keyword"public" text" " keyword"class" text" " identifier"Sample" text" " keyword"extends" text" " identifier"Base" text" " keyword"implements" text" " identifier"Runnable" text" " brace"{"
+7: text"    " keyword"private" text" " keyword"static" text" " keyword"final" text" " keyword"int" text" " identifier"MASK" text" " operator"=" text" " number"0XFF" text" " operator"|" text" " number"0x0f" text";"
+8: text"    " keyword"private" text" " keyword"final" text" " identifier"String" text" " identifier"name" text" " operator"=" text" " string""a \"quoted\" string"" text";"
+9: text"    " keyword"private" text" " keyword"char" text" " identifier"c" text" " operator"=" text" " string"'\''" text";"
+10:
+11: text"    " comment"// A line comment."
+12: text"    " keyword"public" text" " function"Sample" text"(" keyword"int" text" " identifier"count" text") " brace"{"
+13: text"        " keyword"super" text"(" identifier"count" text");"
+14: text"        " keyword"for" text" (" keyword"int" text" " identifier"i" text" " operator"=" text" " number"0" text"; " identifier"i" text" " operator"<" text" " identifier"count" text"; " identifier"i" operator"++" text") " brace"{"
+15: text"            " keyword"if" text" (" identifier"i" text" % " number"2" text" " operator"==" text" " number"0" text")"
+16: text"                " function"run" text"();"
+17: text"            " keyword"else" text" " brace"{"
+18: text"                " keyword"long" text" " identifier"big" text" " operator"=" text" " number"123L" text" " operator"+" text" " number"4" text"." number"5" identifier"e3" text";"
+19: text"            " brace"}"
+20: text"        " brace"}"
+21: text"    " brace"}"
+22:
+23: text"    " text"@" identifier"Override"
+24: text"    " keyword"public" text" " keyword"void" text" " function"run" text"() " brace"{"
+25: text"        " comment"/* a block"
+26: comment"           " comment"comment */"
+27: text"        " keyword"switch" text" (" identifier"name" text"." function"length" text"()) " brace"{"
+28: text"        " keyword"case" text" " number"1" text":"
+29: text"            " keyword"break" text";"
+30: text"        " keyword"default" text":"
+31: text"            " identifier"List" text"." function"of" text"(" number"1" text", " number"2" text");"
+32: text"        " brace"}"
+33: text"    " brace"}"
+34: brace"}"
+
+## indent
+1: 0
+2: 0
+3: 0
+4: 0
+5: 0
+6: 0
+7: 4
+8: 4
+9: 4
+10: 4
+11: 4
+12: 4
+13: 8
+14: 8
+15: 12
+16: 16
+17: 12
+18: 16
+19: 12
+20: 8
+21: 4
+22: 4
+23: 4
+24: 4
+25: 8
+26: 8
+27: 8
+28: 12
+29: 12
+30: 12
+31: 12
+32: 8
+33: 4
+34: 0
+
+## tags
+6: class Sample (2)
+6: Base (5)
+6: Runnable (6)
+7: Sample.MASK (4)
+8: Sample.name (4)
+9: Sample.c (4)
+12: Sample.Sample (3)
+24: Sample.run (3)
+
+## comment
+// package demo;
+
+// import java.util.List;
+
+// /** A sample. */
+// public class Sample extends Base implements Runnable {
+//     private static final int MASK = 0XFF | 0x0f;
+//     private final String name = "a \"quoted\" string";
+//     private char c = '\'';
+
+//     // A line comment.
+//     public Sample(int count) {
+//         super(count);
+//         for (int i = 0; i < count; i++) {
+//             if (i % 2 == 0)
+//                 run();
+//             else {
+//                 long big = 123L + 4.5e3;
+//             }
+//         }
+//     }
+
+//     @Override
+//     public void run() {
+//         /* a block
+//            comment */
+//         switch (name.length()) {
+//         case 1:
+//             break;
+//         default:
+//             List.of(1, 2);
+//         }
+//     }
+}
+
+## uncomment
+package demo;
+
+import java.util.List;
+
+/** A sample. */
+public class Sample extends Base implements Runnable {
+    private static final int MASK = 0XFF | 0x0f;
+    private final String name = "a \"quoted\" string";
+    private char c = '\'';
+
+    // A line comment.
+    public Sample(int count) {
+        super(count);
+        for (int i = 0; i < count; i++) {
+            if (i % 2 == 0)
+                run();
+            else {
+                long big = 123L + 4.5e3;
+            }
+        }
+    }
+
+    @Override
+    public void run() {
+        /* a block
+        comment */
+        switch (name.length()) {
+            case 1:
+                break;
+            default:
+                List.of(1, 2);
+        }
+    }
+}

@@ -1,0 +1,52 @@
+mode Tcl
+
+## format
+1: comment"# A comment."
+2: keyword"set" text" " identifier"count" text" " identifier"0X10"
+3:
+4: keyword"proc" text" " identifier"greet" text" " brace"{" identifier"name" brace"}" text" " brace"{"
+5: text"    " keyword"set" text" " identifier"s" text" " string""Hello, $name""
+6: text"    " keyword"if" text" " brace"{" identifier"$name" text" " identifier"eq" text" " string""a"" brace"}" text" " brace"{"
+7: text"        " keyword"puts" text" " identifier"$s"
+8: text"    " brace"}" text" " keyword"else" text" " brace"{"
+9: text"        " keyword"return" text" " identifier"'none'"
+10: text"    " brace"}"
+11: brace"}"
+12:
+13: identifier"greet" text" " identifier"world"
+
+## indent
+1: 0
+2: 0
+3: 0
+4: 0
+5: 4
+6: 4
+7: 8
+8: 4
+9: 8
+10: 4
+11: 0
+12: 0
+13: 0
+
+## tags
+4: greet (3)
+
+## comment
+# # A comment.
+# set count 0X10
+
+# proc greet {name} {
+#     set s "Hello, $name"
+#     if {$name eq "a"} {
+#         puts $s
+#     } else {
+#         return 'none'
+#     }
+# }
+
+greet world
+
+## uncomment
+(restored)

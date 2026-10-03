@@ -1,0 +1,72 @@
+mode Verilog
+
+## format
+1: comment"// A comment."
+2: preprocessor"`define" text" " identifier"WIDTH" text" " number"8"
+3:
+4: keyword"module" text" " function"counter" text"(" identifier"clk" text", " identifier"q" text");"
+5: text"    " keyword"input" text" " identifier"clk" text";"
+6: text"    " keyword"output" text" [" number"7" text":" number"0" text"] " identifier"q" text";"
+7: text"    " keyword"reg" text" [" number"7" text":" number"0" text"] " identifier"q" text";"
+8:
+9: text"    " keyword"always" text" @(" keyword"posedge" text" " identifier"clk" text") " keyword"begin"
+10: text"        " keyword"if" text" (" identifier"q" text" " operator"==" text" " number"8'hFF" text")"
+11: text"            " identifier"q" text" " operator"<=" text" " number"0" text";"
+12: text"        " keyword"else"
+13: text"            " identifier"q" text" " operator"<=" text" " identifier"q" text" " operator"+" text" " number"1" text"; " comment"/* step */"
+14: text"    " keyword"end"
+15: keyword"endmodule"
+
+## indent
+1: 0
+2: 0
+3: 0
+4: 0
+5: 4
+6: 4
+7: 4
+8: 4
+9: 4
+10: 8
+11: 12
+12: 12
+13: 12
+14: 12
+15: 4
+
+## tags
+4: counter (3)
+
+## comment
+// // A comment.
+// `define WIDTH 8
+
+// module counter(clk, q);
+//     input clk;
+//     output [7:0] q;
+//     reg [7:0] q;
+
+//     always @(posedge clk) begin
+//         if (q == 8'hFF)
+//             q <= 0;
+//         else
+//             q <= q + 1; /* step */
+//     end
+endmodule
+
+## uncomment
+// A comment.
+`define WIDTH 8
+
+module counter(clk, q);
+    input clk;
+    output [7:0] q;
+    reg [7:0] q;
+
+    always @(posedge clk) begin
+        if (q == 8'hFF)
+            q <= 0;
+            else
+                q <= q + 1; /* step */
+                end
+endmodule

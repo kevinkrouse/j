@@ -1,0 +1,98 @@
+mode Python
+
+## format
+1: comment"# A comment."
+2: keyword"import" text" " identifier"os"
+3:
+4: identifier"MASK" text" " operator"=" text" " number"0XFF"
+5:
+6:
+7: keyword"class" text" " function"Greeter" text"(" identifier"object" text"):"
+8: text"    " string""""Docstring.""""
+9:
+10: text"    " keyword"def" text" " function"greet" text"(" identifier"self" text", " identifier"name" text", " identifier"n" operator"=" number"0x1f" text"):"
+11: text"        " identifier"s" text" " operator"=" text" " string"'Hello, %s'" text" % " identifier"name"
+12: text"        " keyword"if" text" " identifier"n" text" " operator">" text" " number"0" text":"
+13: text"            " keyword"print" text"(" identifier"s" text")"
+14: text"        " keyword"else" text":"
+15: text"            " keyword"return" text" " identifier"None"
+16: text"        " keyword"for" text" " identifier"i" text" " keyword"in" text" " function"range" text"(" identifier"n" text"):"
+17: text"            " keyword"pass"
+18:
+19:
+20: keyword"def" text" " function"main" text"():"
+21: text"    " function"Greeter" text"()." function"greet" text"(" string""world"" text")"
+
+## indent
+1: 0
+2: 0
+3: 0
+4: 0
+5: 0
+6: 0
+7: 0
+8: 4
+9: 4
+10: 4
+11: 8
+12: 8
+13: 12
+14: 8
+15: 12
+16: 8
+17: 12
+18: 8
+19: 8
+20: 4
+21: 4
+
+## tags
+7: class Greeter (2)
+10: greet (3)
+20: main (3)
+
+## comment
+## A comment.
+#import os
+
+#MASK = 0XFF
+
+
+#class Greeter(object):
+#    """Docstring."""
+
+#    def greet(self, name, n=0x1f):
+#        s = 'Hello, %s' % name
+#        if n > 0:
+#            print(s)
+#        else:
+#            return None
+#        for i in range(n):
+#            pass
+
+
+#def main():
+    Greeter().greet("world")
+
+## uncomment
+# A comment.
+import os
+
+MASK = 0XFF
+
+
+class Greeter(object):
+    """Docstring."""
+
+    def greet(self, name, n=0x1f):
+        s = 'Hello, %s' % name
+        if n > 0:
+            print(s)
+        else:
+            return None
+        for i in range(n):
+            pass
+
+
+    def main():
+    Greeter().greet("world")

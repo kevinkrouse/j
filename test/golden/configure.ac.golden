@@ -1,0 +1,47 @@
+mode Autoconf
+
+## format
+1: keyword"dnl" comment" A comment."
+2: function"AC_INIT" text"([" text"demo" text"], [" text"1" text"." text"0" text"])"
+3: function"AC_PROG_CC"
+4: comment"# shell comment"
+5: text"if" text" " text"test" text" " string""x$enable_debug"" text" = " text"xyes" text"; " text"then"
+6: text"  " function"AC_DEFINE" text"([" text"DEBUG" text"], [" text"1" text"], [" text"Debugging" text"])"
+7: text"fi"
+8: function"AC_CONFIG_FILES" text"([" text"Makefile" text"])"
+9: function"AC_OUTPUT"
+
+## indent
+1: 0
+2: 0
+3: 0
+4: 0
+5: 0
+6: 0
+7: 0
+8: 0
+9: 0
+
+## tags
+
+## comment
+dnl dnl A comment.
+dnl AC_INIT([demo], [1.0])
+dnl AC_PROG_CC
+dnl # shell comment
+dnl if test "x$enable_debug" = xyes; then
+dnl   AC_DEFINE([DEBUG], [1], [Debugging])
+dnl fi
+dnl AC_CONFIG_FILES([Makefile])
+AC_OUTPUT
+
+## uncomment
+dnl A comment.
+AC_INIT([demo], [1.0])
+AC_PROG_CC
+# shell comment
+if test "x$enable_debug" = xyes; then
+AC_DEFINE([DEBUG], [1], [Debugging])
+fi
+AC_CONFIG_FILES([Makefile])
+AC_OUTPUT

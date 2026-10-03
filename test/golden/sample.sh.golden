@@ -1,0 +1,75 @@
+mode Shell-script
+
+## format
+1: comment"#!/bin/sh"
+2: comment"# A comment."
+3: text"count" text"=" text"0"
+4:
+5: text"greet" text"() {"
+6: text"    " text"name" text"=" string""$1""
+7: text"    " keyword"if" text" [ " text"-n" text" " string""$name"" text" ]; " keyword"then"
+8: text"        " keyword"echo" string" " string""Hello, $name""
+9: text"    " keyword"else"
+10: text"        " keyword"echo" string" " string"'nobody'"
+11: text"    " keyword"fi"
+12: text"}"
+13:
+14: keyword"for" text" " text"f" text" " keyword"in" text" *" text".txt" text"; " keyword"do"
+15: text"    " text"greet" text" " string""$f""
+16: keyword"done"
+
+## indent
+1: 0
+2: 0
+3: 0
+4: 0
+5: 0
+6: 0
+7: 0
+8: 0
+9: 0
+10: 0
+11: 0
+12: 0
+13: 0
+14: 0
+15: 0
+16: 0
+
+## tags
+
+## comment
+# #!/bin/sh
+# # A comment.
+# count=0
+
+# greet() {
+#     name="$1"
+#     if [ -n "$name" ]; then
+#         echo "Hello, $name"
+#     else
+#         echo 'nobody'
+#     fi
+# }
+
+# for f in *.txt; do
+#     greet "$f"
+done
+
+## uncomment
+#!/bin/sh
+# A comment.
+count=0
+
+greet() {
+name="$1"
+if [ -n "$name" ]; then
+echo "Hello, $name"
+else
+echo 'nobody'
+fi
+}
+
+for f in *.txt; do
+greet "$f"
+done

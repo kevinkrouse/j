@@ -1,0 +1,45 @@
+mode Scheme
+
+## format
+1: comment";; A comment."
+2: text"(" keyword"define" text" (" function"greet" text" " text"name" text")"
+3: text"  " text"(" keyword"let" text" ((" text"s" text" (" text"string-append" text" " string""Hello, "" text" " text"name" text")))"
+4: text"    " text"(" keyword"if" text" (" keyword"string?" text" " text"s" text")"
+5: text"        " text"(" keyword"display" text" " text"s" text")"
+6: text"        " text"#" text"f" text")))"
+7:
+8: text"(" keyword"define" text" " function"mask" text" #" text"xFF" text")"
+
+## indent
+1: 0
+2: 0
+3: 0
+4: 0
+5: 0
+6: 0
+7: 0
+8: 0
+
+## tags
+2: greet (3)
+8: mask (3)
+
+## comment
+; ;; A comment.
+; (define (greet name)
+;   (let ((s (string-append "Hello, " name)))
+;     (if (string? s)
+;         (display s)
+;         #f)))
+
+(define mask #xFF)
+
+## uncomment
+;; A comment.
+(define (greet name)
+(let ((s (string-append "Hello, " name)))
+(if (string? s)
+(display s)
+#f)))
+
+(define mask #xFF)

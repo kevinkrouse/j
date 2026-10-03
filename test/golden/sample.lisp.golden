@@ -1,0 +1,69 @@
+mode Lisp
+
+## format
+1: comment";;; A comment."
+2: parenthesis"(" keyword"defpackage" text" " secondaryKeyword":demo" text" " parenthesis"(" secondaryKeyword":use" text" " secondaryKeyword":cl" parenthesis")" parenthesis")"
+3:
+4: parenthesis"(" keyword"defun" function" greet" text" " parenthesis"(" text"name" text" " secondaryKeyword"&optional" text" " parenthesis"(" text"n" text" " text"#" text"x1F" parenthesis")" parenthesis")"
+5: text"  " string""Docstring.""
+6: text"  " parenthesis"(" keyword"let" text" " parenthesis"(" parenthesis"(" text"s" text" " parenthesis"(" keyword"format" text" " text"nil" text" " string""Hello, ~A"" text" " text"name" parenthesis")" parenthesis")" parenthesis")"
+7: text"    " parenthesis"(" keyword"when" text" " parenthesis"(" keyword">" text" " text"n" text" " text"0" parenthesis")"
+8: text"      " parenthesis"(" keyword"print" text" " text"s" parenthesis")" parenthesis")"
+9: text"    " comment"#| block"
+10: comment"       comment |#"
+11: text"    " text"s" parenthesis")" parenthesis")"
+12:
+13: parenthesis"(" keyword"defmacro" function" twice" text" " parenthesis"(" text"form" parenthesis")"
+14: text"  " punctuation"`" parenthesis"(" keyword"progn" text" " punctuation"," substitution"form" text" " punctuation"," substitution"form" parenthesis")" parenthesis")"
+
+## indent
+1: 0
+2: 0
+3: 0
+4: 0
+5: 2
+6: 2
+7: 4
+8: 6
+9: 4
+10: 4
+11: 4
+12: 0
+13: 0
+14: 2
+
+## tags
+4: greet (10)
+13: twice (12)
+
+## comment
+;; ;;; A comment.
+;; (defpackage :demo (:use :cl))
+
+;; (defun greet (name &optional (n #x1F))
+;;   "Docstring."
+;;   (let ((s (format nil "Hello, ~A" name)))
+;;     (when (> n 0)
+;;       (print s))
+;;     #| block
+;;        comment |#
+;;     s))
+
+;; (defmacro twice (form)
+  `(progn ,form ,form))
+
+## uncomment
+;;; A comment.
+(defpackage :demo (:use :cl))
+
+(defun greet (name &optional (n #x1F))
+  "Docstring."
+  (let ((s (format nil "Hello, ~A" name)))
+    (when (> n 0)
+      (print s))
+    #| block
+    comment |#
+    s))
+
+(defmacro twice (form)
+  `(progn ,form ,form))

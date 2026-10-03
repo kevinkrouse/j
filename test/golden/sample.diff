@@ -1,0 +1,9 @@
+diff --git a/demo.c b/demo.c
+index 1234567..89abcde 100644
+--- a/demo.c
++++ b/demo.c
+@@ -1,4 +1,4 @@
+ #include <stdio.h>
+-int count = 0;
++int count = 1;
+ int main(void)

@@ -1,0 +1,49 @@
+mode Markdown
+
+## format
+1: headingMarker"# " heading1"Heading"
+2: text""
+3: text"Some " markup"*" emphasis"emphasis" markup"*" text", " markup"**" strong"strong" markup"**" text" and " codeMarker"`" code"code" codeMarker"`" text"."
+4: text""
+5: listMarker"-" text" item one"
+6: listMarker"-" text" " todo"[ ]" text" task"
+7: text""
+8: fence"```java"
+9: #81004"int" #81000" " #81003"x" #81000" " #81006"=" #81000" " #81008"0XFF" #81000";"
+10: fence"```"
+11: text""
+12: quoteMarker">" quoteMarker" " quote"quote with a " markup"[" linkText"link" markup"](" url"http://example.com" markup")"
+
+## indent
+1: 0
+2: 0
+3: 0
+4: 0
+5: 0
+6: 0
+7: 0
+8: 0
+9: 0
+10: 0
+11: 0
+12: 0
+
+## tags
+1: Heading (18)
+
+## comment
+<!-- # Heading -->
+
+<!-- Some *emphasis*, **strong** and `code`. -->
+
+<!-- - item one -->
+<!-- - [ ] task -->
+
+<!-- ```java -->
+<!-- int x = 0XFF; -->
+<!-- ``` -->
+
+> quote with a [link](http://example.com)
+
+## uncomment
+(restored)

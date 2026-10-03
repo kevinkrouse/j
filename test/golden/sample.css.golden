@@ -1,0 +1,31 @@
+mode CSS
+
+## format
+1: comment"/* A comment. */"
+2: selector"body" text" " brace"{"
+3: text"    " property"color" text": " number"#333" text";"
+4: text"    " property"margin" text": " number"0" text" auto" text";"
+5: brace"}"
+6:
+7: selector"a" text":" selector"hover" text", ." selector"nav" text" > " selector"li" text" " brace"{"
+8: text"    " property"font-family" text": " string""Helvetica"" text", sans-serif" text";"
+9: brace"}"
+
+## indent
+1: 0
+2: 0
+3: 4
+4: 4
+5: 4
+6: 0
+7: 0
+8: 4
+9: 4
+
+## tags
+
+## comment
+(unchanged)
+
+## uncomment
+(restored)

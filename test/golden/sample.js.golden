@@ -1,0 +1,57 @@
+mode JavaScript
+
+## format
+1: comment"// A sample."
+2: keyword"function" text" " function"greet" text"(" identifier"name" text", " identifier"times" text") " brace"{"
+3: text"    " keyword"var" text" " identifier"s" text" " operator"=" text" " string"'Hello, '" text" " operator"+" text" " identifier"name" text";"
+4: text"    " keyword"for" text" (" keyword"var" text" " identifier"i" text" " operator"=" text" " number"0" text"; " identifier"i" text" " operator"<" text" " identifier"times" text"; " identifier"i" operator"++" text") " brace"{"
+5: text"        " keyword"if" text" (" identifier"i" text" " operator"===" text" " number"0X3" text")"
+6: text"            " identifier"console" text"." function"log" text"(" identifier"s" text");"
+7: text"    " brace"}"
+8: text"    " keyword"return" text" " brace"{" text" " identifier"name" text": " identifier"name" text", " identifier"n" text": " number"0x1f" text" " brace"}" text";"
+9: brace"}"
+10:
+11: keyword"var" text" " identifier"f" text" " operator"=" text" " keyword"function" text" () " brace"{"
+12: text"    " comment"/* block */"
+13: text"    " keyword"return" text" " string""done"" text";"
+14: brace"}" text";"
+
+## indent
+1: 0
+2: 0
+3: 4
+4: 4
+5: 8
+6: 12
+7: 4
+8: 4
+9: 0
+10: 0
+11: 0
+12: 4
+13: 4
+14: 0
+
+## tags
+2: greet (3)
+11: f (4)
+11: f (4)
+
+## comment
+// // A sample.
+// function greet(name, times) {
+//     var s = 'Hello, ' + name;
+//     for (var i = 0; i < times; i++) {
+//         if (i === 0X3)
+//             console.log(s);
+//     }
+//     return { name: name, n: 0x1f };
+// }
+
+// var f = function () {
+//     /* block */
+//     return "done";
+};
+
+## uncomment
+(restored)

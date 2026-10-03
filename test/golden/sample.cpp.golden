@@ -1,0 +1,91 @@
+mode C++
+
+## format
+1: preprocessor"#include" text" <" identifier"string" text">"
+2:
+3: identifier"namespace" text" " identifier"demo" text" " brace"{"
+4:
+5: keyword"class" text" " identifier"Widget" text" : " keyword"public" text" " identifier"Base" text" " brace"{"
+6: keyword"public" text":"
+7: text"    " identifier"explicit" text" " function"Widget" text"(" keyword"int" text" " identifier"n" text") : " function"n_" text"(" identifier"n" text") " brace"{}"
+8: text"    " keyword"virtual" text" ~" function"Widget" text"();"
+9: text"    " keyword"int" text" " function"size" text"() " keyword"const" text" " brace"{" text" " keyword"return" text" " identifier"n_" text" " operator"*" text" " number"0XA" text"; " brace"}"
+10: keyword"private" text":"
+11: text"    " keyword"int" text" " identifier"n_" text";  " comment"// count"
+12: brace"}" text";"
+13:
+14: identifier"Widget" text"::~" function"Widget" text"()"
+15: brace"{"
+16: text"    " identifier"std" text"::" identifier"string" text" " identifier"s" text" " operator"=" text" " string""bye"" text";"
+17: brace"}"
+18:
+19: brace"}"
+
+## indent
+1: 0
+2: 0
+3: 0
+4: 4
+5: 4
+6: 0
+7: 4
+8: 4
+9: 4
+10: 0
+11: 4
+12: 0
+13: 0
+14: 0
+15: 0
+16: 4
+17: 0
+18: 0
+19: 0
+
+## tags
+5: class Widget (2)
+7: Widget::Widget (3)
+9: Widget::size (3)
+14: Widget::~Widget (3)
+
+## comment
+// #include <string>
+
+// namespace demo {
+
+// class Widget : public Base {
+// public:
+//     explicit Widget(int n) : n_(n) {}
+//     virtual ~Widget();
+//     int size() const { return n_ * 0XA; }
+// private:
+//     int n_;  // count
+// };
+
+// Widget::~Widget()
+// {
+//     std::string s = "bye";
+// }
+
+}
+
+## uncomment
+#include <string>
+
+namespace demo {
+
+    class Widget : public Base {
+public:
+    explicit Widget(int n) : n_(n) {}
+    virtual ~Widget();
+    int size() const { return n_ * 0XA; }
+private:
+    int n_;  // count
+    };
+
+    Widget::~Widget()
+    {
+        std::string s = "bye";
+    }
+
+}

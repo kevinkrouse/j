@@ -1,0 +1,61 @@
+mode Perl
+
+## format
+1: comment"#!/usr/bin/perl"
+2: keyword"use" text" " text"strict" text";"
+3:
+4: comment"# A comment."
+5: keyword"my" text" " scalar"$count" text" = " text"0X1f" text";"
+6: keyword"my" text" " list"@list" text" = (" text"1" text", " text"2" text", " text"3" text");"
+7:
+8: keyword"sub" text" " function"greet" text" " brace"{"
+9: text"    " keyword"my" text" (" scalar"$name" text") = " list"@_" text";"
+10: text"    " keyword"if" text" (" scalar"$name" text" =~ " function"/" string"^a" function"/" text") " brace"{"
+11: text"        " function"print" text" " string""Hello, $name\n"" text";"
+12: text"    " brace"}"
+13: text"    " keyword"return" text" " string"'done'" text";"
+14: brace"}"
+15:
+16: function"greet" text"(" string""world"" text");"
+
+## indent
+1: 0
+2: 0
+3: 0
+4: 0
+5: 0
+6: 0
+7: 0
+8: 0
+9: 4
+10: 4
+11: 8
+12: 4
+13: 4
+14: 0
+15: 0
+16: 0
+
+## tags
+8: greet (3)
+
+## comment
+# #!/usr/bin/perl
+# use strict;
+
+# # A comment.
+# my $count = 0X1f;
+# my @list = (1, 2, 3);
+
+# sub greet {
+#     my ($name) = @_;
+#     if ($name =~ /^a/) {
+#         print "Hello, $name\n";
+#     }
+#     return 'done';
+# }
+
+greet("world");
+
+## uncomment
+(restored)

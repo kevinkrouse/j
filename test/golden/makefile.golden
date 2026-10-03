@@ -1,0 +1,71 @@
+mode Makefile
+
+## format
+1: comment"# A comment."
+2: text"CC =" text" " text"gcc"
+3: text"CFLAGS =" text" " text"-Wall" text" " text"-O2"
+4:
+5: target"all:" text" " text"demo"
+6:
+7: target"demo:" text" " text"demo.o" text" " text"util.o"
+8: text"        " text"$(" text"CC" text") $(" text"CFLAGS" text") " text"-o" text" $@ $^"
+9:
+10: target"%.o:" text" " text"%" text".c"
+11: text"        " text"$(" text"CC" text") " text"-c" text" $< " text"-o" text" $@"
+12:
+13: target".PHONY:" text" " text"clean"
+14: target"clean:"
+15: text"        " text"rm" text" " text"-f" text" *" text".o" text" " text"demo"
+
+## indent
+1: 0
+2: 0
+3: 0
+4: 0
+5: 0
+6: 0
+7: 0
+8: 0
+9: 8
+10: 8
+11: 0
+12: 8
+13: 8
+14: 0
+15: 0
+
+## tags
+
+## comment
+# # A comment.
+# CC = gcc
+# CFLAGS = -Wall -O2
+
+# all: demo
+
+# demo: demo.o util.o
+# 	$(CC) $(CFLAGS) -o $@ $^
+
+# %.o: %.c
+# 	$(CC) -c $< -o $@
+
+# .PHONY: clean
+# clean:
+	rm -f *.o demo
+
+## uncomment
+# A comment.
+CC = gcc
+CFLAGS = -Wall -O2
+
+all: demo
+
+demo: demo.o util.o
+$(CC) $(CFLAGS) -o $@ $^
+
+%.o: %.c
+$(CC) -c $< -o $@
+
+.PHONY: clean
+clean:
+	rm -f *.o demo

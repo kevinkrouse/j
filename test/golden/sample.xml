@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- A comment. -->
+<project name="demo">
+  <target name="build" depends='init'>
+    <echo message="hello"/>
+    <![CDATA[ raw <text> ]]>
+  </target>
+</project>

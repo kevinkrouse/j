@@ -1,0 +1,45 @@
+mode Ruby
+
+## format
+1: comment"# A comment."
+2: keyword"module" text" " identifier"Demo"
+3: text"  " identifier"MASK" text" " operator"=" text" " number"0XFF"
+4:
+5: text"  " keyword"class" text" " identifier"Greeter"
+6: text"    " keyword"def" text" " function"greet" text"(" identifier"name" text", " identifier"n" text" " operator"=" text" " number"0x1f" text")"
+7: text"      " identifier"s" text" " operator"=" text" " string""Hello, #{name}""
+8: text"      " keyword"if" text" " identifier"n" text" " operator">" text" " number"0"
+9: text"        " identifier"puts" text" " identifier"s"
+10: text"      " keyword"else"
+11: text"        " keyword"nil"
+12: text"      " keyword"end"
+13: text"    " keyword"end"
+14: text"  " keyword"end"
+15: keyword"end"
+
+## indent
+1: 0
+2: 0
+3: 4
+4: 2
+5: 2
+6: 6
+7: 8
+8: 6
+9: 10
+10: 4
+11: 10
+12: 4
+13: 2
+14: 0
+15: 0
+
+## tags
+5: class Greeter (2)
+6: greet (3)
+
+## comment
+(unchanged)
+
+## uncomment
+(restored)

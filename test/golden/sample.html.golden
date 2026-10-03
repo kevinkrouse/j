@@ -1,0 +1,39 @@
+mode HTML
+
+## format
+1: tag"<!DOCTYPE html>"
+2: tag"<html>"
+3: tag"<head>"
+4: text"  " tag"<title>" text"Sample" tag"</title>"
+5: text"  " comment"<!-- a comment -->"
+6: text"  " tag"<script>"
+7: text"    " keyword"function" text" " function"greet" text"(" identifier"n" text") " brace"{" text" " keyword"return" text" " identifier"n" text" " operator"+" text" " number"0X10" text"; " brace"}"
+8: script"  " tag"</script>"
+9: tag"</head>"
+10: tag"<body class="main" id='top'>"
+11: text"  " tag"<p>" text"Hello &amp; welcome" tag"</p>"
+12: tag"</body>"
+13: tag"</html>"
+
+## indent
+1: 0
+2: 0
+3: 0
+4: 0
+5: 2
+6: 2
+7: 0
+8: 4
+9: 0
+10: 0
+11: 0
+12: 0
+13: 0
+
+## tags
+
+## comment
+(unchanged)
+
+## uncomment
+(restored)

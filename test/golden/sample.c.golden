@@ -1,0 +1,79 @@
+mode C
+
+## format
+1: preprocessor"#include" text" <" identifier"stdio" text"." identifier"h" text">"
+2: preprocessor"#define" text" " identifier"MAX" text" " number"0X10"
+3:
+4: comment"/* Block comment. */"
+5: keyword"static" text" " keyword"int" text" " identifier"count" text" " operator"=" text" " number"0x1f" text";"
+6:
+7: disabled"#if 0"
+8: disabled"int disabled(void);"
+9: disabled"#endif"
+10:
+11: keyword"int" text" " function"main" text"(" keyword"int" text" " identifier"argc" text", " keyword"char" text" " operator"**" identifier"argv" text")"
+12: brace"{"
+13: text"    " comment"// line comment"
+14: text"    " keyword"const" text" " keyword"char" text" " operator"*" identifier"s" text" " operator"=" text" " string""hello\n"" text";"
+15: text"    " keyword"for" text" (" keyword"int" text" " identifier"i" text" " operator"=" text" " number"0" text"; " identifier"i" text" " operator"<" text" " identifier"argc" text"; " identifier"i" operator"++" text") " brace"{"
+16: text"        " keyword"if" text" (" identifier"argv" text"[" identifier"i" text"][" number"0" text"] " operator"==" text" " string"'-'" text")"
+17: text"            " identifier"count" operator"++" text";"
+18: text"        " keyword"else"
+19: text"            " function"printf" text"(" string""%s %d\n"" text", " identifier"s" text", " identifier"MAX" text");"
+20: text"    " brace"}"
+21: text"    " keyword"return" text" " number"0" text";"
+22: brace"}"
+
+## indent
+1: 0
+2: 0
+3: 0
+4: 0
+5: 0
+6: 0
+7: 0
+8: 0
+9: 0
+10: 0
+11: 0
+12: 0
+13: 4
+14: 4
+15: 4
+16: 8
+17: 12
+18: 8
+19: 12
+20: 4
+21: 4
+22: 0
+
+## tags
+11: main (3)
+
+## comment
+/*#include <stdio.h>*/
+/*#define MAX 0X10*/
+
+/*/* Block comment. */*/
+/*static int count = 0x1f;*/
+
+/*#if 0*/
+/*int disabled(void);*/
+/*#endif*/
+
+/*int main(int argc, char **argv)*/
+/*{*/
+/*    // line comment*/
+/*    const char *s = "hello\n";*/
+/*    for (int i = 0; i < argc; i++) {*/
+/*        if (argv[i][0] == '-')*/
+/*            count++;*/
+/*        else*/
+/*            printf("%s %d\n", s, MAX);*/
+/*    }*/
+/*    return 0;*/
+}
+
+## uncomment
+(restored)

@@ -1,0 +1,43 @@
+mode Assembly
+
+## format
+1: text"" comment"; A comment."
+2: text"section .text"
+3: text"global _start"
+4: text""
+5: function"_start:" text""
+6: text"    mov eax, 0x1F"
+7: text"    mov ebx, 0"
+8: text"    int 0x80        " comment"; exit"
+
+## indent
+1: 0
+2: 0
+3: 0
+4: 0
+5: 0
+6: 8
+7: 4
+8: 4
+
+## tags
+
+## comment
+; ; A comment.
+; section .text
+; global _start
+
+; _start:
+;     mov eax, 0x1F
+;     mov ebx, 0
+    int 0x80        ; exit
+
+## uncomment
+; A comment.
+section .text
+global _start
+
+_start:
+        mov eax, 0x1F
+        mov ebx, 0
+    int 0x80        ; exit

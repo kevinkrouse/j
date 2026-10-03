@@ -1,0 +1,36 @@
+mode XML
+
+## format
+1: delimiter"<?" tag"xml" attribute" version" equals"=" string""1.0"" attribute" encoding" equals"=" string""UTF-8"" delimiter"?>"
+2: comment"<!-- A comment. -->"
+3: delimiter"<" tag"project" attribute" name" equals"=" string""demo"" delimiter">"
+4: text"  " delimiter"<" tag"target" attribute" name" equals"=" string""build"" attribute" depends" equals"=" string"'init'" delimiter">"
+5: text"    " delimiter"<" tag"echo" attribute" message" equals"=" string""hello"" delimiter"/>"
+6: text"    " delimiter"<!" tag"[CDATA[" cdata" raw <text> " tag"]]" delimiter">"
+7: text"  " delimiter"</" tag"target" delimiter">"
+8: delimiter"</" tag"project" delimiter">"
+
+## indent
+1: 0
+2: 0
+3: 0
+4: 2
+5: 4
+6: 4
+7: 2
+8: 0
+
+## tags
+
+## comment
+<!--<?xml version="1.0" encoding="UTF-8"?>-->
+<!--<!-- A comment. -->-->
+<!--<project name="demo">-->
+<!--  <target name="build" depends='init'>-->
+<!--    <echo message="hello"/>-->
+<!--    <![CDATA[ raw <text> ]]>-->
+<!--  </target>-->
+</project>
+
+## uncomment
+(restored)
