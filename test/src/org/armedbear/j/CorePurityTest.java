@@ -37,20 +37,34 @@ import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 
 /**
- * Core carries no ABCL.
+ * Core carries no ABCL, and doesn't reference what its extensions provide.
  *
- * <p>The executable statement of the goal. A raw byte search rather than a
- * classpath check, because it catches both kinds of dependency at once:
- * constant-pool type references, which a compiler would need, and reflective
- * {@code Class.forName("org.armedbear.lisp...")} strings, which it would not.
- *
- * <p>Note the slash form. The dotted spelling appears legitimately in
- * {@link org.armedbear.j.mode.lisp.LispShellBuffer}, which builds a command
- * line for an <em>external</em> Lisp process -- that is data about a
- * subprocess, not a class core loads.
+ * <p>A byte search of core's classes, so it sees type references and the
+ * dotted names Class.forName takes. Dotted org.armedbear.lisp is allowed:
+ * {@link org.armedbear.j.mode.lisp.LispShellBuffer} names the main class of
+ * an <em>external</em> Lisp process, not a class core loads.
  */
 public class CorePurityTest {
-    private static final String ABCL = "org/armedbear/lisp";
+    // As build.clj's check-core lists them.
+    private static final List<String> EXTENSION_PACKAGES = extensionPackages();
+
+    private static List<String> extensionPackages() {
+        List<String> packages = new ArrayList<String>();
+        packages.add("org/armedbear/lisp");
+        for (String p : List.of(
+            "mode/asm",
+            "mode/autoconf",
+            "mode/verilog",
+            "mode/vhdl",
+            "mode/objc",
+            "mode/tcl",
+            "mode/scheme"
+        )) {
+            packages.add("org/armedbear/j/" + p + "/");
+            packages.add("org.armedbear.j." + p.replace('/', '.') + ".");
+        }
+        return packages;
+    }
 
     /** Where core's compiled classes are; build/classes when run from bb. */
     private static Path classesDirectory() throws URISyntaxException {
@@ -61,7 +75,7 @@ public class CorePurityTest {
     }
 
     @Test
-    public void noCoreClassReferencesAbcl() throws IOException, URISyntaxException {
+    public void noCoreClassReferencesAnExtension() throws IOException, URISyntaxException {
         Path root = classesDirectory();
         assertTrue(Files.isDirectory(root), "expected a directory of classes, got " + root);
         List<String> tainted = new ArrayList<String>();
@@ -75,12 +89,14 @@ public class CorePurityTest {
                     Files.readAllBytes(file),
                     StandardCharsets.ISO_8859_1
                 );
-                if (bytes.contains(ABCL))
-                    tainted.add(root.relativize(file).toString());
+                for (String pkg : EXTENSION_PACKAGES) {
+                    if (bytes.contains(pkg))
+                        tainted.add(root.relativize(file) + " -> " + pkg);
+                }
             }
         }
         assertTrue(scanned > 0, "core has no classes to scan; wrong directory?");
-        assertEquals(0, tainted.size(), "classes referencing ABCL: " + tainted);
+        assertEquals(0, tainted.size(), "classes referencing extensions: " + tainted);
     }
 
     @Test

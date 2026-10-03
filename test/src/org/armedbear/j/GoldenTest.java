@@ -29,7 +29,7 @@ import org.junit.jupiter.api.TestFactory;
  * What each mode makes of a sample file: highlighting, tags, indentation and
  * comment/uncomment, checked against test/golden/NAME.golden.
  *
- * Comment and uncomment act on a select-all, whose last line they skip.
+ * Comment and uncomment act on a select-all.
  * Set GOLDEN_UPDATE=1 to rewrite the .golden files instead of checking them.
  */
 public class GoldenTest {
@@ -37,7 +37,12 @@ public class GoldenTest {
 
     @TestFactory
     public Stream<DynamicTest> samples() throws IOException {
-        return Files.list(DIR)
+        return samples(DIR);
+    }
+
+    /** One test per sample in dir; an extension's tests pass their own. */
+    public static Stream<DynamicTest> samples(Path dir) throws IOException {
+        return Files.list(dir)
             .filter(Files::isRegularFile)
             .filter(p -> !p.getFileName().toString().startsWith("."))
             .filter(p -> !p.toString().endsWith(".golden"))

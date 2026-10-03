@@ -155,10 +155,6 @@ public interface Constants {
     // Modes.
     int ARCHIVE_MODE = 1;
     String ARCHIVE_MODE_NAME = "Archive";
-    int ASM_MODE = 2;
-    String ASM_MODE_NAME = "Assembly";
-    int AUTOCONF_MODE = 3;
-    String AUTOCONF_MODE_NAME = "Autoconf";
     int BEANSHELL_MODE = 4;
     String BEANSHELL_MODE_NAME = "BeanShell";
     int BINARY_MODE = 5;
@@ -211,8 +207,6 @@ public interface Constants {
     String NEWS_GROUPS_MODE_NAME = "Groups";
     int NEWS_GROUP_SUMMARY_MODE = 29;
     String NEWS_GROUP_SUMMARY_MODE_NAME = "Summary";
-    int OBJC_MODE = 30;
-    String OBJC_MODE_NAME = "Objective C";
     int PERL_MODE = 31;
     String PERL_MODE_NAME = "Perl";
     int PHP_MODE = 32;
@@ -225,20 +219,12 @@ public interface Constants {
     String PYTHON_MODE_NAME = "Python";
     int RUBY_MODE = 36;
     String RUBY_MODE_NAME = "Ruby";
-    int SCHEME_MODE = 37;
-    String SCHEME_MODE_NAME = "Scheme";
     int SEND_MAIL_MODE = 38;
     String SEND_MAIL_MODE_NAME = "Send Mail";
     int SHELL_MODE = 39;
     String SHELL_MODE_NAME = "Shell";
     int SHELL_SCRIPT_MODE = 40;
     String SHELL_SCRIPT_MODE_NAME = "Shell-script";
-    int TCL_MODE = 41;
-    String TCL_MODE_NAME = "Tcl";
-    int VERILOG_MODE = 42;
-    String VERILOG_MODE_NAME = "Verilog";
-    int VHDL_MODE = 43;
-    String VHDL_MODE_NAME = "VHDL";
     int WEB_MODE = 44;
     String WEB_MODE_NAME = "Web";
     int XML_MODE = 46;

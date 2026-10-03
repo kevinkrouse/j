@@ -130,8 +130,12 @@
                                   :cp        cp
                                   :java-opts ["-Djava.awt.headless=true"]
                                   :main      'org.junit.platform.console.ConsoleLauncher
+                                  ;; On the command line, not in a properties file, so
+                                  ;; an extension's own junit-platform.properties is
+                                  ;; the only one.
                                   :main-args (into ["execute" "--disable-banner"
-                                                    "--details=summary"]
+                                                    "--details=summary"
+                                                    "--config=junit.jupiter.extensions.autodetection.enabled=true"]
                                                    (mapcat #(vector "--select-class" %))
                                                    classes)})))
     (throw (ex-info (str what " failed") {}))))
@@ -349,41 +353,52 @@
   (doseq [name (extension-names)]
     (let [{:keys [test-src classes test]} (extension-paths name)]
       (if-let [tests (test-classes test-src)]
+        ;; Core's tests too, for their harness and golden-file checks.
         (let [basis (extension-basis name :test)
-              cp    [(abs-path classes-dir) (abs-path classes) (abs-path test)]]
+              cp    [(abs-path classes-dir) (abs-path classes) (abs-path test) (abs-path test-dir)]]
           (javac-against! {:src-dirs [test-src] :class-dir test :basis basis} cp)
           (copy-test-resources! test-src test)
           (junit! basis cp tests (str name " extension tests")))
         (println "no tests found under" test-src))))
   opts)
 
-(defn check-core
-  "Assert that core carries no ABCL.
+(def ^:private extension-packages
+  "What lives in an extension, so no core class may name it: as a type
+  (slashes) or, for j's own, as a Class.forName string (dots). Dotted
+  org.armedbear.lisp is allowed; LispShellBuffer names an external Lisp."
+  (let [j ["mode/asm" "mode/autoconf" "mode/verilog" "mode/vhdl" "mode/objc" "mode/tcl" "mode/scheme"]]
+    (concat ["org/armedbear/lisp"]
+            (for [p j] (str "org/armedbear/j/" p "/"))
+            (for [p j] (str "org.armedbear.j." (str/replace p "/" ".") ".")))))
 
-  The executable statement of the goal: a raw byte search catches constant-pool
-  type references and reflective Class.forName strings alike, which a classpath
-  check would not."
+(defn check-core
+  "Assert that no core class references what an extension provides, and that
+  core carries no Lisp resource. A byte search, so it sees string constants
+  as well as type references."
   [opts]
   (build opts)
   (let [root    (b/resolve-path classes-dir)
         tainted (->> (fs/glob root "**.class")
-                     (filter #(str/includes? (slurp (fs/file %) :encoding "ISO-8859-1")
-                                             "org/armedbear/lisp"))
-                     (map #(str (fs/relativize (fs/path root) %)))
+                     (keep (fn [f]
+                             (let [bytes (slurp (fs/file f) :encoding "ISO-8859-1")]
+                               (when-let [pkgs (seq (filter #(str/includes? bytes %)
+                                                            extension-packages))]
+                                 (str (fs/relativize (fs/path root) f) " -> "
+                                      (str/join ", " pkgs))))))
                      sort)
         lisp    (->> (fs/glob root "**.lisp")
                      (map #(str (fs/relativize (fs/path root) %)))
                      sort)]
     (when (seq tainted)
-      (println "classes referencing ABCL:")
+      (println "classes referencing extensions:")
       (doseq [c tainted] (println " " c)))
     (when (seq lisp)
       (println "Lisp resources in core:")
       (doseq [l lisp] (println " " l)))
     (when (or (seq tainted) (seq lisp))
-      (throw (ex-info "core is not free of ABCL"
+      (throw (ex-info "core references its extensions"
                       {:classes tainted :resources lisp})))
-    (println "core is clean:" (count (fs/glob root "**.class")) "classes, no ABCL"))
+    (println "core is clean:" (count (fs/glob root "**.class")) "classes, no extension code"))
   opts)
 
 

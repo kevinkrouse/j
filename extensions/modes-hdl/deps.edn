@@ -1,0 +1,12 @@
+;; The modes-hdl extension: VHDL, Verilog, assembly and autoconf modes.
+;; It needs nothing beyond core (see ../../build.clj).
+{:paths []
+
+ :mvn/repos
+ {"central" {:url "https://repo1.maven.org/maven2/"}}
+
+ :deps {}
+
+ :aliases
+ {:test
+  {:extra-deps {org.junit.platform/junit-platform-console-standalone {:mvn/version "6.1.3"}}}}}

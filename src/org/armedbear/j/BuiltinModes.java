@@ -21,8 +21,6 @@ import org.armedbear.j.mail.NewsGroupSummaryMode;
 import org.armedbear.j.mail.NewsGroupsMode;
 import org.armedbear.j.mail.SendMailMode;
 import org.armedbear.j.mode.archive.ArchiveMode;
-import org.armedbear.j.mode.asm.AsmMode;
-import org.armedbear.j.mode.autoconf.AutoconfMode;
 import org.armedbear.j.mode.binary.BinaryMode;
 import org.armedbear.j.mode.c.CMode;
 import org.armedbear.j.mode.checkin.CheckinMode;
@@ -43,19 +41,14 @@ import org.armedbear.j.mode.list.ListTagsMode;
 import org.armedbear.j.mode.make.MakefileMode;
 import org.armedbear.j.mode.man.ManMode;
 import org.armedbear.j.mode.markdown.MarkdownMode;
-import org.armedbear.j.mode.objc.ObjCMode;
 import org.armedbear.j.mode.perl.PerlMode;
 import org.armedbear.j.mode.php.PHPMode;
 import org.armedbear.j.mode.properties.PropertiesMode;
 import org.armedbear.j.mode.python.PythonMode;
 import org.armedbear.j.mode.ruby.RubyMode;
-import org.armedbear.j.mode.scheme.SchemeMode;
 import org.armedbear.j.mode.sh.ShellScriptMode;
 import org.armedbear.j.mode.shell.ShellMode;
-import org.armedbear.j.mode.tcl.TclMode;
 import org.armedbear.j.mode.text.PlainTextMode;
-import org.armedbear.j.mode.verilog.VerilogMode;
-import org.armedbear.j.mode.vhdl.VHDLMode;
 import org.armedbear.j.mode.web.WebMode;
 import org.armedbear.j.mode.xml.XmlMode;
 import org.armedbear.j.vcs.StatusMode;
@@ -64,76 +57,6 @@ import org.armedbear.j.vcs.StatusMode;
 final class BuiltinModes implements ModeProvider, Constants {
     public List<ModeDescriptor> modes() {
         return List.of(
-            new ModeDescriptor(
-                ASM_MODE,
-                ASM_MODE_NAME,
-                AsmMode.class,
-                id -> AsmMode.getMode(),
-                true,
-                ".+\\.asm|.+\\.inc",
-                List.of("asm"),
-                List.of("asm", "assembly", "nasm")
-            ),
-            new ModeDescriptor(
-                AUTOCONF_MODE,
-                AUTOCONF_MODE_NAME,
-                AutoconfMode.class,
-                id -> AutoconfMode.getMode(),
-                true,
-                "configure.ac|configure.in|aclocal.m4",
-                List.of(),
-                List.of("autoconf", "m4")
-            ),
-            new ModeDescriptor(
-                VERILOG_MODE,
-                VERILOG_MODE_NAME,
-                VerilogMode.class,
-                id -> VerilogMode.getMode(),
-                true,
-                ".+\\.v",
-                List.of(),
-                List.of("verilog", "v")
-            ),
-            new ModeDescriptor(
-                VHDL_MODE,
-                VHDL_MODE_NAME,
-                VHDLMode.class,
-                id -> VHDLMode.getMode(),
-                true,
-                ".+\\.vhdl?",
-                List.of(),
-                List.of("vhdl")
-            ),
-            new ModeDescriptor(
-                OBJC_MODE,
-                OBJC_MODE_NAME,
-                ObjCMode.class,
-                id -> ObjCMode.getMode(),
-                true,
-                ".+\\.m",
-                List.of("objc"),
-                List.of("objc", "objective-c", "m")
-            ),
-            new ModeDescriptor(
-                TCL_MODE,
-                TCL_MODE_NAME,
-                TclMode.class,
-                id -> TclMode.getMode(),
-                true,
-                ".+\\.tcl",
-                List.of(),
-                List.of("tcl")
-            ),
-            new ModeDescriptor(
-                SCHEME_MODE,
-                SCHEME_MODE_NAME,
-                SchemeMode.class,
-                id -> SchemeMode.getMode(),
-                true,
-                ".+\\.sc[ehm]?|.+\\.ss",
-                List.of(),
-                List.of("scheme", "scm", "racket")
-            ),
             new ModeDescriptor(
                 MAILBOX_MODE,
                 MAILBOX_MODE_NAME,
