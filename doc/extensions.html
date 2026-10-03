@@ -19,10 +19,22 @@
 
 <p>
 An extension is a jar that j discovers at startup and that adds commands, key
-bindings, editor hooks, or a connection to a language runtime. Lisp support is
-itself an extension: <a href="init.lisp.html">init.lisp</a>,
-<code>M-x jlisp</code> and evaluating a form in the location bar all come from
-the <code>abcl</code> extension, which ships with j but can be removed.
+bindings, modes, version control systems, editor hooks, or a connection to a
+language runtime. Lisp support is itself an extension:
+<a href="init.lisp.html">init.lisp</a>, <code>M-x jlisp</code> and evaluating a
+form in the location bar all come from the <code>abcl</code> extension, which
+ships with j but can be removed.
+<p>
+These ship with j:
+<table border="1" cellpadding="4" cellspacing="0">
+<tr><th align="left">Name</th><th align="left">Provides</th></tr>
+<tr><td><code>abcl</code></td><td>Lisp: the interpreter, init.lisp and the Lisp shell</td></tr>
+<tr><td><code>mail</code></td><td><a href="mail.html">Mail</a> and news</td></tr>
+<tr><td><code>vcs-legacy</code></td><td>CVS, Perforce and darcs</td></tr>
+<tr><td><code>modes-hdl</code></td><td>VHDL, Verilog, assembly and autoconf modes</td></tr>
+<tr><td><code>modes-extra</code></td><td>Objective-C and Tcl modes</td></tr>
+<tr><td><code>scheme</code></td><td>Scheme mode</td></tr>
+</table>
 
 <h2>Where extensions live</h2>
 
@@ -49,7 +61,8 @@ To skip one extension, name it in your
 <pre>
     disabledExtensions = abcl
 </pre>
-The value is a comma-separated list of extension names.
+The value is a comma-separated list of extension names. An extension of modes
+alone has no <code>Extension</code> class; its directory name is its name.
 <p>
 To skip all of them for one run, start j with <code>--no-extensions</code>.
 That is the way back in if an extension is keeping the editor from starting.
@@ -118,6 +131,12 @@ without that extension. One broken jar must not stop the editor from starting.
         <code>null</code> to leave it to j.</td>
 </tr>
 <tr>
+    <td><code>registerOpener(Opener)</code></td>
+    <td>Names that aren't files, such as mailbox URLs, typed at the
+        open-file prompt or on the command line; and files the extension opens
+        its own way.</td>
+</tr>
+<tr>
     <td><code>registerLanguageClient(LanguageClient)</code></td>
     <td>A connection to a language runtime, so that evaluating a form in the
         location bar, in a
@@ -131,6 +150,26 @@ Note that <code>registerCommand</code> takes a <code>Class</code>, not a class
 name. j resolves the names of its own commands reflectively, on its own class
 loader, which cannot see anything in the extension &mdash; so you hand it a
 class your loader has already resolved.
+
+<h3>Modes and version control</h3>
+
+<p>
+These need no <code>Extension</code> class, though a jar may have one too:
+then they register only if its extensions aren't all disabled. Declare an
+<code>org.armedbear.j.extension.ModeProvider</code> in
+<pre>
+    META-INF/services/org.armedbear.j.extension.ModeProvider
+</pre>
+whose <code>modes()</code> describes each mode: its name, how to make it, the
+files it edits, and the Markdown fence languages it colors. Its class's
+simple name keys its preferences, as in <code>VerilogMode.files</code>.
+A mode gets its id
+when it is registered, and the mode list makes it on first use.
+<p>
+Likewise an <code>org.armedbear.j.vcs.VcsBackend</code>, declared in
+<code>META-INF/services/org.armedbear.j.vcs.VcsBackend</code>, recognizes a
+version control system's working trees and supplies file status, checkin and
+diff navigation.
 
 <h3>A function as a command</h3>
 
@@ -156,7 +195,9 @@ In j's own source tree, an extension is a directory under
 dependencies, and a <code>src/</code> beside it. <code>bb extensions</code>
 compiles and packages every one of them into
 <code>build/lib/extensions/</code>, and <code>bb test-extensions</code> runs
-their tests. Look at <code>extensions/abcl/</code> for a worked example.
+their tests, with core's own tests on the class path for their harness.
+Look at <code>extensions/abcl/</code> for a worked example, or
+<code>extensions/modes-hdl/</code> for one with only modes.
 
 <h2>The old mechanism</h2>
 

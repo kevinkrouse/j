@@ -20,10 +20,13 @@
 <p>
 J provides specialized modes for editing particular kinds of files. Currently
 Java, JavaScript, C, C++, XML, HTML, Lisp, Perl, shell script, makefile,
-autoconf, properties and Markdown modes are provided, as well as plain text mode for
+properties and Markdown modes are provided, as well as plain text mode for
 text files that don't fit into any of those categories. There are also modes
 for directory, archive and image buffers.  In addition, any kind of file can be
 viewed (but not edited) in binary mode.
+<p>
+Modes for VHDL, Verilog, assembly, autoconf, Objective-C, Tcl and Scheme come
+from <a href="extensions.html">extensions</a> that ship with j.
 <p>
 In principle, each mode provides its own implementation of syntax highlighting,
 tagging and indentation, each mode provides its own local key map and menu, and
@@ -48,7 +51,7 @@ the file. These are j's internal defaults:
     PerlMode.files=".+\\.p[lm]"
     ShellScriptMode.files=".+\\.[ck]?sh"
     MakefileMode.files="makefile(\\.in)?"
-    AutoconfMode.files="configure.in|aclocal.m4"
+    AutoconfMode.files="configure.ac|configure.in|aclocal.m4"
     MarkdownMode.files=".+\\.md|.+\\.markdown|.+\\.mkd"
     PropertiesMode.files="(.+\\.config)|(.+\\.co?nf)|(.+\\.cfg)|(.+\\.ini)|(.+\\.properties)|prefs"
     ImageMode.files=".+\\.gif|.+\\.jpe?g|.+\\.png"
