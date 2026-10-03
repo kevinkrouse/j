@@ -112,8 +112,7 @@ public final class AsynchronousShellCommand implements Constants, Runnable {
             if (outputBuffer.needsRenumbering())
                 outputBuffer.renumber();
             outputBuffer.enforceOutputLimit(Property.SHELL_OUTPUT_LIMIT);
-            for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-                Editor ed = it.next();
+            for (Editor ed : Editor.getEditorList()) {
                 if (ed.getBuffer() == outputBuffer) {
                     ed.eob();
                     ed.getDisplay().setReframe(-2);

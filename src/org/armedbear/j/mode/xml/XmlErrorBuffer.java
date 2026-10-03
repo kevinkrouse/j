@@ -22,7 +22,6 @@ package org.armedbear.j.mode.xml;
 
 import java.lang.StringBuilder;
 import org.armedbear.j.Editor;
-import org.armedbear.j.EditorIterator;
 import org.armedbear.j.File;
 import org.armedbear.j.mode.compilation.CompilationErrorBuffer;
 
@@ -42,8 +41,7 @@ public final class XmlErrorBuffer extends CompilationErrorBuffer {
         setCurrentError(null);
         this.file = file;
         setText(text);
-        for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-            Editor ed = it.next();
+        for (Editor ed : Editor.getEditorList()) {
             if (ed.getBuffer() == this) {
                 ed.setMark(null);
                 ed.setDot(getFirstLine(), 0);

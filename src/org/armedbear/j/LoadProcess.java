@@ -75,8 +75,7 @@ public abstract class LoadProcess implements BackgroundProcess, Runnable, Cancel
 
     public void start() {
         buffer.setBusy(true);
-        for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-            Editor ed = it.next();
+        for (Editor ed : Editor.getEditorList()) {
             if (ed.getBuffer() == buffer)
                 ed.setWaitCursor();
         }
@@ -98,8 +97,7 @@ public abstract class LoadProcess implements BackgroundProcess, Runnable, Cancel
     // Can be overridden.
     protected Runnable cancelRunnable = () -> {
         buffer.setBusy(false);
-        for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-            Editor ed = it.next();
+        for (Editor ed : Editor.getEditorList()) {
             if (ed.getBuffer() == buffer) {
                 ed.status("Transfer cancelled");
                 ed.setDefaultCursor();

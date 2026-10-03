@@ -39,14 +39,12 @@ import javax.swing.Icon;
 import javax.swing.SwingUtilities;
 import org.armedbear.j.BrowseFile;
 import org.armedbear.j.Buffer;
-import org.armedbear.j.BufferIterator;
 import org.armedbear.j.CopyFileDialog;
 import org.armedbear.j.Debug;
 import org.armedbear.j.DirectoryCache;
 import org.armedbear.j.DirectoryFilenameFilter;
 import org.armedbear.j.Display;
 import org.armedbear.j.Editor;
-import org.armedbear.j.EditorIterator;
 import org.armedbear.j.ErrorRunnable;
 import org.armedbear.j.File;
 import org.armedbear.j.FtpFile;
@@ -287,8 +285,7 @@ public final class DirectoryBuffer extends Buffer {
                 pos = new Position(line, getNameOffset(line));
             else
                 pos = getInitialDotPos();
-            for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-                Editor ed = it.next();
+            for (Editor ed : Editor.getEditorList()) {
                 if (ed.getBuffer() == this) {
                     ed.setTopLine(getFirstLine());
                     ed.setDot(pos);
@@ -309,8 +306,7 @@ public final class DirectoryBuffer extends Buffer {
         if (loadError)
             return;
         boolean rescanned = false;
-        for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-            Editor ed = it.next();
+        for (Editor ed : Editor.getEditorList()) {
             if (ed.getBuffer() == this) {
                 if (ed.getSidebar() != null) {
                     NavigationComponent c = ed.getSidebar().getBottomComponent();
@@ -340,8 +336,7 @@ public final class DirectoryBuffer extends Buffer {
         // Remember the top line of the display in every editor.
         ArrayList<Integer> topLineNumbers = new ArrayList<Integer>();
 
-        for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-            Editor ed = it.next();
+        for (Editor ed : Editor.getEditorList()) {
             String name = null;
             int lineNumber = 0;
             int topLineNumber = 0;
@@ -408,8 +403,7 @@ public final class DirectoryBuffer extends Buffer {
         entries.clear();
         numMarked = 0;
         load();
-        for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-            Editor ed = it.next();
+        for (Editor ed : Editor.getEditorList()) {
             if (ed.getBuffer() == this) {
                 final Line line = getFirstLine();
                 ed.setDot(line, getNameOffset(line));
@@ -581,8 +575,7 @@ public final class DirectoryBuffer extends Buffer {
             finally {
                 unlockWrite();
             }
-            for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-                Editor ed = it.next();
+            for (Editor ed : Editor.getEditorList()) {
                 if (ed.getBuffer() == this) {
                     ed.setDot(getFirstLine(), 0);
                     ed.setMark(null);
@@ -861,8 +854,7 @@ public final class DirectoryBuffer extends Buffer {
         setFile(parent);
         reload();
         Line line = findName(name);
-        for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-            Editor ed = it.next();
+        for (Editor ed : Editor.getEditorList()) {
             if (ed.getBuffer() == this) {
                 if (line != null)
                     ed.setDot(line, getNameOffset(line));
@@ -995,8 +987,7 @@ public final class DirectoryBuffer extends Buffer {
                 entries.clear();
                 numMarked = 0;
                 setListing(null);
-                for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-                    Editor ed = it.next();
+                for (Editor ed : Editor.getEditorList()) {
                     if (ed.getBuffer() == this) {
                         ed.setTopLine(null);
                         ed.setDot(null);
@@ -1008,8 +999,7 @@ public final class DirectoryBuffer extends Buffer {
                     load();
                     Runnable updateRunnable = () -> {
                         setBusy(false);
-                        for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-                            Editor ed = it.next();
+                        for (Editor ed : Editor.getEditorList()) {
                             if (ed.getBuffer() == DirectoryBuffer.this) {
                                 ed.setTopLine(getFirstLine());
                                 ed.setDot(getInitialDotPos());
@@ -1086,8 +1076,7 @@ public final class DirectoryBuffer extends Buffer {
             setListing(null);
             setFile(f);
             load();
-            for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-                Editor ed = it.next();
+            for (Editor ed : Editor.getEditorList()) {
                 if (ed.getBuffer() == this) {
                     ed.setTopLine(getFirstLine());
                     ed.setDot(getInitialDotPos());
@@ -1110,8 +1099,7 @@ public final class DirectoryBuffer extends Buffer {
         setFile(entry.file);
         load();
         Line line = findName(entry.name);
-        for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-            Editor ed = it.next();
+        for (Editor ed : Editor.getEditorList()) {
             if (ed.getBuffer() == this) {
                 ed.getDisplay().setTopLine(getFirstLine());
                 ed.setUpdateFlag(REPAINT);
@@ -1589,8 +1577,7 @@ public final class DirectoryBuffer extends Buffer {
             statusText += 's';
         statusText += " copied";
         editor.status(statusText);
-        for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-            Editor ed = it.next();
+        for (Editor ed : Editor.getEditorList()) {
             if (destDir.equals(ed.getBuffer().getFile())) {
                 ((DirectoryBuffer) ed.getBuffer()).reload();
                 if (ed != Editor.currentEditor())
@@ -1634,8 +1621,7 @@ public final class DirectoryBuffer extends Buffer {
             if (success) {
                 // Change file information for any buffers (there should only
                 // be one!) associated with moved file.
-                for (BufferIterator it = new BufferIterator(); it.hasNext();) {
-                    Buffer buf = it.next();
+                for (Buffer buf : Editor.getBufferList()) {
                     if (source.equals(buf.getFile()))
                         buf.changeFile(destination);
                 }
@@ -1711,8 +1697,7 @@ public final class DirectoryBuffer extends Buffer {
             File cache = loadProcess.getCache();
             if (cache != null)
                 Utilities.deleteRename(cache, destination);
-            for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-                Editor ed = it.next();
+            for (Editor ed : Editor.getEditorList()) {
                 if (ed.getBuffer() == DirectoryBuffer.this)
                     ed.setDefaultCursor();
             }
@@ -1722,8 +1707,7 @@ public final class DirectoryBuffer extends Buffer {
                 File cache = loadProcess.getCache();
                 if (cache != null && cache.isFile())
                     cache.delete();
-                for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-                    Editor ed = it.next();
+                for (Editor ed : Editor.getEditorList()) {
                     if (ed.getBuffer() == DirectoryBuffer.this)
                         ed.setDefaultCursor();
                 }
@@ -1873,16 +1857,14 @@ public final class DirectoryBuffer extends Buffer {
             final FtpSession session = FtpSession.getSession((FtpFile) file);
             if (session != null) {
                 final Runnable completionRunnable = () -> {
-                    for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-                        Editor ed = it.next();
+                    for (Editor ed : Editor.getEditorList()) {
                         if (ed.getBuffer() == directory)
                             ed.setDefaultCursor();
                     }
                 };
                 final Runnable chmodRunnable = () -> {
                     directory.setBusy(true);
-                    for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-                        Editor ed = it.next();
+                    for (Editor ed : Editor.getEditorList()) {
                         if (ed.getBuffer() == directory)
                             ed.setWaitCursor();
                     }
@@ -1899,16 +1881,14 @@ public final class DirectoryBuffer extends Buffer {
             final RemoteSession session = SshSession.getSession((SshFile) file);
             if (session != null) {
                 final Runnable completionRunnable = () -> {
-                    for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-                        Editor ed = it.next();
+                    for (Editor ed : Editor.getEditorList()) {
                         if (ed.getBuffer() == directory)
                             ed.setDefaultCursor();
                     }
                 };
                 final Runnable chmodRunnable = () -> {
                     directory.setBusy(true);
-                    for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-                        Editor ed = it.next();
+                    for (Editor ed : Editor.getEditorList()) {
                         if (ed.getBuffer() == directory)
                             ed.setWaitCursor();
                     }

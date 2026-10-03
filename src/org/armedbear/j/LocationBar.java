@@ -155,8 +155,7 @@ public final class LocationBar extends JPanel implements Constants,
 
     public static void cancelInput() {
         // Cancel location bar activity (if any).
-        for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-            Editor ed = it.next();
+        for (Editor ed : Editor.getEditorList()) {
             if (ed.getFocusedComponent() == ed.getLocationBarTextField())
                 ed.getLocationBarTextField().getHandler().escape();
         }

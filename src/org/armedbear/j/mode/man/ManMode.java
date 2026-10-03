@@ -25,7 +25,6 @@ import java.util.ArrayList;
 import javax.swing.JPopupMenu;
 import org.armedbear.j.AbstractMode;
 import org.armedbear.j.Buffer;
-import org.armedbear.j.BufferIterator;
 import org.armedbear.j.Constants;
 import org.armedbear.j.Editor;
 import org.armedbear.j.File;
@@ -168,8 +167,7 @@ public final class ManMode extends AbstractMode implements Constants, Mode {
         editor.setWaitCursor();
         try {
             final String title = ManMode.getTitle(topic);
-            for (BufferIterator it = new BufferIterator(); it.hasNext();) {
-                Buffer buf = it.next();
+            for (Buffer buf : Editor.getBufferList()) {
                 if (buf.getModeId() == MAN_MODE && title.equals(buf.getTitle())) {
                     editor.makeNext(buf);
                     editor.switchToBuffer(buf);

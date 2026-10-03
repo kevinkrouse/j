@@ -191,8 +191,7 @@ public final class UndoRemoveLine extends AbstractUndoableEdit
             final Display display = editor.getDisplay();
             display.setCaretCol(absCaretCol - display.getShift());
 
-            for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-                Editor ed = it.next();
+            for (Editor ed : Editor.getEditorList()) {
                 if (ed.getTopLine() == remove)
                     ed.setTopLine(editor.getDotLine());
             }

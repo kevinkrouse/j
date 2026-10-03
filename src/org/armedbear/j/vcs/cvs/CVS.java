@@ -24,12 +24,10 @@ import java.lang.StringBuilder;
 import javax.swing.SwingUtilities;
 import javax.swing.undo.CompoundEdit;
 import org.armedbear.j.Buffer;
-import org.armedbear.j.BufferIterator;
 import org.armedbear.j.ConfirmDialog;
 import org.armedbear.j.Constants;
 import org.armedbear.j.Debug;
 import org.armedbear.j.Editor;
-import org.armedbear.j.EditorIterator;
 import org.armedbear.j.File;
 import org.armedbear.j.Log;
 import org.armedbear.j.MessageDialog;
@@ -115,8 +113,7 @@ public final class CVS extends VersionControl implements Constants {
         editor.activateInOtherWindow(buf);
         buffer.checkVCS();
         buffer.setBusy(false);
-        for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-            Editor ed = it.next();
+        for (Editor ed : Editor.getEditorList()) {
             if (ed.getBuffer() == buffer) {
                 ed.setDefaultCursor();
                 // Update CVS information in status bar.
@@ -158,8 +155,7 @@ public final class CVS extends VersionControl implements Constants {
         if (!save || parentBuffer.save()) {
             // Look for existing checkin buffer before making a new one.
             CheckinBuffer checkinBuffer = null;
-            for (BufferIterator it = new BufferIterator(); it.hasNext();) {
-                Buffer buf = it.next();
+            for (Buffer buf : Editor.getBufferList()) {
                 if (buf instanceof CheckinBuffer) {
                     if (buf.getParentBuffer() == parentBuffer) {
                         checkinBuffer = (CheckinBuffer) buf;
@@ -218,8 +214,7 @@ public final class CVS extends VersionControl implements Constants {
         parentBuffer.setBusy(true);
         if (!save || parentBuffer.save()) {
             // Kill existing diff output buffer if any for same parent buffer.
-            for (BufferIterator it = new BufferIterator(); it.hasNext();) {
-                Buffer b = it.next();
+            for (Buffer b : Editor.getBufferList()) {
                 if (b instanceof DiffOutputBuffer) {
                     if (b.getParentBuffer() == parentBuffer) {
                         b.kill();
@@ -252,8 +247,7 @@ public final class CVS extends VersionControl implements Constants {
         final String cmd = "cvs diff -u";
         final File directory = buffer.getCurrentDirectory();
         // Kill existing diff output buffer if any for same directory.
-        for (BufferIterator it = new BufferIterator(); it.hasNext();) {
-            Buffer b = it.next();
+        for (Buffer b : Editor.getBufferList()) {
             if (b instanceof DiffOutputBuffer) {
                 if (directory.equals(((DiffOutputBuffer) b).getDirectory())) {
                     b.kill();
@@ -315,8 +309,7 @@ public final class CVS extends VersionControl implements Constants {
             buffer.unlockWrite();
         }
         final Position end = buffer.getEnd();
-        for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-            Editor ed = it.next();
+        for (Editor ed : Editor.getEditorList()) {
             if (ed.getBuffer() == buffer) {
                 ed.setTopLine(buffer.getFirstLine());
                 ed.setDot(end.copy()); // No undo.
@@ -394,8 +387,7 @@ public final class CVS extends VersionControl implements Constants {
         } else {
             // Success. Kill old diff buffer, if any; its contents are no
             // longer correct.
-            for (BufferIterator it = new BufferIterator(); it.hasNext();) {
-                Buffer b = it.next();
+            for (Buffer b : Editor.getBufferList()) {
                 if (b instanceof DiffOutputBuffer) {
                     if (b.getParentBuffer() == parentBuffer) {
                         b.kill();
@@ -415,8 +407,7 @@ public final class CVS extends VersionControl implements Constants {
         editor.reactivate(parentBuffer);
         parentBuffer.checkVCS();
         parentBuffer.setBusy(false);
-        for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-            Editor ed = it.next();
+        for (Editor ed : Editor.getEditorList()) {
             if (ed.getBuffer().isBusy())
                 ed.setWaitCursor();
             else

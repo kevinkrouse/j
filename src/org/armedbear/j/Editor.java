@@ -228,8 +228,8 @@ public final class Editor extends JPanel implements Constants,
             repaintDisplay();
             return;
         }
-        for (EditorIterator it = new EditorIterator(); it.hasNext();)
-            it.next().repaintDisplay();
+        for (Editor ed : Editor.getEditorList())
+            ed.repaintDisplay();
     }
 
     // The current position in the buffer (that is, in the actual text).
@@ -2641,8 +2641,7 @@ public final class Editor extends JPanel implements Constants,
         setWaitCursor();
         int numModified = 0;
         int numErrors = 0;
-        for (BufferIterator it = new BufferIterator(); it.hasNext();) {
-            Buffer buf = it.next();
+        for (Buffer buf : Editor.getBufferList()) {
             if (buf.getModeId() == CHECKIN_MODE)
                 continue;
             if (buf.isUntitled()) {
@@ -2688,8 +2687,8 @@ public final class Editor extends JPanel implements Constants,
     public void closeAll() {
         repaintNow();
 
-        for (BufferIterator it = new BufferIterator(); it.hasNext();) {
-            if (!okToClose(it.next()))
+        for (Buffer buf : Editor.getBufferList()) {
+            if (!okToClose(buf))
                 return;
         }
 
@@ -2697,8 +2696,7 @@ public final class Editor extends JPanel implements Constants,
 
         Buffer toBeActivated = null;
 
-        for (BufferIterator it = new BufferIterator(); it.hasNext();) {
-            Buffer buf = it.next();
+        for (Buffer buf : Editor.getBufferList()) {
             if (buf instanceof DirectoryBuffer && buf.getFile().equals(getCurrentDirectory())) {
                 toBeActivated = buf;
                 break;
@@ -2715,15 +2713,13 @@ public final class Editor extends JPanel implements Constants,
             ed.activate(toBeActivated);
         }
 
-        for (BufferIterator iter = new BufferIterator(); iter.hasNext();) {
-            Buffer buf = iter.next();
+        for (Buffer buf : Editor.getBufferList()) {
             if (buf != toBeActivated) {
-                for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-                    Editor ed = it.next();
+                for (Editor ed : Editor.getEditorList()) {
                     ed.views.remove(buf);
                 }
                 buf.deleteAutosaveFile();
-                iter.remove();
+                Editor.getBufferList().remove(buf);
                 buf.dispose();
             }
         }
@@ -2740,8 +2736,7 @@ public final class Editor extends JPanel implements Constants,
 
         Buffer toBeActivated = buffer;
 
-        for (BufferIterator it = new BufferIterator(); it.hasNext();) {
-            Buffer buf = it.next();
+        for (Buffer buf : Editor.getBufferList()) {
             if (buf != buffer && !okToClose(buf))
                 return;
         }
@@ -2755,18 +2750,16 @@ public final class Editor extends JPanel implements Constants,
 
         setWaitCursor();
 
-        for (EditorIterator it = new EditorIterator(); it.hasNext();)
-            it.next().activate(toBeActivated);
+        for (Editor ed : Editor.getEditorList())
+            ed.activate(toBeActivated);
 
-        for (BufferIterator iter = new BufferIterator(); iter.hasNext();) {
-            Buffer buf = iter.next();
+        for (Buffer buf : Editor.getBufferList()) {
             if (buf != buffer) {
-                for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-                    Editor ed = it.next();
+                for (Editor ed : Editor.getEditorList()) {
                     ed.views.remove(buf);
                 }
                 buf.deleteAutosaveFile();
-                iter.remove();
+                Editor.getBufferList().remove(buf);
                 buf.dispose();
             }
         }
@@ -4737,8 +4730,7 @@ public final class Editor extends JPanel implements Constants,
             return; // Not supported.
         setWaitCursor();
         Debug.assertTrue(SwingUtilities.isEventDispatchThread());
-        for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-            Editor ed = it.next();
+        for (Editor ed : Editor.getEditorList()) {
             if (ed.getBuffer() == buf)
                 ed.saveView();
         }
@@ -4900,8 +4892,8 @@ public final class Editor extends JPanel implements Constants,
     private void maybeExit() {
         int numModifiedBuffers = 0;
 
-        for (BufferIterator it = new BufferIterator(); it.hasNext();) {
-            if (it.next().isModified())
+        for (Buffer buf : Editor.getBufferList()) {
+            if (buf.isModified())
                 ++numModifiedBuffers;
         }
 
@@ -4922,14 +4914,14 @@ public final class Editor extends JPanel implements Constants,
         RecentFiles.getInstance().save();
 
         // Delete all autosave files.
-        for (BufferIterator iter = new BufferIterator(); iter.hasNext();)
-            iter.next().deleteAutosaveFile();
+        for (Buffer buf : Editor.getBufferList())
+            buf.deleteAutosaveFile();
 
         Autosave.deleteCatalogFile();
 
         // Call dispose on all buffers.
-        for (BufferIterator it = new BufferIterator(); it.hasNext();)
-            it.next().dispose();
+        for (Buffer buf : Editor.getBufferList())
+            buf.dispose();
 
         // Clean up temporary directory.
         Directories.cleanTempDirectory();
@@ -5035,8 +5027,7 @@ public final class Editor extends JPanel implements Constants,
     /** The buffer activated most recently, other than this one. */
     Buffer alternateBuffer() {
         Buffer best = null;
-        for (BufferIterator it = new BufferIterator(); it.hasNext();) {
-            final Buffer b = it.next();
+        for (Buffer b : Editor.getBufferList()) {
             if (b == buffer || !b.isPrimary())
                 continue;
             if (best == null || b.getLastActivated() > best.getLastActivated())
@@ -7412,8 +7403,7 @@ public final class Editor extends JPanel implements Constants,
      */
     public static void updateInAllEditors(Line line) {
         if (line != null) {
-            for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-                Editor ed = it.next();
+            for (Editor ed : Editor.getEditorList()) {
                 if (ed.getBuffer() == currentEditor.getBuffer())
                     ed.getDisplay().lineChanged(line);
             }
@@ -7429,8 +7419,7 @@ public final class Editor extends JPanel implements Constants,
      */
     public static void updateInAllEditors(Buffer buffer, Line line) {
         if (line != null) {
-            for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-                Editor ed = it.next();
+            for (Editor ed : Editor.getEditorList()) {
                 if (ed.getBuffer() == buffer)
                     ed.getDisplay().lineChanged(line);
             }
@@ -8623,14 +8612,13 @@ public final class Editor extends JPanel implements Constants,
         if (!displayReady())
             return;
         // Force formatters to be re-initialized.
-        for (BufferIterator it = new BufferIterator(); it.hasNext();) {
-            Buffer buf = it.next();
+        for (Buffer buf : Editor.getBufferList()) {
             if (buf.getFormatter() != null)
                 buf.getFormatter().reset();
         }
         Display.initializeStaticValues();
-        for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-            Display display = it.next().getDisplay();
+        for (Editor ed : Editor.getEditorList()) {
+            Display display = ed.getDisplay();
             display.initialize();
             display.repaint();
         }

@@ -375,8 +375,7 @@ public class CommandInterpreterBuffer extends Buffer {
     }
 
     protected void updateDisplayInAllFrames() {
-        for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-            Editor ed = it.next();
+        for (Editor ed : Editor.getEditorList()) {
             if (ed.getBuffer() == this) {
                 ed.eob();
                 ed.getDisplay().setReframe(-2);

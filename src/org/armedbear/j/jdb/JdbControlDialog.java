@@ -43,7 +43,6 @@ import javax.swing.JToolBar;
 import org.armedbear.j.Constants;
 import org.armedbear.j.DefaultTextFieldHandler;
 import org.armedbear.j.Editor;
-import org.armedbear.j.EditorIterator;
 import org.armedbear.j.Expansion;
 import org.armedbear.j.History;
 import org.armedbear.j.HistoryTextField;
@@ -152,8 +151,7 @@ public final class JdbControlDialog extends JDialog implements JdbConstants,
         } else {
             // First time.
             Editor editor = null;
-            for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-                Editor ed = it.next();
+            for (Editor ed : Editor.getEditorList()) {
                 if (ed.getBuffer() == jdb) {
                     editor = ed;
                     break;
@@ -260,9 +258,7 @@ public final class JdbControlDialog extends JDialog implements JdbConstants,
 
         public Expansion getExpansion(String prefix) {
             Expansion expansion = new Expansion(jdb, prefix, prefix);
-            EditorIterator iter = new EditorIterator();
-            while (iter.hasNext()) {
-                Editor ed = iter.next();
+            for (Editor ed : Editor.getEditorList()) {
                 if (ed.getModeId() == JAVA_MODE) {
                     Expansion exp =
                         new Expansion(ed.getBuffer(), prefix, prefix, ed.getDot());

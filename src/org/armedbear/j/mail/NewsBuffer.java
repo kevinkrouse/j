@@ -28,7 +28,6 @@ import javax.swing.SwingUtilities;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Directories;
 import org.armedbear.j.Editor;
-import org.armedbear.j.EditorIterator;
 import org.armedbear.j.File;
 import org.armedbear.j.Line;
 import org.armedbear.j.Log;
@@ -167,8 +166,7 @@ public final class NewsBuffer extends Buffer {
         public void run() {
             setBusy(false);
             invalidate();
-            for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-                Editor ed = it.next();
+            for (Editor ed : Editor.getEditorList()) {
                 if (ed.getBuffer() == NewsBuffer.this) {
                     ed.setDot(getFirstLine(), 0);
                     ed.moveCaretToDotCol();

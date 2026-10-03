@@ -395,8 +395,7 @@ public class ShellBuffer extends CommandInterpreterBuffer implements Constants {
                     if (!shellCommand.contains("cmd.exe"))
                         oldDir = currentDir;
                     currentDir = dir;
-                    for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-                        Editor ed = it.next();
+                    for (Editor ed : Editor.getEditorList()) {
                         if (ed.getBuffer() == this)
                             ed.updateLocation();
                     }
@@ -588,8 +587,7 @@ public class ShellBuffer extends CommandInterpreterBuffer implements Constants {
         }
         // Look for existing shell buffer.
         Buffer buf = null;
-        for (BufferIterator it = new BufferIterator(); it.hasNext();) {
-            Buffer b = it.next();
+        for (Buffer b : Editor.getBufferList()) {
             if (b instanceof ShellBuffer) {
                 if (shellCommand.equals(((ShellBuffer) b).shellCommand)) {
                     buf = b;

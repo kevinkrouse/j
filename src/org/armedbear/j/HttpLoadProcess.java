@@ -372,8 +372,7 @@ public final class HttpLoadProcess extends LoadProcess implements BackgroundProc
             editor.setWaitCursor();
             final String title = "httpShowHeaders ".concat(file.netPath());
             Buffer buf = null;
-            for (BufferIterator it = new BufferIterator(); it.hasNext();) {
-                Buffer b = it.next();
+            for (Buffer b : Editor.getBufferList()) {
                 if (b instanceof OutputBuffer && b.getParentBuffer() == buffer) {
                     if (title.equals(b.getTitle())) {
                         buf = b;

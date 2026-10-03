@@ -77,8 +77,7 @@ public final class Help {
             if (isHelpBuffer(editor.getBuffer()))
                 buf = editor.getBuffer();
             else {
-                for (BufferIterator it = new BufferIterator(); it.hasNext();) {
-                    Buffer b = it.next();
+                for (Buffer b : Editor.getBufferList()) {
                     if (isHelpBuffer(b)) {
                         buf = b;
                         break;
@@ -188,8 +187,7 @@ public final class Help {
                 ((WebBuffer) editor.getBuffer()).go(file, 0, "text/html");
             } else {
                 Buffer buf = null;
-                for (BufferIterator it = new BufferIterator(); it.hasNext();) {
-                    Buffer b = it.next();
+                for (Buffer b : Editor.getBufferList()) {
                     if (isListBindingsBuffer(b)) {
                         buf = b;
                         break;
@@ -394,8 +392,7 @@ public final class Help {
                 ed = editor;
             } else {
                 Buffer buf = null;
-                for (BufferIterator it = new BufferIterator(); it.hasNext();) {
-                    Buffer b = it.next();
+                for (Buffer b : Editor.getBufferList()) {
                     if (isAproposBuffer(b)) {
                         buf = b;
                         break;

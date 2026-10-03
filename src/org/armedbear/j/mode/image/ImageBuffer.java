@@ -30,7 +30,6 @@ import org.armedbear.j.Constants;
 import org.armedbear.j.Debug;
 import org.armedbear.j.Display;
 import org.armedbear.j.Editor;
-import org.armedbear.j.EditorIterator;
 import org.armedbear.j.ErrorRunnable;
 import org.armedbear.j.File;
 import org.armedbear.j.FtpFile;
@@ -172,8 +171,7 @@ public class ImageBuffer extends Buffer implements Constants {
         currentImage = null;
         originalImage = null;
         load();
-        for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-            Editor ed = it.next();
+        for (Editor ed : Editor.getEditorList()) {
             if (ed.getBuffer() == ImageBuffer.this) {
                 ed.getDisplay().repaint();
                 ed.updateDisplay();
@@ -319,8 +317,7 @@ public class ImageBuffer extends Buffer implements Constants {
             currentImage = img;
             currentWidth = img.getWidth(null);
             currentHeight = img.getHeight(null);
-            for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-                Editor ed = it.next();
+            for (Editor ed : Editor.getEditorList()) {
                 if (ed.getBuffer() == this) {
                     ed.getDisplay().repaint();
                     status(ed);
@@ -335,8 +332,7 @@ public class ImageBuffer extends Buffer implements Constants {
             return false;
         if (isLoaded() && file.lastModified() != getLastModified()) {
             reload();
-            for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-                Editor ed = it.next();
+            for (Editor ed : Editor.getEditorList()) {
                 if (ed.getBuffer() == this) {
                     ed.getDisplay().repaint();
                     status(ed);

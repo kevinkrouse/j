@@ -258,9 +258,7 @@ public final class LispAPI {
             public LispObject execute(LispObject arg) {
                 if (arg instanceof AbstractString) {
                     String name = arg.getStringValue();
-                    BufferIterator iterator = new BufferIterator();
-                    while (iterator.hasNext()) {
-                        Buffer buffer = iterator.next();
+                    for (Buffer buffer : Editor.getBufferList()) {
                         if (buffer.getTitle().equals(name))
                             return new JavaObject(buffer);
                     }

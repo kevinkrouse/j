@@ -24,7 +24,6 @@ import org.armedbear.j.AbstractMode;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Constants;
 import org.armedbear.j.Editor;
-import org.armedbear.j.EditorIterator;
 import org.armedbear.j.Formatter;
 import org.armedbear.j.Frame;
 import org.armedbear.j.KeyMap;
@@ -104,8 +103,7 @@ public final class ImageMode extends AbstractMode implements Constants, Mode {
         final Buffer buffer = Editor.currentEditor().getBuffer();
         if (buffer instanceof ImageBuffer) {
             ((ImageBuffer) buffer).cycleBackground();
-            for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-                Editor ed = it.next();
+            for (Editor ed : Editor.getEditorList()) {
                 if (ed.getBuffer() == buffer)
                     ed.getDisplay().repaint();
             }

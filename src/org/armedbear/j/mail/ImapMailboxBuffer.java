@@ -30,10 +30,8 @@ import java.util.List;
 import javax.swing.SwingUtilities;
 import org.armedbear.j.BackgroundProcess;
 import org.armedbear.j.Buffer;
-import org.armedbear.j.BufferIterator;
 import org.armedbear.j.Debug;
 import org.armedbear.j.Editor;
-import org.armedbear.j.EditorIterator;
 import org.armedbear.j.File;
 import org.armedbear.j.Frame;
 import org.armedbear.j.Headers;
@@ -224,8 +222,7 @@ public final class ImapMailboxBuffer extends MailboxBuffer {
                     refreshBuffer();
                     completionRunnable = () -> {
                         setBusy(false);
-                        for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-                            Editor ed = it.next();
+                        for (Editor ed : Editor.getEditorList()) {
                             View view = new View();
                             view.setDotEntry(getInitialEntry());
                             ed.setView(ImapMailboxBuffer.this, view);
@@ -240,8 +237,8 @@ public final class ImapMailboxBuffer extends MailboxBuffer {
                     completionRunnable = () -> {
                         if (Editor.getBufferList().contains(ImapMailboxBuffer.this))
                             kill();
-                        for (EditorIterator it = new EditorIterator(); it.hasNext();)
-                            it.next().updateDisplay();
+                        for (Editor ed : Editor.getEditorList())
+                            ed.updateDisplay();
                     };
                 }
             }
@@ -360,8 +357,7 @@ public final class ImapMailboxBuffer extends MailboxBuffer {
                     newMessagesStatus();
                 } else {
                     setBusy(false);
-                    for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-                        Editor ed = it.next();
+                    for (Editor ed : Editor.getEditorList()) {
                         if (ed != null && ed.getBuffer() == ImapMailboxBuffer.this)
                             ed.setDefaultCursor();
                     }
@@ -1386,8 +1382,7 @@ public final class ImapMailboxBuffer extends MailboxBuffer {
         ImapMailboxEntry entry =
             (ImapMailboxEntry) ((MailboxLine) line).getMailboxEntry();
         Buffer buf = null;
-        for (BufferIterator it = new BufferIterator(); it.hasNext();) {
-            Buffer b = it.next();
+        for (Buffer b : Editor.getBufferList()) {
             if (b instanceof ImapMessageBuffer) {
                 ImapMessageBuffer mb = (ImapMessageBuffer) b;
                 if (mb.getMailboxEntry() == entry) {

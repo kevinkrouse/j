@@ -29,7 +29,6 @@ import java.util.HashMap;
 import javax.swing.Icon;
 import javax.swing.SwingUtilities;
 import org.armedbear.j.Editor;
-import org.armedbear.j.EditorIterator;
 import org.armedbear.j.File;
 import org.armedbear.j.InputDialog;
 import org.armedbear.j.Line;
@@ -149,8 +148,7 @@ public final class NewsGroupSummaryBuffer extends MailboxBuffer {
         public void run() {
             setBusy(false);
             invalidate();
-            for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-                Editor ed = it.next();
+            for (Editor ed : Editor.getEditorList()) {
                 if (ed.getBuffer() == NewsGroupSummaryBuffer.this) {
                     ed.setDot(getInitialDotPos());
                     ed.moveCaretToDotCol();
@@ -170,8 +168,8 @@ public final class NewsGroupSummaryBuffer extends MailboxBuffer {
                 MessageDialog.showMessageDialog(errorText, "Error");
             if (Editor.getBufferList().contains(NewsGroupSummaryBuffer.this))
                 kill();
-            for (EditorIterator it = new EditorIterator(); it.hasNext();)
-                it.next().updateDisplay();
+            for (Editor ed : Editor.getEditorList())
+                ed.updateDisplay();
         }
     };
 

@@ -17,7 +17,6 @@ import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 import javax.swing.undo.CompoundEdit;
 import org.armedbear.j.Editor;
-import org.armedbear.j.EditorIterator;
 import org.armedbear.j.Line;
 import org.armedbear.j.Lines;
 import org.armedbear.j.Position;
@@ -150,8 +149,8 @@ public final class VimExCommands {
             if (command.args.matches("(.*\\s)?(hls|hlsearch)(\\s.*)?"))
                 editor.setSearchHighlightHidden(false);
             // An option such as hlsearch may change what every window shows.
-            for (EditorIterator it = new EditorIterator(); it.hasNext();)
-                it.next().repaintDisplay();
+            for (Editor ed : Editor.getEditorList())
+                ed.repaintDisplay();
             return true;
         }
         if (matches(name, "noh", "nohlsearch")) {

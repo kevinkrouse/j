@@ -29,11 +29,9 @@ import java.io.InputStream;
 import java.util.Map;
 import javax.swing.SwingUtilities;
 import org.armedbear.j.Buffer;
-import org.armedbear.j.BufferIterator;
 import org.armedbear.j.Debug;
 import org.armedbear.j.Display;
 import org.armedbear.j.Editor;
-import org.armedbear.j.EditorIterator;
 import org.armedbear.j.ErrorRunnable;
 import org.armedbear.j.File;
 import org.armedbear.j.Help;
@@ -127,8 +125,7 @@ public final class WebBuffer extends Buffer implements WebConstants {
             return;
         Buffer buf = null;
         // Look for existing buffer.
-        for (BufferIterator it = new BufferIterator(); it.hasNext();) {
-            Buffer b = it.next();
+        for (Buffer b : Editor.getBufferList()) {
             if (b instanceof WebBuffer && b.getFile().equals(file)) {
                 buf = b;
                 break;
@@ -164,8 +161,7 @@ public final class WebBuffer extends Buffer implements WebConstants {
         if (file == null)
             return;
         Buffer buf = null;
-        for (BufferIterator it = new BufferIterator(); it.hasNext();) {
-            Buffer b = it.next();
+        for (Buffer b : Editor.getBufferList()) {
             if (b instanceof WebBuffer && file.equals(b.getFile())) {
                 buf = b;
                 break;
@@ -396,8 +392,7 @@ public final class WebBuffer extends Buffer implements WebConstants {
                         pos = new Position(wb.getFirstLine(), 0);
                     wb.update(pos);
                 }
-                for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-                    Editor ed = it.next();
+                for (Editor ed : Editor.getEditorList()) {
                     if (ed != null && ed.getBuffer() == wb)
                         ed.setDefaultCursor();
                 }
@@ -542,8 +537,7 @@ public final class WebBuffer extends Buffer implements WebConstants {
         }
         renumber();
         Debug.assertTrue(dotLine != null);
-        for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-            Editor ed = it.next();
+        for (Editor ed : Editor.getEditorList()) {
             if (ed.getBuffer() == this) {
                 ed.getDot().moveTo(dotLine, 0);
                 ed.setMark(null); // Enforce sanity.
@@ -752,8 +746,7 @@ public final class WebBuffer extends Buffer implements WebConstants {
                 Runnable errorRunnable = () -> {
                     if (empty && Editor.getBufferList().contains(WebBuffer.this))
                         kill();
-                    for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-                        Editor ed = it.next();
+                    for (Editor ed : Editor.getEditorList()) {
                         if (empty || ed.getBuffer() == WebBuffer.this) {
                             ed.updateLocation();
                             ed.updateDisplay();
@@ -820,8 +813,7 @@ public final class WebBuffer extends Buffer implements WebConstants {
             setBusy(false);
             if (empty && Editor.getBufferList().contains(WebBuffer.this))
                 kill();
-            for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-                Editor ed = it.next();
+            for (Editor ed : Editor.getEditorList()) {
                 if (ed != null && ed.getBuffer() == WebBuffer.this) {
                     ed.status("Transfer cancelled");
                     ed.setDefaultCursor();
@@ -861,8 +853,7 @@ public final class WebBuffer extends Buffer implements WebConstants {
     }
 
     private void update(Position pos) {
-        for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-            Editor ed = it.next();
+        for (Editor ed : Editor.getEditorList()) {
             if (ed.getBuffer() == this) {
                 ed.setDot(pos.copy());
                 ed.setMark(null);

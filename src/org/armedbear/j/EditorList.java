@@ -23,6 +23,7 @@ package org.armedbear.j;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
+import java.util.List;
 
 public final class EditorList implements Collection<Editor> {
     private final ArrayList<Editor> list = new ArrayList<Editor>(4);
@@ -47,41 +48,21 @@ public final class EditorList implements Collection<Editor> {
     }
 
     public synchronized boolean add(Editor editor) {
-        if (editor == null)
-            Debug.bug("can't add null editor");
-        if (list.contains(editor)) {
+        return add(list.size(), editor);
+    }
+
+    private boolean add(int i, Editor editor) {
+        if (editor == null || list.contains(editor)) {
             Debug.bug();
             return false;
         }
-        list.add(editor);
-        return false;
-    }
-
-    private void add(int i, Editor editor) {
-        if (editor == null)
-            Debug.bug("can't add null editor");
-        if (list.contains(editor)) {
-            Debug.bug();
-            return;
-        }
         list.add(i, editor);
+        return true;
     }
 
+    /** Inserts editor after {@code after}, or first if after is null or not listed. */
     public synchronized void addAfter(Editor editor, Editor after) {
-        if (editor == null)
-            Debug.bug("can't add null editor");
-        if (list.contains(editor)) {
-            Debug.bug();
-            return;
-        }
-
-        int insertAt = 0;
-        if (after != null) {
-            // if after isn't in the list, insert at the head of the list
-            insertAt = list.indexOf(after) + 1;
-        }
-
-        add(insertAt, editor);
+        add(after != null ? list.indexOf(after) + 1 : 0, editor);
     }
 
     public boolean remove(Object o) {
@@ -100,13 +81,16 @@ public final class EditorList implements Collection<Editor> {
         return list.contains(editor);
     }
 
-    // XXX: Callers should be synchronizing on this EditorList while iterating.
+    /** A snapshot, so the list may change while a caller iterates. */
     public synchronized Iterator<Editor> iterator() {
-        return list.iterator();
+        return List.copyOf(list).iterator();
     }
 
     public synchronized boolean addAll(Collection<? extends Editor> c) {
-        return list.addAll(c);
+        boolean changed = false;
+        for (Editor editor : c)
+            changed |= add(editor);
+        return changed;
     }
 
     public synchronized boolean removeAll(Collection<?> c) {

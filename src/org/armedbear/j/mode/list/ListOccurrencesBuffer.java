@@ -24,7 +24,6 @@ import java.awt.AWTEvent;
 import java.awt.event.MouseEvent;
 import java.lang.StringBuilder;
 import org.armedbear.j.Buffer;
-import org.armedbear.j.BufferIterator;
 import org.armedbear.j.Debug;
 import org.armedbear.j.Directories;
 import org.armedbear.j.Editor;
@@ -105,8 +104,7 @@ public class ListOccurrencesBuffer extends Buffer {
     }
 
     public static ListOccurrencesBuffer findBuffer(Buffer sourceBuffer, Search search) {
-        for (BufferIterator it = new BufferIterator(); it.hasNext();) {
-            Buffer buf = it.next();
+        for (Buffer buf : Editor.getBufferList()) {
             if (buf instanceof ListOccurrencesBuffer) {
                 ListOccurrencesBuffer lo = (ListOccurrencesBuffer) buf;
                 if (lo.search.equals(search) && lo.sourceBuffer == sourceBuffer)
@@ -173,8 +171,7 @@ public class ListOccurrencesBuffer extends Buffer {
         if (!(line instanceof OccurrenceLine))
             return;
         Buffer buf = null;
-        for (BufferIterator it = new BufferIterator(); it.hasNext();) {
-            Buffer b = it.next();
+        for (Buffer b : Editor.getBufferList()) {
             if (b == sourceBuffer) {
                 buf = b;
                 break;

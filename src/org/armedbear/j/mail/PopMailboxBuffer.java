@@ -43,7 +43,6 @@ import org.armedbear.j.BackgroundProcess;
 import org.armedbear.j.Debug;
 import org.armedbear.j.Directories;
 import org.armedbear.j.Editor;
-import org.armedbear.j.EditorIterator;
 import org.armedbear.j.File;
 import org.armedbear.j.Log;
 import org.armedbear.j.PasswordDialog;
@@ -130,16 +129,15 @@ public final class PopMailboxBuffer extends LocalMailboxBuffer {
                 if (abort) {
                     Runnable r = () -> {
                         kill();
-                        for (EditorIterator it = new EditorIterator(); it.hasNext();)
-                            it.next().updateDisplay();
+                        for (Editor ed : Editor.getEditorList())
+                            ed.updateDisplay();
                     };
                     SwingUtilities.invokeLater(r);
                 } else {
                     refreshBuffer();
                     Runnable r = () -> {
                         setBusy(false);
-                        for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-                            Editor ed = it.next();
+                        for (Editor ed : Editor.getEditorList()) {
                             View view = new View();
                             view.setDotEntry(getInitialEntry());
                             ed.setView(PopMailboxBuffer.this, view);

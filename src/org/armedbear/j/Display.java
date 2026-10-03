@@ -2874,8 +2874,8 @@ public final class Display extends JComponent implements Constants,
         if (plainFont == null)
             return; // Not initialized yet. Nothing to do.
         initializeStaticValues();
-        for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-            Display display = it.next().getDisplay();
+        for (Editor ed : Editor.getEditorList()) {
+            Display display = ed.getDisplay();
             display.initialize();
             display.repaint();
         }

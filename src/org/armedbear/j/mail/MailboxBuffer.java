@@ -32,7 +32,6 @@ import org.armedbear.j.Debug;
 import org.armedbear.j.Dispatcher;
 import org.armedbear.j.Display;
 import org.armedbear.j.Editor;
-import org.armedbear.j.EditorIterator;
 import org.armedbear.j.History;
 import org.armedbear.j.InputDialog;
 import org.armedbear.j.Line;
@@ -607,8 +606,7 @@ public abstract class MailboxBuffer extends Buffer {
             }
         }
         invalidate();
-        for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-            Editor ed = it.next();
+        for (Editor ed : Editor.getEditorList()) {
             if (ed.getBuffer() == this) {
                 ed.updateLocation();
                 Display display = ed.getDisplay();
@@ -754,8 +752,7 @@ public abstract class MailboxBuffer extends Buffer {
         else
             currentEntry = null;
         final Runnable completionRunnable = () -> {
-            for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-                Editor ed = it.next();
+            for (Editor ed : Editor.getEditorList()) {
                 View view = new View();
                 view.setDotEntry(currentEntry != null ? currentEntry : getInitialEntry());
                 ed.setView(MailboxBuffer.this, view);
@@ -1038,8 +1035,8 @@ public abstract class MailboxBuffer extends Buffer {
     }
 
     public boolean isChildVisible() {
-        for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-            Buffer buffer = it.next().getBuffer();
+        for (Editor ed : Editor.getEditorList()) {
+            Buffer buffer = ed.getBuffer();
             if (buffer instanceof MessageBuffer)
                 if (((MessageBuffer) buffer).getMailbox() == this)
                     return true;
@@ -1088,8 +1085,7 @@ public abstract class MailboxBuffer extends Buffer {
     }
 
     protected void saveDisplayState() {
-        for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-            Editor ed = it.next();
+        for (Editor ed : Editor.getEditorList()) {
             if (ed.getBuffer() == this)
                 ed.saveView();
         }
@@ -1101,8 +1097,7 @@ public abstract class MailboxBuffer extends Buffer {
 
     private Runnable updateDisplayRunnable = () -> {
         invalidate();
-        for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-            Editor ed = it.next();
+        for (Editor ed : Editor.getEditorList()) {
             if (ed.getBuffer() == MailboxBuffer.this) {
                 View view = ed.getView(ed.getBuffer());
                 if (view.getDotEntry() != null) {
@@ -1174,8 +1169,7 @@ public abstract class MailboxBuffer extends Buffer {
 
     private void setDotLine(final Line line) {
         Runnable r = () -> {
-            for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-                Editor ed = it.next();
+            for (Editor ed : Editor.getEditorList()) {
                 if (ed.getBuffer() == MailboxBuffer.this) {
                     if (ed.getDot() != null) {
                         ed.update(ed.getDotLine());

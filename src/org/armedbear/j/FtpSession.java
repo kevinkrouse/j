@@ -989,8 +989,7 @@ public class FtpSession implements Constants, RemoteSession {
                 continue;
             String host = session.getHostName();
             boolean inUse = false;
-            for (BufferIterator it = new BufferIterator(); it.hasNext();) {
-                Buffer buf = it.next();
+            for (Buffer buf : Editor.getBufferList()) {
                 if (buf.getFile() instanceof FtpFile) {
                     if (host.equals(buf.getFile().getHostName())) {
                         inUse = true;

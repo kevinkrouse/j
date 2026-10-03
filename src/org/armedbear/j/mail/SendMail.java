@@ -44,11 +44,9 @@ import javax.swing.Icon;
 import javax.swing.SwingUtilities;
 import javax.swing.undo.CompoundEdit;
 import org.armedbear.j.Buffer;
-import org.armedbear.j.BufferIterator;
 import org.armedbear.j.Debug;
 import org.armedbear.j.Directories;
 import org.armedbear.j.Editor;
-import org.armedbear.j.EditorIterator;
 import org.armedbear.j.Expansion;
 import org.armedbear.j.File;
 import org.armedbear.j.Headers;
@@ -298,8 +296,7 @@ public final class SendMail extends Buffer {
 
     public boolean save() {
         boolean result = super.save();
-        for (BufferIterator it = new BufferIterator(); it.hasNext();) {
-            Buffer buf = it.next();
+        for (Buffer buf : Editor.getBufferList()) {
             if (buf instanceof DraftsBuffer) {
                 DraftsBuffer draftsBuffer = (DraftsBuffer) buf;
                 draftsBuffer.reload();
@@ -766,8 +763,7 @@ public final class SendMail extends Buffer {
         if (file.isFile()) {
             Log.debug("deleting draft " + file);
             file.delete();
-            for (BufferIterator it = new BufferIterator(); it.hasNext();) {
-                Buffer buf = it.next();
+            for (Buffer buf : Editor.getBufferList()) {
                 if (buf instanceof DraftsBuffer) {
                     DraftsBuffer draftsBuffer = (DraftsBuffer) buf;
                     draftsBuffer.reload();
@@ -777,9 +773,8 @@ public final class SendMail extends Buffer {
         }
         setBusy(false);
         kill();
-        EditorIterator iter = new EditorIterator();
-        while (iter.hasNext())
-            iter.next().updateDisplay();
+        for (Editor ed : Editor.getEditorList())
+            ed.updateDisplay();
     };
 
     private Runnable errorRunnable = () -> {

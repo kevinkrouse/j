@@ -294,9 +294,7 @@ public class VimM13Test {
     private void onlyThisBuffer() {
         final java.util.List<org.armedbear.j.Buffer> others =
             new java.util.ArrayList<org.armedbear.j.Buffer>();
-        for (org.armedbear.j.BufferIterator it =
-            new org.armedbear.j.BufferIterator(); it.hasNext();) {
-            final org.armedbear.j.Buffer b = it.next();
+        for (org.armedbear.j.Buffer b : org.armedbear.j.Editor.getBufferList()) {
             if (b != h.buffer())
                 others.add(b);
         }

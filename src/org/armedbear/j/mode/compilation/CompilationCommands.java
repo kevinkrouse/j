@@ -23,12 +23,10 @@ package org.armedbear.j.mode.compilation;
 import java.awt.AWTEvent;
 import java.awt.event.MouseEvent;
 import org.armedbear.j.Buffer;
-import org.armedbear.j.BufferIterator;
 import org.armedbear.j.CompileDialog;
 import org.armedbear.j.Constants;
 import org.armedbear.j.Debug;
 import org.armedbear.j.Editor;
-import org.armedbear.j.EditorIterator;
 import org.armedbear.j.File;
 import org.armedbear.j.History;
 import org.armedbear.j.IdleThread;
@@ -119,9 +117,7 @@ public final class CompilationCommands implements Constants {
             cb.setParentBuffer(editor.getBuffer());
             cb.setCurrentDirectory(editor.getCurrentDirectory());
             // Is it visible?
-            EditorIterator it = new EditorIterator();
-            while (it.hasNext()) {
-                Editor ed = it.next();
+            for (Editor ed : Editor.getEditorList()) {
                 if (ed.getBuffer() == cb) {
                     ed.updateLocation();
                     ed.repaintNow();
@@ -223,12 +219,13 @@ public final class CompilationCommands implements Constants {
         boolean useOtherWindow = false;
         // Find editor displaying error buffer (if any).
         Editor ed = null;
-        for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-            ed = it.next();
-            if (ed.getBuffer() == errorBuffer)
+        for (Editor e : Editor.getEditorList()) {
+            if (e.getBuffer() == errorBuffer) {
+                ed = e;
                 break;
+            }
         }
-        if (ed.getBuffer() != errorBuffer) {
+        if (ed == null) {
             // The compilation buffer is not currently displayed.
             ed = editor.displayInOtherWindow(errorBuffer);
         } else if (ed == editor) {
@@ -289,8 +286,7 @@ public final class CompilationCommands implements Constants {
         editor.setWaitCursor();
         int numModified = 0;
         int numErrors = 0;
-        for (BufferIterator it = new BufferIterator(); it.hasNext();) {
-            Buffer buf = it.next();
+        for (Buffer buf : Editor.getBufferList()) {
             if (!buf.isModified())
                 continue;
             if (buf.isUntitled())

@@ -152,8 +152,7 @@ public final class SidebarBufferTree extends SidebarTree implements Constants,
     // again to repopulate the tree.
     private void initializeTreeStructure() {
         final ArrayList<Buffer> arrayList = new ArrayList<Buffer>();
-        for (BufferIterator it = new BufferIterator(); it.hasNext();) {
-            Buffer buf = it.next();
+        for (Buffer buf : Editor.getBufferList()) {
             if (buf.isPrimary()) {
                 arrayList.add(buf);
                 // Add secondary buffer (if any) right after the corresponding
@@ -344,9 +343,9 @@ public final class SidebarBufferTree extends SidebarTree implements Constants,
     public String getLabelText() {
         int total = 0;
         int modified = 0;
-        for (BufferIterator it = new BufferIterator(); it.hasNext();) {
+        for (Buffer buf : Editor.getBufferList()) {
             ++total;
-            if (it.next().isModified())
+            if (buf.isModified())
                 ++modified;
         }
         StringBuilder sb = new StringBuilder("Buffers");
@@ -397,9 +396,8 @@ public final class SidebarBufferTree extends SidebarTree implements Constants,
         Editor editor = sidebar.getEditor();
         for (Buffer buffer : buffers)
             editor.maybeKillBuffer(buffer);
-        EditorIterator iter = new EditorIterator();
-        while (iter.hasNext())
-            iter.next().updateDisplay();
+        for (Editor ed : Editor.getEditorList())
+            ed.updateDisplay();
         for (int i = 0; i < Editor.getFrameCount(); i++) {
             Frame frame = Editor.getFrame(i);
             Sidebar sidebar = frame.getSidebar();

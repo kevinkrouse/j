@@ -131,28 +131,25 @@ public class IdleThread extends Thread {
         new IdleThreadTask(updateSidebarRunnable, 500, true);
 
     private Runnable parseBuffersRunnable = () -> {
-        synchronized (Editor.getBufferList()) {
-            for (BufferIterator iter = new BufferIterator(); iter.hasNext();) {
-                Buffer buf = iter.next();
-                if (!buf.needsParsing())
-                    continue;
-                boolean changed = false;
-                try {
-                    buf.lockRead();
-                }
-                catch (InterruptedException e) {
-                    Log.error(e);
-                    return;
-                }
-                try {
-                    changed = buf.getFormatter().parseBuffer();
-                }
-                finally {
-                    buf.unlockRead();
-                }
-                if (changed)
-                    buf.repaint();
+        for (Buffer buf : Editor.getBufferList()) {
+            if (!buf.needsParsing())
+                continue;
+            boolean changed = false;
+            try {
+                buf.lockRead();
             }
+            catch (InterruptedException e) {
+                Log.error(e);
+                return;
+            }
+            try {
+                changed = buf.getFormatter().parseBuffer();
+            }
+            finally {
+                buf.unlockRead();
+            }
+            if (changed)
+                buf.repaint();
         }
     };
 
@@ -160,8 +157,7 @@ public class IdleThread extends Thread {
         new IdleThreadTask(parseBuffersRunnable, 500, false);
 
     private Runnable updateHorizontalScrollBarsRunnable = () -> {
-        for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-            Editor ed = it.next();
+        for (Editor ed : Editor.getEditorList()) {
             if (ed.getHorizontalScrollBar() != null) {
                 Buffer buf = ed.getBuffer();
                 if (buf != null) {

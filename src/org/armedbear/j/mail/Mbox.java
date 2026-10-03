@@ -33,8 +33,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.Semaphore;
 import org.armedbear.j.Buffer;
-import org.armedbear.j.BufferIterator;
 import org.armedbear.j.Debug;
+import org.armedbear.j.Editor;
 import org.armedbear.j.File;
 import org.armedbear.j.Log;
 import org.armedbear.j.ProgressNotifier;
@@ -85,9 +85,7 @@ public final class Mbox {
 
     private static MailboxBuffer findMailbox(Mbox mbox) {
         File file = mbox.getFile();
-        BufferIterator iter = new BufferIterator();
-        while (iter.hasNext()) {
-            Buffer buf = iter.next();
+        for (Buffer buf : Editor.getBufferList()) {
             if (buf instanceof LocalMailboxBuffer) {
                 LocalMailboxBuffer mb = (LocalMailboxBuffer) buf;
                 if (mb.getMailboxFile().equals(file))
@@ -323,8 +321,7 @@ public final class Mbox {
     public synchronized void updateViews() {
         if (entries == null)
             return;
-        for (BufferIterator it = new BufferIterator(); it.hasNext();) {
-            Buffer buf = it.next();
+        for (Buffer buf : Editor.getBufferList()) {
             if (buf instanceof LocalMailboxBuffer) {
                 LocalMailboxBuffer mb = (LocalMailboxBuffer) buf;
                 if (mb.getMailboxFile().equals(file)) {

@@ -22,7 +22,6 @@ package org.armedbear.j.mail;
 
 import java.util.ArrayList;
 import org.armedbear.j.Buffer;
-import org.armedbear.j.BufferIterator;
 import org.armedbear.j.BufferList;
 import org.armedbear.j.Editor;
 import org.armedbear.j.IdleThreadTask;
@@ -51,16 +50,11 @@ public final class CheckMailTask extends IdleThreadTask {
             return;
         // Only check every 10 seconds.
         if (System.currentTimeMillis() - lastRun > 10000) {
-            // Make a list of mailboxes to check. We don't want to keep the
-            // buffer list locked while we do the actual check!
             ArrayList<Buffer> mailboxes = new ArrayList<Buffer>();
             BufferList bufferList = Editor.getBufferList();
-            synchronized (bufferList) {
-                for (BufferIterator it = new BufferIterator(); it.hasNext();) {
-                    Buffer buf = it.next();
-                    if (buf instanceof ImapMailboxBuffer || buf instanceof PopMailboxBuffer)
-                        mailboxes.add(buf);
-                }
+            for (Buffer buf : Editor.getBufferList()) {
+                if (buf instanceof ImapMailboxBuffer || buf instanceof PopMailboxBuffer)
+                    mailboxes.add(buf);
             }
             // Now check the mailboxes in the list.
             for (int i = 0; i < mailboxes.size(); i++) {

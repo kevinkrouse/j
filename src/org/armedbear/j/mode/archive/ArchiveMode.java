@@ -34,7 +34,6 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 import org.armedbear.j.AbstractMode;
 import org.armedbear.j.Buffer;
-import org.armedbear.j.BufferIterator;
 import org.armedbear.j.Compression;
 import org.armedbear.j.Constants;
 import org.armedbear.j.Editor;
@@ -93,8 +92,7 @@ public final class ArchiveMode extends AbstractMode implements Constants, Mode {
                 source = "[from " + compression.getEntryName() + " " + compression.getSource() + "]";
         }
         String title = name + " " + source;
-        for (BufferIterator it = new BufferIterator(); it.hasNext();) {
-            Buffer maybe = it.next();
+        for (Buffer maybe : Editor.getBufferList()) {
             if (title.equals(maybe.getTitle())) {
                 editor.makeNext(maybe);
                 editor.activate(maybe);

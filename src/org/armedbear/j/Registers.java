@@ -176,8 +176,7 @@ public final class Registers {
     }
 
     public static final ListRegistersBuffer findListRegistersBuffer() {
-        for (BufferIterator it = new BufferIterator(); it.hasNext();) {
-            Buffer buf = it.next();
+        for (Buffer buf : Editor.getBufferList()) {
             if (buf instanceof ListRegistersBuffer)
                 return (ListRegistersBuffer) buf;
         }

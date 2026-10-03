@@ -129,8 +129,7 @@ public final class FindInFiles extends Replacement implements Constants,
     public void listFiles(Editor editor) {
         if (outputBuffer != null && editor.getBuffer() != outputBuffer) {
             Buffer buf = null;
-            for (BufferIterator it = new BufferIterator(); it.hasNext();) {
-                Buffer b = it.next();
+            for (Buffer b : Editor.getBufferList()) {
                 if (b == outputBuffer) {
                     buf = b;
                     break;
@@ -265,9 +264,7 @@ public final class FindInFiles extends Replacement implements Constants,
                     outputBuffer.invalidate();
                     outputBuffer.renumber();
                     outputBuffer.setBusy(false);
-                    EditorIterator iter = new EditorIterator();
-                    while (iter.hasNext()) {
-                        Editor ed = iter.next();
+                    for (Editor ed : Editor.getEditorList()) {
                         if (ed.getBuffer() == outputBuffer) {
                             ed.setTopLine(outputBuffer.getFirstLine());
                             ed.setDot(outputBuffer.getInitialDotPos());
@@ -428,8 +425,7 @@ public final class FindInFiles extends Replacement implements Constants,
 
     private final Runnable updateDisplayRunnable = () -> {
         Position end = null;
-        for (EditorIterator iter = new EditorIterator(); iter.hasNext();) {
-            Editor ed = iter.next();
+        for (Editor ed : Editor.getEditorList()) {
             if (ed.getBuffer() == outputBuffer) {
                 if (end == null) {
                     end = outputBuffer.getEnd();
@@ -612,8 +608,7 @@ public final class FindInFiles extends Replacement implements Constants,
                 Sidebar.setUpdateFlagInAllFrames(SIDEBAR_REPAINT_BUFFER_LIST);
             if (getReplacementCount() > oldReplacementCount)
                 ++numFilesModified;
-            for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-                Editor ed = it.next();
+            for (Editor ed : Editor.getEditorList()) {
                 if (ed.getBuffer() == buffer) {
                     if (ed.getDotOffset() > ed.getDotLine().length()) {
                         ed.getDot().setOffset(ed.getDotLine().length());
@@ -729,8 +724,7 @@ public final class FindInFiles extends Replacement implements Constants,
             // Update display once per file.
             if (SwingUtilities.isEventDispatchThread()) {
                 Position end = null;
-                for (EditorIterator iter = new EditorIterator(); iter.hasNext();) {
-                    Editor ed = iter.next();
+                for (Editor ed : Editor.getEditorList()) {
                     if (ed.getBuffer() == outputBuffer) {
                         if (end == null)
                             end = outputBuffer.getEnd();
@@ -802,8 +796,7 @@ public final class FindInFiles extends Replacement implements Constants,
         if (outputBuffer != null) {
             outputBuffer.appendStatusLine(sb.toString());
             outputBuffer.renumber();
-            for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-                Editor ed = it.next();
+            for (Editor ed : Editor.getEditorList()) {
                 if (ed.getBuffer() == outputBuffer) {
                     ed.setTopLine(outputBuffer.getFirstLine());
                     ed.setDot(outputBuffer.getEnd());

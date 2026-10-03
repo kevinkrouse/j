@@ -27,12 +27,10 @@ import java.util.regex.Pattern;
 import javax.swing.SwingUtilities;
 import javax.swing.undo.CompoundEdit;
 import org.armedbear.j.Buffer;
-import org.armedbear.j.BufferIterator;
 import org.armedbear.j.ConfirmDialog;
 import org.armedbear.j.Constants;
 import org.armedbear.j.Debug;
 import org.armedbear.j.Editor;
-import org.armedbear.j.EditorIterator;
 import org.armedbear.j.File;
 import org.armedbear.j.Log;
 import org.armedbear.j.MessageDialog;
@@ -152,9 +150,7 @@ public class P4 extends VersionControl implements Constants {
         if (editor.reactivate(buffer))
             Sidebar.repaintBufferListInAllFrames();
         buffer.setBusy(false);
-        EditorIterator iter = new EditorIterator();
-        while (iter.hasNext()) {
-            Editor ed = iter.next();
+        for (Editor ed : Editor.getEditorList()) {
             if (ed.getBuffer() == buffer)
                 ed.setDefaultCursor();
         }
@@ -273,8 +269,7 @@ public class P4 extends VersionControl implements Constants {
         editor.setWaitCursor();
         if (!save || parentBuffer.save()) {
             // Kill existing diff output buffer if any for same parent buffer.
-            for (BufferIterator it = new BufferIterator(); it.hasNext();) {
-                Buffer b = it.next();
+            for (Buffer b : Editor.getBufferList()) {
                 if (b instanceof DiffOutputBuffer) {
                     if (b.getParentBuffer() == parentBuffer) {
                         editor.maybeKillBuffer(b);
@@ -304,8 +299,7 @@ public class P4 extends VersionControl implements Constants {
         final String cmd = "p4 diff -du";
         final File directory = buffer.getCurrentDirectory();
         // Kill existing diff output buffer if any for same directory.
-        for (BufferIterator it = new BufferIterator(); it.hasNext();) {
-            Buffer b = it.next();
+        for (Buffer b : Editor.getBufferList()) {
             if (b instanceof DiffOutputBuffer) {
                 if (directory.equals(((DiffOutputBuffer) b).getDirectory())) {
                     b.kill();
@@ -424,13 +418,13 @@ public class P4 extends VersionControl implements Constants {
         }
         final String title = sb.toString();
         Buffer buf = null;
-        for (BufferIterator it = new BufferIterator(); it.hasNext();) {
-            buf = it.next();
-            if (buf instanceof CheckinBuffer)
-                if (title.equals(buf.getTitle()))
-                    break;
+        for (Buffer b : Editor.getBufferList()) {
+            if (b instanceof CheckinBuffer && title.equals(b.getTitle())) {
+                buf = b;
+                break;
+            }
         }
-        if (buf instanceof CheckinBuffer) {
+        if (buf != null) {
             editor.makeNext(buf);
             editor.activate(buf);
             return;
@@ -459,8 +453,7 @@ public class P4 extends VersionControl implements Constants {
                 if (dot != null)
                     mark = findEndOfComment(checkinBuffer, dot);
                 checkinBuffer.setBusy(false);
-                for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-                    Editor ed = it.next();
+                for (Editor ed : Editor.getEditorList()) {
                     if (ed.getBuffer() == checkinBuffer) {
                         ed.setTopLine(checkinBuffer.getFirstLine());
                         ed.setDot(dot);
@@ -546,13 +539,13 @@ public class P4 extends VersionControl implements Constants {
         if (!save || saveModifiedBuffers(editor, list)) {
             // Look for existing checkin buffer before making a new one.
             Buffer buf = null;
-            for (BufferIterator it = new BufferIterator(); it.hasNext();) {
-                buf = it.next();
-                if (buf instanceof CheckinBuffer)
-                    if (title.equals(buf.getTitle()))
-                        break;
+            for (Buffer b : Editor.getBufferList()) {
+                if (b instanceof CheckinBuffer && title.equals(b.getTitle())) {
+                    buf = b;
+                    break;
+                }
             }
-            if (buf instanceof CheckinBuffer) {
+            if (buf != null) {
                 editor.makeNext(buf);
                 editor.activate(buf);
                 return;
@@ -582,8 +575,7 @@ public class P4 extends VersionControl implements Constants {
                     if (dot != null)
                         mark = findEndOfComment(checkinBuffer, dot);
                     checkinBuffer.setBusy(false);
-                    for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-                        Editor ed = it.next();
+                    for (Editor ed : Editor.getEditorList()) {
                         if (ed.getBuffer() == checkinBuffer) {
                             ed.setTopLine(checkinBuffer.getFirstLine());
                             ed.setDot(dot);
@@ -656,8 +648,7 @@ public class P4 extends VersionControl implements Constants {
             buffer.unlockWrite();
         }
         final Position end = findEndOfComment(buffer, null);
-        for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-            Editor ed = it.next();
+        for (Editor ed : Editor.getEditorList()) {
             if (ed.getBuffer() == buffer) {
                 ed.setTopLine(buffer.getFirstLine());
                 ed.setDot(end.copy()); // No undo.
@@ -743,8 +734,7 @@ public class P4 extends VersionControl implements Constants {
             // Success. Kill old diff and output buffers, if any: their
             // contents are no longer correct.
             if (!editOnly && parentBuffer != null) {
-                for (BufferIterator it = new BufferIterator(); it.hasNext();) {
-                    Buffer b = it.next();
+                for (Buffer b : Editor.getBufferList()) {
                     if (b instanceof DiffOutputBuffer) {
                         if (b.getParentBuffer() == parentBuffer) {
                             Debug.assertTrue(Editor.getBufferList().contains(b));
@@ -760,8 +750,7 @@ public class P4 extends VersionControl implements Constants {
                     }
                 }
             }
-            for (BufferIterator it = new BufferIterator(); it.hasNext();) {
-                Buffer b = it.next();
+            for (Buffer b : Editor.getBufferList()) {
                 if (b instanceof OutputBuffer) {
                     if (title.equals(b.getTitle())) {
                         editor.maybeKillBuffer(b);
@@ -778,8 +767,7 @@ public class P4 extends VersionControl implements Constants {
         }
 
         // Re-use existing output buffer if possible.
-        for (BufferIterator it = new BufferIterator(); it.hasNext();) {
-            Buffer b = it.next();
+        for (Buffer b : Editor.getBufferList()) {
             if (b instanceof OutputBuffer) {
                 if (title.equals(b.getTitle())) {
                     buf = (OutputBuffer) b;

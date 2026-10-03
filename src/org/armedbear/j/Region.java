@@ -203,8 +203,7 @@ public final class Region implements Constants {
 
     private void adjustMarkers() {
         if (Editor.getEditorCount() > 1) {
-            for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-                Editor ed = it.next();
+            for (Editor ed : Editor.getEditorList()) {
                 if (ed == Editor.currentEditor())
                     continue;
                 if (ed.getBuffer() == buffer) {

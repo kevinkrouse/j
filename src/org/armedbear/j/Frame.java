@@ -1024,8 +1024,8 @@ public final class Frame extends JFrame implements Constants, ComponentListener,
         if (currentEditor.getBuffer() == null)
             return;
         boolean changed = false;
-        for (BufferIterator it = new BufferIterator(); it.hasNext();) {
-            if (currentEditor.reactivate(it.next()))
+        for (Buffer buf : Editor.getBufferList()) {
+            if (currentEditor.reactivate(buf))
                 changed = true;
         }
         if (changed) {

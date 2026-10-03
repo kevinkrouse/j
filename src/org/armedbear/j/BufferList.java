@@ -25,6 +25,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Iterator;
+import java.util.List;
 import org.armedbear.j.mode.web.WebBuffer;
 import org.armedbear.j.util.Utilities;
 
@@ -48,13 +49,18 @@ public final class BufferList implements Constants, PreferencesChangeListener, I
             Debug.bug();
     }
 
+    /** A snapshot, so the list may change while a caller iterates. */
     public synchronized Iterator<Buffer> iterator() {
         if (alpha && modified)
             sort();
-        return list.iterator();
+        return List.copyOf(list).iterator();
     }
 
     public synchronized void add(Buffer buf) {
+        if (buf == null) {
+            Debug.bug();
+            return;
+        }
         list.add(buf);
         modified = true;
     }
@@ -200,8 +206,7 @@ public final class BufferList implements Constants, PreferencesChangeListener, I
     public synchronized void replace(Buffer o, Buffer n) {
         Debug.assertTrue(list.contains(o));
         Debug.assertTrue(list.contains(n));
-        for (EditorIterator iter = new EditorIterator(); iter.hasNext();) {
-            Editor ed = iter.next();
+        for (Editor ed : Editor.getEditorList()) {
             if (ed.getBuffer() == o)
                 ed.activate(n);
             ed.views.remove(o);

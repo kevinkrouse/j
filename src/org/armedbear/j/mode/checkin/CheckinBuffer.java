@@ -21,7 +21,6 @@
 package org.armedbear.j.mode.checkin;
 
 import org.armedbear.j.Buffer;
-import org.armedbear.j.BufferIterator;
 import org.armedbear.j.CommentRing;
 import org.armedbear.j.Constants;
 import org.armedbear.j.Debug;
@@ -157,8 +156,7 @@ public class CheckinBuffer extends VersionControlBuffer implements Constants {
             new Expansion(dot, Editor.getModeList().getMode(PLAIN_TEXT_MODE));
         if (parentBuffer != null && e.getPrefix() != null) {
             // Look for diff output buffer for same parent buffer.
-            for (BufferIterator it = new BufferIterator(); it.hasNext();) {
-                Buffer b = it.next();
+            for (Buffer b : Editor.getBufferList()) {
                 if (b instanceof DiffOutputBuffer) {
                     if (((DiffOutputBuffer) b).getParentBuffer() == parentBuffer) {
                         // Add candidates from diff output buffer.

@@ -27,12 +27,10 @@ import java.util.regex.Matcher;
 import javax.swing.SwingUtilities;
 import org.armedbear.j.Annotation;
 import org.armedbear.j.Buffer;
-import org.armedbear.j.BufferIterator;
 import org.armedbear.j.Debug;
 import org.armedbear.j.Directories;
 import org.armedbear.j.Display;
 import org.armedbear.j.Editor;
-import org.armedbear.j.EditorIterator;
 import org.armedbear.j.File;
 import org.armedbear.j.History;
 import org.armedbear.j.Line;
@@ -601,8 +599,7 @@ public class LispShellBuffer extends ShellBuffer {
         }
         send(input);
         setBusy(true);
-        for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-            Editor ed = it.next();
+        for (Editor ed : Editor.getEditorList()) {
             if (ed.getBuffer() == this)
                 ed.setWaitCursor();
         }
@@ -857,8 +854,7 @@ public class LispShellBuffer extends ShellBuffer {
     }
 
     public static LispShellBuffer findLisp(String title) {
-        for (BufferIterator it = new BufferIterator(); it.hasNext();) {
-            Buffer b = it.next();
+        for (Buffer b : Editor.getBufferList()) {
             if (b instanceof LispShellBuffer) {
                 LispShellBuffer shell = (LispShellBuffer) b;
                 Debug.bugIfNot(shell.isLisp());

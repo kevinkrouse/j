@@ -24,7 +24,6 @@ import org.armedbear.j.Buffer;
 import org.armedbear.j.Debug;
 import org.armedbear.j.Directories;
 import org.armedbear.j.Editor;
-import org.armedbear.j.EditorIterator;
 import org.armedbear.j.File;
 import org.armedbear.j.FindInFiles;
 import org.armedbear.j.Line;
@@ -142,8 +141,7 @@ public final class ListOccurrencesInFilesBuffer extends ListOccurrencesBuffer {
     // Move dot to line (in all editors) and call findOccurrenceAtDot().
     private void findOccurrence(Editor editor, Line line) {
         if (line instanceof OccurrenceLine) {
-            for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-                Editor ed = it.next();
+            for (Editor ed : Editor.getEditorList()) {
                 if (ed.getBuffer() == this) {
                     ed.moveDotTo(line, 0);
                     ed.updateDisplay();
@@ -184,8 +182,7 @@ public final class ListOccurrencesInFilesBuffer extends ListOccurrencesBuffer {
         Line line = findLineForOccurrence(sourceFile, sourceLine);
         if (line == null)
             return;
-        for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-            Editor ed = it.next();
+        for (Editor ed : Editor.getEditorList()) {
             if (ed.getBuffer() == this) {
                 ed.moveDotTo(line, 0);
                 ed.updateDisplay();

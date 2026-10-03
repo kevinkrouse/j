@@ -642,24 +642,22 @@ public class Buffer extends SystemBuffer {
     }
 
     public boolean isVisible() {
-        for (EditorIterator it = new EditorIterator(); it.hasNext();)
-            if (it.next().getBuffer() == this)
+        for (Editor ed : Editor.getEditorList())
+            if (ed.getBuffer() == this)
                 return true;
 
         return false;
     }
 
     public void setWaitCursor() {
-        for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-            Editor ed = it.next();
+        for (Editor ed : Editor.getEditorList()) {
             if (ed.getBuffer() == this)
                 ed.setWaitCursor();
         }
     }
 
     public void setDefaultCursor() {
-        for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-            Editor ed = it.next();
+        for (Editor ed : Editor.getEditorList()) {
             if (ed.getBuffer() == this)
                 ed.setDefaultCursor();
         }
@@ -853,8 +851,7 @@ public class Buffer extends SystemBuffer {
             Autosave.rename(oldName, newName);
         Editor.getBufferList().modified();
         Sidebar.setUpdateFlagInAllFrames(SIDEBAR_BUFFER_LIST_CHANGED);
-        for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-            Editor editor = it.next();
+        for (Editor editor : Editor.getEditorList()) {
             if (editor.getBuffer() == this) {
                 editor.updateLocation();
                 editor.getDisplay().repaint();
@@ -920,8 +917,7 @@ public class Buffer extends SystemBuffer {
 
             formatter.parseBuffer();
 
-            for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-                Editor ed = it.next();
+            for (Editor ed : Editor.getEditorList()) {
                 if (ed.getBuffer() == this) {
                     if (reloading) {
                         ed.setDot(getFirstLine(), 0);
@@ -1047,8 +1043,7 @@ public class Buffer extends SystemBuffer {
     private void reloadSucceeded() {
         Debug.assertTrue(!rwlock.isWriteLocked());
         Debug.assertTrue(SwingUtilities.isEventDispatchThread());
-        for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-            Editor ed = it.next();
+        for (Editor ed : Editor.getEditorList()) {
             if (ed.getBuffer() != this)
                 continue;
             View view = ed.getView(this);
@@ -1216,12 +1211,8 @@ public class Buffer extends SystemBuffer {
         }
         if (buf == null)
             buf = new DirectoryBuffer(getCurrentDirectory());
-        // Copy editor list since switchToBuffer() may close an editor.
-        ArrayList<Editor> editors = new ArrayList<Editor>();
-        for (EditorIterator it = new EditorIterator(); it.hasNext();)
-            editors.add(it.next());
-        for (Editor ed : editors) {
-            // Skip editor if it has been closed.
+        for (Editor ed : Editor.getEditorList()) {
+            // switchToBuffer() may have closed it.
             if (Editor.getEditorList().contains(ed)) {
                 if (ed.getBuffer() == this)
                     ed.switchToBuffer(buf);
@@ -1437,8 +1428,7 @@ public class Buffer extends SystemBuffer {
 
         if (repaint) {
             // Force formatters to be re-initialized.
-            for (BufferIterator it = new BufferIterator(); it.hasNext();) {
-                Buffer buf = it.next();
+            for (Buffer buf : Editor.getBufferList()) {
                 if (buf.getFormatter() != null)
                     buf.getFormatter().reset();
             }
@@ -1566,8 +1556,7 @@ public class Buffer extends SystemBuffer {
         final Runnable successRunnable = () -> {
             saved();
             setListing(saveProcess.getListing());
-            for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-                Editor ed = it.next();
+            for (Editor ed : Editor.getEditorList()) {
                 if (ed.getBuffer() == Buffer.this)
                     ed.setDefaultCursor();
             }
@@ -1750,8 +1739,7 @@ public class Buffer extends SystemBuffer {
             changeFile(destination);
             setListing(saveProcess.getListing());
             Sidebar.setUpdateFlagInAllFrames(SIDEBAR_REPAINT_BUFFER_LIST);
-            for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-                Editor ed = it.next();
+            for (Editor ed : Editor.getEditorList()) {
                 if (ed.getBuffer() == Buffer.this)
                     ed.setDefaultCursor();
             }
@@ -1840,8 +1828,7 @@ public class Buffer extends SystemBuffer {
             return;
         }
         final Runnable successRunnable = () -> {
-            for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-                Editor ed = it.next();
+            for (Editor ed : Editor.getEditorList()) {
                 if (ed.getBuffer() == Buffer.this)
                     ed.setDefaultCursor();
             }
@@ -1900,8 +1887,7 @@ public class Buffer extends SystemBuffer {
             undoManager.addEdit(compoundEdit);
         }
         if (bufferChanged) {
-            for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-                Editor ed = it.next();
+            for (Editor ed : Editor.getEditorList()) {
                 if (ed.getBuffer() == this) {
                     if (ed.getDotOffset() > ed.getDotLine().length()) {
                         ed.getDot().setOffset(ed.getDotLine().length());
@@ -2050,8 +2036,7 @@ public class Buffer extends SystemBuffer {
         // of this buffer.
         if (lastView != null)
             lastView.invalidate();
-        for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-            Editor ed = it.next();
+        for (Editor ed : Editor.getEditorList()) {
             View view = ed.getView(this);
             if (view != null)
                 view.invalidate();
@@ -2431,8 +2416,7 @@ public class Buffer extends SystemBuffer {
 
     // Repaint all windows displaying this buffer.
     public final void repaint() {
-        for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-            Editor ed = it.next();
+        for (Editor ed : Editor.getEditorList()) {
             if (ed.getBuffer() == this)
                 ed.repaintDisplay();
         }
@@ -2664,8 +2648,7 @@ public class Buffer extends SystemBuffer {
     public void dispose() {
         if (cache != null && cache.isFile()) {
             // Only delete the cache file if no other buffer is using it.
-            for (BufferIterator it = new BufferIterator(); it.hasNext();) {
-                Buffer buf = it.next();
+            for (Buffer buf : Editor.getBufferList()) {
                 if (buf != this && buf.getCache() == cache)
                     return;
             }
@@ -3006,8 +2989,7 @@ public class Buffer extends SystemBuffer {
      */
     public static void checkVCSForAllBuffers(final Runnable whenDone) {
         final List<Buffer> pending = new ArrayList<Buffer>();
-        for (BufferIterator it = new BufferIterator(); it.hasNext();) {
-            Buffer buf = it.next();
+        for (Buffer buf : Editor.getBufferList()) {
             if (
                 buf != null
                     && !buf.isVCSChecked()

@@ -34,11 +34,9 @@ import javax.swing.Icon;
 import javax.swing.SwingUtilities;
 import org.armedbear.j.Annotation;
 import org.armedbear.j.Buffer;
-import org.armedbear.j.BufferIterator;
 import org.armedbear.j.Debug;
 import org.armedbear.j.Display;
 import org.armedbear.j.Editor;
-import org.armedbear.j.EditorIterator;
 import org.armedbear.j.File;
 import org.armedbear.j.Headers;
 import org.armedbear.j.ImageLoader;
@@ -218,8 +216,7 @@ public class MessageBuffer extends Buffer {
         }
         Runnable r = () -> {
             setBusy(false);
-            for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-                Editor ed = it.next();
+            for (Editor ed : Editor.getEditorList()) {
                 if (ed.getBuffer() == MessageBuffer.this) {
                     ed.setDot(getFirstLine(), 0);
                     ed.setUpdateFlag(REFRAME);
@@ -633,8 +630,7 @@ public class MessageBuffer extends Buffer {
             final String rawText = part.getRawBody();
             Buffer buf = null;
             // See if we already have this attachment open in a buffer.
-            for (BufferIterator it = new BufferIterator(); it.hasNext();) {
-                Buffer b = it.next();
+            for (Buffer b : Editor.getBufferList()) {
                 if (b instanceof MessageBuffer) {
                     MessageBuffer mb = (MessageBuffer) b;
                     Message m = mb.getMessage();
@@ -738,8 +734,7 @@ public class MessageBuffer extends Buffer {
     private void reloadInternal() {
         setText();
         formatter.parseBuffer();
-        for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-            Editor ed = it.next();
+        for (Editor ed : Editor.getEditorList()) {
             if (ed.getBuffer() == this) {
                 ed.setDot(getFirstLine(), 0);
                 ed.moveCaretToDotCol();

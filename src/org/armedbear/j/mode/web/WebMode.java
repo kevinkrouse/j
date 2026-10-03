@@ -25,7 +25,6 @@ import java.lang.StringBuilder;
 import java.util.StringTokenizer;
 import org.armedbear.j.AbstractMode;
 import org.armedbear.j.Buffer;
-import org.armedbear.j.BufferIterator;
 import org.armedbear.j.Constants;
 import org.armedbear.j.Editor;
 import org.armedbear.j.Formatter;
@@ -186,8 +185,7 @@ public final class WebMode extends AbstractMode implements Constants, Mode {
         if (file != null) {
             Buffer buf = null;
             // Look for existing buffer.
-            for (BufferIterator it = new BufferIterator(); it.hasNext();) {
-                Buffer b = it.next();
+            for (Buffer b : Editor.getBufferList()) {
                 if (b instanceof WebBuffer && b.getFile().equals(file)) {
                     buf = b;
                     break;

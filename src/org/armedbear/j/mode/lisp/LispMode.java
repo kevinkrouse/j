@@ -26,12 +26,10 @@ import java.util.HashMap;
 import java.util.StringTokenizer;
 import org.armedbear.j.AbstractMode;
 import org.armedbear.j.Buffer;
-import org.armedbear.j.BufferIterator;
 import org.armedbear.j.ConfirmDialog;
 import org.armedbear.j.Constants;
 import org.armedbear.j.Debug;
 import org.armedbear.j.Editor;
-import org.armedbear.j.EditorIterator;
 import org.armedbear.j.File;
 import org.armedbear.j.Formatter;
 import org.armedbear.j.KeyMap;
@@ -980,9 +978,7 @@ public class LispMode extends AbstractMode implements Constants, Mode {
     }
 
     private static Editor findEditor(Buffer buf) {
-        Editor ed = null;
-        for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-            ed = it.next();
+        for (Editor ed : Editor.getEditorList()) {
             if (ed.getBuffer() == buf)
                 return ed;
         }
@@ -1294,8 +1290,7 @@ public class LispMode extends AbstractMode implements Constants, Mode {
                 buf = (WebBuffer) buffer;
         }
         if (buf == null) {
-            for (BufferIterator it = new BufferIterator(); it.hasNext();) {
-                Buffer b = it.next();
+            for (Buffer b : Editor.getBufferList()) {
                 if (b instanceof WebBuffer) {
                     if (b.getFile().canonicalPath().startsWith(rootPath)) {
                         buf = (WebBuffer) b;

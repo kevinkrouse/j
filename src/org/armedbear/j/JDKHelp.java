@@ -74,8 +74,7 @@ public final class JDKHelp implements Constants {
             if (file != null && file.isFile()) {
                 Buffer buf = null;
                 // Look for existing buffer.
-                for (BufferIterator it = new BufferIterator(); it.hasNext();) {
-                    Buffer b = it.next();
+                for (Buffer b : Editor.getBufferList()) {
                     if (b instanceof WebBuffer && b.getFile().equals(file)) {
                         buf = b;
                         break;
@@ -117,8 +116,7 @@ public final class JDKHelp implements Constants {
         if (file != null) {
             Buffer buf = null;
             // Look for existing buffer.
-            for (BufferIterator it = new BufferIterator(); it.hasNext();) {
-                Buffer b = it.next();
+            for (Buffer b : Editor.getBufferList()) {
                 if (file.equals(b.getFile())) {
                     buf = b;
                     break;

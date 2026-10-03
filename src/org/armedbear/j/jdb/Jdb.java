@@ -56,10 +56,8 @@ import javax.swing.Icon;
 import javax.swing.SwingUtilities;
 import org.armedbear.j.Annotation;
 import org.armedbear.j.Buffer;
-import org.armedbear.j.BufferIterator;
 import org.armedbear.j.Debug;
 import org.armedbear.j.Editor;
-import org.armedbear.j.EditorIterator;
 import org.armedbear.j.EditorList;
 import org.armedbear.j.File;
 import org.armedbear.j.Line;
@@ -470,8 +468,7 @@ public final class Jdb extends Buffer implements JdbConstants {
         finally {
             unlockWrite();
         }
-        for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-            Editor ed = it.next();
+        for (Editor ed : Editor.getEditorList()) {
             if (ed.getBuffer() == this) {
                 ed.eob();
                 ed.getDisplay().setReframe(-2);
@@ -938,8 +935,7 @@ public final class Jdb extends Buffer implements JdbConstants {
                 line.setAnnotation(null);
         }
         // Repaint editors with buffers in Java mode.
-        for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-            Editor ed = it.next();
+        for (Editor ed : Editor.getEditorList()) {
             if (ed.getModeId() == JAVA_MODE)
                 ed.repaint();
         }
@@ -948,12 +944,9 @@ public final class Jdb extends Buffer implements JdbConstants {
     private void quit() {
         killVM();
         removeAnnotations();
-        // Copy editor list since unsplitWindow() may close an editor.
-        ArrayList<Editor> editors = new ArrayList<Editor>();
-        for (EditorIterator it = new EditorIterator(); it.hasNext();)
-            editors.add(it.next());
         EditorList editorList = Editor.getEditorList();
-        for (Editor ed : editors) {
+        for (Editor ed : editorList) {
+            // unsplitWindow() may have closed it.
             if (editorList.contains(ed)) {
                 if (ed.getBuffer() == this) {
                     Editor other = ed.getOtherEditor();
@@ -1102,8 +1095,7 @@ public final class Jdb extends Buffer implements JdbConstants {
             return file;
         // Look for match in buffer list.
         List<String> dirs = Utilities.getDirectoriesInPath(sourcePath);
-        for (BufferIterator iter = new BufferIterator(); iter.hasNext();) {
-            Buffer b = iter.next();
+        for (Buffer b : Editor.getBufferList()) {
             file = b.getFile();
             if (file.getName().equals(fileName)) {
                 File rootDir = JavaSource.getPackageRootDirectory(b);
@@ -1183,8 +1175,7 @@ public final class Jdb extends Buffer implements JdbConstants {
         else
             doClearMethodBreakpoint(arg);
         // Repaint editors with buffers in Java mode.
-        for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-            Editor ed = it.next();
+        for (Editor ed : Editor.getEditorList()) {
             if (ed.getModeId() == JAVA_MODE)
                 ed.repaint();
         }

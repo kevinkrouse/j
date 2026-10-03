@@ -173,8 +173,7 @@ public final class OpenFileTextFieldHandler extends DefaultTextFieldHandler
         // Not in current directory. Look for a match in one of the current
         // buffers.
         if (checkBuffers) {
-            for (BufferIterator it = new BufferIterator(); it.hasNext();) {
-                Buffer buf = it.next();
+            for (Buffer buf : Editor.getBufferList()) {
                 if (buf.getFile() == null)
                     continue;
                 boolean found;
@@ -299,8 +298,7 @@ public final class OpenFileTextFieldHandler extends DefaultTextFieldHandler
                             ((WebBuffer) buf).go(file, 0, null);
                         } else {
                             // Look for existing buffer.
-                            for (BufferIterator it = new BufferIterator(); it.hasNext();) {
-                                Buffer b = it.next();
+                            for (Buffer b : Editor.getBufferList()) {
                                 if (b instanceof WebBuffer && b.getFile().equals(file)) {
                                     buf = b;
                                     break;
@@ -507,8 +505,7 @@ public final class OpenFileTextFieldHandler extends DefaultTextFieldHandler
         File currentDirectory,
         boolean ignoreCase
     ) {
-        for (BufferIterator it = new BufferIterator(); it.hasNext();) {
-            Buffer buf = it.next();
+        for (Buffer buf : Editor.getBufferList()) {
             if (buf.getType() != Buffer.TYPE_NORMAL)
                 continue;
             if (buf == editor.getBuffer())

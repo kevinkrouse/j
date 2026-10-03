@@ -24,7 +24,6 @@ import java.awt.AWTEvent;
 import java.awt.event.MouseEvent;
 import java.lang.StringBuilder;
 import org.armedbear.j.Buffer;
-import org.armedbear.j.BufferIterator;
 import org.armedbear.j.Constants;
 import org.armedbear.j.Debug;
 import org.armedbear.j.Directories;
@@ -142,8 +141,7 @@ public final class MailCommands implements Constants {
             Debug.assertTrue(url instanceof LocalMailboxURL);
             final File file = ((LocalMailboxURL) url).getFile();
             MailboxBuffer mb = null;
-            for (BufferIterator it = new BufferIterator(); it.hasNext();) {
-                Buffer buf = it.next();
+            for (Buffer buf : Editor.getBufferList()) {
                 if (buf instanceof LocalMailboxBuffer) {
                     if (((LocalMailboxBuffer) buf).getMailboxFile().equals(file)) {
                         mb = (LocalMailboxBuffer) buf;
@@ -177,8 +175,7 @@ public final class MailCommands implements Constants {
     public static MailboxBuffer getMailbox(Editor editor, MailboxURL url) {
         if (url instanceof ImapURL) {
             // IMAP.
-            for (BufferIterator it = new BufferIterator(); it.hasNext();) {
-                Buffer buf = it.next();
+            for (Buffer buf : Editor.getBufferList()) {
                 if (buf instanceof ImapMailboxBuffer) {
                     ImapMailboxBuffer mb = (ImapMailboxBuffer) buf;
                     if (mb.getUrl().equals(url))
@@ -213,8 +210,7 @@ public final class MailCommands implements Constants {
             if (session != null)
                 return new ImapMailboxBuffer(imapUrl, session);
         } else if (url instanceof PopURL) {
-            for (BufferIterator it = new BufferIterator(); it.hasNext();) {
-                Buffer buf = it.next();
+            for (Buffer buf : Editor.getBufferList()) {
                 if (buf instanceof PopMailboxBuffer) {
                     PopMailboxBuffer mb = (PopMailboxBuffer) buf;
                     if (mb.getUrl().equals(url))
@@ -464,8 +460,7 @@ public final class MailCommands implements Constants {
             MailboxBuffer mailboxBuffer = messageBuffer.getMailbox();
             if (mailboxBuffer == null)
                 return;
-            for (BufferIterator it = new BufferIterator(); it.hasNext();) {
-                Buffer buf = it.next();
+            for (Buffer buf : Editor.getBufferList()) {
                 if (buf == mailboxBuffer) {
                     final Line line =
                         mailboxBuffer.getLineForEntry(messageBuffer.getMailboxEntry());

@@ -25,11 +25,9 @@ import java.util.ArrayList;
 import java.util.List;
 import javax.swing.SwingUtilities;
 import org.armedbear.j.Buffer;
-import org.armedbear.j.BufferIterator;
 import org.armedbear.j.Constants;
 import org.armedbear.j.Directories;
 import org.armedbear.j.Editor;
-import org.armedbear.j.EditorIterator;
 import org.armedbear.j.File;
 import org.armedbear.j.MessageDialog;
 import org.armedbear.j.OutputBuffer;
@@ -118,8 +116,7 @@ public abstract class VersionControl implements Constants {
             editor.makeNext(buf);
             editor.activateInOtherWindow(buf);
             parentBuffer.setBusy(false);
-            for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-                Editor ed = it.next();
+            for (Editor ed : Editor.getEditorList()) {
                 if (ed.getBuffer() == parentBuffer)
                     ed.setDefaultCursor();
             }
@@ -129,8 +126,7 @@ public abstract class VersionControl implements Constants {
     protected static void processCompleted(Buffer buffer, String output) {
         buffer.setText(output);
         buffer.setBusy(false);
-        for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-            Editor ed = it.next();
+        for (Editor ed : Editor.getEditorList()) {
             if (ed.getBuffer() == buffer) {
                 ed.setDot(buffer.getFirstLine(), 0);
                 ed.setTopLine(buffer.getFirstLine());
@@ -163,8 +159,7 @@ public abstract class VersionControl implements Constants {
         if (checkVCS) {
             buffer.checkVCS();
             buffer.setBusy(false);
-            for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-                Editor ed = it.next();
+            for (Editor ed : Editor.getEditorList()) {
                 if (ed.getBuffer() == buffer) {
                     ed.setDefaultCursor();
                     // Update version information in status bar.
@@ -251,8 +246,7 @@ public abstract class VersionControl implements Constants {
 
     protected static List<Buffer> getModifiedBuffers() {
         ArrayList<Buffer> list = null;
-        for (BufferIterator it = new BufferIterator(); it.hasNext();) {
-            Buffer buf = it.next();
+        for (Buffer buf : Editor.getBufferList()) {
             if (!buf.isModified())
                 continue;
             if (buf.isUntitled())

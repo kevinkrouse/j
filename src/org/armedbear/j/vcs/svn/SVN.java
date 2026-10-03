@@ -28,12 +28,10 @@ import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 import javax.swing.SwingUtilities;
 import org.armedbear.j.Buffer;
-import org.armedbear.j.BufferIterator;
 import org.armedbear.j.ConfirmDialog;
 import org.armedbear.j.Constants;
 import org.armedbear.j.Debug;
 import org.armedbear.j.Editor;
-import org.armedbear.j.EditorIterator;
 import org.armedbear.j.File;
 import org.armedbear.j.Log;
 import org.armedbear.j.MessageDialog;
@@ -185,8 +183,7 @@ public class SVN extends VersionControl implements Constants {
         editor.setWaitCursor();
         if (!save || parentBuffer.save()) {
             // Kill existing diff output buffer if any for same parent buffer.
-            for (BufferIterator it = new BufferIterator(); it.hasNext();) {
-                Buffer b = it.next();
+            for (Buffer b : Editor.getBufferList()) {
                 if (b instanceof DiffOutputBuffer) {
                     if (b.getParentBuffer() == parentBuffer) {
                         editor.maybeKillBuffer(b);
@@ -216,8 +213,7 @@ public class SVN extends VersionControl implements Constants {
         final String cmd = "svn diff";
         final File directory = buffer.getCurrentDirectory();
         // Kill existing diff output buffer if any for same directory.
-        for (BufferIterator it = new BufferIterator(); it.hasNext();) {
-            Buffer b = it.next();
+        for (Buffer b : Editor.getBufferList()) {
             if (b instanceof DiffOutputBuffer) {
                 if (directory.equals(((DiffOutputBuffer) b).getDirectory())) {
                     b.kill();
@@ -299,8 +295,7 @@ public class SVN extends VersionControl implements Constants {
         final File directory = parentBuffer.getCurrentDirectory();
         editor.setWaitCursor();
         // Kill existing status output buffer if any for same directory.
-        for (BufferIterator it = new BufferIterator(); it.hasNext();) {
-            Buffer b = it.next();
+        for (Buffer b : Editor.getBufferList()) {
             if (b instanceof VersionControlBuffer) {
                 if (directory.equals(((VersionControlBuffer) b).getDirectory())) {
                     b.kill();
@@ -394,8 +389,7 @@ public class SVN extends VersionControl implements Constants {
         if (!save || saveModifiedBuffers(editor, list)) {
             // Look for existing checkin buffer before making a new one.
             SVNCheckinBuffer checkinBuffer = null;
-            for (BufferIterator it = new BufferIterator(); it.hasNext();) {
-                Buffer buf = it.next();
+            for (Buffer buf : Editor.getBufferList()) {
                 if (buf instanceof SVNCheckinBuffer) {
                     if (buf.getParentBuffer() == parentBuffer) {
                         checkinBuffer = (SVNCheckinBuffer) buf;
@@ -472,8 +466,7 @@ public class SVN extends VersionControl implements Constants {
             // UNDONE: show output of svn if commit fails
             parentBuffer.checkVCS();
             parentBuffer.setBusy(false);
-            for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-                Editor ed = it.next();
+            for (Editor ed : Editor.getEditorList()) {
                 if (ed.getBuffer().isBusy())
                     ed.setWaitCursor();
                 else

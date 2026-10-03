@@ -29,10 +29,8 @@ import java.util.Date;
 import java.util.List;
 import javax.swing.SwingUtilities;
 import org.armedbear.j.Buffer;
-import org.armedbear.j.BufferIterator;
 import org.armedbear.j.Debug;
 import org.armedbear.j.Editor;
-import org.armedbear.j.EditorIterator;
 import org.armedbear.j.File;
 import org.armedbear.j.Headers;
 import org.armedbear.j.Line;
@@ -196,8 +194,7 @@ public final class DraftsBuffer extends MailboxBuffer {
     public void expunge() {
         if (lock()) {
             setBusy(true);
-            for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-                Editor ed = it.next();
+            for (Editor ed : Editor.getEditorList()) {
                 if (ed.getBuffer() == this)
                     ed.saveView();
             }
@@ -248,8 +245,7 @@ public final class DraftsBuffer extends MailboxBuffer {
     public void reload() {
         if (lock()) {
             setBusy(true);
-            for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-                Editor ed = it.next();
+            for (Editor ed : Editor.getEditorList()) {
                 if (ed.getBuffer() == this)
                     ed.saveView();
             }
@@ -265,8 +261,7 @@ public final class DraftsBuffer extends MailboxBuffer {
             unlock();
             setBusy(false);
             Runnable completionRunnable = () -> {
-                for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-                    Editor ed = it.next();
+                for (Editor ed : Editor.getEditorList()) {
                     View view = new View();
                     view.setDotEntry(getInitialEntry());
                     ed.setView(DraftsBuffer.this, view);
@@ -338,8 +333,7 @@ public final class DraftsBuffer extends MailboxBuffer {
         if (file == null)
             return;
         Buffer buf = null;
-        for (BufferIterator it = new BufferIterator(); it.hasNext();) {
-            Buffer b = it.next();
+        for (Buffer b : Editor.getBufferList()) {
             if (b instanceof SendMail) {
                 if (file.equals(b.getFile())) {
                     buf = b;

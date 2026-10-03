@@ -230,8 +230,8 @@ public final class RemoteBuffer extends Buffer implements Constants {
                     setBusy(false);
             }
             if (sshLoadProcess.cancelled()) {
-                for (EditorIterator it = new EditorIterator(); it.hasNext();)
-                    it.next().updateDisplay();
+                for (Editor ed : Editor.getEditorList())
+                    ed.updateDisplay();
                 Editor.currentEditor().status("Cancelled");
             } else
                 super.run();

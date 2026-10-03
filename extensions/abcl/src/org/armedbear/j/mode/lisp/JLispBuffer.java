@@ -29,7 +29,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import javax.swing.SwingUtilities;
 import org.armedbear.j.Buffer;
-import org.armedbear.j.BufferIterator;
 import org.armedbear.j.Directories;
 import org.armedbear.j.Editor;
 import org.armedbear.j.File;
@@ -191,8 +190,7 @@ public final class JLispBuffer extends LispShellBuffer {
     public static void jlisp() {
         final Editor editor = Editor.currentEditor();
         // Look for existing jlisp buffer.
-        for (BufferIterator it = new BufferIterator(); it.hasNext();) {
-            Buffer buf = it.next();
+        for (Buffer buf : Editor.getBufferList()) {
             if (buf instanceof JLispBuffer) {
                 editor.makeNext(buf);
                 editor.activateInOtherWindow(buf);

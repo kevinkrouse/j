@@ -38,7 +38,6 @@ import javax.swing.JScrollPane;
 import javax.swing.SwingUtilities;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Editor;
-import org.armedbear.j.EditorIterator;
 import org.armedbear.j.File;
 import org.armedbear.j.Log;
 import org.armedbear.j.mode.java.JavaSource;
@@ -169,8 +168,7 @@ public final class StackPanel implements ContextListener, MouseListener {
                         Buffer buffer = Editor.getBuffer(file);
                         if (buffer != null) {
                             Editor editor = null;
-                            for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-                                Editor ed = it.next();
+                            for (Editor ed : Editor.getEditorList()) {
                                 if (ed.getBuffer() instanceof Jdb) {
                                     editor = ed;
                                     break;

@@ -26,7 +26,6 @@ import org.armedbear.j.Buffer;
 import org.armedbear.j.Debug;
 import org.armedbear.j.Directories;
 import org.armedbear.j.Editor;
-import org.armedbear.j.EditorIterator;
 import org.armedbear.j.File;
 import org.armedbear.j.Line;
 import org.armedbear.j.Log;
@@ -61,8 +60,7 @@ public final class ListRegistersBuffer extends Buffer {
     }
 
     public void reload() {
-        for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-            Editor ed = it.next();
+        for (Editor ed : Editor.getEditorList()) {
             if (ed.getBuffer() == this) {
                 ed.setWaitCursor();
                 ed.saveView();
@@ -70,8 +68,7 @@ public final class ListRegistersBuffer extends Buffer {
         }
         empty();
         loadInternal();
-        for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-            Editor ed = it.next();
+        for (Editor ed : Editor.getEditorList()) {
             if (ed.getBuffer() == this) {
                 View view = ed.getView(this);
                 if (view != null) {

@@ -188,8 +188,7 @@ public final class ChangeMarks implements Constants {
         buffer.renumber();
         buffer.modified();
         editor.endCompoundEdit(compoundEdit);
-        for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-            Editor ed = it.next();
+        for (Editor ed : Editor.getEditorList()) {
             if (ed.getTopLine() == dotLine)
                 ed.setTopLine(dot.getLine());
         }
@@ -251,8 +250,7 @@ public final class ChangeMarks implements Constants {
             ShellCommand shellCommand = new ShellCommand(cmd);
             shellCommand.run();
             // Kill existing diff output buffer if any for same parent buffer.
-            for (BufferIterator it = new BufferIterator(); it.hasNext();) {
-                Buffer b = it.next();
+            for (Buffer b : Editor.getBufferList()) {
                 if (b instanceof DiffOutputBuffer) {
                     if (((DiffOutputBuffer) b).getParentBuffer() == buffer) {
                         if (((DiffOutputBuffer) b).getVCType() == 0) {

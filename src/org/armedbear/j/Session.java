@@ -133,8 +133,8 @@ public final class Session extends DefaultHandler implements Constants {
             return;
         }
         final Editor editor = Editor.currentEditor();
-        for (BufferIterator it = new BufferIterator(); it.hasNext();) {
-            if (!editor.okToClose(it.next()))
+        for (Buffer buf : Editor.getBufferList()) {
+            if (!editor.okToClose(buf))
                 return;
         }
         // Load new session.
@@ -156,23 +156,21 @@ public final class Session extends DefaultHandler implements Constants {
 
         editor.setWaitCursor();
         // Close all the existing buffers.
-        for (BufferIterator iter = new BufferIterator(); iter.hasNext();) {
-            Buffer buf = iter.next();
-            for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-                Editor ed = it.next();
+        for (Buffer buf : Editor.getBufferList()) {
+            for (Editor ed : Editor.getEditorList()) {
                 ed.views.remove(buf);
             }
             buf.deleteAutosaveFile();
-            iter.remove();
+            Editor.getBufferList().remove(buf);
             buf.dispose();
         }
         editor.unsplitWindow();
         Buffer toBeActivated = session.createBuffers();
         // Make sure read-only status is correct for each buffer.
-        for (BufferIterator it = new BufferIterator(); it.hasNext();)
-            editor.reactivate(it.next());
-        for (EditorIterator it = new EditorIterator(); it.hasNext();)
-            it.next().activate(toBeActivated);
+        for (Buffer buf : Editor.getBufferList())
+            editor.reactivate(buf);
+        for (Editor ed : Editor.getEditorList())
+            ed.activate(toBeActivated);
         Sidebar.setUpdateFlagInAllFrames(SIDEBAR_BUFFER_LIST_CHANGED);
         Sidebar.refreshSidebarInAllFrames();
         Editor.setSessionName(name);
@@ -257,8 +255,7 @@ public final class Session extends DefaultHandler implements Constants {
             writer.write("  <buffers>");
             writer.newLine();
             int index = 0;
-            for (BufferIterator it = new BufferIterator(); it.hasNext();) {
-                Buffer buf = it.next();
+            for (Buffer buf : Editor.getBufferList()) {
                 // Skip shell, compilation, HTTP buffers etc.
                 if (!buf.canBeRestored())
                     continue;
