@@ -76,6 +76,15 @@ public final class IList implements BackgroundProcess, Constants {
         if (SwingUtilities.isEventDispatchThread())
             Debug.bug();
         try {
+            sourceBuffer.lockRead();
+        }
+        catch (InterruptedException e) {
+            Log.error(e);
+            sourceBuffer.setBusy(false);
+            SwingUtilities.invokeLater(completionRunnable);
+            return;
+        }
+        try {
             final Mode mode = sourceBuffer.getMode();
             for (Line line = sourceBuffer.getFirstLine(); line != null; line = line.next()) {
                 Position pos = new Position(line, 0);
@@ -95,7 +104,6 @@ public final class IList implements BackgroundProcess, Constants {
             }
         }
         finally {
-            Log.debug("calling sourceBuffer.unlockRead");
             sourceBuffer.unlockRead();
             sourceBuffer.setBusy(false);
             SwingUtilities.invokeLater(completionRunnable);

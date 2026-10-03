@@ -311,11 +311,13 @@ public final class FindInFiles extends Replacement implements Constants,
             if (searchFilesInMemory) {
                 Buffer buf = Editor.getBufferList().findBuffer(file);
                 if (buf != null && buf.isLoaded()) {
-                    Position pos = findInBuffer(buf);
-                    if (pos != null) {
-                        results.add(file);
-                        processFile(file, buf.getMode(), pos);
-                    }
+                    buf.withReadLock(() -> {
+                        Position pos = findInBuffer(buf);
+                        if (pos != null) {
+                            results.add(file);
+                            processFile(file, buf.getMode(), pos);
+                        }
+                    });
                     ++numFilesExamined;
                     continue;
                 }

@@ -32,7 +32,10 @@ import java.lang.StringBuilder;
 import java.lang.ref.SoftReference;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.Semaphore;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 import javax.swing.Icon;
@@ -120,8 +123,8 @@ public class Buffer extends SystemBuffer {
 
     private BackgroundProcess backgroundProcess;
 
-    private Mutex mutex = new Mutex();
-    private final ReadWriteLock rwlock = new ReadWriteLock();
+    private final Semaphore mutex = new Semaphore(1);
+    private final ReentrantReadWriteLock rwlock = new ReentrantReadWriteLock();
 
     private boolean isNewFile;
 
@@ -535,60 +538,66 @@ public class Buffer extends SystemBuffer {
 
     // Locking.
     public final boolean isInUse() {
-        return mutex.isInUse();
+        return mutex.availablePermits() == 0;
     }
 
     public void acquire() throws InterruptedException {
         mutex.acquire();
     }
 
-    public synchronized void release() {
-        mutex.release();
+    /** Any thread may release: background loads unlock what the UI locked. */
+    public void release() {
+        synchronized (mutex) {
+            if (isInUse())
+                mutex.release();
+            else
+                Debug.bug("Buffer.release() not locked");
+        }
     }
 
     public boolean attempt() throws InterruptedException {
-        return mutex.attempt();
+        return attempt(0);
     }
 
     public boolean attempt(long msecs) throws InterruptedException {
-        return mutex.attempt(msecs);
+        return mutex.tryAcquire(msecs, TimeUnit.MILLISECONDS);
     }
 
     public final boolean isLocked() {
         return isInUse();
     }
 
-    public synchronized boolean lock() {
-        try {
-            return attempt();
-        }
-        catch (InterruptedException e) {
-            return false;
-        }
+    public boolean lock() {
+        return mutex.tryAcquire();
     }
 
-    public synchronized void unlock() {
+    public void unlock() {
         release();
     }
 
+    /** Throws only if interrupted while waiting, so a pending interrupt doesn't block edits. */
     public final void lockRead() throws InterruptedException {
-        rwlock.lockRead();
+        if (!rwlock.readLock().tryLock())
+            rwlock.readLock().lockInterruptibly();
     }
 
     public final void unlockRead() {
-        rwlock.unlockRead();
+        rwlock.readLock().unlock();
     }
 
+    /** Like {@link #lockRead}. */
     public final void lockWrite() throws InterruptedException {
-        rwlock.lockWrite();
+        if (!rwlock.writeLock().tryLock())
+            rwlock.writeLock().lockInterruptibly();
     }
 
     public final void unlockWrite() {
-        rwlock.unlockWrite();
+        rwlock.writeLock().unlock();
     }
 
+    /** True if the current thread holds the write lock. */
     public final boolean isWriteLocked() {
-        return rwlock.isWriteLocked();
+        return rwlock.isWriteLockedByCurrentThread();
     }
 
     /**
@@ -609,6 +618,25 @@ public class Buffer extends SystemBuffer {
         }
         finally {
             unlockWrite();
+        }
+        return true;
+    }
+
+    /** Like {@link #withWriteLock}, for reading. Allowed while holding the write lock. */
+    public final boolean withReadLock(Runnable read) {
+        try {
+            lockRead();
+        }
+        catch (InterruptedException e) {
+            Log.error(e);
+            Thread.currentThread().interrupt();
+            return false;
+        }
+        try {
+            read.run();
+        }
+        finally {
+            unlockRead();
         }
         return true;
     }
@@ -1948,7 +1976,7 @@ public class Buffer extends SystemBuffer {
     }
 
     public void setFirstLine(Line line) {
-        if (!rwlock.isWriteLocked()) {
+        if (!isWriteLocked()) {
             Log.error("----- setFirstLine() called without write lock -----");
             Debug.dumpStack();
         }
@@ -1956,7 +1984,7 @@ public class Buffer extends SystemBuffer {
     }
 
     public void modified() {
-        if (!rwlock.isWriteLocked()) {
+        if (!isWriteLocked()) {
             Log.error("----- modified() called without write lock -----");
             Debug.dumpStack();
         }

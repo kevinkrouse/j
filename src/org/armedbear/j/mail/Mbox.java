@@ -31,18 +31,18 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Iterator;
 import java.util.List;
+import java.util.concurrent.Semaphore;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.BufferIterator;
 import org.armedbear.j.Debug;
 import org.armedbear.j.File;
 import org.armedbear.j.Log;
-import org.armedbear.j.Mutex;
 import org.armedbear.j.ProgressNotifier;
 
 public final class Mbox {
     private static ArrayList<Mbox> mboxList;
 
-    private final Mutex mutex = new Mutex();
+    private final Semaphore mutex = new Semaphore(1);
     private final File file;
 
     private long lastModified;
@@ -136,21 +136,19 @@ public final class Mbox {
 
     public synchronized boolean lock() {
         Log.debug("Mbox.lock " + file.canonicalPath());
-        try {
-            return mutex.attempt();
-        }
-        catch (InterruptedException e) {
-            return false;
-        }
+        return mutex.tryAcquire();
     }
 
     public synchronized void unlock() {
         Log.debug("Mbox.unlock " + file.canonicalPath());
-        mutex.release();
+        if (isLocked())
+            mutex.release();
+        else
+            Debug.bug("Mbox.unlock() not locked");
     }
 
     public synchronized boolean isLocked() {
-        return mutex.isInUse();
+        return mutex.availablePermits() == 0;
     }
 
     private synchronized void read(ProgressNotifier progressNotifier) {
