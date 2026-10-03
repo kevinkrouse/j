@@ -23,28 +23,24 @@ import org.junit.After;
 import org.junit.Test;
 
 /** Markdown's headings as tags, the outline they make, and the context. */
-public class MarkdownOutlineTest
-{
+public class MarkdownOutlineTest {
     private EditorHarness h;
 
     @After
-    public void tearDown()
-    {
+    public void tearDown() {
         if (h != null)
             h.close();
     }
 
     // Tagged without parsing first: the tagger must not need the flags.
-    private List<LocalTag> tags(String text)
-    {
+    private List<LocalTag> tags(String text) {
         h = EditorHarness.create(text).mode(MarkdownMode.getMode());
         new MarkdownTagger(h.buffer()).run();
         return h.buffer().getTags();
     }
 
     // "level:name" for each.
-    private static String describe(List<LocalTag> tags)
-    {
+    private static String describe(List<LocalTag> tags) {
         final StringBuilder sb = new StringBuilder();
         for (LocalTag tag : tags) {
             if (sb.length() > 0)
@@ -55,8 +51,7 @@ public class MarkdownOutlineTest
     }
 
     // The tree as "A(B(C) D) E".
-    private static String outline(DefaultMutableTreeNode node)
-    {
+    private static String outline(DefaultMutableTreeNode node) {
         final StringBuilder sb = new StringBuilder();
         for (int i = 0; i < node.getChildCount(); i++) {
             final DefaultMutableTreeNode child =
@@ -71,30 +66,36 @@ public class MarkdownOutlineTest
     }
 
     @Test
-    public void headingsAreTagged()
-    {
-        assertEquals("1:Title, 2:Setext, 3:Deep",
-                     describe(tags("# Title\ntext\n\nSetext\n---\n\n### Deep ###\n")));
+    public void headingsAreTagged() {
+        assertEquals(
+            "1:Title, 2:Setext, 3:Deep",
+            describe(tags("# Title\ntext\n\nSetext\n---\n\n### Deep ###\n"))
+        );
     }
 
     @Test
-    public void notInFencesCommentsOrFrontMatter()
-    {
-        assertEquals("1:Real",
-                     describe(tags("---\n# meta\n---\n```sh\n# a comment\n```\n"
-                                   + "<!--\n# hidden\n-->\n# Real\n#\n#hashtag\n")));
+    public void notInFencesCommentsOrFrontMatter() {
+        assertEquals(
+            "1:Real",
+            describe(
+                tags(
+                    "---\n# meta\n---\n```sh\n# a comment\n```\n"
+                        + "<!--\n# hidden\n-->\n# Real\n#\n#hashtag\n"
+                )
+            )
+        );
     }
 
     @Test
-    public void namesReadAsText()
-    {
-        assertEquals("1:Bold code link *x* snake_case",
-                     describe(tags("# **Bold** `code` [link](http://x) \\*x\\* snake_case\n")));
+    public void namesReadAsText() {
+        assertEquals(
+            "1:Bold code link *x* snake_case",
+            describe(tags("# **Bold** `code` [link](http://x) \\*x\\* snake_case\n"))
+        );
     }
 
     @Test
-    public void longNamesArePaths()
-    {
+    public void longNamesArePaths() {
         final List<LocalTag> tags = tags("# A\n## B\n#### C\n## D\n");
         assertEquals("A › B › C", tags.get(2).getLongName());
         assertEquals("A › D", tags.get(3).getLongName());
@@ -102,17 +103,17 @@ public class MarkdownOutlineTest
     }
 
     @Test
-    public void theOutlineNests()
-    {
+    public void theOutlineNests() {
         final List<LocalTag> tags = tags("## Before\n# A\n## B\n### C\n## D\n# E\n#### F\n");
-        final DefaultMutableTreeNode root = SidebarTagTree.buildTree(tags,
-            tag -> ((MarkdownTag) tag).getLevel());
+        final DefaultMutableTreeNode root = SidebarTagTree.buildTree(
+            tags,
+            tag -> ((MarkdownTag) tag).getLevel()
+        );
         assertEquals("Before A(B(C) D) E(F)", outline(root));
     }
 
     @Test
-    public void theStatusBarShowsThePath()
-    {
+    public void theStatusBarShowsThePath() {
         tags("intro\n# A\n## B\ntext\n");
         h.cursor(0, 0);
         assertNull(MarkdownMode.getMode().getContextString(h.editor(), false));
@@ -121,12 +122,13 @@ public class MarkdownOutlineTest
     }
 
     @Test
-    public void theOutlineIsNotAnotherBuffersOnceItIsShown() throws Exception
-    {
+    public void theOutlineIsNotAnotherBuffersOnceItIsShown() throws Exception {
         tags("# A\n# B\n");
         final Buffer a = h.buffer();
-        final SidebarTagTree tree = new SidebarTagTree(h.editor(),
-            tag -> ((MarkdownTag) tag).getLevel());
+        final SidebarTagTree tree = new SidebarTagTree(
+            h.editor(),
+            tag -> ((MarkdownTag) tag).getLevel()
+        );
         // Tagging a, but b is shown by the time it is done.
         final EditorHarness other = EditorHarness.create("text\n");
         try {

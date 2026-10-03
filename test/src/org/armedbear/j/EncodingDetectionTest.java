@@ -28,19 +28,16 @@ import org.junit.Test;
  * first bytes say, or the first line that is not ASCII, else defaultEncoding,
  * UTF-8.
  */
-public class EncodingDetectionTest
-{
+public class EncodingDetectionTest {
     private Path dir;
 
     @Before
-    public void setUp() throws Exception
-    {
+    public void setUp() throws Exception {
         dir = Files.createTempDirectory("j-encoding");
     }
 
     @After
-    public void tearDown() throws Exception
-    {
+    public void tearDown() throws Exception {
         Editor.preferences().removeProperty(Property.DETECT_ENCODING.key());
         try (java.util.stream.Stream<Path> walk = Files.walk(dir)) {
             walk.sorted(java.util.Comparator.reverseOrder())
@@ -48,18 +45,15 @@ public class EncodingDetectionTest
         }
     }
 
-    private Buffer load(byte[] bytes) throws Exception
-    {
+    private Buffer load(byte[] bytes) throws Exception {
         return load(bytes, null);
     }
 
-    private Buffer load(byte[] bytes, String encoding) throws Exception
-    {
+    private Buffer load(byte[] bytes, String encoding) throws Exception {
         return load(bytes, encoding, "f" + System.nanoTime() + ".txt");
     }
 
-    private Buffer load(byte[] bytes, String encoding, String name) throws Exception
-    {
+    private Buffer load(byte[] bytes, String encoding, String name) throws Exception {
         final Path path = dir.resolve(name);
         Files.write(path, bytes);
         final File file = File.getInstance(path.toString());
@@ -73,18 +67,15 @@ public class EncodingDetectionTest
         return buffer;
     }
 
-    private static byte[] bytes(String s, Charset charset)
-    {
+    private static byte[] bytes(String s, Charset charset) {
         return s.getBytes(charset);
     }
 
-    private static byte[] utf8(String s)
-    {
+    private static byte[] utf8(String s) {
         return bytes(s, StandardCharsets.UTF_8);
     }
 
-    private static Line line(Buffer b, int n)
-    {
+    private static Line line(Buffer b, int n) {
         Line line = b.getFirstLine();
         for (int i = 0; i < n; i++)
             line = line.next();
@@ -92,16 +83,14 @@ public class EncodingDetectionTest
     }
 
     // Saving gives back exactly the bytes loaded.
-    private void assertRoundTrip(Buffer b, byte[] bytes) throws Exception
-    {
+    private void assertRoundTrip(Buffer b, byte[] bytes) throws Exception {
         final Path out = dir.resolve("out" + System.nanoTime());
         b.writeFile(File.getInstance(out.toString()));
         assertArrayEquals(bytes, Files.readAllBytes(out));
     }
 
     @Test
-    public void utf8LoadsAsUtf8() throws Exception
-    {
+    public void utf8LoadsAsUtf8() throws Exception {
         final byte[] bytes = utf8("a → b › c\n");
         final Buffer b = load(bytes);
         assertEquals("a → b › c", b.getFirstLine().getText());
@@ -110,14 +99,12 @@ public class EncodingDetectionTest
     }
 
     @Test
-    public void asciiIsTheDefaultUtf8() throws Exception
-    {
+    public void asciiIsTheDefaultUtf8() throws Exception {
         assertEquals("UTF-8", load(utf8("plain\n")).getSaveEncoding());
     }
 
     @Test
-    public void latin1() throws Exception
-    {
+    public void latin1() throws Exception {
         final byte[] bytes = bytes("café\n", StandardCharsets.ISO_8859_1);
         final Buffer b = load(bytes);
         assertEquals("café", b.getFirstLine().getText());
@@ -126,10 +113,11 @@ public class EncodingDetectionTest
     }
 
     @Test
-    public void windows1252ByItsQuotes() throws Exception
-    {
-        final byte[] bytes = bytes("“quoted” €5\n",
-                                   Charset.forName("windows-1252"));
+    public void windows1252ByItsQuotes() throws Exception {
+        final byte[] bytes = bytes(
+            "“quoted” €5\n",
+            Charset.forName("windows-1252")
+        );
         final Buffer b = load(bytes);
         assertEquals("“quoted” €5", b.getFirstLine().getText());
         assertEquals("windows-1252", b.getSaveEncoding());
@@ -138,8 +126,7 @@ public class EncodingDetectionTest
 
     // Past the first 1K, the first line that is not ASCII decides, and
     // the file is not read ahead to find it.
-    private static String asciiLines()
-    {
+    private static String asciiLines() {
         final StringBuilder sb = new StringBuilder();
         while (sb.length() < 2 * EncodingDetector.SNIFF_LENGTH)
             sb.append("just ascii text on a line\n");
@@ -147,8 +134,7 @@ public class EncodingDetectionTest
     }
 
     @Test
-    public void aLateLatin1LineDecides() throws Exception
-    {
+    public void aLateLatin1LineDecides() throws Exception {
         final String text = asciiLines() + "café\n";
         final byte[] bytes = bytes(text, StandardCharsets.ISO_8859_1);
         final Buffer b = load(bytes);
@@ -158,8 +144,7 @@ public class EncodingDetectionTest
     }
 
     @Test
-    public void aLateUtf8LineDecides() throws Exception
-    {
+    public void aLateUtf8LineDecides() throws Exception {
         final byte[] bytes = utf8(asciiLines() + "a → b\n");
         final Buffer b = load(bytes);
         assertEquals("UTF-8", b.getSaveEncoding());
@@ -167,8 +152,7 @@ public class EncodingDetectionTest
     }
 
     @Test
-    public void aByteOrderMarkIsKept() throws Exception
-    {
+    public void aByteOrderMarkIsKept() throws Exception {
         final byte[] text = utf8("# Título\n");
         final byte[] bytes = new byte[text.length + 3];
         bytes[0] = (byte) 0xef;
@@ -181,19 +165,21 @@ public class EncodingDetectionTest
     }
 
     @Test
-    public void aDeclaredEncoding() throws Exception
-    {
+    public void aDeclaredEncoding() throws Exception {
         final Charset koi8 = Charset.forName("KOI8-R");
         final Buffer b = load(bytes("# -*- coding: koi8-r -*-\nпривет\n", koi8));
         assertEquals("привет", line(b, 1).getText());
-        final Buffer xml = load(bytes("<?xml version=\"1.0\" encoding=\"ISO-8859-1\"?>\n<a>é</a>\n",
-                                      StandardCharsets.ISO_8859_1));
+        final Buffer xml = load(
+            bytes(
+                "<?xml version=\"1.0\" encoding=\"ISO-8859-1\"?>\n<a>é</a>\n",
+                StandardCharsets.ISO_8859_1
+            )
+        );
         assertEquals("<a>é</a>", line(xml, 1).getText());
     }
 
     @Test
-    public void detectionCanBeTurnedOff() throws Exception
-    {
+    public void detectionCanBeTurnedOff() throws Exception {
         Editor.preferences().setProperty(Property.DETECT_ENCODING, "false");
         final Buffer b = load(bytes("café\n", StandardCharsets.ISO_8859_1));
         assertEquals("UTF-8", b.getSaveEncoding());
@@ -201,22 +187,19 @@ public class EncodingDetectionTest
     }
 
     @Test
-    public void anEncodingAskedForWins() throws Exception
-    {
+    public void anEncodingAskedForWins() throws Exception {
         final Buffer b = load(utf8("é\n"), "ISO-8859-1");
         assertEquals("Ã©", b.getFirstLine().getText());
     }
 
     @Test
-    public void anEmptyFileLoads() throws Exception
-    {
+    public void anEmptyFileLoads() throws Exception {
         final Buffer b = load(new byte[0]);
         assertEquals("", b.getFirstLine().getText());
     }
 
     @Test
-    public void classify()
-    {
+    public void classify() {
         final byte[] utf8 = utf8("→");
         assertEquals(null, EncodingDetector.classify(utf8("abc"), 0, 3, false));
         assertEquals("UTF-8", EncodingDetector.classify(utf8, 0, utf8.length, false));
@@ -225,46 +208,54 @@ public class EncodingDetectionTest
         // Not at the end of the input, it is not UTF-8; 0x86 is a dagger in
         // Windows-1252 and a control character in ISO-8859-1.
         assertEquals("windows-1252", EncodingDetector.classify(utf8, 0, 2, false));
-        assertEquals("ISO-8859-1", EncodingDetector.classify(
-            "caf\u00e9".getBytes(StandardCharsets.ISO_8859_1), 0, 4, false));
+        assertEquals(
+            "ISO-8859-1",
+            EncodingDetector.classify(
+                "caf\u00e9".getBytes(StandardCharsets.ISO_8859_1),
+                0,
+                4,
+                false
+            )
+        );
     }
 
     @Test
-    public void aWordWithCodingInItDeclaresNothing() throws Exception
-    {
+    public void aWordWithCodingInItDeclaresNothing() throws Exception {
         final Buffer b = load(utf8("# Encoding: windows-1252 notes\ncaf\u00e9\n"));
         assertEquals("UTF-8", b.getSaveEncoding());
         assertEquals("caf\u00e9", line(b, 1).getText());
     }
 
     @Test
-    public void wellFormedUtf8BeatsADeclaration() throws Exception
-    {
+    public void wellFormedUtf8BeatsADeclaration() throws Exception {
         final Buffer b = load(utf8("# -*- coding: latin-1 -*-\ncaf\u00e9\n"));
         assertEquals("UTF-8", b.getSaveEncoding());
         assertEquals("caf\u00e9", line(b, 1).getText());
     }
 
     @Test
-    public void aPythonCookieDeclares() throws Exception
-    {
+    public void aPythonCookieDeclares() throws Exception {
         final Buffer b = load(utf8("#!/usr/bin/env python\n# coding: latin-1\nx = 1\n"));
         assertEquals("ISO-8859-1", b.getSaveEncoding());
     }
 
     @Test
-    public void metaCharsetOnlyInHtml() throws Exception
-    {
+    public void metaCharsetOnlyInHtml() throws Exception {
         final byte[] text = utf8("<meta charset=\"iso-8859-1\">\nplain\n");
-        assertEquals("UTF-8", load(text, null, "README" + System.nanoTime() + ".md")
-                     .getSaveEncoding());
-        assertEquals("ISO-8859-1", load(text, null, "page" + System.nanoTime() + ".html")
-                     .getSaveEncoding());
+        assertEquals(
+            "UTF-8",
+            load(text, null, "README" + System.nanoTime() + ".md")
+                .getSaveEncoding()
+        );
+        assertEquals(
+            "ISO-8859-1",
+            load(text, null, "page" + System.nanoTime() + ".html")
+                .getSaveEncoding()
+        );
     }
 
     @Test
-    public void aLineThatIsNotUtf8LosesNothing() throws Exception
-    {
+    public void aLineThatIsNotUtf8LosesNothing() throws Exception {
         // UTF-8 decided late, then a Latin-1 byte: the whole file is read
         // as Latin-1, so saving writes every byte back.
         final java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream();
@@ -278,8 +269,7 @@ public class EncodingDetectionTest
     }
 
     @Test
-    public void aReloadForgetsAByteOrderMark() throws Exception
-    {
+    public void aReloadForgetsAByteOrderMark() throws Exception {
         final byte[] text = utf8("x\n");
         final byte[] bytes = new byte[text.length + 3];
         bytes[0] = (byte) 0xef;

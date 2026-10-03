@@ -18,21 +18,18 @@
 
 package org.armedbear.j.mail;
 
-import org.junit.Test;
+import static org.junit.Assert.*;
 
 import java.util.Arrays;
-
-import static org.junit.Assert.*;
+import org.junit.Test;
 
 /**
  * User: kevink
  * Date: 5/22/11
  */
-public class ImapURLTest
-{
+public class ImapURLTest {
     @Test
-    public void parse() throws Exception
-    {
+    public void parse() throws Exception {
         ImapURL url = ImapURL.parseURL("{hello.world@example.com:123/tls/ssl}one/two");
         assertEquals("hello.world", url.getUser());
         assertEquals("example.com", url.getHost());

@@ -15,7 +15,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertSame;
 
 import java.util.List;
-
 import org.jdesktop.swingx.MultiSplitLayout;
 import org.jdesktop.swingx.MultiSplitLayout.Divider;
 import org.jdesktop.swingx.MultiSplitLayout.Node;
@@ -26,16 +25,13 @@ import org.junit.Test;
  * The split tree windows live in: splitting again after closing the others,
  * which window takes a closed one's place, and evening the sizes out.
  */
-public class EditorPaneTest
-{
-    private static Node model(EditorPane pane)
-    {
+public class EditorPaneTest {
+    private static Node model(EditorPane pane) {
         return pane.getMultiSplitLayout().getModel();
     }
 
     @Test
-    public void aSplitAfterOnlyIsOnScreen()
-    {
+    public void aSplitAfterOnlyIsOnScreen() {
         final Editor a = new Editor();
         final Editor b = new Editor();
         final Editor c = new Editor();
@@ -50,8 +46,7 @@ public class EditorPaneTest
     }
 
     @Test
-    public void theNextWindowTakesAClosedOnesPlace()
-    {
+    public void theNextWindowTakesAClosedOnesPlace() {
         // Two side by side over one: col[row[a, b], c].
         final Editor a = new Editor();
         final Editor b = new Editor();
@@ -70,8 +65,7 @@ public class EditorPaneTest
     }
 
     @Test
-    public void aSplitAfterADragIsInTheMiddle()
-    {
+    public void aSplitAfterADragIsInTheMiddle() {
         final Editor a = new Editor();
         final Editor b = new Editor();
         final Editor c = new Editor();
@@ -82,7 +76,8 @@ public class EditorPaneTest
         // As a drag leaves it; then b closes and c splits from a.
         layout.setFloatingDividers(false);
         ((Divider) ((Split) model(pane)).getChildren().get(1)).setBounds(
-            new java.awt.Rectangle(10, 0, pane.getDividerSize(), 100));
+            new java.awt.Rectangle(10, 0, pane.getDividerSize(), 100)
+        );
         pane.unsplit(b);
         pane.split(a, c, true);
         layout.layoutContainer(pane);
@@ -93,8 +88,7 @@ public class EditorPaneTest
     }
 
     @Test
-    public void aCloseAfterADragEvensTheRestOut()
-    {
+    public void aCloseAfterADragEvensTheRestOut() {
         final Editor a = new Editor();
         final Editor b = new Editor();
         final Editor c = new Editor();
@@ -104,7 +98,8 @@ public class EditorPaneTest
         pane.setSize(304, 100);
         pane.getMultiSplitLayout().setFloatingDividers(false);
         ((Divider) ((Split) model(pane)).getChildren().get(1)).setBounds(
-            new java.awt.Rectangle(10, 0, pane.getDividerSize(), 100));
+            new java.awt.Rectangle(10, 0, pane.getDividerSize(), 100)
+        );
         pane.unsplit(c);
         pane.getMultiSplitLayout().layoutContainer(pane);
         final List<Node> children = ((Split) model(pane)).getChildren();
@@ -114,8 +109,7 @@ public class EditorPaneTest
     }
 
     @Test
-    public void balanceEvensOutDraggedDividers()
-    {
+    public void balanceEvensOutDraggedDividers() {
         final Editor a = new Editor();
         final Editor b = new Editor();
         final Editor c = new Editor();
@@ -128,7 +122,8 @@ public class EditorPaneTest
         layout.setFloatingDividers(false);
         final List<Node> children = ((Split) model(pane)).getChildren();
         ((Divider) children.get(1)).setBounds(
-            new java.awt.Rectangle(0, 10, 100, pane.getDividerSize()));
+            new java.awt.Rectangle(0, 10, 100, pane.getDividerSize())
+        );
         pane.balance();
         layout.layoutContainer(pane);
         final int size = pane.getDividerSize();

@@ -26,25 +26,26 @@ import org.junit.Before;
 import org.junit.Test;
 
 /** followLink on Javadoc's references, to the class's source and member. */
-public class JavadocLinksTest
-{
+public class JavadocLinksTest {
     private EditorHarness h;
     private Path source;
     private String className;
     private BiConsumer<Editor, Buffer> switcher;
 
     @Before
-    public void setUp() throws Exception
-    {
+    public void setUp() throws Exception {
         className = "JLink" + System.nanoTime();
         source = Paths.get(System.getProperty("java.io.tmpdir"), className + ".java");
-        Files.write(source, ("public class " + className + "\n{\n"
-            + "    public " + className + "() {}\n"
-            + "    public void bar() {}\n"
-            + "    public void bar(int n) {}\n"
-            + "    public void bar(final String s, java.util.List<String> l) {}\n"
-            + "    public void baz(String... args) {}\n"
-            + "}\n").getBytes("UTF-8"));
+        Files.write(
+            source,
+            ("public class " + className + "\n{\n"
+                + "    public " + className + "() {}\n"
+                + "    public void bar() {}\n"
+                + "    public void bar(int n) {}\n"
+                + "    public void bar(final String s, java.util.List<String> l) {}\n"
+                + "    public void baz(String... args) {}\n"
+                + "}\n").getBytes("UTF-8")
+        );
         // No frame to activate a buffer in: load it and show it directly.
         switcher = FollowLink.switcher;
         FollowLink.switcher = (editor, buffer) -> {
@@ -69,38 +70,35 @@ public class JavadocLinksTest
     }
 
     @After
-    public void tearDown() throws Exception
-    {
+    public void tearDown() throws Exception {
         FollowLink.switcher = switcher;
         if (h != null)
             h.close();
         Files.deleteIfExists(source);
     }
 
-    private EditorHarness on(String text)
-    {
+    private EditorHarness on(String text) {
         h = EditorHarness.create(text).mode(JavaMode.getMode());
         Editor.setCurrentEditor(h.editor());
         return h;
     }
 
-    private TextLink linkAt(int line, int offset)
-    {
+    private TextLink linkAt(int line, int offset) {
         h.cursor(line, offset);
         return h.buffer().getMode().getLinkAt(h.editor(), h.editor().getDot());
     }
 
-    private String path()
-    {
+    private String path() {
         return File.getInstance(source.toString()).canonicalPath();
     }
 
     @Test
-    public void referencesResolveToTheClasssSource()
-    {
+    public void referencesResolveToTheClasssSource() {
         final String c = className;
-        on("/**\n * {@link " + c + "#bar(int)} and {@linkplain #local here}\n"
-           + " * @see " + c + "\n * @throws NoSuchThing never\n */\nvoid local() {}\n");
+        on(
+            "/**\n * {@link " + c + "#bar(int)} and {@linkplain #local here}\n"
+                + " * @see " + c + "\n * @throws NoSuchThing never\n */\nvoid local() {}\n"
+        );
         final TextLink bar = linkAt(1, 10);
         assertEquals(path() + "#bar(int)", bar.getTarget());
         assertEquals(10, bar.getBegin());
@@ -114,12 +112,13 @@ public class JavadocLinksTest
     }
 
     @Test
-    public void aMemberIsATagByItsParameters()
-    {
+    public void aMemberIsATagByItsParameters() {
         on("// {@link " + className + "#bar(String, List)}\n").cursor(0, 12);
         FollowLink.followLink();
-        assertEquals(source.getFileName().toString(),
-                     h.editor().getBuffer().getFile().getName());
+        assertEquals(
+            source.getFileName().toString(),
+            h.editor().getBuffer().getFile().getName()
+        );
         assertEquals(5, h.editor().getDotLineNumber());
         final List<LocalTag> tags = h.editor().getBuffer().getTags(true);
         LocalTag bar = null;
@@ -143,8 +142,7 @@ public class JavadocLinksTest
     }
 
     @Test
-    public void aClassAloneGoesToItsDeclaration()
-    {
+    public void aClassAloneGoesToItsDeclaration() {
         on("// @see " + className + "\n").cursor(0, 9);
         FollowLink.followLink();
         assertEquals(0, h.editor().getDotLineNumber());

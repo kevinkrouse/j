@@ -18,22 +18,19 @@
 
 package org.armedbear.j.mail;
 
-import org.junit.Test;
+import static org.junit.Assert.*;
 
 import java.util.GregorianCalendar;
 import java.util.TimeZone;
-
-import static org.junit.Assert.*;
+import org.junit.Test;
 
 /**
  * User: kevink
  * Date: 5/22/11
  */
-public class ImapMailboxEntryTest
-{
+public class ImapMailboxEntryTest {
     @Test
-    public void parseMessageNumber()
-    {
+    public void parseMessageNumber() {
         assertEquals(0, ImapMailboxEntry.TestHelper.parseMessageNumber(null));
         assertEquals(0, ImapMailboxEntry.TestHelper.parseMessageNumber(""));
         assertEquals(0, ImapMailboxEntry.TestHelper.parseMessageNumber("abc"));
@@ -44,47 +41,51 @@ public class ImapMailboxEntryTest
     }
 
     @Test
-    public void parseFlags()
-    {
+    public void parseFlags() {
         assertEquals(0, ImapMailboxEntry.parseFlags(null));
         assertEquals(0, ImapMailboxEntry.parseFlags(""));
 
         assertEquals(0, ImapMailboxEntry.parseFlags("FLAGS ()"));
         assertEquals(MailboxEntry.SEEN, ImapMailboxEntry.parseFlags("FLAGS (\\Seen)"));
         assertEquals(MailboxEntry.SEEN, ImapMailboxEntry.parseFlags("FLAGS (\\SEEN)"));
-        assertEquals(MailboxEntry.SEEN | MailboxEntry.ANSWERED, ImapMailboxEntry.parseFlags("FLAGS (\\SEEN \\answered)"));
-        assertEquals(MailboxEntry.FLAGGED | MailboxEntry.DRAFT, ImapMailboxEntry.parseFlags("FLAGS (\\Draft \\Flagged)"));
+        assertEquals(
+            MailboxEntry.SEEN | MailboxEntry.ANSWERED,
+            ImapMailboxEntry.parseFlags("FLAGS (\\SEEN \\answered)")
+        );
+        assertEquals(
+            MailboxEntry.FLAGGED | MailboxEntry.DRAFT,
+            ImapMailboxEntry.parseFlags("FLAGS (\\Draft \\Flagged)")
+        );
     }
 
     @Test
-    public void parseEmptyEntry()
-    {
+    public void parseEmptyEntry() {
         assertNull(ImapMailboxEntry.parseEntry(null));
         assertNull(ImapMailboxEntry.parseEntry(""));
     }
 
     @Test
-    public void parseEntry()
-    {
+    public void parseEntry() {
         String s =
             "* 1694 FETCH (" +
-            "UID 6026 " +
-            "RFC822.SIZE 9452 " +
-            "InternalDate \"16-Apr-2010 12:46:27 +0000\" " +
-            "FLAGS () " +
-            "ENVELOPE (\"Fri, 16 Apr 2010 08:45:37 -0400\" " +
-            "\"Re: [armedbear-devel] testing imap parsing\" " +
-            "((\"Hello World\" NIL \"helloworld\" \"example.com\")) " +
-            "((\"Hello World\" NIL \"helloworld\" \"example.com\")) " +
-            "((\"Hello World\" NIL \"helloworld\" \"example.com\")) " +
-            "((\"Bob Smith\" NIL \"bsmith\" \"example.com\")) " +
-            "((NIL NIL \"armedbear-devel\" \"common-lisp.net\")) " +
-            "NIL \"<4BC7FE25.6000809@panix.com>\" \"<2ip29af5e2d1004160545wcf087e8ay6ccdf94eddde96f8@mail.gmail.com>\") " +
-            "BODY[HEADER.FIELDS (references)] {111}\n" +
-            "References: <2ul29af5e2d1004151541rc2e7f74fpd93d6c615488b2f3@mail.gmail.com>\r\n" +
-            " <4BC7FE25.6000809@panix.com>\r\n" +
-            "\r\n" +
-            ")";
+                "UID 6026 " +
+                "RFC822.SIZE 9452 " +
+                "InternalDate \"16-Apr-2010 12:46:27 +0000\" " +
+                "FLAGS () " +
+                "ENVELOPE (\"Fri, 16 Apr 2010 08:45:37 -0400\" " +
+                "\"Re: [armedbear-devel] testing imap parsing\" " +
+                "((\"Hello World\" NIL \"helloworld\" \"example.com\")) " +
+                "((\"Hello World\" NIL \"helloworld\" \"example.com\")) " +
+                "((\"Hello World\" NIL \"helloworld\" \"example.com\")) " +
+                "((\"Bob Smith\" NIL \"bsmith\" \"example.com\")) " +
+                "((NIL NIL \"armedbear-devel\" \"common-lisp.net\")) " +
+                "NIL \"<4BC7FE25.6000809@panix.com>\" \"<2ip29af5e2d1004160545wcf087e8ay6ccdf94eddde96f8@mail.gmail.com>\") "
+                +
+                "BODY[HEADER.FIELDS (references)] {111}\n" +
+                "References: <2ul29af5e2d1004151541rc2e7f74fpd93d6c615488b2f3@mail.gmail.com>\r\n" +
+                " <4BC7FE25.6000809@panix.com>\r\n" +
+                "\r\n" +
+                ")";
 
         ImapMailboxEntry entry = ImapMailboxEntry.parseEntry(s);
         assertEquals(1694, entry.getMessageNumber());
@@ -127,8 +128,7 @@ public class ImapMailboxEntryTest
     }
 
     @Test
-    public void parseQuotedAddress()
-    {
+    public void parseQuotedAddress() {
         String s = "* 1951 FETCH (" +
             "UID 17117 " +
             "RFC822.SIZE 16657 " +

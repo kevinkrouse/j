@@ -17,7 +17,6 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.util.regex.PatternSyntaxException;
-
 import org.armedbear.j.EditorHarness;
 import org.junit.After;
 import org.junit.Test;
@@ -32,13 +31,11 @@ import org.junit.Test;
  * substitute -- against vim itself rather than against anyone's reading of
  * {@code :help pattern}.
  */
-public class VimRegexTest
-{
+public class VimRegexTest {
     private EditorHarness h;
 
     @After
-    public void tearDown()
-    {
+    public void tearDown() {
         if (h != null)
             h.close();
     }
@@ -46,99 +43,104 @@ public class VimRegexTest
     /** text, pattern, what nvim made of it */
     private static final String[][] NVIM = {
         // Magic, the default: + ? ( ) | { are characters until escaped.
-        {"a+ aa",         "a+",             "[a+] aa"},
-        {"a+ aa",         "a\\+",           "[a]+ [aa]"},
-        {"ab b",          "a\\?b",          "[ab] [b]"},
-        {"ab b",          "a\\=b",          "[ab] [b]"},
-        {"(ab) ab",       "(ab)",           "[(ab)] ab"},
-        {"abab ab",       "\\(ab\\)\\1",    "[abab] ab"},
-        {"a|b c",         "a|b",            "[a|b] c"},
-        {"a b c",         "a\\|b",          "[a] [b] c"},
-        {"a{2} aa",       "a{2}",           "[a{2}] aa"},
-        {"a aa aaa",      "a\\{2}",         "a [aa] [aa]a"},
-        {"aaaa",          "a\\{2,}",        "[aaaa]"},
-        {"aaaa",          "a\\{1,2}",       "[aa][aa]"},
+        { "a+ aa", "a+", "[a+] aa" },
+        { "a+ aa", "a\\+", "[a]+ [aa]" },
+        { "ab b", "a\\?b", "[ab] [b]" },
+        { "ab b", "a\\=b", "[ab] [b]" },
+        { "(ab) ab", "(ab)", "[(ab)] ab" },
+        { "abab ab", "\\(ab\\)\\1", "[abab] ab" },
+        { "a|b c", "a|b", "[a|b] c" },
+        { "a b c", "a\\|b", "[a] [b] c" },
+        { "a{2} aa", "a{2}", "[a{2}] aa" },
+        { "a aa aaa", "a\\{2}", "a [aa] [aa]a" },
+        { "aaaa", "a\\{2,}", "[aaaa]" },
+        { "aaaa", "a\\{1,2}", "[aa][aa]" },
         // Vim reads {3,1} as {1,3}; Java refuses it outright.
-        {"aaaa",          "a\\{3,1}",       "[aaa][a]"},
-        {"aaa",           "a\\{-1,}",       "[a][a][a]"},
-        {"aaa",           "a\\{-2,}",       "[aa]a"},
+        { "aaaa", "a\\{3,1}", "[aaa][a]" },
+        { "aaa", "a\\{-1,}", "[a][a][a]" },
+        { "aaa", "a\\{-2,}", "[aa]a" },
         // Empty matches everywhere but the end of the line.
-        {"aaa",           "a\\{-}",         "[]a[]a[]a"},
-        {"abab",          "\\%(ab\\)\\+",   "[abab]"},
-        {"a.b axb",       "a\\.b",          "[a.b] axb"},
+        { "aaa", "a\\{-}", "[]a[]a[]a" },
+        { "abab", "\\%(ab\\)\\+", "[abab]" },
+        { "a.b axb", "a\\.b", "[a.b] axb" },
         // ^ and $ only anchor at the ends of a branch; elsewhere they are
         // characters, where Java would read an anchor that cannot match.
-        {"a^b",           "a^b",            "[a^b]"},
-        {"a$b",           "a$b",            "[a$b]"},
-        {"xab ab",        "^ab",            "xab ab"},
+        { "a^b", "a^b", "[a^b]" },
+        { "a$b", "a$b", "[a$b]" },
+        { "xab ab", "^ab", "xab ab" },
         // * with nothing before it is the character.
-        {"*a",            "*a",             "[*a]"},
-        {"a/b",           "a\\/b",          "[a/b]"},
-        {"a\\b",          "a\\\\b",         "[a\\b]"},
+        { "*a", "*a", "[*a]" },
+        { "a/b", "a\\/b", "[a/b]" },
+        { "a\\b", "a\\\\b", "[a\\b]" },
 
         // Very magic: every operator is bare.
-        {"abab x",        "\\v(ab)+",       "[abab] x"},
-        {"abcabc",        "\\v(abc)\\1",    "[abcabc]"},
-        {"a b",           "\\va|b",         "[a] [b]"},
-        {"a{2} aa",       "\\va{2}",        "a{2} [aa]"},
-        {"a b",           "\\v<b>",         "a [b]"},
+        { "abab x", "\\v(ab)+", "[abab] x" },
+        { "abcabc", "\\v(abc)\\1", "[abcabc]" },
+        { "a b", "\\va|b", "[a] [b]" },
+        { "a{2} aa", "\\va{2}", "a{2} [aa]" },
+        { "a b", "\\v<b>", "a [b]" },
 
         // Nomagic: . and * are characters until escaped.
-        {"a.b",           "\\M.",           "a[.]b"},
-        {"a.b",           "\\M\\.",         "[a][.][b]"},
-        {"a*b",           "\\Ma*",          "[a*]b"},
+        { "a.b", "\\M.", "a[.]b" },
+        { "a.b", "\\M\\.", "[a][.][b]" },
+        { "a*b", "\\Ma*", "[a*]b" },
 
         // Very nomagic: only the backslash is special -- even a leading ^.
-        {"a.b",           "\\V.",           "a[.]b"},
-        {"a*b ab",        "\\Va*",          "[a*]b ab"},
-        {"ab ab",         "\\Vab",          "[ab] [ab]"},
-        {"^a$",           "\\V^a",          "[^a]$"},
-        {"a^b",           "\\V^",           "a[^]b"},
-        {"ab$",           "\\Vb$",          "a[b$]"},
+        { "a.b", "\\V.", "a[.]b" },
+        { "a*b ab", "\\Va*", "[a*]b ab" },
+        { "ab ab", "\\Vab", "[ab] [ab]" },
+        { "^a$", "\\V^a", "[^a]$" },
+        { "a^b", "\\V^", "a[^]b" },
+        { "ab$", "\\Vb$", "a[b$]" },
 
         // Letter classes, several of which mean something else to Java.
-        {"a1b",           "\\a",            "[a]1[b]"},
-        {"aBc",           "\\u",            "a[B]c"},
-        {"aBc",           "\\l",            "[a]B[c]"},
-        {"g0f",           "\\x",            "g[0][f]"},
-        {"a12b",          "\\d\\+",         "a[12]b"},
-        {"a1_b",          "\\h",            "[a]1[_][b]"},
-        {"a\tb",          "a\\sb",          "[a\tb]"},
-        {"ax",            "\\%x61",         "[a]x"},
+        { "a1b", "\\a", "[a]1[b]" },
+        { "aBc", "\\u", "a[B]c" },
+        { "aBc", "\\l", "[a]B[c]" },
+        { "g0f", "\\x", "g[0][f]" },
+        { "a12b", "\\d\\+", "a[12]b" },
+        { "a1_b", "\\h", "[a]1[_][b]" },
+        { "a\tb", "a\\sb", "[a\tb]" },
+        { "ax", "\\%x61", "[a]x" },
 
         // Bracket classes.
-        {"a1b",           "[[:alpha:]]",    "[a]1[b]"},
-        {"x]y",           "[]]",            "x[]]y"},
-        {"a-b",           "[a-]",           "[a][-]b"},
-        {"x^y",           "[x^]",           "[x][^]y"},
+        { "a1b", "[[:alpha:]]", "[a]1[b]" },
+        { "x]y", "[]]", "x[]]y" },
+        { "a-b", "[a-]", "[a][-]b" },
+        { "x^y", "[x^]", "[x][^]y" },
 
         // Where the match starts and ends.
-        {"foobar",        "foo\\zsbar",     "foo[bar]"},
-        {"foobar",        "foo\\zebar",     "[foo]bar"},
+        { "foobar", "foo\\zsbar", "foo[bar]" },
+        { "foobar", "foo\\zebar", "[foo]bar" },
 
         // Lookaround, which vim writes after its atom and Java before.
-        {"foobar foobaz", "foo\\(bar\\)\\@=",  "[foo]bar foobaz"},
-        {"foobar foobaz", "foo\\(bar\\)\\@!",  "foobar [foo]baz"},
-        {"foobar xbar",   "\\(foo\\)\\@<=bar", "foo[bar] xbar"},
-        {"xbar foobar",   "\\(foo\\)\\@<!bar", "x[bar] foobar"},
+        { "foobar foobaz", "foo\\(bar\\)\\@=", "[foo]bar foobaz" },
+        { "foobar foobaz", "foo\\(bar\\)\\@!", "foobar [foo]baz" },
+        { "foobar xbar", "\\(foo\\)\\@<=bar", "foo[bar] xbar" },
+        { "xbar foobar", "\\(foo\\)\\@<!bar", "x[bar] foobar" },
 
         // Case, in the pattern itself.
-        {"foo",           "\\cFOO",         "[foo]"},
-        {"Foo foo",       "\\Cfoo",         "Foo [foo]"},
+        { "foo", "\\cFOO", "[foo]" },
+        { "Foo foo", "\\Cfoo", "Foo [foo]" },
     };
 
     @Test
-    public void everyRowMatchesWhatNvimMatched()
-    {
+    public void everyRowMatchesWhatNvimMatched() {
         final StringBuilder failures = new StringBuilder();
         for (String[] row : NVIM) {
             h = EditorHarness.create().vim();
             h.value(row[0]).cursor(0, 0);
             h.exCommand("s#" + row[1] + "#[&]#g");
             if (!row[2].equals(h.value()))
-                failures.append("\n  ").append(row[1]).append(" on \"")
-                        .append(row[0]).append("\": nvim \"").append(row[2])
-                        .append("\", we \"").append(h.value()).append('"');
+                failures.append("\n  ")
+                    .append(row[1])
+                    .append(" on \"")
+                    .append(row[0])
+                    .append("\": nvim \"")
+                    .append(row[2])
+                    .append("\", we \"")
+                    .append(h.value())
+                    .append('"');
             h.close();
             h = null;
         }
@@ -149,8 +151,7 @@ public class VimRegexTest
     // ---------------------------------------------------------- the pipeline
 
     @Test
-    public void searchUsesTheSameRules()
-    {
+    public void searchUsesTheSameRules() {
         // Not only :s -- / goes through the same translation.
         h = EditorHarness.create().vim();
         h.value("aaa bbb").cursor(0, 0).keys("/").searchPattern("b\\+");
@@ -158,17 +159,18 @@ public class VimRegexTest
     }
 
     @Test
-    public void globalUsesTheSameRules()
-    {
+    public void globalUsesTheSameRules() {
         h = EditorHarness.create().vim();
         h.value("a+\nab\na+b").cursor(0, 0).exCommand("g/a+/d");
-        assertEquals("the + is literal, so only the lines with a+ go",
-                     "ab", h.value());
+        assertEquals(
+            "the + is literal, so only the lines with a+ go",
+            "ab",
+            h.value()
+        );
     }
 
     @Test
-    public void tildeIsTheLastReplacement()
-    {
+    public void tildeIsTheLastReplacement() {
         // nvim: after :s/x/y/, ~z finds "yz".
         h = EditorHarness.create().vim();
         h.value("x yz").cursor(0, 0).exCommand("s/x/y/");
@@ -179,20 +181,20 @@ public class VimRegexTest
     // ------------------------------------------------------------ smartcase
 
     @Test
-    public void anEscapedCapitalIsNotAnUpperCaseLetter()
-    {
+    public void anEscapedCapitalIsNotAnUpperCaseLetter() {
         // 'smartcase' looks for an upper case letter; the S in \S is part of
         // an escape and vim does not count it. This counted it before.
         assertFalse(VimRegex.translate("a\\Sb").hasUppercase);
         assertFalse(VimRegex.translate("\\_S").hasUppercase);
         assertTrue(VimRegex.translate("aBc").hasUppercase);
-        assertTrue("inside a class it counts",
-                   VimRegex.translate("[A-Z]").hasUppercase);
+        assertTrue(
+            "inside a class it counts",
+            VimRegex.translate("[A-Z]").hasUppercase
+        );
     }
 
     @Test
-    public void caseFlagsInThePatternAreReported()
-    {
+    public void caseFlagsInThePatternAreReported() {
         assertEquals(Boolean.TRUE, VimRegex.translate("\\cfoo").ignoreCase);
         assertEquals(Boolean.FALSE, VimRegex.translate("foo\\C").ignoreCase);
         assertEquals(null, VimRegex.translate("foo").ignoreCase);
@@ -201,25 +203,25 @@ public class VimRegexTest
     // ------------------------------------------------------------- refusals
 
     @Test
-    public void whatCannotBeExpressedIsRefusedByName()
-    {
+    public void whatCannotBeExpressedIsRefusedByName() {
         // A silently wrong pattern is worse than a clear refusal.
-        for (String p : new String[] {"\\%V", "\\%#", "a\\&b",
-                                      "\\(a\\zsb\\)", "a\\|b\\zsc"}) {
+        for (String p : new String[] { "\\%V", "\\%#", "a\\&b",
+            "\\(a\\zsb\\)", "a\\|b\\zsc" }) {
             try {
                 VimRegex.translate(p);
                 fail("expected " + p + " to be refused");
             }
             catch (PatternSyntaxException expected) {
-                assertTrue(p + ": " + expected.getDescription(),
-                           expected.getDescription() != null);
+                assertTrue(
+                    p + ": " + expected.getDescription(),
+                    expected.getDescription() != null
+                );
             }
         }
     }
 
     @Test
-    public void aRefusalReachesTheUserAsAMessageNotAnException()
-    {
+    public void aRefusalReachesTheUserAsAMessageNotAnException() {
         // Through every door a pattern comes in by. Only :s was tested at
         // first, and it was the one path that happened to catch a refusal:
         // / and the /pat/ address let it escape into the key handler.
@@ -235,8 +237,7 @@ public class VimRegexTest
     }
 
     @Test
-    public void whatJavaRefusesIsNotCalledNotFound()
-    {
+    public void whatJavaRefusesIsNotCalledNotFound() {
         // \zs becomes a lookbehind, and Java refuses a lookbehind around a
         // quantified group -- though not around a*, which it takes. nvim
         // makes "ababx" of this; we refuse it, and the message must say the
@@ -245,15 +246,20 @@ public class VimRegexTest
         h = EditorHarness.create().vim();
         h.value("ababc").cursor(0, 0).exCommand("s/\\(ab\\)*\\zsc/x/");
         assertEquals("nothing is changed", "ababc", h.value());
-        final String message = VimExSubstitute.badPattern("\\(ab\\)*\\zsc",
-            new PatternSyntaxException("Look-behind group does not have an "
-                                       + "obvious maximum length", "", 0));
+        final String message = VimExSubstitute.badPattern(
+            "\\(ab\\)*\\zsc",
+            new PatternSyntaxException(
+                "Look-behind group does not have an "
+                    + "obvious maximum length",
+                "",
+                0
+            )
+        );
         assertTrue(message, message.startsWith("E383"));
     }
 
     @Test
-    public void zsAfterSomethingOfVariableWidthIsRefused()
-    {
+    public void zsAfterSomethingOfVariableWidthIsRefused() {
         // The lookbehind \zs becomes is satisfied at the leftmost place it
         // can be; vim's \zs lands after the greedy match. .*\zsfoo is the
         // last foo in nvim and was every foo here, silently. Refused by
@@ -261,8 +267,8 @@ public class VimRegexTest
         h = EditorHarness.create().vim();
         h.value("foo x foo").cursor(0, 0).exCommand("s/.*\\zsfoo/X/");
         assertEquals("foo x foo", h.value());
-        for (String p : new String[] {"a\\+\\zsb", "\\(a\\|bc\\)\\zsd",
-                                      "\\(a\\)\\1\\zsb", "a\\{1,2}\\zsb"}) {
+        for (String p : new String[] { "a\\+\\zsb", "\\(a\\|bc\\)\\zsd",
+            "\\(a\\)\\1\\zsb", "a\\{1,2}\\zsb" }) {
             try {
                 VimRegex.translate(p);
                 fail("expected " + p + " to be refused");
@@ -274,8 +280,7 @@ public class VimRegexTest
     }
 
     @Test
-    public void butAFixedWidthPrefixIsExactAndAllowed()
-    {
+    public void butAFixedWidthPrefixIsExactAndAllowed() {
         // With a fixed width the leftmost lookbehind and vim's greedy \zs
         // land in the same place. \{3} is still fixed.
         h = EditorHarness.create().vim();
@@ -284,9 +289,8 @@ public class VimRegexTest
     }
 
     @Test
-    public void unbalancedGroupsAreErrors()
-    {
-        for (String p : new String[] {"\\(ab", "ab\\)"}) {
+    public void unbalancedGroupsAreErrors() {
+        for (String p : new String[] { "\\(ab", "ab\\)" }) {
             try {
                 VimRegex.translate(p);
                 fail("expected " + p + " to be refused");

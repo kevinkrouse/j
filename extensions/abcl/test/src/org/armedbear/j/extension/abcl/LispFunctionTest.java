@@ -43,26 +43,23 @@ import org.junit.Test;
  * dispatcher invokes it and describeKey prints it -- with core naming no ABCL
  * type anywhere along the way.
  */
-public class LispFunctionTest
-{
+public class LispFunctionTest {
     @BeforeClass
-    public static void startTheRuntime() throws EvalException
-    {
+    public static void startTheRuntime() throws EvalException {
         AbclSession.ensureInitialized();
     }
 
-    private static LispObject lambda(String form)
-    {
+    private static LispObject lambda(String form) {
         return Interpreter.evaluate(form);
     }
 
     @Test
-    public void aClosureCanBeInvokedThroughTheInterface()
-    {
+    public void aClosureCanBeInvokedThroughTheInterface() {
         // A lambda with a side effect, so we can see that it really ran.
         Interpreter.evaluate("(defparameter cl-user::*ran* 0)");
         LispFunction function = new LispFunction(
-            lambda("(lambda () (setq cl-user::*ran* (1+ cl-user::*ran*)))"));
+            lambda("(lambda () (setq cl-user::*ran* (1+ cl-user::*ran*)))")
+        );
 
         ScriptFunction opaque = function;
         opaque.invoke();
@@ -72,27 +69,27 @@ public class LispFunctionTest
     }
 
     @Test
-    public void describeIsWhatTheKeyBindingListingPrints()
-    {
+    public void describeIsWhatTheKeyBindingListingPrints() {
         String description = new LispFunction(lambda("(lambda () nil)")).describe();
         assertNotNull(description);
         assertTrue(description, description.length() > 0);
         // Help used to call LispObject.printObject() directly; same string.
-        assertTrue(description, description.indexOf("FUNCTION") >= 0
-                                || description.indexOf("LAMBDA") >= 0);
+        assertTrue(
+            description,
+            description.indexOf("FUNCTION") >= 0
+                || description.indexOf("LAMBDA") >= 0
+        );
     }
 
     @Test
-    public void aBrokenBindingReportsRatherThanThrows()
-    {
+    public void aBrokenBindingReportsRatherThanThrows() {
         // Runs from the dispatcher: an error here must not take the editor
         // down, so invoke() logs and returns.
         new LispFunction(lambda("(lambda () (error \"boom\"))")).invoke();
     }
 
     @Test
-    public void itSurvivesTheRoundTripThroughAKeyMap()
-    {
+    public void itSurvivesTheRoundTripThroughAKeyMap() {
         LispFunction function = new LispFunction(lambda("(lambda () nil)"));
         KeyMap keyMap = new KeyMap();
         assertTrue(keyMap.mapKey("Ctrl F12", function));
@@ -100,8 +97,7 @@ public class LispFunctionTest
     }
 
     @Test
-    public void mappingAKeyFromLispStoresAScriptFunction()
-    {
+    public void mappingAKeyFromLispStoresAScriptFunction() {
         // j:global-map-key with a function, the way init.lisp writes it. What
         // lands in the key map must be something core can name.
         Interpreter.evaluate("(j:global-map-key \"Ctrl F11\" (lambda () nil))");
@@ -111,18 +107,18 @@ public class LispFunctionTest
                 command = mapping.getCommand();
         if (command == null)
             fail("the binding was not installed");
-        assertTrue(command.getClass().getName(),
-                   command instanceof ScriptFunction);
+        assertTrue(
+            command.getClass().getName(),
+            command instanceof ScriptFunction
+        );
     }
 
     @Test
-    public void aFunctionIsRequired()
-    {
+    public void aFunctionIsRequired() {
         try {
             new LispFunction(null);
             fail("null should not be accepted");
         }
-        catch (IllegalArgumentException expected) {
-        }
+        catch (IllegalArgumentException expected) {}
     }
 }

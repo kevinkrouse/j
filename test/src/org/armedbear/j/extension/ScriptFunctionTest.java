@@ -37,27 +37,22 @@ import org.junit.Test;
  * {@code instanceof LispObject} case with an interface: core must be able to
  * carry the thing around and describe it without naming its type.
  */
-public class ScriptFunctionTest
-{
+public class ScriptFunctionTest {
     /** Stands in for a closure defined in whatever language is installed. */
-    private static final class FakeFunction implements ScriptFunction
-    {
+    private static final class FakeFunction implements ScriptFunction {
         int invocations;
 
-        public void invoke()
-        {
+        public void invoke() {
             ++invocations;
         }
 
-        public String describe()
-        {
+        public String describe() {
             return "#<FUNCTION (LAMBDA ()) {1234}>";
         }
     }
 
     @Test
-    public void aFunctionSurvivesTheRoundTripThroughAKeyMap()
-    {
+    public void aFunctionSurvivesTheRoundTripThroughAKeyMap() {
         FakeFunction function = new FakeFunction();
         KeyMap keyMap = new KeyMap();
         assertTrue(keyMap.mapKey("Ctrl F12", function));
@@ -70,8 +65,7 @@ public class ScriptFunctionTest
     }
 
     @Test
-    public void rebindingTheSameKeyReplacesTheFunction()
-    {
+    public void rebindingTheSameKeyReplacesTheFunction() {
         FakeFunction first = new FakeFunction();
         FakeFunction second = new FakeFunction();
         KeyMap keyMap = new KeyMap();
@@ -84,21 +78,19 @@ public class ScriptFunctionTest
     }
 
     @Test
-    public void coreInvokesItWithoutKnowingWhatItIs()
-    {
+    public void coreInvokesItWithoutKnowingWhatItIs() {
         FakeFunction function = new FakeFunction();
         KeyMap keyMap = new KeyMap();
         keyMap.mapKey("Ctrl F12", function);
 
         Object command = keyMap.getMappings()[0].getCommand();
         assertTrue(command instanceof ScriptFunction);
-        ((ScriptFunction)command).invoke();
+        ((ScriptFunction) command).invoke();
         assertEquals(1, function.invocations);
     }
 
     @Test
-    public void describeIsWhatTheKeyBindingListingShows()
-    {
+    public void describeIsWhatTheKeyBindingListingShows() {
         // Help writes this into the key binding listing, where it used to call
         // LispObject.printObject().
         String description = new FakeFunction().describe();

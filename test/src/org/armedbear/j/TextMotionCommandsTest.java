@@ -20,19 +20,16 @@ import org.junit.Test;
  * The paragraph, section, sentence and unmatched-bracket commands, which
  * vim's { } ]] [[ ][ [] ( ) [( ]) are, run as j commands.
  */
-public class TextMotionCommandsTest
-{
+public class TextMotionCommandsTest {
     private EditorHarness h;
 
     @After
-    public void tearDown()
-    {
+    public void tearDown() {
         if (h != null)
             h.close();
     }
 
-    private void on(String text, int line, int offset)
-    {
+    private void on(String text, int line, int offset) {
         h = EditorHarness.create(text);
         Line l = h.buffer().getFirstLine();
         for (int i = 0; i < line && l != null; i++)
@@ -42,14 +39,12 @@ public class TextMotionCommandsTest
         Editor.setCurrentEditor(h.editor());
     }
 
-    private String at()
-    {
+    private String at() {
         return h.editor().getDotLineNumber() + "," + h.editor().getDotOffset();
     }
 
     @Test
-    public void paragraphs()
-    {
+    public void paragraphs() {
         on("a\nb\n\nc\n", 0, 0);
         Paragraphs.forwardParagraph();
         assertEquals("2,0", at());
@@ -58,8 +53,7 @@ public class TextMotionCommandsTest
     }
 
     @Test
-    public void sections()
-    {
+    public void sections() {
         on("a\n{\nb\n}\nc\n", 0, 0);
         Paragraphs.forwardSection();
         assertEquals("1,0", at());
@@ -70,8 +64,7 @@ public class TextMotionCommandsTest
     }
 
     @Test
-    public void sentences()
-    {
+    public void sentences() {
         on("One two.  Three four.\n", 0, 0);
         Sentences.forwardSentence();
         assertEquals("0,10", at());
@@ -80,8 +73,7 @@ public class TextMotionCommandsTest
     }
 
     @Test
-    public void unmatchedBrackets()
-    {
+    public void unmatchedBrackets() {
         on("f(a, [b], c)\n", 0, 3);
         CaretCommands.findUnmatchedBracket("(");
         assertEquals("0,1", at());
@@ -91,8 +83,7 @@ public class TextMotionCommandsTest
     }
 
     @Test
-    public void anUnmatchedBracketNeedsABracket()
-    {
+    public void anUnmatchedBracketNeedsABracket() {
         on("f(a)\n", 0, 2);
         CaretCommands.findUnmatchedBracket("x");
         assertEquals("0,2", at());

@@ -28,8 +28,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 /** followLink: what a link at the caret is, and where it goes. */
-public class MarkdownLinksTest
-{
+public class MarkdownLinksTest {
     private EditorHarness h;
     private final List<String> browsed = new ArrayList<String>();
     private Consumer<String> browser;
@@ -37,8 +36,7 @@ public class MarkdownLinksTest
     private final List<Path> files = new ArrayList<Path>();
 
     @Before
-    public void setUp()
-    {
+    public void setUp() {
         browser = FollowLink.browser;
         FollowLink.browser = browsed::add;
         // No frame to activate a buffer in: load it and show it directly.
@@ -65,8 +63,7 @@ public class MarkdownLinksTest
     }
 
     @After
-    public void tearDown() throws Exception
-    {
+    public void tearDown() throws Exception {
         FollowLink.browser = browser;
         FollowLink.switcher = switcher;
         if (h != null)
@@ -75,31 +72,30 @@ public class MarkdownLinksTest
             Files.deleteIfExists(p);
     }
 
-    private EditorHarness on(String text)
-    {
+    private EditorHarness on(String text) {
         h = EditorHarness.create(text).mode(MarkdownMode.getMode());
         Editor.setCurrentEditor(h.editor());
         h.buffer().getFormatter().parseBuffer();
         return h;
     }
 
-    private String linkAt(int line, int offset)
-    {
+    private String linkAt(int line, int offset) {
         h.cursor(line, offset);
         final TextLink link = h.buffer().getMode().getLinkAt(h.editor(), h.editor().getDot());
         return link != null ? link.getTarget() : null;
     }
 
     @Test
-    public void whatALinkPointsTo()
-    {
-        on("see [the docs](docs.md \"Docs\") and ![a](p.png)\n"
-           + "[full][r] [collapsed][] [shortcut] [not one]\n"
-           + "<https://a.b/c> and https://x.y/z.\n"
-           + "[a](<my notes.md>)\n"
-           + "[r]: https://r.example\n"
-           + "[collapsed]: c.md\n"
-           + "[Shortcut]:   <s.md>\n");
+    public void whatALinkPointsTo() {
+        on(
+            "see [the docs](docs.md \"Docs\") and ![a](p.png)\n"
+                + "[full][r] [collapsed][] [shortcut] [not one]\n"
+                + "<https://a.b/c> and https://x.y/z.\n"
+                + "[a](<my notes.md>)\n"
+                + "[r]: https://r.example\n"
+                + "[collapsed]: c.md\n"
+                + "[Shortcut]:   <s.md>\n"
+        );
         assertEquals("docs.md", linkAt(0, 5));
         assertEquals("docs.md", linkAt(0, 4));
         assertNull(linkAt(0, 2));
@@ -116,17 +112,17 @@ public class MarkdownLinksTest
     }
 
     @Test
-    public void notInCode()
-    {
+    public void notInCode() {
         on("```\n[a](b.md)\n```\n");
         assertNull(linkAt(1, 1));
     }
 
     @Test
-    public void anAnchorGoesToItsHeading()
-    {
-        on("[go](#hello-world-2) [again](#notes-1)\n\n# Hello, World!\n"
-           + "## Notes\n## Notes\n# Hello World 2\n").cursor(0, 1);
+    public void anAnchorGoesToItsHeading() {
+        on(
+            "[go](#hello-world-2) [again](#notes-1)\n\n# Hello, World!\n"
+                + "## Notes\n## Notes\n# Hello World 2\n"
+        ).cursor(0, 1);
         FollowLink.followLink();
         assertEquals(5, h.editor().getDotLineNumber());
         h.cursor(0, 22);
@@ -135,8 +131,7 @@ public class MarkdownLinksTest
     }
 
     @Test
-    public void jumpBackReturns()
-    {
+    public void jumpBackReturns() {
         on("[go](#end)\n\n\n# End\n").cursor(0, 2);
         FollowLink.followLink();
         assertEquals(3, h.editor().getDotLineNumber());
@@ -145,16 +140,14 @@ public class MarkdownLinksTest
     }
 
     @Test
-    public void aMissingAnchorSaysSo()
-    {
+    public void aMissingAnchorSaysSo() {
         on("[go](#nowhere)\n# Here\n").cursor(0, 1);
         FollowLink.followLink();
         assertEquals(0, h.editor().getDotLineNumber());
         assertTrue(h.status(), h.status().contains("#nowhere"));
     }
 
-    private String file(String text) throws Exception
-    {
+    private String file(String text) throws Exception {
         final Path dir = java.nio.file.Paths.get(System.getProperty("java.io.tmpdir"));
         final Path p = dir.resolve("j-link-" + System.nanoTime() + ".md");
         Files.write(p, text.getBytes("UTF-8"));
@@ -163,8 +156,7 @@ public class MarkdownLinksTest
     }
 
     @Test
-    public void aPathOpensTheFileAtItsHeadingOrLine() throws Exception
-    {
+    public void aPathOpensTheFileAtItsHeadingOrLine() throws Exception {
         final String name = file("# One\n\n## Two\nthree\n");
         on("[a](" + name + "#two) [b](" + name + "#L4)\n").cursor(0, 1);
         final Buffer here = h.buffer();
@@ -178,16 +170,14 @@ public class MarkdownLinksTest
     }
 
     @Test
-    public void aMissingFileSaysSo()
-    {
+    public void aMissingFileSaysSo() {
         on("[a](no-such-file.md)\n").cursor(0, 1);
         FollowLink.followLink();
         assertTrue(h.status(), h.status().contains("No such file"));
     }
 
     @Test
-    public void aUrlGoesToTheBrowser()
-    {
+    public void aUrlGoesToTheBrowser() {
         on("[site](https://example.com/x) mailto:me@example.com\n").cursor(0, 2);
         FollowLink.followLink();
         h.cursor(0, 35);
@@ -196,8 +186,7 @@ public class MarkdownLinksTest
     }
 
     @Test
-    public void ctrlEnterFollowsALinkElseItIsTask()
-    {
+    public void ctrlEnterFollowsALinkElseItIsTask() {
         on("- [ ] [go](https://g.example)\n").cursor(0, 8);
         MarkdownTasks.followLinkOrTask();
         assertEquals("[https://g.example]", browsed.toString());
@@ -208,8 +197,7 @@ public class MarkdownLinksTest
     }
 
     @Test
-    public void urlsAnywhere()
-    {
+    public void urlsAnywhere() {
         h = EditorHarness.create("visit https://example.org today\n")
             .mode(PlainTextMode.getMode());
         Editor.setCurrentEditor(h.editor());
@@ -219,20 +207,20 @@ public class MarkdownLinksTest
     }
 
     @Test
-    public void gxInVim()
-    {
+    public void gxInVim() {
         on("[go](#end)\n# End\n").vim().cursor(0, 1);
         h.keys("gx");
         assertEquals(1, h.editor().getDotLineNumber());
     }
 
     @Test
-    public void referenceLinksAndTheirDefinitions()
-    {
-        on("See [the docs][docs] here.\n- [item][1] in a list\n"
-           + "[Two Words][two words] and [x][Docs]\n\n"
-           + "[docs]: https://d.example\n[1]: https://one.example \"Title\"\n"
-           + "[two words]: https://two.example\n");
+    public void referenceLinksAndTheirDefinitions() {
+        on(
+            "See [the docs][docs] here.\n- [item][1] in a list\n"
+                + "[Two Words][two words] and [x][Docs]\n\n"
+                + "[docs]: https://d.example\n[1]: https://one.example \"Title\"\n"
+                + "[two words]: https://two.example\n"
+        );
         assertEquals("https://d.example", linkAt(0, 6));
         assertEquals("https://d.example", linkAt(0, 16));
         assertEquals("https://one.example", linkAt(1, 4));
@@ -241,8 +229,7 @@ public class MarkdownLinksTest
     }
 
     @Test
-    public void ctrlEnterOnAnUndefinedReferenceSaysSo()
-    {
+    public void ctrlEnterOnAnUndefinedReferenceSaysSo() {
         on("See [text][ref] here.\n").cursor(0, 6);
         MarkdownTasks.followLinkOrTask();
         h.assertText("See [text][ref] here.\n");
@@ -250,8 +237,7 @@ public class MarkdownLinksTest
     }
 
     @Test
-    public void ctrlEnterLeavesALineOfTextAlone()
-    {
+    public void ctrlEnterLeavesALineOfTextAlone() {
         // Not a link in code, and not a task: as it was, not "- [ ] ...".
         on("  autolinks, `[text][ref]`, and more\n").cursor(0, 16);
         MarkdownTasks.followLinkOrTask();
@@ -260,16 +246,14 @@ public class MarkdownLinksTest
     }
 
     @Test
-    public void ctrlEnterGivesAListItemABox()
-    {
+    public void ctrlEnterGivesAListItemABox() {
         on("- item\n").cursor(0, 3);
         MarkdownTasks.followLinkOrTask();
         h.assertText("- [ ] item\n");
     }
 
     @Test
-    public void anAnchorNamesATag()
-    {
+    public void anAnchorNamesATag() {
         on("# Hello, World!\n## Notes\n## Notes\n");
         final java.util.List<LocalTag> tags = h.buffer().getTags(true);
         assertTrue(tags.get(0).isNamedBy("hello-world"));
@@ -279,8 +263,7 @@ public class MarkdownLinksTest
     }
 
     @Test
-    public void altEnterAndAltCAreTasksEvenOnALink()
-    {
+    public void altEnterAndAltCAreTasksEvenOnALink() {
         on("- [ ] [go](#end)\n# End\n").cursor(0, 8);
         h.keys("<A-CR>");
         h.assertText("- [/] [go](#end)\n# End\n");
@@ -290,15 +273,13 @@ public class MarkdownLinksTest
     }
 
     @Test
-    public void anEmailAutolinkIsMailto()
-    {
+    public void anEmailAutolinkIsMailto() {
         on("<me@example.com>\n");
         assertEquals("mailto:me@example.com", linkAt(0, 3));
     }
 
     @Test
-    public void aFileTargetKeepsHashAndPercentInItsPath() throws Exception
-    {
+    public void aFileTargetKeepsHashAndPercentInItsPath() throws Exception {
         final Path dir = Files.createTempDirectory("j-C#");
         final Path p = dir.resolve("my%20notes.md");
         Files.write(p, "# One\n\n# Two\n".getBytes("UTF-8"));

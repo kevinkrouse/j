@@ -26,45 +26,38 @@ import org.junit.Test;
  * The drawing itself needs a screen, so what is checked here is the answer the
  * display and the status bar are given.
  */
-public class VimAppearanceTest
-{
+public class VimAppearanceTest {
     private EditorHarness h;
 
     @After
-    public void tearDown()
-    {
+    public void tearDown() {
         if (h != null)
             h.close();
     }
 
-    private InputHandler handler()
-    {
+    private InputHandler handler() {
         return h.editor().getInputHandler();
     }
 
-    private EditorHarness vim(String text)
-    {
+    private EditorHarness vim(String text) {
         h = EditorHarness.create(text).vim();
         return h;
     }
 
     @Test
-    public void simpleModeKeepsTheOrdinaryCaret()
-    {
+    public void simpleModeKeepsTheOrdinaryCaret() {
         h = EditorHarness.create("abc\n");
         assertNull("no handler, so nothing to ask", handler());
     }
 
     @Test
-    public void normalModeUsesABlockCaret()
-    {
+    public void normalModeUsesABlockCaret() {
         vim("abc\n").cursor(0, 0);
         assertSame(InputHandler.CaretShape.BLOCK, handler().getCaretShape());
     }
 
     @Test
-    public void insertModeUsesABarCaret()
-    {
+    public void insertModeUsesABarCaret() {
         vim("abc\n").cursor(0, 0).keys("i");
         assertSame(InputHandler.CaretShape.BAR, handler().getCaretShape());
         h.keys("<Esc>");
@@ -72,8 +65,7 @@ public class VimAppearanceTest
     }
 
     @Test
-    public void replaceModeUsesAnUnderlineCaret()
-    {
+    public void replaceModeUsesAnUnderlineCaret() {
         vim("abc\n").cursor(0, 0).keys("R");
         assertSame(InputHandler.CaretShape.UNDERLINE, handler().getCaretShape());
         assertEquals("REPLACE", handler().getModeIndicator());
@@ -82,24 +74,21 @@ public class VimAppearanceTest
     }
 
     @Test
-    public void visualModeKeepsTheBlockCaret()
-    {
+    public void visualModeKeepsTheBlockCaret() {
         // The caret has to stay visible inside the selection.
         vim("abc\n").cursor(0, 0).keys("vl");
         assertSame(InputHandler.CaretShape.BLOCK, handler().getCaretShape());
     }
 
     @Test
-    public void normalModeAnnouncesNothing()
-    {
+    public void normalModeAnnouncesNothing() {
         // An empty status line is what vim shows in normal mode.
         vim("abc\n").cursor(0, 0);
         assertNull(handler().getModeIndicator());
     }
 
     @Test
-    public void insertAndVisualAnnounceThemselves()
-    {
+    public void insertAndVisualAnnounceThemselves() {
         vim("abc\n").cursor(0, 0).keys("i");
         assertEquals("INSERT", handler().getModeIndicator());
         h.keys("<Esc>v");
@@ -109,8 +98,7 @@ public class VimAppearanceTest
     }
 
     @Test
-    public void aHalfTypedCommandIsShown()
-    {
+    public void aHalfTypedCommandIsShown() {
         vim("abc\n").cursor(0, 0);
         assertNull(handler().getPendingCommand());
 
@@ -119,20 +107,20 @@ public class VimAppearanceTest
         h.keys("d");
         assertEquals("2d", handler().getPendingCommand());
         h.keys("w");
-        assertNull("the command ran, so nothing is pending",
-                   handler().getPendingCommand());
+        assertNull(
+            "the command ran, so nothing is pending",
+            handler().getPendingCommand()
+        );
     }
 
     @Test
-    public void aPendingRegisterAndCountAreShownTogether()
-    {
+    public void aPendingRegisterAndCountAreShownTogether() {
         vim("abc\n").cursor(0, 0).keys("\"a2d");
         assertEquals("2d", handler().getPendingCommand());
     }
 
     @Test
-    public void escapeClearsAHalfTypedCommand()
-    {
+    public void escapeClearsAHalfTypedCommand() {
         vim("abc\n").cursor(0, 0).keys("2d<Esc>");
         assertNull(handler().getPendingCommand());
     }

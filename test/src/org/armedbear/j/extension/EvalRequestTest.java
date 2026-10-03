@@ -35,22 +35,18 @@ import org.junit.Test;
  * package or namespace it belongs in -- the thing that makes "evaluate this
  * defun in the buffer's package" expressible.
  */
-public class EvalRequestTest
-{
+public class EvalRequestTest {
     @Test
-    public void codeIsRequired()
-    {
+    public void codeIsRequired() {
         try {
             EvalRequest.of(null);
             fail("expected IllegalArgumentException");
         }
-        catch (IllegalArgumentException expected) {
-        }
+        catch (IllegalArgumentException expected) {}
     }
 
     @Test
-    public void defaultsAreEmpty()
-    {
+    public void defaultsAreEmpty() {
         EvalRequest request = EvalRequest.of("(+ 1 2)");
         assertEquals("(+ 1 2)", request.getCode());
         assertNull(request.getContext());
@@ -60,12 +56,11 @@ public class EvalRequestTest
     }
 
     @Test
-    public void settersReturnACopyAndLeaveTheOriginalAlone()
-    {
+    public void settersReturnACopyAndLeaveTheOriginalAlone() {
         EvalRequest original = EvalRequest.of("(+ 1 2)");
         EvalRequest derived = original.context("COMMON-LISP-USER")
-                                      .origin("command-line")
-                                      .captureOutput(true);
+            .origin("command-line")
+            .captureOutput(true);
 
         assertNull("the original must not have been mutated", original.getContext());
         assertFalse(original.isCaptureOutput());
@@ -77,8 +72,7 @@ public class EvalRequestTest
     }
 
     @Test
-    public void toStringTruncatesLongFormsAndNamesTheContext()
-    {
+    public void toStringTruncatesLongFormsAndNamesTheContext() {
         StringBuilder code = new StringBuilder();
         for (int i = 0; i < 40; i++)
             code.append("(f x)");
@@ -89,8 +83,7 @@ public class EvalRequestTest
     }
 
     @Test
-    public void aResultCarriesEitherAValueOrAnError()
-    {
+    public void aResultCarriesEitherAValueOrAnError() {
         EvalResult value = EvalResult.of("3");
         assertFalse(value.isError());
         assertEquals("3", value.getValue());
@@ -104,8 +97,7 @@ public class EvalRequestTest
     }
 
     @Test
-    public void capturedOutputWinsOverTheValueWhenDisplaying()
-    {
+    public void capturedOutputWinsOverTheValueWhenDisplaying() {
         // A compile command wrapped in with-output-to-string wants what the
         // form printed, not the string object it returned.
         EvalResult result = EvalResult.of("\"warnings\"", "warnings");
@@ -113,8 +105,7 @@ public class EvalRequestTest
     }
 
     @Test
-    public void anErrorWithNoMessageStillReadsAsAnError()
-    {
+    public void anErrorWithNoMessageStillReadsAsAnError() {
         EvalResult result = EvalResult.error(null);
         assertTrue(result.isError());
         assertEquals("error", result.display());

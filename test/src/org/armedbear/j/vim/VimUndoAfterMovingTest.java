@@ -11,13 +11,12 @@
 
 package org.armedbear.j.vim;
 
+import static org.junit.Assert.assertTrue;
+
 import java.util.ArrayList;
 import java.util.List;
-
 import org.armedbear.j.EditorHarness;
 import org.junit.Test;
-
-import static org.junit.Assert.assertTrue;
 
 /**
  * Every editing command, then motions away from it, then u: the text has to
@@ -28,17 +27,16 @@ import static org.junit.Assert.assertTrue;
  * wrong for nearly every edit: x, j, u put the old line back over the one
  * below. They now find them by line number.
  */
-public class VimUndoAfterMovingTest
-{
+public class VimUndoAfterMovingTest {
     private static final String TEXT =
         "first line here\n" +
-        "  (alpha) beta 42\n" +
-        "gamma {delta} \"eps\"\n" +
-        "  zeta eta 7 theta\n" +
-        "iota kappa\n" +
-        "\n" +
-        "lambda mu nu\n" +
-        "last one";
+            "  (alpha) beta 42\n" +
+            "gamma {delta} \"eps\"\n" +
+            "  zeta eta 7 theta\n" +
+            "iota kappa\n" +
+            "\n" +
+            "lambda mu nu\n" +
+            "last one";
 
     private static final String[] EDITS = {
         "rq", "3rq", "x", "3x", "X", "D", "dd", "3dd", "dw", "d2w", "dj",
@@ -47,7 +45,7 @@ public class VimUndoAfterMovingTest
         "guu", "gUU", "g~w", "gUiw", ">>", "<<", "3>>", ">j", ">ap",
         "yyp", "yyP", "ywp", "ywP", "y2jp", "y2jP", "ddP",
         "iZZ<Esc>", "aZZ<Esc>", "IZZ<Esc>", "AZZ<Esc>", "oZZ<Esc>",
-        "OZZ<Esc>",         "RZZZ<Esc>", "cwZZ<Esc>", "ccZZ<Esc>", "CZZ<Esc>",
+        "OZZ<Esc>", "RZZZ<Esc>", "cwZZ<Esc>", "ccZZ<Esc>", "CZZ<Esc>",
         "sZZ<Esc>", "SZZ<Esc>", "ci(ZZ<Esc>", "c2jZZ<Esc>",
         "iZZ<CR>YY<Esc>", "oZZ<CR>YY<Esc>", "A<CR><Esc>", "i<BS><BS><Esc>",
         "A<C-w><Esc>", "A<C-u><Esc>", "i<C-t><Esc>", "i<C-d><Esc>",
@@ -72,12 +70,11 @@ public class VimUndoAfterMovingTest
     };
 
     @Test
-    public void everyEditUndoesAndRedoesFromAnywhere()
-    {
+    public void everyEditUndoesAndRedoesFromAnywhere() {
         final List<String> failures = new ArrayList<>();
         for (String edit : EDITS) {
             for (String away : AWAY) {
-                for (int startLine : new int[] {1, 3}) {
+                for (int startLine : new int[] { 1, 3 }) {
                     final boolean twice = edit.startsWith("2u:");
                     final String keys = twice ? edit.substring(3) : edit;
                     final String u = twice ? "2u" : "u";
@@ -98,18 +95,22 @@ public class VimUndoAfterMovingTest
                         h.keys(away);
                         h.keys(u);
                         if (!TEXT.equals(h.value())) {
-                            failures.add(label + "\n    got: "
-                                         + h.value().replace("\n", "\\n"));
+                            failures.add(
+                                label + "\n    got: "
+                                    + h.value().replace("\n", "\\n")
+                            );
                             continue;
                         }
                         h.keys(away);
                         h.keys(r);
                         if (!edited.equals(h.value()))
-                            failures.add(label + " | " + away + " | " + r
-                                         + "\n    want: "
-                                         + edited.replace("\n", "\\n")
-                                         + "\n    got:  "
-                                         + h.value().replace("\n", "\\n"));
+                            failures.add(
+                                label + " | " + away + " | " + r
+                                    + "\n    want: "
+                                    + edited.replace("\n", "\\n")
+                                    + "\n    got:  "
+                                    + h.value().replace("\n", "\\n")
+                            );
                     }
                     catch (Throwable t) {
                         failures.add(label + "\n    threw " + t);
@@ -121,7 +122,9 @@ public class VimUndoAfterMovingTest
                 }
             }
         }
-        assertTrue(failures.size() + " failures:\n" + String.join("\n", failures),
-                   failures.isEmpty());
+        assertTrue(
+            failures.size() + " failures:\n" + String.join("\n", failures),
+            failures.isEmpty()
+        );
     }
 }

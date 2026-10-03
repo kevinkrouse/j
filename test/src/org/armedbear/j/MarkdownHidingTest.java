@@ -22,27 +22,23 @@ import org.junit.After;
 import org.junit.Test;
 
 /** Markdown's markup, hidden until the caret is in the item it marks. */
-public class MarkdownHidingTest
-{
+public class MarkdownHidingTest {
     private EditorHarness h;
 
     @After
-    public void tearDown()
-    {
+    public void tearDown() {
         Editor.preferences().removeProperty("MarkdownMode.conceal");
         if (h != null)
             h.close();
     }
 
-    private EditorHarness on(String text)
-    {
+    private EditorHarness on(String text) {
         h = EditorHarness.create(text).mode(MarkdownMode.getMode());
         h.buffer().getFormatter().parseBuffer();
         return h;
     }
 
-    private Line line(int lineNumber)
-    {
+    private Line line(int lineNumber) {
         Line line = h.buffer().getFirstLine();
         for (int i = 0; i < lineNumber; i++)
             line = line.next();
@@ -50,14 +46,12 @@ public class MarkdownHidingTest
     }
 
     // The line as drawn, with the caret where it is.
-    private String drawn(int lineNumber)
-    {
+    private String drawn(int lineNumber) {
         return h.editor().getDisplay().drawnText(line(lineNumber));
     }
 
     // The runs of hidden text, "|" between.
-    private String hidden(int lineNumber)
-    {
+    private String hidden(int lineNumber) {
         final LineSegmentList segments =
             h.buffer().getFormatter().formatLine(line(lineNumber));
         final StringBuilder sb = new StringBuilder();
@@ -80,22 +74,19 @@ public class MarkdownHidingTest
         "see [the docs](http://x.y) and **b** `c` \\* <http://a.b> ![i](p.png)";
 
     @Test
-    public void whatIsMarkup()
-    {
+    public void whatIsMarkup() {
         on(LINE);
         assertEquals("[|](http://x.y)|**|**|`|`|\\|<|>|![|](p.png)", hidden(0));
     }
 
     @Test
-    public void hiddenWithTheCaretElsewhere()
-    {
+    public void hiddenWithTheCaretElsewhere() {
         on(LINE + "\nnext").cursor(1, 0);
         assertEquals("see the docs and b c * http://a.b i", drawn(0));
     }
 
     @Test
-    public void theItemTheCaretIsInShowsItsMarkup()
-    {
+    public void theItemTheCaretIsInShowsItsMarkup() {
         on(LINE).cursor(0, 6);
         assertEquals("see [the docs](http://x.y) and b c * http://a.b i", drawn(0));
         // Just past an item's closing marker is in it too.
@@ -104,8 +95,7 @@ public class MarkdownHidingTest
     }
 
     @Test
-    public void anItemInsideALinkShowsWithIt()
-    {
+    public void anItemInsideALinkShowsWithIt() {
         on("[a `b` c](u)\n").cursor(0, 4);
         assertEquals("[a `b` c](u)", drawn(0));
         h.cursor(0, 1);
@@ -113,8 +103,7 @@ public class MarkdownHidingTest
     }
 
     @Test
-    public void aFenceShowsWithTheCaretAnywhereInIt()
-    {
+    public void aFenceShowsWithTheCaretAnywhereInIt() {
         on("text\n```java\nint x;\n```\nafter").cursor(0, 0);
         assertEquals("", drawn(1));
         assertEquals("int x;", drawn(2));
@@ -129,8 +118,7 @@ public class MarkdownHidingTest
     }
 
     @Test
-    public void noneHidesNothing()
-    {
+    public void noneHidesNothing() {
         Editor.preferences().setProperty("MarkdownMode.conceal", "none");
         on(LINE + "\nnext").cursor(1, 0);
         assertFalse(h.buffer().getFormatter().hidesMarkup());
@@ -138,8 +126,7 @@ public class MarkdownHidingTest
     }
 
     @Test
-    public void headingsHidesHeadingMarkersToo()
-    {
+    public void headingsHidesHeadingMarkersToo() {
         Editor.preferences().setProperty("MarkdownMode.conceal", "markup, headings");
         on("# Title #\nText\n====\nnext").cursor(3, 0);
         assertTrue(h.buffer().getFormatter().hidesMarkup());
@@ -152,23 +139,20 @@ public class MarkdownHidingTest
     }
 
     @Test
-    public void headingMarkersShowByDefault()
-    {
+    public void headingMarkersShowByDefault() {
         on("# Title\nnext").cursor(1, 0);
         assertEquals("# Title", drawn(0));
     }
 
     @Test
-    public void headingsAloneLeavesTheRest()
-    {
+    public void headingsAloneLeavesTheRest() {
         Editor.preferences().setProperty("MarkdownMode.conceal", "headings");
         on("# Title **b**\nnext").cursor(1, 0);
         assertEquals("Title **b**", drawn(0));
     }
 
     @Test
-    public void aQuotesMarkersAreBarsInTheirOwnRoom()
-    {
+    public void aQuotesMarkersAreBarsInTheirOwnRoom() {
         on("> a\n> > b **c**\nnext").cursor(2, 0);
         // Each '>' a bar in its own room, so the text does not move.
         assertEquals("| a", drawn(0));

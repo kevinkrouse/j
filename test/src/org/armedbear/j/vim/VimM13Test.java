@@ -19,9 +19,7 @@ import static org.junit.Assert.assertTrue;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-
 import javax.swing.SwingUtilities;
-
 import org.armedbear.j.EditorHarness;
 import org.armedbear.j.Line;
 import org.junit.After;
@@ -31,19 +29,16 @@ import org.junit.Test;
  * CTRL-F and CTRL-B, insert-mode CTRL-T and CTRL-D, :w and :wq, and CTRL-^.
  * Each is one of j's own commands underneath; the expectations are nvim's.
  */
-public class VimM13Test
-{
+public class VimM13Test {
     private EditorHarness h;
 
     @After
-    public void tearDown()
-    {
+    public void tearDown() {
         if (h != null)
             h.close();
     }
 
-    private EditorHarness vim(String text, int line, int offset)
-    {
+    private EditorHarness vim(String text, int line, int offset) {
         // A test may start over; the old buffer must not outlive it.
         if (h != null)
             h.close();
@@ -52,26 +47,22 @@ public class VimM13Test
         return h;
     }
 
-    private static String lines(int n)
-    {
+    private static String lines(int n) {
         final StringBuilder sb = new StringBuilder();
         for (int i = 1; i <= n; i++)
             sb.append("  line").append(i).append(i < n ? "\n" : "");
         return sb.toString();
     }
 
-    private int top()
-    {
+    private int top() {
         return h.editor().getDisplay().getTopLine().lineNumber();
     }
 
-    private int rows()
-    {
+    private int rows() {
         return h.editor().getDisplay().getRows();
     }
 
-    private void topAt(int line)
-    {
+    private void topAt(int line) {
         Line l = h.buffer().getFirstLine();
         for (int i = 0; i < line; i++)
             l = l.next();
@@ -81,8 +72,7 @@ public class VimM13Test
     // ------------------------------------------------------ CTRL-F, CTRL-B
 
     @Test
-    public void ctrlFKeepsTwoLinesAndPutsTheCaretOnTheNewTop()
-    {
+    public void ctrlFKeepsTwoLinesAndPutsTheCaretOnTheNewTop() {
         // nvim, eleven rows: top 1 -> 10, the caret to the new top line.
         vim(lines(200), 2, 5);
         topAt(0);
@@ -90,13 +80,15 @@ public class VimM13Test
         h.keys("<C-f>");
         assertEquals(step, top());
         assertEquals("the caret is on the new top line", step, h.lineNumber());
-        assertEquals("and keeps its column: nvim defaults nostartofline",
-                     5, h.offset());
+        assertEquals(
+            "and keeps its column: nvim defaults nostartofline",
+            5,
+            h.offset()
+        );
     }
 
     @Test
-    public void ctrlFTakesACount()
-    {
+    public void ctrlFTakesACount() {
         vim(lines(200), 0, 0);
         topAt(0);
         h.keys("2<C-f>");
@@ -104,21 +96,22 @@ public class VimM13Test
     }
 
     @Test
-    public void ctrlBScrollsBackAndPutsTheCaretOnTheNewBottom()
-    {
+    public void ctrlBScrollsBackAndPutsTheCaretOnTheNewBottom() {
         vim(lines(200), 0, 0);
         final int step = rows() - 2;
         topAt(3 * step);
         h.cursor(3 * step, 0);
         h.keys("<C-b>");
         assertEquals(2 * step, top());
-        assertEquals("the caret is on the new bottom line",
-                     2 * step + rows() - 1, h.lineNumber());
+        assertEquals(
+            "the caret is on the new bottom line",
+            2 * step + rows() - 1,
+            h.lineNumber()
+        );
     }
 
     @Test
-    public void ctrlBAtTheTopDoesNothing()
-    {
+    public void ctrlBAtTheTopDoesNothing() {
         vim(lines(200), 0, 0);
         topAt(0);
         h.keys("<C-b>");
@@ -127,8 +120,7 @@ public class VimM13Test
     }
 
     @Test
-    public void ctrlFWithTheLastLineShowingPutsItAtTheTop()
-    {
+    public void ctrlFWithTheLastLineShowingPutsItAtTheTop() {
         // nvim: with line 100 already on screen, CTRL-F makes it the top.
         vim(lines(100), 99, 0);
         topAt(100 - rows());
@@ -138,8 +130,7 @@ public class VimM13Test
     }
 
     @Test
-    public void plainPageDownIsUnchanged()
-    {
+    public void plainPageDownIsUnchanged() {
         // The vim argument is a choice, not a change: j's own pageDown still
         // keeps one line of overlap and the caret's row.
         vim(lines(200), 2, 0);
@@ -152,8 +143,7 @@ public class VimM13Test
     // ---------------------------------------------------- CTRL-T, CTRL-D
 
     @Test
-    public void ctrlTAndCtrlDRoundToAMultipleOfTheShiftwidth()
-    {
+    public void ctrlTAndCtrlDRoundToAMultipleOfTheShiftwidth() {
         // nvim, shiftwidth 4: 3 -> 4 going right and 7 -> 4 going left,
         // where >> would make 3 into 7.
         vim("   ab", 0, 4);
@@ -168,8 +158,7 @@ public class VimM13Test
     }
 
     @Test
-    public void theCaretStaysWithTheText()
-    {
+    public void theCaretStaysWithTheText() {
         // nvim: "    ab" with the caret before b, CTRL-T then X -> "        aXb",
         // and from inside the indent the caret moves by the same amount.
         vim("    ab", 0, 5);
@@ -184,8 +173,7 @@ public class VimM13Test
     }
 
     @Test
-    public void ctrlTIndentsAnEmptyLineAndCtrlDStopsAtNone()
-    {
+    public void ctrlTIndentsAnEmptyLineAndCtrlDStopsAtNone() {
         vim("", 0, 0);
         h.buffer().setIndentSize(4);
         h.keys("i<C-t>X<Esc>");
@@ -198,21 +186,22 @@ public class VimM13Test
     }
 
     @Test
-    public void ctrlDInInsertModeIsNotJsDir()
-    {
+    public void ctrlDInInsertModeIsNotJsDir() {
         // j binds Ctrl-D to dir. In the middle of typing it has to be the
         // dedent, not a directory buffer opening.
         vim("    ab", 0, 4);
         h.buffer().setIndentSize(4);
         h.keys("i<C-d>");
         assertEquals("ab", h.value());
-        assertEquals("still typing", "INSERT",
-                     h.vimModeIndicator());
+        assertEquals(
+            "still typing",
+            "INSERT",
+            h.vimModeIndicator()
+        );
     }
 
     @Test
-    public void dotRepeatsAnInsertThatShiftedTheLine()
-    {
+    public void dotRepeatsAnInsertThatShiftedTheLine() {
         vim("ab\ncd", 0, 0);
         h.buffer().setIndentSize(4);
         h.keys("i<C-t>X<Esc>");
@@ -229,29 +218,27 @@ public class VimM13Test
      * none, where vim would always write one. That is j's policy on a real
      * file opened from disk too, and not what these tests are about.
      */
-    private static String read(Path file) throws java.io.IOException
-    {
-        final String s = new String(Files.readAllBytes(file),
-                                    StandardCharsets.UTF_8);
+    private static String read(Path file) throws java.io.IOException {
+        final String s = new String(
+            Files.readAllBytes(file),
+            StandardCharsets.UTF_8
+        );
         return s.endsWith("\n") ? s.substring(0, s.length() - 1) : s;
     }
 
-    private static void onEdt(Runnable r) throws Exception
-    {
+    private static void onEdt(Runnable r) throws Exception {
         // Buffer.save insists on the event thread, which is where an ex
         // command runs in the editor.
         SwingUtilities.invokeAndWait(r);
     }
 
     /** The file the harness buffer is backed by, as a path. */
-    private Path ownFile()
-    {
+    private Path ownFile() {
         return java.nio.file.Paths.get(h.buffer().getFile().getAbsolutePath());
     }
 
     @Test
-    public void wWritesTheBufferToItsOwnFile() throws Exception
-    {
+    public void wWritesTheBufferToItsOwnFile() throws Exception {
         vim("hello", 0, 0);
         h.keys("ccbye<Esc>");
         onEdt(() -> h.exCommand("w"));
@@ -261,8 +248,7 @@ public class VimM13Test
 
     @Test
     public void wToAnotherFileIsACopyAndTheBufferKeepsItsName()
-        throws Exception
-    {
+        throws Exception {
         // vim: :w FILE on a buffer that has a name writes a copy and leaves
         // the name alone. (On one with no name it names it; that path opens
         // j's Save As machinery and is checked on screen.)
@@ -275,8 +261,7 @@ public class VimM13Test
     }
 
     @Test
-    public void wWillNotOverwriteAnotherFileWithoutABang() throws Exception
-    {
+    public void wWillNotOverwriteAnotherFileWithoutABang() throws Exception {
         final Path dir = Files.createTempDirectory("vimw");
         final Path other = dir.resolve("taken.txt");
         Files.write(other, "keep\n".getBytes(StandardCharsets.UTF_8));
@@ -289,8 +274,7 @@ public class VimM13Test
     }
 
     @Test
-    public void wqWritesFirst() throws Exception
-    {
+    public void wqWritesFirst() throws Exception {
         // Closing the window needs a frame; the write does not, and it has
         // to come first, since vim will not quit after a write that failed.
         vim("data", 0, 0);
@@ -300,11 +284,12 @@ public class VimM13Test
     }
 
     @Test
-    public void writingPartOfABufferIsRefusedRatherThanIgnored()
-    {
+    public void writingPartOfABufferIsRefusedRatherThanIgnored() {
         vim("a\nb", 0, 0).exCommand("1w /tmp/nowhere");
-        assertEquals("Writing part of a buffer is not supported",
-                     h.status());
+        assertEquals(
+            "Writing part of a buffer is not supported",
+            h.status()
+        );
     }
 
     // ---------------------------------------------------------------- CTRL-^
@@ -314,12 +299,11 @@ public class VimM13Test
      * leaves one behind; the alternate buffer is chosen from that list, so
      * without this the answer depends on which tests ran first.
      */
-    private void onlyThisBuffer()
-    {
+    private void onlyThisBuffer() {
         final java.util.List<org.armedbear.j.Buffer> others =
             new java.util.ArrayList<org.armedbear.j.Buffer>();
         for (org.armedbear.j.BufferIterator it =
-                 new org.armedbear.j.BufferIterator(); it.hasNext();) {
+            new org.armedbear.j.BufferIterator(); it.hasNext();) {
             final org.armedbear.j.Buffer b = it.next();
             if (b != h.buffer())
                 others.add(b);
@@ -329,8 +313,7 @@ public class VimM13Test
     }
 
     @Test
-    public void ctrlCaretWithNoOtherBufferSaysSo()
-    {
+    public void ctrlCaretWithNoOtherBufferSaysSo() {
         vim("a", 0, 0);
         onlyThisBuffer();
         h.keys("<C-^>");
@@ -338,8 +321,7 @@ public class VimM13Test
     }
 
     @Test
-    public void ctrlCaretGoesToTheBufferUsedMostRecently()
-    {
+    public void ctrlCaretGoesToTheBufferUsedMostRecently() {
         // Not the one before this in the list -- that is j's prevBuffer
         // without the argument. The alternate file is the last one used.
         final EditorHarness older = EditorHarness.create("older");
@@ -359,8 +341,7 @@ public class VimM13Test
     }
 
     @Test
-    public void aCountOnCtrlCaretDoesNotSendItBackAgain()
-    {
+    public void aCountOnCtrlCaretDoesNotSendItBackAgain() {
         // Vim's count picks a buffer number, which j's buffers do not have.
         // Ignored, it is still the alternate file; repeated, it would toggle
         // straight back.
@@ -380,8 +361,7 @@ public class VimM13Test
     // ---------------------------------------------------------- autoindent
 
     @Test
-    public void oTypedThenEscapeKeepsTheIndent()
-    {
+    public void oTypedThenEscapeKeepsTheIndent() {
         vim("  abc", 0, 3);
         h.keys("ox<Esc>");
         assertEquals("  abc\n  x", h.value());
@@ -389,8 +369,7 @@ public class VimM13Test
     }
 
     @Test
-    public void oEscapeWithNothingTypedLeavesAnEmptyLine()
-    {
+    public void oEscapeWithNothingTypedLeavesAnEmptyLine() {
         vim("  abc", 0, 3);
         h.keys("o<Esc>");
         assertEquals("  abc\n", h.value());
@@ -398,8 +377,7 @@ public class VimM13Test
     }
 
     @Test
-    public void capitalOEscapeLeavesAnEmptyLine()
-    {
+    public void capitalOEscapeLeavesAnEmptyLine() {
         vim("  abc", 0, 3);
         h.keys("O<Esc>");
         assertEquals("\n  abc", h.value());
@@ -407,8 +385,7 @@ public class VimM13Test
     }
 
     @Test
-    public void capitalOTakesTheIndentOfTheLineBelowAndLeavesItAlone()
-    {
+    public void capitalOTakesTheIndentOfTheLineBelowAndLeavesItAlone() {
         vim("  abc", 0, 3);
         h.keys("Ox<Esc>");
         assertEquals("  x\n  abc", h.value());
@@ -416,8 +393,7 @@ public class VimM13Test
     }
 
     @Test
-    public void ccKeepsTheIndent()
-    {
+    public void ccKeepsTheIndent() {
         vim("  abc", 0, 3);
         h.keys("ccx<Esc>");
         assertEquals("  x", h.value());
@@ -425,32 +401,28 @@ public class VimM13Test
     }
 
     @Test
-    public void ccEscapeLeavesAnEmptyLine()
-    {
+    public void ccEscapeLeavesAnEmptyLine() {
         vim("a\n  abc", 1, 3);
         h.keys("cc<Esc>");
         assertEquals("a\n", h.value());
     }
 
     @Test
-    public void capitalSKeepsTheIndentOnceSomethingIsTyped()
-    {
+    public void capitalSKeepsTheIndentOnceSomethingIsTyped() {
         vim("a\n  abc", 1, 3);
         h.keys("Sx<Esc>");
         assertEquals("a\n  x", h.value());
     }
 
     @Test
-    public void capitalSEscapeLeavesAnEmptyLine()
-    {
+    public void capitalSEscapeLeavesAnEmptyLine() {
         vim("a\n  abc", 1, 3);
         h.keys("S<Esc>");
         assertEquals("a\n", h.value());
     }
 
     @Test
-    public void typingKeepsTheIndentEvenWhenItIsTakenBack()
-    {
+    public void typingKeepsTheIndentEvenWhenItIsTakenBack() {
         // nvim: ox<BS><Esc> keeps "  "; o<Tab><Esc> keeps its blanks too.
         vim("  abc", 0, 3);
         h.keys("ox<BS><Esc>");
@@ -458,13 +430,14 @@ public class VimM13Test
         vim("  abc", 0, 3);
         h.keys("o<Tab><Esc>");
         // j's own Tab, which may write spaces where nvim writes a tab.
-        assertTrue(h.value().startsWith("  abc\n  ")
-                   && h.value().length() > "  abc\n  ".length());
+        assertTrue(
+            h.value().startsWith("  abc\n  ")
+                && h.value().length() > "  abc\n  ".length()
+        );
     }
 
     @Test
-    public void ctrlTAndCtrlDAreNotTyping()
-    {
+    public void ctrlTAndCtrlDAreNotTyping() {
         // nvim: o<C-t><Esc> and o<C-d><Esc> both leave an empty line.
         vim("  abc", 0, 3);
         h.buffer().setIndentSize(4);
@@ -476,8 +449,7 @@ public class VimM13Test
     }
 
     @Test
-    public void oEscapeThenUndoRemovesTheLine()
-    {
+    public void oEscapeThenUndoRemovesTheLine() {
         vim("  abc", 0, 3);
         h.keys("o<Esc>u");
         assertEquals("  abc", h.value());
@@ -486,8 +458,7 @@ public class VimM13Test
     // --------------------------------------------------------- visual mode
 
     @Test
-    public void visualJJoinsTheSelectedLines()
-    {
+    public void visualJJoinsTheSelectedLines() {
         vim(" 1\n 2\n 3\n 4\n 5", 0, 0);
         h.keys("lVljjJ");
         assertEquals(" 1 2 3\n 4\n 5", h.value());
@@ -495,8 +466,7 @@ public class VimM13Test
     }
 
     @Test
-    public void visualGJJoinsWithoutTouchingSpaces()
-    {
+    public void visualGJJoinsWithoutTouchingSpaces() {
         vim(" 1\n 2\n 3", 0, 0);
         h.keys("lvjgJ");
         assertEquals(" 1 2\n 3", h.value());
@@ -504,8 +474,7 @@ public class VimM13Test
     }
 
     @Test
-    public void visualJOnOneLineJoinsTheNext()
-    {
+    public void visualJOnOneLineJoinsTheNext() {
         vim("1\n2", 0, 0);
         h.keys("vJ");
         assertEquals("1 2", h.value());
@@ -513,8 +482,7 @@ public class VimM13Test
     }
 
     @Test
-    public void visualRReplacesEverySelectedCharacterButNotLineEnds()
-    {
+    public void visualRReplacesEverySelectedCharacterButNotLineEnds() {
         vim("abcdef\nghij", 0, 1);
         h.keys("vjrx");
         assertEquals("axxxxx\nxxij", h.value());
@@ -522,8 +490,7 @@ public class VimM13Test
     }
 
     @Test
-    public void linewiseVisualRReplacesWholeLines()
-    {
+    public void linewiseVisualRReplacesWholeLines() {
         vim("abcdef\nghij", 0, 1);
         h.keys("Vjrx");
         assertEquals("xxxxxx\nxxxx", h.value());
@@ -531,8 +498,7 @@ public class VimM13Test
     }
 
     @Test
-    public void visualCaseOperators()
-    {
+    public void visualCaseOperators() {
         vim("abcdef", 0, 1);
         h.keys("vllU");
         assertEquals("aBCDef", h.value());
@@ -545,8 +511,7 @@ public class VimM13Test
     }
 
     @Test
-    public void visualUAcrossLines()
-    {
+    public void visualUAcrossLines() {
         vim("abcdef\nxy", 0, 4);
         h.keys("vjU");
         assertEquals("abcdEF\nXY", h.value());
@@ -554,8 +519,7 @@ public class VimM13Test
     }
 
     @Test
-    public void visualDAndXTakeWholeLines()
-    {
+    public void visualDAndXTakeWholeLines() {
         vim("abcdef\nghij\nkl", 0, 2);
         h.keys("vjX");
         assertEquals("kl", h.value());
@@ -566,8 +530,7 @@ public class VimM13Test
 
     /** V then D was bound as V d, and V in visual-line mode leaves it. */
     @Test
-    public void linewiseVisualDAndSStayLinewise()
-    {
+    public void linewiseVisualDAndSStayLinewise() {
         vim("abcdef\nghij\nkl", 0, 0);
         h.keys("VjD");
         assertEquals("kl", h.value());
@@ -578,56 +541,49 @@ public class VimM13Test
     }
 
     @Test
-    public void visualRChangesTheLines()
-    {
+    public void visualRChangesTheLines() {
         vim("abcdef\nghij\nkl", 0, 2);
         h.keys("vRz<Esc>");
         assertEquals("z\nghij\nkl", h.value());
     }
 
     @Test
-    public void visualYYanksWholeLines()
-    {
+    public void visualYYanksWholeLines() {
         vim("abcdef\nghij", 0, 2);
         h.keys("vYjp");
         assertEquals("abcdef\nghij\nabcdef", h.value());
     }
 
     @Test
-    public void visualCapitalOSwapsEndsLikeO()
-    {
+    public void visualCapitalOSwapsEndsLikeO() {
         vim("abcd\nefgh", 0, 0);
         h.keys("vjlO");
         h.assertCursorAt(0, 0);
     }
 
     @Test
-    public void gvInVisualSwapsWithThePreviousSelection()
-    {
+    public void gvInVisualSwapsWithThePreviousSelection() {
         vim("ab cd ef", 0, 0);
         h.keys("vlwvwwvgvd");
         assertEquals("d ef", h.value());
     }
 
     @Test
-    public void visualPReplacesAndKeepsWhatWasSelected()
-    {
+    public void visualPReplacesAndKeepsWhatWasSelected() {
         vim("abc def", 0, 0);
         h.keys("yiwwviwp$p");
         assertEquals("abc abcdef", h.value());
     }
 
     @Test
-    public void visualCapitalPLeavesTheRegisterAlone()
-    {
+    public void visualCapitalPLeavesTheRegisterAlone() {
         vim("abc def", 0, 0);
         h.keys("yiwwviwP$p");
         assertEquals("abc abcabc", h.value());
     }
 
     @Test
-    public void visualPWithACount()
-    {
+    public void visualPWithACount() {
         vim("ab cd", 0, 0);
         h.keys("yiwwv2p");
         assertEquals("ab ababd", h.value());
@@ -635,8 +591,7 @@ public class VimM13Test
     }
 
     @Test
-    public void visualPOverTheLineEndJoins()
-    {
+    public void visualPOverTheLineEndJoins() {
         vim("ab cd\nef", 0, 0);
         h.keys("yiwwv$p");
         assertEquals("ab abef", h.value());
@@ -644,16 +599,14 @@ public class VimM13Test
     }
 
     @Test
-    public void visualDollarTakesInTheLineEnd()
-    {
+    public void visualDollarTakesInTheLineEnd() {
         vim("ab cd\nef", 0, 0);
         h.keys("wv$d");
         assertEquals("ab ef", h.value());
     }
 
     @Test
-    public void visualPOfLinesIntoACharwiseSelectionSplitsTheLine()
-    {
+    public void visualPOfLinesIntoACharwiseSelectionSplitsTheLine() {
         vim("abc\nxyz\nqq", 0, 0);
         h.keys("yyjlvlp");
         assertEquals("abc\nx\nabc\n\nqq", h.value());
@@ -661,8 +614,7 @@ public class VimM13Test
     }
 
     @Test
-    public void linewiseVisualPReplacesTheLinesAndUndoesInOne()
-    {
+    public void linewiseVisualPReplacesTheLinesAndUndoesInOne() {
         vim("abc\nxyz\nqq", 0, 0);
         h.keys("yyjVp");
         assertEquals("abc\nabc\nqq", h.value());
@@ -673,8 +625,7 @@ public class VimM13Test
     }
 
     @Test
-    public void linewiseVisualPAtTheEndOfTheBuffer()
-    {
+    public void linewiseVisualPAtTheEndOfTheBuffer() {
         vim("abc\nxyz", 0, 0);
         h.keys("yyjVp");
         assertEquals("abc\nabc", h.value());
@@ -685,8 +636,7 @@ public class VimM13Test
     }
 
     @Test
-    public void linewiseVisualPOfACharwiseRegister()
-    {
+    public void linewiseVisualPOfACharwiseRegister() {
         vim("ab\n  xyz", 0, 0);
         h.keys("yiwjVp");
         assertEquals("ab\nab", h.value());
@@ -696,8 +646,7 @@ public class VimM13Test
     // ------------------------------------------------------------ ]' ['
 
     @Test
-    public void countedMarkJumpStopsAtTheLastMark()
-    {
+    public void countedMarkJumpStopsAtTheLastMark() {
         vim("  a\n  b\n  c\n  d\n  e", 1, 2);
         h.keys("ma");
         h.cursor(3, 2);
@@ -708,8 +657,7 @@ public class VimM13Test
     }
 
     @Test
-    public void quoteMarkJumpWithNoMarkIsTheLineItself()
-    {
+    public void quoteMarkJumpWithNoMarkIsTheLineItself() {
         // nvim: with no mark ahead, d]' still takes the caret's line.
         vim("  a\n  b\n  c", 1, 2);
         h.keys("d]'");
@@ -725,8 +673,7 @@ public class VimM13Test
     // answers, turned from its byte columns into j's offsets.
     private static final String EMOJI = "a😀b😀c";
 
-    private void emoji(String keys, String expected, int offset)
-    {
+    private void emoji(String keys, String expected, int offset) {
         vim(EMOJI, 0, 0);
         h.keys(keys);
         assertEquals(keys, expected, h.value());
@@ -734,24 +681,21 @@ public class VimM13Test
     }
 
     @Test
-    public void anEmojiIsOneCharacterToHAndL()
-    {
+    public void anEmojiIsOneCharacterToHAndL() {
         emoji("lx", "ab😀c", 1);
         emoji("llx", "a😀😀c", 3);
         emoji("lllhx", "a😀😀c", 3);
     }
 
     @Test
-    public void anEmojiIsOneCharacterToACountAndToDollar()
-    {
+    public void anEmojiIsOneCharacterToACountAndToDollar() {
         emoji("2x", "b😀c", 0);
         emoji("$x", "a😀b😀", 4);
         emoji("ex", "ab😀c", 1);
     }
 
     @Test
-    public void anEmojiIsOneCharacterToREditsAndVisualMode()
-    {
+    public void anEmojiIsOneCharacterToREditsAndVisualMode() {
         emoji("3rx", "xxx😀c", 2);
         emoji("vlld", "😀c", 0);
         emoji("vld", "b😀c", 0);
@@ -760,8 +704,7 @@ public class VimM13Test
     }
 
     @Test
-    public void replaceModeTypesOverAWholeEmojiAndBackspacePutsItBack()
-    {
+    public void replaceModeTypesOverAWholeEmojiAndBackspacePutsItBack() {
         vim("a😀b", 0, 0);
         h.keys("lRxy<Esc>");
         assertEquals("axy", h.value());
@@ -772,8 +715,7 @@ public class VimM13Test
     }
 
     @Test
-    public void undoAfterVisualRAndJGivesTheCaretBackWhereNvimDoes()
-    {
+    public void undoAfterVisualRAndJGivesTheCaretBackWhereNvimDoes() {
         vim("abcdef\nghij", 0, 1);
         h.keys("vjrxu");
         assertEquals("abcdef\nghij", h.value());
@@ -785,8 +727,7 @@ public class VimM13Test
     }
 
     @Test
-    public void undoAfterCapitalOAndCcPutsTheTextBack()
-    {
+    public void undoAfterCapitalOAndCcPutsTheTextBack() {
         vim("a\n  abc", 1, 3);
         h.keys("Ox<Esc>u");
         assertEquals("a\n  abc", h.value());

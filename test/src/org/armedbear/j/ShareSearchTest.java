@@ -19,14 +19,12 @@ import org.junit.After;
 import org.junit.Test;
 
 /** The shareSearch preference, for j's own findNext and findPrev. */
-public class ShareSearchTest
-{
+public class ShareSearchTest {
     private EditorHarness a;
     private EditorHarness b;
 
     @After
-    public void tearDown()
-    {
+    public void tearDown() {
         Editor.preferences().removeProperty(Property.SHARE_SEARCH.key());
         if (a != null)
             a.close();
@@ -35,8 +33,7 @@ public class ShareSearchTest
     }
 
     @Test
-    public void everyWindowFindsTheLastPatternByDefault()
-    {
+    public void everyWindowFindsTheLastPatternByDefault() {
         a = EditorHarness.create("one two\n");
         b = EditorHarness.create("two one\n");
         final Search search = new Search("one", false, true);
@@ -47,8 +44,7 @@ public class ShareSearchTest
     }
 
     @Test
-    public void eachWindowKeepsItsOwnWhenNotShared()
-    {
+    public void eachWindowKeepsItsOwnWhenNotShared() {
         Editor.preferences().setProperty(Property.SHARE_SEARCH, "false");
         a = EditorHarness.create("one two\n");
         b = EditorHarness.create("two one\n");

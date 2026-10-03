@@ -16,7 +16,6 @@ import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
 import java.io.StringReader;
-
 import org.armedbear.j.EditorHarness;
 import org.junit.After;
 import org.junit.Test;
@@ -25,26 +24,22 @@ import org.junit.Test;
  * The user's half of the configuration: a vimrc that overrides the built-in
  * key map.
  */
-public class VimrcTest
-{
+public class VimrcTest {
     private EditorHarness h;
 
     @After
-    public void tearDown()
-    {
+    public void tearDown() {
         if (h != null)
             h.close();
         VimKeyMap.reset();
     }
 
-    private EditorHarness vim(String text, String vimrc)
-    {
+    private EditorHarness vim(String text, String vimrc) {
         h = EditorHarness.create(text).vim(vimrc);
         return h;
     }
 
-    private static VimOptions optionsFrom(String vimrc) throws Exception
-    {
+    private static VimOptions optionsFrom(String vimrc) throws Exception {
         final VimOptions options = new VimOptions();
         new VimrcParser(new VimKeyMap(), options).load(new StringReader(vimrc));
         return options;
@@ -53,8 +48,7 @@ public class VimrcTest
     // ----------------------------------------------------------- mappings
 
     @Test
-    public void nnoremapBindsANormalModeKey()
-    {
+    public void nnoremapBindsANormalModeKey() {
         vim("alpha bravo\n", "nnoremap Y y$\n").cursor(0, 6);
         h.keys("Y");
         h.cursor(0, 0).keys("P");
@@ -62,8 +56,7 @@ public class VimrcTest
     }
 
     @Test
-    public void aMappingOverridesTheBuiltInOne()
-    {
+    public void aMappingOverridesTheBuiltInOne() {
         // x normally deletes a character; here it does nothing of the sort.
         vim("abc\n", "nnoremap x l\n").cursor(0, 0).keys("x");
         h.assertText("abc\n");
@@ -71,11 +64,11 @@ public class VimrcTest
     }
 
     @Test
-    public void aNoremapsKeysMeanWhatTheyDoBuiltIn()
-    {
+    public void aNoremapsKeysMeanWhatTheyDoBuiltIn() {
         // < in the right-hand side is the shift, not this mapping again.
         vim("        a\n        b\nc\n", "set sw=4\nvnoremap < <gv\n")
-            .cursor(0, 8).keys("vj<<");
+            .cursor(0, 8)
+            .keys("vj<<");
         h.assertText("a\nb\nc\n");
         assertEquals("VISUAL", h.vimModeIndicator());
         tearDown();
@@ -87,24 +80,22 @@ public class VimrcTest
     }
 
     @Test
-    public void aMapsKeysAreMappingsToo()
-    {
+    public void aMapsKeysAreMappingsToo() {
         vim("abc\ndef\n", "nnoremap x dd\nnmap Z x\n").cursor(0, 0)
             .keys("Z");
         h.assertText("def\n");
     }
 
     @Test
-    public void mapLeaderIsExpanded()
-    {
+    public void mapLeaderIsExpanded() {
         vim("abc\n", "let mapleader = \",\"\nnnoremap <leader>d dl\n")
-            .cursor(0, 0).keys(",d");
+            .cursor(0, 0)
+            .keys(",d");
         h.assertText("bc\n");
     }
 
     @Test
-    public void plainMapAppliesToNormalVisualAndOperatorPending()
-    {
+    public void plainMapAppliesToNormalVisualAndOperatorPending() {
         vim("abcdef\n", "map L 2l\n").cursor(0, 0).keys("L");
         assertEquals(2, h.offset());
         h.cursor(0, 0).keys("dL");
@@ -112,8 +103,7 @@ public class VimrcTest
     }
 
     @Test
-    public void vnoremapOnlyAppliesInVisualMode()
-    {
+    public void vnoremapOnlyAppliesInVisualMode() {
         vim("abcdef\n", "vnoremap q l\n").cursor(0, 0).keys("q");
         assertEquals("nothing happens in normal mode", 0, h.offset());
         h.keys("vq");
@@ -121,15 +111,13 @@ public class VimrcTest
     }
 
     @Test
-    public void unmapRemovesABinding()
-    {
+    public void unmapRemovesABinding() {
         vim("abc\n", "nunmap x\n").cursor(0, 0).keys("x");
         h.assertText("abc\n");
     }
 
     @Test
-    public void aMappingCanRunOneOfJsOwnCommands()
-    {
+    public void aMappingCanRunOneOfJsOwnCommands() {
         // selectAll is an ordinary j command with no modal equivalent.
         vim("abc\ndef\n", "nnoremap <C-a> :selectAll<CR>\n").cursor(0, 0);
         h.keys("<C-a>");
@@ -139,8 +127,7 @@ public class VimrcTest
     // ------------------------------------------- a command that is a prefix
 
     @Test
-    public void aLongerMappingWinsOverTheShorterCommandItStartsWith()
-    {
+    public void aLongerMappingWinsOverTheShorterCommandItStartsWith() {
         // ',' is repeat-character-search; ',d' is now a mapping. Typing ',d'
         // must get the mapping, not a search followed by a delete.
         vim("abc\n", "nnoremap ,d dl\n").cursor(0, 0).keys(",d");
@@ -148,8 +135,7 @@ public class VimrcTest
     }
 
     @Test
-    public void theShorterCommandStillRunsWhenTheLongerOneDoesNotArrive()
-    {
+    public void theShorterCommandStillRunsWhenTheLongerOneDoesNotArrive() {
         // ',' on its own is still the search repeat: held back until the next
         // key shows it was not the start of ',d'.
         vim("a-b-c\n", "nnoremap ,d dl\n").cursor(0, 0).keys("f-");
@@ -157,15 +143,17 @@ public class VimrcTest
         h.keys(";");
         assertEquals(3, h.offset());
         h.keys(",");
-        assertEquals("the held-back ',' ran once a non-'d' key arrived",
-                     3, h.offset());
+        assertEquals(
+            "the held-back ',' ran once a non-'d' key arrived",
+            3,
+            h.offset()
+        );
         h.keys("l");
         assertEquals(2, h.offset());
     }
 
     @Test
-    public void escapeDropsAHeldBackCommand()
-    {
+    public void escapeDropsAHeldBackCommand() {
         vim("a-b-c\n", "nnoremap ,d dl\n").cursor(0, 0).keys("f-,<Esc>");
         h.assertText("a-b-c\n");
     }
@@ -173,8 +161,7 @@ public class VimrcTest
     // ------------------------------------------------------------ options
 
     @Test
-    public void setTakesValuesAndFlags() throws Exception
-    {
+    public void setTakesValuesAndFlags() throws Exception {
         final VimOptions options =
             optionsFrom("set shiftwidth=4 ignorecase\nset noexpandtab\n");
         assertEquals(4, options.getInt("shiftwidth", 0));
@@ -183,44 +170,43 @@ public class VimrcTest
     }
 
     @Test
-    public void setAcceptsVimsShortNames() throws Exception
-    {
+    public void setAcceptsVimsShortNames() throws Exception {
         final VimOptions options = optionsFrom("set sw=8 ic\n");
         assertEquals("sw is shiftwidth", 8, options.getInt("shiftwidth", 0));
         assertTrue("ic is ignorecase", options.getBoolean("ignorecase", false));
     }
 
     @Test
-    public void commentsAndBlankLinesAreIgnored() throws Exception
-    {
+    public void commentsAndBlankLinesAreIgnored() throws Exception {
         final VimOptions options =
             optionsFrom("\" a comment\n\n  \" another\nset sw=2\n");
         assertEquals(2, options.getInt("shiftwidth", 0));
     }
 
     @Test
-    public void aLineThatIsNotUnderstoodIsSkipped() throws Exception
-    {
+    public void aLineThatIsNotUnderstoodIsSkipped() throws Exception {
         // A real vimrc has plenty j will never read; it must not stop the
         // lines that do make sense.
         final VimOptions options = optionsFrom(
-            "call plug#begin()\nset sw=3\nautocmd BufRead * echo 'hi'\n");
+            "call plug#begin()\nset sw=3\nautocmd BufRead * echo 'hi'\n"
+        );
         assertEquals(3, options.getInt("shiftwidth", 0));
     }
 
     // -------------------------------------------------------- key map rows
 
     @Test
-    public void theBuiltInTableStillLoadsUnderneath()
-    {
+    public void theBuiltInTableStillLoadsUnderneath() {
         vim("abc\n", "nnoremap Q x\n").cursor(0, 0).keys("l");
-        assertSame("a binding the vimrc did not touch still works",
-                   1, h.offset());
+        assertSame(
+            "a binding the vimrc did not touch still works",
+            1,
+            h.offset()
+        );
     }
 
     @Test
-    public void aMappingCanRunAVimExCommandJHasNoCommandFor()
-    {
+    public void aMappingCanRunAVimExCommandJHasNoCommandFor() {
         vim("abc\n", "nnoremap <C-a> :s/b/X/<CR>\n").cursor(0, 0);
         h.keys("<C-a>");
         h.assertText("aXc\n");

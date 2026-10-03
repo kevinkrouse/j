@@ -27,38 +27,33 @@ import org.junit.Test;
  * M23: CTRL-O and CTRL-I on j's jump list, and vim's file marks, A to Z,
  * as j's bookmarks.
  */
-public class VimM23Test
-{
+public class VimM23Test {
     private EditorHarness h;
     private EditorHarness other;
 
     @After
-    public void tearDown()
-    {
+    public void tearDown() {
         if (h != null)
             h.close();
         if (other != null)
             other.close();
     }
 
-    private EditorHarness vim(String text, int line)
-    {
+    private EditorHarness vim(String text, int line) {
         h = EditorHarness.create().vim();
         h.value(text).cursor(line, 0);
         Editor.setCurrentEditor(h.editor());
         return h;
     }
 
-    private String caret()
-    {
+    private String caret() {
         return h.lineNumber() + "," + h.offset();
     }
 
     // ------------------------------------------------------------- jumps
 
     @Test
-    public void ctrlOGoesBackOverJsOwnJumps()
-    {
+    public void ctrlOGoesBackOverJsOwnJumps() {
         vim("a\nb\nc\nd", 1);
         h.editor().jumpToLine(3, 0);
         h.keys("<C-o>");
@@ -68,8 +63,7 @@ public class VimM23Test
     }
 
     @Test
-    public void jumpBackGoesBackOverVimsJumps()
-    {
+    public void jumpBackGoesBackOverVimsJumps() {
         vim("a\nb\nc\nd", 1).keys("G");
         JumpList.jumpBack();
         assertEquals("1,0", caret());
@@ -78,8 +72,7 @@ public class VimM23Test
     // -------------------------------------------------------- file marks
 
     @Test
-    public void aFileMarkIsABookmark()
-    {
+    public void aFileMarkIsABookmark() {
         vim("a\nb\nc", 1).keys("mA");
         final Marker bookmark = Editor.getBookmark('A');
         assertNotNull(bookmark);
@@ -88,8 +81,7 @@ public class VimM23Test
     }
 
     @Test
-    public void aBookmarkIsAFileMark()
-    {
+    public void aBookmarkIsAFileMark() {
         vim("a\nb\nc", 2);
         h.editor().dropBookmark("B");
         h.keys("gg`B");
@@ -100,27 +92,29 @@ public class VimM23Test
     }
 
     @Test
-    public void delmarksForgetsTheBookmark()
-    {
+    public void delmarksForgetsTheBookmark() {
         vim("a\nb", 1).keys("mA").keys(":delmarks A<CR>");
         assertNull(Editor.getBookmark('A'));
     }
 
     @Test
-    public void aFileMarkMovesWithEdits()
-    {
+    public void aFileMarkMovesWithEdits() {
         vim("a\nb\nc", 2).keys("mAggdd");
         h.keys("`A");
         assertEquals("1,0", caret());
     }
 
     @Test
-    public void anOperatorDoesNotReachAMarkInAnotherFile()
-    {
+    public void anOperatorDoesNotReachAMarkInAnotherFile() {
         other = EditorHarness.create("x\ny\n");
         vim("a\nb\nc", 0);
-        Editor.setBookmark('A', new Marker(other.buffer(),
-                                           other.editor().getDot()));
+        Editor.setBookmark(
+            'A',
+            new Marker(
+                other.buffer(),
+                other.editor().getDot()
+            )
+        );
         h.keys("d`A");
         assertEquals("a\nb\nc", h.value());
         assertSame(h.buffer(), h.editor().getBuffer());

@@ -31,21 +31,16 @@ import org.junit.Test;
  * stack discipline wrong yields a filter that silently matches the wrong
  * messages rather than one that fails.
  */
-public class MailboxFilterTest
-{
+public class MailboxFilterTest {
     @Test
-    public void parsesASingleTerm()
-    {
-        assertTrue(MailboxFilter.getMailboxFilter("~D")
-                   instanceof DeletedMailboxFilter);
-        assertTrue(MailboxFilter.getMailboxFilter("~U")
-                   instanceof UnreadMailboxFilter);
+    public void parsesASingleTerm() {
+        assertTrue(MailboxFilter.getMailboxFilter("~D") instanceof DeletedMailboxFilter);
+        assertTrue(MailboxFilter.getMailboxFilter("~U") instanceof UnreadMailboxFilter);
     }
 
     /** Two terms in a row are an implicit AND, folded into one AndTerm. */
     @Test
-    public void foldsAdjacentTermsIntoASingleAnd()
-    {
+    public void foldsAdjacentTermsIntoASingleAnd() {
         MailboxFilter f = MailboxFilter.getMailboxFilter("~U ~F");
         assertTrue(String.valueOf(f), f instanceof AndTerm);
 
@@ -55,22 +50,19 @@ public class MailboxFilterTest
     }
 
     @Test
-    public void parsesNegation()
-    {
+    public void parsesNegation() {
         MailboxFilter f = MailboxFilter.getMailboxFilter("!~D");
         assertTrue(String.valueOf(f), f instanceof NotTerm);
     }
 
     @Test
-    public void parsesOr()
-    {
+    public void parsesOr() {
         MailboxFilter f = MailboxFilter.getMailboxFilter("~U | ~F");
         assertTrue(String.valueOf(f), f instanceof OrTerm);
     }
 
     @Test
-    public void parsesATermWithAnArgument()
-    {
+    public void parsesATermWithAnArgument() {
         assertNotNull(MailboxFilter.getMailboxFilter("~f peter"));
         assertNotNull(MailboxFilter.getMailboxFilter("~t peter ~U"));
     }

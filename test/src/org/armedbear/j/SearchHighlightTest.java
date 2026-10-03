@@ -21,45 +21,45 @@ import org.junit.Test;
  * Highlighting the matches of j's last search in simple edit mode: the
  * highlightSearchMatches preference and clearSearchHighlight.
  */
-public class SearchHighlightTest
-{
+public class SearchHighlightTest {
     private EditorHarness h;
 
     @After
-    public void tearDown()
-    {
+    public void tearDown() {
         if (h != null)
             h.close();
     }
 
-    private EditorHarness on(String text)
-    {
+    private EditorHarness on(String text) {
         h = EditorHarness.create(text);
         Editor.setCurrentEditor(h.editor());
         return h;
     }
 
     @Test
-    public void offByDefaultInSimpleMode()
-    {
+    public void offByDefaultInSimpleMode() {
         on("ab ab\n").editor().setLastSearch(new Search("b", false, false));
         assertEquals("", h.searchMatches(0));
     }
 
     @Test
-    public void thePreferenceHighlightsTheLastSearch()
-    {
-        on("ab ab\n").buffer().setProperty(Property.HIGHLIGHT_SEARCH_MATCHES,
-                                           true);
+    public void thePreferenceHighlightsTheLastSearch() {
+        on("ab ab\n").buffer()
+            .setProperty(
+                Property.HIGHLIGHT_SEARCH_MATCHES,
+                true
+            );
         h.editor().setLastSearch(new Search("b", false, false));
         assertEquals("1-2 4-5", h.searchMatches(0));
     }
 
     @Test
-    public void clearSearchHighlightHidesThemUntilTheNextFind()
-    {
-        on("ab ab\n").buffer().setProperty(Property.HIGHLIGHT_SEARCH_MATCHES,
-                                           true);
+    public void clearSearchHighlightHidesThemUntilTheNextFind() {
+        on("ab ab\n").buffer()
+            .setProperty(
+                Property.HIGHLIGHT_SEARCH_MATCHES,
+                true
+            );
         h.editor().setLastSearch(new Search("b", false, false));
         h.editor().clearSearchHighlight();
         assertEquals("", h.searchMatches(0));
@@ -71,10 +71,12 @@ public class SearchHighlightTest
     }
 
     @Test
-    public void aRegularExpressionHighlightsWhatItMatches()
-    {
-        on("ab abb\n").buffer().setProperty(Property.HIGHLIGHT_SEARCH_MATCHES,
-                                            true);
+    public void aRegularExpressionHighlightsWhatItMatches() {
+        on("ab abb\n").buffer()
+            .setProperty(
+                Property.HIGHLIGHT_SEARCH_MATCHES,
+                true
+            );
         final Search search = new Search("ab+", false, false);
         search.setRegularExpression(true);
         search.setREFromPattern();
@@ -83,8 +85,7 @@ public class SearchHighlightTest
     }
 
     @Test
-    public void aNewSearchRepaintsTheWindow()
-    {
+    public void aNewSearchRepaintsTheWindow() {
         on("ab\n").clearRepaintPending();
         h.editor().setLastSearch(new Search("b", false, false));
         assertTrue(h.repaintPending());

@@ -21,7 +21,6 @@ import java.nio.file.Files;
 import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Stream;
-
 import org.armedbear.j.mode.text.PlainTextMode;
 import org.armedbear.j.vim.KeyNotation;
 
@@ -47,13 +46,11 @@ import org.armedbear.j.vim.KeyNotation;
  *     }
  * </pre>
  */
-public final class EditorHarness
-{
+public final class EditorHarness {
     private final Editor editor;
     private final Buffer buffer;
 
-    private EditorHarness(Editor editor, Buffer buffer)
-    {
+    private EditorHarness(Editor editor, Buffer buffer) {
         this.editor = editor;
         this.buffer = buffer;
     }
@@ -74,8 +71,7 @@ public final class EditorHarness
      * Points j's directories at the scratch home, again for each editor: a
      * test of Directories points them elsewhere. Its registers start empty.
      */
-    private static synchronized void useScratchHome()
-    {
+    private static synchronized void useScratchHome() {
         try {
             if (scratchHome == null) {
                 scratchHome = Files.createTempDirectory("j-harness-home");
@@ -83,7 +79,7 @@ public final class EditorHarness
                 Runtime.getRuntime().addShutdownHook(new Thread(() -> {
                     try (Stream<java.nio.file.Path> paths = Files.walk(home)) {
                         paths.sorted(Comparator.reverseOrder())
-                             .forEach(p -> p.toFile().delete());
+                            .forEach(p -> p.toFile().delete());
                     }
                     catch (IOException e) {
                         // Only a temporary directory left behind.
@@ -92,7 +88,8 @@ public final class EditorHarness
             }
             Directories.initialize(File.getInstance(scratchHome.toString()));
             final java.io.File registers = new java.io.File(
-                Directories.getRegistersDirectory().getCanonicalPath());
+                Directories.getRegistersDirectory().getCanonicalPath()
+            );
             final java.io.File[] files = registers.listFiles();
             if (files != null)
                 for (java.io.File f : files)
@@ -104,14 +101,12 @@ public final class EditorHarness
     }
 
     /** An editor on an empty buffer. */
-    public static EditorHarness create()
-    {
+    public static EditorHarness create() {
         return create("");
     }
 
     /** An editor on a buffer holding {@code text}, caret at the start. */
-    public static EditorHarness create(String text)
-    {
+    public static EditorHarness create(String text) {
         if (!GraphicsEnvironment.isHeadless()) {
             // Not fatal -- the editor works either way -- but a test that
             // silently opened a window would be a surprise on a build machine.
@@ -126,7 +121,8 @@ public final class EditorHarness
                 return;
             final java.io.StringWriter where = new java.io.StringWriter();
             new Throwable("logged from").printStackTrace(
-                new java.io.PrintWriter(where));
+                new java.io.PrintWriter(where)
+            );
             ERRORS.add(s + "\n" + where);
         };
 
@@ -134,9 +130,14 @@ public final class EditorHarness
         // A plausible path that is never written to: the buffer exists only
         // in memory, but a Buffer needs a File to have a mode and a name.
         final Buffer buffer =
-            new Buffer(File.getInstance(
-                new java.io.File(System.getProperty("java.io.tmpdir"),
-                                 "j-harness-" + System.nanoTime() + ".txt").getPath()));
+            new Buffer(
+                File.getInstance(
+                    new java.io.File(
+                        System.getProperty("java.io.tmpdir"),
+                        "j-harness-" + System.nanoTime() + ".txt"
+                    ).getPath()
+                )
+            );
         buffer.setMode(mode);
         buffer.setFormatter(mode.getFormatter(buffer));
         buffer.autosaveEnabled = false;
@@ -154,8 +155,10 @@ public final class EditorHarness
         // ring, and clipboards of the harness's own, there being no display.
         useScratchHome();
         Editor.getKillRing().clear();
-        KillRing.useClipboards(new Clipboard("harness clipboard"),
-                               new Clipboard("harness selection"));
+        KillRing.useClipboards(
+            new Clipboard("harness clipboard"),
+            new Clipboard("harness selection")
+        );
         for (char c = '0'; c <= '9'; c++)
             Editor.setBookmark(c, null);
         for (char c = 'A'; c <= 'Z'; c++)
@@ -169,13 +172,11 @@ public final class EditorHarness
         return harness;
     }
 
-    public Editor editor()
-    {
+    public Editor editor() {
         return editor;
     }
 
-    public Buffer buffer()
-    {
+    public Buffer buffer() {
         return buffer;
     }
 
@@ -185,8 +186,7 @@ public final class EditorHarness
      * Set on the buffer rather than globally so that one test cannot leak an
      * edit mode into the next.
      */
-    public EditorHarness vim()
-    {
+    public EditorHarness vim() {
         return vim(null);
     }
 
@@ -196,8 +196,7 @@ public final class EditorHarness
      * Always goes through here rather than through the shared key map, so a
      * test never reads the vimrc of whoever is running it.
      */
-    public EditorHarness vim(String vimrc)
-    {
+    public EditorHarness vim(String vimrc) {
         final org.armedbear.j.vim.VimKeyMap keyMap =
             org.armedbear.j.vim.VimKeyMap.getDefault();
         final org.armedbear.j.vim.VimOptions options =
@@ -220,14 +219,12 @@ public final class EditorHarness
     }
 
     /** The modal state, or null unless {@link #vim} was called. */
-    public org.armedbear.j.vim.VimState vimState()
-    {
+    public org.armedbear.j.vim.VimState vimState() {
         final org.armedbear.j.vim.VimInputHandler handler = vimHandler();
         return handler != null ? handler.getState() : null;
     }
 
-    private org.armedbear.j.vim.VimInputHandler vimHandler()
-    {
+    private org.armedbear.j.vim.VimInputHandler vimHandler() {
         final InputHandler handler = editor.getInputHandler();
         return handler instanceof org.armedbear.j.vim.VimInputHandler
             ? (org.armedbear.j.vim.VimInputHandler) handler
@@ -242,37 +239,34 @@ public final class EditorHarness
      * pattern arrives -- the parked operator, the range, the move -- is the
      * production path.
      */
-    public EditorHarness searchPattern(String pattern)
-    {
+    public EditorHarness searchPattern(String pattern) {
         vimHandler().searchEntered(editor, pattern);
         return this;
     }
 
     /** Stands in for typing a pattern into the prompt so far, for incsearch. */
-    public EditorHarness searchTyped(String pattern)
-    {
+    public EditorHarness searchTyped(String pattern) {
         vimHandler().searchTyped(editor, pattern);
         return this;
     }
 
     /** The search matches painted on a line, as "start-end start-end". */
-    public String searchMatches(int lineNumber)
-    {
+    public String searchMatches(int lineNumber) {
         return spans(editor.getSearchMatches(lineAt(lineNumber)));
     }
 
     /** The match painted as the one incsearch is on, as "start-end". */
-    public String currentSearchMatch(int lineNumber)
-    {
+    public String currentSearchMatch(int lineNumber) {
         return spans(editor.getCurrentSearchMatch(lineAt(lineNumber)));
     }
 
-    private static String spans(int[] spans)
-    {
+    private static String spans(int[] spans) {
         final StringBuilder sb = new StringBuilder();
         for (int i = 0; spans != null && i < spans.length; i += 2)
             sb.append(sb.length() == 0 ? "" : " ")
-              .append(spans[i]).append('-').append(spans[i + 1]);
+                .append(spans[i])
+                .append('-')
+                .append(spans[i + 1]);
         return sb.toString();
     }
 
@@ -283,40 +277,34 @@ public final class EditorHarness
      * location bar, so this stands in for typing at one. Everything after it
      * is the production path.
      */
-    public EditorHarness exCommand(String line)
-    {
+    public EditorHarness exCommand(String line) {
         vimHandler().exEntered(editor, line);
         return this;
     }
 
     /** The mode vim edit mode would show in the status bar, or null. */
-    public String vimModeIndicator()
-    {
+    public String vimModeIndicator() {
         return vimHandler().getModeIndicator();
     }
 
     /** The last status message, or "" if there has been none. */
-    public String status()
-    {
+    public String status() {
         final String s = editor.getLastStatus();
         return s == null ? "" : s;
     }
 
     /** True while a {@code :} is waiting for its line. */
-    public boolean awaitingExCommand()
-    {
+    public boolean awaitingExCommand() {
         return vimHandler().isAwaitingExCommand();
     }
 
     /** True while a {@code /} or {@code ?} is waiting for its pattern. */
-    public boolean awaitingSearchPattern()
-    {
+    public boolean awaitingSearchPattern() {
         return vimHandler().isAwaitingSearchPattern();
     }
 
     /** Puts the buffer in another mode: its key map and its indentation. */
-    public EditorHarness mode(Mode mode)
-    {
+    public EditorHarness mode(Mode mode) {
         buffer.setMode(mode);
         buffer.setFormatter(mode.getFormatter(buffer));
         return this;
@@ -328,8 +316,7 @@ public final class EditorHarness
      * H, M, L, CTRL-F and 'scrolloff' are all defined in terms of the visible
      * window, so a test for any of them has to say how big that window is.
      */
-    public EditorHarness rows(int rows)
-    {
+    public EditorHarness rows(int rows) {
         final int charHeight = Display.getCharHeight();
         editor.getDisplay().setSize(1000, rows * charHeight);
         editor.setSize(1000, rows * charHeight);
@@ -337,8 +324,7 @@ public final class EditorHarness
     }
 
     /** Replaces the buffer contents and puts the caret back at the start. */
-    public EditorHarness text(String text)
-    {
+    public EditorHarness text(String text) {
         buffer.setText(text);
         editor.setDot(buffer.getFirstLine(), 0);
         editor.setMark(null);
@@ -347,8 +333,7 @@ public final class EditorHarness
     }
 
     /** Moves the caret. Both coordinates are zero based, as in vim's API. */
-    public EditorHarness cursor(int line, int offset)
-    {
+    public EditorHarness cursor(int line, int offset) {
         final Line l = lineAt(line);
         if (l == null)
             throw new IllegalArgumentException("no line " + line);
@@ -360,8 +345,7 @@ public final class EditorHarness
      * Presses every key in a vim key sequence, e.g. "3dw" or "i" or
      * "cwhello&lt;Esc&gt;".
      */
-    public EditorHarness keys(String keys)
-    {
+    public EditorHarness keys(String keys) {
         final List<KeyNotation.Stroke> strokes = KeyNotation.parse(keys);
         for (KeyNotation.Stroke stroke : strokes)
             press(stroke);
@@ -369,8 +353,7 @@ public final class EditorHarness
     }
 
     /** Presses one stroke, the way AWT would deliver it. */
-    public void press(KeyNotation.Stroke stroke)
-    {
+    public void press(KeyNotation.Stroke stroke) {
         final Dispatcher dispatcher = editor.getDispatcher();
         final java.awt.Component source = editor.getDisplay();
         final long when = System.currentTimeMillis();
@@ -381,16 +364,31 @@ public final class EditorHarness
             keyCode = KeyEvent.getExtendedKeyCodeForChar(stroke.keyChar);
         final char keyChar = characterAwtWouldSend(stroke);
 
-        dispatcher.keyPressed(new KeyEvent(source, KeyEvent.KEY_PRESSED, when,
-                                           ex, keyCode, keyChar));
+        dispatcher.keyPressed(
+            new KeyEvent(
+                source,
+                KeyEvent.KEY_PRESSED,
+                when,
+                ex,
+                keyCode,
+                keyChar
+            )
+        );
 
         // AWT follows a key press with a key typed only when the keystroke
         // produces a character. Sending it unconditionally would let a test
         // pass on a path that cannot happen in the running editor.
         if (stroke.producesChar())
-            dispatcher.keyTyped(new KeyEvent(source, KeyEvent.KEY_TYPED, when,
-                                             ex, KeyEvent.VK_UNDEFINED,
-                                             keyChar));
+            dispatcher.keyTyped(
+                new KeyEvent(
+                    source,
+                    KeyEvent.KEY_TYPED,
+                    when,
+                    ex,
+                    KeyEvent.VK_UNDEFINED,
+                    keyChar
+                )
+            );
     }
 
     /**
@@ -402,11 +400,13 @@ public final class EditorHarness
      * takes -- which is how &lt;C-r&gt; shipped opening j's replace dialog
      * with a green test.
      */
-    private static char characterAwtWouldSend(KeyNotation.Stroke stroke)
-    {
+    private static char characterAwtWouldSend(KeyNotation.Stroke stroke) {
         final char c = stroke.keyChar;
-        if ((stroke.modifiers & Constants.CTRL_MASK) != 0
-            && c >= 'a' && c <= 'z')
+        if (
+            (stroke.modifiers & Constants.CTRL_MASK) != 0
+                && c >= 'a'
+                && c <= 'z'
+        )
             return (char) (c - 'a' + 1);
         return c;
     }
@@ -422,8 +422,7 @@ public final class EditorHarness
      * CodeMirror's model, so it needs a way to say what the lines are without
      * going through a string at all.
      */
-    public EditorHarness lines(java.util.List<String> lines)
-    {
+    public EditorHarness lines(java.util.List<String> lines) {
         try {
             buffer.lockWrite();
         }
@@ -455,8 +454,7 @@ public final class EditorHarness
      * every '\n' separates two lines, so a trailing one leaves an empty
      * last line.
      */
-    public EditorHarness value(String value)
-    {
+    public EditorHarness value(String value) {
         return lines(java.util.Arrays.asList(value.split("\n", -1)));
     }
 
@@ -464,8 +462,7 @@ public final class EditorHarness
      * The buffer as CodeMirror's getValue would render it: lines joined with
      * '\n' and no trailing newline.
      */
-    public String value()
-    {
+    public String value() {
         final StringBuilder sb = new StringBuilder();
         // Count lines rather than testing whether anything has been appended:
         // a leading empty line appends nothing and would lose its separator.
@@ -479,15 +476,13 @@ public final class EditorHarness
         return sb.toString();
     }
 
-    private static String textOf(Line line)
-    {
+    private static String textOf(Line line) {
         final String text = line.getText();
         return text == null ? "" : text;
     }
 
     /** The whole buffer, lines joined with '\n' and a trailing '\n'. */
-    public String text()
-    {
+    public String text() {
         final StringBuilder sb = new StringBuilder();
         for (Line line = buffer.getFirstLine(); line != null; line = line.next()) {
             sb.append(textOf(line));
@@ -496,23 +491,19 @@ public final class EditorHarness
         return sb.toString();
     }
 
-    public int lineNumber()
-    {
+    public int lineNumber() {
         return editor.getDotLineNumber();
     }
 
-    public int offset()
-    {
+    public int offset() {
         return editor.getDotOffset();
     }
 
-    public void assertText(String expected)
-    {
+    public void assertText(String expected) {
         assertEquals(expected, text());
     }
 
-    public void assertCursorAt(int line, int offset)
-    {
+    public void assertCursorAt(int line, int offset) {
         assertEquals("line", line, lineNumber());
         assertEquals("offset", offset, offset());
     }
@@ -521,20 +512,17 @@ public final class EditorHarness
      * Forgets any repaint the display is owed, so that a test can ask whether
      * the <em>next</em> keystroke asks for one.
      */
-    public EditorHarness clearRepaintPending()
-    {
+    public EditorHarness clearRepaintPending() {
         editor.getDisplay().clearRepaintPending();
         return this;
     }
 
     /** True if something has asked for the whole display to be redrawn. */
-    public boolean repaintPending()
-    {
+    public boolean repaintPending() {
         return editor.getDisplay().isRepaintPending();
     }
 
-    private Line lineAt(int lineNumber)
-    {
+    private Line lineAt(int lineNumber) {
         Line line = buffer.getFirstLine();
         for (int i = 0; i < lineNumber && line != null; i++)
             line = line.next();
@@ -547,8 +535,7 @@ public final class EditorHarness
      * The current editor is deliberately left alone: {@code setCurrentEditor}
      * does not accept null, and every {@link #create} sets it anyway.
      */
-    public void close()
-    {
+    public void close() {
         Editor.getBufferList().remove(buffer);
         Editor.getEditorList().remove(editor);
         if (!ERRORS.isEmpty()) {
@@ -562,15 +549,13 @@ public final class EditorHarness
      * An error only a headless, frameless editor logs: no graphics to
      * measure a line with, no frame whose title a buffer switch updates.
      */
-    private static boolean isHarnessArtifact(String logged)
-    {
+    private static boolean isHarnessArtifact(String logged) {
         return logged.startsWith("ensureColumnVisible g2d is null")
             || logged.contains("because \"this.frame\" is null");
     }
 
     /** For a test that makes j log an error on purpose. */
-    public static void forgetLoggedErrors()
-    {
+    public static void forgetLoggedErrors() {
         ERRORS.clear();
     }
 

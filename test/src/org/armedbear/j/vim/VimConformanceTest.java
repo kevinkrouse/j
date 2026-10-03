@@ -22,7 +22,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
-
 import org.junit.Test;
 
 /**
@@ -38,15 +37,15 @@ import org.junit.Test;
  * incrementally -- but a case that starts passing is reported so it can be
  * added to the list.
  */
-public class VimConformanceTest
-{
+public class VimConformanceTest {
     @Test
-    public void corpusIsPresentAndWellFormed() throws Exception
-    {
+    public void corpusIsPresentAndWellFormed() throws Exception {
         final List<VimConformance.Case> cases = corpus();
-        assertFalse("the generated corpus is empty; run "
-                    + "'bb tools/vim-conformance.clj <vim_test.js>'",
-                    cases.isEmpty());
+        assertFalse(
+            "the generated corpus is empty; run "
+                + "'bb tools/vim-conformance.clj <vim_test.js>'",
+            cases.isEmpty()
+        );
         for (VimConformance.Case c : cases) {
             assertFalse("a case with no steps: " + c.name, c.steps.isEmpty());
             boolean asserts = false;
@@ -58,12 +57,12 @@ public class VimConformanceTest
     }
 
     @Test
-    public void noPreviouslyPassingCaseRegresses() throws Exception
-    {
+    public void noPreviouslyPassingCaseRegresses() throws Exception {
         final List<VimConformance.Case> cases = corpus();
         final Set<String> expected =
             VimConformance.loadExpectedPassing(
-                VimConformance.corpusDir().resolve("passing.txt"));
+                VimConformance.corpusDir().resolve("passing.txt")
+            );
 
         final Set<String> passing = new TreeSet<String>();
         final Map<String, String> failures = new LinkedHashMap<String, String>();
@@ -86,9 +85,11 @@ public class VimConformanceTest
             if (!passing.contains(name))
                 regressed.add(name + "  --  " + failures.get(name));
 
-        assertTrue("cases that used to pass and no longer do:\n  "
-                   + String.join("\n  ", regressed),
-                   regressed.isEmpty());
+        assertTrue(
+            "cases that used to pass and no longer do:\n  "
+                + String.join("\n  ", regressed),
+            regressed.isEmpty()
+        );
     }
 
     /**
@@ -97,8 +98,7 @@ public class VimConformanceTest
      *
      * <pre>bb test -Dvim.conformance.failures=dw   # or =all</pre>
      */
-    private static void reportFailures(Map<String, String> failures)
-    {
+    private static void reportFailures(Map<String, String> failures) {
         final String filter = System.getProperty("vim.conformance.failures");
         if (filter == null)
             return;
@@ -109,27 +109,29 @@ public class VimConformanceTest
         System.out.println();
     }
 
-    private static void report(int total, Set<String> passing, Set<String> expected)
-    {
+    private static void report(int total, Set<String> passing, Set<String> expected) {
         System.out.println();
-        System.out.println("vim conformance: " + passing.size() + "/" + total
-                           + " cases passing (" + expected.size()
-                           + " expected by passing.txt)");
+        System.out.println(
+            "vim conformance: " + passing.size() + "/" + total
+                + " cases passing (" + expected.size()
+                + " expected by passing.txt)"
+        );
 
         final Set<String> unlisted = new TreeSet<String>(passing);
         unlisted.removeAll(expected);
         if (!unlisted.isEmpty()) {
-            System.out.println("  " + unlisted.size()
-                               + " case(s) now pass but are not yet listed in "
-                               + VimConformance.CORPUS_DIR + "/passing.txt:");
+            System.out.println(
+                "  " + unlisted.size()
+                    + " case(s) now pass but are not yet listed in "
+                    + VimConformance.CORPUS_DIR + "/passing.txt:"
+            );
             for (String name : unlisted)
                 System.out.println("    " + name);
         }
         System.out.println();
     }
 
-    private static List<VimConformance.Case> corpus() throws Exception
-    {
+    private static List<VimConformance.Case> corpus() throws Exception {
         final Path file = VimConformance.corpusDir().resolve("codemirror.conf");
         assertTrue("no corpus at " + file.toAbsolutePath(), Files.exists(file));
         return VimConformance.load(file);

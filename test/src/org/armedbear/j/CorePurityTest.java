@@ -34,7 +34,6 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Stream;
-
 import org.junit.Test;
 
 /**
@@ -50,13 +49,11 @@ import org.junit.Test;
  * line for an <em>external</em> Lisp process -- that is data about a
  * subprocess, not a class core loads.
  */
-public class CorePurityTest
-{
+public class CorePurityTest {
     private static final String ABCL = "org/armedbear/lisp";
 
     /** Where core's compiled classes are; build/classes when run from bb. */
-    private static Path classesDirectory() throws URISyntaxException
-    {
+    private static Path classesDirectory() throws URISyntaxException {
         java.security.CodeSource source =
             Editor.class.getProtectionDomain().getCodeSource();
         assertNotNull("cannot locate core's own classes", source);
@@ -64,20 +61,23 @@ public class CorePurityTest
     }
 
     @Test
-    public void noCoreClassReferencesAbcl() throws IOException, URISyntaxException
-    {
+    public void noCoreClassReferencesAbcl() throws IOException, URISyntaxException {
         Path root = classesDirectory();
-        assertTrue("expected a directory of classes, got " + root,
-                   Files.isDirectory(root));
+        assertTrue(
+            "expected a directory of classes, got " + root,
+            Files.isDirectory(root)
+        );
         List<String> tainted = new ArrayList<String>();
         int scanned = 0;
         try (Stream<Path> files = Files.walk(root.resolve("org").resolve("armedbear"))) {
-            for (Path file : (Iterable<Path>)files::iterator) {
+            for (Path file : (Iterable<Path>) files::iterator) {
                 if (!file.toString().endsWith(".class"))
                     continue;
                 ++scanned;
-                String bytes = new String(Files.readAllBytes(file),
-                                          StandardCharsets.ISO_8859_1);
+                String bytes = new String(
+                    Files.readAllBytes(file),
+                    StandardCharsets.ISO_8859_1
+                );
                 if (bytes.contains(ABCL))
                     tainted.add(root.relativize(file).toString());
             }
@@ -87,15 +87,14 @@ public class CorePurityTest
     }
 
     @Test
-    public void noLispResourceRidesAlong() throws IOException, URISyntaxException
-    {
+    public void noLispResourceRidesAlong() throws IOException, URISyntaxException {
         // j.lisp and emacs.lisp belong to the abcl extension. If one reappears
         // in core's output it would end up inside j.jar, and ABCL would load
         // whichever copy the class path happened to reach first.
         Path root = classesDirectory();
         List<String> lisp = new ArrayList<String>();
         try (Stream<Path> files = Files.walk(root)) {
-            for (Path file : (Iterable<Path>)files::iterator)
+            for (Path file : (Iterable<Path>) files::iterator)
                 if (file.toString().endsWith(".lisp"))
                     lisp.add(root.relativize(file).toString());
         }
@@ -103,8 +102,7 @@ public class CorePurityTest
     }
 
     @Test
-    public void abclsOwnResourcesAreNotReachableFromCore()
-    {
+    public void abclsOwnResourcesAreNotReachableFromCore() {
         // The same check from the other side: whatever is on the class path,
         // core itself must not be able to resolve ABCL's bootstrap files.
         assertNull(Editor.class.getResource("/org/armedbear/lisp/j.lisp"));
@@ -112,14 +110,15 @@ public class CorePurityTest
     }
 
     @Test
-    public void coreCannotLoadAnAbclClass()
-    {
+    public void coreCannotLoadAnAbclClass() {
         try {
-            Class.forName("org.armedbear.lisp.Interpreter",
-                          false, Editor.class.getClassLoader());
+            Class.forName(
+                "org.armedbear.lisp.Interpreter",
+                false,
+                Editor.class.getClassLoader()
+            );
             org.junit.Assert.fail("ABCL is on core's class path");
         }
-        catch (ClassNotFoundException expected) {
-        }
+        catch (ClassNotFoundException expected) {}
     }
 }

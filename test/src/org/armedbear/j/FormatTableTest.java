@@ -25,46 +25,44 @@ import org.junit.Test;
  * preferences, the names it links to, its fallbacks, and DefaultTheme's
  * shared styles for a light background or a dark.
  */
-public class FormatTableTest
-{
+public class FormatTableTest {
     private static final String MODE = "FormatTableTestMode";
 
     private final List<String> keys = new ArrayList<String>();
 
-    private void set(String key, String value)
-    {
+    private void set(String key, String value) {
         keys.add(key);
         Editor.preferences().setProperty(key, value);
     }
 
     @After
-    public void tearDown()
-    {
+    public void tearDown() {
         for (String key : keys)
             Editor.preferences().removeProperty(key);
     }
 
-    private FormatTableEntry entry(String thing, String... fallbacks)
-    {
+    private FormatTableEntry entry(String thing, String... fallbacks) {
         FormatTable table = new FormatTable(MODE);
         table.addEntryFromPrefs(0, thing, fallbacks);
         return table.lookup(0);
     }
 
-    private static Color rgb(int rgb)
-    {
+    private static Color rgb(int rgb) {
         return new Color(rgb);
     }
 
     @Test
-    public void parsesNumbersAndWords()
-    {
+    public void parsesNumbersAndWords() {
         assertEquals(TextStyle.BOLD, TextStyle.parse("1"));
         assertEquals(TextStyle.BOLD | TextStyle.ITALIC, TextStyle.parse("3"));
-        assertEquals(TextStyle.BOLD | TextStyle.ITALIC,
-                     TextStyle.parse("bold italic"));
-        assertEquals(TextStyle.UNDERLINE | TextStyle.STRIKETHROUGH,
-                     TextStyle.parse(" underline, strikethrough "));
+        assertEquals(
+            TextStyle.BOLD | TextStyle.ITALIC,
+            TextStyle.parse("bold italic")
+        );
+        assertEquals(
+            TextStyle.UNDERLINE | TextStyle.STRIKETHROUGH,
+            TextStyle.parse(" underline, strikethrough ")
+        );
         assertEquals(TextStyle.PLAIN, TextStyle.parse("plain"));
         assertEquals(-1, TextStyle.parse("loud"));
         assertEquals(-1, TextStyle.parse("16"));
@@ -72,8 +70,7 @@ public class FormatTableTest
     }
 
     @Test
-    public void sharedStyleSuitsALightBackground()
-    {
+    public void sharedStyleSuitsALightBackground() {
         set("color.background", "255 255 255");
         FormatTableEntry e = entry("heading");
         assertEquals(rgb(0x0550ae), e.getColor());
@@ -81,23 +78,20 @@ public class FormatTableTest
     }
 
     @Test
-    public void sharedStyleSuitsADarkBackground()
-    {
+    public void sharedStyleSuitsADarkBackground() {
         set("color.background", "0 0 0");
         assertEquals(rgb(0x58a6ff), entry("heading").getColor());
     }
 
     @Test
-    public void theModesOwnBackgroundDecides()
-    {
+    public void theModesOwnBackgroundDecides() {
         set("color.background", "255 255 255");
         set(MODE + ".color.background", "30 30 30");
         assertEquals(rgb(0x58a6ff), entry("heading").getColor());
     }
 
     @Test
-    public void aLinkedThingTakesWhatTheThemeGaveItsLink()
-    {
+    public void aLinkedThingTakesWhatTheThemeGaveItsLink() {
         set("link.heading1", "heading");
         set("color.heading", "1 2 3");
         FormatTableEntry e = entry("heading1");
@@ -107,8 +101,7 @@ public class FormatTableTest
     }
 
     @Test
-    public void aThingsOwnPreferencesBeatItsLink()
-    {
+    public void aThingsOwnPreferencesBeatItsLink() {
         set("link.heading1", "heading");
         set("color.heading", "1 2 3");
         set(MODE + ".color.heading1", "4 5 6");
@@ -119,8 +112,7 @@ public class FormatTableTest
     }
 
     @Test
-    public void aModesLinkBeatsTheGlobalOne()
-    {
+    public void aModesLinkBeatsTheGlobalOne() {
         set("link.thing", "heading");
         set(MODE + ".link.thing", "code");
         set("color.background", "255 255 255");
@@ -128,8 +120,7 @@ public class FormatTableTest
     }
 
     @Test
-    public void defaultLinksFollowTheThemesText()
-    {
+    public void defaultLinksFollowTheThemesText() {
         set("color.text", "7 8 9");
         FormatTableEntry e = entry("emphasis");
         assertEquals(new Color(7, 8, 9), e.getColor());
@@ -137,8 +128,7 @@ public class FormatTableTest
     }
 
     @Test
-    public void linksChain()
-    {
+    public void linksChain() {
         set("color.background", "255 255 255");
         // url links to muted by default.
         set("link.footnote", "url");
@@ -146,8 +136,7 @@ public class FormatTableTest
     }
 
     @Test
-    public void aCycleOfLinksEnds()
-    {
+    public void aCycleOfLinksEnds() {
         set("link.a", "b");
         set("link.b", "a");
         set("color.text", "7 8 9");
@@ -157,8 +146,7 @@ public class FormatTableTest
     }
 
     @Test
-    public void aFallbacksPreferencesBeatDefaultTheme()
-    {
+    public void aFallbacksPreferencesBeatDefaultTheme() {
         // As before links: "todo" has a DefaultTheme color, but the
         // fallback's preference is asked first.
         set("color.operator", "1 1 1");
@@ -166,30 +154,33 @@ public class FormatTableTest
     }
 
     @Test
-    public void wordsAndBitsInTheme()
-    {
+    public void wordsAndBitsInTheme() {
         set("style.cancelled", "strikethrough italic");
-        assertEquals(TextStyle.STRIKETHROUGH | TextStyle.ITALIC,
-                     entry("cancelled").getStyle());
+        assertEquals(
+            TextStyle.STRIKETHROUGH | TextStyle.ITALIC,
+            entry("cancelled").getStyle()
+        );
         set("style.keyword", "3");
-        assertEquals(TextStyle.BOLD | TextStyle.ITALIC,
-                     entry("keyword").getStyle());
+        assertEquals(
+            TextStyle.BOLD | TextStyle.ITALIC,
+            entry("keyword").getStyle()
+        );
     }
 
     @Test
-    public void killThemeForgetsLinks()
-    {
+    public void killThemeForgetsLinks() {
         set("link.heading1", "heading");
         set(MODE + ".link.heading1", "heading");
         Editor.preferences().killTheme();
         assertNull(Editor.preferences().getStringProperty("link.heading1"));
-        assertNull(Editor.preferences()
-                   .getStringProperty(MODE + ".link.heading1"));
+        assertNull(
+            Editor.preferences()
+                .getStringProperty(MODE + ".link.heading1")
+        );
     }
 
     @Test
-    public void aBuiltInStyleEndsItsChain()
-    {
+    public void aBuiltInStyleEndsItsChain() {
         // A theme that says text is plain, as Bright does, leaves emphasis
         // italic: it takes only its color from text.
         set("style.text", "0");

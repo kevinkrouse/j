@@ -24,27 +24,23 @@ import org.junit.Test;
  * The depths rainbowDelimiters colors brackets by, and the other ends of
  * strings highlightMatchingBracket shows.
  */
-public class RainbowDelimitersTest
-{
+public class RainbowDelimitersTest {
     private EditorHarness h;
 
     @After
-    public void tearDown()
-    {
+    public void tearDown() {
         if (h != null)
             h.close();
     }
 
-    private EditorHarness on(String text, Mode mode)
-    {
+    private EditorHarness on(String text, Mode mode) {
         h = EditorHarness.create(text).mode(mode);
         Editor.setCurrentEditor(h.editor());
         h.buffer().getFormatter().parseBuffer();
         return h;
     }
 
-    private Line line(int lineNumber)
-    {
+    private Line line(int lineNumber) {
         Line line = h.buffer().getFirstLine();
         for (int i = 0; i < lineNumber; i++)
             line = line.next();
@@ -52,36 +48,38 @@ public class RainbowDelimitersTest
     }
 
     /** The brackets of a line, as "offset:level" for each. */
-    private String levels(int lineNumber)
-    {
+    private String levels(int lineNumber) {
         final int[] levels =
             h.buffer().getBracketDepths().levels(line(lineNumber));
         final StringBuilder sb = new StringBuilder();
         for (int i = 0; i < levels.length; i++)
             if (levels[i] != BracketDepths.NONE)
                 sb.append(sb.length() == 0 ? "" : " ")
-                  .append(i).append(':').append(levels[i]);
+                    .append(i)
+                    .append(':')
+                    .append(levels[i]);
         return sb.toString();
     }
 
-    private String matchingQuote(int lineNumber, int offset)
-    {
-        final Position match = h.editor().findMatchingQuote(
-            new Position(line(lineNumber), offset), 0);
-        return match == null ? null
+    private String matchingQuote(int lineNumber, int offset) {
+        final Position match = h.editor()
+            .findMatchingQuote(
+                new Position(line(lineNumber), offset),
+                0
+            );
+        return match == null
+            ? null
             : match.lineNumber() + ":" + match.getOffset();
     }
 
     @Test
-    public void eachPairTakesTheDepthItOpens()
-    {
+    public void eachPairTakesTheDepthItOpens() {
         on("(a [b {c}] (d))\n", LispMode.getMode());
         assertEquals("0:1 3:2 6:3 8:3 9:2 11:2 13:2 14:1", levels(0));
     }
 
     @Test
-    public void theDepthCarriesFromLineToLine()
-    {
+    public void theDepthCarriesFromLineToLine() {
         on("f(a,\n  g(b),\n  c)\n", JavaMode.getMode());
         assertEquals("1:1", levels(0));
         assertEquals("3:2 5:2", levels(1));
@@ -89,16 +87,14 @@ public class RainbowDelimitersTest
     }
 
     @Test
-    public void bracketsInStringsAndCommentsAreLeftAlone()
-    {
+    public void bracketsInStringsAndCommentsAreLeftAlone() {
         on("f(\"(\", // )\n  /* ( */ ')')\n", JavaMode.getMode());
         assertEquals("1:1", levels(0));
         assertEquals("13:1", levels(1));
     }
 
     @Test
-    public void aCommentRunningOnHidesTheNextLinesBrackets()
-    {
+    public void aCommentRunningOnHidesTheNextLinesBrackets() {
         on("/* (\n ( */ (\n)\n", JavaMode.getMode());
         assertEquals("", levels(0));
         assertEquals("6:1", levels(1));
@@ -106,16 +102,14 @@ public class RainbowDelimitersTest
     }
 
     @Test
-    public void aClosingBracketWithNothingOpenIsUnmatched()
-    {
+    public void aClosingBracketWithNothingOpenIsUnmatched() {
         on("a) (b)\n)\n", JavaMode.getMode());
         assertEquals("1:0 3:1 5:1", levels(0));
         assertEquals("0:0", levels(1));
     }
 
     @Test
-    public void anEditChangesTheDepthsBelowIt()
-    {
+    public void anEditChangesTheDepthsBelowIt() {
         on("(\nx\n)\n", JavaMode.getMode());
         assertEquals("0:1", levels(2));
         h.cursor(1, 0).editor().insertChar('(');
@@ -124,8 +118,7 @@ public class RainbowDelimitersTest
     }
 
     @Test
-    public void aNewModeMeansNewDepths()
-    {
+    public void aNewModeMeansNewDepths() {
         on("(\n", JavaMode.getMode());
         final BracketDepths depths = h.buffer().getBracketDepths();
         h.mode(LispMode.getMode());
@@ -133,8 +126,7 @@ public class RainbowDelimitersTest
     }
 
     @Test
-    public void aQuoteFindsTheOtherEndOfItsString()
-    {
+    public void aQuoteFindsTheOtherEndOfItsString() {
         on("x = \"a\\\"b\" + 'c';\n", JavaMode.getMode());
         assertEquals("0:9", matchingQuote(0, 4));
         assertEquals("0:4", matchingQuote(0, 9));
@@ -144,16 +136,14 @@ public class RainbowDelimitersTest
     }
 
     @Test
-    public void aLispStringCanRunOverLines()
-    {
+    public void aLispStringCanRunOverLines() {
         on("(defun f ()\n  \"Doc\n  more.\")\n", LispMode.getMode());
         assertEquals("2:7", matchingQuote(1, 2));
         assertEquals("1:2", matchingQuote(2, 7));
     }
 
     @Test
-    public void quotesInCommentsAndWordsMatchNothing()
-    {
+    public void quotesInCommentsAndWordsMatchNothing() {
         on("; \"a\"\ndon't\n", LispMode.getMode());
         assertNull(matchingQuote(0, 2));
         on("don't\n", JavaMode.getMode());
@@ -161,8 +151,7 @@ public class RainbowDelimitersTest
     }
 
     /** What highlightMatchingBracket highlights with the caret where it is. */
-    private String highlighted() throws Exception
-    {
+    private String highlighted() throws Exception {
         h.buffer().setProperty(Property.HIGHLIGHT_MATCHING_BRACKET, true);
         final Display display = h.editor().getDisplay();
         final java.lang.reflect.Method paint =
@@ -170,14 +159,14 @@ public class RainbowDelimitersTest
         paint.setAccessible(true);
         paint.invoke(display);
         final Position match = display.getMatchingBracketPosition();
-        return match == null ? null
+        return match == null
+            ? null
             : match.lineNumber() + ":" + match.getOffset();
     }
 
     @Test
     public void aBlockCaretOnAClosingBracketHighlightsTheOpeningOne()
-        throws Exception
-    {
+        throws Exception {
         h = EditorHarness.create("f(a,\n  b)\n").vim().mode(JavaMode.getMode());
         Editor.setCurrentEditor(h.editor());
         h.cursor(1, 3);
@@ -189,8 +178,7 @@ public class RainbowDelimitersTest
 
     @Test
     public void aBarCaretJustPastAClosingBracketHighlightsTheOpeningOne()
-        throws Exception
-    {
+        throws Exception {
         on("f(a,\n  b)\n", JavaMode.getMode());
         h.cursor(1, 4);
         assertEquals("0:1", highlighted());

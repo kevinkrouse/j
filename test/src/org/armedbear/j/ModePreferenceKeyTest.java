@@ -23,34 +23,29 @@ import org.junit.Test;
  * A mode's settings are keyed as the docs write them, "JavaMode.indentSize",
  * and still as they had to be while that was broken.
  */
-public class ModePreferenceKeyTest
-{
+public class ModePreferenceKeyTest {
     @After
-    public void tearDown()
-    {
+    public void tearDown() {
         for (String key : new String[] { "JavaMode.indentSize",
-                                         "mode.java.JavaMode.indentSize",
-                                         "JavaMode.files" })
+            "mode.java.JavaMode.indentSize",
+            "JavaMode.files" })
             Editor.preferences().removeProperty(key);
     }
 
     @Test
-    public void asTheDocsWriteIt()
-    {
+    public void asTheDocsWriteIt() {
         Editor.preferences().setProperty("JavaMode.indentSize", "7");
         assertEquals(7, JavaMode.getMode().getIntegerProperty(Property.INDENT_SIZE));
     }
 
     @Test
-    public void asItWasKeyedInItsPackage()
-    {
+    public void asItWasKeyedInItsPackage() {
         Editor.preferences().setProperty("mode.java.JavaMode.indentSize", "5");
         assertEquals(5, JavaMode.getMode().getIntegerProperty(Property.INDENT_SIZE));
     }
 
     @Test
-    public void filesAsTheDocsWriteIt()
-    {
+    public void filesAsTheDocsWriteIt() {
         assertTrue(Editor.getModeList().modeAccepts(Constants.JAVA_MODE, "A.java"));
         Editor.preferences().setProperty("JavaMode.files", ".+\\.jav");
         assertFalse(Editor.getModeList().modeAccepts(Constants.JAVA_MODE, "A.java"));

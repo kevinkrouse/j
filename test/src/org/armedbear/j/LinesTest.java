@@ -24,24 +24,20 @@ import org.junit.Test;
  * against nvim; the move and copy commands are the ones editors usually bind
  * to Alt-Up and Alt-Down, and have no vim spelling of their own.
  */
-public class LinesTest
-{
+public class LinesTest {
     private EditorHarness h;
 
     @After
-    public void tearDown()
-    {
+    public void tearDown() {
         if (h != null)
             h.close();
     }
 
-    private void at(int line)
-    {
+    private void at(int line) {
         assertEquals("line", line, h.lineNumber());
     }
 
-    private void on(int line)
-    {
+    private void on(int line) {
         Line l = h.buffer().getFirstLine();
         for (int i = 0; i < line && l != null; i++)
             l = l.next();
@@ -53,8 +49,7 @@ public class LinesTest
     // ---------------------------------------------------------------- join
 
     @Test
-    public void joinLinesPullsTheNextLineUp()
-    {
+    public void joinLinesPullsTheNextLineUp() {
         h = EditorHarness.create("one\n    two\nthree\n");
         on(0);
         Lines.joinLines();
@@ -62,8 +57,7 @@ public class LinesTest
     }
 
     @Test
-    public void joinLinesTakesACountOfLines()
-    {
+    public void joinLinesTakesACountOfLines() {
         h = EditorHarness.create("a\nb\nc\nd\n");
         on(0);
         Lines.joinLines("3");
@@ -71,8 +65,7 @@ public class LinesTest
     }
 
     @Test
-    public void joinLinesJoinsWhatTheSelectionCovers()
-    {
+    public void joinLinesJoinsWhatTheSelectionCovers() {
         h = EditorHarness.create("a\nb\nc\nd\n");
         on(0);
         final Line third = h.buffer().getFirstLine().next().next();
@@ -85,8 +78,7 @@ public class LinesTest
     }
 
     @Test
-    public void joinLinesAddsNoSecondSpace()
-    {
+    public void joinLinesAddsNoSecondSpace() {
         h = EditorHarness.create("a \n   b\n");
         on(0);
         Lines.joinLines();
@@ -94,8 +86,7 @@ public class LinesTest
     }
 
     @Test
-    public void aCountThatIsNotANumberIsReported()
-    {
+    public void aCountThatIsNotANumberIsReported() {
         h = EditorHarness.create("a\nb\n");
         on(0);
         Lines.joinLines("banana");
@@ -105,8 +96,7 @@ public class LinesTest
     // --------------------------------------------------------- move, copy
 
     @Test
-    public void moveLinesDownSwapsWithTheLineBelow()
-    {
+    public void moveLinesDownSwapsWithTheLineBelow() {
         h = EditorHarness.create("a\nb\nc\n");
         on(0);
         Lines.moveLinesDown();
@@ -115,8 +105,7 @@ public class LinesTest
     }
 
     @Test
-    public void moveLinesUpSwapsWithTheLineAbove()
-    {
+    public void moveLinesUpSwapsWithTheLineAbove() {
         h = EditorHarness.create("a\nb\nc\n");
         on(2);
         Lines.moveLinesUp();
@@ -125,8 +114,7 @@ public class LinesTest
     }
 
     @Test
-    public void movingOffEitherEndDoesNothing()
-    {
+    public void movingOffEitherEndDoesNothing() {
         h = EditorHarness.create("a\nb\n");
         on(0);
         Lines.moveLinesUp();
@@ -137,8 +125,7 @@ public class LinesTest
     }
 
     @Test
-    public void duplicateLinesCopiesBelow()
-    {
+    public void duplicateLinesCopiesBelow() {
         h = EditorHarness.create("a\nb\n");
         on(0);
         Lines.duplicateLines();
@@ -147,8 +134,7 @@ public class LinesTest
     }
 
     @Test
-    public void duplicateLinesTakesTheWholeSelection()
-    {
+    public void duplicateLinesTakesTheWholeSelection() {
         h = EditorHarness.create("a\nb\nc\n");
         on(0);
         final Line third = h.buffer().getFirstLine().next().next();
@@ -161,8 +147,7 @@ public class LinesTest
     }
 
     @Test
-    public void moveLinesPutsARunWhereItIsAsked()
-    {
+    public void moveLinesPutsARunWhereItIsAsked() {
         h = EditorHarness.create("a\nb\nc\nd\n");
         Editor.setCurrentEditor(h.editor());
         Lines.moveLines(h.editor(), 2, 3, 0);
@@ -171,8 +156,7 @@ public class LinesTest
     }
 
     @Test
-    public void copyLinesLeavesTheOriginal()
-    {
+    public void copyLinesLeavesTheOriginal() {
         h = EditorHarness.create("a\nb\nc\n");
         Editor.setCurrentEditor(h.editor());
         Lines.copyLines(h.editor(), 1, 1, 3);
@@ -183,8 +167,7 @@ public class LinesTest
     // ------------------------------------------------------- case region
 
     @Test
-    public void toggleCaseRegionSwapsTheCaseOfTheSelection() throws Exception
-    {
+    public void toggleCaseRegionSwapsTheCaseOfTheSelection() throws Exception {
         // New: j had upperCaseRegion and lowerCaseRegion and no toggle. It
         // is the same code vim's g~ runs.
         h = EditorHarness.create("aBc dEf\n");
@@ -200,8 +183,7 @@ public class LinesTest
     // ------------------------------------------------- the command table
 
     @Test
-    public void theCommandTableReachesThem() throws Exception
-    {
+    public void theCommandTableReachesThem() throws Exception {
         h = EditorHarness.create("a\nb\nc\n");
         on(0);
         h.editor().execute("joinLines", null);

@@ -25,14 +25,12 @@ import org.junit.Test;
  * The last search pattern shared between windows or not (the
  * shareSearch preference), incsearch, and smartcase on by default.
  */
-public class VimSearchOptionsTest
-{
+public class VimSearchOptionsTest {
     private EditorHarness h;
     private EditorHarness other;
 
     @After
-    public void tearDown()
-    {
+    public void tearDown() {
         Editor.preferences().removeProperty(Property.SHARE_SEARCH.key());
         if (h != null)
             h.close();
@@ -41,23 +39,20 @@ public class VimSearchOptionsTest
         h = other = null;
     }
 
-    private EditorHarness vim(String text)
-    {
+    private EditorHarness vim(String text) {
         final EditorHarness harness = EditorHarness.create().vim();
         harness.value(text).cursor(0, 0);
         return harness;
     }
 
-    private static String caret(EditorHarness harness)
-    {
+    private static String caret(EditorHarness harness) {
         return harness.lineNumber() + "," + harness.offset();
     }
 
     // ------------------------------------------------------- shareSearch
 
     @Test
-    public void thePatternIsSharedByDefault()
-    {
+    public void thePatternIsSharedByDefault() {
         h = vim("abc abc");
         other = vim("xbx");
         h.keys("/b<CR>");
@@ -66,8 +61,7 @@ public class VimSearchOptionsTest
     }
 
     @Test
-    public void aSharedPatternRepaintsTheOtherWindows()
-    {
+    public void aSharedPatternRepaintsTheOtherWindows() {
         h = vim("abc abc");
         other = vim("xbx");
         other.clearRepaintPending();
@@ -80,8 +74,7 @@ public class VimSearchOptionsTest
     }
 
     @Test
-    public void eachWindowCanKeepItsOwn()
-    {
+    public void eachWindowCanKeepItsOwn() {
         Editor.preferences().setProperty(Property.SHARE_SEARCH, "false");
         h = vim("abc abc");
         other = vim("xbx");
@@ -96,8 +89,7 @@ public class VimSearchOptionsTest
     // --------------------------------------------------------- incsearch
 
     @Test
-    public void typingThePatternShowsWhereItGoes()
-    {
+    public void typingThePatternShowsWhereItGoes() {
         h = vim("abc abc\nxyz");
         h.keys("/").searchTyped("b");
         assertEquals("0,1", caret(h));
@@ -106,16 +98,14 @@ public class VimSearchOptionsTest
     }
 
     @Test
-    public void withHlsearchEveryMatchOfTheTypedPatternShows()
-    {
+    public void withHlsearchEveryMatchOfTheTypedPatternShows() {
         h = vim("abc abc");
         h.keys("/c<CR>").keys(":noh<CR>").keys("/").searchTyped("b");
         assertEquals("1-2 5-6", h.searchMatches(0));
     }
 
     @Test
-    public void theMatchTheCaretIsOnHasItsOwnColor()
-    {
+    public void theMatchTheCaretIsOnHasItsOwnColor() {
         h = vim("abc abc");
         h.keys("w/").searchTyped("b");
         assertEquals("5-6", h.currentSearchMatch(0));
@@ -125,8 +115,7 @@ public class VimSearchOptionsTest
     }
 
     @Test
-    public void withoutHlsearchOnlyTheMatchTheCaretIsOn()
-    {
+    public void withoutHlsearchOnlyTheMatchTheCaretIsOn() {
         h = vim("abc abc");
         h.keys(":set nohls<CR>").keys("/").searchTyped("b");
         assertEquals("", h.searchMatches(0));
@@ -134,8 +123,7 @@ public class VimSearchOptionsTest
     }
 
     @Test
-    public void aPatternNotFoundPutsTheCaretBack()
-    {
+    public void aPatternNotFoundPutsTheCaretBack() {
         h = vim("abc abc");
         h.keys("w/").searchTyped("b");
         assertEquals("0,5", caret(h));
@@ -148,8 +136,7 @@ public class VimSearchOptionsTest
     }
 
     @Test
-    public void enterSearchesFromWhereTheSearchWasTyped()
-    {
+    public void enterSearchesFromWhereTheSearchWasTyped() {
         // From the preview, at 0,1, the next b would be 0,5.
         h = vim("abc abc");
         h.keys("/").searchTyped("b").searchPattern("b");
@@ -158,16 +145,14 @@ public class VimSearchOptionsTest
     }
 
     @Test
-    public void anOperatorTakesTheTextFromWhereItWasTyped()
-    {
+    public void anOperatorTakesTheTextFromWhereItWasTyped() {
         h = vim("abc abc");
         h.keys("d/").searchTyped("c a").searchPattern("c a");
         assertEquals("c abc", h.value());
     }
 
     @Test
-    public void escapePutsEverythingBack()
-    {
+    public void escapePutsEverythingBack() {
         h = vim("abc abc");
         h.keys("/c<CR>").keys("gg/").searchTyped("b").keys("<Esc>");
         assertEquals("0,0", caret(h));
@@ -176,8 +161,7 @@ public class VimSearchOptionsTest
     }
 
     @Test
-    public void noincsearchLeavesTheCaretAlone()
-    {
+    public void noincsearchLeavesTheCaretAlone() {
         h = vim("abc abc");
         h.keys(":set nois<CR>").keys("/").searchTyped("b");
         assertEquals("0,0", caret(h));
@@ -185,16 +169,14 @@ public class VimSearchOptionsTest
 
     // ------------------------------------------ CTRL-G and CTRL-T at the /
 
-    private String step(String text, int col, String keys)
-    {
+    private String step(String text, int col, String keys) {
         h = vim(text);
         h.cursor(0, col).keys(keys);
         return h.value() + " @" + caret(h);
     }
 
     @Test
-    public void ctrlGAndCtrlTStepThroughTheMatches()
-    {
+    public void ctrlGAndCtrlTStepThroughTheMatches() {
         final String text = "ab ab ab ab";
         assertEquals(text + " @0,6", step(text, 0, "/ab<C-g><CR>"));
         tearDown();
@@ -203,13 +185,14 @@ public class VimSearchOptionsTest
         assertEquals(text + " @0,3", step(text, 0, "/ab<C-g><C-t><CR>"));
         tearDown();
         // Round the end and back to the first.
-        assertEquals(text + " @0,3",
-                     step(text, 0, "/ab<C-g><C-g><C-g><C-g><CR>"));
+        assertEquals(
+            text + " @0,3",
+            step(text, 0, "/ab<C-g><C-g><C-g><C-g><CR>")
+        );
     }
 
     @Test
-    public void ctrlTBackToTheCaretIsWhereASearchCannotStop()
-    {
+    public void ctrlTBackToTheCaretIsWhereASearchCannotStop() {
         // The match at the caret is shown, and Enter goes on to the next,
         // as in nvim; a second CTRL-T wraps to the last.
         assertEquals("ab ab ab ab @0,3", step("ab ab ab ab", 0, "/ab<C-t><CR>"));
@@ -221,8 +204,7 @@ public class VimSearchOptionsTest
     }
 
     @Test
-    public void ctrlGIsForwardInTheBufferEvenForAQuestionMark()
-    {
+    public void ctrlGIsForwardInTheBufferEvenForAQuestionMark() {
         final String text = "ab ab ab ab";
         assertEquals(text + " @0,0", step(text, 10, "?ab<C-g><CR>"));
         tearDown();
@@ -230,8 +212,7 @@ public class VimSearchOptionsTest
     }
 
     @Test
-    public void afterAStepTheSearchGoesOnFromThere()
-    {
+    public void afterAStepTheSearchGoesOnFromThere() {
         final String text = "ab ab ab ab";
         assertEquals(text + " @0,9", step(text, 0, "/ab<C-g><CR>n"));
         tearDown();
@@ -239,21 +220,20 @@ public class VimSearchOptionsTest
     }
 
     @Test
-    public void anOperatorTakesTheTextToTheMatchSteppedTo()
-    {
+    public void anOperatorTakesTheTextToTheMatchSteppedTo() {
         assertEquals("ab ab @0,0", step("ab ab ab ab", 0, "d/ab<C-g><CR>"));
     }
 
     @Test
-    public void escapeAfterAStepPutsTheCaretBack()
-    {
-        assertEquals("ab ab ab ab @0,0",
-                     step("ab ab ab ab", 0, "/ab<C-g><Esc>"));
+    public void escapeAfterAStepPutsTheCaretBack() {
+        assertEquals(
+            "ab ab ab ab @0,0",
+            step("ab ab ab ab", 0, "/ab<C-g><Esc>")
+        );
     }
 
     @Test
-    public void theMatchSteppedToIsTheOneInItsOwnColor()
-    {
+    public void theMatchSteppedToIsTheOneInItsOwnColor() {
         h = vim("ab ab ab ab");
         h.keys("/ab<C-g>");
         assertEquals("6-8", h.currentSearchMatch(0));
@@ -263,8 +243,7 @@ public class VimSearchOptionsTest
     }
 
     @Test
-    public void aCountIsSpentOnTheFirstMatchShown()
-    {
+    public void aCountIsSpentOnTheFirstMatchShown() {
         // nvim lands on 0,12 here, applying the count again from the match
         // it stepped to; j goes where CTRL-G showed. Documented.
         final String text = "ab ab ab ab ab ab";
@@ -272,8 +251,7 @@ public class VimSearchOptionsTest
     }
 
     @Test
-    public void aVimrcCmapReachesTheCMap()
-    {
+    public void aVimrcCmapReachesTheCMap() {
         h = EditorHarness.create().vim("cmap <C-j> <C-g>\n");
         h.value("ab ab ab ab").cursor(0, 0).keys("/ab<C-j><CR>");
         assertEquals("0,6", caret(h));
@@ -282,8 +260,7 @@ public class VimSearchOptionsTest
     // --------------------------------------------------------- smartcase
 
     @Test
-    public void smartcaseIsOnByDefault()
-    {
+    public void smartcaseIsOnByDefault() {
         h = vim("ab Ab");
         h.keys(":set ic<CR>").keys("/ab<CR>");
         assertEquals("0-2 3-5", h.searchMatches(0));
@@ -294,8 +271,7 @@ public class VimSearchOptionsTest
     }
 
     @Test
-    public void aSwitchTogglesFromItsDefault()
-    {
+    public void aSwitchTogglesFromItsDefault() {
         h = vim("abc");
         h.keys(":set hls!<CR>").keys("/b<CR>");
         assertEquals("", h.searchMatches(0));

@@ -31,7 +31,6 @@ import java.lang.reflect.Constructor;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-
 import org.armedbear.j.Command;
 import org.armedbear.j.CommandTable;
 import org.junit.Assume;
@@ -51,13 +50,11 @@ import org.junit.Test;
  * {@code bb test} alone does not do; it is skipped then, and
  * {@code bb test-extensions} builds the tree first so it always runs there.
  */
-public class ExtensionLoadingTest
-{
+public class ExtensionLoadingTest {
     private static Path extensionsDirectory;
 
     @BeforeClass
-    public static void findTheBuiltExtensions()
-    {
+    public static void findTheBuiltExtensions() {
         // build/classes -> build -> build/lib/extensions, the same derivation
         // Extensions itself makes from an installed j.jar.
         Path dir = null;
@@ -74,8 +71,10 @@ public class ExtensionLoadingTest
             dir = null;
         }
         if (dir == null || !Files.isDirectory(dir))
-            System.out.println("ExtensionLoadingTest: skipped, no extensions "
-                               + "built (run `bb test-extensions`)");
+            System.out.println(
+                "ExtensionLoadingTest: skipped, no extensions "
+                    + "built (run `bb test-extensions`)"
+            );
         extensionsDirectory = dir;
     }
 
@@ -88,13 +87,16 @@ public class ExtensionLoadingTest
      * down again either, so there is no teardown to write.
      */
     @Before
-    public void load()
-    {
-        Assume.assumeTrue(extensionsDirectory != null
-                          && Files.isDirectory(extensionsDirectory));
+    public void load() {
+        Assume.assumeTrue(
+            extensionsDirectory != null
+                && Files.isDirectory(extensionsDirectory)
+        );
         if (!loaded) {
-            System.setProperty(Extensions.DIRECTORY_PROPERTY,
-                               extensionsDirectory.toString());
+            System.setProperty(
+                Extensions.DIRECTORY_PROPERTY,
+                extensionsDirectory.toString()
+            );
             try {
                 Extensions.load();
             }
@@ -106,15 +108,15 @@ public class ExtensionLoadingTest
     }
 
     @Test
-    public void theExtensionIsFound()
-    {
-        assertTrue("loaded: " + Extensions.loadedNames(),
-                   Extensions.loadedNames().contains("abcl"));
+    public void theExtensionIsFound() {
+        assertTrue(
+            "loaded: " + Extensions.loadedNames(),
+            Extensions.loadedNames().contains("abcl")
+        );
     }
 
     @Test
-    public void itReplacesTheNoOpProviders()
-    {
+    public void itReplacesTheNoOpProviders() {
         assertNotSame(EditorHooks.NONE, Extensions.hooks());
         assertNotSame(KeyMapProvider.NONE, Extensions.keyMaps());
         assertNotSame(LanguageClient.NONE, Extensions.languageClient());
@@ -122,25 +124,27 @@ public class ExtensionLoadingTest
     }
 
     @Test
-    public void aCommandArrivesCarryingItsOwnClass()
-    {
+    public void aCommandArrivesCarryingItsOwnClass() {
         Command jlisp = CommandTable.getCommand("jlisp");
         assertNotNull("jlisp was not registered", jlisp);
         // The whole reason registerCommand takes a Class and not a name:
         // Class.forName on core's loader could never find this.
         assertNotNull(jlisp.getDeclaringClass());
-        assertNotSame(CommandTable.class.getClassLoader(),
-                      jlisp.getDeclaringClass().getClassLoader());
+        assertNotSame(
+            CommandTable.class.getClassLoader(),
+            jlisp.getDeclaringClass().getClassLoader()
+        );
     }
 
     @Test
     public void theRuntimeSleepsUntilSomethingEvaluatesAndThenWakes()
-        throws EvalException
-    {
+        throws EvalException {
         // Both halves in one test on purpose: junit 4.8.2 does not order
         // methods, and this is the only test here that may boot a runtime.
-        assertFalse("loading an extension must not start a runtime",
-                    Extensions.session().isReady());
+        assertFalse(
+            "loading an extension must not start a runtime",
+            Extensions.session().isReady()
+        );
         // Everything core calls on the hot paths, none of which may wake it.
         Extensions.hooks().eventHandled();
         Extensions.hooks().bufferActivated(null);
@@ -159,8 +163,7 @@ public class ExtensionLoadingTest
     }
 
     @Test
-    public void classesInTheExtensionResolveBackIntoCore() throws Exception
-    {
+    public void classesInTheExtensionResolveBackIntoCore() throws Exception {
         // The split-package trap. BufferStream is declared in org.armedbear.j
         // but lives in the extension's loader, so it is a *different* runtime
         // package from core's: any package-private member it touches compiles
@@ -179,18 +182,19 @@ public class ExtensionLoadingTest
     }
 
     @Test
-    public void abclIsReachableOnlyFromTheExtension() throws Exception
-    {
+    public void abclIsReachableOnlyFromTheExtension() throws Exception {
         ClassLoader loader =
             CommandTable.getCommand("jlisp").getDeclaringClass().getClassLoader();
         assertNotNull(Class.forName("org.armedbear.lisp.Interpreter", false, loader));
         try {
-            Class.forName("org.armedbear.lisp.Interpreter", false,
-                          CommandTable.class.getClassLoader());
+            Class.forName(
+                "org.armedbear.lisp.Interpreter",
+                false,
+                CommandTable.class.getClassLoader()
+            );
             org.junit.Assert.fail("ABCL leaked onto core's class path");
         }
-        catch (ClassNotFoundException expected) {
-        }
+        catch (ClassNotFoundException expected) {}
     }
 
 }

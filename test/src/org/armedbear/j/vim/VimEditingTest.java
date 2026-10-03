@@ -21,25 +21,21 @@ import org.junit.Test;
  * Undo, join, replace, case and indent. Expectations were checked against real
  * nvim with tools/vim-oracle.sh.
  */
-public class VimEditingTest
-{
+public class VimEditingTest {
     private EditorHarness h;
 
     @After
-    public void tearDown()
-    {
+    public void tearDown() {
         if (h != null)
             h.close();
     }
 
-    private EditorHarness vim(String text)
-    {
+    private EditorHarness vim(String text) {
         h = EditorHarness.create(text).vim();
         return h;
     }
 
-    private void at(int line, int offset)
-    {
+    private void at(int line, int offset) {
         assertEquals("line", line, h.lineNumber());
         assertEquals("offset", offset, h.offset());
     }
@@ -53,8 +49,7 @@ public class VimEditingTest
     // buffer before it did.
 
     /** Runs keys, undoes once, and requires the text to be back as it was. */
-    private void undoRestores(String start, String keys)
-    {
+    private void undoRestores(String start, String keys) {
         h = EditorHarness.create().vim();
         h.value(start).cursor(0, 0).keys(keys);
         h.keys("u");
@@ -64,8 +59,7 @@ public class VimEditingTest
     }
 
     @Test
-    public void undoingAPutInTheMiddleOfTheBufferPutsItBack()
-    {
+    public void undoingAPutInTheMiddleOfTheBufferPutsItBack() {
         // Used to duplicate the line below instead of removing the pasted one.
         undoRestores("abcdef\nx", "yyp");
         undoRestores("abcdef\nx", "yyP");
@@ -73,23 +67,26 @@ public class VimEditingTest
     }
 
     @Test
-    public void undoingACharacterPutPutsItBack()
-    {
+    public void undoingACharacterPutPutsItBack() {
         undoRestores("abc\ndef", "ylp");
     }
 
     @Test
-    public void undoingACountedJoinPutsEveryLineBack()
-    {
+    public void undoingACountedJoinPutsEveryLineBack() {
         // 3J then u used to lose a line outright.
         undoRestores("a\nb\nc\nd", "3J");
         undoRestores("one\ntwo\nthree\nfour", "4J");
     }
 
     /** Runs keys, undoes once, and checks where the caret came back to. */
-    private void undoLeavesCaretAt(String start, int line, int offset,
-                                   String keys, int wantLine, int wantOffset)
-    {
+    private void undoLeavesCaretAt(
+        String start,
+        int line,
+        int offset,
+        String keys,
+        int wantLine,
+        int wantOffset
+    ) {
         h = EditorHarness.create().vim();
         h.value(start).cursor(line, offset).keys(keys);
         h.keys("u");
@@ -101,8 +98,7 @@ public class VimEditingTest
     }
 
     @Test
-    public void undoPutsTheCaretBackWhereTheCommandFoundIt()
-    {
+    public void undoPutsTheCaretBackWhereTheCommandFoundIt() {
         // A command that edits moves the caret to what it is changing, and
         // that move belongs to the change: undo has to give back the caret
         // as well as the text. Every expectation checked against nvim.
@@ -120,8 +116,7 @@ public class VimEditingTest
     }
 
     @Test
-    public void undoPutsTheCaretWhereTheOperatorStarted()
-    {
+    public void undoPutsTheCaretWhereTheOperatorStarted() {
         // Where vim's cursor stood when the operator began changing text,
         // which is not always where it was typed. Every expectation checked
         // against nvim.
@@ -149,8 +144,7 @@ public class VimEditingTest
     }
 
     @Test
-    public void theWholeYankPutUndoSequenceFromAnEmptyBuffer()
-    {
+    public void theWholeYankPutUndoSequenceFromAnEmptyBuffer() {
         h = EditorHarness.create().vim();
         h.value("").cursor(0, 0).keys("iabcdef<Esc>");
         assertEquals("abcdef", h.value());
@@ -163,8 +157,7 @@ public class VimEditingTest
     }
 
     @Test
-    public void uUndoesAndCtrlRRedoes()
-    {
+    public void uUndoesAndCtrlRRedoes() {
         vim("abcd\n").cursor(0, 0).keys("x");
         h.assertText("bcd\n");
         h.keys("u");
@@ -174,15 +167,13 @@ public class VimEditingTest
     }
 
     @Test
-    public void uUndoesAWholeInsertSession()
-    {
+    public void uUndoesAWholeInsertSession() {
         vim("abc\n").cursor(0, 0).keys("iXY<Esc>u");
         h.assertText("abc\n");
     }
 
     @Test
-    public void uAfterMovingAwayUndoesOnlyTheReplacedCharacter()
-    {
+    public void uAfterMovingAwayUndoesOnlyTheReplacedCharacter() {
         // The insert's undo works from wherever the caret is when u runs:
         // this used to put the old line back over every line down to it.
         vim("abc\ndef\nghi\njkl\nmno\n").cursor(0, 0).keys("rqjjj");
@@ -194,8 +185,7 @@ public class VimEditingTest
     }
 
     @Test
-    public void redoPutsTheCaretWhereUndoDidNotWhereItWandered()
-    {
+    public void redoPutsTheCaretWhereUndoDidNotWhereItWandered() {
         // j's redo used to put the caret back where it was when u was
         // pressed. Every expectation checked against nvim.
         final String text = "one\n  two words\nthree\nfour\n";
@@ -226,15 +216,13 @@ public class VimEditingTest
     }
 
     @Test
-    public void visualRAfterMovingAwayUndoesCleanly()
-    {
+    public void visualRAfterMovingAwayUndoesCleanly() {
         vim("abc\ndef\nghi\njkl\nmno\n").cursor(0, 0).keys("vjrqjjju");
         h.assertText("abc\ndef\nghi\njkl\nmno\n");
     }
 
     @Test
-    public void uTakesACount()
-    {
+    public void uTakesACount() {
         vim("abcd\n").cursor(0, 0).keys("xxx");
         h.assertText("d\n");
         h.keys("2u");
@@ -244,23 +232,20 @@ public class VimEditingTest
     // ---------------------------------------------------------------- join
 
     @Test
-    public void jJoinsTwoLinesWithASpace()
-    {
+    public void jJoinsTwoLinesWithASpace() {
         vim("one\ntwo\n").cursor(0, 0).keys("J");
         h.assertText("one two\n");
         at(0, 3);
     }
 
     @Test
-    public void joinDropsTheIndentOfTheLinePulledUp()
-    {
+    public void joinDropsTheIndentOfTheLinePulledUp() {
         vim("one\n    two\n").cursor(0, 0).keys("J");
         h.assertText("one two\n");
     }
 
     @Test
-    public void joinDoesNotAddASpaceWhenThereIsOne()
-    {
+    public void joinDoesNotAddASpaceWhenThereIsOne() {
         // And it keeps the trailing whitespace already on the line.
         vim("  a  \n   b\n").cursor(0, 0).keys("J");
         h.assertText("  a  b\n");
@@ -268,22 +253,19 @@ public class VimEditingTest
     }
 
     @Test
-    public void joinWithACountJoinsThatManyLines()
-    {
+    public void joinWithACountJoinsThatManyLines() {
         vim("a\nb\nc\nd\n").cursor(0, 0).keys("3J");
         h.assertText("a b c\nd\n");
     }
 
     @Test
-    public void gJJoinsWithoutTouchingWhitespace()
-    {
+    public void gJJoinsWithoutTouchingWhitespace() {
         vim("one\n    two\n").cursor(0, 0).keys("gJ");
         h.assertText("one    two\n");
     }
 
     @Test
-    public void joinAtTheLastLineDoesNothing()
-    {
+    public void joinAtTheLastLineDoesNothing() {
         vim("only\n").cursor(0, 0).keys("J");
         h.assertText("only\n");
     }
@@ -291,24 +273,21 @@ public class VimEditingTest
     // ------------------------------------------------------------- replace
 
     @Test
-    public void rReplacesOneCharacter()
-    {
+    public void rReplacesOneCharacter() {
         vim("abc\n").cursor(0, 0).keys("rX");
         h.assertText("Xbc\n");
         at(0, 0);
     }
 
     @Test
-    public void rWithACountReplacesThatMany()
-    {
+    public void rWithACountReplacesThatMany() {
         vim("abc\n").cursor(0, 0).keys("3rX");
         h.assertText("XXX\n");
         at(0, 2);
     }
 
     @Test
-    public void rRefusesWhenThereAreNotEnoughCharacters()
-    {
+    public void rRefusesWhenThereAreNotEnoughCharacters() {
         // Vim does none of it rather than part of it.
         vim("abc\n").cursor(0, 0).keys("5rX");
         h.assertText("abc\n");
@@ -319,16 +298,14 @@ public class VimEditingTest
     // it ran as normal-mode commands.
 
     @Test
-    public void capitalRTypesOverTheCharactersItPassesOver()
-    {
+    public void capitalRTypesOverTheCharactersItPassesOver() {
         vim("abcdef\n").cursor(0, 0).keys("Rxy<Esc>");
         h.assertText("xycdef\n");
         at(0, 1);
     }
 
     @Test
-    public void replaceModeAppendsOnceItRunsOffTheEndOfTheLine()
-    {
+    public void replaceModeAppendsOnceItRunsOffTheEndOfTheLine() {
         // R can lengthen a line, never shorten one.
         vim("ab\n").cursor(0, 0).keys("Rxyz<Esc>");
         h.assertText("xyz\n");
@@ -336,8 +313,7 @@ public class VimEditingTest
     }
 
     @Test
-    public void backspaceInReplaceModePutsBackWhatWasTypedOver()
-    {
+    public void backspaceInReplaceModePutsBackWhatWasTypedOver() {
         // Not a delete: it walks the session backwards.
         vim("abcdef\n").cursor(0, 2).keys("Rxy<BS><BS><Esc>");
         h.assertText("abcdef\n");
@@ -345,8 +321,7 @@ public class VimEditingTest
     }
 
     @Test
-    public void backspacePastTheStartOfTheReplaceOnlyMovesTheCaret()
-    {
+    public void backspacePastTheStartOfTheReplaceOnlyMovesTheCaret() {
         // The text to the left was never this session's to give back.
         vim("abcdef\n").cursor(0, 2).keys("Rxy<BS><BS><BS><BS><Esc>");
         h.assertText("abcdef\n");
@@ -359,8 +334,7 @@ public class VimEditingTest
     }
 
     @Test
-    public void backspaceTakesAwayACharacterReplaceModeAppended()
-    {
+    public void backspaceTakesAwayACharacterReplaceModeAppended() {
         // Past the old end of the line there was nothing to put back, so the
         // character goes instead.
         vim("ab\n").cursor(0, 0).keys("Rxyz<BS><Esc>");
@@ -369,8 +343,7 @@ public class VimEditingTest
     }
 
     @Test
-    public void backspaceGivesUpOnceSomethingElseMovesTheCaret()
-    {
+    public void backspaceGivesUpOnceSomethingElseMovesTheCaret() {
         // The record only lines up with the text while the caret is where the
         // last keystroke left it. <C-Left> is one of j's own bindings, so
         // nothing in the modal layer sees it move -- and a remembered
@@ -384,8 +357,7 @@ public class VimEditingTest
     }
 
     @Test
-    public void shiftBackspaceIsStillBackspace()
-    {
+    public void shiftBackspaceIsStillBackspace() {
         // With any modifier it used to reach j's own backspace, which
         // deletes -- so R shortened the line, which R cannot do.
         vim("abcdef\n").cursor(0, 0).keys("Rxy<S-BS><Esc>");
@@ -394,8 +366,7 @@ public class VimEditingTest
     }
 
     @Test
-    public void replaceModeTypesOverWithTab()
-    {
+    public void replaceModeTypesOverWithTab() {
         // Tab carries no character, so the typed path never sees it; passing
         // it through inserted an indent instead of replacing one character.
         vim("abcdef\n").cursor(0, 0).keys("R<Tab>q<Esc>");
@@ -404,8 +375,7 @@ public class VimEditingTest
     }
 
     @Test
-    public void backspaceKeepsItsRecordAcrossADelete()
-    {
+    public void backspaceKeepsItsRecordAcrossADelete() {
         // Delete does not move the caret, so what R typed over still lies
         // where the record says it does.
         vim("abcdef\n").cursor(0, 0).keys("Rxy<Del><BS><Esc>");
@@ -414,14 +384,12 @@ public class VimEditingTest
     }
 
     @Test
-    public void undoTakesBackTheWholeReplaceSession()
-    {
+    public void undoTakesBackTheWholeReplaceSession() {
         undoLeavesCaretAt("abcdef\nx", 0, 1, "Rxy<Esc>", 0, 1);
     }
 
     @Test
-    public void dotRepeatsAReplace()
-    {
+    public void dotRepeatsAReplace() {
         vim("abcdef\nabcdef\n").cursor(0, 0).keys("Rxy<Esc>");
         h.assertText("xycdef\nabcdef\n");
         h.keys("j0.");
@@ -431,46 +399,40 @@ public class VimEditingTest
     // ---------------------------------------------------------------- case
 
     @Test
-    public void tildeSwapsCaseAndMovesOn()
-    {
+    public void tildeSwapsCaseAndMovesOn() {
         vim("abc\n").cursor(0, 0).keys("~");
         h.assertText("Abc\n");
         at(0, 1);
     }
 
     @Test
-    public void tildeTakesACount()
-    {
+    public void tildeTakesACount() {
         vim("abc\n").cursor(0, 0).keys("3~");
         h.assertText("ABC\n");
         at(0, 2);
     }
 
     @Test
-    public void gUUpperCasesAMotionAndStaysPut()
-    {
+    public void gUUpperCasesAMotionAndStaysPut() {
         vim("abc def\n").cursor(0, 0).keys("gUw");
         h.assertText("ABC def\n");
         at(0, 0);
     }
 
     @Test
-    public void guLowerCases()
-    {
+    public void guLowerCases() {
         vim("ABC DEF\n").cursor(0, 0).keys("guw");
         h.assertText("abc DEF\n");
     }
 
     @Test
-    public void gTildeToggles()
-    {
+    public void gTildeToggles() {
         vim("aBc\n").cursor(0, 0).keys("g~$");
         h.assertText("AbC\n");
     }
 
     @Test
-    public void caseOperatorsWorkInVisualMode()
-    {
+    public void caseOperatorsWorkInVisualMode() {
         vim("abcdef\n").cursor(0, 0).keys("vllgU");
         h.assertText("ABCdef\n");
     }
@@ -478,8 +440,7 @@ public class VimEditingTest
     // -------------------------------------------------------------- indent
 
     @Test
-    public void shiftRightAndLeftMoveByOneShiftwidth()
-    {
+    public void shiftRightAndLeftMoveByOneShiftwidth() {
         vim("x\n").cursor(0, 0);
         final int width = h.buffer().getIndentSize();
         h.keys(">>");
@@ -489,30 +450,34 @@ public class VimEditingTest
     }
 
     @Test
-    public void shiftLeftStopsAtColumnZero()
-    {
+    public void shiftLeftStopsAtColumnZero() {
         vim("x\n").cursor(0, 0).keys("<<");
         h.assertText("x\n");
     }
 
     @Test
-    public void shiftAppliesToEveryLineAMotionCovers()
-    {
+    public void shiftAppliesToEveryLineAMotionCovers() {
         vim("a\nb\nc\n").cursor(0, 0).keys(">j");
         final int width = h.buffer().getIndentSize();
         assertEquals(width, h.buffer().getIndentation(h.buffer().getFirstLine()));
-        assertEquals(width,
-                     h.buffer().getIndentation(h.buffer().getFirstLine().next()));
-        assertEquals("the third line is untouched", 0,
-                     h.buffer().getIndentation(
-                         h.buffer().getFirstLine().next().next()));
+        assertEquals(
+            width,
+            h.buffer().getIndentation(h.buffer().getFirstLine().next())
+        );
+        assertEquals(
+            "the third line is untouched",
+            0,
+            h.buffer()
+                .getIndentation(
+                    h.buffer().getFirstLine().next().next()
+                )
+        );
     }
 
     // ------------------------------------------------------------- % and HML
 
     @Test
-    public void percentGoesToTheMatchingBracket()
-    {
+    public void percentGoesToTheMatchingBracket() {
         vim("(a(b)c)\n").cursor(0, 0).keys("%");
         at(0, 6);
         h.keys("%");
@@ -520,22 +485,19 @@ public class VimEditingTest
     }
 
     @Test
-    public void percentFindsTheFirstBracketOnTheLine()
-    {
+    public void percentFindsTheFirstBracketOnTheLine() {
         vim("x = (a + b)\n").cursor(0, 0).keys("%");
         at(0, 10);
     }
 
     @Test
-    public void percentWithNoBracketDoesNothing()
-    {
+    public void percentWithNoBracketDoesNothing() {
         vim("abc\n").cursor(0, 1).keys("%");
         at(0, 1);
     }
 
     @Test
-    public void capitalHAndLGoToTheTopAndBottomOfTheWindow()
-    {
+    public void capitalHAndLGoToTheTopAndBottomOfTheWindow() {
         vim("1\n2\n3\n4\n5\n").cursor(2, 0).keys("H");
         at(0, 0);
         h.keys("L");
@@ -545,8 +507,7 @@ public class VimEditingTest
     }
 
     @Test
-    public void zzZtAndZbScrollWithoutMovingTheCaret()
-    {
+    public void zzZtAndZbScrollWithoutMovingTheCaret() {
         // These are j's own toCenter, toTop and toBottom, bound rather than
         // reimplemented. The caret must not move, which is what separates
         // them from H, M and L.
@@ -556,8 +517,11 @@ public class VimEditingTest
         // 'scrolloff' at 1 rather than at its default 0. Left as j has it:
         // nothing is duplicated either way, so there is no reason to change
         // how an existing j command feels.
-        assertEquals("scrolled to the caret's line, less one", 3,
-                     h.editor().getDisplay().getTopLine().lineNumber());
+        assertEquals(
+            "scrolled to the caret's line, less one",
+            3,
+            h.editor().getDisplay().getTopLine().lineNumber()
+        );
         h.keys("zz");
         at(4, 0);
         h.keys("zb");
@@ -565,15 +529,13 @@ public class VimEditingTest
     }
 
     @Test
-    public void deleteCanUseAMatchingBracketAsItsMotion()
-    {
+    public void deleteCanUseAMatchingBracketAsItsMotion() {
         vim("(abc)d\n").cursor(0, 0).keys("d%");
         h.assertText("d\n");
     }
 
     @Test
-    public void aClosingParenthesisIsJoinedWithoutASpace()
-    {
+    public void aClosingParenthesisIsJoinedWithoutASpace() {
         vim("foo\n)bar\n").cursor(0, 0).keys("J");
         h.assertText("foo)bar\n");
     }

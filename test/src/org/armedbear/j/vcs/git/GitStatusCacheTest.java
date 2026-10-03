@@ -32,18 +32,15 @@ import org.junit.Test;
  * go wrong quietly: a misread record doesn't throw, it just attributes one
  * file's status to another.
  */
-public class GitStatusCacheTest
-{
-    private static Map<String, String> parse(String output)
-    {
+public class GitStatusCacheTest {
+    private static Map<String, String> parse(String output) {
         Map<String, String> status = new HashMap<String, String>();
         GitStatusCache.parse(output, status);
         return status;
     }
 
     @Test
-    public void readsOrdinaryRecords()
-    {
+    public void readsOrdinaryRecords() {
         Map<String, String> s = parse("M  build.xml\0 M src/Foo.java\0?? TODO.md\0");
         assertEquals(3, s.size());
         assertEquals("M ", s.get("build.xml"));
@@ -56,8 +53,7 @@ public class GitStatusCacheTest
      * what keeps the entries after it lined up with the right files.
      */
     @Test
-    public void stepsOverTheSourcePathOfARename()
-    {
+    public void stepsOverTheSourcePathOfARename() {
         Map<String, String> s =
             parse("R  new/Name.java\0old/Name.java\0 M after.java\0");
         assertEquals("R ", s.get("new/Name.java"));
@@ -68,8 +64,7 @@ public class GitStatusCacheTest
     }
 
     @Test
-    public void stepsOverTheSourcePathOfACopy()
-    {
+    public void stepsOverTheSourcePathOfACopy() {
         Map<String, String> s = parse("C  copy.java\0origin.java\0A  added.java\0");
         assertEquals("C ", s.get("copy.java"));
         assertEquals("A ", s.get("added.java"));
@@ -77,25 +72,22 @@ public class GitStatusCacheTest
     }
 
     @Test
-    public void keepsPathsWithSpacesIntact()
-    {
+    public void keepsPathsWithSpacesIntact() {
         Map<String, String> s = parse(" M some dir/a file.txt\0");
         assertEquals(" M", s.get("some dir/a file.txt"));
     }
 
     @Test
-    public void toleratesMissingAndMalformedInput()
-    {
+    public void toleratesMissingAndMalformedInput() {
         assertEquals(0, parse(null).size());
         assertEquals(0, parse("").size());
-        assertEquals(0, parse("xy\0").size());       // too short to be a record
+        assertEquals(0, parse("xy\0").size()); // too short to be a record
         // A final record without its NUL terminator is still usable.
         assertEquals("M ", parse("M  trailing.java").get("trailing.java"));
     }
 
     @Test
-    public void readsConflictAndIgnoredCodes()
-    {
+    public void readsConflictAndIgnoredCodes() {
         Map<String, String> s = parse("UU both.java\0!! build/\0DD gone.java\0");
         assertEquals("UU", s.get("both.java"));
         assertEquals("!!", s.get("build/"));

@@ -24,19 +24,16 @@ import org.junit.Test;
  * The input seam: a key in normal mode never means itself, and simple mode is
  * exactly what it was.
  */
-public class VimModeTest
-{
+public class VimModeTest {
     private EditorHarness h;
 
     @After
-    public void tearDown()
-    {
+    public void tearDown() {
         if (h != null)
             h.close();
     }
 
-    private EditorHarness vim(String text)
-    {
+    private EditorHarness vim(String text) {
         h = EditorHarness.create(text).vim();
         return h;
     }
@@ -44,18 +41,18 @@ public class VimModeTest
     // ------------------------------------------------- simple mode is intact
 
     @Test
-    public void simpleModeHasNoHandlerAtAll()
-    {
+    public void simpleModeHasNoHandlerAtAll() {
         h = EditorHarness.create("alpha\n");
-        assertNull("an ordinary buffer must not pay for modal editing",
-                   h.editor().getInputHandler());
+        assertNull(
+            "an ordinary buffer must not pay for modal editing",
+            h.editor().getInputHandler()
+        );
         h.cursor(0, 0).keys("xy");
         h.assertText("xyalpha\n");
     }
 
     @Test
-    public void unknownEditModeFallsBackToSimple()
-    {
+    public void unknownEditModeFallsBackToSimple() {
         h = EditorHarness.create("alpha\n");
         h.buffer().setProperty(org.armedbear.j.Property.EDIT_MODE, "emacs");
         assertNull(h.editor().getInputHandler());
@@ -68,15 +65,13 @@ public class VimModeTest
     // ------------------------------------------------------- normal mode
 
     @Test
-    public void startsInNormalMode()
-    {
+    public void startsInNormalMode() {
         vim("alpha\n");
         assertSame(VimMode.NORMAL, h.vimState().getMode());
     }
 
     @Test
-    public void normalModeDoesNotInsertText()
-    {
+    public void normalModeDoesNotInsertText() {
         // None of these are bound to anything; what matters is that not one
         // of them ends up in the buffer as a character.
         vim("alpha bravo\n").cursor(0, 0).keys("zQvV");
@@ -84,8 +79,7 @@ public class VimModeTest
     }
 
     @Test
-    public void normalModeSwallowsUnboundKeysRatherThanRunningJCommands()
-    {
+    public void normalModeSwallowsUnboundKeysRatherThanRunningJCommands() {
         // 'q' is not a vim command yet, but it must not reach j's key maps
         // and it must not be inserted either.
         vim("alpha\n").cursor(0, 0).keys("q");
@@ -96,51 +90,44 @@ public class VimModeTest
     // ---------------------------------------------------- entering insert
 
     @Test
-    public void iInsertsBeforeTheCaret()
-    {
+    public void iInsertsBeforeTheCaret() {
         vim("alpha\n").cursor(0, 2).keys("iXY");
         h.assertText("alXYpha\n");
         assertSame(VimMode.INSERT, h.vimState().getMode());
     }
 
     @Test
-    public void aInsertsAfterTheCaret()
-    {
+    public void aInsertsAfterTheCaret() {
         vim("alpha\n").cursor(0, 2).keys("aXY");
         h.assertText("alpXYha\n");
     }
 
     @Test
-    public void aAtEndOfLineAppends()
-    {
+    public void aAtEndOfLineAppends() {
         vim("alpha\n").cursor(0, 4).keys("aZ");
         h.assertText("alphaZ\n");
     }
 
     @Test
-    public void capitalIInsertsAtTheFirstNonBlank()
-    {
+    public void capitalIInsertsAtTheFirstNonBlank() {
         vim("    alpha\n").cursor(0, 7).keys("IX");
         h.assertText("    Xalpha\n");
     }
 
     @Test
-    public void capitalAAppendsToTheLine()
-    {
+    public void capitalAAppendsToTheLine() {
         vim("alpha\n").cursor(0, 0).keys("AX");
         h.assertText("alphaX\n");
     }
 
     @Test
-    public void oOpensALineBelow()
-    {
+    public void oOpensALineBelow() {
         vim("alpha\nbravo\n").cursor(0, 2).keys("oX");
         h.assertText("alpha\nX\nbravo\n");
     }
 
     @Test
-    public void capitalOOpensALineAbove()
-    {
+    public void capitalOOpensALineAbove() {
         vim("alpha\nbravo\n").cursor(1, 2).keys("OX");
         h.assertText("alpha\nX\nbravo\n");
     }
@@ -148,25 +135,25 @@ public class VimModeTest
     // ---------------------------------------------------- leaving insert
 
     @Test
-    public void escapeReturnsToNormalAndStepsBack()
-    {
+    public void escapeReturnsToNormalAndStepsBack() {
         vim("alpha\n").cursor(0, 0).keys("iXY<Esc>");
         h.assertText("XYalpha\n");
         assertSame(VimMode.NORMAL, h.vimState().getMode());
-        assertEquals("the caret lands on the last character typed",
-                     1, h.offset());
+        assertEquals(
+            "the caret lands on the last character typed",
+            1,
+            h.offset()
+        );
     }
 
     @Test
-    public void afterEscapeKeysAreCommandsAgain()
-    {
+    public void afterEscapeKeysAreCommandsAgain() {
         vim("alpha\n").cursor(0, 0).keys("iX<Esc>zzz");
         h.assertText("Xalpha\n");
     }
 
     @Test
-    public void controlBracketIsEscape()
-    {
+    public void controlBracketIsEscape() {
         // CTRL-[ is what Escape sends on a terminal; vim treats them as one
         // key, and people who learned vim on a terminal type it.
         vim("alpha\n").cursor(0, 0).keys("iXY<C-[>");
@@ -176,16 +163,14 @@ public class VimModeTest
     }
 
     @Test
-    public void controlBracketLeavesVisualModeToo()
-    {
+    public void controlBracketLeavesVisualModeToo() {
         vim("alpha\n").cursor(0, 0).keys("vl<C-[>");
         assertSame(VimMode.NORMAL, h.vimState().getMode());
         assertNull(h.editor().getMark());
     }
 
     @Test
-    public void escapeInNormalModeIsSwallowed()
-    {
+    public void escapeInNormalModeIsSwallowed() {
         vim("alpha\n").cursor(0, 0).keys("<Esc>");
         h.assertText("alpha\n");
         assertSame(VimMode.NORMAL, h.vimState().getMode());
@@ -194,8 +179,7 @@ public class VimModeTest
     // ------------------------------------------------------------- undo
 
     @Test
-    public void anInsertSessionUndoesInOneStep()
-    {
+    public void anInsertSessionUndoesInOneStep() {
         vim("alpha\n").cursor(0, 0).keys("ione two three<Esc>");
         h.assertText("one two threealpha\n");
 
@@ -204,8 +188,7 @@ public class VimModeTest
     }
 
     @Test
-    public void anInsertSessionSpanningLinesUndoesInOneStep()
-    {
+    public void anInsertSessionSpanningLinesUndoesInOneStep() {
         vim("alpha\n").cursor(0, 5).keys("i<CR>second<CR>third<Esc>");
         h.assertText("alpha\nsecond\nthird\n");
 
@@ -214,26 +197,25 @@ public class VimModeTest
     }
 
     @Test
-    public void escapeClosesTheUndoStep()
-    {
+    public void escapeClosesTheUndoStep() {
         vim("alpha\n").cursor(0, 0).keys("iX<Esc>");
-        assertFalse("no undo step may be left open",
-                    h.vimState().isInsertEditOpen());
+        assertFalse(
+            "no undo step may be left open",
+            h.vimState().isInsertEditOpen()
+        );
     }
 
     // ------------------------------------------------------------ caret
 
     @Test
-    public void normalModeCaretCannotRestPastTheLastCharacter()
-    {
+    public void normalModeCaretCannotRestPastTheLastCharacter() {
         // Insert mode allows the caret one past the end; normal mode does not.
         vim("alpha\n").cursor(0, 0).keys("AX<Esc>");
         assertEquals(5, h.offset());
     }
 
     @Test
-    public void caretClampingCopesWithAnEmptyLine()
-    {
+    public void caretClampingCopesWithAnEmptyLine() {
         vim("\nbravo\n").cursor(0, 0).keys("<Esc>");
         assertEquals(0, h.offset());
     }

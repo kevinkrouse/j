@@ -26,26 +26,22 @@ import org.junit.Test;
  * have been typed into it; everything after that is the production path.
  * Expectations were checked against nvim.
  */
-public class VimExTest
-{
+public class VimExTest {
     private EditorHarness h;
 
     @After
-    public void tearDown()
-    {
+    public void tearDown() {
         if (h != null)
             h.close();
     }
 
-    private EditorHarness vim(String text, int line, int offset)
-    {
+    private EditorHarness vim(String text, int line, int offset) {
         h = EditorHarness.create().vim();
         h.value(text).cursor(line, offset);
         return h;
     }
 
-    private void at(int line, int offset)
-    {
+    private void at(int line, int offset) {
         assertEquals("line", line, h.lineNumber());
         assertEquals("offset", offset, h.offset());
     }
@@ -53,8 +49,7 @@ public class VimExTest
     // ------------------------------------------------------------- ranges
 
     @Test
-    public void aBareNumberGoesToThatLine()
-    {
+    public void aBareNumberGoesToThatLine() {
         vim("one\ntwo\nthree", 0, 0).keys(":").exCommand("3");
         at(2, 0);
         h.keys(":").exCommand("1");
@@ -62,15 +57,13 @@ public class VimExTest
     }
 
     @Test
-    public void goingToALineLandsOnItsFirstNonBlank()
-    {
+    public void goingToALineLandsOnItsFirstNonBlank() {
         vim("one\n    two", 0, 0).keys(":").exCommand("2");
         at(1, 4);
     }
 
     @Test
-    public void dollarIsTheLastLineAndDotIsThisOne()
-    {
+    public void dollarIsTheLastLineAndDotIsThisOne() {
         vim("one\ntwo\nthree", 0, 0).keys(":").exCommand("$");
         at(2, 0);
         h.keys(":").exCommand(".-1");
@@ -78,8 +71,7 @@ public class VimExTest
     }
 
     @Test
-    public void anOffsetWithNoAddressCountsFromHere()
-    {
+    public void anOffsetWithNoAddressCountsFromHere() {
         vim("1\n2\n3\n4\n5", 0, 0).keys(":").exCommand("+3");
         at(3, 0);
         h.keys(":").exCommand("-2");
@@ -87,23 +79,20 @@ public class VimExTest
     }
 
     @Test
-    public void aRangeCanRunBackwardsAndIsPutRight()
-    {
+    public void aRangeCanRunBackwardsAndIsPutRight() {
         vim("one\ntwo\nthree\nfour", 0, 0).keys(":").exCommand("3,2d");
         assertEquals("one\nfour", h.value());
     }
 
     @Test
-    public void aMarkCanNameALineInARange()
-    {
+    public void aMarkCanNameALineInARange() {
         vim("one\ntwo\nthree\nfour", 1, 0).keys("ma");
         h.keys("G").keys(":").exCommand("'a,$d");
         assertEquals("one", h.value());
     }
 
     @Test
-    public void aSearchCanNameALineInARange()
-    {
+    public void aSearchCanNameALineInARange() {
         vim("alpha\nbravo\ncharlie", 0, 0).keys(":").exCommand("/charlie/");
         at(2, 0);
     }
@@ -111,30 +100,26 @@ public class VimExTest
     // ------------------------------------------------------- delete, yank
 
     @Test
-    public void deleteTakesTheRange()
-    {
+    public void deleteTakesTheRange() {
         vim("one\ntwo\nthree\nfour", 0, 0).keys(":").exCommand("2,3d");
         assertEquals("one\nfour", h.value());
         at(1, 0);
     }
 
     @Test
-    public void deleteWithNoRangeTakesTheCurrentLine()
-    {
+    public void deleteWithNoRangeTakesTheCurrentLine() {
         vim("one\ntwo\nthree", 1, 0).keys(":").exCommand("d");
         assertEquals("one\nthree", h.value());
     }
 
     @Test
-    public void percentIsTheWholeBuffer()
-    {
+    public void percentIsTheWholeBuffer() {
         vim("one\ntwo\nthree", 0, 0).keys(":").exCommand("%d");
         assertEquals("", h.value());
     }
 
     @Test
-    public void theNameCanBeAbbreviatedOrSpeltOut()
-    {
+    public void theNameCanBeAbbreviatedOrSpeltOut() {
         vim("one\ntwo", 0, 0).keys(":").exCommand("1delete");
         assertEquals("two", h.value());
         h.close();
@@ -143,8 +128,7 @@ public class VimExTest
     }
 
     @Test
-    public void deleteCanNameARegisterThatPutThenReads()
-    {
+    public void deleteCanNameARegisterThatPutThenReads() {
         vim("one\ntwo\nthree", 0, 0).keys(":").exCommand("1d a");
         assertEquals("two\nthree", h.value());
         h.keys("\"ap");
@@ -152,8 +136,7 @@ public class VimExTest
     }
 
     @Test
-    public void yankLeavesTheTextAndFillsTheRegister()
-    {
+    public void yankLeavesTheTextAndFillsTheRegister() {
         vim("one\ntwo\nthree", 0, 0).keys(":").exCommand("2y");
         assertEquals("one\ntwo\nthree", h.value());
         h.keys("p");
@@ -163,44 +146,38 @@ public class VimExTest
     // -------------------------------------------------------- substitute
 
     @Test
-    public void substituteChangesTheFirstMatchOnTheLine()
-    {
+    public void substituteChangesTheFirstMatchOnTheLine() {
         vim("one two three", 0, 0).keys(":").exCommand("s/two/2/");
         assertEquals("one 2 three", h.value());
     }
 
     @Test
-    public void theGFlagChangesEveryMatchOnTheLine()
-    {
+    public void theGFlagChangesEveryMatchOnTheLine() {
         vim("aaa bbb aaa", 0, 0).keys(":").exCommand("s/aaa/x/g");
         assertEquals("x bbb x", h.value());
     }
 
     @Test
-    public void aRangeAppliesTheSubstituteToEveryLineInIt()
-    {
+    public void aRangeAppliesTheSubstituteToEveryLineInIt() {
         vim("a1\nb2\nc3", 0, 0).keys(":").exCommand("%s/[0-9]/N/");
         assertEquals("aN\nbN\ncN", h.value());
         at(2, 0);
     }
 
     @Test
-    public void anyPunctuationCanBeTheSeparator()
-    {
+    public void anyPunctuationCanBeTheSeparator() {
         vim("a/b", 0, 0).keys(":").exCommand("s#/#-#");
         assertEquals("a-b", h.value());
     }
 
     @Test
-    public void anEscapedSeparatorIsPartOfTheField()
-    {
+    public void anEscapedSeparatorIsPartOfTheField() {
         vim("a/b", 0, 0).keys(":").exCommand("s/\\//-/");
         assertEquals("a-b", h.value());
     }
 
     @Test
-    public void theTrailingFieldsMayBeLeftOut()
-    {
+    public void theTrailingFieldsMayBeLeftOut() {
         // :s/a/b and :s/a are both legal; the second deletes the match.
         vim("one two", 0, 0).keys(":").exCommand("s/two/2");
         assertEquals("one 2", h.value());
@@ -210,23 +187,20 @@ public class VimExTest
     }
 
     @Test
-    public void ampersandStandsForTheWholeMatch()
-    {
+    public void ampersandStandsForTheWholeMatch() {
         vim("abc", 0, 0).keys(":").exCommand("s/b/[&]/");
         assertEquals("a[b]c", h.value());
     }
 
     @Test
-    public void aGroupIsSpeltWithABackslash()
-    {
+    public void aGroupIsSpeltWithABackslash() {
         vim("john smith", 0, 0).keys(":")
             .exCommand("s/\\(\\w\\+\\) \\(\\w\\+\\)/\\2 \\1/");
         assertEquals("smith john", h.value());
     }
 
     @Test
-    public void bareParenthesesAndPlusAreCharacters()
-    {
+    public void bareParenthesesAndPlusAreCharacters() {
         // In vim's default magic level ( ) and + are literals, so the Java
         // spelling of the same substitute matches nothing. This test used to
         // assert the opposite -- pinning a divergence rather than vim.
@@ -235,24 +209,21 @@ public class VimExTest
     }
 
     @Test
-    public void aDollarInTheReplacementIsALiteral()
-    {
+    public void aDollarInTheReplacementIsALiteral() {
         // Java would read it as a group reference.
         vim("abc", 0, 0).keys(":").exCommand("s/b/$/");
         assertEquals("a$c", h.value());
     }
 
     @Test
-    public void anEmptyPatternMeansTheLastSearch()
-    {
+    public void anEmptyPatternMeansTheLastSearch() {
         vim("one two one", 0, 0).keys("/").searchPattern("one");
         h.keys(":").exCommand("s//X/g");
         assertEquals("X two X", h.value());
     }
 
     @Test
-    public void aBareSubstituteRepeatsTheLastOne()
-    {
+    public void aBareSubstituteRepeatsTheLastOne() {
         vim("aa\naa", 0, 0).keys(":").exCommand("s/a/X/");
         assertEquals("Xa\naa", h.value());
         h.keys("j").keys(":").exCommand("s");
@@ -260,23 +231,20 @@ public class VimExTest
     }
 
     @Test
-    public void substituteSetsThePatternThatNThenRepeats()
-    {
+    public void substituteSetsThePatternThatNThenRepeats() {
         vim("one two\nthree two", 0, 0).keys(":").exCommand("s/two/2/");
         h.keys("n");
         assertEquals("a search for two finds the second line", 1, h.lineNumber());
     }
 
     @Test
-    public void aPatternRegexCannotParseIsReportedNotThrown()
-    {
+    public void aPatternRegexCannotParseIsReportedNotThrown() {
         vim("abc", 0, 0).keys(":").exCommand("s/a[b/x/");
         assertEquals("abc", h.value());
     }
 
     @Test
-    public void writingIntoAnEmptyLineDoesNotIndentIt()
-    {
+    public void writingIntoAnEmptyLineDoesNotIndentIt() {
         // setDot moves the model caret; the display keeps its own column and
         // j pads an insert out to it, so an empty line rewritten after a long
         // one came out indented to the long one's width.
@@ -287,8 +255,7 @@ public class VimExTest
     // ----------------------------------------------------------- sort
 
     @Test
-    public void sortWithNoRangeTakesTheWholeBuffer()
-    {
+    public void sortWithNoRangeTakesTheWholeBuffer() {
         // Unlike :d and :y, which take the current line.
         vim("b\nZ\nd\nc\na", 0, 0).keys(":").exCommand("sort");
         assertEquals("Z\na\nb\nc\nd", h.value());
@@ -296,8 +263,7 @@ public class VimExTest
     }
 
     @Test
-    public void sortTakesARangeAndABang()
-    {
+    public void sortTakesARangeAndABang() {
         vim("b\nd\nc\na", 0, 0).keys(":").exCommand("2,3sort");
         assertEquals("b\nc\nd\na", h.value());
         h.close();
@@ -306,8 +272,7 @@ public class VimExTest
     }
 
     @Test
-    public void sortIgnoresCaseAndDropsDuplicatesOnRequest()
-    {
+    public void sortIgnoresCaseAndDropsDuplicatesOnRequest() {
         vim("b\nZ\nd\nc\na", 0, 0).keys(":").exCommand("sort i");
         assertEquals("a\nb\nc\nd\nZ", h.value());
         h.close();
@@ -316,23 +281,20 @@ public class VimExTest
     }
 
     @Test
-    public void sortNReadsTheFirstNumberOutOfEachLine()
-    {
+    public void sortNReadsTheFirstNumberOutOfEachLine() {
         // Not the whole line: "d3" and " s5" sort as 3 and 5.
         vim("6\nd3\n s5\n.9", 0, 0).keys(":").exCommand("sort n");
         assertEquals("d3\n s5\n6\n.9", h.value());
     }
 
     @Test
-    public void aMinusSignInFrontOfTheNumberCounts()
-    {
+    public void aMinusSignInFrontOfTheNumberCounts() {
         vim("6\nd3\n s5\n.9\nz-9", 0, 0).keys(":").exCommand("sort n");
         assertEquals("z-9\nd3\n s5\n6\n.9", h.value());
     }
 
     @Test
-    public void aLineWithNoNumberSortsBeforeEveryLineThatHasOne()
-    {
+    public void aLineWithNoNumberSortsBeforeEveryLineThatHasOne() {
         // And keeps its place among the others: not the same as counting it
         // zero, which would put it after the negative.
         vim("x\n5\nz-9\ny", 0, 0).keys(":").exCommand("sort n");
@@ -340,8 +302,7 @@ public class VimExTest
     }
 
     @Test
-    public void sortXAndSortOReadTheirOwnBases()
-    {
+    public void sortXAndSortOReadTheirOwnBases() {
         vim("6\nd3\n s5\n&0xB\n.9", 0, 0).keys(":").exCommand("sort x");
         assertEquals(" s5\n6\n.9\n&0xB\nd3", h.value());
         h.close();
@@ -351,26 +312,24 @@ public class VimExTest
     }
 
     @Test
-    public void aPatternWithRSortsByTheMatch()
-    {
+    public void aPatternWithRSortsByTheMatch() {
         vim("z\ny\nc1\nb2\na3", 0, 0).keys(":").exCommand("sort r/[a-z]/");
         assertEquals("a3\nb2\nc1\ny\nz", h.value());
     }
 
     @Test
-    public void aPatternWithoutRSortsByWhatFollowsTheMatch()
-    {
+    public void aPatternWithoutRSortsByWhatFollowsTheMatch() {
         // And a line the pattern misses is not a separate category: its key
         // is the empty string, so it sorts with the lines whose match left
         // nothing after it rather than ahead of them.
         vim("1 in c \n z \n2 in d \n in\n3 in a \n", 0, 0)
-            .keys(":").exCommand("sort /in/");
+            .keys(":")
+            .exCommand("sort /in/");
         assertEquals(" z \n in\n\n3 in a \n1 in c \n2 in d ", h.value());
     }
 
     @Test
-    public void sortRejectsAFlagItDoesNotKnow()
-    {
+    public void sortRejectsAFlagItDoesNotKnow() {
         // The corpus spells the numeric flag "d"; vim spells it "n" and
         // refuses "d", which is what we do.
         vim("6\nd3", 0, 0).keys(":").exCommand("sort d");
@@ -380,46 +339,40 @@ public class VimExTest
     // ------------------------------------------- join, move, copy, normal
 
     @Test
-    public void joinJoinsTheLinesTheRangeCovers()
-    {
+    public void joinJoinsTheLinesTheRangeCovers() {
         vim("a\nb\nc\nd", 0, 0).keys(":").exCommand("1,3j");
         assertEquals("a b c\nd", h.value());
         at(0, 0);
     }
 
     @Test
-    public void joinWithOneLineStillJoinsItToTheNext()
-    {
+    public void joinWithOneLineStillJoinsItToTheNext() {
         vim("a\nb\nc", 0, 0).keys(":").exCommand("1j");
         assertEquals("a b\nc", h.value());
     }
 
     @Test
-    public void moveTakesTheLinesSomewhereElse()
-    {
+    public void moveTakesTheLinesSomewhereElse() {
         vim("a\nb\nc\nd", 0, 0).keys(":").exCommand("2,3m0");
         assertEquals("b\nc\na\nd", h.value());
         at(1, 0);
     }
 
     @Test
-    public void copyLeavesTheOriginalWhereItWas()
-    {
+    public void copyLeavesTheOriginalWhereItWas() {
         vim("a\nb\nc", 0, 0).keys(":").exCommand("1t$");
         assertEquals("a\nb\nc\na", h.value());
         at(3, 0);
     }
 
     @Test
-    public void normalRunsItsArgumentAsKeys()
-    {
+    public void normalRunsItsArgumentAsKeys() {
         vim("a\nb\nc", 0, 0).keys(":").exCommand("%norm A;");
         assertEquals("a;\nb;\nc;", h.value());
     }
 
     @Test
-    public void normalEndsAnUnfinishedInsertTheWayVimDoes()
-    {
+    public void normalEndsAnUnfinishedInsertTheWayVimDoes() {
         // The trailing A; leaves insert mode rather than eating what comes
         // next, so the x below is a command again.
         vim("a\nb", 0, 0).keys(":").exCommand("norm A;");
@@ -428,8 +381,7 @@ public class VimExTest
     }
 
     @Test
-    public void aMoveWithNowhereToGoChangesNothing()
-    {
+    public void aMoveWithNowhereToGoChangesNothing() {
         // It used to take the lines out and then find no destination, so
         // they were simply gone.
         vim("1\n2\n3", 0, 0).keys(":").exCommand("1m99");
@@ -440,8 +392,7 @@ public class VimExTest
     }
 
     @Test
-    public void normalOverARangeReachesEveryLineEvenWhenItDeletesThem()
-    {
+    public void normalOverARangeReachesEveryLineEvenWhenItDeletesThem() {
         // The lines were held as Line objects across the keys that removed
         // them, so %norm dd left one behind.
         vim("a\nb\nc", 0, 0).keys(":").exCommand("%norm dd");
@@ -449,8 +400,7 @@ public class VimExTest
     }
 
     @Test
-    public void aUniqueSortIsOneUndoStep()
-    {
+    public void aUniqueSortIsOneUndoStep() {
         // The rewrite and the removal are two mechanisms; left as two steps,
         // one undo put the old text back under the new line count, which is
         // not a state the buffer was ever in.
@@ -463,16 +413,15 @@ public class VimExTest
     // ------------------------------------------------------- global
 
     @Test
-    public void globalRunsACommandOnEveryMatchingLine()
-    {
+    public void globalRunsACommandOnEveryMatchingLine() {
         vim("one\ntwo\nthree\nfour\nfive\nsix\nseven\nnine\n---", 0, 0)
-            .keys(":").exCommand("g/e/d");
+            .keys(":")
+            .exCommand("g/e/d");
         assertEquals("two\nfour\nsix\n---", h.value());
     }
 
     @Test
-    public void vGlobalRunsItOnTheLinesThatDoNotMatch()
-    {
+    public void vGlobalRunsItOnTheLinesThatDoNotMatch() {
         vim("one\ntwo\nthree", 0, 0).keys(":").exCommand("v/e/d");
         assertEquals("one\nthree", h.value());
         h.close();
@@ -482,44 +431,41 @@ public class VimExTest
     }
 
     @Test
-    public void globalTakesARange()
-    {
+    public void globalTakesARange() {
         vim("ae\nbe\nce\nde", 0, 0).keys(":").exCommand("2,3g/e/d");
         assertEquals("ae\nde", h.value());
     }
 
     @Test
-    public void globalWithSubstituteUsesTheMatchItFound()
-    {
+    public void globalWithSubstituteUsesTheMatchItFound() {
         // The empty pattern in the inner :s means the one :g matched.
         vim("one\ntwo\nthree", 0, 0).keys(":").exCommand("g/one/s//1/");
         assertEquals("1\ntwo\nthree", h.value());
     }
 
     @Test
-    public void globalDoesNotRevisitTheLinesItsCommandMade()
-    {
+    public void globalDoesNotRevisitTheLinesItsCommandMade() {
         // Two passes: the lines are picked out first. One pass would go back
         // over the halves a newline-producing replacement had just made.
         // \r is the line break in a replacement; \n would insert a NUL.
         vim("one\ntwo\nthree\nfour\nfive\n", 0, 0)
-            .keys(":").exCommand("g/e/s/[or]/\\r");
+            .keys(":")
+            .exCommand("g/e/s/[or]/\\r");
         assertEquals("\nne\ntwo\nth\nee\nfour\nfive\n", h.value());
     }
 
     @Test
-    public void globalCanNestInsideGlobal()
-    {
+    public void globalCanNestInsideGlobal() {
         vim("one\ntwo\nthree\nfour\nfive\nsix\nseven\nnine\n---", 0, 0)
-            .keys(":").exCommand("g/e/g/v/d");
+            .keys(":")
+            .exCommand("g/e/g/v/d");
         assertEquals("one\ntwo\nthree\nfour\nsix\nnine\n---", h.value());
     }
 
     // ------------------------------------------------------ refusals
 
     @Test
-    public void aCommandWithAnAddressPastTheEndIsRefused()
-    {
+    public void aCommandWithAnAddressPastTheEndIsRefused() {
         vim("l1\nl2\nl3", 0, 0).keys(":").exCommand("50s/l/L/");
         assertEquals("l1\nl2\nl3", h.value());
         h.exCommand("50d");
@@ -527,8 +473,7 @@ public class VimExTest
     }
 
     @Test
-    public void butABareAddressClampsBothWays()
-    {
+    public void butABareAddressClampsBothWays() {
         // :50 on three lines is the last line and :0 the first; I had
         // written the opposite into a comment, having checked only :50s.
         vim("l1\nl2\nl3", 0, 0).keys(":").exCommand("50");
@@ -538,15 +483,13 @@ public class VimExTest
     }
 
     @Test
-    public void lineZeroIsTheFirstLineToACommand()
-    {
+    public void lineZeroIsTheFirstLineToACommand() {
         vim("a\nb\nc", 1, 0).keys(":").exCommand("0d");
         assertEquals("b\nc", h.value());
     }
 
     @Test
-    public void butACountPastTheEndClamps()
-    {
+    public void butACountPastTheEndClamps() {
         // Vim is asymmetric here: an address errors, a count takes what
         // there is. Both checked against nvim.
         vim("1\n2\n3\n4\n5", 0, 0).keys(":").exCommand("1,3d 100");
@@ -554,22 +497,19 @@ public class VimExTest
     }
 
     @Test
-    public void theRegisterAndCountNeedNoSpaceBetweenThem()
-    {
+    public void theRegisterAndCountNeedNoSpaceBetweenThem() {
         vim("1\n2\n3\n4\n5", 0, 0).keys(":").exCommand("1,3d a2");
         assertEquals("1\n2\n5", h.value());
     }
 
     @Test
-    public void aBangTheCommandDoesNotTakeIsRefused()
-    {
+    public void aBangTheCommandDoesNotTakeIsRefused() {
         vim("a\nb", 0, 0).keys(":").exCommand("d!");
         assertEquals("a\nb", h.value());
     }
 
     @Test
-    public void butABangAfterSIsItsSeparator()
-    {
+    public void butABangAfterSIsItsSeparator() {
         // :s takes any punctuation as its delimiter, ! included, so eating
         // that ! as a bang would leave a!b! to be split on 'a'.
         vim("aXb", 0, 0).keys(":").exCommand("s!X!-!");
@@ -577,8 +517,7 @@ public class VimExTest
     }
 
     @Test
-    public void aFlagThatIsNotUnderstoodIsRefused()
-    {
+    public void aFlagThatIsNotUnderstoodIsRefused() {
         // Saying nothing would be worse for c (confirm) than an error: the
         // user asked to be asked, and would get the lot replaced silently.
         vim("aba", 0, 0).keys(":").exCommand("s/a/X/z");
@@ -589,8 +528,7 @@ public class VimExTest
     }
 
     @Test
-    public void aTrailingBackslashInTheReplacementIsALiteral()
-    {
+    public void aTrailingBackslashInTheReplacementIsALiteral() {
         // It used to reach appendReplacement as a lone backslash, which
         // throws IllegalArgumentException -- past the BadCommand catch.
         vim("ab", 0, 0).keys(":").exCommand("s/b/x\\");
@@ -598,8 +536,7 @@ public class VimExTest
     }
 
     @Test
-    public void thereIsNoEmptyMatchAtTheEndOfTheLine()
-    {
+    public void thereIsNoEmptyMatchAtTheEndOfTheLine() {
         vim("ab", 0, 0).keys(":").exCommand("s/x*/-/g");
         assertEquals("-a-b", h.value());
         h.close();
@@ -608,8 +545,7 @@ public class VimExTest
     }
 
     @Test
-    public void aJCommandStillRuns()
-    {
+    public void aJCommandStillRuns() {
         // The fall-through to j's own command table, which is what makes
         // :findTagAtDot work without being listed as an ex command.
         vim("one\ntwo", 0, 0).keys(":").exCommand("eol");
@@ -617,8 +553,7 @@ public class VimExTest
     }
 
     @Test
-    public void butARangeOnOneIsRefusedRatherThanDropped()
-    {
+    public void butARangeOnOneIsRefusedRatherThanDropped() {
         // j's commands know nothing of ranges, so one given here would be
         // dropped and the command would run somewhere else without saying
         // so. The same eol, which would otherwise move the caret.
@@ -629,8 +564,7 @@ public class VimExTest
     // ------------------------------------------------------ from visual
 
     @Test
-    public void colonFromVisualModeFillsInTheSelectionsRange()
-    {
+    public void colonFromVisualModeFillsInTheSelectionsRange() {
         vim("one\ntwo\nthree\nfour", 1, 0).keys("Vj:");
         assertTrue(h.awaitingExCommand());
         h.exCommand("'<,'>d");
@@ -638,8 +572,7 @@ public class VimExTest
     }
 
     @Test
-    public void andTheSeedIsThereWithoutTypingIt()
-    {
+    public void andTheSeedIsThereWithoutTypingIt() {
         // The frameless prompt collects into the same buffer the location
         // bar would have been pre-filled with, so d alone acts on the
         // selection rather than on one line.
@@ -648,20 +581,21 @@ public class VimExTest
     }
 
     @Test
-    public void colonLeavesVisualModeTheWayVimDoes()
-    {
+    public void colonLeavesVisualModeTheWayVimDoes() {
         vim("one\ntwo", 0, 0).keys("v:");
         h.keys("<Esc>");
         h.keys("x");
-        assertEquals("the selection is gone, so x takes one character",
-                     "ne\ntwo", h.value());
+        assertEquals(
+            "the selection is gone, so x takes one character",
+            "ne\ntwo",
+            h.value()
+        );
     }
 
     // ------------------------------------------------ repeating an ex line
 
     @Test
-    public void dotDoesNotRepeatAnExCommand()
-    {
+    public void dotDoesNotRepeatAnExCommand() {
         // Vim's '.' repeats the last *change*, and an ex command is not one:
         // after :s the dot still replays whatever was changed before it.
         // Checked against nvim, which replays the C here, not the substitute.
@@ -673,8 +607,7 @@ public class VimExTest
     }
 
     @Test
-    public void atColonRunsTheLastExLineAgain()
-    {
+    public void atColonRunsTheLastExLineAgain() {
         vim("aaaaa", 0, 0).keys(":").exCommand("s/a/b");
         assertEquals("baaaa", h.value());
         h.keys("@:");
@@ -682,8 +615,7 @@ public class VimExTest
     }
 
     @Test
-    public void atColonTakesACount()
-    {
+    public void atColonTakesACount() {
         vim("aaaaa", 0, 0).keys(":").exCommand("s/a/b");
         h.keys("2@:");
         assertEquals("bbbaa", h.value());
@@ -691,15 +623,13 @@ public class VimExTest
     }
 
     @Test
-    public void atColonWithNothingToRepeatDoesNothing()
-    {
+    public void atColonWithNothingToRepeatDoesNothing() {
         vim("abc", 0, 0).keys("@:");
         assertEquals("abc", h.value());
     }
 
     @Test
-    public void aLineThatFailedIsNotWorthRepeating()
-    {
+    public void aLineThatFailedIsNotWorthRepeating() {
         // The failing line must not become what @: repeats.
         vim("aa", 0, 0).keys(":").exCommand("s/a/X/");
         assertEquals("Xa", h.value());
@@ -711,15 +641,13 @@ public class VimExTest
     // ------------------------------------------------- j's own commands
 
     @Test
-    public void anUnknownNameIsReportedRatherThanRun()
-    {
+    public void anUnknownNameIsReportedRatherThanRun() {
         vim("abc", 0, 0).keys(":").exCommand("nosuchcommand");
         assertEquals("abc", h.value());
     }
 
     @Test
-    public void aSubstituteContainingAnEqualsIsNotAPropertyAssignment()
-    {
+    public void aSubstituteContainingAnEqualsIsNotAPropertyAssignment() {
         // Editor.executeCommand reads anything with an = in it as
         // "set this property", which would silently eat the command.
         vim("a=b", 0, 0).keys(":").exCommand("s/a=b/ok/");
@@ -729,8 +657,7 @@ public class VimExTest
     // ------------------------------------------------------- the prompt
 
     @Test
-    public void colonWaitsForALineAndEscapeAbandonsIt()
-    {
+    public void colonWaitsForALineAndEscapeAbandonsIt() {
         vim("abc", 0, 0).keys(":");
         assertTrue(h.awaitingExCommand());
         h.keys("<Esc>");
@@ -741,31 +668,27 @@ public class VimExTest
     }
 
     @Test
-    public void theWholeLineCanBeTypedAsOneSequence()
-    {
+    public void theWholeLineCanBeTypedAsOneSequence() {
         // Which is also how the conformance corpus spells an ex command.
         vim("one two three", 0, 0).keys(":s/two/2/<CR>");
         assertEquals("one 2 three", h.value());
     }
 
     @Test
-    public void aSubstituteRangePastTheEndIsInvalid()
-    {
+    public void aSubstituteRangePastTheEndIsInvalid() {
         vim("a\nb\nc", 0, 0).keys(":").exCommand("100s/a/b/");
         assertEquals("a\nb\nc", h.value());
         assertTrue(h.status().startsWith("E16"));
     }
 
     @Test
-    public void aSubstituteOnLineZeroUsesTheFirstLine()
-    {
+    public void aSubstituteOnLineZeroUsesTheFirstLine() {
         vim("a\nb\nc", 2, 0).keys(":").exCommand("0s/a/b/");
         assertEquals("b\nb\nc", h.value());
     }
 
     @Test
-    public void aSemicolonRangeSearchesFromTheFirstAddress()
-    {
+    public void aSemicolonRangeSearchesFromTheFirstAddress() {
         // From line 1 the next "bar" is line 3; from the caret on line 3 it
         // would be line 5.
         vim("x\nx\nbar\nx\nbar", 2, 0).keys(":").exCommand("1;/bar/d");

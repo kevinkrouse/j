@@ -24,19 +24,16 @@ import org.junit.Test;
  * "foo.bar". Where they part is the empty line, which vim counts as a word of
  * its own and j steps over. Both expectations checked against nvim.
  */
-public class WordMotionParameterTest
-{
+public class WordMotionParameterTest {
     private EditorHarness h;
 
     @After
-    public void tearDown()
-    {
+    public void tearDown() {
         if (h != null)
             h.close();
     }
 
-    private void on(int line, int offset)
-    {
+    private void on(int line, int offset) {
         Line l = h.buffer().getFirstLine();
         for (int i = 0; i < line && l != null; i++)
             l = l.next();
@@ -45,14 +42,12 @@ public class WordMotionParameterTest
         Editor.setCurrentEditor(h.editor());
     }
 
-    private String where()
-    {
+    private String where() {
         return h.editor().getDotLineNumber() + "," + h.editor().getDotOffset();
     }
 
     @Test
-    public void vimCountsAnEmptyLineAsAWordAndJStepsOverIt()
-    {
+    public void vimCountsAnEmptyLineAsAWordAndJStepsOverIt() {
         h = EditorHarness.create("a\n\n\nb\n");
         on(0, 0);
         h.editor().wordRight("vim");
@@ -64,8 +59,7 @@ public class WordMotionParameterTest
     }
 
     @Test
-    public void backwardsTheSameWay()
-    {
+    public void backwardsTheSameWay() {
         h = EditorHarness.create("a\n\n\nb\n");
         on(3, 0);
         h.editor().wordLeft("vim");
@@ -77,12 +71,11 @@ public class WordMotionParameterTest
     }
 
     @Test
-    public void onOrdinaryTextTheyAgree()
-    {
+    public void onOrdinaryTextTheyAgree() {
         // Worth pinning: the argument is not a wholesale change of feel, and
         // anyone who turns it on should find punctuation behaving as before.
         h = EditorHarness.create("foo.bar baz\n");
-        for (int from : new int[] {0, 3, 4}) {
+        for (int from : new int[] { 0, 3, 4 }) {
             on(0, from);
             h.editor().wordRight("vim");
             final String vim = where();
@@ -93,8 +86,7 @@ public class WordMotionParameterTest
     }
 
     @Test
-    public void theDefaultIsUnchanged()
-    {
+    public void theDefaultIsUnchanged() {
         h = EditorHarness.create("a\n\n\nb\n");
         on(0, 0);
         h.editor().wordRight();
@@ -108,8 +100,7 @@ public class WordMotionParameterTest
     }
 
     @Test
-    public void theSelectingFormsTakeItAsWell()
-    {
+    public void theSelectingFormsTakeItAsWell() {
         h = EditorHarness.create("a\n\n\nb\n");
         on(0, 0);
         h.editor().selectWordRight("vim");
@@ -124,8 +115,7 @@ public class WordMotionParameterTest
     }
 
     @Test
-    public void theCommandTableReachesTheArgument() throws Exception
-    {
+    public void theCommandTableReachesTheArgument() throws Exception {
         h = EditorHarness.create("a\n\n\nb\n");
         on(0, 0);
         h.editor().execute("wordRight", "vim");

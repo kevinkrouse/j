@@ -30,31 +30,26 @@ import org.junit.Test;
  * delete therefore used to restore the operator's scratch mark, leaving a
  * selection that grew with every motion and that Escape did not clear.
  */
-public class VimSelectionTest
-{
+public class VimSelectionTest {
     private EditorHarness h;
 
     @After
-    public void tearDown()
-    {
+    public void tearDown() {
         if (h != null)
             h.close();
     }
 
-    private EditorHarness vim(String text)
-    {
+    private EditorHarness vim(String text) {
         h = EditorHarness.create(text).vim();
         return h;
     }
 
-    private void noSelection(String what)
-    {
+    private void noSelection(String what) {
         assertNull(what, h.editor().getMark());
     }
 
     @Test
-    public void undoingADeleteLeavesNoSelection()
-    {
+    public void undoingADeleteLeavesNoSelection() {
         vim("alpha bravo charlie\n").cursor(0, 0).keys("dw");
         noSelection("the operator cleaned up after itself");
         h.keys("u");
@@ -62,42 +57,42 @@ public class VimSelectionTest
     }
 
     @Test
-    public void undoingACharacterDeleteLeavesNoSelection()
-    {
+    public void undoingACharacterDeleteLeavesNoSelection() {
         vim("alpha bravo\n").cursor(0, 3).keys("xu");
         noSelection("after x then u");
     }
 
     @Test
-    public void undoingALineDeleteLeavesNoSelection()
-    {
+    public void undoingALineDeleteLeavesNoSelection() {
         vim("one\ntwo\nthree\n").cursor(0, 0).keys("ddu");
         noSelection("after dd then u");
     }
 
     @Test
-    public void redoLeavesNoSelectionEither()
-    {
+    public void redoLeavesNoSelectionEither() {
         vim("alpha bravo\n").cursor(0, 0).keys("dwu<C-r>");
         noSelection("after redo");
     }
 
     @Test
-    public void aMotionAfterUndoDoesNotDragASelection()
-    {
+    public void aMotionAfterUndoDoesNotDragASelection() {
         // This is what made it feel stuck: every motion grew the selection.
         vim("alpha bravo charlie\n").cursor(0, 0).keys("dwul");
         noSelection("a motion in normal mode never extends a selection");
     }
 
     @Test
-    public void escapeClearsASelectionInNormalMode()
-    {
+    public void escapeClearsASelectionInNormalMode() {
         vim("alpha bravo\n").cursor(0, 0);
         // A selection from somewhere other than visual mode -- a mouse drag
         // makes one the same way.
-        h.editor().setMark(new org.armedbear.j.Position(
-            h.buffer().getFirstLine(), 0));
+        h.editor()
+            .setMark(
+                new org.armedbear.j.Position(
+                    h.buffer().getFirstLine(),
+                    0
+                )
+            );
         h.editor().setDot(h.buffer().getFirstLine(), 5);
         assertNotNull(h.editor().getMark());
 
@@ -106,42 +101,39 @@ public class VimSelectionTest
     }
 
     @Test
-    public void escapeStillLeavesVisualModeProperly()
-    {
+    public void escapeStillLeavesVisualModeProperly() {
         vim("alpha bravo\n").cursor(0, 0).keys("vll<Esc>");
         noSelection("after leaving visual mode");
         assertEquals(VimMode.NORMAL, h.vimState().getMode());
     }
 
     @Test
-    public void visualModeKeepsItsSelectionWhileMotionsExtendIt()
-    {
+    public void visualModeKeepsItsSelectionWhileMotionsExtendIt() {
         vim("alpha bravo\n").cursor(0, 0).keys("vll");
-        assertNotNull("visual mode is the one place a selection belongs",
-                      h.editor().getMark());
+        assertNotNull(
+            "visual mode is the one place a selection belongs",
+            h.editor().getMark()
+        );
         assertEquals(2, h.offset());
     }
 
     // ------------------------------------------- where undo puts the caret
 
     @Test
-    public void undoPutsTheCaretAtTheStartOfWhatCameBack()
-    {
+    public void undoPutsTheCaretAtTheStartOfWhatCameBack() {
         vim("alpha bravo charlie\n").cursor(0, 0).keys("dwu");
         assertEquals("line", 0, h.lineNumber());
         assertEquals("offset", 0, h.offset());
     }
 
     @Test
-    public void undoOfACharacterDeletePutsTheCaretWhereItHappened()
-    {
+    public void undoOfACharacterDeletePutsTheCaretWhereItHappened() {
         vim("alpha bravo\n").cursor(0, 3).keys("xu");
         assertEquals(3, h.offset());
     }
 
     @Test
-    public void undoOfALineDeletePutsTheCaretOnThatLine()
-    {
+    public void undoOfALineDeletePutsTheCaretOnThatLine() {
         vim("one\ntwo\nthree\n").cursor(0, 0).keys("ddu");
         assertEquals(0, h.lineNumber());
         assertEquals(0, h.offset());
@@ -154,8 +146,7 @@ public class VimSelectionTest
     // the highlight to be redrawn or it stays on screen.
 
     @Test
-    public void leavingVisualModeAsksForARepaint()
-    {
+    public void leavingVisualModeAsksForARepaint() {
         vim("alpha bravo\n").cursor(0, 0).keys("vll");
         h.clearRepaintPending();
         h.keys("<Esc>");
@@ -163,8 +154,7 @@ public class VimSelectionTest
     }
 
     @Test
-    public void anOperatorThatLeavesVisualModeAsksForARepaint()
-    {
+    public void anOperatorThatLeavesVisualModeAsksForARepaint() {
         // Yank changes no text, so nothing else would redraw those lines.
         vim("alpha bravo\n").cursor(0, 0).keys("vll");
         h.clearRepaintPending();
@@ -173,13 +163,17 @@ public class VimSelectionTest
     }
 
     @Test
-    public void droppingAStraySelectionAsksForARepaint()
-    {
+    public void droppingAStraySelectionAsksForARepaint() {
         // A selection from somewhere other than visual mode, as a mouse drag
         // leaves: the motion that drops it has to paint it out too.
         vim("alpha bravo\n").cursor(0, 0);
-        h.editor().setMark(new org.armedbear.j.Position(
-            h.buffer().getFirstLine(), 0));
+        h.editor()
+            .setMark(
+                new org.armedbear.j.Position(
+                    h.buffer().getFirstLine(),
+                    0
+                )
+            );
         h.editor().setDot(h.buffer().getFirstLine(), 5);
         h.clearRepaintPending();
         h.keys("l");
@@ -187,21 +181,21 @@ public class VimSelectionTest
     }
 
     @Test
-    public void aCountedMotionInVisualModeAsksForARepaint()
-    {
+    public void aCountedMotionInVisualModeAsksForARepaint() {
         // v3j covers four lines. Marking the line left and the line arrived on
         // would leave the two in between with no highlight.
         vim("one\ntwo\nthree\nfour\nfive\n").cursor(0, 0).keys("v");
         h.clearRepaintPending();
         h.keys("3j");
         assertEquals("the selection reaches line 4", 3, h.lineNumber());
-        assertTrue("the lines jumped over have to be redrawn too",
-                   h.repaintPending());
+        assertTrue(
+            "the lines jumped over have to be redrawn too",
+            h.repaintPending()
+        );
     }
 
     @Test
-    public void shrinkingAVisualSelectionAcrossLinesAsksForARepaint()
-    {
+    public void shrinkingAVisualSelectionAcrossLinesAsksForARepaint() {
         vim("one\ntwo\nthree\nfour\nfive\n").cursor(0, 0).keys("v3j");
         h.clearRepaintPending();
         h.keys("2k");
@@ -209,18 +203,18 @@ public class VimSelectionTest
     }
 
     @Test
-    public void reselectingWithGvAsksForARepaint()
-    {
+    public void reselectingWithGvAsksForARepaint() {
         vim("one\ntwo\nthree\nfour\n").cursor(0, 0).keys("v2j<Esc>");
         h.clearRepaintPending();
         h.keys("gv");
-        assertTrue("gv brings back a selection three lines tall",
-                   h.repaintPending());
+        assertTrue(
+            "gv brings back a selection three lines tall",
+            h.repaintPending()
+        );
     }
 
     @Test
-    public void aVisualMotionWithinOneLineAsksForNothing()
-    {
+    public void aVisualMotionWithinOneLineAsksForNothing() {
         // The line itself is redrawn, which is all that changed.
         vim("alpha bravo\n").cursor(0, 0).keys("v");
         h.clearRepaintPending();
@@ -237,29 +231,25 @@ public class VimSelectionTest
     // both end lines.
 
     @Test
-    public void visualLineTellsTheDisplayItsSelectionIsLinewise()
-    {
+    public void visualLineTellsTheDisplayItsSelectionIsLinewise() {
         vim("one\ntwo\nthree\n").cursor(0, 1).keys("V");
         assertTrue(h.editor().getInputHandler().isLinewiseSelection());
     }
 
     @Test
-    public void charwiseVisualDoesNot()
-    {
+    public void charwiseVisualDoesNot() {
         vim("one\ntwo\nthree\n").cursor(0, 1).keys("v");
         assertFalse(h.editor().getInputHandler().isLinewiseSelection());
     }
 
     @Test
-    public void leavingVisualLineModeStopsSayingSo()
-    {
+    public void leavingVisualLineModeStopsSayingSo() {
         vim("one\ntwo\nthree\n").cursor(0, 1).keys("Vj<Esc>");
         assertFalse(h.editor().getInputHandler().isLinewiseSelection());
     }
 
     @Test
-    public void switchingBetweenVAndVLineAsksForARepaint()
-    {
+    public void switchingBetweenVAndVLineAsksForARepaint() {
         // Every selected line changes shape, not only the caret's.
         vim("one\ntwo\nthree\n").cursor(0, 0).keys("vj");
         h.clearRepaintPending();
@@ -271,14 +261,15 @@ public class VimSelectionTest
     }
 
     @Test
-    public void anOrdinaryMotionAsksForNothing()
-    {
+    public void anOrdinaryMotionAsksForNothing() {
         // The control: without this, the three above would pass however
         // freely a repaint was requested.
         vim("alpha bravo\n").cursor(0, 0);
         h.clearRepaintPending();
         h.keys("l");
-        assertFalse("moving the caret repaints two lines, not the window",
-                    h.repaintPending());
+        assertFalse(
+            "moving the caret repaints two lines, not the window",
+            h.repaintPending()
+        );
     }
 }

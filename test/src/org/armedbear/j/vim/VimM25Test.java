@@ -25,19 +25,16 @@ import org.junit.Test;
  * register and "1 to "9 its kill ring, "+ and "* the clipboard and the
  * primary selection.
  */
-public class VimM25Test
-{
+public class VimM25Test {
     private EditorHarness h;
 
     @After
-    public void tearDown()
-    {
+    public void tearDown() {
         if (h != null)
             h.close();
     }
 
-    private EditorHarness vim(String text)
-    {
+    private EditorHarness vim(String text) {
         h = EditorHarness.create().vim();
         h.value(text).cursor(0, 0);
         Editor.setCurrentEditor(h.editor());
@@ -47,8 +44,7 @@ public class VimM25Test
     // ------------------------------------------------------------ named
 
     @Test
-    public void aNamedRegisterIsARegisterFileOfJs()
-    {
+    public void aNamedRegisterIsARegisterFileOfJs() {
         vim("one\ntwo").keys("\"ayy");
         assertEquals("one\n", Registers.getText("a"));
         h.keys("j\"Ayy");
@@ -56,8 +52,7 @@ public class VimM25Test
     }
 
     @Test
-    public void aRegisterFileOfJsIsANamedRegister()
-    {
+    public void aRegisterFileOfJsIsANamedRegister() {
         vim("x");
         Registers.setText("b", "line\n");
         h.keys("\"bp");
@@ -70,16 +65,14 @@ public class VimM25Test
     }
 
     @Test
-    public void aTextVimTookIsRememberedAsItWasTaken()
-    {
+    public void aTextVimTookIsRememberedAsItWasTaken() {
         // yy on a last line takes no newline, and is still lines.
         vim("ab\ncd").keys("j\"dyyk\"dp");
         assertEquals("ab\ncd\ncd", h.value());
     }
 
     @Test
-    public void afterARestartATrailingNewlineMeansLines()
-    {
+    public void afterARestartATrailingNewlineMeansLines() {
         vim("ab\ncd").keys("j\"dyyk");
         VimRegisters.getInstance().clear();
         h.keys("\"dp");
@@ -89,8 +82,7 @@ public class VimM25Test
     // ------------------------------------------------ unnamed, numbered
 
     @Test
-    public void theUnnamedRegisterIsTheKillRing()
-    {
+    public void theUnnamedRegisterIsTheKillRing() {
         vim("one\ntwo").keys("yy");
         assertEquals("one\n", Editor.getKillRing().peek());
         // As j's copy does.
@@ -101,16 +93,14 @@ public class VimM25Test
     }
 
     @Test
-    public void jsPasteTakesAYankOfVims()
-    {
+    public void jsPasteTakesAYankOfVims() {
         vim("one\ntwo\nthree").keys("jyyk");
         h.editor().paste();
         assertEquals("two\none\ntwo\nthree", h.value());
     }
 
     @Test
-    public void theNumberedRegistersAreTheKillRingNewestFirst()
-    {
+    public void theNumberedRegistersAreTheKillRingNewestFirst() {
         vim("one\ntwo\nthree").keys("ddyy");
         assertEquals("two\n", VimRegisters.getInstance().get('1').text);
         assertEquals("one\n", VimRegisters.getInstance().get('2').text);
@@ -119,15 +109,13 @@ public class VimM25Test
     // ------------------------------------------------ clipboard, selection
 
     @Test
-    public void aYankIsOnTheSystemClipboardAsAJCopyIs()
-    {
+    public void aYankIsOnTheSystemClipboardAsAJCopyIs() {
         vim("one\ntwo").keys("yy");
         assertEquals("one\n", KillRing.getText(KillRing.systemClipboard()));
     }
 
     @Test
-    public void anotherProgramsCopyIsWhatPPuts()
-    {
+    public void anotherProgramsCopyIsWhatPPuts() {
         vim("x");
         KillRing.setText(KillRing.systemClipboard(), "ext", null);
         h.keys("p");
@@ -135,8 +123,7 @@ public class VimM25Test
     }
 
     @Test
-    public void plusIsTheClipboard()
-    {
+    public void plusIsTheClipboard() {
         vim("one\ntwo").keys("\"+yy");
         assertEquals("one\n", KillRing.getText(KillRing.systemClipboard()));
         KillRing.setText(KillRing.systemClipboard(), "clip", null);
@@ -145,8 +132,7 @@ public class VimM25Test
     }
 
     @Test
-    public void starIsThePrimarySelection()
-    {
+    public void starIsThePrimarySelection() {
         vim("one").keys("\"*yiw");
         assertEquals("one", KillRing.getText(KillRing.systemSelection()));
         KillRing.setText(KillRing.systemSelection(), "sel", null);

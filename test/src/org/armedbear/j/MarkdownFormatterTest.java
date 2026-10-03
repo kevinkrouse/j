@@ -22,20 +22,17 @@ import org.junit.Test;
  * What MarkdownFormatter colors each construct as. A line is shown as its
  * runs one after another, "format(text)", and text in plain text bare.
  */
-public class MarkdownFormatterTest
-{
+public class MarkdownFormatterTest {
     private EditorHarness h;
 
     @After
-    public void tearDown()
-    {
+    public void tearDown() {
         Editor.preferences().removeProperty("MarkdownMode.conceal");
         if (h != null)
             h.close();
     }
 
-    private void on(String text)
-    {
+    private void on(String text) {
         // The runs of formats alone: MarkdownHidingTest has what is hidden,
         // which splits them further.
         Editor.preferences().setProperty("MarkdownMode.conceal", "none");
@@ -43,23 +40,22 @@ public class MarkdownFormatterTest
         h.buffer().getFormatter().parseBuffer();
     }
 
-    private Line line(int lineNumber)
-    {
+    private Line line(int lineNumber) {
         Line line = h.buffer().getFirstLine();
         for (int i = 0; i < lineNumber; i++)
             line = line.next();
         return line;
     }
 
-    private String runs(int lineNumber)
-    {
+    private String runs(int lineNumber) {
         final Formatter formatter = h.buffer().getFormatter();
         final LineSegmentList segments = formatter.formatLine(line(lineNumber));
         final StringBuilder sb = new StringBuilder();
         for (int i = 0; i < segments.size(); i++) {
             final LineSegment segment = segments.getSegment(i);
             final String name = formatter.getFormatTable()
-                .lookup(segment.getFormat()).getName();
+                .lookup(segment.getFormat())
+                .getName();
             if (name.equals("text"))
                 sb.append(segment.getText());
             else
@@ -69,8 +65,7 @@ public class MarkdownFormatterTest
     }
 
     @Test
-    public void atxHeadings()
-    {
+    public void atxHeadings() {
         on("# Title\n### Deep ###\n#hashtag\n#\n# C# rocks\n");
         assertEquals("headingMarker(# )heading1(Title)", runs(0));
         assertEquals("headingMarker(### )heading3(Deep)headingMarker( ###)", runs(1));
@@ -83,8 +78,7 @@ public class MarkdownFormatterTest
     }
 
     @Test
-    public void setextHeadings()
-    {
+    public void setextHeadings() {
         on("Title\n=====\n\nSub *it*\n---\n\n- item\n---\n");
         assertEquals("heading1(Title)", runs(0));
         assertEquals("headingMarker(=====)", runs(1));
@@ -97,8 +91,7 @@ public class MarkdownFormatterTest
     }
 
     @Test
-    public void rules()
-    {
+    public void rules() {
         on("***\n- - -\n___\n");
         assertEquals("rule(***)", runs(0));
         assertEquals("rule(- - -)", runs(1));
@@ -106,8 +99,7 @@ public class MarkdownFormatterTest
     }
 
     @Test
-    public void fencedCode()
-    {
+    public void fencedCode() {
         // A fence that names no language; MarkdownFencedCodeTest has those.
         on("```\nint x = 1; // *x*\n```\nafter *em*\n~~~\n```\n~~~\n");
         assertEquals("fence(```)", runs(0));
@@ -121,41 +113,48 @@ public class MarkdownFormatterTest
     }
 
     @Test
-    public void indentedCodeFollowsABlankLine()
-    {
+    public void indentedCodeFollowsABlankLine() {
         on("para\n    continued\n\n    code\n");
         assertEquals("    continued", runs(1));
         assertEquals("codeBlock(    code)", runs(3));
     }
 
     @Test
-    public void emphasis()
-    {
+    public void emphasis() {
         on("**b** *i* ***bi*** ~~s~~ _u_\nsnake_case_name 2 * 3 * 4\n\\*not\\*\n");
-        assertEquals("markup(**)strong(b)markup(**) markup(*)emphasis(i)markup(*) "
-                     + "markup(***)strongEmphasis(bi)markup(***) "
-                     + "markup(~~)strikethrough(s)markup(~~) "
-                     + "markup(_)emphasis(u)markup(_)", runs(0));
+        assertEquals(
+            "markup(**)strong(b)markup(**) markup(*)emphasis(i)markup(*) "
+                + "markup(***)strongEmphasis(bi)markup(***) "
+                + "markup(~~)strikethrough(s)markup(~~) "
+                + "markup(_)emphasis(u)markup(_)",
+            runs(0)
+        );
         assertEquals("snake_case_name 2 * 3 * 4", runs(1));
         assertEquals("markup(\\)*notmarkup(\\)*", runs(2));
     }
 
     @Test
-    public void codeSpans()
-    {
+    public void codeSpans() {
         on("a `code` b ``x ` y`` *`no*`*\n");
         // The * in the code span neither closes nor opens.
-        assertEquals("a codeMarker(`)code(code)codeMarker(`) b codeMarker(``)code(x ` y)codeMarker(``) "
-                     + "markup(*)codeMarker(`)code(no*)codeMarker(`)markup(*)", runs(0));
+        assertEquals(
+            "a codeMarker(`)code(code)codeMarker(`) b codeMarker(``)code(x ` y)codeMarker(``) "
+                + "markup(*)codeMarker(`)code(no*)codeMarker(`)markup(*)",
+            runs(0)
+        );
     }
 
     @Test
-    public void links()
-    {
-        on("see [the `docs`](http://x.y/z) now\n![alt](a.png)\n[a][b]\n"
-           + "[id]: http://x.y \"title\"\n<https://a.b> https://a.b/c.\n");
-        assertEquals("see markup([)linkText(the )codeMarker(`)code(docs)codeMarker(`)markup(]()"
-                     + "url(http://x.y/z)markup()) now", runs(0));
+    public void links() {
+        on(
+            "see [the `docs`](http://x.y/z) now\n![alt](a.png)\n[a][b]\n"
+                + "[id]: http://x.y \"title\"\n<https://a.b> https://a.b/c.\n"
+        );
+        assertEquals(
+            "see markup([)linkText(the )codeMarker(`)code(docs)codeMarker(`)markup(]()"
+                + "url(http://x.y/z)markup()) now",
+            runs(0)
+        );
         assertEquals("markup(![)linkText(alt)markup(]()url(a.png)markup())", runs(1));
         assertEquals("markup([)linkText(a)markup(][)url(b)markup(])", runs(2));
         assertEquals("markup([)linkText(id)markup(]:) url(http://x.y) \"title\"", runs(3));
@@ -163,24 +162,32 @@ public class MarkdownFormatterTest
     }
 
     @Test
-    public void quotes()
-    {
+    public void quotes() {
         on("> quoted *it*\n> > - [ ] nested\n");
-        assertEquals("quoteMarker(> )quote(quoted )markup(*)emphasis(it)markup(*)",
-                     runs(0));
-        assertEquals("quoteMarker(> > )listMarker(-)quote( )todo([ ])quote( nested)",
-                     runs(1));
+        assertEquals(
+            "quoteMarker(> )quote(quoted )markup(*)emphasis(it)markup(*)",
+            runs(0)
+        );
+        assertEquals(
+            "quoteMarker(> > )listMarker(-)quote( )todo([ ])quote( nested)",
+            runs(1)
+        );
     }
 
     @Test
-    public void tasks()
-    {
-        on("- [ ] todo *it*\n  - [/] doing\n    - [x] done *it*\n* [-] cut\n"
-           + "1. [X] numbered\n- [ ]\n- [?] not a task\n");
-        assertEquals("listMarker(-) todo([ ]) todo markup(*)emphasis(it)markup(*)",
-                     runs(0));
-        assertEquals("  listMarker(-) inProgress([)inProgressMarker(/)inProgress(]) doing",
-                     runs(1));
+    public void tasks() {
+        on(
+            "- [ ] todo *it*\n  - [/] doing\n    - [x] done *it*\n* [-] cut\n"
+                + "1. [X] numbered\n- [ ]\n- [?] not a task\n"
+        );
+        assertEquals(
+            "listMarker(-) todo([ ]) todo markup(*)emphasis(it)markup(*)",
+            runs(0)
+        );
+        assertEquals(
+            "  listMarker(-) inProgress([)inProgressMarker(/)inProgress(]) doing",
+            runs(1)
+        );
         assertEquals("    listMarker(-) done([x])doneText( done *it*)", runs(2));
         assertEquals("listMarker(*) cancelled([-])cancelledText( cut)", runs(3));
         assertEquals("listMarker(1.) done([X])doneText( numbered)", runs(4));
@@ -189,29 +196,34 @@ public class MarkdownFormatterTest
     }
 
     @Test
-    public void tables()
-    {
+    public void tables() {
         on("| a | *b* |\n|---|:-:|\n| `x|` | y \\| z |\n");
-        assertEquals("markup(|) a markup(|) markup(*)emphasis(b)markup(*) markup(|)",
-                     runs(0));
+        assertEquals(
+            "markup(|) a markup(|) markup(*)emphasis(b)markup(*) markup(|)",
+            runs(0)
+        );
         assertEquals("markup(|---|:-:|)", runs(1));
-        assertEquals("markup(|) codeMarker(`)code(x|)codeMarker(`) markup(|) y markup(\\)| z "
-                     + "markup(|)", runs(2));
+        assertEquals(
+            "markup(|) codeMarker(`)code(x|)codeMarker(`) markup(|) y markup(\\)| z "
+                + "markup(|)",
+            runs(2)
+        );
     }
 
     @Test
-    public void htmlCommentsAndTags()
-    {
+    public void htmlCommentsAndTags() {
         on("a <!-- b\nc\n--> d <br/> <span class=\"x\">e</span>\n");
         assertEquals("a comment(<!-- b)", runs(0));
         assertEquals("comment(c)", runs(1));
-        assertEquals("comment(-->) d htmlTag(<br/>) htmlTag(<span class=\"x\">)e"
-                     + "htmlTag(</span>)", runs(2));
+        assertEquals(
+            "comment(-->) d htmlTag(<br/>) htmlTag(<span class=\"x\">)e"
+                + "htmlTag(</span>)",
+            runs(2)
+        );
     }
 
     @Test
-    public void frontMatter()
-    {
+    public void frontMatter() {
         on("---\ntitle: *x*\n---\n# H\n");
         assertEquals("frontMatter(---)", runs(0));
         assertEquals("frontMatter(title: *x*)", runs(1));
@@ -220,8 +232,7 @@ public class MarkdownFormatterTest
     }
 
     @Test
-    public void editingRecomputesState()
-    {
+    public void editingRecomputesState() {
         on("text\n```\ncode\n");
         assertEquals("codeBlock(code)", runs(2));
         h.buffer().setText("text\n\ncode\n");
@@ -230,10 +241,12 @@ public class MarkdownFormatterTest
     }
 
     @Test
-    public void urlsAsFollowLinkFindsThem()
-    {
+    public void urlsAsFollowLinkFindsThem() {
         on("<me@example.com> mailto:you@example.com ftp://h/f\n");
-        assertEquals("markup(<)url(me@example.com)markup(>) url(mailto:you@example.com) "
-                     + "url(ftp://h/f)", runs(0));
+        assertEquals(
+            "markup(<)url(me@example.com)markup(>) url(mailto:you@example.com) "
+                + "url(ftp://h/f)",
+            runs(0)
+        );
     }
 }

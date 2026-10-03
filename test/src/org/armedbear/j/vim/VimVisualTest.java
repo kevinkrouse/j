@@ -24,25 +24,21 @@ import org.junit.Test;
  * Visual mode. Expectations here were checked against real nvim with
  * tools/vim-oracle.sh.
  */
-public class VimVisualTest
-{
+public class VimVisualTest {
     private EditorHarness h;
 
     @After
-    public void tearDown()
-    {
+    public void tearDown() {
         if (h != null)
             h.close();
     }
 
-    private EditorHarness vim(String text)
-    {
+    private EditorHarness vim(String text) {
         h = EditorHarness.create(text).vim();
         return h;
     }
 
-    private void at(int line, int offset)
-    {
+    private void at(int line, int offset) {
         assertEquals("line", line, h.lineNumber());
         assertEquals("offset", offset, h.offset());
     }
@@ -50,24 +46,21 @@ public class VimVisualTest
     // ------------------------------------------------------------ entering
 
     @Test
-    public void vEntersVisualMode()
-    {
+    public void vEntersVisualMode() {
         vim("abc\n").cursor(0, 1).keys("v");
         assertSame(VimMode.VISUAL, h.vimState().getMode());
         assertNotNull("the selection is j's own mark", h.editor().getMark());
     }
 
     @Test
-    public void vAgainLeavesVisualMode()
-    {
+    public void vAgainLeavesVisualMode() {
         vim("abc\n").cursor(0, 1).keys("vv");
         assertSame(VimMode.NORMAL, h.vimState().getMode());
         assertNull(h.editor().getMark());
     }
 
     @Test
-    public void escapeLeavesVisualMode()
-    {
+    public void escapeLeavesVisualMode() {
         vim("abc\n").cursor(0, 1).keys("v<Esc>");
         assertSame(VimMode.NORMAL, h.vimState().getMode());
         assertNull(h.editor().getMark());
@@ -75,8 +68,7 @@ public class VimVisualTest
     }
 
     @Test
-    public void motionsExtendTheSelection()
-    {
+    public void motionsExtendTheSelection() {
         vim("abcdef\n").cursor(0, 0).keys("vll");
         at(0, 2);
         assertEquals(0, h.editor().getMarkOffset());
@@ -85,8 +77,7 @@ public class VimVisualTest
     // ------------------------------------------------------------ deleting
 
     @Test
-    public void theSelectionIncludesTheCharacterUnderTheCaret()
-    {
+    public void theSelectionIncludesTheCharacterUnderTheCaret() {
         // One character selected, so v then d takes exactly that character.
         vim("abc\n").cursor(0, 1).keys("vd");
         h.assertText("ac\n");
@@ -94,37 +85,32 @@ public class VimVisualTest
     }
 
     @Test
-    public void deletingASelectionOfTwoCharacters()
-    {
+    public void deletingASelectionOfTwoCharacters() {
         vim("abc\n").cursor(0, 0).keys("vld");
         h.assertText("c\n");
         at(0, 0);
     }
 
     @Test
-    public void deletingBackwards()
-    {
+    public void deletingBackwards() {
         vim("abcdef\n").cursor(0, 3).keys("vhhd");
         h.assertText("aef\n");
     }
 
     @Test
-    public void capitalVDeletesWholeLines()
-    {
+    public void capitalVDeletesWholeLines() {
         vim("one\ntwo\nthree\n").cursor(0, 0).keys("Vd");
         h.assertText("two\nthree\n");
     }
 
     @Test
-    public void capitalVWithAMotionDeletesTheLinesItCovers()
-    {
+    public void capitalVWithAMotionDeletesTheLinesItCovers() {
         vim("one\ntwo\nthree\n").cursor(0, 0).keys("Vjd");
         h.assertText("three\n");
     }
 
     @Test
-    public void xIsDeleteInVisualMode()
-    {
+    public void xIsDeleteInVisualMode() {
         vim("abc\n").cursor(0, 1).keys("vx");
         h.assertText("ac\n");
     }
@@ -132,24 +118,21 @@ public class VimVisualTest
     // -------------------------------------------------------- change and yank
 
     @Test
-    public void changingASelection()
-    {
+    public void changingASelection() {
         vim("abc\n").cursor(0, 1).keys("vcX");
         h.assertText("aXc\n");
         assertSame(VimMode.INSERT, h.vimState().getMode());
     }
 
     @Test
-    public void yankingASelectionThenPutting()
-    {
+    public void yankingASelectionThenPutting() {
         vim("abc\n").cursor(0, 0).keys("vly");
         h.keys("$p");
         h.assertText("abcab\n");
     }
 
     @Test
-    public void aLinewiseYankPutsWholeLines()
-    {
+    public void aLinewiseYankPutsWholeLines() {
         vim("one\ntwo\n").cursor(0, 0).keys("Vyp");
         h.assertText("one\none\ntwo\n");
     }
@@ -157,26 +140,26 @@ public class VimVisualTest
     // -------------------------------------------------------------- o and gv
 
     @Test
-    public void oPutsTheCaretOnTheOtherEnd()
-    {
+    public void oPutsTheCaretOnTheOtherEnd() {
         vim("abcdef\n").cursor(0, 1).keys("vll");
         at(0, 3);
         h.keys("o");
         at(0, 1);
-        assertEquals("the anchor is now the far end", 3,
-                     h.editor().getMarkOffset());
+        assertEquals(
+            "the anchor is now the far end",
+            3,
+            h.editor().getMarkOffset()
+        );
     }
 
     @Test
-    public void oThenExtendingGrowsTheOtherWay()
-    {
+    public void oThenExtendingGrowsTheOtherWay() {
         vim("abcdef\n").cursor(0, 1).keys("vllohd");
         h.assertText("ef\n");
     }
 
     @Test
-    public void gvBringsBackTheLastSelection()
-    {
+    public void gvBringsBackTheLastSelection() {
         vim("abcdef\n").cursor(0, 1).keys("vll<Esc>");
         h.cursor(0, 0).keys("gvd");
         h.assertText("aef\n");
@@ -185,8 +168,7 @@ public class VimVisualTest
     // ------------------------------------------------------- the < and > marks
 
     @Test
-    public void leavingVisualModeSetsTheSelectionMarks()
-    {
+    public void leavingVisualModeSetsTheSelectionMarks() {
         vim("abcdef\n").cursor(0, 1).keys("vll<Esc>");
         // '<' has to be spelled <lt> in key notation, as it does in a vimrc.
         h.cursor(0, 5).keys("`<lt>");
@@ -198,8 +180,7 @@ public class VimVisualTest
     // ------------------------------------------------------------------ undo
 
     @Test
-    public void aVisualDeleteUndoesInOneStep()
-    {
+    public void aVisualDeleteUndoesInOneStep() {
         vim("one\ntwo\nthree\n").cursor(0, 0).keys("Vjd");
         h.assertText("three\n");
         h.editor().undo();

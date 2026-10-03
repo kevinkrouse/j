@@ -21,36 +21,31 @@ import org.junit.Test;
  * j's jump list: what records into it, jumpBack and jumpForward, and
  * pushPosition and popPosition on top of them.
  */
-public class JumpListTest
-{
+public class JumpListTest {
     private EditorHarness h;
     private EditorHarness other;
 
     @After
-    public void tearDown()
-    {
+    public void tearDown() {
         if (h != null)
             h.close();
         if (other != null)
             other.close();
     }
 
-    private Editor on(String text, int line)
-    {
+    private Editor on(String text, int line) {
         h = EditorHarness.create(text);
         Editor.setCurrentEditor(h.editor());
         h.cursor(line, 0);
         return h.editor();
     }
 
-    private String at()
-    {
+    private String at() {
         return h.editor().getDotLineNumber() + "," + h.editor().getDotOffset();
     }
 
     @Test
-    public void backAndForward()
-    {
+    public void backAndForward() {
         final Editor editor = on("a\nb\nc\nd\n", 1);
         editor.eob();
         editor.bob();
@@ -66,8 +61,7 @@ public class JumpListTest
     }
 
     @Test
-    public void nothingToGoBackTo()
-    {
+    public void nothingToGoBackTo() {
         on("a\nb\n", 1);
         JumpList.jumpBack();
         assertEquals("1,0", at());
@@ -75,8 +69,7 @@ public class JumpListTest
     }
 
     @Test
-    public void jumpsOfJsOwnRecord()
-    {
+    public void jumpsOfJsOwnRecord() {
         final Editor editor = on("x\na\nb\nx\n", 1);
         editor.jumpToLine(2, 0);
         JumpList.jumpBack();
@@ -89,8 +82,7 @@ public class JumpListTest
     }
 
     @Test
-    public void pushPositionAndPopPosition()
-    {
+    public void pushPositionAndPopPosition() {
         final Editor editor = on("a\nb\nc\n", 1);
         editor.pushPosition();
         h.cursor(2, 0);
@@ -99,8 +91,7 @@ public class JumpListTest
     }
 
     @Test
-    public void oneEntryALine()
-    {
+    public void oneEntryALine() {
         final Editor editor = on("a\nb\nc\n", 1);
         editor.eob();
         h.cursor(1, 0);
@@ -113,15 +104,17 @@ public class JumpListTest
     }
 
     @Test
-    public void backIntoAnotherBuffer()
-    {
+    public void backIntoAnotherBuffer() {
         // First: a new harness clears the jump list.
         other = EditorHarness.create("x\ny\n");
         on("a\nb\nc\n", 1).eob();
         // Where going back from the other buffer goes. The switch itself
         // is Marker.gotoMarker, which needs a frame: see the screenshots.
-        final Marker to = JumpList.travel(other.buffer(),
-                                          other.editor().getDot(), -1);
+        final Marker to = JumpList.travel(
+            other.buffer(),
+            other.editor().getDot(),
+            -1
+        );
         assertSame(h.buffer(), to.getBuffer());
         assertEquals(1, to.getPosition().lineNumber());
     }

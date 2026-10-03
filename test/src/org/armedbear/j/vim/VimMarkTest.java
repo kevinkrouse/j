@@ -18,48 +18,41 @@ import org.junit.After;
 import org.junit.Test;
 
 /** Marks, and the motions that go to them. */
-public class VimMarkTest
-{
+public class VimMarkTest {
     private EditorHarness h;
 
     @After
-    public void tearDown()
-    {
+    public void tearDown() {
         if (h != null)
             h.close();
     }
 
-    private EditorHarness vim(String text)
-    {
+    private EditorHarness vim(String text) {
         h = EditorHarness.create(text).vim();
         return h;
     }
 
-    private void at(int line, int offset)
-    {
+    private void at(int line, int offset) {
         assertEquals("line", line, h.lineNumber());
         assertEquals("offset", offset, h.offset());
     }
 
     @Test
-    public void backtickGoesToTheExactSpot()
-    {
+    public void backtickGoesToTheExactSpot() {
         vim("alpha\nbravo\ncharlie\n").cursor(1, 3).keys("ma");
         h.cursor(0, 0).keys("`a");
         at(1, 3);
     }
 
     @Test
-    public void quoteGoesToTheFirstNonBlankOfTheLine()
-    {
+    public void quoteGoesToTheFirstNonBlankOfTheLine() {
         vim("alpha\n    bravo\n").cursor(1, 7).keys("ma");
         h.cursor(0, 0).keys("'a");
         at(1, 4);
     }
 
     @Test
-    public void marksAreSeparatePerName()
-    {
+    public void marksAreSeparatePerName() {
         vim("one\ntwo\nthree\n").cursor(0, 1).keys("ma");
         h.cursor(2, 2).keys("mb");
         h.keys("`a");
@@ -69,15 +62,13 @@ public class VimMarkTest
     }
 
     @Test
-    public void anUnsetMarkDoesNothing()
-    {
+    public void anUnsetMarkDoesNothing() {
         vim("alpha\nbravo\n").cursor(1, 2).keys("`z");
         at(1, 2);
     }
 
     @Test
-    public void aMarkFollowsItsTextWhenLinesAboveGo()
-    {
+    public void aMarkFollowsItsTextWhenLinesAboveGo() {
         vim("one\ntwo\nthree\n").cursor(2, 1).keys("ma");
         h.cursor(0, 0).keys("dd");
         h.keys("`a");
@@ -86,8 +77,7 @@ public class VimMarkTest
     }
 
     @Test
-    public void bracketBacktickGoesToTheNearestMarkEitherWay()
-    {
+    public void bracketBacktickGoesToTheNearestMarkEitherWay() {
         vim("one\ntwo\nthree\nfour\n").cursor(0, 0).keys("ma");
         h.cursor(3, 0).keys("mb");
         h.cursor(1, 0).keys("]`");
@@ -97,32 +87,28 @@ public class VimMarkTest
     }
 
     @Test
-    public void bracketQuoteLandsOnTheFirstNonBlank()
-    {
+    public void bracketQuoteLandsOnTheFirstNonBlank() {
         vim("one\n   four\n").cursor(1, 5).keys("ma");
         h.cursor(0, 0).keys("]'");
         at(1, 3);
     }
 
     @Test
-    public void jumpingWithNoMarkAheadDoesNothing()
-    {
+    public void jumpingWithNoMarkAheadDoesNothing() {
         vim("one\ntwo\n").cursor(0, 0).keys("ma");
         h.cursor(1, 0).keys("]`");
         at(1, 0);
     }
 
     @Test
-    public void anOperatorCanUseAMarkAsItsMotion()
-    {
+    public void anOperatorCanUseAMarkAsItsMotion() {
         vim("alpha bravo\n").cursor(0, 6).keys("ma");
         h.cursor(0, 0).keys("d`a");
         h.assertText("bravo\n");
     }
 
     @Test
-    public void theQuoteFormMakesAnOperatorLinewise()
-    {
+    public void theQuoteFormMakesAnOperatorLinewise() {
         vim("one\ntwo\nthree\n").cursor(1, 1).keys("ma");
         h.cursor(0, 0).keys("d'a");
         h.assertText("three\n");

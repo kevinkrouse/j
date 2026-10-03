@@ -18,39 +18,33 @@
 
 package org.armedbear.j.mail;
 
-import org.armedbear.j.File;
-import org.junit.Test;
-import org.junit.BeforeClass;
+import static org.junit.Assert.*;
 
 import java.util.Arrays;
-
-import static org.junit.Assert.*;
+import org.armedbear.j.File;
+import org.junit.BeforeClass;
+import org.junit.Test;
 
 /**
  * User: kevink
  * Date: 5/22/11
  */
-public class MailboxURLTest
-{
+public class MailboxURLTest {
     @BeforeClass
-    public static void setup()
-    {
-    }
+    public static void setup() {}
 
     @Test
-    public void parseEmpty()
-    {
+    public void parseEmpty() {
         assertNull(MailboxURL.parse(null));
         assertNull(MailboxURL.parse(" "));
         assertNull(MailboxURL.parse("\"\""));
     }
 
     @Test
-    public void local() throws Exception
-    {
+    public void local() throws Exception {
         MailboxURL url = MailboxURL.parse("local");
         assertTrue(url instanceof LocalMailboxURL);
-        assertEquals(File.getInstance("local"), ((LocalMailboxURL)url).getFile());
+        assertEquals(File.getInstance("local"), ((LocalMailboxURL) url).getFile());
 
         url = MailboxURL.parse("mailbox:local");
         assertTrue(url instanceof LocalMailboxURL);
@@ -58,8 +52,7 @@ public class MailboxURLTest
     }
 
     @Test
-    public void imap()
-    {
+    public void imap() {
         MailboxURL url = MailboxURL.parse("{hello@example.com}");
         assertTrue(url instanceof ImapURL);
         assertEquals("hello", url.getUser());
@@ -72,8 +65,7 @@ public class MailboxURLTest
     }
 
     @Test
-    public void pop3()
-    {
+    public void pop3() {
         MailboxURL url = MailboxURL.parse("pop://hello@example.com");
         assertTrue(url instanceof PopURL);
         assertEquals("hello", url.getUser());
@@ -91,8 +83,7 @@ public class MailboxURLTest
     }
 
     @Test
-    public void userHostPort() throws Exception
-    {
+    public void userHostPort() throws Exception {
         MailboxURL url;
 
         url = MailboxURL.parse("{\"hello world\"}");
@@ -127,8 +118,7 @@ public class MailboxURLTest
     }
 
     @Test
-    public void options()
-    {
+    public void options() {
         MailboxURL url = MailboxURL.parse("{hello.world@example.com/ssl}");
         assertTrue(url.isSSL());
         assertFalse(url.isTLS());
@@ -155,15 +145,14 @@ public class MailboxURLTest
     }
 
     @Test
-    public void limit() throws Exception
-    {
+    public void limit() throws Exception {
         MailboxURL url = MailboxURL.parse("{hello@example.com}inbox");
-        assertEquals("inbox", ((ImapURL)url).getFolderName());
+        assertEquals("inbox", ((ImapURL) url).getFolderName());
         assertEquals(null, url.getLimitPattern());
 
         url = MailboxURL.parse("{hello@example.com}folder/path limit pattern");
-        assertEquals("folder/path", ((ImapURL)url).getFolderName());
-        assertEquals(Arrays.asList("folder", "path"), ((ImapURL)url).getFolderPathComponents());
+        assertEquals("folder/path", ((ImapURL) url).getFolderName());
+        assertEquals(Arrays.asList("folder", "path"), ((ImapURL) url).getFolderPathComponents());
         assertEquals("limit pattern", url.getLimitPattern());
 
         url = MailboxURL.parse("{hello@example.com} limit pattern");
@@ -176,8 +165,8 @@ public class MailboxURLTest
         assertEquals("limit pattern", url.getLimitPattern());
 
         url = MailboxURL.parse("\"{hello@example.com}folder path\" limit pattern");
-        assertEquals("folder path", ((ImapURL)url).getFolderName());
-        assertEquals(Arrays.asList("folder path"), ((ImapURL)url).getFolderPathComponents());
+        assertEquals("folder path", ((ImapURL) url).getFolderName());
+        assertEquals(Arrays.asList("folder path"), ((ImapURL) url).getFolderPathComponents());
         assertEquals("limit pattern", url.getLimitPattern());
 
         url = MailboxURL.parse("\"pop://hello@example.com\"limit pattern");

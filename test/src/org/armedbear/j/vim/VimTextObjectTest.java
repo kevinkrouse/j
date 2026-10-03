@@ -24,31 +24,26 @@ import org.junit.Test;
  * The CodeMirror-compatible value() view throughout, so the strings read the
  * same as the nvim runs every expectation here was checked against.
  */
-public class VimTextObjectTest
-{
+public class VimTextObjectTest {
     private EditorHarness h;
 
     @After
-    public void tearDown()
-    {
+    public void tearDown() {
         if (h != null)
             h.close();
     }
 
-    private EditorHarness vim(String text)
-    {
+    private EditorHarness vim(String text) {
         h = EditorHarness.create().vim();
         h.value(text);
         return h;
     }
 
-    private void is(String expected)
-    {
+    private void is(String expected) {
         assertEquals(expected, h.value());
     }
 
-    private void at(int line, int offset)
-    {
+    private void at(int line, int offset) {
         assertEquals("line", line, h.lineNumber());
         assertEquals("offset", offset, h.offset());
     }
@@ -56,30 +51,26 @@ public class VimTextObjectTest
     // --------------------------------------------------------------- word
 
     @Test
-    public void iwTakesTheWordTheCaretIsIn()
-    {
+    public void iwTakesTheWordTheCaretIsIn() {
         vim("alpha bravo charlie").cursor(0, 7).keys("diw");
         is("alpha  charlie");
         at(0, 6);
     }
 
     @Test
-    public void awAlsoTakesTheSpaceAfterIt()
-    {
+    public void awAlsoTakesTheSpaceAfterIt() {
         vim("alpha bravo charlie").cursor(0, 7).keys("daw");
         is("alpha charlie");
     }
 
     @Test
-    public void iwOnASpaceTakesTheSpace()
-    {
+    public void iwOnASpaceTakesTheSpace() {
         vim("a   b c").cursor(0, 2).keys("diw");
         is("ab c");
     }
 
     @Test
-    public void awOnASpaceTakesTheWordItLeadsTo()
-    {
+    public void awOnASpaceTakesTheWordItLeadsTo() {
         vim("alpha bravo").cursor(0, 5).keys("daw");
         is("alpha");
         h.close();
@@ -88,15 +79,13 @@ public class VimTextObjectTest
     }
 
     @Test
-    public void awFallsBackToTheBlanksBeforeAtTheEndOfALine()
-    {
+    public void awFallsBackToTheBlanksBeforeAtTheEndOfALine() {
         vim("alpha bravo").cursor(0, 7).keys("daw");
         is("alpha");
     }
 
     @Test
-    public void punctuationIsItsOwnWordButNotItsOwnWORD()
-    {
+    public void punctuationIsItsOwnWordButNotItsOwnWORD() {
         vim("foo.bar").cursor(0, 0).keys("diw");
         is(".bar");
         h.close();
@@ -105,15 +94,13 @@ public class VimTextObjectTest
     }
 
     @Test
-    public void aCountTakesMoreChunks()
-    {
+    public void aCountTakesMoreChunks() {
         vim("alpha bravo charlie").cursor(0, 7).keys("d2iw");
         is("alpha charlie");
     }
 
     @Test
-    public void awWithACountTakesWholeWordsNotChunks()
-    {
+    public void awWithACountTakesWholeWordsNotChunks() {
         // iw counts chunks, so 2iw is a word and the space after it. aw
         // counts words, so 2aw is two words and their spaces.
         vim("alpha bravo charlie delta").cursor(0, 7).keys("d2aw");
@@ -126,44 +113,38 @@ public class VimTextObjectTest
     // -------------------------------------------------------------- quote
 
     @Test
-    public void iQuoteTakesWhatIsBetweenThem()
-    {
+    public void iQuoteTakesWhatIsBetweenThem() {
         vim("say \"hello there\" ok").cursor(0, 6).keys("di\"");
         is("say \"\" ok");
     }
 
     @Test
-    public void aQuoteTakesTheQuotesAndTheSpaceAfter()
-    {
+    public void aQuoteTakesTheQuotesAndTheSpaceAfter() {
         vim("say \"hello there\" ok").cursor(0, 6).keys("da\"");
         is("say ok");
     }
 
     @Test
-    public void aQuoteObjectIsFoundFromBeforeIt()
-    {
+    public void aQuoteObjectIsFoundFromBeforeIt() {
         // vim scans the line rather than requiring the caret to be inside.
         vim("say \"hello there\" ok").cursor(0, 0).keys("di\"");
         is("say \"\" ok");
     }
 
     @Test
-    public void singleQuotesWorkToo()
-    {
+    public void singleQuotesWorkToo() {
         vim("it's 'a' thing").cursor(0, 6).keys("di'");
         is("it's '' thing");
     }
 
     @Test
-    public void anUnpairedQuoteDoesNothing()
-    {
+    public void anUnpairedQuoteDoesNothing() {
         vim("no quotes").cursor(0, 3).keys("di\"");
         is("no quotes");
     }
 
     @Test
-    public void anApostropheDoesNotThrowThePairingOff()
-    {
+    public void anApostropheDoesNotThrowThePairingOff() {
         // Three quotes on the line, so pairing from the start would put the
         // caret outside every pair.
         vim("it's 'a' thing").cursor(0, 6).keys("di'");
@@ -175,15 +156,14 @@ public class VimTextObjectTest
     // below was checked against nvim.
 
     @Test
-    public void aCaretOnEitherQuoteTakesThatPair()
-    {
+    public void aCaretOnEitherQuoteTakesThatPair() {
         final String v = "   \"string1\":  \"string2\";";
-        for (int caret : new int[] {3, 4, 11}) {
+        for (int caret : new int[] { 3, 4, 11 }) {
             vim(v).cursor(0, caret).keys("di\"");
             assertEquals("caret " + caret, "   \"\":  \"string2\";", h.value());
             h.close();
         }
-        for (int caret : new int[] {15, 23}) {
+        for (int caret : new int[] { 15, 23 }) {
             vim(v).cursor(0, caret).keys("di\"");
             assertEquals("caret " + caret, "   \"string1\":  \"\";", h.value());
             h.close();
@@ -192,13 +172,15 @@ public class VimTextObjectTest
     }
 
     @Test
-    public void aCaretBetweenTwoPairsTakesTheGap()
-    {
+    public void aCaretBetweenTwoPairsTakesTheGap() {
         final String v = "   \"string1\":  \"string2\";";
-        for (int caret : new int[] {12, 14}) {
+        for (int caret : new int[] { 12, 14 }) {
             vim(v).cursor(0, caret).keys("di\"");
-            assertEquals("caret " + caret, "   \"string1\"\"string2\";",
-                         h.value());
+            assertEquals(
+                "caret " + caret,
+                "   \"string1\"\"string2\";",
+                h.value()
+            );
             h.close();
         }
         h = null;
@@ -207,29 +189,25 @@ public class VimTextObjectTest
     // ------------------------------------------------------------ bracket
 
     @Test
-    public void iParenTakesTheInnermostPair()
-    {
+    public void iParenTakesTheInnermostPair() {
         vim("f(a, g(b), c)").cursor(0, 7).keys("di(");
         is("f(a, g(), c)");
     }
 
     @Test
-    public void aParenTakesTheBracketsAsWell()
-    {
+    public void aParenTakesTheBracketsAsWell() {
         vim("f(a, g(b), c)").cursor(0, 7).keys("da(");
         is("f(a, g, c)");
     }
 
     @Test
-    public void aCountStepsOutThroughNestedPairs()
-    {
+    public void aCountStepsOutThroughNestedPairs() {
         vim("f(a, g(b), c)").cursor(0, 7).keys("d2i(");
         is("f()");
     }
 
     @Test
-    public void theCaretMayBeOnOrBeforeTheOpeningBracket()
-    {
+    public void theCaretMayBeOnOrBeforeTheOpeningBracket() {
         vim("f(a, g(b), c)").cursor(0, 1).keys("di(");
         is("f()");
         h.close();
@@ -238,8 +216,7 @@ public class VimTextObjectTest
     }
 
     @Test
-    public void theOtherBracketShapesAndTheirAliases()
-    {
+    public void theOtherBracketShapesAndTheirAliases() {
         vim("a [x] b").cursor(0, 3).keys("di[");
         is("a [] b");
         h.close();
@@ -251,8 +228,7 @@ public class VimTextObjectTest
     }
 
     @Test
-    public void noPairAtAllDoesNothing()
-    {
+    public void noPairAtAllDoesNothing() {
         vim("no brackets").cursor(0, 3).keys("di(");
         is("no brackets");
     }
@@ -263,38 +239,33 @@ public class VimTextObjectTest
     // caret between the brackets.
 
     @Test
-    public void aBlockAloneOnItsLinesIsLinewise()
-    {
+    public void aBlockAloneOnItsLinesIsLinewise() {
         vim("f(\n  a\n)").cursor(1, 2).keys("di(");
         is("f(\n)");
         at(1, 0);
     }
 
     @Test
-    public void textAfterTheOpeningBracketKeepsItCharwise()
-    {
+    public void textAfterTheOpeningBracketKeepsItCharwise() {
         vim("f(a\n  b\n)").cursor(1, 2).keys("di(");
         is("f(\n)");
         at(0, 1);
     }
 
     @Test
-    public void textBeforeTheClosingBracketKeepsItCharwise()
-    {
+    public void textBeforeTheClosingBracketKeepsItCharwise() {
         vim("f(\n  a\nx)").cursor(1, 2).keys("di(");
         is("f(\n)");
     }
 
     @Test
-    public void aBracketObjectOnOneLineIsUnaffected()
-    {
+    public void aBracketObjectOnOneLineIsUnaffected() {
         vim("f(a)").cursor(0, 2).keys("di(");
         is("f()");
     }
 
     @Test
-    public void aParenAcrossLinesTakesTheBracketsToo()
-    {
+    public void aParenAcrossLinesTakesTheBracketsToo() {
         vim("f(\n  a\n)").cursor(1, 2).keys("da(");
         is("f");
     }
@@ -302,29 +273,25 @@ public class VimTextObjectTest
     // ---------------------------------------------------------- paragraph
 
     @Test
-    public void ipTakesTheRunOfNonBlankLines()
-    {
+    public void ipTakesTheRunOfNonBlankLines() {
         vim("a\nb\n\nc\nd").cursor(0, 0).keys("dip");
         is("\nc\nd");
     }
 
     @Test
-    public void apAlsoTakesTheBlankLinesAfter()
-    {
+    public void apAlsoTakesTheBlankLinesAfter() {
         vim("a\nb\n\nc\nd").cursor(0, 0).keys("dap");
         is("c\nd");
     }
 
     @Test
-    public void ipOnABlankLineTakesTheBlankRun()
-    {
+    public void ipOnABlankLineTakesTheBlankRun() {
         vim("a\nb\n\nc\nd").cursor(2, 0).keys("dip");
         is("a\nb\nc\nd");
     }
 
     @Test
-    public void apOnTheLastParagraphTakesTheBlanksBefore()
-    {
+    public void apOnTheLastParagraphTakesTheBlanksBefore() {
         // There are none after, so the gap that separated it goes instead --
         // otherwise deleting the last paragraph leaves a trailing blank line.
         vim("a\nb\n\nc\nd").cursor(3, 0).keys("dap");
@@ -332,8 +299,7 @@ public class VimTextObjectTest
     }
 
     @Test
-    public void paragraphObjectsTakeACount()
-    {
+    public void paragraphObjectsTakeACount() {
         vim("a\n\nb\n\nc").cursor(0, 0).keys("d2ap");
         is("c");
         h.close();
@@ -344,8 +310,7 @@ public class VimTextObjectTest
     // ------------------------------------------------------------- visual
 
     @Test
-    public void aTextObjectInVisualModeSelectsIt()
-    {
+    public void aTextObjectInVisualModeSelectsIt() {
         vim("alpha bravo").cursor(0, 7).keys("viwd");
         is("alpha ");
         h.close();
@@ -354,15 +319,13 @@ public class VimTextObjectTest
     }
 
     @Test
-    public void ipInVisualModeSelectsTheParagraph()
-    {
+    public void ipInVisualModeSelectsTheParagraph() {
         vim("a\nb\n\nc").cursor(0, 0).keys("vipd");
         is("\nc");
     }
 
     @Test
-    public void shrinkingASelectionWithATextObjectAsksForARepaint()
-    {
+    public void shrinkingASelectionWithATextObjectAsksForARepaint() {
         // A text object can make a selection smaller as easily as bigger, and
         // the lines it no longer covers have to be painted back.
         vim("alpha\nbravo\ncharlie").cursor(0, 0).keys("v2j");
@@ -372,23 +335,20 @@ public class VimTextObjectTest
     }
 
     @Test
-    public void changeThroughATextObjectLeavesInsertMode()
-    {
+    public void changeThroughATextObjectLeavesInsertMode() {
         vim("a \"x\" b").cursor(0, 0).keys("ci\"Y<Esc>");
         is("a \"Y\" b");
         assertEquals(VimMode.NORMAL, h.vimState().getMode());
     }
 
     @Test
-    public void aBracketPairOnALaterLineIsTheNextOne()
-    {
+    public void aBracketPairOnALaterLineIsTheNextOne() {
         vim("zz\n\nx (ab) y").cursor(0, 0).keys("di(");
         is("zz\n\nx () y");
     }
 
     @Test
-    public void aBracketPairBeforeTheCaretIsNotUsed()
-    {
+    public void aBracketPairBeforeTheCaretIsNotUsed() {
         vim("x (ab) y\n").cursor(1, 0).keys("di(");
         is("x (ab) y\n");
     }

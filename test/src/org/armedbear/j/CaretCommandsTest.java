@@ -21,19 +21,16 @@ import org.junit.Test;
  * jumping to the top, middle or bottom of the window, and overwriting one
  * character. Vim's f, t, H, M, L and r are these.
  */
-public class CaretCommandsTest
-{
+public class CaretCommandsTest {
     private EditorHarness h;
 
     @After
-    public void tearDown()
-    {
+    public void tearDown() {
         if (h != null)
             h.close();
     }
 
-    private void on(int line, int offset)
-    {
+    private void on(int line, int offset) {
         Line l = h.buffer().getFirstLine();
         for (int i = 0; i < line && l != null; i++)
             l = l.next();
@@ -42,8 +39,7 @@ public class CaretCommandsTest
         Editor.setCurrentEditor(h.editor());
     }
 
-    private void at(int line, int offset)
-    {
+    private void at(int line, int offset) {
         assertEquals("line", line, h.editor().getDotLineNumber());
         assertEquals("offset", offset, h.editor().getDotOffset());
     }
@@ -51,8 +47,7 @@ public class CaretCommandsTest
     // ------------------------------------------------- find a character
 
     @Test
-    public void findCharInLineJumpsForward()
-    {
+    public void findCharInLineJumpsForward() {
         h = EditorHarness.create("alpha bravo\n");
         on(0, 0);
         CaretCommands.findCharInLine("b");
@@ -60,8 +55,7 @@ public class CaretCommandsTest
     }
 
     @Test
-    public void tillCharInLineStopsOneShort()
-    {
+    public void tillCharInLineStopsOneShort() {
         h = EditorHarness.create("alpha bravo\n");
         on(0, 0);
         CaretCommands.tillCharInLine("b");
@@ -69,8 +63,7 @@ public class CaretCommandsTest
     }
 
     @Test
-    public void theBackwardFormsLookTheOtherWay()
-    {
+    public void theBackwardFormsLookTheOtherWay() {
         h = EditorHarness.create("alpha bravo\n");
         on(0, 10);
         CaretCommands.findCharInLineBackward("a");
@@ -81,8 +74,7 @@ public class CaretCommandsTest
     }
 
     @Test
-    public void itNeverLeavesTheLine()
-    {
+    public void itNeverLeavesTheLine() {
         h = EditorHarness.create("alpha\nbravo\n");
         on(0, 0);
         CaretCommands.findCharInLine("v");
@@ -90,8 +82,7 @@ public class CaretCommandsTest
     }
 
     @Test
-    public void aMissingArgumentIsReportedRatherThanGuessed()
-    {
+    public void aMissingArgumentIsReportedRatherThanGuessed() {
         h = EditorHarness.create("abc\n");
         on(0, 1);
         CaretCommands.findCharInLine("");
@@ -101,26 +92,30 @@ public class CaretCommandsTest
     // --------------------------------------------- top, middle, bottom
 
     @Test
-    public void theWindowCommandsMoveTheCaretWithoutScrolling()
-    {
+    public void theWindowCommandsMoveTheCaretWithoutScrolling() {
         h = EditorHarness.create("1\n2\n3\n4\n5\n6\n7\n8\n9\n");
         on(4, 0);
         final Line wasTop = h.editor().getDisplay().getTopLine();
         CaretCommands.moveToWindowTop();
         at(0, 0);
-        assertEquals("the view did not move", wasTop,
-                     h.editor().getDisplay().getTopLine());
+        assertEquals(
+            "the view did not move",
+            wasTop,
+            h.editor().getDisplay().getTopLine()
+        );
         CaretCommands.moveToWindowBottom();
         final int bottom = h.editor().getDotLineNumber();
         CaretCommands.moveToWindowMiddle();
         final int middle = h.editor().getDotLineNumber();
-        assertEquals("middle is between top and bottom", true,
-                     middle > 0 && middle < bottom);
+        assertEquals(
+            "middle is between top and bottom",
+            true,
+            middle > 0 && middle < bottom
+        );
     }
 
     @Test
-    public void theyLandOnTheFirstNonBlank()
-    {
+    public void theyLandOnTheFirstNonBlank() {
         h = EditorHarness.create("    indented\n2\n3\n");
         on(2, 0);
         CaretCommands.moveToWindowTop();
@@ -130,8 +125,7 @@ public class CaretCommandsTest
     // ------------------------------------------- overwrite a character
 
     @Test
-    public void replaceCharPutsOneCharacterInPlace()
-    {
+    public void replaceCharPutsOneCharacterInPlace() {
         h = EditorHarness.create("abc\n");
         on(0, 1);
         CaretCommands.replaceChar("X");
@@ -140,8 +134,7 @@ public class CaretCommandsTest
     }
 
     @Test
-    public void replaceCharDoesNothingPastTheEndOfTheLine()
-    {
+    public void replaceCharDoesNothingPastTheEndOfTheLine() {
         // There is no character there to replace, and it will not lengthen
         // the line to make one.
         h = EditorHarness.create("abc\n");
@@ -151,23 +144,37 @@ public class CaretCommandsTest
     }
 
     @Test
-    public void replaceCharsIsAllOrNothing()
-    {
+    public void replaceCharsIsAllOrNothing() {
         h = EditorHarness.create("abc\n");
         on(0, 0);
-        assertEquals(false, CaretCommands.replaceChars(
-            h.editor(), h.buffer().getFirstLine(), 0, 'X', 5));
+        assertEquals(
+            false,
+            CaretCommands.replaceChars(
+                h.editor(),
+                h.buffer().getFirstLine(),
+                0,
+                'X',
+                5
+            )
+        );
         h.assertText("abc\n");
-        assertEquals(true, CaretCommands.replaceChars(
-            h.editor(), h.buffer().getFirstLine(), 0, 'X', 3));
+        assertEquals(
+            true,
+            CaretCommands.replaceChars(
+                h.editor(),
+                h.buffer().getFirstLine(),
+                0,
+                'X',
+                3
+            )
+        );
         h.assertText("XXX\n");
     }
 
     // ------------------------------------------------- the command table
 
     @Test
-    public void theCommandTableReachesThem() throws Exception
-    {
+    public void theCommandTableReachesThem() throws Exception {
         h = EditorHarness.create("alpha bravo\n");
         on(0, 0);
         h.editor().execute("findCharInLine", "b");

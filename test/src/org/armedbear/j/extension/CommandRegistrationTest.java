@@ -39,30 +39,28 @@ import org.junit.Test;
  * resolves built-in commands with Class.forName on its own loader, which can
  * never see a class living in an extension's loader.
  */
-public class CommandRegistrationTest
-{
+public class CommandRegistrationTest {
     /** Stands in for an extension's command class. */
-    public static final class TestCommands
-    {
+    public static final class TestCommands {
         public static boolean ran;
         public static String argument;
 
-        public static void extensionTestCommand()
-        {
+        public static void extensionTestCommand() {
             ran = true;
         }
 
-        public static void extensionTestCommandWithArg(String s)
-        {
+        public static void extensionTestCommandWithArg(String s) {
             argument = s;
         }
     }
 
     @Test
-    public void aRegisteredCommandIsFoundByName()
-    {
-        CommandTable.registerCommand("extensionTestCommand", TestCommands.class,
-                                     "extensionTestCommand");
+    public void aRegisteredCommandIsFoundByName() {
+        CommandTable.registerCommand(
+            "extensionTestCommand",
+            TestCommands.class,
+            "extensionTestCommand"
+        );
 
         Command command = CommandTable.getCommand("extensionTestCommand");
         assertNotNull(command);
@@ -71,30 +69,38 @@ public class CommandRegistrationTest
     }
 
     @Test
-    public void lookupStaysCaseInsensitive()
-    {
-        CommandTable.registerCommand("extensionCasedCommand", TestCommands.class,
-                                     "extensionTestCommand");
+    public void lookupStaysCaseInsensitive() {
+        CommandTable.registerCommand(
+            "extensionCasedCommand",
+            TestCommands.class,
+            "extensionTestCommand"
+        );
         assertNotNull(CommandTable.getCommand("EXTENSIONCASEDCOMMAND"));
         assertNotNull(CommandTable.getCommand("extensioncasedcommand"));
     }
 
     @Test
-    public void aRegisteredCommandShowsUpInCompletion()
-    {
-        CommandTable.registerCommand("extensionCompletionProbe", TestCommands.class,
-                                     "extensionTestCommand");
+    public void aRegisteredCommandShowsUpInCompletion() {
+        CommandTable.registerCommand(
+            "extensionCompletionProbe",
+            TestCommands.class,
+            "extensionTestCommand"
+        );
         List<String> completions =
             CommandTable.getCompletionsForPrefix("extensionCompletionPro");
-        assertTrue(completions.toString(),
-                   completions.contains("extensionCompletionProbe"));
+        assertTrue(
+            completions.toString(),
+            completions.contains("extensionCompletionProbe")
+        );
     }
 
     @Test
-    public void aRegisteredCommandShowsUpInApropos()
-    {
-        CommandTable.registerCommand("extensionAproposProbe", TestCommands.class,
-                                     "extensionTestCommand");
+    public void aRegisteredCommandShowsUpInApropos() {
+        CommandTable.registerCommand(
+            "extensionAproposProbe",
+            TestCommands.class,
+            "extensionTestCommand"
+        );
         assertTrue(CommandTable.apropos("AproposProbe").contains("extensionAproposProbe"));
     }
 
@@ -104,15 +110,13 @@ public class CommandRegistrationTest
      * NullPointerException.
      */
     @Test
-    public void completionDoesNotDependOnSomethingElseHavingRunFirst()
-    {
+    public void completionDoesNotDependOnSomethingElseHavingRunFirst() {
         assertNotNull(CommandTable.getCompletionsForPrefix("op"));
         assertNotNull(CommandTable.apropos("open"));
     }
 
     @Test
-    public void builtInCommandsHaveNoResolvedClass()
-    {
+    public void builtInCommandsHaveNoResolvedClass() {
         // They are resolved from a name at first use instead, which is what
         // keeps them lazy.
         Command command = CommandTable.getCommand("openFile");
@@ -121,19 +125,16 @@ public class CommandRegistrationTest
     }
 
     @Test
-    public void registrationRejectsMissingArguments()
-    {
+    public void registrationRejectsMissingArguments() {
         try {
             CommandTable.registerCommand(null, TestCommands.class, "extensionTestCommand");
             fail("expected IllegalArgumentException");
         }
-        catch (IllegalArgumentException expected) {
-        }
+        catch (IllegalArgumentException expected) {}
         try {
             CommandTable.registerCommand("x", null, "extensionTestCommand");
             fail("expected IllegalArgumentException");
         }
-        catch (IllegalArgumentException expected) {
-        }
+        catch (IllegalArgumentException expected) {}
     }
 }

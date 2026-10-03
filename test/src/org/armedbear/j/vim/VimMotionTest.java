@@ -18,27 +18,23 @@ import org.junit.After;
 import org.junit.Test;
 
 /** Motions move the caret and nothing else. */
-public class VimMotionTest
-{
+public class VimMotionTest {
     private EditorHarness h;
 
     @After
-    public void tearDown()
-    {
+    public void tearDown() {
         if (h != null)
             h.close();
     }
 
-    private EditorHarness vim(String text)
-    {
+    private EditorHarness vim(String text) {
         if (h != null)
             h.close();
         h = EditorHarness.create(text).vim();
         return h;
     }
 
-    private void at(int line, int offset)
-    {
+    private void at(int line, int offset) {
         assertEquals("line", line, h.lineNumber());
         assertEquals("offset", offset, h.offset());
     }
@@ -46,50 +42,43 @@ public class VimMotionTest
     // ------------------------------------------------------------ h and l
 
     @Test
-    public void lMovesRight()
-    {
+    public void lMovesRight() {
         vim("alpha\n").cursor(0, 0).keys("l");
         at(0, 1);
     }
 
     @Test
-    public void hMovesLeft()
-    {
+    public void hMovesLeft() {
         vim("alpha\n").cursor(0, 3).keys("h");
         at(0, 2);
     }
 
     @Test
-    public void lStopsOnTheLastCharacter()
-    {
+    public void lStopsOnTheLastCharacter() {
         vim("alpha\n").cursor(0, 0).keys("llllllllll");
         at(0, 4);
     }
 
     @Test
-    public void hStopsAtTheStartOfTheLine()
-    {
+    public void hStopsAtTheStartOfTheLine() {
         vim("alpha\n").cursor(0, 2).keys("hhhhh");
         at(0, 0);
     }
 
     @Test
-    public void countRepeatsAMotion()
-    {
+    public void countRepeatsAMotion() {
         vim("alphabet\n").cursor(0, 0).keys("3l");
         at(0, 3);
     }
 
     @Test
-    public void countsAreMultiDigit()
-    {
+    public void countsAreMultiDigit() {
         vim("abcdefghijklmnopqrstuvwxyz\n").cursor(0, 0).keys("12l");
         at(0, 12);
     }
 
     @Test
-    public void aCountThatOvershootsStopsAtTheEnd()
-    {
+    public void aCountThatOvershootsStopsAtTheEnd() {
         vim("alpha\n").cursor(0, 0).keys("99l");
         at(0, 4);
     }
@@ -97,8 +86,7 @@ public class VimMotionTest
     // ------------------------------------------------------------ j and k
 
     @Test
-    public void jAndKMoveBetweenLines()
-    {
+    public void jAndKMoveBetweenLines() {
         vim("alpha\nbravo\ncharlie\n").cursor(0, 0).keys("jj");
         at(2, 0);
         h.keys("k");
@@ -106,23 +94,20 @@ public class VimMotionTest
     }
 
     @Test
-    public void jKeepsTheColumn()
-    {
+    public void jKeepsTheColumn() {
         vim("alpha\nbravo\n").cursor(0, 3).keys("j");
         at(1, 3);
     }
 
     @Test
-    public void theColumnSurvivesAShortLine()
-    {
+    public void theColumnSurvivesAShortLine() {
         // Passing through the short line must not lose the column.
         vim("alphabet\nxy\nalphabet\n").cursor(0, 6).keys("jj");
         at(2, 6);
     }
 
     @Test
-    public void jAtTheLastLineDoesNothing()
-    {
+    public void jAtTheLastLineDoesNothing() {
         vim("alpha\nbravo\n").cursor(1, 2).keys("j");
         at(1, 2);
     }
@@ -130,29 +115,25 @@ public class VimMotionTest
     // -------------------------------------------------------- line motions
 
     @Test
-    public void zeroGoesToTheFirstColumn()
-    {
+    public void zeroGoesToTheFirstColumn() {
         vim("    alpha\n").cursor(0, 7).keys("0");
         at(0, 0);
     }
 
     @Test
-    public void caretGoesToTheFirstNonBlank()
-    {
+    public void caretGoesToTheFirstNonBlank() {
         vim("    alpha\n").cursor(0, 8).keys("^");
         at(0, 4);
     }
 
     @Test
-    public void dollarGoesToTheLastCharacter()
-    {
+    public void dollarGoesToTheLastCharacter() {
         vim("alpha\n").cursor(0, 0).keys("$");
         at(0, 4);
     }
 
     @Test
-    public void dollarSticksToTheEndOfEachLine()
-    {
+    public void dollarSticksToTheEndOfEachLine() {
         vim("alphabet\nxy\nalphabet\n").cursor(0, 0).keys("$j");
         at(1, 1);
         h.keys("j");
@@ -160,8 +141,7 @@ public class VimMotionTest
     }
 
     @Test
-    public void zeroIsAMotionButOnlyWithoutACount()
-    {
+    public void zeroIsAMotionButOnlyWithoutACount() {
         vim("alphabet\n").cursor(0, 4).keys("0");
         at(0, 0);
         // In "10l" the zero is part of the count, not a motion.
@@ -172,36 +152,31 @@ public class VimMotionTest
     // ------------------------------------------------------ gg, G and bar
 
     @Test
-    public void ggGoesToTheFirstLine()
-    {
+    public void ggGoesToTheFirstLine() {
         vim("alpha\nbravo\ncharlie\n").cursor(2, 3).keys("gg");
         at(0, 0);
     }
 
     @Test
-    public void capitalGGoesToTheLastLine()
-    {
+    public void capitalGGoesToTheLastLine() {
         vim("alpha\nbravo\ncharlie\n").cursor(0, 0).keys("G");
         at(2, 0);
     }
 
     @Test
-    public void aCountWithGGoesToThatLine()
-    {
+    public void aCountWithGGoesToThatLine() {
         vim("alpha\nbravo\ncharlie\n").cursor(0, 0).keys("2G");
         at(1, 0);
     }
 
     @Test
-    public void ggLandsOnTheFirstNonBlank()
-    {
+    public void ggLandsOnTheFirstNonBlank() {
         vim("    alpha\nbravo\n").cursor(1, 0).keys("gg");
         at(0, 4);
     }
 
     @Test
-    public void barGoesToAScreenColumn()
-    {
+    public void barGoesToAScreenColumn() {
         vim("alphabet\n").cursor(0, 0).keys("5|");
         at(0, 4);
     }
@@ -209,22 +184,19 @@ public class VimMotionTest
     // ------------------------------------------------------- key to key
 
     @Test
-    public void arrowKeysAreBoundToTheMotions()
-    {
+    public void arrowKeysAreBoundToTheMotions() {
         vim("alpha\nbravo\n").cursor(0, 0).keys("<Right><Right><Down>");
         at(1, 2);
     }
 
     @Test
-    public void aCountAppliesThroughAKeyToKeyBinding()
-    {
+    public void aCountAppliesThroughAKeyToKeyBinding() {
         vim("alphabet\n").cursor(0, 0).keys("3<Right>");
         at(0, 3);
     }
 
     @Test
-    public void spaceAndBackspaceMove()
-    {
+    public void spaceAndBackspaceMove() {
         vim("alpha\n").cursor(0, 0).keys("<Space><Space>");
         at(0, 2);
         h.keys("<BS>");
@@ -238,22 +210,19 @@ public class VimMotionTest
     // checked against nvim.
 
     @Test
-    public void semicolonAfterFIsInclusive()
-    {
+    public void semicolonAfterFIsInclusive() {
         vim("0123456789\n").cursor(0, 0).keys("f4gg0d;");
         h.assertText("56789\n");
     }
 
     @Test
-    public void semicolonAfterCapitalFIsExclusive()
-    {
+    public void semicolonAfterCapitalFIsExclusive() {
         vim("0123456789\n").cursor(0, 9).keys("F4$d;");
         h.assertText("01239\n");
     }
 
     @Test
-    public void commaReversesTheDirectionAndTheKindWithIt()
-    {
+    public void commaReversesTheDirectionAndTheKindWithIt() {
         // ',' after f searches backward, so it becomes exclusive ...
         vim("0123456789\n").cursor(0, 0).keys("f4$d,");
         h.assertText("01239\n");
@@ -263,15 +232,13 @@ public class VimMotionTest
     }
 
     @Test
-    public void semicolonAfterTIsInclusiveToo()
-    {
+    public void semicolonAfterTIsInclusiveToo() {
         vim("0123456789\n").cursor(0, 0).keys("t5gg0d;");
         h.assertText("56789\n");
     }
 
     @Test
-    public void semicolonStillMovesTheCaretWithoutAnOperator()
-    {
+    public void semicolonStillMovesTheCaretWithoutAnOperator() {
         vim("0a0b0c\n").cursor(0, 0).keys("f0");
         at(0, 2);
         h.keys(";");
@@ -281,8 +248,7 @@ public class VimMotionTest
     // ------------------------------------------------- motions do not edit
 
     @Test
-    public void noMotionChangesTheText()
-    {
+    public void noMotionChangesTheText() {
         vim("alpha\nbravo\n").cursor(0, 0).keys("lllj0^$ggG3l");
         h.assertText("alpha\nbravo\n");
     }

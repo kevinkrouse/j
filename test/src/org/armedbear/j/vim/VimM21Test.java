@@ -15,7 +15,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import java.util.Arrays;
-
 import org.armedbear.j.EditorHarness;
 import org.junit.After;
 import org.junit.Test;
@@ -24,19 +23,16 @@ import org.junit.Test;
  * M21: hlsearch, on by default as in nvim; :noh, and :set at the prompt.
  * What nvim highlights was read with screenattr() after redraw!.
  */
-public class VimM21Test
-{
+public class VimM21Test {
     private EditorHarness h;
 
     @After
-    public void tearDown()
-    {
+    public void tearDown() {
         if (h != null)
             h.close();
     }
 
-    private EditorHarness vim(String text)
-    {
+    private EditorHarness vim(String text) {
         tearDown();
         h = EditorHarness.create().vim();
         h.value(text).cursor(0, 0);
@@ -44,15 +40,13 @@ public class VimM21Test
     }
 
     @Test
-    public void nothingIsHighlightedBeforeASearch()
-    {
+    public void nothingIsHighlightedBeforeASearch() {
         vim("abc abc");
         assertEquals("", h.searchMatches(0));
     }
 
     @Test
-    public void everyMatchOfTheLastPatternOnEveryLine()
-    {
+    public void everyMatchOfTheLastPatternOnEveryLine() {
         vim("abc abc\nxyz\nab").keys("/b<CR>");
         assertEquals("1-2 5-6", h.searchMatches(0));
         assertEquals("", h.searchMatches(1));
@@ -62,23 +56,20 @@ public class VimM21Test
     }
 
     @Test
-    public void anEmptyMatchIsReportedEmpty()
-    {
+    public void anEmptyMatchIsReportedEmpty() {
         // Painted one character wide, as nvim does.
         vim("abc abc").keys("/\\<lt><CR>");
         assertEquals("0-0 4-4", h.searchMatches(0));
     }
 
     @Test
-    public void theMatchesAreTheOnesNFinds()
-    {
+    public void theMatchesAreTheOnesNFinds() {
         vim("aaa aa").keys("/a\\+<CR>");
         assertEquals("0-3 4-6", h.searchMatches(0));
     }
 
     @Test
-    public void starAndSubstituteSetThePatternToo()
-    {
+    public void starAndSubstituteSetThePatternToo() {
         vim("ab abc ab").keys("*");
         assertEquals("0-2 7-9", h.searchMatches(0));
         vim("ab abc ab").keys(":s/c/C/<CR>");
@@ -88,8 +79,7 @@ public class VimM21Test
     }
 
     @Test
-    public void nohHidesThemUntilTheNextSearch()
-    {
+    public void nohHidesThemUntilTheNextSearch() {
         vim("abc abc").keys("/b<CR>").keys(":noh<CR>");
         assertEquals("", h.searchMatches(0));
         // An edit does not bring them back; n does.
@@ -102,15 +92,13 @@ public class VimM21Test
     }
 
     @Test
-    public void settingHlsearchBringsThemBack()
-    {
+    public void settingHlsearchBringsThemBack() {
         vim("abc abc").keys("/b<CR>").keys(":noh<CR>").keys(":set hls<CR>");
         assertEquals("1-2 5-6", h.searchMatches(0));
     }
 
     @Test
-    public void nohlsearchTurnsItOff()
-    {
+    public void nohlsearchTurnsItOff() {
         vim("abc abc").keys(":set nohlsearch<CR>").keys("/b<CR>");
         assertEquals("", h.searchMatches(0));
         h.keys(":set hlsearch<CR>");
@@ -118,8 +106,7 @@ public class VimM21Test
     }
 
     @Test
-    public void optionsTheMatchingReadsAreFollowed()
-    {
+    public void optionsTheMatchingReadsAreFollowed() {
         vim("ab AB").keys("/ab<CR>");
         assertEquals("0-2", h.searchMatches(0));
         h.keys(":set ignorecase<CR>");
@@ -127,18 +114,20 @@ public class VimM21Test
     }
 
     @Test
-    public void aBadPatternHighlightsNothing()
-    {
+    public void aBadPatternHighlightsNothing() {
         vim("a(b").keys("/\\(<CR>");
         assertEquals("", h.searchMatches(0));
     }
 
     @Test
-    public void theWholeWindowIsRepaintedWhenTheMatchesChange()
-    {
+    public void theWholeWindowIsRepaintedWhenTheMatchesChange() {
         vim("abc abc\nabc");
-        for (String keys : Arrays.asList("/b<CR>", ":noh<CR>", "n",
-                                         ":set nohls<CR>")) {
+        for (String keys : Arrays.asList(
+            "/b<CR>",
+            ":noh<CR>",
+            "n",
+            ":set nohls<CR>"
+        )) {
             h.clearRepaintPending();
             h.keys(keys);
             assertTrue(keys, h.repaintPending());

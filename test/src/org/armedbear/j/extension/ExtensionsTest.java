@@ -50,33 +50,30 @@ import org.junit.Test;
  * something safe to call, which is what lets the call sites drop their "is it
  * installed yet" guards.
  */
-public class ExtensionsTest
-{
+public class ExtensionsTest {
     private Path dir;
 
     @Before
-    public void reset()
-    {
+    public void reset() {
         Extensions.shutdown();
         Extensions.setDisabled(false);
     }
 
     @After
-    public void cleanUp() throws IOException
-    {
+    public void cleanUp() throws IOException {
         Extensions.shutdown();
         Extensions.setDisabled(false);
         if (dir != null && Files.exists(dir)) {
-            Files.walk(dir).sorted(java.util.Comparator.reverseOrder())
-                 .forEach(p -> p.toFile().delete());
+            Files.walk(dir)
+                .sorted(java.util.Comparator.reverseOrder())
+                .forEach(p -> p.toFile().delete());
         }
     }
 
     // ---- nothing installed -------------------------------------------------
 
     @Test
-    public void accessorsAreNeverNull()
-    {
+    public void accessorsAreNeverNull() {
         assertSame(EditorHooks.NONE, Extensions.hooks());
         assertSame(KeyMapProvider.NONE, Extensions.keyMaps());
         assertSame(LanguageClient.NONE, Extensions.languageClient());
@@ -84,8 +81,7 @@ public class ExtensionsTest
     }
 
     @Test
-    public void noOpHooksDoNothingQuietly()
-    {
+    public void noOpHooksDoNothingQuietly() {
         EditorHooks hooks = Extensions.hooks();
         hooks.eventHandled();
         hooks.bufferActivated(null);
@@ -96,8 +92,7 @@ public class ExtensionsTest
     }
 
     @Test
-    public void noKeyMapProviderMeansCoreFallsBack()
-    {
+    public void noKeyMapProviderMeansCoreFallsBack() {
         // null is "nothing to say", which is what lets AbstractMode and KeyMap
         // fall through to a key map file and then to their own defaults.
         assertNull(Extensions.keyMaps().getGlobalKeyMap());
@@ -105,8 +100,7 @@ public class ExtensionsTest
     }
 
     @Test
-    public void defaultSessionIsUnreadyAndRefusesToEvaluate()
-    {
+    public void defaultSessionIsUnreadyAndRefusesToEvaluate() {
         Session session = Extensions.session();
         assertEquals(LanguageClient.DEFAULT_SESSION, session.getKey());
         assertFalse(session.isReady());
@@ -120,8 +114,7 @@ public class ExtensionsTest
     }
 
     @Test
-    public void asyncEvalReportsTheFailureRatherThanThrowing()
-    {
+    public void asyncEvalReportsTheFailureRatherThanThrowing() {
         EvalResult[] seen = new EvalResult[1];
         Extensions.session().eval(EvalRequest.of("(+ 1 2)"), r -> seen[0] = r);
         assertTrue(seen[0].isError());
@@ -130,8 +123,7 @@ public class ExtensionsTest
     // ---- discovery ---------------------------------------------------------
 
     @Test
-    public void discoversAnExtensionFromAJar() throws IOException
-    {
+    public void discoversAnExtensionFromAJar() throws IOException {
         dir = Files.createTempDirectory("j-extensions-test");
         writeExtensionJar(dir.resolve("fake.jar"), FakeExtension.class);
 
@@ -142,8 +134,7 @@ public class ExtensionsTest
     }
 
     @Test
-    public void honoursTheDisabledList() throws IOException
-    {
+    public void honoursTheDisabledList() throws IOException {
         dir = Files.createTempDirectory("j-extensions-test");
         writeExtensionJar(dir.resolve("fake.jar"), FakeExtension.class);
 
@@ -156,11 +147,13 @@ public class ExtensionsTest
     }
 
     @Test
-    public void aThrowingExtensionIsIsolated() throws IOException
-    {
+    public void aThrowingExtensionIsIsolated() throws IOException {
         dir = Files.createTempDirectory("j-extensions-test");
-        writeExtensionJar(dir.resolve("broken.jar"),
-                          BrokenExtension.class, FakeExtension.class);
+        writeExtensionJar(
+            dir.resolve("broken.jar"),
+            BrokenExtension.class,
+            FakeExtension.class
+        );
 
         Extensions.loadFrom(dir, Collections.<String>emptySet());
 
@@ -169,19 +162,18 @@ public class ExtensionsTest
     }
 
     @Test
-    public void anEmptyDirectoryIsNotAnError() throws IOException
-    {
+    public void anEmptyDirectoryIsNotAnError() throws IOException {
         dir = Files.createTempDirectory("j-extensions-test");
         Extensions.loadFrom(dir, Collections.<String>emptySet());
         assertTrue(Extensions.loadedNames().isEmpty());
     }
 
     @Test
-    public void aJarWithNoServiceFileIsIgnored() throws IOException
-    {
+    public void aJarWithNoServiceFileIsIgnored() throws IOException {
         dir = Files.createTempDirectory("j-extensions-test");
         try (JarOutputStream out = new JarOutputStream(
-                 Files.newOutputStream(dir.resolve("plain.jar")))) {
+            Files.newOutputStream(dir.resolve("plain.jar"))
+        )) {
             out.putNextEntry(new JarEntry("nothing.txt"));
             out.write("hello".getBytes(StandardCharsets.UTF_8));
             out.closeEntry();
@@ -191,8 +183,7 @@ public class ExtensionsTest
     }
 
     @Test
-    public void shutdownRestoresTheNoOpRegistry() throws IOException
-    {
+    public void shutdownRestoresTheNoOpRegistry() throws IOException {
         dir = Files.createTempDirectory("j-extensions-test");
         writeExtensionJar(dir.resolve("fake.jar"), FakeExtension.class);
         Extensions.loadFrom(dir, Collections.<String>emptySet());
@@ -212,8 +203,7 @@ public class ExtensionsTest
      * class path, so no compiler is needed at test time.
      */
     private static void writeExtensionJar(Path jar, Class<?>... extensions)
-        throws IOException
-    {
+        throws IOException {
         try (JarOutputStream out = new JarOutputStream(Files.newOutputStream(jar))) {
             StringBuilder services = new StringBuilder();
             for (Class<?> extension : extensions) {
@@ -222,15 +212,17 @@ public class ExtensionsTest
                 for (Class<?> nested : extension.getDeclaredClasses())
                     copyClass(out, nested);
             }
-            out.putNextEntry(new JarEntry(
-                "META-INF/services/org.armedbear.j.extension.Extension"));
+            out.putNextEntry(
+                new JarEntry(
+                    "META-INF/services/org.armedbear.j.extension.Extension"
+                )
+            );
             out.write(services.toString().getBytes(StandardCharsets.UTF_8));
             out.closeEntry();
         }
     }
 
-    private static void copyClass(JarOutputStream out, Class<?> c) throws IOException
-    {
+    private static void copyClass(JarOutputStream out, Class<?> c) throws IOException {
         String path = c.getName().replace('.', '/').concat(".class");
         try (InputStream in = c.getClassLoader().getResourceAsStream(path)) {
             if (in == null)
@@ -241,8 +233,7 @@ public class ExtensionsTest
         }
     }
 
-    private static void copy(InputStream in, OutputStream out) throws IOException
-    {
+    private static void copy(InputStream in, OutputStream out) throws IOException {
         byte[] buffer = new byte[8192];
         for (int n = in.read(buffer); n > 0; n = in.read(buffer))
             out.write(buffer, 0, n);

@@ -21,27 +21,23 @@ import org.junit.After;
 import org.junit.Test;
 
 /** Code's shaded background: a code block's lines, inline code's text. */
-public class MarkdownShadingTest
-{
+public class MarkdownShadingTest {
     private EditorHarness h;
 
     @After
-    public void tearDown()
-    {
+    public void tearDown() {
         Editor.preferences().removeProperty("color.codeBackground");
         if (h != null)
             h.close();
     }
 
-    private Formatter on(String text)
-    {
+    private Formatter on(String text) {
         h = EditorHarness.create(text).mode(MarkdownMode.getMode());
         h.buffer().getFormatter().parseBuffer();
         return h.buffer().getFormatter();
     }
 
-    private Line line(int lineNumber)
-    {
+    private Line line(int lineNumber) {
         Line line = h.buffer().getFirstLine();
         for (int i = 0; i < lineNumber; i++)
             line = line.next();
@@ -49,8 +45,7 @@ public class MarkdownShadingTest
     }
 
     @Test
-    public void aCodeBlocksLinesAreShaded()
-    {
+    public void aCodeBlocksLinesAreShaded() {
         final Formatter f = on("text\n```java\nint x;\n```\n\n    indented\nafter");
         assertNull(f.getLineBackground(line(0)));
         final Color shade = f.getLineBackground(line(1));
@@ -63,8 +58,7 @@ public class MarkdownShadingTest
     }
 
     @Test
-    public void inlineCodeIsShadedAsABlockIs()
-    {
+    public void inlineCodeIsShadedAsABlockIs() {
         final Formatter f = on("a `b` c\n```\nx\n```");
         final LineSegmentList segments = f.formatLine(line(0));
         final Color shade = f.getLineBackground(line(2));
@@ -80,28 +74,24 @@ public class MarkdownShadingTest
     }
 
     @Test
-    public void theShadeIsBetweenTheBackgroundAndTheText()
-    {
+    public void theShadeIsBetweenTheBackgroundAndTheText() {
         final Formatter f = on("```\nx\n```");
         final Color bg = f.getBackgroundColor();
         final Color shade = f.getLineBackground(line(1));
         final Color text = f.getColor(0);
-        assertEquals(true, Math.abs(shade.getRed() - bg.getRed())
-                     <= Math.abs(text.getRed() - bg.getRed()));
+        assertEquals(true, Math.abs(shade.getRed() - bg.getRed()) <= Math.abs(text.getRed() - bg.getRed()));
         assertEquals(false, shade.equals(bg));
     }
 
     @Test
-    public void aThemeCanSayTheShade()
-    {
+    public void aThemeCanSayTheShade() {
         Editor.preferences().setProperty("color.codeBackground", "#123456");
         final Formatter f = on("```\nx\n```");
         assertEquals(new Color(0x123456), f.getLineBackground(line(1)));
     }
 
     @Test
-    public void onALightThemeItIsNotTheCurrentLines()
-    {
+    public void onALightThemeItIsNotTheCurrentLines() {
         Editor.preferences().setProperty("color.background", "255 255 255");
         Editor.preferences().setProperty("color.currentLineBackground", "237 237 237");
         try {

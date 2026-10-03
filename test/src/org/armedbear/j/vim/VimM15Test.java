@@ -21,19 +21,16 @@ import org.junit.Test;
  * M15: ge over line ends, the {@code :help d} rule, % past brackets in
  * strings, and an arrow splitting an insert. Every expectation is nvim's.
  */
-public class VimM15Test
-{
+public class VimM15Test {
     private EditorHarness h;
 
     @After
-    public void tearDown()
-    {
+    public void tearDown() {
         if (h != null)
             h.close();
     }
 
-    private EditorHarness vim(String text, int line, int offset)
-    {
+    private EditorHarness vim(String text, int line, int offset) {
         tearDown();
         h = EditorHarness.create().vim();
         h.value(text).cursor(line, offset);
@@ -43,15 +40,13 @@ public class VimM15Test
     // ---------------------------------------- ge and gE
 
     @Test
-    public void geStopsOnTheLastCharacterNotTheLineEnd()
-    {
+    public void geStopsOnTheLastCharacterNotTheLineEnd() {
         vim("word\n\n", 1, 0).keys("ge");
         h.assertCursorAt(0, 3);
     }
 
     @Test
-    public void aLineEndSeparatesWords()
-    {
+    public void aLineEndSeparatesWords() {
         vim("ab\ncd", 1, 1).keys("ge");
         h.assertCursorAt(0, 1);
         vim("ab\ncd", 1, 0).keys("ge");
@@ -63,8 +58,7 @@ public class VimM15Test
     }
 
     @Test
-    public void geFromAWordStopsAtTheAdjacentPunctuation()
-    {
+    public void geFromAWordStopsAtTheAdjacentPunctuation() {
         vim("ab.cd", 0, 3).keys("ge");
         h.assertCursorAt(0, 2);
         vim("ab.cd", 0, 4).keys("ge");
@@ -72,15 +66,13 @@ public class VimM15Test
     }
 
     @Test
-    public void geInTheFirstWordGoesToTheStart()
-    {
+    public void geInTheFirstWordGoesToTheStart() {
         vim("abc def", 0, 2).keys("ge");
         h.assertCursorAt(0, 0);
     }
 
     @Test
-    public void geStopsOnAnEmptyLine()
-    {
+    public void geStopsOnAnEmptyLine() {
         vim("ab\n\n\ncd", 3, 0).keys("ge");
         h.assertCursorAt(2, 0);
         vim("ab\n\ncd", 2, 0).keys("2ge");
@@ -88,8 +80,7 @@ public class VimM15Test
     }
 
     @Test
-    public void geSkipsALineOfBlanks()
-    {
+    public void geSkipsALineOfBlanks() {
         vim("ab\n  \ncd", 2, 0).keys("ge");
         h.assertCursorAt(0, 1);
         vim("ab  \ncd", 1, 0).keys("ge");
@@ -97,8 +88,7 @@ public class VimM15Test
     }
 
     @Test
-    public void bigGeTakesPunctuationAsPartOfTheWord()
-    {
+    public void bigGeTakesPunctuationAsPartOfTheWord() {
         vim("a.b", 0, 2).keys("gE");
         h.assertCursorAt(0, 0);
     }
@@ -106,15 +96,13 @@ public class VimM15Test
     // ---------------------------------------- an inclusive end on an empty line
 
     @Test
-    public void dgeOntoTheWordBeforeBlankLines()
-    {
+    public void dgeOntoTheWordBeforeBlankLines() {
         vim("word\n\n", 1, 0).keys("dge");
         assertEquals("wor\n", h.value());
     }
 
     @Test
-    public void dgeTakesNothingFromTheEmptyLineItEndsOn()
-    {
+    public void dgeTakesNothingFromTheEmptyLineItEndsOn() {
         vim("ab\n\ncd", 1, 0).keys("dge");
         assertEquals("a\ncd", h.value());
         vim("ab\n\ncd", 2, 0).keys("dge");
@@ -122,15 +110,13 @@ public class VimM15Test
     }
 
     @Test
-    public void dDollarOnAnEmptyLineDoesNothing()
-    {
+    public void dDollarOnAnEmptyLineDoesNothing() {
         vim("ab\n\ncd", 1, 0).keys("d$");
         assertEquals("ab\n\ncd", h.value());
     }
 
     @Test
-    public void visualOnAnEmptyLineTakesItsNewline()
-    {
+    public void visualOnAnEmptyLineTakesItsNewline() {
         vim("ab\n\ncd", 1, 0).keys("vd");
         assertEquals("ab\ncd", h.value());
         vim("ab\n\ncd", 0, 1).keys("vjd");
@@ -140,8 +126,7 @@ public class VimM15Test
     // ---------------------------------------- :help d
 
     @Test
-    public void dgeOverBlankLinesTakesThemWhole()
-    {
+    public void dgeOverBlankLinesTakesThemWhole() {
         vim("\n  \n", 2, 0).keys("dge");
         assertEquals("", h.value());
         vim("\n\n", 1, 0).keys("dge");
@@ -151,8 +136,7 @@ public class VimM15Test
     }
 
     @Test
-    public void aDeleteBetweenBlanksTakesTheLines()
-    {
+    public void aDeleteBetweenBlanksTakesTheLines() {
         vim(" word1\nword2", 0, 1).keys("d2w");
         assertEquals("", h.value());
         vim(" ab\ncd \nefgh", 0, 1).keys("d/ <CR>");
@@ -160,8 +144,7 @@ public class VimM15Test
     }
 
     @Test
-    public void aTextObjectBetweenBlanksTakesTheLines()
-    {
+    public void aTextObjectBetweenBlanksTakesTheLines() {
         vim("  (a\nb)  \nz", 0, 3).keys("da(");
         assertEquals("z", h.value());
         vim("  (a\nb) c\nz", 0, 3).keys("da(");
@@ -169,8 +152,7 @@ public class VimM15Test
     }
 
     @Test
-    public void notWithTextBeforeTheStartOrAfterTheEnd()
-    {
+    public void notWithTextBeforeTheStartOrAfterTheEnd() {
         vim("ab\n  \n  x", 2, 2).keys("dge");
         assertEquals("a", h.value());
         vim("  word1\nword2 x", 0, 2).keys("d2w");
@@ -180,15 +162,13 @@ public class VimM15Test
     }
 
     @Test
-    public void notForChange()
-    {
+    public void notForChange() {
         vim(" word1\nword2", 0, 1).keys("c2wx<Esc>");
         assertEquals(" x", h.value());
     }
 
     @Test
-    public void notForAVisualDelete()
-    {
+    public void notForAVisualDelete() {
         vim(" ab\ncd\nef", 0, 1).keys("vjd");
         assertEquals(" \nef", h.value());
     }
@@ -198,8 +178,7 @@ public class VimM15Test
     private static final String THREE = "one\ntwo\nthree";
 
     @Test
-    public void dotAfterAnArrowRepeatsWhatWasTypedAfterItAsAnInsert()
-    {
+    public void dotAfterAnArrowRepeatsWhatWasTypedAfterItAsAnInsert() {
         vim(THREE, 1, 0).keys("Oab<Down>cd<Esc>");
         assertEquals("one\nab\ntwcdo\nthree", h.value());
         h.assertCursorAt(2, 3);
@@ -209,8 +188,7 @@ public class VimM15Test
     }
 
     @Test
-    public void dotAfterLeftAndRight()
-    {
+    public void dotAfterLeftAndRight() {
         vim(THREE, 1, 0).keys("iab<Right>cd<Esc>j0.");
         assertEquals("one\nabtcdwo\ncdthree", h.value());
         h.assertCursorAt(2, 1);
@@ -220,8 +198,7 @@ public class VimM15Test
     }
 
     @Test
-    public void anArrowWithNothingAfterItLeavesTheInsertBeforeIt()
-    {
+    public void anArrowWithNothingAfterItLeavesTheInsertBeforeIt() {
         vim(THREE, 1, 0).keys("Oab<Down><Esc>");
         h.assertCursorAt(2, 1);
         h.keys(".");
@@ -232,8 +209,7 @@ public class VimM15Test
     }
 
     @Test
-    public void aBackspaceAfterAnArrowIsTheChange()
-    {
+    public void aBackspaceAfterAnArrowIsTheChange() {
         vim(THREE, 1, 2).keys("iab<Left><BS><Esc>");
         assertEquals("one\ntwbo\nthree", h.value());
         h.keys("j$.");
@@ -242,16 +218,14 @@ public class VimM15Test
     }
 
     @Test
-    public void anArrowDropsTheCount()
-    {
+    public void anArrowDropsTheCount() {
         vim(THREE, 1, 1).keys("3iab<Right>c<Esc>");
         assertEquals("one\ntabwco\nthree", h.value());
         h.assertCursorAt(1, 4);
     }
 
     @Test
-    public void anArrowThatCannotMoveChangesNothing()
-    {
+    public void anArrowThatCannotMoveChangesNothing() {
         vim("one\ntwo", 0, 0).keys("2I<Left>ab<Esc>");
         assertEquals("ababone\ntwo", h.value());
         h.assertCursorAt(0, 3);
@@ -261,8 +235,7 @@ public class VimM15Test
     }
 
     @Test
-    public void afterAnArrowInReplaceModeDotInserts()
-    {
+    public void afterAnArrowInReplaceModeDotInserts() {
         vim("abcdef\nuvwxyz", 0, 0).keys("R12<Right>34<Esc>");
         assertEquals("12c34f\nuvwxyz", h.value());
         h.keys("j0.");
@@ -271,8 +244,7 @@ public class VimM15Test
     }
 
     @Test
-    public void aKeyThatLeavesTheBufferStartsNoInsert()
-    {
+    public void aKeyThatLeavesTheBufferStartsNoInsert() {
         final EditorHarness other = EditorHarness.create("other").vim();
         try {
             vim("abc", 0, 0).keys("ix<A-Right>");
@@ -287,8 +259,7 @@ public class VimM15Test
     }
 
     @Test
-    public void anArrowEndsTheUndoStep()
-    {
+    public void anArrowEndsTheUndoStep() {
         vim("xy", 0, 0).keys("iab<Left>cd<Esc>u");
         assertEquals("abxy", h.value());
         h.assertCursorAt(0, 1);
@@ -299,29 +270,25 @@ public class VimM15Test
 
     // ---------------------------------------- % and quotes
 
-    private void percent(String text, int offset, int expected)
-    {
+    private void percent(String text, int offset, int expected) {
         vim(text, 0, offset).keys("%");
         h.assertCursorAt(0, expected);
     }
 
     @Test
-    public void percentSkipsABracketInAString()
-    {
+    public void percentSkipsABracketInAString() {
         percent("(\")\")", 0, 4);
         percent("(a \")\" b)", 0, 8);
         percent("(\"(\")", 0, 4);
     }
 
     @Test
-    public void percentBackwardSkipsItToo()
-    {
+    public void percentBackwardSkipsItToo() {
         percent("(\")\")", 4, 0);
     }
 
     @Test
-    public void percentFromInsideAStringCountsQuotesFromThere()
-    {
+    public void percentFromInsideAStringCountsQuotesFromThere() {
         percent("\"(x)\"", 1, 3);
         percent("\"(\" \")\"", 1, 5);
         percent("x \"(a)\" y", 3, 5);
@@ -330,36 +297,31 @@ public class VimM15Test
     }
 
     @Test
-    public void percentIgnoresQuotesOnALineWithAnOddNumber()
-    {
+    public void percentIgnoresQuotesOnALineWithAnOddNumber() {
         percent("(a \") b", 0, 4);
         percent("\"( \")\"", 1, 4);
     }
 
     @Test
-    public void percentUnmatchedOutsideTheStringFails()
-    {
+    public void percentUnmatchedOutsideTheStringFails() {
         percent("(a \")\" b", 0, 0);
     }
 
     @Test
-    public void percentSkipsACharacterLiteral()
-    {
+    public void percentSkipsACharacterLiteral() {
         percent("(')')", 0, 4);
         percent("(')' x)", 0, 6);
     }
 
     @Test
-    public void percentPairsEscapedWithEscaped()
-    {
+    public void percentPairsEscapedWithEscaped() {
         percent("(\\))", 0, 3);
         percent("\\((\\))", 1, 4);
         percent("(\"\\\")\")", 0, 6);
     }
 
     @Test
-    public void percentQuotesStartAfreshOnEachLine()
-    {
+    public void percentQuotesStartAfreshOnEachLine() {
         vim("(a \"b\"\nc \")\" d)", 0, 0).keys("%");
         h.assertCursorAt(1, 7);
         vim("(\")\"\n)", 0, 0).keys("%");

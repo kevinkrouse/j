@@ -47,24 +47,23 @@ import org.junit.Test;
  * in mail-reply-all as one number instead of two, and a stray transparent path
  * in stock_copy. Only drawing the whole set caught either.
  */
-public class SvgIconTest
-{
+public class SvgIconTest {
     /** Where the icons live in the source tree, relative to the build. */
     private static final String ICON_DIR = "src/org/armedbear/j/images/svg";
 
-    private static File iconDir()
-    {
+    private static File iconDir() {
         File dir = new File(ICON_DIR);
         if (!dir.isDirectory())
             dir = new File("../" + ICON_DIR);
         return dir;
     }
 
-    private static List<String> iconNames()
-    {
+    private static List<String> iconNames() {
         File dir = iconDir();
-        assertTrue("cannot find the icon directory: " + dir.getAbsolutePath(),
-                   dir.isDirectory());
+        assertTrue(
+            "cannot find the icon directory: " + dir.getAbsolutePath(),
+            dir.isDirectory()
+        );
         String[] files = dir.list();
         Arrays.sort(files);
         List<String> names = new ArrayList<String>();
@@ -77,8 +76,7 @@ public class SvgIconTest
     }
 
     @Test
-    public void everyIconParsesAndPaints()
-    {
+    public void everyIconParsesAndPaints() {
         List<String> failures = new ArrayList<String>();
         List<String> names = iconNames();
         // 16 is the authored size; 33 is deliberately odd and not a multiple of
@@ -86,9 +84,11 @@ public class SvgIconTest
         final int[] sizes = { 16, 33, 64 };
         for (String name : names) {
             try {
-                SvgIcon icon = new SvgIcon(name,
+                SvgIcon icon = new SvgIcon(
+                    name,
                     new FileInputStream(new File(iconDir(), name + ".svg")),
-                    new Color(0x4A4E57));
+                    new Color(0x4A4E57)
+                );
                 for (int i = 0; i < sizes.length; i++) {
                     int size = sizes[i];
                     BufferedImage image =
@@ -109,13 +109,14 @@ public class SvgIconTest
             }
         }
         if (!failures.isEmpty())
-            fail(failures.size() + " of " + names.size() + " icons failed:\n  "
-                 + String.join("\n  ", failures));
+            fail(
+                failures.size() + " of " + names.size() + " icons failed:\n  "
+                    + String.join("\n  ", failures)
+            );
     }
 
     /** An icon that parses but paints nothing is as broken as one that throws. */
-    private static boolean hasInk(BufferedImage image)
-    {
+    private static boolean hasInk(BufferedImage image) {
         for (int y = 0; y < image.getHeight(); y++) {
             for (int x = 0; x < image.getWidth(); x++) {
                 if (((image.getRGB(x, y) >>> 24) & 0xFF) != 0)
@@ -126,15 +127,16 @@ public class SvgIconTest
     }
 
     @Test
-    public void unknownIconIsReportedByName()
-    {
+    public void unknownIconIsReportedByName() {
         try {
             new SvgIcon("no-such-icon", Color.BLACK);
             fail("expected a missing icon to throw");
         }
         catch (Exception e) {
-            assertTrue("the error should name the icon, was: " + e.getMessage(),
-                       e.getMessage() != null && e.getMessage().contains("no-such-icon"));
+            assertTrue(
+                "the error should name the icon, was: " + e.getMessage(),
+                e.getMessage() != null && e.getMessage().contains("no-such-icon")
+            );
         }
     }
 }

@@ -21,19 +21,16 @@ import org.junit.Test;
  * What the review of M12b to M12.5 found, one test per finding, each
  * expectation taken from nvim. The finding numbers are the review's.
  */
-public class VimExReviewTest
-{
+public class VimExReviewTest {
     private EditorHarness h;
 
     @After
-    public void tearDown()
-    {
+    public void tearDown() {
         if (h != null)
             h.close();
     }
 
-    private EditorHarness vim(String text, int line, int offset)
-    {
+    private EditorHarness vim(String text, int line, int offset) {
         h = EditorHarness.create().vim();
         h.value(text).cursor(line, offset);
         return h;
@@ -42,15 +39,13 @@ public class VimExReviewTest
     // F1 -- a number too big for an int is not an exception.
 
     @Test
-    public void aHugeCountClampsToTheEnd()
-    {
+    public void aHugeCountClampsToTheEnd() {
         vim("a\nb\nc", 0, 0).exCommand("d 99999999999999999999");
         assertEquals("", h.value());
     }
 
     @Test
-    public void aCodePointTooBigIsAnErrorNotAnException()
-    {
+    public void aCodePointTooBigIsAnErrorNotAnException() {
         vim("abc", 0, 0).exCommand("s/\\%d99999999999/x/");
         h.exCommand("s/\\%UFFFFFFFF/x/");
         assertEquals("abc", h.value());
@@ -59,8 +54,7 @@ public class VimExReviewTest
     // F2 and F5 -- a substitute that matches nothing says so, unless e.
 
     @Test
-    public void aSubstituteThatMatchesNothingIsNotSilent()
-    {
+    public void aSubstituteThatMatchesNothingIsNotSilent() {
         vim("aaa", 0, 1).exCommand("s/zzz/qq/");
         assertEquals("E486: Pattern not found: zzz", h.status());
         h.editor().status("");
@@ -71,8 +65,7 @@ public class VimExReviewTest
     // F3 -- the last of i and I wins.
 
     @Test
-    public void theLastCaseFlagWins()
-    {
+    public void theLastCaseFlagWins() {
         vim("aBc", 0, 0).exCommand("s/b/X/iI");
         assertEquals("I last: case sensitive, no match", "aBc", h.value());
         h.exCommand("s/b/X/Ii");
@@ -82,8 +75,7 @@ public class VimExReviewTest
     // F4 -- \r breaks the line in a replacement; \n puts in a NUL.
 
     @Test
-    public void carriageReturnBreaksTheLineAndNewlineIsANul()
-    {
+    public void carriageReturnBreaksTheLineAndNewlineIsANul() {
         vim("aaa", 0, 0).exCommand("s/a/\\rb/");
         assertEquals("\nbaa", h.value());
         h.close();
@@ -96,8 +88,7 @@ public class VimExReviewTest
     // F7 -- :normal! runs.
 
     @Test
-    public void normalTakesABang()
-    {
+    public void normalTakesABang() {
         vim("abc", 0, 0).exCommand("normal!x");
         assertEquals("bc", h.value());
     }
@@ -105,8 +96,7 @@ public class VimExReviewTest
     // F13, F15 -- what goes wrong is refused, not ignored.
 
     @Test
-    public void moveWithNoDestinationAndNormalWithNoKeysAreErrors()
-    {
+    public void moveWithNoDestinationAndNormalWithNoKeysAreErrors() {
         vim("a\nb", 0, 0).exCommand("m");
         assertEquals("E16: Invalid range", h.status());
         h.exCommand("normal");
@@ -117,8 +107,7 @@ public class VimExReviewTest
     // F16 -- :g that finds nothing is a message, not a failure.
 
     @Test
-    public void globalThatMatchesNothingSaysSoWithoutFailing()
-    {
+    public void globalThatMatchesNothingSaysSoWithoutFailing() {
         // A message in nvim, not an E-number.
         vim("a\nb", 0, 0).exCommand("g/zzz/d");
         assertEquals("Pattern not found: zzz", h.status());
@@ -126,8 +115,7 @@ public class VimExReviewTest
     }
 
     @Test
-    public void anInnerSubstituteThatMissesALineDoesNotStopGlobal()
-    {
+    public void anInnerSubstituteThatMissesALineDoesNotStopGlobal() {
         // nvim makes Xne of :g/e/s/o/X/ over "one three five": three and
         // five have an e but no o, and :g carries on past them. With :s
         // reporting E486 on its own, this aborted the whole :g at first.
@@ -138,21 +126,21 @@ public class VimExReviewTest
     // F17 -- ~ before any :s is E33.
 
     @Test
-    public void tildeWithNoPreviousSubstituteIsAnError()
-    {
+    public void tildeWithNoPreviousSubstituteIsAnError() {
         // ~ remembers across editors, as vim's does; clear what an earlier
         // test left so that there really is no previous substitute.
         VimExSubstitute.forgetForTest();
         vim("ab", 0, 0).exCommand("s/a~b/x/");
-        assertEquals("E33: No previous substitute regular expression",
-                     h.status());
+        assertEquals(
+            "E33: No previous substitute regular expression",
+            h.status()
+        );
     }
 
     // F10 -- \P is printable minus digits, space included.
 
     @Test
-    public void capitalPExcludesDigitsButNotTheSpace()
-    {
+    public void capitalPExcludesDigitsButNotTheSpace() {
         vim("9 a", 0, 0).exCommand("s/\\P/[&]/g");
         assertEquals("9[ ][a]", h.value());
     }
@@ -160,8 +148,7 @@ public class VimExReviewTest
     // F18 -- the caret after a substitute that breaks lines.
 
     @Test
-    public void theCaretLandsOnTheLastLineTheLastSubstituteMade()
-    {
+    public void theCaretLandsOnTheLastLineTheLastSubstituteMade() {
         // It was line -1: the dot read after a split is no guide. nvim puts
         // it on Y2, the tail of the last split -- not back on the unchanged
         // b, which is what the review's notes said.
@@ -177,8 +164,7 @@ public class VimExReviewTest
     // F22 -- the register and the count, with a space between.
 
     @Test
-    public void aSpaceBetweenRegisterAndCountChangesNothing()
-    {
+    public void aSpaceBetweenRegisterAndCountChangesNothing() {
         vim("a\nb\nc\nd", 0, 0).exCommand("1,3d a 2");
         assertEquals("a\nb", h.value());
         h.keys("\"ap");
@@ -188,8 +174,7 @@ public class VimExReviewTest
     // F25 -- a named register is also what a bare p pastes.
 
     @Test
-    public void aBarePPastesWhatANamedDeleteTook()
-    {
+    public void aBarePPastesWhatANamedDeleteTook() {
         // Not only from :d -- "add in normal mode had the same bug.
         vim("a\nb\nc\nd", 2, 0).keys("\"add").keys("p");
         assertEquals("a\nb\nd\nc", h.value());
@@ -200,8 +185,7 @@ public class VimExReviewTest
     }
 
     @Test
-    public void andWhatANamedYankTook()
-    {
+    public void andWhatANamedYankTook() {
         vim("a\nb", 0, 0).keys("\"ayy").keys("p");
         assertEquals("a\na\nb", h.value());
     }
@@ -209,16 +193,14 @@ public class VimExReviewTest
     // F8, F23, F24 -- :sort's flags.
 
     @Test
-    public void sortFReadsAFloatAndCountsNoneAsZero()
-    {
+    public void sortFReadsAFloatAndCountsNoneAsZero() {
         // Unlike n, which puts a line with no number first.
         vim("0.5\n0.1\n-2.5e1\nx", 0, 0).exCommand("sort f");
         assertEquals("-2.5e1\nx\n0.1\n0.5", h.value());
     }
 
     @Test
-    public void sortLIsAcceptedAndTheNumberFlagsExcludeEachOther()
-    {
+    public void sortLIsAcceptedAndTheNumberFlagsExcludeEachOther() {
         vim("b\na", 0, 0).exCommand("sort l");
         assertEquals("a\nb", h.value());
         h.close();

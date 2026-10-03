@@ -21,26 +21,22 @@ import org.junit.After;
 import org.junit.Test;
 
 /** The task command, and the keys Markdown mode binds to it. */
-public class MarkdownTasksTest
-{
+public class MarkdownTasksTest {
     private EditorHarness h;
 
     @After
-    public void tearDown()
-    {
+    public void tearDown() {
         if (h != null)
             h.close();
     }
 
-    private EditorHarness on(String text)
-    {
+    private EditorHarness on(String text) {
         h = EditorHarness.create(text).mode(MarkdownMode.getMode());
         Editor.setCurrentEditor(h.editor());
         return h;
     }
 
-    private void select(int fromLine, int fromOffset, int toLine, int toOffset)
-    {
+    private void select(int fromLine, int fromOffset, int toLine, int toOffset) {
         h.cursor(fromLine, fromOffset);
         final Position mark = h.editor().getDotCopy();
         h.cursor(toLine, toOffset);
@@ -48,8 +44,7 @@ public class MarkdownTasksTest
     }
 
     @Test
-    public void cyclesTheCaretsTask()
-    {
+    public void cyclesTheCaretsTask() {
         on("- [ ] a\n");
         MarkdownTasks.task();
         h.assertText("- [/] a\n");
@@ -60,8 +55,7 @@ public class MarkdownTasksTest
     }
 
     @Test
-    public void aCancelledOrCapitalXTaskStartsAgain()
-    {
+    public void aCancelledOrCapitalXTaskStartsAgain() {
         on("- [-] a\n* [X] b\n");
         MarkdownTasks.task();
         h.assertText("- [ ] a\n* [X] b\n");
@@ -71,8 +65,7 @@ public class MarkdownTasksTest
     }
 
     @Test
-    public void setsAState()
-    {
+    public void setsAState() {
         on("1. [ ] a\n");
         MarkdownTasks.task("done");
         h.assertText("1. [x] a\n");
@@ -83,8 +76,7 @@ public class MarkdownTasksTest
     }
 
     @Test
-    public void cancelToggles()
-    {
+    public void cancelToggles() {
         on("- [/] a\n");
         MarkdownTasks.task("cancel");
         h.assertText("- [-] a\n");
@@ -93,8 +85,7 @@ public class MarkdownTasksTest
     }
 
     @Test
-    public void makesTasks()
-    {
+    public void makesTasks() {
         on("- a\n-\n  2) b\n  text\n> quoted\n\n");
         for (int i = 0; i < 6; i++) {
             h.cursor(i, 0);
@@ -104,8 +95,7 @@ public class MarkdownTasksTest
     }
 
     @Test
-    public void aSelectionMovesOnTogetherAsItsFirstTaskSays()
-    {
+    public void aSelectionMovesOnTogetherAsItsFirstTaskSays() {
         on("intro\n- [ ] a\n\n  - [x] b\n- c\nafter\n");
         select(0, 2, 4, 1);
         MarkdownTasks.task();
@@ -113,8 +103,7 @@ public class MarkdownTasksTest
     }
 
     @Test
-    public void wholeLinesEndAtTheStartOfTheNext()
-    {
+    public void wholeLinesEndAtTheStartOfTheNext() {
         on("- [ ] a\n- [ ] b\n- [ ] c\n");
         select(0, 0, 2, 0);
         MarkdownTasks.task("done");
@@ -122,8 +111,7 @@ public class MarkdownTasksTest
     }
 
     @Test
-    public void cancelOverASelection()
-    {
+    public void cancelOverASelection() {
         on("- [-] a\n- [ ] b\n");
         select(0, 0, 1, 3);
         MarkdownTasks.task("cancel");
@@ -133,8 +121,7 @@ public class MarkdownTasksTest
     }
 
     @Test
-    public void oneUndoUndoesEveryLine()
-    {
+    public void oneUndoUndoesEveryLine() {
         on("- a\n- b\n");
         select(0, 0, 1, 3);
         MarkdownTasks.task();
@@ -144,8 +131,7 @@ public class MarkdownTasksTest
     }
 
     @Test
-    public void theCaretStaysOnItsText()
-    {
+    public void theCaretStaysOnItsText() {
         on("- a\nplain\n- [ ] c\n");
         h.cursor(0, 2);
         MarkdownTasks.task();
@@ -159,8 +145,7 @@ public class MarkdownTasksTest
     }
 
     @Test
-    public void nothingToDoChangesNothing()
-    {
+    public void nothingToDoChangesNothing() {
         on("\n- [x] a\n");
         MarkdownTasks.task();
         h.cursor(1, 0);
@@ -170,8 +155,7 @@ public class MarkdownTasksTest
     }
 
     @Test
-    public void aBadStateSaysSo()
-    {
+    public void aBadStateSaysSo() {
         on("- [ ] a\n");
         MarkdownTasks.task("finished");
         h.assertText("- [ ] a\n");
@@ -179,8 +163,7 @@ public class MarkdownTasksTest
     }
 
     @Test
-    public void keysInSimpleEditing()
-    {
+    public void keysInSimpleEditing() {
         on("- [ ] a\n");
         h.keys("<C-CR>");
         h.assertText("- [/] a\n");
@@ -189,8 +172,7 @@ public class MarkdownTasksTest
     }
 
     @Test
-    public void keysInVimNormalMode()
-    {
+    public void keysInVimNormalMode() {
         on("- [ ] a\n").vim();
         h.keys("<C-CR>");
         h.assertText("- [/] a\n");
@@ -199,24 +181,21 @@ public class MarkdownTasksTest
     }
 
     @Test
-    public void keysInVimVisualMode()
-    {
+    public void keysInVimVisualMode() {
         on("- [ ] a\n- [ ] b\n- [ ] c\n").vim();
         h.keys("Vj<C-CR>");
         h.assertText("- [/] a\n- [/] b\n- [ ] c\n");
     }
 
     @Test
-    public void vimCharacterwiseVisualTakesInTheCaretsLine()
-    {
+    public void vimCharacterwiseVisualTakesInTheCaretsLine() {
         on("- [ ] a\n- [ ] b\n- [ ] c\n").vim();
         h.keys("vj<C-CR>");
         h.assertText("- [/] a\n- [/] b\n- [ ] c\n");
     }
 
     @Test
-    public void undoPutsTheCaretBack()
-    {
+    public void undoPutsTheCaretBack() {
         on("- a\n- b\n");
         select(0, 0, 1, 3);
         MarkdownTasks.task();
@@ -225,8 +204,7 @@ public class MarkdownTasksTest
     }
 
     @Test
-    public void notInCode()
-    {
+    public void notInCode() {
         on("```yaml\n  - name: foo\n```\n\n    some(code);\n").cursor(1, 4);
         MarkdownTasks.task();
         MarkdownTasks.followLinkOrTask();

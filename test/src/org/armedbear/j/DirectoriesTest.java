@@ -43,19 +43,16 @@ import org.junit.Test;
  * the $XDG_* variables, so the results do not depend on the environment the
  * tests happen to run in.
  */
-public class DirectoriesTest
-{
+public class DirectoriesTest {
     private Path home;
 
     @Before
-    public void createHome() throws IOException
-    {
+    public void createHome() throws IOException {
         home = Files.createTempDirectory("j-directories-test");
     }
 
     @After
-    public void removeHome() throws IOException
-    {
+    public void removeHome() throws IOException {
         if (home == null || !Files.exists(home))
             return;
         try (Stream<Path> paths = Files.walk(home)) {
@@ -63,36 +60,30 @@ public class DirectoriesTest
         }
     }
 
-    private void initialize()
-    {
+    private void initialize() {
         initialize(false);
     }
 
-    private void initialize(boolean migrate)
-    {
+    private void initialize(boolean migrate) {
         Directories.initialize(File.getInstance(home.toString()), migrate);
     }
 
-    private Path path(String first, String... more)
-    {
+    private Path path(String first, String... more) {
         return home.resolve(Paths.get(first, more));
     }
 
-    private void write(String relative, String contents) throws IOException
-    {
+    private void write(String relative, String contents) throws IOException {
         Path p = home.resolve(relative);
         Files.createDirectories(p.getParent());
         Files.write(p, contents.getBytes(StandardCharsets.UTF_8));
     }
 
-    private static void assertSameFile(Path expected, File actual)
-    {
+    private static void assertSameFile(Path expected, File actual) {
         assertEquals(expected.toString(), actual.canonicalPath());
     }
 
     @Test
-    public void freshHomeUsesTheXdgLayout()
-    {
+    public void freshHomeUsesTheXdgLayout() {
         initialize();
 
         assertFalse(Directories.isLegacyLayout());
@@ -103,33 +94,38 @@ public class DirectoriesTest
     }
 
     @Test
-    public void subdirectoriesHangOffTheRightRoot()
-    {
+    public void subdirectoriesHangOffTheRightRoot() {
         initialize();
 
         assertSameFile(path(".cache", "j", "temp"), Directories.getTempDirectory());
-        assertSameFile(path(".local", "share", "j", "mail"),
-                       Directories.getMailDirectory());
-        assertSameFile(path(".local", "share", "j", "mail", "local", "drafts"),
-                       Directories.getDraftsFolder());
-        assertSameFile(path(".local", "share", "j", "registers"),
-                       Directories.getRegistersDirectory());
+        assertSameFile(
+            path(".local", "share", "j", "mail"),
+            Directories.getMailDirectory()
+        );
+        assertSameFile(
+            path(".local", "share", "j", "mail", "local", "drafts"),
+            Directories.getDraftsFolder()
+        );
+        assertSameFile(
+            path(".local", "share", "j", "registers"),
+            Directories.getRegistersDirectory()
+        );
     }
 
     @Test
-    public void runtimeFallsBackToTheStateDirectory()
-    {
+    public void runtimeFallsBackToTheStateDirectory() {
         // $XDG_RUNTIME_DIR cannot apply here, since --home ignores the
         // environment.
         initialize();
 
-        assertSameFile(path(".local", "state", "j"),
-                       Directories.getRuntimeDirectory());
+        assertSameFile(
+            path(".local", "state", "j"),
+            Directories.getRuntimeDirectory()
+        );
     }
 
     @Test
-    public void existingLegacyDirectoryWins() throws IOException
-    {
+    public void existingLegacyDirectoryWins() throws IOException {
         write(".j/prefs", "an old configuration");
 
         initialize();
@@ -150,8 +146,7 @@ public class DirectoriesTest
     }
 
     @Test
-    public void migrationMovesEachFileToItsRoot() throws IOException
-    {
+    public void migrationMovesEachFileToItsRoot() throws IOException {
         write(".j/prefs", "prefs");
         write(".j/init.lisp", "lisp");
         write(".j/MyExtension.class", "bytecode");
@@ -173,8 +168,7 @@ public class DirectoriesTest
     }
 
     @Test
-    public void migrationDiscardsFilesThatAreRecreatedAnyway() throws IOException
-    {
+    public void migrationDiscardsFilesThatAreRecreatedAnyway() throws IOException {
         write(".j/prefs", "prefs");
         write(".j/port", "12345");
         write(".j/swank", "12346");
@@ -189,19 +183,19 @@ public class DirectoriesTest
 
     @Test
     public void migrationLeavesNothingThatLooksLikeALegacyDirectory()
-        throws IOException
-    {
+        throws IOException {
         write(".j/prefs", "prefs");
 
         initialize(true);
 
-        assertFalse("~/.j must be gone, or the next run reverts to it",
-                    Files.exists(path(".j")));
+        assertFalse(
+            "~/.j must be gone, or the next run reverts to it",
+            Files.exists(path(".j"))
+        );
     }
 
     @Test
-    public void migrationKeepsWhatItDoesNotRecognize() throws IOException
-    {
+    public void migrationKeepsWhatItDoesNotRecognize() throws IOException {
         write(".j/prefs", "prefs");
         write(".j/mystery.txt", "something a user put here");
 
@@ -214,8 +208,7 @@ public class DirectoriesTest
     }
 
     @Test
-    public void migrationIsIdempotent() throws IOException
-    {
+    public void migrationIsIdempotent() throws IOException {
         write(".j/prefs", "prefs");
 
         initialize(true);
@@ -226,8 +219,7 @@ public class DirectoriesTest
     }
 
     @Test
-    public void migrationDoesNotOverwriteAnExistingFile() throws IOException
-    {
+    public void migrationDoesNotOverwriteAnExistingFile() throws IOException {
         write(".j/prefs", "the old one");
         write(".config/j/prefs", "the new one");
 
@@ -238,22 +230,21 @@ public class DirectoriesTest
         assertEquals("the old one", read(".j.migrated/prefs"));
     }
 
-    private String printDirectories()
-    {
+    private String printDirectories() {
         PrintStream saved = System.out;
         ByteArrayOutputStream captured = new ByteArrayOutputStream();
         try {
             System.setOut(new PrintStream(captured, true, StandardCharsets.UTF_8));
             Directories.printDirectories();
-        } finally {
+        }
+        finally {
             System.setOut(saved);
         }
         return captured.toString(StandardCharsets.UTF_8);
     }
 
     @Test
-    public void printsEachResolvedDirectory()
-    {
+    public void printsEachResolvedDirectory() {
         initialize();
 
         String printed = printDirectories();
@@ -263,14 +254,15 @@ public class DirectoriesTest
         assertTrue(printed, printed.contains("state    " + path(".local", "state", "j")));
         assertTrue(printed, printed.contains("cache    " + path(".cache", "j")));
         assertTrue(printed, printed.contains("runtime  " + path(".local", "state", "j")));
-        assertFalse("no migration hint is due under the XDG layout",
-                    printed.contains("--migrate-to-xdg"));
+        assertFalse(
+            "no migration hint is due under the XDG layout",
+            printed.contains("--migrate-to-xdg")
+        );
     }
 
     @Test
     public void printsWhereMigrationWouldLeadUnderTheLegacyLayout()
-        throws IOException
-    {
+        throws IOException {
         write(".j/prefs", "an old configuration");
         initialize();
 
@@ -287,8 +279,7 @@ public class DirectoriesTest
     }
 
     @Test
-    public void printingCreatesNothing() throws IOException
-    {
+    public void printingCreatesNothing() throws IOException {
         write(".j/prefs", "an old configuration");
         initialize();
 
@@ -301,17 +292,16 @@ public class DirectoriesTest
         assertFalse(Files.exists(path(".cache")));
     }
 
-    private static int countOccurrences(String haystack, String needle)
-    {
+    private static int countOccurrences(String haystack, String needle) {
         int count = 0;
-        for (int i = haystack.indexOf(needle); i >= 0;
-             i = haystack.indexOf(needle, i + needle.length()))
+        for (int i = haystack.indexOf(needle);
+            i >= 0;
+            i = haystack.indexOf(needle, i + needle.length()))
             ++count;
         return count;
     }
 
-    private String read(String relative) throws IOException
-    {
+    private String read(String relative) throws IOException {
         Path p = home.resolve(relative);
         assertTrue(p + " does not exist", Files.exists(p));
         return new String(Files.readAllBytes(p), StandardCharsets.UTF_8);

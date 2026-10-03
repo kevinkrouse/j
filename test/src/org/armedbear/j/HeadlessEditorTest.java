@@ -26,26 +26,22 @@ import org.junit.Test;
  * work is built on the ability to press a key in a test and see the buffer
  * change, so if this class goes red nothing above it can be trusted.
  */
-public class HeadlessEditorTest
-{
+public class HeadlessEditorTest {
     private EditorHarness h;
 
     @Before
-    public void setUp()
-    {
+    public void setUp() {
         h = EditorHarness.create("alpha bravo\ncharlie delta\necho foxtrot\n");
     }
 
     @After
-    public void tearDown()
-    {
+    public void tearDown() {
         if (h != null)
             h.close();
     }
 
     @Test
-    public void editorIsUsableWithoutAFrame()
-    {
+    public void editorIsUsableWithoutAFrame() {
         assertNull("a harness editor has no frame", h.editor().getFrame());
         assertNotNull(h.editor().getDisplay());
         assertNotNull(h.editor().getDispatcher());
@@ -62,8 +58,7 @@ public class HeadlessEditorTest
     // all lie. It did: value() used to drop a leading empty line.
 
     @Test
-    public void valueRoundTripsThroughTheCodeMirrorLineModel()
-    {
+    public void valueRoundTripsThroughTheCodeMirrorLineModel() {
         final String[] values = {
             "", "a", "a\nb", "\na", "a\n", "\n", "\n\n",
             "\na\n", "a\n\nb", "  \n   \n",
@@ -72,11 +67,16 @@ public class HeadlessEditorTest
             final EditorHarness harness = EditorHarness.create();
             try {
                 harness.value(value);
-                assertEquals("round trip of " + value.replace("\n", "\\n"),
-                             value, harness.value());
-                assertEquals("line count of " + value.replace("\n", "\\n"),
-                             value.split("\n", -1).length,
-                             harness.buffer().getLineCount());
+                assertEquals(
+                    "round trip of " + value.replace("\n", "\\n"),
+                    value,
+                    harness.value()
+                );
+                assertEquals(
+                    "line count of " + value.replace("\n", "\\n"),
+                    value.split("\n", -1).length,
+                    harness.buffer().getLineCount()
+                );
             }
             finally {
                 harness.close();
@@ -85,8 +85,7 @@ public class HeadlessEditorTest
     }
 
     @Test
-    public void aLeadingEmptyLineSurvives()
-    {
+    public void aLeadingEmptyLineSurvives() {
         h.text("\nabc\n");
         assertEquals(2, h.buffer().getLineCount());
         assertEquals("\nabc", h.value());
@@ -94,24 +93,21 @@ public class HeadlessEditorTest
     }
 
     @Test
-    public void typingInsertsThroughTheRealDispatcher()
-    {
+    public void typingInsertsThroughTheRealDispatcher() {
         h.cursor(0, 0).keys("XY");
         h.assertText("XYalpha bravo\ncharlie delta\necho foxtrot\n");
         h.assertCursorAt(0, 2);
     }
 
     @Test
-    public void typingInTheMiddleOfALine()
-    {
+    public void typingInTheMiddleOfALine() {
         h.cursor(1, 7).keys("!");
         h.assertText("alpha bravo\ncharlie! delta\necho foxtrot\n");
         h.assertCursorAt(1, 8);
     }
 
     @Test
-    public void undoRestoresWhatWasTyped()
-    {
+    public void undoRestoresWhatWasTyped() {
         h.cursor(0, 0).keys("XY");
         h.assertText("XYalpha bravo\ncharlie delta\necho foxtrot\n");
 
@@ -120,31 +116,27 @@ public class HeadlessEditorTest
     }
 
     @Test
-    public void enterSplitsTheLine()
-    {
+    public void enterSplitsTheLine() {
         h.cursor(0, 5).keys("<CR>");
         h.assertText("alpha\n bravo\ncharlie delta\necho foxtrot\n");
     }
 
     @Test
-    public void backspaceDeletesBackwards()
-    {
+    public void backspaceDeletesBackwards() {
         h.cursor(0, 5).keys("<BS>");
         h.assertText("alph bravo\ncharlie delta\necho foxtrot\n");
         h.assertCursorAt(0, 4);
     }
 
     @Test
-    public void arrowKeysMoveWithoutInserting()
-    {
+    public void arrowKeysMoveWithoutInserting() {
         h.cursor(0, 0).keys("<Right><Right><Down>");
         h.assertText("alpha bravo\ncharlie delta\necho foxtrot\n");
         h.assertCursorAt(1, 2);
     }
 
     @Test
-    public void aBoundModifiedKeyRunsItsCommand()
-    {
+    public void aBoundModifiedKeyRunsItsCommand() {
         // Ctrl-Right is wordRight in the default global key map. The point is
         // that the chord reaches a command and never lands in the buffer as
         // the character 'Right' would.
@@ -154,8 +146,7 @@ public class HeadlessEditorTest
     }
 
     @Test
-    public void aModifiedLetterIsNotSelfInserted()
-    {
+    public void aModifiedLetterIsNotSelfInserted() {
         // Whatever <C-d> happens to be bound to, a 'd' must not appear.
         final String before = h.text();
         h.cursor(0, 0).keys("<C-d>");
@@ -163,8 +154,7 @@ public class HeadlessEditorTest
     }
 
     @Test
-    public void anUnboundControlChordChangesNothing()
-    {
+    public void anUnboundControlChordChangesNothing() {
         final String before = h.text();
         h.cursor(0, 0).keys("<C-F9>");
         assertEquals(before, h.text());

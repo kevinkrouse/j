@@ -26,8 +26,7 @@ import org.junit.Test;
  * would have been typed into it; everything after that is the production
  * path. Expectations were checked against nvim.
  */
-public class VimSearchTest
-{
+public class VimSearchTest {
     /** Three lines with "bravo" at 0,6 then 1,8 then 2,0. */
     private static final String THREE =
         "alpha bravo\ncharlie bravo\nbravo delta";
@@ -37,14 +36,12 @@ public class VimSearchTest
     private EditorHarness h;
 
     @After
-    public void tearDown()
-    {
+    public void tearDown() {
         if (h != null)
             h.close();
     }
 
-    private EditorHarness vim(String text, int line, int offset)
-    {
+    private EditorHarness vim(String text, int line, int offset) {
         if (h != null)
             h.close();
         h = EditorHarness.create().vim();
@@ -52,8 +49,7 @@ public class VimSearchTest
         return h;
     }
 
-    private void at(int line, int offset)
-    {
+    private void at(int line, int offset) {
         assertEquals("line", line, h.lineNumber());
         assertEquals("offset", offset, h.offset());
     }
@@ -61,36 +57,31 @@ public class VimSearchTest
     // ------------------------------------------------------------ / and ?
 
     @Test
-    public void slashMovesToTheStartOfTheMatch()
-    {
+    public void slashMovesToTheStartOfTheMatch() {
         vim(THREE, 0, 0).keys("/").searchPattern("bravo");
         at(0, 6);
     }
 
     @Test
-    public void questionMarkSearchesBackwardAndWraps()
-    {
+    public void questionMarkSearchesBackwardAndWraps() {
         vim(THREE, 0, 0).keys("?").searchPattern("bravo");
         at(2, 0);
     }
 
     @Test
-    public void searchWrapsPastTheEndOfTheBuffer()
-    {
+    public void searchWrapsPastTheEndOfTheBuffer() {
         vim(THREE, 2, 0).keys("/").searchPattern("bravo");
         at(0, 6);
     }
 
     @Test
-    public void aPatternThatIsNowhereLeavesTheCaretAlone()
-    {
+    public void aPatternThatIsNowhereLeavesTheCaretAlone() {
         vim(THREE, 0, 0).keys("/").searchPattern("zzz");
         at(0, 0);
     }
 
     @Test
-    public void searchIsCaseSensitiveByDefault()
-    {
+    public void searchIsCaseSensitiveByDefault() {
         vim("Foo\nfoo", 0, 0).keys("/").searchPattern("foo");
         at(1, 0);
     }
@@ -98,8 +89,7 @@ public class VimSearchTest
     // ------------------------------------------------------------ n and N
 
     @Test
-    public void nRepeatsAndNCapitalReverses()
-    {
+    public void nRepeatsAndNCapitalReverses() {
         vim(THREE, 0, 0).keys("/").searchPattern("bravo");
         h.keys("n");
         at(1, 8);
@@ -108,8 +98,7 @@ public class VimSearchTest
     }
 
     @Test
-    public void nKeepsTheDirectionTheSearchWasMadeIn()
-    {
+    public void nKeepsTheDirectionTheSearchWasMadeIn() {
         // After ?, n carries on backwards rather than forwards.
         vim(THREE, 0, 0).keys("?").searchPattern("bravo");
         at(2, 0);
@@ -118,8 +107,7 @@ public class VimSearchTest
     }
 
     @Test
-    public void nWithNoPreviousSearchDoesNothing()
-    {
+    public void nWithNoPreviousSearchDoesNothing() {
         vim(THREE, 0, 0).keys("n");
         at(0, 0);
     }
@@ -127,23 +115,20 @@ public class VimSearchTest
     // -------------------------------------------------------- * and # --
 
     @Test
-    public void starSearchesForTheWholeWordUnderTheCaret()
-    {
+    public void starSearchesForTheWholeWordUnderTheCaret() {
         // Skips "foobar", which contains foo but is not the word foo.
         vim(WORDS, 0, 0).keys("*");
         at(1, 7);
     }
 
     @Test
-    public void hashSearchesBackwardAndWraps()
-    {
+    public void hashSearchesBackwardAndWraps() {
         vim(WORDS, 0, 0).keys("#");
         at(2, 4);
     }
 
     @Test
-    public void gStarMatchesPartOfAWordToo()
-    {
+    public void gStarMatchesPartOfAWordToo() {
         vim(WORDS, 0, 0).keys("g*");
         at(1, 0);
         h.close();
@@ -152,15 +137,13 @@ public class VimSearchTest
     }
 
     @Test
-    public void starSetsThePatternThatNThenRepeats()
-    {
+    public void starSetsThePatternThatNThenRepeats() {
         vim(WORDS, 0, 0).keys("*n");
         at(2, 4);
     }
 
     @Test
-    public void starWorksFromAnywhereInTheWord()
-    {
+    public void starWorksFromAnywhereInTheWord() {
         // The caret is usually in the middle of a word, not on its first
         // character, and getIdentifier reads back to the start of it.
         for (int caret = 0; caret <= 2; caret++) {
@@ -173,8 +156,7 @@ public class VimSearchTest
     }
 
     @Test
-    public void deleteToAStarFromMidWordStartsAtTheCaret()
-    {
+    public void deleteToAStarFromMidWordStartsAtTheCaret() {
         // The search starts at the word, but the operator starts where the
         // caret is, so the first character survives.
         vim(WORDS, 0, 1).keys("d*");
@@ -182,22 +164,19 @@ public class VimSearchTest
     }
 
     @Test
-    public void starOnPunctuationTakesTheNextWordOnTheLine()
-    {
+    public void starOnPunctuationTakesTheNextWordOnTheLine() {
         vim("a + b", 0, 2).keys("*");
         at(0, 4);
     }
 
     @Test
-    public void starWithNoWordOnTheLineDoesNothing()
-    {
+    public void starWithNoWordOnTheLineDoesNothing() {
         vim(" \n match \n", 0, 0).keys("*");
         at(0, 0);
     }
 
     @Test
-    public void starUsesIgnorecaseButNotSmartcase()
-    {
+    public void starUsesIgnorecaseButNotSmartcase() {
         // :help * -- "'ignorecase' is used, 'smartcase' is not". nvim with
         // both set finds the lower case foo from Foo. A typed / keeps
         // smartcase, so /Foo stays case sensitive.
@@ -219,8 +198,7 @@ public class VimSearchTest
         }
     }
 
-    private static void ignoreCaseAndSmartcase()
-    {
+    private static void ignoreCaseAndSmartcase() {
         final VimOptions options = VimKeyMap.getSharedOptions();
         options.set("ignorecase", "true");
         options.set("smartcase", "true");
@@ -232,31 +210,27 @@ public class VimSearchTest
     // start of the match and no further.
 
     @Test
-    public void deleteToASearchStopsAtTheMatch()
-    {
+    public void deleteToASearchStopsAtTheMatch() {
         vim(THREE, 0, 0).keys("d/").searchPattern("bravo");
         assertEquals("bravo\ncharlie bravo\nbravo delta", h.value());
         at(0, 0);
     }
 
     @Test
-    public void deleteToARepeatedSearchWorksTheSameWay()
-    {
+    public void deleteToARepeatedSearchWorksTheSameWay() {
         vim(THREE, 0, 0).keys("/").searchPattern("bravo");
         h.keys("ggdn");
         assertEquals("bravo\ncharlie bravo\nbravo delta", h.value());
     }
 
     @Test
-    public void deleteToAStarSearch()
-    {
+    public void deleteToAStarSearch() {
         vim(WORDS, 0, 0).keys("d*");
         assertEquals("foo\nbar foo", h.value());
     }
 
     @Test
-    public void deleteToASearchAcrossLines()
-    {
+    public void deleteToASearchAcrossLines() {
         vim(THREE, 0, 2).keys("d/").searchPattern("delta");
         assertEquals("aldelta", h.value());
     }
@@ -266,22 +240,19 @@ public class VimSearchTest
     // and a range that also started at the first non-blank goes linewise.
 
     @Test
-    public void aMatchInColumnOnePullsTheRangeBack()
-    {
+    public void aMatchInColumnOnePullsTheRangeBack() {
         vim("aaa\nbbb\nccc", 0, 1).keys("d/").searchPattern("ccc");
         assertEquals("a\nccc", h.value());
     }
 
     @Test
-    public void andGoesLinewiseFromTheFirstNonBlank()
-    {
+    public void andGoesLinewiseFromTheFirstNonBlank() {
         vim("  aaa\nbbb\nccc", 0, 2).keys("d/").searchPattern("ccc");
         assertEquals("ccc", h.value());
     }
 
     @Test
-    public void anOperatorIsDroppedWhenTheSearchIsAbandoned()
-    {
+    public void anOperatorIsDroppedWhenTheSearchIsAbandoned() {
         vim(THREE, 0, 0).keys("d/");
         assertTrue("the delete is parked", h.awaitingSearchPattern());
         h.keys("<Esc>");
@@ -295,30 +266,26 @@ public class VimSearchTest
     // ------------------------------------------------------- the pattern
 
     @Test
-    public void patternsAreVimRegularExpressions()
-    {
+    public void patternsAreVimRegularExpressions() {
         // \+ is "one or more"; a bare + is the character.
         vim("aaa bbb", 0, 0).keys("/").searchPattern("b\\+");
         at(0, 4);
     }
 
     @Test
-    public void aBarePlusIsTheCharacter()
-    {
+    public void aBarePlusIsTheCharacter() {
         vim("aaa bbb b+", 0, 0).keys("/").searchPattern("b+");
         at(0, 8);
     }
 
     @Test
-    public void vimWordBoundariesMatchWholeWords()
-    {
+    public void vimWordBoundariesMatchWholeWords() {
         vim(WORDS, 0, 0).keys("/").searchPattern("\\<foo\\>");
         at(1, 7);
     }
 
     @Test
-    public void aPatternRegexCannotParseIsReported()
-    {
+    public void aPatternRegexCannotParseIsReported() {
         vim(THREE, 0, 0).keys("/").searchPattern("a[b");
         at(0, 0);
     }
@@ -329,8 +296,7 @@ public class VimSearchTest
     // from column 0 must find column 4, not column 1.
 
     @Test
-    public void overlappingMatchesAreCountedFromTheStartOfTheLine()
-    {
+    public void overlappingMatchesAreCountedFromTheStartOfTheLine() {
         vim("aaa aa \n a aa", 0, 0).keys("/").searchPattern("a\\+");
         at(0, 4);
         h.keys("n");
@@ -342,8 +308,7 @@ public class VimSearchTest
     }
 
     @Test
-    public void andBackwardsTheSameWay()
-    {
+    public void andBackwardsTheSameWay() {
         vim("aaa aa \n a aa", 0, 0).keys("?").searchPattern("a\\+");
         at(1, 3);
         h.keys("n");
@@ -353,8 +318,7 @@ public class VimSearchTest
     }
 
     @Test
-    public void aPatternThatCanMatchNothingDoesNotFallOffTheBuffer()
-    {
+    public void aPatternThatCanMatchNothingDoesNotFallOffTheBuffer() {
         // $ matches empty at the end of every line, so stepping past a match
         // runs out of buffer -- which used to be a null position handed
         // straight to the search.
@@ -366,8 +330,7 @@ public class VimSearchTest
     // ------------------------------------------------- repeating with '.'
 
     @Test
-    public void dotRepeatsAChangeMadeWithASearch()
-    {
+    public void dotRepeatsAChangeMadeWithASearch() {
         vim("one END two\nthree END four", 0, 0).keys("d/")
             .searchPattern("END");
         assertEquals("END two\nthree END four", h.value());
@@ -376,20 +339,21 @@ public class VimSearchTest
     }
 
     @Test
-    public void aSearchChangeDoesNotClobberAnUnrelatedRepeat()
-    {
+    public void aSearchChangeDoesNotClobberAnUnrelatedRepeat() {
         // The search finishes outside the usual dispatch, so the "something
         // was edited" flag used to leak into whatever was typed next.
         vim("one two three\nalpha bravo charlie", 0, 0).keys("dw");
         h.keys("d/").searchPattern("three");
         h.keys("j0j");
-        assertEquals("a motion is not a change", "three\nalpha bravo charlie",
-                     h.value());
+        assertEquals(
+            "a motion is not a change",
+            "three\nalpha bravo charlie",
+            h.value()
+        );
     }
 
     @Test
-    public void aCountTakesThatManyMatches()
-    {
+    public void aCountTakesThatManyMatches() {
         vim(THREE, 0, 0).keys("2/").searchPattern("bravo");
         at(1, 8);
         h.close();

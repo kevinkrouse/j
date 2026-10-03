@@ -22,19 +22,16 @@ import org.junit.After;
 import org.junit.Test;
 
 /** What folding hides in Markdown, and the commands and keys that fold. */
-public class MarkdownFoldingTest
-{
+public class MarkdownFoldingTest {
     private EditorHarness h;
 
     @After
-    public void tearDown()
-    {
+    public void tearDown() {
         if (h != null)
             h.close();
     }
 
-    private EditorHarness on(String text)
-    {
+    private EditorHarness on(String text) {
         h = EditorHarness.create(text).mode(MarkdownMode.getMode());
         Editor.setCurrentEditor(h.editor());
         h.buffer().getFormatter().parseBuffer();
@@ -42,8 +39,7 @@ public class MarkdownFoldingTest
     }
 
     // The lines to be seen, "|" between, "+" after one with a fold below.
-    private String visible()
-    {
+    private String visible() {
         final StringBuilder sb = new StringBuilder();
         for (Line line = h.buffer().getFirstLine(); line != null; line = line.next()) {
             if (line.isHidden())
@@ -61,8 +57,7 @@ public class MarkdownFoldingTest
         "# A\ntext\n\n## B\nb\n\n# C\nc";
 
     @Test
-    public void aHeadingFoldsItsSection()
-    {
+    public void aHeadingFoldsItsSection() {
         on(SECTIONS).cursor(0, 0);
         h.editor().fold();
         // The blank line before the next heading stays, to keep them apart.
@@ -70,8 +65,7 @@ public class MarkdownFoldingTest
     }
 
     @Test
-    public void foldingAgainClosesOutward()
-    {
+    public void foldingAgainClosesOutward() {
         on(SECTIONS).cursor(4, 0);
         h.editor().fold();
         assertEquals("# A|text||## B+||# C|c", visible());
@@ -85,8 +79,7 @@ public class MarkdownFoldingTest
     }
 
     @Test
-    public void aListItemFoldsItsChildren()
-    {
+    public void aListItemFoldsItsChildren() {
         on("- a\n  - b\n\n    more\n  - c\n- d").cursor(0, 0);
         h.editor().fold();
         assertEquals("- a+|- d", visible());
@@ -98,24 +91,21 @@ public class MarkdownFoldingTest
     }
 
     @Test
-    public void aFenceFoldsItsCode()
-    {
+    public void aFenceFoldsItsCode() {
         on("# A\n```\nx\n# not a heading\n```\nafter").cursor(2, 0);
         h.editor().fold();
         assertEquals("# A|```+|after", visible());
     }
 
     @Test
-    public void aSetextHeadingKeepsItsUnderline()
-    {
+    public void aSetextHeadingKeepsItsUnderline() {
         on("A\n===\nbody\n\nB\n===\nmore").cursor(0, 0);
         h.editor().fold();
         assertEquals("A|===+||B|===|more", visible());
     }
 
     @Test
-    public void toggleFoldOpensWhatItClosed()
-    {
+    public void toggleFoldOpensWhatItClosed() {
         on(SECTIONS).cursor(0, 0);
         h.editor().toggleFold();
         assertEquals("# A+||# C|c", visible());
@@ -124,8 +114,7 @@ public class MarkdownFoldingTest
     }
 
     @Test
-    public void undoOpensAFold()
-    {
+    public void undoOpensAFold() {
         on(SECTIONS).cursor(0, 0);
         h.editor().fold();
         h.editor().undo();
@@ -133,8 +122,7 @@ public class MarkdownFoldingTest
     }
 
     @Test
-    public void foldHeadingsLeavesAnOutline()
-    {
+    public void foldHeadingsLeavesAnOutline() {
         on("intro\n# A\na\n## B\nb\n### C\nc\nC2\n---\n# D").cursor(1, 0);
         MarkdownFolding.foldHeadings("2");
         assertEquals("intro|# A+|## B+|C2|---|# D", visible());
@@ -143,8 +131,7 @@ public class MarkdownFoldingTest
     }
 
     @Test
-    public void foldHeadingsWantsALevel()
-    {
+    public void foldHeadingsWantsALevel() {
         on(SECTIONS);
         MarkdownFolding.foldHeadings("seven");
         assertTrue(h.status(), h.status().contains("1 to 6"));
@@ -152,8 +139,7 @@ public class MarkdownFoldingTest
     }
 
     @Test
-    public void vimFoldKeys()
-    {
+    public void vimFoldKeys() {
         on(SECTIONS).vim().cursor(0, 0);
         h.keys("zc");
         assertEquals("# A+||# C|c", visible());
@@ -168,8 +154,7 @@ public class MarkdownFoldingTest
     }
 
     @Test
-    public void zcAfterZMFoldsTheSectionAHeadingIsIn()
-    {
+    public void zcAfterZMFoldsTheSectionAHeadingIsIn() {
         // After zM a section's first line is hidden but its subheadings are
         // not, so it is not folded yet.
         on("# A\na\n## B\nb").vim().keys("zM");
@@ -183,8 +168,7 @@ public class MarkdownFoldingTest
     }
 
     @Test
-    public void foldHeadingsIsOnlyForMarkdown()
-    {
+    public void foldHeadingsIsOnlyForMarkdown() {
         h = EditorHarness.create("# a comment\ncode()\n").mode(PythonMode.getMode());
         Editor.setCurrentEditor(h.editor());
         MarkdownFolding.foldHeadings();
@@ -193,24 +177,21 @@ public class MarkdownFoldingTest
     }
 
     @Test
-    public void aBlankLineIsAsFarInAsTheLineAfterIt()
-    {
+    public void aBlankLineIsAsFarInAsTheLineAfterIt() {
         on("- a\n  - b\n\n    more\n  - c\n- d").cursor(2, 0);
         h.editor().fold();
         assertEquals("- a|  - b+|  - c|- d", visible());
     }
 
     @Test
-    public void anIndentedCodeBlockFoldsButItsFirstLine()
-    {
+    public void anIndentedCodeBlockFoldsButItsFirstLine() {
         on("# H\npara\n\n    code1\n\n    code2\nafter").cursor(5, 0);
         h.editor().fold();
         assertEquals("# H|para||    code1+|after", visible());
     }
 
     @Test
-    public void nothingToFoldSaysSo()
-    {
+    public void nothingToFoldSaysSo() {
         on("just text\nmore").cursor(0, 0);
         h.editor().fold();
         assertEquals("just text|more", visible());
@@ -218,8 +199,7 @@ public class MarkdownFoldingTest
     }
 
     @Test
-    public void zoOpensOnlyTheFoldBelowTheCaret()
-    {
+    public void zoOpensOnlyTheFoldBelowTheCaret() {
         on(SECTIONS).vim().cursor(6, 0);
         h.keys("zc");
         assertEquals("# A|text||## B|b||# C+", visible());
@@ -230,8 +210,7 @@ public class MarkdownFoldingTest
     }
 
     @Test
-    public void foldAllWhereThereIsNothingToFoldSaysSo()
-    {
+    public void foldAllWhereThereIsNothingToFoldSaysSo() {
         h = EditorHarness.create("one\n  two\n").mode(PlainTextMode.getMode());
         Editor.setCurrentEditor(h.editor());
         h.editor().foldAll();

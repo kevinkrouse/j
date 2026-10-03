@@ -22,13 +22,11 @@ import org.junit.Test;
  * The no-argument form is the command as it has always been: a whole-line
  * comparison over the selection. The rest is what :sort added to it.
  */
-public class SortTest
-{
+public class SortTest {
     private EditorHarness h;
 
     @After
-    public void tearDown()
-    {
+    public void tearDown() {
         if (h != null)
             h.close();
     }
@@ -41,8 +39,7 @@ public class SortTest
      * That is the command's existing contract, not something this refactor
      * introduced.
      */
-    private void select(int fromLine, int boundaryLine)
-    {
+    private void select(int fromLine, int boundaryLine) {
         Line a = h.buffer().getFirstLine();
         for (int i = 0; i < fromLine && a != null; i++)
             a = a.next();
@@ -54,15 +51,13 @@ public class SortTest
         h.editor().moveCaretToDotCol();
     }
 
-    private void sort(String parameters)
-    {
+    private void sort(String parameters) {
         Editor.setCurrentEditor(h.editor());
         Sort.sortLines(parameters);
     }
 
     @Test
-    public void sortLinesOrdersTheSelectedLines()
-    {
+    public void sortLinesOrdersTheSelectedLines() {
         h = EditorHarness.create("b\nd\nc\na\nz\n");
         select(0, 4);
         sort("");
@@ -70,8 +65,7 @@ public class SortTest
     }
 
     @Test
-    public void sortLinesDoesNothingWithoutASelection()
-    {
+    public void sortLinesDoesNothingWithoutASelection() {
         h = EditorHarness.create("b\na\n");
         Editor.setCurrentEditor(h.editor());
         Sort.sortLines();
@@ -79,8 +73,7 @@ public class SortTest
     }
 
     @Test
-    public void sortLinesTakesTheSameFlagsAsTheExCommand()
-    {
+    public void sortLinesTakesTheSameFlagsAsTheExCommand() {
         h = EditorHarness.create("b\nZ\nd\nc\na\nz\n");
         select(0, 5);
         sort("i");
@@ -88,8 +81,7 @@ public class SortTest
     }
 
     @Test
-    public void andTheNumericOnes()
-    {
+    public void andTheNumericOnes() {
         h = EditorHarness.create("6\nd3\n s5\n.9\nz\n");
         select(0, 4);
         sort("n");
@@ -97,8 +89,7 @@ public class SortTest
     }
 
     @Test
-    public void aFlagThatIsNotVimsIsReportedRatherThanIgnored()
-    {
+    public void aFlagThatIsNotVimsIsReportedRatherThanIgnored() {
         h = EditorHarness.create("b\na\nz\n");
         select(0, 2);
         sort("d");
@@ -106,8 +97,7 @@ public class SortTest
     }
 
     @Test
-    public void theCommandTableReachesBothForms() throws Exception
-    {
+    public void theCommandTableReachesBothForms() throws Exception {
         // Which is what makes "sortLines n" work from a key map, from a
         // vimrc mapping and from executeCommand, not only from :sort.
         h = EditorHarness.create("6\nd3\n s5\n.9\nz\n");
@@ -125,8 +115,7 @@ public class SortTest
     }
 
     @Test
-    public void uniqueRemovesTheLinesItDropped()
-    {
+    public void uniqueRemovesTheLinesItDropped() {
         h = EditorHarness.create("b\na\na\nc\na\nz\n");
         select(0, 5);
         sort("u");

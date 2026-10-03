@@ -20,8 +20,7 @@ import org.junit.Test;
  * A read-only buffer does not change, whatever vim command is typed at it.
  * The vim layer edits through j's primitives, and several of them do not ask.
  */
-public class VimReadOnlyTest
-{
+public class VimReadOnlyTest {
     private static final String[] EDITS = {
         "dd", "x", "rz", "J", ">>", "yyp", "~", "ccx<Esc>", "Rxy<Esc>",
         "vjrz", "yyjVp", "vJ", "vU", "i<C-t><Esc>", "ox<Esc>", "ix<Esc>",
@@ -30,8 +29,7 @@ public class VimReadOnlyTest
     };
 
     @Test
-    public void noVimCommandChangesAReadOnlyBuffer()
-    {
+    public void noVimCommandChangesAReadOnlyBuffer() {
         for (String keys : EDITS) {
             final EditorHarness h = EditorHarness.create().vim();
             try {
@@ -47,8 +45,7 @@ public class VimReadOnlyTest
     }
 
     @Test
-    public void itSaysWhy()
-    {
+    public void itSaysWhy() {
         final EditorHarness h = EditorHarness.create().vim();
         try {
             h.value("abc").cursor(0, 0);

@@ -20,35 +20,30 @@ import org.junit.Test;
  * incrementNumber and decrementNumber as j commands: at the caret, and over
  * a selection, which is what vim's visual CTRL-A and g CTRL-A use.
  */
-public class NumberCommandsTest
-{
+public class NumberCommandsTest {
     private EditorHarness h;
 
     @After
-    public void tearDown()
-    {
+    public void tearDown() {
         if (h != null)
             h.close();
     }
 
-    private Editor on(String text, int line, int offset)
-    {
+    private Editor on(String text, int line, int offset) {
         h = EditorHarness.create(text);
         Editor.setCurrentEditor(h.editor());
         h.cursor(line, offset);
         return h.editor();
     }
 
-    private void select(int line, int offset)
-    {
+    private void select(int line, int offset) {
         final Editor editor = h.editor();
         editor.setMarkAtDot();
         h.cursor(line, offset);
     }
 
     @Test
-    public void atTheCaret()
-    {
+    public void atTheCaret() {
         on("x 7 9\n", 0, 0);
         NumberCommands.incrementNumber();
         assertEquals("x 8 9\n", h.text());
@@ -57,8 +52,7 @@ public class NumberCommandsTest
     }
 
     @Test
-    public void overASelectionTheFirstNumberOfEachLine()
-    {
+    public void overASelectionTheFirstNumberOfEachLine() {
         on("1 1\n1 1\nx\n1\n", 0, 0);
         select(3, 1);
         NumberCommands.incrementNumber("2");
@@ -68,8 +62,7 @@ public class NumberCommandsTest
     }
 
     @Test
-    public void progressiveAddsMoreToEachNumber()
-    {
+    public void progressiveAddsMoreToEachNumber() {
         on("0\n0\nx\n0\n", 0, 0);
         select(3, 1);
         NumberCommands.incrementNumber("progressive");
@@ -77,8 +70,7 @@ public class NumberCommandsTest
     }
 
     @Test
-    public void theSelectionLimitsItsFirstAndLastLines()
-    {
+    public void theSelectionLimitsItsFirstAndLastLines() {
         // From the second 1 on the first line, to before the 1 on the last.
         on("1 1\nx 1\n", 0, 2);
         select(1, 1);
@@ -87,8 +79,7 @@ public class NumberCommandsTest
     }
 
     @Test
-    public void anUndoTakesItAllBack()
-    {
+    public void anUndoTakesItAllBack() {
         on("1\n1\n", 0, 0);
         select(1, 1);
         NumberCommands.incrementNumber();

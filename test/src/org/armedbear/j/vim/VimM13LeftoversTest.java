@@ -21,19 +21,16 @@ import org.junit.Test;
 /**
  * The items M13 filed for later, each expectation taken from nvim.
  */
-public class VimM13LeftoversTest
-{
+public class VimM13LeftoversTest {
     private EditorHarness h;
 
     @After
-    public void tearDown()
-    {
+    public void tearDown() {
         if (h != null)
             h.close();
     }
 
-    private EditorHarness vim(String text, int line, int offset)
-    {
+    private EditorHarness vim(String text, int line, int offset) {
         h = EditorHarness.create().vim();
         h.value(text).cursor(line, offset);
         return h;
@@ -42,118 +39,103 @@ public class VimM13LeftoversTest
     // ---------------------------------------- a count before an insert
 
     @Test
-    public void countedInsertTypesItThreeTimes()
-    {
+    public void countedInsertTypesItThreeTimes() {
         vim("xy", 0, 0).keys("3iab<Esc>");
         assertEquals("abababxy", h.value());
         h.assertCursorAt(0, 5);
     }
 
     @Test
-    public void countedAppend()
-    {
+    public void countedAppend() {
         vim("xy", 0, 0).keys("3aab<Esc>");
         assertEquals("xabababy", h.value());
         h.assertCursorAt(0, 6);
     }
 
     @Test
-    public void countedAppendAtTheEnd()
-    {
+    public void countedAppendAtTheEnd() {
         vim("xy", 0, 0).keys("3Ahi<Esc>");
         assertEquals("xyhihihi", h.value());
         h.assertCursorAt(0, 7);
     }
 
     @Test
-    public void countedInsertAtTheStart()
-    {
+    public void countedInsertAtTheStart() {
         vim("xy", 0, 0).keys("3Ihi<Esc>");
         assertEquals("hihihixy", h.value());
         h.assertCursorAt(0, 5);
     }
 
     @Test
-    public void theRepeatIsWhatWasTypedBackspacesAndAll()
-    {
+    public void theRepeatIsWhatWasTypedBackspacesAndAll() {
         vim("xy", 0, 0).keys("3iab<BS>c<Esc>");
         assertEquals("acacacxy", h.value());
     }
 
     @Test
-    public void theRepeatTypesEnterToo()
-    {
+    public void theRepeatTypesEnterToo() {
         vim("xy", 0, 0).keys("3ia<CR>b<Esc>");
         assertEquals("a\nba\nba\nbxy", h.value());
         h.assertCursorAt(3, 0);
     }
 
     @Test
-    public void countedOpenLineOpensThatMany()
-    {
+    public void countedOpenLineOpensThatMany() {
         vim("  x\ny", 0, 2).keys("3ohi<Esc>");
         assertEquals("  x\n  hi\n  hi\n  hi\ny", h.value());
         h.assertCursorAt(3, 3);
     }
 
     @Test
-    public void countedOpenAboveOpensThatMany()
-    {
+    public void countedOpenAboveOpensThatMany() {
         vim("  x\ny", 0, 2).keys("3Ohi<Esc>");
         assertEquals("  hi\n  hi\n  hi\n  x\ny", h.value());
         h.assertCursorAt(2, 3);
     }
 
     @Test
-    public void countedOpenWithNothingTypedLeavesEmptyLines()
-    {
+    public void countedOpenWithNothingTypedLeavesEmptyLines() {
         vim("  x\ny", 0, 2).keys("3o<Esc>");
         assertEquals("  x\n\n\n\ny", h.value());
         h.assertCursorAt(3, 0);
     }
 
     @Test
-    public void countedReplaceKeepsTypingOver()
-    {
+    public void countedReplaceKeepsTypingOver() {
         vim("xxxxxxxx", 0, 1).keys("3Rab<Esc>");
         assertEquals("xabababx", h.value());
         h.assertCursorAt(0, 6);
     }
 
     @Test
-    public void countedReplacePastTheEnd()
-    {
+    public void countedReplacePastTheEnd() {
         vim("xyz", 0, 1).keys("3Rab<Esc>");
         assertEquals("xababab", h.value());
         h.assertCursorAt(0, 6);
     }
 
     @Test
-    public void oneUndoTakesBackEveryRepeat()
-    {
+    public void oneUndoTakesBackEveryRepeat() {
         vim("xy", 0, 0).keys("3iab<Esc>").keys("u");
         assertEquals("xy", h.value());
         h.assertCursorAt(0, 0);
     }
 
     @Test
-    public void aCountOnDotReplacesTheInsertCount()
-    {
+    public void aCountOnDotReplacesTheInsertCount() {
         vim("xy", 0, 0).keys("3iab<Esc>").keys("2.");
         assertEquals("ababaababbxy", h.value());
         h.assertCursorAt(0, 8);
     }
 
     @Test
-    public void dotRepeatsTheCountedInsert()
-    {
+    public void dotRepeatsTheCountedInsert() {
         vim("xy", 0, 0).keys("3iab<Esc>").keys("$.");
         assertEquals("abababxabababy", h.value());
     }
 
     @Test
-    public void theRepeatRunsCtrlTAgain()
-    {
+    public void theRepeatRunsCtrlTAgain() {
         // nvim, shiftwidth 4: each repeat indents once more.
         vim("xy", 0, 0);
         h.buffer().setIndentSize(4);
@@ -165,8 +147,7 @@ public class VimM13LeftoversTest
     // Enter is whatever j binds it to in the mode: newlineAndIndent in Java
     // mode, plain newline in plain text.
 
-    private EditorHarness java(String text, int line, int offset)
-    {
+    private EditorHarness java(String text, int line, int offset) {
         vim(text, line, offset).mode(JavaMode.getMode());
         // So that j's indent inside a brace is the two vim copies.
         h.buffer().setIndentSize(2);
@@ -174,60 +155,53 @@ public class VimM13LeftoversTest
     }
 
     @Test
-    public void enterThenEscapeLeavesAnEmptyLine()
-    {
+    public void enterThenEscapeLeavesAnEmptyLine() {
         java("{\n  x;", 1, 0).keys("A<CR><Esc>");
         assertEquals("{\n  x;\n", h.value());
         h.assertCursorAt(2, 0);
     }
 
     @Test
-    public void typingAfterEnterKeepsTheIndent()
-    {
+    public void typingAfterEnterKeepsTheIndent() {
         java("{\n  x;", 1, 0).keys("A<CR>y<Esc>");
         assertEquals("{\n  x;\n  y", h.value());
         h.assertCursorAt(2, 2);
     }
 
     @Test
-    public void enterOnAnUntouchedIndentEmptiesThatLine()
-    {
+    public void enterOnAnUntouchedIndentEmptiesThatLine() {
         java("{\n  x;", 1, 0).keys("o<CR>y<Esc>");
         assertEquals("{\n  x;\n\n  y", h.value());
         h.assertCursorAt(3, 2);
     }
 
     @Test
-    public void twoEntersThenEscapeLeaveTwoEmptyLines()
-    {
+    public void twoEntersThenEscapeLeaveTwoEmptyLines() {
         java("{\n  x;", 1, 0).keys("A<CR><CR><Esc>");
         assertEquals("{\n  x;\n\n", h.value());
         h.assertCursorAt(3, 0);
     }
 
     @Test
-    public void undoTakesTheEnterBack()
-    {
+    public void undoTakesTheEnterBack() {
         java("{\n  x;", 1, 0).keys("A<CR><Esc>").keys("u");
         assertEquals("{\n  x;", h.value());
     }
 
     @Test
-    public void dotRepeatsEnterTheSameWay()
-    {
+    public void dotRepeatsEnterTheSameWay() {
         java("{\n  x;\n  z;", 1, 0).keys("A<CR><Esc>").keys("j.");
         assertEquals("{\n  x;\n\n  z;\n", h.value());
     }
+
     @Test
-    public void dotRepeatsEnterThroughJsBinding()
-    {
+    public void dotRepeatsEnterThroughJsBinding() {
         java("{\n  x;\n  z;", 1, 0).keys("A<CR>y<Esc>").keys("j.");
         assertEquals("{\n  x;\n  y\n  z;\n  y", h.value());
     }
 
     @Test
-    public void inPlainTextEnterIsJsNewline()
-    {
+    public void inPlainTextEnterIsJsNewline() {
         // j binds plain newline there, which does not indent, where vim's
         // autoindent would copy the indent.
         vim("  x", 0, 0).keys("A<CR>y<Esc>");
@@ -239,24 +213,21 @@ public class VimM13LeftoversTest
     // filetype indent, and copy the line's indent where it does not.
 
     @Test
-    public void openAboveAClosingBraceIndentsTheBody()
-    {
+    public void openAboveAClosingBraceIndentsTheBody() {
         java("class A {\n  x();\n}", 2, 0).keys("Oy<Esc>");
         assertEquals("class A {\n  x();\n  y\n}", h.value());
         h.assertCursorAt(2, 2);
     }
 
     @Test
-    public void openAboveAStatementIndentsLikeIt()
-    {
+    public void openAboveAStatementIndentsLikeIt() {
         java("class A {\n  x();\n}", 1, 0).keys("Oy<Esc>");
         assertEquals("class A {\n  y\n  x();\n}", h.value());
         h.assertCursorAt(1, 2);
     }
 
     @Test
-    public void openAboveInPlainTextCopiesTheLine()
-    {
+    public void openAboveInPlainTextCopiesTheLine() {
         vim("a\n  b", 1, 0).keys("Oy<Esc>");
         assertEquals("a\n  y\n  b", h.value());
         h.assertCursorAt(1, 2);
@@ -266,23 +237,20 @@ public class VimM13LeftoversTest
     // After $ the selection takes in the line end, and o keeps it there.
 
     @Test
-    public void vDollarOStillTakesTheNewline()
-    {
+    public void vDollarOStillTakesTheNewline() {
         vim("abc\ndef", 0, 1).keys("v$od");
         assertEquals("adef", h.value());
         h.assertCursorAt(0, 1);
     }
 
     @Test
-    public void vDollarOOBringsTheLineEndBack()
-    {
+    public void vDollarOOBringsTheLineEndBack() {
         vim("abc\ndef", 0, 1).keys("v$ood");
         assertEquals("adef", h.value());
     }
 
     @Test
-    public void vDollarOThenAMotionKeepsTheOtherEnd()
-    {
+    public void vDollarOThenAMotionKeepsTheOtherEnd() {
         vim("abc\ndef", 0, 1).keys("v$ohd");
         assertEquals("def", h.value());
     }
@@ -293,8 +261,7 @@ public class VimM13LeftoversTest
     private static final String EMOJI = "😀";
 
     @Test
-    public void fFindsAnEmoji()
-    {
+    public void fFindsAnEmoji() {
         vim("ab" + EMOJI + "cd", 0, 0).keys("f" + EMOJI);
         h.assertCursorAt(0, 2);
         h.keys("fd");
@@ -302,22 +269,19 @@ public class VimM13LeftoversTest
     }
 
     @Test
-    public void dfTakesTheWholeEmoji()
-    {
+    public void dfTakesTheWholeEmoji() {
         vim("ab" + EMOJI + "cd", 0, 0).keys("df" + EMOJI);
         assertEquals("cd", h.value());
     }
 
     @Test
-    public void dtStopsBeforeIt()
-    {
+    public void dtStopsBeforeIt() {
         vim("ab" + EMOJI + "cd", 0, 0).keys("dt" + EMOJI);
         assertEquals(EMOJI + "cd", h.value());
     }
 
     @Test
-    public void backwardsToAndAfterAnEmoji()
-    {
+    public void backwardsToAndAfterAnEmoji() {
         vim("ab" + EMOJI + "cd", 0, 5).keys("dF" + EMOJI);
         assertEquals("abd", h.value());
         h.close();
@@ -326,52 +290,45 @@ public class VimM13LeftoversTest
     }
 
     @Test
-    public void aCountPastTheLastEmojiDoesNothing()
-    {
+    public void aCountPastTheLastEmojiDoesNothing() {
         vim(EMOJI + "a" + EMOJI + "b", 0, 0).keys("d2f" + EMOJI);
         assertEquals(EMOJI + "a" + EMOJI + "b", h.value());
     }
 
     @Test
-    public void semicolonRepeatsAnEmojiSearch()
-    {
+    public void semicolonRepeatsAnEmojiSearch() {
         vim("a" + EMOJI + "b" + EMOJI, 0, 0).keys("f" + EMOJI).keys(";");
         h.assertCursorAt(0, 4);
     }
 
     @Test
-    public void rPutsAnEmoji()
-    {
+    public void rPutsAnEmoji() {
         vim("abc", 0, 1).keys("r" + EMOJI);
         assertEquals("a" + EMOJI + "c", h.value());
         h.assertCursorAt(0, 1);
     }
 
     @Test
-    public void countedRPutsThatMany()
-    {
+    public void countedRPutsThatMany() {
         vim("abc", 0, 1).keys("2r" + EMOJI);
         assertEquals("a" + EMOJI + EMOJI, h.value());
         h.assertCursorAt(0, 3);
     }
 
     @Test
-    public void visualRPutsAnEmojiOnEach()
-    {
+    public void visualRPutsAnEmojiOnEach() {
         vim("abc", 0, 0).keys("vlr" + EMOJI);
         assertEquals(EMOJI + EMOJI + "c", h.value());
     }
 
     @Test
-    public void dotRepeatsREmoji()
-    {
+    public void dotRepeatsREmoji() {
         vim("abcd", 0, 0).keys("r" + EMOJI).keys("l.");
         assertEquals(EMOJI + EMOJI + "cd", h.value());
     }
 
     @Test
-    public void anEmojiTypedInInsertModeIsStillText()
-    {
+    public void anEmojiTypedInInsertModeIsStillText() {
         vim("ab", 0, 1).keys("3i" + EMOJI + "<Esc>");
         assertEquals("a" + EMOJI + EMOJI + EMOJI + "b", h.value());
     }
@@ -381,15 +338,13 @@ public class VimM13LeftoversTest
     // joined, and at that line's start if it was lower down.
 
     @Test
-    public void undoAfterAnUpwardVisualJoin()
-    {
+    public void undoAfterAnUpwardVisualJoin() {
         vim("abc\ndef\nghi", 0, 0).keys("jllVkJ").keys("u");
         h.assertCursorAt(0, 2);
     }
 
     @Test
-    public void undoAfterADownwardVisualJoin()
-    {
+    public void undoAfterADownwardVisualJoin() {
         vim("abc\ndef\nghi", 0, 0).keys("llVjJ").keys("u");
         h.assertCursorAt(0, 0);
     }
@@ -399,22 +354,19 @@ public class VimM13LeftoversTest
     // not as its character: Delete's is DEL.
 
     @Test
-    public void aRepeatDeletesWhereTheInsertDid()
-    {
+    public void aRepeatDeletesWhereTheInsertDid() {
         vim("xyz", 0, 0).keys("3ia<Del><Esc>");
         assertEquals("aaa", h.value());
     }
 
     @Test
-    public void dotDeletesWhereTheInsertDid()
-    {
+    public void dotDeletesWhereTheInsertDid() {
         vim("xyz\nuvw", 0, 0).keys("ia<Del><Esc>").keys("j0.");
         assertEquals("ayz\navw", h.value());
     }
 
     @Test
-    public void aRepeatTabsAsTypingDoes()
-    {
+    public void aRepeatTabsAsTypingDoes() {
         // Java mode's Tab reindents the line rather than inserting a tab.
         java("{\nx", 1, 0).keys("i<Tab>a<Tab>a<Tab>a<Esc>");
         final String typed = h.value();
@@ -423,9 +375,9 @@ public class VimM13LeftoversTest
         assertEquals(typed, h.value());
         assertEquals("{\n  aaax", h.value());
     }
+
     @Test
-    public void aTabMakesTheIndentTheUsersInARepeatToo()
-    {
+    public void aTabMakesTheIndentTheUsersInARepeatToo() {
         // nvim: each opened line keeps its indent and the tab typed after it.
         vim("  x", 0, 0).keys("o<Tab><Esc>o<Tab><Esc>o<Tab><Esc>");
         final String typed = h.value();

@@ -22,34 +22,28 @@ import org.junit.Test;
  * Hidden markup is the display's, for any formatter that marks it: here one
  * that hides the braces of {{word}}.
  */
-public class HiddenMarkupTest
-{
+public class HiddenMarkupTest {
     private EditorHarness h;
 
     @After
-    public void tearDown()
-    {
+    public void tearDown() {
         Editor.preferences().removeProperty("conceal");
         if (h != null)
             h.close();
     }
 
-    private static final class BraceFormatter extends Formatter
-    {
+    private static final class BraceFormatter extends Formatter {
         private static final Pattern ITEM = Pattern.compile("\\{\\{(\\w+)\\}\\}");
 
-        BraceFormatter(Buffer buffer)
-        {
+        BraceFormatter(Buffer buffer) {
             this.buffer = buffer;
         }
 
-        public boolean hidesMarkup()
-        {
+        public boolean hidesMarkup() {
             return conceals("braces");
         }
 
-        public LineSegmentList formatLine(Line line)
-        {
+        public LineSegmentList formatLine(Line line) {
             clearSegmentList();
             final String text = line.getText();
             final boolean hide = hidesMarkup();
@@ -69,8 +63,7 @@ public class HiddenMarkupTest
             return segmentList;
         }
 
-        public FormatTable getFormatTable()
-        {
+        public FormatTable getFormatTable() {
             if (formatTable == null) {
                 formatTable = new FormatTable(null);
                 formatTable.addEntryFromPrefs(0, "text");
@@ -79,29 +72,25 @@ public class HiddenMarkupTest
         }
     }
 
-    private EditorHarness on(String text)
-    {
+    private EditorHarness on(String text) {
         Editor.preferences().setProperty("conceal", "braces");
         h = EditorHarness.create(text);
         h.buffer().setFormatter(new BraceFormatter(h.buffer()));
         return h;
     }
 
-    private String drawn()
-    {
+    private String drawn() {
         return h.editor().getDisplay().drawnText(h.buffer().getFirstLine());
     }
 
     @Test
-    public void anyFormattersMarkupHides()
-    {
+    public void anyFormattersMarkupHides() {
         on("a {{b}} c {{d}}\nnext").cursor(1, 0);
         assertEquals("a b c d", drawn());
     }
 
     @Test
-    public void theCaretsItemShows()
-    {
+    public void theCaretsItemShows() {
         on("a {{b}} c {{d}}").cursor(0, 4);
         assertEquals("a {{b}} c d", drawn());
         h.cursor(0, 15);
@@ -109,8 +98,7 @@ public class HiddenMarkupTest
     }
 
     @Test
-    public void notWhenTheFormatterIsNotAsked()
-    {
+    public void notWhenTheFormatterIsNotAsked() {
         on("a {{b}} c\nnext").cursor(1, 0);
         Editor.preferences().setProperty("conceal", "none");
         assertEquals("a {{b}} c", drawn());

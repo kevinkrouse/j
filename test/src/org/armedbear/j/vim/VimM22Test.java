@@ -22,37 +22,31 @@ import org.junit.Test;
  * M22: one last search for vim edit mode and j's find, and highlighting
  * that is j's.
  */
-public class VimM22Test
-{
+public class VimM22Test {
     private EditorHarness h;
 
     @After
-    public void tearDown()
-    {
+    public void tearDown() {
         if (h != null)
             h.close();
     }
 
-    private EditorHarness vim(String text)
-    {
+    private EditorHarness vim(String text) {
         tearDown();
         h = EditorHarness.create().vim();
         h.value(text).cursor(0, 0);
         return h;
     }
 
-    private String caret()
-    {
+    private String caret() {
         return h.lineNumber() + "," + h.offset();
     }
 
-    private static Search literal(String pattern, boolean ignoreCase)
-    {
+    private static Search literal(String pattern, boolean ignoreCase) {
         return new Search(pattern, ignoreCase, false);
     }
 
-    private static Search regex(String pattern)
-    {
+    private static Search regex(String pattern) {
         final Search search = new Search(pattern, false, false);
         search.setRegularExpression(true);
         search.setREFromPattern();
@@ -60,8 +54,7 @@ public class VimM22Test
     }
 
     @Test
-    public void findNextGoesOnWithASlashSearch()
-    {
+    public void findNextGoesOnWithASlashSearch() {
         vim("ab ab ab").keys("/b<CR>");
         assertEquals("0,1", caret());
         h.editor().findNext();
@@ -69,8 +62,7 @@ public class VimM22Test
     }
 
     @Test
-    public void nGoesOnWithAFindOfJs()
-    {
+    public void nGoesOnWithAFindOfJs() {
         vim("x.b xyb x.b").editor().setLastSearch(literal("x.b", false));
         h.keys("n");
         assertEquals("0,8", caret());
@@ -85,8 +77,7 @@ public class VimM22Test
     }
 
     @Test
-    public void aFindOfJsRunsAsItIsNotAsVimWouldReadIt()
-    {
+    public void aFindOfJsRunsAsItIsNotAsVimWouldReadIt() {
         // Java's lookbehind, which vim's pattern syntax spells otherwise.
         vim("cb ab").editor().setLastSearch(regex("(?<=a)b"));
         h.keys("n");
@@ -94,23 +85,20 @@ public class VimM22Test
     }
 
     @Test
-    public void anEmptySubstitutePatternIsAFindOfJs()
-    {
+    public void anEmptySubstitutePatternIsAFindOfJs() {
         vim("xyb x.b").editor().setLastSearch(literal("x.b", false));
         h.keys(":s//Z/<CR>");
         assertEquals("xyb Z", h.value());
     }
 
     @Test
-    public void hlsearchShowsAFindOfJs()
-    {
+    public void hlsearchShowsAFindOfJs() {
         vim("ab ab").editor().setLastSearch(literal("b", false));
         assertEquals("1-2 4-5", h.searchMatches(0));
     }
 
     @Test
-    public void nohAndClearSearchHighlightAreOne()
-    {
+    public void nohAndClearSearchHighlightAreOne() {
         vim("ab ab").keys("/b<CR>");
         h.editor().clearSearchHighlight();
         assertEquals("", h.searchMatches(0));
@@ -119,8 +107,7 @@ public class VimM22Test
     }
 
     @Test
-    public void aBadPatternIsKeptAsVimKeepsIt()
-    {
+    public void aBadPatternIsKeptAsVimKeepsIt() {
         vim("xb yb zb").keys("/b<CR>").keys("/\\(<CR>");
         assertEquals("\\(", h.vimState().getLastSearch(h.editor()).pattern);
         h.keys("n");
