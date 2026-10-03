@@ -87,7 +87,6 @@ public abstract class SidebarList extends JList<Object>
 
         private static Border noFocusBorder;
 
-        private static Color noFocusSelectionBackground = new Color(208, 208, 208);
 
         public SidebarListCellRenderer(Sidebar sidebar)
         {
@@ -109,7 +108,7 @@ public abstract class SidebarList extends JList<Object>
                 if (frame.isActive() && frame.getFocusedComponent() == list)
                     setBackground(list.getSelectionBackground());
                 else
-                    setBackground(noFocusSelectionBackground);
+                    setBackground(SidebarTree.NO_FOCUS_SELECTION_BACKGROUND);
                 setForeground(list.getSelectionForeground());
             } else {
                 setBackground(list.getBackground());

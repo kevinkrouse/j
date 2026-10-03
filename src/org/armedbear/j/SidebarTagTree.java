@@ -55,7 +55,6 @@ public class SidebarTagTree extends SidebarTree implements NavigationComponent,
     KeyListener, MouseListener
 {
     private final Editor editor;
-    private final Frame frame;
     private final ToIntFunction<LocalTag> level;
     private List<LocalTag> tags;
 
@@ -64,7 +63,6 @@ public class SidebarTagTree extends SidebarTree implements NavigationComponent,
         super((TreeModel) null);
         this.editor = editor;
         this.level = level;
-        frame = editor.getFrame();
         getSelectionModel().setSelectionMode(TreeSelectionModel.SINGLE_TREE_SELECTION);
         setRootVisible(false);
         setShowsRootHandles(true);
@@ -108,16 +106,35 @@ public class SidebarTagTree extends SidebarTree implements NavigationComponent,
         thread.start();
     }
 
-    private void refreshInternal(Buffer buffer, List<LocalTag> bufferTags)
+    void refreshInternal(Buffer buffer, List<LocalTag> bufferTags)
     {
-        final List<LocalTag> newTags =
-            bufferTags != null ? bufferTags : buffer.getTags(true); // Runs tagger.
+        List<LocalTag> newTags = bufferTags;
+        if (newTags == null) {
+            // The tagger reads the lines: not while they change.
+            try {
+                buffer.lockRead();
+            }
+            catch (InterruptedException e) {
+                Log.error(e);
+                return;
+            }
+            try {
+                newTags = buffer.getTags(true); // Runs the tagger.
+            }
+            finally {
+                buffer.unlockRead();
+            }
+        }
         if (newTags == null)
             return;
-        final TreeModel model = new DefaultTreeModel(buildTree(newTags, level));
+        final List<LocalTag> finalTags = newTags;
+        final TreeModel model = new DefaultTreeModel(buildTree(finalTags, level));
         SwingUtilities.invokeLater(() -> {
+            // Not if another buffer is shown now: its outline is its own.
+            if (editor.getBuffer() != buffer)
+                return;
             setModel(model);
-            tags = newTags;
+            tags = finalTags;
             for (int row = 0; row < getRowCount(); row++)
                 expandRow(row);
             updatePosition();
@@ -199,49 +216,13 @@ public class SidebarTagTree extends SidebarTree implements NavigationComponent,
 
     public void keyPressed(KeyEvent e)
     {
-        final int modifiers = Utilities.keyModifiers(e);
-        switch (e.getKeyCode()) {
-            // Ignore modifier keystrokes.
-            case KeyEvent.VK_SHIFT:
-            case KeyEvent.VK_CONTROL:
-            case KeyEvent.VK_ALT:
-            case KeyEvent.VK_META:
-                return;
-            case KeyEvent.VK_ENTER: {
-                e.consume();
-                final TreePath path = getSelectionPath();
-                final LocalTag tag = path != null ? tagOf(path) : null;
-                if (tag != null)
-                    tag.gotoTag(editor);
-                editor.setFocusToDisplay();
-                if (modifiers == Constants.ALT_MASK)
-                    editor.toggleSidebar();
-                return;
-            }
-            case KeyEvent.VK_TAB:
-                e.consume();
-                if (modifiers == 0) {
-                    final Sidebar sidebar = editor.getSidebar();
-                    if (sidebar.getBufferList() != null) {
-                        updatePosition();
-                        editor.setFocus(sidebar.getBufferList());
-                    }
-                }
-                return;
-            case KeyEvent.VK_ESCAPE:
-                e.consume();
-                editor.getSidebar().setBuffer();
-                updatePosition();
-                editor.setFocusToDisplay();
-                return;
-        }
-        editor.getDispatcher().setEnabled(false);
+        final TreePath path = getSelectionPath();
+        tagKeyPressed(editor, e, path != null ? tagOf(path) : null, this::updatePosition);
     }
 
     public void keyReleased(KeyEvent e)
     {
-        e.consume();
-        editor.getDispatcher().setEnabled(true);
+        tagKeyReleased(editor, e);
     }
 
     public void keyTyped(KeyEvent e)
@@ -273,13 +254,11 @@ public class SidebarTagTree extends SidebarTree implements NavigationComponent,
 
     public void mouseExited(MouseEvent e)
     {
-        frame.getCurrentEditor().setFocusToDisplay();
+        giveBackFocus(editor);
     }
 
     private static class TreeCellRenderer extends DefaultTreeCellRenderer
     {
-        private static final Color noFocusSelectionBackground = new Color(208, 208, 208);
-
         private final Color oldBackgroundSelectionColor;
 
         TreeCellRenderer()
@@ -299,7 +278,7 @@ public class SidebarTagTree extends SidebarTree implements NavigationComponent,
             if (frame != null && frame.getFocusedComponent() == tree)
                 setBackgroundSelectionColor(oldBackgroundSelectionColor);
             else
-                setBackgroundSelectionColor(noFocusSelectionBackground);
+                setBackgroundSelectionColor(NO_FOCUS_SELECTION_BACKGROUND);
             final Object obj = ((DefaultMutableTreeNode) value).getUserObject();
             if (obj instanceof LocalTag) {
                 final LocalTag tag = (LocalTag) obj;

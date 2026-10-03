@@ -956,8 +956,6 @@ public final class SidebarBufferTree extends SidebarTree implements Constants,
             UIManager.getColor("Tree.selectionForeground");
         private static final Color selectionBackground =
             UIManager.getColor("Tree.selectionBackground");
-        private static final Color noFocusSelectionBackground =
-            new Color(208, 208, 208);
         private static final Border noFocusBorder =
             new EmptyBorder(1, 1, 1, 1);
 
@@ -1009,7 +1007,7 @@ public final class SidebarBufferTree extends SidebarTree implements Constants,
                 if (frame.isActive() && tree.hasFocus())
                     setBackground(selectionBackground);
                 else
-                    setBackground(noFocusSelectionBackground);
+                    setBackground(SidebarTree.NO_FOCUS_SELECTION_BACKGROUND);
                 setForeground(selectionForeground);
             } else {
                 setBackground(textBackground);

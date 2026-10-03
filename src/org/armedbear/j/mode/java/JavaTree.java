@@ -25,13 +25,11 @@ import org.armedbear.j.Constants;
 import org.armedbear.j.Display;
 import org.armedbear.j.Editor;
 import org.armedbear.j.File;
-import org.armedbear.j.Frame;
 import org.armedbear.j.Line;
 import org.armedbear.j.LocalTag;
 import org.armedbear.j.LocationBar;
 import org.armedbear.j.NavigationComponent;
 import org.armedbear.j.Position;
-import org.armedbear.j.Sidebar;
 import org.armedbear.j.SidebarTree;
 import org.armedbear.j.util.Utilities;
 
@@ -75,7 +73,6 @@ public final class JavaTree extends SidebarTree implements Constants,
         Editor.getSessionProperties().getBooleanProperty(KEY_SORT, false);
 
     private final Editor editor;
-    private final Frame frame;
     private List<LocalTag> tags;
     private boolean arrangedByType;
     private boolean sorted;
@@ -110,7 +107,6 @@ public final class JavaTree extends SidebarTree implements Constants,
     {
         super((TreeModel)null);
         this.editor = editor;
-        frame = editor.getFrame();
         getSelectionModel().setSelectionMode(TreeSelectionModel.SINGLE_TREE_SELECTION);
         setRootVisible(false);
         setCellRenderer(new TreeCellRenderer());
@@ -373,54 +369,20 @@ public final class JavaTree extends SidebarTree implements Constants,
 
     public void keyPressed(KeyEvent e)
     {
-        final int keyCode = e.getKeyCode();
-        final int modifiers = Utilities.keyModifiers(e);
-        switch (keyCode) {
-            // Ignore modifier keystrokes.
-            case KeyEvent.VK_SHIFT:
-            case KeyEvent.VK_CONTROL:
-            case KeyEvent.VK_ALT:
-            case KeyEvent.VK_META:
-                return;
-            case KeyEvent.VK_ENTER: {
-                e.consume();
-                TreePath path = getSelectionPath();
-                if (path != null) {
-                    DefaultMutableTreeNode node =
-                        (DefaultMutableTreeNode) path.getLastPathComponent();
-                    Object obj = node.getUserObject();
-                    if (obj instanceof JavaTag)
-                        ((JavaTag)obj).gotoTag(editor);
-                }
-                editor.setFocusToDisplay();
-                if (modifiers == Constants.ALT_MASK)
-                    editor.toggleSidebar();
-                return;
-            }
-            case KeyEvent.VK_TAB:
-                e.consume();
-                if (modifiers == 0) {
-                    final Sidebar sidebar = editor.getSidebar();
-                    if (sidebar.getBufferList() != null) {
-                        updatePosition();
-                        editor.setFocus(sidebar.getBufferList());
-                    }
-                }
-                return;
-            case KeyEvent.VK_ESCAPE:
-                e.consume();
-                editor.getSidebar().setBuffer();
-                updatePosition();
-                editor.setFocusToDisplay();
-                return;
+        final TreePath path = getSelectionPath();
+        LocalTag selected = null;
+        if (path != null) {
+            final Object obj =
+                ((DefaultMutableTreeNode) path.getLastPathComponent()).getUserObject();
+            if (obj instanceof LocalTag)
+                selected = (LocalTag) obj;
         }
-        editor.getDispatcher().setEnabled(false);
+        tagKeyPressed(editor, e, selected, this::updatePosition);
     }
 
     public void keyReleased(KeyEvent e)
     {
-        e.consume();
-        editor.getDispatcher().setEnabled(true);
+        tagKeyReleased(editor, e);
     }
 
     public void keyTyped(KeyEvent e)
@@ -462,7 +424,7 @@ public final class JavaTree extends SidebarTree implements Constants,
 
     public void mouseExited(MouseEvent e)
     {
-        frame.getCurrentEditor().setFocusToDisplay();
+        giveBackFocus(editor);
     }
 
     private static class ClassNode extends DefaultMutableTreeNode
@@ -545,8 +507,6 @@ public final class JavaTree extends SidebarTree implements Constants,
 
     private static class TreeCellRenderer extends DefaultTreeCellRenderer
     {
-        private static Color noFocusSelectionBackground = new Color(208, 208, 208);
-
         private Color oldBackgroundSelectionColor;
 
         public TreeCellRenderer()
@@ -568,7 +528,7 @@ public final class JavaTree extends SidebarTree implements Constants,
             if (Editor.getCurrentFrame().getFocusedComponent() == tree)
                 setBackgroundSelectionColor(oldBackgroundSelectionColor);
             else
-                setBackgroundSelectionColor(noFocusSelectionBackground);
+                setBackgroundSelectionColor(NO_FOCUS_SELECTION_BACKGROUND);
             if (value instanceof DefaultMutableTreeNode) {
                 Object obj = ((DefaultMutableTreeNode)value).getUserObject();
                 if (obj instanceof JavaTag) {

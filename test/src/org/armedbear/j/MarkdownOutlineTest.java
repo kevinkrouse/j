@@ -119,4 +119,28 @@ public class MarkdownOutlineTest
         h.cursor(3, 0);
         assertEquals("A › B", MarkdownMode.getMode().getContextString(h.editor(), false));
     }
+
+    @Test
+    public void theOutlineIsNotAnotherBuffersOnceItIsShown() throws Exception
+    {
+        tags("# A\n# B\n");
+        final Buffer a = h.buffer();
+        final SidebarTagTree tree = new SidebarTagTree(h.editor(),
+            tag -> ((MarkdownTag) tag).getLevel());
+        // Tagging a, but b is shown by the time it is done.
+        final EditorHarness other = EditorHarness.create("text\n");
+        try {
+            h.editor().setBufferDirectly(other.buffer());
+            tree.refreshInternal(a, null);
+            javax.swing.SwingUtilities.invokeAndWait(() -> {});
+            assertNull(tree.getModel());
+            h.editor().setBufferDirectly(a);
+            tree.refreshInternal(a, null);
+            javax.swing.SwingUtilities.invokeAndWait(() -> {});
+            assertEquals(2, tree.getModel().getChildCount(tree.getModel().getRoot()));
+        }
+        finally {
+            other.close();
+        }
+    }
 }
