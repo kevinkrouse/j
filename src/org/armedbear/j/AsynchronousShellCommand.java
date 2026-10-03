@@ -22,7 +22,6 @@ package org.armedbear.j;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.List;
 import javax.swing.SwingUtilities;
 import org.armedbear.j.mode.text.PlainTextFormatter;
 import org.armedbear.j.mode.text.PlainTextMode;
@@ -38,7 +37,6 @@ public final class AsynchronousShellCommand implements Constants, Runnable {
 
     private Process process;
     private Thread thread;
-    private ProcessTable processTable;
 
     public AsynchronousShellCommand(
         String command,
@@ -47,7 +45,7 @@ public final class AsynchronousShellCommand implements Constants, Runnable {
     ) {
         this.command = command;
         this.directory = directory;
-        cmdline = "(\\cd " + directory.canonicalPath() + " && " + command + ")";
+        cmdline = command;
         this.outputBuffer = buf;
         this.posEndOfBuffer = new Position(buf.getFirstLine(), 0);
         buf.setShellCommand(this);
@@ -65,12 +63,14 @@ public final class AsynchronousShellCommand implements Constants, Runnable {
         }
         try {
             if (cmdline != null) {
-                String[] cmdarray = { "/bin/sh", "-c", cmdline };
-                process = Runtime.getRuntime().exec(cmdarray);
+                process = new ProcessBuilder("/bin/sh", "-c", cmdline)
+                    .directory(new java.io.File(directory.canonicalPath()))
+                    .start();
             }
         }
         catch (IOException e) {
             Log.error(e);
+            appendLater(e.getMessage() + "\n");
         }
         if (process != null) {
             ShellCommandReaderThread stdoutThread =
@@ -79,7 +79,6 @@ public final class AsynchronousShellCommand implements Constants, Runnable {
             ShellCommandReaderThread stderrThread =
                 new ShellCommandReaderThread(process.getErrorStream());
             stderrThread.start();
-            processTable = ProcessTable.getProcessTable();
             try {
                 process.waitFor();
             }
@@ -95,28 +94,15 @@ public final class AsynchronousShellCommand implements Constants, Runnable {
             thread.interrupt();
     }
 
+    // The shell and everything it started.
     private void killProcess() {
-        if (processTable != null) {
-            List<ProcessTableEntry> entries = processTable.findMatchingEntries(cmdline);
-            if (entries != null && entries.size() > 0) {
-                // We want the last matching entry.
-                ProcessTableEntry parent =
-                    entries.get(entries.size() - 1);
-                if (parent != null) {
-                    List<ProcessTableEntry> children = processTable.findChildren(parent.pid);
-                    if (children != null) {
-                        for (ProcessTableEntry entry : children) {
-                            Utilities.kill(entry.pid);
-                        }
-                    }
-                }
-            }
-            try {
-                process.waitFor();
-            }
-            catch (InterruptedException e) {
-                Log.debug(e);
-            }
+        process.toHandle().descendants().forEach(ProcessHandle::destroyForcibly);
+        process.destroyForcibly();
+        try {
+            process.waitFor();
+        }
+        catch (InterruptedException e) {
+            Log.debug(e);
         }
     }
 

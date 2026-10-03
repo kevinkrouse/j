@@ -643,11 +643,10 @@ public final class DirectoryBuffer extends Buffer {
                     // Local file.
                     Process process = null;
                     if (Platform.isPlatformUnix()) {
-                        String cmd =
-                            "(\\cd \"" + file.canonicalPath() + "\" && \\ls " +
-                                flags + ")";
-                        String[] cmdarray = { "/bin/sh", "-c", cmd };
-                        process = Runtime.getRuntime().exec(cmdarray);
+                        // flags is the user's ls preference, so the shell reads it.
+                        process = new ProcessBuilder("/bin/sh", "-c", "\\ls " + flags)
+                            .directory(new java.io.File(file.canonicalPath()))
+                            .start();
                     } else {
                         // Windows.
                         String cp = file.canonicalPath();
@@ -1417,7 +1416,7 @@ public final class DirectoryBuffer extends Buffer {
     private String doCommandOnFile(String command, String filename) {
         StringBuilder sb = new StringBuilder(command);
         sb.append(' ');
-        sb.append(Utilities.maybeQuote(filename));
+        sb.append(Utilities.maybeQuoteFile(filename));
         ShellCommand shellCommand = new ShellCommand(sb.toString(), getFile());
         shellCommand.run();
         return shellCommand.getOutput();
@@ -1443,7 +1442,7 @@ public final class DirectoryBuffer extends Buffer {
         for (String file : files) {
             sb.append(' ');
             String filename = file;
-            sb.append(Utilities.maybeQuote(filename));
+            sb.append(Utilities.maybeQuoteFile(filename));
         }
         if (after.length() > 0) {
             sb.append(' ');

@@ -345,16 +345,11 @@ public final class NewsGroupMessageBuffer extends MessageBuffer {
     }
 
     private boolean decode(File encoded, String decodeCommand) {
-        StringBuilder sb = new StringBuilder("(\\cd \"");
-        sb.append(Directories.getTempDirectory().canonicalPath());
-        sb.append("\" && ");
-        sb.append(decodeCommand);
-        sb.append(" \"");
-        sb.append(encoded.getName());
-        sb.append("\")");
-        String[] cmdarray = { "/bin/sh", "-c", sb.toString() };
+        String cmd = decodeCommand + " " + Utilities.maybeQuoteFile(encoded.getName());
         try {
-            Process process = Runtime.getRuntime().exec(cmdarray);
+            Process process = new ProcessBuilder("/bin/sh", "-c", cmd)
+                .directory(new java.io.File(Directories.getTempDirectory().canonicalPath()))
+                .start();
             if (process != null) {
                 process.waitFor();
                 return true;

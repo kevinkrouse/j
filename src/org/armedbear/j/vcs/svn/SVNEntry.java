@@ -96,7 +96,7 @@ public final class SVNEntry extends VersionControlEntry {
 
         final File file = buffer.getFile();
         ShellCommand cmd = new ShellCommand(
-            "svn -v --xml st " + Utilities.maybeQuote(file.getName()),
+            "svn -v --xml st " + Utilities.maybeQuoteFile(file.getName()),
             file.getParentFile()
         );
         cmd.run();

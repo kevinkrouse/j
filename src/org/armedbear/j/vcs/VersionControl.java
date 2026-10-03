@@ -198,9 +198,11 @@ public abstract class VersionControl implements Constants {
                 if (arg.equals("%")) {
                     hasFilename = true;
                     if (file != null)
-                        arg = file.canonicalPath();
+                        arg = Utilities.maybeQuote(file.canonicalPath());
+                } else {
+                    arg = Utilities.quoteUserWord(arg);
                 }
-                sb.append(Utilities.maybeQuote(arg));
+                sb.append(arg);
                 sb.append(' ');
             }
         } else {
@@ -218,7 +220,7 @@ public abstract class VersionControl implements Constants {
         if (appendFilename && !hasFilename && file != null) {
             if (sb.charAt(sb.length() - 1) != ' ')
                 sb.append(" ");
-            sb.append(Utilities.maybeQuote(file.getName()));
+            sb.append(Utilities.maybeQuoteFile(file.getName()));
         }
 
         return sb.toString();

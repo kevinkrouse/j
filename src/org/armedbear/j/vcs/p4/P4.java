@@ -105,7 +105,7 @@ public class P4 extends VersionControl implements Constants {
         editor.setWaitCursor();
         final String name = buffer.getFile().getName();
         StringBuilder sb = new StringBuilder("p4 add ");
-        sb.append(Utilities.maybeQuote(name));
+        sb.append(Utilities.maybeQuoteFile(name));
         final String cmd = sb.toString();
         outputBufferCommand(editor, cmd, buffer.getCurrentDirectory());
     }
@@ -121,7 +121,7 @@ public class P4 extends VersionControl implements Constants {
         buffer.setBusy(true);
         editor.setWaitCursor();
         StringBuilder sb = new StringBuilder("p4 edit ");
-        sb.append(Utilities.maybeQuote(file.getName()));
+        sb.append(Utilities.maybeQuoteFile(file.getName()));
         final String cmd = sb.toString();
         Runnable commandRunnable = () -> {
             final String output = command(cmd, buffer.getCurrentDirectory());
@@ -170,7 +170,7 @@ public class P4 extends VersionControl implements Constants {
         if (output == null)
             return false;
         StringBuilder sb = new StringBuilder("p4 edit ");
-        sb.append(Utilities.maybeQuote(file.getName()));
+        sb.append(Utilities.maybeQuoteFile(file.getName()));
         editCompleted(editor, buffer, sb.toString(), output);
         return !buffer.isReadOnly();
     }
@@ -194,7 +194,7 @@ public class P4 extends VersionControl implements Constants {
         if (!haveP4())
             return null;
         StringBuilder sb = new StringBuilder("p4 edit ");
-        sb.append(Utilities.maybeQuote(file.getName()));
+        sb.append(Utilities.maybeQuoteFile(file.getName()));
         return command(sb.toString(), buffer.getCurrentDirectory());
     }
 
@@ -213,7 +213,7 @@ public class P4 extends VersionControl implements Constants {
             if (!editor.confirm("Revert Buffer", prompt))
                 return;
         }
-        final String cmd = "p4 revert " + Utilities.maybeQuote(file.getName());
+        final String cmd = "p4 revert " + Utilities.maybeQuoteFile(file.getName());
         Runnable commandRunnable = () -> {
             final String output = command(cmd, buffer.getCurrentDirectory());
             Runnable completionRunnable = () -> {
@@ -362,7 +362,7 @@ public class P4 extends VersionControl implements Constants {
             File file = parentBuffer.getFile();
             if (file == null)
                 return;
-            sb.append(Utilities.maybeQuote(file.getName()));
+            sb.append(Utilities.maybeQuoteFile(file.getName()));
             title = baseCmd + Utilities.maybeQuote(file.getName());
         } else
             title = sb.toString();

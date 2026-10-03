@@ -72,40 +72,28 @@ public final class ShellCommand implements Runnable {
         Process process = null;
         try {
             if (cmdline != null) {
+                ArrayList<String> list = new ArrayList<String>();
                 if (Platform.isPlatformUnix()) {
-                    if (workingDirectory != null) {
-                        StringBuilder sb = new StringBuilder("\\cd \"");
-                        sb.append(workingDirectory.canonicalPath());
-                        sb.append("\" && ");
-                        sb.append(cmdline);
-                        String[] cmdarray = { "/bin/sh", "-c", sb.toString() };
-                        process = Runtime.getRuntime().exec(cmdarray);
-                    } else {
-                        String[] cmdarray = { "/bin/sh", "-c", cmdline };
-                        process = Runtime.getRuntime().exec(cmdarray);
-                    }
+                    list.add("/bin/sh");
+                    list.add("-c");
+                    list.add(cmdline);
                 } else if (Platform.isPlatformWindows()) {
-                    ArrayList<String> list = new ArrayList<String>();
                     list.add("cmd.exe");
                     list.add("/c");
-                    if (workingDirectory != null) {
-                        StringBuilder sb = new StringBuilder("cd /d \"");
-                        sb.append(workingDirectory.canonicalPath());
-                        sb.append("\" && ");
-                        sb.append(cmdline);
-                        list.addAll(Utilities.tokenize(sb.toString()));
-                    } else
-                        list.addAll(Utilities.tokenize(cmdline));
-                    final int size = list.size();
-                    String[] cmdarray = new String[size];
-                    for (int i = 0; i < size; i++)
-                        cmdarray[i] = list.get(i);
-                    process = Runtime.getRuntime().exec(cmdarray);
+                    list.addAll(Utilities.tokenize(cmdline));
+                }
+                if (!list.isEmpty()) {
+                    ProcessBuilder pb = new ProcessBuilder(list);
+                    if (workingDirectory != null)
+                        pb.directory(new java.io.File(workingDirectory.canonicalPath()));
+                    process = pb.start();
                 }
             }
         }
         catch (IOException e) {
+            // Report the failure to start, e.g. a missing working directory, as output.
             Log.error(e);
+            appendOutput(e.getMessage() + "\n");
         }
         if (process != null) {
             ShellCommandReaderThread stdoutThread =

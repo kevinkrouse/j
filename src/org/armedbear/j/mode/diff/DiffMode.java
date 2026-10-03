@@ -153,7 +153,14 @@ public final class DiffMode extends AbstractMode implements Constants, Mode {
         if (defaultOptions != null)
             sb.append(defaultOptions);
         for (int i = 0; i < argList.size(); i++) {
-            sb.append(Utilities.maybeQuote(argList.get(i)));
+            // A file found above is a path; anything else is the user's word.
+            String arg = argList.get(i);
+            File file = File.getInstance(arg);
+            sb.append(
+                file != null && file.isLocal() && file.exists()
+                    ? Utilities.maybeQuote(arg)
+                    : Utilities.quoteUserWord(arg)
+            );
             sb.append(' ');
         }
         String cmdline = sb.toString().trim();

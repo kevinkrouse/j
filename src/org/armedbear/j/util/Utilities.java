@@ -1127,15 +1127,31 @@ public final class Utilities implements Constants {
         return (filenameChars.indexOf(c) >= 0);
     }
 
-    // Enclose string in quotes if it contains any embedded spaces.
+    /** A file name as one shell word that cannot be read as an option. */
+    public static String maybeQuoteFile(String name) {
+        return maybeQuote(name.startsWith("-") ? "./" + name : name);
+    }
+
+    /**
+     * A word the user typed, for /bin/sh: double-quoted if it has a space,
+     * so it stays one word, and otherwise left for the shell to read.
+     */
+    public static String quoteUserWord(String s) {
+        return s.indexOf(' ') < 0 ? s : '"' + s + '"';
+    }
+
+    private static final Pattern SHELL_SAFE = Pattern.compile("[A-Za-z0-9_@%+=:,./-]+");
+
+    /**
+     * s as one word for /bin/sh: in single quotes unless it needs none. On
+     * Windows, in double quotes if it has a space, for cmd.exe.
+     */
     public static String maybeQuote(String s) {
-        if (s.indexOf(' ') < 0)
+        if (Platform.isPlatformWindows())
+            return s.indexOf(' ') < 0 ? s : '"' + s + '"';
+        if (SHELL_SAFE.matcher(s).matches())
             return s;
-        StringBuilder sb = new StringBuilder();
-        sb.append('"');
-        sb.append(s);
-        sb.append('"');
-        return sb.toString();
+        return "'" + s.replace("'", "'\\''") + "'";
     }
 
     public static boolean isProcessAlive(Process process) {
@@ -1225,9 +1241,6 @@ public final class Utilities implements Constants {
     }
 
     /**
-     * Split arguments and run a command line.
-     */
-    /**
      * The keyboard modifiers held during an event, as j's own bits.
      *
      * <p>Read from getModifiersEx() rather than the deprecated getModifiers(),
@@ -1254,17 +1267,10 @@ public final class Utilities implements Constants {
         return keyModifiers(e) == 0;
     }
 
-    public static Process exec(String command) throws IOException {
-        StringTokenizer st = new StringTokenizer(command);
-        String[] args = new String[st.countTokens()];
-        for (int i = 0; i < args.length; i++)
-            args[i] = st.nextToken();
-        return Runtime.getRuntime().exec(args);
-    }
-
+    // s is a program and its arguments, separated by spaces.
     public static boolean have(final String s) {
         try {
-            final Process p = exec(s);
+            final Process p = new ProcessBuilder(s.split(" ")).start();
             if (p != null) {
                 Thread t = new Thread("Utilities.have(\"" + s + "\") destroy") {
                     public void run() {
@@ -1440,25 +1446,32 @@ public final class Utilities implements Constants {
                 }
             }
 
+            // Unread, stderr could fill its pipe and stall the command.
+            pb.redirectError(ProcessBuilder.Redirect.DISCARD);
             Process process = pb.start();
-            BufferedReader reader =
-                new BufferedReader(new InputStreamReader(process.getInputStream()));
+            process.getOutputStream().close();
             StringBuilder sb = new StringBuilder();
-            String s;
-            while ((s = reader.readLine()) != null) {
-                if (s.length() > 0) {
-                    if (sb.length() > 0)
-                        sb.append('\n');
-                    sb.append(s);
+            try (BufferedReader reader = new BufferedReader(
+                new InputStreamReader(process.getInputStream())
+            )) {
+                String s;
+                while ((s = reader.readLine()) != null) {
+                    if (s.length() > 0) {
+                        if (sb.length() > 0)
+                            sb.append('\n');
+                        sb.append(s);
+                    }
                 }
             }
-            process.getInputStream().close();
-            process.getOutputStream().close();
-            process.getErrorStream().close();
             process.waitFor();
             return sb.toString();
         }
-        catch (Throwable t) {
+        catch (IOException e) {
+            Log.debug(cmd + ": " + e);
+            return null;
+        }
+        catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
             return null;
         }
     }

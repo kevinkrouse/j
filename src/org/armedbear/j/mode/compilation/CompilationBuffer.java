@@ -177,43 +177,35 @@ public final class CompilationBuffer extends CompilationErrorBuffer
         process = null;
         exitValue = -1;
         try {
+            ArrayList<String> list = new ArrayList<String>();
             if (Platform.isPlatformWindows()) {
-                String cmd = "cd /d \"" + currentDir.canonicalPath() +
-                    "\" && " + expandedCommand;
-                ArrayList<String> list = new ArrayList<String>();
                 list.add("cmd.exe");
                 list.add("/c");
-                list.addAll(Utilities.tokenize(cmd));
-                final int size = list.size();
-                String[] cmdarray = new String[size];
-                for (int i = 0; i < size; i++)
-                    cmdarray[i] = list.get(i);
-                process = Runtime.getRuntime().exec(cmdarray);
+                list.addAll(Utilities.tokenize(expandedCommand));
             } else {
                 // Not Windows. Assume Unix.
                 if (Utilities.haveJpty()) {
                     exitValueFile = Utilities.getTempFile();
-                    StringBuilder sb = new StringBuilder();
-                    sb.append("(\\cd \"");
-                    sb.append(currentDir.canonicalPath());
-                    sb.append("\" && ");
-                    sb.append(expandedCommand);
-                    sb.append("; echo $? > ");
-                    sb.append(exitValueFile.canonicalPath());
-                    sb.append(')');
-                    final String cmd = sb.toString();
-                    String[] cmdarray = { Utilities.jptyPath(), "/bin/sh", "-c", cmd };
-                    process = Runtime.getRuntime().exec(cmdarray);
+                    list.add(Utilities.jptyPath());
+                    list.add("/bin/sh");
+                    list.add("-c");
+                    list.add(
+                        "(" + expandedCommand + "); echo $? > "
+                            + Utilities.maybeQuote(exitValueFile.canonicalPath())
+                    );
                 } else {
-                    String cmd = "(\\cd \"" + currentDir.canonicalPath() +
-                        "\" && " + expandedCommand + ")";
-                    String[] cmdarray = { "/bin/sh", "-c", cmd };
-                    process = Runtime.getRuntime().exec(cmdarray);
+                    list.add("/bin/sh");
+                    list.add("-c");
+                    list.add(expandedCommand);
                 }
             }
+            process = new ProcessBuilder(list)
+                .directory(new java.io.File(currentDir.canonicalPath()))
+                .start();
         }
         catch (Throwable t) {
             Log.error(t);
+            appendLater(t + "\n");
         }
     }
 

@@ -61,6 +61,8 @@ public final class Ssh {
             list.add("-P");
             list.add(String.valueOf(remote.getPort()));
         }
+        // The paths are never options.
+        list.add("--");
         StringBuilder sb = new StringBuilder();
         if (source instanceof SshFile) {
             if (userName != null) {

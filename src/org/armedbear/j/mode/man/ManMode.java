@@ -21,6 +21,7 @@ package org.armedbear.j.mode.man;
 import java.awt.AWTEvent;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseEvent;
+import java.util.ArrayList;
 import javax.swing.JPopupMenu;
 import org.armedbear.j.AbstractMode;
 import org.armedbear.j.Buffer;
@@ -176,10 +177,21 @@ public final class ManMode extends AbstractMode implements Constants, Mode {
                 }
             }
             File tempFile = Utilities.getTempFile();
-            String cmd = "man " + topic + " > " + tempFile.canonicalPath();
-            String[] cmdarray = { "/bin/sh", "-c", cmd };
+            ArrayList<String> cmd = new ArrayList<String>();
+            cmd.add("man");
+            for (String word : topic.trim().split("\\s+")) {
+                // Topics come from page text: a section and a name, or -k
+                // for apropos, never another option.
+                if (word.startsWith("-") && !word.equals("-k")) {
+                    editor.status("Not a topic: " + word);
+                    return;
+                }
+                cmd.add(word);
+            }
             try {
-                Process process = Runtime.getRuntime().exec(cmdarray);
+                Process process = new ProcessBuilder(cmd)
+                    .redirectOutput(new java.io.File(tempFile.canonicalPath()))
+                    .start();
                 process.waitFor();
             }
             catch (Exception e) {

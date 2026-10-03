@@ -48,7 +48,7 @@ public class Darcs extends VersionControl implements Constants {
             arg = args.get(i);
             if (i == 0 && arg.equals("w"))
                 arg = "whatsnew";
-            sb.append(Utilities.maybeQuote(arg));
+            sb.append(Utilities.quoteUserWord(arg));
             sb.append(' ');
         }
         if (sb.toString().equals("darcs whatsnew ")) {

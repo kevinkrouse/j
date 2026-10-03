@@ -21,6 +21,9 @@ package org.armedbear.j;
 
 import java.io.OutputStreamWriter;
 import java.lang.StringBuilder;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import javax.swing.SwingUtilities;
 import org.armedbear.j.util.Utilities;
 
@@ -53,7 +56,13 @@ public class RemoteShellBuffer extends ShellBuffer {
     protected void startProcess() {
         Process process = null;
         try {
-            process = Utilities.exec(Utilities.jptyPath() + " " + shellCommand + " " + host);
+            if (host.startsWith("-"))
+                throw new IllegalArgumentException("not a host: " + host);
+            List<String> cmd = new ArrayList<String>();
+            cmd.add(Utilities.jptyPath());
+            cmd.addAll(Arrays.asList(shellCommand.trim().split("\\s+")));
+            cmd.add(host);
+            process = new ProcessBuilder(cmd).start();
             setProcess(process);
         }
         catch (Throwable t) {

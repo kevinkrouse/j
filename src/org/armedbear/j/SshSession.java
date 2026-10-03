@@ -451,20 +451,22 @@ public final class SshSession implements Constants, RemoteSession {
             Log.debug("SshSession.connect(): already connected");
             return true;
         }
-        StringBuilder sb = new StringBuilder(Utilities.jptyPath() + " ssh ");
+        List<String> cmd = new ArrayList<String>();
+        cmd.add(Utilities.jptyPath());
+        cmd.add("ssh");
         if (userName != null && userName.length() > 0) {
-            sb.append("-l ");
-            sb.append(userName);
-            sb.append(' ');
+            cmd.add("-l");
+            cmd.add(userName);
         }
         if (port != DEFAULT_PORT) {
-            sb.append("-p ");
-            sb.append(port);
-            sb.append(' ');
+            cmd.add("-p");
+            cmd.add(String.valueOf(port));
         }
-        sb.append(hostName);
+        // The host is never an option.
+        cmd.add("--");
+        cmd.add(hostName);
         try {
-            process = Utilities.exec(sb.toString());
+            process = new ProcessBuilder(cmd).start();
         }
         catch (Throwable t) {
             Log.error(t);

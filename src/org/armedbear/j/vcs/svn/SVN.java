@@ -100,7 +100,7 @@ public class SVN extends VersionControl implements Constants {
         if (buffer.getFile() == null)
             return;
         editor.setWaitCursor();
-        final String cmd = "svn add " + Utilities.maybeQuote(buffer.getFile().getName());
+        final String cmd = "svn add " + Utilities.maybeQuoteFile(buffer.getFile().getName());
         outputBufferCommand(editor, cmd, buffer.getCurrentDirectory());
         // UNDONE: call buffer.checkVCS() and refresh 
     }
@@ -120,7 +120,7 @@ public class SVN extends VersionControl implements Constants {
             if (!editor.confirm("Revert Buffer", prompt))
                 return;
         }
-        final String cmd = "svn revert " + Utilities.maybeQuote(file.getName());
+        final String cmd = "svn revert " + Utilities.maybeQuoteFile(file.getName());
         Runnable commandRunnable = () -> {
             final String output = command(cmd, buffer.getCurrentDirectory());
             Runnable completionRunnable = () -> {
@@ -278,7 +278,7 @@ public class SVN extends VersionControl implements Constants {
             sb.append(changelist);
         else
             sb.append("--remove");
-        sb.append(" ").append(Utilities.maybeQuote(parentBuffer.getFile().getName()));
+        sb.append(" ").append(Utilities.maybeQuoteFile(parentBuffer.getFile().getName()));
         final String cmd = sb.toString();
         Runnable commandRunnable = () -> {
             final String output =

@@ -90,7 +90,7 @@ public final class CVS extends VersionControl implements Constants {
         editor.setWaitCursor();
         final String name = buffer.getFile().getName();
         StringBuilder sb = new StringBuilder("cvs add ");
-        sb.append(Utilities.maybeQuote(name));
+        sb.append(Utilities.maybeQuoteFile(name));
         final String cmd = sb.toString();
         Runnable commandRunnable = () -> {
             final String output =
@@ -194,7 +194,7 @@ public final class CVS extends VersionControl implements Constants {
         StringBuilder sb = new StringBuilder("cvs diff ");
         sb.append(args);
         sb.append(' ');
-        sb.append(Utilities.maybeQuote(name));
+        sb.append(Utilities.maybeQuoteFile(name));
         final String cmd = sb.toString();
         boolean save = false;
         if (parentBuffer.isModified()) {
