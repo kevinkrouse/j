@@ -29,6 +29,7 @@ import org.armedbear.j.extension.EvalRequest;
 import org.armedbear.j.extension.EvalResult;
 import org.armedbear.j.extension.LanguageClient;
 import org.armedbear.j.extension.Session;
+import org.armedbear.j.util.Background;
 import org.armedbear.lisp.Condition;
 import org.armedbear.lisp.ControlTransfer;
 import org.armedbear.lisp.Interpreter;
@@ -182,7 +183,7 @@ public final class AbclSession implements Session {
         };
         // Honestly async: booting the interpreter can take a second, and this
         // is called from the event dispatch thread.
-        new Thread(r, "abcl eval").start();
+        Background.start("abcl eval", r);
     }
 
     public void loadFile(File file) throws EvalException {

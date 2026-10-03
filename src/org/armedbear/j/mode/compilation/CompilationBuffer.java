@@ -28,10 +28,8 @@ import java.lang.StringBuilder;
 import java.util.ArrayList;
 import javax.swing.SwingUtilities;
 import org.armedbear.j.Buffer;
-import org.armedbear.j.BufferIterator;
 import org.armedbear.j.Constants;
 import org.armedbear.j.Editor;
-import org.armedbear.j.EditorIterator;
 import org.armedbear.j.File;
 import org.armedbear.j.Log;
 import org.armedbear.j.Platform;
@@ -57,20 +55,11 @@ public final class CompilationBuffer extends CompilationErrorBuffer
         setCommand(command);
         currentDir = directory;
         mode = CompilationMode.getMode();
-        try {
-            lockWrite();
-        }
-        catch (InterruptedException e) {
-            Log.debug(e);
-            return;
-        }
-        try {
+        if (!withWriteLock(() -> {
             appendLine("");
             renumber();
-        }
-        finally {
-            unlockWrite();
-        }
+        }))
+            return;
         setLoaded(true);
         posEndOfBuffer = new Position(getFirstLine(), 0);
     }
@@ -89,26 +78,16 @@ public final class CompilationBuffer extends CompilationErrorBuffer
     }
 
     public void empty() {
-        try {
-            lockWrite();
-        }
-        catch (InterruptedException e) {
-            Log.debug(e);
-            return;
-        }
-        try {
+        if (!withWriteLock(() -> {
             super.empty();
             appendLine("");
             renumber();
             setLoaded(true);
             posEndOfBuffer = new Position(getFirstLine(), 0);
             setCurrentError(null);
-        }
-        finally {
-            unlockWrite();
-        }
-        for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-            Editor ed = it.next();
+        }))
+            return;
+        for (Editor ed : Editor.getEditorList()) {
             if (ed.getBuffer() == this) {
                 ed.setDot(getFirstLine(), 0);
                 ed.setTopLine(getFirstLine());
@@ -269,8 +248,7 @@ public final class CompilationBuffer extends CompilationErrorBuffer
     }
 
     public static void killCompilation() {
-        for (BufferIterator it = new BufferIterator(); it.hasNext();) {
-            Buffer buf = it.next();
+        for (Buffer buf : Editor.getBufferList()) {
             if (buf instanceof CompilationBuffer) {
                 ((CompilationBuffer) buf).killProcess();
                 break;
@@ -301,8 +279,7 @@ public final class CompilationBuffer extends CompilationErrorBuffer
             insertString(pos, s);
             if (needsRenumbering())
                 renumber();
-            for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-                Editor ed = it.next();
+            for (Editor ed : Editor.getEditorList()) {
                 if (ed.getBuffer() == CompilationBuffer.this) {
                     ed.eob();
                     ed.getDisplay().setReframe(-2);

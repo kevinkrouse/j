@@ -21,6 +21,7 @@
 package org.armedbear.j;
 
 import javax.swing.SwingUtilities;
+import org.armedbear.j.util.Background;
 
 public class FtpSaveProcess implements BackgroundProcess, Constants {
     private final Buffer buffer;
@@ -96,7 +97,7 @@ public class FtpSaveProcess implements BackgroundProcess, Constants {
             if (ed.getBuffer() == buffer)
                 ed.setWaitCursor();
         }
-        new Thread(this).start();
+        Background.start("FtpSaveProcess", this);
     }
 
     public void run() {

@@ -29,9 +29,10 @@ import org.armedbear.j.Log;
 import org.armedbear.j.MessageDialog;
 import org.armedbear.j.ProgressNotifier;
 import org.armedbear.j.StatusBarProgressNotifier;
+import org.armedbear.j.util.Background;
 
 public final class ImapMessageBuffer extends MessageBuffer {
-    private boolean cancelled;
+    private volatile boolean cancelled;
 
     /*package*/ ImapMessageBuffer(ImapMailboxBuffer mailbox, ImapMailboxEntry entry) {
         super();
@@ -85,7 +86,7 @@ public final class ImapMessageBuffer extends MessageBuffer {
             return LOAD_FAILED;
         }
         setBusy(true);
-        new Thread(loadProcess).start();
+        Background.start("ImapMessageBuffer load", loadProcess);
         return LOAD_PENDING;
     }
 
@@ -212,7 +213,7 @@ public final class ImapMessageBuffer extends MessageBuffer {
             }
         };
         setBusy(true);
-        new Thread(deleteMessageRunnable).start();
+        Background.start("ImapMessageBuffer delete message", deleteMessageRunnable);
     }
 
     public void moveMessage() {
@@ -310,6 +311,6 @@ public final class ImapMessageBuffer extends MessageBuffer {
             }
         };
         setBusy(true);
-        new Thread(moveMessageRunnable).start();
+        Background.start("ImapMessageBuffer move message", moveMessageRunnable);
     }
 }

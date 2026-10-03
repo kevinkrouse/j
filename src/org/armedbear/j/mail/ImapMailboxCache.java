@@ -35,6 +35,7 @@ import org.armedbear.j.Debug;
 import org.armedbear.j.Directories;
 import org.armedbear.j.File;
 import org.armedbear.j.Log;
+import org.armedbear.j.util.Background;
 import org.armedbear.j.util.Utilities;
 
 public final class ImapMailboxCache implements Serializable {
@@ -67,7 +68,7 @@ public final class ImapMailboxCache implements Serializable {
         Runnable r = () -> {
             writeCacheInternal();
         };
-        new Thread(r).start();
+        Background.start("ImapMailboxCache", r);
     }
 
     private void writeCacheInternal() {

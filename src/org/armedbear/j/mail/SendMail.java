@@ -64,6 +64,7 @@ import org.armedbear.j.Region;
 import org.armedbear.j.Sidebar;
 import org.armedbear.j.SimpleEdit;
 import org.armedbear.j.Version;
+import org.armedbear.j.util.Background;
 import org.armedbear.j.util.Utilities;
 
 public final class SendMail extends Buffer {
@@ -631,7 +632,7 @@ public final class SendMail extends Buffer {
             SwingUtilities.invokeLater(succeeded ? succeededRunnable : errorRunnable);
         };
         setBusy(true);
-        new Thread(sendRunnable).start();
+        Background.start("SendMail send", sendRunnable);
     }
 
     private boolean confirmSend() {

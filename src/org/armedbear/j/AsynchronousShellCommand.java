@@ -25,6 +25,7 @@ import java.io.InputStream;
 import javax.swing.SwingUtilities;
 import org.armedbear.j.mode.text.PlainTextFormatter;
 import org.armedbear.j.mode.text.PlainTextMode;
+import org.armedbear.j.util.Background;
 import org.armedbear.j.util.ReaderThread;
 import org.armedbear.j.util.Utilities;
 
@@ -52,7 +53,7 @@ public final class AsynchronousShellCommand implements Constants, Runnable {
     }
 
     private void start() {
-        thread = new Thread(this);
+        thread = Background.newThread("shell command", this);
         thread.start();
     }
 

@@ -41,6 +41,7 @@ import org.armedbear.j.Sidebar;
 import org.armedbear.j.mode.checkin.CheckinBuffer;
 import org.armedbear.j.mode.diff.DiffOutputBuffer;
 import org.armedbear.j.mode.text.PlainTextFormatter;
+import org.armedbear.j.util.Background;
 import org.armedbear.j.util.Utilities;
 import org.armedbear.j.vcs.StatusOutputBuffer;
 import org.armedbear.j.vcs.VersionControl;
@@ -80,7 +81,7 @@ public class SVN extends VersionControl implements Constants {
             };
             SwingUtilities.invokeLater(completionRunnable);
         };
-        new Thread(commandRunnable).start();
+        Background.start("SVN command", commandRunnable);
     }
 
     private static void svnCompleted(
@@ -137,7 +138,7 @@ public class SVN extends VersionControl implements Constants {
             };
             SwingUtilities.invokeLater(completionRunnable);
         };
-        new Thread(commandRunnable).start();
+        Background.start("SVN command", commandRunnable);
 
     }
 
@@ -200,7 +201,7 @@ public class SVN extends VersionControl implements Constants {
                 };
                 SwingUtilities.invokeLater(completionRunnable);
             };
-            new Thread(commandRunnable).start();
+            Background.start("SVN command", commandRunnable);
         }
     }
 
@@ -234,7 +235,7 @@ public class SVN extends VersionControl implements Constants {
             };
             SwingUtilities.invokeLater(completionRunnable);
         };
-        new Thread(commandRunnable).start();
+        Background.start("SVN command", commandRunnable);
     }
 
     public static void log() {
@@ -284,7 +285,7 @@ public class SVN extends VersionControl implements Constants {
             };
             SwingUtilities.invokeLater(completionRunnable);
         };
-        new Thread(commandRunnable).start();
+        Background.start("SVN command", commandRunnable);
     }
 
     public static void status() {
@@ -317,7 +318,7 @@ public class SVN extends VersionControl implements Constants {
             };
             SwingUtilities.invokeLater(completionRunnable);
         };
-        new Thread(commandRunnable).start();
+        Background.start("SVN command", commandRunnable);
     }
 
     public static void commit() {
@@ -477,7 +478,7 @@ public class SVN extends VersionControl implements Constants {
             }
             Editor.restoreFocus();
         };
-        new Thread(commandRunnable).start();
+        Background.start("SVN command", commandRunnable);
     }
 
     protected static boolean checkSVNInstalled() {

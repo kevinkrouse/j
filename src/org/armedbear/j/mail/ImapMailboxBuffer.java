@@ -45,6 +45,7 @@ import org.armedbear.j.Sidebar;
 import org.armedbear.j.StatusBar;
 import org.armedbear.j.StatusBarProgressNotifier;
 import org.armedbear.j.View;
+import org.armedbear.j.util.Background;
 import org.armedbear.j.util.Utilities;
 
 public final class ImapMailboxBuffer extends MailboxBuffer {
@@ -57,7 +58,7 @@ public final class ImapMailboxBuffer extends MailboxBuffer {
     private int uidValidity;
     private int uidLast;
     private ImapMailboxCache mailboxCache;
-    private boolean cancelled;
+    private volatile boolean cancelled;
     private Thread backgroundThread;
 
     public ImapMailboxBuffer(ImapURL url, ImapSession session) {
@@ -191,7 +192,7 @@ public final class ImapMailboxBuffer extends MailboxBuffer {
         if (lock()) {
             setBusy(true);
             saveDisplayState();
-            new Thread(expungeRunnable).start();
+            Background.start("ImapMailboxBuffer expunge", expungeRunnable);
         }
     }
 
@@ -200,7 +201,7 @@ public final class ImapMailboxBuffer extends MailboxBuffer {
             return LOAD_COMPLETED;
         } else if (lock()) {
             Debug.assertTrue(backgroundThread == null);
-            backgroundThread = new Thread(loadProcess);
+            backgroundThread = Background.newThread("imap load", loadProcess);
             backgroundThread.start();
             setLoaded(true);
             return LOAD_PENDING;
@@ -277,7 +278,7 @@ public final class ImapMailboxBuffer extends MailboxBuffer {
         if (interactive)
             saveDisplayState();
         Debug.assertTrue(backgroundThread == null);
-        backgroundThread = new Thread(new GetNewMessagesProcess(interactive));
+        backgroundThread = Background.newThread("imap get new messages", new GetNewMessagesProcess(interactive));
         backgroundThread.start();
     }
 
@@ -405,7 +406,7 @@ public final class ImapMailboxBuffer extends MailboxBuffer {
         // it here so we have exclusive use of the session.
         if (lock()) {
             setBusy(true);
-            new Thread(createRunnable).start();
+            Background.start("ImapMailboxBuffer create", createRunnable);
         }
     }
 
@@ -445,7 +446,7 @@ public final class ImapMailboxBuffer extends MailboxBuffer {
         // it here so we have exclusive use of the session.
         if (lock()) {
             setBusy(true);
-            new Thread(deleteFolderRunnable).start();
+            Background.start("ImapMailboxBuffer delete folder", deleteFolderRunnable);
         }
     }
 
@@ -522,7 +523,7 @@ public final class ImapMailboxBuffer extends MailboxBuffer {
         };
         if (lock()) {
             setBusy(true);
-            new Thread(saveRunnable).start();
+            Background.start("ImapMailboxBuffer save", saveRunnable);
         }
     }
 
@@ -592,7 +593,7 @@ public final class ImapMailboxBuffer extends MailboxBuffer {
         };
         if (lock()) {
             setBusy(true);
-            new Thread(moveRunnable).start();
+            Background.start("ImapMailboxBuffer move", moveRunnable);
         }
     }
 
@@ -747,7 +748,7 @@ public final class ImapMailboxBuffer extends MailboxBuffer {
         };
         if (lock()) {
             setBusy(true);
-            new Thread(deleteRunnable).start();
+            Background.start("ImapMailboxBuffer delete", deleteRunnable);
         }
     }
 
@@ -871,7 +872,7 @@ public final class ImapMailboxBuffer extends MailboxBuffer {
         };
         if (lock()) {
             setBusy(true);
-            new Thread(storeFlagsRunnable).start();
+            Background.start("ImapMailboxBuffer store flags", storeFlagsRunnable);
         }
     }
 
@@ -944,7 +945,7 @@ public final class ImapMailboxBuffer extends MailboxBuffer {
         };
         if (lock()) {
             setBusy(true);
-            new Thread(flagRunnable).start();
+            Background.start("ImapMailboxBuffer flag", flagRunnable);
         }
     }
 
@@ -969,7 +970,7 @@ public final class ImapMailboxBuffer extends MailboxBuffer {
         };
         if (lock()) {
             setBusy(true);
-            new Thread(setAnsweredFlagRunnable).start();
+            Background.start("ImapMailboxBuffer set answered flag", setAnsweredFlagRunnable);
         }
     }
 
@@ -1108,12 +1109,10 @@ public final class ImapMailboxBuffer extends MailboxBuffer {
     }
 
     private boolean getAllMessageHeaders() {
-        Thread t = new Thread() {
-            public void run() {
-                mailboxCache = ImapMailboxCache.readCache(ImapMailboxBuffer.this);
-            }
-        };
-        t.start();
+        Thread t = Background.start(
+            "imap read cache",
+            () -> mailboxCache = ImapMailboxCache.readCache(ImapMailboxBuffer.this)
+        );
         if (!session.verifyConnected()) {
             Log.error(
                 "getAllMessageHeaders can't connect to " +
@@ -1442,7 +1441,7 @@ public final class ImapMailboxBuffer extends MailboxBuffer {
         };
         if (lock()) {
             setBusy(true);
-            new Thread(markReadRunnable).start();
+            Background.start("ImapMailboxBuffer mark read", markReadRunnable);
         }
     }
 
@@ -1636,7 +1635,7 @@ public final class ImapMailboxBuffer extends MailboxBuffer {
         Runnable r = () -> {
             session.logout();
         };
-        new Thread(r).start();
+        Background.start("ImapMailboxBuffer", r);
         MailboxProperties.saveProperties(this);
     }
 

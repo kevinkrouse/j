@@ -29,6 +29,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 import javax.swing.SwingUtilities;
+import javax.swing.Timer;
 import org.armedbear.j.util.ReaderThread;
 import org.armedbear.j.util.Utilities;
 
@@ -46,7 +47,7 @@ public final class SshSession implements Constants, RemoteSession {
 
     private static ArrayList<SshSession> sessionList;
 
-    private static CleanupThread cleanupThread;
+    private static Timer cleanupTimer;
 
     private String hostName;
     private String userName;
@@ -103,9 +104,9 @@ public final class SshSession implements Constants, RemoteSession {
         if (sessionList == null)
             sessionList = new ArrayList<SshSession>();
         sessionList.add(session);
-        if (cleanupThread == null) {
-            cleanupThread = new CleanupThread(cleanupRunnable);
-            cleanupThread.start();
+        if (cleanupTimer == null) {
+            cleanupTimer = new Timer(60000, e -> cleanup());
+            cleanupTimer.start();
         }
         Log.debug("leaving register() session count = " + sessionList.size());
     }
@@ -982,22 +983,12 @@ public final class SshSession implements Constants, RemoteSession {
             final Buffer buf = outputBuffer;
             if (buf == null)
                 return;
-            try {
-                buf.lockWrite();
-            }
-            catch (InterruptedException e) {
-                Log.debug(e);
-                return;
-            }
-            try {
+            if (!buf.withWriteLock(() -> {
                 buf.append(s);
                 buf.renumber();
-            }
-            finally {
-                buf.unlockWrite();
-            }
-            for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-                Editor ed = it.next();
+            }))
+                return;
+            for (Editor ed : Editor.getEditorList()) {
                 if (ed.getBuffer() == buf) {
                     ed.setDot(buf.getEnd());
                     ed.moveCaretToDotCol();
@@ -1013,8 +1004,7 @@ public final class SshSession implements Constants, RemoteSession {
         if (userName == null)
             userName = System.getProperty("user.name");
         if (password == null) {
-            for (BufferIterator it = new BufferIterator(); it.hasNext();) {
-                Buffer buf = it.next();
+            for (Buffer buf : Editor.getBufferList()) {
                 if (buf.getFile() instanceof SshFile) {
                     SshFile f = (SshFile) buf.getFile();
                     if (f.hostName != null && f.hostName.equals(hostName)) {
@@ -1045,8 +1035,7 @@ public final class SshSession implements Constants, RemoteSession {
                     continue;
                 String hostName = session.getHostName();
                 boolean inUse = false;
-                for (BufferIterator it = new BufferIterator(); it.hasNext();) {
-                    Buffer buf = it.next();
+                for (Buffer buf : Editor.getBufferList()) {
                     if (buf.getFile() instanceof SshFile) {
                         if (hostName.equals(buf.getFile().getHostName())) {
                             inUse = true;
@@ -1059,17 +1048,13 @@ public final class SshSession implements Constants, RemoteSession {
             }
             if (sessionList.size() == 0) {
                 sessionList = null;
-                if (cleanupThread != null) {
-                    cleanupThread.cancel();
-                    cleanupThread = null;
+                if (cleanupTimer != null) {
+                    cleanupTimer.stop();
+                    cleanupTimer = null;
                 }
             }
         }
     }
-
-    private static final Runnable cleanupRunnable = () -> {
-        cleanup();
-    };
 
     private String stdOutFilter(String s) {
         return s;

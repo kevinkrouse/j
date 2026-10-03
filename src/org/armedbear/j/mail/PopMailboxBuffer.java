@@ -49,6 +49,7 @@ import org.armedbear.j.PasswordDialog;
 import org.armedbear.j.Property;
 import org.armedbear.j.StatusBarProgressNotifier;
 import org.armedbear.j.View;
+import org.armedbear.j.util.Background;
 import org.armedbear.j.util.Utilities;
 
 public final class PopMailboxBuffer extends LocalMailboxBuffer {
@@ -56,7 +57,7 @@ public final class PopMailboxBuffer extends LocalMailboxBuffer {
 
     private File localStore;
     private StatusBarProgressNotifier progressNotifier;
-    private boolean cancelled;
+    private volatile boolean cancelled;
     private Thread backgroundThread;
 
     public PopMailboxBuffer(PopURL url, PopSession session) {
@@ -88,7 +89,7 @@ public final class PopMailboxBuffer extends LocalMailboxBuffer {
             return LOAD_COMPLETED;
         if (lock()) {
             Debug.assertTrue(backgroundThread == null);
-            backgroundThread = new Thread(loadProcess);
+            backgroundThread = Background.newThread("pop load", loadProcess);
             backgroundThread.start();
             setLoaded(true);
             return LOAD_PENDING;
@@ -201,7 +202,7 @@ public final class PopMailboxBuffer extends LocalMailboxBuffer {
         if (userInitiated)
             saveDisplayState();
         Debug.assertTrue(backgroundThread == null);
-        backgroundThread = new Thread(new GetNewMessagesProcess(userInitiated));
+        backgroundThread = Background.newThread("pop get new messages", new GetNewMessagesProcess(userInitiated));
         backgroundThread.start();
     }
 
@@ -597,7 +598,7 @@ public final class PopMailboxBuffer extends LocalMailboxBuffer {
             setBusy(true);
             saveDisplayState();
             Debug.assertTrue(backgroundThread == null);
-            backgroundThread = new Thread(expungeProcess);
+            backgroundThread = Background.newThread("pop expunge", expungeProcess);
             backgroundThread.start();
         }
     }
@@ -898,7 +899,7 @@ public final class PopMailboxBuffer extends LocalMailboxBuffer {
                 Log.error(e);
             }
         };
-        new Thread(disposeRunnable).start();
+        Background.start("PopMailboxBuffer dispose", disposeRunnable);
         MailboxProperties.saveProperties(this);
     }
 

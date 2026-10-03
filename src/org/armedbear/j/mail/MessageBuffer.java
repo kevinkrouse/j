@@ -56,6 +56,7 @@ import org.armedbear.j.mode.image.ImageLine;
 import org.armedbear.j.mode.web.WebBuffer;
 import org.armedbear.j.mode.web.WebFormatter;
 import org.armedbear.j.mode.web.WebLoader;
+import org.armedbear.j.util.Background;
 import org.armedbear.j.util.FastStringReader;
 import org.armedbear.j.util.Utilities;
 
@@ -387,7 +388,7 @@ public class MessageBuffer extends Buffer {
                     mailbox.unlock();
                 }
             };
-            new Thread(r).start();
+            Background.start("MessageBuffer", r);
         } else
             editor.status("Mailbox is locked");
     }
@@ -521,7 +522,7 @@ public class MessageBuffer extends Buffer {
             }
         };
         setBusy(true);
-        new Thread(bounceRunnable).start();
+        Background.start("MessageBuffer bounce", bounceRunnable);
     }
 
     protected String getBeautifiedHeaders() {

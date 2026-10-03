@@ -36,6 +36,7 @@ import java.util.regex.PatternSyntaxException;
 import javax.swing.SwingUtilities;
 import javax.swing.undo.CompoundEdit;
 import org.armedbear.j.mode.list.ListOccurrencesInFilesBuffer;
+import org.armedbear.j.util.Background;
 import org.armedbear.j.vcs.p4.P4;
 
 public final class FindInFiles extends Replacement implements Constants,
@@ -59,7 +60,7 @@ public final class FindInFiles extends Replacement implements Constants,
 
     private List<File> results = new ArrayList<File>();
 
-    private boolean cancelled;
+    private volatile boolean cancelled;
 
     private int numFilesExamined;
     private int numFilesModified;
@@ -214,7 +215,7 @@ public final class FindInFiles extends Replacement implements Constants,
     }
 
     private void runInternal() {
-        frame.setWaitCursor();
+        SwingUtilities.invokeLater(frame::setWaitCursor);
         Pattern excludesRE = null;
         if (defaultExcludes) {
             try {
@@ -842,7 +843,7 @@ public final class FindInFiles extends Replacement implements Constants,
         }
         findInFiles = d.getFindInFiles();
         findInFiles.setOutputBuffer(new ListOccurrencesInFilesBuffer(findInFiles));
-        new Thread(findInFiles).start();
+        Background.start("FindInFiles", findInFiles);
         Buffer outputBuffer = findInFiles.getOutputBuffer();
         if (outputBuffer != null) {
             Editor otherEditor = editor.getOtherEditor();

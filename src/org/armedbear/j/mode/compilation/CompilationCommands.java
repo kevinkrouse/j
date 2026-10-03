@@ -38,6 +38,7 @@ import org.armedbear.j.Property;
 import org.armedbear.j.Sidebar;
 import org.armedbear.j.SimpleEdit;
 import org.armedbear.j.mode.xml.XmlMode;
+import org.armedbear.j.util.Background;
 import org.armedbear.j.util.Utilities;
 
 public final class CompilationCommands implements Constants {
@@ -136,7 +137,7 @@ public final class CompilationCommands implements Constants {
         cb.initialize();
         // Don't keep a reference to the parent buffer indefinitely!
         cb.setParentBuffer(null);
-        new Thread(cb).start();
+        Background.start("compilation", cb);
         if (!visible) {
             Editor otherEditor = editor.getOtherEditor();
             if (otherEditor != null) {

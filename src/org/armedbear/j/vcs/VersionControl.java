@@ -34,6 +34,7 @@ import org.armedbear.j.OutputBuffer;
 import org.armedbear.j.Property;
 import org.armedbear.j.ShellCommand;
 import org.armedbear.j.mode.diff.DiffOutputBuffer;
+import org.armedbear.j.util.Background;
 import org.armedbear.j.util.Utilities;
 import org.armedbear.j.vcs.cvs.CVSEntry;
 import org.armedbear.j.vcs.git.GitEntry;
@@ -241,7 +242,7 @@ public abstract class VersionControl implements Constants {
             };
             SwingUtilities.invokeLater(completionRunnable);
         };
-        new Thread(commandRunnable).start();
+        Background.start("VersionControl command", commandRunnable);
     }
 
     protected static List<Buffer> getModifiedBuffers() {

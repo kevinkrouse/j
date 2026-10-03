@@ -34,6 +34,7 @@ import org.armedbear.j.Log;
 import org.armedbear.j.MessageDialog;
 import org.armedbear.j.ProgressNotifier;
 import org.armedbear.j.StatusBarProgressNotifier;
+import org.armedbear.j.util.Background;
 
 public final class NewsBuffer extends Buffer {
     private static final File newsDir =
@@ -58,7 +59,7 @@ public final class NewsBuffer extends Buffer {
 
     public int load() {
         setBusy(true);
-        new Thread(loadRunnable).start();
+        Background.start("NewsBuffer load", loadRunnable);
         setLoaded(true);
         return LOAD_COMPLETED;
     }

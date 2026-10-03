@@ -46,6 +46,7 @@ import org.armedbear.j.ProgressNotifier;
 import org.armedbear.j.Property;
 import org.armedbear.j.Sidebar;
 import org.armedbear.j.View;
+import org.armedbear.j.util.Background;
 import org.armedbear.j.util.Utilities;
 
 public class LocalMailboxBuffer extends MailboxBuffer {
@@ -365,7 +366,7 @@ public class LocalMailboxBuffer extends MailboxBuffer {
     public int load() {
         if (lock()) {
             setBusy(true);
-            new Thread(loadRunnable).start();
+            Background.start("LocalMailboxBuffer load", loadRunnable);
             setLoaded(true);
             return LOAD_PENDING;
         } else
@@ -606,7 +607,7 @@ public class LocalMailboxBuffer extends MailboxBuffer {
                 Log.error(e);
             }
         };
-        new Thread(disposeRunnable).start();
+        Background.start("LocalMailboxBuffer dispose", disposeRunnable);
     }
 
     public String toString() {

@@ -66,6 +66,7 @@ import javax.swing.JPopupMenu;
 import javax.swing.JTree;
 import javax.swing.JViewport;
 import javax.swing.SwingUtilities;
+import javax.swing.Timer;
 import javax.swing.ToolTipManager;
 import javax.swing.UIManager;
 import javax.swing.border.Border;
@@ -98,10 +99,10 @@ public final class SidebarBufferTree extends SidebarTree implements Constants,
     private int draggedBufferRow = -1;
     // Metric used for determining the WAIT_TIME between scroll increments.
     private int scrollY = 0;
-    private Runnable scroller = null;
+    private final Timer scrollTimer = new Timer(WAIT_TIMES[0], e -> scrollStep());
     // Variable times used to speed up scrolling the further the mouse is
     // from the tree.
-    private static final long[] WAIT_TIMES = new long[] {
+    private static final int[] WAIT_TIMES = new int[] {
         200, 175, 150, 125, 100, 75, 50, 37, 25, 15, 10, 5
     };
 
@@ -837,66 +838,44 @@ public final class SidebarBufferTree extends SidebarTree implements Constants,
         startScroll();
     }
 
-    // Initialize and start the scroller thread if it is not currently running.
-    private synchronized void startScroll() {
-        if (scroller == null) {
-            scroller = new TreeScroller();
-            Thread scroll = new Thread(scroller, "SidebarBufferTree scroller");
-            scroll.setDaemon(true);
-            scroll.setPriority(Thread.MIN_PRIORITY);
-            scroll.start();
+    private void startScroll() {
+        if (!scrollTimer.isRunning()) {
+            scrollTimer.setInitialDelay(0);
+            scrollTimer.start();
         }
     }
 
-    // Set conditions so that any tree scrolling taking place will stop.
-    private synchronized void stopScroll() {
+    private void stopScroll() {
         scrollY = 0;
-        scroller = null;
+        scrollTimer.stop();
     }
 
-    private class TreeScroller implements Runnable {
-        public void run() {
-            Component parent = getParent();
-            if (!(parent instanceof JViewport)) {
-                return;
-            }
-            final JViewport viewport = (JViewport) parent;
-            while (scrollY != 0) {
-                if (viewport == null)
-                    break;
-                Rectangle bounds = getRowBounds(0);
-                if (bounds == null)
-                    break;
-                int scrollInc = bounds.height;
-                int diffY;
-                final Rectangle rect = viewport.getViewRect();
-                final Point pos = viewport.getViewPosition();
-                if (scrollY < 0) {
-                    pos.y = Math.max(pos.y - scrollInc, 0);
-                    if (pos.y == 0)
-                        scrollY = 0;
-                } else {
-                    int h = getSize().height;
-                    int yMax = h - rect.height;
-                    pos.y = Math.min(pos.y + scrollInc, yMax);
-                    if (pos.y == yMax)
-                        scrollY = 0;
-                }
-                Runnable r = () -> {
-                    if (viewport != null && pos != null) {
-                        viewport.setViewPosition(pos);
-                        repaint();
-                    }
-                };
-                SwingUtilities.invokeLater(r);
-                int absY = Math.abs(scrollY);
-                int waitIndex = Math.min(absY, WAIT_TIMES.length - 1);
-                try {
-                    Thread.sleep(WAIT_TIMES[waitIndex]);
-                }
-                catch (InterruptedException ex) {}
-            }
+    // One scroll increment; the further the mouse is outside the tree, the
+    // sooner the next.
+    private void scrollStep() {
+        Rectangle bounds = getRowBounds(0);
+        if (scrollY == 0 || !(getParent() instanceof JViewport viewport) || bounds == null) {
+            stopScroll();
+            return;
         }
+        final Rectangle rect = viewport.getViewRect();
+        final Point pos = viewport.getViewPosition();
+        if (scrollY < 0) {
+            pos.y = Math.max(pos.y - bounds.height, 0);
+            if (pos.y == 0)
+                scrollY = 0;
+        } else {
+            int yMax = getSize().height - rect.height;
+            pos.y = Math.min(pos.y + bounds.height, yMax);
+            if (pos.y == yMax)
+                scrollY = 0;
+        }
+        viewport.setViewPosition(pos);
+        repaint();
+        if (scrollY == 0)
+            scrollTimer.stop();
+        else
+            scrollTimer.setDelay(WAIT_TIMES[Math.min(Math.abs(scrollY), WAIT_TIMES.length - 1)]);
     }
 
     private static class SidebarTreeCellRenderer extends JLabel

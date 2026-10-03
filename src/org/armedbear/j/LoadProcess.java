@@ -20,6 +20,8 @@
 
 package org.armedbear.j;
 
+import org.armedbear.j.util.Background;
+
 public abstract class LoadProcess implements BackgroundProcess, Runnable, Cancellable {
     protected Buffer buffer;
     protected File file;
@@ -27,7 +29,7 @@ public abstract class LoadProcess implements BackgroundProcess, Runnable, Cancel
     protected ErrorRunnable errorRunnable;
     protected ProgressNotifier progressNotifier;
     protected File cache;
-    protected boolean cancelled;
+    protected volatile boolean cancelled;
 
     private String errorText;
     private Thread thread;
@@ -79,7 +81,7 @@ public abstract class LoadProcess implements BackgroundProcess, Runnable, Cancel
             if (ed.getBuffer() == buffer)
                 ed.setWaitCursor();
         }
-        thread = new Thread(this);
+        thread = Background.newThread("load", this);
         thread.start();
     }
 

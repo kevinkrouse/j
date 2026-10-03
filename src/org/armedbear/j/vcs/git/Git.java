@@ -27,6 +27,7 @@ import org.armedbear.j.Constants;
 import org.armedbear.j.Editor;
 import org.armedbear.j.File;
 import org.armedbear.j.MessageDialog;
+import org.armedbear.j.util.Background;
 import org.armedbear.j.util.Utilities;
 import org.armedbear.j.vcs.VersionControl;
 
@@ -55,7 +56,7 @@ public class Git extends VersionControl implements Constants {
             };
             SwingUtilities.invokeLater(completionRunnable);
         };
-        new Thread(commandRunnable).start();
+        Background.start("Git command", commandRunnable);
     }
 
     private static void gitCompleted(

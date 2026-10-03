@@ -70,6 +70,7 @@ import org.armedbear.j.SimpleEdit;
 import org.armedbear.j.SshFile;
 import org.armedbear.j.SshSession;
 import org.armedbear.j.StatusBarProgressNotifier;
+import org.armedbear.j.util.Background;
 import org.armedbear.j.util.Utilities;
 
 public final class DirectoryBuffer extends Buffer {
@@ -1014,7 +1015,7 @@ public final class DirectoryBuffer extends Buffer {
                     };
                     SwingUtilities.invokeLater(updateRunnable);
                 };
-                new Thread(reloadRunnable).start();
+                Background.start("DirectoryBuffer reload", reloadRunnable);
             } else {
                 // Not a directory.
                 if (newFile instanceof FtpFile)
@@ -1875,7 +1876,7 @@ public final class DirectoryBuffer extends Buffer {
                     directory.setBusy(false);
                     SwingUtilities.invokeLater(completionRunnable);
                 };
-                new Thread(chmodRunnable).start();
+                Background.start("DirectoryBuffer chmod", chmodRunnable);
             }
         } else if (file instanceof SshFile) {
             final RemoteSession session = SshSession.getSession((SshFile) file);
@@ -1899,7 +1900,7 @@ public final class DirectoryBuffer extends Buffer {
                     directory.setBusy(false);
                     SwingUtilities.invokeLater(completionRunnable);
                 };
-                new Thread(chmodRunnable).start();
+                Background.start("DirectoryBuffer chmod", chmodRunnable);
             }
         }
     }

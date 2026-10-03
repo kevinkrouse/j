@@ -42,6 +42,7 @@ import javax.swing.tree.TreeModel;
 import javax.swing.tree.TreeNode;
 import javax.swing.tree.TreePath;
 import javax.swing.tree.TreeSelectionModel;
+import org.armedbear.j.util.Background;
 import org.armedbear.j.util.Utilities;
 
 /**
@@ -96,12 +97,7 @@ public class SidebarTagTree extends SidebarTree implements NavigationComponent,
         final List<LocalTag> bufferTags = buffer.getTags();
         if (tags != null && tags == bufferTags)
             return; // Nothing to do.
-        Thread thread = new Thread(
-            () -> refreshInternal(buffer, bufferTags),
-            "SidebarTagTree.refresh()"
-        );
-        thread.setDaemon(true);
-        thread.start();
+        Background.start("SidebarTagTree.refresh()", () -> refreshInternal(buffer, bufferTags));
     }
 
     void refreshInternal(Buffer buffer, List<LocalTag> bufferTags) {

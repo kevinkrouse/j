@@ -30,6 +30,7 @@ import java.util.HashSet;
 import javax.swing.SwingUtilities;
 import org.armedbear.j.mode.list.ListOccurrencesBuffer;
 import org.armedbear.j.mode.list.ListOccurrencesInFilesBuffer;
+import org.armedbear.j.util.Background;
 import org.armedbear.j.util.Utilities;
 
 public final class IList implements BackgroundProcess, Constants {
@@ -43,7 +44,7 @@ public final class IList implements BackgroundProcess, Constants {
     private final File currentDirectory;
 
     private ListOccurrencesInFilesBuffer outputBuffer;
-    private boolean cancelled;
+    private volatile boolean cancelled;
 
     public IList(Editor editor, Search search, boolean verbose) {
         this.editor = editor;
@@ -194,16 +195,8 @@ public final class IList implements BackgroundProcess, Constants {
                 editor.setLastSearch(search);
                 editor.setWaitCursor();
                 IList ilist = new IList(editor, search, verbose);
-                Buffer buffer = ilist.getSourceBuffer();
-                try {
-                    buffer.lockRead();
-                }
-                catch (InterruptedException e) {
-                    Log.error(e);
-                    return;
-                }
-                buffer.setBusy(true);
-                new Thread(ilist).start();
+                ilist.getSourceBuffer().setBusy(true);
+                Background.start("IList", ilist);
             }
         }
     }

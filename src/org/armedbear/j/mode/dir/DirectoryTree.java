@@ -48,6 +48,7 @@ import org.armedbear.j.File;
 import org.armedbear.j.LocationBar;
 import org.armedbear.j.NavigationComponent;
 import org.armedbear.j.SidebarTree;
+import org.armedbear.j.util.Background;
 import org.armedbear.j.util.Utilities;
 
 public final class DirectoryTree extends SidebarTree implements NavigationComponent,
@@ -124,7 +125,7 @@ public final class DirectoryTree extends SidebarTree implements NavigationCompon
                 }
             }
         };
-        new Thread(refreshRunnable).start();
+        Background.start("DirectoryTree refresh", refreshRunnable);
     }
 
     private void expandNode(DefaultMutableTreeNode node) {

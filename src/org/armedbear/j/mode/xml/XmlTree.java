@@ -53,6 +53,7 @@ import org.armedbear.j.NavigationComponent;
 import org.armedbear.j.Position;
 import org.armedbear.j.SimpleEdit;
 import org.armedbear.j.XmlParserImpl;
+import org.armedbear.j.util.Background;
 import org.armedbear.j.util.Utilities;
 
 public final class XmlTree extends JTree implements Constants, NavigationComponent,
@@ -140,7 +141,7 @@ public final class XmlTree extends JTree implements Constants, NavigationCompone
                 }
             }
         };
-        new Thread(parseBufferRunnable).start();
+        Background.start("XmlTree parse buffer", parseBufferRunnable);
     }
 
     // Update the selected node in the tree, based on the position of dot in

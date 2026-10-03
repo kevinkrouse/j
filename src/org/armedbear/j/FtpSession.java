@@ -36,13 +36,15 @@ import java.util.ArrayList;
 import java.util.Random;
 import java.util.StringTokenizer;
 import javax.swing.SwingUtilities;
+import javax.swing.Timer;
 import org.armedbear.j.mode.dir.DirectoryEntry;
+import org.armedbear.j.util.Background;
 
 public class FtpSession implements Constants, RemoteSession {
     private static final boolean echo = true;
     private static final ArrayList<FtpSession> sessionList = new ArrayList<FtpSession>();
 
-    private static CleanupThread cleanupThread;
+    private static Timer cleanupTimer;
 
     private String host;
     private int port;
@@ -61,27 +63,24 @@ public class FtpSession implements Constants, RemoteSession {
     private boolean usePassiveMode = true;
     private String errorText;
     private ProgressNotifier progressNotifier;
-    private boolean locked;
+    private volatile boolean locked;
 
-    private FtpSession() {
-        register(this);
-    }
-
-    private FtpSession(Login login, int port) {
-        host = login.host;
-        user = login.user;
-        password = login.password;
+    // Registered locked, so cleanup can't take a session before its caller does.
+    private FtpSession(String host, int port, String user, String password, boolean usePassiveMode) {
+        this.host = host;
         this.port = port;
-        usePassiveMode =
-            Editor.preferences().getBooleanProperty(Property.FTP_USE_PASSIVE_MODE);
+        this.user = user;
+        this.password = password;
+        this.usePassiveMode = usePassiveMode;
+        locked = true;
         register(this);
     }
 
     private static synchronized void register(FtpSession session) {
         sessionList.add(session);
-        if (cleanupThread == null) {
-            cleanupThread = new CleanupThread(cleanupRunnable);
-            cleanupThread.start();
+        if (cleanupTimer == null) {
+            cleanupTimer = new Timer(60000, e -> cleanup());
+            cleanupTimer.start();
         }
     }
 
@@ -91,14 +90,8 @@ public class FtpSession implements Constants, RemoteSession {
         sessionList.remove(session);
     }
 
-    protected Object clone() {
-        FtpSession session = new FtpSession();
-        session.host = host;
-        session.user = user;
-        session.password = password;
-        session.port = port;
-        session.usePassiveMode = usePassiveMode;
-        return session;
+    private FtpSession lockedCopy() {
+        return new FtpSession(host, port, user, password, usePassiveMode);
     }
 
     public final String getHostName() {
@@ -1001,22 +994,16 @@ public class FtpSession implements Constants, RemoteSession {
                 session.unlock();
             } else {
                 unregister(session);
-                Thread t = new Thread(session::close, "ftp close");
-                t.setDaemon(true);
-                t.start();
+                Background.start("ftp close", session::close);
             }
         }
         if (sessionList.size() == 0) {
-            if (cleanupThread != null) {
-                cleanupThread.cancel();
-                cleanupThread = null;
+            if (cleanupTimer != null) {
+                cleanupTimer.stop();
+                cleanupTimer = null;
             }
         }
     }
-
-    private static final Runnable cleanupRunnable = () -> {
-        cleanup();
-    };
 
     private synchronized void disconnect() {
         Log.debug("disconnect");
@@ -1067,7 +1054,8 @@ public class FtpSession implements Constants, RemoteSession {
         Log.debug("leaving close");
     }
 
-    public static synchronized FtpSession getSession(FtpFile file) {
+    // Not synchronized: a login prompt must not block the pool.
+    public static FtpSession getSession(FtpFile file) {
         if (file == null)
             return null;
         Login login = new Login(file.getHostName(), file.getUserName(), file.getPassword());
@@ -1085,12 +1073,10 @@ public class FtpSession implements Constants, RemoteSession {
         // No idle session for this host. Try to find a session to clone.
         session = findSession(login.host, file.getPort());
         if (session != null) {
-            session = (FtpSession) session.clone();
-            if (session.lock()) {
-                if (session.checkLogin())
-                    return session;
-                session.unlock();
-            }
+            session = session.lockedCopy();
+            if (session.checkLogin())
+                return session;
+            session.unlock();
             return null;
         }
         if (login.user == null || login.password == null) {
@@ -1137,10 +1123,13 @@ public class FtpSession implements Constants, RemoteSession {
             return null;
         // At this point we have non-empty strings for host and user name, and
         // a non-null password.
-        session = new FtpSession(login, file.getPort());
-        if (session.lock())
-            return session;
-        return null;
+        return new FtpSession(
+            login.host,
+            file.getPort(),
+            login.user,
+            login.password,
+            Editor.preferences().getBooleanProperty(Property.FTP_USE_PASSIVE_MODE)
+        );
     }
 
     // Make sure the login is complete. Get the user to enter the username

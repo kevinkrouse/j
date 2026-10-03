@@ -65,7 +65,7 @@ public final class Dispatcher implements Constants, KeyListener, MouseListener,
     MouseMotionListener, ActionListener, DragGestureListener, DragSourceListener,
     DropTargetListener {
     // For IdleThread.run.
-    private static long lastEventMillis = System.currentTimeMillis();
+    private static volatile long lastEventMillis = System.currentTimeMillis();
 
     // Needed by dropBookmark, gotoBookmark.
     private AWTEvent lastEvent;

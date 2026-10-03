@@ -29,6 +29,7 @@ import java.util.List;
 import javax.swing.SwingUtilities;
 import javax.swing.ToolTipManager;
 import org.armedbear.j.Constants;
+import org.armedbear.j.util.Background;
 import org.armedbear.j.util.Utilities;
 
 public class SidebarTagList extends SidebarList implements Constants,
@@ -113,10 +114,7 @@ public class SidebarTagList extends SidebarList implements Constants,
                 SwingUtilities.invokeLater(replaceListDataRunnable);
             }
         };
-        Thread thread =
-            new Thread(runTaggerRunnable, "SidebarTagList.refresh()");
-        thread.setDaemon(true);
-        thread.start();
+        Background.start("SidebarTagList.refresh()", runTaggerRunnable);
     }
 
     private synchronized void replaceListData(Buffer buf, Object[] listData) {

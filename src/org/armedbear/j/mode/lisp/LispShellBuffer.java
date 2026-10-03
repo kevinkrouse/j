@@ -46,6 +46,7 @@ import org.armedbear.j.SimpleEdit;
 import org.armedbear.j.extension.EvalException;
 import org.armedbear.j.extension.EvalRequest;
 import org.armedbear.j.extension.Extensions;
+import org.armedbear.j.util.Background;
 import org.armedbear.j.util.Utilities;
 
 public class LispShellBuffer extends ShellBuffer {
@@ -767,7 +768,7 @@ public class LispShellBuffer extends ShellBuffer {
                 Log.debug(t);
             }
         };
-        new Thread(r, "startSlime").start();
+        Background.start("startSlime", r);
     }
 
     private static void killSlime() {
@@ -781,7 +782,7 @@ public class LispShellBuffer extends ShellBuffer {
                 Log.debug(t);
             }
         };
-        new Thread(r, "killSlime").start();
+        Background.start("killSlime", r);
     }
 
     private static final String NO_LISP_RUNTIME =

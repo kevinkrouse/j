@@ -22,16 +22,18 @@ package org.armedbear.j;
 
 import java.lang.StringBuilder;
 import javax.swing.SwingUtilities;
+import javax.swing.Timer;
 
-public class StatusBarProgressNotifier implements Cancellable, ProgressNotifier, Runnable {
-    private Buffer buffer;
-    private Thread updaterThread;
-    private boolean go = true;
-    private long totalBytes;
-    private long fileSize;
-    private String prefix;
-    private boolean cancelled;
-    private String progressText;
+/** Shows a background task's progress in the status bar every half second. */
+public class StatusBarProgressNotifier implements Cancellable, ProgressNotifier {
+    private final Buffer buffer;
+    private Timer timer;
+    private long startMillis;
+    private volatile long totalBytes;
+    private volatile long fileSize;
+    private volatile String prefix;
+    private volatile boolean cancelled;
+    private volatile String progressText;
 
     public StatusBarProgressNotifier(Buffer buffer) {
         this.buffer = buffer;
@@ -45,16 +47,17 @@ public class StatusBarProgressNotifier implements Cancellable, ProgressNotifier,
         return cancelled;
     }
 
-    public void progressStart() {
-        if (updaterThread == null) {
-            updaterThread = new Thread(this);
-            updaterThread.setDaemon(true);
-            updaterThread.start();
+    public synchronized void progressStart() {
+        if (timer == null) {
+            startMillis = System.currentTimeMillis();
+            timer = new Timer(500, e -> tick());
+            timer.start();
         }
     }
 
-    public void progressStop() {
-        go = false;
+    public synchronized void progressStop() {
+        if (timer != null)
+            timer.stop();
     }
 
     public void progress(String prefix, long totalBytes, long fileSize) {
@@ -74,36 +77,32 @@ public class StatusBarProgressNotifier implements Cancellable, ProgressNotifier,
     }
 
     private void update() {
-        Runnable r = () -> {
-            for (EditorIterator it = new EditorIterator(); it.hasNext();) {
-                Editor ed = it.next();
-                if (ed.getBuffer() == buffer)
-                    ed.status(progressText);
-            }
-        };
-        SwingUtilities.invokeLater(r);
+        if (SwingUtilities.isEventDispatchThread())
+            showStatus();
+        else
+            SwingUtilities.invokeLater(this::showStatus);
     }
 
-    public void run() {
-        long start = System.currentTimeMillis();
-        while (go) {
-            try {
-                Thread.sleep(500);
-            }
-            catch (InterruptedException e) {
-                Log.error(e);
-            }
-            if (go) {
-                if (prefix != null && totalBytes != 0) {
-                    long elapsed = System.currentTimeMillis() - start;
-                    setText(getProgressText(elapsed));
-                } else
-                    update();
-            }
+    private void showStatus() {
+        for (Editor ed : Editor.getEditorList()) {
+            if (ed.getBuffer() == buffer)
+                ed.status(progressText);
         }
     }
 
-    private String getProgressText(long elapsed) {
+    private void tick() {
+        // Read once: the loading thread may change them meanwhile.
+        String prefix = this.prefix;
+        long totalBytes = this.totalBytes;
+        long fileSize = this.fileSize;
+        if (prefix != null && totalBytes != 0) {
+            long elapsed = System.currentTimeMillis() - startMillis;
+            setText(getProgressText(prefix, totalBytes, fileSize, elapsed));
+        } else
+            update();
+    }
+
+    private static String getProgressText(String prefix, long totalBytes, long fileSize, long elapsed) {
         if (elapsed == 0)
             return null;
         StringBuilder sb = new StringBuilder(prefix);

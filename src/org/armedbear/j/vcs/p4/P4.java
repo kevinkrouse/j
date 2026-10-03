@@ -41,6 +41,7 @@ import org.armedbear.j.ShellCommand;
 import org.armedbear.j.Sidebar;
 import org.armedbear.j.mode.checkin.CheckinBuffer;
 import org.armedbear.j.mode.diff.DiffOutputBuffer;
+import org.armedbear.j.util.Background;
 import org.armedbear.j.util.Utilities;
 import org.armedbear.j.vcs.VersionControl;
 
@@ -81,7 +82,7 @@ public class P4 extends VersionControl implements Constants {
             };
             SwingUtilities.invokeLater(completionRunnable);
         };
-        new Thread(commandRunnable).start();
+        Background.start("P4 command", commandRunnable);
     }
 
     private static void p4Completed(
@@ -128,7 +129,7 @@ public class P4 extends VersionControl implements Constants {
             };
             SwingUtilities.invokeLater(completionRunnable);
         };
-        new Thread(commandRunnable).start();
+        Background.start("P4 command", commandRunnable);
     }
 
     private static void editCompleted(
@@ -228,7 +229,7 @@ public class P4 extends VersionControl implements Constants {
             };
             SwingUtilities.invokeLater(completionRunnable);
         };
-        new Thread(commandRunnable).start();
+        Background.start("P4 command", commandRunnable);
     }
 
     public static void diff() {
@@ -286,7 +287,7 @@ public class P4 extends VersionControl implements Constants {
                 };
                 SwingUtilities.invokeLater(completionRunnable);
             };
-            new Thread(commandRunnable).start();
+            Background.start("P4 command", commandRunnable);
         }
     }
 
@@ -320,7 +321,7 @@ public class P4 extends VersionControl implements Constants {
             };
             SwingUtilities.invokeLater(completionRunnable);
         };
-        new Thread(commandRunnable).start();
+        Background.start("P4 command", commandRunnable);
     }
 
     public static void log() {
@@ -374,7 +375,7 @@ public class P4 extends VersionControl implements Constants {
             };
             SwingUtilities.invokeLater(completionRunnable);
         };
-        new Thread(commandRunnable).start();
+        Background.start("P4 command", commandRunnable);
     }
 
     public static void change(String arg) {
@@ -465,7 +466,7 @@ public class P4 extends VersionControl implements Constants {
             };
             SwingUtilities.invokeLater(completionRunnable);
         };
-        new Thread(commandRunnable).start();
+        Background.start("P4 command", commandRunnable);
     }
 
     public static void submit(String args) {
@@ -587,7 +588,7 @@ public class P4 extends VersionControl implements Constants {
                 };
                 SwingUtilities.invokeLater(completionRunnable);
             };
-            new Thread(commandRunnable).start();
+            Background.start("P4 command", commandRunnable);
         }
     }
 
@@ -715,7 +716,7 @@ public class P4 extends VersionControl implements Constants {
             };
             SwingUtilities.invokeLater(completionRunnable);
         };
-        new Thread(commandRunnable).start();
+        Background.start("P4 command", commandRunnable);
     }
 
     private static void finishCompleted(

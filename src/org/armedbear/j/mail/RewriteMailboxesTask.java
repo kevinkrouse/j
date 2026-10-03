@@ -21,9 +21,9 @@
 package org.armedbear.j.mail;
 
 import org.armedbear.j.Buffer;
-import org.armedbear.j.BufferIterator;
 import org.armedbear.j.Editor;
 import org.armedbear.j.IdleThreadTask;
+import org.armedbear.j.util.Background;
 
 public final class RewriteMailboxesTask extends IdleThreadTask {
     private static final long REWRITE_MAILBOXES_IDLE = 5000; // 5 seconds
@@ -49,31 +49,28 @@ public final class RewriteMailboxesTask extends IdleThreadTask {
                 return;
             long now = System.currentTimeMillis();
             if (lastRun == 0 || now - lastRun > REWRITE_MAILBOXES_IDLE) {
-                synchronized (Editor.getBufferList()) {
-                    for (BufferIterator it = new BufferIterator(); it.hasNext();) {
-                        Buffer buf = it.next();
-                        if (buf instanceof PopMailboxBuffer) {
-                            final PopMailboxBuffer mb = (PopMailboxBuffer) buf;
-                            // User must be idle for 5 minutes if mailbox is in
-                            // foreground, 1 minute if mailbox is in background.
-                            if (mb.isDirty() && mb.isIdle(300, 60)) {
-                                if (mb.lock()) {
-                                    // Double check.
-                                    if (mb.isDirty() && mb.isIdle(300, 60)) {
-                                        mb.setBusy(true);
-                                        mb.setWaitCursor();
-                                        Runnable r = () -> {
-                                            mb.rewriteMailbox(false);
-                                            mb.setBusy(false);
-                                            mb.unlock();
-                                            mb.setDefaultCursor();
-                                        };
-                                        Thread t = new Thread(r);
-                                        t.setPriority(Thread.MIN_PRIORITY);
-                                        t.start();
-                                    } else
+                for (Buffer buf : Editor.getBufferList()) {
+                    if (buf instanceof PopMailboxBuffer) {
+                        final PopMailboxBuffer mb = (PopMailboxBuffer) buf;
+                        // User must be idle for 5 minutes if mailbox is in
+                        // foreground, 1 minute if mailbox is in background.
+                        if (mb.isDirty() && mb.isIdle(300, 60)) {
+                            if (mb.lock()) {
+                                // Double check.
+                                if (mb.isDirty() && mb.isIdle(300, 60)) {
+                                    mb.setBusy(true);
+                                    mb.setWaitCursor();
+                                    Runnable r = () -> {
+                                        mb.rewriteMailbox(false);
+                                        mb.setBusy(false);
                                         mb.unlock();
-                                }
+                                        mb.setDefaultCursor();
+                                    };
+                                    Thread t = Background.newThread("rewrite mailbox", r);
+                                    t.setPriority(Thread.MIN_PRIORITY);
+                                    t.start();
+                                } else
+                                    mb.unlock();
                             }
                         }
                     }

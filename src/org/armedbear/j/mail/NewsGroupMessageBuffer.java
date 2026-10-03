@@ -46,11 +46,12 @@ import org.armedbear.j.Sidebar;
 import org.armedbear.j.StatusBarProgressNotifier;
 import org.armedbear.j.TextLine;
 import org.armedbear.j.mode.image.ImageLine;
+import org.armedbear.j.util.Background;
 import org.armedbear.j.util.Utilities;
 
 public final class NewsGroupMessageBuffer extends MessageBuffer {
     private NewsGroupSummaryBuffer summary;
-    private boolean cancelled;
+    private volatile boolean cancelled;
 
     public NewsGroupMessageBuffer(
         NewsGroupSummaryBuffer summary,
@@ -67,7 +68,7 @@ public final class NewsGroupMessageBuffer extends MessageBuffer {
         readOnly = true;
         setLoaded(true);
         setBusy(true);
-        new Thread(loadProcess).start();
+        Background.start("NewsGroupMessageBuffer load", loadProcess);
     }
 
     public NewsGroupSummaryBuffer getSummary() {
@@ -100,7 +101,7 @@ public final class NewsGroupMessageBuffer extends MessageBuffer {
             }
             setBusy(true);
             setEntry(nextEntry);
-            new Thread(loadProcess).start();
+            Background.start("NewsGroupMessageBuffer load", loadProcess);
         } else
             Editor.currentEditor().status("Last article");
     }
@@ -120,7 +121,7 @@ public final class NewsGroupMessageBuffer extends MessageBuffer {
             }
             setBusy(true);
             setEntry(prevEntry);
-            new Thread(loadProcess).start();
+            Background.start("NewsGroupMessageBuffer load", loadProcess);
         } else
             Editor.currentEditor().status("First article");
     }

@@ -52,6 +52,7 @@ import org.armedbear.j.LocationBar;
 import org.armedbear.j.NavigationComponent;
 import org.armedbear.j.Position;
 import org.armedbear.j.SidebarTree;
+import org.armedbear.j.util.Background;
 import org.armedbear.j.util.Utilities;
 
 public final class JavaTree extends SidebarTree implements Constants,
@@ -122,12 +123,7 @@ public final class JavaTree extends SidebarTree implements Constants,
         if (!force)
             if (tags != null && tags == bufferTags)
                 return; // Nothing to do.
-        Runnable r = () -> {
-            refreshInternal(buffer, bufferTags);
-        };
-        Thread thread = new Thread(r, "JavaTree.refresh()");
-        thread.setDaemon(true);
-        thread.start();
+        Background.start("JavaTree.refresh()", () -> refreshInternal(buffer, bufferTags));
     }
 
     private void refreshInternal(Buffer buffer, List<LocalTag> bufferTags) {

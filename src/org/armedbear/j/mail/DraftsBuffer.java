@@ -36,6 +36,7 @@ import org.armedbear.j.Headers;
 import org.armedbear.j.Line;
 import org.armedbear.j.Log;
 import org.armedbear.j.View;
+import org.armedbear.j.util.Background;
 
 public final class DraftsBuffer extends MailboxBuffer {
     private final File directory;
@@ -198,7 +199,7 @@ public final class DraftsBuffer extends MailboxBuffer {
                 if (ed.getBuffer() == this)
                     ed.saveView();
             }
-            new Thread(expungeRunnable).start();
+            Background.start("DraftsBuffer expunge", expungeRunnable);
         }
     }
 
@@ -236,7 +237,7 @@ public final class DraftsBuffer extends MailboxBuffer {
         if (lock()) {
             setBusy(true);
             setLoaded(true);
-            new Thread(loadRunnable).start();
+            Background.start("DraftsBuffer load", loadRunnable);
             return LOAD_PENDING;
         } else
             return LOAD_FAILED;
@@ -249,7 +250,7 @@ public final class DraftsBuffer extends MailboxBuffer {
                 if (ed.getBuffer() == this)
                     ed.saveView();
             }
-            new Thread(reloadRunnable).start();
+            Background.start("DraftsBuffer reload", reloadRunnable);
         }
     }
 

@@ -97,7 +97,7 @@ public final class Editor extends JPanel implements Constants,
 
     private static PendingOperations pendingOperations = new PendingOperations();
 
-    private static Editor currentEditor;
+    private static volatile Editor currentEditor;
 
     private static KillRing killRing = new KillRing();
 

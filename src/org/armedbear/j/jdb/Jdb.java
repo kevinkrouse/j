@@ -67,6 +67,7 @@ import org.armedbear.j.Position;
 import org.armedbear.j.SimpleEdit;
 import org.armedbear.j.mode.java.JavaMode;
 import org.armedbear.j.mode.java.JavaSource;
+import org.armedbear.j.util.Background;
 import org.armedbear.j.util.ReaderThread;
 import org.armedbear.j.util.Utilities;
 
@@ -696,7 +697,7 @@ public final class Jdb extends Buffer implements JdbConstants {
         Runnable r = () -> {
             startProcessInternal();
         };
-        new Thread(r).start();
+        Background.start("Jdb", r);
     }
 
     private void startProcessInternal() {

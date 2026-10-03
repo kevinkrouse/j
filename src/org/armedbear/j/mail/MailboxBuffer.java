@@ -43,6 +43,7 @@ import org.armedbear.j.Property;
 import org.armedbear.j.PropertyList;
 import org.armedbear.j.Sidebar;
 import org.armedbear.j.View;
+import org.armedbear.j.util.Background;
 import org.armedbear.j.util.Utilities;
 
 public abstract class MailboxBuffer extends Buffer {
@@ -482,7 +483,7 @@ public abstract class MailboxBuffer extends Buffer {
         };
         if (lock()) {
             setBusy(true);
-            new Thread(bounceRunnable).start();
+            Background.start("MailboxBuffer bounce", bounceRunnable);
         } else
             editor.status("Mailbox is locked");
     }
@@ -776,7 +777,7 @@ public abstract class MailboxBuffer extends Buffer {
         };
         if (lock()) {
             setBusy(true);
-            new Thread(sortRunnable).start();
+            Background.start("MailboxBuffer sort", sortRunnable);
         }
     }
 

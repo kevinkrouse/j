@@ -37,6 +37,7 @@ import org.armedbear.j.ShellCommand;
 import org.armedbear.j.mode.checkin.CheckinBuffer;
 import org.armedbear.j.mode.diff.DiffOutputBuffer;
 import org.armedbear.j.mode.text.PlainTextFormatter;
+import org.armedbear.j.util.Background;
 import org.armedbear.j.util.Utilities;
 import org.armedbear.j.vcs.VersionControl;
 
@@ -67,7 +68,7 @@ public final class CVS extends VersionControl implements Constants {
             };
             SwingUtilities.invokeLater(completionRunnable);
         };
-        new Thread(commandRunnable).start();
+        Background.start("CVS command", commandRunnable);
     }
 
     private static void cvsCompleted(
@@ -98,7 +99,7 @@ public final class CVS extends VersionControl implements Constants {
             };
             SwingUtilities.invokeLater(completionRunnable);
         };
-        new Thread(commandRunnable).start();
+        Background.start("CVS command", commandRunnable);
     }
 
     private static void addCompleted(
@@ -237,7 +238,7 @@ public final class CVS extends VersionControl implements Constants {
                 };
                 SwingUtilities.invokeLater(completionRunnable);
             };
-            new Thread(commandRunnable).start();
+            Background.start("CVS command", commandRunnable);
         }
     }
 
@@ -269,7 +270,7 @@ public final class CVS extends VersionControl implements Constants {
             };
             SwingUtilities.invokeLater(completionRunnable);
         };
-        new Thread(commandRunnable).start();
+        Background.start("CVS command", commandRunnable);
     }
 
     public static void replaceComment(final Editor editor, final String comment) {
@@ -365,7 +366,7 @@ public final class CVS extends VersionControl implements Constants {
             };
             SwingUtilities.invokeLater(completionRunnable);
         };
-        new Thread(commandRunnable).start();
+        Background.start("CVS command", commandRunnable);
     }
 
     private static void finishCompleted(

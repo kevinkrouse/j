@@ -38,6 +38,7 @@ import org.armedbear.j.Position;
 import org.armedbear.j.ProgressNotifier;
 import org.armedbear.j.StatusBarProgressNotifier;
 import org.armedbear.j.View;
+import org.armedbear.j.util.Background;
 import org.armedbear.j.util.FastStringReader;
 import org.armedbear.j.util.Utilities;
 
@@ -74,7 +75,7 @@ public final class NewsGroupSummaryBuffer extends MailboxBuffer {
 
     public int load() {
         setBusy(true);
-        new Thread(loadRunnable).start();
+        Background.start("NewsGroupSummaryBuffer load", loadRunnable);
         setLoaded(true);
         return LOAD_COMPLETED;
     }
@@ -298,7 +299,7 @@ public final class NewsGroupSummaryBuffer extends MailboxBuffer {
             Runnable r = () -> {
                 session.disconnect();
             };
-            new Thread(r).start();
+            Background.start("NewsGroupSummaryBuffer", r);
         }
     }
 

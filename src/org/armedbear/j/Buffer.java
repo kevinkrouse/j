@@ -50,6 +50,7 @@ import org.armedbear.j.mode.image.ImageBuffer;
 import org.armedbear.j.mode.image.ImageLine;
 import org.armedbear.j.mode.text.PlainTextMode;
 import org.armedbear.j.mode.web.WebBuffer;
+import org.armedbear.j.util.Background;
 import org.armedbear.j.util.FastStringReader;
 import org.armedbear.j.util.Utilities;
 import org.armedbear.j.vcs.VersionControl;
@@ -611,6 +612,7 @@ public class Buffer extends SystemBuffer {
         }
         catch (InterruptedException e) {
             Log.error(e);
+            Thread.currentThread().interrupt();
             return false;
         }
         try {
@@ -1168,7 +1170,7 @@ public class Buffer extends SystemBuffer {
         httpLoadProcess.setSuccessRunnable(successRunnable);
         httpLoadProcess.setErrorRunnable(errorRunnable);
         setBusy(true);
-        new Thread(httpLoadProcess).start();
+        Background.start("Buffer http load", httpLoadProcess);
     }
 
     private void reloadLocal(File file) {
@@ -1241,10 +1243,8 @@ public class Buffer extends SystemBuffer {
         if (mode != null) {
             Tagger tagger = mode.getTagger(this);
             if (tagger != null) {
-                Thread thread = new Thread(tagger);
+                Thread thread = Background.newThread("tagger " + getFile().getName(), tagger);
                 thread.setPriority(priority);
-                thread.setDaemon(true);
-                thread.setName("tagger " + getFile().getName());
                 thread.start();
                 return thread;
             }
@@ -1913,9 +1913,7 @@ public class Buffer extends SystemBuffer {
     public synchronized void autosave() {
         if (autosaveEnabled && Autosave.isAutosaveEnabled())
             if (modCount != autosaveModCount && autosaveQueued.compareAndSet(false, true)) {
-                Thread t = new Thread(autosaveRunnable, "autosave");
-                t.setDaemon(true);
-                t.start();
+                Background.start("autosave", autosaveRunnable);
             }
     }
 
@@ -3001,23 +2999,20 @@ public class Buffer extends SystemBuffer {
         if (pending.isEmpty())
             return;
         VersionControl.invalidate();
-        Thread thread = new Thread("check version control") {
-            public void run() {
-                for (int i = 0; i < pending.size(); i++) {
-                    try {
-                        pending.get(i).checkVCS();
-                    }
-                    catch (Throwable t) {
-                        Log.error(t);
-                        // Don't let one bad file stop the rest.
-                        pending.get(i).vcsChecked = true;
-                    }
+        Thread thread = Background.newThread("check version control", () -> {
+            for (Buffer buf : pending) {
+                try {
+                    buf.checkVCS();
                 }
-                if (whenDone != null)
-                    SwingUtilities.invokeLater(whenDone);
+                catch (Throwable t) {
+                    Log.error(t);
+                    // Don't let one bad file stop the rest.
+                    buf.vcsChecked = true;
+                }
             }
-        };
-        thread.setDaemon(true);
+            if (whenDone != null)
+                SwingUtilities.invokeLater(whenDone);
+        });
         thread.setPriority(Thread.MIN_PRIORITY);
         thread.start();
     }
