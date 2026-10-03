@@ -5,16 +5,7 @@ dist
 *.cls
 *.abcl
 .cache
-Makefile
-/abcl
-classes.stamp
-config.log
-config.status
-classes.stamp
-j
-!j/
 j.jar
-j.bat
 *.zip
 *.tar.gz
 .direnv

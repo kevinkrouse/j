@@ -43,6 +43,3 @@ If you use Nix, "nix develop" puts a suitable JDK, babashka and gcc on your PATH
 Run `bb build` to compile the source.
 Run `bb tasks` to see a list of available targets.
 
-The old Ant build (build.xml, build.properties) is still here and still works;
-it is kept around for the moment so the two builds can be compared.
-

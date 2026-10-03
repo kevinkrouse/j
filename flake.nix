@@ -41,7 +41,6 @@
               jdk
               babashka
               pkgs.gcc          # jpty
-              pkgs.ant          # legacy build, kept for parity checking
             ];
 
             shellHook = ''

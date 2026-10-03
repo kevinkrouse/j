@@ -1,9 +1,7 @@
 (ns build
   "Build program for the Armed Bear J Editor, driven by `bb`.
 
-  `bb tasks` lists the targets. This is a port of build.xml, which is still
-  here: the two are meant to produce the same tree under build/ so the results
-  can be diffed. The `install` targets were deliberately not ported."
+  `bb tasks` lists the targets."
   (:refer-clojure :exclude [test])
   (:require
    [babashka.fs :as fs]
@@ -97,8 +95,7 @@
 
 (defn- check-javac!
   "b/javac always runs the javac on the PATH, so check that one can target the
-  release we need. build.xml probed javac the same way rather than parsing its
-  version string."
+  release we need, rather than parsing its version string."
   []
   (let [{:keys [out err]} (shell {:out :string :err :string} "javac" "-version")]
     (println "javac.version:" (str/trim (str out err))))
@@ -169,8 +166,7 @@
         host (try (str/trim (:out (shell {:out :string} "hostname")))
                   (catch Exception _ ""))]
     (b/write-file {:path version-path :string (str j-version "\n")})
-    ;; Version reads build time, host name then revision. build.xml leaves the
-    ;; revision line off, so do the same and the two files match.
+    ;; Version reads build time, host name, then an optional revision.
     (b/write-file {:path build-path :string (str time "\n" host "\n")})
     (assoc opts :buildtime time)))
 
@@ -180,9 +176,7 @@
     (b/jar {:class-dir classes-dir
             :jar-file  jar-file
             :main      'Main
-            ;; build.xml scoped the Implementation-* attributes to an
-            ;; org/armedbear/j manifest section, which tools.build cannot
-            ;; write. Nothing reads them: Version reads the files stamp wrote.
+            ;; Nothing reads these: Version reads the files stamp wrote.
             :manifest  {"Implementation-Title"   "ArmedBear J"
                         "Implementation-Version" j-version
                         "Implementation-Build"   buildtime}})

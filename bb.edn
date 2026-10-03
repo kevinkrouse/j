@@ -1,5 +1,4 @@
 ;; Build entry points for the Armed Bear J Editor.  See build.clj.
-;; build.xml is still present and is kept around for parity checking.
 {:paths ["."]
 
  :deps
