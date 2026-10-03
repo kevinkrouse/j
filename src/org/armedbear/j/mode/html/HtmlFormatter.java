@@ -53,6 +53,9 @@ public final class HtmlFormatter extends Formatter implements Constants {
     public HtmlFormatter(Buffer buffer) {
         this.buffer = buffer;
         javaFormatter = new JavaFormatter(buffer, LANGUAGE_JAVASCRIPT);
+        // HTML's keywords and colors, even in another mode's buffer, as in
+        // Markdown's fenced html.
+        javaFormatter.setLanguageMode(HtmlMode.getMode());
     }
 
     private void endToken(int state) {
@@ -289,6 +292,8 @@ public final class HtmlFormatter extends Formatter implements Constants {
 
     public FormatTable getFormatTable() {
         if (formatTable == null) {
+            // Script blocks are formatted by javaFormatter, so its formats
+            // share this table.
             formatTable = javaFormatter.getFormatTable();
             formatTable.setModeName("HtmlMode");
             formatTable.addEntryFromPrefs(HTML_FORMAT_TEXT, "text");

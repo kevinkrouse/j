@@ -60,6 +60,11 @@ public abstract class Formatter implements Constants {
         return languageMode != null ? languageMode : buffer.getMode();
     }
 
+    /** A table named for the language mode, whose preferences it reads. */
+    protected final FormatTable newFormatTable() {
+        return new FormatTable(getLanguageMode().getClass().getSimpleName());
+    }
+
     protected final boolean isKeyword(String s) {
         return getLanguageMode().isKeyword(s);
     }

@@ -30,7 +30,7 @@ mode XML
 <!--    <echo message="hello"/>-->
 <!--    <![CDATA[ raw <text> ]]>-->
 <!--  </target>-->
-</project>
+<!--</project>-->
 
 ## uncomment
 (restored)

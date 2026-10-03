@@ -73,7 +73,7 @@ mode C
 /*            printf("%s %d\n", s, MAX);*/
 /*    }*/
 /*    return 0;*/
-}
+/*}*/
 
 ## uncomment
 (restored)

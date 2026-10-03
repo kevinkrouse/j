@@ -267,7 +267,7 @@ public final class RubyFormatter extends Formatter {
                     ;
                 else if (c == 'l' || c == 'L')
                     ;
-                else if (i - begin == 1 && c == 'x' || c == 'X')
+                else if (i - begin == 1 && (c == 'x' || c == 'X'))
                     state = RUBY_STATE_HEXNUMBER;
                 else {
                     endSegment(text, i, state);
@@ -502,7 +502,7 @@ public final class RubyFormatter extends Formatter {
 
     public FormatTable getFormatTable() {
         if (formatTable == null) {
-            formatTable = new FormatTable(null);
+            formatTable = newFormatTable();
             formatTable.addEntryFromPrefs(RUBY_FORMAT_TEXT, "text");
             formatTable.addEntryFromPrefs(RUBY_FORMAT_COMMENT, "comment");
             formatTable.addEntryFromPrefs(RUBY_FORMAT_STRING, "string");

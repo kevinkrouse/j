@@ -282,7 +282,7 @@ public final class PythonFormatter extends Formatter {
                     ;
                 else if (c == 'l' || c == 'L')
                     ;
-                else if (i - begin == 1 && c == 'x' || c == 'X')
+                else if (i - begin == 1 && (c == 'x' || c == 'X'))
                     state = PYTHON_STATE_HEXNUMBER;
                 else {
                     endSegment(text, i, state);
@@ -426,7 +426,7 @@ public final class PythonFormatter extends Formatter {
 
     public FormatTable getFormatTable() {
         if (formatTable == null) {
-            formatTable = new FormatTable(null);
+            formatTable = newFormatTable();
             formatTable.addEntryFromPrefs(PYTHON_FORMAT_TEXT, "text");
             formatTable.addEntryFromPrefs(PYTHON_FORMAT_COMMENT, "comment");
             formatTable.addEntryFromPrefs(PYTHON_FORMAT_STRING, "string");

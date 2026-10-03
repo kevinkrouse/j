@@ -704,4 +704,14 @@ public final class HtmlMode extends AbstractMode implements Constants, Mode {
         }
         editor.setDefaultCursor();
     }
+
+    @Override
+    public String getCommentStart() {
+        return "<!--";
+    }
+
+    @Override
+    public String getCommentEnd() {
+        return "-->";
+    }
 }

@@ -2265,12 +2265,17 @@ public final class Editor extends JPanel implements Constants,
             Region r = new Region(buffer, dot, mark);
             beginLine = r.getBeginLine();
             endLine = r.getEndLine();
+            // A region ending inside a line takes that line too.
+            if (r.getEndOffset() > 0)
+                endLine = endLine.next();
         } else {
             beginLine = getDotLine();
             endLine = getDotLine().next();
         }
         if (endLine == beginLine)
             endLine = beginLine.next();
+        // What uncomment also accepts: the comment start without its padding.
+        final String bareStart = commentStart.trim();
 
         CompoundEdit compoundEdit = beginCompoundEdit();
 
@@ -2303,39 +2308,32 @@ public final class Editor extends JPanel implements Constants,
                     updateInAllEditors(dotLine);
                 }
             } else {
-                // Uncomment.
-                if (trim.startsWith(commentStart)) {
-                    if (commentEnd == null || trim.endsWith(commentEnd)) {
-                        addUndo(SimpleEdit.LINE_EDIT);
-                        int index = dotLine.getText().indexOf(commentStart) + commentStart.length();
-                        dotLine.setText(dotLine.substring(index));
-                        if (commentEnd != null)
-                            dotLine.setText(dotLine.substring(0, dotLine.length() - commentEnd.length()));
-                        modified = true;
-                        int dotCol = 0;
-                        if (dotLine == savedDot.getLine()) {
-                            // Adjust saved position.
-                            savedDot.setOffset(savedDot.getOffset() - index);
-                            if (savedDot.getOffset() < 0)
-                                savedDot.setOffset(0);
-                            dotCol = buffer.getCol(dotLine, savedDot.getOffset());
-                        }
-
-                        int oldIndent = buffer.getIndentation(dotLine);
-                        int indent = getMode().getCorrectIndentation(dotLine, buffer);
-                        if (indent != oldIndent) {
-                            buffer.setIndentation(dotLine, indent);
-                            if (dotLine == savedDot.getLine()) {
-                                // Adjust saved position.
-                                if (dotCol >= oldIndent) {
-                                    dotCol += indent - oldIndent;
-                                    dot.moveToCol(dotCol, buffer.getTabWidth());
-                                    savedDot.setOffset(dot.getOffset());
-                                }
-                            }
-                        }
-                        updateInAllEditors(dotLine);
+                // Uncomment: the inverse of comment, where the comment
+                // starts after any indentation; nothing is re-indented.
+                final String text = dotLine.getText();
+                final int at = text.length() - text.stripLeading().length();
+                final String start = text.startsWith(commentStart, at)
+                    ? commentStart
+                    : text.startsWith(bareStart, at) ? bareStart : null;
+                // The comment end may have trailing whitespace after it.
+                final int trimmed = text.stripTrailing().length();
+                final int end = commentEnd == null
+                    ? text.length()
+                    : text.startsWith(commentEnd, trimmed - commentEnd.length())
+                        ? trimmed - commentEnd.length()
+                        : -1;
+                final String tail = commentEnd == null ? "" : text.substring(trimmed);
+                if (start != null && end >= at + start.length()) {
+                    addUndo(SimpleEdit.LINE_EDIT);
+                    dotLine.setText(text.substring(0, at) + text.substring(at + start.length(), end) + tail);
+                    modified = true;
+                    if (dotLine == savedDot.getLine()) {
+                        int offset = savedDot.getOffset();
+                        if (offset > at)
+                            offset = Math.max(at, offset - start.length());
+                        savedDot.setOffset(Math.min(offset, dotLine.length()));
                     }
+                    updateInAllEditors(dotLine);
                 }
             }
 

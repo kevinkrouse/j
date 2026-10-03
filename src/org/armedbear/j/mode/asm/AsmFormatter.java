@@ -66,7 +66,7 @@ public final class AsmFormatter extends Formatter {
 
     public FormatTable getFormatTable() {
         if (formatTable == null) {
-            formatTable = new FormatTable(null);
+            formatTable = newFormatTable();
             formatTable.addEntryFromPrefs(ASM_FORMAT_TEXT, "text");
             formatTable.addEntryFromPrefs(ASM_FORMAT_COMMENT, "comment");
             formatTable.addEntryFromPrefs(ASM_FORMAT_LABEL, "function");

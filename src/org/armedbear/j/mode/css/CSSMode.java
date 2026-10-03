@@ -87,4 +87,14 @@ public final class CSSMode extends AbstractMode implements Constants, Mode {
 
     private static final String partChars =
         "-ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_";
+
+    @Override
+    public String getCommentStart() {
+        return "/*";
+    }
+
+    @Override
+    public String getCommentEnd() {
+        return "*/";
+    }
 }

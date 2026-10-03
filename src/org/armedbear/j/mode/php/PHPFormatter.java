@@ -332,7 +332,7 @@ public final class PHPFormatter extends Formatter implements Constants {
                     ;
                 else if (c == 'u' || c == 'U' || c == 'l' || c == 'L')
                     ;
-                else if (pos.getOffset() - tokenBegin == 1 && c == 'x' || c == 'X')
+                else if (pos.getOffset() - tokenBegin == 1 && (c == 'x' || c == 'X'))
                     state = PHP_STATE_HEXNUMBER;
                 else {
                     endToken(pos, state);

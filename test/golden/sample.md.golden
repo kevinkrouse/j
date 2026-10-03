@@ -43,7 +43,7 @@ mode Markdown
 <!-- int x = 0XFF; -->
 <!-- ``` -->
 
-> quote with a [link](http://example.com)
+<!-- > quote with a [link](http://example.com) -->
 
 ## uncomment
 (restored)

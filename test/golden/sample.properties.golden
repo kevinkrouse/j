@@ -17,7 +17,11 @@ mode Properties
 ## tags
 
 ## comment
-(unchanged)
+# # A comment.
+# name = demo
+# color.text = 0 0 0
+# ! another comment
+# path=/usr/local
 
 ## uncomment
 (restored)

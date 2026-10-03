@@ -30,14 +30,7 @@ mode Assembly
 ; _start:
 ;     mov eax, 0x1F
 ;     mov ebx, 0
-    int 0x80        ; exit
+;     int 0x80        ; exit
 
 ## uncomment
-; A comment.
-section .text
-global _start
-
-_start:
-        mov eax, 0x1F
-        mov ebx, 0
-    int 0x80        ; exit
+(restored)

@@ -46,7 +46,7 @@ mode Tcl
 #     }
 # }
 
-greet world
+# greet world
 
 ## uncomment
 (restored)

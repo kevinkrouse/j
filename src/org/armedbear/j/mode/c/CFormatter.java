@@ -291,7 +291,7 @@ public final class CFormatter extends Formatter implements Constants {
                     ;
                 else if (c == 'u' || c == 'U' || c == 'l' || c == 'L')
                     ;
-                else if (i - tokenBegin == 1 && c == 'x' || c == 'X')
+                else if (i - tokenBegin == 1 && (c == 'x' || c == 'X'))
                     state = STATE_HEXNUMBER;
                 else {
                     endToken(text, i, state);
@@ -441,6 +441,7 @@ public final class CFormatter extends Formatter implements Constants {
 
     public FormatTable getFormatTable() {
         if (formatTable == null) {
+            // Shared by C, C++ and Objective-C: CMode.color.* colors all three.
             formatTable = new FormatTable("CMode");
             formatTable.addEntryFromPrefs(C_FORMAT_TEXT, "text");
             formatTable.addEntryFromPrefs(C_FORMAT_COMMENT, "comment");

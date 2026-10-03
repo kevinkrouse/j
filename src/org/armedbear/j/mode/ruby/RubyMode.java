@@ -110,4 +110,9 @@ public final class RubyMode extends AbstractMode implements Constants, Mode {
             1, 1, 1, 1, 1, 1, 1, 1, // 0x70-0x77  pqrstuvw
             1, 1, 1, 0, 0, 0, 0, 0 // 0x78-0x7f  xyz{|}~
         };
+
+    @Override
+    public String getCommentStart() {
+        return "# ";
+    }
 }

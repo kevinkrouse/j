@@ -51,7 +51,7 @@ mode JavaScript
 // var f = function () {
 //     /* block */
 //     return "done";
-};
+// };
 
 ## uncomment
 (restored)

@@ -164,7 +164,7 @@ public final class SchemeFormatter extends Formatter {
                     sb.append(c);
                 else if (c == 'u' || c == 'U' || c == 'l' || c == 'L')
                     sb.append(c); // Valid suffix.
-                else if (sb.length() == 1 && c == 'x' || c == 'X') {
+                else if (sb.length() == 1 && (c == 'x' || c == 'X')) {
                     sb.append(c);
                     state = STATE_HEXNUMBER;
                 } else {

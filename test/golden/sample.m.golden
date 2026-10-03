@@ -46,7 +46,7 @@ mode Objective C
 //     // say hello
 //     NSLog(@"Hello, %@ %d", name, 0X2A);
 // }
-@end
+// @end
 
 ## uncomment
 (restored)

@@ -28,8 +28,7 @@ import org.armedbear.j.Position;
 // skipping whitespace and comments.
 public final class TclSyntaxIterator extends DefaultSyntaxIterator {
     private static final int STATE_NEUTRAL = 0;
-    private static final int STATE_SINGLEQUOTE = 1;
-    private static final int STATE_DOUBLEQUOTE = 2;
+    private static final int STATE_DOUBLEQUOTE = 1;
 
     public TclSyntaxIterator(Position pos) {
         super(pos);
@@ -44,6 +43,7 @@ public final class TclSyntaxIterator extends DefaultSyntaxIterator {
     public char[] hideSyntacticWhitespace(String s) {
         final char[] chars = s.toCharArray();
         int state = STATE_NEUTRAL;
+        boolean atCommandStart = true;
         final int length = chars.length;
         for (int i = 0; i < length; i++) {
             char c = chars[i];
@@ -53,12 +53,6 @@ public final class TclSyntaxIterator extends DefaultSyntaxIterator {
                 chars[i] = ' ';
                 continue;
             }
-            if (state == STATE_SINGLEQUOTE) {
-                chars[i] = ' ';
-                if (c == '\'')
-                    state = STATE_NEUTRAL;
-                continue;
-            }
             if (state == STATE_DOUBLEQUOTE) {
                 chars[i] = ' ';
                 if (c == '"')
@@ -66,26 +60,21 @@ public final class TclSyntaxIterator extends DefaultSyntaxIterator {
                 continue;
             }
             // Reaching here, STATE_NEUTRAL...
-            if (c == '\'') {
-                chars[i] = ' ';
-                state = STATE_SINGLEQUOTE;
-                continue;
-            }
             if (c == '"') {
                 chars[i] = ' ';
                 state = STATE_DOUBLEQUOTE;
                 continue;
             }
-            if (c == '/') {
-                if (i < length - 1) {
-                    if (chars[i + 1] == '/') {
-                        // "//" comment starting
-                        for (int j = i; j < length; j++)
-                            chars[j] = ' ';
-                        return chars;
-                    }
-                }
+            if (c == '#' && atCommandStart) {
+                // A comment runs to the end of the line.
+                for (int j = i; j < length; j++)
+                    chars[j] = ' ';
+                return chars;
             }
+            if (c == ';' || c == '{' || c == '[')
+                atCommandStart = true;
+            else if (!Character.isWhitespace(c))
+                atCommandStart = false;
         }
         return chars;
     }

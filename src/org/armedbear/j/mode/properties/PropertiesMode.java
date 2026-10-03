@@ -46,4 +46,9 @@ public final class PropertiesMode extends AbstractMode implements Constants, Mod
     protected void setKeyMapDefaults(KeyMap km) {
         km.mapKey(KeyEvent.VK_F12, 0, "wrapComment");
     }
+
+    @Override
+    public String getCommentStart() {
+        return "# ";
+    }
 }

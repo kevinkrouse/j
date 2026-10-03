@@ -295,7 +295,7 @@ public final class PerlFormatter extends Formatter {
             if (state == STATE_NUMBER) {
                 if (Character.isDigit(c))
                     sb.append(c);
-                else if (sb.length() == 1 && c == 'x' || c == 'X') {
+                else if (sb.length() == 1 && (c == 'x' || c == 'X')) {
                     sb.append(c);
                     state = STATE_HEXNUMBER;
                 } else {

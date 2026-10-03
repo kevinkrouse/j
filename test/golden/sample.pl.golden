@@ -55,7 +55,7 @@ mode Perl
 #     return 'done';
 # }
 
-greet("world");
+# greet("world");
 
 ## uncomment
 (restored)

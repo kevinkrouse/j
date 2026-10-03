@@ -222,7 +222,7 @@ public final class JavaFormatter extends Formatter implements Constants {
                     ;
                 else if (c == 'u' || c == 'U' || c == 'l' || c == 'L')
                     ;
-                else if (i - tokenBegin == 1 && c == 'x' || c == 'X')
+                else if (i - tokenBegin == 1 && (c == 'x' || c == 'X'))
                     state = STATE_HEXNUMBER;
                 else {
                     endToken(text, i, state);
@@ -349,6 +349,7 @@ public final class JavaFormatter extends Formatter implements Constants {
 
     public FormatTable getFormatTable() {
         if (formatTable == null) {
+            // Shared with JavaScript: JavaMode.color.* colors both.
             formatTable = new FormatTable("JavaMode");
             formatTable.addEntryFromPrefs(JAVA_FORMAT_TEXT, "text");
             formatTable.addEntryFromPrefs(JAVA_FORMAT_COMMENT, "comment");
