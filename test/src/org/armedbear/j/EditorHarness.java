@@ -536,6 +536,7 @@ public final class EditorHarness {
      * does not accept null, and every {@link #create} sets it anyway.
      */
     public void close() {
+        editor.endParenFlash();
         Editor.getBufferList().remove(buffer);
         Editor.getEditorList().remove(editor);
         if (!ERRORS.isEmpty()) {

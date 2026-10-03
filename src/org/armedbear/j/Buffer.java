@@ -32,6 +32,7 @@ import java.lang.StringBuilder;
 import java.lang.ref.SoftReference;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 import javax.swing.Icon;
@@ -80,13 +81,13 @@ public class Buffer extends SystemBuffer {
         return supportsUndo;
     }
 
-    private int modCount;
+    private volatile int modCount;
     private int saveModCount; // Value of modCount when last saved.
 
     // Autosave.
     protected boolean autosaveEnabled;
     private File autosaveFile;
-    private int autosaveModCount; // Value of modCount when last autosaved.
+    private volatile int autosaveModCount; // Value of modCount when last autosaved.
 
     private File cache;
     private String listing;
@@ -1466,32 +1467,21 @@ public class Buffer extends SystemBuffer {
             return false;
         }
         final File tempFile = Utilities.getTempFile(destination.getParentFile());
-        try {
-            final int bufSize = 4096;
-            BufferedInputStream in =
-                new BufferedInputStream(source.getInputStream());
-            GZIPOutputStream out =
-                new GZIPOutputStream(
-                    new BufferedOutputStream(tempFile.getOutputStream()),
-                    bufSize
-                );
-            byte[] buffer = new byte[bufSize];
-            while (true) {
-                int bytesRead = in.read(buffer, 0, bufSize);
-                if (bytesRead > 0)
-                    out.write(buffer, 0, bytesRead);
-                else
-                    break;
-            }
-            in.close();
-            out.flush();
-            out.close();
-            return Utilities.deleteRename(tempFile, destination);
+        if (tempFile == null)
+            return false;
+        try (InputStream in = new BufferedInputStream(source.getInputStream());
+            GZIPOutputStream out = new GZIPOutputStream(
+                new BufferedOutputStream(tempFile.getOutputStream()),
+                4096
+            )) {
+            in.transferTo(out);
         }
         catch (IOException e) {
             Log.error(e);
+            tempFile.delete();
             return false;
         }
+        return Utilities.deleteRename(tempFile, destination);
     }
 
     private boolean saveFtp() {
@@ -1902,10 +1892,17 @@ public class Buffer extends SystemBuffer {
         }
     }
 
+    // At most one autosave thread per buffer: a slow write never piles up
+    // more behind it, and one buffer's lock never holds up another's.
+    private final AtomicBoolean autosaveQueued = new AtomicBoolean();
+
     public synchronized void autosave() {
         if (autosaveEnabled && Autosave.isAutosaveEnabled())
-            if (modCount != autosaveModCount)
-                new Thread(autosaveRunnable, "autosave").start();
+            if (modCount != autosaveModCount && autosaveQueued.compareAndSet(false, true)) {
+                Thread t = new Thread(autosaveRunnable, "autosave");
+                t.setDaemon(true);
+                t.start();
+            }
     }
 
     private final Runnable autosaveRunnable = () -> {
@@ -1914,6 +1911,7 @@ public class Buffer extends SystemBuffer {
         }
         catch (InterruptedException e) {
             Log.error(e);
+            autosaveQueued.set(false);
             return;
         }
         try {
@@ -1921,6 +1919,7 @@ public class Buffer extends SystemBuffer {
         }
         finally {
             unlockRead();
+            autosaveQueued.set(false);
         }
     };
 

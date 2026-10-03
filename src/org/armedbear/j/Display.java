@@ -616,7 +616,25 @@ public final class Display extends JComponent implements Constants,
                 lineChanged(posMatch.getLine());
             if (!highlightBrackets)
                 posBracket = null;
+        } else {
+            posBracket = null;
+            posMatch = flashMatch;
         }
+    }
+
+    // The bracket closeParen highlights for a moment when matching brackets
+    // are not highlighted anyway.
+    private Position flashMatch;
+
+    /*package*/ void flashMatch(Position pos) {
+        if (flashMatch != null)
+            lineChanged(flashMatch.getLine());
+        flashMatch = pos;
+        if (!highlightMatchingBracket)
+            posMatch = pos;
+        if (pos != null)
+            lineChanged(pos.getLine());
+        repaintChangedLines();
     }
 
     /** The bracket or quote highlightMatchingBracket highlights, or null. */

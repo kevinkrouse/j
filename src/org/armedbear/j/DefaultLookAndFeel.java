@@ -57,23 +57,14 @@ public final class DefaultLookAndFeel extends DefaultMetalTheme {
                 lookAndFeelClassName = UIManager.getSystemLookAndFeelClassName();
             } else if (Editor.lookAndFeel.equals("Metal")) {
                 ; // Default look and feel, but don't do customizations.
-            } else if (Editor.lookAndFeel.equals("Motif")) {
-                lookAndFeelClassName =
-                    "com.sun.java.swing.plaf.motif.MotifLookAndFeel";
-            } else if (Editor.lookAndFeel.equals("Windows")) {
-                lookAndFeelClassName =
-                    "com.sun.java.swing.plaf.windows.WindowsLookAndFeel";
-            } else if (Editor.lookAndFeel.equals("Aqua")) {
-                lookAndFeelClassName = "com.apple.mrj.swing.MacLookAndFeel";
-            } else if (Editor.lookAndFeel.equals("Nimbus")) {
-                lookAndFeelClassName =
-                    "com.sun.java.swing.plaf.nimbus.NimbusLookAndFeel";
-            } else if (Editor.lookAndFeel.equals("GTK+")) {
-                lookAndFeelClassName =
-                    "com.sun.java.swing.plaf.gtk.GTKLookAndFeel";
             } else {
-                // Not recognized. Revert to default behavior.
-                Editor.lookAndFeel = null;
+                final String className = installedLookAndFeel(Editor.lookAndFeel);
+                if (className != null) {
+                    lookAndFeelClassName = className;
+                } else {
+                    Log.warn("lookAndFeel " + Editor.lookAndFeel + " is not installed");
+                    Editor.lookAndFeel = null;
+                }
             }
         }
         if (Editor.lookAndFeel == null) {
@@ -93,7 +84,9 @@ public final class DefaultLookAndFeel extends DefaultMetalTheme {
         try {
             UIManager.setLookAndFeel(lookAndFeelClassName);
         }
-        catch (Exception e) {}
+        catch (Exception e) {
+            Log.error(e);
+        }
         // We want to do this in any case.
         UIManager.put("ToolBarUI", "org.armedbear.j.ToolBarUI");
         // Using the Metal button on OSX is ugly and shows an red/orange background when pressed that I'm not sure how to get rid of
@@ -101,6 +94,20 @@ public final class DefaultLookAndFeel extends DefaultMetalTheme {
             UIManager.put("ButtonUI", "org.armedbear.j.ButtonUI");
         UIManager.put("LabelUI", "org.armedbear.j.LabelUI");
         UIManager.put("SplitPane.dividerSize", 1);
+    }
+
+    // The class of the installed look and feel with this name, or null.
+    // "Aqua" and "Motif" are the names this preference used to take.
+    private static String installedLookAndFeel(String name) {
+        if (name.equals("Aqua"))
+            name = "Mac OS X";
+        else if (name.equals("Motif"))
+            name = "CDE/Motif";
+        for (UIManager.LookAndFeelInfo info : UIManager.getInstalledLookAndFeels()) {
+            if (info.getName().equalsIgnoreCase(name))
+                return info.getClassName();
+        }
+        return null;
     }
 
     private DefaultLookAndFeel() {

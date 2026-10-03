@@ -984,6 +984,9 @@ public class FtpSession implements Constants, RemoteSession {
             return; // Nothing to do.
         for (int i = sessionList.size(); i-- > 0;) {
             FtpSession session = sessionList.get(i);
+            // Skip a session in use; locking it keeps it from being used while closing.
+            if (!session.lock())
+                continue;
             String host = session.getHostName();
             boolean inUse = false;
             for (BufferIterator it = new BufferIterator(); it.hasNext();) {
@@ -995,9 +998,13 @@ public class FtpSession implements Constants, RemoteSession {
                     }
                 }
             }
-            if (!inUse) {
-                session.close();
+            if (inUse) {
+                session.unlock();
+            } else {
                 unregister(session);
+                Thread t = new Thread(session::close, "ftp close");
+                t.setDaemon(true);
+                t.start();
             }
         }
         if (sessionList.size() == 0) {
@@ -1041,36 +1048,22 @@ public class FtpSession implements Constants, RemoteSession {
         connected = false;
     }
 
+    // Off the event dispatch thread: QUIT may wait for an answer.
     private void close() {
         Log.debug("FtpSession.close");
         if (connected) {
-            final Editor editor = Editor.currentEditor();
-            editor.setWaitCursor();
-            Runnable r = () -> {
-                try {
-                    if (echo)
-                        Log.debug("==> QUIT");
-                    controlOut.write("QUIT\r\n");
-                    controlOut.flush();
-                    getReply();
-                }
-                catch (IOException e) {}
-            };
-            // A daemon thread, so a server that never answers QUIT cannot
-            // hold the editor open at exit.
-            Thread t = new Thread(r);
-            t.setDaemon(true);
-            t.start();
             try {
-                t.join(3000);
+                controlSocket.setSoTimeout(3000);
+                if (echo)
+                    Log.debug("==> QUIT");
+                controlOut.write("QUIT\r\n");
+                controlOut.flush();
+                getReply();
             }
-            catch (InterruptedException e) {
-                Log.error(e);
+            catch (IOException e) {
+                Log.debug(e);
             }
-            if (t.isAlive())
-                Log.debug("QUIT did not answer; abandoning it");
             disconnect();
-            editor.setDefaultCursor();
         }
         Log.debug("leaving close");
     }

@@ -147,7 +147,6 @@ public class CommandTable {
             addCommand("insertParentheses");
             addCommand("insertString");
             addCommand("insertTab");
-            addCommand("jmips");
             addCommand("justOneSpace");
             addCommand("killAppend");
             addCommand("killBuffer");

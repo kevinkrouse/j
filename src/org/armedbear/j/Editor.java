@@ -1922,21 +1922,24 @@ public final class Editor extends JPanel implements Constants,
             return;
         if (buffer.getCol(match) < display.getShift())
             return;
-        // Move caret to match momentarily and then return.
-        Position saved = new Position(dot);
-        updateDotLine();
-        dot.moveTo(match);
-        updateDotLine();
-        moveCaretToDotCol();
-        display.repaintChangedLines();
-        try {
-            Thread.sleep(300);
-        }
-        catch (InterruptedException e) {}
-        updateDotLine();
-        dot.moveTo(saved);
-        moveCaretToDotCol();
-        updateDotLine();
+        // Highlight the match for a moment; the caret stays put.
+        endParenFlash();
+        display.flashMatch(match);
+        parenFlash = new javax.swing.Timer(parenFlashMillis, e -> endParenFlash());
+        parenFlash.setRepeats(false);
+        parenFlash.start();
+    }
+
+    private javax.swing.Timer parenFlash;
+    /*package*/ static int parenFlashMillis = 300;
+
+    /** Ends closeParen's highlight of the matching paren. */
+    void endParenFlash() {
+        if (parenFlash == null)
+            return;
+        parenFlash.stop();
+        parenFlash = null;
+        display.flashMatch(null);
     }
 
     // No undo.
@@ -4730,9 +4733,9 @@ public final class Editor extends JPanel implements Constants,
 
     // It might make sense to move this code into the Buffer class.
     public void reload(Buffer buf) {
-        setWaitCursor();
         if (buf.getFile() instanceof SshFile)
             return; // Not supported.
+        setWaitCursor();
         Debug.assertTrue(SwingUtilities.isEventDispatchThread());
         for (EditorIterator it = new EditorIterator(); it.hasNext();) {
             Editor ed = it.next();
@@ -6750,7 +6753,6 @@ public final class Editor extends JPanel implements Constants,
     }
 
     public void undo() {
-        setWaitCursor();
         try {
             buffer.lockWrite();
         }
@@ -6758,6 +6760,7 @@ public final class Editor extends JPanel implements Constants,
             Log.error(e);
             return;
         }
+        setWaitCursor();
         try {
             buffer.undo();
             checkDotInOtherFrames();
@@ -6773,7 +6776,6 @@ public final class Editor extends JPanel implements Constants,
     }
 
     public void redo() {
-        setWaitCursor();
         try {
             buffer.lockWrite();
         }
@@ -6781,6 +6783,7 @@ public final class Editor extends JPanel implements Constants,
             Log.error(e);
             return;
         }
+        setWaitCursor();
         try {
             buffer.redo();
             checkDotInOtherFrames();
@@ -7665,30 +7668,6 @@ public final class Editor extends JPanel implements Constants,
             }
             status(sb.toString());
         }
-    }
-
-    public void jmips() {
-        setWaitCursor();
-        long loopsPerSecond = 0;
-        long loops = 1;
-        Thread thread = Thread.currentThread();
-        int oldPriority = thread.getPriority();
-        thread.setPriority(Thread.MAX_PRIORITY);
-        do {
-            long start = System.currentTimeMillis();
-            for (long i = loops; i >= 0; i--)
-                ;
-            long elapsed = System.currentTimeMillis() - start;
-            if (elapsed >= 1000) {
-                loopsPerSecond = (loops / elapsed) * 1000;
-                break;
-            }
-            loops *= 2;
-        } while (true);
-        thread.setPriority(oldPriority);
-        String s = String.valueOf(((float) loopsPerSecond) / 500000);
-        currentEditor.status(s);
-        setDefaultCursor();
     }
 
     public void httpDeleteCookies() {

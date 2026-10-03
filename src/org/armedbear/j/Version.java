@@ -25,6 +25,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.lang.StringBuilder;
+import java.nio.charset.StandardCharsets;
 
 public final class Version {
     private static String version;
@@ -113,11 +114,10 @@ public final class Version {
             InputStream inputStream =
                 Editor.class.getResourceAsStream("version");
             if (inputStream != null) {
-                try {
-                    BufferedReader reader =
-                        new BufferedReader(new InputStreamReader(inputStream));
+                try (BufferedReader reader = new BufferedReader(
+                    new InputStreamReader(inputStream, StandardCharsets.UTF_8)
+                )) {
                     version = reader.readLine();
-                    reader.close();
                 }
                 catch (IOException e) {
                     Log.error(e);
@@ -125,13 +125,12 @@ public final class Version {
             }
             inputStream = Editor.class.getResourceAsStream("build");
             if (inputStream != null) {
-                try {
-                    BufferedReader reader =
-                        new BufferedReader(new InputStreamReader(inputStream));
+                try (BufferedReader reader = new BufferedReader(
+                    new InputStreamReader(inputStream, StandardCharsets.UTF_8)
+                )) {
                     build = reader.readLine();
                     hostName = reader.readLine();
                     revision = reader.readLine();
-                    reader.close();
                 }
                 catch (IOException e) {
                     Log.error(e);
@@ -139,11 +138,10 @@ public final class Version {
             }
             inputStream = Editor.class.getResourceAsStream("snapshot");
             if (inputStream != null) {
-                try {
-                    BufferedReader reader =
-                        new BufferedReader(new InputStreamReader(inputStream));
+                try (BufferedReader reader = new BufferedReader(
+                    new InputStreamReader(inputStream, StandardCharsets.UTF_8)
+                )) {
                     snapshot = reader.readLine();
-                    reader.close();
                 }
                 catch (IOException e) {
                     Log.error(e);

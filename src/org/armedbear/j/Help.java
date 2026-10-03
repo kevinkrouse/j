@@ -518,13 +518,18 @@ public final class Help {
     }
 
     private static String cygpath(String s) {
-        String[] cmdarray = { "cygpath", "-w", s };
         try {
-            Process process = Runtime.getRuntime().exec(cmdarray);
-            BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-            return reader.readLine();
+            Process process = new ProcessBuilder("cygpath", "-w", s).start();
+            try (BufferedReader reader = new BufferedReader(
+                new InputStreamReader(process.getInputStream())
+            )) {
+                return reader.readLine();
+            }
+            finally {
+                process.destroy();
+            }
         }
-        catch (Throwable t) {
+        catch (IOException e) {
             return null;
         }
     }
