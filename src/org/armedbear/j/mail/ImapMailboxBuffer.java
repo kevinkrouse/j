@@ -390,7 +390,7 @@ public final class ImapMailboxBuffer extends MailboxBuffer {
             try {
                 if (session.verifyConnected() && session.verifySelected(folderName)) {
                     session.setEcho(true);
-                    session.writeTagged("create " + name);
+                    session.writeTagged("create " + ImapSession.quoteMailbox(name));
                     succeeded = session.getResponse() == ImapSession.OK;
                     session.setEcho(false);
                 }
@@ -430,7 +430,7 @@ public final class ImapMailboxBuffer extends MailboxBuffer {
             try {
                 if (session.verifyConnected() && session.verifySelected(folderName)) {
                     session.setEcho(true);
-                    session.writeTagged("delete " + name);
+                    session.writeTagged("delete " + ImapSession.quoteMailbox(name));
                     succeeded = session.getResponse() == ImapSession.OK;
                     session.setEcho(false);
                 }
@@ -499,7 +499,7 @@ public final class ImapMailboxBuffer extends MailboxBuffer {
                         StringBuilder sbuf = new StringBuilder("uid copy ");
                         sbuf.append(messageSet);
                         sbuf.append(' ');
-                        sbuf.append(destination);
+                        sbuf.append(ImapSession.quoteMailbox(destination));
                         if (session.writeTagged(sbuf.toString()))
                             if (session.getResponse() == ImapSession.OK)
                                 succeeded = true;
@@ -627,7 +627,7 @@ public final class ImapMailboxBuffer extends MailboxBuffer {
                 StringBuilder sb = new StringBuilder("uid copy ");
                 sb.append(messageSet);
                 sb.append(' ');
-                sb.append(destination);
+                sb.append(ImapSession.quoteMailbox(destination));
                 session.writeTagged(sb.toString());
                 if (session.getResponse() == ImapSession.OK) {
                     sb.setLength(0);

@@ -39,16 +39,10 @@ import java.awt.event.MouseEvent;
 import java.awt.event.MouseWheelEvent;
 import java.awt.event.MouseWheelListener;
 import java.awt.event.WindowEvent;
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.OutputStreamWriter;
 import java.io.UnsupportedEncodingException;
 import java.lang.StringBuilder;
 import java.lang.reflect.Method;
-import java.net.ConnectException;
-import java.net.Socket;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.ArrayList;
@@ -441,41 +435,20 @@ public final class Editor extends JPanel implements Constants,
         boolean alreadyRunning = false;
         portfile = File.getInstance(Directories.getRuntimeDirectory(), "port");
         if (portfile.exists()) {
+            final java.nio.file.Path path = java.nio.file.Path.of(portfile.canonicalPath());
             try {
-                String s;
-                try (BufferedReader in = new BufferedReader(
-                    new InputStreamReader(portfile.getInputStream())
-                )) {
-                    s = in.readLine();
+                if (forceNewInstance) {
+                    alreadyRunning = Server.isListening(path);
+                } else {
+                    final List<String> lines = new ArrayList<String>();
+                    lines.add(File.getInstance(System.getProperty("user.dir")).canonicalPath());
+                    if (files != null)
+                        lines.addAll(files);
+                    if (Server.send(path, lines))
+                        System.exit(0);
                 }
-
-                int port = Integer.parseInt(s);
-
-                Socket socket = new Socket("localhost", port);
-
-                // No ConnectException. We found a running instance.
-                alreadyRunning = true;
-
-                if (!forceNewInstance) {
-                    BufferedWriter out =
-                        new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
-                    File dir = File.getInstance(System.getProperty("user.dir"));
-                    out.write(dir.canonicalPath());
-                    out.newLine();
-                    if (files != null) {
-                        for (int i = 0; i < files.size(); i++) {
-                            out.write(files.get(i));
-                            out.newLine();
-                        }
-                    }
-                    out.flush();
-                    out.close();
-                    socket.close();
-                    System.exit(0);
-                }
-            }
-            catch (ConnectException e) {
-                portfile.delete();
+                if (!alreadyRunning)
+                    portfile.delete();
             }
             catch (IOException e) {
                 Log.error(e);
@@ -538,7 +511,8 @@ public final class Editor extends JPanel implements Constants,
 
         currentEditor.activate(toBeActivated);
 
-        if (startServer)
+        // A forced second instance leaves the first one's port file alone.
+        if (startServer && !alreadyRunning)
             Server.startServer();
 
         Runnable r = () -> {

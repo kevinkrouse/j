@@ -28,15 +28,16 @@ import java.io.OutputStreamWriter;
 import java.io.Writer;
 import java.net.ConnectException;
 import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.net.MalformedURLException;
 import java.net.NoRouteToHostException;
 import java.net.Socket;
 import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
-import javax.net.ssl.SSLSocket;
-import javax.net.ssl.SSLSocketFactory;
+import java.util.Locale;
 import org.armedbear.j.Debug;
 import org.armedbear.j.Editor;
 import org.armedbear.j.File;
@@ -44,12 +45,11 @@ import org.armedbear.j.Log;
 import org.armedbear.j.MessageDialog;
 import org.armedbear.j.Netrc;
 import org.armedbear.j.Property;
+import org.armedbear.j.util.Tls;
 import org.armedbear.j.util.Utilities;
 
 public final class SmtpSession extends Writer {
-    private static final int DEFAULT_PORT = 25;
-    //private static final int LEGACY_TLS_PORT = 465;
-    private static final int DEFAULT_TLS_PORT = 587;
+    private static final int TIMEOUT = 60000; // milliseconds
 
     private final SmtpURL url;
     private final String user;
@@ -61,6 +61,7 @@ public final class SmtpSession extends Writer {
     private boolean connected;
     private String errorText;
     private String responseText;
+    private final List<String> responseLines = new ArrayList<String>();
     private boolean echo;
 
     private SmtpSession(SmtpURL url, String user, String password) {
@@ -205,9 +206,16 @@ public final class SmtpSession extends Writer {
     public boolean connect() {
         if (connected)
             return true;
+        errorText = null;
         Log.debug("connecting to port " + getPort() + " on " + getHost() + " ...");
         try {
-            socket = new Socket(getHost(), getPort());
+            if (url.isSSL()) {
+                socket = Tls.connect(getHost(), getPort(), url.isValidateCert());
+            } else {
+                socket = new Socket();
+                socket.connect(new InetSocketAddress(getHost(), getPort()), TIMEOUT);
+            }
+            socket.setSoTimeout(TIMEOUT);
         }
         catch (UnknownHostException e) {
             errorText = "Unknown SMTP server " + getHost();
@@ -227,79 +235,92 @@ public final class SmtpSession extends Writer {
             return false;
         }
         try {
-            reader =
-                new BufferedReader(new InputStreamReader(socket.getInputStream()));
-            writer =
-                new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
-            getResponse();
-            writeLine("EHLO " + InetAddress.getLocalHost().getHostAddress());
-            if (getResponse() == 250) {
-                if (url.isTLS()) {
-                    writeLine("STARTTLS");
-                    if (getResponse() == 220) {
-                        startTLS();
-                        writeLine("EHLO " + InetAddress.getLocalHost().getHostAddress());
-                        if (getResponse() == 250) {
-                            if (authenticate())
-                                connected = true;
-                        }
-                    }
-                } else {
-                    if (authenticate())
-                        connected = true;
-                }
+            setStreams();
+            if (getResponse() != 220) {
+                errorText = "SMTP server " + getHost() + " refused the connection: " + responseText;
+                return false;
             }
+            boolean secure = url.isSSL();
+            if (ehlo() && !secure && (url.isTLS() || offers("STARTTLS"))) {
+                writeLine("STARTTLS");
+                if (getResponse() != 220)
+                    errorText = "STARTTLS refused: " + responseText;
+                else
+                    secure = startTLS() && ehlo();
+                if (!secure)
+                    return false;
+            }
+            if (errorText == null && authenticate(secure))
+                connected = true;
         }
         catch (IOException e) {
             Log.error(e);
+        }
+        finally {
+            if (!connected)
+                closeSocket();
         }
         return connected;
     }
 
+    private void setStreams() throws IOException {
+        reader = new BufferedReader(
+            new InputStreamReader(socket.getInputStream(), StandardCharsets.UTF_8)
+        );
+        writer = new BufferedWriter(
+            new OutputStreamWriter(socket.getOutputStream(), StandardCharsets.UTF_8)
+        );
+    }
+
+    private boolean ehlo() throws IOException {
+        writeLine("EHLO " + InetAddress.getLocalHost().getHostAddress());
+        if (getResponse() == 250)
+            return true;
+        errorText = "EHLO refused: " + responseText;
+        return false;
+    }
+
+    // True if the last response lists the extension, as EHLO's does.
+    private boolean offers(String extension) {
+        for (String line : responseLines) {
+            if (line.length() > 4 && line.substring(4).toUpperCase(Locale.ROOT).startsWith(extension))
+                return true;
+        }
+        return false;
+    }
+
     private boolean startTLS() {
-        Log.debug("staring TLS");
-        SSLSocketFactory sf = (SSLSocketFactory) SSLSocketFactory.getDefault();
+        Log.debug("starting TLS");
         try {
-            SSLSocket sslsocket = (SSLSocket) sf.createSocket(this.socket, getHost(), getPort(), true);
-            // XXX: check certificates
-            // XXX: set protocols and cyphers
-            sslsocket.startHandshake();
-            Log.debug("TLS handshake successful");
-            socket = sslsocket;
-            reader =
-                new BufferedReader(new InputStreamReader(socket.getInputStream()));
-            writer =
-                new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
+            socket = Tls.wrap(socket, getHost(), getPort(), url.isValidateCert());
+            setStreams();
             return true;
         }
         catch (IOException e) {
             Log.error(e);
-            errorText = e.toString();
+            errorText = "TLS failed with SMTP server " + getHost() + ": " + e.getMessage();
             return false;
         }
     }
 
     // Use "PLAIN" authentication
     // UNDONE: support for "LOGIN", "MD5", "NTLM"
-    private boolean authenticate() throws IOException {
+    private boolean authenticate(boolean secure) throws IOException {
         if (user == null && password == null) {
             Log.debug("no credentials, not authenticating");
             return true;
         }
+        // A relay that asks for no login gets none.
+        if (!offers("AUTH"))
+            return true;
+        if (!secure) {
+            errorText = "SMTP server " + getHost() + " offers no TLS; not sending the password";
+            return false;
+        }
 
         Log.debug("authenticating");
         writeLine("AUTH PLAIN");
-
-        // A response of 530 indicates the server wants us to use TLS
-        int response = getResponse();
-        if (response == 530) {
-            startTLS();
-            writeLine("AUTH PLAIN");
-            response = getResponse();
-        }
-
-        // Send the credentials
-        if (response == 334) {
+        if (getResponse() == 334) {
             StringBuilder sb = new StringBuilder();
             sb.append('\0');
             sb.append(user);
@@ -311,7 +332,7 @@ public final class SmtpSession extends Writer {
                 .encodeToString(
                     sb.toString().getBytes(StandardCharsets.UTF_8)
                 );
-            writeLine(b64encoded);
+            writeLine(b64encoded, "(credentials)");
             if (235 == getResponse())
                 return true;
 
@@ -332,28 +353,35 @@ public final class SmtpSession extends Writer {
     }
 
     public synchronized void disconnect() {
-        if (connected) {
+        if (connected)
+            closeSocket();
+    }
+
+    private synchronized void closeSocket() {
+        if (socket != null) {
             try {
                 socket.close();
             }
             catch (IOException e) {
                 Log.error(e);
             }
-            socket = null;
-            reader = null;
-            writer = null;
-            connected = false;
         }
+        socket = null;
+        reader = null;
+        writer = null;
+        connected = false;
     }
 
     public int getResponse() {
         responseText = "";
+        responseLines.clear();
         while (true) {
             String s = readLine();
             if (s == null)
                 break;
             if (s.length() < 4)
                 break;
+            responseLines.add(s);
             if (s.charAt(3) == ' ') {
                 responseText = s;
                 try {
@@ -410,8 +438,13 @@ public final class SmtpSession extends Writer {
     }
 
     public boolean writeLine(String s) {
+        return writeLine(s, s);
+    }
+
+    // Logs shown in place of s.
+    private boolean writeLine(String s, String shown) {
         if (echo)
-            Log.debug("==> " + s);
+            Log.debug("==> " + shown);
         try {
             writer.write(s);
             writer.write("\r\n");

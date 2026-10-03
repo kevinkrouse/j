@@ -20,11 +20,17 @@
 
 package org.armedbear.j.mail;
 
+import java.io.ObjectInputFilter;
 import java.lang.StringBuilder;
 import java.util.List;
 import org.armedbear.j.util.Utilities;
 
 public class MailUtilities {
+    /** What a mailbox cache file may hold: j's mail classes and their fields' types. */
+    public static final ObjectInputFilter CACHE_FILTER = ObjectInputFilter.Config.createFilter(
+        "maxdepth=20;org.armedbear.j.mail.*;java.util.ArrayList;java.util.Date;java.lang.*;!*"
+    );
+
     public static String constructAddressHeader(String prefix, List<MailAddress> list) {
         return constructAddressHeader(prefix, list, 8);
     }

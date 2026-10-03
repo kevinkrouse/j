@@ -96,6 +96,11 @@ public abstract class MailboxURL {
         this.ssl = ssl;
     }
 
+    /** False for /novalidate-cert: TLS then checks no certificate. */
+    public final boolean isValidateCert() {
+        return validateCert;
+    }
+
     public final boolean isTLS() {
         return tls;
     }

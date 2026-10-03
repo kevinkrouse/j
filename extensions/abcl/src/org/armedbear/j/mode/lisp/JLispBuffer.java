@@ -22,8 +22,11 @@ package org.armedbear.j.mode.lisp;
 
 import java.io.IOException;
 import java.io.OutputStreamWriter;
+import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 import javax.swing.SwingUtilities;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.BufferIterator;
@@ -69,6 +72,7 @@ public final class JLispBuffer extends LispShellBuffer {
     }
 
     protected void startProcess() {
+        clientPort = new CompletableFuture<>();
         thread = new Thread("JLispBuffer interpreter") {
             public void run() {
                 try {
@@ -111,7 +115,8 @@ public final class JLispBuffer extends LispShellBuffer {
         }
 
         try {
-            socket = new Socket("localhost", port);
+            socket = new Socket(InetAddress.getLoopbackAddress(), port);
+            clientPort.complete(socket.getLocalPort());
             stdin = new OutputStreamWriter(socket.getOutputStream());
             stdoutThread = new StdoutThread(socket.getInputStream());
             stdoutThread.setName("JLispBuffer reader");
@@ -123,14 +128,26 @@ public final class JLispBuffer extends LispShellBuffer {
         }
     }
 
+    // This buffer's own end of the REPL connection, for startServer to check.
+    private volatile CompletableFuture<Integer> clientPort;
+
     private void startServer() {
-        try {
-            ServerSocket serverSocket = new ServerSocket(0);
+        // Loopback only, and only the connection this buffer makes: its local
+        // port is the accepted socket's remote one.
+        try (ServerSocket serverSocket = new ServerSocket(0, 1, InetAddress.getLoopbackAddress())) {
+            serverSocket.setSoTimeout(10000);
             port = serverSocket.getLocalPort();
             synchronized (this) {
                 notify();
             }
-            Socket socket = serverSocket.accept(); // Blocks.
+            Socket socket;
+            while (true) {
+                socket = serverSocket.accept(); // Blocks.
+                Integer expected = clientPort.get(10, TimeUnit.SECONDS);
+                if (socket.getPort() == expected)
+                    break;
+                socket.close();
+            }
             interpreter =
                 Interpreter.createJLispInstance(
                     socket.getInputStream(),

@@ -20,13 +20,14 @@
 
 package org.armedbear.j;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.lang.StringBuilder;
 import java.net.Socket;
-import javax.net.ssl.SSLSocketFactory;
 import javax.swing.SwingUtilities;
+import org.armedbear.j.util.Tls;
 import org.armedbear.j.util.Utilities;
 
 public final class HttpLoadProcess extends LoadProcess implements BackgroundProcess,
@@ -125,6 +126,7 @@ public final class HttpLoadProcess extends LoadProcess implements BackgroundProc
         String location = null;
         boolean redirected = false;
         String encoding = null;
+        OutputStream out = null;
         try {
             InputStream in = socket.getInputStream();
             OutputStreamWriter writer = new OutputStreamWriter(socket.getOutputStream());
@@ -155,7 +157,7 @@ public final class HttpLoadProcess extends LoadProcess implements BackgroundProc
             writer.flush();
             sb.setLength(0);
             sbHeaders.append(request);
-            OutputStream out = cache.getOutputStream();
+            out = cache.getOutputStream();
             byte[] buf = new byte[16384];
             long totalBytes = 0;
             int totalLength = 0; // Includes length of response headers.
@@ -232,13 +234,21 @@ public final class HttpLoadProcess extends LoadProcess implements BackgroundProc
             }
             if (progressNotifier != null)
                 progressNotifier.progressStop();
-            out.close();
-            in.close();
-            socket.close();
-            socket = null;
         }
         catch (Exception e) {
             Log.error(e);
+        }
+        finally {
+            try {
+                if (out != null)
+                    out.close();
+                if (socket != null)
+                    socket.close();
+            }
+            catch (IOException e) {
+                Log.error(e);
+            }
+            socket = null;
         }
         if (cancelled)
             cache.delete();
@@ -292,7 +302,7 @@ public final class HttpLoadProcess extends LoadProcess implements BackgroundProc
 
     private Socket createSSLSocket(String hostName, int port) {
         try {
-            return SSLSocketFactory.getDefault().createSocket(hostName, port);
+            return Tls.connect(hostName, port);
         }
         catch (Throwable t) {
             Log.error(t);

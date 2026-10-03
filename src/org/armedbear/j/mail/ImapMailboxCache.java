@@ -102,6 +102,7 @@ public final class ImapMailboxCache implements Serializable {
                     file.getInputStream()
                 )
             );
+            in.setObjectInputFilter(MailUtilities.CACHE_FILTER);
             ImapMailboxCache cache = (ImapMailboxCache) in.readObject();
             cache.setMailbox(mb);
             return cache;

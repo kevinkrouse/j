@@ -265,7 +265,9 @@ public final class ImapMessageBuffer extends MessageBuffer {
                             toBeMoved.getFlags() & ~MailboxEntry.TAGGED
                         );
                     } else {
-                        session.writeTagged("uid copy " + toBeMoved.getUid() + " " + destination);
+                        session.writeTagged(
+                            "uid copy " + toBeMoved.getUid() + " " + ImapSession.quoteMailbox(destination)
+                        );
                         succeeded = session.getResponse() == ImapSession.OK;
                     }
                     if (succeeded) {

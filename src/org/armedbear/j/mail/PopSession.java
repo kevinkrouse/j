@@ -116,8 +116,12 @@ public final class PopSession {
         socket = null;
         errorText = null;
         boolean ssl = url.isSSL() || getPort() == PopURL.DEFAULT_SSL_PORT;
+        if (url.isTLS() && !ssl) {
+            errorText = "STARTTLS is not supported for POP; use /ssl";
+            return false;
+        }
         SocketConnection sc =
-            new SocketConnection(getHost(), getPort(), ssl, 30000, 200, null);
+            new SocketConnection(getHost(), getPort(), ssl, url.isValidateCert(), 30000, 200, null);
         socket = sc.connect();
         if (socket == null) {
             errorText = sc.getErrorText();

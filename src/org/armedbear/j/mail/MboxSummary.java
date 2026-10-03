@@ -82,6 +82,7 @@ public final class MboxSummary implements Serializable {
         ObjectInputStream in = null;
         try {
             in = new ObjectInputStream(new BufferedInputStream(file.getInputStream()));
+            in.setObjectInputFilter(MailUtilities.CACHE_FILTER);
             MboxSummary summary = (MboxSummary) in.readObject();
             File mailboxFile = File.getInstance(summary.path);
             if (mailboxFile != null && mailboxFile.isFile()) {

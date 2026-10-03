@@ -25,7 +25,8 @@ import java.net.NoRouteToHostException;
 import java.net.Socket;
 import java.net.UnknownHostException;
 import javax.net.SocketFactory;
-import javax.net.ssl.SSLSocketFactory;
+import javax.net.ssl.SSLException;
+import org.armedbear.j.util.Tls;
 
 public final class SocketConnection {
     private final String hostName;
@@ -34,6 +35,7 @@ public final class SocketConnection {
     private final int checkInterval; // milliseconds
     private final Cancellable client;
     private final boolean ssl;
+    private final boolean verify;
 
     private Socket socket;
     private String errorText;
@@ -46,9 +48,23 @@ public final class SocketConnection {
         int checkInterval,
         Cancellable client
     ) {
+        this(hostName, port, ssl, true, timeout, checkInterval, client);
+    }
+
+    // verify false checks no TLS certificate.
+    public SocketConnection(
+        String hostName,
+        int port,
+        boolean ssl,
+        boolean verify,
+        int timeout,
+        int checkInterval,
+        Cancellable client
+    ) {
         this.hostName = hostName;
         this.port = port;
         this.ssl = ssl;
+        this.verify = verify;
         this.timeout = timeout;
         this.checkInterval = checkInterval;
         this.client = client;
@@ -90,8 +106,9 @@ public final class SocketConnection {
     private final Thread connectThread = new Thread("connect") {
         public void run() {
             try {
-                SocketFactory factory = ssl ? SSLSocketFactory.getDefault() : SocketFactory.getDefault();
-                socket = factory.createSocket(hostName, port);
+                socket = ssl
+                    ? Tls.connect(hostName, port, verify)
+                    : SocketFactory.getDefault().createSocket(hostName, port);
             }
             catch (NoRouteToHostException e) {
                 setErrorText("No route to host " + hostName);
@@ -101,6 +118,9 @@ public final class SocketConnection {
             }
             catch (ConnectException e) {
                 setErrorText("Connection refused");
+            }
+            catch (SSLException e) {
+                setErrorText("TLS failed for " + hostName + ": " + e.getMessage());
             }
             catch (Exception e) {
                 Log.error(e);

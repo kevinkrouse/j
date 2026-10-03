@@ -31,6 +31,7 @@ import org.armedbear.j.Editor;
 import org.armedbear.j.Log;
 import org.armedbear.j.Netrc;
 import org.armedbear.j.SocketConnection;
+import org.armedbear.j.util.Tls;
 import org.armedbear.j.util.Utilities;
 
 public final class ImapSession {
@@ -154,6 +155,22 @@ public final class ImapSession {
         lastErrorMillis = millis;
     }
 
+    /** s as an IMAP quoted string, without the CR, LF and NUL one cannot hold. */
+    public static String quote(String s) {
+        s = s.replace("\r", "").replace("\n", "").replace("\0", "");
+        return '"' + s.replace("\\", "\\\\").replace("\"", "\\\"") + '"';
+    }
+
+    /**
+     * A mailbox name as an IMAP quoted string. Names were once sent as typed,
+     * so one with a space was typed in quotes; those quotes are not the name's.
+     */
+    public static String quoteMailbox(String name) {
+        if (name.length() >= 2 && name.startsWith("\"") && name.endsWith("\""))
+            name = name.substring(1, name.length() - 1);
+        return quote(name);
+    }
+
     public static ImapSession getSession(ImapURL url) {
         if (url.getHost() == null || url.getFolderName() == null)
             return null;
@@ -203,7 +220,8 @@ public final class ImapSession {
         final String h; // Host.
         final int p; // Port.
         final boolean ssl;
-        if (tunnelHost != null && tunnelPort > 0) {
+        final boolean tunnel = tunnelHost != null && tunnelPort > 0;
+        if (tunnel) {
             h = tunnelHost;
             p = tunnelPort;
             ssl = p == ImapURL.DEFAULT_SSL_PORT;
@@ -213,13 +231,30 @@ public final class ImapSession {
             p = getPort();
             ssl = url.isSSL();
         }
-        SocketConnection sc = new SocketConnection(h, p, ssl, 30000, 200, null);
+        if (url.isTLS() && !ssl) {
+            errorText = "STARTTLS is not supported for IMAP; use /ssl";
+            return false;
+        }
+        // Through a tunnel, TLS starts once connected and checks the
+        // certificate against the real host, not the tunnel's.
+        SocketConnection sc =
+            new SocketConnection(h, p, ssl && !tunnel, url.isValidateCert(), 30000, 200, null);
         Log.debug("connecting to " + h + " on port " + p);
         socket = sc.connect();
         if (socket == null) {
             errorText = sc.getErrorText();
             Log.error(errorText);
             return false;
+        }
+        if (ssl && tunnel) {
+            try {
+                socket = Tls.wrap(socket, getHost(), getPort(), url.isValidateCert());
+            }
+            catch (IOException e) {
+                errorText = "TLS failed for " + getHost() + ": " + e.getMessage();
+                Log.error(errorText);
+                return false;
+            }
         }
         Log.debug("connected to " + h);
         boolean succeeded = false;
@@ -233,7 +268,7 @@ public final class ImapSession {
                 "iso-8859-1"
             );
             if (readLine() != null) {
-                writeTagged("login " + user + " " + password);
+                writeTagged("login " + quote(user) + " " + quote(password));
                 if (getResponse() == OK) {
                     state = AUTHENTICATED;
                     succeeded = true;
@@ -261,12 +296,12 @@ public final class ImapSession {
             if (
                 state < AUTHENTICATED
                     ||
-                    !writeTagged("select \"" + folderName + "\"")
+                    !writeTagged("select " + quoteMailbox(folderName))
             ) {
                 connect();
                 if (state < AUTHENTICATED)
                     return false;
-                if (!writeTagged("select \"" + folderName + "\""))
+                if (!writeTagged("select " + quoteMailbox(folderName)))
                     return false;
             }
             while (true) {
@@ -447,15 +482,12 @@ public final class ImapSession {
         int index = s.indexOf(' ');
         final String lastCommand = index >= 0 ? s.substring(0, index) : s;
         // Prepend tag.
-        s = nextTag() + " " + s;
+        final String tag = nextTag();
+        s = tag + " " + s;
         if (echo) {
-            if (lastCommand.equalsIgnoreCase("login")) {
-                index = s.lastIndexOf(' ');
-                if (index >= 0)
-                    Log.debug("==> " + s.substring(0, index));
-                else
-                    Log.debug("==> " + s);
-            } else
+            if (lastCommand.equalsIgnoreCase("login"))
+                Log.debug("==> " + tag + " login (credentials)");
+            else
                 Log.debug("==> " + s);
         }
         try {
