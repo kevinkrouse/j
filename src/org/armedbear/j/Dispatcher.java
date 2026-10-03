@@ -339,8 +339,12 @@ public final class Dispatcher implements Constants, KeyListener, MouseListener,
         editor.ensureActive();
         Editor.setCurrentEditor(editor);
 
+        // Ctrl held a moment over a link shows it; Ctrl as part of a chord,
+        // Ctrl-O or Ctrl-S, shows nothing and asks the tags nothing.
         if (e.getKeyCode() == KeyEvent.VK_CONTROL)
-            showLinkAt(lastMousePoint);
+            hoverTimer.restart();
+        else
+            hoverTimer.stop();
 
         if (enabled) {
             lastKeyEvent = KeyEvent.KEY_PRESSED;
@@ -353,6 +357,7 @@ public final class Dispatcher implements Constants, KeyListener, MouseListener,
     {
         e.consume();
         if (e.getKeyCode() == KeyEvent.VK_CONTROL) {
+            hoverTimer.stop();
             forgetLink();
             hideLink();
         }
@@ -569,11 +574,15 @@ public final class Dispatcher implements Constants, KeyListener, MouseListener,
     // pressed with the mouse still.
     private Point lastMousePoint;
 
-    /**
-     * Shows the link under point as a click would follow it, as IntelliJ
-     * does under Ctrl, with a hand for the mouse. Returns whether there was
-     * one.
-     */
+    // How long Ctrl is held before the link under a still mouse shows.
+    private static final int HOVER_DELAY = 250;
+
+    private final javax.swing.Timer hoverTimer =
+        new javax.swing.Timer(HOVER_DELAY, e -> showLinkAt(lastMousePoint));
+    {
+        hoverTimer.setRepeats(false);
+    }
+
     // The last place asked about and what was there: a tag lookup can read
     // tag files, so a mouse that moves within a character, or within the
     // link already shown, does not ask again.
@@ -595,6 +604,11 @@ public final class Dispatcher implements Constants, KeyListener, MouseListener,
         return hoverAnswer;
     }
 
+    /**
+     * Shows the link under point as a click would follow it, as IntelliJ
+     * does under Ctrl, with a hand for the mouse. Returns whether there was
+     * one.
+     */
     private boolean showLinkAt(Point point)
     {
         final Position pos = point != null ? display.positionFromPoint(point) : null;
