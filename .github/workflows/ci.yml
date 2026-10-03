@@ -1,0 +1,26 @@
+name: ci
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      # bb fmt-check formats only the Java files changed since this ref
+      FMT_BASE: origin/master
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: cachix/install-nix-action@v31
+      - name: check-core
+        run: nix develop -c bb check-core
+      - name: test
+        run: nix develop -c bb test-extensions
+      - name: lint
+        run: nix develop -c bb lint
+      - name: fmt-check
+        run: nix develop -c bb fmt-check
