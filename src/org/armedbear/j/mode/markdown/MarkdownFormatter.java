@@ -21,6 +21,7 @@
 package org.armedbear.j.mode.markdown;
 
 import org.armedbear.j.Buffer;
+import org.armedbear.j.FollowLink;
 import org.armedbear.j.FormatTable;
 import org.armedbear.j.Formatter;
 import org.armedbear.j.Line;
@@ -125,12 +126,8 @@ public final class MarkdownFormatter extends Formatter
         Pattern.compile("^ {0,3}\\|?(?:[ \\t]*:?-+:?[ \\t]*\\|)+(?:[ \\t]*:?-+:?[ \\t]*)?$");
     private static final Pattern LINK_DEFINITION =
         Pattern.compile("^ {0,3}(\\[)([^\\]]+)(\\]:)[ \\t]*(\\S+)");
-    private static final Pattern AUTOLINK =
-        Pattern.compile("<(?:[a-zA-Z][a-zA-Z0-9+.-]{1,31}:[^\\s<>]*|[^\\s<>@]+@[^\\s<>]+)>");
     private static final Pattern HTML_TAG_PATTERN =
         Pattern.compile("</?[a-zA-Z][a-zA-Z0-9-]*(?:\\s[^<>]*)?/?>");
-    private static final Pattern BARE_URL =
-        Pattern.compile("https?://[^\\s<>()\\[\\]]*[^\\s<>()\\[\\].,;:!?'\"]");
 
     // The format of each character of the line being formatted, whether it
     // is markup to hide, and the item it is part of.
@@ -866,9 +863,11 @@ public final class MarkdownFormatter extends Formatter
                     if (next < 0)
                         next = i + runLength(text, i, end);
                     break;
-                case 'h':
-                    if (i == begin || !Character.isLetterOrDigit(text.charAt(i - 1))) {
-                        final Matcher m = BARE_URL.matcher(text).region(i, end);
+                case 'h': // http:, https:
+                case 'f': // ftp:, file:
+                case 'm': // mailto:
+                    if (i == begin || FollowLink.startsWord(text, i)) {
+                        final Matcher m = FollowLink.BARE_URL.matcher(text).region(i, end);
                         if (m.lookingAt()) {
                             set(i, m.end(), URL);
                             next = m.end();
@@ -938,7 +937,7 @@ public final class MarkdownFormatter extends Formatter
             set(i, stop, COMMENT);
             return stop;
         }
-        Matcher m = AUTOLINK.matcher(text).region(i, end);
+        Matcher m = FollowLink.AUTOLINK.matcher(text).region(i, end);
         if (m.lookingAt()) {
             set(i, i + 1, MARKUP);
             set(i + 1, m.end() - 1, URL);

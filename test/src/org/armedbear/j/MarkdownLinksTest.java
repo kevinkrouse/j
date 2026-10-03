@@ -288,4 +288,28 @@ public class MarkdownLinksTest
         h.keys("<A-c>");
         h.assertText("- [x] [go](#end)\n# End\n");
     }
+
+    @Test
+    public void anEmailAutolinkIsMailto()
+    {
+        on("<me@example.com>\n");
+        assertEquals("mailto:me@example.com", linkAt(0, 3));
+    }
+
+    @Test
+    public void aFileTargetKeepsHashAndPercentInItsPath() throws Exception
+    {
+        final Path dir = Files.createTempDirectory("j-C#");
+        final Path p = dir.resolve("my%20notes.md");
+        Files.write(p, "# One\n\n# Two\n".getBytes("UTF-8"));
+        files.add(p);
+        files.add(dir);
+        final File file = File.getInstance(p.toString());
+        final String target = FollowLink.fileTarget(file, "two");
+        assertTrue(target, target.contains("%23") && target.contains("%2520"));
+        on("x\n");
+        FollowLink.follow(h.editor(), target);
+        assertEquals("my%20notes.md", h.editor().getBuffer().getFile().getName());
+        assertEquals(2, h.editor().getDotLineNumber());
+    }
 }

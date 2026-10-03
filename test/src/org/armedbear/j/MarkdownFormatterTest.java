@@ -228,4 +228,12 @@ public class MarkdownFormatterTest
         h.buffer().getFormatter().parseBuffer();
         assertEquals("code", runs(2));
     }
+
+    @Test
+    public void urlsAsFollowLinkFindsThem()
+    {
+        on("<me@example.com> mailto:you@example.com ftp://h/f\n");
+        assertEquals("markup(<)url(me@example.com)markup(>) url(mailto:you@example.com) "
+                     + "url(ftp://h/f)", runs(0));
+    }
 }

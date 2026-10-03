@@ -23,6 +23,7 @@ package org.armedbear.j.mode.java;
 
 import org.armedbear.j.Buffer;
 import org.armedbear.j.File;
+import org.armedbear.j.FollowLink;
 import org.armedbear.j.Line;
 import org.armedbear.j.TextLink;
 
@@ -31,7 +32,7 @@ import java.util.regex.Pattern;
 
 /**
  * Javadoc's links, for followLink: {@link Foo#bar(int)}, {@linkplain ...},
- * {@see ...} and @see, @throws and @exception. A reference's class is found
+ * and @see, @throws and @exception. A reference's class is found
  * as findClass finds one, through the imports, the package and the source
  * paths; its member is one of the class's tags (JavaTag.isNamedBy).
  */
@@ -41,7 +42,7 @@ final class JavadocLinks
     private static final String REFERENCE =
         "([\\w$.]*(?:#[\\w$]+(?:\\([^)]*\\))?)?)";
     private static final Pattern INLINE =
-        Pattern.compile("\\{@(?:link|linkplain|see)\\s+" + REFERENCE);
+        Pattern.compile("\\{@(?:link|linkplain)\\s+" + REFERENCE);
     private static final Pattern BLOCK =
         Pattern.compile("@(?:see|throws|exception)\\s+" + REFERENCE);
 
@@ -81,7 +82,7 @@ final class JavadocLinks
         if (file == null)
             return TextLink.broken("No source for " + className, begin, end);
         final String simpleName = className.substring(className.lastIndexOf('.') + 1);
-        return new TextLink(file.canonicalPath() + "#"
-                            + (member != null ? member : simpleName), begin, end);
+        return new TextLink(FollowLink.fileTarget(file, member != null ? member : simpleName),
+                            begin, end);
     }
 }

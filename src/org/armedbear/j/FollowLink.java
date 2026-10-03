@@ -41,8 +41,8 @@ import java.util.regex.Pattern;
  * the link is (Mode.getLinkAt): by default a URL, in Markdown its links too.
  *
  * <ul>
- * <li>"#anchor": in this buffer, where the mode says (Mode.findAnchor): a
- *     Markdown heading;
+ * <li>"#anchor": in this buffer, the tag the anchor names
+ *     (LocalTag.isNamedBy): a Markdown heading, a Java member;
  * <li>a path, relative to the buffer's directory or absolute, with an
  *     anchor or not: opened, and at the anchor;
  * <li>"file#L42": opened at line 42;
@@ -54,9 +54,16 @@ import java.util.regex.Pattern;
  */
 public final class FollowLink
 {
-    private static final Pattern AUTOLINK =
-        Pattern.compile("<([a-zA-Z][a-zA-Z0-9+.-]{1,31}:[^\\s<>]*)>");
-    private static final Pattern BARE_URL = Pattern.compile(
+    /**
+     * An autolink, CommonMark's: a URL, group 1, or an email address,
+     * group 2, between angle brackets. What is highlighted as one and what
+     * is followed as one are the same.
+     */
+    public static final Pattern AUTOLINK = Pattern.compile(
+        "<(?:([a-zA-Z][a-zA-Z0-9+.-]{1,31}:[^\\s<>]*)|([^\\s<>@]+@[^\\s<>]+))>");
+
+    /** A URL in text, without punctuation that ends a sentence after it. */
+    public static final Pattern BARE_URL = Pattern.compile(
         "(?:https?://|ftp://|file:/|mailto:)[^\\s<>()\\[\\]]*[^\\s<>()\\[\\].,;:!?'\"]");
     // A scheme, but not a Windows drive letter.
     private static final Pattern SCHEME = Pattern.compile("^[a-zA-Z][a-zA-Z0-9+.-]+:");
@@ -85,12 +92,29 @@ public final class FollowLink
         Matcher m = AUTOLINK.matcher(text);
         while (m.find())
             if (m.start() <= offset && offset < m.end())
-                return new TextLink(m.group(1), m.start(), m.end());
+                return new TextLink(m.group(1) != null ? m.group(1)
+                                    : "mailto:" + m.group(2), m.start(), m.end());
         m = BARE_URL.matcher(text);
         while (m.find())
-            if (m.start() <= offset && offset < m.end())
+            if (startsWord(text, m.start()) && m.start() <= offset && offset < m.end())
                 return new TextLink(m.group(), m.start(), m.end());
         return null;
+    }
+
+    /** Whether a bare URL may start at i: not inside a word. */
+    public static boolean startsWord(String text, int i)
+    {
+        return i == 0 || !Character.isLetterOrDigit(text.charAt(i - 1));
+    }
+
+    /**
+     * A target for followLink that is a file, at an anchor or not: its path
+     * with the '%' and '#' a path may have escaped, as follow reads them.
+     */
+    public static String fileTarget(File file, String anchor)
+    {
+        final String path = file.canonicalPath().replace("%", "%25").replace("#", "%23");
+        return anchor != null ? path + "#" + anchor : path;
     }
 
     /**
