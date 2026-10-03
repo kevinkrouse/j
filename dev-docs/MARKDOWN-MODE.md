@@ -358,10 +358,12 @@ Done, tested in `MarkdownLinksTest`:
   reference said so; else `task`, on a list item or a selection only -- on
   a line of text it does nothing, where `task` would make it a task.
 - Targets: `#anchor`, a path relative to the buffer's file or absolute,
-  `path#anchor`, `path#L42`, `file:`; any other scheme goes to the
-  `browser` preference's browser if set, else `java.awt.Desktop`, else
-  `xdg-open`/`open`. `FollowLink.browser` and `FollowLink.switcher` are
-  swapped out by tests, which have no browser and no frame.
+  `path#anchor`, `path#L42`, `file:`; any other scheme goes to
+  `BrowseFile.openUrl`, as `browseFileAtDot` and directory buffers do: the
+  `browser` preference's browser, `j` for j's own, the desktop's if it is
+  unset (`java.awt.Desktop`, else `xdg-open`/`open`). `FollowLink.browser`
+  and `FollowLink.switcher` are swapped out by tests, which have no
+  browser and no frame.
 - The jump is recorded first; Ctrl+Enter is `followLinkOrTask`,
   Ctrl+click `followLink`, vim `gx` `followLink` for every mode.
 - Not yet: `[[wiki links]]`, explicit anchors (`<a name>`, `{#id}`), and
@@ -411,8 +413,8 @@ now: Obsidian also uses one key to follow a link or toggle a box.
   - a relative or absolute path, `notes.md` or `../README.md`, from the
     buffer's directory: opened in j, then to its `#heading` if it has one;
   - a line in a file, `file.java#L42`: opened at that line;
-  - `http:`, `https:`, `mailto:`: handed to the desktop's browser (j's
-    `BrowseFile`, or `java.awt.Desktop`).
+  - `http:`, `https:`, `mailto:`: handed to the `browser` preference's
+    browser, as `BrowseFile` hands them.
 - Going there pushes the jump list, so vim's `Ctrl-O` and j's jump back
   return.
 - A target that does not resolve says so in the status bar, with the

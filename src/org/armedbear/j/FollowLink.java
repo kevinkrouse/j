@@ -25,10 +25,7 @@ import org.armedbear.j.mode.web.WebBuffer;
 import org.armedbear.j.util.Utilities;
 
 import java.awt.AWTEvent;
-import java.awt.Desktop;
 import java.awt.event.MouseEvent;
-import java.io.IOException;
-import java.net.URI;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.util.function.BiConsumer;
@@ -47,7 +44,7 @@ import java.util.regex.Pattern;
  *     anchor or not: opened, and at the anchor;
  * <li>"file#L42": opened at line 42;
  * <li>http:, https:, mailto: and the like: in the browser preference's
- *     browser, or else the desktop's.
+ *     browser, the desktop's if it is unset (BrowseFile.openUrl).
  * </ul>
  *
  * A jump within j is recorded first, so jumpBack, vim's Ctrl-O, returns.
@@ -70,7 +67,7 @@ public final class FollowLink
     private static final Pattern LINE_ANCHOR = Pattern.compile("L(\\d+)(?:-L?\\d+)?");
 
     /** Opens a URL outside j. Tests replace it, to open nothing. */
-    static Consumer<String> browser = FollowLink::browse;
+    static Consumer<String> browser = BrowseFile::openUrl;
 
     /**
      * Shows another buffer in the editor, loading it. Tests, which have no
@@ -267,49 +264,6 @@ public final class FollowLink
         }
         catch (IllegalArgumentException e) {
             return s;
-        }
-    }
-
-    // The browser preference's browser, or the desktop's.
-    private static void browse(String url)
-    {
-        final Preferences prefs = Editor.preferences();
-        final String browser = prefs.getStringProperty(Property.BROWSER);
-        try {
-            if (browser != null && !browser.equals("j")) {
-                final String opts = prefs.getStringProperty(Property.BROWSER_OPTS);
-                Runtime.getRuntime().exec(opts != null
-                    ? new String[] { browser, opts, url }
-                    : new String[] { browser, url });
-                return;
-            }
-            if (Desktop.isDesktopSupported()) {
-                final Desktop desktop = Desktop.getDesktop();
-                final Desktop.Action action = url.startsWith("mailto:")
-                    ? Desktop.Action.MAIL : Desktop.Action.BROWSE;
-                if (desktop.isSupported(action)) {
-                    // It can take a while to start a browser.
-                    final Thread thread = new Thread(() -> {
-                        try {
-                            if (action == Desktop.Action.MAIL)
-                                desktop.mail(new URI(url));
-                            else
-                                desktop.browse(new URI(url));
-                        }
-                        catch (Exception e) {
-                            Log.error(e);
-                        }
-                    }, "followLink " + url);
-                    thread.setDaemon(true);
-                    thread.start();
-                    return;
-                }
-            }
-            Runtime.getRuntime().exec(new String[] {
-                Platform.isPlatformMacOSX() ? "open" : "xdg-open", url });
-        }
-        catch (IOException e) {
-            Log.error(e);
         }
     }
 }

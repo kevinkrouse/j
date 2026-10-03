@@ -309,7 +309,10 @@ If true, the caret blinks.
 <code><a name="browser">browser</a></code>
 <dl>
 <dd>
-Command to invoke your favorite external browser.
+The browser that <a href="commands.html#followLink">followLink</a>,
+<a href="commands.html#browseFileAtDot">browseFileAtDot</a> and directory
+buffers open a URL or a file in: a command to run with the URL, or
+<code>j</code> for j's own web browser. Unset, the desktop's browser.
 <p>
 <b>Default value:</b> None
 </dl>
@@ -317,7 +320,9 @@ Command to invoke your favorite external browser.
 <code><a name="browserOpts">browserOpts</a></code>
 <dl>
 <dd>
-Command line options to use when invoking the external browser.
+Command line options to use when invoking the
+<a href="#browser">browser</a>, given before the URL; split at white space
+into separate arguments.
 <p>
 <b>Default value:</b> None
 </dl>

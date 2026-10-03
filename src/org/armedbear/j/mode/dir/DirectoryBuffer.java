@@ -20,6 +20,7 @@
 
 package org.armedbear.j.mode.dir;
 
+import org.armedbear.j.BrowseFile;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.BufferIterator;
 import org.armedbear.j.CopyFileDialog;
@@ -56,7 +57,6 @@ import org.armedbear.j.SshFile;
 import org.armedbear.j.SshSession;
 import org.armedbear.j.StatusBarProgressNotifier;
 import org.armedbear.j.util.Utilities;
-import org.armedbear.j.mode.web.WebBuffer;
 
 import java.util.regex.Pattern;
 import java.util.regex.Matcher;
@@ -1218,29 +1218,8 @@ public final class DirectoryBuffer extends Buffer
             editor.status("File not found");
             return;
         }
-        if (f.isFile()) {
-            String browser = preferences.getStringProperty(Property.BROWSER);
-            if (browser == null || browser.equals("j")) {
-                WebBuffer.browse(editor, f, null);
-                return;
-            }
-            // Use external browser.
-            try {
-                String url = "file://".concat(f.canonicalPath());
-                String browserOpts =
-                    preferences.getStringProperty(Property.BROWSER_OPTS);
-                if (browserOpts != null) {
-                    String[] cmdarray = {browser, browserOpts, url};
-                    Process process = Runtime.getRuntime().exec(cmdarray);
-                } else {
-                    String[] cmdarray = {browser, url};
-                    Process process = Runtime.getRuntime().exec(cmdarray);
-                }
-            }
-            catch (Exception e) {
-                Log.error(e);
-            }
-        }
+        if (f.isFile())
+            BrowseFile.openUrl("file://".concat(f.canonicalPath()));
     }
 
     public void deleteFiles()

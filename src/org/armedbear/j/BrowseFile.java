@@ -24,16 +24,17 @@ import org.armedbear.j.mode.web.WebBuffer;
 
 import java.util.regex.Pattern;
 import java.util.regex.Matcher;
+import java.awt.Desktop;
 import java.io.IOException;
+import java.net.URI;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 public final class BrowseFile implements Constants
 {
     public static void browseFileAtDot()
     {
-        String browser =
-            Editor.preferences().getStringProperty(Property.BROWSER);
-        if (browser == null)
-            browser = "j";
         final Editor editor = Editor.currentEditor();
         String filename = browseFileGetFilename(editor);
         if (filename == null)
@@ -54,24 +55,58 @@ public final class BrowseFile implements Constants
                     return;
             }
         }
-        if (browser.equals("j")) {
-            if (file != null)
-                WebBuffer.browse(editor, file, null);
-            else
-                WebBuffer.browse(editor, File.getInstance(filename), null);
-            return;
-        }
-        // External browser.
-        String browserOpts =
-            Editor.preferences().getStringProperty(Property.BROWSER_OPTS);
+        openUrl(filename);
+    }
+
+    /**
+     * Opens a URL in the browser the browser preference names: unset, the
+     * desktop's; "j", j's own; else that command, given browserOpts, split
+     * at white space, before the URL.
+     */
+    public static void openUrl(String url)
+    {
+        final Preferences prefs = Editor.preferences();
+        final String browser = prefs.getStringProperty(Property.BROWSER);
         try {
-            if (browserOpts != null) {
-                String[] cmdarray = {browser, browserOpts, filename};
-                Runtime.getRuntime().exec(cmdarray);
-            } else {
-                String[] cmdarray = {browser, filename};
-                Runtime.getRuntime().exec(cmdarray);
+            if ("j".equals(browser)) {
+                final String path = url.startsWith("file://") ? url.substring(7) : url;
+                WebBuffer.browse(Editor.currentEditor(), File.getInstance(path), null);
+                return;
             }
+            if (browser != null) {
+                final List<String> command = new ArrayList<String>();
+                command.add(browser);
+                final String opts = prefs.getStringProperty(Property.BROWSER_OPTS);
+                if (opts != null && !opts.trim().isEmpty())
+                    command.addAll(Arrays.asList(opts.trim().split("\\s+")));
+                command.add(url);
+                Runtime.getRuntime().exec(command.toArray(new String[command.size()]));
+                return;
+            }
+            if (Desktop.isDesktopSupported()) {
+                final Desktop desktop = Desktop.getDesktop();
+                final Desktop.Action action = url.startsWith("mailto:")
+                    ? Desktop.Action.MAIL : Desktop.Action.BROWSE;
+                if (desktop.isSupported(action)) {
+                    // It can take a while to start a browser.
+                    final Thread thread = new Thread(() -> {
+                        try {
+                            if (action == Desktop.Action.MAIL)
+                                desktop.mail(new URI(url));
+                            else
+                                desktop.browse(new URI(url));
+                        }
+                        catch (Exception e) {
+                            Log.error(e);
+                        }
+                    }, "openUrl " + url);
+                    thread.setDaemon(true);
+                    thread.start();
+                    return;
+                }
+            }
+            Runtime.getRuntime().exec(new String[] {
+                Platform.isPlatformMacOSX() ? "open" : "xdg-open", url });
         }
         catch (IOException e) {
             Log.error(e);
