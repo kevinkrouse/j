@@ -22,6 +22,7 @@ package org.armedbear.j.mail;
 
 import java.lang.StringBuilder;
 import java.net.MalformedURLException;
+import java.util.Objects;
 
 public final class PopURL extends MailboxURL {
     static final int DEFAULT_PORT = 110;
@@ -132,6 +133,11 @@ public final class PopURL extends MailboxURL {
         if (port != url.port)
             return false;
         return true;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(host, user, port);
     }
 
     public String toString() {

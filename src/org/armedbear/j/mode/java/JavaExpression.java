@@ -21,6 +21,7 @@
 package org.armedbear.j.mode.java;
 
 import java.lang.StringBuilder;
+import java.util.Objects;
 import org.armedbear.j.Constants;
 import org.armedbear.j.Expression;
 import org.armedbear.j.LocalTag;
@@ -75,6 +76,11 @@ public final class JavaExpression extends Expression implements Constants {
                 return true;
         }
         return false;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(name, arity, type);
     }
 
     public String toString() {

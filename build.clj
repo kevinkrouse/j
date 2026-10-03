@@ -392,10 +392,7 @@
 (def ^:private errorprone-opts
   (concat
    ["-XDcompilePolicy=simple" "--should-stop=ifError=FLOW"
-    ;; Demoted until their existing violations are fixed.
-    (str "-Xplugin:ErrorProne -XepDisableAllWarnings"
-         " -Xep:EqualsHashCode:WARN -Xep:InfiniteRecursion:WARN"
-         " -Xep:ReturnValueIgnored:WARN -Xep:LabelledBreakTarget:WARN")]
+    "-Xplugin:ErrorProne -XepDisableAllWarnings"]
    ;; Error Prone runs inside javac and uses its internals.
    (for [p ["api" "file" "main" "model" "parser" "processing" "tree" "util"]]
      (str "-J--add-exports=jdk.compiler/com.sun.tools.javac." p "=ALL-UNNAMED"))

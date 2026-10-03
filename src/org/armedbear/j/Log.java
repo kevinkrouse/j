@@ -261,7 +261,7 @@ public final class Log {
     }
 
     private static final void logSystemInformation() {
-        logSystemInformation();
+        logSystemInformation(false, false);
     }
 
     private static final void logSystemInformation(boolean dumpEnv, boolean dumpProps) {

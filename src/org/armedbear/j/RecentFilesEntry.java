@@ -108,6 +108,19 @@ public final class RecentFilesEntry {
         return false;
     }
 
+    @Override
+    public int hashCode() {
+        // Folded as equalsIgnoreCase folds, so equal entries hash alike either way.
+        return 31 * fold(name) + fold(location);
+    }
+
+    private static int fold(String s) {
+        int h = 0;
+        for (int i = 0; i < s.length(); i++)
+            h = 31 * h + Character.toLowerCase(Character.toUpperCase(s.charAt(i)));
+        return h;
+    }
+
     public String toString() {
         StringBuilder sb = new StringBuilder(name);
         if (sb.length() == 0)

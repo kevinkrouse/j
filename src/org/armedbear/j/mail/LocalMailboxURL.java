@@ -51,6 +51,11 @@ public final class LocalMailboxURL extends MailboxURL {
         return file.equals(((LocalMailboxURL) object).getFile());
     }
 
+    @Override
+    public int hashCode() {
+        return file.hashCode();
+    }
+
     public String getCanonicalName() {
         return file.canonicalPath();
     }

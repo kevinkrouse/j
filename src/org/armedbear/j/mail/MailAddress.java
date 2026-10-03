@@ -23,6 +23,7 @@ package org.armedbear.j.mail;
 import java.io.Serializable;
 import java.lang.StringBuilder;
 import java.util.ArrayList;
+import java.util.Objects;
 
 public final class MailAddress implements Serializable {
     private final String personal;
@@ -127,15 +128,16 @@ public final class MailAddress implements Serializable {
             return true;
         if (o instanceof MailAddress) {
             MailAddress ma = (MailAddress) o;
-            if (personal != ma.personal)
-                return false;
-            if (encodedPersonal != ma.encodedPersonal)
-                return false;
-            if (address != ma.address)
-                return false;
-            return true;
+            return Objects.equals(personal, ma.personal)
+                && Objects.equals(encodedPersonal, ma.encodedPersonal)
+                && Objects.equals(address, ma.address);
         } else
             return false;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(personal, encodedPersonal, address);
     }
 
     public final boolean matches(String pattern) {

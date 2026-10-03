@@ -209,6 +209,13 @@ public final class Marker implements Constants {
         return false;
     }
 
+    @Override
+    public int hashCode() {
+        // equals matches on either buffer and position or file and offset;
+        // no field is common to both.
+        return 0;
+    }
+
     public static void invalidateAllMarkers() {
         List<Marker> markers = getAllMarkers();
         for (int i = markers.size(); i-- > 0;) {

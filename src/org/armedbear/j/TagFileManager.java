@@ -286,6 +286,12 @@ public final class TagFileManager extends Thread {
             }
             return false;
         }
+
+        @Override
+        public int hashCode() {
+            return directory.hashCode();
+        }
+
     }
 
     private static class TagFileCache {

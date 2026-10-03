@@ -81,6 +81,11 @@ public final class Position implements Constants {
         return (line == pos.line && offset == pos.offset);
     }
 
+    @Override
+    public int hashCode() {
+        return 31 * System.identityHashCode(line) + offset;
+    }
+
     public final boolean isBefore(Position pos) {
         if (line.lineNumber() < pos.line.lineNumber())
             return true;

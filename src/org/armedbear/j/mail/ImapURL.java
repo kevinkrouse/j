@@ -24,6 +24,7 @@ import java.lang.StringBuilder;
 import java.net.MalformedURLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 public final class ImapURL extends MailboxURL {
     static final int DEFAULT_PORT = 143;
@@ -105,6 +106,11 @@ public final class ImapURL extends MailboxURL {
         if (validateCert != url.validateCert)
             return false;
         return true;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(host, folderName, user, port);
     }
 
     public String toString() {

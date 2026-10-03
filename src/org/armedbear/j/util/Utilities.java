@@ -44,6 +44,8 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URL;
+import java.nio.charset.Charset;
+import java.nio.charset.IllegalCharsetNameException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -1763,14 +1765,12 @@ public final class Utilities implements Constants {
     }
 
     public static boolean isSupportedEncoding(String encoding) {
-        if (encoding != null) {
-            try {
-                "test".getBytes(encoding);
-                return true;
-            }
-            catch (UnsupportedEncodingException e) {}
+        try {
+            return encoding != null && Charset.isSupported(encoding);
         }
-        return false;
+        catch (IllegalCharsetNameException e) {
+            return false;
+        }
     }
 
     // Extracts XML or HTML tag name (e.g. "a" or "/a") from string.

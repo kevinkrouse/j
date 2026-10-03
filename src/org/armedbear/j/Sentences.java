@@ -32,6 +32,7 @@ public final class Sentences {
      *         that only just reaches it stops at the edge, forward at the
      *         end of the last line
      */
+    @SuppressWarnings("LabelledBreakTarget") // found: is the block a sentence is found in.
     public static Position find(Position from, boolean forward, int count) {
         final Scan pos = new Scan(from);
         boolean noSkip = false;

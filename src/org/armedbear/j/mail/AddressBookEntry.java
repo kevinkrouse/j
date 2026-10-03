@@ -21,6 +21,7 @@
 package org.armedbear.j.mail;
 
 import java.lang.StringBuilder;
+import java.util.Objects;
 
 public final class AddressBookEntry {
     private String personal;
@@ -118,6 +119,11 @@ public final class AddressBookEntry {
             return true;
         }
         return false;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(personal, address);
     }
 
     public String toString() {

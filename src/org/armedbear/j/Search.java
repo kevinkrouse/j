@@ -22,6 +22,7 @@ package org.armedbear.j;
 
 import java.lang.StringBuilder;
 import java.util.Arrays;
+import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
@@ -639,6 +640,17 @@ public class Search implements Cloneable {
             return true;
         }
         return false;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(
+            pattern,
+            ignoreCase,
+            wholeWordsOnly,
+            regularExpression,
+            restrictToSelection
+        );
     }
 
     public Object clone() {
