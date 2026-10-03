@@ -1,0 +1,3 @@
+org.armedbear.j.vcs.cvs.CvsBackend
+org.armedbear.j.vcs.darcs.DarcsBackend
+org.armedbear.j.vcs.p4.P4Backend

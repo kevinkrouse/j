@@ -52,6 +52,9 @@ public class CorePurityTest {
         List<String> packages = new ArrayList<String>();
         packages.add("org/armedbear/lisp");
         for (String p : List.of(
+            "vcs/cvs",
+            "vcs/p4",
+            "vcs/darcs",
             "mode/asm",
             "mode/autoconf",
             "mode/verilog",

@@ -15,10 +15,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import org.armedbear.j.Log;
-import org.armedbear.j.vcs.cvs.CvsBackend;
-import org.armedbear.j.vcs.darcs.DarcsBackend;
 import org.armedbear.j.vcs.git.GitBackend;
-import org.armedbear.j.vcs.p4.P4Backend;
 import org.armedbear.j.vcs.svn.SvnBackend;
 
 /** The registered version control backends. */
@@ -26,10 +23,8 @@ public final class VcsBackends {
     // Detection asks them in this order at each directory: an extension's
     // first, then core's.
     private static final List<VcsBackend> backends =
-        new CopyOnWriteArrayList<VcsBackend>(
-            List.of(new CvsBackend(), new DarcsBackend(), new P4Backend(), new SvnBackend(), new GitBackend())
-        );
-    private static int registered = 3;
+        new CopyOnWriteArrayList<VcsBackend>(List.of(new SvnBackend(), new GitBackend()));
+    private static int registered;
 
     private VcsBackends() {}
 
