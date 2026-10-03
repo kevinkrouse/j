@@ -14,6 +14,7 @@ package org.armedbear.j;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 
+import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -23,9 +24,9 @@ import org.junit.Before;
 import org.junit.Test;
 
 /**
- * A file that is well-formed UTF-8 loads as UTF-8 unless an encoding was
- * asked for, as vim's fileencodings=utf-8,latin1 does; anything else as
- * defaultEncoding.
+ * What a file loads and saves as, unless an encoding was asked for: what its
+ * first bytes say, or the first line that is not ASCII, else defaultEncoding,
+ * UTF-8.
  */
 public class EncodingDetectionTest
 {
@@ -40,7 +41,7 @@ public class EncodingDetectionTest
     @After
     public void tearDown() throws Exception
     {
-        Editor.preferences().removeProperty(Property.DETECT_UTF8.key());
+        Editor.preferences().removeProperty(Property.DETECT_ENCODING.key());
         try (java.util.stream.Stream<Path> walk = Files.walk(dir)) {
             walk.sorted(java.util.Comparator.reverseOrder())
                 .forEach(p -> p.toFile().delete());
@@ -67,45 +68,131 @@ public class EncodingDetectionTest
         return buffer;
     }
 
+    private static byte[] bytes(String s, Charset charset)
+    {
+        return s.getBytes(charset);
+    }
+
     private static byte[] utf8(String s)
     {
-        return s.getBytes(StandardCharsets.UTF_8);
+        return bytes(s, StandardCharsets.UTF_8);
     }
 
-    @Test
-    public void utf8LoadsAsUtf8()
+    private static Line line(Buffer b, int n)
     {
-        try {
-            final Buffer b = load(utf8("a → b › c\n"));
-            assertEquals("a → b › c", b.getFirstLine().getText());
-            assertEquals("UTF-8", b.getSaveEncoding());
-        }
-        catch (Exception e) {
-            throw new AssertionError(e);
-        }
+        Line line = b.getFirstLine();
+        for (int i = 0; i < n; i++)
+            line = line.next();
+        return line;
     }
 
-    @Test
-    public void latin1LoadsAsTheDefault() throws Exception
+    // Saving gives back exactly the bytes loaded.
+    private void assertRoundTrip(Buffer b, byte[] bytes) throws Exception
     {
-        final Buffer b = load("café\n".getBytes(StandardCharsets.ISO_8859_1));
-        assertEquals("café", b.getFirstLine().getText());
-        assertEquals("ISO-8859-1", b.getSaveEncoding());
+        final Path out = dir.resolve("out" + System.nanoTime());
+        b.writeFile(File.getInstance(out.toString()));
+        assertArrayEquals(bytes, Files.readAllBytes(out));
     }
 
     @Test
-    public void asciiIsUtf8SoWhatIsTypedInItSaves() throws Exception
+    public void utf8LoadsAsUtf8() throws Exception
+    {
+        final byte[] bytes = utf8("a → b › c\n");
+        final Buffer b = load(bytes);
+        assertEquals("a → b › c", b.getFirstLine().getText());
+        assertEquals("UTF-8", b.getSaveEncoding());
+        assertRoundTrip(b, bytes);
+    }
+
+    @Test
+    public void asciiIsTheDefaultUtf8() throws Exception
     {
         assertEquals("UTF-8", load(utf8("plain\n")).getSaveEncoding());
     }
 
     @Test
+    public void latin1() throws Exception
+    {
+        final byte[] bytes = bytes("café\n", StandardCharsets.ISO_8859_1);
+        final Buffer b = load(bytes);
+        assertEquals("café", b.getFirstLine().getText());
+        assertEquals("ISO-8859-1", b.getSaveEncoding());
+        assertRoundTrip(b, bytes);
+    }
+
+    @Test
+    public void windows1252ByItsQuotes() throws Exception
+    {
+        final byte[] bytes = bytes("“quoted” €5\n",
+                                   Charset.forName("windows-1252"));
+        final Buffer b = load(bytes);
+        assertEquals("“quoted” €5", b.getFirstLine().getText());
+        assertEquals("windows-1252", b.getSaveEncoding());
+        assertRoundTrip(b, bytes);
+    }
+
+    // Past the first 1K, the first line that is not ASCII decides, and
+    // the file is not read ahead to find it.
+    private static String asciiLines()
+    {
+        final StringBuilder sb = new StringBuilder();
+        while (sb.length() < 2 * EncodingDetector.SNIFF_LENGTH)
+            sb.append("just ascii text on a line\n");
+        return sb.toString();
+    }
+
+    @Test
+    public void aLateLatin1LineDecides() throws Exception
+    {
+        final String text = asciiLines() + "café\n";
+        final byte[] bytes = bytes(text, StandardCharsets.ISO_8859_1);
+        final Buffer b = load(bytes);
+        assertEquals("ISO-8859-1", b.getSaveEncoding());
+        assertEquals("café", b.getLastLine().previous().getText());
+        assertRoundTrip(b, bytes);
+    }
+
+    @Test
+    public void aLateUtf8LineDecides() throws Exception
+    {
+        final byte[] bytes = utf8(asciiLines() + "a → b\n");
+        final Buffer b = load(bytes);
+        assertEquals("UTF-8", b.getSaveEncoding());
+        assertEquals("a → b", b.getLastLine().previous().getText());
+    }
+
+    @Test
+    public void aByteOrderMarkIsKept() throws Exception
+    {
+        final byte[] text = utf8("# Título\n");
+        final byte[] bytes = new byte[text.length + 3];
+        bytes[0] = (byte) 0xef;
+        bytes[1] = (byte) 0xbb;
+        bytes[2] = (byte) 0xbf;
+        System.arraycopy(text, 0, bytes, 3, text.length);
+        final Buffer b = load(bytes);
+        assertEquals("# Título", b.getFirstLine().getText());
+        assertRoundTrip(b, bytes);
+    }
+
+    @Test
+    public void aDeclaredEncoding() throws Exception
+    {
+        final Charset koi8 = Charset.forName("KOI8-R");
+        final Buffer b = load(bytes("# -*- coding: koi8-r -*-\nпривет\n", koi8));
+        assertEquals("привет", line(b, 1).getText());
+        final Buffer xml = load(bytes("<?xml version=\"1.0\" encoding=\"ISO-8859-1\"?>\n<a>é</a>\n",
+                                      StandardCharsets.ISO_8859_1));
+        assertEquals("<a>é</a>", line(xml, 1).getText());
+    }
+
+    @Test
     public void detectionCanBeTurnedOff() throws Exception
     {
-        Editor.preferences().setProperty(Property.DETECT_UTF8, "false");
-        final Buffer b = load(utf8("é\n"));
-        assertEquals("Ã©", b.getFirstLine().getText());
-        assertEquals("ISO-8859-1", b.getSaveEncoding());
+        Editor.preferences().setProperty(Property.DETECT_ENCODING, "false");
+        final Buffer b = load(bytes("café\n", StandardCharsets.ISO_8859_1));
+        assertEquals("UTF-8", b.getSaveEncoding());
+        assertEquals("caf�", b.getFirstLine().getText());
     }
 
     @Test
@@ -116,19 +203,24 @@ public class EncodingDetectionTest
     }
 
     @Test
-    public void savingWritesTheBytesItRead() throws Exception
-    {
-        final byte[] bytes = utf8("# Título\n- [ ] → ☑\n");
-        final Buffer b = load(bytes);
-        final Path out = dir.resolve("out.md");
-        b.writeFile(File.getInstance(out.toString()));
-        assertArrayEquals(bytes, Files.readAllBytes(out));
-    }
-
-    @Test
     public void anEmptyFileLoads() throws Exception
     {
         final Buffer b = load(new byte[0]);
         assertEquals("", b.getFirstLine().getText());
+    }
+
+    @Test
+    public void classify()
+    {
+        final byte[] utf8 = utf8("→");
+        assertEquals(null, EncodingDetector.classify(utf8("abc"), 0, 3, false));
+        assertEquals("UTF-8", EncodingDetector.classify(utf8, 0, utf8.length, false));
+        // Cut inside the character: well-formed so far.
+        assertEquals("UTF-8", EncodingDetector.classify(utf8, 0, 2, true));
+        // Not at the end of the input, it is not UTF-8; 0x86 is a dagger in
+        // Windows-1252 and a control character in ISO-8859-1.
+        assertEquals("windows-1252", EncodingDetector.classify(utf8, 0, 2, false));
+        assertEquals("ISO-8859-1", EncodingDetector.classify(
+            "caf\u00e9".getBytes(StandardCharsets.ISO_8859_1), 0, 4, false));
     }
 }

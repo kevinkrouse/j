@@ -26,14 +26,10 @@ import java.lang.StringBuilder;
 import org.armedbear.j.util.Utilities;
 
 import java.io.BufferedOutputStream;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
-import java.nio.charset.CharacterCodingException;
 import java.nio.charset.Charset;
-import java.nio.charset.CodingErrorAction;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 
@@ -276,30 +272,30 @@ public class SystemBuffer implements Constants
                 }
             } else {
                 // Not Unicode.
-                boolean reread = false;
+                int first = 0;
+                undecided = false;
                 if (encoding == null) {
-                    final String fallback =
+                    encoding =
                         Editor.preferences().getStringProperty(Property.DEFAULT_ENCODING);
-                    encoding = fallback;
-                    if (detectsUtf8(fallback)) {
-                        // As vim's fileencodings=utf-8,latin1: the whole file
-                        // decides, so read it all before decoding any of it.
-                        final byte[] bytes = readAll(istream, buf, bytesRead);
-                        if (isUtf8(bytes))
-                            encoding = "UTF-8";
-                        istream = new ByteArrayInputStream(bytes);
-                        bytesRead = istream.read(buf);
-                        reread = true;
+                    if (Editor.preferences().getBooleanProperty(Property.DETECT_ENCODING)) {
+                        final EncodingDetector.Result detected =
+                            EncodingDetector.detect(buf, bytesRead);
+                        first = detected.skip;
+                        utf8ByteOrderMark = detected.skip > 0;
+                        if (detected.encoding != null)
+                            encoding = detected.encoding;
+                        else
+                            undecided = true; // ASCII so far.
                     }
                 }
                 loadEncoding = encoding;
                 ByteBuffer bb = new ByteBuffer(256);
                 while (bytesRead > 0) {
-                    for (int i = 0; i < bytesRead; i++) {
+                    for (int i = first; i < bytesRead; i++) {
                         byte b = buf[i];
                         switch (b) {
                             case 13:
-                                appendLine(new String(bb.getBytes(), 0, bb.length(), encoding));
+                                appendLine(decodeLine(bb));
                                 bb.setLength(0);
                                 skipLF = true;
                                 break;
@@ -313,7 +309,7 @@ public class SystemBuffer implements Constants
                                     // LF without preceding CR.
                                     if (lineSeparator == null)
                                         lineSeparator = "\n";
-                                    appendLine(new String(bb.getBytes(), 0, bb.length(), encoding));
+                                    appendLine(decodeLine(bb));
                                     bb.setLength(0);
                                 }
                                 break;
@@ -329,13 +325,14 @@ public class SystemBuffer implements Constants
                                 break;
                         }
                     }
+                    first = 0;
                     bytesRead = istream.read(buf);
-                    if (bytesRead > 0 && !reread)
+                    if (bytesRead > 0)
                         loadProgress(totalBytes = totalBytes + bytesRead);
                 }
                 if (bb.length() > 0) {
                     // No line separator at end of file.
-                    appendLine(new String(bb.getBytes(), 0, bb.length(), encoding));
+                    appendLine(decodeLine(bb));
                 } else {
                     // If there is a line separator at the end of the file, we
                     // need to append an empty line so the line separator will
@@ -351,49 +348,24 @@ public class SystemBuffer implements Constants
         loadFinished(isLoaded);
     }
 
-    // Whether to look for UTF-8 rather than take fallback: unless told not
-    // to, or fallback is UTF-8 already.
-    private static boolean detectsUtf8(String fallback)
-    {
-        if (!Editor.preferences().getBooleanProperty(Property.DETECT_UTF8))
-            return false;
-        try {
-            return !Charset.forName(fallback).equals(StandardCharsets.UTF_8);
-        }
-        catch (IllegalArgumentException e) {
-            return true;
-        }
-    }
+    // Whether the encoding is still to be decided by the first line that is
+    // not ASCII, the lines before it reading the same in any.
+    private boolean undecided;
 
-    // The bytes read into buf so far, and the rest of the stream.
-    private byte[] readAll(InputStream istream, byte[] buf, int bytesRead)
-        throws IOException
-    {
-        final ByteArrayOutputStream all = new ByteArrayOutputStream();
-        int totalBytes = 0;
-        while (bytesRead > 0) {
-            all.write(buf, 0, bytesRead);
-            totalBytes += bytesRead;
-            bytesRead = istream.read(buf);
-            if (bytesRead > 0)
-                loadProgress(totalBytes + bytesRead);
-        }
-        return all.toByteArray();
-    }
+    // Whether the file began with a UTF-8 byte order mark, to keep on save.
+    private boolean utf8ByteOrderMark;
 
-    /** Whether bytes are well-formed UTF-8, as plain ASCII is. */
-    static boolean isUtf8(byte[] bytes)
+    private String decodeLine(ByteBuffer bb) throws UnsupportedEncodingException
     {
-        try {
-            StandardCharsets.UTF_8.newDecoder()
-                .onMalformedInput(CodingErrorAction.REPORT)
-                .onUnmappableCharacter(CodingErrorAction.REPORT)
-                .decode(java.nio.ByteBuffer.wrap(bytes));
-            return true;
+        if (undecided) {
+            final String found =
+                EncodingDetector.classify(bb.getBytes(), 0, bb.length(), false);
+            if (found != null) {
+                loadEncoding = found;
+                undecided = false;
+            }
         }
-        catch (CharacterCodingException e) {
-            return false;
-        }
+        return new String(bb.getBytes(), 0, bb.length(), loadEncoding);
     }
 
     public final Line getLastLine()
@@ -595,6 +567,8 @@ public class SystemBuffer implements Constants
 
     byte[] getByteOrderMark(String encoding) throws UnsupportedEncodingException
     {
+        if (utf8ByteOrderMark && Charset.forName(encoding).equals(StandardCharsets.UTF_8))
+            return new byte[] { (byte) 0xef, (byte) 0xbb, (byte) 0xbf };
         byte[] bytes = "test".getBytes(encoding);
         if ((bytes[0] == (byte) 0xfe && bytes[1] == (byte) 0xff) ||
             (bytes[0] == (byte) 0xff && bytes[1] == (byte) 0xfe)) {

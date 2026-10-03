@@ -117,8 +117,8 @@ public final class Property implements Comparable<Property>, Constants
         createProperty("confirmSend", true);
     public static final Property DEBUG =
         createProperty("debug", false);
-    public static final Property DETECT_UTF8 =
-        createProperty("detectUtf8", true);
+    public static final Property DETECT_ENCODING =
+        createProperty("detectEncoding", true);
     public static final Property DIR_SORT_DIRECTORIES_FIRST =
         createProperty("dirSortDirectoriesFirst", true);
     public static final Property DIR_USE_NATIVE_FORMAT =
@@ -256,7 +256,7 @@ public final class Property implements Comparable<Property>, Constants
     public static final Property CLHS_ROOT =
         createProperty("clhsRoot", "/usr/share/doc/hyperspec");
     public static final Property DEFAULT_ENCODING =
-        createProperty("defaultEncoding", "ISO-8859-1");
+        createProperty("defaultEncoding", "UTF-8");
     public static final Property DIALOG_FONT_NAME =
         createProperty("dialogFontName", "Dialog");
     public static final Property EXPLICIT_TAG =
