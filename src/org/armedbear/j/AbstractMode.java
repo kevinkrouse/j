@@ -765,9 +765,11 @@ public abstract class AbstractMode implements Constants, Mode
         return false;
     }
 
+    /** A URL, or an identifier whose definition the tags know. */
     public TextLink getLinkAt(Editor editor, Position pos)
     {
-        return FollowLink.urlAt(pos.getLine().getText(), pos.getOffset());
+        final TextLink url = FollowLink.urlAt(pos.getLine().getText(), pos.getOffset());
+        return url != null ? url : FollowLink.definitionAt(editor, pos);
     }
 
     public Line[] getFoldRange(Editor editor, Line line)

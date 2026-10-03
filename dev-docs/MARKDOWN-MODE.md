@@ -384,6 +384,15 @@ Done, tested in `MarkdownLinksTest`:
   `JavaTag.isNamedBy` answers to `bar` and to `bar(int)` by its canonical
   signature's parameter types, simple or qualified. `#bar` alone is in the
   same file. `Foo` alone goes to its declaration.
+- Go to definition: `AbstractMode.getLinkAt` is a URL, or in a taggable
+  buffer the identifier at the position as `TextLink.definition`, if
+  `TagCommands.findMatchingTags` finds a tag for it other than on its own
+  line (so not a declaration's own name). `followLink` on one is
+  `TagCommands.findDefinitionAtDot`, the exact `findTagAtDot`, so a mode's
+  expression (Java's arity) picks the overload, and several matches list
+  as findTag lists them. `Dispatcher` asks again on a Ctrl-hover only for a
+  new place outside the link shown, since a lookup can read tag files.
+  `GoToDefinitionTest`.
 - Fixed on the way: a built-in style ended a link chain only after every
   name's preferences had been asked, so a theme's `style.text = 0` made
   `emphasis` plain. Now a name's own built-in style ends its chain, as an

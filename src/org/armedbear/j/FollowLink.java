@@ -93,6 +93,38 @@ public final class FollowLink
         return null;
     }
 
+    /**
+     * The identifier at pos as a link to its definition, if the buffer's
+     * mode is taggable and a tag for it is somewhere other than here: in
+     * the buffer, or the tag files of its directory and tag path. Not the
+     * declaration itself, which would only go to where it is.
+     */
+    public static TextLink definitionAt(Editor editor, Position pos)
+    {
+        final Buffer buffer = editor.getBuffer();
+        final Mode mode = buffer.getMode();
+        if (mode == null || !buffer.isTaggable())
+            return null;
+        final Line line = pos.getLine();
+        final int offset = pos.getOffset();
+        if (offset >= line.length() || !mode.isIdentifierPart(line.charAt(offset)))
+            return null;
+        final String name = mode.getIdentifier(line, offset);
+        final Position start = mode.findIdentifierStart(line, offset);
+        if (name == null || start == null)
+            return null;
+        final java.util.List<? extends Tag> tags =
+            TagCommands.findMatchingTags(buffer, new Expression(name));
+        if (tags == null)
+            return null;
+        for (Tag tag : tags) {
+            if (!(tag instanceof LocalTag) || ((LocalTag) tag).getLine() != line)
+                return TextLink.definition(name, start.getOffset(),
+                                           start.getOffset() + name.length());
+        }
+        return null;
+    }
+
     /** Whether there is a link at the caret. */
     public static boolean hasLinkAt(Editor editor)
     {
@@ -119,6 +151,8 @@ public final class FollowLink
             editor.status("No link here");
         else if (link.getTarget() == null)
             editor.status(link.getProblem());
+        else if (link.isDefinition())
+            TagCommands.findDefinitionAtDot(editor);
         else
             follow(editor, link.getTarget());
     }

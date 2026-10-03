@@ -199,6 +199,9 @@ public final class TagCommands implements Constants
             return null;
         final String name = expression.getName();
         final int arity = expression.getArity();
+        // None before the editor has started one, as in a test.
+        if (Editor.getTagFileManager() == null)
+            return null;
         List<GlobalTag> tags = Editor.getTagFileManager().getTags(directory, mode);
         if (tags == null) {
             if (!directory.isRemote())
@@ -461,6 +464,15 @@ public final class TagCommands implements Constants
     public static void findTagAtDotOtherWindow()
     {
         findTagAtDotInternal(Editor.currentEditor(), false, true);
+    }
+
+    /**
+     * The definition of the identifier at the caret, exactly as the mode
+     * reads it, as followLink goes to one.
+     */
+    public static void findDefinitionAtDot(Editor editor)
+    {
+        findTagAtDotInternal(editor, true, false);
     }
 
     public static void mouseFindTag()

@@ -352,8 +352,10 @@ public final class Dispatcher implements Constants, KeyListener, MouseListener,
     public void keyReleased(KeyEvent e)
     {
         e.consume();
-        if (e.getKeyCode() == KeyEvent.VK_CONTROL)
+        if (e.getKeyCode() == KeyEvent.VK_CONTROL) {
+            forgetLink();
             hideLink();
+        }
         if (!displayHasFocus())
             return;
 
@@ -468,7 +470,15 @@ public final class Dispatcher implements Constants, KeyListener, MouseListener,
     public void mouseExited(MouseEvent e)
     {
         lastMousePoint = null;
+        forgetLink();
         hideLink();
+    }
+
+    // The buffer may change before Ctrl is held again.
+    private void forgetLink()
+    {
+        hoverAskedLine = null;
+        hoverAnswer = null;
     }
 
     private boolean dispatchMousePressed(MouseEvent e)
@@ -564,10 +574,31 @@ public final class Dispatcher implements Constants, KeyListener, MouseListener,
      * does under Ctrl, with a hand for the mouse. Returns whether there was
      * one.
      */
+    // The last place asked about and what was there: a tag lookup can read
+    // tag files, so a mouse that moves within a character, or within the
+    // link already shown, does not ask again.
+    private Line hoverAskedLine;
+    private int hoverAskedOffset = -1;
+    private TextLink hoverAnswer;
+
+    private TextLink linkAt(Position pos)
+    {
+        final Line line = pos.getLine();
+        final int offset = pos.getOffset();
+        if (line == hoverAskedLine && (offset == hoverAskedOffset
+                || hoverAnswer != null && hoverAnswer.getBegin() <= offset
+                   && offset < hoverAnswer.getEnd()))
+            return hoverAnswer;
+        hoverAskedLine = line;
+        hoverAskedOffset = offset;
+        hoverAnswer = editor.getMode().getLinkAt(editor, pos);
+        return hoverAnswer;
+    }
+
     private boolean showLinkAt(Point point)
     {
         final Position pos = point != null ? display.positionFromPoint(point) : null;
-        final TextLink link = pos != null ? editor.getMode().getLinkAt(editor, pos) : null;
+        final TextLink link = pos != null ? linkAt(pos) : null;
         if (link == null || link.getTarget() == null) {
             display.setHoverLink(null, null);
             return false;
@@ -588,9 +619,12 @@ public final class Dispatcher implements Constants, KeyListener, MouseListener,
     public void mouseMoved(MouseEvent e)
     {
         lastMousePoint = e.getPoint();
-        if (e.isControlDown() && showLinkAt(lastMousePoint))
-            return;
-        hideLink();
+        if (e.isControlDown()) {
+            if (showLinkAt(lastMousePoint))
+                return;
+        } else {
+            hideLink();
+        }
         final Buffer buffer = editor.getBuffer();
         final Position pos = display.positionFromPoint(e.getPoint());
         final String contextString = buffer.getMode().getMouseMovedContextString(editor, pos);

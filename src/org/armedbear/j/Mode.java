@@ -425,7 +425,8 @@ public interface Mode
      * path, a path with an anchor ("notes.md#todo"), or an anchor alone
      * ("#todo"), the anchor naming one of the target's tags
      * (LocalTag.isNamedBy); or <code>null</code> if there is none. By
-     * default an autolink or a bare URL.
+     * default an autolink or a bare URL, or in a taggable mode, an
+     * identifier the tags say where it is defined.
      */
     public TextLink getLinkAt(Editor editor, Position pos);
 

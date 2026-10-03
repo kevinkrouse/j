@@ -1998,8 +1998,10 @@ by; in Java mode, Javadoc's <code>{@link Foo#bar(int)}</code>,
 <code>{@linkplain}</code>, <code>@see</code> and <code>@throws</code>,
 to the class's source, found through the imports, the package and
 <a href="preferences.html#sourcePath">sourcePath</a>, and the member with
-those parameter types; in web buffers, the page's
-links. A target is:
+those parameter types; in a mode with tags, as Java, C, Lisp and Perl
+are, an identifier whose definition the tags know, as
+<a href="#findTagAtDot">findTagAtDot</a> finds it, but not a declaration's
+own name; in web buffers, the page's links. A target is:
 <ul>
 <li><code>#heading</code>: the heading in this file whose GitHub-style
     anchor it is (lower case, punctuation dropped, spaces as hyphens;
