@@ -56,34 +56,8 @@ the file. These are j's internal defaults:
 In the current implementation, case is ignored. Note that by default, .h
 files are opened in C++ mode rather than C mode.
 <p>
-Markdown mode colors CommonMark with GitHub's tables, task lists and
-strikethrough. A task's box shows its state: <code>[ ]</code> not started,
-<code>[/]</code> in progress, <code>[x]</code> done and <code>[-]</code>
-cancelled, and <a href="commands.html#task">task</a> (Ctrl+Enter) moves the
-tasks on the caret's line or the selection from one to the next, or on a
-link <a href="commands.html#followLink">follows</a> it: to a
-<code>#heading</code>, another file, or a URL; Ctrl+click follows one too. The
-sidebar shows the headings as an outline, and the status bar the headings
-down to the caret's. <a href="commands.html#fold">fold</a> folds a heading's
-section, a list item's children or a fence's code, and
-<a href="commands.html#foldHeadings">foldHeadings</a> leaves just the
-headings. A fence that names its language, <code>```java</code>,
-<code>```py</code>, <code>```sh</code> and so on, has its code colored as
-that language's mode colors it, and in italic if the theme's
-<code>MarkdownMode.style.codeBlock</code> is, as it is by default.
-<p>
-Markdown's markup is hidden until the caret is in what it marks: a link
-shows its text, emphasis and code what they mark, a fence its code, and a
-blockquote's <code>&gt;</code> are thin bars in their place; the caret in
-one shows its markup again. Code is shaded, a code block from edge to edge and
-inline code behind its text, in a theme's <code>color.codeBackground</code>
-or a shade of its background made not to be taken for the current line's.
-<a href="preferences.html#conceal">MarkdownMode.conceal</a> says how much
-to hide. Its styles link to the <a href="themes.html#shared">shared
-styles</a>, so a theme that sets <code>color.heading</code> or
-<code>color.todo</code> sets them here too;
-<a href="commands.html#listStyles">listStyles</a> in a Markdown buffer shows
-them all.
+Markdown mode, with its tasks, links, outline, folding and hidden markup,
+is described in <a href="markdownmode.html">Markdown Mode</a>.
 <p>
 You can customize this behavior by supplying different values for these
 regular expressions in your <a href="preferences.html">preferences</a> file.

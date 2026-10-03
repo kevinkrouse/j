@@ -1,0 +1,181 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+
+<html>
+
+<head>
+<title>J User's Guide - Markdown Mode</title>
+<LINK REL="stylesheet" HREF="j.css" TYPE="text/css">
+</head>
+
+<body>
+
+<a href="contents.html">Top</a>
+
+<hr>
+
+<h1>Markdown Mode</h1>
+
+<hr>
+
+<p>
+Markdown mode is used for files whose names end in <code>.md</code>,
+<code>.markdown</code> or <code>.mkd</code>. You can change that with the
+<code>MarkdownMode.files</code> property, as described in
+<a href="modes.html">Modes</a>.
+
+<h2>Highlighting</h2>
+<p>
+Markdown mode colors CommonMark, with GitHub's tables, task lists and
+strikethrough: headings, emphasis, inline code, fenced and indented code
+blocks, links and images, block quotes, lists, rules, tables, HTML comments
+and tags, and front matter.
+<p>
+A fence that names its language, such as <code>```java</code>,
+<code>```py</code> or <code>```sh</code>, has its code colored the way that
+language's own mode colors it. The language is the first word after the
+backticks; the usual names and abbreviations are recognized, as are the
+names of j's modes. A fence that names no language, or one j has no mode
+for, is colored as plain code.
+<p>
+Code blocks and inline code are drawn on a shaded background, a code block
+from edge to edge of the window. Code in a code block is in italic, as the
+theme's <code>codeBlock</code> style is by default; to turn that off, add
+this line to your <a href="preferences.html">preferences</a> file:
+<pre>
+    MarkdownMode.style.codeBlock = plain
+</pre>
+
+<h2>Hidden markup</h2>
+<p>
+Markdown's markup is hidden until the caret is in what it marks. A link
+shows only its text; bold, italic and struck-through text and inline code
+show without their asterisks, underscores, tildes and backticks; and a code
+block shows its code without its fence lines. A block quote's
+<code>&gt;</code> is drawn as a thin vertical bar in its place, so the text
+of the quote doesn't move.
+<p>
+When the caret is in a link, an emphasis or a span of code, its markup is
+shown again, so you can edit it; the rest of the line stays as it was. With
+the caret anywhere in a code block, both of its fence lines are shown.
+<p>
+The <a href="preferences.html#conceal">conceal</a> property says what to
+hide, as a list. <code>markup</code>, the default, hides the markup
+described above; <code>headings</code> hides the <code>#</code> of
+headings and the underlines of setext headings as well; <code>none</code>
+hides nothing:
+<pre>
+    MarkdownMode.conceal = markup, headings
+</pre>
+
+<h2>Tasks</h2>
+<p>
+A task is a list item that begins with a box. The box shows the task's
+state, and each state has its own color:
+<pre>
+    - [ ] not started
+    - [/] in progress
+    - [x] done
+    - [-] cancelled
+</pre>
+<p>
+<a href="commands.html#task">task</a> moves the tasks on the caret's line,
+or on every line of the selection, from one state to the next: not started,
+in progress, done, and around again. A list item without a box gets one,
+and a line of text becomes a task. With an argument, <code>task</code> sets
+a state instead: <code>task done</code>, <code>task doing</code>,
+<code>task todo</code>. <code>task cancel</code> cancels the tasks, or, if
+they are all cancelled already, starts them again. Lines inside code blocks
+are left alone.
+<p>
+<a href="commands.html#task">task</a> is mapped to Alt Enter and Alt C, and
+<code>task cancel</code> to Ctrl Shift Enter. Ctrl Enter is
+<a href="commands.html#followLinkOrTask">followLinkOrTask</a>: on a link it
+follows the link, and otherwise it does what <code>task</code> does on a
+list item. On a line of text, Ctrl Enter does nothing.
+
+<h2>Links</h2>
+<p>
+<a href="commands.html#followLink">followLink</a> goes where the link at the
+caret points. A link can be written <code>[text](target)</code>,
+<code>![alt](image)</code>, <code>[text][label]</code> with a
+<code>[label]: target</code> line elsewhere in the file,
+<code>&lt;https://example.com&gt;</code>, or just a URL. A target can be:
+<ul>
+<li><code>#heading</code>, a heading in the same file, named as GitHub
+    names it: the heading in lower case, without punctuation, with its
+    spaces as hyphens (<code># Hello, World!</code> is
+    <code>#hello-world</code>);
+<li>a file, relative to the directory of the file you're editing or
+    absolute, optionally followed by <code>#heading</code>, or by
+    <code>#L42</code> for line 42;
+<li>a URL, which is opened in the
+    <a href="preferences.html#browser">browser</a>.
+</ul>
+<p>
+Ctrl-clicking a link follows it. If you hold down Ctrl with the mouse over a
+link, the link is drawn underlined, as clicking would follow it, and the
+mouse pointer changes to a hand. In <a href="editmodes.html">vim edit
+mode</a>, <code>gx</code> follows the link at the caret.
+<p>
+Following a link is a jump, so <a href="commands.html#jumpBack">jumpBack</a>
+(Ctrl O in vim edit mode) takes you back.
+
+<h2>Headings</h2>
+<p>
+The bottom pane of the sidebar shows the file's headings as an outline,
+each heading under the one it belongs to. The selection follows the caret
+as you move around the file, and clicking a heading, or pressing Enter on
+it, moves the caret to it. The status bar shows the headings down to the
+one the caret is under, for example <code>Install &rsaquo; From
+Source</code>.
+
+<h2>Folding</h2>
+<p>
+<a href="commands.html#fold">fold</a> folds what the caret is in: the code
+of a code block, the lines indented under a list item, or the section under
+a heading, down to the next heading of the same or a higher level. If that
+is folded already, the one around it is folded instead, so folding again
+and again folds further out.
+<a href="commands.html#foldHeadings">foldHeadings</a> folds everything but
+the headings, leaving an outline of the file; with a level, such as
+<code>foldHeadings 2</code>, it leaves only the headings down to that level.
+<p>
+In <a href="editmodes.html">vim edit mode</a>, <code>za</code>,
+<code>zc</code>, <code>zo</code>, <code>zR</code> and <code>zM</code> fold
+and unfold as they do in vim; <code>zM</code> is
+<a href="commands.html#foldHeadings">foldHeadings</a>.
+
+<h2>Themes</h2>
+<p>
+Markdown mode's styles are built on the
+<a href="themes.html#shared">shared styles</a>, so a theme that sets
+<code>color.heading</code>, <code>color.link</code> or
+<code>color.todo</code> sets them in Markdown mode too. To change one in
+Markdown mode only, prefix it with <code>MarkdownMode.</code>:
+<pre>
+    MarkdownMode.color.heading1 = #cf222e
+    MarkdownMode.style.heading1 = bold
+</pre>
+<p>
+The shaded background of code is a shade of the theme's background, made
+not to be mistaken for the current line's highlight. To choose it yourself,
+set <code>color.codeBackground</code>.
+<p>
+<a href="commands.html#listStyles">listStyles</a> in a Markdown buffer
+shows every style Markdown mode uses, each drawn in itself, with what it
+takes its color and style from.
+<p>
+The following commands are specifically relevant in Markdown mode:
+<ul>
+<li><a href="commands.html#fold">fold</a></li>
+<li><a href="commands.html#foldAll">foldAll</a></li>
+<li><a href="commands.html#foldHeadings">foldHeadings</a></li>
+<li><a href="commands.html#followLink">followLink</a></li>
+<li><a href="commands.html#followLinkOrTask">followLinkOrTask</a></li>
+<li><a href="commands.html#listStyles">listStyles</a></li>
+<li><a href="commands.html#task">task</a></li>
+<li><a href="commands.html#toggleFold">toggleFold</a></li>
+<li><a href="commands.html#unfoldHere">unfoldHere</a></li>
+</ul>
+</body>
+</html>
