@@ -46,8 +46,9 @@ nothing at all &mdash; no error, no theme.
 
 <h2>Styles</h2>
 <p>
-A <code>style.</code> property may be a number, 0 plain, 1 bold, 2 italic or
-3 bold italic, or words: any of <code>plain</code>, <code>bold</code>,
+A <code>style.</code> property may be a number, the sum of 1 for bold, 2
+for italic, 4 for underline and 8 for strikethrough (0 is plain, 3 bold
+italic), or words: any of <code>plain</code>, <code>bold</code>,
 <code>italic</code>, <code>underline</code> and <code>strikethrough</code>.
 <pre>
     style.heading = bold italic
@@ -77,10 +78,12 @@ or your preferences can link a thing elsewhere, for all modes or for one:
 <p>
 <a href="commands.html#listStyles">listStyles</a> shows what each style came
 to and where from. In a theme or preferences file, every line that sets a
-color shows a swatch of it in the gutter. A file with no extension in a
-directory named <code>themes</code> or on <code>themePath</code>, or the theme
-in use, is edited as a properties file even without a
-<code>-*- Mode: Properties -*-</code> first line.
+color shows a swatch of it in the gutter. The theme in use, and a file with
+no extension on <code>themePath</code> or in j's own <code>themes</code>
+directory, are edited as properties files even without a
+<code>-*- Mode: Properties -*-</code> first line; so is one in another
+directory named <code>themes</code> if its first setting is a
+<code>color.</code>, <code>style.</code> or <code>link.</code> one.
 
 </body>
 </html>

@@ -5,9 +5,6 @@ text. Moved here from the Markdown plan (`MARKDOWN-MODE.md`), where it was
 Phase 9, the most invasive of its phases: it touches how every line is
 measured, scrolled and drawn.
 
-
-The most invasive, so last.
-
 - `parseBuffer` keeps the heading level in the flags, and
   `Mode.getLineScale(Line)` gives the scale: 1.4, 1.2, 1.1 for levels 1-3,
   else 1, behind `MarkdownMode.scaleHeadings`.
