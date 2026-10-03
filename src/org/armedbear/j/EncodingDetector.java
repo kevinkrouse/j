@@ -62,29 +62,44 @@ public final class EncodingDetector
         }
     }
 
-    // Emacs's and Python's "-*- coding: latin-1 -*-", vim's
-    // "fileencoding=utf-8", on the first two lines.
-    private static final Pattern CODING =
-        Pattern.compile("(?:coding[:=]|fileencoding=|fenc=)\\s*([-\\w.:]+)");
+    // On the first two lines: Emacs's "-*- coding: latin-1 -*-", Python's
+    // "# coding: latin-1" (PEP 263), vim's "vim: set fileencoding=latin1:".
+    // "coding" a word of its own, so "# Encoding notes" declares nothing.
+    private static final Pattern EMACS_CODING =
+        Pattern.compile("-\\*-.*?\\bcoding:\\s*([-\\w.:]+).*?-\\*-");
+    private static final Pattern PYTHON_CODING =
+        Pattern.compile("^[ \\t\\f]*#.*?\\bcoding[:=][ \\t]*([-\\w.]+)");
+    private static final Pattern VIM_CODING =
+        Pattern.compile("\\bvim?:.*?\\b(?:fileencoding|fenc)=([-\\w.]+)");
+    // At the very start of the file.
     private static final Pattern XML_DECLARATION =
         Pattern.compile("^<\\?xml[^>]*\\sencoding\\s*=\\s*[\"']([-\\w.:]+)[\"']");
+    // In an HTML file only.
     private static final Pattern META_CHARSET =
         Pattern.compile("<meta[^>]*charset\\s*=\\s*[\"']?([-\\w.:]+)",
                         Pattern.CASE_INSENSITIVE);
+    private static final Pattern HTML_FILE =
+        Pattern.compile(".*\\.(?:html?|xhtml|shtml)", Pattern.CASE_INSENSITIVE);
 
     private EncodingDetector() {}
 
-    /** The encoding of a file whose first bytes are bytes[0, length). */
-    public static Result detect(byte[] bytes, int length)
+    /**
+     * The encoding of a file named fileName whose first bytes are
+     * bytes[0, length). Bytes that are well-formed UTF-8, and not all ASCII,
+     * are UTF-8 whatever the file declares: a declaration is more often
+     * wrong, or text about one, than Latin-1 is well-formed UTF-8.
+     */
+    public static Result detect(byte[] bytes, int length, String fileName)
     {
         length = Math.max(0, Math.min(length, SNIFF_LENGTH));
         if (length >= 3 && bytes[0] == (byte) 0xef && bytes[1] == (byte) 0xbb
             && bytes[2] == (byte) 0xbf)
             return new Result(UTF_8, 3);
-        final String declared = declared(bytes, length);
-        if (declared != null)
-            return new Result(declared, 0);
-        return new Result(classify(bytes, 0, length, true), 0);
+        final String classified = classify(bytes, 0, length, true);
+        if (UTF_8.equals(classified))
+            return new Result(UTF_8, 0);
+        final String declared = declared(bytes, length, fileName);
+        return new Result(declared != null ? declared : classified, 0);
     }
 
     /**
@@ -130,33 +145,44 @@ public final class EncodingDetector
     }
 
     // An encoding the text declares, that Java has.
-    private static String declared(byte[] bytes, int length)
+    private static String declared(byte[] bytes, int length, String fileName)
     {
         final String text = new String(bytes, 0, length, StandardCharsets.ISO_8859_1);
-        int firstLines = text.indexOf('\n');
-        if (firstLines >= 0)
-            firstLines = text.indexOf('\n', firstLines + 1);
-        if (firstLines < 0)
-            firstLines = text.length();
-        Matcher m = CODING.matcher(text).region(0, firstLines);
-        if (m.find() && isSupported(m.group(1)))
-            return m.group(1);
-        m = XML_DECLARATION.matcher(text);
-        if (m.find() && isSupported(m.group(1)))
-            return m.group(1);
-        m = META_CHARSET.matcher(text);
-        if (m.find() && isSupported(m.group(1)))
-            return m.group(1);
+        final String[] lines = text.split("\r?\n|\r", 3);
+        for (int i = 0; i < Math.min(2, lines.length); i++) {
+            for (Pattern pattern : new Pattern[] { EMACS_CODING, PYTHON_CODING,
+                                                   VIM_CODING }) {
+                final Matcher m = pattern.matcher(lines[i]);
+                if (m.find() && charset(m.group(1)) != null)
+                    return charset(m.group(1));
+            }
+        }
+        Matcher m = XML_DECLARATION.matcher(text);
+        if (m.find() && charset(m.group(1)) != null)
+            return charset(m.group(1));
+        if (fileName != null && HTML_FILE.matcher(fileName).matches()) {
+            m = META_CHARSET.matcher(text);
+            if (m.find() && charset(m.group(1)) != null)
+                return charset(m.group(1));
+        }
         return null;
     }
 
-    private static boolean isSupported(String name)
+    // Java's name for a declared encoding: as it is, or as Python and Emacs
+    // spell it, "latin-1", "utf-8-unix"; null if Java has none.
+    private static String charset(String name)
     {
-        try {
-            return Charset.isSupported(name);
+        final String withoutEol = name.replaceFirst("-(?:unix|dos|mac)$", "");
+        for (String candidate : new String[] { name, withoutEol,
+                                               withoutEol.replace("-", "") }) {
+            try {
+                if (Charset.isSupported(candidate))
+                    return Charset.forName(candidate).name();
+            }
+            catch (IllegalArgumentException e) {
+                // Not a name Java takes; try the next.
+            }
         }
-        catch (IllegalArgumentException e) {
-            return false;
-        }
+        return null;
     }
 }

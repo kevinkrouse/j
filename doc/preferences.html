@@ -676,16 +676,20 @@ is all ASCII, or any file if it is false.
 <dl>
 <dd>
 If true, a file's encoding is what its first kilobyte says, in this order:
-a UTF-8 byte order mark, kept when the file is saved; an encoding the file
-declares, in an Emacs or Python <code>coding:</code> cookie or a vim
-<code>fileencoding=</code> on its first two lines, an XML declaration, or an
-HTML <code>&lt;meta charset&gt;</code>; UTF-8 if its bytes are well-formed
-UTF-8; else Windows-1252 if any byte is 0x80 to 0x9F, which are quotes and
-dashes there and control characters in ISO-8859-1; else ISO-8859-1. If that
-much is all ASCII, the first line that is not decides, and if there is none,
-<a href="#defaultEncoding">defaultEncoding</a>. UTF-16 with a byte order
-mark is always recognized. An encoding given for a file, as in a session,
-wins over both.
+a UTF-8 byte order mark, kept when the file is saved; UTF-8 if its bytes
+are well-formed UTF-8 and not all ASCII, whatever it declares; an encoding
+it declares, in an Emacs <code>-*- coding: x -*-</code>, a Python
+<code># coding: x</code> or a vim <code>fileencoding=x</code> on its first
+two lines, an XML declaration that begins it, or in an HTML file a
+<code>&lt;meta charset&gt;</code>; else Windows-1252 if any byte is 0x80 to
+0x9F, which are quotes and dashes there and control characters in
+ISO-8859-1; else ISO-8859-1. If that much is all ASCII, the first line that
+is not decides, and if there is none,
+<a href="#defaultEncoding">defaultEncoding</a>. If a line later is not
+UTF-8 after all, the whole file is read as Windows-1252 or ISO-8859-1, as
+that line says, so that no byte is lost, and the status bar says so.
+UTF-16 with a byte order mark is always recognized. An encoding given for a
+file, as in a session, wins over all of it.
 <p>
 <b>Default value:</b> true
 </dl>

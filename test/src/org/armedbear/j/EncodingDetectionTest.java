@@ -55,7 +55,12 @@ public class EncodingDetectionTest
 
     private Buffer load(byte[] bytes, String encoding) throws Exception
     {
-        final Path path = dir.resolve("f" + System.nanoTime() + ".txt");
+        return load(bytes, encoding, "f" + System.nanoTime() + ".txt");
+    }
+
+    private Buffer load(byte[] bytes, String encoding, String name) throws Exception
+    {
+        final Path path = dir.resolve(name);
         Files.write(path, bytes);
         final File file = File.getInstance(path.toString());
         if (encoding != null)
@@ -222,5 +227,71 @@ public class EncodingDetectionTest
         assertEquals("windows-1252", EncodingDetector.classify(utf8, 0, 2, false));
         assertEquals("ISO-8859-1", EncodingDetector.classify(
             "caf\u00e9".getBytes(StandardCharsets.ISO_8859_1), 0, 4, false));
+    }
+
+    @Test
+    public void aWordWithCodingInItDeclaresNothing() throws Exception
+    {
+        final Buffer b = load(utf8("# Encoding: windows-1252 notes\ncaf\u00e9\n"));
+        assertEquals("UTF-8", b.getSaveEncoding());
+        assertEquals("caf\u00e9", line(b, 1).getText());
+    }
+
+    @Test
+    public void wellFormedUtf8BeatsADeclaration() throws Exception
+    {
+        final Buffer b = load(utf8("# -*- coding: latin-1 -*-\ncaf\u00e9\n"));
+        assertEquals("UTF-8", b.getSaveEncoding());
+        assertEquals("caf\u00e9", line(b, 1).getText());
+    }
+
+    @Test
+    public void aPythonCookieDeclares() throws Exception
+    {
+        final Buffer b = load(utf8("#!/usr/bin/env python\n# coding: latin-1\nx = 1\n"));
+        assertEquals("ISO-8859-1", b.getSaveEncoding());
+    }
+
+    @Test
+    public void metaCharsetOnlyInHtml() throws Exception
+    {
+        final byte[] text = utf8("<meta charset=\"iso-8859-1\">\nplain\n");
+        assertEquals("UTF-8", load(text, null, "README" + System.nanoTime() + ".md")
+                     .getSaveEncoding());
+        assertEquals("ISO-8859-1", load(text, null, "page" + System.nanoTime() + ".html")
+                     .getSaveEncoding());
+    }
+
+    @Test
+    public void aLineThatIsNotUtf8LosesNothing() throws Exception
+    {
+        // UTF-8 decided late, then a Latin-1 byte: the whole file is read
+        // as Latin-1, so saving writes every byte back.
+        final java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream();
+        out.write(utf8(asciiLines() + "a \u2192 b\n" + asciiLines()));
+        out.write("caf\u00e9\n".getBytes(StandardCharsets.ISO_8859_1));
+        final byte[] bytes = out.toByteArray();
+        final Buffer b = load(bytes);
+        assertEquals("ISO-8859-1", b.getSaveEncoding());
+        assertEquals("caf\u00e9", b.getLastLine().previous().getText());
+        assertRoundTrip(b, bytes);
+    }
+
+    @Test
+    public void aReloadForgetsAByteOrderMark() throws Exception
+    {
+        final byte[] text = utf8("x\n");
+        final byte[] bytes = new byte[text.length + 3];
+        bytes[0] = (byte) 0xef;
+        bytes[1] = (byte) 0xbb;
+        bytes[2] = (byte) 0xbf;
+        System.arraycopy(text, 0, bytes, 3, text.length);
+        final Buffer b = load(bytes);
+        // Again, asking for UTF-8: the mark is text now, kept once.
+        b.empty();
+        try (java.io.InputStream in = new java.io.ByteArrayInputStream(bytes)) {
+            b.load(in, "UTF-8");
+        }
+        assertRoundTrip(b, bytes);
     }
 }

@@ -29,9 +29,13 @@ import java.io.BufferedOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
+import java.nio.charset.CharacterCodingException;
 import java.nio.charset.Charset;
+import java.nio.charset.CharsetDecoder;
+import java.nio.charset.CodingErrorAction;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import javax.swing.SwingUtilities;
 
 // System buffers are NOT linked into the normal buffer ring.
 public class SystemBuffer implements Constants
@@ -189,6 +193,10 @@ public class SystemBuffer implements Constants
 
     public void load(InputStream istream, String encoding)
     {
+        // What a load before found is no longer so.
+        undecided = false;
+        guessed = false;
+        utf8ByteOrderMark = false;
         if (mode != null && mode.getId() == BINARY_MODE) {
             loadBinary(istream);
             return;
@@ -273,19 +281,19 @@ public class SystemBuffer implements Constants
             } else {
                 // Not Unicode.
                 int first = 0;
-                undecided = false;
                 if (encoding == null) {
                     encoding =
                         Editor.preferences().getStringProperty(Property.DEFAULT_ENCODING);
                     if (Editor.preferences().getBooleanProperty(Property.DETECT_ENCODING)) {
-                        final EncodingDetector.Result detected =
-                            EncodingDetector.detect(buf, bytesRead);
+                        final EncodingDetector.Result detected = EncodingDetector.detect(
+                            buf, bytesRead, file != null ? file.getName() : null);
                         first = detected.skip;
                         utf8ByteOrderMark = detected.skip > 0;
                         if (detected.encoding != null)
                             encoding = detected.encoding;
                         else
                             undecided = true; // ASCII so far.
+                        guessed = true;
                     }
                 }
                 loadEncoding = encoding;
@@ -352,20 +360,64 @@ public class SystemBuffer implements Constants
     // not ASCII, the lines before it reading the same in any.
     private boolean undecided;
 
+    // Whether the encoding was detected rather than asked for, and so may be
+    // taken back.
+    private boolean guessed;
+
     // Whether the file began with a UTF-8 byte order mark, to keep on save.
     private boolean utf8ByteOrderMark;
 
+    private final CharsetDecoder utf8Decoder = StandardCharsets.UTF_8.newDecoder()
+        .onMalformedInput(CodingErrorAction.REPORT)
+        .onUnmappableCharacter(CodingErrorAction.REPORT);
+
     private String decodeLine(ByteBuffer bb) throws UnsupportedEncodingException
     {
+        final byte[] bytes = bb.getBytes();
+        final int length = bb.length();
         if (undecided) {
-            final String found =
-                EncodingDetector.classify(bb.getBytes(), 0, bb.length(), false);
+            final String found = EncodingDetector.classify(bytes, 0, length, false);
             if (found != null) {
                 loadEncoding = found;
                 undecided = false;
             }
         }
-        return new String(bb.getBytes(), 0, bb.length(), loadEncoding);
+        if (guessed && !undecided
+            && Charset.forName(loadEncoding).equals(StandardCharsets.UTF_8)) {
+            try {
+                return utf8Decoder.reset()
+                    .decode(java.nio.ByteBuffer.wrap(bytes, 0, length)).toString();
+            }
+            catch (CharacterCodingException e) {
+                notUtf8(bytes, length);
+            }
+        }
+        return new String(bytes, 0, length, loadEncoding);
+    }
+
+    // A line that is not UTF-8 in a file taken to be: rather than lose its
+    // bytes to U+FFFD, the file is an 8-bit encoding after all, as the line
+    // says. The lines before were well-formed UTF-8, so their bytes, and
+    // what they are in the new encoding, are had again exactly.
+    private void notUtf8(byte[] bytes, int length) throws UnsupportedEncodingException
+    {
+        final String encoding = EncodingDetector.classify(bytes, 0, length, false);
+        int lines = 0;
+        for (Line line = getFirstLine(); line != null; line = line.next()) {
+            line.setText(new String(line.getText().getBytes(StandardCharsets.UTF_8),
+                                    encoding));
+            ++lines;
+        }
+        loadEncoding = encoding;
+        guessed = false;
+        final String message = (file != null ? file.getName() : "File")
+            + " is not UTF-8 at line " + (lines + 1) + ": read as " + encoding;
+        Log.warn(message);
+        SwingUtilities.invokeLater(() -> {
+            final Editor editor = Editor.currentEditor();
+            if (editor != null)
+                editor.status(message);
+        });
     }
 
     public final Line getLastLine()
