@@ -623,6 +623,21 @@ Color for vertical rule.
 <b>See also:</b> <a href="#verticalRule">verticalRule</a>
 </dl>
 
+<code><a name="conceal">conceal</a></code>
+<dl>
+<dd>
+In a mode that hides its markup until the caret is in what it marks, as
+Markdown mode does, what to hide, as a list. In Markdown mode,
+<code>markup</code> hides the brackets and URLs of links, the asterisks,
+underscores and tildes of emphasis, the backticks of code, backslashes,
+and the lines of a fence; <code>headings</code> hides heading markers.
+<code>markup,headings</code> hides both, and <code>none</code> neither. The
+caret in a link or an emphasis shows its markup, and anywhere in a fence,
+the fence's lines.
+<p>
+<b>Default value:</b> markup
+</dl>
+
 <code><a name="confirmSend">confirmSend</a></code>
 <dl>
 <dd>

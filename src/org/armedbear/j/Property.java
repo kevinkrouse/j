@@ -255,6 +255,10 @@ public final class Property implements Comparable<Property>, Constants
         createProperty("attribution", "On %d, %n wrote:");
     public static final Property CLHS_ROOT =
         createProperty("clhsRoot", "/usr/share/doc/hyperspec");
+    // The kinds of markup to hide until the caret is in it, as a list:
+    // "markup,headings" in Markdown mode; "none" for none.
+    public static final Property CONCEAL =
+        createProperty("conceal", "markup");
     public static final Property DEFAULT_ENCODING =
         createProperty("defaultEncoding", "UTF-8");
     public static final Property DIALOG_FONT_NAME =

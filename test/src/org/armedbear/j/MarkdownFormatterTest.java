@@ -29,12 +29,16 @@ public class MarkdownFormatterTest
     @After
     public void tearDown()
     {
+        Editor.preferences().removeProperty("MarkdownMode.conceal");
         if (h != null)
             h.close();
     }
 
     private void on(String text)
     {
+        // The runs of formats alone: MarkdownHidingTest has what is hidden,
+        // which splits them further.
+        Editor.preferences().setProperty("MarkdownMode.conceal", "none");
         h = EditorHarness.create(text).mode(MarkdownMode.getMode());
         h.buffer().getFormatter().parseBuffer();
     }
@@ -141,8 +145,8 @@ public class MarkdownFormatterTest
     {
         on("a `code` b ``x ` y`` *`no*`*\n");
         // The * in the code span neither closes nor opens.
-        assertEquals("a markup(`)code(code)markup(`) b markup(``)code(x ` y)markup(``) "
-                     + "markup(*`)code(no*)markup(`*)", runs(0));
+        assertEquals("a codeMarker(`)code(code)codeMarker(`) b codeMarker(``)code(x ` y)codeMarker(``) "
+                     + "markup(*)codeMarker(`)code(no*)codeMarker(`)markup(*)", runs(0));
     }
 
     @Test
@@ -150,7 +154,7 @@ public class MarkdownFormatterTest
     {
         on("see [the `docs`](http://x.y/z) now\n![alt](a.png)\n[a][b]\n"
            + "[id]: http://x.y \"title\"\n<https://a.b> https://a.b/c.\n");
-        assertEquals("see markup([)linkText(the )markup(`)code(docs)markup(`]()"
+        assertEquals("see markup([)linkText(the )codeMarker(`)code(docs)codeMarker(`)markup(]()"
                      + "url(http://x.y/z)markup()) now", runs(0));
         assertEquals("markup(![)linkText(alt)markup(]()url(a.png)markup())", runs(1));
         assertEquals("markup([)linkText(a)markup(][)url(b)markup(])", runs(2));
@@ -191,7 +195,7 @@ public class MarkdownFormatterTest
         assertEquals("markup(|) a markup(|) markup(*)emphasis(b)markup(*) markup(|)",
                      runs(0));
         assertEquals("markup(|---|:-:|)", runs(1));
-        assertEquals("markup(|) markup(`)code(x|)markup(`) markup(|) y markup(\\)| z "
+        assertEquals("markup(|) codeMarker(`)code(x|)codeMarker(`) markup(|) y markup(\\)| z "
                      + "markup(|)", runs(2));
     }
 

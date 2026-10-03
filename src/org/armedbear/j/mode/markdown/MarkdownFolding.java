@@ -46,9 +46,9 @@ public final class MarkdownFolding
     static Line[] getFoldRange(Buffer buffer, Line line)
     {
         parse(buffer);
-        final Line open = fenceOpening(line);
-        if (open != null && isOpen(fenceBody(open)))
-            return fenceBody(open);
+        final Line[] fence = fenceBody(line);
+        if (isOpen(fence))
+            return fence;
         if (isOpen(indentedCode(line)))
             return indentedCode(line);
         Line item = MarkdownFormatter.startsListItem(line.getText())
@@ -92,29 +92,13 @@ public final class MarkdownFolding
         return MarkdownFormatter.getHeadingLevel(line);
     }
 
-    // The line opening the fence line is in or opens, or null.
-    private static Line fenceOpening(Line line)
+    // The fence's code and the line closing it, or null.
+    private static Line[] fenceBody(Line line)
     {
-        if (MarkdownFormatter.opensFence(line))
-            return line;
-        if (!MarkdownFormatter.isInFence(line))
+        final Line[] block = MarkdownFormatter.fenceBlock(line);
+        if (block == null || block[1] == block[0])
             return null;
-        Line open = line.previous();
-        while (open != null && MarkdownFormatter.isInFence(open))
-            open = open.previous();
-        return open;
-    }
-
-    // The fence's code and the line closing it.
-    private static Line[] fenceBody(Line open)
-    {
-        final Line first = open.next();
-        if (first == null || !MarkdownFormatter.isInFence(first))
-            return null;
-        Line last = first;
-        while (last.next() != null && MarkdownFormatter.isInFence(last.next()))
-            last = last.next();
-        return new Line[] { first, last };
+        return new Line[] { block[0].next(), block[1] };
     }
 
     // An indented code block's lines after its first, which stays to show

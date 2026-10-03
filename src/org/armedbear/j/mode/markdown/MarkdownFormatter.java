@@ -77,6 +77,7 @@ public final class MarkdownFormatter extends Formatter
     static final int COMMENT            = 29;
     static final int HTML_TAG           = 30;
     static final int FRONT_MATTER       = 31;
+    static final int CODE_MARKER        = 32; // A code span's backticks.
 
     // A line's flags: the block it begins in, in the low bits...
     private static final int BLOCK_MASK      = 0x7;
@@ -131,8 +132,19 @@ public final class MarkdownFormatter extends Formatter
     private static final Pattern BARE_URL =
         Pattern.compile("https?://[^\\s<>()\\[\\]]*[^\\s<>()\\[\\].,;:!?'\"]");
 
-    // The format of each character of the line being formatted.
+    // The format of each character of the line being formatted, whether it
+    // is markup to hide, and the item it is part of.
     private int[] formats = new int[0];
+    private boolean[] hidden = new boolean[0];
+    private boolean[] bars = new boolean[0];
+    private int[] items = new int[0];
+    private int itemCount;
+
+    // What markup to hide until the caret is in it, as Property.CONCEAL
+    // names it: "markup", links, emphasis, code, escapes and fences; and
+    // "headings", their markers.
+    private boolean concealMarkup;
+    private boolean concealHeadings;
 
     // A formatter for each fence language met, by slot, lent this buffer.
     private final Formatter[] languages = new Formatter[FenceLanguages.MAX_SLOT + 1];
@@ -347,9 +359,20 @@ public final class MarkdownFormatter extends Formatter
             addSegment(text, TEXT);
             return segmentList;
         }
-        if (formats.length < length)
-            formats = new int[Math.max(length, formats.length * 2)];
+        if (formats.length < length) {
+            final int size = Math.max(length, formats.length * 2);
+            formats = new int[size];
+            hidden = new boolean[size];
+            bars = new boolean[size];
+            items = new int[size];
+        }
         set(0, length, TEXT);
+        Arrays.fill(hidden, 0, length, false);
+        Arrays.fill(bars, 0, length, false);
+        Arrays.fill(items, 0, length, 0);
+        itemCount = 0;
+        concealMarkup = conceals("markup");
+        concealHeadings = conceals("headings");
         final int flags = line.flags();
         switch (flags & BLOCK_MASK) {
             case IN_FRONT_MATTER:
@@ -357,7 +380,7 @@ public final class MarkdownFormatter extends Formatter
                 break;
             case IN_FENCE:
                 if (FENCE_CLOSE.matcher(text).matches() && closesFence(text, flags))
-                    set(0, length, FENCE);
+                    fenceLine(length);
                 else
                     formatCode(line, text, (flags & LANGUAGE_MASK) >> LANGUAGE_SHIFT);
                 break;
@@ -377,12 +400,102 @@ public final class MarkdownFormatter extends Formatter
         }
         int start = 0;
         for (int i = 1; i <= length; i++) {
-            if (i == length || formats[i] != formats[start]) {
-                addSegment(text, start, i, formats[start]);
+            if (i == length || formats[i] != formats[start]
+                || hidden[i] != hidden[start] || items[i] != items[start]
+                || bars[i] != bars[start]) {
+                addSegment(text, start, i, formats[start], hidden[start], items[start]);
+                getLastSegment().setBar(bars[start]);
                 start = i;
             }
         }
         return segmentList;
+    }
+
+    public boolean hidesMarkup()
+    {
+        return conceals("markup") || conceals("headings");
+    }
+
+    /**
+     * A fence's lines, its markup shown with the caret anywhere in it; with
+     * headings concealed, a setext heading's text and underline.
+     */
+    public Line[] getHiddenBlock(Line line)
+    {
+        if (conceals("markup")) {
+            final Line[] fence = fenceBlock(line);
+            if (fence != null)
+                return fence;
+        }
+        if (conceals("headings")) {
+            if (isSetextHeading(line) && line.next() != null)
+                return new Line[] { line, line.next() };
+            final Line previous = line.previous();
+            if (previous != null && isSetextHeading(previous))
+                return new Line[] { previous, line };
+        }
+        return null;
+    }
+
+    /**
+     * The fence line is in, opens or closes: its opening line and its last,
+     * the closing line or the buffer's end; or null.
+     */
+    static Line[] fenceBlock(Line line)
+    {
+        Line open;
+        if (opensFence(line)) {
+            open = line;
+        } else if (isInFence(line)) {
+            open = line.previous();
+            while (open != null && isInFence(open))
+                open = open.previous();
+            if (open == null)
+                return null;
+        } else {
+            return null;
+        }
+        Line last = open;
+        while (last.next() != null && isInFence(last.next()))
+            last = last.next();
+        return new Line[] { open, last };
+    }
+
+    // A fence's opening or closing line, hidden whole unless the caret is in
+    // the fence.
+    private void fenceLine(int length)
+    {
+        set(0, length, FENCE);
+        if (concealMarkup) {
+            hide(0, length);
+            item(0, length, LineSegment.BLOCK);
+        }
+    }
+
+    // Marks begin to end as markup to hide.
+    private void hide(int begin, int end)
+    {
+        if (concealMarkup)
+            Arrays.fill(hidden, begin, end, true);
+    }
+
+    // Marks begin to end as part of an item, which the caret in shows.
+    private void item(int begin, int end, int item)
+    {
+        if (concealMarkup || concealHeadings)
+            Arrays.fill(items, begin, end, item);
+    }
+
+    // Heading markers, hidden as hide hides the rest.
+    private void hideHeading(int begin, int end)
+    {
+        Arrays.fill(hidden, begin, end, true);
+    }
+
+    private int newItem(int begin, int end)
+    {
+        item(begin, end, ++itemCount);
+        return itemCount;
     }
 
     // A fenced line, in its language if j has a mode for it. The language's
@@ -469,9 +582,36 @@ public final class MarkdownFormatter extends Formatter
         return super.getUnderline(format);
     }
 
+    // The shade behind code, as Obsidian's.
+    private Color codeBackground;
+
+    private Color codeBackground()
+    {
+        if (codeBackground == null)
+            codeBackground = getShade("MarkdownMode", "codeBackground");
+        return codeBackground;
+    }
+
+    /** A fence's lines, and an indented code block's, shaded. */
+    public Color getLineBackground(Line line)
+    {
+        if (isInFence(line) || opensFence(line) || isIndentedCodeBlock(line))
+            return codeBackground();
+        return null;
+    }
+
+    /** Inline code, shaded as a code block is. */
+    public Color getRunBackground(int format)
+    {
+        if (format == CODE || format == CODE_MARKER)
+            return codeBackground();
+        return null;
+    }
+
     public void reset()
     {
         super.reset();
+        codeBackground = null;
         for (Formatter formatter : languages)
             if (formatter != null)
                 formatter.reset();
@@ -493,15 +633,21 @@ public final class MarkdownFormatter extends Formatter
             }
         }
         if (FENCE_OPEN.matcher(text).matches()) {
-            set(0, length, FENCE);
+            fenceLine(length);
             return;
         }
         Matcher m = ATX_HEADING.matcher(text);
         if (m.matches()) {
             final int level = m.group(1).length();
             set(0, length, HEADING_MARKER);
-            if (m.group(2) != null)
+            if (m.group(2) != null) {
                 set(m.start(2), m.end(2), HEADING_1 + level - 1);
+                if (concealHeadings) {
+                    newItem(0, length);
+                    hideHeading(0, m.start(2));
+                    hideHeading(m.end(2), length);
+                }
+            }
             return;
         }
         final int setext = (flags & HEADING_MASK) >> HEADING_SHIFT;
@@ -514,6 +660,10 @@ public final class MarkdownFormatter extends Formatter
             && (previous.flags() & BLOCK_MASK) == NORMAL
             && (previous.flags() & HEADING_MASK) != 0) {
             set(0, length, HEADING_MARKER);
+            if (concealHeadings) {
+                hideHeading(0, length);
+                item(0, length, LineSegment.BLOCK);
+            }
             return;
         }
         if (RULE_LINE.matcher(text).matches()) {
@@ -533,6 +683,17 @@ public final class MarkdownFormatter extends Formatter
             base = QUOTE;
             set(pos, length, base);
             set(0, pos, QUOTE_MARKER);
+            // Each '>' a bar, as Obsidian draws a quote, the space after it
+            // the gap before the text; shown again with the caret on the
+            // line. The item first, so that items in the quote are their own.
+            newItem(0, length);
+            for (int i = 0; i < pos; i++) {
+                if (text.charAt(i) == '>') {
+                    hide(i, i + 1);
+                    if (concealMarkup)
+                        bars[i] = true;
+                }
+            }
         }
 
         m = LIST_ITEM.matcher(text).region(pos, length);
@@ -674,6 +835,8 @@ public final class MarkdownFormatter extends Formatter
                 case '\\':
                     if (i + 1 < end && isAsciiPunctuation(text.charAt(i + 1))) {
                         set(i, i + 1, MARKUP);
+                        newItem(i, i + 2);
+                        hide(i, i + 1);
                         next = i + 2;
                     }
                     break;
@@ -686,8 +849,11 @@ public final class MarkdownFormatter extends Formatter
                 case '!':
                     if (i + 1 < end && text.charAt(i + 1) == '[') {
                         next = formatLink(text, i + 1, end);
-                        if (next > 0)
+                        if (next > 0) {
                             set(i, i + 1, MARKUP);
+                            item(i, i + 1, items[i + 1]);
+                            hide(i, i + 1);
+                        }
                     }
                     break;
                 case '[':
@@ -738,9 +904,12 @@ public final class MarkdownFormatter extends Formatter
         final int close = findCodeSpanClose(text, i + run, end, run);
         if (close < 0)
             return i + run;
-        set(i, i + run, MARKUP);
+        set(i, i + run, CODE_MARKER);
         set(i + run, close, CODE);
-        set(close, close + run, MARKUP);
+        set(close, close + run, CODE_MARKER);
+        newItem(i, close + run);
+        hide(i, i + run);
+        hide(close, close + run);
         return close + run;
     }
 
@@ -774,6 +943,9 @@ public final class MarkdownFormatter extends Formatter
             set(i, i + 1, MARKUP);
             set(i + 1, m.end() - 1, URL);
             set(m.end() - 1, m.end(), MARKUP);
+            newItem(i, m.end());
+            hide(i, i + 1);
+            hide(m.end() - 1, m.end());
             return m.end();
         }
         m = HTML_TAG_PATTERN.matcher(text).region(i, end);
@@ -804,11 +976,15 @@ public final class MarkdownFormatter extends Formatter
         } else {
             return -1;
         }
+        // The item first, so that items inside the link text are their own.
+        newItem(open, stop + 1);
         set(open, open + 1, MARKUP);
         formatInline(text, open + 1, close, LINK_TEXT);
         set(close, close + 2, MARKUP);
         set(close + 2, stop, URL);
         set(stop, stop + 1, MARKUP);
+        hide(open, open + 1);
+        hide(close, stop + 1);
         return stop + 1;
     }
 
@@ -856,9 +1032,12 @@ public final class MarkdownFormatter extends Formatter
             format = STRONG;
         else
             format = STRONG_EMPHASIS;
+        newItem(i, close + run);
         set(i, i + run, MARKUP);
         formatInline(text, i + run, close, format);
         set(close, close + run, MARKUP);
+        hide(i, i + run);
+        hide(close, close + run);
         return close + run;
     }
 
@@ -932,6 +1111,7 @@ public final class MarkdownFormatter extends Formatter
             formatTable.addEntryFromPrefs(COMMENT, "comment");
             formatTable.addEntryFromPrefs(HTML_TAG, "htmlTag");
             formatTable.addEntryFromPrefs(FRONT_MATTER, "frontMatter");
+            formatTable.addEntryFromPrefs(CODE_MARKER, "codeMarker");
         }
         return formatTable;
     }

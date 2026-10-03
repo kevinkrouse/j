@@ -95,9 +95,10 @@ public final class DefaultTheme
         { "MarkdownMode", "fence",          "muted" },
         { "MarkdownMode", "linkText",       "link" },
         { "MarkdownMode", "markup",         "muted" },
+        { "MarkdownMode", "codeMarker",     "markup" },
         { "MarkdownMode", "strongEmphasis", "text" },
         { "MarkdownMode", "strikethrough",  "text" },
-        { "MarkdownMode", "quoteMarker",    "muted" },
+        { "MarkdownMode", "quoteMarker",    "link" },
         { "MarkdownMode", "rule",           "muted" },
         { "MarkdownMode", "doneText",       "muted" },
         { "MarkdownMode", "cancelledText",  "cancelled" },
@@ -488,6 +489,9 @@ public final class DefaultTheme
                     return TextStyle.STRIKETHROUGH;
                 // The box, unlike the item, is not struck through.
                 if (thing == "cancelled")
+                    return TextStyle.PLAIN;
+                // The link's blue for a quote's bar, without its underline.
+                if (thing == "quoteMarker")
                     return TextStyle.PLAIN;
             } else if (mode == "StatusMode") {
                 if (thing == "unknown")

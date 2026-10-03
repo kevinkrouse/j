@@ -19,7 +19,8 @@ one height. They are built in the editor so that other modes can use them.
 - [Phase 5: highlighting code in fences](#phase-5-highlighting-code-in-fences)
 - [Phase 6: hiding markup](#phase-6-hiding-markup)
 - [Phase 7: following links](#phase-7-following-links)
-- [Phase 8: larger heading fonts](#phase-8-larger-heading-fonts)
+- [Phase 8: electric pairs](#phase-8-electric-pairs)
+- [Phase 9: larger heading fonts](#phase-9-larger-heading-fonts)
 - [Colors for light and dark backgrounds](#colors-for-light-and-dark-backgrounds)
 - [Order and tests](#order-and-tests)
 
@@ -252,6 +253,45 @@ v1 done, tested in `MarkdownFencedCodeTest`:
 
 ## Phase 6: hiding markup
 
+Done, tested in `MarkdownHidingTest`:
+
+- `LineSegment` carries `isHidden` and `getItem` (a number per line, or
+  `BLOCK`); `Formatter.hidesMarkup` and `getHiddenBlock(Line)` default to
+  none. Markdown marks links, emphasis, code spans, escapes, autolinks and
+  fence lines, and with `conceal=all` heading markers and setext underlines.
+- `Display.formatLine` reveals the items the caret is in -- on its line,
+  from an item's first column to just past its last; for a block, the
+  caret on any of its lines -- and marks the rest `HIDDEN` (bit 31), which
+  `drawText` and `measureLine` give no width. The caret's x and clicks
+  measure the same way, so they agree.
+- `Display.showRevealed`, from `drawCaret`, repaints the caret's line and
+  the ends of a block it is in or was in when the caret moves.
+- `Property.CONCEAL`, read as `MarkdownMode.conceal`: a list of what to
+  hide, `markup` (default) and `headings`; `none` hides nothing. Mode
+  keys like it had been broken since the modes moved into packages; fixed
+  in `AbstractMode.getFullKey`.
+- Hiding is the core's, for any mode: a formatter says `hidesMarkup`, asks
+  `Formatter.conceals(kind)` what the setting names, and marks segments
+  with `addSegment(text, begin, end, format, hidden, item)`.
+  `HiddenMarkupTest` hides `{{ }}` with a formatter of its own.
+- Code is shaded, as Obsidian's: `Formatter.getLineBackground(Line)` for a
+  fence's and an indented block's lines, from the gutter to the right edge,
+  and `getRunBackground(format)` for inline code, a rounded chip with its
+  backticks (`codeMarker`). The shade is `Formatter.getShade`: a theme's
+  `color.codeBackground`; else on a light background half as far from it
+  as the current line's highlight, and cool (darker by 1, 0.78, 0.55 of the
+  step in red, green, blue: GitHub's `#f6f8fa` on white), so it is not
+  taken for the current line; on a dark one, 12% of the text mixed in. The
+  caret's line keeps its own background.
+- A blockquote's `>` each have a thin bar at their left in the quote
+  marker's color, blue (`LineSegment.setBar`, the `BAR` bit in `Display`,
+  which takes bit 29 from the rainbow depth: 511 levels now). Hidden, a
+  `>` keeps its room with the bar alone in it, so the text never moves; the
+  caret on the line shows the `>` beside its bar.
+- Mail: `MessageFormatter` colors a line starting `>` (or `name>`) whole in
+  one quote color, `color.string`, with no depth; `MessageBuffer.quoteBody`
+  quotes a reply with `> `. The bars could serve it too, a color per depth.
+
 Hidden until the caret is in it, as Obsidian's live preview and nvim's
 `conceallevel=2` show Markdown: what the markup means, not the markup.
 
@@ -326,7 +366,105 @@ now: Obsidian also uses one key to follow a link or toggle a box.
   also follows a link, and Ctrl+click does with the mouse.
 - With Phase 6, the caret on a link's text shows its URL as it follows it.
 
-## Phase 8: larger heading fonts
+## Phase 8: electric pairs
+
+Typing an opener inserts its closer; typing the closer where it already is
+steps over it. For every mode, with Markdown's own pairs.
+
+### What others do
+
+**Emacs, `electric-pair-mode` (elec-pair.el).** The pairs come from the
+mode's syntax table (`electric-pair-pairs`, and `electric-pair-text-pairs`
+in comments and strings).
+
+- `electric-pair-skip-self`: typing a closer that is next steps over it.
+- `electric-pair-preserve-balance` (on): no closer is inserted if there is
+  already an unpaired one later, and a closer is not skipped if it would
+  leave one unbalanced.
+- `electric-pair-delete-adjacent-pairs` (on): Backspace on an opener with
+  its closer right after deletes both.
+- `electric-pair-open-newline-between-pairs` (on): Enter between `{` and
+  `}` opens a line between them.
+- `electric-pair-skip-whitespace`: a closer typed with only white space
+  before the next closer skips over it.
+- `electric-pair-inhibit-predicate`, by default
+  `electric-pair-conservative-inhibit`: no pair after a character of word
+  syntax or the same delimiter, or before a word.
+- With a region, typing an opener or closer wraps the region in the pair.
+
+**nvim-autopairs.** Rules, each with conditions.
+
+- `ignored_next_char` = `[%w%%%'%[%"%.%`%$]`: no pair before a letter,
+  digit, `%`, `'`, `[`, `"`, `.`, `` ` `` or `$`.
+- `enable_check_bracket_line`: no closer if the line already has an
+  unmatched one.
+- `enable_moveright`: type over a closer.
+- `enable_afterquote`, `enable_bracket_in_quote`: pair after a quote and
+  inside strings.
+- `map_bs`, `map_c_h`, `map_c_w`: Backspace, Ctrl-H and Ctrl-W delete the
+  pair.
+- `map_cr`: Enter between a pair opens a line.
+- `check_ts`: with treesitter, no pair inside a string or comment.
+- `disable_in_macro`, `disable_in_visualblock`, `disable_in_replace_mode`.
+- `fast_wrap` (Alt-E): wrap what follows in a pair.
+- `break_undo`: keep undo and `.` whole.
+- Rules: `with_pair` (when to pair), `with_move` (when to type over),
+  `with_del` (when Backspace deletes both), `with_cr` (when Enter opens a
+  line). Rules are per file type.
+
+**IntelliJ, Settings > Editor > General > Smart Keys.**
+
+- Insert pair brackets `()`, `[]`, `{}`, `<>`; insert pair quote.
+- Jump outside closing bracket or quote with Tab when typing.
+- Surround selection on typing quote or brace.
+- Insert pair `}` on Enter; smart indent; close block comment.
+- Backspace: unindent; it also removes an empty pair.
+
+### Edge cases they agree on
+
+- **Type-over** only for a closer the pairing inserted, or one right
+  after the caret: not one far along the line.
+- **Quotes** are their own closers: `"` pairs only where a string can
+  start -- not after a letter or digit (`don't`, `5"`), not after a
+  backslash, not inside a string, where it closes or steps over.
+- **Before a word**, no closer: `(|foo` stays `(foo`.
+- **Balance**: no closer if one is already waiting unmatched.
+- **Backspace** in an empty pair `(|)` deletes both.
+- **Enter** in `{|}` opens a line between, indented.
+- **A selection** is wrapped, not replaced.
+- **Undo** takes back the pair in one step; vim's `.` repeats the typing
+  as typed; a macro replays it the same.
+- **Per mode**: no `'` in Lisp, where it quotes; in prose and comments
+  `'` is an apostrophe; Markdown pairs `` ` ``, `*`, `_` only where
+  emphasis or code can start.
+- **Replace mode** and pasting do not pair.
+
+### For j
+
+- An `ElectricPairs` handler under `Editor.insertNormalChar`, so typing in
+  simple and vim insert mode both go through it, with
+  `Mode.getPairs()` giving a mode's pairs: `()`, `[]`, `{}`, `""` by
+  default, `''` and `<>` where they pair.
+- `electricPairs` (on), per mode as `JavaMode.electricPairs`, and the rules
+  above as settings where others make them settings: type-over, balance,
+  Backspace, Enter, wrapping a selection.
+- Not inside a string or comment by the formatter's own state, as
+  nvim-autopairs asks treesitter: `Formatter` can say what a column is.
+- One undo step with the character typed; vim's `.` and macros record the
+  typed character only, so replaying it pairs the same way.
+- Markdown:
+  - Typing the third backtick of ```` ``` ```` at the start of a line
+    inserts a closing ```` ``` ```` on the line below and leaves the caret
+    after the opening one, for the language name. In a fence, Enter after
+    the language goes to the code.
+  - `` ` `` pairs to `` `|` ``; `*`, `**`, `_`, `~~` pair only where
+    emphasis can start, not at the start of a list item, where `* ` is a
+    bullet.
+  - `[` pairs to `[]`, and `](` to `]()`.
+- `electricQuote` and the existing `electricOpenBrace` keep their bindings;
+  the pairing applies to the characters typed.
+
+## Phase 9: larger heading fonts
 
 The most invasive, so last.
 
@@ -377,7 +515,8 @@ Themes override any of them (`color.heading = r g b`); `Default`, `Dark`,
 | 4 | 5, v1 | medium; v2 later |
 | 5 | 6 | medium |
 | 6 | 7 | small to medium |
-| 7 | 8 | large, the riskiest |
+| 7 | 8 | medium; for every mode |
+| 8 | 9 | large, the riskiest |
 
 Tests in `test/src`, after `RainbowDelimitersTest` and `SearchHighlightTest`:
 format runs for each construct, cycling tasks and undoing it, the outline's

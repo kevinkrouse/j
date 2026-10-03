@@ -68,7 +68,16 @@ section, a list item's children or a fence's code, and
 headings. A fence that names its language, <code>```java</code>,
 <code>```py</code>, <code>```sh</code> and so on, has its code colored as
 that language's mode colors it, and in italic if the theme's
-<code>MarkdownMode.style.codeBlock</code> is, as it is by default. Its styles link to the <a href="themes.html#shared">shared
+<code>MarkdownMode.style.codeBlock</code> is, as it is by default.
+<p>
+Markdown's markup is hidden until the caret is in what it marks: a link
+shows its text, emphasis and code what they mark, a fence its code, and a
+blockquote's <code>&gt;</code> are thin bars in their place; the caret in
+one shows its markup again. Code is shaded, a code block from edge to edge and
+inline code behind its text, in a theme's <code>color.codeBackground</code>
+or a shade of its background made not to be taken for the current line's.
+<a href="preferences.html#conceal">MarkdownMode.conceal</a> says how much
+to hide. Its styles link to the <a href="themes.html#shared">shared
 styles</a>, so a theme that sets <code>color.heading</code> or
 <code>color.todo</code> sets them here too;
 <a href="commands.html#listStyles">listStyles</a> in a Markdown buffer shows

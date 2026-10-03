@@ -26,6 +26,12 @@ public class LineSegment
     private int begin;
     private int end;
     private int format;
+    private boolean hidden;
+    private boolean bar;
+    private int item;
+
+    /** The item a segment is part of that is a block of lines, a fence. */
+    public static final int BLOCK = -1;
 
     public LineSegment(String text, int format)
     {
@@ -56,6 +62,50 @@ public class LineSegment
     public final void setFormat(int format)
     {
         this.format = format;
+    }
+
+    /**
+     * Whether the segment is markup to hide unless the caret is in its item:
+     * the asterisks of emphasis, the URL of a link.
+     */
+    public final boolean isHidden()
+    {
+        return hidden;
+    }
+
+    public final void setHidden(boolean hidden)
+    {
+        this.hidden = hidden;
+    }
+
+    /**
+     * Whether the segment has a thin vertical bar at its left in its color,
+     * as a blockquote's '>' has. Hidden, it keeps its room, the bar alone
+     * drawn in it.
+     */
+    public final boolean isBar()
+    {
+        return bar;
+    }
+
+    public final void setBar(boolean bar)
+    {
+        this.bar = bar;
+    }
+
+    /**
+     * The item of its line the segment is part of, numbered from 1, or 0 for
+     * none, or BLOCK. An item is its markup and what the markup marks: the
+     * caret in it shows the markup.
+     */
+    public final int getItem()
+    {
+        return item;
+    }
+
+    public final void setItem(int item)
+    {
+        this.item = item;
     }
 
     public final int length()

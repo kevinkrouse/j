@@ -716,6 +716,9 @@ public final class Display extends JComponent implements Constants,
         if (dotLine.lineNumber() < topLine.lineNumber())
             return;
 
+        if (editor.getFormatter().hidesMarkup())
+            showRevealed(g2d, dotLine);
+
         int x;
         if (caretCol == 0)
             x = gutterWidth;
@@ -768,6 +771,38 @@ public final class Display extends JComponent implements Constants,
         final int y = visibleY(previous);
         if (y >= 0)
             paintLine(previous, g2d, y);
+    }
+
+    // The lines whose hidden markup the caret showed when last drawn, and
+    // where it was.
+    private Line[] revealedLines = new Line[0];
+    private Line revealedDotLine;
+    private int revealedDotOffset = -1;
+
+    /**
+     * Repaints the lines whose markup the caret shows or showed, when it has
+     * moved: its line, which shows the markup of the item it is in, and the
+     * ends of a block it is in or was, a fence's two lines.
+     */
+    private void showRevealed(Graphics2D g2d, Line dotLine)
+    {
+        final int offset = editor.getDotOffset();
+        if (dotLine == revealedDotLine && offset == revealedDotOffset)
+            return;
+        final Line[] block = editor.getFormatter().getHiddenBlock(dotLine);
+        final Line[] lines = block == null ? new Line[] { dotLine }
+            : new Line[] { dotLine, block[0], block[1] };
+        final java.util.Set<Line> toPaint = new java.util.LinkedHashSet<Line>();
+        java.util.Collections.addAll(toPaint, revealedLines);
+        java.util.Collections.addAll(toPaint, lines);
+        for (Line line : toPaint) {
+            final int y = visibleY(line);
+            if (y >= 0)
+                paintLine(line, g2d, y);
+        }
+        revealedLines = lines;
+        revealedDotLine = dotLine;
+        revealedDotOffset = offset;
     }
 
     /**
@@ -968,7 +1003,10 @@ public final class Display extends JComponent implements Constants,
             fa[i] = 0;
         }
         final int limit = Math.min(maxCols, taLength);
-        final LineSegmentList segmentList = editor.getFormatter().formatLine(line);
+        final Formatter formatter = editor.getFormatter();
+        final LineSegmentList segmentList = formatter.formatLine(line);
+        final int[] revealed =
+            formatter.hidesMarkup() ? revealedItems(formatter, line, segmentList) : null;
         int segmentStart = 0;
         int totalChars = 0;
         final int size = segmentList.size();
@@ -999,7 +1037,12 @@ public final class Display extends JComponent implements Constants,
                     totalChars += maxAppend;
                 }
             }
-            final int format = segment.getFormat();
+            int format = segment.getFormat();
+            if (segment.isBar())
+                format |= BAR;
+            if (revealed != null && segment.isHidden()
+                && !contains(revealed, segment.getItem()))
+                format |= HIDDEN;
             int k = segmentStart - begin;
             if (k > limit)
                 break;
@@ -1019,7 +1062,7 @@ public final class Display extends JComponent implements Constants,
     // formatter gave, still saying the bracket's style.
     private static final int RAINBOW = 1 << 30;
     private static final int RAINBOW_SHIFT = 20;
-    private static final int MAX_RAINBOW_DEPTH = (1 << 10) - 1;
+    private static final int MAX_RAINBOW_DEPTH = (1 << 9) - 1;
 
     /**
      * Over the formatter's colors, colors each bracket of the line by how
@@ -1045,8 +1088,96 @@ public final class Display extends JComponent implements Constants,
         }
     }
 
+    /**
+     * The items of line whose hidden markup the caret shows, those it is in:
+     * on its line, between an item's first column and just past its last;
+     * for a block, anywhere in it. Null if line hides nothing.
+     */
+    private int[] revealedItems(Formatter formatter, Line line,
+                                LineSegmentList segments)
+    {
+        boolean hides = false;
+        boolean block = false;
+        int items = 0;
+        for (int i = 0; i < segments.size(); i++) {
+            final LineSegment segment = segments.getSegment(i);
+            hides |= segment.isHidden();
+            block |= segment.getItem() == LineSegment.BLOCK;
+            items = Math.max(items, segment.getItem());
+        }
+        if (!hides)
+            return null;
+        final Position dot = editor.getDot();
+        if (dot == null)
+            return new int[0];
+        final int[] shown = new int[items + 1];
+        int count = 0;
+        if (block && isIn(dot.getLine(), formatter.getHiddenBlock(line)))
+            shown[count++] = LineSegment.BLOCK;
+        if (dot.getLine() == line && items > 0) {
+            final int col = editor.getBuffer().getCol(line, dot.getOffset());
+            final int[] first = new int[items + 1];
+            final int[] last = new int[items + 1];
+            java.util.Arrays.fill(first, -1);
+            int start = 0;
+            for (int i = 0; i < segments.size(); i++) {
+                final LineSegment segment = segments.getSegment(i);
+                final int item = segment.getItem();
+                if (item > 0) {
+                    if (first[item] < 0)
+                        first[item] = start;
+                    last[item] = start + segment.length();
+                }
+                start += segment.length();
+            }
+            for (int item = 1; item <= items; item++)
+                if (first[item] >= 0 && first[item] <= col && col <= last[item])
+                    shown[count++] = item;
+        }
+        return java.util.Arrays.copyOf(shown, count);
+    }
+
+    /** The text of line as it is drawn, without the markup it hides. */
+    synchronized String drawnText(Line line)
+    {
+        final int total = formatLine(line, 0, textArray.length);
+        final StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < total; i++) {
+            if ((formatArray[i] & HIDDEN) == 0)
+                sb.append(textArray[i]);
+            else if ((formatArray[i] & BAR) != 0)
+                sb.append('|'); // The bar drawn in its place.
+        }
+        return sb.toString();
+    }
+
+    private static boolean isIn(Line line, Line[] block)
+    {
+        if (block == null)
+            return false;
+        final int n = line.lineNumber();
+        return block[0].lineNumber() <= n && n <= block[1].lineNumber();
+    }
+
+    private static boolean contains(int[] array, int value)
+    {
+        for (int x : array)
+            if (x == value)
+                return true;
+        return false;
+    }
+
+    // A character formatLine hides: markup the caret is not in. It is drawn
+    // with no width, so measuring a line skips it too.
+    private static final int HIDDEN = 1 << 31;
+    // A character with a thin vertical bar at its left, as a blockquote's
+    // '>'; hidden too, it is the bar alone in the room the character takes.
+    // Above the rainbow depth, which stops at bit 28.
+    private static final int BAR = 1 << 29;
+
     private static int formatterFormat(int format)
     {
+        format &= ~(HIDDEN | BAR);
         if ((format & RAINBOW) != 0)
             return format & ((1 << RAINBOW_SHIFT) - 1);
         return format;
@@ -1054,6 +1185,7 @@ public final class Display extends JComponent implements Constants,
 
     private static Color colorOf(Formatter formatter, int format)
     {
+        format &= ~(HIDDEN | BAR);
         if ((format & RAINBOW) != 0)
             return formatter.getRainbowColor(
                 (format & ~RAINBOW) >>> RAINBOW_SHIFT);
@@ -1136,6 +1268,7 @@ public final class Display extends JComponent implements Constants,
         drawBackgroundForLine(paintLineGraphics, backgroundColor, line, 0);
 
         int totalChars = formatLine(line, shift, maxCols);
+        drawRunBackgrounds(paintLineGraphics, totalChars, 0);
 
         // Under the selection, which paints over them, as vim's does.
         highlightSearchMatches(line, paintLineGraphics, 0);
@@ -1205,6 +1338,50 @@ public final class Display extends JComponent implements Constants,
         } else {
             g2d.setColor(backgroundColor);
             g2d.fillRect(0, y, getWidth(), line.getHeight());
+        }
+        // A line the formatter shades, a code block's, unless it is the
+        // caret's, which keeps its own.
+        if (line != getCurrentLine()) {
+            final Color shade = editor.getFormatter().getLineBackground(line);
+            if (shade != null) {
+                g2d.setColor(shade);
+                g2d.fillRect(gutterWidth, y, getWidth() - gutterWidth,
+                             line.getHeight());
+            }
+        }
+    }
+
+    /**
+     * The backgrounds the formatter gives runs of the line formatLine last
+     * formatted, as inline code's: a rounded chip behind the text.
+     */
+    private void drawRunBackgrounds(Graphics2D g2d, int totalChars, int y)
+    {
+        final Formatter formatter = editor.getFormatter();
+        int i = 0;
+        while (i < totalChars) {
+            final int start = i;
+            final int format = formatArray[i];
+            while (i < totalChars && formatArray[i] == format)
+                ++i;
+            if ((format & HIDDEN) != 0)
+                continue;
+            final Color color = formatter.getRunBackground(formatterFormat(format));
+            if (color == null)
+                continue;
+            // Through the runs after it that share it.
+            int end = i;
+            while (end < totalChars && ((formatArray[end] & HIDDEN) != 0
+                   || color.equals(formatter.getRunBackground(
+                          formatterFormat(formatArray[end])))))
+                ++end;
+            while (end > i && (formatArray[end - 1] & HIDDEN) != 0)
+                --end;
+            final int x1 = gutterWidth + measureLine(g2d, textArray, start, formatArray);
+            final int x2 = gutterWidth + measureLine(g2d, textArray, end, formatArray);
+            g2d.setColor(color);
+            g2d.fillRoundRect(x1 - 1, y + 1, x2 - x1 + 2, charAscent + charDescent - 1, 5, 5);
+            i = end;
         }
     }
 
@@ -1348,12 +1525,24 @@ public final class Display extends JComponent implements Constants,
             ++i;
             while (i < length && formatArray[i] == format && i != breakCol)
                 ++i;
+            if ((format & BAR) != 0) {
+                // The full height of the line, so that a quote's bars join
+                // from line to line.
+                g2d.setColor(colorOf(formatter, format));
+                g2d.fillRect((int) x + 1, y, 2, charHeight);
+            }
+            if ((format & (HIDDEN | BAR)) == HIDDEN)
+                continue; // No room at all.
             g2d.setColor(colorOf(formatter, format));
             final int style = formatter.getStyle(formatterFormat(format));
             final Font font = fontFor(style);
             GlyphVector gv = glyphs(font, g2d.getFontRenderContext(),
                                     textArray, start, i);
             final double width = gv.getLogicalBounds().getWidth();
+            if ((format & HIDDEN) != 0) {
+                x += width; // The bar in the character's room.
+                continue;
+            }
             if ((style & TextStyle.BOLD) != 0) {
                 if (boldFont == plainFont) {
                     if (underlineBold)
@@ -1388,6 +1577,8 @@ public final class Display extends JComponent implements Constants,
             int startCol = i;
             while (i < limit && formatArray[i] == format)
                 ++i;
+            if ((format & (HIDDEN | BAR)) == HIDDEN)
+                continue;
             final Font font = fontFor(formatter.getStyle(formatterFormat(format)));
             GlyphVector gv = glyphs(font, g2d.getFontRenderContext(),
                                     textArray, startCol, i);
@@ -1485,6 +1676,7 @@ public final class Display extends JComponent implements Constants,
                     backgroundColor = colorBackground;
                 drawBackgroundForLine(g2d, backgroundColor, line, y);
                 int totalChars = formatLine(line, shift, maxCols);
+                drawRunBackgrounds(g2d, totalChars, y);
                 highlightSearchMatches(line, g2d, y);
                 if (r != null)
                     handleSelection(r, line, formatArray, g2d, y);

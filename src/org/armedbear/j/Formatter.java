@@ -240,6 +240,115 @@ public abstract class Formatter implements Constants
         return null;
     }
 
+    /**
+     * The background of a whole line, from the gutter to the right edge, as
+     * a code block's is shaded; or null for the display's own.
+     */
+    public Color getLineBackground(Line line)
+    {
+        return null;
+    }
+
+    /**
+     * The background behind the text of a format, as inline code's is
+     * shaded; or null for none.
+     */
+    public Color getRunBackground(int format)
+    {
+        return null;
+    }
+
+    /**
+     * A shade of the background that sets text apart without fighting it,
+     * as code's: a theme's color.thing, if it has one. On a light background,
+     * half as far from it as the current line's highlight, so as not to be
+     * mistaken for it, and a little cool, as GitHub's code is, where the
+     * highlight is usually gray. On a dark one, the background with a little
+     * of the text mixed in.
+     */
+    protected Color getShade(String modeName, String thing)
+    {
+        final Preferences prefs = Editor.preferences();
+        Color color = modeName != null
+            ? prefs.getColorProperty(modeName + ".color." + thing) : null;
+        if (color == null)
+            color = prefs.getColorProperty("color." + thing);
+        if (color != null)
+            return color;
+        final Color bg = getBackgroundColor();
+        if (DefaultTheme.isDark(bg)) {
+            final Color fg = getColor(0);
+            final double amount = 0.12;
+            return new Color(
+                (int) Math.round(bg.getRed() + (fg.getRed() - bg.getRed()) * amount),
+                (int) Math.round(bg.getGreen() + (fg.getGreen() - bg.getGreen()) * amount),
+                (int) Math.round(bg.getBlue() + (fg.getBlue() - bg.getBlue()) * amount));
+        }
+        // How much darker the current line is, halved; at least enough to
+        // see where a theme's current line is not darker at all.
+        final Color line = getCurrentLineBackgroundColor();
+        final double step = Math.max(6, ((bg.getRed() - line.getRed())
+            + (bg.getGreen() - line.getGreen())
+            + (bg.getBlue() - line.getBlue())) / 6.0);
+        // Darker in red than in blue: cool.
+        return new Color(darker(bg.getRed(), step), darker(bg.getGreen(), step * 0.78),
+                         darker(bg.getBlue(), step * 0.55));
+    }
+
+    private static int darker(int value, double by)
+    {
+        return Math.max(0, (int) Math.round(value - by));
+    }
+
+    /**
+     * Whether this formatter marks markup to hide (LineSegment.isHidden),
+     * so that the display shows it only around the caret. A formatter that
+     * can hide markup says so, as conceals lets it.
+     */
+    public boolean hidesMarkup()
+    {
+        return false;
+    }
+
+    /**
+     * Whether the conceal property, a list such as "markup,headings", names
+     * kind: what markup of its own a formatter may hide. "none", or nothing,
+     * hides none.
+     */
+    protected final boolean conceals(String kind)
+    {
+        final String value = buffer.getStringProperty(Property.CONCEAL);
+        if (value == null)
+            return false;
+        for (String name : value.split("[\\s,]+"))
+            if (name.equalsIgnoreCase(kind))
+                return true;
+        return false;
+    }
+
+    /**
+     * Adds a segment the display hides unless the caret is in item, a
+     * number of the line's own from 1, or LineSegment.BLOCK.
+     */
+    protected final void addSegment(String text, int begin, int end, int format,
+                                    boolean hidden, int item)
+    {
+        final LineSegment segment = new LineSegment(text, begin, end, format);
+        segment.setHidden(hidden);
+        segment.setItem(item);
+        segmentList.addSegment(segment);
+    }
+
+    /**
+     * The first and last lines of the block line is part of whose hidden
+     * markup shows together, as a fence's opening and closing lines do with
+     * the caret anywhere in it; or null.
+     */
+    public Line[] getHiddenBlock(Line line)
+    {
+        return null;
+    }
+
     public boolean getUnderline(int format)
     {
         return (getStyle(format) & TextStyle.UNDERLINE) != 0;
