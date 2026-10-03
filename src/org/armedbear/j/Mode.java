@@ -421,6 +421,15 @@ public interface Mode
     public boolean isCommentLine(Line line);
 
     /**
+     * The target of the link at <code>pos</code> as it is written: a URL, a
+     * path, a path with an anchor ("notes.md#todo"), or an anchor alone
+     * ("#todo"), the anchor naming one of the target's tags
+     * (LocalTag.isNamedBy); or <code>null</code> if there is none. By
+     * default an autolink or a bare URL.
+     */
+    public TextLink getLinkAt(Editor editor, Position pos);
+
+    /**
      * The lines that folding at <code>line</code> hides, for a mode that
      * knows its own structure.
      *

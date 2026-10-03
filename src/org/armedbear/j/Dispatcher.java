@@ -339,6 +339,9 @@ public final class Dispatcher implements Constants, KeyListener, MouseListener,
         editor.ensureActive();
         Editor.setCurrentEditor(editor);
 
+        if (e.getKeyCode() == KeyEvent.VK_CONTROL)
+            showLinkAt(lastMousePoint);
+
         if (enabled) {
             lastKeyEvent = KeyEvent.KEY_PRESSED;
             ignoreKeyTyped = false;
@@ -349,6 +352,8 @@ public final class Dispatcher implements Constants, KeyListener, MouseListener,
     public void keyReleased(KeyEvent e)
     {
         e.consume();
+        if (e.getKeyCode() == KeyEvent.VK_CONTROL)
+            hideLink();
         if (!displayHasFocus())
             return;
 
@@ -460,7 +465,11 @@ public final class Dispatcher implements Constants, KeyListener, MouseListener,
 
     public void mouseEntered(MouseEvent e) {}
 
-    public void mouseExited(MouseEvent e) {}
+    public void mouseExited(MouseEvent e)
+    {
+        lastMousePoint = null;
+        hideLink();
+    }
 
     private boolean dispatchMousePressed(MouseEvent e)
     {
@@ -546,8 +555,42 @@ public final class Dispatcher implements Constants, KeyListener, MouseListener,
         dispatch(e);
     }
 
+    // Where the mouse was last, for showing the link under it when Ctrl is
+    // pressed with the mouse still.
+    private Point lastMousePoint;
+
+    /**
+     * Shows the link under point as a click would follow it, as IntelliJ
+     * does under Ctrl, with a hand for the mouse. Returns whether there was
+     * one.
+     */
+    private boolean showLinkAt(Point point)
+    {
+        final Position pos = point != null ? display.positionFromPoint(point) : null;
+        final TextLink link = pos != null ? editor.getMode().getLinkAt(editor, pos) : null;
+        if (link == null || link.getTarget() == null) {
+            display.setHoverLink(null, null);
+            return false;
+        }
+        display.setHoverLink(pos.getLine(), link);
+        editor.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        return true;
+    }
+
+    private void hideLink()
+    {
+        if (display.getHoverLine() != null) {
+            display.setHoverLink(null, null);
+            editor.setDefaultCursor();
+        }
+    }
+
     public void mouseMoved(MouseEvent e)
     {
+        lastMousePoint = e.getPoint();
+        if (e.isControlDown() && showLinkAt(lastMousePoint))
+            return;
+        hideLink();
         final Buffer buffer = editor.getBuffer();
         final Position pos = display.positionFromPoint(e.getPoint());
         final String contextString = buffer.getMode().getMouseMovedContextString(editor, pos);

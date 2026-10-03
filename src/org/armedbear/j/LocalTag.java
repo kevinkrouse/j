@@ -65,6 +65,16 @@ public class LocalTag extends Tag implements Constants
         return name;
     }
 
+    /**
+     * Whether a link's anchor, the "todo" of "notes.md#todo", names this
+     * tag: by default its name. A mode's tags may answer to more, as a
+     * Markdown heading to its GitHub anchor.
+     */
+    public boolean isNamedBy(String anchor)
+    {
+        return anchor.equals(name) || anchor.equals(getMethodName());
+    }
+
     public String getLongName()
     {
         return name;

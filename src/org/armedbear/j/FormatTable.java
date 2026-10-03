@@ -127,70 +127,42 @@ public final class FormatTable
     public synchronized void addEntryFromPrefs(int format, String thing,
                                                String... fallbacks)
     {
+        // The thing and the names it links to, then each fallback and its.
+        final List<List<String>> chains = new ArrayList<List<String>>();
         final List<String> names = new ArrayList<String>();
-        addLinked(names, thing);
+        addChain(chains, names, thing);
         if (fallbacks != null)
             for (String fallback : fallbacks)
-                addLinked(names, fallback);
+                addChain(chains, names, fallback);
 
-        Color color = null;
-        String colorSource = null;
-        for (String name : names) {
-            final Preference<Color> p =
-                findPreference("color", name, preferences::getColorProperty);
-            if (p != null) {
-                color = p.value;
-                colorSource = p.key;
-                break;
-            }
-        }
-        if (color == null) {
-            final boolean dark = DefaultTheme.isDark(getBackground());
-            for (String name : names) {
-                if ((color = DefaultTheme.getColor(modeName, name, dark)) != null) {
-                    colorSource = "default " + name;
-                    break;
-                }
-            }
-        }
+        final boolean dark = DefaultTheme.isDark(getBackground());
+        Found<Color> foundColor = resolve(chains,
+            name -> findPreference("color", name, preferences::getColorProperty),
+            name -> DefaultTheme.getColor(modeName, name, dark));
         // Nothing at all: the theme's text, not DefaultTheme's black on what
         // may be a dark background.
-        if (color == null) {
+        if (foundColor == null) {
             final Preference<Color> p =
                 findPreference("color", "text", preferences::getColorProperty);
-            if (p != null) {
-                color = p.value;
-                colorSource = p.key;
-            }
+            if (p != null)
+                foundColor = new Found<Color>(p.value, p.key);
         }
-        if (color == null) {
-            color = DefaultTheme.getColor("text");
-            colorSource = "default text";
-        }
+        if (foundColor == null)
+            foundColor = new Found<Color>(DefaultTheme.getColor("text"), "default text");
+        final Color color = foundColor.value;
+        final String colorSource = foundColor.source;
 
-        int style = -1;
-        String styleSource = null;
-        for (String name : names) {
-            final Preference<Integer> p = findPreference("style", name, k -> {
+        final Found<Integer> foundStyle = resolve(chains,
+            name -> findPreference("style", name, k -> {
                 final int parsed = TextStyle.parse(preferences.getStringProperty(k));
                 return parsed >= 0 ? parsed : null;
+            }),
+            name -> {
+                final int builtIn = DefaultTheme.getStyle(modeName, name);
+                return builtIn >= 0 ? builtIn : null;
             });
-            if (p != null) {
-                style = p.value;
-                styleSource = p.key;
-                break;
-            }
-        }
-        if (style < 0) {
-            for (String name : names) {
-                if ((style = DefaultTheme.getStyle(modeName, name)) >= 0) {
-                    styleSource = "default " + name;
-                    break;
-                }
-            }
-        }
-        if (style < 0)
-            style = TextStyle.PLAIN;
+        final int style = foundStyle != null ? foundStyle.value : TextStyle.PLAIN;
+        final String styleSource = foundStyle != null ? foundStyle.source : null;
 
         addEntry(new FormatTableEntry(format, color, style, thing, names,
                                       colorSource, styleSource));
@@ -211,6 +183,56 @@ public final class FormatTable
                     entries.add(entry);
         entries.sort((a, b) -> Integer.compare(a.getFormat(), b.getFormat()));
         return entries;
+    }
+
+    private static final class Found<T>
+    {
+        final T value;
+        final String source;
+
+        Found(T value, String source)
+        {
+            this.value = value;
+            this.source = source;
+        }
+    }
+
+    /**
+     * An attribute, as an emacs face inherits one: along each chain, the
+     * first name with a preference for it, the theme's or yours, or a
+     * built-in one. A built-in one ends its chain -- "emphasis" is italic
+     * whatever the theme says of "text", which it takes its color from --
+     * but is kept only if no later chain, a fallback's, has a preference.
+     */
+    private static <T> Found<T> resolve(List<List<String>> chains,
+                                        Function<String, Preference<T>> preference,
+                                        Function<String, T> builtIn)
+    {
+        Found<T> builtInFound = null;
+        for (List<String> chain : chains) {
+            for (String name : chain) {
+                final Preference<T> p = preference.apply(name);
+                if (p != null)
+                    return new Found<T>(p.value, p.key);
+                final T value = builtIn.apply(name);
+                if (value != null) {
+                    if (builtInFound == null)
+                        builtInFound = new Found<T>(value, "default " + name);
+                    break;
+                }
+            }
+        }
+        return builtInFound;
+    }
+
+    // Only called from synchronized methods.
+    private void addChain(List<List<String>> chains, List<String> names, String name)
+    {
+        final List<String> chain = new ArrayList<String>();
+        addLinked(chain, name);
+        chain.removeAll(names);
+        names.addAll(chain);
+        chains.add(chain);
     }
 
     // The links of a chain are few; more than this is a cycle.

@@ -765,6 +765,11 @@ public abstract class AbstractMode implements Constants, Mode
         return false;
     }
 
+    public TextLink getLinkAt(Editor editor, Position pos)
+    {
+        return FollowLink.urlAt(pos.getLine().getText(), pos.getOffset());
+    }
+
     public Line[] getFoldRange(Editor editor, Line line)
     {
         return null;

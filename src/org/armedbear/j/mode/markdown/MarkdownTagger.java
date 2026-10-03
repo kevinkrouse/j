@@ -25,6 +25,9 @@ import org.armedbear.j.SystemBuffer;
 import org.armedbear.j.Tagger;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Locale;
+import java.util.Map;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -47,6 +50,7 @@ public final class MarkdownTagger extends Tagger
     {
         final List<LocalTag> tags = new ArrayList<LocalTag>();
         final MarkdownTag[] under = new MarkdownTag[7];
+        final Map<String, Integer> anchors = new HashMap<String, Integer>();
         MarkdownFormatter.scan(buffer.getFirstLine(), (line, flags) -> {
             final int level = MarkdownFormatter.headingLevel(line, flags);
             if (level == 0)
@@ -57,13 +61,35 @@ public final class MarkdownTagger extends Tagger
             MarkdownTag parent = null;
             for (int i = level - 1; i > 0 && parent == null; i--)
                 parent = under[i];
-            final MarkdownTag tag = new MarkdownTag(name, line, level, parent);
+            // GitHub's anchor, "-1", "-2" after one already made.
+            String anchor = slug(name);
+            final Integer count = anchors.get(anchor);
+            anchors.put(anchor, count == null ? 1 : count + 1);
+            if (count != null)
+                anchor = anchor + "-" + count;
+            final MarkdownTag tag = new MarkdownTag(name, line, level, parent, anchor);
             tags.add(tag);
             under[level] = tag;
             for (int i = level + 1; i < under.length; i++)
                 under[i] = null;
         });
         buffer.setTags(tags);
+    }
+
+    /**
+     * "Hello, World!" as GitHub's anchor for it, "hello-world": in lower
+     * case, punctuation dropped, spaces made hyphens.
+     */
+    static String slug(String heading)
+    {
+        final StringBuilder sb = new StringBuilder();
+        for (char c : heading.toLowerCase(Locale.ROOT).trim().toCharArray()) {
+            if (Character.isLetterOrDigit(c) || c == '-' || c == '_')
+                sb.append(c);
+            else if (c == ' ')
+                sb.append('-');
+        }
+        return sb.toString();
     }
 
     /** A heading's text as it reads: links as their text, no markup. */

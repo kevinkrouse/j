@@ -342,6 +342,53 @@ How:
 
 ## Phase 7: following links
 
+Done, tested in `MarkdownLinksTest`:
+
+- `Mode.getLinkAt(Editor, Position)`, by default an autolink or bare URL;
+  core `FollowLink.followLink` follows what the mode says. An anchor names
+  one of the target buffer's tags, `LocalTag.isNamedBy`: by default its
+  name; a `MarkdownTag` also its GitHub anchor, which the tagger works out
+  with the `-1`, `-2` of repeats. Tags rather than a mode hook, so that
+  any taggable mode's files can be linked into. j's web buffers keep
+  their own `followLink`, which the one command hands to.
+- Markdown: inline links and images, `[text][ref]` and `[text][]` defined
+  or not, `[ref]` where it is defined (a task's box looks the same), a
+  definition's own line, autolinks, bare URLs; not in code or code spans.
+- Ctrl+Enter, `followLinkOrTask`: a link is followed, or an undefined
+  reference said so; else `task`, on a list item or a selection only -- on
+  a line of text it does nothing, where `task` would make it a task.
+- Targets: `#anchor`, a path relative to the buffer's file or absolute,
+  `path#anchor`, `path#L42`, `file:`; any other scheme goes to the
+  `browser` preference's browser if set, else `java.awt.Desktop`, else
+  `xdg-open`/`open`. `FollowLink.browser` and `FollowLink.switcher` are
+  swapped out by tests, which have no browser and no frame.
+- The jump is recorded first; Ctrl+Enter is `followLinkOrTask`,
+  Ctrl+click `followLink`, vim `gx` `followLink` for every mode.
+- Not yet: `[[wiki links]]`, explicit anchors (`<a name>`, `{#id}`), and
+  creating a missing file from a link.
+- `Mode.getLinkAt` returns a `TextLink`: target, its offsets on the line,
+  or a problem for one that goes nowhere ("No definition of [ref]").
+- Ctrl+click follows a link in every mode. Ctrl held over one shows it as
+  IntelliJ does: `Dispatcher` asks the mode on mouse moves with Ctrl down
+  and on Ctrl pressed under a still mouse, `Display.setHoverLink` draws it
+  in `Formatter.getHoverLinkColor` (the theme's `color.link`, or the shared
+  link color), underlined (the `HOVER` bit, 28: the rainbow depth is 255
+  now), and the pointer is a hand.
+- Alt+Enter and Alt+C are `task` alone (Alt+C is VS Code's Markdown All
+  in One's); following a link alone is Ctrl+click or vim's `gx`.
+- Done, Javadoc, on the same tags (`JavadocLinksTest`): `JavaMode.getLinkAt` reads
+  `{@link Foo#bar(int)}`, `{@linkplain ...}`, `@see`, `@throws` and
+  `@exception` (a nested class's outer file if need be),
+  finds `Foo`'s source with `JavaSource.findSource(buffer, "Foo", false)`
+  (imports, package, sourcePath), and returns "path#bar(int)"; a
+  `JavaTag.isNamedBy` answers to `bar` and to `bar(int)` by its canonical
+  signature's parameter types, simple or qualified. `#bar` alone is in the
+  same file. `Foo` alone goes to its declaration.
+- Fixed on the way: a built-in style ended a link chain only after every
+  name's preferences had been asked, so a theme's `style.text = 0` made
+  `emphasis` plain. Now a name's own built-in style ends its chain, as an
+  emacs face's own attribute does; a fallback's preference still wins.
+
 Ctrl+Enter on a link goes where it points. Anywhere else it is `task`, as
 now: Obsidian also uses one key to follow a link or toggle a box.
 

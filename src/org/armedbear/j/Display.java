@@ -773,6 +773,34 @@ public final class Display extends JComponent implements Constants,
             paintLine(previous, g2d, y);
     }
 
+    // The link a Ctrl-hovered mouse is over: its line and offsets.
+    private Line hoverLine;
+    private int hoverBegin;
+    private int hoverEnd;
+
+    /**
+     * Shows link on line as a click would follow it, blue and underlined;
+     * or nothing, with a null link.
+     */
+    public synchronized void setHoverLink(Line line, TextLink link)
+    {
+        final Line newLine = link != null ? line : null;
+        final int begin = link != null ? Math.min(link.getBegin(), line.length()) : 0;
+        final int end = link != null ? Math.min(link.getEnd(), line.length()) : 0;
+        if (newLine == hoverLine && begin == hoverBegin && end == hoverEnd)
+            return;
+        hoverLine = newLine;
+        hoverBegin = begin;
+        hoverEnd = end;
+        repaint();
+    }
+
+    /** The line of the link a Ctrl-hovered mouse is over, or null. */
+    synchronized Line getHoverLine()
+    {
+        return hoverLine;
+    }
+
     // The lines whose hidden markup the caret showed when last drawn, and
     // where it was.
     private Line[] revealedLines = new Line[0];
@@ -1052,6 +1080,13 @@ public final class Display extends JComponent implements Constants,
             }
             segmentStart += segmentLength;
         }
+        if (line == hoverLine) {
+            final Buffer buffer = editor.getBuffer();
+            final int from = Math.max(0, buffer.getCol(line, hoverBegin) - begin);
+            final int to = Math.min(limit, buffer.getCol(line, hoverEnd) - begin);
+            for (int k = from; k < to; k++)
+                fa[k] |= HOVER;
+        }
         if (rainbowDelimiters)
             colorBrackets(line, begin, limit);
         return totalChars;
@@ -1062,7 +1097,7 @@ public final class Display extends JComponent implements Constants,
     // formatter gave, still saying the bracket's style.
     private static final int RAINBOW = 1 << 30;
     private static final int RAINBOW_SHIFT = 20;
-    private static final int MAX_RAINBOW_DEPTH = (1 << 9) - 1;
+    private static final int MAX_RAINBOW_DEPTH = (1 << 8) - 1;
 
     /**
      * Over the formatter's colors, colors each bracket of the line by how
@@ -1170,14 +1205,18 @@ public final class Display extends JComponent implements Constants,
     // A character formatLine hides: markup the caret is not in. It is drawn
     // with no width, so measuring a line skips it too.
     private static final int HIDDEN = 1 << 31;
+    // A character of the link a Ctrl-hovered mouse is over, drawn in the
+    // link color, underlined, as IntelliJ shows what a click would follow.
+    private static final int HOVER = 1 << 28;
+
     // A character with a thin vertical bar at its left, as a blockquote's
     // '>'; hidden too, it is the bar alone in the room the character takes.
-    // Above the rainbow depth, which stops at bit 28.
+    // Above the rainbow depth, which stops at bit 27.
     private static final int BAR = 1 << 29;
 
     private static int formatterFormat(int format)
     {
-        format &= ~(HIDDEN | BAR);
+        format &= ~(HIDDEN | BAR | HOVER);
         if ((format & RAINBOW) != 0)
             return format & ((1 << RAINBOW_SHIFT) - 1);
         return format;
@@ -1185,6 +1224,8 @@ public final class Display extends JComponent implements Constants,
 
     private static Color colorOf(Formatter formatter, int format)
     {
+        if ((format & HOVER) != 0)
+            return formatter.getHoverLinkColor();
         format &= ~(HIDDEN | BAR);
         if ((format & RAINBOW) != 0)
             return formatter.getRainbowColor(
@@ -1552,7 +1593,8 @@ public final class Display extends JComponent implements Constants,
                 } else if (emulateBold)
                     g2d.drawGlyphVector(gv, (float)x + 1, y + charAscent);
             }
-            if (formatter.getUnderline(formatterFormat(format)))
+            if (formatter.getUnderline(formatterFormat(format))
+                || (format & HOVER) != 0)
                 g2d.drawLine((int)x, y + charAscent + 1, (int)(x + width), y + charAscent + 1);
             if ((style & TextStyle.STRIKETHROUGH) != 0) {
                 // Through the middle of the lower case letters.

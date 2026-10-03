@@ -22,12 +22,14 @@ package org.armedbear.j.mode.markdown;
 
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Editor;
+import org.armedbear.j.FollowLink;
 import org.armedbear.j.InputHandler;
 import org.armedbear.j.Line;
 import org.armedbear.j.Log;
 import org.armedbear.j.Position;
 import org.armedbear.j.Region;
 import org.armedbear.j.SimpleEdit;
+import org.armedbear.j.TextLink;
 import org.armedbear.j.UndoLineEdit;
 
 import java.util.regex.Matcher;
@@ -67,6 +69,35 @@ public final class MarkdownTasks
 
     public static void task()
     {
+        task(null);
+    }
+
+    /**
+     * Ctrl+Enter in Markdown mode: on a link, follows it, or says what its
+     * reference lacks; on a list item or a selection, task; else nothing,
+     * where task would make a line of text a task.
+     */
+    public static void followLinkOrTask()
+    {
+        final Editor editor = Editor.currentEditor();
+        final Position dot = editor.getDot();
+        if (dot == null)
+            return;
+        if (editor.getMark() == null) {
+            final TextLink link =
+                MarkdownLinks.find(editor.getBuffer(), dot.getLine(), dot.getOffset());
+            if (link != null) {
+                if (link.getTarget() != null)
+                    FollowLink.follow(editor, link.getTarget());
+                else
+                    editor.status(link.getProblem());
+                return;
+            }
+            if (!LIST_ITEM.matcher(dot.getLine().getText()).lookingAt()) {
+                editor.status("No link or task here");
+                return;
+            }
+        }
         task(null);
     }
 

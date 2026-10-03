@@ -240,6 +240,23 @@ public abstract class Formatter implements Constants
         return null;
     }
 
+    private Color hoverLinkColor;
+
+    /**
+     * The color of a link under a Ctrl-hovered mouse: the theme's
+     * color.link, or the shared link style's for the background.
+     */
+    public Color getHoverLinkColor()
+    {
+        if (hoverLinkColor == null) {
+            hoverLinkColor = Editor.preferences().getColorProperty("color.link");
+            if (hoverLinkColor == null)
+                hoverLinkColor = DefaultTheme.getColor(null, "link",
+                    DefaultTheme.isDark(getBackgroundColor()));
+        }
+        return hoverLinkColor;
+    }
+
     /**
      * The background of a whole line, from the gutter to the right edge, as
      * a code block's is shaded; or null for the display's own.
@@ -365,6 +382,7 @@ public abstract class Formatter implements Constants
         colorCurrentSearchMatchBackground = null;
         rainbowColors = null;
         unmatchedDelimiterColor = null;
+        hoverLinkColor = null;
         formatTable = null;
     }
 

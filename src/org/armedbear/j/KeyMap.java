@@ -334,6 +334,8 @@ public final class KeyMap implements Constants
         mapKey(VK_MOUSE_1, 0, "mouseMoveDotToPoint");
         mapKey(VK_MOUSE_1, SHIFT_MASK, "mouseSelect");
         mapKey(VK_MOUSE_1, CTRL_MASK | SHIFT_MASK, "mouseSelectColumn");
+        // The link clicked, as IntelliJ follows one.
+        mapKey(VK_MOUSE_1, CTRL_MASK, "followLink");
         mapKey(VK_DOUBLE_MOUSE_1, 0, "selectWord");
 
         if (Platform.isPlatformUnix()) {

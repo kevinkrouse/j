@@ -72,6 +72,7 @@ public class VimDocTest
         ROWS.put("search", NVO);
         ROWS.put("scroll", NV);
         ROWS.put("folds", NV);
+        ROWS.put("links", N);
         ROWS.put("buffers", N);
         ROWS.put("windows", NV);
         ROWS.put("ex", NV);
@@ -118,6 +119,8 @@ public class VimDocTest
         "insert --", "insert (insert)",
         // j's command names, beside the keys bound to them.
         "scroll toTop", "scroll toBottom", "scroll pageUp", "scroll vim",
+        // A link's target, beside the key that follows it.
+        "links #heading",
         // Ex ranges, read by the command line rather than the key map.
         "ex %", "ex 1,5", "ex .", "ex $", "ex 'a", "ex /pat/", "ex '<,'>"));
 

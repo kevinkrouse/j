@@ -135,6 +135,8 @@
     <li><a href="commands.html#foldHeadings">foldHeadings</a></li>
     <li><a href="commands.html#foldMethods">foldMethods</a></li>
     <li><a href="commands.html#foldRegion">foldRegion</a></li>
+    <li><a href="commands.html#followLink">followLink</a></li>
+    <li><a href="commands.html#followLinkOrTask">followLinkOrTask</a></li>
     <li><a href="commands.html#forwardSexp">forwardSexp</a></li>
     <li><a href="commands.html#git">git</a></li>
     <li><a href="commands.html#gotoBookmark">gotoBookmark</a></li>
@@ -1984,6 +1986,49 @@ other words, both dot and mark must be in column 1.
 <b>See also:</b> <a href="#fold">fold</a>,
 <a href="#foldMethods">foldMethods</a>, <a href="#unfold">unfold</a>,
 <a href="#unfoldAll">unfoldAll</a>
+<br><br>
+</dl><!--<hr>-->
+
+<a name="followLink">followLink</a><dl><dd>
+<p>
+Goes where the link at the caret points. Any URL is a link; in Markdown
+mode so are <code>[text](target)</code>, <code>![alt](src)</code>,
+<code>[text][ref]</code> and the <code>[ref]: target</code> it is defined
+by; in Java mode, Javadoc's <code>{@link Foo#bar(int)}</code>,
+<code>{@linkplain}</code>, <code>@see</code> and <code>@throws</code>,
+to the class's source, found through the imports, the package and
+<a href="preferences.html#sourcePath">sourcePath</a>, and the member with
+those parameter types; in web buffers, the page's
+links. A target is:
+<ul>
+<li><code>#heading</code>: the heading in this file whose GitHub-style
+    anchor it is (lower case, punctuation dropped, spaces as hyphens;
+    <code>-1</code>, <code>-2</code> for repeats);
+<li>a path, relative to the file's directory or absolute: that file, at
+    its <code>#heading</code> or <code>#L42</code> line if it has one;
+<li>a URL, <code>https:</code>, <code>mailto:</code> and so on: opened in
+    the <a href="preferences.html#browser">browser</a> if one is set, else
+    the desktop's.
+</ul>
+Going there is a jump, so <a href="#jumpBack">jumpBack</a> (vim's
+<code>Ctrl O</code>) returns.
+<br><br>
+Holding Ctrl with the mouse over a link shows it as a click would follow
+it, in the link color and underlined, with a hand for the mouse.
+<br><br>
+<b>Default key mapping:</b> Ctrl+click; Enter in web buffers;
+<code>gx</code> in <a href="editmodes.html">vim edit mode</a>
+<br><br>
+</dl><!--<hr>-->
+
+<a name="followLinkOrTask">followLinkOrTask</a><dl><dd>
+<p>
+In Markdown mode, <a href="#followLink">followLink</a> if the caret is on a
+link, saying so if its reference is not defined; else
+<a href="#task">task</a> on a list item or a selection. On a line of text
+it does nothing, where task would make the line a task.
+<br><br>
+<b>Default key mapping:</b> Ctrl+Enter (Markdown mode)
 <br><br>
 </dl><!--<hr>-->
 
@@ -5250,7 +5295,8 @@ state. <code>cancel</code> cancels them, or if they all are, starts them
 again. A list item without a box gets one, and a line of text becomes a
 task. Blank lines are left alone. The whole change is one undo step.
 <p>
-<b>Default key mapping:</b> Ctrl+Enter, and Ctrl+Shift+Enter for
+<b>Default key mapping:</b> Alt+Enter, Alt+C; Ctrl+Enter, by way of
+<a href="#followLinkOrTask">followLinkOrTask</a>; Ctrl+Shift+Enter for
 <code>task cancel</code> (Markdown mode)
 <br><br>
 </dl><!--<hr>-->

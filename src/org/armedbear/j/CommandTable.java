@@ -329,6 +329,8 @@ public class CommandTable
             addCommand("finish", "mode.checkin.CheckinBuffer");
             addCommand("foldHeadings", "mode.markdown.MarkdownFolding");
             addCommand("followContext", "FollowContextTask");
+            addCommand("followLink", "FollowLink");
+            addCommand("followLinkOrTask", "mode.markdown.MarkdownTasks");
             addCommand("forwardSexp", "mode.lisp.LispMode");
             addCommand("git", "vcs.git.Git", "git");
             addCommand("google", "mode.web.WebMode");
@@ -552,7 +554,6 @@ public class CommandTable
             addCommand("webBack", "mode.web.WebBuffer", "back");
             addCommand("webForward", "mode.web.WebBuffer", "forward");
             addCommand("webReload", "mode.web.WebBuffer", "refresh");
-            addCommand("followLink", "mode.web.WebBuffer");
             addCommand("mouseFollowLink", "mode.web.WebBuffer");
             addCommand("viewPage", "mode.web.WebBuffer");
             addCommand("viewSource", "mode.web.WebBuffer");

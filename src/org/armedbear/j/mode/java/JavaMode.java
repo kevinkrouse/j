@@ -27,6 +27,7 @@ import org.armedbear.j.Debug;
 import org.armedbear.j.Dispatcher;
 import org.armedbear.j.Display;
 import org.armedbear.j.Editor;
+import org.armedbear.j.TextLink;
 import org.armedbear.j.Expression;
 import org.armedbear.j.Mode;
 import org.armedbear.j.jdb.Jdb;
@@ -247,6 +248,19 @@ public class JavaMode extends AbstractMode implements Constants, Mode
       }
     // For subclasses...
     return super.getSidebarComponent(editor);
+  }
+
+  /** A Javadoc reference, {@link Foo#bar}, or else a URL. */
+  public TextLink getLinkAt(Editor editor, Position pos)
+  {
+    if (getId() == JAVA_MODE)
+      {
+        final TextLink link =
+          JavadocLinks.find(editor.getBuffer(), pos.getLine(), pos.getOffset());
+        if (link != null)
+          return link;
+      }
+    return super.getLinkAt(editor, pos);
   }
 
   public Tagger getTagger(SystemBuffer buffer)

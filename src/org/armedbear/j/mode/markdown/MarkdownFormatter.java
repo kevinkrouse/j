@@ -913,7 +913,7 @@ public final class MarkdownFormatter extends Formatter
         return close + run;
     }
 
-    private static int findCodeSpanClose(String text, int from, int end, int run)
+    static int findCodeSpanClose(String text, int from, int end, int run)
     {
         int j = from;
         while (j < end) {
@@ -990,7 +990,7 @@ public final class MarkdownFormatter extends Formatter
 
     // The bracket closing the one at open, minding nesting, backslashes and
     // code spans; -1 if none does.
-    private static int findClose(String text, int open, int end, char left, char right)
+    static int findClose(String text, int open, int end, char left, char right)
     {
         int depth = 0;
         for (int j = open; j < end; j++) {

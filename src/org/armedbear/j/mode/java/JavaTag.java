@@ -62,6 +62,79 @@ public final class JavaTag extends LocalTag
         return getShortName();
     }
 
+    /**
+     * Whether a Javadoc reference's member, "bar" or "bar(int, String)",
+     * names this: by its name, a class's without "class ", and by the
+     * types of its parameters, simple or qualified, if the reference gives
+     * them.
+     */
+    public boolean isNamedBy(String anchor)
+    {
+        String wanted = anchor.trim();
+        String params = null;
+        final int paren = wanted.indexOf('(');
+        if (paren >= 0) {
+            final int close = wanted.lastIndexOf(')');
+            params = wanted.substring(paren + 1, close > paren ? close : wanted.length());
+            wanted = wanted.substring(0, paren).trim();
+        }
+        String mine = getMethodName();
+        for (String prefix : new String[] { "class ", "interface ", "enum ", "record " })
+            if (mine.startsWith(prefix))
+                mine = mine.substring(prefix.length());
+        if (!wanted.equals(mine))
+            return false;
+        if (params == null)
+            return true;
+        final String signature = getLongName();
+        final int open = signature.indexOf('(');
+        final int close = signature.lastIndexOf(')');
+        if (open < 0 || close < open)
+            return params.trim().isEmpty();
+        return types(signature.substring(open + 1, close)).equals(types(params));
+    }
+
+    // "Map<String, List<Integer>> m, final int... n" as "Map,int[]": the
+    // simple types, without type arguments, modifiers or names.
+    private static String types(String list)
+    {
+        final StringBuilder sb = new StringBuilder();
+        final StringBuilder param = new StringBuilder();
+        int depth = 0;
+        for (int i = 0; i <= list.length(); i++) {
+            final char c = i < list.length() ? list.charAt(i) : ',';
+            if (c == '<') {
+                ++depth;
+            } else if (c == '>') {
+                --depth;
+            } else if (c == ',' && depth == 0) {
+                final String type = type(param.toString());
+                if (!type.isEmpty()) {
+                    if (sb.length() > 0)
+                        sb.append(',');
+                    sb.append(type);
+                }
+                param.setLength(0);
+            } else if (depth == 0) {
+                param.append(c);
+            }
+        }
+        return sb.toString();
+    }
+
+    // A parameter's type, its first word once annotations and final are
+    // gone, with its package dropped: "final java.util.List<X> list" as
+    // "List".
+    private static String type(String param)
+    {
+        final String s = param.replace("...", "[]")
+            .replaceAll("@[\\w.]+", "").replaceAll("\\bfinal\\b", "").trim();
+        if (s.isEmpty())
+            return "";
+        final String type = s.split("\\s+")[0];
+        return type.substring(type.lastIndexOf('.') + 1);
+    }
+
     private String getShortName()
     {
         int index = name.lastIndexOf('.');

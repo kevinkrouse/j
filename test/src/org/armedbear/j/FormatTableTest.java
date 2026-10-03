@@ -186,4 +186,16 @@ public class FormatTableTest
         assertNull(Editor.preferences()
                    .getStringProperty(MODE + ".link.heading1"));
     }
+
+    @Test
+    public void aBuiltInStyleEndsItsChain()
+    {
+        // A theme that says text is plain, as Bright does, leaves emphasis
+        // italic: it takes only its color from text.
+        set("style.text", "0");
+        set("color.text", "7 8 9");
+        FormatTableEntry e = entry("emphasis");
+        assertEquals(TextStyle.ITALIC, e.getStyle());
+        assertEquals(new Color(7, 8, 9), e.getColor());
+    }
 }

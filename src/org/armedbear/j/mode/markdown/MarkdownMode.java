@@ -29,9 +29,11 @@ import org.armedbear.j.KeyMap;
 import org.armedbear.j.Line;
 import org.armedbear.j.Mode;
 import org.armedbear.j.NavigationComponent;
+import org.armedbear.j.Position;
 import org.armedbear.j.Property;
 import org.armedbear.j.SidebarTagTree;
 import org.armedbear.j.SystemBuffer;
+import org.armedbear.j.TextLink;
 import org.armedbear.j.Tagger;
 import org.armedbear.j.View;
 
@@ -86,6 +88,12 @@ public final class MarkdownMode extends AbstractMode implements Constants, Mode
         return super.getContextString(editor, true);
     }
 
+    /** The link at pos: inline, reference, autolink or bare URL. */
+    public TextLink getLinkAt(Editor editor, Position pos)
+    {
+        return MarkdownLinks.find(editor.getBuffer(), pos.getLine(), pos.getOffset());
+    }
+
     /** A fence's code, a list item's children, or a heading's section. */
     public Line[] getFoldRange(Editor editor, Line line)
     {
@@ -112,7 +120,11 @@ public final class MarkdownMode extends AbstractMode implements Constants, Mode
     {
         km.mapKey(KeyEvent.VK_F12, CTRL_MASK | SHIFT_MASK,
                   "wrapParagraphsInRegion");
-        km.mapKey(KeyEvent.VK_ENTER, CTRL_MASK, "task");
+        km.mapKey(KeyEvent.VK_ENTER, CTRL_MASK, "followLinkOrTask");
+        // Tasks alone, VS Code's Markdown All in One's key and one beside
+        // Ctrl+Enter's.
+        km.mapKey(KeyEvent.VK_ENTER, ALT_MASK, "task");
+        km.mapKey(KeyEvent.VK_C, ALT_MASK, "task");
         km.mapKey(KeyEvent.VK_ENTER, CTRL_MASK | SHIFT_MASK, "task cancel");
     }
 }

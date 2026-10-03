@@ -31,12 +31,27 @@ public final class MarkdownTag extends LocalTag
 {
     private final int level;
     private final MarkdownTag parent;
+    private final String anchor;
 
-    MarkdownTag(String name, Line line, int level, MarkdownTag parent)
+    MarkdownTag(String name, Line line, int level, MarkdownTag parent,
+                String anchor)
     {
         super(name, new Position(line, 0), TAG_HEADING);
         this.level = level;
         this.parent = parent;
+        this.anchor = anchor;
+    }
+
+    /** The heading's anchor as GitHub makes it: "hello-world", "notes-1". */
+    public String getAnchor()
+    {
+        return anchor;
+    }
+
+    /** Its anchor, whatever the case, or its name. */
+    public boolean isNamedBy(String anchor)
+    {
+        return anchor.equalsIgnoreCase(this.anchor) || super.isNamedBy(anchor);
     }
 
     /** 1 for a top-level heading, through 6. */
