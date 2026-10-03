@@ -62,7 +62,7 @@ public final class Frame extends JFrame implements Constants, ComponentListener,
     private final StatusBar statusBar;
 
     public Frame(Editor editor) {
-        Editor.frames.add(this);
+        Editor.addFrame(this);
         addComponentListener(this);
         addWindowListener(this);
         addFocusListener(this);

@@ -42,9 +42,9 @@ import java.awt.event.WindowEvent;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.lang.StringBuilder;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -463,8 +463,6 @@ public final class Editor extends JPanel implements Constants,
             runStartupScript();
         }
         initMacOSX();
-        DefaultLookAndFeel.setLookAndFeel();
-        initDoubleBufferSize();
 
         sessionProperties = new SessionProperties();
 
@@ -472,6 +470,35 @@ public final class Editor extends JPanel implements Constants,
             Autosave.recover();
 
         tagFileManager = new TagFileManager();
+
+        final boolean restore = restoreSession;
+        final String session = sessionName;
+        final List<String> toOpen = files;
+        try {
+            SwingUtilities.invokeAndWait(() -> openFirstFrame(restore, session, toOpen, currentDir));
+        }
+        catch (InterruptedException | InvocationTargetException e) {
+            throw new IllegalStateException("startup failed", e);
+        }
+
+        // A forced second instance leaves the first one's port file alone.
+        if (startServer && !alreadyRunning)
+            Server.startServer();
+
+        //if (isLispInitialized())
+        //    LispThread.remove(Thread.currentThread());
+
+        Log.debug("leaving main " + when());
+    }
+
+    private static void openFirstFrame(
+        boolean restoreSession,
+        String sessionName,
+        List<String> files,
+        File currentDir
+    ) {
+        DefaultLookAndFeel.setLookAndFeel();
+        initDoubleBufferSize();
 
         setCurrentEditor(new Editor(null));
 
@@ -497,8 +524,7 @@ public final class Editor extends JPanel implements Constants,
         if (files != null) {
             ArrayList<String> list = new ArrayList<String>();
             list.add(currentDir.canonicalPath());
-            for (int i = 0; i < files.size(); i++)
-                list.add(files.get(i));
+            list.addAll(files);
             Buffer buf = currentEditor.openFiles(list);
             if (buf != null) {
                 Debug.assertTrue(bufferList.contains(buf));
@@ -510,23 +536,10 @@ public final class Editor extends JPanel implements Constants,
             toBeActivated = new DirectoryBuffer(currentDir);
 
         currentEditor.activate(toBeActivated);
-
-        // A forced second instance leaves the first one's port file alone.
-        if (startServer && !alreadyRunning)
-            Server.startServer();
-
-        Runnable r = () -> {
-            currentEditor.getFrame().setVisible(true);
-            Sidebar sidebar = currentEditor.getSidebar();
-            if (sidebar != null)
-                sidebar.setUpdateFlag(SIDEBAR_ALL);
-        };
-        SwingUtilities.invokeLater(r);
-
-        //if (isLispInitialized())
-        //    LispThread.remove(Thread.currentThread());
-
-        Log.debug("leaving main " + when());
+        currentEditor.getFrame().setVisible(true);
+        Sidebar sidebar = currentEditor.getSidebar();
+        if (sidebar != null)
+            sidebar.setUpdateFlag(SIDEBAR_ALL);
     }
 
     private static final void usage() {
@@ -827,7 +840,11 @@ public final class Editor extends JPanel implements Constants,
         frame.setWindowHeight(this, n);
     }
 
-    static List<Frame> frames = new ArrayList<Frame>();
+    private static final List<Frame> frames = new ArrayList<Frame>();
+
+    static void addFrame(Frame frame) {
+        frames.add(frame);
+    }
 
     public static int indexOf(Frame frame) {
         for (int i = getFrameCount() - 1; i >= 0; i--) {
@@ -993,29 +1010,32 @@ public final class Editor extends JPanel implements Constants,
         }
     }
 
-    public static synchronized final Editor currentEditor() {
+    public static Editor currentEditor() {
         return currentEditor;
     }
 
-    public static synchronized final void setCurrentEditor(Editor editor) {
-        Editor oldCurrentEditor = currentEditor;
-        currentEditor = editor;
+    // Lisp calls this off the event thread; the hooks run outside the lock.
+    public static void setCurrentEditor(Editor editor) {
+        final Editor oldCurrentEditor;
+        synchronized (Editor.class) {
+            oldCurrentEditor = currentEditor;
+            currentEditor = editor;
+        }
         if (editor.getFrame() != null)
             editor.getFrame().setCurrentEditor(editor);
-        if (currentEditor != oldCurrentEditor) {
-            if (currentEditor != null)
-                currentEditor.repaintLocationBar();
+        if (editor != oldCurrentEditor) {
+            editor.repaintLocationBar();
             if (oldCurrentEditor != null)
                 oldCurrentEditor.repaintLocationBar();
-            Extensions.hooks().bufferActivated(currentEditor.getBuffer());
+            Extensions.hooks().bufferActivated(editor.getBuffer());
         }
     }
 
-    public static synchronized final Buffer currentBuffer() {
+    public static Buffer currentBuffer() {
         return currentEditor.buffer;
     }
 
-    public static synchronized final Frame getCurrentFrame() {
+    public static Frame getCurrentFrame() {
         return currentEditor.getFrame();
     }
 
