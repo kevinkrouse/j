@@ -41,158 +41,158 @@ edit mode.
 <p>
 Normal, insert, replace, visual, visual-line and visual-block modes, operator-pending
 commands, counts, registers, marks and the dot command:
-<table border="0" cellpadding="2">
-<tr><td valign="top"><b>motions</b></td>
-    <td><code>h j k l 0 ^ $ w W b B e E ge gE gg G | f F t T ; , { } ( ) ]] [[ ][ [] % [( ]) [{ ]} H M L</code>
-        and the arrow keys</td></tr>
-<tr><td valign="top"><b>operators</b></td>
-    <td><code>d c y &gt; &lt; gu gU g~</code>, doubled for whole lines
-        (<code>dd</code>, <code>cc</code>, <code>yy</code>)</td></tr>
-<tr><td valign="top"><b>changes</b></td>
-    <td><code>x X D C s S r J gJ ~ p P</code>, and <code>Ctrl A</code> /
-        <code>Ctrl X</code>, which add the count to the number at or after
-        the caret or take it away: decimal with a leading minus,
-        <code>0x</code> hexadecimal and <code>0b</code> binary, as nvim's
-        default <code>nrformats</code> has them, keeping the width of
-        <code>007</code> or <code>0x0f</code>.</td></tr>
-<tr><td valign="top"><b>insert</b></td>
-    <td><code>i I a A o O</code>, leaving with <code>Escape</code>; while
-        typing, <code>Ctrl T</code> and <code>Ctrl D</code> add or take away
-        one indent, rounded to a multiple of it. <code>o</code> and
-        <code>O</code> indent the new line by the language in a mode j can
-        indent, as nvim does with filetype indent, and like the line they
-        start from elsewhere, as vim's <code>autoindent</code> does;
-        <code>cc</code> and <code>S</code> keep the line's indent.
-        <code>Escape</code> takes such an indent away again if nothing was
-        typed after it. <code>Ctrl W</code> deletes the word before the
-        caret and <code>Ctrl U</code> the line before it but its indent, both
-        stopping once where typing began and joining lines at the start of
-        one; in replace mode they put back what was typed over.
-        <code>Ctrl R</code> and a register name types the register's text, and
-        <code>.</code> types the same text again. <code>Ctrl O</code> runs one
-        normal-mode command, shown as <code>-- (insert) --</code>, and comes
-        back. An arrow key or <code>Ctrl O</code> splits the insert, as in
-        vim: <code>u</code> undoes each side separately, and <code>.</code>
-        repeats only what was typed after it.</td></tr>
-<tr><td valign="top"><b>replace</b></td>
-    <td><code>R</code>, which types over what is already there until
-        <code>Escape</code>. <code>Backspace</code> walks the session
-        backwards, putting back each character it typed over &mdash; until
-        the caret moves by something other than typing, after which, as in
-        vim, it only steps left.</td></tr>
-<tr><td valign="top"><b>text objects</b></td>
-    <td><code>iw aw iW aW</code>, the quote pairs
-        <code>i" a" i' a'</code> and the backtick pair,
-        <code>i( a( i[ a[ i{ a{ i&lt; a&lt;</code> with the
-        <code>b</code> and <code>B</code> aliases, and
-        <code>ip ap</code></td></tr>
-<tr><td valign="top"><b>search</b></td>
-    <td><code>/ ? n N * # g* g#</code>. Every match of the last pattern is
-        highlighted, as nvim's <code>hlsearch</code> does by default, until
-        <code>:noh</code> or the next search; <code>:set nohls</code> turns
-        it off. As the pattern is typed the caret goes to where it would
-        find (<code>incsearch</code>), the match it is on picked out in a
-        color of its own; <code>Ctrl G</code> and <code>Ctrl T</code> step
-        to the next match and the one before, Enter searches, Escape puts
-        the caret back. The colors are
-        <a href="preferences.html#color.searchMatchBackground">color.searchMatchBackground</a>
-        and
-        <a href="preferences.html#color.currentSearchMatchBackground">color.currentSearchMatchBackground</a>.
-        The last pattern is every window's, as in vim, unless
-        <a href="preferences.html#shareSearch">shareSearch</a> is false,
-        and it is j's own last search too: j's
-        <a href="commands.html#findNext">findNext</a> (F3) goes on with a
-        <code>/</code>, and <code>n</code> with a find made in simple mode.
-        <code>:noh</code> is j's
-        <a href="commands.html#clearSearchHighlight">clearSearchHighlight</a>.</td></tr>
-<tr><td valign="top"><b>scroll</b></td>
-    <td><code>zz zt zb</code>, which are j's own
-        <a href="commands.html#toCenter">toCenter</a>, <code>toTop</code> and
-        <code>toBottom</code>; <code>Ctrl F</code> and <code>Ctrl B</code>,
-        which are its <a href="commands.html#pageDown">pageDown</a> and
-        <code>pageUp</code> with the <code>vim</code> argument</td></tr>
-<tr><td valign="top"><b>folds</b></td>
-    <td><code>za zc zo zR zM</code>, which are j's own
-        <a href="commands.html#toggleFold">toggleFold</a>,
-        <a href="commands.html#fold">fold</a>,
-        <a href="commands.html#unfoldHere">unfoldHere</a>,
-        <a href="commands.html#unfoldAll">unfoldAll</a> and
-        <a href="commands.html#foldAll">foldAll</a>. The mode says what a
-        fold takes in.</td></tr>
-<tr><td valign="top"><b>links</b></td>
-    <td><code>gx</code>, j's <a href="commands.html#followLink">followLink</a>:
-        the URL, Markdown link or <code>#heading</code> at the caret</td></tr>
-<tr><td valign="top"><b>buffers</b></td>
-    <td><code>Ctrl ^</code> (or <code>Ctrl 6</code>), the alternate file:
-        the buffer used most recently before this one</td></tr>
-<tr><td valign="top"><b>windows</b></td>
-    <td><code>Ctrl W</code> then <code>s</code> or <code>v</code> to split,
-        <code>h j k l</code> (or the arrows) to the window beside, of
-        several the one level with the caret, <code>w</code> and
-        <code>W</code> to the next and the one before (with a count, to that
-        window), <code>p</code> to the one used last, <code>c</code> and
-        <code>q</code> to close, <code>o</code> to close the others, and
-        <code>=</code> to make them the same size again; <code>:sp</code> and
-        <code>:vs</code>, with a file or without, <code>:q</code>,
-        <code>:clo</code> and <code>:on</code>. A split shows the same buffer
-        twice, with the caret in the top or left window, as in vim; a window
-        closing gives its space and the caret to the next one. Each split and
-        close makes the windows the same size again, as vim's
-        <code>equalalways</code> does, even after a divider was dragged.</td></tr>
-<tr><td valign="top"><b>ex</b></td>
-    <td><code>:</code> with ranges (<code>%</code>, <code>1,5</code>,
-        <code>.</code>, <code>$</code>, <code>'a</code>, <code>/pat/</code>
-        and offsets), then <code>:d :y :s :j :m :t :sort :g :v :normal
-        :delmarks :w :wq :set :noh</code>, <code>@:</code> to run the last one again, and any
-        command <a href="commands.html">j already knows</a>. <code>:</code>
-        in visual mode fills in <code>'&lt;,'&gt;</code>.</td></tr>
-<tr><td valign="top"><b>visual</b></td>
-    <td><code>v V Ctrl V o O gv</code>, any operator over the selection, and
-        <code>J gJ p P r u U ~</code>, and <code>Ctrl A</code> /
-        <code>Ctrl X</code> on the first number of each line, which
-        <code>g Ctrl A</code> / <code>g Ctrl X</code> make a sequence.
-        <code>D C S R X Y</code> take whole
-        lines, as in vim, even from a characterwise selection. <code>p</code>
-        leaves what it replaced in the unnamed register; <code>P</code> leaves
-        the registers alone.
-        <p>
-        Over a block (<code>Ctrl V</code>, <code>$</code> to take each line
-        to its end, <code>O</code> to the other side), <code>d x y c s r u U
-        ~ &lt; &gt; J p P</code> work on the block itself, as do <code>X
-        Y</code>; <code>D C</code> take it to the end of each line.
-        <code>I</code> and <code>A</code> insert before and after it, and
-        what is typed on the first line goes onto the others at
-        Escape: <code>I</code> skips a line that ends before
-        the block, <code>A</code> pads it out with spaces. A tab the block's
-        edge cuts through becomes spaces. A blockwise register
-        <code>p</code> puts as a block, padding short lines and adding lines
-        at the end of the buffer as it needs.</td></tr>
-<tr><td valign="top"><b>registers</b></td>
-    <td><code>"a</code> through <code>"z</code> (upper case appends),
-        which are j's own <a href="commands.html#saveToRegister">registers</a>
-        and so kept from one session to the next; the unnamed register and
-        <code>"1</code>-<code>"9</code>, which are j's
-        <a href="killring.html">kill ring</a>, newest first, so that a yank
-        is what j's paste pastes and a copy in j or another program is
-        what <code>p</code> puts; <code>"+</code>, the system clipboard, and
-        <code>"*</code>, the primary selection; and <code>"0</code>,
-        <code>"-</code>, <code>"_</code></td></tr>
-<tr><td valign="top"><b>marks</b></td>
-    <td><code>m</code>, <code>`</code>, <code>'</code>,
-        <code>]`</code>, <code>[`</code>, <code>]'</code>, <code>['</code>,
-        <code>`&lt;</code> / <code>`&gt;</code> after a selection,
-        <code>`.</code> (the last change), <code>`[</code> and
-        <code>`]</code> (what it or the last yank covered), <code>`^</code>
-        (where insert stopped), and <code>``</code> / <code>''</code> (before
-        the last jump). The file marks, A to Z, are
-        j's <a href="commands.html#dropBookmark">bookmarks</a>, and
-        <code>`A</code> goes into the file one is in. The jump list is j's:
-        <code>Ctrl O</code> back, <code>Ctrl I</code> or <code>Tab</code>
-        forward, into other files too, over vim's jumps and j's own
-        (<a href="commands.html#jumpBack">jumpBack</a>).</td></tr>
-<tr><td valign="top"><b>other</b></td>
-    <td><code>u</code>, <code>Ctrl R</code>, <code>.</code></td></tr>
-</table>
+<dl>
+<dt><b>motions</b></dt>
+<dd><code>h j k l 0 ^ $ w W b B e E ge gE gg G | f F t T ; , { } ( ) ]] [[ ][ [] % [( ]) [{ ]} H M L</code>
+    and the arrow keys</dd>
+<dt><b>operators</b></dt>
+<dd><code>d c y &gt; &lt; gu gU g~</code>, doubled for whole lines
+    (<code>dd</code>, <code>cc</code>, <code>yy</code>)</dd>
+<dt><b>changes</b></dt>
+<dd><code>x X D C s S r J gJ ~ p P</code>, and <code>Ctrl A</code> /
+    <code>Ctrl X</code>, which add the count to the number at or after
+    the caret or take it away: decimal with a leading minus,
+    <code>0x</code> hexadecimal and <code>0b</code> binary, as nvim's
+    default <code>nrformats</code> has them, keeping the width of
+    <code>007</code> or <code>0x0f</code>.</dd>
+<dt><b>insert</b></dt>
+<dd><code>i I a A o O</code>, leaving with <code>Escape</code>; while
+    typing, <code>Ctrl T</code> and <code>Ctrl D</code> add or take away
+    one indent, rounded to a multiple of it. <code>o</code> and
+    <code>O</code> indent the new line by the language in a mode j can
+    indent, as nvim does with filetype indent, and like the line they
+    start from elsewhere, as vim's <code>autoindent</code> does;
+    <code>cc</code> and <code>S</code> keep the line's indent.
+    <code>Escape</code> takes such an indent away again if nothing was
+    typed after it. <code>Ctrl W</code> deletes the word before the
+    caret and <code>Ctrl U</code> the line before it but its indent, both
+    stopping once where typing began and joining lines at the start of
+    one; in replace mode they put back what was typed over.
+    <code>Ctrl R</code> and a register name types the register's text, and
+    <code>.</code> types the same text again. <code>Ctrl O</code> runs one
+    normal-mode command, shown as <code>-- (insert) --</code>, and comes
+    back. An arrow key or <code>Ctrl O</code> splits the insert, as in
+    vim: <code>u</code> undoes each side separately, and <code>.</code>
+    repeats only what was typed after it.</dd>
+<dt><b>replace</b></dt>
+<dd><code>R</code>, which types over what is already there until
+    <code>Escape</code>. <code>Backspace</code> walks the session
+    backwards, putting back each character it typed over &mdash; until
+    the caret moves by something other than typing, after which, as in
+    vim, it only steps left.</dd>
+<dt><b>text objects</b></dt>
+<dd><code>iw aw iW aW</code>, the quote pairs
+    <code>i" a" i' a'</code> and the backtick pair,
+    <code>i( a( i[ a[ i{ a{ i&lt; a&lt;</code> with the
+    <code>b</code> and <code>B</code> aliases, and
+    <code>ip ap</code></dd>
+<dt><b>search</b></dt>
+<dd><code>/ ? n N * # g* g#</code>. Every match of the last pattern is
+    highlighted, as nvim's <code>hlsearch</code> does by default, until
+    <code>:noh</code> or the next search; <code>:set nohls</code> turns
+    it off. As the pattern is typed the caret goes to where it would
+    find (<code>incsearch</code>), the match it is on picked out in a
+    color of its own; <code>Ctrl G</code> and <code>Ctrl T</code> step
+    to the next match and the one before, Enter searches, Escape puts
+    the caret back. The colors are
+    <a href="preferences.html#color.searchMatchBackground">color.searchMatchBackground</a>
+    and
+    <a href="preferences.html#color.currentSearchMatchBackground">color.currentSearchMatchBackground</a>.
+    The last pattern is every window's, as in vim, unless
+    <a href="preferences.html#shareSearch">shareSearch</a> is false,
+    and it is j's own last search too: j's
+    <a href="commands.html#findNext">findNext</a> (F3) goes on with a
+    <code>/</code>, and <code>n</code> with a find made in simple mode.
+    <code>:noh</code> is j's
+    <a href="commands.html#clearSearchHighlight">clearSearchHighlight</a>.</dd>
+<dt><b>scroll</b></dt>
+<dd><code>zz zt zb</code>, which are j's own
+    <a href="commands.html#toCenter">toCenter</a>, <code>toTop</code> and
+    <code>toBottom</code>; <code>Ctrl F</code> and <code>Ctrl B</code>,
+    which are its <a href="commands.html#pageDown">pageDown</a> and
+    <code>pageUp</code> with the <code>vim</code> argument</dd>
+<dt><b>folds</b></dt>
+<dd><code>za zc zo zR zM</code>, which are j's own
+    <a href="commands.html#toggleFold">toggleFold</a>,
+    <a href="commands.html#fold">fold</a>,
+    <a href="commands.html#unfoldHere">unfoldHere</a>,
+    <a href="commands.html#unfoldAll">unfoldAll</a> and
+    <a href="commands.html#foldAll">foldAll</a>. The mode says what a
+    fold takes in.</dd>
+<dt><b>links</b></dt>
+<dd><code>gx</code>, j's <a href="commands.html#followLink">followLink</a>:
+    the URL, Markdown link or <code>#heading</code> at the caret</dd>
+<dt><b>buffers</b></dt>
+<dd><code>Ctrl ^</code> (or <code>Ctrl 6</code>), the alternate file:
+    the buffer used most recently before this one</dd>
+<dt><b>windows</b></dt>
+<dd><code>Ctrl W</code> then <code>s</code> or <code>v</code> to split,
+    <code>h j k l</code> (or the arrows) to the window beside, of
+    several the one level with the caret, <code>w</code> and
+    <code>W</code> to the next and the one before (with a count, to that
+    window), <code>p</code> to the one used last, <code>c</code> and
+    <code>q</code> to close, <code>o</code> to close the others, and
+    <code>=</code> to make them the same size again; <code>:sp</code> and
+    <code>:vs</code>, with a file or without, <code>:q</code>,
+    <code>:clo</code> and <code>:on</code>. A split shows the same buffer
+    twice, with the caret in the top or left window, as in vim; a window
+    closing gives its space and the caret to the next one. Each split and
+    close makes the windows the same size again, as vim's
+    <code>equalalways</code> does, even after a divider was dragged.</dd>
+<dt><b>ex</b></dt>
+<dd><code>:</code> with ranges (<code>%</code>, <code>1,5</code>,
+    <code>.</code>, <code>$</code>, <code>'a</code>, <code>/pat/</code>
+    and offsets), then <code>:d :y :s :j :m :t :sort :g :v :normal
+    :delmarks :w :wq :set :noh</code>, <code>@:</code> to run the last one again, and any
+    command <a href="commands.html">j already knows</a>. <code>:</code>
+    in visual mode fills in <code>'&lt;,'&gt;</code>.</dd>
+<dt><b>visual</b></dt>
+<dd><code>v V Ctrl V o O gv</code>, any operator over the selection, and
+    <code>J gJ p P r u U ~</code>, and <code>Ctrl A</code> /
+    <code>Ctrl X</code> on the first number of each line, which
+    <code>g Ctrl A</code> / <code>g Ctrl X</code> make a sequence.
+    <code>D C S R X Y</code> take whole
+    lines, as in vim, even from a characterwise selection. <code>p</code>
+    leaves what it replaced in the unnamed register; <code>P</code> leaves
+    the registers alone.
+    <p>
+    Over a block (<code>Ctrl V</code>, <code>$</code> to take each line
+    to its end, <code>O</code> to the other side), <code>d x y c s r u U
+    ~ &lt; &gt; J p P</code> work on the block itself, as do <code>X
+    Y</code>; <code>D C</code> take it to the end of each line.
+    <code>I</code> and <code>A</code> insert before and after it, and
+    what is typed on the first line goes onto the others at
+    Escape: <code>I</code> skips a line that ends before
+    the block, <code>A</code> pads it out with spaces. A tab the block's
+    edge cuts through becomes spaces. A blockwise register
+    <code>p</code> puts as a block, padding short lines and adding lines
+    at the end of the buffer as it needs.</dd>
+<dt><b>registers</b></dt>
+<dd><code>"a</code> through <code>"z</code> (upper case appends),
+    which are j's own <a href="commands.html#saveToRegister">registers</a>
+    and so kept from one session to the next; the unnamed register and
+    <code>"1</code>-<code>"9</code>, which are j's
+    <a href="killring.html">kill ring</a>, newest first, so that a yank
+    is what j's paste pastes and a copy in j or another program is
+    what <code>p</code> puts; <code>"+</code>, the system clipboard, and
+    <code>"*</code>, the primary selection; and <code>"0</code>,
+    <code>"-</code>, <code>"_</code></dd>
+<dt><b>marks</b></dt>
+<dd><code>m</code>, <code>`</code>, <code>'</code>,
+    <code>]`</code>, <code>[`</code>, <code>]'</code>, <code>['</code>,
+    <code>`&lt;</code> / <code>`&gt;</code> after a selection,
+    <code>`.</code> (the last change), <code>`[</code> and
+    <code>`]</code> (what it or the last yank covered), <code>`^</code>
+    (where insert stopped), and <code>``</code> / <code>''</code> (before
+    the last jump). The file marks, A to Z, are
+    j's <a href="commands.html#dropBookmark">bookmarks</a>, and
+    <code>`A</code> goes into the file one is in. The jump list is j's:
+    <code>Ctrl O</code> back, <code>Ctrl I</code> or <code>Tab</code>
+    forward, into other files too, over vim's jumps and j's own
+    (<a href="commands.html#jumpBack">jumpBack</a>).</dd>
+<dt><b>other</b></dt>
+<dd><code>u</code>, <code>Ctrl R</code>, <code>.</code></dd>
+</dl>
 <p>
 Counts work where vim's do, and multiply across an operator and its motion:
 <code>2d3w</code> deletes six words, and <code>3iab&lt;Esc&gt;</code> types
@@ -425,9 +425,9 @@ These are known and deliberate:
     one character to motions and edits, as in vim. But <code>|</code> and
     <code>j</code>/<code>k</code> count columns in UTF-16 units where vim
     counts screen cells. The two agree for an emoji, which is two of each,
-    and differ past a wide character such as <code>&#x4E2D;</code> (one unit, two
-    cells) or a narrow one outside the plane such as <code>&#x1D400;</code> (two
-    units, one cell).</li>
+    and differ past a wide character such as <code>&#20013;</code> (U+4E2D, one unit, two
+    cells) or a narrow one outside the plane such as U+1D400, a mathematical
+    bold A (two units, one cell).</li>
 <li><code>zt</code> leaves one line of context above the caret, because it is
     j's <code>toTop</code>; vim leaves none unless <code>'scrolloff'</code> is
     set. The command was left as j has it rather than changed to suit this

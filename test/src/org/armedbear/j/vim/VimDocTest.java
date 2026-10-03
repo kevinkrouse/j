@@ -228,9 +228,9 @@ public class VimDocTest
 
     // ------------------------------------------------------------ the doc
 
-    private static final Pattern ROW =
-        Pattern.compile("<tr>(.*?)</tr>", Pattern.DOTALL);
-    private static final Pattern LABEL = Pattern.compile("<b>(.*?)</b>");
+    // A row of the list: its label, then what it says.
+    private static final Pattern ROW = Pattern.compile(
+        "<dt><b>(.*?)</b></dt>\\s*<dd>(.*?)</dd>", Pattern.DOTALL);
     private static final Pattern CODE =
         Pattern.compile("<code>(.*?)</code>", Pattern.DOTALL);
 
@@ -240,19 +240,16 @@ public class VimDocTest
         final String html = new String(Files.readAllBytes(doc()),
                                        StandardCharsets.UTF_8);
         final int start = html.indexOf("<h2>What is there</h2>");
-        final int end = html.indexOf("</table>", start);
+        final int end = html.indexOf("</dl>", start);
         final Map<String, List<String>> rows =
             new LinkedHashMap<String, List<String>>();
         final Matcher row = ROW.matcher(html.substring(start, end));
         while (row.find()) {
-            final Matcher label = LABEL.matcher(row.group(1));
-            if (!label.find())
-                continue;
             final List<String> keys = new ArrayList<String>();
-            final Matcher code = CODE.matcher(row.group(1));
+            final Matcher code = CODE.matcher(row.group(2));
             while (code.find())
                 keys.addAll(keys(code.group(1)));
-            rows.put(label.group(1), keys);
+            rows.put(row.group(1), keys);
         }
         return rows;
     }
