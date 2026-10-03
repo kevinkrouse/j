@@ -11,10 +11,10 @@
 
 package org.armedbear.j;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import org.junit.After;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
 
 /**
  * j's own sortLines command, which vim's :sort now shares.
@@ -25,7 +25,7 @@ import org.junit.Test;
 public class SortTest {
     private EditorHarness h;
 
-    @After
+    @AfterEach
     public void tearDown() {
         if (h != null)
             h.close();

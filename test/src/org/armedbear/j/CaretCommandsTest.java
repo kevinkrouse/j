@@ -11,10 +11,10 @@
 
 package org.armedbear.j;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import org.junit.After;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
 
 /**
  * The commands vim has and j did not: jumping to a character on the line,
@@ -24,7 +24,7 @@ import org.junit.Test;
 public class CaretCommandsTest {
     private EditorHarness h;
 
-    @After
+    @AfterEach
     public void tearDown() {
         if (h != null)
             h.close();
@@ -40,8 +40,8 @@ public class CaretCommandsTest {
     }
 
     private void at(int line, int offset) {
-        assertEquals("line", line, h.editor().getDotLineNumber());
-        assertEquals("offset", offset, h.editor().getDotOffset());
+        assertEquals(line, h.editor().getDotLineNumber(), "line");
+        assertEquals(offset, h.editor().getDotOffset(), "offset");
     }
 
     // ------------------------------------------------- find a character
@@ -99,18 +99,18 @@ public class CaretCommandsTest {
         CaretCommands.moveToWindowTop();
         at(0, 0);
         assertEquals(
-            "the view did not move",
             wasTop,
-            h.editor().getDisplay().getTopLine()
+            h.editor().getDisplay().getTopLine(),
+            "the view did not move"
         );
         CaretCommands.moveToWindowBottom();
         final int bottom = h.editor().getDotLineNumber();
         CaretCommands.moveToWindowMiddle();
         final int middle = h.editor().getDotLineNumber();
         assertEquals(
-            "middle is between top and bottom",
             true,
-            middle > 0 && middle < bottom
+            middle > 0 && middle < bottom,
+            "middle is between top and bottom"
         );
     }
 

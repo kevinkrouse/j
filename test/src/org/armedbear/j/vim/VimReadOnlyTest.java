@@ -11,10 +11,10 @@
 
 package org.armedbear.j.vim;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import org.armedbear.j.EditorHarness;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 /**
  * A read-only buffer does not change, whatever vim command is typed at it.
@@ -36,7 +36,7 @@ public class VimReadOnlyTest {
                 h.value("abc\ndef").cursor(0, 0);
                 h.buffer().setForceReadOnly(true);
                 h.keys(keys);
-                assertEquals(keys, "abc\ndef", h.value());
+                assertEquals("abc\ndef", h.value(), keys);
             }
             finally {
                 h.close();

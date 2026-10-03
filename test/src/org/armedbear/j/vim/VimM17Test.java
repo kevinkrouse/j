@@ -11,12 +11,12 @@
 
 package org.armedbear.j.vim;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import org.armedbear.j.EditorHarness;
 import org.armedbear.j.mode.java.JavaMode;
-import org.junit.After;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
 
 /**
  * M17: insert-mode CTRL-W, CTRL-U, CTRL-R and CTRL-O, and the marks an
@@ -26,7 +26,7 @@ import org.junit.Test;
 public class VimM17Test {
     private EditorHarness h;
 
-    @After
+    @AfterEach
     public void tearDown() {
         if (h != null)
             h.close();
@@ -50,11 +50,11 @@ public class VimM17Test {
         int endOffset
     ) {
         vim(text, line, offset).keys(keys);
-        assertEquals(keys, expected, h.value());
+        assertEquals(expected, h.value(), keys);
         assertEquals(
-            keys + " caret",
             endLine + "," + endOffset,
-            h.lineNumber() + "," + h.offset()
+            h.lineNumber() + "," + h.offset(),
+            keys + " caret"
         );
     }
 

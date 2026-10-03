@@ -11,18 +11,18 @@
 
 package org.armedbear.j.vim;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 import org.armedbear.j.EditorHarness;
-import org.junit.After;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
 
 /** Yank, put, and which register the text went into. */
 public class VimRegisterTest {
     private EditorHarness h;
 
-    @After
+    @AfterEach
     public void tearDown() {
         if (h != null)
             h.close();
@@ -178,21 +178,14 @@ public class VimRegisterTest {
         // silently land in register a instead of the unnamed one.
         vim("alpha bravo\n").cursor(0, 0).keys("\"a<Esc>yw");
         assertEquals("alpha ", reg(VimRegisters.UNNAMED));
-        assertNull(
-            "the abandoned register was never written",
-            reg('a')
-        );
+        assertNull(reg('a'), "the abandoned register was never written");
     }
 
     @Test
     public void theBlackHoleRegisterDiscards() {
         vim("alpha bravo\n").cursor(0, 0).keys("yw");
         h.keys("\"_dw");
-        assertEquals(
-            "the yank survives a black hole delete",
-            "alpha ",
-            reg(VimRegisters.UNNAMED)
-        );
+        assertEquals("alpha ", reg(VimRegisters.UNNAMED), "the yank survives a black hole delete");
         h.assertText("bravo\n");
     }
 }

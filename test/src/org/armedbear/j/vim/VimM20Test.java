@@ -11,11 +11,11 @@
 
 package org.armedbear.j.vim;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import org.armedbear.j.EditorHarness;
-import org.junit.After;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
 
 /**
  * M20: section, bracket and sentence motions, and { and } on the same scan
@@ -24,7 +24,7 @@ import org.junit.Test;
 public class VimM20Test {
     private EditorHarness h;
 
-    @After
+    @AfterEach
     public void tearDown() {
         if (h != null)
             h.close();

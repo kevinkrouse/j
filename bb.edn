@@ -24,8 +24,9 @@
   vim-conformance {:doc "Regenerate the vim conformance corpus from a vim_test.js"
                    :task (load-file "tools/vim-conformance.clj")}
   test-extensions {:doc "Build and run extensions' tests"    :task (build/test-extensions {})}
-  fmt        {:doc "Reformat the clj/edn files with cljfmt"  :task (build/fmt {})}
-  fmt-check  {:doc "Check clj formatting, change nothing"    :task (build/fmt-check {})}
+  lint       {:doc "Compile with -Xlint and Error Prone"     :task (build/lint {})}
+  fmt        {:doc "Reformat clj/edn and edited Java files"  :task (build/fmt {})}
+  fmt-check  {:doc "Check formatting, change nothing"        :task (build/fmt-check {})}
   dist       {:doc "Create distributions in dist/"           :task (build/dist {})}
   dist-bin   {:doc "Create the binary distribution archives" :task (build/dist-bin {})}
   dist-src   {:doc "Create the source distribution archives" :task (build/dist-src {})}

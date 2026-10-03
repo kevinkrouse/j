@@ -11,17 +11,17 @@
 
 package org.armedbear.j.vim;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import org.armedbear.j.EditorHarness;
-import org.junit.After;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
 
 /** Marks, and the motions that go to them. */
 public class VimMarkTest {
     private EditorHarness h;
 
-    @After
+    @AfterEach
     public void tearDown() {
         if (h != null)
             h.close();
@@ -33,8 +33,8 @@ public class VimMarkTest {
     }
 
     private void at(int line, int offset) {
-        assertEquals("line", line, h.lineNumber());
-        assertEquals("offset", offset, h.offset());
+        assertEquals(line, h.lineNumber(), "line");
+        assertEquals(offset, h.offset(), "offset");
     }
 
     @Test
@@ -72,7 +72,7 @@ public class VimMarkTest {
         vim("one\ntwo\nthree\n").cursor(2, 1).keys("ma");
         h.cursor(0, 0).keys("dd");
         h.keys("`a");
-        assertEquals("the mark moved up with its line", 1, h.lineNumber());
+        assertEquals(1, h.lineNumber(), "the mark moved up with its line");
         assertEquals(1, h.offset());
     }
 

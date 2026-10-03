@@ -11,16 +11,16 @@
 
 package org.armedbear.j.vim;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.awt.event.KeyEvent;
 import java.util.Arrays;
 import java.util.List;
 import org.armedbear.j.Constants;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class KeyNotationTest {
     private static KeyNotation.Stroke one(String keys) {
@@ -35,7 +35,7 @@ public class KeyNotationTest {
         assertEquals('d', strokes.get(1).keyChar);
         assertEquals('w', strokes.get(2).keyChar);
         for (KeyNotation.Stroke s : strokes)
-            assertEquals("a plain character has no key code", 0, s.keyCode);
+            assertEquals(0, s.keyCode, "a plain character has no key code");
     }
 
     @Test
@@ -63,11 +63,7 @@ public class KeyNotationTest {
         assertEquals('w', ctrlW.keyChar);
 
         assertEquals(Constants.ALT_MASK, one("<A-x>").modifiers);
-        assertEquals(
-            "M- is another spelling of A-",
-            Constants.ALT_MASK,
-            one("<M-x>").modifiers
-        );
+        assertEquals(Constants.ALT_MASK, one("<M-x>").modifiers, "M- is another spelling of A-");
         assertEquals(Constants.META_MASK, one("<D-x>").modifiers);
 
         final KeyNotation.Stroke ctrlShiftRight = one("<C-S-Right>");
@@ -108,14 +104,8 @@ public class KeyNotationTest {
         assertTrue(one("d").producesChar());
         assertTrue(one("<CR>").producesChar());
         assertTrue(one("<Tab>").producesChar());
-        assertFalse(
-            "an arrow key produces no character",
-            one("<Left>").producesChar()
-        );
-        assertFalse(
-            "a control chord is handled at key-pressed",
-            one("<C-w>").producesChar()
-        );
+        assertFalse(one("<Left>").producesChar(), "an arrow key produces no character");
+        assertFalse(one("<C-w>").producesChar(), "a control chord is handled at key-pressed");
     }
 
     @Test
@@ -201,13 +191,13 @@ public class KeyNotationTest {
             )
         );
         assertEquals(
-            "a letter keeps its Shift",
             "<C-S-r>",
             KeyNotation.name(
                 KeyEvent.VK_R,
                 '\u0012',
                 Constants.CTRL_MASK | Constants.SHIFT_MASK
-            )
+            ),
+            "a letter keeps its Shift"
         );
     }
 
@@ -252,15 +242,11 @@ public class KeyNotationTest {
         assertEquals(2, strokes.size());
         assertEquals('<', strokes.get(0).keyChar);
 
+        assertEquals(Arrays.asList("<lt>", "<lt>"), KeyNotation.tokenize("<<"), "a bare < is read as the key");
         assertEquals(
-            "a bare < is read as the key",
-            Arrays.asList("<lt>", "<lt>"),
-            KeyNotation.tokenize("<<")
-        );
-        assertEquals(
-            "and normalised so a binding and a keystroke agree",
             Arrays.asList("<lt>"),
-            KeyNotation.tokenize("<")
+            KeyNotation.tokenize("<"),
+            "and normalised so a binding and a keystroke agree"
         );
         assertEquals(Arrays.asList("d", "<lt>"), KeyNotation.tokenize("d<"));
     }

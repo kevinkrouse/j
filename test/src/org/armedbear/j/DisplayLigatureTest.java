@@ -20,9 +20,10 @@
 
 package org.armedbear.j;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import java.awt.Font;
 import java.awt.font.FontRenderContext;
@@ -30,8 +31,7 @@ import java.awt.font.GlyphVector;
 import java.util.ArrayList;
 import java.util.List;
 import org.armedbear.j.util.Utilities;
-import org.junit.Assume;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 /**
  * Display shapes buffer text with Font.layoutGlyphVector when ligatures are
@@ -97,14 +97,10 @@ public class DisplayLigatureTest {
 
     private static List<Font> ligatureFonts() {
         List<Font> fonts = installed(LIGATURE_FAMILIES);
-        if (fonts.isEmpty()) {
-            // JUnit 4.8.2 has no assumeTrue(String, boolean); say it in the log.
-            System.out.println(
-                "none of " + LIGATURE_FAMILIES.length +
-                    " ligature fonts installed -- skipping"
-            );
-            Assume.assumeTrue(false);
-        }
+        assumeTrue(
+            !fonts.isEmpty(),
+            "none of " + LIGATURE_FAMILIES.length + " ligature fonts installed"
+        );
         return fonts;
     }
 
@@ -139,19 +135,13 @@ public class DisplayLigatureTest {
     @Test
     public void plainMonospacedFacesAreLeftAlone() {
         for (Font font : installed(PLAIN_FAMILIES))
-            assertFalse(
-                font.getFamily() + " was detected as a ligature font",
-                Display.fontHasLigatures(font)
-            );
+            assertFalse(Display.fontHasLigatures(font), font.getFamily() + " was detected as a ligature font");
     }
 
     @Test
     public void detectsProgrammingFonts() {
         for (Font font : ligatureFonts())
-            assertTrue(
-                font.getFamily() + " was not detected as a ligature font",
-                Display.fontHasLigatures(font)
-            );
+            assertTrue(Display.fontHasLigatures(font), font.getFamily() + " was not detected as a ligature font");
     }
 
     @Test
@@ -160,18 +150,18 @@ public class DisplayLigatureTest {
         for (Font font : ligatureFonts()) {
             GlyphVector arrow = shape(font, chars, 0, 2);
             assertEquals(
-                font.getFamily() + " changed the glyph count",
                 2,
-                arrow.getNumGlyphs()
+                arrow.getNumGlyphs(),
+                font.getFamily() + " changed the glyph count"
             );
             // Substitution is confined to [start, limit), so the same
             // characters shaped one at a time stay a hyphen and a greater-than
             // sign. drawText depends on this to break a ligature under the
             // caret.
             assertTrue(
-                font.getFamily() + " did not ligate ->",
                 shape(font, chars, 0, 1).getGlyphCode(0) != arrow.getGlyphCode(0)
-                    || shape(font, chars, 1, 2).getGlyphCode(0) != arrow.getGlyphCode(1)
+                    || shape(font, chars, 1, 2).getGlyphCode(0) != arrow.getGlyphCode(1),
+                font.getFamily() + " did not ligate ->"
             );
         }
     }
@@ -184,20 +174,17 @@ public class DisplayLigatureTest {
             double cell = shape(font, new char[] { 'a' }, 0, 1)
                 .getLogicalBounds()
                 .getWidth();
-            assertTrue(
-                family + " has a fractional cell width: " + cell,
-                cell == Math.floor(cell)
-            );
+            assertTrue(cell == Math.floor(cell), family + " has a fractional cell width: " + cell);
             for (int n = 1; n <= chars.length; n++) {
                 double width = shape(font, chars, 0, n)
                     .getLogicalBounds()
                     .getWidth();
                 assertEquals(
-                    family + ": shaped width of the first " + n +
-                        " columns of \"" + OPERATORS + "\"",
                     cell * n,
                     width,
-                    0.0
+                    0.0,
+                    family + ": shaped width of the first " + n +
+                        " columns of \"" + OPERATORS + "\""
                 );
             }
         }

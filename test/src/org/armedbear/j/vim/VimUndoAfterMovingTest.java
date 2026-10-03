@@ -11,12 +11,12 @@
 
 package org.armedbear.j.vim;
 
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
 import java.util.List;
 import org.armedbear.j.EditorHarness;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 /**
  * Every editing command, then motions away from it, then u: the text has to
@@ -122,9 +122,6 @@ public class VimUndoAfterMovingTest {
                 }
             }
         }
-        assertTrue(
-            failures.size() + " failures:\n" + String.join("\n", failures),
-            failures.isEmpty()
-        );
+        assertTrue(failures.isEmpty(), failures.size() + " failures:\n" + String.join("\n", failures));
     }
 }

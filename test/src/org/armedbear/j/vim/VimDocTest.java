@@ -11,8 +11,8 @@
 
 package org.armedbear.j.vim;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -32,7 +32,7 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.armedbear.j.EditorHarness;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 /**
  * The "What is there" table in doc/editmodes.html against the key map.
@@ -161,7 +161,7 @@ public class VimDocTest {
         final VimKeyMap map = VimKeyMap.getDefault();
         final List<String> failures = new ArrayList<String>();
         final Map<String, List<String>> table = table();
-        assertFalse("no rows found in " + DOC, table.isEmpty());
+        assertFalse(table.isEmpty(), "no rows found in " + DOC);
         for (Map.Entry<String, List<String>> row : table.entrySet()) {
             final String label = row.getKey();
             final Set<MappingMode> rowModes = ROWS.get(label);
@@ -187,7 +187,7 @@ public class VimDocTest {
                         );
             }
         }
-        assertTrue(String.join("\n", failures), failures.isEmpty());
+        assertTrue(failures.isEmpty(), String.join("\n", failures));
     }
 
     @Test
@@ -209,8 +209,8 @@ public class VimDocTest {
                 }
                 ++ran;
             }
-        assertTrue("no ex commands found in " + DOC, ran > 0);
-        assertTrue(String.join("\n", failures), failures.isEmpty());
+        assertTrue(ran > 0, "no ex commands found in " + DOC);
+        assertTrue(failures.isEmpty(), String.join("\n", failures));
     }
 
     private static boolean isExCommand(String label, String key) {

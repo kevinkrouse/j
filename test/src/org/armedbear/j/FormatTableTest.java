@@ -11,14 +11,14 @@
 
 package org.armedbear.j;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 import java.awt.Color;
 import java.util.ArrayList;
 import java.util.List;
-import org.junit.After;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
 
 /**
  * The colors and styles a FormatTable finds for a thing: its own
@@ -35,7 +35,7 @@ public class FormatTableTest {
         Editor.preferences().setProperty(key, value);
     }
 
-    @After
+    @AfterEach
     public void tearDown() {
         for (String key : keys)
             Editor.preferences().removeProperty(key);

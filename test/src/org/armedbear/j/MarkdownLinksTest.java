@@ -11,9 +11,9 @@
 
 package org.armedbear.j;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -23,9 +23,9 @@ import java.util.function.Consumer;
 import org.armedbear.j.mode.markdown.MarkdownMode;
 import org.armedbear.j.mode.markdown.MarkdownTasks;
 import org.armedbear.j.mode.text.PlainTextMode;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 /** followLink: what a link at the caret is, and where it goes. */
 public class MarkdownLinksTest {
@@ -35,7 +35,7 @@ public class MarkdownLinksTest {
     private java.util.function.BiConsumer<Editor, Buffer> switcher;
     private final List<Path> files = new ArrayList<Path>();
 
-    @Before
+    @BeforeEach
     public void setUp() {
         browser = FollowLink.browser;
         FollowLink.browser = browsed::add;
@@ -62,7 +62,7 @@ public class MarkdownLinksTest {
         };
     }
 
-    @After
+    @AfterEach
     public void tearDown() throws Exception {
         FollowLink.browser = browser;
         FollowLink.switcher = switcher;
@@ -144,7 +144,7 @@ public class MarkdownLinksTest {
         on("[go](#nowhere)\n# Here\n").cursor(0, 1);
         FollowLink.followLink();
         assertEquals(0, h.editor().getDotLineNumber());
-        assertTrue(h.status(), h.status().contains("#nowhere"));
+        assertTrue(h.status().contains("#nowhere"), h.status());
     }
 
     private String file(String text) throws Exception {
@@ -173,7 +173,7 @@ public class MarkdownLinksTest {
     public void aMissingFileSaysSo() {
         on("[a](no-such-file.md)\n").cursor(0, 1);
         FollowLink.followLink();
-        assertTrue(h.status(), h.status().contains("No such file"));
+        assertTrue(h.status().contains("No such file"), h.status());
     }
 
     @Test
@@ -233,7 +233,7 @@ public class MarkdownLinksTest {
         on("See [text][ref] here.\n").cursor(0, 6);
         MarkdownTasks.followLinkOrTask();
         h.assertText("See [text][ref] here.\n");
-        assertTrue(h.status(), h.status().contains("No definition of [ref]"));
+        assertTrue(h.status().contains("No definition of [ref]"), h.status());
     }
 
     @Test
@@ -242,7 +242,7 @@ public class MarkdownLinksTest {
         on("  autolinks, `[text][ref]`, and more\n").cursor(0, 16);
         MarkdownTasks.followLinkOrTask();
         h.assertText("  autolinks, `[text][ref]`, and more\n");
-        assertTrue(h.status(), h.status().contains("No link or task here"));
+        assertTrue(h.status().contains("No link or task here"), h.status());
     }
 
     @Test
@@ -287,7 +287,7 @@ public class MarkdownLinksTest {
         files.add(dir);
         final File file = File.getInstance(p.toString());
         final String target = FollowLink.fileTarget(file, "two");
-        assertTrue(target, target.contains("%23") && target.contains("%2520"));
+        assertTrue(target.contains("%23") && target.contains("%2520"), target);
         on("x\n");
         FollowLink.follow(h.editor(), target);
         assertEquals("my%20notes.md", h.editor().getBuffer().getFile().getName());

@@ -11,11 +11,11 @@
 
 package org.armedbear.j.vim;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import org.armedbear.j.EditorHarness;
-import org.junit.After;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
 
 /**
  * What the review of M12b to M12.5 found, one test per finding, each
@@ -24,7 +24,7 @@ import org.junit.Test;
 public class VimExReviewTest {
     private EditorHarness h;
 
-    @After
+    @AfterEach
     public void tearDown() {
         if (h != null)
             h.close();
@@ -59,7 +59,7 @@ public class VimExReviewTest {
         assertEquals("E486: Pattern not found: zzz", h.status());
         h.editor().status("");
         h.exCommand("s/zzz/qq/e");
-        assertEquals("e accepts, and silences it", "", h.status());
+        assertEquals("", h.status(), "e accepts, and silences it");
     }
 
     // F3 -- the last of i and I wins.
@@ -67,9 +67,9 @@ public class VimExReviewTest {
     @Test
     public void theLastCaseFlagWins() {
         vim("aBc", 0, 0).exCommand("s/b/X/iI");
-        assertEquals("I last: case sensitive, no match", "aBc", h.value());
+        assertEquals("aBc", h.value(), "I last: case sensitive, no match");
         h.exCommand("s/b/X/Ii");
-        assertEquals("i last: matches B", "aXc", h.value());
+        assertEquals("aXc", h.value(), "i last: matches B");
     }
 
     // F4 -- \r breaks the line in a replacement; \n puts in a NUL.
@@ -205,6 +205,6 @@ public class VimExReviewTest {
         assertEquals("a\nb", h.value());
         h.close();
         vim("b\na", 0, 0).exCommand("sort nx");
-        assertEquals("E474, so nothing moves", "b\na", h.value());
+        assertEquals("b\na", h.value(), "E474, so nothing moves");
     }
 }

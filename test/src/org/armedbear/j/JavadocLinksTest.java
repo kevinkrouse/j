@@ -11,9 +11,9 @@
 
 package org.armedbear.j;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -21,9 +21,9 @@ import java.nio.file.Paths;
 import java.util.List;
 import java.util.function.BiConsumer;
 import org.armedbear.j.mode.java.JavaMode;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 /** followLink on Javadoc's references, to the class's source and member. */
 public class JavadocLinksTest {
@@ -32,7 +32,7 @@ public class JavadocLinksTest {
     private String className;
     private BiConsumer<Editor, Buffer> switcher;
 
-    @Before
+    @BeforeEach
     public void setUp() throws Exception {
         className = "JLink" + System.nanoTime();
         source = Paths.get(System.getProperty("java.io.tmpdir"), className + ".java");
@@ -69,7 +69,7 @@ public class JavadocLinksTest {
         };
     }
 
-    @After
+    @AfterEach
     public void tearDown() throws Exception {
         FollowLink.switcher = switcher;
         if (h != null)
@@ -107,7 +107,7 @@ public class JavadocLinksTest {
         assertEquals(path() + "#" + c, linkAt(2, 8).getTarget());
         final TextLink missing = linkAt(3, 12);
         assertNull(missing.getTarget());
-        assertTrue(missing.getProblem(), missing.getProblem().contains("NoSuchThing"));
+        assertTrue(missing.getProblem().contains("NoSuchThing"), missing.getProblem());
         assertNull(linkAt(5, 2));
     }
 

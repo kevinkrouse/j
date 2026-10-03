@@ -11,13 +11,13 @@
 
 package org.armedbear.j.vim;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Arrays;
 import org.armedbear.j.EditorHarness;
-import org.junit.After;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
 
 /**
  * M21: hlsearch, on by default as in nvim; :noh, and :set at the prompt.
@@ -26,7 +26,7 @@ import org.junit.Test;
 public class VimM21Test {
     private EditorHarness h;
 
-    @After
+    @AfterEach
     public void tearDown() {
         if (h != null)
             h.close();
@@ -130,7 +130,7 @@ public class VimM21Test {
         )) {
             h.clearRepaintPending();
             h.keys(keys);
-            assertTrue(keys, h.repaintPending());
+            assertTrue(h.repaintPending(), keys);
         }
     }
 }

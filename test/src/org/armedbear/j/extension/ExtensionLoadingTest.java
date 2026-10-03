@@ -20,12 +20,13 @@
 
 package org.armedbear.j.extension;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNotSame;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import java.lang.reflect.Constructor;
 import java.nio.file.Files;
@@ -33,10 +34,9 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import org.armedbear.j.Command;
 import org.armedbear.j.CommandTable;
-import org.junit.Assume;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 /**
  * A real extension, loaded from a real jar.
@@ -53,7 +53,7 @@ import org.junit.Test;
 public class ExtensionLoadingTest {
     private static Path extensionsDirectory;
 
-    @BeforeClass
+    @BeforeAll
     public static void findTheBuiltExtensions() {
         // build/classes -> build -> build/lib/extensions, the same derivation
         // Extensions itself makes from an installed j.jar.
@@ -86,9 +86,9 @@ public class ExtensionLoadingTest {
      * loader is not something to go looking for. An interpreter cannot be shut
      * down again either, so there is no teardown to write.
      */
-    @Before
+    @BeforeEach
     public void load() {
-        Assume.assumeTrue(
+        assumeTrue(
             extensionsDirectory != null
                 && Files.isDirectory(extensionsDirectory)
         );
@@ -109,10 +109,7 @@ public class ExtensionLoadingTest {
 
     @Test
     public void theExtensionIsFound() {
-        assertTrue(
-            "loaded: " + Extensions.loadedNames(),
-            Extensions.loadedNames().contains("abcl")
-        );
+        assertTrue(Extensions.loadedNames().contains("abcl"), "loaded: " + Extensions.loadedNames());
     }
 
     @Test
@@ -126,7 +123,7 @@ public class ExtensionLoadingTest {
     @Test
     public void aCommandArrivesCarryingItsOwnClass() {
         Command jlisp = CommandTable.getCommand("jlisp");
-        assertNotNull("jlisp was not registered", jlisp);
+        assertNotNull(jlisp, "jlisp was not registered");
         // The whole reason registerCommand takes a Class and not a name:
         // Class.forName on core's loader could never find this.
         assertNotNull(jlisp.getDeclaringClass());
@@ -139,12 +136,9 @@ public class ExtensionLoadingTest {
     @Test
     public void theRuntimeSleepsUntilSomethingEvaluatesAndThenWakes()
         throws EvalException {
-        // Both halves in one test on purpose: junit 4.8.2 does not order
-        // methods, and this is the only test here that may boot a runtime.
-        assertFalse(
-            "loading an extension must not start a runtime",
-            Extensions.session().isReady()
-        );
+        // Both halves in one test on purpose: test methods run in no set
+        // order, and this is the only test here that may boot a runtime.
+        assertFalse(Extensions.session().isReady(), "loading an extension must not start a runtime");
         // Everything core calls on the hot paths, none of which may wake it.
         Extensions.hooks().eventHandled();
         Extensions.hooks().bufferActivated(null);
@@ -153,12 +147,12 @@ public class ExtensionLoadingTest {
         assertNull(Extensions.keyMaps().getGlobalKeyMap());
         assertNull(Extensions.keyMaps().getKeyMapForMode("Java"));
         assertFalse(Extensions.session().hasFeature("slime"));
-        assertFalse("something woke the runtime", Extensions.session().isReady());
+        assertFalse(Extensions.session().isReady(), "something woke the runtime");
 
         EvalResult result =
             Extensions.session().evalSync(EvalRequest.of("(+ 1 2)"));
-        assertFalse(result.getError(), result.isError());
-        assertTrue(result.getValue(), result.getValue().contains("3"));
+        assertFalse(result.isError(), result.getError());
+        assertTrue(result.getValue().contains("3"), result.getValue());
         assertTrue(Extensions.session().isReady());
     }
 
@@ -192,7 +186,7 @@ public class ExtensionLoadingTest {
                 false,
                 CommandTable.class.getClassLoader()
             );
-            org.junit.Assert.fail("ABCL leaked onto core's class path");
+            org.junit.jupiter.api.Assertions.fail("ABCL leaked onto core's class path");
         }
         catch (ClassNotFoundException expected) {}
     }

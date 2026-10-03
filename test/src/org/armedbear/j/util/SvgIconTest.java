@@ -20,9 +20,9 @@
 
 package org.armedbear.j.util;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.awt.Color;
 import java.awt.Graphics2D;
@@ -32,7 +32,7 @@ import java.io.FileInputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 /**
  * Draws every icon j ships.
@@ -60,10 +60,7 @@ public class SvgIconTest {
 
     private static List<String> iconNames() {
         File dir = iconDir();
-        assertTrue(
-            "cannot find the icon directory: " + dir.getAbsolutePath(),
-            dir.isDirectory()
-        );
+        assertTrue(dir.isDirectory(), "cannot find the icon directory: " + dir.getAbsolutePath());
         String[] files = dir.list();
         Arrays.sort(files);
         List<String> names = new ArrayList<String>();
@@ -71,7 +68,7 @@ public class SvgIconTest {
             if (files[i].endsWith(".svg"))
                 names.add(files[i].substring(0, files[i].length() - 4));
         }
-        assertFalse("no icons found in " + dir.getAbsolutePath(), names.isEmpty());
+        assertFalse(names.isEmpty(), "no icons found in " + dir.getAbsolutePath());
         return names;
     }
 
@@ -134,8 +131,8 @@ public class SvgIconTest {
         }
         catch (Exception e) {
             assertTrue(
-                "the error should name the icon, was: " + e.getMessage(),
-                e.getMessage() != null && e.getMessage().contains("no-such-icon")
+                e.getMessage() != null && e.getMessage().contains("no-such-icon"),
+                "the error should name the icon, was: " + e.getMessage()
             );
         }
     }

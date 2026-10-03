@@ -20,10 +20,10 @@
 
 package org.armedbear.j;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
@@ -34,7 +34,7 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Stream;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 /**
  * Core carries no ABCL.
@@ -56,17 +56,14 @@ public class CorePurityTest {
     private static Path classesDirectory() throws URISyntaxException {
         java.security.CodeSource source =
             Editor.class.getProtectionDomain().getCodeSource();
-        assertNotNull("cannot locate core's own classes", source);
+        assertNotNull(source, "cannot locate core's own classes");
         return Paths.get(source.getLocation().toURI());
     }
 
     @Test
     public void noCoreClassReferencesAbcl() throws IOException, URISyntaxException {
         Path root = classesDirectory();
-        assertTrue(
-            "expected a directory of classes, got " + root,
-            Files.isDirectory(root)
-        );
+        assertTrue(Files.isDirectory(root), "expected a directory of classes, got " + root);
         List<String> tainted = new ArrayList<String>();
         int scanned = 0;
         try (Stream<Path> files = Files.walk(root.resolve("org").resolve("armedbear"))) {
@@ -82,8 +79,8 @@ public class CorePurityTest {
                     tainted.add(root.relativize(file).toString());
             }
         }
-        assertTrue("core has no classes to scan; wrong directory?", scanned > 0);
-        assertEquals("classes referencing ABCL: " + tainted, 0, tainted.size());
+        assertTrue(scanned > 0, "core has no classes to scan; wrong directory?");
+        assertEquals(0, tainted.size(), "classes referencing ABCL: " + tainted);
     }
 
     @Test
@@ -98,7 +95,7 @@ public class CorePurityTest {
                 if (file.toString().endsWith(".lisp"))
                     lisp.add(root.relativize(file).toString());
         }
-        assertEquals("Lisp resources in core: " + lisp, 0, lisp.size());
+        assertEquals(0, lisp.size(), "Lisp resources in core: " + lisp);
     }
 
     @Test
@@ -117,7 +114,7 @@ public class CorePurityTest {
                 false,
                 Editor.class.getClassLoader()
             );
-            org.junit.Assert.fail("ABCL is on core's class path");
+            org.junit.jupiter.api.Assertions.fail("ABCL is on core's class path");
         }
         catch (ClassNotFoundException expected) {}
     }

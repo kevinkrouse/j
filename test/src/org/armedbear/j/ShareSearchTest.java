@@ -11,19 +11,19 @@
 
 package org.armedbear.j;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertSame;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 
-import org.junit.After;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
 
 /** The shareSearch preference, for j's own findNext and findPrev. */
 public class ShareSearchTest {
     private EditorHarness a;
     private EditorHarness b;
 
-    @After
+    @AfterEach
     public void tearDown() {
         Editor.preferences().removeProperty(Property.SHARE_SEARCH.key());
         if (a != null)

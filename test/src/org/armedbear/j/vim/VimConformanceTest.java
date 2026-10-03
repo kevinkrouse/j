@@ -11,8 +11,8 @@
 
 package org.armedbear.j.vim;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -22,7 +22,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 /**
  * How much of vim j actually emulates.
@@ -42,17 +42,17 @@ public class VimConformanceTest {
     public void corpusIsPresentAndWellFormed() throws Exception {
         final List<VimConformance.Case> cases = corpus();
         assertFalse(
+            cases.isEmpty(),
             "the generated corpus is empty; run "
-                + "'bb tools/vim-conformance.clj <vim_test.js>'",
-            cases.isEmpty()
+                + "'bb tools/vim-conformance.clj <vim_test.js>'"
         );
         for (VimConformance.Case c : cases) {
-            assertFalse("a case with no steps: " + c.name, c.steps.isEmpty());
+            assertFalse(c.steps.isEmpty(), "a case with no steps: " + c.name);
             boolean asserts = false;
             for (VimConformance.Step s : c.steps)
                 if (s.directive.startsWith("expect-"))
                     asserts = true;
-            assertTrue("a case that asserts nothing: " + c.name, asserts);
+            assertTrue(asserts, "a case that asserts nothing: " + c.name);
         }
     }
 
@@ -86,9 +86,9 @@ public class VimConformanceTest {
                 regressed.add(name + "  --  " + failures.get(name));
 
         assertTrue(
+            regressed.isEmpty(),
             "cases that used to pass and no longer do:\n  "
-                + String.join("\n  ", regressed),
-            regressed.isEmpty()
+                + String.join("\n  ", regressed)
         );
     }
 
@@ -133,7 +133,7 @@ public class VimConformanceTest {
 
     private static List<VimConformance.Case> corpus() throws Exception {
         final Path file = VimConformance.corpusDir().resolve("codemirror.conf");
-        assertTrue("no corpus at " + file.toAbsolutePath(), Files.exists(file));
+        assertTrue(Files.exists(file), "no corpus at " + file.toAbsolutePath());
         return VimConformance.load(file);
     }
 }

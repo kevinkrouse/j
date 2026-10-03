@@ -11,17 +11,17 @@
 
 package org.armedbear.j.vim;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.io.StringReader;
 import java.util.Arrays;
 import java.util.List;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 /**
  * The key map table: the file a user edits to change what keys do.
@@ -100,9 +100,9 @@ public class VimKeyMapTest {
             keyMap.getTrie(MappingMode.NORMAL).match(keys("w")).status
         );
         assertSame(
-            "the good row after the bad one still loaded",
             KeyStrokeTrie.Status.FULL,
-            keyMap.getTrie(MappingMode.NORMAL).match(keys("b")).status
+            keyMap.getTrie(MappingMode.NORMAL).match(keys("b")).status,
+            "the good row after the bad one still loaded"
         );
     }
 
@@ -184,9 +184,9 @@ public class VimKeyMapTest {
             keyMap.getTrie(MappingMode.NORMAL).match(keys("q")).status
         );
         assertSame(
-            "nothing else came with it",
             KeyStrokeTrie.Status.NONE,
-            keyMap.getTrie(MappingMode.NORMAL).match(keys("w")).status
+            keyMap.getTrie(MappingMode.NORMAL).match(keys("w")).status,
+            "nothing else came with it"
         );
     }
 
@@ -198,10 +198,7 @@ public class VimKeyMapTest {
         for (MappingMode mode : MappingMode.values()) {
             assertNotNull(keyMap.getTrie(mode));
         }
-        assertFalse(
-            "the resource should not be empty",
-            keyMap.getTrie(MappingMode.NORMAL).isEmpty()
-        );
+        assertFalse(keyMap.getTrie(MappingMode.NORMAL).isEmpty(), "the resource should not be empty");
     }
 
     @Test
@@ -216,23 +213,17 @@ public class VimKeyMapTest {
             final KeyStrokeTrie.Match<VimCommand> match =
                 keyMap.getTrie(MappingMode.NORMAL).match(keys(binding));
             assertSame(
-                binding + " is not bound",
                 KeyStrokeTrie.Status.FULL,
-                match.status
+                match.status,
+                binding + " is not bound"
             );
             final VimCommand c = match.value;
             switch (c.getKind()) {
                 case MOTION:
-                    assertNotNull(
-                        c.getCommand() + " is not a known motion",
-                        VimMotions.get(c.getCommand())
-                    );
+                    assertNotNull(VimMotions.get(c.getCommand()), c.getCommand() + " is not a known motion");
                     break;
                 case ACTION:
-                    assertNotNull(
-                        c.getCommand() + " is not a known action",
-                        VimActions.get(c.getCommand())
-                    );
+                    assertNotNull(VimActions.get(c.getCommand()), c.getCommand() + " is not a known action");
                     break;
                 default:
                     break;

@@ -11,16 +11,16 @@
 
 package org.armedbear.j;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.awt.Color;
 import org.armedbear.j.mode.java.JavaMode;
 import org.armedbear.j.mode.properties.PropertiesMode;
 import org.armedbear.j.util.Utilities;
-import org.junit.After;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
 
 /**
  * Colors as preferences write them, the swatches a properties file shows in
@@ -29,7 +29,7 @@ import org.junit.Test;
 public class ThemeColorsTest {
     private EditorHarness h;
 
-    @After
+    @AfterEach
     public void tearDown() {
         Editor.preferences().removeProperty("color.heading");
         if (h != null)
@@ -119,31 +119,31 @@ public class ThemeColorsTest {
         h = EditorHarness.create("class A {}\n").mode(JavaMode.getMode());
         Buffer buf = ListStyles.makeBuffer(h.buffer(), false);
         String text = buf.getText();
-        assertTrue(text, text.contains("Shared styles"));
-        assertTrue(text, text.contains("JavaMode"));
+        assertTrue(text.contains("Shared styles"), text);
+        assertTrue(text.contains("JavaMode"), text);
         Line heading = null;
         for (Line l = buf.getFirstLine(); l != null; l = l.next())
             if (l.getText().startsWith("  heading "))
                 heading = l;
         // name, color, style, links to (none), color from, style from.
         assertTrue(
-            text,
             heading.getText()
                 .matches(
                     "  heading +#010203  bold italic +color\\.heading  default"
-                )
+                ),
+            text
         );
-        assertTrue(text, text.contains("Shared styles (light background)"));
+        assertTrue(text.contains("Shared styles (light background)"), text);
         Line emphasis = null;
         for (Line l = buf.getFirstLine(); l != null; l = l.next())
             if (l.getText().startsWith("  emphasis "))
                 emphasis = l;
         assertTrue(
-            text,
             emphasis.getText()
                 .matches(
                     "  emphasis +#[0-9a-f]{6}  italic +\u2192 text +.*default"
-                )
+                ),
+            text
         );
         Formatter f = buf.getFormatter();
         assertEquals(new Color(1, 2, 3), f.getGutterColor(heading));
@@ -202,12 +202,12 @@ public class ThemeColorsTest {
         String text = buf.getText();
         int builtIn = text.indexOf("Built-in styles");
         int shared = text.indexOf("Shared styles");
-        assertTrue(text, builtIn >= 0 && builtIn < shared);
+        assertTrue(builtIn >= 0 && builtIn < shared, text);
         Line background = null;
         for (Line l = buf.getFirstLine(); l != null; l = l.next())
             if (l.getText().startsWith("  background "))
                 background = l;
-        assertTrue(text, background != null);
+        assertTrue(background != null, text);
         Formatter f = buf.getFormatter();
         // Its swatch shows the color; its name is in the text's.
         assertEquals(

@@ -11,22 +11,22 @@
 
 package org.armedbear.j;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
 import java.awt.Color;
 import org.armedbear.j.mode.java.JavaMode;
 import org.armedbear.j.mode.markdown.MarkdownMode;
 import org.armedbear.j.mode.python.PythonMode;
 import org.armedbear.j.mode.sh.ShellScriptMode;
-import org.junit.After;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
 
 /** A fence's code, colored as the mode for its language colors it. */
 public class MarkdownFencedCodeTest {
     private EditorHarness h;
 
-    @After
+    @AfterEach
     public void tearDown() {
         Editor.preferences().removeProperty("MarkdownMode.style.codeBlock");
         if (h != null)
@@ -87,7 +87,7 @@ public class MarkdownFencedCodeTest {
         final String[] expected = inOwnMode(code, mode);
         final String[] actual = looks(h.buffer().getFormatter(), line(1), ~TextStyle.ITALIC);
         for (int i = 0; i < expected.length; i++)
-            assertEquals(info + " at " + i + " of " + code, expected[i], actual[i]);
+            assertEquals(expected[i], actual[i], info + " at " + i + " of " + code);
     }
 
     @Test
@@ -132,7 +132,7 @@ public class MarkdownFencedCodeTest {
             final Formatter f = h.buffer().getFormatter();
             final String[] looks = looks(f, line(1), -1);
             for (String look : looks)
-                assertEquals(info, looks[0], look);
+                assertEquals(looks[0], look, info);
             h.close();
             h = null;
         }

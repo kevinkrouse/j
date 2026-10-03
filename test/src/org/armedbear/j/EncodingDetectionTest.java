@@ -11,17 +11,17 @@
 
 package org.armedbear.j;
 
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import org.armedbear.j.mode.text.PlainTextMode;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 /**
  * What a file loads and saves as, unless an encoding was asked for: what its
@@ -31,12 +31,12 @@ import org.junit.Test;
 public class EncodingDetectionTest {
     private Path dir;
 
-    @Before
+    @BeforeEach
     public void setUp() throws Exception {
         dir = Files.createTempDirectory("j-encoding");
     }
 
-    @After
+    @AfterEach
     public void tearDown() throws Exception {
         Editor.preferences().removeProperty(Property.DETECT_ENCODING.key());
         try (java.util.stream.Stream<Path> walk = Files.walk(dir)) {

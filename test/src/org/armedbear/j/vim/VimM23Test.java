@@ -11,17 +11,17 @@
 
 package org.armedbear.j.vim;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertSame;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 
 import org.armedbear.j.Editor;
 import org.armedbear.j.EditorHarness;
 import org.armedbear.j.JumpList;
 import org.armedbear.j.Marker;
-import org.junit.After;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
 
 /**
  * M23: CTRL-O and CTRL-I on j's jump list, and vim's file marks, A to Z,
@@ -31,7 +31,7 @@ public class VimM23Test {
     private EditorHarness h;
     private EditorHarness other;
 
-    @After
+    @AfterEach
     public void tearDown() {
         if (h != null)
             h.close();

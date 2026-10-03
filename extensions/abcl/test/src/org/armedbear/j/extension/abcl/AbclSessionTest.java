@@ -20,10 +20,10 @@
 
 package org.armedbear.j.extension.abcl;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -35,9 +35,9 @@ import org.armedbear.j.extension.EvalResult;
 import org.armedbear.j.extension.LanguageClient;
 import org.armedbear.j.extension.Session;
 import org.armedbear.lisp.Packages;
-import org.junit.FixMethodOrder;
-import org.junit.Test;
-import org.junit.runners.MethodSorters;
+import org.junit.jupiter.api.MethodOrderer;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestMethodOrder;
 
 /**
  * The embedded ABCL, driven through the SPI.
@@ -46,7 +46,7 @@ import org.junit.runners.MethodSorters;
  * and restarted, so the order is fixed: the first test is about the
  * interpreter <em>not</em> being up, and every one after it boots it.
  */
-@FixMethodOrder(MethodSorters.NAME_ASCENDING)
+@TestMethodOrder(MethodOrderer.MethodName.class)
 public class AbclSessionTest {
     private static final LanguageClient client = new AbclClient();
 
@@ -56,10 +56,7 @@ public class AbclSessionTest {
 
     @Test
     public void t1_nothingStartsUntilSomethingEvaluates() {
-        assertFalse(
-            "registering an extension must not boot an interpreter",
-            session().isReady()
-        );
+        assertFalse(session().isReady(), "registering an extension must not boot an interpreter");
         // Asked while building the Lisp menu, long before anything evaluates:
         // it has to answer without starting the runtime.
         assertFalse(session().hasFeature("slime"));
@@ -69,7 +66,7 @@ public class AbclSessionTest {
     @Test
     public void t2_evaluatesAFormAndStartsTheRuntime() throws EvalException {
         EvalResult result = session().evalSync(EvalRequest.of("(+ 1 2)"));
-        assertFalse(result.getError(), result.isError());
+        assertFalse(result.isError(), result.getError());
         assertEquals("3", result.getValue());
         assertTrue(session().isReady());
     }
@@ -80,7 +77,7 @@ public class AbclSessionTest {
         // terms of the primitives in LispAPI next door. If the two ever landed
         // in different loaders ABCL would swallow the failure and j.lisp would
         // break later on undefined j:: functions.
-        assertNotNull("the J package is missing", Packages.findPackage("J"));
+        assertNotNull(Packages.findPackage("J"), "the J package is missing");
     }
 
     @Test
@@ -90,7 +87,7 @@ public class AbclSessionTest {
         EvalResult result = session().evalSync(
             EvalRequest.of("(princ \"hello\")").captureOutput(true)
         );
-        assertFalse(result.getError(), result.isError());
+        assertFalse(result.isError(), result.getError());
         assertEquals("hello", result.getOutput());
         assertEquals("hello", result.display());
     }
@@ -98,11 +95,8 @@ public class AbclSessionTest {
     @Test
     public void t5_anErrorComesBackAsAReadableMessage() throws EvalException {
         EvalResult result = session().evalSync(EvalRequest.of("(error \"boom\")"));
-        assertTrue("an error form must report an error", result.isError());
-        assertTrue(
-            "unreadable report: " + result.getError(),
-            result.getError().contains("boom")
-        );
+        assertTrue(result.isError(), "an error form must report an error");
+        assertTrue(result.getError().contains("boom"), "unreadable report: " + result.getError());
         // display() is what Editor shows; it must not be empty or a class name.
         assertEquals(result.getError(), result.display());
     }
@@ -115,11 +109,8 @@ public class AbclSessionTest {
         EvalResult result = session().evalSync(
             EvalRequest.of("(package-name *package*)").context("j-context-test")
         );
-        assertFalse(result.getError(), result.isError());
-        assertTrue(
-            "wrong package: " + result.getValue(),
-            result.getValue().contains("J-CONTEXT-TEST")
-        );
+        assertFalse(result.isError(), result.getError());
+        assertTrue(result.getValue().contains("J-CONTEXT-TEST"), "wrong package: " + result.getValue());
     }
 
     @Test
@@ -127,7 +118,7 @@ public class AbclSessionTest {
         EvalResult result = session().evalSync(
             EvalRequest.of("(+ 1 2)").context("no-such-package")
         );
-        assertFalse(result.getError(), result.isError());
+        assertFalse(result.isError(), result.getError());
         assertEquals("3", result.getValue());
     }
 
@@ -143,7 +134,7 @@ public class AbclSessionTest {
             session().loadFile(org.armedbear.j.File.getInstance(file.toString()));
             EvalResult result =
                 session().evalSync(EvalRequest.of("cl-user::*loaded-by-j*"));
-            assertFalse(result.getError(), result.isError());
+            assertFalse(result.isError(), result.getError());
             assertEquals("42", result.getValue());
         }
         finally {
@@ -156,8 +147,8 @@ public class AbclSessionTest {
         // "M-x abcl" builds a java command line out of this; j.jar no longer
         // names abcl.jar on its manifest, so a null here breaks that command.
         String classPath = client.getRuntimeClassPath();
-        assertNotNull("the client cannot locate abcl.jar", classPath);
-        assertTrue(classPath, classPath.endsWith(".jar"));
+        assertNotNull(classPath, "the client cannot locate abcl.jar");
+        assertTrue(classPath.endsWith(".jar"), classPath);
     }
 
     @Test

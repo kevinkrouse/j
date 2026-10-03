@@ -11,11 +11,11 @@
 
 package org.armedbear.j.vim;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import org.armedbear.j.EditorHarness;
-import org.junit.After;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
 
 /**
  * Undo, join, replace, case and indent. Expectations were checked against real
@@ -24,7 +24,7 @@ import org.junit.Test;
 public class VimEditingTest {
     private EditorHarness h;
 
-    @After
+    @AfterEach
     public void tearDown() {
         if (h != null)
             h.close();
@@ -36,8 +36,8 @@ public class VimEditingTest {
     }
 
     private void at(int line, int offset) {
-        assertEquals("line", line, h.lineNumber());
-        assertEquals("offset", offset, h.offset());
+        assertEquals(line, h.lineNumber(), "line");
+        assertEquals(offset, h.offset(), "offset");
     }
 
     // ------------------------------------------------------------ undo/redo
@@ -53,7 +53,7 @@ public class VimEditingTest {
         h = EditorHarness.create().vim();
         h.value(start).cursor(0, 0).keys(keys);
         h.keys("u");
-        assertEquals(start + " after " + keys + " then u", start, h.value());
+        assertEquals(start, h.value(), start + " after " + keys + " then u");
         h.close();
         h = null;
     }
@@ -90,9 +90,9 @@ public class VimEditingTest {
         h = EditorHarness.create().vim();
         h.value(start).cursor(line, offset).keys(keys);
         h.keys("u");
-        assertEquals(keys + ": text", start, h.value());
-        assertEquals(keys + ": line", wantLine, h.lineNumber());
-        assertEquals(keys + ": offset", wantOffset, h.offset());
+        assertEquals(start, h.value(), keys + ": text");
+        assertEquals(wantLine, h.lineNumber(), keys + ": line");
+        assertEquals(wantOffset, h.offset(), keys + ": offset");
         h.close();
         h = null;
     }
@@ -151,9 +151,9 @@ public class VimEditingTest {
         h.keys("yyp");
         assertEquals("abcdef\nabcdef", h.value());
         h.keys("u");
-        assertEquals("the duplicate goes", "abcdef", h.value());
+        assertEquals("abcdef", h.value(), "the duplicate goes");
         h.keys("u");
-        assertEquals("then the insert", "", h.value());
+        assertEquals("", h.value(), "then the insert");
     }
 
     @Test
@@ -351,7 +351,7 @@ public class VimEditingTest {
         vim("abcdef ghijkl\n").cursor(0, 8).keys("RXY");
         h.assertText("abcdef gXYjkl\n");
         h.keys("<C-Left>");
-        assertEquals("the binding really does move the caret", 7, h.offset());
+        assertEquals(7, h.offset(), "the binding really does move the caret");
         h.keys("<BS><Esc>");
         h.assertText("abcdef gXYjkl\n");
     }
@@ -465,12 +465,12 @@ public class VimEditingTest {
             h.buffer().getIndentation(h.buffer().getFirstLine().next())
         );
         assertEquals(
-            "the third line is untouched",
             0,
             h.buffer()
                 .getIndentation(
                     h.buffer().getFirstLine().next().next()
-                )
+                ),
+            "the third line is untouched"
         );
     }
 
@@ -501,7 +501,7 @@ public class VimEditingTest {
         vim("1\n2\n3\n4\n5\n").cursor(2, 0).keys("H");
         at(0, 0);
         h.keys("L");
-        assertEquals("the last line on screen", 4, h.lineNumber());
+        assertEquals(4, h.lineNumber(), "the last line on screen");
         h.keys("M");
         assertEquals(2, h.lineNumber());
     }
@@ -518,9 +518,9 @@ public class VimEditingTest {
         // nothing is duplicated either way, so there is no reason to change
         // how an existing j command feels.
         assertEquals(
-            "scrolled to the caret's line, less one",
             3,
-            h.editor().getDisplay().getTopLine().lineNumber()
+            h.editor().getDisplay().getTopLine().lineNumber(),
+            "scrolled to the caret's line, less one"
         );
         h.keys("zz");
         at(4, 0);

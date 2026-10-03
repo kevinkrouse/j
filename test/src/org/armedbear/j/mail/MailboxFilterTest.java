@@ -20,10 +20,10 @@
 
 package org.armedbear.j.mail;
 
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 /**
  * The filter parser builds its result on a stack, folding each new term into
@@ -42,23 +42,23 @@ public class MailboxFilterTest {
     @Test
     public void foldsAdjacentTermsIntoASingleAnd() {
         MailboxFilter f = MailboxFilter.getMailboxFilter("~U ~F");
-        assertTrue(String.valueOf(f), f instanceof AndTerm);
+        assertTrue(f instanceof AndTerm, String.valueOf(f));
 
         // A third term folds into the same AndTerm rather than nesting.
         MailboxFilter g = MailboxFilter.getMailboxFilter("~U ~F ~T");
-        assertTrue(String.valueOf(g), g instanceof AndTerm);
+        assertTrue(g instanceof AndTerm, String.valueOf(g));
     }
 
     @Test
     public void parsesNegation() {
         MailboxFilter f = MailboxFilter.getMailboxFilter("!~D");
-        assertTrue(String.valueOf(f), f instanceof NotTerm);
+        assertTrue(f instanceof NotTerm, String.valueOf(f));
     }
 
     @Test
     public void parsesOr() {
         MailboxFilter f = MailboxFilter.getMailboxFilter("~U | ~F");
-        assertTrue(String.valueOf(f), f instanceof OrTerm);
+        assertTrue(f instanceof OrTerm, String.valueOf(f));
     }
 
     @Test

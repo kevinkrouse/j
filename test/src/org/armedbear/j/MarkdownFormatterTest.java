@@ -11,12 +11,12 @@
 
 package org.armedbear.j;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import org.armedbear.j.mode.markdown.MarkdownFormatter;
 import org.armedbear.j.mode.markdown.MarkdownMode;
-import org.junit.After;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
 
 /**
  * What MarkdownFormatter colors each construct as. A line is shown as its
@@ -25,7 +25,7 @@ import org.junit.Test;
 public class MarkdownFormatterTest {
     private EditorHarness h;
 
-    @After
+    @AfterEach
     public void tearDown() {
         Editor.preferences().removeProperty("MarkdownMode.conceal");
         if (h != null)

@@ -11,20 +11,20 @@
 
 package org.armedbear.j;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.armedbear.j.mode.markdown.MarkdownMode;
 import org.armedbear.j.mode.markdown.MarkdownTasks;
-import org.junit.After;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
 
 /** The task command, and the keys Markdown mode binds to it. */
 public class MarkdownTasksTest {
     private EditorHarness h;
 
-    @After
+    @AfterEach
     public void tearDown() {
         if (h != null)
             h.close();
@@ -159,7 +159,7 @@ public class MarkdownTasksTest {
         on("- [ ] a\n");
         MarkdownTasks.task("finished");
         h.assertText("- [ ] a\n");
-        assertTrue(h.status(), h.status().contains("todo, doing, done or cancel"));
+        assertTrue(h.status().contains("todo, doing, done or cancel"), h.status());
     }
 
     @Test

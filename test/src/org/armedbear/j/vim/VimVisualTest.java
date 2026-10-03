@@ -11,14 +11,14 @@
 
 package org.armedbear.j.vim;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertSame;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 
 import org.armedbear.j.EditorHarness;
-import org.junit.After;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
 
 /**
  * Visual mode. Expectations here were checked against real nvim with
@@ -27,7 +27,7 @@ import org.junit.Test;
 public class VimVisualTest {
     private EditorHarness h;
 
-    @After
+    @AfterEach
     public void tearDown() {
         if (h != null)
             h.close();
@@ -39,8 +39,8 @@ public class VimVisualTest {
     }
 
     private void at(int line, int offset) {
-        assertEquals("line", line, h.lineNumber());
-        assertEquals("offset", offset, h.offset());
+        assertEquals(line, h.lineNumber(), "line");
+        assertEquals(offset, h.offset(), "offset");
     }
 
     // ------------------------------------------------------------ entering
@@ -49,7 +49,7 @@ public class VimVisualTest {
     public void vEntersVisualMode() {
         vim("abc\n").cursor(0, 1).keys("v");
         assertSame(VimMode.VISUAL, h.vimState().getMode());
-        assertNotNull("the selection is j's own mark", h.editor().getMark());
+        assertNotNull(h.editor().getMark(), "the selection is j's own mark");
     }
 
     @Test
@@ -146,9 +146,9 @@ public class VimVisualTest {
         h.keys("o");
         at(0, 1);
         assertEquals(
-            "the anchor is now the far end",
             3,
-            h.editor().getMarkOffset()
+            h.editor().getMarkOffset(),
+            "the anchor is now the far end"
         );
     }
 

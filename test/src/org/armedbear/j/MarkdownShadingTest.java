@@ -11,20 +11,20 @@
 
 package org.armedbear.j;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 import java.awt.Color;
 import org.armedbear.j.mode.markdown.MarkdownMode;
-import org.junit.After;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
 
 /** Code's shaded background: a code block's lines, inline code's text. */
 public class MarkdownShadingTest {
     private EditorHarness h;
 
-    @After
+    @AfterEach
     public void tearDown() {
         Editor.preferences().removeProperty("color.codeBackground");
         if (h != null)

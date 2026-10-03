@@ -11,10 +11,10 @@
 
 package org.armedbear.j;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import org.junit.After;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
 
 /**
  * j's word motions, and the argument that switches them to vim's rule.
@@ -27,7 +27,7 @@ import org.junit.Test;
 public class WordMotionParameterTest {
     private EditorHarness h;
 
-    @After
+    @AfterEach
     public void tearDown() {
         if (h != null)
             h.close();
@@ -51,11 +51,11 @@ public class WordMotionParameterTest {
         h = EditorHarness.create("a\n\n\nb\n");
         on(0, 0);
         h.editor().wordRight("vim");
-        assertEquals("vim stops on the first empty line", "1,0", where());
+        assertEquals("1,0", where(), "vim stops on the first empty line");
 
         on(0, 0);
         h.editor().wordRight();
-        assertEquals("j carries on to the next text", "3,0", where());
+        assertEquals("3,0", where(), "j carries on to the next text");
     }
 
     @Test
@@ -81,7 +81,7 @@ public class WordMotionParameterTest {
             final String vim = where();
             on(0, from);
             h.editor().wordRight();
-            assertEquals("from " + from, vim, where());
+            assertEquals(vim, where(), "from " + from);
         }
     }
 
@@ -96,7 +96,7 @@ public class WordMotionParameterTest {
         assertEquals(plain, where());
         on(0, 0);
         h.editor().wordRight("");
-        assertEquals("anything that is not \"vim\" is j's rule", plain, where());
+        assertEquals(plain, where(), "anything that is not \"vim\" is j's rule");
     }
 
     @Test
@@ -105,7 +105,7 @@ public class WordMotionParameterTest {
         on(0, 0);
         h.editor().selectWordRight("vim");
         assertEquals("1,0", where());
-        assertEquals("and they select", 0, h.editor().getMarkOffset());
+        assertEquals(0, h.editor().getMarkOffset(), "and they select");
 
         h.close();
         h = EditorHarness.create("a\n\n\nb\n");

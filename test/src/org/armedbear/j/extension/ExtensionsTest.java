@@ -20,12 +20,12 @@
 
 package org.armedbear.j.extension;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -38,9 +38,9 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.jar.JarEntry;
 import java.util.jar.JarOutputStream;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 /**
  * The registry and its discovery.
@@ -53,13 +53,13 @@ import org.junit.Test;
 public class ExtensionsTest {
     private Path dir;
 
-    @Before
+    @BeforeEach
     public void reset() {
         Extensions.shutdown();
         Extensions.setDisabled(false);
     }
 
-    @After
+    @AfterEach
     public void cleanUp() throws IOException {
         Extensions.shutdown();
         Extensions.setDisabled(false);
@@ -109,7 +109,7 @@ public class ExtensionsTest {
             fail("expected an EvalException when no client is installed");
         }
         catch (EvalException expected) {
-            assertTrue(expected.getMessage(), expected.getMessage().contains("extension"));
+            assertTrue(expected.getMessage().contains("extension"), expected.getMessage());
         }
     }
 

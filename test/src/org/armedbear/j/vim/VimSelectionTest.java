@@ -11,15 +11,15 @@
 
 package org.armedbear.j.vim;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.armedbear.j.EditorHarness;
-import org.junit.After;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
 
 /**
  * Outside visual mode there is no selection.
@@ -33,7 +33,7 @@ import org.junit.Test;
 public class VimSelectionTest {
     private EditorHarness h;
 
-    @After
+    @AfterEach
     public void tearDown() {
         if (h != null)
             h.close();
@@ -45,7 +45,7 @@ public class VimSelectionTest {
     }
 
     private void noSelection(String what) {
-        assertNull(what, h.editor().getMark());
+        assertNull(h.editor().getMark(), what);
     }
 
     @Test
@@ -110,10 +110,7 @@ public class VimSelectionTest {
     @Test
     public void visualModeKeepsItsSelectionWhileMotionsExtendIt() {
         vim("alpha bravo\n").cursor(0, 0).keys("vll");
-        assertNotNull(
-            "visual mode is the one place a selection belongs",
-            h.editor().getMark()
-        );
+        assertNotNull(h.editor().getMark(), "visual mode is the one place a selection belongs");
         assertEquals(2, h.offset());
     }
 
@@ -122,8 +119,8 @@ public class VimSelectionTest {
     @Test
     public void undoPutsTheCaretAtTheStartOfWhatCameBack() {
         vim("alpha bravo charlie\n").cursor(0, 0).keys("dwu");
-        assertEquals("line", 0, h.lineNumber());
-        assertEquals("offset", 0, h.offset());
+        assertEquals(0, h.lineNumber(), "line");
+        assertEquals(0, h.offset(), "offset");
     }
 
     @Test
@@ -150,7 +147,7 @@ public class VimSelectionTest {
         vim("alpha bravo\n").cursor(0, 0).keys("vll");
         h.clearRepaintPending();
         h.keys("<Esc>");
-        assertTrue("the highlight has to be painted out", h.repaintPending());
+        assertTrue(h.repaintPending(), "the highlight has to be painted out");
     }
 
     @Test
@@ -187,11 +184,8 @@ public class VimSelectionTest {
         vim("one\ntwo\nthree\nfour\nfive\n").cursor(0, 0).keys("v");
         h.clearRepaintPending();
         h.keys("3j");
-        assertEquals("the selection reaches line 4", 3, h.lineNumber());
-        assertTrue(
-            "the lines jumped over have to be redrawn too",
-            h.repaintPending()
-        );
+        assertEquals(3, h.lineNumber(), "the selection reaches line 4");
+        assertTrue(h.repaintPending(), "the lines jumped over have to be redrawn too");
     }
 
     @Test
@@ -207,10 +201,7 @@ public class VimSelectionTest {
         vim("one\ntwo\nthree\nfour\n").cursor(0, 0).keys("v2j<Esc>");
         h.clearRepaintPending();
         h.keys("gv");
-        assertTrue(
-            "gv brings back a selection three lines tall",
-            h.repaintPending()
-        );
+        assertTrue(h.repaintPending(), "gv brings back a selection three lines tall");
     }
 
     @Test
@@ -267,9 +258,6 @@ public class VimSelectionTest {
         vim("alpha bravo\n").cursor(0, 0);
         h.clearRepaintPending();
         h.keys("l");
-        assertFalse(
-            "moving the caret repaints two lines, not the window",
-            h.repaintPending()
-        );
+        assertFalse(h.repaintPending(), "moving the caret repaints two lines, not the window");
     }
 }

@@ -11,15 +11,15 @@
 
 package org.armedbear.j.vim;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.util.regex.PatternSyntaxException;
 import org.armedbear.j.EditorHarness;
-import org.junit.After;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
 
 /**
  * Vim's regular expressions, and the four magic levels.
@@ -34,7 +34,7 @@ import org.junit.Test;
 public class VimRegexTest {
     private EditorHarness h;
 
-    @After
+    @AfterEach
     public void tearDown() {
         if (h != null)
             h.close();
@@ -162,11 +162,7 @@ public class VimRegexTest {
     public void globalUsesTheSameRules() {
         h = EditorHarness.create().vim();
         h.value("a+\nab\na+b").cursor(0, 0).exCommand("g/a+/d");
-        assertEquals(
-            "the + is literal, so only the lines with a+ go",
-            "ab",
-            h.value()
-        );
+        assertEquals("ab", h.value(), "the + is literal, so only the lines with a+ go");
     }
 
     @Test
@@ -187,10 +183,7 @@ public class VimRegexTest {
         assertFalse(VimRegex.translate("a\\Sb").hasUppercase);
         assertFalse(VimRegex.translate("\\_S").hasUppercase);
         assertTrue(VimRegex.translate("aBc").hasUppercase);
-        assertTrue(
-            "inside a class it counts",
-            VimRegex.translate("[A-Z]").hasUppercase
-        );
+        assertTrue(VimRegex.translate("[A-Z]").hasUppercase, "inside a class it counts");
     }
 
     @Test
@@ -212,10 +205,7 @@ public class VimRegexTest {
                 fail("expected " + p + " to be refused");
             }
             catch (PatternSyntaxException expected) {
-                assertTrue(
-                    p + ": " + expected.getDescription(),
-                    expected.getDescription() != null
-                );
+                assertTrue(expected.getDescription() != null, p + ": " + expected.getDescription());
             }
         }
     }
@@ -233,7 +223,7 @@ public class VimRegexTest {
         h.exCommand("g/a\\&b/d");
         h.exCommand("sort r/\\%V/");
         assertEquals("abc\nxyz", h.value());
-        assertEquals("the caret has not moved either", 0, h.lineNumber());
+        assertEquals(0, h.lineNumber(), "the caret has not moved either");
     }
 
     @Test
@@ -245,7 +235,7 @@ public class VimRegexTest {
         // nothing. A documented gap.
         h = EditorHarness.create().vim();
         h.value("ababc").cursor(0, 0).exCommand("s/\\(ab\\)*\\zsc/x/");
-        assertEquals("nothing is changed", "ababc", h.value());
+        assertEquals("ababc", h.value(), "nothing is changed");
         final String message = VimExSubstitute.badPattern(
             "\\(ab\\)*\\zsc",
             new PatternSyntaxException(
@@ -255,7 +245,7 @@ public class VimRegexTest {
                 0
             )
         );
-        assertTrue(message, message.startsWith("E383"));
+        assertTrue(message.startsWith("E383"), message);
     }
 
     @Test

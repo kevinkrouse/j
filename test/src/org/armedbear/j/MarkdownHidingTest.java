@@ -11,21 +11,21 @@
 
 package org.armedbear.j;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.armedbear.j.mode.markdown.MarkdownMode;
-import org.junit.After;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
 
 /** Markdown's markup, hidden until the caret is in the item it marks. */
 public class MarkdownHidingTest {
     private EditorHarness h;
 
-    @After
+    @AfterEach
     public void tearDown() {
         Editor.preferences().removeProperty("MarkdownMode.conceal");
         if (h != null)

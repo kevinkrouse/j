@@ -20,13 +20,13 @@
 
 package org.armedbear.j.extension;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 /**
  * The request and result value types.
@@ -62,7 +62,7 @@ public class EvalRequestTest {
             .origin("command-line")
             .captureOutput(true);
 
-        assertNull("the original must not have been mutated", original.getContext());
+        assertNull(original.getContext(), "the original must not have been mutated");
         assertFalse(original.isCaptureOutput());
 
         assertEquals("(+ 1 2)", derived.getCode());
@@ -77,8 +77,8 @@ public class EvalRequestTest {
         for (int i = 0; i < 40; i++)
             code.append("(f x)");
         String text = EvalRequest.of(code.toString()).context("FOO").toString();
-        assertTrue(text, text.contains("..."));
-        assertTrue(text, text.contains("in FOO"));
+        assertTrue(text.contains("..."), text);
+        assertTrue(text.contains("in FOO"), text);
         assertTrue(text.length() < code.length());
     }
 

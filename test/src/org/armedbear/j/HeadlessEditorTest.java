@@ -11,13 +11,13 @@
 
 package org.armedbear.j;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 /**
  * An editor with no window still edits.
@@ -29,12 +29,12 @@ import org.junit.Test;
 public class HeadlessEditorTest {
     private EditorHarness h;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         h = EditorHarness.create("alpha bravo\ncharlie delta\necho foxtrot\n");
     }
 
-    @After
+    @AfterEach
     public void tearDown() {
         if (h != null)
             h.close();
@@ -42,7 +42,7 @@ public class HeadlessEditorTest {
 
     @Test
     public void editorIsUsableWithoutAFrame() {
-        assertNull("a harness editor has no frame", h.editor().getFrame());
+        assertNull(h.editor().getFrame(), "a harness editor has no frame");
         assertNotNull(h.editor().getDisplay());
         assertNotNull(h.editor().getDispatcher());
         assertEquals(3, h.buffer().getLineCount());
@@ -67,15 +67,11 @@ public class HeadlessEditorTest {
             final EditorHarness harness = EditorHarness.create();
             try {
                 harness.value(value);
+                assertEquals(value, harness.value(), "round trip of " + value.replace("\n", "\\n"));
                 assertEquals(
-                    "round trip of " + value.replace("\n", "\\n"),
-                    value,
-                    harness.value()
-                );
-                assertEquals(
-                    "line count of " + value.replace("\n", "\\n"),
                     value.split("\n", -1).length,
-                    harness.buffer().getLineCount()
+                    harness.buffer().getLineCount(),
+                    "line count of " + value.replace("\n", "\\n")
                 );
             }
             finally {
@@ -142,7 +138,7 @@ public class HeadlessEditorTest {
         // the character 'Right' would.
         h.cursor(0, 0).keys("<C-Right>");
         h.assertText("alpha bravo\ncharlie delta\necho foxtrot\n");
-        assertEquals("moved to the next word", 6, h.offset());
+        assertEquals(6, h.offset(), "moved to the next word");
     }
 
     @Test

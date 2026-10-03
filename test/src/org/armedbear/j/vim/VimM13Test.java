@@ -11,10 +11,10 @@
 
 package org.armedbear.j.vim;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -22,8 +22,8 @@ import java.nio.file.Path;
 import javax.swing.SwingUtilities;
 import org.armedbear.j.EditorHarness;
 import org.armedbear.j.Line;
-import org.junit.After;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
 
 /**
  * CTRL-F and CTRL-B, insert-mode CTRL-T and CTRL-D, :w and :wq, and CTRL-^.
@@ -32,7 +32,7 @@ import org.junit.Test;
 public class VimM13Test {
     private EditorHarness h;
 
-    @After
+    @AfterEach
     public void tearDown() {
         if (h != null)
             h.close();
@@ -79,12 +79,8 @@ public class VimM13Test {
         final int step = rows() - 2;
         h.keys("<C-f>");
         assertEquals(step, top());
-        assertEquals("the caret is on the new top line", step, h.lineNumber());
-        assertEquals(
-            "and keeps its column: nvim defaults nostartofline",
-            5,
-            h.offset()
-        );
+        assertEquals(step, h.lineNumber(), "the caret is on the new top line");
+        assertEquals(5, h.offset(), "and keeps its column: nvim defaults nostartofline");
     }
 
     @Test
@@ -103,11 +99,7 @@ public class VimM13Test {
         h.cursor(3 * step, 0);
         h.keys("<C-b>");
         assertEquals(2 * step, top());
-        assertEquals(
-            "the caret is on the new bottom line",
-            2 * step + rows() - 1,
-            h.lineNumber()
-        );
+        assertEquals(2 * step + rows() - 1, h.lineNumber(), "the caret is on the new bottom line");
     }
 
     @Test
@@ -137,7 +129,7 @@ public class VimM13Test {
         topAt(0);
         h.editor().pageDown();
         assertEquals(rows() - 1, top());
-        assertEquals("the caret keeps its row", rows() - 1 + 2, h.lineNumber());
+        assertEquals(rows() - 1 + 2, h.lineNumber(), "the caret keeps its row");
     }
 
     // ---------------------------------------------------- CTRL-T, CTRL-D
@@ -194,9 +186,9 @@ public class VimM13Test {
         h.keys("i<C-d>");
         assertEquals("ab", h.value());
         assertEquals(
-            "still typing",
             "INSERT",
-            h.vimModeIndicator()
+            h.vimModeIndicator(),
+            "still typing"
         );
     }
 
@@ -676,8 +668,8 @@ public class VimM13Test {
     private void emoji(String keys, String expected, int offset) {
         vim(EMOJI, 0, 0);
         h.keys(keys);
-        assertEquals(keys, expected, h.value());
-        assertEquals(keys + " caret", offset, h.offset());
+        assertEquals(expected, h.value(), keys);
+        assertEquals(offset, h.offset(), keys + " caret");
     }
 
     @Test

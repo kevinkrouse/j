@@ -11,13 +11,13 @@
 
 package org.armedbear.j.vim;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.armedbear.j.EditorHarness;
-import org.junit.After;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
 
 /**
  * The {@code :} command line: ranges, {@code :d}, {@code :y} and {@code :s}.
@@ -29,7 +29,7 @@ import org.junit.Test;
 public class VimExTest {
     private EditorHarness h;
 
-    @After
+    @AfterEach
     public void tearDown() {
         if (h != null)
             h.close();
@@ -42,8 +42,8 @@ public class VimExTest {
     }
 
     private void at(int line, int offset) {
-        assertEquals("line", line, h.lineNumber());
-        assertEquals("offset", offset, h.offset());
+        assertEquals(line, h.lineNumber(), "line");
+        assertEquals(offset, h.offset(), "offset");
     }
 
     // ------------------------------------------------------------- ranges
@@ -234,7 +234,7 @@ public class VimExTest {
     public void substituteSetsThePatternThatNThenRepeats() {
         vim("one two\nthree two", 0, 0).keys(":").exCommand("s/two/2/");
         h.keys("n");
-        assertEquals("a search for two finds the second line", 1, h.lineNumber());
+        assertEquals(1, h.lineNumber(), "a search for two finds the second line");
     }
 
     @Test
@@ -585,11 +585,7 @@ public class VimExTest {
         vim("one\ntwo", 0, 0).keys("v:");
         h.keys("<Esc>");
         h.keys("x");
-        assertEquals(
-            "the selection is gone, so x takes one character",
-            "ne\ntwo",
-            h.value()
-        );
+        assertEquals("ne\ntwo", h.value(), "the selection is gone, so x takes one character");
     }
 
     // ------------------------------------------------ repeating an ex line
@@ -635,7 +631,7 @@ public class VimExTest {
         assertEquals("Xa", h.value());
         h.keys(":").exCommand("nosuchcommand");
         h.keys("@:");
-        assertEquals("@: still repeats the substitute", "XX", h.value());
+        assertEquals("XX", h.value(), "@: still repeats the substitute");
     }
 
     // ------------------------------------------------- j's own commands

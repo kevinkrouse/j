@@ -11,13 +11,13 @@
 
 package org.armedbear.j.vim;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.armedbear.j.EditorHarness;
-import org.junit.After;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
 
 /**
  * Search: / ? n N * # g* g#.
@@ -35,7 +35,7 @@ public class VimSearchTest {
 
     private EditorHarness h;
 
-    @After
+    @AfterEach
     public void tearDown() {
         if (h != null)
             h.close();
@@ -50,8 +50,8 @@ public class VimSearchTest {
     }
 
     private void at(int line, int offset) {
-        assertEquals("line", line, h.lineNumber());
-        assertEquals("offset", offset, h.offset());
+        assertEquals(line, h.lineNumber(), "line");
+        assertEquals(offset, h.offset(), "offset");
     }
 
     // ------------------------------------------------------------ / and ?
@@ -148,8 +148,8 @@ public class VimSearchTest {
         // character, and getIdentifier reads back to the start of it.
         for (int caret = 0; caret <= 2; caret++) {
             vim(WORDS, 0, caret).keys("*");
-            assertEquals("caret " + caret, 1, h.lineNumber());
-            assertEquals("caret " + caret, 7, h.offset());
+            assertEquals(1, h.lineNumber(), "caret " + caret);
+            assertEquals(7, h.offset(), "caret " + caret);
             h.close();
         }
         h = null;
@@ -254,7 +254,7 @@ public class VimSearchTest {
     @Test
     public void anOperatorIsDroppedWhenTheSearchIsAbandoned() {
         vim(THREE, 0, 0).keys("d/");
-        assertTrue("the delete is parked", h.awaitingSearchPattern());
+        assertTrue(h.awaitingSearchPattern(), "the delete is parked");
         h.keys("<Esc>");
         assertFalse(h.awaitingSearchPattern());
         // The next motion must move rather than complete the abandoned delete.
@@ -346,9 +346,9 @@ public class VimSearchTest {
         h.keys("d/").searchPattern("three");
         h.keys("j0j");
         assertEquals(
-            "a motion is not a change",
             "three\nalpha bravo charlie",
-            h.value()
+            h.value(),
+            "a motion is not a change"
         );
     }
 

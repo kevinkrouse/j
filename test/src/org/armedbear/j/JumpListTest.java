@@ -11,11 +11,11 @@
 
 package org.armedbear.j;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertSame;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertSame;
 
-import org.junit.After;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
 
 /**
  * j's jump list: what records into it, jumpBack and jumpForward, and
@@ -25,7 +25,7 @@ public class JumpListTest {
     private EditorHarness h;
     private EditorHarness other;
 
-    @After
+    @AfterEach
     public void tearDown() {
         if (h != null)
             h.close();

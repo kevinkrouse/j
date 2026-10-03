@@ -17,8 +17,5 @@
 
  :aliases
  {;; extra deps needed to compile and run test/src.
-  ;;
-  ;; Newer than core's junit 4.8.2, which is the point: an extension resolves
-  ;; its own dependencies, and @FixMethodOrder arrived in 4.11.
   :test
-  {:extra-deps {junit/junit {:mvn/version "4.13.2"}}}}}
+  {:extra-deps {org.junit.platform/junit-platform-console-standalone {:mvn/version "6.1.3"}}}}}

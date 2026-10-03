@@ -11,12 +11,12 @@
 
 package org.armedbear.j.vim;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.armedbear.j.EditorHarness;
-import org.junit.After;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
 
 /**
  * Text objects: iw aw, the quote and bracket pairs, ip ap.
@@ -27,7 +27,7 @@ import org.junit.Test;
 public class VimTextObjectTest {
     private EditorHarness h;
 
-    @After
+    @AfterEach
     public void tearDown() {
         if (h != null)
             h.close();
@@ -44,8 +44,8 @@ public class VimTextObjectTest {
     }
 
     private void at(int line, int offset) {
-        assertEquals("line", line, h.lineNumber());
-        assertEquals("offset", offset, h.offset());
+        assertEquals(line, h.lineNumber(), "line");
+        assertEquals(offset, h.offset(), "offset");
     }
 
     // --------------------------------------------------------------- word
@@ -160,12 +160,12 @@ public class VimTextObjectTest {
         final String v = "   \"string1\":  \"string2\";";
         for (int caret : new int[] { 3, 4, 11 }) {
             vim(v).cursor(0, caret).keys("di\"");
-            assertEquals("caret " + caret, "   \"\":  \"string2\";", h.value());
+            assertEquals("   \"\":  \"string2\";", h.value(), "caret " + caret);
             h.close();
         }
         for (int caret : new int[] { 15, 23 }) {
             vim(v).cursor(0, caret).keys("di\"");
-            assertEquals("caret " + caret, "   \"string1\":  \"\";", h.value());
+            assertEquals("   \"string1\":  \"\";", h.value(), "caret " + caret);
             h.close();
         }
         h = null;
@@ -177,9 +177,9 @@ public class VimTextObjectTest {
         for (int caret : new int[] { 12, 14 }) {
             vim(v).cursor(0, caret).keys("di\"");
             assertEquals(
-                "caret " + caret,
                 "   \"string1\"\"string2\";",
-                h.value()
+                h.value(),
+                "caret " + caret
             );
             h.close();
         }

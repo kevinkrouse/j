@@ -20,9 +20,9 @@
 
 package org.armedbear.j;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -33,9 +33,9 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Comparator;
 import java.util.stream.Stream;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 /**
  * The XDG layout and its escape hatch. Every case here goes through the
@@ -46,12 +46,12 @@ import org.junit.Test;
 public class DirectoriesTest {
     private Path home;
 
-    @Before
+    @BeforeEach
     public void createHome() throws IOException {
         home = Files.createTempDirectory("j-directories-test");
     }
 
-    @After
+    @AfterEach
     public void removeHome() throws IOException {
         if (home == null || !Files.exists(home))
             return;
@@ -188,10 +188,7 @@ public class DirectoriesTest {
 
         initialize(true);
 
-        assertFalse(
-            "~/.j must be gone, or the next run reverts to it",
-            Files.exists(path(".j"))
-        );
+        assertFalse(Files.exists(path(".j")), "~/.j must be gone, or the next run reverts to it");
     }
 
     @Test
@@ -249,15 +246,12 @@ public class DirectoriesTest {
 
         String printed = printDirectories();
 
-        assertTrue(printed, printed.contains("config   " + path(".config", "j")));
-        assertTrue(printed, printed.contains("data     " + path(".local", "share", "j")));
-        assertTrue(printed, printed.contains("state    " + path(".local", "state", "j")));
-        assertTrue(printed, printed.contains("cache    " + path(".cache", "j")));
-        assertTrue(printed, printed.contains("runtime  " + path(".local", "state", "j")));
-        assertFalse(
-            "no migration hint is due under the XDG layout",
-            printed.contains("--migrate-to-xdg")
-        );
+        assertTrue(printed.contains("config   " + path(".config", "j")), printed);
+        assertTrue(printed.contains("data     " + path(".local", "share", "j")), printed);
+        assertTrue(printed.contains("state    " + path(".local", "state", "j")), printed);
+        assertTrue(printed.contains("cache    " + path(".cache", "j")), printed);
+        assertTrue(printed.contains("runtime  " + path(".local", "state", "j")), printed);
+        assertFalse(printed.contains("--migrate-to-xdg"), "no migration hint is due under the XDG layout");
     }
 
     @Test
@@ -271,11 +265,11 @@ public class DirectoriesTest {
         // Every root resolves to ~/.j ...
         assertEquals(5, countOccurrences(printed, path(".j").toString()));
         // ... and the hint says what migrating would give instead.
-        assertTrue(printed, printed.contains("--migrate-to-xdg"));
-        assertTrue(printed, printed.contains("config   " + path(".config", "j")));
-        assertTrue(printed, printed.contains("data     " + path(".local", "share", "j")));
-        assertTrue(printed, printed.contains("state    " + path(".local", "state", "j")));
-        assertTrue(printed, printed.contains("cache    " + path(".cache", "j")));
+        assertTrue(printed.contains("--migrate-to-xdg"), printed);
+        assertTrue(printed.contains("config   " + path(".config", "j")), printed);
+        assertTrue(printed.contains("data     " + path(".local", "share", "j")), printed);
+        assertTrue(printed.contains("state    " + path(".local", "state", "j")), printed);
+        assertTrue(printed.contains("cache    " + path(".cache", "j")), printed);
     }
 
     @Test
@@ -303,7 +297,7 @@ public class DirectoriesTest {
 
     private String read(String relative) throws IOException {
         Path p = home.resolve(relative);
-        assertTrue(p + " does not exist", Files.exists(p));
+        assertTrue(Files.exists(p), p + " does not exist");
         return new String(Files.readAllBytes(p), StandardCharsets.UTF_8);
     }
 }

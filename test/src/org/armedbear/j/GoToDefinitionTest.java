@@ -11,15 +11,15 @@
 
 package org.armedbear.j;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.armedbear.j.mode.java.JavaMode;
 import org.armedbear.j.mode.markdown.MarkdownMode;
 import org.armedbear.j.mode.text.PlainTextMode;
-import org.junit.After;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
 
 /**
  * Ctrl+click on an identifier, followLink: to where the tags say it is
@@ -28,7 +28,7 @@ import org.junit.Test;
 public class GoToDefinitionTest {
     private EditorHarness h;
 
-    @After
+    @AfterEach
     public void tearDown() {
         if (h != null)
             h.close();

@@ -20,14 +20,14 @@
 
 package org.armedbear.j.extension;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.armedbear.j.KeyMap;
 import org.armedbear.j.KeyMapping;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 /**
  * A function defined in another language, bound to a key.

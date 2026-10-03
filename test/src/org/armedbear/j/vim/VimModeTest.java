@@ -11,14 +11,14 @@
 
 package org.armedbear.j.vim;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertSame;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 
 import org.armedbear.j.EditorHarness;
-import org.junit.After;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
 
 /**
  * The input seam: a key in normal mode never means itself, and simple mode is
@@ -27,7 +27,7 @@ import org.junit.Test;
 public class VimModeTest {
     private EditorHarness h;
 
-    @After
+    @AfterEach
     public void tearDown() {
         if (h != null)
             h.close();
@@ -43,10 +43,7 @@ public class VimModeTest {
     @Test
     public void simpleModeHasNoHandlerAtAll() {
         h = EditorHarness.create("alpha\n");
-        assertNull(
-            "an ordinary buffer must not pay for modal editing",
-            h.editor().getInputHandler()
-        );
+        assertNull(h.editor().getInputHandler(), "an ordinary buffer must not pay for modal editing");
         h.cursor(0, 0).keys("xy");
         h.assertText("xyalpha\n");
     }
@@ -139,11 +136,7 @@ public class VimModeTest {
         vim("alpha\n").cursor(0, 0).keys("iXY<Esc>");
         h.assertText("XYalpha\n");
         assertSame(VimMode.NORMAL, h.vimState().getMode());
-        assertEquals(
-            "the caret lands on the last character typed",
-            1,
-            h.offset()
-        );
+        assertEquals(1, h.offset(), "the caret lands on the last character typed");
     }
 
     @Test
@@ -159,7 +152,7 @@ public class VimModeTest {
         vim("alpha\n").cursor(0, 0).keys("iXY<C-[>");
         h.assertText("XYalpha\n");
         assertSame(VimMode.NORMAL, h.vimState().getMode());
-        assertEquals("and it steps back like Escape does", 1, h.offset());
+        assertEquals(1, h.offset(), "and it steps back like Escape does");
     }
 
     @Test
@@ -199,10 +192,7 @@ public class VimModeTest {
     @Test
     public void escapeClosesTheUndoStep() {
         vim("alpha\n").cursor(0, 0).keys("iX<Esc>");
-        assertFalse(
-            "no undo step may be left open",
-            h.vimState().isInsertEditOpen()
-        );
+        assertFalse(h.vimState().isInsertEditOpen(), "no undo step may be left open");
     }
 
     // ------------------------------------------------------------ caret

@@ -11,7 +11,7 @@
 
 package org.armedbear.j;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.awt.GraphicsEnvironment;
 import java.awt.datatransfer.Clipboard;
@@ -504,8 +504,8 @@ public final class EditorHarness {
     }
 
     public void assertCursorAt(int line, int offset) {
-        assertEquals("line", line, lineNumber());
-        assertEquals("offset", offset, offset());
+        assertEquals(line, lineNumber(), "line");
+        assertEquals(offset, offset(), "offset");
     }
 
     /**

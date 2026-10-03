@@ -11,20 +11,20 @@
 
 package org.armedbear.j;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.armedbear.j.mode.java.JavaMode;
-import org.junit.After;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
 
 /**
  * A mode's settings are keyed as the docs write them, "JavaMode.indentSize",
  * and still as they had to be while that was broken.
  */
 public class ModePreferenceKeyTest {
-    @After
+    @AfterEach
     public void tearDown() {
         for (String key : new String[] { "JavaMode.indentSize",
             "mode.java.JavaMode.indentSize",

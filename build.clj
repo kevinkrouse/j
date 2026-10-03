@@ -93,6 +93,14 @@
     (when-not (zero? (:exit res 0))
       (throw (ex-info "javac failed" res)))))
 
+(defn- javac-against!
+  "javac! with cp ahead of the basis libs. b/javac builds its classpath from
+  the basis and :class-dir only; a -classpath in :javac-opts comes last and
+  wins."
+  [params cp]
+  (javac! (assoc params :javac-opts
+                 ["-classpath" (join-paths cp (lib-jars (:basis params)))])))
+
 (defn- check-javac!
   "b/javac always runs the javac on the PATH, so check that one can target the
   release we need, rather than parsing its version string."
@@ -113,6 +121,20 @@
          {:continue  true
           :extra-env {"PATH" (join-paths (abs-path bin-dir) (System/getenv "PATH"))}}
          (:command-args (b/java-command params))))
+
+(defn- junit!
+  "Run test classes on the JUnit Platform, headless: a unit test must not
+  depend on a display, or open a window on a machine that has one."
+  [basis cp classes what]
+  (when-not (zero? (:exit (java! {:basis     basis
+                                  :cp        cp
+                                  :java-opts ["-Djava.awt.headless=true"]
+                                  :main      'org.junit.platform.console.ConsoleLauncher
+                                  :main-args (into ["execute" "--disable-banner"
+                                                    "--details=summary"]
+                                                   (mapcat #(vector "--select-class" %))
+                                                   classes)})))
+    (throw (ex-info (str what " failed") {}))))
 
 
 ;; targets. Each takes and returns the opts map, so they compose with ->
@@ -244,29 +266,21 @@
            sort
            seq))))
 
+(defn- copy-test-resources!
+  "JUnit's configuration and the test extensions it autodetects."
+  [src target]
+  (b/copy-dir {:src-dirs [src] :target-dir target
+               :include "{META-INF/**,junit-platform.properties}"}))
+
 (defn test "Build and run the unit tests."
   [opts]
   (build opts)
   (if-let [classes (test-classes test-src-dir)]
-    (let [basis (basis :test)]
-      ;; b/javac derives its classpath from the basis libs and :class-dir
-      ;; only, leaving out the J classes the tests compile against; a
-      ;; -classpath in :javac-opts comes last and wins.
-      (javac! {:src-dirs   [test-src-dir]
-               :class-dir  test-dir
-               :basis      basis
-               :javac-opts ["-classpath" (join-paths (abs-path classes-dir)
-                                                     (abs-path test-dir)
-                                                     (lib-jars basis))]})
-      ;; Headless on purpose: a unit test must not depend on a display, and
-      ;; must not open a window on a machine that has one.
-      (when-not (zero? (:exit (java! {:basis     basis
-                                      :cp        [(abs-path classes-dir)
-                                                  (abs-path test-dir)]
-                                      :java-opts ["-Djava.awt.headless=true"]
-                                      :main      'org.junit.runner.JUnitCore
-                                      :main-args classes})))
-        (throw (ex-info "unit tests failed" {}))))
+    (let [basis (basis :test)
+          cp    [(abs-path classes-dir) (abs-path test-dir)]]
+      (javac-against! {:src-dirs [test-src-dir] :class-dir test-dir :basis basis} cp)
+      (copy-test-resources! test-src-dir test-dir)
+      (junit! basis cp classes "unit tests"))
     (println "no tests found under" test-src-dir))
   opts)
 
@@ -309,14 +323,8 @@
       (let [{:keys [src classes lib jar]} (extension-paths name)
             basis (extension-basis name)]
         (println "Compiling extension" name "...")
-        ;; As in the test target: b/javac builds its classpath from the basis
-        ;; alone, so core's classes have to come in through :javac-opts.
-        (javac! {:src-dirs   [src]
-                 :class-dir  classes
-                 :basis      basis
-                 :javac-opts ["-classpath" (join-paths (abs-path classes-dir)
-                                                       (abs-path classes)
-                                                       (lib-jars basis))]})
+        (javac-against! {:src-dirs [src] :class-dir classes :basis basis}
+                        [(abs-path classes-dir) (abs-path classes)])
         ;; META-INF/services is how ServiceLoader finds the extension at all.
         (b/copy-dir {:src-dirs [src] :target-dir classes
                      :include "META-INF/**"})
@@ -343,15 +351,9 @@
       (if-let [tests (test-classes test-src)]
         (let [basis (extension-basis name :test)
               cp    [(abs-path classes-dir) (abs-path classes) (abs-path test)]]
-          (javac! {:src-dirs   [test-src]
-                   :class-dir  test
-                   :basis      basis
-                   :javac-opts ["-classpath" (join-paths cp (lib-jars basis))]})
-          (when-not (zero? (:exit (java! {:basis     basis
-                                          :cp        cp
-                                          :main      'org.junit.runner.JUnitCore
-                                          :main-args tests})))
-            (throw (ex-info (str name " extension tests failed") {:extension name}))))
+          (javac-against! {:src-dirs [test-src] :class-dir test :basis basis} cp)
+          (copy-test-resources! test-src test)
+          (junit! basis cp tests (str name " extension tests")))
         (println "no tests found under" test-src))))
   opts)
 
@@ -385,6 +387,46 @@
   opts)
 
 
+;; lint
+
+(def ^:private errorprone-opts
+  (concat
+   ["-XDcompilePolicy=simple" "--should-stop=ifError=FLOW"
+    ;; Demoted until their existing violations are fixed.
+    (str "-Xplugin:ErrorProne -XepDisableAllWarnings"
+         " -Xep:EqualsHashCode:WARN -Xep:InfiniteRecursion:WARN"
+         " -Xep:ReturnValueIgnored:WARN -Xep:LabelledBreakTarget:WARN")]
+   ;; Error Prone runs inside javac and uses its internals.
+   (for [p ["api" "file" "main" "model" "parser" "processing" "tree" "util"]]
+     (str "-J--add-exports=jdk.compiler/com.sun.tools.javac." p "=ALL-UNNAMED"))
+   (for [p ["code" "comp"]]
+     (str "-J--add-opens=jdk.compiler/com.sun.tools.javac." p "=ALL-UNNAMED"))))
+
+(defn lint
+  "Compile core with -Xlint and Error Prone. Error Prone errors fail the
+  build; -Xlint warnings are counted, not yet fatal."
+  [opts]
+  (check-javac!)
+  (let [out     (str build-dir "/lint")
+        sources (str build-dir "/lint-sources.txt")]
+    (b/delete {:path out})
+    (fs/create-dirs (b/resolve-path out))
+    (spit (b/resolve-path sources)
+          (str/join "\n" (map str (fs/glob (b/resolve-path src-dir) "**.java"))))
+    (let [{:keys [exit err]}
+          (apply shell {:continue true :err :string}
+                 "javac" "--release" java-version-min "-d" (abs-path out)
+                 "-Xlint:all,-serial" "-Xmaxwarns" "100000"
+                 "-processorpath" (join-paths (lib-jars (basis :errorprone)))
+                 (concat errorprone-opts [(str "@" (abs-path sources))]))]
+      (binding [*out* *err*] (print err) (flush))
+      ;; javac's lint keys are lower case; Error Prone's are CamelCase.
+      (println "-Xlint warnings:" (count (re-seq #": warning: \[[a-z-]+\]" err)))
+      (when-not (zero? exit)
+        (throw (ex-info "lint failed" {})))))
+  opts)
+
+
 ;; formatting
 
 (def ^:private fmt-paths
@@ -399,13 +441,56 @@
   [op]
   ((requiring-resolve (symbol "cljfmt.tool" (name op))) {:paths @fmt-paths}))
 
-(defn fmt "Reformat the clj/edn files in place with cljfmt."
+(def ^:private fmt-base
+  "Java files changed since this ref are the ones jfmt formats; the rest keep
+  their old style until edited."
+  (or (System/getenv "FMT_BASE") "master"))
+
+(defn- git-paths
+  "The NUL-separated paths a git command prints; -z keeps them unquoted."
+  [& args]
+  (remove str/blank? (str/split (:out (apply shell {:out :string} "git" args)) #"\x00")))
+
+(defn- edited-java-files
+  "Java files added or changed since fmt-base, committed or not. The golden
+  test samples are data, not code."
+  []
+  (let [{:keys [exit out err]} (shell {:out :string :err :string :continue true}
+                                      "git" "merge-base" fmt-base "HEAD")
+        base (str/trim out)]
+    (when-not (zero? exit)
+      (throw (ex-info (str "no merge base with " fmt-base " (set FMT_BASE to another ref): "
+                           (str/trim err))
+                      {})))
+    (->> (concat (git-paths "diff" "--no-ext-diff" "-z" "--name-only" "--diff-filter=AMR" base)
+                 (git-paths "ls-files" "-z" "--others" "--exclude-standard"))
+         (filter #(str/ends-with? % ".java"))
+         (remove #(str/starts-with? % "test/golden/"))
+         distinct sort)))
+
+(defn- jfmt
+  "Run jfmt's op (list or write) on the edited Java files. Returns the exit
+  code. jfmt comes from the nix flake; CI must have it."
+  [op]
+  (let [files (edited-java-files)]
+    (cond
+      (empty? files) 0
+      (fs/which "jfmt") (:exit (apply shell {:continue true} "jfmt" op
+                                      "--config-file=jfmt.xml" "--no-color" files))
+      (System/getenv "CI") (throw (ex-info "jfmt is not on the PATH" {}))
+      :else (do (println "jfmt is not on the PATH; Java not checked") 0))))
+
+(defn fmt "Reformat clj/edn files and edited Java files in place."
   [opts]
+  (when-not (zero? (jfmt "write"))
+    (throw (ex-info "jfmt failed" {})))
   (cljfmt :fix)
   opts)
 
-(defn fmt-check "Check the clj/edn files are formatted, changing nothing."
+(defn fmt-check "Check clj/edn files and edited Java files are formatted."
   [opts]
+  (when-not (zero? (jfmt "list"))
+    (throw (ex-info "Java files above need `bb fmt`" {})))
   (cljfmt :check)
   opts)
 

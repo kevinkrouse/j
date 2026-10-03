@@ -11,15 +11,15 @@
 
 package org.armedbear.j.vim;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.armedbear.j.Editor;
 import org.armedbear.j.EditorHarness;
 import org.armedbear.j.Property;
-import org.junit.After;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
 
 /**
  * The last search pattern shared between windows or not (the
@@ -29,7 +29,7 @@ public class VimSearchOptionsTest {
     private EditorHarness h;
     private EditorHarness other;
 
-    @After
+    @AfterEach
     public void tearDown() {
         Editor.preferences().removeProperty(Property.SHARE_SEARCH.key());
         if (h != null)

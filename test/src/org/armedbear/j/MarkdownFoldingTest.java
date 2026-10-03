@@ -11,21 +11,21 @@
 
 package org.armedbear.j;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.armedbear.j.mode.markdown.MarkdownFolding;
 import org.armedbear.j.mode.markdown.MarkdownMode;
 import org.armedbear.j.mode.python.PythonMode;
 import org.armedbear.j.mode.text.PlainTextMode;
-import org.junit.After;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
 
 /** What folding hides in Markdown, and the commands and keys that fold. */
 public class MarkdownFoldingTest {
     private EditorHarness h;
 
-    @After
+    @AfterEach
     public void tearDown() {
         if (h != null)
             h.close();
@@ -134,7 +134,7 @@ public class MarkdownFoldingTest {
     public void foldHeadingsWantsALevel() {
         on(SECTIONS);
         MarkdownFolding.foldHeadings("seven");
-        assertTrue(h.status(), h.status().contains("1 to 6"));
+        assertTrue(h.status().contains("1 to 6"), h.status());
         assertEquals("# A|text||## B|b||# C|c", visible());
     }
 
@@ -172,7 +172,7 @@ public class MarkdownFoldingTest {
         h = EditorHarness.create("# a comment\ncode()\n").mode(PythonMode.getMode());
         Editor.setCurrentEditor(h.editor());
         MarkdownFolding.foldHeadings();
-        assertTrue(h.status(), h.status().contains("only in Markdown"));
+        assertTrue(h.status().contains("only in Markdown"), h.status());
         assertEquals("# a comment|code()", visible());
     }
 
@@ -195,7 +195,7 @@ public class MarkdownFoldingTest {
         on("just text\nmore").cursor(0, 0);
         h.editor().fold();
         assertEquals("just text|more", visible());
-        assertTrue(h.status(), h.status().contains("Nothing to fold"));
+        assertTrue(h.status().contains("Nothing to fold"), h.status());
     }
 
     @Test
@@ -206,7 +206,7 @@ public class MarkdownFoldingTest {
         h.cursor(0, 0);
         h.keys("zo");
         assertEquals("# A|text||## B|b||# C+", visible());
-        assertTrue(h.status(), h.status().contains("No fold here"));
+        assertTrue(h.status().contains("No fold here"), h.status());
     }
 
     @Test
@@ -215,6 +215,6 @@ public class MarkdownFoldingTest {
         Editor.setCurrentEditor(h.editor());
         h.editor().foldAll();
         assertEquals("one|  two", visible());
-        assertTrue(h.status(), h.status().contains("Nothing to fold"));
+        assertTrue(h.status().contains("Nothing to fold"), h.status());
     }
 }

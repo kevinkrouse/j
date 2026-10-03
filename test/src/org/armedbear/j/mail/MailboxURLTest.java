@@ -18,19 +18,19 @@
 
 package org.armedbear.j.mail;
 
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
 
 import java.util.Arrays;
 import org.armedbear.j.File;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
 /**
  * User: kevink
  * Date: 5/22/11
  */
 public class MailboxURLTest {
-    @BeforeClass
+    @BeforeAll
     public static void setup() {}
 
     @Test

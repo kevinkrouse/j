@@ -15,8 +15,11 @@
  :aliases
  {;; extra deps needed to compile and run test/src
   :test
-  {:extra-paths ["test/src"]
-   :extra-deps {junit/junit {:mvn/version "4.8.2"}}}
+  {:extra-deps {org.junit.platform/junit-platform-console-standalone {:mvn/version "6.1.3"}}}
+
+  ;; `bb lint`: on the annotation processor path, never the classpath
+  :errorprone
+  {:extra-deps {com.google.errorprone/error_prone_core {:mvn/version "2.50.0"}}}
 
   ;; `bb run-swingexplorer`
   :swingexplorer

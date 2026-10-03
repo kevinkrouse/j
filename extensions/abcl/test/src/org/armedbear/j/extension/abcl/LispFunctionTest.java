@@ -20,11 +20,11 @@
 
 package org.armedbear.j.extension.abcl;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import org.armedbear.j.KeyMap;
 import org.armedbear.j.extension.EvalException;
@@ -32,8 +32,8 @@ import org.armedbear.j.extension.EvalRequest;
 import org.armedbear.j.extension.ScriptFunction;
 import org.armedbear.lisp.Interpreter;
 import org.armedbear.lisp.LispObject;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
 /**
  * A Lisp closure bound to a key.
@@ -44,7 +44,7 @@ import org.junit.Test;
  * type anywhere along the way.
  */
 public class LispFunctionTest {
-    @BeforeClass
+    @BeforeAll
     public static void startTheRuntime() throws EvalException {
         AbclSession.ensureInitialized();
     }
@@ -72,12 +72,12 @@ public class LispFunctionTest {
     public void describeIsWhatTheKeyBindingListingPrints() {
         String description = new LispFunction(lambda("(lambda () nil)")).describe();
         assertNotNull(description);
-        assertTrue(description, description.length() > 0);
+        assertTrue(description.length() > 0, description);
         // Help used to call LispObject.printObject() directly; same string.
         assertTrue(
-            description,
             description.indexOf("FUNCTION") >= 0
-                || description.indexOf("LAMBDA") >= 0
+                || description.indexOf("LAMBDA") >= 0,
+            description
         );
     }
 
@@ -107,10 +107,7 @@ public class LispFunctionTest {
                 command = mapping.getCommand();
         if (command == null)
             fail("the binding was not installed");
-        assertTrue(
-            command.getClass().getName(),
-            command instanceof ScriptFunction
-        );
+        assertTrue(command instanceof ScriptFunction, command.getClass().getName());
     }
 
     @Test

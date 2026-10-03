@@ -11,14 +11,14 @@
 
 package org.armedbear.j.vim;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.StringReader;
 import org.armedbear.j.EditorHarness;
-import org.junit.After;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
 
 /**
  * The user's half of the configuration: a vimrc that overrides the built-in
@@ -27,7 +27,7 @@ import org.junit.Test;
 public class VimrcTest {
     private EditorHarness h;
 
-    @After
+    @AfterEach
     public void tearDown() {
         if (h != null)
             h.close();
@@ -105,7 +105,7 @@ public class VimrcTest {
     @Test
     public void vnoremapOnlyAppliesInVisualMode() {
         vim("abcdef\n", "vnoremap q l\n").cursor(0, 0).keys("q");
-        assertEquals("nothing happens in normal mode", 0, h.offset());
+        assertEquals(0, h.offset(), "nothing happens in normal mode");
         h.keys("vq");
         assertEquals(1, h.offset());
     }
@@ -121,7 +121,7 @@ public class VimrcTest {
         // selectAll is an ordinary j command with no modal equivalent.
         vim("abc\ndef\n", "nnoremap <C-a> :selectAll<CR>\n").cursor(0, 0);
         h.keys("<C-a>");
-        assertTrue("j's own command ran", h.editor().getMark() != null);
+        assertTrue(h.editor().getMark() != null, "j's own command ran");
     }
 
     // ------------------------------------------- a command that is a prefix
@@ -143,11 +143,7 @@ public class VimrcTest {
         h.keys(";");
         assertEquals(3, h.offset());
         h.keys(",");
-        assertEquals(
-            "the held-back ',' ran once a non-'d' key arrived",
-            3,
-            h.offset()
-        );
+        assertEquals(3, h.offset(), "the held-back ',' ran once a non-'d' key arrived");
         h.keys("l");
         assertEquals(2, h.offset());
     }
@@ -172,8 +168,8 @@ public class VimrcTest {
     @Test
     public void setAcceptsVimsShortNames() throws Exception {
         final VimOptions options = optionsFrom("set sw=8 ic\n");
-        assertEquals("sw is shiftwidth", 8, options.getInt("shiftwidth", 0));
-        assertTrue("ic is ignorecase", options.getBoolean("ignorecase", false));
+        assertEquals(8, options.getInt("shiftwidth", 0), "sw is shiftwidth");
+        assertTrue(options.getBoolean("ignorecase", false), "ic is ignorecase");
     }
 
     @Test
@@ -198,11 +194,7 @@ public class VimrcTest {
     @Test
     public void theBuiltInTableStillLoadsUnderneath() {
         vim("abc\n", "nnoremap Q x\n").cursor(0, 0).keys("l");
-        assertSame(
-            "a binding the vimrc did not touch still works",
-            1,
-            h.offset()
-        );
+        assertSame(1, h.offset(), "a binding the vimrc did not touch still works");
     }
 
     @Test

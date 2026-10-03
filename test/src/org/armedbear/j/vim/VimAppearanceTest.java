@@ -11,14 +11,14 @@
 
 package org.armedbear.j.vim;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertSame;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 
 import org.armedbear.j.EditorHarness;
 import org.armedbear.j.InputHandler;
-import org.junit.After;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
 
 /**
  * What the editor shows about the mode it is in.
@@ -29,7 +29,7 @@ import org.junit.Test;
 public class VimAppearanceTest {
     private EditorHarness h;
 
-    @After
+    @AfterEach
     public void tearDown() {
         if (h != null)
             h.close();
@@ -47,7 +47,7 @@ public class VimAppearanceTest {
     @Test
     public void simpleModeKeepsTheOrdinaryCaret() {
         h = EditorHarness.create("abc\n");
-        assertNull("no handler, so nothing to ask", handler());
+        assertNull(handler(), "no handler, so nothing to ask");
     }
 
     @Test
@@ -107,10 +107,7 @@ public class VimAppearanceTest {
         h.keys("d");
         assertEquals("2d", handler().getPendingCommand());
         h.keys("w");
-        assertNull(
-            "the command ran, so nothing is pending",
-            handler().getPendingCommand()
-        );
+        assertNull(handler().getPendingCommand(), "the command ran, so nothing is pending");
     }
 
     @Test
