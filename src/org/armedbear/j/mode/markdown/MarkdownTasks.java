@@ -33,7 +33,6 @@ import org.armedbear.j.TextLink;
 import org.armedbear.j.UndoLineEdit;
 
 import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import javax.swing.undo.CompoundEdit;
 
 /**
@@ -56,14 +55,6 @@ public final class MarkdownTasks
     private static final char DOING = '/';
     private static final char DONE = 'x';
     private static final char CANCELLED = '-';
-
-    // Quote markers and indentation, a list marker, and what follows it.
-    private static final Pattern LIST_ITEM = Pattern.compile(
-        "^((?:[ \\t]*>[ \\t]?)*[ \\t]*)([-*+]|\\d{1,9}[.)])([ \\t]+|$)");
-    private static final Pattern BOX =
-        Pattern.compile("\\[([ xX/-])\\](?=[ \\t]|$)");
-    private static final Pattern PREFIX =
-        Pattern.compile("^(?:[ \\t]*>[ \\t]?)*[ \\t]*");
 
     private MarkdownTasks() {}
 
@@ -93,7 +84,8 @@ public final class MarkdownTasks
                     editor.status(link.getProblem());
                 return;
             }
-            if (!LIST_ITEM.matcher(dot.getLine().getText()).lookingAt()) {
+            final String text = taskText(editor.getBuffer(), dot.getLine());
+            if (text == null || item(text) == null) {
                 editor.status("No link or task here");
                 return;
             }
@@ -131,6 +123,8 @@ public final class MarkdownTasks
 
     private static void setTasks(Editor editor, Buffer buffer, String state)
     {
+        if (isMarkdown(buffer) && buffer.needsParsing())
+            buffer.getFormatter().parseBuffer();
         Line first = editor.getDotLine();
         Line last = first;
         if (editor.getMark() != null) {
@@ -142,12 +136,12 @@ public final class MarkdownTasks
             if (last != first && r.getEndOffset() == 0 && !takesInEnds(editor))
                 last = last.previous();
         }
-        final char target = target(first, last, state);
+        final char target = target(buffer, first, last, state);
 
         CompoundEdit compoundEdit = null;
         for (Line line = first; ; line = line.next()) {
-            final String text = line.getText();
-            final Change change = change(text, target);
+            final String text = taskText(buffer, line);
+            final Change change = text != null ? change(text, target) : null;
             if (change != null) {
                 if (compoundEdit == null) {
                     compoundEdit = editor.beginCompoundEdit();
@@ -180,7 +174,7 @@ public final class MarkdownTasks
     }
 
     // The state to give every task from first to last.
-    private static char target(Line first, Line last, String state)
+    private static char target(Buffer buffer, Line first, Line last, String state)
     {
         switch (state) {
             case "todo":
@@ -191,18 +185,18 @@ public final class MarkdownTasks
                 return DONE;
             case "cancel": {
                 for (Line line = first; ; line = line.next()) {
-                    final char c = stateOf(line.getText());
+                    final char c = stateOf(buffer, line);
                     if (c != 0 && c != CANCELLED)
                         return CANCELLED;
                     if (line == last)
-                        return allBlankOrNotTasks(first, last) ? CANCELLED : TODO;
+                        return allBlankOrNotTasks(buffer, first, last) ? CANCELLED : TODO;
                 }
             }
             default:
                 break;
         }
         for (Line line = first; ; line = line.next()) {
-            switch (stateOf(line.getText())) {
+            switch (stateOf(buffer, line)) {
                 case TODO:
                     return DOING;
                 case DOING:
@@ -218,10 +212,10 @@ public final class MarkdownTasks
         }
     }
 
-    private static boolean allBlankOrNotTasks(Line first, Line last)
+    private static boolean allBlankOrNotTasks(Buffer buffer, Line first, Line last)
     {
         for (Line line = first; ; line = line.next()) {
-            if (stateOf(line.getText()) != 0)
+            if (stateOf(buffer, line) != 0)
                 return false;
             if (line == last)
                 return true;
@@ -230,16 +224,61 @@ public final class MarkdownTasks
 
     // The state of the task on a line, ' ', '/', 'x', '-', or 0 if it has
     // no box.
-    private static char stateOf(String text)
+    private static char stateOf(Buffer buffer, Line line)
     {
-        final Matcher m = LIST_ITEM.matcher(text);
-        if (!m.lookingAt())
+        final String text = taskText(buffer, line);
+        final Item item = text != null ? item(text) : null;
+        if (item == null || item.box < 0)
             return 0;
-        final Matcher box = BOX.matcher(text).region(m.end(), text.length());
-        if (!box.lookingAt())
-            return 0;
-        final char c = text.charAt(box.start(1));
+        final char c = text.charAt(item.box);
         return c == 'X' ? DONE : c;
+    }
+
+    private static boolean isMarkdown(Buffer buffer)
+    {
+        return buffer.getMode() instanceof MarkdownMode;
+    }
+
+    // A line's text, or null for one of code in Markdown, where "- item" is
+    // YAML or a diff, not a list.
+    private static String taskText(Buffer buffer, Line line)
+    {
+        if (isMarkdown(buffer) && (MarkdownFormatter.isCode(line)
+                                   || MarkdownFormatter.isIndentedCodeBlock(line)))
+            return null;
+        return line.getText();
+    }
+
+    // A line's list item: where its marker ends, where its text begins, and
+    // its box's mark, if it has a box. As MarkdownFormatter reads one.
+    private static final class Item
+    {
+        int markerEnd;
+        int textBegin;
+        int box = -1;
+    }
+
+    private static Item item(String text)
+    {
+        final int begin = quoteEnd(text);
+        final Matcher m = MarkdownFormatter.LIST_ITEM.matcher(text).region(begin, text.length());
+        if (!m.lookingAt())
+            return null;
+        final Item item = new Item();
+        item.markerEnd = m.end(1);
+        item.textBegin = m.end();
+        final Matcher box =
+            MarkdownFormatter.TASK_BOX.matcher(text).region(m.end(), text.length());
+        if (box.lookingAt())
+            item.box = box.start(1);
+        return item;
+    }
+
+    // Where a line's quote markers end.
+    private static int quoteEnd(String text)
+    {
+        final Matcher m = MarkdownFormatter.QUOTE_PREFIX.matcher(text);
+        return m.lookingAt() ? m.end() : 0;
     }
 
     // Replace removed characters at at with inserted.
@@ -261,24 +300,24 @@ public final class MarkdownTasks
     // or one already so.
     private static Change change(String text, char target)
     {
-        final Matcher m = LIST_ITEM.matcher(text);
-        if (m.lookingAt()) {
-            final Matcher box = BOX.matcher(text).region(m.end(), text.length());
-            if (box.lookingAt()) {
-                final int at = box.start(1);
-                return text.charAt(at) == target ? null
-                    : new Change(at, 1, String.valueOf(target));
+        final Item item = item(text);
+        if (item != null) {
+            if (item.box >= 0) {
+                return text.charAt(item.box) == target ? null
+                    : new Change(item.box, 1, String.valueOf(target));
             }
-            // "- item" or a bare "-".
-            if (m.group(3).isEmpty())
-                return new Change(m.end(), 0, " [" + target + "]");
-            return new Change(m.end(), 0, "[" + target + "] ");
+            // A bare "-", or "- item".
+            if (item.textBegin == item.markerEnd)
+                return new Change(item.markerEnd, 0, " [" + target + "]");
+            return new Change(item.textBegin, 0, "[" + target + "] ");
         }
         if (text.trim().isEmpty())
             return null;
-        final Matcher prefix = PREFIX.matcher(text);
-        prefix.lookingAt();
-        return new Change(prefix.end(), 0, "- [" + target + "] ");
+        // Within the quote, where its indentation ends.
+        int at = quoteEnd(text);
+        while (at < text.length() && (text.charAt(at) == ' ' || text.charAt(at) == '\t'))
+            ++at;
+        return new Change(at, 0, "- [" + target + "] ");
     }
 
     // Keeps a position on line with the text it was at.

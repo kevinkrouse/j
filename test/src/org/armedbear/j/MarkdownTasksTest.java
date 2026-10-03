@@ -223,4 +223,15 @@ public class MarkdownTasksTest
         h.editor().undo();
         h.assertCursorAt(1, 3);
     }
+
+    @Test
+    public void notInCode()
+    {
+        on("```yaml\n  - name: foo\n```\n\n    some(code);\n").cursor(1, 4);
+        MarkdownTasks.task();
+        MarkdownTasks.followLinkOrTask();
+        h.cursor(4, 6);
+        MarkdownTasks.task();
+        h.assertText("```yaml\n  - name: foo\n```\n\n    some(code);\n");
+    }
 }

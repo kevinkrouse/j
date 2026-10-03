@@ -115,11 +115,11 @@ public final class MarkdownFormatter extends Formatter
         Pattern.compile("^ {0,3}(=+|-+)\\s*$");
     private static final Pattern RULE_LINE =
         Pattern.compile("^ {0,3}([-*_])(?:[ \\t]*\\1){2,}[ \\t]*$");
-    private static final Pattern QUOTE_PREFIX =
+    static final Pattern QUOTE_PREFIX =
         Pattern.compile("^(?: {0,3}>[ \\t]?)+");
-    private static final Pattern LIST_ITEM =
+    static final Pattern LIST_ITEM =
         Pattern.compile("[ \\t]*([-*+]|\\d{1,9}[.)])(?=[ \\t]|$)[ \\t]*");
-    private static final Pattern TASK_BOX =
+    static final Pattern TASK_BOX =
         Pattern.compile("\\[([ xX/-])\\](?=[ \\t]|$)");
     private static final Pattern TABLE_DELIMITER_ROW =
         Pattern.compile("^ {0,3}\\|?(?:[ \\t]*:?-+:?[ \\t]*\\|)+(?:[ \\t]*:?-+:?[ \\t]*)?$");
