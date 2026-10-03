@@ -34,9 +34,12 @@ import java.util.List;
 import java.util.Locale;
 import java.util.ServiceLoader;
 import java.util.Set;
+import java.util.concurrent.CopyOnWriteArrayList;
+import org.armedbear.j.Buffer;
 import org.armedbear.j.CommandTable;
 import org.armedbear.j.Directories;
 import org.armedbear.j.Editor;
+import org.armedbear.j.File;
 import org.armedbear.j.Log;
 import org.armedbear.j.ModeList;
 import org.armedbear.j.Preferences;
@@ -70,6 +73,8 @@ public final class Extensions {
     private static volatile LanguageClient languageClient = LanguageClient.NONE;
 
     private static final List<Extension> loaded = new ArrayList<Extension>();
+    private static final List<Opener> openers = new CopyOnWriteArrayList<Opener>();
+    private static final List<ClassLoader> loaders = new ArrayList<ClassLoader>();
 
     private static boolean disabled;
 
@@ -87,6 +92,41 @@ public final class Extensions {
 
     public static LanguageClient languageClient() {
         return languageClient;
+    }
+
+    /**
+     * A class from any extension's loader, or null. Each extension has a loader of
+     * its own, so one (Lisp, say) can't otherwise name another's classes.
+     */
+    public static synchronized Class<?> findClass(String name) {
+        for (ClassLoader loader : loaders) {
+            try {
+                return Class.forName(name, true, loader);
+            }
+            catch (ClassNotFoundException | LinkageError e) {
+                // Not this one's, or it can't load it.
+            }
+        }
+        return null;
+    }
+
+    /** The opener that handles name, or null. */
+    public static Opener opener(String name) {
+        for (Opener opener : openers) {
+            if (opener.handles(name))
+                return opener;
+        }
+        return null;
+    }
+
+    /** A buffer an extension makes for file, or null. */
+    public static Buffer createBuffer(File file) {
+        for (Opener opener : openers) {
+            Buffer buffer = opener.createBuffer(file);
+            if (buffer != null)
+                return buffer;
+        }
+        return null;
     }
 
     /** The default session of the registered client; never null. */
@@ -151,6 +191,7 @@ public final class Extensions {
         String directoryName = directory.getFileName().toString().toLowerCase(Locale.ROOT);
         if (found ? enabled.isEmpty() : skip.contains(directoryName))
             return;
+        loaders.add(loader);
         registerServices(loader, directory);
         for (Extension extension : enabled)
             initialize(extension, loader);
@@ -210,6 +251,7 @@ public final class Extensions {
             }
         }
         loaded.clear();
+        openers.clear();
         languageClient.shutdown();
         hooks = EditorHooks.NONE;
         keyMaps = KeyMapProvider.NONE;
@@ -338,6 +380,11 @@ public final class Extensions {
         public void registerHooks(EditorHooks newHooks) {
             if (newHooks != null)
                 hooks = newHooks;
+        }
+
+        public void registerOpener(Opener opener) {
+            if (opener != null)
+                openers.add(opener);
         }
 
         public void registerKeyMapProvider(KeyMapProvider provider) {

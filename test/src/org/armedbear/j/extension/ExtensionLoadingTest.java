@@ -20,6 +20,7 @@
 
 package org.armedbear.j.extension;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
@@ -32,8 +33,15 @@ import java.lang.reflect.Constructor;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.List;
 import org.armedbear.j.Command;
 import org.armedbear.j.CommandTable;
+import org.armedbear.j.Constants;
+import org.armedbear.j.Editor;
+import org.armedbear.j.Mode;
+import org.armedbear.j.ModeList;
+import org.armedbear.j.ModeListEntry;
+import org.armedbear.j.vcs.VcsBackends;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -110,6 +118,35 @@ public class ExtensionLoadingTest {
     @Test
     public void theExtensionIsFound() {
         assertTrue(Extensions.loadedNames().contains("abcl"), "loaded: " + Extensions.loadedNames());
+    }
+
+    @Test
+    public void theBundledExtensionsProvideWhatCoreMoved() {
+        assertTrue(
+            Extensions.loadedNames().containsAll(List.of("abcl", "mail", "vcs-legacy")),
+            "loaded: " + Extensions.loadedNames()
+        );
+        ModeList modes = Editor.getModeList();
+        for (String[] pair : new String[][] {
+            { "a.v", "Verilog" },
+            { "a.vhd", "VHDL" },
+            { "a.asm", "Assembly" },
+            { "configure.ac", "Autoconf" },
+            { "a.tcl", "Tcl" },
+            { "a.m", "Objective C" },
+            { "a.scm", "Scheme" }
+        }) {
+            Mode mode = modes.getModeForFileName(pair[0]);
+            assertNotNull(mode, pair[0]);
+            assertEquals(pair[1], mode.getDisplayName(), pair[0]);
+        }
+        for (ModeListEntry entry : modes)
+            assertNotNull(entry.getMode(true), entry.getDisplayName());
+        assertNotNull(VcsBackends.get(Constants.VC_CVS));
+        assertNotNull(VcsBackends.get(Constants.VC_P4));
+        assertNotNull(VcsBackends.get(Constants.VC_DARCS));
+        assertNotNull(CommandTable.getCommand("compose"));
+        assertNotNull(CommandTable.getCommand("cvsDiff"));
     }
 
     @Test

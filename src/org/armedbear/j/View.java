@@ -20,7 +20,6 @@
 
 package org.armedbear.j;
 
-import org.armedbear.j.mail.MailboxEntry;
 import org.armedbear.j.mode.dir.DirectoryTree;
 
 public final class View implements Cloneable {
@@ -37,8 +36,9 @@ public final class View implements Cloneable {
     int topLineNumber;
     long timestamp;
 
-    private MailboxEntry topEntry;
-    private MailboxEntry dotEntry;
+    // An extension's place in a buffer that isn't lines of a file: a mailbox's entries.
+    private Object topEntry;
+    private Object dotEntry;
     private NavigationComponent sidebarComponent;
 
     public View() {}
@@ -88,19 +88,19 @@ public final class View implements Cloneable {
         return topLineNumber;
     }
 
-    public MailboxEntry getTopEntry() {
+    public Object getTopEntry() {
         return topEntry;
     }
 
-    public void setTopEntry(MailboxEntry entry) {
+    public void setTopEntry(Object entry) {
         topEntry = entry;
     }
 
-    public MailboxEntry getDotEntry() {
+    public Object getDotEntry() {
         return dotEntry;
     }
 
-    public void setDotEntry(MailboxEntry entry) {
+    public void setDotEntry(Object entry) {
         dotEntry = entry;
     }
 

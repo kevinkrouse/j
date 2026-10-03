@@ -454,66 +454,6 @@ public class CommandTable {
             addCommand("xmlParseBuffer", "mode.xml.XmlMode");
             addCommand("xmlValidateBuffer", "mode.xml.XmlMode");
 
-            // Mail commands.
-            addCommand("attachFile", "mail.MailCommands");
-            addCommand("bounce", "mail.MailCommands");
-            addCommand("ccGroup", "mail.MailCommands");
-            addCommand("compose", "mail.MailCommands");
-            addCommand("foldThread", "mail.MailCommands");
-            addCommand("foldThreads", "mail.MailCommands");
-            addCommand("inbox", "mail.MailCommands");
-            addCommand("mailboxCreateFolder", "mail.MailCommands");
-            addCommand("mailboxDelete", "mail.MailCommands");
-            addCommand("mailboxDeleteFolder", "mail.MailCommands");
-            addCommand("mailboxExpunge", "mail.MailCommands");
-            addCommand("mailboxFlag", "mail.MailCommands");
-            addCommand("mailboxGetNewMessages", "mail.MailCommands");
-            addCommand("mailboxLastMessage", "mail.MailCommands");
-            addCommand("mailboxLimit", "mail.MailCommands");
-            addCommand("mailboxMarkRead", "mail.MailCommands");
-            addCommand("mailboxMarkUnread", "mail.MailCommands");
-            addCommand("mailboxMoveToFolder", "mail.MailCommands");
-            addCommand("mailboxReadMessage", "mail.MailCommands");
-            addCommand("mailboxReadMessageOtherWindow", "mail.MailCommands");
-            addCommand("mailboxSaveToFolder", "mail.MailCommands");
-            addCommand("mailboxStop", "mail.MailCommands");
-            addCommand("mailboxTag", "mail.MailCommands");
-            addCommand("mailboxTagPattern", "mail.MailCommands");
-            addCommand("mailboxToggleRaw", "mail.MailCommands");
-            addCommand("mailboxUndelete", "mail.MailCommands");
-            addCommand("mailboxUnlimit", "mail.MailCommands");
-            addCommand("mailboxUntagAll", "mail.MailCommands");
-            addCommand("messageDelete", "mail.MailCommands");
-            addCommand("messageFlag", "mail.MailCommands");
-            addCommand("messageForward", "mail.MailCommands");
-            addCommand("messageIndex", "mail.MailCommands");
-            addCommand("messageMoveToFolder", "mail.MailCommands");
-            addCommand("messageNext", "mail.MailCommands");
-            addCommand("messageNextInThread", "mail.MailCommands");
-            addCommand("messageParent", "mail.MailCommands");
-            addCommand("messagePrevious", "mail.MailCommands");
-            addCommand("messagePreviousInThread", "mail.MailCommands");
-            addCommand("messageReplyToGroup", "mail.MailCommands");
-            addCommand("messageReplyToSender", "mail.MailCommands");
-            addCommand("messageSaveAttachment", "mail.MailCommands");
-            addCommand("messageToggleHeaders", "mail.MailCommands");
-            addCommand("messageToggleRaw", "mail.MailCommands");
-            addCommand("messageToggleWrap", "mail.MailCommands");
-            addCommand("messageViewAttachment", "mail.MailCommands");
-            addCommand("openMailbox", "mail.MailCommands");
-            addCommand("send", "mail.MailCommands");
-            addCommand("sendMailBackTab", "mail.MailCommands");
-            addCommand("sendMailElectricColon", "mail.MailCommands");
-            addCommand("sendMailTab", "mail.MailCommands");
-            addCommand("toggleGroupByThread", "mail.MailCommands");
-
-            // News commands.
-            addCommand("news", "mail.NewsCommands");
-            addCommand("openGroup", "mail.NewsCommands");
-            addCommand("openGroupAtDot", "mail.NewsCommands");
-            addCommand("readArticle", "mail.NewsCommands");
-            addCommand("readArticleOtherWindow", "mail.NewsCommands");
-
             // jdb commands.
             addCommand("jdb", "jdb.JdbCommands");
             addCommand("jdbContinue", "jdb.JdbCommands");

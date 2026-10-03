@@ -79,7 +79,7 @@ public final class RecentFiles implements Constants {
             return true;
         if (buffer instanceof ImageBuffer)
             return true;
-        if (buffer.getModeId() == SEND_MAIL_MODE)
+        if (buffer.isManagedFile())
             return true;
         if (buffer.isUntitled())
             return true;

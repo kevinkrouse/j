@@ -15,11 +15,6 @@ import java.util.List;
 import org.armedbear.j.extension.ModeDescriptor;
 import org.armedbear.j.extension.ModeProvider;
 import org.armedbear.j.jdb.JdbMode;
-import org.armedbear.j.mail.MailboxMode;
-import org.armedbear.j.mail.MessageMode;
-import org.armedbear.j.mail.NewsGroupSummaryMode;
-import org.armedbear.j.mail.NewsGroupsMode;
-import org.armedbear.j.mail.SendMailMode;
 import org.armedbear.j.mode.archive.ArchiveMode;
 import org.armedbear.j.mode.binary.BinaryMode;
 import org.armedbear.j.mode.c.CMode;
@@ -57,56 +52,6 @@ import org.armedbear.j.vcs.StatusMode;
 final class BuiltinModes implements ModeProvider, Constants {
     public List<ModeDescriptor> modes() {
         return List.of(
-            new ModeDescriptor(
-                MAILBOX_MODE,
-                MAILBOX_MODE_NAME,
-                MailboxMode.class,
-                id -> MailboxMode.getMode(),
-                false,
-                null,
-                List.of(),
-                List.of()
-            ),
-            new ModeDescriptor(
-                MESSAGE_MODE,
-                MESSAGE_MODE_NAME,
-                MessageMode.class,
-                id -> MessageMode.getMode(),
-                false,
-                null,
-                List.of(),
-                List.of()
-            ),
-            new ModeDescriptor(
-                NEWS_GROUPS_MODE,
-                NEWS_GROUPS_MODE_NAME,
-                NewsGroupsMode.class,
-                id -> NewsGroupsMode.getMode(),
-                false,
-                null,
-                List.of(),
-                List.of()
-            ),
-            new ModeDescriptor(
-                NEWS_GROUP_SUMMARY_MODE,
-                NEWS_GROUP_SUMMARY_MODE_NAME,
-                NewsGroupSummaryMode.class,
-                id -> NewsGroupSummaryMode.getMode(),
-                false,
-                null,
-                List.of(),
-                List.of()
-            ),
-            new ModeDescriptor(
-                SEND_MAIL_MODE,
-                SEND_MAIL_MODE_NAME,
-                SendMailMode.class,
-                id -> SendMailMode.getMode(),
-                false,
-                null,
-                List.of(),
-                List.of()
-            ),
             new ModeDescriptor(
                 ARCHIVE_MODE,
                 ARCHIVE_MODE_NAME,

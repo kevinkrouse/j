@@ -1,5 +1,5 @@
 /*
- * MailboxModeToolBar.java
+ * MessageModeToolBar.java
  *
  * Copyright (C) 2000-2004 Peter Graves
  *
@@ -25,25 +25,22 @@ import static org.armedbear.j.ToolBarIcon.*;
 import org.armedbear.j.Frame;
 import org.armedbear.j.ToolBar;
 
-public final class MailboxModeToolBar extends ToolBar {
-    public MailboxModeToolBar(Frame frame) {
+/*package*/ final class MessageModeToolBar extends ToolBar {
+    /*package*/ MessageModeToolBar(Frame frame) {
         super(frame);
         addButton("New", ICON_NEW, "newBuffer");
         addButton("Open", ICON_OPEN, "openFile");
         addButton("Save", ICON_SAVE, "saveFile", false);
         addButton("Close", ICON_CLOSE, "killBuffer");
         addSeparator();
-        addButton("Get New Mail", ICON_MAIL_RECEIVE, "mailboxGetNewMessages");
+        addButton("Reply", ICON_MAIL_REPLY_SENDER, "messageReplyToSender");
+        addButton("Reply All", ICON_MAIL_REPLY_ALL, "messageReplyToGroup");
         addSeparator();
-        addButton("Delete", ICON_DELETE, "mailboxDelete");
-        addButton("Expunge", ICON_REFRESH, "mailboxExpunge");
-        addSeparator();
-        addButton("Compose", ICON_MAIL_COMPOSE, "compose");
+        addButton("Previous", ICON_MAIL_PREVIOUS, "messagePrevious");
+        addButton("Next", ICON_MAIL_NEXT, "messageNext");
         addSeparator();
         addButton("Home", ICON_HOME, "dirHomeDir");
-        maybeAddInboxButton();
-        addSeparator();
-        addButton("Stop", ICON_STOP, "mailboxStop");
+        addExtensionButtons();
         addSeparator();
         addButton("Exit", ICON_EXIT, "quit");
     }

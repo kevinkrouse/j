@@ -461,7 +461,7 @@ public final class PropertiesDialog extends AbstractDialog implements Constants 
             default:
                 break;
         }
-        if (buffer.getModeId() == SEND_MAIL_MODE)
+        if (buffer.isManagedFile())
             return;
         if (buffer.getFile() == null)
             return;

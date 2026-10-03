@@ -76,11 +76,14 @@
 
 (add-hook 'after-save-hook 'my-after-save-hook)
 
+;; Mail is another extension, so Lisp reaches its classes through extension-class.
 (defun reset-incoming-filters ()
-  (jstatic "resetIncomingFilters" "org.armedbear.j.mail.IncomingFilter"))
+  (jstatic "resetIncomingFilters"
+           (extension-class "org.armedbear.j.mail.IncomingFilter")))
 
 (defun add-incoming-filter (mailbox pattern action parameter)
-  (jstatic "addIncomingFilter" "org.armedbear.j.mail.IncomingFilter"
+  (jstatic "addIncomingFilter"
+           (extension-class "org.armedbear.j.mail.IncomingFilter")
            mailbox pattern action parameter))
 
 (add-hook 'mailbox-mode-hook

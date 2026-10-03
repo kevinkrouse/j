@@ -24,7 +24,6 @@ import java.lang.StringBuilder;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import javax.swing.undo.CompoundEdit;
-import org.armedbear.j.mail.SendMail;
 import org.armedbear.j.util.Utilities;
 
 public final class WrapText implements Constants {
@@ -56,15 +55,8 @@ public final class WrapText implements Constants {
             r = new Region(buffer, dot, mark);
         } else {
             Line line = buffer.getFirstLine();
-            if (buffer instanceof SendMail) {
-                // Skip headers and header separator line.
-                while (line != null) {
-                    String s = line.trim();
-                    line = line.next();
-                    if (s.equals(SendMail.getHeaderSeparator()))
-                        break;
-                }
-            }
+            while (line != null && buffer.isMessageHeader(line))
+                line = line.next();
             if (line == null)
                 return;
             r = new Region(buffer, new Position(line, 0), buffer.getEnd());
@@ -100,10 +92,8 @@ public final class WrapText implements Constants {
     }
 
     public void wrapLine() {
-        // Don't try to wrap header lines in mail composition buffers!
-        if (buffer instanceof SendMail)
-            if (((SendMail) buffer).isHeaderLine(dot.getLine()))
-                return;
+        if (buffer.isMessageHeader(dot.getLine()))
+            return;
         Position begin = new Position(dot.getLine(), 0);
         Position end;
         if (dot.getNextLine() != null)
@@ -453,15 +443,15 @@ public final class WrapText implements Constants {
         return breakOffset;
     }
 
-    private static Position findStartOfParagraph(Position startingPoint) {
+    private Position findStartOfParagraph(Position startingPoint) {
         Position pos = new Position(startingPoint);
         while (true) {
             Line previousLine = pos.getPreviousLine();
             if (previousLine == null || previousLine.isBlank())
                 break;
-            String s = previousLine.trim();
-            if (s.equals(SendMail.getHeaderSeparator()))
+            if (buffer.isMessageHeader(previousLine))
                 break;
+            String s = previousLine.trim();
             if (s.endsWith(">"))
                 break;
             pos.setLine(previousLine);

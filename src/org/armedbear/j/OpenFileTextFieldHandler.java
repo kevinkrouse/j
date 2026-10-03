@@ -35,7 +35,8 @@ import javax.swing.JScrollPane;
 import javax.swing.MenuElement;
 import javax.swing.MenuSelectionManager;
 import javax.swing.SwingUtilities;
-import org.armedbear.j.mail.MailCommands;
+import org.armedbear.j.extension.Extensions;
+import org.armedbear.j.extension.Opener;
 import org.armedbear.j.mode.web.WebBuffer;
 import org.armedbear.j.mode.web.WebMode;
 import org.armedbear.j.util.Utilities;
@@ -111,13 +112,9 @@ public final class OpenFileTextFieldHandler extends DefaultTextFieldHandler
         String value = editor.getAlias(entry);
         if (value != null)
             entry = value;
-        if (
-            entry.startsWith("pop://")
-                || entry.startsWith("{")
-                ||
-                entry.startsWith("mailbox:")
-        ) {
-            MailCommands.openMailbox(editor, entry);
+        Opener opener = Extensions.opener(entry);
+        if (opener != null) {
+            opener.open(editor, entry);
             editor.ensureActive();
             editor.setFocusToDisplay();
             editor.updateLocation();

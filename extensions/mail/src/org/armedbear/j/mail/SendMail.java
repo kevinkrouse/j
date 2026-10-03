@@ -68,6 +68,14 @@ import org.armedbear.j.util.Background;
 import org.armedbear.j.util.Utilities;
 
 public final class SendMail extends Buffer {
+    public boolean isMessageHeader(Line line) {
+        return isHeaderLine(line) || line.getText().equals(HEADER_SEPARATOR);
+    }
+
+    public boolean isManagedFile() {
+        return true;
+    }
+
     private final static String HEADER_SEPARATOR = "--text follows this line--";
     private final static String DEFAULT_TITLE = "Compose";
 

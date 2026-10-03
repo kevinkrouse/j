@@ -53,6 +53,10 @@ import org.armedbear.j.util.Background;
 import org.armedbear.j.util.Utilities;
 
 public final class PopMailboxBuffer extends LocalMailboxBuffer {
+    public String getAliasValue() {
+        return getUrl().toString();
+    }
+
     private final PopSession session;
 
     private File localStore;

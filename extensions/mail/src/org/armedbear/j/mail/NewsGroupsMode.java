@@ -1,5 +1,5 @@
 /*
- * NewsGroupSummaryMode.java
+ * NewsGroupsMode.java
  *
  * Copyright (C) 2000-2002 Peter Graves
  *
@@ -21,34 +21,38 @@
 package org.armedbear.j.mail;
 
 import java.awt.event.KeyEvent;
+import org.armedbear.j.AbstractMode;
+import org.armedbear.j.Constants;
 import org.armedbear.j.Editor;
-import org.armedbear.j.Frame;
 import org.armedbear.j.KeyMap;
 import org.armedbear.j.Mode;
-import org.armedbear.j.NavigationComponent;
-import org.armedbear.j.ToolBar;
+import org.armedbear.j.Property;
 
-public final class NewsGroupSummaryMode extends MailboxMode {
-    private static final NewsGroupSummaryMode mode = new NewsGroupSummaryMode();
+public final class NewsGroupsMode extends AbstractMode implements Constants,
+    Mode {
+    public static final String NAME = "Groups";
 
-    private NewsGroupSummaryMode() {
-        super(NEWS_GROUP_SUMMARY_MODE, NEWS_GROUP_SUMMARY_MODE_NAME);
+    private static volatile NewsGroupsMode mode;
+
+    private NewsGroupsMode(int id) {
+        super(id, NAME);
+        setProperty(Property.VERTICAL_RULE, 0);
+        setProperty(Property.SHOW_LINE_NUMBERS, false);
     }
 
-    public static final Mode getMode() {
+    /** Made once, by the mode list, which assigns its id. */
+    public static synchronized NewsGroupsMode create(int id) {
+        if (mode == null)
+            mode = new NewsGroupsMode(id);
         return mode;
     }
 
-    public NavigationComponent getSidebarComponent(Editor editor) {
-        return null;
+    public static Mode getMode() {
+        NewsGroupsMode m = mode;
+        return m != null ? m : Editor.getModeList().getModeFromModeName(NAME) instanceof NewsGroupsMode x ? x : null;
     }
 
     protected final void setKeyMapDefaults(KeyMap km) {
-        km.mapKey(KeyEvent.VK_ENTER, 0, "readArticleOtherWindow");
-        km.mapKey(KeyEvent.VK_ENTER, CTRL_MASK, "readArticle");
-    }
-
-    protected ToolBar getDefaultToolBar(Frame frame) {
-        return frame.getDefaultToolBar();
+        km.mapKey(KeyEvent.VK_ENTER, 0, "openGroupAtDot");
     }
 }

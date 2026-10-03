@@ -36,6 +36,18 @@ import org.armedbear.j.util.FastStringReader;
 import org.armedbear.j.util.Utilities;
 
 public final class Mail {
+    /** Mail needs experimental features on, mail on, and the user's address set. */
+    public static boolean isEnabled() {
+        if (!Editor.preferences().getBooleanProperty(Property.ENABLE_EXPERIMENTAL_FEATURES))
+            return false;
+        if (!Editor.preferences().getBooleanProperty(Property.ENABLE_MAIL))
+            return false;
+        // Mail address must be configured!
+        if (Editor.preferences().getStringProperty(Property.USER_MAIL_ADDRESS) == null)
+            return false;
+        return true;
+    }
+
     private static File sentMessagesFile;
 
     public static final File getSentMessagesFile() {

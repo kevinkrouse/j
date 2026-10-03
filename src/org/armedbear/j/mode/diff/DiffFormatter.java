@@ -89,7 +89,7 @@ public final class DiffFormatter extends Formatter {
             addSegment(text, DIFF_FORMAT_HEADER);
             return segmentList;
         }
-        if (c == ' ' && buffer instanceof org.armedbear.j.mail.MessageBuffer) {
+        if (c == ' ' && buffer.isMessage()) {
             // Diff might be indented.
             if (isDiffHeader(text.trim())) {
                 addSegment(text, DIFF_FORMAT_HEADER);

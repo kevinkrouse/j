@@ -661,9 +661,7 @@ public abstract class AbstractMode implements Constants, Mode {
         if (s != null)
             return s;
         String name = getClass().getName();
-        if (name.startsWith("org.armedbear.j.mail."))
-            name = name.substring(21);
-        else if (name.startsWith("org.armedbear.j."))
+        if (name.startsWith("org.armedbear.j."))
             name = name.substring(16);
         return preferences.getStringProperty((name + '.' + key).toLowerCase());
     }

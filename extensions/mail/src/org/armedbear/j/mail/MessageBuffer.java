@@ -61,6 +61,10 @@ import org.armedbear.j.util.FastStringReader;
 import org.armedbear.j.util.Utilities;
 
 public class MessageBuffer extends Buffer {
+    public boolean isMessage() {
+        return true;
+    }
+
     protected MailboxBuffer mailbox;
     protected MailboxEntry entry;
     protected Message message;

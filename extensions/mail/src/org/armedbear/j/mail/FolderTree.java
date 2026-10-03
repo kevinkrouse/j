@@ -27,6 +27,7 @@ import java.awt.Point;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.util.Enumeration;
+import javax.swing.JRootPane;
 import javax.swing.JTree;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeCellRenderer;
@@ -54,11 +55,13 @@ public final class FolderTree extends JTree implements NavigationComponent,
         addMouseListener(this);
     }
 
+    // One per frame, kept on the frame so it goes when the frame does.
     public static FolderTree getInstance(Frame frame) {
-        FolderTree tree = frame.getFolderTree();
+        JRootPane root = frame.getRootPane();
+        FolderTree tree = (FolderTree) root.getClientProperty(FolderTree.class);
         if (tree == null) {
             tree = new FolderTree(frame);
-            frame.setFolderTree(tree);
+            root.putClientProperty(FolderTree.class, tree);
         }
         return tree;
     }

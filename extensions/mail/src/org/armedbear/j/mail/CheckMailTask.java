@@ -46,7 +46,7 @@ public final class CheckMailTask extends IdleThreadTask {
     private final Runnable runnable = () -> {
         if (!Editor.preferences().getBooleanProperty(Property.CHECK_ENABLED))
             return;
-        if (!Editor.isMailEnabled())
+        if (!Mail.isEnabled())
             return;
         // Only check every 10 seconds.
         if (System.currentTimeMillis() - lastRun > 10000) {

@@ -40,10 +40,12 @@ import org.armedbear.j.ToolBar;
 import org.armedbear.j.View;
 
 public class MailboxMode extends AbstractMode implements Constants, Mode {
-    private static final MailboxMode mode = new MailboxMode();
+    public static final String NAME = "Mailbox";
 
-    private MailboxMode() {
-        this(MAILBOX_MODE, MAILBOX_MODE_NAME);
+    private static volatile MailboxMode mode;
+
+    private MailboxMode(int id) {
+        this(id, NAME);
     }
 
     protected MailboxMode(int id, String displayName) {
@@ -55,8 +57,16 @@ public class MailboxMode extends AbstractMode implements Constants, Mode {
         setProperty(Property.HIGHLIGHT_BRACKETS, false);
     }
 
-    public static Mode getMode() {
+    /** Made once, by the mode list, which assigns its id. */
+    public static synchronized MailboxMode create(int id) {
+        if (mode == null)
+            mode = new MailboxMode(id);
         return mode;
+    }
+
+    public static Mode getMode() {
+        MailboxMode m = mode;
+        return m != null ? m : Editor.getModeList().getModeFromModeName(NAME) instanceof MailboxMode x ? x : null;
     }
 
     public NavigationComponent getSidebarComponent(Editor editor) {

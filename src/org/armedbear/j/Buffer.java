@@ -276,14 +276,10 @@ public class Buffer extends SystemBuffer {
             session.unlock();
             return new RemoteBuffer(file);
         }
-        // Special case for unsent messages.
         if (file != null) {
-            File dir = file.getParentFile();
-            if (dir != null && dir.equals(Directories.getDraftsFolder())) {
-                Mode sendMailMode = Editor.getModeList().getMode(SEND_MAIL_MODE);
-                if (sendMailMode != null)
-                    return sendMailMode.createBuffer(file);
-            }
+            Buffer managed = Extensions.createBuffer(file);
+            if (managed != null)
+                return managed;
         }
         // Local file.
         return createBuffer(file, null, null);
@@ -337,13 +333,9 @@ public class Buffer extends SystemBuffer {
             Debug.bug();
             return null;
         }
-        // Special case for unsent messages.
-        File dir = file.getParentFile();
-        if (dir != null && dir.equals(Directories.getDraftsFolder())) {
-            Mode sendMailMode = Editor.getModeList().getMode(SEND_MAIL_MODE);
-            if (sendMailMode != null)
-                return sendMailMode.createBuffer(file);
-        }
+        Buffer managed = Extensions.createBuffer(file);
+        if (managed != null)
+            return managed;
         // Normal case.
         return new Buffer(file);
     }
@@ -2627,6 +2619,26 @@ public class Buffer extends SystemBuffer {
             default:
                 return false;
         }
+    }
+
+    /** What "alias foo here" names: the file, or a buffer's own location. */
+    public String getAliasValue() {
+        return getFile() != null ? getFile().netPath() : null;
+    }
+
+    /** A message header, or the line separating them from the body. Wrapping skips these. */
+    public boolean isMessageHeader(Line line) {
+        return false;
+    }
+
+    /** A mail or news message, whose diffs may be indented. */
+    public boolean isMessage() {
+        return false;
+    }
+
+    /** A file j keeps for itself, like a mail draft: not a recent file, and not saved with the others. */
+    public boolean isManagedFile() {
+        return false;
     }
 
     public final boolean isUntitled() {

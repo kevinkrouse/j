@@ -292,10 +292,9 @@ public final class CompilationCommands implements Constants {
                 continue;
             if (buf.isUntitled())
                 continue;
-            final int modeId = buf.getModeId();
-            if (modeId == SEND_MAIL_MODE)
+            if (buf.isManagedFile())
                 continue;
-            if (modeId == CHECKIN_MODE)
+            if (buf.getModeId() == CHECKIN_MODE)
                 continue;
             if (buf.getFile() != null && buf.getFile().isLocal()) {
                 editor.status("Saving modified buffers...");

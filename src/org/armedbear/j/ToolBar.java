@@ -25,6 +25,9 @@ import static org.armedbear.j.ToolBarIcon.*;
 import java.awt.Color;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.function.BooleanSupplier;
 import javax.swing.BorderFactory;
 import javax.swing.JToolBar;
 import org.armedbear.j.util.Utilities;
@@ -102,11 +105,25 @@ public class ToolBar extends JToolBar implements ActionListener {
         return button;
     }
 
-    public ToolBarButton maybeAddInboxButton() {
-        if (Editor.isMailEnabled())
-            if (preferences.getStringProperty(Property.INBOX) != null)
-                return addButton("Inbox", ICON_MAIL_INBOX, "inbox");
-        return null;
+    /** A button an extension adds to the standard toolbars, shown while shown() is true. */
+    public record Button(String text, ToolBarIcon icon, String command, BooleanSupplier shown) {}
+
+    private static final List<Button> extensionButtons = new CopyOnWriteArrayList<Button>();
+
+    /** Adds button unless one for the same command is registered. */
+    public static synchronized void registerButton(Button button) {
+        for (Button b : extensionButtons) {
+            if (b.command().equals(button.command()))
+                return;
+        }
+        extensionButtons.add(button);
+    }
+
+    public void addExtensionButtons() {
+        for (Button button : extensionButtons) {
+            if (button.shown().getAsBoolean())
+                addButton(button.text(), button.icon(), button.command());
+        }
     }
 
     public static boolean isToolBarEnabled() {

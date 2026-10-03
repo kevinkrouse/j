@@ -234,8 +234,7 @@ public abstract class VersionControl implements Constants {
                 continue;
             if (buf.isUntitled())
                 continue;
-            final int modeId = buf.getModeId();
-            if (modeId == SEND_MAIL_MODE)
+            if (buf.isManagedFile())
                 continue;
             if (buf.getModeId() == CHECKIN_MODE)
                 continue;

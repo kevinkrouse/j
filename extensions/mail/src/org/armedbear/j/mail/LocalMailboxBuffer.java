@@ -50,6 +50,10 @@ import org.armedbear.j.util.Background;
 import org.armedbear.j.util.Utilities;
 
 public class LocalMailboxBuffer extends MailboxBuffer {
+    public String getAliasValue() {
+        return "mailbox:" + getMailboxFile().netPath();
+    }
+
     private File mailboxFile;
 
     public LocalMailboxBuffer(MailboxURL url) {

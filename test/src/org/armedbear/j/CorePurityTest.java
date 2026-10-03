@@ -52,6 +52,7 @@ public class CorePurityTest {
         List<String> packages = new ArrayList<String>();
         packages.add("org/armedbear/lisp");
         for (String p : List.of(
+            "mail",
             "vcs/cvs",
             "vcs/p4",
             "vcs/darcs",

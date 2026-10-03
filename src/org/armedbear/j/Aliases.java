@@ -24,12 +24,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.Properties;
-import org.armedbear.j.mail.ImapMailboxBuffer;
-import org.armedbear.j.mail.LocalMailboxBuffer;
-import org.armedbear.j.mail.PopMailboxBuffer;
 
-public final class Aliases implements PreferencesChangeListener {
-    private static Properties systemAliases;
+public final class Aliases {
+    private static final Properties systemAliases = new Properties();
 
     private final File file;
 
@@ -37,26 +34,8 @@ public final class Aliases implements PreferencesChangeListener {
 
     public Aliases() {
         file = File.getInstance(Directories.getConfigDirectory(), "aliases");
-        // Set up system aliases.
-        if (systemAliases == null) {
-            systemAliases = new Properties();
-            systemAliases.setProperty(
-                "prefs",
-                Preferences.getPreferencesFile().netPath()
-            );
-            systemAliases.setProperty("aliases", file.netPath());
-            String inbox =
-                Editor.preferences().getStringProperty(Property.INBOX);
-            if (inbox != null)
-                systemAliases.setProperty("inbox", inbox);
-            systemAliases.setProperty(
-                "drafts",
-                "mailbox:".concat(Directories.getDraftsFolder().netPath())
-            );
-        }
-        // Sign up to be notified when preferences change so we can update the
-        // "inbox" system alias.
-        Editor.preferences().addPreferencesChangeListener(this);
+        systemAliases.setProperty("prefs", Preferences.getPreferencesFile().netPath());
+        systemAliases.setProperty("aliases", file.netPath());
         // Load user aliases from file.
         loadUserAliases();
     }
@@ -95,15 +74,7 @@ public final class Aliases implements PreferencesChangeListener {
         // Ignore attempt to set system alias.
         if (isSystemAlias(alias))
             return;
-        String value = null;
-        if (buffer instanceof ImapMailboxBuffer)
-            value = ((ImapMailboxBuffer) buffer).getUrl().toString();
-        else if (buffer instanceof PopMailboxBuffer)
-            value = ((PopMailboxBuffer) buffer).getUrl().toString();
-        else if (buffer instanceof LocalMailboxBuffer)
-            value = "mailbox:" + ((LocalMailboxBuffer) buffer).getMailboxFile().netPath();
-        else if (buffer.getFile() != null)
-            value = buffer.getFile().netPath();
+        String value = buffer.getAliasValue();
         if (value != null)
             setAlias(alias, value);
     }
@@ -134,11 +105,11 @@ public final class Aliases implements PreferencesChangeListener {
         }
     }
 
-    public void preferencesChanged() {
-        String inbox = Editor.preferences().getStringProperty(Property.INBOX);
-        if (inbox != null)
-            systemAliases.setProperty("inbox", inbox);
+    /** Sets an alias users can't change, such as an extension's "inbox"; null removes it. */
+    public static void setSystemAlias(String alias, String value) {
+        if (value != null)
+            systemAliases.setProperty(alias, value);
         else
-            systemAliases.remove("inbox");
+            systemAliases.remove(alias);
     }
 }

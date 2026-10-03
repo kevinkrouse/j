@@ -39,7 +39,7 @@ public final class WebModeToolBar extends ToolBar {
         addButton("Reload", ICON_REFRESH, "webReload");
         addSeparator();
         addButton("Home", ICON_HOME, "dirHomeDir");
-        maybeAddInboxButton();
+        addExtensionButtons();
         addSeparator();
         addButton("Stop", ICON_STOP, "cancelBackgroundProcess");
         addSeparator();

@@ -43,6 +43,8 @@ public interface ExtensionContext {
 
     void registerHooks(EditorHooks hooks);
 
+    void registerOpener(Opener opener);
+
     void registerKeyMapProvider(KeyMapProvider provider);
 
     /** The loader this extension's classes and resources came from. */

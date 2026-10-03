@@ -1092,11 +1092,11 @@ public abstract class MailboxBuffer extends Buffer {
                         return;
                     }
                     try {
-                        Line topLine = findLineForEntry(view.getTopEntry());
+                        Line topLine = findLineForEntry((MailboxEntry) view.getTopEntry());
                         if (topLine == null)
                             topLine = getFirstLine();
                         ed.setTopLine(topLine);
-                        Line dotLine = findLineForEntry(view.getDotEntry());
+                        Line dotLine = findLineForEntry((MailboxEntry) view.getDotEntry());
                         if (dotLine != null) {
                             int offset = view.getDotOffset();
                             if (offset > dotLine.length())
@@ -1218,11 +1218,11 @@ public abstract class MailboxBuffer extends Buffer {
                 super.restoreView(editor);
                 return;
             }
-            Line topLine = findLineForEntry(view.getTopEntry());
+            Line topLine = findLineForEntry((MailboxEntry) view.getTopEntry());
             if (topLine == null)
                 topLine = getFirstLine();
             display.setTopLine(topLine);
-            Line dotLine = findLineForEntry(view.getDotEntry());
+            Line dotLine = findLineForEntry((MailboxEntry) view.getDotEntry());
             if (dotLine == null)
                 dotLine = getFirstLine();
             if (view.getTopLine() == topLine && view.getDot() != null && view.getDot().getLine() == dotLine) {

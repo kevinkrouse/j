@@ -69,9 +69,8 @@ import org.armedbear.j.extension.EvalException;
 import org.armedbear.j.extension.EvalRequest;
 import org.armedbear.j.extension.EvalResult;
 import org.armedbear.j.extension.Extensions;
+import org.armedbear.j.extension.Opener;
 import org.armedbear.j.extension.ScriptFunction;
-import org.armedbear.j.mail.MailCommands;
-import org.armedbear.j.mail.MailboxURL;
 import org.armedbear.j.mode.c.CMode;
 import org.armedbear.j.mode.compilation.CompilationBuffer;
 import org.armedbear.j.mode.dir.DirectoryBuffer;
@@ -458,7 +457,6 @@ public final class Editor extends JPanel implements Constants,
 
         loadPreferences();
         Log.initialize(dumpEnv, dumpProps);
-        Directories.moveUnsentMessagesToDraftsFolder();
         Extensions.load();
         if (quick == 0) {
             runStartupScript();
@@ -722,17 +720,6 @@ public final class Editor extends JPanel implements Constants,
 
     public static final boolean isDebugEnabled() {
         return debug;
-    }
-
-    public static final boolean isMailEnabled() {
-        if (!prefs.getBooleanProperty(Property.ENABLE_EXPERIMENTAL_FEATURES))
-            return false;
-        if (!prefs.getBooleanProperty(Property.ENABLE_MAIL))
-            return false;
-        // Mail address must be configured!
-        if (prefs.getStringProperty(Property.USER_MAIL_ADDRESS) == null)
-            return false;
-        return true;
     }
 
     private LocationBar locationBar;
@@ -5087,14 +5074,12 @@ public final class Editor extends JPanel implements Constants,
             String value = getAlias(s);
             if (value != null)
                 s = value;
-            if (s.startsWith("pop://") || s.startsWith("{")) {
-                MailboxURL url = MailboxURL.parse(s);
-                if (url != null) {
-                    Buffer buf = MailCommands.getMailboxBuffer(this, url);
-                    if (buf != null) {
-                        makeNext(buf);
-                        toBeActivated = buf;
-                    }
+            Opener opener = Extensions.opener(s);
+            if (opener != null) {
+                Buffer buf = opener.getBuffer(this, s);
+                if (buf != null) {
+                    makeNext(buf);
+                    toBeActivated = buf;
                 }
                 continue;
             }

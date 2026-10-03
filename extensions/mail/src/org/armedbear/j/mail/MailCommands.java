@@ -44,7 +44,7 @@ import org.armedbear.j.SimpleEdit;
 
 public final class MailCommands implements Constants {
     public static void inbox() {
-        if (!Editor.isMailEnabled())
+        if (!Mail.isEnabled())
             return;
         final Editor editor = Editor.currentEditor();
         String inbox = Editor.preferences().getStringProperty(Property.INBOX);
@@ -55,7 +55,7 @@ public final class MailCommands implements Constants {
     }
 
     public static void openMailbox() {
-        if (!Editor.isMailEnabled())
+        if (!Mail.isEnabled())
             return;
         final Editor editor = Editor.currentEditor();
         openMailbox(editor);
@@ -137,30 +137,8 @@ public final class MailCommands implements Constants {
                 }
             }
         } else {
-            // Local mailbox (or local drafts folder).
             Debug.assertTrue(url instanceof LocalMailboxURL);
-            final File file = ((LocalMailboxURL) url).getFile();
-            MailboxBuffer mb = null;
-            for (Buffer buf : Editor.getBufferList()) {
-                if (buf instanceof LocalMailboxBuffer) {
-                    if (((LocalMailboxBuffer) buf).getMailboxFile().equals(file)) {
-                        mb = (LocalMailboxBuffer) buf;
-                        break;
-                    }
-                } else if (buf instanceof DraftsBuffer) {
-                    if (((DraftsBuffer) buf).getDirectory().equals(file)) {
-                        mb = (DraftsBuffer) buf;
-                        break;
-                    }
-                }
-            }
-            if (mb == null) {
-                // Not found.
-                if (file.equals(Directories.getDraftsFolder()))
-                    mb = new DraftsBuffer((LocalMailboxURL) url);
-                else
-                    mb = new LocalMailboxBuffer((LocalMailboxURL) url);
-            }
+            MailboxBuffer mb = getLocalMailbox((LocalMailboxURL) url);
             mb.setLimitFilter(filter);
             mb.setLimitPattern(limitPattern);
             editor.makeNext(mb);
@@ -169,7 +147,26 @@ public final class MailCommands implements Constants {
     }
 
     public static Buffer getMailboxBuffer(Editor editor, MailboxURL url) {
+        if (url instanceof LocalMailboxURL)
+            return getLocalMailbox((LocalMailboxURL) url);
         return getMailbox(editor, url);
+    }
+
+    // A local mailbox or the drafts folder, open already or new.
+    private static MailboxBuffer getLocalMailbox(LocalMailboxURL url) {
+        final File file = url.getFile();
+        for (Buffer buf : Editor.getBufferList()) {
+            if (buf instanceof LocalMailboxBuffer) {
+                if (((LocalMailboxBuffer) buf).getMailboxFile().equals(file))
+                    return (LocalMailboxBuffer) buf;
+            } else if (buf instanceof DraftsBuffer) {
+                if (((DraftsBuffer) buf).getDirectory().equals(file))
+                    return (DraftsBuffer) buf;
+            }
+        }
+        if (file.equals(Directories.getDraftsFolder()))
+            return new DraftsBuffer(url);
+        return new LocalMailboxBuffer(url);
     }
 
     public static MailboxBuffer getMailbox(Editor editor, MailboxURL url) {
@@ -249,7 +246,7 @@ public final class MailCommands implements Constants {
     }
 
     public static void compose() {
-        if (!Editor.isMailEnabled())
+        if (!Mail.isEnabled())
             return;
         activateMailCompositionBuffer(
             Editor.currentEditor(),
@@ -280,7 +277,7 @@ public final class MailCommands implements Constants {
         final Line dotLine = editor.getDotLine();
         final int dotOffset = editor.getDotOffset();
         if (
-            editor.getModeId() != SEND_MAIL_MODE
+            editor.getMode() != SendMailMode.getMode()
                 || editor.getMark() != null
                 ||
                 dotOffset != dotLine.length()

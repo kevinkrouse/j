@@ -1,7 +1,7 @@
 /*
- * MessageModeToolBar.java
+ * SendMailModeToolBar.java
  *
- * Copyright (C) 2000-2004 Peter Graves
+ * Copyright (C) 2000-2002 Peter Graves
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -25,22 +25,29 @@ import static org.armedbear.j.ToolBarIcon.*;
 import org.armedbear.j.Frame;
 import org.armedbear.j.ToolBar;
 
-/*package*/ final class MessageModeToolBar extends ToolBar {
-    /*package*/ MessageModeToolBar(Frame frame) {
+/*package*/ final class SendMailModeToolBar extends ToolBar {
+    /*package*/ SendMailModeToolBar(Frame frame) {
         super(frame);
         addButton("New", ICON_NEW, "newBuffer");
         addButton("Open", ICON_OPEN, "openFile");
-        addButton("Save", ICON_SAVE, "saveFile", false);
+        addButton("Save", ICON_SAVE, "save");
         addButton("Close", ICON_CLOSE, "killBuffer");
         addSeparator();
-        addButton("Reply", ICON_MAIL_REPLY_SENDER, "messageReplyToSender");
-        addButton("Reply All", ICON_MAIL_REPLY_ALL, "messageReplyToGroup");
+        addButton("Undo", ICON_UNDO, "undo");
+        addButton("Redo", ICON_REDO, "redo");
         addSeparator();
-        addButton("Previous", ICON_MAIL_PREVIOUS, "messagePrevious");
-        addButton("Next", ICON_MAIL_NEXT, "messageNext");
+        addButton("Cut", ICON_CUT, "killRegion");
+        addButton("Copy", ICON_COPY, "copyRegion");
+        addButton("Paste", ICON_PASTE, "paste");
+        addSeparator();
+        addButton("Find", ICON_FIND, "find");
+        addButton("Replace", ICON_REPLACE, "replace");
+        addSeparator();
+        addButton("Attach", ICON_MAIL_ATTACH, "attachFile");
+        addButton("Send", ICON_MAIL_SEND, "send");
         addSeparator();
         addButton("Home", ICON_HOME, "dirHomeDir");
-        maybeAddInboxButton();
+        addExtensionButtons();
         addSeparator();
         addButton("Exit", ICON_EXIT, "quit");
     }

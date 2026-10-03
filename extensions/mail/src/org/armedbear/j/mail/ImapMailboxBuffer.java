@@ -49,6 +49,10 @@ import org.armedbear.j.util.Background;
 import org.armedbear.j.util.Utilities;
 
 public final class ImapMailboxBuffer extends MailboxBuffer {
+    public String getAliasValue() {
+        return getUrl().toString();
+    }
+
     private static final int DEFAULT_PORT = 143;
 
     private final ImapSession session;

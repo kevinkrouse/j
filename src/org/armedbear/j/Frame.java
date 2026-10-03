@@ -45,7 +45,6 @@ import javax.swing.JButton;
 import javax.swing.JComponent;
 import javax.swing.JFrame;
 import javax.swing.SwingUtilities;
-import org.armedbear.j.mail.FolderTree;
 import org.armedbear.j.util.Utilities;
 
 public final class Frame extends JFrame implements Constants, ComponentListener,
@@ -1175,16 +1174,6 @@ public final class Frame extends JFrame implements Constants, ComponentListener,
 
     public static final void restoreFocus() {
         Editor.restoreFocus();
-    }
-
-    private FolderTree folderTree;
-
-    public final FolderTree getFolderTree() {
-        return folderTree;
-    }
-
-    public final void setFolderTree(FolderTree folderTree) {
-        this.folderTree = folderTree;
     }
 
     public void componentResized(ComponentEvent e) {

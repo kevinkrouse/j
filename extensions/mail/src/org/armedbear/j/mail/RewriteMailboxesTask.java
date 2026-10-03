@@ -45,7 +45,7 @@ public final class RewriteMailboxesTask extends IdleThreadTask {
         private long lastRun;
 
         public void run() {
-            if (!Editor.isMailEnabled())
+            if (!Mail.isEnabled())
                 return;
             long now = System.currentTimeMillis();
             if (lastRun == 0 || now - lastRun > REWRITE_MAILBOXES_IDLE) {

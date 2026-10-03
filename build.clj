@@ -366,7 +366,8 @@
   "What lives in an extension, so no core class may name it: as a type
   (slashes) or, for j's own, as a Class.forName string (dots). Dotted
   org.armedbear.lisp is allowed; LispShellBuffer names an external Lisp."
-  (let [j ["vcs/cvs" "vcs/p4" "vcs/darcs" "mode/asm" "mode/autoconf" "mode/verilog" "mode/vhdl" "mode/objc" "mode/tcl" "mode/scheme"]]
+  (let [j ["mail" "vcs/cvs" "vcs/p4" "vcs/darcs" "mode/asm" "mode/autoconf"
+           "mode/verilog" "mode/vhdl" "mode/objc" "mode/tcl" "mode/scheme"]]
     (concat ["org/armedbear/lisp"]
             (for [p j] (str "org/armedbear/j/" p "/"))
             (for [p j] (str "org.armedbear.j." (str/replace p "/" ".") ".")))))

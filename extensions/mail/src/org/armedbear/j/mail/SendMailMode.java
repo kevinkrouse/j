@@ -38,10 +38,12 @@ import org.armedbear.j.ToolBar;
 import org.armedbear.j.View;
 
 public final class SendMailMode extends AbstractMode implements Constants, Mode {
-    private static final SendMailMode mode = new SendMailMode();
+    public static final String NAME = "Send Mail";
 
-    private SendMailMode() {
-        super(SEND_MAIL_MODE, SEND_MAIL_MODE_NAME);
+    private static volatile SendMailMode mode;
+
+    private SendMailMode(int id) {
+        super(id, NAME);
         keywords = new Keywords(this, true); // Ignore case.
         setProperty(Property.WRAP_COL, 72);
         setProperty(Property.WRAP, true);
@@ -57,8 +59,16 @@ public final class SendMailMode extends AbstractMode implements Constants, Mode 
         setProperty(Property.HIGHLIGHT_BRACKETS, false);
     }
 
-    public static SendMailMode getMode() {
+    /** Made once, by the mode list, which assigns its id. */
+    public static synchronized SendMailMode create(int id) {
+        if (mode == null)
+            mode = new SendMailMode(id);
         return mode;
+    }
+
+    public static SendMailMode getMode() {
+        SendMailMode m = mode;
+        return m != null ? m : Editor.getModeList().getModeFromModeName(NAME) instanceof SendMailMode x ? x : null;
     }
 
     public Buffer createBuffer(File file) {

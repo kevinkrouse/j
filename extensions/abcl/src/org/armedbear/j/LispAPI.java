@@ -25,6 +25,7 @@ import static org.armedbear.lisp.Lisp.*;
 import java.util.regex.PatternSyntaxException;
 import javax.swing.SwingUtilities;
 import javax.swing.undo.CompoundEdit;
+import org.armedbear.j.extension.Extensions;
 import org.armedbear.j.extension.abcl.LispFunction;
 import org.armedbear.j.mode.lisp.LispMode;
 import org.armedbear.lisp.AbstractString;
@@ -183,6 +184,21 @@ public final class LispAPI {
         ) {
             public LispObject execute() {
                 return new JavaObject(Editor.currentEditor());
+            }
+        };
+
+    // ### extension-class name => class
+    private static final Primitive EXTENSION_CLASS =
+        new Primitive(
+            "extension-class",
+            PACKAGE_J,
+            true,
+            "(NAME)",
+            "The class NAME from another extension, such as mail, for JSTATIC and JNEW."
+        ) {
+            public LispObject execute(LispObject arg) {
+                Class<?> c = Extensions.findClass(arg.getStringValue());
+                return c != null ? new JavaObject(c) : NIL;
             }
         };
 

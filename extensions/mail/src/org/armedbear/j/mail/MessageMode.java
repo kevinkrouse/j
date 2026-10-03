@@ -40,10 +40,12 @@ import org.armedbear.j.mode.html.HtmlLineSegment;
 import org.armedbear.j.mode.web.WebLine;
 
 public final class MessageMode extends AbstractMode implements Constants, Mode {
-    private static final Mode mode = new MessageMode();
+    public static final String NAME = "Message";
 
-    private MessageMode() {
-        super(MESSAGE_MODE, MESSAGE_MODE_NAME);
+    private static volatile MessageMode mode;
+
+    private MessageMode(int id) {
+        super(id, NAME);
         keywords = new Keywords(this, true); // Ignore case.
         setProperty(Property.VERTICAL_RULE, 0);
         setProperty(Property.SHOW_LINE_NUMBERS, false);
@@ -51,8 +53,16 @@ public final class MessageMode extends AbstractMode implements Constants, Mode {
         setProperty(Property.HIGHLIGHT_BRACKETS, false);
     }
 
-    public static final Mode getMode() {
+    /** Made once, by the mode list, which assigns its id. */
+    public static synchronized MessageMode create(int id) {
+        if (mode == null)
+            mode = new MessageMode(id);
         return mode;
+    }
+
+    public static Mode getMode() {
+        MessageMode m = mode;
+        return m != null ? m : Editor.getModeList().getModeFromModeName(NAME) instanceof MessageMode x ? x : null;
     }
 
     public NavigationComponent getSidebarComponent(Editor editor) {
