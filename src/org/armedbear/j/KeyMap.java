@@ -153,7 +153,8 @@ public final class KeyMap {
         mapKey(KeyEvent.VK_KP_LEFT, ALT_MASK, "prevBuffer");
         mapKey(KeyEvent.VK_N, CTRL_MASK | SHIFT_MASK, "newFrame");
         mapKey(KeyEvent.VK_X, ALT_MASK, "executeCommand");
-        mapKey(KeyEvent.VK_P, CTRL_MASK, "print");
+        mapKey(KeyEvent.VK_P, CTRL_MASK, "findFileInProject");
+        mapKey(KeyEvent.VK_P, CTRL_MASK | SHIFT_MASK, "findAction");
         mapKey(KeyEvent.VK_Q, CTRL_MASK | SHIFT_MASK, "saveAllExit");
         mapKey(KeyEvent.VK_Q, CTRL_MASK, "quit");
 

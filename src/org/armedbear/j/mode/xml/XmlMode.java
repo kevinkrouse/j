@@ -139,8 +139,6 @@ public final class XmlMode extends AbstractMode implements Mode {
             CTRL_MASK | SHIFT_MASK,
             "xmlInsertEmptyElementTag"
         );
-        km.mapKey(KeyEvent.VK_P, CTRL_MASK, "xmlParseBuffer");
-        km.mapKey(KeyEvent.VK_P, CTRL_MASK | SHIFT_MASK, "xmlValidateBuffer");
         km.mapKey(KeyEvent.VK_EQUALS, CTRL_MASK, "xmlFindCurrentNode");
         km.mapKey(KeyEvent.VK_OPEN_BRACKET, CTRL_MASK, "fold");
         km.mapKey(KeyEvent.VK_CLOSE_BRACKET, CTRL_MASK, "unfold");

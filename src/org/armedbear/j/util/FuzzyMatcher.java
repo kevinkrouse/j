@@ -19,6 +19,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.PriorityQueue;
 import java.util.function.Function;
+import java.util.function.ToIntFunction;
 import java.util.stream.IntStream;
 
 /**
@@ -141,6 +142,17 @@ public final class FuzzyMatcher {
         Query query,
         int limit
     ) {
+        return rank(items, text, item -> 0, query, limit);
+    }
+
+    /** As rank(), with boost added to each matching item's score. */
+    public static <T> List<Ranked<T>> rank(
+        Iterable<? extends T> items,
+        Function<? super T, String> text,
+        ToIntFunction<? super T> boost,
+        Query query,
+        int limit
+    ) {
         List<Ranked<T>> result = new ArrayList<>();
         if (limit <= 0)
             return result;
@@ -164,6 +176,7 @@ public final class FuzzyMatcher {
                     c -> FuzzyMatcher.<T>best(
                         list.subList(Math.min(list.size(), c * size), Math.min(list.size(), (c + 1) * size)),
                         text,
+                        boost,
                         query,
                         limit
                     )
@@ -172,7 +185,7 @@ public final class FuzzyMatcher {
             result.sort(ORDER);
             return result.size() > limit ? new ArrayList<>(result.subList(0, limit)) : result;
         }
-        result.addAll(best(items, text, query, limit));
+        result.addAll(best(items, text, boost, query, limit));
         result.sort(ORDER);
         return result;
     }
@@ -180,6 +193,7 @@ public final class FuzzyMatcher {
     private static <T> Collection<Ranked<T>> best(
         Iterable<? extends T> items,
         Function<? super T, String> text,
+        ToIntFunction<? super T> boost,
         Query query,
         int limit
     ) {
@@ -189,9 +203,10 @@ public final class FuzzyMatcher {
             String s = text.apply(item);
             if (s == null)
                 continue;
-            Integer score = score(s, query);
-            if (score == null)
+            Integer matched = score(s, query);
+            if (matched == null)
                 continue;
+            int score = matched + boost.applyAsInt(item);
             if (heap.size() == limit && score < heap.peek().score)
                 continue;
             Ranked<T> r = new Ranked<>(item, s, score);

@@ -66,6 +66,16 @@ public final class Command {
         return declaringClass;
     }
 
+    /** Whether it runs with no argument. */
+    public boolean takesNoArgument() {
+        return run != null;
+    }
+
+    /** Whether it runs with an argument. */
+    public boolean takesArgument() {
+        return runWithArgument != null;
+    }
+
     /** Whether it can run at all, with an argument or without. */
     boolean isRunnable() {
         return run != null || runWithArgument != null;

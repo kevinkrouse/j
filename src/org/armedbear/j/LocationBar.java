@@ -49,12 +49,16 @@ public final class LocationBar extends JPanel implements ActionListener, MouseLi
         "Command:",
         "Tag:",
         "Pattern:",
+        "Find file:",
+        "Action:",
     };
 
     public static final int PROMPT_LOCATION = 0;
     public static final int PROMPT_COMMAND = 1;
     public static final int PROMPT_TAG = 2;
     public static final int PROMPT_PATTERN = 3;
+    public static final int PROMPT_FIND_FILE = 4;
+    public static final int PROMPT_ACTION = 5;
 
     public LocationBar(final Editor editor) {
         this.editor = editor;

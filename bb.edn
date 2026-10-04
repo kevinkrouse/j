@@ -16,6 +16,8 @@
   extensions {:doc "Compile and package extensions/*"        :task (build/extensions {})}
   check-core {:doc "Assert core carries no ABCL"             :task (build/check-core {})}
   stamp      {:doc "Write the version/build resources"       :task (build/stamp {})}
+  command-summaries {:doc "Regenerate command summaries from doc/commands.html"
+                     :task (build/command-summaries {})}
   jar        {:doc "Create packaged build/j.jar"             :task (build/jar {})}
   run        {:doc "Run J from build/classes"                :task (build/run {})
               :override-builtin true}

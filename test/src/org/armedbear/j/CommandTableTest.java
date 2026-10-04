@@ -64,4 +64,28 @@ public class CommandTableTest {
             h.close();
         }
     }
+
+    @Test
+    public void summariesComeFromTheDocs() {
+        assertEquals("Moves to the beginning of the buffer.", CommandTable.getSummary("bob"));
+        assertEquals(CommandTable.getSummary("bob"), CommandTable.getSummary("BOB"));
+        assertEquals(null, CommandTable.getSummary("noSuchCommand"));
+    }
+
+    @Test
+    public void argumentForms() {
+        assertTrue(CommandTable.getCommand("bob").takesNoArgument());
+        assertFalse(CommandTable.getCommand("bob").takesArgument());
+        assertFalse(CommandTable.getCommand("replaceChar").takesNoArgument());
+        assertTrue(CommandTable.getCommand("replaceChar").takesArgument());
+    }
+
+    @Test
+    public void humanizedNames() {
+        assertEquals("Open File In Other Window", ActionTextFieldHandler.humanize("openFileInOtherWindow"));
+        assertEquals("Bob", ActionTextFieldHandler.humanize("bob"));
+        assertEquals("Vsplit Window", ActionTextFieldHandler.humanize("vsplitWindow"));
+        assertEquals("Jdb Step", ActionTextFieldHandler.humanize("jdbStep"));
+        assertEquals("Goto Line 2", ActionTextFieldHandler.humanize("gotoLine2"));
+    }
 }

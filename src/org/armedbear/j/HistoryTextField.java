@@ -95,10 +95,13 @@ public class HistoryTextField extends JTextField implements FocusListener,
 
     public final void setHandler(TextFieldHandler handler) {
         Debug.assertTrue(handler != null);
-        if (this.handler != null)
-            removeKeyListener(this.handler);
+        TextFieldHandler old = this.handler;
+        if (old != null)
+            removeKeyListener(old);
         this.handler = handler;
         addKeyListener(handler);
+        if (old != null && old != handler)
+            old.detached();
     }
 
     public void setHistory(History history) {

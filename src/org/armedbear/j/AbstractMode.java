@@ -177,6 +177,7 @@ public abstract class AbstractMode implements Mode {
         final boolean isNotReadOnly = !editor.getBuffer().isReadOnly();
         menu.add(editor, "New", 'N', "newBuffer");
         menu.add(editor, "Open...", 'O', "openFile");
+        menu.add(editor, "Find File in Project...", 'F', "findFileInProject");
         menu.add(editor, "Recent Files...", 'R', "recentFiles");
         menu.addSeparator();
         menu.add(editor, "Save", 'S', "save", isNotReadOnly);
@@ -320,6 +321,7 @@ public abstract class AbstractMode implements Mode {
 
     private static void populateHelpMenu(Editor editor, Menu menu) {
         menu.add(editor, "Help", 'P', "help");
+        menu.add(editor, "Find Action...", 'F', "findAction");
         menu.add(editor, "Apropos...", 'A', "apropos");
         menu.add(editor, "Key Bindings", 'B', "describeBindings");
         menu.add(editor, "Describe Key...", 'K', "describeKey");

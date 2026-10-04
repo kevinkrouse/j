@@ -41,6 +41,9 @@ public interface TextFieldHandler extends KeyListener {
 
     public Expansion getExpansion(String prefix);
 
+    /** Called when the text field replaces this handler with another. */
+    public default void detached() {}
+
     @Override
     public void keyPressed(KeyEvent e);
 

@@ -20,10 +20,16 @@
 
 package org.armedbear.j;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
@@ -85,6 +91,49 @@ public class CommandTable {
             throw new IllegalArgumentException("name, owner and method are all required");
         init();
         map.put(name.toLowerCase(Locale.ROOT), new Command(name, owner, methodName));
+    }
+
+    /** As registerCommand(), with a one-sentence summary for the action finder. */
+    public static void registerCommand(String name, Class<?> owner, String methodName, String summary) {
+        registerCommand(name, owner, methodName);
+        if (summary != null)
+            extraSummaries.put(name.toLowerCase(Locale.ROOT), summary);
+    }
+
+    private static final Map<String, String> extraSummaries = new ConcurrentHashMap<>();
+    private static Map<String, String> summaries;
+
+    /** The command's one-sentence summary, or null. */
+    public static String getSummary(String name) {
+        String key = name.toLowerCase(Locale.ROOT);
+        String s = extraSummaries.get(key);
+        return s != null ? s : summaries().get(key);
+    }
+
+    // From command-summaries.properties, which `bb command-summaries` writes.
+    private static synchronized Map<String, String> summaries() {
+        if (summaries == null) {
+            Map<String, String> m = new HashMap<>();
+            try (InputStream in = CommandTable.class.getResourceAsStream("command-summaries.properties")) {
+                if (in != null) {
+                    Properties p = new Properties();
+                    p.load(new InputStreamReader(in, StandardCharsets.UTF_8));
+                    for (String key : p.stringPropertyNames())
+                        m.put(key.toLowerCase(Locale.ROOT), p.getProperty(key));
+                }
+            }
+            catch (IOException e) {
+                Log.error(e);
+            }
+            summaries = m;
+        }
+        return summaries;
+    }
+
+    /** Every command, in no particular order. */
+    public static List<Command> getCommands() {
+        init();
+        return new ArrayList<>(map.values());
     }
 
     private static synchronized void init() {
@@ -150,6 +199,8 @@ public class CommandTable {
             add("executeCommand", Editor::executeCommand, (e, s) -> e.executeCommand(s));
             add("findCharInLine", null, (e, s) -> CaretCommands.findCharInLine(s));
             add("findCharInLineBackward", null, (e, s) -> CaretCommands.findCharInLineBackward(s));
+            add("findAction", ProjectCommands::findAction);
+            add("findFileInProject", ProjectCommands::findFileInProject);
             add("findFirstOccurrence", SearchCommands::findFirstOccurrence);
             add("findMatchingChar", CaretCommands::findMatchingChar);
             add("findNext", SearchCommands::findNext);
