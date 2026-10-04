@@ -26,22 +26,19 @@ import org.armedbear.j.Formatter;
 import org.armedbear.j.Line;
 import org.armedbear.j.LineSegmentList;
 
-public final class CheckPathFormatter extends Formatter
-{
-    private static final byte FORMAT_TEXT         = 0;
-    private static final byte FORMAT_COMMENT      = 1;
-    private static final byte FORMAT_HEADER_NAME  = 2;
+public final class CheckPathFormatter extends Formatter {
+    private static final byte FORMAT_TEXT = 0;
+    private static final byte FORMAT_COMMENT = 1;
+    private static final byte FORMAT_HEADER_NAME = 2;
     private static final byte FORMAT_HEADER_VALUE = 4;
-    private static final byte FORMAT_NOT_FOUND    = 5;
-    private static final byte FORMAT_STATUS       = 6;
+    private static final byte FORMAT_NOT_FOUND = 5;
+    private static final byte FORMAT_STATUS = 6;
 
-    public CheckPathFormatter(Buffer buffer)
-    {
+    public CheckPathFormatter(Buffer buffer) {
         this.buffer = buffer;
     }
 
-    public LineSegmentList formatLine(Line line)
-    {
+    public LineSegmentList formatLine(Line line) {
         clearSegmentList();
         if (line == null) {
             addSegment("", FORMAT_TEXT);
@@ -52,8 +49,7 @@ public final class CheckPathFormatter extends Formatter
 
     }
 
-    private void parseLine(Line line)
-    {
+    private void parseLine(Line line) {
         final String text = getDetabbedText(line);
         if (text.endsWith(" -->")) {
             addSegment(text, FORMAT_COMMENT);
@@ -76,16 +72,15 @@ public final class CheckPathFormatter extends Formatter
         }
         int index = text.indexOf(':');
         if (index > 0) {
-            addSegment(text, 0, index+1, FORMAT_HEADER_NAME);
-            addSegment(text, index+1, FORMAT_HEADER_VALUE);
+            addSegment(text, 0, index + 1, FORMAT_HEADER_NAME);
+            addSegment(text, index + 1, FORMAT_HEADER_VALUE);
             return;
         }
         // Default.
         addSegment(text, FORMAT_TEXT);
     }
 
-    public FormatTable getFormatTable()
-    {
+    public FormatTable getFormatTable() {
         if (formatTable == null) {
             // Currently there's no CheckPathMode...
             formatTable = new FormatTable("ListOccurrencesMode");
