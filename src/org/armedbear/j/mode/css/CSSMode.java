@@ -20,16 +20,17 @@
 
 package org.armedbear.j.mode.css;
 
+import static org.armedbear.j.Constants.*;
+
 import java.awt.event.KeyEvent;
 import org.armedbear.j.AbstractMode;
 import org.armedbear.j.Buffer;
-import org.armedbear.j.Constants;
 import org.armedbear.j.Formatter;
 import org.armedbear.j.KeyMap;
 import org.armedbear.j.Line;
 import org.armedbear.j.Mode;
 
-public final class CSSMode extends AbstractMode implements Constants, Mode {
+public final class CSSMode extends AbstractMode implements Mode {
     private static final CSSMode mode = new CSSMode();
 
     private CSSMode() {
@@ -40,22 +41,27 @@ public final class CSSMode extends AbstractMode implements Constants, Mode {
         return mode;
     }
 
+    @Override
     public Formatter getFormatter(Buffer buffer) {
         return new CSSFormatter(buffer);
     }
 
+    @Override
     protected void setKeyMapDefaults(KeyMap km) {
         km.mapKey(KeyEvent.VK_ENTER, 0, "newlineAndIndent");
     }
 
+    @Override
     public boolean canIndent() {
         return true;
     }
 
+    @Override
     public boolean canIndentPaste() {
         return false;
     }
 
+    @Override
     public int getCorrectIndentation(Line line, Buffer buffer) {
         final int indentSize = buffer.getIndentSize();
         final Line model = line.previousNonBlank();
@@ -67,10 +73,12 @@ public final class CSSMode extends AbstractMode implements Constants, Mode {
         return modelIndent;
     }
 
+    @Override
     public boolean isIdentifierStart(char c) {
         return startChars.indexOf(c) >= 0;
     }
 
+    @Override
     public boolean isIdentifierPart(char c) {
         return partChars.indexOf(c) >= 0;
     }

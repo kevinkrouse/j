@@ -21,7 +21,6 @@
 package org.armedbear.j.mode.css;
 
 import org.armedbear.j.Buffer;
-import org.armedbear.j.Constants;
 import org.armedbear.j.Editor;
 import org.armedbear.j.FormatTable;
 import org.armedbear.j.Formatter;
@@ -29,7 +28,7 @@ import org.armedbear.j.Line;
 import org.armedbear.j.LineSegmentList;
 import org.armedbear.j.util.Utilities;
 
-public final class CSSFormatter extends Formatter implements Constants {
+public final class CSSFormatter extends Formatter {
     // States (used in line flags).
     private static final int CSS_STATE_QUOTE = 0x0001;
     private static final int CSS_STATE_SINGLEQUOTE = 0x0002;
@@ -242,6 +241,7 @@ public final class CSSFormatter extends Formatter implements Constants {
         endToken(text, i, state);
     }
 
+    @Override
     public LineSegmentList formatLine(Line line) {
         clearSegmentList();
         if (line == null) {
@@ -252,6 +252,7 @@ public final class CSSFormatter extends Formatter implements Constants {
         return segmentList;
     }
 
+    @Override
     public boolean parseBuffer() {
         int state = 0;
         Line line = buffer.getFirstLine();
@@ -317,6 +318,7 @@ public final class CSSFormatter extends Formatter implements Constants {
         return changed;
     }
 
+    @Override
     public FormatTable getFormatTable() {
         if (formatTable == null) {
             formatTable = new FormatTable("CSSMode");
