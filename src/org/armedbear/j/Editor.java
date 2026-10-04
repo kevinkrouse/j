@@ -1234,7 +1234,7 @@ public final class Editor extends JPanel implements Constants,
     }
 
     /** Where a bookmark's name is kept, or -1 for a name that is not one. */
-    private static int bookmarkIndex(char name) {
+    static int bookmarkIndex(char name) {
         if (name >= '0' && name <= '9')
             return name - '0';
         if (name >= 'A' && name <= 'Z')
@@ -1253,70 +1253,6 @@ public final class Editor extends JPanel implements Constants,
         final int index = bookmarkIndex(name);
         if (index >= 0)
             bookmarks[index] = marker;
-    }
-
-    /** The digit key that ran the command, as the default bindings name it. */
-    private String bookmarkKey() {
-        final AWTEvent e = dispatcher.getLastEvent();
-        if (e == null || e.getID() != KeyEvent.KEY_PRESSED)
-            return null;
-        final int digit = ((KeyEvent) e).getKeyCode() - KeyEvent.VK_0;
-        return digit >= 0 && digit <= 9 ? String.valueOf(digit) : null;
-    }
-
-    /** {@code dropBookmark} -- by the digit key it is bound to. */
-    public void dropBookmark() {
-        dropBookmark(bookmarkKey());
-    }
-
-    /**
-     * {@code dropBookmark NAME} -- a bookmark here, named 0 to 9 or A to Z,
-     * asking before one already set is replaced.
-     */
-    public void dropBookmark(String name) {
-        if (
-            name == null
-                || name.trim().length() != 1
-                || bookmarkIndex(name.trim().charAt(0)) < 0
-        ) {
-            status("A bookmark is named 0 to 9 or A to Z");
-            return;
-        }
-        final char c = name.trim().charAt(0);
-        if (
-            getBookmark(c) == null
-                || confirm("Drop Bookmark", "Overwrite existing bookmark?")
-        ) {
-            setBookmark(c, new Marker(buffer, dot));
-            status("Bookmark dropped");
-        }
-    }
-
-    /** {@code gotoBookmark} -- by the digit key it is bound to. */
-    public void gotoBookmark() {
-        gotoBookmark(bookmarkKey());
-    }
-
-    /** {@code gotoBookmark NAME} -- to a bookmark, in whatever file it is. */
-    public void gotoBookmark(String name) {
-        final Marker m = name == null || name.trim().length() != 1
-            ? null
-            : getBookmark(name.trim().charAt(0));
-        if (m != null)
-            m.gotoMarker(this);
-    }
-
-    // Drop a temporary bookmark, overwriting the existing temporary bookmark
-    // if one exists.
-    public void dropTemporaryMarker() {
-        bookmarks[10] = new Marker(buffer, dot);
-        status("Temporary marker dropped");
-    }
-
-    public void gotoTemporaryMarker() {
-        Marker m = bookmarks[10];
-        if (m != null)
-            m.gotoMarker(this);
     }
 
     public void deleteLineSeparator() {

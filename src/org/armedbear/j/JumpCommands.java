@@ -20,6 +20,10 @@
 
 package org.armedbear.j;
 
+import java.awt.AWTEvent;
+import java.awt.event.KeyEvent;
+
+/** Jumping to a line, column or offset, a bookmark, or the temporary marker. */
 public final class JumpCommands implements Constants {
     public static void jumpToLine() {
         final Editor editor = Editor.currentEditor();
@@ -102,5 +106,69 @@ public final class JumpCommands implements Constants {
             return c == '+' ? here + offset : here - offset;
         }
         return Integer.parseInt(s);
+    }
+
+    /** The digit key that ran the command, as the default bindings name it. */
+    private static String bookmarkKey(Editor editor) {
+        final AWTEvent e = editor.getDispatcher().getLastEvent();
+        if (e == null || e.getID() != KeyEvent.KEY_PRESSED)
+            return null;
+        final int digit = ((KeyEvent) e).getKeyCode() - KeyEvent.VK_0;
+        return digit >= 0 && digit <= 9 ? String.valueOf(digit) : null;
+    }
+
+    /** {@code dropBookmark} -- by the digit key it is bound to. */
+    public static void dropBookmark(Editor editor) {
+        dropBookmark(editor, bookmarkKey(editor));
+    }
+
+    /**
+     * {@code dropBookmark NAME} -- a bookmark here, named 0 to 9 or A to Z,
+     * asking before one already set is replaced.
+     */
+    public static void dropBookmark(Editor editor, String name) {
+        if (
+            name == null
+                || name.trim().length() != 1
+                || Editor.bookmarkIndex(name.trim().charAt(0)) < 0
+        ) {
+            editor.status("A bookmark is named 0 to 9 or A to Z");
+            return;
+        }
+        final char c = name.trim().charAt(0);
+        if (
+            Editor.getBookmark(c) == null
+                || editor.confirm("Drop Bookmark", "Overwrite existing bookmark?")
+        ) {
+            Editor.setBookmark(c, new Marker(editor.getBuffer(), editor.getDot()));
+            editor.status("Bookmark dropped");
+        }
+    }
+
+    /** {@code gotoBookmark} -- by the digit key it is bound to. */
+    public static void gotoBookmark(Editor editor) {
+        gotoBookmark(editor, bookmarkKey(editor));
+    }
+
+    /** {@code gotoBookmark NAME} -- to a bookmark, in whatever file it is. */
+    public static void gotoBookmark(Editor editor, String name) {
+        final Marker m = name == null || name.trim().length() != 1
+            ? null
+            : Editor.getBookmark(name.trim().charAt(0));
+        if (m != null)
+            m.gotoMarker(editor);
+    }
+
+    // Drop a temporary bookmark, overwriting the existing temporary bookmark
+    // if one exists.
+    public static void dropTemporaryMarker(Editor editor) {
+        Editor.getBookmarks()[10] = new Marker(editor.getBuffer(), editor.getDot());
+        editor.status("Temporary marker dropped");
+    }
+
+    public static void gotoTemporaryMarker(Editor editor) {
+        Marker m = Editor.getBookmarks()[10];
+        if (m != null)
+            m.gotoMarker(editor);
     }
 }

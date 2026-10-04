@@ -18,6 +18,7 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 
 import org.armedbear.j.Editor;
 import org.armedbear.j.EditorHarness;
+import org.armedbear.j.JumpCommands;
 import org.armedbear.j.JumpList;
 import org.armedbear.j.Marker;
 import org.junit.jupiter.api.AfterEach;
@@ -83,11 +84,11 @@ public class VimJumpsAndFileMarksTest {
     @Test
     public void aBookmarkIsAFileMark() {
         vim("a\nb\nc", 2);
-        h.editor().dropBookmark("B");
+        JumpCommands.dropBookmark(h.editor(), "B");
         h.keys("gg`B");
         assertEquals("2,0", caret());
         h.keys("gg");
-        h.editor().gotoBookmark("B");
+        JumpCommands.gotoBookmark(h.editor(), "B");
         assertEquals("2,0", caret());
     }
 

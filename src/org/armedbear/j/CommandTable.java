@@ -130,8 +130,8 @@ public class CommandTable {
             add("dirTagFile", BufferCommands::dirTagFile);
             add("dirUpDir", BufferCommands::dirUpDir);
             add("down", MotionCommands::down);
-            add("dropBookmark", Editor::dropBookmark, (e, s) -> e.dropBookmark(s));
-            add("dropTemporaryMarker", Editor::dropTemporaryMarker);
+            add("dropBookmark", JumpCommands::dropBookmark, (e, s) -> JumpCommands.dropBookmark(e, s));
+            add("dropTemporaryMarker", JumpCommands::dropTemporaryMarker);
             add("electricCloseAngleBracket", ElectricCommands::electricCloseAngleBracket);
             add("electricCloseBrace", ElectricCommands::electricCloseBrace);
             add("electricColon", ElectricCommands::electricColon);
@@ -162,8 +162,8 @@ public class CommandTable {
             add("foldAll", FoldCommands::foldAll);
             add("foldMethods", FoldCommands::foldMethods);
             add("foldRegion", FoldCommands::foldRegion);
-            add("gotoBookmark", Editor::gotoBookmark, (e, s) -> e.gotoBookmark(s));
-            add("gotoTemporaryMarker", Editor::gotoTemporaryMarker);
+            add("gotoBookmark", JumpCommands::gotoBookmark, (e, s) -> JumpCommands.gotoBookmark(e, s));
+            add("gotoTemporaryMarker", JumpCommands::gotoTemporaryMarker);
             add("gotoWindow", null, (e, s) -> WindowCommands.gotoWindow(e, s));
             add("home", MotionCommands::home);
             add("httpDeleteCookies", FileCommands::httpDeleteCookies);
