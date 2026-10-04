@@ -32,6 +32,7 @@ import org.armedbear.j.RegionCommands;
 import org.armedbear.j.SimpleEdit;
 import org.armedbear.j.UndoBoundary;
 import org.armedbear.j.UndoManager;
+import org.armedbear.j.WindowCommands;
 import org.armedbear.j.Words;
 
 /**
@@ -356,11 +357,11 @@ public final class VimActions {
      */
     private static void switchWindow(MotionContext ctx) {
         if (ctx.countGiven)
-            ctx.editor.gotoWindow(String.valueOf(ctx.count));
+            WindowCommands.gotoWindow(ctx.editor, String.valueOf(ctx.count));
         else if (ctx.arg("backward"))
-            ctx.editor.previousWindow();
+            WindowCommands.previousWindow(ctx.editor);
         else
-            ctx.editor.nextWindow();
+            WindowCommands.nextWindow(ctx.editor);
     }
 
     /**

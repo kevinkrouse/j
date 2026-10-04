@@ -39,6 +39,7 @@ import org.armedbear.j.Position;
 import org.armedbear.j.Property;
 import org.armedbear.j.ShellCommand;
 import org.armedbear.j.Sidebar;
+import org.armedbear.j.WindowCommands;
 import org.armedbear.j.mode.checkin.CheckinBuffer;
 import org.armedbear.j.mode.diff.DiffOutputBuffer;
 import org.armedbear.j.util.Background;
@@ -722,8 +723,8 @@ public class P4 extends VersionControl implements Constants {
             if (!editOnly)
                 // Read-only status of some buffers may have changed.
                 editor.getFrame().reactivate();
-            editor.otherWindow();
-            editor.unsplitWindow();
+            WindowCommands.otherWindow(editor);
+            WindowCommands.unsplitWindow(editor);
             checkinBuffer.kill();
         }
 

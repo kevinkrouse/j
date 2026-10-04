@@ -114,7 +114,7 @@ public final class TagCommands implements Constants {
             boolean shrink = (otherEditor == null);
             Editor ed = editor.activateInOtherWindow(buf);
             if (shrink)
-                ed.shrinkWindowIfLargerThanBuffer();
+                WindowCommands.shrinkWindowIfLargerThanBuffer(ed);
             ed.setDot(buf.getInitialDotPos());
             ed.moveCaretToDotCol();
             ed.updateDisplay();
@@ -381,7 +381,7 @@ public final class TagCommands implements Constants {
                 boolean shrink = (otherEditor == null);
                 Editor ed = editor.activateInOtherWindow(buf);
                 if (shrink)
-                    ed.shrinkWindowIfLargerThanBuffer();
+                    WindowCommands.shrinkWindowIfLargerThanBuffer(ed);
                 ed.setDot(buf.getInitialDotPos());
                 ed.moveCaretToDotCol();
                 ed.updateDisplay();

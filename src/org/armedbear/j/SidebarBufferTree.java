@@ -525,7 +525,7 @@ public final class SidebarBufferTree extends SidebarTree implements Constants,
                 e.consume();
                 switchToBuffer();
                 if (modifiers == Constants.ALT_MASK)
-                    editor.toggleSidebar();
+                    WindowCommands.toggleSidebar(editor);
                 return;
             case KeyEvent.VK_TAB:
                 e.consume();

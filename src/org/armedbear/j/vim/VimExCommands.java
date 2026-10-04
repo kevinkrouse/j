@@ -20,6 +20,7 @@ import org.armedbear.j.Editor;
 import org.armedbear.j.Line;
 import org.armedbear.j.Lines;
 import org.armedbear.j.Position;
+import org.armedbear.j.WindowCommands;
 
 /**
  * What the {@code :} commands do.
@@ -138,7 +139,7 @@ public final class VimExCommands {
             return true;
         }
         if (matches(name, "on", "only")) {
-            editor.unsplitAllWindows();
+            WindowCommands.unsplitAllWindows(editor);
             return true;
         }
         if (matches(name, "se", "set")) {
@@ -380,7 +381,7 @@ public final class VimExCommands {
         if (frame == null)
             return;
         if (frame.getEditorCount() > 1)
-            editor.killWindow("vim");
+            WindowCommands.killWindow(editor, "vim");
         else if (quit)
             editor.quit();
         else

@@ -52,6 +52,7 @@ import org.armedbear.j.MessageDialog;
 import org.armedbear.j.NavigationComponent;
 import org.armedbear.j.Position;
 import org.armedbear.j.SimpleEdit;
+import org.armedbear.j.WindowCommands;
 import org.armedbear.j.XmlParserImpl;
 import org.armedbear.j.util.Background;
 import org.armedbear.j.util.Icons;
@@ -288,7 +289,7 @@ public final class XmlTree extends JTree implements Constants, NavigationCompone
                 }
                 editor.setFocusToDisplay();
                 if (modifiers == Constants.ALT_MASK)
-                    editor.toggleSidebar();
+                    WindowCommands.toggleSidebar(editor);
                 return;
             }
             case KeyEvent.VK_TAB:

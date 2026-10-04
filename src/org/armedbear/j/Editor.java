@@ -274,6 +274,10 @@ public final class Editor extends JPanel implements Constants,
         return tabsAreVisible;
     }
 
+    static void setTabsAreVisible(boolean b) {
+        tabsAreVisible = b;
+    }
+
     static boolean isMenuSelected = false;
 
     // UNDONE: cache localDirectoryTree somewhere else
@@ -829,6 +833,10 @@ public final class Editor extends JPanel implements Constants,
 
     static void addFrame(Frame frame) {
         frames.add(frame);
+    }
+
+    static void removeFrame(Frame frame) {
+        frames.remove(frame);
     }
 
     public static int indexOf(Frame frame) {
@@ -3635,7 +3643,7 @@ public final class Editor extends JPanel implements Constants,
         tagFileManager.setEnabled(true);
     }
 
-    private void maybeExit() {
+    void maybeExit() {
         int numModifiedBuffers = 0;
 
         for (Buffer buf : Editor.getBufferList()) {
@@ -3679,26 +3687,6 @@ public final class Editor extends JPanel implements Constants,
         pendingOperations.run();
         setDefaultCursor();
         System.exit(0);
-    }
-
-    public void killFrame() {
-        if (getFrameCount() == 1) {
-            // Does not return if OK to exit.
-            maybeExit();
-        } else {
-            // Move frame being closed to end of list.
-            if (indexOf(frame) != getFrameCount() - 1) {
-                frames.remove(frame);
-                frames.add(frame);
-            }
-            sessionProperties.saveWindowPlacement();
-            frames.remove(frame);
-            frame.dispose();
-
-            for (Editor ed : frame.getEditors())
-                removeEditor(ed);
-            setCurrentEditor(getEditor(0));
-        }
     }
 
     // See if we have the requested file in a buffer. If not, and if the file
@@ -3854,9 +3842,9 @@ public final class Editor extends JPanel implements Constants,
         if (frame == null)
             return;
         if (vertical)
-            vsplitWindow("vim");
+            WindowCommands.vsplitWindow(this, "vim");
         else
-            splitWindow("vim");
+            WindowCommands.splitWindow(this, "vim");
         if (file == null || file.trim().isEmpty())
             return;
         // The caret is in the top or left window now.
@@ -3872,7 +3860,7 @@ public final class Editor extends JPanel implements Constants,
         saveView();
         boolean alreadySplit = frame.hasSplit();
         if (!alreadySplit)
-            splitWindow();
+            WindowCommands.splitWindow(this);
         final Editor ed = getOtherEditor();
         if (ed.getLocationBar() != null) {
             Runnable r = () -> {
@@ -4117,8 +4105,8 @@ public final class Editor extends JPanel implements Constants,
         if (buffer instanceof CompilationBuffer || buffer.isTransient()) {
             if (buffer.unsplitOnClose()) {
                 buffer.windowClosing();
-                otherWindow();
-                unsplitWindow();
+                WindowCommands.otherWindow(this);
+                WindowCommands.unsplitWindow(this);
             }
             maybeKillBuffer(buffer);
             restoreFocus();
@@ -4126,8 +4114,8 @@ public final class Editor extends JPanel implements Constants,
             return true;
         }
         if (buffer.getModeId() == CHECKIN_MODE) {
-            otherWindow();
-            unsplitWindow();
+            WindowCommands.otherWindow(this);
+            WindowCommands.unsplitWindow(this);
             if (!buffer.isModified())
                 maybeKillBuffer(buffer);
             restoreFocus();
@@ -4139,7 +4127,7 @@ public final class Editor extends JPanel implements Constants,
             Buffer buf = ed.getBuffer();
             if (buf instanceof CompilationBuffer || buf.isTransient()) {
                 if (buf.unsplitOnClose())
-                    unsplitWindow();
+                    WindowCommands.unsplitWindow(this);
                 maybeKillBuffer(buf);
                 if (!buf.unsplitOnClose())
                     ed.updateDisplay();
@@ -4147,7 +4135,7 @@ public final class Editor extends JPanel implements Constants,
                 return true;
             }
             if (buf.getModeId() == CHECKIN_MODE) {
-                unsplitWindow();
+                WindowCommands.unsplitWindow(this);
                 if (!buf.isModified())
                     maybeKillBuffer(buf);
                 return true;
@@ -4160,8 +4148,8 @@ public final class Editor extends JPanel implements Constants,
         if (buffer instanceof CompilationBuffer || buffer.isTransient()) {
             if (buffer.unsplitOnClose()) {
                 buffer.windowClosing();
-                otherWindow();
-                unsplitWindow();
+                WindowCommands.otherWindow(this);
+                WindowCommands.unsplitWindow(this);
             }
             maybeKillBuffer(buffer);
             restoreFocus();
@@ -5140,15 +5128,15 @@ public final class Editor extends JPanel implements Constants,
         try {
             if (buffer.isSecondary()) {
                 buffer.windowClosing();
-                otherWindow();
-                unsplitWindow();
+                WindowCommands.otherWindow(this);
+                WindowCommands.unsplitWindow(this);
                 currentEditor.maybeKillBuffer(buffer);
                 restoreFocus();
                 return;
             }
             Buffer buf = buffer.getSecondary();
             if (buf != null) {
-                unsplitWindow();
+                WindowCommands.unsplitWindow(this);
                 maybeKillBuffer(buf);
                 return;
             }
@@ -5380,59 +5368,11 @@ public final class Editor extends JPanel implements Constants,
         return ed;
     }
 
-    public void nextFrame() {
-        int count = getEditorCount();
-        if (count > 1) {
-            Editor ed = null;
-            for (int i = 0; i < count; i++) {
-                ed = Editor.getEditor(i);
-                if (ed == this) {
-                    if (++i == count)
-                        i = 0;
-                    ed = Editor.getEditor(i);
-                    ed.getFrame().toFront();
-                    ed.requestFocusLater();
-                    break;
-                }
-            }
-        }
-    }
-
-    private void requestFocusLater() {
+    void requestFocusLater() {
         Runnable r = () -> {
             Editor.this.requestFocus();
         };
         SwingUtilities.invokeLater(r);
-    }
-
-    public void toggleSidebar() {
-        frame.frameToggleSidebar();
-    }
-
-    public void sidebarListBuffers() {
-        ensureActive();
-
-        if (frame.getSidebar() == null)
-            toggleSidebar();
-
-        if (frame.getSidebar() != null)
-            frame.getSidebar().activateBufferList();
-    }
-
-    public void sidebarListTags() {
-        if (!frame.isActive())
-            return;
-
-        if (getMode().getSidebarComponent(this) != null) {
-            if (frame.getSidebar() == null)
-                toggleSidebar();
-            if (frame.getSidebar() != null)
-                frame.getSidebar().activateNavigationComponent();
-        }
-    }
-
-    public void toggleToolbar() {
-        frame.frameToggleToolbar();
     }
 
     public final boolean addUndo(int type) {
@@ -5926,18 +5866,6 @@ public final class Editor extends JPanel implements Constants,
         if (!checkReadOnly())
             return;
         new WrapText(this).wrapParagraphsInRegion();
-    }
-
-    public void visibleTabs() {
-        tabsAreVisible = !tabsAreVisible;
-        if (tabsAreVisible)
-            status("Tabs are visible");
-        else
-            status("Tabs are not visible");
-        for (int i = 0; i < getEditorCount(); i++) {
-            Editor ed = getEditor(i);
-            ed.getDisplay().repaint();
-        }
     }
 
     public void insertBraces() {
@@ -6438,202 +6366,6 @@ public final class Editor extends JPanel implements Constants,
             buffer.changeMode(modeList.getMode(PLAIN_TEXT_MODE));
             setDefaultCursor();
         }
-    }
-
-    public boolean isSibling(Editor other) {
-        return frame.isEditorSibling(this, other);
-    }
-
-    public boolean isTopLeftOf(Editor other) {
-        return frame.isEditorTopLeftOf(this, other);
-    }
-
-    public void splitWindow() {
-        currentEditor.getFrame().splitWindow();
-    }
-
-    /**
-     * {@code splitWindow vim}: the caret stays in the top window, which is
-     * what vim's split looks like -- the new window above, and the caret in
-     * it -- with both showing the same.
-     */
-    public void splitWindow(String arg) {
-        frame.splitWindow(this, false, !"vim".equals(arg));
-    }
-
-    public void vsplitWindow() {
-        currentEditor.getFrame().vsplitWindow();
-    }
-
-    /** {@code vsplitWindow vim}: the caret stays in the left window. */
-    public void vsplitWindow(String arg) {
-        frame.splitWindow(this, true, !"vim".equals(arg));
-    }
-
-    public void unsplitWindow() {
-        IdleThread.killFollowContextTask();
-        frame.unsplitWindow();
-    }
-
-    /**
-     * {@code killWindow vim}: the caret goes to the window that takes this
-     * one's space, the next in its row or column, as in vim.
-     */
-    public void killWindow(String arg) {
-        frame.closeEditor(currentEditor, "vim".equals(arg));
-        Sidebar sidebar = getSidebar();
-        if (sidebar != null) {
-            sidebar.setUpdateFlag(SIDEBAR_ALL);
-            sidebar.refreshSidebar();
-        }
-    }
-
-    /**
-     * {@code adjacentWindow h|j|k|l} -- to the window left, below, above or
-     * right of this one; of several, the one level with the caret.
-     */
-    public void adjacentWindow(String direction) {
-        if (direction == null || direction.length() != 1)
-            return;
-        switchWindow(frame.getAdjacentEditor(this, direction.charAt(0)));
-    }
-
-    /** {@code gotoWindow n} -- to the nth window, the top left first. */
-    public void gotoWindow(String n) {
-        if (n == null)
-            return;
-        int target;
-        try {
-            target = Integer.parseInt(n.trim());
-        }
-        catch (NumberFormatException e) {
-            return;
-        }
-        // There being no such window does nothing, as in vim.
-        for (Editor ed : frame.getEditors())
-            if (--target == 0) {
-                switchWindow(ed);
-                return;
-            }
-    }
-
-    /** Every window in each row or column the same size again. */
-    public void balanceWindows() {
-        frame.balanceWindows();
-    }
-
-    public void killWindow() {
-        killWindow(null);
-    }
-
-    // Close all other windows except for this Editor window.
-    // Also aliased as 'killOtherWindows' in CommandTable
-    public void unsplitAllWindows() {
-        frame.unsplitAll(this);
-    }
-
-    // Switch to the Editor that is paired with this Editor's buffer
-    // or to this Editor's parent buffer.  If neither exist, switch
-    // to the most recent Editor or the previous primary buffer.
-    public void otherWindow() {
-        final Editor ed = getOtherEditor();
-        if (ed != null)
-            switchWindow(ed);
-    }
-
-    // Switch to most recent Editor or the previous Editor.
-    public void priorWindow() {
-        Editor ed = frame.getPriorEditor();
-        if (ed == null || ed == currentEditor)
-            ed = frame.getNextEditor(-1);
-
-        switchWindow(ed);
-    }
-
-    public void nextWindow() {
-        _nextWindow(1);
-    }
-
-    public void nextWindow(String arg) {
-        int count = 1;
-        if (arg != null)
-            try {
-                count = Integer.parseInt(arg);
-            }
-            catch (NumberFormatException e) {
-                MessageDialog.showMessageDialog(
-                    "Invalid number \"" + arg + '"',
-                    "Error"
-                );
-                return;
-            }
-
-        _nextWindow(count);
-    }
-
-    public void previousWindow() {
-        _nextWindow(-1);
-    }
-
-    public void previousWindow(String arg) {
-        int count = 1;
-        if (arg != null)
-            try {
-                count = Integer.parseInt(arg);
-            }
-            catch (NumberFormatException e) {
-                MessageDialog.showMessageDialog(
-                    "Invalid number \"" + arg + '"',
-                    "Error"
-                );
-                return;
-            }
-
-        _nextWindow(-1 * count);
-    }
-
-    private void _nextWindow(int count) {
-        final Editor ed = frame.getNextEditor(count);
-        switchWindow(ed);
-    }
-
-    private void switchWindow(Editor ed) {
-        if (ed != null) {
-            saveView();
-            setCurrentEditor(ed);
-            ed.getBuffer().setLastActivated(System.currentTimeMillis());
-            ed.setFocusToDisplay();
-            if (ed.getDot() != null) {
-                ed.update(ed.getDotLine());
-                ed.getDisplay().repaintChangedLines();
-            }
-            if (dot != null) {
-                updateDotLine();
-                display.repaintChangedLines();
-            }
-            frame.setMenu();
-            frame.setToolbar();
-            Sidebar sidebar = getSidebar();
-            if (sidebar != null) {
-                sidebar.setUpdateFlag(SIDEBAR_ALL);
-                sidebar.refreshSidebar();
-            }
-        }
-    }
-
-    public void enlargeWindow() {
-        frame.enlargeWindow(this, 1);
-    }
-
-    public void enlargeWindow(int n) {
-        frame.enlargeWindow(this, n);
-    }
-
-    public void shrinkWindowIfLargerThanBuffer() {
-        final Frame frame = getFrame();
-        int n = getBuffer().getLineCount();
-        if (n < getWindowHeight())
-            frame.setWindowHeight(this, n);
     }
 
     private static Aliases aliases;

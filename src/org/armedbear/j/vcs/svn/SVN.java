@@ -37,6 +37,7 @@ import org.armedbear.j.MessageDialog;
 import org.armedbear.j.OutputBuffer;
 import org.armedbear.j.ShellCommand;
 import org.armedbear.j.Sidebar;
+import org.armedbear.j.WindowCommands;
 import org.armedbear.j.mode.checkin.CheckinBuffer;
 import org.armedbear.j.mode.diff.DiffOutputBuffer;
 import org.armedbear.j.mode.text.PlainTextFormatter;
@@ -417,8 +418,8 @@ public class SVN extends VersionControl implements Constants {
                 Log.error("SVN.finish input = |" + input + "|");
                 Log.error("SVN.finish exit value = " + shellCommand.exitValue());
             } else {
-                editor.otherWindow();
-                editor.unsplitWindow();
+                WindowCommands.otherWindow(editor);
+                WindowCommands.unsplitWindow(editor);
                 checkinBuffer.kill();
             }
             // UNDONE: consider killing diff and output buffers like P4

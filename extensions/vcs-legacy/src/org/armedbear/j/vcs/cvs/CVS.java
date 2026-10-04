@@ -31,6 +31,7 @@ import org.armedbear.j.File;
 import org.armedbear.j.MessageDialog;
 import org.armedbear.j.OutputBuffer;
 import org.armedbear.j.ShellCommand;
+import org.armedbear.j.WindowCommands;
 import org.armedbear.j.mode.checkin.CheckinBuffer;
 import org.armedbear.j.mode.diff.DiffOutputBuffer;
 import org.armedbear.j.mode.text.PlainTextFormatter;
@@ -325,8 +326,8 @@ public final class CVS extends VersionControl implements Constants {
             if (Editor.getBufferList().contains(checkinBuffer))
                 checkinBuffer.kill();
             if (editor.getOtherEditor() != null) {
-                editor.otherWindow();
-                editor.unsplitWindow();
+                WindowCommands.otherWindow(editor);
+                WindowCommands.unsplitWindow(editor);
             } else
                 editor.updateDisplay();
         }

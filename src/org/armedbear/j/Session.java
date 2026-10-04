@@ -164,7 +164,7 @@ public final class Session extends DefaultHandler implements Constants {
             Editor.getBufferList().remove(buf);
             buf.dispose();
         }
-        editor.unsplitWindow();
+        WindowCommands.unsplitWindow(editor);
         Buffer toBeActivated = session.createBuffers();
         // Make sure read-only status is correct for each buffer.
         for (Buffer buf : Editor.getBufferList())

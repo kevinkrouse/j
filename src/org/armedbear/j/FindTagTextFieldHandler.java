@@ -89,7 +89,7 @@ public final class FindTagTextFieldHandler extends DefaultTextFieldHandler {
                 Editor otherEditor = editor.getOtherEditor();
                 Editor ed = editor.activateInOtherWindow(buf);
                 if (otherEditor == null)
-                    ed.shrinkWindowIfLargerThanBuffer();
+                    WindowCommands.shrinkWindowIfLargerThanBuffer(ed);
                 ed.setDot(buf.getInitialDotPos());
                 ed.moveCaretToDotCol();
                 ed.updateDisplay();

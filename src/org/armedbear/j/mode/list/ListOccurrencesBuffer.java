@@ -36,6 +36,7 @@ import org.armedbear.j.OccurrenceLine;
 import org.armedbear.j.Position;
 import org.armedbear.j.Replacement;
 import org.armedbear.j.Search;
+import org.armedbear.j.WindowCommands;
 
 public class ListOccurrencesBuffer extends Buffer {
     protected final Search search;
@@ -333,7 +334,7 @@ public class ListOccurrencesBuffer extends Buffer {
                 }
                 Editor ed = editor.activateInOtherWindow(buf);
                 if (shrink)
-                    ed.shrinkWindowIfLargerThanBuffer();
+                    WindowCommands.shrinkWindowIfLargerThanBuffer(ed);
                 ed.setDot(
                     buf.getInitialDotPos(
                         editor.getDotLine(),

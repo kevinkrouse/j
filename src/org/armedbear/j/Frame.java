@@ -1063,7 +1063,7 @@ public final class Frame extends JFrame implements Constants, ComponentListener,
     }
 
     public void windowClosing(WindowEvent e) {
-        editors.get(0).killFrame();
+        WindowCommands.killFrame(editors.get(0));
     }
 
     public void windowClosed(WindowEvent e) {}

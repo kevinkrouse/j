@@ -41,6 +41,7 @@ import org.armedbear.j.Position;
 import org.armedbear.j.Property;
 import org.armedbear.j.Sidebar;
 import org.armedbear.j.SimpleEdit;
+import org.armedbear.j.WindowCommands;
 
 public final class MailCommands implements Constants {
     public static void inbox() {
@@ -456,8 +457,8 @@ public final class MailCommands implements Constants {
                         Editor otherEditor = editor.getOtherEditor();
                         if (otherEditor != null && messageBuffer.isTransient()) {
                             messageBuffer.saveWindowState(editor);
-                            editor.otherWindow();
-                            editor.unsplitWindow();
+                            WindowCommands.otherWindow(editor);
+                            WindowCommands.unsplitWindow(editor);
                             editor = Editor.currentEditor();
                         }
                     }
