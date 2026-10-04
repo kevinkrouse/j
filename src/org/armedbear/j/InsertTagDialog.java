@@ -125,7 +125,7 @@ public final class InsertTagDialog extends InputDialog implements Constants {
                     editor.getDot().moveTo(startTagLine, 0);
                     Position dot = editor.getDot();
                     while (dot.getLine() != null && dot.getLine() != r.getEndLine().next()) {
-                        editor.indentLine();
+                        IndentCommands.indentLine(editor);
                         dot.moveTo(dot.getNextLine(), 0);
                     }
                 }

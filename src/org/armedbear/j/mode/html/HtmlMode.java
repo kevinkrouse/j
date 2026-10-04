@@ -39,6 +39,7 @@ import org.armedbear.j.Constants;
 import org.armedbear.j.Debug;
 import org.armedbear.j.Editor;
 import org.armedbear.j.Formatter;
+import org.armedbear.j.IndentCommands;
 import org.armedbear.j.InsertTagDialog;
 import org.armedbear.j.KeyMap;
 import org.armedbear.j.Keywords;
@@ -484,7 +485,7 @@ public final class HtmlMode extends AbstractMode implements Constants, Mode {
                         editor.addUndo(SimpleEdit.MOVE);
                         editor.moveCaretToDotCol();
                         if (buffer.getBooleanProperty(Property.AUTO_INDENT))
-                            editor.indentLine();
+                            IndentCommands.indentLine(editor);
                         editor.endCompoundEdit(compoundEdit);
                     });
                 }

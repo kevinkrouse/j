@@ -298,7 +298,7 @@ public final class Dispatcher implements Constants, KeyListener, MouseListener,
             if (c == '\t') {
                 if (Editor.isRecordingMacro())
                     Macro.record(editor, "insertTab");
-                editor.insertTab();
+                IndentCommands.insertTab(editor);
             } else if (!Character.isISOControl(c)) {
                 if (Editor.isRecordingMacro())
                     Macro.record(editor, c);

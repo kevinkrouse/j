@@ -38,6 +38,7 @@ import org.armedbear.j.Editor;
 import org.armedbear.j.Expression;
 import org.armedbear.j.FoldCommands;
 import org.armedbear.j.Formatter;
+import org.armedbear.j.IndentCommands;
 import org.armedbear.j.KeyMap;
 import org.armedbear.j.Keywords;
 import org.armedbear.j.Line;
@@ -1147,9 +1148,9 @@ public class JavaMode extends AbstractMode implements Constants, Mode {
         // Make the indentation code think we're still in a multi-line
         // comment, if we were in one before.
         editor.getDotLine().setFlags(flags);
-        editor.indentLine();
+        IndentCommands.indentLine(editor);
         // We want dot to end up right after the comment prefix.
-        editor.moveDotToIndentation();
+        IndentCommands.moveDotToIndentation(editor);
         editor.getDot().skip(commentPrefix.length());
         display.moveCaretToDotCol();
         buffer.endCompoundEdit(compoundEdit);

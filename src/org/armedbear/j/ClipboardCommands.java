@@ -447,7 +447,7 @@ public final class ClipboardCommands {
 
                 while (editor.getDot().getLine() != null && editor.getDot().getLine() != savedDot.getLine()) {
                     if (!editor.getDot().getLine().isBlank())
-                        editor.indentLineInternal();
+                        IndentCommands.indentLineInternal(editor);
                     editor.addUndo(SimpleEdit.MOVE);
                     editor.getDot().moveTo(editor.getDot().getNextLine(), 0);
                 }

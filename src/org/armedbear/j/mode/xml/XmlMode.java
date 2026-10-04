@@ -42,6 +42,7 @@ import org.armedbear.j.Editor;
 import org.armedbear.j.File;
 import org.armedbear.j.Formatter;
 import org.armedbear.j.History;
+import org.armedbear.j.IndentCommands;
 import org.armedbear.j.InputDialog;
 import org.armedbear.j.InsertTagDialog;
 import org.armedbear.j.KeyMap;
@@ -1108,7 +1109,7 @@ public final class XmlMode extends AbstractMode implements Constants, Mode {
                     buffer.modified();
                     editor.moveCaretToDotCol();
                     if (buffer.getBooleanProperty(Property.AUTO_INDENT))
-                        editor.indentLine();
+                        IndentCommands.indentLine(editor);
                 });
                 return;
             }

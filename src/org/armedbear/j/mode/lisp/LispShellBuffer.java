@@ -33,6 +33,7 @@ import org.armedbear.j.Display;
 import org.armedbear.j.Editor;
 import org.armedbear.j.File;
 import org.armedbear.j.History;
+import org.armedbear.j.IndentCommands;
 import org.armedbear.j.Line;
 import org.armedbear.j.LocalFile;
 import org.armedbear.j.Log;
@@ -564,7 +565,7 @@ public class LispShellBuffer extends ShellBuffer {
                 modified();
             }
             if (dotLine.length() > 0) {
-                editor.moveDotToIndentation();
+                IndentCommands.moveDotToIndentation(editor);
                 editor.moveCaretToDotCol();
             } else {
                 final Display display = editor.getDisplay();

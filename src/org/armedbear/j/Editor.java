@@ -1187,48 +1187,6 @@ public final class Editor extends JPanel implements Constants,
         return buffer.getCompletionDirectory();
     }
 
-    // Cycle through the most plausible possibilities for the tab width of the
-    // current buffer.
-    public void cycleTabWidth() {
-        switch (buffer.getTabWidth()) {
-            case 2:
-                buffer.setTabWidth(4);
-                break;
-            case 4:
-                buffer.setTabWidth(8);
-                break;
-            case 8:
-            default:
-                buffer.setTabWidth(2);
-                break;
-        }
-        buffer.saveProperties();
-        status("Tab width set to " + buffer.getTabWidth());
-        buffer.repaint();
-    }
-
-    // Cycle through the most plausible possibilities for the indent size of
-    // the current buffer.
-    public void cycleIndentSize() {
-        switch (buffer.getIndentSize()) {
-            case 2:
-                buffer.setIndentSize(3);
-                break;
-            case 3:
-                buffer.setIndentSize(4);
-                break;
-            case 4:
-                buffer.setIndentSize(8);
-                break;
-            case 8:
-            default:
-                buffer.setIndentSize(2);
-                break;
-        }
-        buffer.saveProperties();
-        status("Indent size set to " + buffer.getIndentSize());
-    }
-
     public void adjustMarkers(Line line) {
         if (line == null)
             return;
@@ -1951,7 +1909,7 @@ public final class Editor extends JPanel implements Constants,
                 buffer.setIndentation(dotLine, indent);
             }
             if (dotLine.length() > 0) {
-                moveDotToIndentation();
+                IndentCommands.moveDotToIndentation(this);
                 moveCaretToDotCol();
             } else {
                 display.setCaretCol(indent - display.getShift());
@@ -2006,262 +1964,6 @@ public final class Editor extends JPanel implements Constants,
         moveCaretToDotCol();
     }
 
-    public void tab() {
-        if (isColumnSelection()) {
-            notSupportedForColumnSelections();
-            return;
-        }
-        if (buffer.getBooleanProperty(Property.TAB_ALWAYS_INDENT)) {
-            indentLineOrRegion();
-            return;
-        }
-        if (mark == null) {
-            // No selection.
-            if (dot.getOffset() <= dot.getLine().getIndentation())
-                indentLine();
-            else
-                insertTab();
-            return;
-        }
-        if (getMarkLine() != getDotLine()) {
-            // Multi-line selection.
-            indentRegion();
-            return;
-        }
-        // Single-line selection.
-        Region r = new Region(this);
-        if (r.getBeginOffset() <= getDotLine().getIndentation())
-            indentLine();
-        else
-            insertTab();
-    }
-
-    public void insertTab() {
-        if (isColumnSelection()) {
-            notSupportedForColumnSelections();
-            return;
-        }
-
-        if (!checkReadOnly())
-            return;
-
-        buffer.withWriteLock(() -> {
-            CompoundEdit compoundEdit = beginCompoundEdit();
-            if (mark != null)
-                deleteRegion();
-            if (buffer.getUseTabs())
-                insertChar('\t');
-            else {
-                fillToCaret();
-                int tabWidth = buffer.getTabWidth();
-                addUndo(SimpleEdit.LINE_EDIT);
-                buffer.insertChars(dot, Utilities.spaces(tabWidth - getDotCol() % tabWidth));
-                updateInAllEditors(getDotLine());
-            }
-            moveCaretToDotCol();
-            endCompoundEdit(compoundEdit);
-        });
-    }
-
-    public void moveDotToIndentation() {
-        final Line dotLine = getDotLine();
-        final int limit = dotLine.length();
-        int i;
-        for (i = 0; i < limit; i++) {
-            if (!Character.isWhitespace(dotLine.charAt(i)))
-                break;
-        }
-        dot.setOffset(i);
-    }
-
-    public void indentLineOrRegion() {
-        if (isColumnSelection()) {
-            notSupportedForColumnSelections();
-            return;
-        }
-        if (getMode().canIndent()) {
-            if (mark != null && getMarkLine() != getDotLine()) {
-                indentRegion();
-            } else {
-                unmark();
-                indentLine();
-            }
-        }
-    }
-
-    public void indentRegion() {
-        if (isColumnSelection()) {
-            notSupportedForColumnSelections();
-            return;
-        }
-        if (getMode().canIndent() && mark != null) {
-            Region r = new Region(this);
-            if (r.getBeginLine() == r.getEndLine())
-                indentLine();
-            else {
-                if (!checkReadOnly())
-                    return;
-                setWaitCursor();
-                Position savedDot = new Position(dot);
-                if (!buffer.withWriteLock(() -> {
-                    if (buffer.needsParsing()) {
-                        if (getFormatter().parseBuffer())
-                            buffer.repaint();
-                    }
-                    CompoundEdit compoundEdit = beginCompoundEdit();
-                    addUndo(SimpleEdit.MOVE);
-                    dot.moveTo(r.getBeginLine(), 0);
-                    do {
-                        if (!dot.getLine().isBlank())
-                            indentLineInternal();
-                        dot.moveTo(dot.getNextLine(), 0);
-                    } while (dot.getLine() != r.getEndLine());
-                    addUndo(SimpleEdit.MOVE);
-                    dot = savedDot;
-                    if (dot.getOffset() > getDotLine().length())
-                        dot.setOffset(getDotLine().length());
-                    if (mark.getOffset() > getMarkLine().length())
-                        mark.setOffset(getMarkLine().length());
-                    moveCaretToDotCol();
-                    endCompoundEdit(compoundEdit);
-                }))
-                    return;
-                setUpdateFlag(REFRAME);
-                setDefaultCursor();
-            }
-        }
-    }
-
-    public void commentRegion() {
-        if (isColumnSelection()) {
-            notSupportedForColumnSelections();
-            return;
-        }
-        commentRegion(true);
-    }
-
-    public void uncommentRegion() {
-        if (isColumnSelection()) {
-            notSupportedForColumnSelections();
-            return;
-        }
-        commentRegion(false);
-    }
-
-    // If argument is false, uncomment the region.
-    private void commentRegion(boolean comment) {
-        if (!checkReadOnly())
-            return;
-        if (dot == null)
-            return;
-        buffer.withWriteLock(() -> {
-            commentRegionInternal(comment);
-        });
-    }
-
-    // If argument is false, uncomment the region.
-    private void commentRegionInternal(boolean comment) {
-        String commentStart = buffer.getCommentStart();
-        if (commentStart == null)
-            return;
-        String commentEnd = buffer.getCommentEnd();
-        Position savedDot = new Position(dot);
-        Line beginLine, endLine;
-        if (mark == null)
-            mark = buffer.getMark();
-        if (mark != null) {
-            Region r = new Region(buffer, dot, mark);
-            beginLine = r.getBeginLine();
-            endLine = r.getEndLine();
-            // A region ending inside a line takes that line too.
-            if (r.getEndOffset() > 0)
-                endLine = endLine.next();
-        } else {
-            beginLine = getDotLine();
-            endLine = getDotLine().next();
-        }
-        if (endLine == beginLine)
-            endLine = beginLine.next();
-        // What uncomment also accepts: the comment start without its padding.
-        final String bareStart = commentStart.trim();
-
-        CompoundEdit compoundEdit = beginCompoundEdit();
-
-        if (mark != null) {
-            addUndo(SimpleEdit.MOVE);
-            setMark(null);
-            setUpdateFlag(REPAINT);
-        }
-
-        if (getDotLine() != beginLine) {
-            addUndo(SimpleEdit.MOVE);
-            dot.moveTo(beginLine, 0);
-        }
-
-        boolean modified = false;
-
-        while (true) {
-            Line dotLine = getDotLine();
-            String trim = dotLine.trim();
-            if (comment) {
-                if (trim.length() != 0) {
-                    addUndo(SimpleEdit.LINE_EDIT);
-                    if (commentEnd != null)
-                        dotLine.setText(commentStart + dotLine.getText() + commentEnd);
-                    else
-                        dotLine.setText(commentStart + dotLine.getText());
-                    modified = true;
-                    if (dotLine == savedDot.getLine())
-                        savedDot.setOffset(savedDot.getOffset() + commentStart.length());
-                    updateInAllEditors(dotLine);
-                }
-            } else {
-                // Uncomment: the inverse of comment, where the comment
-                // starts after any indentation; nothing is re-indented.
-                final String text = dotLine.getText();
-                final int at = text.length() - text.stripLeading().length();
-                final String start = text.startsWith(commentStart, at)
-                    ? commentStart
-                    : text.startsWith(bareStart, at) ? bareStart : null;
-                // The comment end may have trailing whitespace after it.
-                final int trimmed = text.stripTrailing().length();
-                final int end = commentEnd == null
-                    ? text.length()
-                    : text.startsWith(commentEnd, trimmed - commentEnd.length())
-                        ? trimmed - commentEnd.length()
-                        : -1;
-                final String tail = commentEnd == null ? "" : text.substring(trimmed);
-                if (start != null && end >= at + start.length()) {
-                    addUndo(SimpleEdit.LINE_EDIT);
-                    dotLine.setText(text.substring(0, at) + text.substring(at + start.length(), end) + tail);
-                    modified = true;
-                    if (dotLine == savedDot.getLine()) {
-                        int offset = savedDot.getOffset();
-                        if (offset > at)
-                            offset = Math.max(at, offset - start.length());
-                        savedDot.setOffset(Math.min(offset, dotLine.length()));
-                    }
-                    updateInAllEditors(dotLine);
-                }
-            }
-
-            if (dotLine.next() == endLine)
-                break;
-
-            addUndo(SimpleEdit.MOVE);
-            dot.moveTo(dotLine.next(), 0);
-        }
-
-        addUndo(SimpleEdit.MOVE);
-        setDot(savedDot);
-        moveCaretToDotCol();
-
-        if (modified)
-            buffer.modified();
-
-        endCompoundEdit(compoundEdit);
-    }
-
     public final void moveDotTo(Position pos) {
         if (pos != null)
             moveDotTo(pos.getLine(), pos.getOffset());
@@ -2281,101 +1983,6 @@ public final class Editor extends JPanel implements Constants,
             updateDotLine();
         }
         moveCaretToDotCol();
-    }
-
-    public void indentLine() {
-        if (isColumnSelection()) {
-            notSupportedForColumnSelections();
-            return;
-        }
-        if (!checkReadOnly())
-            return;
-        if (!getMode().canIndent())
-            return; // No change.
-        if (!buffer.withWriteLock(() -> {
-            if (buffer.needsParsing()) {
-                if (getFormatter().parseBuffer())
-                    buffer.repaint();
-            }
-            indentLineInternal();
-        }))
-            return;
-        setUpdateFlag(REFRAME);
-    }
-
-    void indentLineInternal() {
-        final Line dotLine = getDotLine();
-        final int indent = getMode().getCorrectIndentation(dotLine, buffer);
-        final int shift = display.getShift();
-
-        if (dotLine.isBlank()) {
-            // Put the caret where it needs to go...
-            addUndo(SimpleEdit.LINE_EDIT);
-            dotLine.setText("");
-            dot.setOffset(0);
-            display.setCaretCol(indent - shift);
-            // Fill if necessary.
-            if (buffer.getBooleanProperty(Property.RESTRICT_CARET))
-                fillToCaret();
-            updateInAllEditors(dotLine);
-            return;
-        }
-
-        // Line is not blank. Figure out current indentation.
-        final int oldIndent = buffer.getIndentation(dotLine);
-
-        StringBuilder sb = null;
-
-        if (indent == oldIndent) {
-            boolean ok = false;
-            if (buffer.getBooleanProperty(Property.INDENT_LINE_FIX_WHITESPACE)) {
-                sb = buffer.getCorrectIndentationString(indent);
-                if (dotLine.getText().startsWith(sb.toString()))
-                    ok = true;
-            } else
-                ok = true;
-
-            if (ok) {
-                // Current indentation is correct. If the caret is in the
-                // indentation area, move it to the start of the non-blank
-                // text.
-                if (display.getCaretCol() + shift < indent) {
-                    addUndo(SimpleEdit.MOVE);
-                    display.setCaretCol(indent - shift);
-                    moveDotToCaretCol();
-                }
-                return;
-            }
-        }
-
-        // We need to fix the indentation. Figure out where we want to put the
-        // caret when we're done. We want to maintain the existing offset from
-        // the start of the non-blank text.
-        final int existing = display.getCaretCol() + shift - oldIndent;
-        final int goal = existing < 0 ? indent : existing + indent;
-
-        // Strip existing indentation.
-        int i = 0;
-        while (i < dotLine.length() && Character.isWhitespace(dotLine.charAt(i)))
-            ++i;
-        String nonBlank = dotLine.substring(i);
-
-        // Get the correct indentation string.
-        if (sb == null)
-            sb = buffer.getCorrectIndentationString(indent);
-
-        // Add the rest of the line.
-        sb.append(nonBlank);
-
-        // Replace the existing text.
-        addUndo(SimpleEdit.LINE_EDIT);
-        dotLine.setText(sb.toString());
-        buffer.modified();
-        updateInAllEditors(dotLine);
-
-        // Put the caret where we want it.
-        display.setCaretCol(goal - shift);
-        moveDotToCaretCol();
     }
 
     public void save() {
@@ -3314,7 +2921,7 @@ public final class Editor extends JPanel implements Constants,
             CompoundEdit compoundEdit = beginCompoundEdit();
             insertChar(';');
             moveCaretToDotCol();
-            indentLine();
+            IndentCommands.indentLine(this);
             if (buffer.getBooleanProperty(Property.AUTO_NEWLINE)) {
                 boolean b = true;
                 String s = dot.getLine().trim();
@@ -3352,7 +2959,7 @@ public final class Editor extends JPanel implements Constants,
         CompoundEdit compoundEdit = beginCompoundEdit();
         insertChar(':');
         moveCaretToDotCol();
-        indentLine();
+        IndentCommands.indentLine(this);
         if (buffer.getBooleanProperty(Property.AUTO_NEWLINE))
             newlineAndIndent();
         endCompoundEdit(compoundEdit);
@@ -3372,7 +2979,7 @@ public final class Editor extends JPanel implements Constants,
             }
             CompoundEdit compoundEdit = beginCompoundEdit();
             insertNormalChar('*');
-            indentLine();
+            IndentCommands.indentLine(this);
             endCompoundEdit(compoundEdit);
         } else
             insertNormalChar('*');
@@ -3412,13 +3019,13 @@ public final class Editor extends JPanel implements Constants,
             getDotLine().setText("");
             dot.setOffset(0);
             insertChar(c);
-            indentLine();
+            IndentCommands.indentLine(this);
             MotionCommands.eol(this);
             if (buffer.getBooleanProperty(Property.AUTO_NEWLINE))
                 newlineAndIndent();
         } else {
             insertNormalChar(c);
-            indentLine();
+            IndentCommands.indentLine(this);
         }
         endCompoundEdit(compoundEdit);
     }
@@ -3443,7 +3050,7 @@ public final class Editor extends JPanel implements Constants,
                     ) {
                         ; // No autoindent after "</pre>" in HTML mode.
                     } else {
-                        indentLine();
+                        IndentCommands.indentLine(this);
                     }
                 }
                 endCompoundEdit(compoundEdit);
@@ -4962,65 +4569,6 @@ public final class Editor extends JPanel implements Constants,
             status("Invalid boolean value \"" + value + "\"");
     }
 
-    public void slideIn() {
-        slide(buffer.getIndentSize());
-    }
-
-    public void slideOut() {
-        slide(-buffer.getIndentSize());
-    }
-
-    private void slide(int amount) {
-        if (!checkReadOnly())
-            return;
-        Region r = mark != null ? new Region(this) : null;
-        if (r != null && (r.getBeginOffset() != 0 || r.getEndOffset() != 0))
-            return; // If a block is marked, it must be a block of full lines.
-        buffer.withWriteLock(() -> {
-            if (r == null) {
-                CompoundEdit compoundEdit = beginCompoundEdit();
-                int dotCol = getDotCol();
-                int oldIndent = buffer.getIndentation(getDotLine());
-                int newIndent = oldIndent + amount;
-                addUndo(SimpleEdit.LINE_EDIT);
-                buffer.setIndentation(getDotLine(), newIndent);
-                updateInAllEditors(getDotLine());
-                if (dotCol < oldIndent) {
-                    // Caret was originally in indentation area. Move caret to
-                    // start of text. This ensures that the caret is on an
-                    // actual character, in case the indentation got entabbed.
-                    moveDotToCol(newIndent);
-                } else {
-                    // Move caret with text.
-                    display.setCaretCol(display.getCaretCol() + amount);
-                    moveDotToCaretCol();
-                }
-                endCompoundEdit(compoundEdit);
-                buffer.modified();
-            } else {
-                // If a block is marked, it must be a block of full lines.
-                CompoundEdit compoundEdit = beginCompoundEdit();
-                Position saved = new Position(dot);
-                Line line = r.getBeginLine();
-                while (line != r.getEndLine()) {
-                    addUndo(SimpleEdit.MOVE);
-                    dot.moveTo(line, 0);
-                    addUndo(SimpleEdit.LINE_EDIT);
-                    buffer.setIndentation(
-                        getDotLine(),
-                        buffer.getIndentation(getDotLine()) + amount
-                    );
-                    updateInAllEditors(getDotLine());
-                    line = line.next();
-                }
-                addUndo(SimpleEdit.MOVE);
-                dot = saved;
-                endCompoundEdit(compoundEdit);
-                buffer.modified();
-            }
-        });
-    }
-
     public void dirHome() {
         if (buffer instanceof DirectoryBuffer)
             ((DirectoryBuffer) buffer).home();
@@ -5104,43 +4652,14 @@ public final class Editor extends JPanel implements Constants,
             frame.setFocus(locationBar.getTextField());
     }
 
-    public void wrapRegion() {
-        if (!checkReadOnly())
-            return;
-        if (dot == null || mark == null)
-            return;
-        // Must be line block.
-        if (dot.getOffset() != 0 || mark.getOffset() != 0)
-            return;
-        new WrapText(this).wrapRegion();
-    }
-
-    public void wrapParagraph() {
-        if (!checkReadOnly())
-            return;
-        new WrapText(this).wrapParagraph();
-    }
-
-    public void unwrapParagraph() {
-        if (!checkReadOnly())
-            return;
-        new WrapText(this).unwrapParagraph();
-    }
-
-    public void wrapParagraphsInRegion() {
-        if (!checkReadOnly())
-            return;
-        new WrapText(this).wrapParagraphsInRegion();
-    }
-
     public void insertBraces() {
         CompoundEdit compoundEdit = beginCompoundEdit();
         insertChar('{');
-        indentLine();
+        IndentCommands.indentLine(this);
         MotionCommands.eol(this);
         newlineAndIndent();
         insertChar('}');
-        indentLine();
+        IndentCommands.indentLine(this);
         MotionCommands.up(this);
         MotionCommands.eol(this);
         newlineAndIndent();
@@ -5206,7 +4725,7 @@ public final class Editor extends JPanel implements Constants,
                 beginMotion();
                 dot.moveTo(pos);
                 if (getDotLine().substring(0, getDotOffset()).isBlank()) {
-                    justOneSpace();
+                    IndentCommands.justOneSpace(this);
                     addUndo(SimpleEdit.MOVE);
                     dot.skip(-1);
                     deleteNormalChar();
@@ -5234,36 +4753,6 @@ public final class Editor extends JPanel implements Constants,
         }
         moveCaretToDotCol();
         endCompoundEdit(compoundEdit);
-    }
-
-    public void justOneSpace() {
-        try {
-            buffer.lockWrite();
-        }
-        catch (InterruptedException e) {
-            Log.error(e);
-            return;
-        }
-        try {
-            CompoundEdit compoundEdit = beginCompoundEdit();
-            beginMotion();
-            while (MotionCommands.inWhitespace(this) && MotionCommands.nextChar(this))
-                ;
-            setMarkAtDot();
-            while (MotionCommands.prevChar(this)) {
-                if (!MotionCommands.inWhitespace(this)) {
-                    MotionCommands.nextChar(this);
-                    break;
-                }
-            }
-
-            deleteRegion();
-            insertChar(' ');
-            endCompoundEdit(compoundEdit);
-        }
-        finally {
-            buffer.unlockWrite();
-        }
     }
 
     public final void updateDotLine() {

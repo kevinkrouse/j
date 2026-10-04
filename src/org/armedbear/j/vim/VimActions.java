@@ -23,6 +23,7 @@ import org.armedbear.j.Block;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.CaretCommands;
 import org.armedbear.j.Editor;
+import org.armedbear.j.IndentCommands;
 import org.armedbear.j.JEvent;
 import org.armedbear.j.Line;
 import org.armedbear.j.Lines;
@@ -1007,7 +1008,7 @@ public final class VimActions {
                 editor.setDot(opened, 0);
                 editor.moveCaretToDotCol();
                 if (editor.getMode().canIndent())
-                    editor.indentLine();
+                    IndentCommands.indentLine(editor);
                 else if (!indent.isEmpty())
                     editor.insertString(indent);
             }

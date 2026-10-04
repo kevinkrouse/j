@@ -50,6 +50,7 @@ import org.armedbear.j.Editor;
 import org.armedbear.j.Expansion;
 import org.armedbear.j.File;
 import org.armedbear.j.Headers;
+import org.armedbear.j.IndentCommands;
 import org.armedbear.j.InputDialog;
 import org.armedbear.j.Line;
 import org.armedbear.j.Log;
@@ -1446,7 +1447,7 @@ public final class SendMail extends Buffer {
                 break;
             } else if (line.getText().equals(HEADER_SEPARATOR)) {
                 // We're in the body of the message. Just do the normal thing.
-                editor.insertTab();
+                IndentCommands.insertTab(editor);
                 return;
             }
         }

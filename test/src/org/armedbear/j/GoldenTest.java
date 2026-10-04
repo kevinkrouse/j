@@ -101,11 +101,11 @@ public class GoldenTest {
 
             sb.append("\n## comment\n");
             MotionCommands.selectAll(h.editor());
-            h.editor().commentRegion();
+            IndentCommands.commentRegion(h.editor());
             final String commented = h.text();
             sb.append(commented.equals(text) ? "(unchanged)\n" : commented);
             MotionCommands.selectAll(h.editor());
-            h.editor().uncommentRegion();
+            IndentCommands.uncommentRegion(h.editor());
             final String uncommented = h.text();
             sb.append("\n## uncomment\n").append(uncommented.equals(text) ? "(restored)\n" : uncommented);
         }
