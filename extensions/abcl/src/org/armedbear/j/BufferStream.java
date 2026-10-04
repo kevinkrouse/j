@@ -22,7 +22,6 @@ package org.armedbear.j;
 
 import static org.armedbear.lisp.Lisp.T;
 
-import java.lang.StringBuilder;
 import org.armedbear.lisp.LispObject;
 import org.armedbear.lisp.Stream;
 import org.armedbear.lisp.Symbol;
@@ -42,6 +41,7 @@ public final class BufferStream extends Stream {
         return buffer;
     }
 
+    @Override
     public LispObject typeOf() {
         return LispAPI.BUFFER_STREAM;
     }
@@ -53,12 +53,14 @@ public final class BufferStream extends Stream {
     //     }
 
     // FIXME
+    @Override
     public LispObject typep(LispObject typeSpecifier) {
         if (typeSpecifier == LispAPI.BUFFER_STREAM)
             return T;
         return super.typep(typeSpecifier);
     }
 
+    @Override
     public void _writeChar(char c) {
         try {
             buffer.lockWrite();
@@ -93,10 +95,12 @@ public final class BufferStream extends Stream {
         }
     }
 
+    @Override
     public void _writeChars(char[] chars, int start, int end) {
         _writeString(new String(chars, start, end - start));
     }
 
+    @Override
     public void _writeString(String s) {
         buffer.withWriteLock(() -> {
             buffer.insertString(buffer.getEnd(), s);
@@ -106,6 +110,7 @@ public final class BufferStream extends Stream {
         });
     }
 
+    @Override
     public void _writeLine(String s) {
         buffer.withWriteLock(() -> {
             buffer.append(s);
@@ -115,17 +120,20 @@ public final class BufferStream extends Stream {
         });
     }
 
+    @Override
     public void _finishOutput() {
         if (buffer.needsRenumbering())
             buffer.renumber();
         buffer.repaint();
     }
 
+    @Override
     public void _close() {
         _finishOutput();
         setOpen(false);
     }
 
+    @Override
     public String toString() {
         return unreadableString("BUFFER-STREAM");
     }

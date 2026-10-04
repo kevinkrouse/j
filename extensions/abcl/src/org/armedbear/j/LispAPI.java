@@ -182,6 +182,7 @@ public final class LispAPI {
             "",
             "Returns the current editor as a Lisp object."
         ) {
+            @Override
             public LispObject execute() {
                 return new JavaObject(Editor.currentEditor());
             }
@@ -196,6 +197,7 @@ public final class LispAPI {
             "(NAME)",
             "The class NAME from another extension, such as mail, for JSTATIC and JNEW."
         ) {
+            @Override
             public LispObject execute(LispObject arg) {
                 Class<?> c = Extensions.findClass(arg.getStringValue());
                 return c != null ? new JavaObject(c) : NIL;
@@ -211,6 +213,7 @@ public final class LispAPI {
             "(EDITOR)",
             "Makes EDITOR the current editor."
         ) {
+            @Override
             public LispObject execute(LispObject arg) {
                 Editor.setCurrentEditor(checkEditor(arg));
                 return arg;
@@ -220,6 +223,7 @@ public final class LispAPI {
     // ### other-editor
     private static final Primitive OTHER_EDITOR =
         new Primitive("other-editor", PACKAGE_J, true) {
+            @Override
             public LispObject execute() {
                 Editor otherEditor = Editor.currentEditor().getOtherEditor();
                 return otherEditor != null ? new JavaObject(otherEditor) : NIL;
@@ -229,6 +233,7 @@ public final class LispAPI {
     // ### current-buffer
     private static final Primitive CURRENT_BUFFER =
         new Primitive("current-buffer", PACKAGE_J, true) {
+            @Override
             public LispObject execute() {
                 return new JavaObject(Editor.currentEditor().getBuffer());
             }
@@ -237,6 +242,7 @@ public final class LispAPI {
     // ### editor-buffer editor => buffer
     private static final Primitive BUFFER =
         new Primitive("editor-buffer", PACKAGE_J, true) {
+            @Override
             public LispObject execute(LispObject arg) {
                 return new JavaObject(checkEditor(arg).getBuffer());
             }
@@ -245,11 +251,13 @@ public final class LispAPI {
     // ### buffer-name
     private static final Primitive BUFFER_NAME =
         new Primitive("buffer-name", PACKAGE_J, true, "&optional buffer") {
+            @Override
             public LispObject execute() {
                 String name = Editor.currentEditor().getBuffer().getTitle();
                 return name != null ? new SimpleString(name) : NIL;
             }
 
+            @Override
             public LispObject execute(LispObject arg) {
                 String name = checkBuffer(arg).getTitle();
                 return name != null ? new SimpleString(name) : NIL;
@@ -259,6 +267,7 @@ public final class LispAPI {
     // ### set-buffer-name
     private static final Primitive SET_BUFFER_NAME =
         new Primitive("set-buffer-name", PACKAGE_J, true, "buffer name") {
+            @Override
             public LispObject execute(LispObject first, LispObject second) {
                 Buffer buffer = checkBuffer(first);
                 if (!(second instanceof AbstractString))
@@ -271,6 +280,7 @@ public final class LispAPI {
     // ### get-buffer
     private static final Primitive GET_BUFFER =
         new Primitive("get-buffer", PACKAGE_J, true, "name") {
+            @Override
             public LispObject execute(LispObject arg) {
                 if (arg instanceof AbstractString) {
                     String name = arg.getStringValue();
@@ -280,8 +290,8 @@ public final class LispAPI {
                     }
                     return NIL;
                 }
-                if (arg instanceof JavaObject) {
-                    if (((JavaObject) arg).getObject() instanceof Buffer)
+                if (arg instanceof JavaObject javaObject) {
+                    if (javaObject.getObject() instanceof Buffer)
                         return arg;
                 }
                 return NIL;
@@ -291,10 +301,11 @@ public final class LispAPI {
     // ### buffer-live-p object => generalized-boolean
     private static final Primitive BUFFER_LIVE_P =
         new Primitive("buffer-live-p", PACKAGE_J, true, "object") {
+            @Override
             public LispObject execute(LispObject arg) {
-                if (arg instanceof JavaObject) {
-                    if (((JavaObject) arg).getObject() instanceof Buffer) {
-                        if (Editor.getBufferList().contains((Buffer) ((JavaObject) arg).getObject()))
+                if (arg instanceof JavaObject javaObject) {
+                    if (javaObject.getObject() instanceof Buffer) {
+                        if (Editor.getBufferList().contains((Buffer) javaObject.getObject()))
                             return T;
                     }
                 }
@@ -305,6 +316,7 @@ public final class LispAPI {
     // ### buffer-pathname
     private static final Primitive BUFFER_PATHNAME =
         new Primitive("buffer-pathname", PACKAGE_J, true, "&optional buffer") {
+            @Override
             public LispObject execute() {
                 File file = Editor.currentEditor().getBuffer().getFile();
                 if (file != null && file.isLocal()) {
@@ -317,6 +329,7 @@ public final class LispAPI {
                 return NIL;
             }
 
+            @Override
             public LispObject execute(LispObject arg) {
                 File file = checkBuffer(arg).getFile();
                 if (file != null && file.isLocal()) {
@@ -333,10 +346,12 @@ public final class LispAPI {
     // ### buffer-string
     private static final Primitive BUFFER_STRING =
         new Primitive("buffer-string", PACKAGE_J, true, "&optional buffer") {
+            @Override
             public LispObject execute() {
                 return new SimpleString(Editor.currentBuffer().getText());
             }
 
+            @Override
             public LispObject execute(LispObject arg) {
                 return new SimpleString(checkBuffer(arg).getText());
             }
@@ -350,6 +365,7 @@ public final class LispAPI {
             true,
             "start end &optional buffer"
         ) {
+            @Override
             public LispObject execute(LispObject first, LispObject second) {
                 Region region = new Region(
                     Editor.currentEditor().getBuffer(),
@@ -359,6 +375,7 @@ public final class LispAPI {
                 return new SimpleString(region.toString());
             }
 
+            @Override
             public LispObject execute(
                 LispObject first,
                 LispObject second,
@@ -374,6 +391,7 @@ public final class LispAPI {
     // ### buffer-offset mark &optional buffer
     private static final Primitive BUFFER_OFFSET =
         new Primitive("buffer-offset", PACKAGE_J, true, "mark &optional buffer") {
+            @Override
             public LispObject execute(LispObject arg) {
                 final Position pos = checkMark(arg);
                 final Buffer buffer = Editor.currentBuffer();
@@ -381,6 +399,7 @@ public final class LispAPI {
                 return offset >= 0 ? Fixnum.getInstance(offset) : NIL;
             }
 
+            @Override
             public LispObject execute(LispObject first, LispObject second) {
                 final Position pos = checkMark(first);
                 final Buffer buffer = checkBuffer(second);
@@ -392,11 +411,12 @@ public final class LispAPI {
     // ### goto-char position
     private static final Primitive GOTO_CHAR =
         new Primitive("goto-char", PACKAGE_J, true) {
+            @Override
             public LispObject execute(LispObject arg) {
                 // Move dot to position.
                 final Editor editor = Editor.currentEditor();
-                if (arg instanceof Fixnum) {
-                    Position pos = editor.getBuffer().getPosition(((Fixnum) arg).value);
+                if (arg instanceof Fixnum fixnum) {
+                    Position pos = editor.getBuffer().getPosition(fixnum.value);
                     if (pos != null)
                         editor.moveDotTo(pos);
                 } else
@@ -413,12 +433,14 @@ public final class LispAPI {
             true,
             "mark charpos &optional line"
         ) {
+            @Override
             public LispObject execute(LispObject mark, LispObject charpos) {
                 Position pos = checkMark(mark);
                 pos.setOffset(Fixnum.getValue(charpos));
                 return mark;
             }
 
+            @Override
             public LispObject execute(
                 LispObject mark,
                 LispObject charpos,
@@ -436,6 +458,7 @@ public final class LispAPI {
     // ### current-point
     private static final Primitive CURRENT_POINT =
         new Primitive("current-point", PACKAGE_J, true, "") {
+            @Override
             public LispObject execute() {
                 Position dot = Editor.currentEditor().getDot();
                 if (dot != null)
@@ -447,6 +470,7 @@ public final class LispAPI {
     // ### current-mark
     private static final Primitive CURRENT_MARK =
         new Primitive("current-mark", PACKAGE_J, true, "") {
+            @Override
             public LispObject execute() {
                 Position mark = Editor.currentEditor().getMark();
                 if (mark == null)
@@ -460,6 +484,7 @@ public final class LispAPI {
     // ### buffer-mark buffer => mark
     private static final Primitive BUFFER_MARK =
         new Primitive("buffer-mark", PACKAGE_J, true) {
+            @Override
             public LispObject execute(LispObject arg) {
                 final Position mark = checkBuffer(arg).getMark();
                 if (mark == null)
@@ -471,6 +496,7 @@ public final class LispAPI {
     // ### %set-buffer-mark buffer mark => mark
     private static final Primitive _SET_BUFFER_MARK =
         new Primitive("%set-buffer-mark", PACKAGE_J, true) {
+            @Override
             public LispObject execute(LispObject first, LispObject second) {
                 Buffer buffer = checkBuffer(first);
                 if (second == NIL)
@@ -484,6 +510,7 @@ public final class LispAPI {
     // ### editor-mark editor => mark
     private static final Primitive EDITOR_MARK =
         new Primitive("editor-mark", PACKAGE_J, true) {
+            @Override
             public LispObject execute(LispObject arg) {
                 final Position mark = checkEditor(arg).getMark();
                 if (mark == null)
@@ -495,6 +522,7 @@ public final class LispAPI {
     // ### %set-editor-mark editor mark => mark
     private static final Primitive _SET_EDITOR_MARK =
         new Primitive("%set-editor-mark", PACKAGE_J, true) {
+            @Override
             public LispObject execute(LispObject first, LispObject second) {
                 Editor editor = checkEditor(first);
                 if (second == NIL)
@@ -508,6 +536,7 @@ public final class LispAPI {
     // ### point-min
     private static final Primitive POINT_MIN =
         new Primitive("point-min", PACKAGE_J, true) {
+            @Override
             public LispObject execute() {
                 final Line line = Editor.currentBuffer().getFirstLine();
                 if (line == null)
@@ -519,6 +548,7 @@ public final class LispAPI {
     // ### point-max
     private static final Primitive POINT_MAX =
         new Primitive("point-max", PACKAGE_J, true) {
+            @Override
             public LispObject execute() {
                 Position pos = Editor.currentBuffer().getEnd();
                 if (pos == null)
@@ -530,6 +560,7 @@ public final class LispAPI {
     // ### make-mark
     private static final Primitive MAKE_MARK =
         new Primitive("make-mark", PACKAGE_J, true, "line offset") {
+            @Override
             public LispObject execute(LispObject first, LispObject second) {
                 Line line = checkLine(first);
                 int offset = Fixnum.getValue(second);
@@ -540,6 +571,7 @@ public final class LispAPI {
     // ### mark-line
     private static final Primitive MARK_LINE =
         new Primitive("mark-line", PACKAGE_J, true, "mark") {
+            @Override
             public LispObject execute(LispObject arg) {
                 return new JavaObject(checkMark(arg).getLine());
             }
@@ -548,6 +580,7 @@ public final class LispAPI {
     // ### mark-charpos
     private static final Primitive MARK_CHARPOS =
         new Primitive("mark-charpos", PACKAGE_J, true, "mark") {
+            @Override
             public LispObject execute(LispObject arg) {
                 return number(checkMark(arg).getOffset());
             }
@@ -556,6 +589,7 @@ public final class LispAPI {
     // ### current-line
     private static final Primitive CURRENT_LINE =
         new Primitive("current-line", PACKAGE_J, true) {
+            @Override
             public LispObject execute() {
                 Editor editor = Editor.currentEditor();
                 Position dot = editor.getDot();
@@ -568,6 +602,7 @@ public final class LispAPI {
     // ### line-next
     private static final Primitive LINE_NEXT =
         new Primitive("line-next", PACKAGE_J, true) {
+            @Override
             public LispObject execute(LispObject arg) {
                 Line next = checkLine(arg).next();
                 return next != null ? new JavaObject(next) : NIL;
@@ -577,6 +612,7 @@ public final class LispAPI {
     // ### line-previous
     private static final Primitive LINE_PREVIOUS =
         new Primitive("line-previous", PACKAGE_J, true) {
+            @Override
             public LispObject execute(LispObject arg) {
                 Line prev = checkLine(arg).previous();
                 return prev != null ? new JavaObject(prev) : NIL;
@@ -586,6 +622,7 @@ public final class LispAPI {
     // ### line-chars
     private static final Primitive LINE_CHARS =
         new Primitive("line-chars", PACKAGE_J, true) {
+            @Override
             public LispObject execute(LispObject arg) {
                 String s = checkLine(arg).getText();
                 return s != null ? new SimpleString(s) : NIL;
@@ -595,6 +632,7 @@ public final class LispAPI {
     // ### line-flags
     private static final Primitive LINE_FLAGS =
         new Primitive("line-flags", PACKAGE_J, true) {
+            @Override
             public LispObject execute(LispObject arg) {
                 return number(checkLine(arg).flags());
             }
@@ -603,6 +641,7 @@ public final class LispAPI {
     // ### %set-line-flags
     private static final Primitive _SET_LINE_FLAGS =
         new Primitive("%set-line-flags", PACKAGE_J, false) {
+            @Override
             public LispObject execute(LispObject first, LispObject second) {
                 Line line = checkLine(first);
                 int flags = Fixnum.getValue(second);
@@ -614,6 +653,7 @@ public final class LispAPI {
     // ### line-number
     private static final Primitive LINE_NUMBER =
         new Primitive("line-number", PACKAGE_J, true, "line") {
+            @Override
             public LispObject execute(LispObject arg) {
                 return number(checkLine(arg).lineNumber());
             }
@@ -623,6 +663,7 @@ public final class LispAPI {
     // Returns character immediately after mark.
     private static final Primitive CHAR_AFTER =
         new Primitive("char-after", PACKAGE_J, true) {
+            @Override
             public LispObject execute(LispObject arg) {
                 return LispCharacter.getInstance(checkMark(arg).getChar());
             }
@@ -632,6 +673,7 @@ public final class LispAPI {
     // Returns character immediately before mark.
     private static final Primitive CHAR_BEFORE =
         new Primitive("char-before", PACKAGE_J, true) {
+            @Override
             public LispObject execute(LispObject arg) {
                 Position pos = checkMark(arg).copy();
                 return pos.prev() ? LispCharacter.getInstance(pos.getChar()) : NIL;
@@ -642,11 +684,13 @@ public final class LispAPI {
     // Move point right N characters (left if N is negative).
     private static final Primitive FORWARD_CHAR =
         new Primitive("forward-char", PACKAGE_J, true, "mark &optional count") {
+            @Override
             public LispObject execute(LispObject arg) {
                 Position pos = checkMark(arg);
                 return forwardChar(pos, 1);
             }
 
+            @Override
             public LispObject execute(LispObject first, LispObject second) {
                 Position pos = checkMark(first);
                 return forwardChar(pos, Fixnum.getValue(second));
@@ -657,11 +701,13 @@ public final class LispAPI {
     // Move MARK left COUNT characters (right if COUNT is negative).
     private static final Primitive BACKWARD_CHAR =
         new Primitive("backward-char", PACKAGE_J, true, "mark &optional count") {
+            @Override
             public LispObject execute(LispObject arg) {
                 Position pos = checkMark(arg);
                 return forwardChar(pos, -1);
             }
 
+            @Override
             public LispObject execute(LispObject first, LispObject second) {
                 Position pos = checkMark(first);
                 return forwardChar(pos, -Fixnum.getValue(second));
@@ -690,11 +736,13 @@ public final class LispAPI {
     // ### beginning-of-line
     private static final Primitive BEGINNING_OF_LINE =
         new Primitive("beginning-of-line", PACKAGE_J, true) {
+            @Override
             public LispObject execute() {
                 MotionCommands.bol(Editor.currentEditor());
                 return NIL;
             }
 
+            @Override
             public LispObject execute(LispObject arg) {
                 int n = (arg != NIL) ? Fixnum.getValue(arg) : 1;
                 final Editor editor = Editor.currentEditor();
@@ -718,11 +766,13 @@ public final class LispAPI {
     // ### end-of-line
     private static final Primitive END_OF_LINE =
         new Primitive("end-of-line", PACKAGE_J, true) {
+            @Override
             public LispObject execute() {
                 MotionCommands.eol(Editor.currentEditor());
                 return NIL;
             }
 
+            @Override
             public LispObject execute(LispObject arg) {
                 int n = (arg != NIL) ? Fixnum.getValue(arg) : 1;
                 final Editor editor = Editor.currentEditor();
@@ -746,6 +796,7 @@ public final class LispAPI {
     // ### backward-up-list mark
     private static final Primitive BACKWARD_UP_LIST =
         new Primitive("backward-up-list", PACKAGE_J, true, "mark") {
+            @Override
             public LispObject execute(LispObject arg) {
                 Position pos = checkMark(arg);
                 Position newPos = LispMode.findContainingSexp(pos);
@@ -758,6 +809,7 @@ public final class LispAPI {
     // ### looking-at mark pattern => generalized-boolean
     private static final Primitive LOOKING_AT =
         new Primitive("looking-at", PACKAGE_J, true, "mark string") {
+            @Override
             public LispObject execute(LispObject first, LispObject second) {
                 Position pos = checkMark(first);
                 if (second instanceof AbstractString) {
@@ -773,6 +825,7 @@ public final class LispAPI {
     // ### kill-theme
     private static final Primitive KILL_THEME =
         new Primitive("kill-theme", PACKAGE_J, true) {
+            @Override
             public LispObject execute() {
                 preferences.killTheme();
                 return T;
@@ -782,6 +835,7 @@ public final class LispAPI {
     // ### restore-focus
     private static final Primitive RESTORE_FOCUS =
         new Primitive("restore-focus", PACKAGE_J, true) {
+            @Override
             public LispObject execute() {
                 Editor.currentEditor().setFocusToDisplay();
                 return T;
@@ -791,6 +845,7 @@ public final class LispAPI {
     // ### make-keymap
     private static final Primitive MAKE_KEYMAP =
         new Primitive("make-keymap", PACKAGE_J, true, "") {
+            @Override
             public LispObject execute() {
                 return new JavaObject(new KeyMap());
             }
@@ -802,6 +857,7 @@ public final class LispAPI {
     // ### current-global-map
     private static final Primitive CURRENT_GLOBAL_MAP =
         new Primitive("current-global-map", PACKAGE_J, true, "") {
+            @Override
             public LispObject execute() {
                 return _CURRENT_GLOBAL_MAP_.symbolValue();
             }
@@ -810,6 +866,7 @@ public final class LispAPI {
     // ### use-global-map keymap => NIL
     private static final Primitive USE_GLOBAL_MAP =
         new Primitive("use-global-map", PACKAGE_J, true, "keymap") {
+            @Override
             public LispObject execute(LispObject arg) {
                 if (arg != NIL)
                     KeyMap.setGlobalKeyMap(checkKeymap(arg));
@@ -830,6 +887,7 @@ public final class LispAPI {
             true,
             "keymap key-designator definition"
         ) {
+            @Override
             public LispObject execute(
                 LispObject first,
                 LispObject second,
@@ -861,8 +919,8 @@ public final class LispAPI {
                     coerceToFunction(third);
                     command = new LispFunction(third);
                 }
-                if (second instanceof LispCharacter)
-                    keymap.mapKey(((LispCharacter) second).value, command);
+                if (second instanceof LispCharacter lispCharacter)
+                    keymap.mapKey(lispCharacter.value, command);
                 else
                     keymap.mapKey(second.getStringValue(), command);
                 return T;
@@ -872,6 +930,7 @@ public final class LispAPI {
     // ### global-map-key key command => generalized-boolean
     private static final Primitive GLOBAL_MAP_KEY =
         new Primitive("global-map-key", PACKAGE_J, true, "key command") {
+            @Override
             public LispObject execute(LispObject first, LispObject second) {
                 String keyText = first.getStringValue();
                 Object command;
@@ -891,6 +950,7 @@ public final class LispAPI {
     // ### global-unmap-key key => generalized-boolean
     private static final Primitive GLOBAL_UNMAP_KEY =
         new Primitive("global-unmap-key", PACKAGE_J, true, "key") {
+            @Override
             public LispObject execute(LispObject arg) {
                 String keyText = arg.getStringValue();
                 return KeyMap.getGlobalKeyMap().unmapKey(keyText) ? T : NIL;
@@ -900,6 +960,7 @@ public final class LispAPI {
     // ### map-key-for-mode key command mode => generalized-boolean
     private static final Primitive MAP_KEY_FOR_MODE =
         new Primitive("map-key-for-mode", PACKAGE_J, true, "key command mode") {
+            @Override
             public LispObject execute(
                 LispObject first,
                 LispObject second,
@@ -925,6 +986,7 @@ public final class LispAPI {
     // ### unmap-key-for-mode key mode => generalized-boolean
     private static final Primitive UNMAP_KEY_FOR_MODE =
         new Primitive("unmap-key-for-mode", PACKAGE_J, true, "key mode") {
+            @Override
             public LispObject execute(LispObject first, LispObject second) {
                 String keyText = first.getStringValue();
                 String modeName = second.getStringValue();
@@ -938,6 +1000,7 @@ public final class LispAPI {
     // ### set-global-property
     private static final Primitive SET_GLOBAL_PROPERTY =
         new Primitive("set-global-property", PACKAGE_J, true, "key value") {
+            @Override
             public LispObject execute(LispObject first, LispObject second) {
                 String key = javaString(first);
                 Property property = Property.findProperty(key);
@@ -956,10 +1019,10 @@ public final class LispAPI {
                     return second;
                 }
                 if (property.isIntegerProperty()) {
-                    if (second instanceof Fixnum) {
+                    if (second instanceof Fixnum fixnum) {
                         preferences.setProperty(
                             property,
-                            String.valueOf(((Fixnum) second).value)
+                            String.valueOf(fixnum.value)
                         );
                         return second;
                     }
@@ -991,6 +1054,7 @@ public final class LispAPI {
     // ### set-mode-property
     private static final Primitive SET_MODE_PROPERTY =
         new Primitive("set-mode-property", PACKAGE_J, true, "key value mode") {
+            @Override
             public LispObject execute(
                 LispObject first,
                 LispObject second,
@@ -1022,8 +1086,8 @@ public final class LispAPI {
                     mode.setProperty(property, second == NIL ? false : true);
                     return second;
                 } else if (property.isIntegerProperty()) {
-                    if (second instanceof Fixnum) {
-                        mode.setProperty(property, ((Fixnum) second).value);
+                    if (second instanceof Fixnum fixnum) {
+                        mode.setProperty(property, fixnum.value);
                         return second;
                     }
                     if (second instanceof AbstractString) {
@@ -1067,6 +1131,7 @@ public final class LispAPI {
             true,
             "key value &optional buffer"
         ) {
+            @Override
             public LispObject execute(LispObject first, LispObject second) {
                 return execute(
                     first,
@@ -1075,6 +1140,7 @@ public final class LispAPI {
                 );
             }
 
+            @Override
             public LispObject execute(
                 LispObject first,
                 LispObject second,
@@ -1099,8 +1165,8 @@ public final class LispAPI {
                     return second;
                 }
                 if (property.isIntegerProperty()) {
-                    if (second instanceof Fixnum) {
-                        buffer.setProperty(property, ((Fixnum) second).value);
+                    if (second instanceof Fixnum fixnum) {
+                        buffer.setProperty(property, fixnum.value);
                         return second;
                     }
                     if (second instanceof AbstractString) {
@@ -1139,6 +1205,7 @@ public final class LispAPI {
     // ### get-global-property key => value
     private static final Primitive GET_GLOBAL_PROPERTY =
         new Primitive("get-global-property", PACKAGE_J, true, "key") {
+            @Override
             public LispObject execute(LispObject arg) {
                 String key = javaString(arg);
                 Property property = Property.findProperty(key);
@@ -1168,6 +1235,7 @@ public final class LispAPI {
             true,
             "key &optional buffer"
         ) {
+            @Override
             public LispObject execute(LispObject arg) {
                 return execute(
                     arg,
@@ -1175,6 +1243,7 @@ public final class LispAPI {
                 );
             }
 
+            @Override
             public LispObject execute(LispObject first, LispObject second) {
                 String key = javaString(first);
                 Property property = Property.findProperty(key);
@@ -1200,6 +1269,7 @@ public final class LispAPI {
     // ### insert
     private static final Primitive INSERT =
         new Primitive("insert", PACKAGE_J, true, "&rest args") {
+            @Override
             public LispObject execute(LispObject[] args) {
                 if (args.length == 0)
                     return NIL;
@@ -1210,8 +1280,8 @@ public final class LispAPI {
                 try {
                     for (int i = 0; i < args.length; i++) {
                         LispObject obj = args[i];
-                        if (obj instanceof LispCharacter) {
-                            char c = ((LispCharacter) obj).value;
+                        if (obj instanceof LispCharacter lispCharacter) {
+                            char c = lispCharacter.value;
                             if (c == '\n') {
                                 EditCommands.insertLineSeparator(editor);
                                 editor.moveCaretToDotCol();
@@ -1240,6 +1310,7 @@ public final class LispAPI {
     // ### delete-region => nil
     private static final Primitive DELETE_REGION =
         new Primitive("delete-region", PACKAGE_J, true) {
+            @Override
             public LispObject execute() {
                 final Editor editor = Editor.currentEditor();
                 if (!editor.checkReadOnly())
@@ -1252,6 +1323,7 @@ public final class LispAPI {
     // ### set-mark pos => pos
     private static final Primitive SET_MARK =
         new Primitive("set-mark", PACKAGE_J, true) {
+            @Override
             public LispObject execute(LispObject arg) {
                 final Editor editor = Editor.currentEditor();
                 if (arg != NIL)
@@ -1265,6 +1337,7 @@ public final class LispAPI {
     // ### copy-mark mark => copy
     private static final Primitive COPY_MARK =
         new Primitive("copy-mark", PACKAGE_J, true, "mark") {
+            @Override
             public LispObject execute(LispObject arg) {
                 Position pos = checkMark(arg);
                 return new JavaObject(new Position(pos.getLine(), pos.getOffset()));
@@ -1274,6 +1347,7 @@ public final class LispAPI {
     // ### mark= mark1 mark2 => generalized-boolean
     private static final Primitive MARK_EQUAL =
         new Primitive("mark=", PACKAGE_J, true, "mark1 mark2") {
+            @Override
             public LispObject execute(LispObject first, LispObject second) {
                 Position pos1 = checkMark(first);
                 Position pos2 = checkMark(second);
@@ -1287,11 +1361,13 @@ public final class LispAPI {
     // ### undo
     private static final Primitive UNDO =
         new Primitive("undo", PACKAGE_J, true, "&optional count") {
+            @Override
             public LispObject execute() {
                 EditCommands.undo(Editor.currentEditor());
                 return NIL;
             }
 
+            @Override
             public LispObject execute(LispObject arg) {
                 Editor editor = Editor.currentEditor();
                 int count;
@@ -1308,6 +1384,7 @@ public final class LispAPI {
     // ### begin-compound-edit
     private static final Primitive BEGIN_COMPOUND_EDIT =
         new Primitive("begin-compound-edit", PACKAGE_J, false) {
+            @Override
             public LispObject execute() {
                 return new JavaObject(Editor.currentEditor().beginCompoundEdit());
             }
@@ -1316,6 +1393,7 @@ public final class LispAPI {
     // ### end-compound-edit
     private static final Primitive END_COMPOUND_EDIT =
         new Primitive("end-compound-edit", PACKAGE_J, false) {
+            @Override
             public LispObject execute(LispObject arg) {
                 try {
                     CompoundEdit compoundEdit =
@@ -1337,6 +1415,7 @@ public final class LispAPI {
     // ### %log-debug
     private static final Primitive _LOG_DEBUG =
         new Primitive("%log-debug", PACKAGE_J, false) {
+            @Override
             public LispObject execute(LispObject arg) {
                 Log.debug(arg.getStringValue());
                 return arg;
@@ -1346,6 +1425,7 @@ public final class LispAPI {
     // ### get-last-event-time
     private static final Primitive GET_LAST_EVENT_INTERNAL_TIME =
         new Primitive("get-last-event-internal-time", PACKAGE_J, true) {
+            @Override
             public LispObject execute() {
                 return number(Dispatcher.getLastEventMillis());
             }
@@ -1409,6 +1489,7 @@ public final class LispAPI {
     // ### invoke-later
     public static final Primitive INVOKE_LATER =
         new Primitive("invoke-later", PACKAGE_J, true) {
+            @Override
             public LispObject execute(LispObject arg) {
                 final LispObject fun;
                 if (arg instanceof Symbol)
@@ -1434,10 +1515,12 @@ public final class LispAPI {
     // ### make-buffer-stream buffer => stream
     private static final Primitive MAKE_BUFFER_STREAM =
         new Primitive("make-buffer-stream", PACKAGE_J, true) {
+            @Override
             public LispObject execute() {
                 return new BufferStream(new Buffer(0));
             }
 
+            @Override
             public LispObject execute(LispObject arg) {
                 return new BufferStream(checkBuffer(arg));
             }
@@ -1446,9 +1529,10 @@ public final class LispAPI {
     // ### buffer-stream-buffer stream => buffer
     private static final Primitive BUFFER_STREAM_BUFFER =
         new Primitive("buffer-stream-buffer", PACKAGE_J, true) {
+            @Override
             public LispObject execute(LispObject arg) {
-                if (arg instanceof BufferStream)
-                    return new JavaObject(((BufferStream) arg).getBuffer());
+                if (arg instanceof BufferStream bufferStream)
+                    return new JavaObject(bufferStream.getBuffer());
                 return error(
                     new LispError(
                         arg.printObject() +
@@ -1461,6 +1545,7 @@ public final class LispAPI {
     // ### pop-to-buffer buffer => buffer
     private static final Primitive POP_TO_BUFFER =
         new Primitive("pop-to-buffer", PACKAGE_J, true) {
+            @Override
             public LispObject execute(LispObject arg) {
                 if (arg != NIL) {
                     Buffer buffer = checkBuffer(arg);
@@ -1475,6 +1560,7 @@ public final class LispAPI {
     // ### switch-to-buffer buffer => buffer
     private static final Primitive SWITCH_TO_BUFFER =
         new Primitive("switch-to-buffer", PACKAGE_J, true) {
+            @Override
             public LispObject execute(LispObject arg) {
                 Buffer buffer = checkBuffer(arg);
                 Editor editor = Editor.currentEditor();
@@ -1487,6 +1573,7 @@ public final class LispAPI {
     // ### buffer-modified-p buffer => boolean
     private static final Primitive BUFFER_MODIFIED_P =
         new Primitive("buffer-modified-p", PACKAGE_J, true, "buffer") {
+            @Override
             public LispObject execute(LispObject arg) {
                 return checkBuffer(arg).isModified() ? T : NIL;
             }
@@ -1495,6 +1582,7 @@ public final class LispAPI {
     // ### set-buffer-modified-p buffer flag => flag
     private static final Primitive SET_BUFFER_MODIFIED_P =
         new Primitive("set-buffer-modified-p", PACKAGE_J, true, "buffer flag") {
+            @Override
             public LispObject execute(LispObject first, LispObject second) {
                 final Buffer buffer = checkBuffer(first);
                 if (second == NIL)
@@ -1508,9 +1596,10 @@ public final class LispAPI {
     // ### %status string &optional editor => generalized-boolean
     private static final Primitive STATUS =
         new Primitive("status", PACKAGE_J, true, "string &optional editor") {
+            @Override
             public LispObject execute(LispObject arg) {
-                if (arg instanceof AbstractString) {
-                    final String s = ((AbstractString) arg).getStringValue();
+                if (arg instanceof AbstractString abstractString) {
+                    final String s = abstractString.getStringValue();
                     Runnable r = () -> {
                         try {
                             Editor.currentEditor().status(s);
@@ -1525,9 +1614,10 @@ public final class LispAPI {
                 return type_error(arg, Symbol.STRING);
             }
 
+            @Override
             public LispObject execute(LispObject first, LispObject second) {
-                if (first instanceof AbstractString) {
-                    final String s = ((AbstractString) first).getStringValue();
+                if (first instanceof AbstractString abstractString) {
+                    final String s = abstractString.getStringValue();
                     final Editor editor = checkEditor(second);
                     Runnable r = () -> {
                         try {
@@ -1552,6 +1642,7 @@ public final class LispAPI {
             false,
             "pattern direction regexp-p buffer start ignore-case-p whole-words-only-p"
         ) {
+            @Override
             public LispObject execute(LispObject[] args) {
                 if (args.length != 7)
                     return error(new WrongNumberOfArgumentsException(this));
@@ -1607,6 +1698,7 @@ public final class LispAPI {
     // ### find-file-buffer pathname => buffer
     private static final Primitive FIND_FILE_BUFFER =
         new Primitive("find-file-buffer", PACKAGE_J, true, "pathname") {
+            @Override
             public LispObject execute(LispObject arg) {
                 final Pathname pathname = coerceToPathname(arg);
                 final String namestring = pathname.getNamestring();
@@ -1623,12 +1715,14 @@ public final class LispAPI {
     // ### find-beginning-of-defun &optional mark
     private static final Primitive FIND_BEGINNING_OF_DEFUN =
         new Primitive("find-beginning-of-defun", PACKAGE_J, true, "&optional mark") {
+            @Override
             public LispObject execute() {
                 Position pos =
                     LispMode.findBeginningOfDefun(Editor.currentEditor().getDot());
                 return pos != null ? new JavaObject(pos) : NIL;
             }
 
+            @Override
             public LispObject execute(LispObject arg) {
                 Position pos = LispMode.findBeginningOfDefun(checkMark(arg));
                 return pos != null ? new JavaObject(pos) : NIL;
@@ -1638,6 +1732,7 @@ public final class LispAPI {
     // ### defun-at-point => string
     private static final Primitive DEFUN_AT_POINT =
         new Primitive("defun-at-point", PACKAGE_J, true, "") {
+            @Override
             public LispObject execute() {
                 String s = LispMode.getCurrentDefun(Editor.currentEditor());
                 return s != null ? new SimpleString(s) : NIL;
@@ -1647,6 +1742,7 @@ public final class LispAPI {
     // ### forward-sexp
     private static final Primitive FORWARD_SEXP =
         new Primitive("forward-sexp", PACKAGE_J, true, "") {
+            @Override
             public LispObject execute() {
                 LispMode.forwardSexp();
                 return NIL;
@@ -1656,6 +1752,7 @@ public final class LispAPI {
     // ### backward-sexp
     private static final Primitive BACKWARD_SEXP =
         new Primitive("backward-sexp", PACKAGE_J, true, "") {
+            @Override
             public LispObject execute() {
                 LispMode.backwardSexp();
                 return NIL;
