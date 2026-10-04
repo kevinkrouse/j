@@ -287,6 +287,21 @@ public abstract class FinderTextFieldHandler extends DefaultTextFieldHandler {
             default:
                 break;
         }
+        // The other finder's key switches to it.
+        KeyMapping mapping = editor.getKeyMapping(e.getKeyChar(), e.getKeyCode(), modifiers);
+        if (mapping != null) {
+            Object command = mapping.getCommand();
+            if ("findAction".equals(command) && !(this instanceof ActionTextFieldHandler)) {
+                e.consume();
+                ProjectCommands.findAction(editor);
+                return;
+            }
+            if ("findFileInProject".equals(command) && !(this instanceof FindFileTextFieldHandler)) {
+                e.consume();
+                ProjectCommands.findFileInProject(editor);
+                return;
+            }
+        }
         super.keyPressed(e);
     }
 }

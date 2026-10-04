@@ -72,6 +72,7 @@ public final class ProjectCommands {
         if (locationBar == null)
             return;
         locationBar.setLabelText(LocationBar.PROMPT_ACTION);
+        editor.status("");
         HistoryTextField textField = locationBar.getTextField();
         ActionTextFieldHandler handler = new ActionTextFieldHandler(editor, textField);
         textField.setHandler(handler);
