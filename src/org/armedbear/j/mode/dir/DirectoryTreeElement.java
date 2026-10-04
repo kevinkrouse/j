@@ -22,27 +22,22 @@ package org.armedbear.j.mode.dir;
 
 import org.armedbear.j.File;
 
-public final class DirectoryTreeElement
-{
+public final class DirectoryTreeElement {
     private File file;
 
-    public DirectoryTreeElement(File file)
-    {
+    public DirectoryTreeElement(File file) {
         this.file = file;
     }
 
-    public File getFile()
-    {
+    public File getFile() {
         return file;
     }
 
-    public String getPath()
-    {
+    public String getPath() {
         return file.canonicalPath();
     }
 
-    public String toString()
-    {
+    public String toString() {
         if (file.canonicalPath().equals("/")) {
             if (file.isRemote())
                 return file.getHostName();
@@ -56,8 +51,7 @@ public final class DirectoryTreeElement
         return file.netPath();
     }
 
-    public String getStatusText()
-    {
+    public String getStatusText() {
         return null;
     }
 }

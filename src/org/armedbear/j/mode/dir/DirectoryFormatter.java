@@ -20,32 +20,28 @@
 
 package org.armedbear.j.mode.dir;
 
+import java.util.regex.Matcher;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.FormatTable;
 import org.armedbear.j.Formatter;
 import org.armedbear.j.Line;
 import org.armedbear.j.LineSegmentList;
 
-import java.util.regex.Matcher;
-
-public final class DirectoryFormatter extends Formatter
-{
+public final class DirectoryFormatter extends Formatter {
     // Formats.
-    private static final byte DIRECTORY_FORMAT_TEXT      = 0;
+    private static final byte DIRECTORY_FORMAT_TEXT = 0;
     private static final byte DIRECTORY_FORMAT_DIRECTORY = 1;
-    private static final byte DIRECTORY_FORMAT_SYMLINK   = 2;
-    private static final byte DIRECTORY_FORMAT_TAGGED    = 3;
+    private static final byte DIRECTORY_FORMAT_SYMLINK = 2;
+    private static final byte DIRECTORY_FORMAT_TAGGED = 3;
 
     private final DirectoryBuffer directory;
 
-    public DirectoryFormatter(Buffer buffer)
-    {
+    public DirectoryFormatter(Buffer buffer) {
         this.buffer = buffer;
         directory = (DirectoryBuffer) buffer;
     }
 
-    public LineSegmentList formatLine(Line line)
-    {
+    public LineSegmentList formatLine(Line line) {
         clearSegmentList();
         if (line == null || line.length() == 0) {
             addSegment("", DIRECTORY_FORMAT_TEXT);
@@ -81,8 +77,7 @@ public final class DirectoryFormatter extends Formatter
         return segmentList;
     }
 
-    private int getNameOffset(String text)
-    {
+    private int getNameOffset(String text) {
         Matcher matcher;
         if (directory.isUsingNativeFormat())
             matcher = DirectoryBuffer.getNativeMoveToFilenameRegExp().matcher(text);
@@ -91,8 +86,7 @@ public final class DirectoryFormatter extends Formatter
         return matcher.find() ? matcher.end() : text.length();
     }
 
-    public FormatTable getFormatTable()
-    {
+    public FormatTable getFormatTable() {
         if (formatTable == null) {
             formatTable = new FormatTable("DirectoryMode");
             formatTable.addEntryFromPrefs(DIRECTORY_FORMAT_TEXT, "text");
