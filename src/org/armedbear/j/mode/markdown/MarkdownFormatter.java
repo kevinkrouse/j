@@ -207,6 +207,7 @@ public final class MarkdownFormatter extends Formatter {
                 && FENCE_OPEN.matcher(line.getText()).matches());
     }
 
+    @Override
     public boolean parseBuffer() {
         final boolean[] changed = { false };
         scan(buffer.getFirstLine(), (line, flags) -> {
@@ -334,6 +335,7 @@ public final class MarkdownFormatter extends Formatter {
         return col >= 4;
     }
 
+    @Override
     public LineSegmentList formatLine(Line line) {
         clearSegmentList();
         final String text = getDetabbedText(line);
@@ -398,6 +400,7 @@ public final class MarkdownFormatter extends Formatter {
         return segmentList;
     }
 
+    @Override
     public boolean hidesMarkup() {
         return conceals("markup") || conceals("headings");
     }
@@ -406,6 +409,7 @@ public final class MarkdownFormatter extends Formatter {
      * A fence's lines, its markup shown with the caret anywhere in it; with
      * headings concealed, a setext heading's text and underline.
      */
+    @Override
     public Line[] getHiddenBlock(Line line) {
         if (conceals("markup")) {
             final Line[] fence = fenceBlock(line);
@@ -533,6 +537,7 @@ public final class MarkdownFormatter extends Formatter {
         return languages[(format & ~EMBED) >> EMBED_SLOT_SHIFT];
     }
 
+    @Override
     public Color getColor(int format) {
         final Formatter formatter = embedded(format);
         if (formatter != null)
@@ -544,6 +549,7 @@ public final class MarkdownFormatter extends Formatter {
      * A language's own style, italic too if the theme makes code blocks
      * italic, as Markdown's does.
      */
+    @Override
     public int getStyle(int format) {
         final Formatter formatter = embedded(format);
         if (formatter != null)
@@ -552,6 +558,7 @@ public final class MarkdownFormatter extends Formatter {
         return super.getStyle(format);
     }
 
+    @Override
     public boolean getUnderline(int format) {
         final Formatter formatter = embedded(format);
         if (formatter != null)
@@ -569,6 +576,7 @@ public final class MarkdownFormatter extends Formatter {
     }
 
     /** A fence's lines, and an indented code block's, shaded. */
+    @Override
     public Color getLineBackground(Line line) {
         if (isInFence(line) || opensFence(line) || isIndentedCodeBlock(line))
             return codeBackground();
@@ -576,12 +584,14 @@ public final class MarkdownFormatter extends Formatter {
     }
 
     /** Inline code, shaded as a code block is. */
+    @Override
     public Color getRunBackground(int format) {
         if (format == CODE || format == CODE_MARKER)
             return codeBackground();
         return null;
     }
 
+    @Override
     public void reset() {
         super.reset();
         codeBackground = null;
@@ -1053,6 +1063,7 @@ public final class MarkdownFormatter extends Formatter {
         return -1;
     }
 
+    @Override
     public FormatTable getFormatTable() {
         if (formatTable == null) {
             formatTable = new FormatTable("MarkdownMode");

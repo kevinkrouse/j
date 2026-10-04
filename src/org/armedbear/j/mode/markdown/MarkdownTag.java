@@ -20,6 +20,8 @@
 
 package org.armedbear.j.mode.markdown;
 
+import static org.armedbear.j.Constants.*;
+
 import javax.swing.Icon;
 import org.armedbear.j.Line;
 import org.armedbear.j.LocalTag;
@@ -50,6 +52,7 @@ public final class MarkdownTag extends LocalTag {
     }
 
     /** Its anchor, whatever the case, or its name. */
+    @Override
     public boolean isNamedBy(String anchor) {
         return anchor.equalsIgnoreCase(this.anchor) || super.isNamedBy(anchor);
     }
@@ -65,11 +68,13 @@ public final class MarkdownTag extends LocalTag {
     }
 
     /** The headings down to this one: "Syntaxes › Markdown › Tasks". */
+    @Override
     public String getLongName() {
         return parent == null ? name : parent.getLongName() + " › " + name;
     }
 
     // A heading needs no icon to say what it is.
+    @Override
     public Icon getIcon() {
         return null;
     }

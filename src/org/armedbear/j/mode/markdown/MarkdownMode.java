@@ -20,10 +20,11 @@
 
 package org.armedbear.j.mode.markdown;
 
+import static org.armedbear.j.Constants.*;
+
 import java.awt.event.KeyEvent;
 import org.armedbear.j.AbstractMode;
 import org.armedbear.j.Buffer;
-import org.armedbear.j.Constants;
 import org.armedbear.j.Editor;
 import org.armedbear.j.Formatter;
 import org.armedbear.j.KeyMap;
@@ -38,7 +39,7 @@ import org.armedbear.j.Tagger;
 import org.armedbear.j.TextLink;
 import org.armedbear.j.View;
 
-public final class MarkdownMode extends AbstractMode implements Constants, Mode {
+public final class MarkdownMode extends AbstractMode implements Mode {
     private static final MarkdownMode mode = new MarkdownMode();
 
     private MarkdownMode() {
@@ -51,58 +52,69 @@ public final class MarkdownMode extends AbstractMode implements Constants, Mode 
         return mode;
     }
 
+    @Override
     public final Formatter getFormatter(Buffer buffer) {
         return new MarkdownFormatter(buffer);
     }
 
+    @Override
     public boolean isTaggable() {
         return true;
     }
 
+    @Override
     public Tagger getTagger(SystemBuffer buffer) {
         return new MarkdownTagger(buffer);
     }
 
     /** The headings, as an outline. */
+    @Override
     public NavigationComponent getSidebarComponent(Editor editor) {
         final View view = editor.getCurrentView();
         if (view == null)
             return null; // Shouldn't happen.
         if (!(view.getSidebarComponent() instanceof SidebarTagTree))
             view.setSidebarComponent(
-                new SidebarTagTree(editor, tag -> tag instanceof MarkdownTag ? ((MarkdownTag) tag).getLevel() : 1)
+                new SidebarTagTree(editor, tag -> tag instanceof MarkdownTag markdownTag ? markdownTag.getLevel() : 1)
             );
         return view.getSidebarComponent();
     }
 
     /** The headings down to the caret's: "Syntaxes › Markdown › Tasks". */
+    @Override
     public String getContextString(Editor editor, boolean verbose) {
         return super.getContextString(editor, true);
     }
 
     /** The link at pos: inline, reference, autolink or bare URL. */
+    @Override
     public TextLink getLinkAt(Editor editor, Position pos) {
         return MarkdownLinks.find(editor.getBuffer(), pos.getLine(), pos.getOffset());
     }
 
     /** A fence's code, a list item's children, or a heading's section. */
+    @Override
     public Line[] getFoldRange(Editor editor, Line line) {
         return MarkdownFolding.getFoldRange(editor.getBuffer(), line);
     }
 
     /** All but the headings. */
+    @Override
     public void foldAll(Editor editor) {
         MarkdownFolding.foldHeadings(editor, 6);
     }
 
+    @Override
     public String getCommentStart() {
         return "<!-- ";
     }
 
+    @Override
     public String getCommentEnd() {
         return " -->";
     }
 
+    @Override
     protected void setKeyMapDefaults(KeyMap km) {
         km.mapKey(
             KeyEvent.VK_F12,

@@ -20,10 +20,11 @@
 
 package org.armedbear.j.mode.markdown;
 
+import static org.armedbear.j.Constants.*;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
-import org.armedbear.j.Constants;
 import org.armedbear.j.Editor;
 import org.armedbear.j.Mode;
 import org.armedbear.j.ModeListEntry;
@@ -33,12 +34,12 @@ import org.armedbear.j.ModeListEntry;
  * "```java", "``` py", "~~~ {.sh}". Each language seen gets a small number,
  * a slot, that fits in a line's flags.
  */
-final class FenceLanguages implements Constants {
+final class FenceLanguages {
     /** Slots fit in six bits of a line's flags; 0 is no language. */
     static final int MAX_SLOT = 63;
 
     // The mode id of each slot, from slot 1.
-    private static final List<Integer> slots = new ArrayList<Integer>();
+    private static final List<Integer> slots = new ArrayList<>();
 
     private FenceLanguages() {}
 

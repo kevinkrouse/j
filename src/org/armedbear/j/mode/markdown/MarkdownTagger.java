@@ -44,10 +44,11 @@ public final class MarkdownTagger extends Tagger {
         super(buffer);
     }
 
+    @Override
     public void run() {
-        final List<LocalTag> tags = new ArrayList<LocalTag>();
+        final List<LocalTag> tags = new ArrayList<>();
         final MarkdownTag[] under = new MarkdownTag[7];
-        final Map<String, Integer> anchors = new HashMap<String, Integer>();
+        final Map<String, Integer> anchors = new HashMap<>();
         MarkdownFormatter.scan(buffer.getFirstLine(), (line, flags) -> {
             final int level = MarkdownFormatter.headingLevel(line, flags);
             if (level == 0)
