@@ -42,6 +42,7 @@ public final class DiffFormatter extends Formatter {
         this.buffer = buffer;
     }
 
+    @Override
     public LineSegmentList formatLine(Line line) {
         clearSegmentList();
         if (line == null || line.length() == 0) {
@@ -181,6 +182,7 @@ public final class DiffFormatter extends Formatter {
         return false;
     }
 
+    @Override
     public FormatTable getFormatTable() {
         if (formatTable == null) {
             formatTable = new FormatTable("DiffMode");

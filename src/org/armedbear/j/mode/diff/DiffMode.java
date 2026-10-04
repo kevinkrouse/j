@@ -20,17 +20,17 @@
 
 package org.armedbear.j.mode.diff;
 
+import static org.armedbear.j.Constants.*;
+
 import java.awt.AWTEvent;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseEvent;
-import java.lang.StringBuilder;
 import java.util.List;
 import java.util.function.Function;
 import java.util.function.UnaryOperator;
 import org.armedbear.j.AbstractMode;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.ConfirmDialog;
-import org.armedbear.j.Constants;
 import org.armedbear.j.Debug;
 import org.armedbear.j.Editor;
 import org.armedbear.j.File;
@@ -46,7 +46,7 @@ import org.armedbear.j.util.Utilities;
 import org.armedbear.j.vcs.VcsBackend;
 import org.armedbear.j.vcs.VcsBackends;
 
-public final class DiffMode extends AbstractMode implements Constants, Mode {
+public final class DiffMode extends AbstractMode implements Mode {
     private static final DiffMode mode = new DiffMode();
 
     private DiffMode() {
@@ -57,10 +57,12 @@ public final class DiffMode extends AbstractMode implements Constants, Mode {
         return mode;
     }
 
+    @Override
     public Formatter getFormatter(Buffer buffer) {
         return new DiffFormatter(buffer);
     }
 
+    @Override
     protected void setKeyMapDefaults(KeyMap km) {
         km.mapKey(KeyEvent.VK_ENTER, 0, "diffGotoFile");
         km.mapKey(KeyEvent.VK_G, CTRL_MASK | SHIFT_MASK, "diffGotoFile");
@@ -185,16 +187,15 @@ public final class DiffMode extends AbstractMode implements Constants, Mode {
         if (editor.getDot() == null)
             return;
         final Buffer buffer = editor.getBuffer();
-        if (!(buffer instanceof DiffOutputBuffer))
+        if (!(buffer instanceof DiffOutputBuffer diffOutputBuffer))
             return;
 
         // If this method is invoked via a mouse event mapping, move dot to
         // location of mouse click first.
         AWTEvent e = editor.getDispatcher().getLastEvent();
-        if (e instanceof MouseEvent)
-            editor.mouseMoveDotToPoint((MouseEvent) e);
+        if (e instanceof MouseEvent mouseEvent)
+            editor.mouseMoveDotToPoint(mouseEvent);
 
-        DiffOutputBuffer diffOutputBuffer = (DiffOutputBuffer) buffer;
         VcsBackend backend = VcsBackends.get(diffOutputBuffer.getVCType());
         if (backend == null || !backend.gotoDiffSource(editor, diffOutputBuffer))
             localGotoFile(editor, diffOutputBuffer);
