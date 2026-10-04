@@ -20,16 +20,16 @@
 
 package org.armedbear.j.mode.checkpath;
 
+import static org.armedbear.j.Constants.*;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.lang.StringBuilder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import org.armedbear.j.Buffer;
-import org.armedbear.j.Constants;
 import org.armedbear.j.Editor;
 import org.armedbear.j.File;
 import org.armedbear.j.Line;
@@ -38,15 +38,15 @@ import org.armedbear.j.OutputBuffer;
 import org.armedbear.j.Property;
 import org.armedbear.j.util.Utilities;
 
-public final class CheckPath implements Constants {
+public final class CheckPath {
     private final Editor editor;
     private final boolean showAll;
     private final Buffer buffer;
     private StringBuilder sb = new StringBuilder(16384);
     private String path;
     private File currentDirectory;
-    private HashSet<File> checkedFiles = new HashSet<File>(256);
-    private List<File> files = new ArrayList<File>();
+    private HashSet<File> checkedFiles = new HashSet<>(256);
+    private List<File> files = new ArrayList<>();
     private int depthDisplayed;
 
     private CheckPath(Editor editor, boolean showAll) {
