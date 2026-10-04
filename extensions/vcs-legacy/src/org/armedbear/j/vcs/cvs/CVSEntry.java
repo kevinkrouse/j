@@ -20,7 +20,6 @@
 
 package org.armedbear.j.vcs.cvs;
 
-import java.lang.StringBuilder;
 import java.util.Calendar;
 import java.util.NoSuchElementException;
 import java.util.StringTokenizer;
@@ -45,14 +44,17 @@ public final class CVSEntry extends VersionControlEntry {
         return checkoutTime;
     }
 
+    @Override
     public int getVersionControl() {
         return Constants.VC_CVS;
     }
 
+    @Override
     public String getStatusText() {
         return statusText(true);
     }
 
+    @Override
     public String getLongStatusText() {
         return statusText(false);
     }

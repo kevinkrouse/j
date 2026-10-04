@@ -11,8 +11,9 @@
 
 package org.armedbear.j.vcs.cvs;
 
+import static org.armedbear.j.Constants.*;
+
 import org.armedbear.j.Buffer;
-import org.armedbear.j.Constants;
 import org.armedbear.j.Editor;
 import org.armedbear.j.File;
 import org.armedbear.j.mode.checkin.CheckinBuffer;
@@ -21,29 +22,35 @@ import org.armedbear.j.mode.diff.DiffOutputBuffer;
 import org.armedbear.j.vcs.VcsBackend;
 import org.armedbear.j.vcs.VersionControlEntry;
 
-public final class CvsBackend implements VcsBackend, Constants {
+public final class CvsBackend implements VcsBackend {
+    @Override
     public int id() {
         return VC_CVS;
     }
 
+    @Override
     public String name() {
         return "cvs";
     }
 
+    @Override
     public boolean isRoot(File dir) {
         File cvs = File.getInstance(dir, "CVS");
         return cvs != null && cvs.isDirectory();
     }
 
+    @Override
     public VersionControlEntry getEntry(Buffer buffer) {
         return CVSEntry.getEntry(buffer);
     }
 
+    @Override
     public void finish(Editor editor, CheckinBuffer buffer) {
         CVS.finish(editor, buffer);
     }
 
     // "? name" is an unknown file; "Index: name" starts a file's diff.
+    @Override
     public boolean gotoDiffSource(Editor editor, DiffOutputBuffer buffer) {
         DiffMode.gotoUnifiedDiffSource(
             editor,

@@ -20,11 +20,11 @@
 
 package org.armedbear.j.vcs.cvs;
 
-import java.lang.StringBuilder;
+import static org.armedbear.j.Constants.*;
+
 import javax.swing.SwingUtilities;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.ConfirmDialog;
-import org.armedbear.j.Constants;
 import org.armedbear.j.Debug;
 import org.armedbear.j.Editor;
 import org.armedbear.j.File;
@@ -39,7 +39,7 @@ import org.armedbear.j.util.Background;
 import org.armedbear.j.util.Utilities;
 import org.armedbear.j.vcs.VersionControl;
 
-public final class CVS extends VersionControl implements Constants {
+public final class CVS extends VersionControl {
     public static void cvs() {
         MessageDialog.showMessageDialog(
             "The command \"cvs\" requires an argument",
@@ -143,9 +143,9 @@ public final class CVS extends VersionControl implements Constants {
             // Look for existing checkin buffer before making a new one.
             CheckinBuffer checkinBuffer = null;
             for (Buffer buf : Editor.getBufferList()) {
-                if (buf instanceof CheckinBuffer) {
+                if (buf instanceof CheckinBuffer checkinBuffer2) {
                     if (buf.getParentBuffer() == parentBuffer) {
-                        checkinBuffer = (CheckinBuffer) buf;
+                        checkinBuffer = checkinBuffer2;
                         break;
                     }
                 }
@@ -229,8 +229,8 @@ public final class CVS extends VersionControl implements Constants {
         final File directory = buffer.getCurrentDirectory();
         // Kill existing diff output buffer if any for same directory.
         for (Buffer b : Editor.getBufferList()) {
-            if (b instanceof DiffOutputBuffer) {
-                if (directory.equals(((DiffOutputBuffer) b).getDirectory())) {
+            if (b instanceof DiffOutputBuffer diffOutputBuffer) {
+                if (directory.equals(diffOutputBuffer.getDirectory())) {
                     b.kill();
                     break; // There should be one at most.
                 }
