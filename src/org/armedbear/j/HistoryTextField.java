@@ -25,10 +25,13 @@ import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.event.FocusEvent;
 import java.awt.event.FocusListener;
+import java.awt.event.InputEvent;
+import java.awt.event.KeyEvent;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.awt.event.TextListener;
 import javax.swing.JTextField;
+import javax.swing.KeyStroke;
 import javax.swing.SwingUtilities;
 
 public class HistoryTextField extends JTextField implements FocusListener,
@@ -57,6 +60,10 @@ public class HistoryTextField extends JTextField implements FocusListener,
         }
         setAlignmentX(LEFT_ALIGNMENT);
         setHandler(new DefaultTextFieldHandler(editor, this));
+        // Swing's Ctrl Shift O flips the field to right-to-left; in j it is
+        // openFileInOtherFrame, an easy key to press here.
+        getInputMap()
+            .put(KeyStroke.getKeyStroke(KeyEvent.VK_O, InputEvent.CTRL_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK), "none");
         addFocusListener(this);
         addMouseListener(this);
     }
