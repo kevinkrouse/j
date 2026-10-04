@@ -1,0 +1,129 @@
+# Formatting-only commits (jfmt), for git blame to skip:
+#   git config blame.ignoreRevsFile .git-blame-ignore-revs
+# GitHub reads this file automatically.
+
+# test: reformat with jfmt
+9cb32a3adaff4d94a48664dca889cabd998b278a
+
+# reformat with jfmt the files the next commits change
+1cd2594edfe2fe8b383925c3d5640b730fc08e95
+
+# reformat with jfmt the files the next commits change
+32189b9e11b8e0a12b2973fab977ee3f015a36f1
+
+# reformat with jfmt the files the next commits change
+eef3dca0991dd4b5fa0a33d0255b3052e85e6fb0
+
+# reformat with jfmt the files the next commits change
+5637007c27046d91f31d20273e61d878bd5af15e
+
+# reformat: files edited in phase 5
+19b78551ce764934500064a50cbee51eef65b81a
+
+# reformat: files edited by phase 6's targeted changes
+65a26acbe4b74a1de5b7058d96e9cd52d513e8ab
+
+# reformat: extension
+7efcde528be540787dbf458b96787174939b9b54
+
+# reformat: jdb
+6b04d6a609fa3f0ffa5b115fd18f8a69abeea4bd
+
+# reformat: mode.binary
+e89ddbd45c4d4fe041e956492a4425b3d206b7fe
+
+# reformat: mode.checkpath
+953380ad2e31976add506bbca1344a1fa107dfc4
+
+# reformat: mode.cpp
+5e76025c94032b4f5cc3bf3fdba2fedd2c8fbd07
+
+# reformat: mode.css
+b1c940603d6c7f397010b04d5f339cb55f4c429f
+
+# reformat: mode.diff
+794c20669e47d041a288ccab29f2cb1e14890b73
+
+# reformat: mode.dir
+c682f2a17ba7e9b97fc575a4ef53afa533efce07
+
+# reformat: mode.html
+4746547a9bf30eec2f1a4d2f3d27108a10da5beb
+
+# reformat: mode.image
+547d978c1eeea9b6c647d0783bf658f91eec2cc5
+
+# reformat: mode.list
+e1fd651aed60a0983260e631331a84b9122362ee
+
+# reformat: mode.make
+37129e69e70be3450ffe677e5a0866cad68c6ac3
+
+# reformat: mode.man
+cf3de8c2c299a413a6bca332ac636260b02410ce
+
+# reformat: mode.markdown
+1b2ec1518d96ae6c7e8e5b7f0f42fa51088f7864
+
+# reformat: mode.perl
+8368358c3b8e533c647298b59edcdcff0372cb9b
+
+# reformat: mode.php
+88f1e6a54cf3e1bd9eb91535829ae42433ab0f4a
+
+# reformat: mode.python
+c7843d090e17ac55261c7d7cd87813b70e8f86c5
+
+# reformat: mode.sh
+6e7f80444b00a28613b5260dbe7463db72e5692a
+
+# reformat: mode.shell
+40a6eb7adfcf0f9cbe06e62d192d36795897e270
+
+# reformat: mode.text
+68d2048f9b4cb798b20e07534be18b49c51bb04f
+
+# reformat: mode.web
+92f03740161d3d92265cfdd52e517315599aaa01
+
+# reformat: mode.xml
+078fdaeb2771f20fe88bf27e7f3b3dd124dda2c7
+
+# reformat: util
+a64a7ce5fd6fa7034bbee0b28bf30b33e3c7d6d5
+
+# reformat: vcs.git
+ef0def4e787cb5e9d9d99c0c05ce4bb669a232eb
+
+# reformat: vim
+566971da090bfa8133a9f11f8dd7c557c72ac147
+
+# reformat: org.jdesktop.swingx
+6ccae1af3a646ef5725f90c7b0f0ffd7faa7fd8b
+
+# reformat: abcl extension.abcl
+20f4b7137dcf274c372dd38fd8b0972293ee9553
+
+# reformat: mode.compilation
+88685137bc15211dcfceaefc08cff1bf80cf2190
+
+# reformat: mode.checkin
+3340c43802c4c3012b0e01d3293366e490d6be0b
+
+# reformat: mode.lisp
+e59b8f62eb632fbad8f05382746fc54bce3ca610
+
+# reformat: mode.c
+b7d649a1d8d30b47817d4999116823a12bc98232
+
+# reformat: vcs
+53b220762167814e074d87c8e13cd39f26f9b578
+
+# reformat: mode.java
+1d4bc6f948d0d839cfeaca2fced053a63c1ca058
+
+# reformat: core
+1d9478f5025cd1821473017ed2be83090075749e
+
+# reformat: NumberCommands
+033e2763f21d8ea808a488c892e996a0b49e642c

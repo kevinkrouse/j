@@ -43,3 +43,7 @@ jfmt on your PATH.
 
 Run `bb build` to compile the source.
 Run `bb tasks` to see a list of available targets.
+
+`bb fmt` formats the Java files you have changed with jfmt. To keep `git blame`
+from stopping at those reformatting commits, run
+`git config blame.ignoreRevsFile .git-blame-ignore-revs` once.
