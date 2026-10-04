@@ -25,8 +25,6 @@ import java.awt.Color;
 import java.awt.Cursor;
 import java.awt.Dimension;
 import java.awt.Graphics;
-import java.awt.Graphics2D;
-import java.awt.Insets;
 import java.awt.Rectangle;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
@@ -37,8 +35,6 @@ import javax.swing.JPanel;
 import javax.swing.event.MouseInputAdapter;
 import org.jdesktop.swingx.MultiSplitLayout.Divider;
 import org.jdesktop.swingx.MultiSplitLayout.Node;
-import org.jdesktop.swingx.painter.AbstractPainter;
-import org.jdesktop.swingx.painter.Painter;
 
 /**
  *
@@ -52,8 +48,6 @@ import org.jdesktop.swingx.painter.Painter;
 public class JXMultiSplitPane extends JPanel {
     private AccessibleContext accessibleContext = null;
     private boolean continuousLayout = true;
-    private DividerPainter dividerPainter = new DefaultDividerPainter();
-    private Painter backgroundPainter;
 
     /**
      * Creates a MultiSplitPane with it's LayoutManager set to 
@@ -163,156 +157,19 @@ public class JXMultiSplitPane extends JPanel {
     }
 
     /**
-     * Draws a single Divider.  Typically used to specialize the
-     * way the active Divider is painted.  
-     * 
-     * @see #getDividerPainter
-     * @see #setDividerPainter
-     */
-    public static abstract class DividerPainter extends AbstractPainter<Divider> {}
-
-    private class DefaultDividerPainter extends DividerPainter {
-        @Override
-        protected void doPaint(Graphics2D g, Divider divider, int width, int height) {
-            if ((divider == activeDivider()) && !isContinuousLayout()) {
-                g.setColor(Color.black);
-                g.fillRect(0, 0, width, height);
-            }
-        }
-    }
-
-    /** 
-     * The DividerPainter that's used to paint Dividers on this MultiSplitPane.
-     * This property may be null.
-     * 
-     * @return the value of the dividerPainter Property
-     * @see #setDividerPainter
-     */
-    public DividerPainter getDividerPainter() {
-        return dividerPainter;
-    }
-
-    /** 
-     * Sets the DividerPainter that's used to paint Dividers on this 
-     * MultiSplitPane.  The default DividerPainter only draws
-     * the activeDivider (if there is one) and then, only if 
-     * continuousLayout is false.  The value of this property is 
-     * used by the paintChildren method: Dividers are painted after
-     * the MultiSplitPane's children have been rendered so that 
-     * the activeDivider can appear "on top of" the children.
-     * 
-     * @param dividerPainter the value of the dividerPainter property, can be null
-     * @see #paintChildren
-     * @see #activeDivider
-     */
-    public void setDividerPainter(DividerPainter dividerPainter) {
-        DividerPainter old = getDividerPainter();
-        this.dividerPainter = dividerPainter;
-        firePropertyChange("dividerPainter", old, getDividerPainter());
-    }
-
-    /**
-     * Calls the UI delegate's paint method, if the UI delegate
-     * is non-<code>null</code>.  We pass the delegate a copy of the
-     * <code>Graphics</code> object to protect the rest of the
-     * paint code from irrevocable changes
-     * (for example, <code>Graphics.translate</code>).
-     * <p>
-     * If you override this in a subclass you should not make permanent
-     * changes to the passed in <code>Graphics</code>. For example, you
-     * should not alter the clip <code>Rectangle</code> or modify the
-     * transform. If you need to do these operations you may find it
-     * easier to create a new <code>Graphics</code> from the passed in
-     * <code>Graphics</code> and manipulate it. Further, if you do not
-     * invoker super's implementation you must honor the opaque property,
-     * that is
-     * if this component is opaque, you must completely fill in the background
-     * in a non-opaque color. If you do not honor the opaque property you
-     * will likely see visual artifacts.
-     * <p>
-     * The passed in <code>Graphics</code> object might
-     * have a transform other than the identify transform
-     * installed on it.  In this case, you might get
-     * unexpected results if you cumulatively apply
-     * another transform.
-     *
-     * @param g the <code>Graphics</code> object to protect
-     * @see #paint(Graphics)
-     * @see javax.swing.plaf.ComponentUI
-     */
-    @Override
-    protected void paintComponent(Graphics g) {
-        if (backgroundPainter != null) {
-            Graphics2D g2 = (Graphics2D) g.create();
-
-            try {
-                Insets ins = this.getInsets();
-                g2.translate(ins.left, ins.top);
-                backgroundPainter.paint(
-                    g2,
-                    this,
-                    this.getWidth() - ins.left
-                        - ins.right,
-                    this.getHeight() - ins.top - ins.bottom
-                );
-            }
-            finally {
-                g2.dispose();
-            }
-        } else {
-            super.paintComponent(g);
-        }
-    }
-
-    /**
-     * Specifies a Painter to use to paint the background of this JXPanel.
-     * If <code>p</code> is not null, then setOpaque(false) will be called
-     * as a side effect. A component should not be opaque if painters are
-     * being used, because Painters may paint transparent pixels or not
-     * paint certain pixels, such as around the border insets.
-     */
-    public void setBackgroundPainter(Painter p) {
-        Painter old = getBackgroundPainter();
-        this.backgroundPainter = p;
-
-        if (p != null) {
-            setOpaque(false);
-        }
-
-        firePropertyChange("backgroundPainter", old, getBackgroundPainter());
-        repaint();
-    }
-
-    public Painter getBackgroundPainter() {
-        return backgroundPainter;
-    }
-
-    /**
-     * Uses the DividerPainter (if any) to paint each Divider that
-     * overlaps the clip Rectangle.  This is done after the call to
-     * <code>super.paintChildren()</code> so that Dividers can be 
-     * rendered "on top of" the children.
-     * <p>
-     * {@inheritDoc}
+     * Paints the active divider black over the children while it is dragged
+     * and the layout is not continuous.
      */
     @Override
     protected void paintChildren(Graphics g) {
         super.paintChildren(g);
-        DividerPainter dp = getDividerPainter();
-        Rectangle clipR = g.getClipBounds();
-        if ((dp != null) && (clipR != null)) {
-            MultiSplitLayout msl = getMultiSplitLayout();
-            if (msl.hasModel()) {
-                for (Divider divider : msl.dividersThatOverlap(clipR)) {
-                    Rectangle bounds = divider.getBounds();
-                    Graphics cg = g.create(bounds.x, bounds.y, bounds.width, bounds.height);
-                    try {
-                        dp.paint((Graphics2D) cg, divider, bounds.width, bounds.height);
-                    }
-                    finally {
-                        cg.dispose();
-                    }
-                }
+        Divider divider = activeDivider();
+        Rectangle clip = g.getClipBounds();
+        if (divider != null && !isContinuousLayout() && clip != null) {
+            Rectangle bounds = divider.getBounds();
+            if (bounds.intersects(clip)) {
+                g.setColor(Color.black);
+                g.fillRect(bounds.x, bounds.y, bounds.width, bounds.height);
             }
         }
     }
