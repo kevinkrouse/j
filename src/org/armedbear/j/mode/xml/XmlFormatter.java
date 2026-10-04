@@ -20,41 +20,38 @@
 
 package org.armedbear.j.mode.xml;
 
-import org.armedbear.j.Buffer;
 import java.lang.StringBuilder;
+import org.armedbear.j.Buffer;
 import org.armedbear.j.FormatTable;
 import org.armedbear.j.Formatter;
 import org.armedbear.j.Line;
 import org.armedbear.j.LineSegmentList;
 import org.armedbear.j.Position;
 
-public final class XmlFormatter extends Formatter
-{
-    private static final byte XML_FORMAT_TEXT      = 0;
-    private static final byte XML_FORMAT_COMMENT   = 1;
+public final class XmlFormatter extends Formatter {
+    private static final byte XML_FORMAT_TEXT = 0;
+    private static final byte XML_FORMAT_COMMENT = 1;
     private static final byte XML_FORMAT_DELIMITER = 2;
     private static final byte XML_FORMAT_NAMESPACE = 3;
-    private static final byte XML_FORMAT_TAG       = 4;
+    private static final byte XML_FORMAT_TAG = 4;
     private static final byte XML_FORMAT_ATTRIBUTE = 5;
-    private static final byte XML_FORMAT_EQUALS    = 6;
-    private static final byte XML_FORMAT_QUOTE     = 7;
-    private static final byte XML_FORMAT_CDATA     = 8;
+    private static final byte XML_FORMAT_EQUALS = 6;
+    private static final byte XML_FORMAT_QUOTE = 7;
+    private static final byte XML_FORMAT_CDATA = 8;
 
-    private static final byte STATE_NAMESPACE    = STATE_LAST + 1;
+    private static final byte STATE_NAMESPACE = STATE_LAST + 1;
     private static final byte STATE_TAG_STARTING = STATE_LAST + 2;
-    private static final byte STATE_TAG_ENDING   = STATE_LAST + 3;
-    private static final byte STATE_ATTRIBUTE    = STATE_LAST + 4;
-    private static final byte STATE_EQUALS       = STATE_LAST + 5;
+    private static final byte STATE_TAG_ENDING = STATE_LAST + 3;
+    private static final byte STATE_ATTRIBUTE = STATE_LAST + 4;
+    private static final byte STATE_EQUALS = STATE_LAST + 5;
 
     private StringBuilder sb = new StringBuilder();
 
-    public XmlFormatter(Buffer buffer)
-    {
+    public XmlFormatter(Buffer buffer) {
         this.buffer = buffer;
     }
 
-    private void endToken(int state)
-    {
+    private void endToken(int state) {
         if (sb.length() > 0) {
             byte format;
             switch (state) {
@@ -94,8 +91,7 @@ public final class XmlFormatter extends Formatter
         }
     }
 
-    public LineSegmentList formatLine(Line line)
-    {
+    public LineSegmentList formatLine(Line line) {
         clearSegmentList();
         if (line != null)
             parseLine(line);
@@ -104,8 +100,7 @@ public final class XmlFormatter extends Formatter
         return segmentList;
     }
 
-    private void parseLine(Line line)
-    {
+    private void parseLine(Line line) {
         final String text = getDetabbedText(line);
         int state = line.flags();
         sb.setLength(0);
@@ -114,7 +109,7 @@ public final class XmlFormatter extends Formatter
         while (i < limit) {
             char c = text.charAt(i);
             if (state == STATE_COMMENT) {
-                if (i < limit-2 && text.substring(i, i+3).equals("-->")) {
+                if (i < limit - 2 && text.substring(i, i + 3).equals("-->")) {
                     sb.append("-->");
                     endToken(state);
                     state = STATE_NEUTRAL;
@@ -355,8 +350,7 @@ public final class XmlFormatter extends Formatter
             endToken(state);
     }
 
-    public boolean parseBuffer()
-    {
+    public boolean parseBuffer() {
         int state = STATE_NEUTRAL;
         Line line = buffer.getFirstLine();
         Position pos = new Position(line, 0);
@@ -451,13 +445,11 @@ public final class XmlFormatter extends Formatter
         return changed;
     }
 
-    private static final boolean isWhitespace(char c)
-    {
+    private static final boolean isWhitespace(char c) {
         return c <= ' ';
     }
 
-    public FormatTable getFormatTable()
-    {
+    public FormatTable getFormatTable() {
         if (formatTable == null) {
             formatTable = new FormatTable("XmlMode");
             formatTable.addEntryFromPrefs(XML_FORMAT_TEXT, "text");

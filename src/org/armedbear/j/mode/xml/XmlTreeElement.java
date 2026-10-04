@@ -24,16 +24,18 @@ import java.lang.StringBuilder;
 import org.xml.sax.Attributes;
 import org.xml.sax.helpers.AttributesImpl;
 
-public final class XmlTreeElement
-{
+public final class XmlTreeElement {
     private final String name;
     private final Attributes attributes;
     private final int lineNumber;
     private final int columnNumber;
 
-    public XmlTreeElement(String name, Attributes attributes, int lineNumber,
-        int columnNumber)
-    {
+    public XmlTreeElement(
+        String name,
+        Attributes attributes,
+        int lineNumber,
+        int columnNumber
+    ) {
         this.name = name;
         // Must copy attributes!
         this.attributes = new AttributesImpl(attributes);
@@ -41,27 +43,23 @@ public final class XmlTreeElement
         this.columnNumber = columnNumber;
     }
 
-    public final String getName()
-    {
+    public final String getName() {
         return name;
     }
 
     // This is used for the text in the sidebar tree.
-    public String toString()
-    {
+    public String toString() {
         return getStatusText();
     }
 
-    public String getStatusText()
-    {
+    public String getStatusText() {
         StringBuilder sb = new StringBuilder(name);
         for (int i = 0; i < attributes.getLength(); i++)
             appendNameAndValue(sb, attributes.getQName(i), attributes.getValue(i));
         return sb.toString();
     }
 
-    private void appendNameAndValue(StringBuilder sb, String name, String value)
-    {
+    private void appendNameAndValue(StringBuilder sb, String name, String value) {
         sb.append(' ');
         sb.append(name);
         sb.append("=");
@@ -71,13 +69,11 @@ public final class XmlTreeElement
         sb.append(quoteChar);
     }
 
-    public final int getLineNumber()
-    {
+    public final int getLineNumber() {
         return lineNumber;
     }
 
-    public final int getColumnNumber()
-    {
+    public final int getColumnNumber() {
         return columnNumber;
     }
 }
