@@ -22,7 +22,6 @@ package org.armedbear.j;
 
 import static org.armedbear.j.Constants.*;
 
-import java.awt.Component;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
@@ -31,11 +30,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import javax.swing.JList;
-import javax.swing.JPopupMenu;
-import javax.swing.JScrollPane;
-import javax.swing.MenuElement;
-import javax.swing.MenuSelectionManager;
 import javax.swing.SwingUtilities;
 import org.armedbear.j.extension.Extensions;
 import org.armedbear.j.extension.Opener;
@@ -59,8 +53,7 @@ public final class OpenFileTextFieldHandler extends DefaultTextFieldHandler impl
     private Object returned;
     private String encoding;
 
-    private JPopupMenu popup;
-    private JList<String> listbox;
+    private CompletionPopup<String> popup;
 
     private String originalText;
     private String originalPrefix;
@@ -340,10 +333,9 @@ public final class OpenFileTextFieldHandler extends DefaultTextFieldHandler impl
 
     @Override
     public void escape() {
-        if (popup != null) {
+        if (popupShowing()) {
             Debug.bug();
-            popup.setVisible(false);
-            popup = null;
+            popup.hide();
         }
         OpenFileDialog owner = textField.getOwner();
         if (owner != null) {
@@ -402,7 +394,7 @@ public final class OpenFileTextFieldHandler extends DefaultTextFieldHandler impl
                 );
         }
         if (showCompletionList) {
-            if (popup == null) {
+            if (!popupShowing()) {
                 long start = System.currentTimeMillis();
                 completions = getCompletions(prefix);
                 long elapsed = System.currentTimeMillis() - start;
@@ -654,12 +646,24 @@ public final class OpenFileTextFieldHandler extends DefaultTextFieldHandler impl
         editor.updateLocation();
     }
 
+    private boolean popupShowing() {
+        return popup != null && popup.isShowing();
+    }
+
     private void showCompletionsPopup() {
-        String[] array = new String[completions.size()];
-        completions.toArray(array);
-        popup = new JPopupMenu();
-        popup.add(new CompletionsList(array));
-        popup.show(textField, 0, textField.getHeight());
+        if (popup == null) {
+            popup = new CompletionPopup<>(textField, 8);
+            popup.setOnClick(completion -> {
+                textField.setText(completion);
+                enterPopup();
+            });
+            popup.setOnDismiss(() -> {
+                originalText = null;
+                originalPrefix = null;
+            });
+        }
+        if (!popup.show(completions, 0))
+            return;
         final String completion = completions.get(0);
         Runnable r = () -> {
             updateTextField(completion);
@@ -668,28 +672,12 @@ public final class OpenFileTextFieldHandler extends DefaultTextFieldHandler impl
     }
 
     private void tabPopup(int n, boolean wrap) {
-        int count = listbox.getModel().getSize();
-        if (count == 0) {
+        if (popup.size() == 0) {
             Debug.bug();
             return;
         }
-        int index = listbox.getSelectedIndex();
-        int i = index + n;
-        if (wrap) {
-            if (i >= count)
-                i = 0;
-            else if (i < 0)
-                i = count - 1;
-        } else {
-            if (i >= count || i < 0)
-                i = index;
-        }
-        if (i != index) {
-            listbox.setSelectedIndex(i);
-            listbox.ensureIndexIsVisible(i);
-            String completion = listbox.getSelectedValue();
-            updateTextField(completion);
-        }
+        if (popup.move(n, wrap))
+            updateTextField(popup.getSelected());
     }
 
     private void updateTextField(String completion) {
@@ -767,8 +755,7 @@ public final class OpenFileTextFieldHandler extends DefaultTextFieldHandler impl
     }
 
     private void enterPopup() {
-        popup.setVisible(false);
-        popup = null;
+        popup.hide();
         File file = File.getInstance(
             editor.getCompletionDirectory(),
             textField.getText()
@@ -808,159 +795,27 @@ public final class OpenFileTextFieldHandler extends DefaultTextFieldHandler impl
 
     @Override
     protected void reset() {
-        if (popup != null) {
-            popup.setVisible(false);
-            popup = null;
-        }
+        if (popup != null)
+            popup.hide();
         super.reset();
-    }
-
-    private class CompletionsList extends JScrollPane implements MenuElement,
-        MouseListener {
-        public CompletionsList(String[] completions) {
-            super(listbox = new JList<>(completions));
-            listbox.setFont(textField.getFont());
-            if (completions.length < 8)
-                listbox.setVisibleRowCount(completions.length);
-            listbox.setFocusTraversalKeysEnabled(false);
-            listbox.setSelectedIndex(0);
-            listbox.addMouseListener(this);
-        }
-
-        @Override
-        public void processMouseEvent(
-            MouseEvent e,
-            MenuElement[] path,
-            MenuSelectionManager manager
-        ) {}
-
-        @Override
-        public void processKeyEvent(
-            KeyEvent e,
-            MenuElement[] path,
-            MenuSelectionManager manager
-        ) {
-            final int keyCode = e.getKeyCode();
-            final int modifiers = Keys.keyModifiers(e);
-            final int id = e.getID();
-            if (id == KeyEvent.KEY_PRESSED) {
-                switch (keyCode) {
-                    case KeyEvent.VK_TAB:
-                        if (modifiers == 0)
-                            tabPopup(+1, true);
-                        else if (modifiers == SHIFT_MASK)
-                            tabPopup(-1, true);
-                        e.consume();
-                        return;
-                    case KeyEvent.VK_ENTER: {
-                        enterPopup();
-                        e.consume();
-                        return;
-                    }
-                    case KeyEvent.VK_DELETE:
-                    case KeyEvent.VK_ESCAPE: {
-                        popup.setVisible(false);
-                        popup = null;
-                        textField.setText(originalText);
-                        originalText = null;
-                        originalPrefix = null;
-                        textField.requestFocus();
-                        end();
-                        e.consume();
-                        return;
-                    }
-                    case KeyEvent.VK_UP:
-                    case KeyEvent.VK_KP_UP:
-                        tabPopup(-1, false);
-                        e.consume();
-                        break;
-                    case KeyEvent.VK_DOWN:
-                    case KeyEvent.VK_KP_DOWN:
-                        tabPopup(+1, false);
-                        e.consume();
-                        break;
-                    case KeyEvent.VK_LEFT:
-                    case KeyEvent.VK_KP_LEFT:
-                        left();
-                        e.consume();
-                        return;
-                    case KeyEvent.VK_END:
-                    case KeyEvent.VK_RIGHT:
-                    case KeyEvent.VK_KP_RIGHT:
-                        reset();
-                        originalText = null;
-                        originalPrefix = null;
-                        textField.requestFocus();
-                        end();
-                        e.consume();
-                        return;
-                    case KeyEvent.VK_SHIFT:
-                        break;
-                    default:
-                        break;
-                }
-            } else if (id == KeyEvent.KEY_TYPED) {
-                // Forward event to textfield.
-                keyTyped(e);
-            }
-            super.processKeyEvent(e);
-        }
-
-        @Override
-        public void menuSelectionChanged(boolean isIncluded) {}
-
-        @Override
-        public MenuElement[] getSubElements() {
-            return new MenuElement[0];
-        }
-
-        @Override
-        public Component getComponent() {
-            return this;
-        }
-
-        @Override
-        public void mouseClicked(MouseEvent e) {
-            enterPopup();
-        }
-
-        @Override
-        public void mousePressed(MouseEvent e) {
-            final int button = e.getButton();
-            final boolean unmodified = Keys.isUnmodified(e);
-            if ((unmodified && button == MouseEvent.BUTTON1) || (unmodified && button == MouseEvent.BUTTON2)) {
-                listbox.setSelectedIndex(listbox.locationToIndex(e.getPoint()));
-                String s = listbox.getSelectedValue();
-                textField.setText(s);
-            }
-        }
-
-        @Override
-        public void mouseReleased(MouseEvent e) {}
-
-        @Override
-        public void mouseEntered(MouseEvent e) {}
-
-        @Override
-        public void mouseExited(MouseEvent e) {}
     }
 
     @Override
     public void keyPressed(KeyEvent e) {
-        if (popup != null) {
+        if (popupShowing()) {
             int modifiers = Keys.keyModifiers(e);
             switch (e.getKeyCode()) {
                 case KeyEvent.VK_ENTER:
                     enterPopup();
                     e.consume();
                     return;
+                case KeyEvent.VK_DELETE:
                 case KeyEvent.VK_ESCAPE:
-                    popup.setVisible(false);
-                    popup = null;
+                    popup.hide();
                     textField.setText(originalText);
                     originalText = null;
                     originalPrefix = null;
-                    textField.requestFocus();
+                    end();
                     e.consume();
                     return;
                 case KeyEvent.VK_TAB:
@@ -972,25 +827,42 @@ public final class OpenFileTextFieldHandler extends DefaultTextFieldHandler impl
                     return;
                 case KeyEvent.VK_UP:
                 case KeyEvent.VK_KP_UP:
-                    if (modifiers == 0) {
-                        tabPopup(-1, false);
-                        e.consume();
-                        return;
-                    }
-                    break;
+                    tabPopup(-1, false);
+                    e.consume();
+                    return;
                 case KeyEvent.VK_DOWN:
                 case KeyEvent.VK_KP_DOWN:
-                    if (modifiers == 0) {
-                        tabPopup(+1, false);
+                    tabPopup(+1, false);
+                    e.consume();
+                    return;
+                case KeyEvent.VK_P:
+                case KeyEvent.VK_N:
+                    if (modifiers == CTRL_MASK) {
+                        tabPopup(e.getKeyCode() == KeyEvent.VK_P ? -1 : +1, false);
                         e.consume();
                         return;
                     }
                     break;
+                case KeyEvent.VK_PAGE_UP:
+                case KeyEvent.VK_PAGE_DOWN:
+                    if (popup.page(e.getKeyCode() == KeyEvent.VK_PAGE_UP ? -1 : +1))
+                        updateTextField(popup.getSelected());
+                    e.consume();
+                    return;
+                case KeyEvent.VK_LEFT:
+                case KeyEvent.VK_KP_LEFT:
+                    left();
+                    e.consume();
+                    return;
                 case KeyEvent.VK_RIGHT:
                 case KeyEvent.VK_KP_RIGHT:
                 case KeyEvent.VK_END:
-                    textField.getCaret().setVisible(true);
-                    break;
+                    reset();
+                    originalText = null;
+                    originalPrefix = null;
+                    end();
+                    e.consume();
+                    return;
                 default:
                     break;
             }
@@ -1022,10 +894,8 @@ public final class OpenFileTextFieldHandler extends DefaultTextFieldHandler impl
             return;
         }
         if (c >= ' ' && c != 127) {
-            if (popup != null) {
-                popup.setVisible(false);
-                popup = null;
-            }
+            if (popup != null)
+                popup.hide();
             String text = textField.getText();
             if (textField.getSelectionStart() != textField.getSelectionEnd()) {
                 if (originalText != null) {
