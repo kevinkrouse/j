@@ -22,9 +22,9 @@ package org.armedbear.j.mail;
 
 import java.io.Serializable;
 import java.lang.StringBuilder;
-import java.text.SimpleDateFormat;
 import java.time.LocalDate;
 import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
@@ -279,13 +279,13 @@ public final class RFC822Date implements Serializable {
         return new RFC822Date(cal.getTime());
     }
 
-    private static final SimpleDateFormat toStringFormat =
-        new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss", Locale.US);
+    private static final DateTimeFormatter toStringFormat =
+        DateTimeFormatter.ofPattern("EEE, dd MMM yyyy HH:mm:ss", Locale.US);
 
     public String toString() {
         if (date == null)
             return "null";
-        return toStringFormat.format(date);
+        return toStringFormat.format(date.toInstant().atZone(ZoneId.systemDefault()));
     }
 
     public static int compare(RFC822Date date1, RFC822Date date2) {
@@ -340,7 +340,7 @@ public final class RFC822Date implements Serializable {
     }
 
     // Used only by getDateTimeString.
-    private static final SimpleDateFormat df = new SimpleDateFormat("EEE, d MMM yyyy HH:mm:ss ", Locale.US);
+    private static final DateTimeFormatter df = DateTimeFormatter.ofPattern("EEE, d MMM yyyy HH:mm:ss ", Locale.US);
 
     public static String getDateTimeString() {
         return getDateTimeString(Calendar.getInstance());
@@ -348,7 +348,7 @@ public final class RFC822Date implements Serializable {
 
     public static String getDateTimeString(Calendar calendar) {
         StringBuilder sb = new StringBuilder(48);
-        sb.append(df.format(calendar.getTime()));
+        sb.append(df.format(calendar.toInstant().atZone(ZoneId.systemDefault())));
         int offset = calendar.get(Calendar.ZONE_OFFSET) + calendar.get(Calendar.DST_OFFSET);
         if (offset == 0) {
             sb.append("+0000"); // '+' by convention.

@@ -22,7 +22,8 @@ package org.armedbear.j.mail;
 
 import java.io.Serializable;
 import java.lang.StringBuilder;
-import java.text.SimpleDateFormat;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Locale;
 import org.armedbear.j.Editor;
@@ -360,11 +361,9 @@ public abstract class MailboxEntry implements Serializable {
             return STRING_DEFAULT;
     }
 
-    private static final SimpleDateFormat dateFormat1 =
-        new SimpleDateFormat("MMM dd HH:mm", Locale.US);
+    private static final DateTimeFormatter dateFormat1 = DateTimeFormatter.ofPattern("MMM dd HH:mm", Locale.US);
 
-    private static final SimpleDateFormat dateFormat2 =
-        new SimpleDateFormat("MMM dd  yyyy", Locale.US);
+    private static final DateTimeFormatter dateFormat2 = DateTimeFormatter.ofPattern("MMM dd  yyyy", Locale.US);
 
     private static final String NULL_DATE = "null        ";
 
@@ -377,8 +376,8 @@ public abstract class MailboxEntry implements Serializable {
         if (millis == 0)
             return NULL_DATE;
         if (DEBUG || System.currentTimeMillis() - millis < SIX_MONTHS)
-            return dateFormat1.format(date.getDate());
-        return dateFormat2.format(date.getDate());
+            return dateFormat1.format(date.getDate().toInstant().atZone(ZoneId.systemDefault()));
+        return dateFormat2.format(date.getDate().toInstant().atZone(ZoneId.systemDefault()));
     }
 
     protected String formatFrom(int fieldWidth) {

@@ -31,6 +31,7 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Locale;
 import java.util.concurrent.Semaphore;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Debug;
@@ -249,7 +250,7 @@ public final class Mbox {
             final long messageStart = file.length();
             writer.write("From - ");
             SimpleDateFormat dateFormatter =
-                new SimpleDateFormat("EEE MMM d HH:mm:ss yyyy");
+                new SimpleDateFormat("EEE MMM d HH:mm:ss yyyy", Locale.US);
             Calendar cal = Calendar.getInstance();
             String dateString = dateFormatter.format(cal.getTime());
             writer.write(dateString);

@@ -37,6 +37,7 @@ import java.util.Base64;
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 import java.util.Random;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -1532,7 +1533,7 @@ public final class SendMail extends Buffer {
                 new BufferedWriter(new FileWriter(sentMessagesFile.canonicalPath(), true));
             writer.write("From - ");
             SimpleDateFormat dateFormatter =
-                new SimpleDateFormat("EEE MMM d HH:mm:ss yyyy");
+                new SimpleDateFormat("EEE MMM d HH:mm:ss yyyy", Locale.US);
             Calendar cal = Calendar.getInstance();
             String dateString = dateFormatter.format(cal.getTime());
             writer.write(dateString);

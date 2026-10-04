@@ -23,8 +23,10 @@ package org.armedbear.j;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
-import java.text.SimpleDateFormat;
-import java.util.Date;
+import java.nio.charset.StandardCharsets;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.Map;
 
 public final class Log {
@@ -38,8 +40,7 @@ public final class Log {
     // Synchronization.
     private static final Object lock = new Object();
 
-    private static final SimpleDateFormat dateFormat =
-        new SimpleDateFormat("MMM dd HH:mm:ss.SSS ");
+    private static final DateTimeFormatter dateFormat = DateTimeFormatter.ofPattern("MMM dd HH:mm:ss.SSS ");
     private static final int lineSeparatorLength =
         System.getProperty("line.separator").length();
 
@@ -315,7 +316,7 @@ public final class Log {
     }
 
     private static final String getDateTimeString(long millis) {
-        return dateFormat.format(new Date(millis));
+        return dateFormat.format(Instant.ofEpochMilli(millis).atZone(ZoneId.systemDefault()));
     }
 
     // String returned is always 6 characters long and ends with a space.

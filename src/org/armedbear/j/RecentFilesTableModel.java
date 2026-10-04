@@ -20,9 +20,11 @@
 
 package org.armedbear.j;
 
-import java.text.SimpleDateFormat;
-import java.util.Calendar;
-import java.util.Date;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import javax.swing.event.TableModelEvent;
 import javax.swing.table.AbstractTableModel;
@@ -39,18 +41,16 @@ public final class RecentFilesTableModel extends AbstractTableModel {
     private final String[] columnNames =
         { "Name", "Location", "Last Visit", "First Visit" };
 
-    private static SimpleDateFormat timeFormat = new SimpleDateFormat("h:mm a");
-    private static SimpleDateFormat shortDateFormat =
-        new SimpleDateFormat("EEE h:mm a");
-    private static SimpleDateFormat fullDateFormat =
-        new SimpleDateFormat("MMM d yyyy h:mm a");
+    private static final DateTimeFormatter timeFormat = DateTimeFormatter.ofPattern("h:mm a");
+    private static final DateTimeFormatter shortDateFormat = DateTimeFormatter.ofPattern("EEE h:mm a");
+    private static final DateTimeFormatter fullDateFormat = DateTimeFormatter.ofPattern("MMM d yyyy h:mm a");
 
     private final List<RecentFilesEntry> data = RecentFiles.getInstance().getEntries();
 
     private int[] indexes;
 
-    private Calendar startOfDay;
-    private Calendar startOfWeek;
+    private final ZonedDateTime startOfDay = LocalDate.now().atStartOfDay(ZoneId.systemDefault());
+    private final ZonedDateTime startOfWeek = startOfDay.minusDays(6);
 
     private int sortColumn = LAST_VISIT;
     private int sortOrder = DESCENDING;
@@ -60,18 +60,6 @@ public final class RecentFilesTableModel extends AbstractTableModel {
 
         for (int i = 0; i < indexes.length; i++)
             indexes[i] = i;
-
-        startOfDay = Calendar.getInstance();
-        startOfDay.setTime(new Date(System.currentTimeMillis()));
-        startOfDay.set(Calendar.HOUR_OF_DAY, 0);
-        startOfDay.set(Calendar.HOUR, 0);
-        startOfDay.set(Calendar.MINUTE, 0);
-        startOfDay.set(Calendar.SECOND, 0);
-        startOfDay.set(Calendar.MILLISECOND, 0);
-        startOfDay.set(Calendar.AM_PM, 0);
-        startOfWeek = Calendar.getInstance();
-        startOfWeek.setTime(startOfDay.getTime());
-        startOfWeek.add(Calendar.DATE, -6);
     }
 
     public int getColumnCount() {
@@ -87,19 +75,12 @@ public final class RecentFilesTableModel extends AbstractTableModel {
     }
 
     private String format(long date) {
-        Date d = new Date(date);
-
-        Calendar c = Calendar.getInstance();
-
-        c.setTime(d);
-
-        if (c.before(startOfWeek))
-            return fullDateFormat.format(d);
-
-        if (c.before(startOfDay))
-            return shortDateFormat.format(d);
-
-        return timeFormat.format(d);
+        ZonedDateTime t = Instant.ofEpochMilli(date).atZone(ZoneId.systemDefault());
+        if (t.isBefore(startOfWeek))
+            return fullDateFormat.format(t);
+        if (t.isBefore(startOfDay))
+            return shortDateFormat.format(t);
+        return timeFormat.format(t);
     }
 
     public RecentFilesEntry getEntryAtRow(int row) {

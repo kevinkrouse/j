@@ -21,8 +21,9 @@
 package org.armedbear.j.mode.dir;
 
 import java.lang.StringBuilder;
-import java.text.SimpleDateFormat;
-import java.util.Date;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.regex.Matcher;
 import org.armedbear.j.DirectoryFilenameFilter;
 import org.armedbear.j.Log;
@@ -42,8 +43,7 @@ public final class DirectoryEntry {
     private static final String DIR = "     <DIR>";
     private static final int DIRLENGTH = DIR.length();
     private static final String DATEFORMAT = "MMM dd yyyy HH:mm";
-    private static SimpleDateFormat dateFormatter =
-        new SimpleDateFormat(DATEFORMAT);
+    private static final DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern(DATEFORMAT);
 
     // Constructor for native "ls -l" format.
     private DirectoryEntry(String string, char firstChar) {
@@ -202,7 +202,7 @@ public final class DirectoryEntry {
             sb.append(sizeString);
         }
         sb.append(' ');
-        String dateString = dateFormatter.format(new Date(date));
+        String dateString = dateFormatter.format(Instant.ofEpochMilli(date).atZone(ZoneId.systemDefault()));
         sb.append(dateString);
         sb.append(' ');
         sb.append(name);

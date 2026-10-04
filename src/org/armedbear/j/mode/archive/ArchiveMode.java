@@ -26,8 +26,9 @@ import java.awt.event.MouseEvent;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.lang.StringBuilder;
-import java.text.SimpleDateFormat;
-import java.util.Date;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.zip.ZipEntry;
@@ -218,8 +219,7 @@ public final class ArchiveMode extends AbstractMode implements Constants, Mode {
         }
     }
 
-    private static final SimpleDateFormat zipEntryDateFormatter =
-        new SimpleDateFormat("MMM dd yyyy HH:mm");
+    private static final DateTimeFormatter zipEntryDateFormatter = DateTimeFormatter.ofPattern("MMM dd yyyy HH:mm");
 
     private static void appendLine(Buffer buffer, ZipEntry ze) {
         StringBuilder sb = new StringBuilder();
@@ -228,7 +228,7 @@ public final class ArchiveMode extends AbstractMode implements Constants, Mode {
             sb.append(' ');
         sb.append(sizeString);
         sb.append(' ');
-        sb.append(zipEntryDateFormatter.format(new Date(ze.getTime())));
+        sb.append(zipEntryDateFormatter.format(Instant.ofEpochMilli(ze.getTime()).atZone(ZoneId.systemDefault())));
         sb.append(' ');
         sb.append(ze.getName());
         buffer.appendLine(sb.toString());

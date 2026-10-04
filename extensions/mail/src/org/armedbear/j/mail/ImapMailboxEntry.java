@@ -22,9 +22,11 @@ package org.armedbear.j.mail;
 
 import java.io.Serializable;
 import java.lang.StringBuilder;
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.Locale;
 import java.util.TimeZone;
 import org.armedbear.j.Headers;
 import org.armedbear.j.Log;
@@ -650,8 +652,6 @@ import org.armedbear.j.util.Tuple2;
         return new MailAddress(encodedPersonal, mailName + '@' + domainName);
     }
 
-    private static SimpleDateFormat internalDateFormat = new SimpleDateFormat("dd-MMM-yyyy HH:mm:ss");
-
     private static RFC822Date parseInternalDate(String internalDate) {
         Date date = null;
         int index = internalDate.indexOf(' ');
@@ -660,14 +660,14 @@ import org.armedbear.j.util.Tuple2;
             if (index >= 0) {
                 String dateString = internalDate.substring(0, index);
                 String timeZone = internalDate.substring(index + 1);
-                TimeZone tz = TimeZone.getTimeZone("GMT" + timeZone);
-                if (tz != null)
-                    internalDateFormat.setTimeZone(tz);
+                // A formatter of its own: parsing with a shared one would race.
+                SimpleDateFormat format = new SimpleDateFormat("dd-MMM-yyyy HH:mm:ss", Locale.US);
+                format.setTimeZone(TimeZone.getTimeZone("GMT" + timeZone));
                 try {
-                    date = internalDateFormat.parse(dateString);
+                    date = format.parse(dateString);
                 }
-                catch (Throwable t) {
-                    Log.error(t);
+                catch (ParseException e) {
+                    Log.error(e);
                 }
             }
         }

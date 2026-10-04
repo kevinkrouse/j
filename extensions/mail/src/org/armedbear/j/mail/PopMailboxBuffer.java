@@ -30,9 +30,10 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.RandomAccessFile;
 import java.lang.StringBuilder;
-import java.text.SimpleDateFormat;
+import java.nio.charset.StandardCharsets;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -826,11 +827,10 @@ public final class PopMailboxBuffer extends LocalMailboxBuffer {
         }
     }
 
-    private static final SimpleDateFormat df =
-        new SimpleDateFormat("EEE MMM dd HH:mm:ss yyyy", Locale.US);
+    private static final DateTimeFormatter df = DateTimeFormatter.ofPattern("EEE MMM dd HH:mm:ss yyyy", Locale.US);
 
     private final String getDateTimeStamp() {
-        return df.format(Calendar.getInstance().getTime());
+        return df.format(ZonedDateTime.now());
     }
 
     private File getLocalStore() {
