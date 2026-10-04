@@ -20,8 +20,7 @@
 
 package org.armedbear.j;
 
-public final class History
-{
+public final class History {
     private final int limit;
 
     private final String name;
@@ -29,13 +28,11 @@ public final class History
     private int count;
     private int index; // Index for next/prev retrieval.
 
-    public History(String name)
-    {
+    public History(String name) {
         this(name, 10);
     }
 
-    public History(String name, int limit)
-    {
+    public History(String name, int limit) {
         this.name = name;
         this.limit = limit;
         strings = new String[limit];
@@ -54,13 +51,11 @@ public final class History
         reset();
     }
 
-    public int size()
-    {
+    public int size() {
         return count;
     }
 
-    public void save()
-    {
+    public void save() {
         if (name != null) {
             SessionProperties sessionProperties = Editor.getSessionProperties();
             for (int i = 0; i < count; i++) {
@@ -72,29 +67,27 @@ public final class History
         }
     }
 
-    public void append(String s)
-    {
+    public void append(String s) {
         if (s.length() == 0)
             return;
         for (int i = 0; i < count; i++) {
             if (s.equals(strings[i])) {
-                for (int j = i+1; j < count; j++)
-                    strings[j-1] = strings[j];
+                for (int j = i + 1; j < count; j++)
+                    strings[j - 1] = strings[j];
                 --count;
                 break;
             }
         }
         if (count == limit) {
             for (int i = 0; i < limit - 1; i++)
-                strings[i] = strings[i+1];
+                strings[i] = strings[i + 1];
             --count;
         }
         strings[count++] = s;
         reset();
     }
 
-    public String get(int i)
-    {
+    public String get(int i) {
         if (i < 0)
             return null;
         if (i > count - 1)
@@ -102,22 +95,19 @@ public final class History
         return strings[i];
     }
 
-    public String getPrevious()
-    {
+    public String getPrevious() {
         if (index > 0)
             return get(--index);
         return null;
     }
 
-    public String getNext()
-    {
+    public String getNext() {
         if (index < count - 1)
             return get(++index);
         return null;
     }
 
-    public final void reset()
-    {
+    public final void reset() {
         index = count;
     }
 }
