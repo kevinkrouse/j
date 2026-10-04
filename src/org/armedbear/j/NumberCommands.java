@@ -24,30 +24,24 @@ import javax.swing.undo.CompoundEdit;
  * and left there. The digits keep their width -- 0x0f, 007 -- and a
  * hexadecimal number keeps the case of its last letter.
  */
-public final class NumberCommands
-{
-    private NumberCommands()
-    {
-    }
+public final class NumberCommands {
+    private NumberCommands() {}
 
     /** What an addition does to a line: text to put in place of a span. */
-    public static final class Change
-    {
+    public static final class Change {
         /** The span replaced, from the sign if there is one. */
         public final int start;
         public final int end;
         public final String text;
 
-        Change(int start, int end, String text)
-        {
+        Change(int start, int end, String text) {
             this.start = start;
             this.end = end;
             this.text = text;
         }
 
         /** The offset of the new number's last character. */
-        public int last()
-        {
+        public int last() {
             return start + text.length() - 1;
         }
     }
@@ -61,14 +55,20 @@ public final class NumberCommands
      * @param subtract  CTRL-X rather than CTRL-A
      * @return null when there is no number there
      */
-    public static Change plan(String text, int from, int limit, long amount,
-                              boolean subtract)
-    {
+    public static Change plan(
+        String text,
+        int from,
+        int limit,
+        long amount,
+        boolean subtract
+    ) {
         final boolean selection = limit >= 0;
-        final int end = selection ? Math.min(limit, text.length())
-                                  : text.length();
-        final int col = selection ? firstDigit(text, from, end)
-                                  : findNumber(text, from);
+        final int end = selection
+            ? Math.min(limit, text.length())
+            : text.length();
+        final int col = selection
+            ? firstDigit(text, from, end)
+            : findNumber(text, from);
         if (col < 0 || col >= end)
             return null;
 
@@ -93,15 +93,20 @@ public final class NumberCommands
             final int d = digit(text.charAt(stop), radix);
             if (d < 0)
                 break;
-            if (Long.compareUnsigned(n,
-                    Long.divideUnsigned(-1L - d, radix)) > 0)
+            if (
+                Long.compareUnsigned(
+                    n,
+                    Long.divideUnsigned(-1L - d, radix)
+                ) > 0
+            )
                 overflow = true;
             n = overflow ? -1L : n * radix + d;
         }
 
         // Only a decimal number has a sign, and in a selection only one
         // the selection takes in.
-        boolean negative = radix == 10 && col > (selection ? from : 0)
+        boolean negative = radix == 10
+            && col > (selection ? from : 0)
             && text.charAt(col - 1) == '-';
         final int start = negative ? col - 1 : col;
 
@@ -146,8 +151,7 @@ public final class NumberCommands
      * 0b prefix the caret is inside or after first, then the first digit
      * from the caret, and back to the start of its run. -1 when none.
      */
-    private static int findNumber(String text, int cursor)
-    {
+    private static int findNumber(String text, int cursor) {
         final int length = text.length();
         int col = cursor;
         while (col > 0 && col < length && isHex(text.charAt(col)))
@@ -167,8 +171,7 @@ public final class NumberCommands
         return col < length ? col : -1;
     }
 
-    private static int firstDigit(String text, int from, int end)
-    {
+    private static int firstDigit(String text, int from, int end) {
         for (int col = from; col < end; col++)
             if (isDecimal(text.charAt(col)))
                 return col;
@@ -176,26 +179,26 @@ public final class NumberCommands
     }
 
     /** True when the x or b at col follows a 0 and comes before a digit. */
-    private static boolean isPrefix(String text, int col, char letter)
-    {
-        if (col <= 0 || col + 1 >= text.length()
-            || Character.toLowerCase(text.charAt(col)) != letter
-            || text.charAt(col - 1) != '0')
+    private static boolean isPrefix(String text, int col, char letter) {
+        if (
+            col <= 0
+                || col + 1 >= text.length()
+                || Character.toLowerCase(text.charAt(col)) != letter
+                || text.charAt(col - 1) != '0'
+        )
             return false;
         final char next = text.charAt(col + 1);
         return letter == 'x' ? isHex(next) : isBinary(next);
     }
 
-    private static boolean lastLetterIsUpper(String text, int start, int end)
-    {
+    private static boolean lastLetterIsUpper(String text, int start, int end) {
         for (int i = end - 1; i >= start; i--)
             if (Character.isLetter(text.charAt(i)))
                 return Character.isUpperCase(text.charAt(i));
         return false;
     }
 
-    private static String zeros(int count)
-    {
+    private static String zeros(int count) {
         final StringBuilder sb = new StringBuilder();
         for (int i = 0; i < count; i++)
             sb.append('0');
@@ -203,25 +206,22 @@ public final class NumberCommands
     }
 
     /** An ASCII digit's value in the radix, or -1. */
-    private static int digit(char c, int radix)
-    {
-        final boolean ascii = radix == 16 ? isHex(c)
+    private static int digit(char c, int radix) {
+        final boolean ascii = radix == 16
+            ? isHex(c)
             : radix == 2 ? isBinary(c) : isDecimal(c);
         return ascii ? Character.digit(c, radix) : -1;
     }
 
-    private static boolean isDecimal(char c)
-    {
+    private static boolean isDecimal(char c) {
         return c >= '0' && c <= '9';
     }
 
-    private static boolean isHex(char c)
-    {
+    private static boolean isHex(char c) {
         return isDecimal(c) || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F');
     }
 
-    private static boolean isBinary(char c)
-    {
+    private static boolean isBinary(char c) {
         return c == '0' || c == '1';
     }
 
@@ -232,9 +232,14 @@ public final class NumberCommands
      *
      * @return the change made, or null when there was no number
      */
-    public static Change add(Editor editor, Line line, int from, int limit,
-                             long amount, boolean subtract)
-    {
+    public static Change add(
+        Editor editor,
+        Line line,
+        int from,
+        int limit,
+        long amount,
+        boolean subtract
+    ) {
         final String text = line.getText() == null ? "" : line.getText();
         final Change change = plan(text, from, limit, amount, subtract);
         if (change == null)
@@ -242,8 +247,10 @@ public final class NumberCommands
         final CompoundEdit edit = editor.getBuffer().beginCompoundEdit();
         try {
             editor.addUndo(SimpleEdit.MOVE);
-            editor.deleteRegion(new Position(line, change.start),
-                                new Position(line, change.end));
+            editor.deleteRegion(
+                new Position(line, change.start),
+                new Position(line, change.end)
+            );
             editor.insertString(change.text);
             editor.setDot(line, change.last());
             editor.moveCaretToDotCol();
@@ -255,15 +262,13 @@ public final class NumberCommands
     }
 
     /** What adding over lines changed: its first and last changes. */
-    public static final class Changes
-    {
+    public static final class Changes {
         public final Line firstLine;
         public final Change first;
         public final Line lastLine;
         public final Change last;
 
-        Changes(Line firstLine, Change first, Line lastLine, Change last)
-        {
+        Changes(Line firstLine, Change first, Line lastLine, Change last) {
             this.firstLine = firstLine;
             this.first = first;
             this.lastLine = lastLine;
@@ -280,10 +285,14 @@ public final class NumberCommands
      *
      * @return what changed, or null when there was no number
      */
-    public static Changes addOverLines(Editor editor, Position start,
-                                       Position end, long amount,
-                                       boolean subtract, boolean progressive)
-    {
+    public static Changes addOverLines(
+        Editor editor,
+        Position start,
+        Position end,
+        long amount,
+        boolean subtract,
+        boolean progressive
+    ) {
         Line firstLine = null;
         Change first = null;
         Line lastLine = null;
@@ -318,12 +327,12 @@ public final class NumberCommands
         finally {
             editor.getBuffer().endCompoundEdit(edit);
         }
-        return first == null ? null
+        return first == null
+            ? null
             : new Changes(firstLine, first, lastLine, last);
     }
 
-    public static void incrementNumber()
-    {
+    public static void incrementNumber() {
         addHere(null, false);
     }
 
@@ -332,24 +341,20 @@ public final class NumberCommands
      * at or after the caret; with a selection, to the first number of each
      * of its lines, and progressive, n more to each after the first.
      */
-    public static void incrementNumber(String parameters)
-    {
+    public static void incrementNumber(String parameters) {
         addHere(parameters, false);
     }
 
-    public static void decrementNumber()
-    {
+    public static void decrementNumber() {
         addHere(null, true);
     }
 
     /** {@code decrementNumber [n] [progressive]} -- the same, taking away. */
-    public static void decrementNumber(String parameters)
-    {
+    public static void decrementNumber(String parameters) {
         addHere(parameters, true);
     }
 
-    private static void addHere(String parameters, boolean subtract)
-    {
+    private static void addHere(String parameters, boolean subtract) {
         final Editor editor = Editor.currentEditor();
         if (!editor.checkReadOnly())
             return;
@@ -380,14 +385,26 @@ public final class NumberCommands
         if (editor.getMark() != null) {
             final Region region = new Region(editor);
             editor.unmark();
-            final Changes changes = addOverLines(editor, region.getBegin(),
-                region.getEnd(), Math.abs(amount), down, progressive);
+            final Changes changes = addOverLines(
+                editor,
+                region.getBegin(),
+                region.getEnd(),
+                Math.abs(amount),
+                down,
+                progressive
+            );
             if (changes == null)
                 editor.status("no number in the selection");
             return;
         }
-        final Change change = add(editor, dot.getLine(), dot.getOffset(), -1,
-                                  Math.abs(amount), down);
+        final Change change = add(
+            editor,
+            dot.getLine(),
+            dot.getOffset(),
+            -1,
+            Math.abs(amount),
+            down
+        );
         if (change == null)
             editor.status("no number at or after the caret");
     }
