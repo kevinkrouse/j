@@ -59,22 +59,27 @@ public final class JLispBuffer extends LispShellBuffer {
         setInitialized(true);
     }
 
+    @Override
     protected void initializeHistory() {
         history = new History("jlisp.history", 30);
     }
 
+    @Override
     public String toString() {
         return "jlisp";
     }
 
     // Returns true if underlying process is alive and well.
+    @Override
     protected boolean checkProcess() {
         return true;
     }
 
+    @Override
     protected void startProcess() {
         clientPort = new CompletableFuture<>();
         thread = new Thread("JLispBuffer interpreter") {
+            @Override
             public void run() {
                 try {
                     startServer();
@@ -162,8 +167,10 @@ public final class JLispBuffer extends LispShellBuffer {
         }
     }
 
+    @Override
     public synchronized void dispose() {
         Thread disposeThread = new Thread("JLispBuffer dispose") {
+            @Override
             public void run() {
                 Log.debug("JLispBuffer.dispose");
                 if (interpreter != null)
