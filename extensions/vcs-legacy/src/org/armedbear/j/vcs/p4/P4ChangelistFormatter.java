@@ -36,6 +36,7 @@ public final class P4ChangelistFormatter extends Formatter {
         this.buffer = buffer;
     }
 
+    @Override
     public LineSegmentList formatLine(Line line) {
         clearSegmentList();
         String text = getDetabbedText(line);
@@ -63,6 +64,7 @@ public final class P4ChangelistFormatter extends Formatter {
         return segmentList;
     }
 
+    @Override
     public FormatTable getFormatTable() {
         if (formatTable == null) {
             formatTable = new FormatTable("P4Changelist");

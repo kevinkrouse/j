@@ -20,7 +20,8 @@
 
 package org.armedbear.j.vcs.p4;
 
-import java.lang.StringBuilder;
+import static org.armedbear.j.Constants.*;
+
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -29,7 +30,6 @@ import javax.swing.undo.CompoundEdit;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.BufferCommands;
 import org.armedbear.j.ConfirmDialog;
-import org.armedbear.j.Constants;
 import org.armedbear.j.Debug;
 import org.armedbear.j.Editor;
 import org.armedbear.j.File;
@@ -49,7 +49,7 @@ import org.armedbear.j.util.ProcessRunner;
 import org.armedbear.j.util.Utilities;
 import org.armedbear.j.vcs.VersionControl;
 
-public class P4 extends VersionControl implements Constants {
+public class P4 extends VersionControl {
     public static void p4() {
         if (!checkP4Installed())
             return;
@@ -283,8 +283,8 @@ public class P4 extends VersionControl implements Constants {
         final File directory = buffer.getCurrentDirectory();
         // Kill existing diff output buffer if any for same directory.
         for (Buffer b : Editor.getBufferList()) {
-            if (b instanceof DiffOutputBuffer) {
-                if (directory.equals(((DiffOutputBuffer) b).getDirectory())) {
+            if (b instanceof DiffOutputBuffer diffOutputBuffer) {
+                if (directory.equals(diffOutputBuffer.getDirectory())) {
                     b.kill();
                     break; // There should be one at most.
                 }
@@ -732,9 +732,9 @@ public class P4 extends VersionControl implements Constants {
 
         // Re-use existing output buffer if possible.
         for (Buffer b : Editor.getBufferList()) {
-            if (b instanceof OutputBuffer) {
+            if (b instanceof OutputBuffer outputBuffer) {
                 if (title.equals(b.getTitle())) {
-                    buf = (OutputBuffer) b;
+                    buf = outputBuffer;
                     break; // There should be one at most.
                 }
             }

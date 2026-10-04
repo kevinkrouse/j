@@ -11,8 +11,9 @@
 
 package org.armedbear.j.vcs.p4;
 
+import static org.armedbear.j.Constants.*;
+
 import org.armedbear.j.Buffer;
-import org.armedbear.j.Constants;
 import org.armedbear.j.Debug;
 import org.armedbear.j.Editor;
 import org.armedbear.j.File;
@@ -23,32 +24,39 @@ import org.armedbear.j.mode.diff.DiffMode;
 import org.armedbear.j.mode.diff.DiffOutputBuffer;
 import org.armedbear.j.vcs.VcsBackend;
 
-public final class P4Backend implements VcsBackend, Constants {
+public final class P4Backend implements VcsBackend {
+    @Override
     public int id() {
         return VC_P4;
     }
 
+    @Override
     public String name() {
         return "p4";
     }
 
     // Perforce has no metadata directory; its environment says it's in use.
+    @Override
     public boolean claimsUntracked() {
         return System.getenv("P4CONFIG") != null || System.getenv("P4PORT") != null;
     }
 
+    @Override
     public void replaceComment(Editor editor, String comment) {
         P4.replaceComment(editor, comment);
     }
 
+    @Override
     public String extractComment(CheckinBuffer buffer) {
         return P4.extractComment(buffer);
     }
 
+    @Override
     public void finish(Editor editor, CheckinBuffer buffer) {
         P4.finish(editor, buffer);
     }
 
+    @Override
     public boolean autoEdit(Editor editor) {
         Buffer buffer = editor.getBuffer();
         if (!buffer.getBooleanProperty(Property.P4_AUTO_EDIT) || buffer.getType() != Buffer.TYPE_NORMAL)
@@ -57,14 +65,17 @@ public final class P4Backend implements VcsBackend, Constants {
         return file != null && file.isLocal() && file.isFile() && P4.autoEdit(editor);
     }
 
+    @Override
     public boolean autoEdit(File file) {
         return Editor.preferences().getBooleanProperty(Property.P4_AUTO_EDIT) && P4.autoEdit(file);
     }
 
+    @Override
     public String getStatusString(File file) {
         return P4.getStatusString(file);
     }
 
+    @Override
     public boolean gotoDiffSource(Editor editor, DiffOutputBuffer buffer) {
         gotoFile(editor, buffer);
         return true;
