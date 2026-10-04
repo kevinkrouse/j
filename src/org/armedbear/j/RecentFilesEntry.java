@@ -24,7 +24,7 @@ import java.lang.StringBuilder;
 import java.util.StringTokenizer;
 
 public final class RecentFilesEntry {
-    private static boolean ignoreCase = Platform.isPlatformWindows();
+    private static final boolean ignoreCase = Platform.isFileSystemCaseInsensitive();
 
     String name;
     String location;

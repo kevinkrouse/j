@@ -59,6 +59,11 @@ public final class Platform {
         return isPlatformWindows;
     }
 
+    /** Whether file names that differ only in case name the same file, as j assumes on Windows. */
+    public static boolean isFileSystemCaseInsensitive() {
+        return isPlatformWindows();
+    }
+
     public static final boolean isPlatformMacOSX() {
         return isPlatformMacOSX;
     }

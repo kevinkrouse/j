@@ -31,7 +31,7 @@ import org.armedbear.j.File;
 import org.armedbear.j.Platform;
 
 public class DirectoryTreeModel extends DefaultTreeModel {
-    private static final boolean ignoreCase = Platform.isPlatformWindows();
+    private static final boolean ignoreCase = Platform.isFileSystemCaseInsensitive();
 
     private static DirectoryTreeModel localTreeModel;
     private static List<DirectoryTreeModel> remoteModels;

@@ -855,7 +855,7 @@ public final class FindInFiles extends Replacement implements Constants,
 
         public Filter(String s) throws Exception {
             this.originalPattern = s;
-            ignoreCase = Platform.isPlatformWindows();
+            ignoreCase = Platform.isFileSystemCaseInsensitive();
             File file = File.getInstance(ignoreCase ? s.toLowerCase() : s);
             if (!processFilter(file.getName()))
                 throw new Exception("process pattern failed");

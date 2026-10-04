@@ -451,7 +451,7 @@ public final class OpenFileTextFieldHandler extends DefaultTextFieldHandler
         ArrayList<String> completions = new ArrayList<String>();
         final String sourcePath = checkSourcePath ? getSourcePath() : null;
         prefix = File.normalize(prefix);
-        boolean ignoreCase = Platform.isPlatformWindows()
+        boolean ignoreCase = Platform.isFileSystemCaseInsensitive()
             ||
             Editor.preferences()
                 .getBooleanProperty(

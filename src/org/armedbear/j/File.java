@@ -20,16 +20,18 @@
 
 package org.armedbear.j;
 
-import java.io.BufferedReader;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FilenameFilter;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.io.RandomAccessFile;
 import java.lang.StringBuilder;
+import java.nio.file.Files;
+import java.nio.file.attribute.PosixFilePermission;
 import java.util.ArrayList;
+import java.util.EnumSet;
+import java.util.Set;
 import java.util.StringTokenizer;
 import org.armedbear.j.mode.dir.DirectoryEntry;
 import org.armedbear.j.util.FastStringReader;
@@ -56,7 +58,7 @@ public class File implements Comparable<File> {
     public static final int TYPE_DIRECTORY = 2;
     public static final int TYPE_LINK = 3;
 
-    private static final boolean ignoreCase = Platform.isPlatformWindows();
+    private static final boolean ignoreCase = Platform.isFileSystemCaseInsensitive();
 
     private java.io.File file;
 
@@ -915,73 +917,42 @@ public class File implements Comparable<File> {
         this.encoding = encoding;
     }
 
+    // PosixFilePermission's order, from owner read (0400) to others execute (1).
+    private static final PosixFilePermission[] PERMISSION_BITS = PosixFilePermission.values();
+
+    /** The Unix permission bits of a local file, such as 0644, or 0 if they can't be read. */
     public int getPermissions() {
-        int permissions = 0;
-        if (isLocal() && Platform.isPlatformUnix()) {
-            String[] cmdarray = { "ls", "-ld", canonicalPath() };
-            try {
-                Process process = Runtime.getRuntime().exec(cmdarray);
-                BufferedReader reader =
-                    new BufferedReader(new InputStreamReader(process.getInputStream()));
-                String output = reader.readLine();
-                if (output != null) {
-                    String s = output.substring(1, 10);
-                    if (s.length() == 9) {
-                        if (s.charAt(0) == 'r')
-                            permissions += 0400;
-                        if (s.charAt(1) == 'w')
-                            permissions += 0200;
-                        if (s.charAt(2) == 'x')
-                            permissions += 0100;
-                        if (s.charAt(3) == 'r')
-                            permissions += 040;
-                        if (s.charAt(4) == 'w')
-                            permissions += 020;
-                        if (s.charAt(5) == 'x')
-                            permissions += 010;
-                        if (s.charAt(6) == 'r')
-                            permissions += 4;
-                        if (s.charAt(7) == 'w')
-                            permissions += 2;
-                        if (s.charAt(8) == 'x')
-                            permissions += 1;
-                    }
-                    reader.close();
-                    process.getInputStream().close();
-                    process.getOutputStream().close();
-                    process.getErrorStream().close();
-                }
+        if (!isLocal())
+            return 0;
+        try {
+            Set<PosixFilePermission> set = Files.getPosixFilePermissions(java.nio.file.Path.of(canonicalPath()));
+            int permissions = 0;
+            for (int i = 0; i < PERMISSION_BITS.length; i++) {
+                if (set.contains(PERMISSION_BITS[i]))
+                    permissions |= 0400 >> i;
             }
-            // Feb 4 2000 5:30 PM
-            // Catch Throwable here rather than Exception.
-            // Kaffe's implementation of Runtime.exec() throws
-            // java.lang.InternalError.
-            catch (Throwable t) {
-                Log.error(t);
-            }
+            return permissions;
         }
-        return permissions;
+        catch (IOException | UnsupportedOperationException e) {
+            Log.debug(e);
+            return 0;
+        }
     }
 
+    /** Sets a local file's Unix permission bits; 0 does nothing. */
     public void setPermissions(int permissions) {
-        if (permissions != 0 && isLocal() && Platform.isPlatformUnix()) {
-            String[] cmdarray = { "chmod", Integer.toString(permissions, 8), canonicalPath() };
-            try {
-                Process process = Runtime.getRuntime().exec(cmdarray);
-                process.getInputStream().close();
-                process.getOutputStream().close();
-                process.getErrorStream().close();
-                int exitCode = process.waitFor();
-                if (exitCode != 0)
-                    Log.error("setPermissions exitCode = " + exitCode);
-            }
-            // Feb 4 2000 5:30 PM
-            // Catch Throwable here rather than Exception.
-            // Kaffe's implementation of Runtime.exec() throws
-            // java.lang.InternalError.
-            catch (Throwable t) {
-                Log.error(t);
-            }
+        if (permissions == 0 || !isLocal())
+            return;
+        Set<PosixFilePermission> set = EnumSet.noneOf(PosixFilePermission.class);
+        for (int i = 0; i < PERMISSION_BITS.length; i++) {
+            if ((permissions & (0400 >> i)) != 0)
+                set.add(PERMISSION_BITS[i]);
+        }
+        try {
+            Files.setPosixFilePermissions(java.nio.file.Path.of(canonicalPath()), set);
+        }
+        catch (IOException | UnsupportedOperationException e) {
+            Log.error(e);
         }
     }
 

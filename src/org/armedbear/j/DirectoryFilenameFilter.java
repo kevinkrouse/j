@@ -30,7 +30,7 @@ public final class DirectoryFilenameFilter {
     private boolean ignoreCase;
 
     public DirectoryFilenameFilter(String s) throws PatternSyntaxException {
-        ignoreCase = Platform.isPlatformWindows();
+        ignoreCase = Platform.isFileSystemCaseInsensitive();
         if (ignoreCase)
             s = s.toLowerCase();
         StringBuilder sb = new StringBuilder();
