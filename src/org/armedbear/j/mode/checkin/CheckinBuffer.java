@@ -20,10 +20,11 @@
 
 package org.armedbear.j.mode.checkin;
 
+import static org.armedbear.j.Constants.*;
+
 import javax.swing.undo.CompoundEdit;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.CommentRing;
-import org.armedbear.j.Constants;
 import org.armedbear.j.Debug;
 import org.armedbear.j.Editor;
 import org.armedbear.j.Expansion;
@@ -34,7 +35,7 @@ import org.armedbear.j.vcs.VcsBackend;
 import org.armedbear.j.vcs.VcsBackends;
 import org.armedbear.j.vcs.VersionControlBuffer;
 
-public class CheckinBuffer extends VersionControlBuffer implements Constants {
+public class CheckinBuffer extends VersionControlBuffer {
     private final boolean editOnly;
 
     private int commentIndex = -1;
@@ -48,6 +49,7 @@ public class CheckinBuffer extends VersionControlBuffer implements Constants {
         this.editOnly = editOnly;
     }
 
+    @Override
     protected void init() {
         initializeUndo();
         type = TYPE_NORMAL;
@@ -66,6 +68,7 @@ public class CheckinBuffer extends VersionControlBuffer implements Constants {
         return editOnly;
     }
 
+    @Override
     public String getFileNameForDisplay() {
         return title != null ? title : "";
     }
@@ -73,15 +76,15 @@ public class CheckinBuffer extends VersionControlBuffer implements Constants {
     public static void previousComment() {
         final Editor editor = Editor.currentEditor();
         final Buffer buffer = editor.getBuffer();
-        if (buffer instanceof CheckinBuffer)
-            ((CheckinBuffer) buffer).retrieveComment(editor, -1);
+        if (buffer instanceof CheckinBuffer checkinBuffer)
+            checkinBuffer.retrieveComment(editor, -1);
     }
 
     public static void nextComment() {
         final Editor editor = Editor.currentEditor();
         final Buffer buffer = editor.getBuffer();
-        if (buffer instanceof CheckinBuffer)
-            ((CheckinBuffer) buffer).retrieveComment(editor, +1);
+        if (buffer instanceof CheckinBuffer checkinBuffer)
+            checkinBuffer.retrieveComment(editor, +1);
     }
 
     private void retrieveComment(Editor editor, int arg) {
@@ -112,8 +115,7 @@ public class CheckinBuffer extends VersionControlBuffer implements Constants {
     public static void finish() {
         final Editor editor = Editor.currentEditor();
         final Buffer buffer = editor.getBuffer();
-        if (buffer instanceof CheckinBuffer) {
-            CheckinBuffer cb = (CheckinBuffer) buffer;
+        if (buffer instanceof CheckinBuffer cb) {
             VcsBackend backend = VcsBackends.get(cb.getVCType());
             if (backend != null) {
                 CommentRing.getInstance().appendNew(backend.extractComment(cb));
@@ -152,14 +154,15 @@ public class CheckinBuffer extends VersionControlBuffer implements Constants {
         }
     }
 
+    @Override
     public Expansion getExpansion(Position dot) {
         Expansion e =
             new Expansion(dot, Editor.getModeList().getMode(PLAIN_TEXT_MODE));
         if (parentBuffer != null && e.getPrefix() != null) {
             // Look for diff output buffer for same parent buffer.
             for (Buffer b : Editor.getBufferList()) {
-                if (b instanceof DiffOutputBuffer) {
-                    if (((DiffOutputBuffer) b).getParentBuffer() == parentBuffer) {
+                if (b instanceof DiffOutputBuffer diffOutputBuffer) {
+                    if (diffOutputBuffer.getParentBuffer() == parentBuffer) {
                         // Add candidates from diff output buffer.
                         Expansion d =
                             new Expansion(b, e.getPrefix(), e.getCurrent());

@@ -20,14 +20,15 @@
 
 package org.armedbear.j.mode.checkin;
 
+import static org.armedbear.j.Constants.*;
+
 import java.awt.event.KeyEvent;
 import org.armedbear.j.AbstractMode;
-import org.armedbear.j.Constants;
 import org.armedbear.j.KeyMap;
 import org.armedbear.j.Mode;
 import org.armedbear.j.Property;
 
-public class CheckinMode extends AbstractMode implements Constants, Mode {
+public class CheckinMode extends AbstractMode implements Mode {
     private static final CheckinMode mode = new CheckinMode();
 
     private CheckinMode() {
@@ -42,6 +43,7 @@ public class CheckinMode extends AbstractMode implements Constants, Mode {
         return mode;
     }
 
+    @Override
     protected void setKeyMapDefaults(KeyMap km) {
         km.mapKey(KeyEvent.VK_P, CTRL_MASK, "previousComment");
         km.mapKey(KeyEvent.VK_N, CTRL_MASK, "nextComment");
