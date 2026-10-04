@@ -20,36 +20,31 @@
 
 package org.armedbear.j.mode.compilation;
 
+import java.awt.event.KeyEvent;
 import org.armedbear.j.AbstractMode;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Constants;
 import org.armedbear.j.Formatter;
 import org.armedbear.j.KeyMap;
 import org.armedbear.j.Mode;
-import org.armedbear.j.mode.text.PlainTextFormatter;
 import org.armedbear.j.Property;
+import org.armedbear.j.mode.text.PlainTextFormatter;
 
-import java.awt.event.KeyEvent;
-
-public final class CompilationMode extends AbstractMode implements Constants, Mode
-{
+public final class CompilationMode extends AbstractMode implements Constants, Mode {
     private static final CompilationMode mode = new CompilationMode();
 
-    private CompilationMode()
-    {
+    private CompilationMode() {
         super(COMPILATION_MODE, COMPILATION_MODE_NAME);
         setProperty(Property.VERTICAL_RULE, 0);
         setProperty(Property.SHOW_LINE_NUMBERS, false);
         setProperty(Property.SHOW_CHANGE_MARKS, false);
     }
 
-    public static final CompilationMode getMode()
-    {
+    public static final CompilationMode getMode() {
         return mode;
     }
 
-    protected void setKeyMapDefaults(KeyMap km)
-    {
+    protected void setKeyMapDefaults(KeyMap km) {
         km.mapKey(KeyEvent.VK_F9, 0, "compile");
         km.mapKey(KeyEvent.VK_F9, CTRL_MASK, "recompile");
         km.mapKey(KeyEvent.VK_ENTER, 0, "thisError");
@@ -59,8 +54,7 @@ public final class CompilationMode extends AbstractMode implements Constants, Mo
         km.mapKey('q', "tempBufferQuit");
     }
 
-    public Formatter getFormatter(Buffer buffer)
-    {
+    public Formatter getFormatter(Buffer buffer) {
         return new PlainTextFormatter(buffer);
     }
 }
