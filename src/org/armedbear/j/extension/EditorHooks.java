@@ -33,16 +33,22 @@ import org.armedbear.j.Buffer;
 public interface EditorHooks {
     /** Does nothing, and is what core holds until an extension registers. */
     EditorHooks NONE = new EditorHooks() {
+        @Override
         public void bufferActivated(Buffer buffer) {}
 
+        @Override
         public void openFile(Buffer buffer) {}
 
+        @Override
         public void afterSave(Buffer buffer) {}
 
+        @Override
         public void modeCreated(String modeDisplayName) {}
 
+        @Override
         public void eventHandled() {}
 
+        @Override
         public void invoke(String hookName, Object... args) {}
     };
 

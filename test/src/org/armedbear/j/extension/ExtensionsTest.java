@@ -142,7 +142,7 @@ public class ExtensionsTest {
         dir = Files.createTempDirectory("j-extensions-test");
         writeExtensionJar(dir.resolve("fake.jar"), FakeExtension.class);
 
-        Set<String> disabled = new HashSet<String>();
+        Set<String> disabled = new HashSet<>();
         disabled.add("fake");
         Extensions.loadFrom(dir, disabled);
 
@@ -203,12 +203,14 @@ public class ExtensionsTest {
 
     /** Modes for a jar with no Extension class. */
     public static final class FakeModes implements ModeProvider {
+        @Override
         public List<ModeDescriptor> modes() {
             return List.of(fakeMode("Extensions Test Mode"));
         }
     }
 
     public static final class DisabledModes implements ModeProvider {
+        @Override
         public List<ModeDescriptor> modes() {
             return List.of(fakeMode("Extensions Test Disabled Mode"));
         }

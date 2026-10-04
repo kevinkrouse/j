@@ -31,10 +31,12 @@ import org.armedbear.j.KeyMap;
  */
 public interface KeyMapProvider {
     KeyMapProvider NONE = new KeyMapProvider() {
+        @Override
         public KeyMap getGlobalKeyMap() {
             return null;
         }
 
+        @Override
         public KeyMap getKeyMapForMode(String modeDisplayName) {
             return null;
         }

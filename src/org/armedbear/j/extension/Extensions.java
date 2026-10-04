@@ -73,9 +73,9 @@ public final class Extensions {
     private static volatile KeyMapProvider keyMaps = KeyMapProvider.NONE;
     private static volatile LanguageClient languageClient = LanguageClient.NONE;
 
-    private static final List<Extension> loaded = new ArrayList<Extension>();
-    private static final List<Opener> openers = new CopyOnWriteArrayList<Opener>();
-    private static final List<ClassLoader> loaders = new ArrayList<ClassLoader>();
+    private static final List<Extension> loaded = new ArrayList<>();
+    private static final List<Opener> openers = new CopyOnWriteArrayList<>();
+    private static final List<ClassLoader> loaders = new ArrayList<>();
 
     private static boolean disabled;
 
@@ -137,7 +137,7 @@ public final class Extensions {
 
     /** Names of the extensions that loaded, in load order. */
     public static synchronized List<String> loadedNames() {
-        List<String> names = new ArrayList<String>(loaded.size());
+        List<String> names = new ArrayList<>(loaded.size());
         for (Extension extension : loaded)
             names.add(extension.getName());
         return names;
@@ -177,7 +177,7 @@ public final class Extensions {
         // Modes and backends register first, so initialize() can use them.
         // All are skipped when every Extension here is disabled or, if there
         // is none, when the directory's name is.
-        List<Extension> enabled = new ArrayList<Extension>();
+        List<Extension> enabled = new ArrayList<>();
         boolean found = false;
         for (Extension extension : ServiceLoader.load(Extension.class, loader)) {
             found = true;
@@ -262,7 +262,7 @@ public final class Extensions {
     // Discovery
 
     private static Set<String> disabledNames() {
-        Set<String> names = new HashSet<String>();
+        Set<String> names = new HashSet<>();
         Preferences preferences = Editor.preferences();
         if (preferences == null)
             return names;
@@ -277,7 +277,7 @@ public final class Extensions {
 
     /** lib/extensions beside the installed jar, then the user's config directory. */
     private static List<Path> searchPath() {
-        List<Path> path = new ArrayList<Path>(2);
+        List<Path> path = new ArrayList<>(2);
         String override = System.getProperty(DIRECTORY_PROPERTY);
         if (override != null && override.length() > 0) {
             path.add(Paths.get(override));
@@ -319,7 +319,7 @@ public final class Extensions {
     private static List<Path> subdirectories(Path dir) {
         if (dir == null || !Files.isDirectory(dir))
             return Collections.emptyList();
-        List<Path> dirs = new ArrayList<Path>();
+        List<Path> dirs = new ArrayList<>();
         try (DirectoryStream<Path> stream = Files.newDirectoryStream(dir)) {
             for (Path child : stream)
                 if (Files.isDirectory(child))
@@ -335,9 +335,9 @@ public final class Extensions {
     private static URL[] jarsIn(Path dir) {
         if (dir == null || !Files.isDirectory(dir))
             return new URL[0];
-        List<URL> urls = new ArrayList<URL>();
+        List<URL> urls = new ArrayList<>();
         try (DirectoryStream<Path> stream = Files.newDirectoryStream(dir, "*.jar")) {
-            List<Path> jars = new ArrayList<Path>();
+            List<Path> jars = new ArrayList<>();
             for (Path jar : stream)
                 jars.add(jar);
             Collections.sort(jars);
@@ -359,10 +359,12 @@ public final class Extensions {
             this.loader = loader;
         }
 
+        @Override
         public void registerCommand(String name, Class<?> owner, String methodName) {
             CommandTable.registerCommand(name, owner, methodName);
         }
 
+        @Override
         public void registerCommand(
             String name,
             Class<?> owner,
@@ -373,30 +375,36 @@ public final class Extensions {
             CommandTable.registerCommand(alias, owner, methodName);
         }
 
+        @Override
         public void registerLanguageClient(LanguageClient client) {
             if (client != null)
                 languageClient = client;
         }
 
+        @Override
         public void registerHooks(EditorHooks newHooks) {
             if (newHooks != null)
                 hooks = newHooks;
         }
 
+        @Override
         public void registerOpener(Opener opener) {
             if (opener != null)
                 openers.add(opener);
         }
 
+        @Override
         public void registerKeyMapProvider(KeyMapProvider provider) {
             if (provider != null)
                 keyMaps = provider;
         }
 
+        @Override
         public ClassLoader getClassLoader() {
             return loader;
         }
 
+        @Override
         public Preferences getPreferences() {
             return Editor.preferences();
         }

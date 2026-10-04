@@ -42,10 +42,12 @@ public class ScriptFunctionTest {
     private static final class FakeFunction implements ScriptFunction {
         int invocations;
 
+        @Override
         public void invoke() {
             ++invocations;
         }
 
+        @Override
         public String describe() {
             return "#<FUNCTION (LAMBDA ()) {1234}>";
         }

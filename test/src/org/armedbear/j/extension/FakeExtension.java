@@ -25,33 +25,43 @@ import org.armedbear.j.Buffer;
 /** A minimal well-behaved extension, used by ExtensionsTest. */
 public final class FakeExtension implements Extension {
     public static final EditorHooks HOOKS = new EditorHooks() {
+        @Override
         public void bufferActivated(Buffer buffer) {}
 
+        @Override
         public void openFile(Buffer buffer) {}
 
+        @Override
         public void afterSave(Buffer buffer) {}
 
+        @Override
         public void modeCreated(String modeDisplayName) {}
 
+        @Override
         public void eventHandled() {}
 
+        @Override
         public void invoke(String hookName, Object... args) {}
     };
 
     public static boolean shutdownCalled;
 
+    @Override
     public String getName() {
         return "fake";
     }
 
+    @Override
     public String getVersion() {
         return "1.0";
     }
 
+    @Override
     public void initialize(ExtensionContext context) {
         context.registerHooks(HOOKS);
     }
 
+    @Override
     public void shutdown() {
         shutdownCalled = true;
     }

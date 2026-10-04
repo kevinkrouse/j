@@ -38,44 +38,54 @@ public interface LanguageClient {
     /** A client that is not there. Every session is unready and refuses to evaluate. */
     LanguageClient NONE = new LanguageClient() {
         private final Session session = new Session() {
+            @Override
             public String getKey() {
                 return DEFAULT_SESSION;
             }
 
+            @Override
             public boolean isReady() {
                 return false;
             }
 
+            @Override
             public void eval(EvalRequest request, EvalHandler handler) {
                 if (handler != null)
                     handler.onResult(EvalResult.error(NOT_INSTALLED));
             }
 
+            @Override
             public EvalResult evalSync(EvalRequest request) throws EvalException {
                 throw new EvalException(NOT_INSTALLED);
             }
 
+            @Override
             public void loadFile(File file) throws EvalException {
                 throw new EvalException(NOT_INSTALLED);
             }
         };
 
+        @Override
         public String getName() {
             return "none";
         }
 
+        @Override
         public Session getSession(String key) {
             return session;
         }
 
+        @Override
         public Session getDefaultSession() {
             return session;
         }
 
+        @Override
         public boolean isAvailable() {
             return false;
         }
 
+        @Override
         public void shutdown() {}
     };
 
