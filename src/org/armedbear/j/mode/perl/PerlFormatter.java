@@ -57,8 +57,6 @@ public final class PerlFormatter extends Formatter {
     private static final int PERL_FORMAT_SCALAR = 7;
     private static final int PERL_FORMAT_LIST = 8;
 
-    private static Set<String> functions;
-
     private StringBuilder sb = new StringBuilder();
 
     private String endOfText;
@@ -67,8 +65,6 @@ public final class PerlFormatter extends Formatter {
 
     public PerlFormatter(Buffer buffer) {
         this.buffer = buffer;
-        if (functions == null)
-            functions = Sets.newHashSet(perlFunctions);
     }
 
     private void endToken(int state) {
@@ -775,9 +771,9 @@ public final class PerlFormatter extends Formatter {
             "write"
         };
 
+    private static final Set<String> functions = Sets.newHashSet(perlFunctions);
+
     private final boolean isFunction(String s) {
-        if (functions == null)
-            return false;
         return functions.contains(s);
     }
 

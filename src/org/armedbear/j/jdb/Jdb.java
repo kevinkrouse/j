@@ -98,8 +98,8 @@ public final class Jdb extends Buffer implements JdbConstants {
     private String sourcePath;
     private JdbControlDialog controlDialog;
     private Position posEndOfBuffer;
-    private ArrayList<BreakpointListener> breakpointListeners = new ArrayList<>();
-    private ArrayList<ContextListener> contextListeners = new ArrayList<>();
+    private final ArrayList<BreakpointListener> breakpointListeners = new ArrayList<>();
+    private final ArrayList<ContextListener> contextListeners = new ArrayList<>();
     private int lastCommand;
     private final List<ResolvableBreakpoint> breakpoints = new ArrayList<>();
 

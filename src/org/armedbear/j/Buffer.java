@@ -1949,7 +1949,7 @@ public class Buffer extends SystemBuffer {
     }
 
     @Override
-    public void setFirstLine(Line line) {
+    public synchronized void setFirstLine(Line line) {
         if (!isWriteLocked()) {
             Log.error("----- setFirstLine() called without write lock -----");
             Debug.dumpStack();
@@ -2409,8 +2409,8 @@ public class Buffer extends SystemBuffer {
             return title;
         final File file = getFile();
         if (file == null) {
-            // This case should be handled by toString() in the derived class.
-            return null;
+            // Derived classes without a file override this.
+            return "";
         }
         if (file instanceof HttpFile)
             return file.netPath();

@@ -46,7 +46,7 @@ public final class CppTagger extends CTagger {
     }
 
     @Override
-    public void run() {
+    public synchronized void run() {
         ArrayList<LocalTag> tags = new ArrayList<>();
         String className = null;
         Deque<String> classNames = new ArrayDeque<>();

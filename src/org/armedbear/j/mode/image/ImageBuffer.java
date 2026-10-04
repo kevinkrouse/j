@@ -284,8 +284,8 @@ public class ImageBuffer extends Buffer {
         MediaTracker mt = null;
 
         try {
-            long pixels = w * h;
-            if (pixels > originalWidth * originalHeight && pixels > 2592000) {
+            long pixels = (long) w * h;
+            if (pixels > (long) originalWidth * originalHeight && pixels > 2592000) {
                 // 1800x1440 (an arbitrary limit)
                 editor.status("Too many pixels!");
                 return;

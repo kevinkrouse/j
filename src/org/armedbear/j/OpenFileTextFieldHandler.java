@@ -261,10 +261,9 @@ public final class OpenFileTextFieldHandler extends DefaultTextFieldHandler impl
 
     private void done() {
         OpenFileDialog owner = textField.getOwner();
-        if (owner instanceof OpenFileDialog) {
-            OpenFileDialog dialog = owner;
-            dialog.setResult(returned);
-            dialog.ok();
+        if (owner != null) {
+            owner.setResult(returned);
+            owner.ok();
             return;
         }
         Debug.assertTrue(editor != null);
@@ -347,9 +346,8 @@ public final class OpenFileTextFieldHandler extends DefaultTextFieldHandler impl
             popup = null;
         }
         OpenFileDialog owner = textField.getOwner();
-        if (owner instanceof OpenFileDialog) {
-            OpenFileDialog dialog = owner;
-            dialog.cancel();
+        if (owner != null) {
+            owner.cancel();
         } else {
             // Using location bar.
             editor.setFocusToDisplay();
@@ -395,7 +393,7 @@ public final class OpenFileTextFieldHandler extends DefaultTextFieldHandler impl
             return;
         editor.setWaitCursor();
         final boolean showCompletionList;
-        if (textField.getOwner() instanceof OpenFileDialog) {
+        if (textField.getOwner() != null) {
             showCompletionList = false;
         } else {
             showCompletionList = Editor.preferences()

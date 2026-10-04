@@ -223,7 +223,7 @@ public class IdleThread extends Thread {
                         Property.LIST_THREADS
                     );
                 if (minutes > 0) {
-                    long millis = minutes * 60000;
+                    long millis = minutes * 60000L;
                     if (System.currentTimeMillis() - lastRun > millis) {
                         Debug.listThreads();
                         lastRun = System.currentTimeMillis();

@@ -80,12 +80,11 @@ public abstract class SidebarList extends JList<Object>
         implements ListCellRenderer<Object> {
         private Sidebar sidebar;
 
-        private static Border noFocusBorder;
+        private static final Border noFocusBorder = new EmptyBorder(1, 1, 1, 1);
 
         public SidebarListCellRenderer(Sidebar sidebar) {
             super();
             this.sidebar = sidebar;
-            noFocusBorder = new EmptyBorder(1, 1, 1, 1);
             setOpaque(true);
         }
 

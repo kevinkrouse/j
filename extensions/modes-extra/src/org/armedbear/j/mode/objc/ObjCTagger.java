@@ -43,7 +43,7 @@ public final class ObjCTagger extends JavaTagger {
     }
 
     @Override
-    public void run() {
+    public synchronized void run() {
         ArrayList<LocalTag> tags = new ArrayList<>();
         pos = new Position(buffer.getFirstLine(), 0);
         token = null;

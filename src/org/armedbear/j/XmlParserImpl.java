@@ -75,7 +75,8 @@ public final class XmlParserImpl extends DefaultHandler implements Runnable,
             try {
                 // The org.xml.sax.driver preference names a parser class to
                 // use in place of the platform one.
-                xmlReader = (XMLReader) Class.forName(className)
+                xmlReader = Class.forName(className)
+                    .asSubclass(XMLReader.class)
                     .getDeclaredConstructor()
                     .newInstance();
             }

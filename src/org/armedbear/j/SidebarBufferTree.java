@@ -1098,7 +1098,7 @@ public final class SidebarBufferTree extends SidebarTree
         }
     }
 
-    private class BufferSelection implements Transferable {
+    private static class BufferSelection implements Transferable {
         private List<java.io.File> fileList = null;
         private final DataFlavor[] flavors = new DataFlavor[] {
             DataFlavor.javaFileListFlavor

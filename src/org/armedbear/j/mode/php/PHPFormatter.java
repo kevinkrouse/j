@@ -68,12 +68,10 @@ public final class PHPFormatter extends Formatter {
     private static final int PHP_FORMAT_ATTRIBUTE = 12;
     private static final int PHP_FORMAT_EQUALS = 13;
 
-    private static PHPMode mode;
+    private final PHPMode mode = (PHPMode) PHPMode.getMode();
 
     public PHPFormatter(Buffer buffer) {
         this.buffer = buffer;
-        if (mode == null)
-            mode = (PHPMode) PHPMode.getMode();
     }
 
     private int tokenBegin = 0;
