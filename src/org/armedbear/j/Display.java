@@ -2225,7 +2225,7 @@ public final class Display extends JComponent implements Constants,
                 boolean isLineBlock =
                     (editor.getDotOffset() == 0 && editor.getMarkOffset() == 0);
                 editor.addUndo(SimpleEdit.MOVE);
-                editor.beginningOfBlock();
+                MotionCommands.beginningOfBlock(editor);
                 editor.setGoalColumn(editor.getDotCol());
                 if (isLineBlock)
                     return;
@@ -2286,7 +2286,7 @@ public final class Display extends JComponent implements Constants,
                 boolean isLineBlock =
                     (editor.getDotOffset() == 0 && editor.getMarkOffset() == 0);
                 editor.addUndo(SimpleEdit.MOVE);
-                editor.endOfBlock();
+                MotionCommands.endOfBlock(editor);
                 editor.setGoalColumn(editor.getDotCol());
                 if (isLineBlock)
                     return;

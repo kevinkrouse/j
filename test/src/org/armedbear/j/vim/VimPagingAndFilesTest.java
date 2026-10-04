@@ -22,6 +22,7 @@ import java.nio.file.Path;
 import javax.swing.SwingUtilities;
 import org.armedbear.j.EditorHarness;
 import org.armedbear.j.Line;
+import org.armedbear.j.MotionCommands;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
@@ -127,7 +128,7 @@ public class VimPagingAndFilesTest {
         // keeps one line of overlap and the caret's row.
         vim(lines(200), 2, 0);
         topAt(0);
-        h.editor().pageDown();
+        MotionCommands.pageDown(h.editor());
         assertEquals(rows() - 1, top());
         assertEquals(rows() - 1 + 2, h.lineNumber(), "the caret keeps its row");
     }

@@ -50,11 +50,11 @@ public class WordMotionParameterTest {
     public void vimCountsAnEmptyLineAsAWordAndJStepsOverIt() {
         h = EditorHarness.create("a\n\n\nb\n");
         on(0, 0);
-        h.editor().wordRight("vim");
+        MotionCommands.wordRight(h.editor(), "vim");
         assertEquals("1,0", where(), "vim stops on the first empty line");
 
         on(0, 0);
-        h.editor().wordRight();
+        MotionCommands.wordRight(h.editor());
         assertEquals("3,0", where(), "j carries on to the next text");
     }
 
@@ -62,11 +62,11 @@ public class WordMotionParameterTest {
     public void backwardsTheSameWay() {
         h = EditorHarness.create("a\n\n\nb\n");
         on(3, 0);
-        h.editor().wordLeft("vim");
+        MotionCommands.wordLeft(h.editor(), "vim");
         assertEquals("2,0", where());
 
         on(3, 0);
-        h.editor().wordLeft();
+        MotionCommands.wordLeft(h.editor());
         assertEquals("0,0", where());
     }
 
@@ -77,10 +77,10 @@ public class WordMotionParameterTest {
         h = EditorHarness.create("foo.bar baz\n");
         for (int from : new int[] { 0, 3, 4 }) {
             on(0, from);
-            h.editor().wordRight("vim");
+            MotionCommands.wordRight(h.editor(), "vim");
             final String vim = where();
             on(0, from);
-            h.editor().wordRight();
+            MotionCommands.wordRight(h.editor());
             assertEquals(vim, where(), "from " + from);
         }
     }
@@ -89,13 +89,13 @@ public class WordMotionParameterTest {
     public void theDefaultIsUnchanged() {
         h = EditorHarness.create("a\n\n\nb\n");
         on(0, 0);
-        h.editor().wordRight();
+        MotionCommands.wordRight(h.editor());
         final String plain = where();
         on(0, 0);
-        h.editor().wordRight(null);
+        MotionCommands.wordRight(h.editor(), null);
         assertEquals(plain, where());
         on(0, 0);
-        h.editor().wordRight("");
+        MotionCommands.wordRight(h.editor(), "");
         assertEquals(plain, where(), "anything that is not \"vim\" is j's rule");
     }
 
@@ -103,14 +103,14 @@ public class WordMotionParameterTest {
     public void theSelectingFormsTakeItAsWell() {
         h = EditorHarness.create("a\n\n\nb\n");
         on(0, 0);
-        h.editor().selectWordRight("vim");
+        MotionCommands.selectWordRight(h.editor(), "vim");
         assertEquals("1,0", where());
         assertEquals(0, h.editor().getMarkOffset(), "and they select");
 
         h.close();
         h = EditorHarness.create("a\n\n\nb\n");
         on(3, 0);
-        h.editor().selectWordLeft("vim");
+        MotionCommands.selectWordLeft(h.editor(), "vim");
         assertEquals("2,0", where());
     }
 

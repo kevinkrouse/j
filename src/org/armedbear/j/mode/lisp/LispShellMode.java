@@ -37,6 +37,7 @@ import org.armedbear.j.KeyMap;
 import org.armedbear.j.Line;
 import org.armedbear.j.Menu;
 import org.armedbear.j.Mode;
+import org.armedbear.j.MotionCommands;
 import org.armedbear.j.Platform;
 import org.armedbear.j.Position;
 import org.armedbear.j.Property;
@@ -313,7 +314,7 @@ public final class LispShellMode extends LispMode implements Constants, Mode {
                         }
                         CompoundEdit compoundEdit = editor.beginCompoundEdit();
                         if (editor.getDotLine() != endLine)
-                            editor.eob();
+                            MotionCommands.eob(editor);
                         editor.paste(s);
                         editor.endCompoundEdit(compoundEdit);
                     }

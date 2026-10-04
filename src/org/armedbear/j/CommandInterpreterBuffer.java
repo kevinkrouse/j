@@ -171,7 +171,7 @@ public class CommandInterpreterBuffer extends Buffer {
         Line dotLine = editor.getDotLine();
         if (dotLine.next() != null) {
             // Go to end of buffer (if we're not already there) to append input.
-            editor.eob();
+            MotionCommands.eob(editor);
             dotLine = editor.getDotLine();
             // Keep the prompt, but throw away anything after it.
             final Matcher matcher = promptRE.matcher(dotLine.getText());
@@ -182,7 +182,7 @@ public class CommandInterpreterBuffer extends Buffer {
         }
         if (dotLine.flags() == 0)
             dotLine.setFlags(STATE_INPUT);
-        editor.eol();
+        MotionCommands.eol(editor);
         editor.insertLineSeparator();
         if (needsRenumbering)
             renumber();
@@ -251,7 +251,7 @@ public class CommandInterpreterBuffer extends Buffer {
         if (editor.getDotOffset() == 0)
             return;
         editor.addUndo(SimpleEdit.MOVE);
-        editor.beginningOfBlock();
+        MotionCommands.beginningOfBlock(editor);
         int offset = 0;
         if (promptRE != null) {
             Line dotLine = editor.getDotLine();
@@ -367,7 +367,7 @@ public class CommandInterpreterBuffer extends Buffer {
     protected void updateDisplayInAllFrames() {
         for (Editor ed : Editor.getEditorList()) {
             if (ed.getBuffer() == this) {
-                ed.eob();
+                MotionCommands.eob(ed);
                 ed.getDisplay().setReframe(-2);
                 ed.setUpdateFlag(REPAINT);
                 ed.updateDisplay();

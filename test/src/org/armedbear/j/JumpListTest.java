@@ -47,8 +47,8 @@ public class JumpListTest {
     @Test
     public void backAndForward() {
         final Editor editor = on("a\nb\nc\nd\n", 1);
-        editor.eob();
-        editor.bob();
+        MotionCommands.eob(editor);
+        MotionCommands.bob(editor);
         // eob is the end of the last line of text.
         JumpList.jumpBack();
         assertEquals("3,1", at());
@@ -93,9 +93,9 @@ public class JumpListTest {
     @Test
     public void oneEntryALine() {
         final Editor editor = on("a\nb\nc\n", 1);
-        editor.eob();
+        MotionCommands.eob(editor);
         h.cursor(1, 0);
-        editor.eob();
+        MotionCommands.eob(editor);
         JumpList.jumpBack();
         assertEquals("1,0", at());
         // The second jump from line 1 replaced the first.
@@ -107,7 +107,7 @@ public class JumpListTest {
     public void backIntoAnotherBuffer() {
         // First: a new harness clears the jump list.
         other = EditorHarness.create("x\ny\n");
-        on("a\nb\nc\n", 1).eob();
+        MotionCommands.eob(on("a\nb\nc\n", 1));
         // Where going back from the other buffer goes. The switch itself
         // is Marker.gotoMarker, which needs a frame: see the screenshots.
         final Marker to = JumpList.travel(

@@ -32,6 +32,7 @@ import org.armedbear.j.Constants;
 import org.armedbear.j.Editor;
 import org.armedbear.j.File;
 import org.armedbear.j.Log;
+import org.armedbear.j.MotionCommands;
 import org.armedbear.j.Platform;
 import org.armedbear.j.Position;
 import org.armedbear.j.extension.EvalException;
@@ -281,7 +282,7 @@ public final class CompilationBuffer extends CompilationErrorBuffer
                 renumber();
             for (Editor ed : Editor.getEditorList()) {
                 if (ed.getBuffer() == CompilationBuffer.this) {
-                    ed.eob();
+                    MotionCommands.eob(ed);
                     ed.getDisplay().setReframe(-2);
                     ed.setUpdateFlag(Constants.REPAINT);
                     ed.updateDisplay();

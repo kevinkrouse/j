@@ -56,6 +56,7 @@ import org.armedbear.j.Line;
 import org.armedbear.j.LocalFile;
 import org.armedbear.j.Log;
 import org.armedbear.j.MessageDialog;
+import org.armedbear.j.MotionCommands;
 import org.armedbear.j.NavigationComponent;
 import org.armedbear.j.OutputBuffer;
 import org.armedbear.j.Platform;
@@ -838,7 +839,7 @@ public final class DirectoryBuffer extends Buffer {
             }
             line.setText(de.toString());
             editor.update(line);
-            editor.down();
+            MotionCommands.down(editor);
             resetUndo();
         }
     }
@@ -1797,7 +1798,7 @@ public final class DirectoryBuffer extends Buffer {
         if (editor.getDotOffset() == 0)
             return;
         editor.addUndo(SimpleEdit.MOVE);
-        editor.beginningOfBlock();
+        MotionCommands.beginningOfBlock(editor);
         int offset = getNameOffset(editor.getDotLine());
 
         // If we're already at the first character of the name (or to the left

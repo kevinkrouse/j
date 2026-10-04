@@ -691,7 +691,7 @@ public final class LispAPI {
     private static final Primitive BEGINNING_OF_LINE =
         new Primitive("beginning-of-line", PACKAGE_J, true) {
             public LispObject execute() {
-                Editor.currentEditor().bol();
+                MotionCommands.bol(Editor.currentEditor());
                 return NIL;
             }
 
@@ -719,7 +719,7 @@ public final class LispAPI {
     private static final Primitive END_OF_LINE =
         new Primitive("end-of-line", PACKAGE_J, true) {
             public LispObject execute() {
-                Editor.currentEditor().eol();
+                MotionCommands.eol(Editor.currentEditor());
                 return NIL;
             }
 

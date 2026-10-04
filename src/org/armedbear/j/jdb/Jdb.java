@@ -62,6 +62,7 @@ import org.armedbear.j.EditorList;
 import org.armedbear.j.File;
 import org.armedbear.j.Line;
 import org.armedbear.j.Log;
+import org.armedbear.j.MotionCommands;
 import org.armedbear.j.Platform;
 import org.armedbear.j.Position;
 import org.armedbear.j.mode.java.JavaMode;
@@ -471,7 +472,7 @@ public final class Jdb extends Buffer implements JdbConstants {
         }
         for (Editor ed : Editor.getEditorList()) {
             if (ed.getBuffer() == this) {
-                ed.eob();
+                MotionCommands.eob(ed);
                 ed.getDisplay().setReframe(-2);
                 ed.setUpdateFlag(REPAINT);
                 ed.updateDisplay();
@@ -901,7 +902,7 @@ public final class Jdb extends Buffer implements JdbConstants {
         }
         Line line = buf.getLine(lineNumber);
         if (line == null) {
-            ed.eob();
+            MotionCommands.eob(ed);
         } else {
             ed.beginMotion();
             ed.update(ed.getDotLine());

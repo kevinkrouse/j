@@ -37,6 +37,7 @@ import org.armedbear.j.Line;
 import org.armedbear.j.LocalFile;
 import org.armedbear.j.Log;
 import org.armedbear.j.MessageDialog;
+import org.armedbear.j.MotionCommands;
 import org.armedbear.j.Platform;
 import org.armedbear.j.Position;
 import org.armedbear.j.Property;
@@ -297,7 +298,7 @@ public class LispShellBuffer extends ShellBuffer {
         boolean isComplete = (pos == null || pos.isBefore(endOfOutput));
         if (isComplete) {
             // Complete sexp.
-            editor.eob();
+            MotionCommands.eob(editor);
             if (atPrompt) {
                 editor.insertLineSeparator();
                 editor.getDotLine().setFlags(0);
@@ -361,7 +362,7 @@ public class LispShellBuffer extends ShellBuffer {
                 promptLine.setAnnotation(a);
                 promptLine.setFlags(STATE_PROMPT);
             }
-            editor.eob();
+            MotionCommands.eob(editor);
             if (atPrompt) {
                 editor.insertLineSeparator();
                 editor.getDotLine().setFlags(0);

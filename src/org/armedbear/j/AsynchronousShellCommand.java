@@ -27,7 +27,6 @@ import org.armedbear.j.mode.text.PlainTextFormatter;
 import org.armedbear.j.mode.text.PlainTextMode;
 import org.armedbear.j.util.Background;
 import org.armedbear.j.util.ReaderThread;
-import org.armedbear.j.util.Utilities;
 
 public final class AsynchronousShellCommand implements Constants, Runnable {
     private final String command;
@@ -115,7 +114,7 @@ public final class AsynchronousShellCommand implements Constants, Runnable {
             outputBuffer.enforceOutputLimit(Property.SHELL_OUTPUT_LIMIT);
             for (Editor ed : Editor.getEditorList()) {
                 if (ed.getBuffer() == outputBuffer) {
-                    ed.eob();
+                    MotionCommands.eob(ed);
                     ed.getDisplay().setReframe(-2);
                     ed.setUpdateFlag(REPAINT);
                     ed.updateDisplay();

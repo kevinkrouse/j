@@ -340,7 +340,7 @@ public class ShellBuffer extends CommandInterpreterBuffer implements Constants {
                     editor.insertStringInternal(prompt);
                 editor.insertStringInternal(userInput);
                 editor.getDotLine().setFlags(STATE_INPUT);
-                editor.eob();
+                MotionCommands.eob(editor);
                 editor.getDisplay().setReframe(-2);
                 resetUndo();
             }

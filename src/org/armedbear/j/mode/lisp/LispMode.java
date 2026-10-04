@@ -38,6 +38,7 @@ import org.armedbear.j.Line;
 import org.armedbear.j.Menu;
 import org.armedbear.j.MessageDialog;
 import org.armedbear.j.Mode;
+import org.armedbear.j.MotionCommands;
 import org.armedbear.j.Position;
 import org.armedbear.j.Property;
 import org.armedbear.j.Region;
@@ -1034,7 +1035,7 @@ public class LispMode extends AbstractMode implements Constants, Mode {
                     end.getLine().setFlags(STATE_INPUT);
                     lisp.insertString(end, ";;; Evaluating defun " + name + " ...\n");
                     lisp.renumber();
-                    ed.eob();
+                    MotionCommands.eob(ed);
                     ed.getDotLine().setFlags(0);
                     lisp.send(defun);
                 }
@@ -1057,7 +1058,7 @@ public class LispMode extends AbstractMode implements Constants, Mode {
                     end.getLine().setFlags(STATE_INPUT);
                     lisp.insertString(end, ";;; Compiling defun " + name + " ...\n");
                     lisp.renumber();
-                    ed.eob();
+                    MotionCommands.eob(ed);
                     ed.getDotLine().setFlags(0);
                     lisp.send("(CL:PROGN " + defun + " (CL:COMPILE '" + name + "))\n");
                 }
@@ -1082,7 +1083,7 @@ public class LispMode extends AbstractMode implements Constants, Mode {
             bufEnd.getLine().setFlags(STATE_INPUT);
             lisp.insertString(bufEnd, ";;; Evaluating region ...\n");
             lisp.renumber();
-            ed.eob();
+            MotionCommands.eob(ed);
             ed.getDotLine().setFlags(0);
             lisp.send(new Region(editor).toString().trim());
         }
@@ -1122,7 +1123,7 @@ public class LispMode extends AbstractMode implements Constants, Mode {
                     end.getLine().setFlags(STATE_INPUT);
                     lisp.insertString(end, ";;; Loading file " + path + " ...\n");
                     lisp.renumber();
-                    ed.eob();
+                    MotionCommands.eob(ed);
                     ed.getDotLine().setFlags(0);
                     lisp.send("(CL:LOAD \"" + path + "\")\n");
                 }
@@ -1164,7 +1165,7 @@ public class LispMode extends AbstractMode implements Constants, Mode {
                     end.getLine().setFlags(STATE_INPUT);
                     lisp.insertString(end, ";;; Compiling " + path + " ...\n");
                     lisp.renumber();
-                    ed.eob();
+                    MotionCommands.eob(ed);
                     ed.getDotLine().setFlags(0);
                     lisp.send("(CL:COMPILE-FILE \"" + path + "\")\n");
                 }
@@ -1206,7 +1207,7 @@ public class LispMode extends AbstractMode implements Constants, Mode {
                     end.getLine().setFlags(STATE_INPUT);
                     lisp.insertString(end, ";;; Compiling and loading " + path + " ...\n");
                     lisp.renumber();
-                    ed.eob();
+                    MotionCommands.eob(ed);
                     ed.getDotLine().setFlags(0);
                     lisp.send("(CL:LOAD (CL:COMPILE-FILE \"" + path + "\"))\n");
                 }

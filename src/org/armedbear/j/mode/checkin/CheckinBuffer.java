@@ -27,7 +27,7 @@ import org.armedbear.j.Constants;
 import org.armedbear.j.Debug;
 import org.armedbear.j.Editor;
 import org.armedbear.j.Expansion;
-import org.armedbear.j.Log;
+import org.armedbear.j.MotionCommands;
 import org.armedbear.j.Position;
 import org.armedbear.j.mode.diff.DiffOutputBuffer;
 import org.armedbear.j.vcs.VcsBackend;
@@ -133,7 +133,7 @@ public class CheckinBuffer extends VersionControlBuffer implements Constants {
             return;
         if (!buffer.withWriteLock(() -> {
             CompoundEdit compoundEdit = editor.beginCompoundEdit();
-            editor.selectAll();
+            MotionCommands.selectAll(editor);
             editor.deleteRegion();
             editor.insertString(comment);
             editor.endCompoundEdit(compoundEdit);

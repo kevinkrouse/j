@@ -30,7 +30,7 @@ public class CommentRegionTest {
 
     private String uncomment(Mode mode, String text) {
         h = EditorHarness.create(text).mode(mode);
-        h.editor().selectAll();
+        MotionCommands.selectAll(h.editor());
         h.editor().uncommentRegion();
         return h.text();
     }
@@ -53,7 +53,7 @@ public class CommentRegionTest {
     @Test
     public void commentReachesTheLastLine() {
         h = EditorHarness.create("a = 1\nb = 2").mode(PythonMode.getMode());
-        h.editor().selectAll();
+        MotionCommands.selectAll(h.editor());
         h.editor().commentRegion();
         assertEquals("#a = 1\n#b = 2", h.value());
     }

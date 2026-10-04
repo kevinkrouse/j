@@ -35,6 +35,7 @@ import org.armedbear.j.File;
 import org.armedbear.j.Frame;
 import org.armedbear.j.History;
 import org.armedbear.j.Log;
+import org.armedbear.j.MotionCommands;
 import org.armedbear.j.Version;
 import org.armedbear.j.extension.abcl.AbclSession;
 import org.armedbear.lisp.Interpreter;
@@ -213,7 +214,7 @@ public final class JLispBuffer extends LispShellBuffer {
             ed = frame.getCurrentEditor();
         } else
             ed = editor.activateInOtherWindow(jlisp);
-        ed.eob();
+        MotionCommands.eob(ed);
         editor.setDefaultCursor();
     }
 }

@@ -1494,31 +1494,6 @@ public final class Editor extends JPanel implements Constants,
         });
     }
 
-    private boolean nextChar() {
-        if (getDotOffset() < getDotLine().length()) {
-            dot.skip(1);
-            return true;
-        }
-        if (getDotLine().next() != null) {
-            dot.moveTo(getDotLine().next(), 0);
-            return true;
-        }
-        return false;
-    }
-
-    private boolean prevChar() {
-        if (getDotOffset() > 0) {
-            dot.skip(-1);
-            return true;
-        }
-        final Line previous = getDotLine().previous();
-        if (previous != null) {
-            dot.moveTo(previous, previous.length());
-            return true;
-        }
-        return false;
-    }
-
     public char getDotChar() {
         Debug.assertTrue(dot != null);
         return dot.getChar();
@@ -2935,404 +2910,6 @@ public final class Editor extends JPanel implements Constants,
         return values;
     }
 
-    public void pageDown() {
-        if (dot == null)
-            return;
-        maybeResetGoalColumn();
-        if (mark != null) {
-            CompoundEdit compoundEdit = beginCompoundEdit();
-            addUndo(SimpleEdit.MOVE);
-            setMark(null);
-            setUpdateFlag(REPAINT);
-            pageDownInternal();
-            endCompoundEdit(compoundEdit);
-        } else
-            pageDownInternal();
-        setCurrentCommand(COMMAND_PAGE_DOWN);
-    }
-
-    public void pageDownOtherWindow() {
-        final Editor ed = getOtherEditor();
-        if (ed != null) {
-            ed.pageDown();
-            ed.updateDisplay();
-        }
-    }
-
-    public void selectPageDown() {
-        if (dot == null)
-            return;
-        maybeResetGoalColumn();
-        if (mark == null) {
-            CompoundEdit compoundEdit = beginCompoundEdit();
-            addUndo(SimpleEdit.MOVE);
-            setMarkAtDot();
-            pageDownInternal();
-            endCompoundEdit(compoundEdit);
-        } else
-            pageDownInternal();
-        setCurrentCommand(COMMAND_PAGE_DOWN);
-    }
-
-    /** {@code pageDown vim} scrolls the way vim's CTRL-F does. */
-    public void pageDown(String parameters) {
-        if (wantsVim(parameters))
-            vimPage(true);
-        else
-            pageDown();
-    }
-
-    /** {@code pageUp vim} scrolls the way vim's CTRL-B does. */
-    public void pageUp(String parameters) {
-        if (wantsVim(parameters))
-            vimPage(false);
-        else
-            pageUp();
-    }
-
-    /**
-     * Vim's CTRL-F and CTRL-B, which differ from pageDown and pageUp in three
-     * ways, all checked with nvim: they keep two lines of the old page on
-     * screen rather than one; the caret goes to the new top line (CTRL-F) or
-     * the new bottom line (CTRL-B) rather than keeping its row; and CTRL-F
-     * with the last line already showing puts it at the top. Too much to
-     * change what PageDown does for everyone, so it is an argument.
-     *
-     * @return false when there is nowhere further to scroll
-     */
-    boolean vimPage(boolean forward) {
-        if (dot == null)
-            return false;
-        final Line top = display.getTopLine();
-        if (top == null)
-            return false;
-        final int rows = Math.max(1, display.getRows());
-        final int step = Math.max(1, rows - 2);
-        Line newTop = top;
-        if (forward) {
-            Line bottom = top;
-            for (int i = 1; i < rows && bottom.nextVisible() != null; i++)
-                bottom = bottom.nextVisible();
-            if (bottom.nextVisible() == null) {
-                // The last line is showing: put it at the top, or do nothing
-                // if it is there already.
-                if (top == bottom)
-                    return false;
-                newTop = bottom;
-            } else {
-                for (int i = 0; i < step && newTop.nextVisible() != null; i++)
-                    newTop = newTop.nextVisible();
-            }
-        } else {
-            if (top.previousVisible() == null)
-                return false;
-            for (int i = 0; i < step && newTop.previousVisible() != null; i++)
-                newTop = newTop.previousVisible();
-        }
-        Line caret = newTop;
-        if (!forward)
-            for (int i = 1; i < rows && caret.nextVisible() != null; i++)
-                caret = caret.nextVisible();
-        // The caret keeps its column, as nvim's default 'nostartofline'
-        // keeps it -- the column it is at now, not j's goal column, which
-        // only j's own up and down set. A selection is left alone, so that
-        // in visual mode the page extends it.
-        final int col = getDotCol();
-        addUndo(SimpleEdit.MOVE);
-        updateDotLine();
-        display.setTopLine(newTop);
-        dot.moveTo(caret, 0);
-        dot.moveToCol(col, buffer.getTabWidth());
-        if (dot.getOffset() > caret.length())
-            dot.setOffset(caret.length());
-        moveCaretToDotCol();
-        updateDotLine();
-        setUpdateFlag(REPAINT);
-        return true;
-    }
-
-    public void pageUp() {
-        if (dot == null)
-            return;
-        maybeResetGoalColumn();
-        if (mark != null) {
-            CompoundEdit compoundEdit = beginCompoundEdit();
-            addUndo(SimpleEdit.MOVE);
-            setMark(null);
-            setUpdateFlag(REPAINT);
-            pageUpInternal();
-            endCompoundEdit(compoundEdit);
-        } else
-            pageUpInternal();
-        setCurrentCommand(COMMAND_PAGE_UP);
-    }
-
-    public void pageUpOtherWindow() {
-        final Editor ed = getOtherEditor();
-        if (ed != null) {
-            ed.pageUp();
-            ed.updateDisplay();
-        }
-    }
-
-    public void selectPageUp() {
-        if (dot == null)
-            return;
-        maybeResetGoalColumn();
-        if (mark == null) {
-            CompoundEdit compoundEdit = beginCompoundEdit();
-            addUndo(SimpleEdit.MOVE);
-            setMarkAtDot();
-            pageUpInternal();
-            endCompoundEdit(compoundEdit);
-        } else
-            pageUpInternal();
-        setCurrentCommand(COMMAND_PAGE_UP);
-    }
-
-    private void pageDownInternal() {
-        Debug.assertTrue(buffer.needsRenumbering == false);
-        Line dotLine = getDotLine();
-        int numRows = display.getRows();
-        Line[] lines = new Line[numRows];
-        Line line = getTopLine();
-        int dotRow = -1;
-        for (int i = 0; i < numRows; i++) {
-            lines[i] = line;
-            if (line == dotLine)
-                dotRow = i;
-            if (line != null)
-                line = line.nextVisible();
-        }
-        Line bottomLine = lines[numRows - 1];
-        if (bottomLine == null) {
-            // We're on the last page already.
-            if (dotRow >= 0) {
-                Position eob = getEob();
-                if (eob != null) {
-                    addUndo(SimpleEdit.MOVE);
-                    updateDotLine();
-                    dot.setLine(eob.getLine());
-                    moveDotToGoalCol();
-                    updateDotLine();
-                }
-            }
-            return;
-        }
-        // Not on last page.
-        display.setTopLine(bottomLine);
-        setUpdateFlag(REPAINT);
-        if (dotRow >= 0) {
-            line = getTopLine();
-            for (int i = 0; i < dotRow; i++) {
-                Line next = line.nextVisible();
-                if (next == null)
-                    break;
-                line = next;
-            }
-            addUndo(SimpleEdit.MOVE);
-            dot.setLine(line);
-            moveDotToGoalCol();
-        }
-    }
-
-    private void pageUpInternal() {
-        if (dot.getLine() == buffer.getFirstLine())
-            return;
-        Debug.assertTrue(buffer.needsRenumbering == false);
-        int topLineNumber = display.getTopLineNumber();
-        int dotLineNumber = dot.lineNumber();
-        int linesToScroll = display.getRows() - 1;
-        boolean dotLineIsVisible = false;
-        if (dotLineNumber >= topLineNumber) {
-            Line bottomLine = display.getBottomLine();
-            if (bottomLine != null)
-                if (dotLineNumber <= bottomLine.lineNumber())
-                    dotLineIsVisible = true;
-        }
-        addUndo(SimpleEdit.MOVE);
-        if (dotLineIsVisible) {
-            for (int i = 0; i < linesToScroll; i++) {
-                Line topLinePrevious = getTopLine().previousVisible();
-                if (topLinePrevious != null)
-                    display.setTopLine(topLinePrevious);
-                Line dotLinePrevious = dot.getLine().previousVisible();
-                if (dotLinePrevious == null)
-                    break;
-                dot.setLine(dotLinePrevious);
-            }
-        } else {
-            for (int i = 0; i < linesToScroll; i++) {
-                Line dotLinePrevious = dot.getLine().previousVisible();
-                if (dotLinePrevious == null)
-                    break;
-                dot.setLine(dotLinePrevious);
-            }
-        }
-        moveDotToGoalCol();
-        setUpdateFlag(REPAINT);
-    }
-
-    // Move dot to beginning of block, no undo.
-    public void beginningOfBlock() {
-        if (mark != null) {
-            Region r = new Region(buffer, mark, dot);
-            dot.moveTo(r.getBegin());
-            setMark(null);
-            moveCaretToDotCol();
-            if (r.getBeginLine() != r.getEndLine())
-                setUpdateFlag(REPAINT);
-            else
-                updateDotLine();
-        }
-    }
-
-    // Move dot to end of block, no undo.
-    public void endOfBlock() {
-        if (mark != null) {
-            Region r = new Region(buffer, mark, dot);
-            dot.moveTo(r.getEnd());
-            setMark(null);
-            moveCaretToDotCol();
-            if (r.getBeginLine() != r.getEndLine())
-                setUpdateFlag(REPAINT);
-            else
-                updateDotLine();
-        }
-    }
-
-    public void right() {
-        if (dot == null)
-            return;
-        if (buffer.getBooleanProperty(Property.RESTRICT_CARET)) {
-            if (mark == null && getDotOffset() >= getDotLine().length()) {
-                // Caret is at end of line.
-                if (getDotLine().next() != null) {
-                    moveDotTo(getDotLine().next(), 0);
-                    setCurrentCommand(COMMAND_RIGHT);
-                }
-                return;
-            }
-        }
-        if (mark != null || lastCommand != COMMAND_RIGHT)
-            addUndo(SimpleEdit.MOVE);
-        if (mark != null)
-            endOfBlock();
-        else if (dot.getOffset() < dot.getLineLength()) {
-            dot.skip(1);
-            moveCaretToDotCol();
-        } else {
-            display.setCaretCol(display.getCaretCol() + 1);
-        }
-        updateDotLine();
-        setCurrentCommand(COMMAND_RIGHT);
-        setUpdateFlag(REFRAME);
-    }
-
-    public void selectRight() {
-        if (dot == null)
-            return;
-        if (getDotOffset() < getDotLine().length()) {
-            if (mark == null || lastCommand != COMMAND_RIGHT)
-                beginSelectMotion();
-            dot.moveRight();
-            moveCaretToDotCol();
-        } else {
-            // We're at or beyond the end of the line.
-            if (buffer.getBooleanProperty(Property.RESTRICT_CARET)) {
-                if (getDotLine().next() == null)
-                    return;
-                if (mark == null || lastCommand != COMMAND_RIGHT)
-                    beginSelectMotion();
-                updateDotLine();
-                dot.moveTo(getDotLine().next(), 0);
-                moveCaretToDotCol();
-            } else {
-                // Don't start a new selection, since there's no text there.
-                if (lastCommand != COMMAND_RIGHT)
-                    addUndo(SimpleEdit.MOVE);
-                display.setCaretCol(display.getCaretCol() + 1);
-            }
-        }
-        updateDotLine();
-        setCurrentCommand(COMMAND_RIGHT);
-        setUpdateFlag(REFRAME);
-    }
-
-    public void left() {
-        if (dot == null)
-            return;
-        final Line dotLine = getDotLine();
-        final int dotOffset = getDotOffset();
-        final Line prevLine = dotLine.previous();
-        if (dotOffset == 0 && prevLine == null)
-            return;
-        if (mark != null || lastCommand != COMMAND_LEFT)
-            addUndo(SimpleEdit.MOVE);
-        if (mark != null)
-            beginningOfBlock();
-        else {
-            int absCaretCol = display.getCaretCol() + display.getShift();
-            if (absCaretCol > 0 && absCaretCol <= buffer.getCol(dotLine, dotLine.length())) {
-                // Back up one character.
-                dot.setOffset(dotOffset - 1);
-                moveCaretToDotCol();
-            } else if (absCaretCol > 0) {
-                // We're beyond the end of the text on the line.
-                display.setCaretCol(display.getCaretCol() - 1);
-            } else if (dot.getOffset() == 0) {
-                // Back up to the end of the text on the previous line.
-                update(dotLine);
-                setDot(prevLine, prevLine.length());
-                moveCaretToDotCol();
-            } else {
-                // There shouldn't be any other cases.
-                Debug.assertTrue(false);
-            }
-        }
-        updateDotLine();
-        setCurrentCommand(COMMAND_LEFT);
-        setUpdateFlag(REFRAME);
-    }
-
-    public void selectLeft() {
-        if (dot == null)
-            return;
-        final Line dotLine = getDotLine();
-        final int dotOffset = getDotOffset();
-        final Line prevLine = dotLine.previous();
-        if (dotOffset == 0 && prevLine == null)
-            return;
-        if (mark == null || lastCommand != COMMAND_LEFT)
-            addUndo(SimpleEdit.MOVE);
-
-        // Only start a new selection if we're over some actual text.
-        final int absCaretCol = display.getAbsoluteCaretCol();
-        final int end = buffer.getCol(dotLine, dotLine.length());
-        if (mark == null && absCaretCol <= end)
-            setMarkAtDot();
-
-        if (absCaretCol > 0 && absCaretCol <= end) {
-            // Back up one character.
-            dot.moveLeft();
-            moveCaretToDotCol();
-        } else if (absCaretCol > 0) {
-            // We're beyond the end of the text on the line.
-            display.setCaretCol(display.getCaretCol() - 1);
-        } else if (dotOffset == 0) {
-            // Back up to the end of the text on the previous line.
-            updateDotLine();
-            setDot(prevLine, prevLine.length());
-            moveCaretToDotCol();
-        } else {
-            // There shouldn't be any other cases.
-            Debug.assertTrue(false);
-        }
-        updateDotLine();
-        setCurrentCommand(COMMAND_LEFT);
-        setUpdateFlag(REFRAME);
-    }
-
     public final int getAbsoluteCaretCol() {
         return display.getAbsoluteCaretCol();
     }
@@ -3359,35 +2936,7 @@ public final class Editor extends JPanel implements Constants,
         }
     }
 
-    // Move caret down one line, keeping it in the same column if possible.
-    // Synchronize dot with caret.
-    public void down() {
-        maybeResetGoalColumn();
-        display.down(false);
-        setCurrentCommand(COMMAND_DOWN);
-    }
-
-    public void selectDown() {
-        maybeResetGoalColumn();
-        display.down(true);
-        setCurrentCommand(COMMAND_DOWN);
-    }
-
-    // Move caret up one line, keeping it in the same column if possible.
-    // Synchronize dot with caret.
-    public void up() {
-        maybeResetGoalColumn();
-        display.up(false);
-        setCurrentCommand(COMMAND_UP);
-    }
-
-    public void selectUp() {
-        maybeResetGoalColumn();
-        display.up(true);
-        setCurrentCommand(COMMAND_UP);
-    }
-
-    private void maybeResetGoalColumn() {
+    void maybeResetGoalColumn() {
         switch (lastCommand) {
             case COMMAND_UP:
             case COMMAND_DOWN:
@@ -3400,20 +2949,6 @@ public final class Editor extends JPanel implements Constants,
                 goalColumn = getAbsoluteCaretCol();
                 return;
         }
-    }
-
-    public void windowUp() {
-        maybeResetGoalColumn();
-        display.windowUp();
-        maybeScrollCaret();
-        setCurrentCommand(COMMAND_WINDOW_UP);
-    }
-
-    public void windowDown() {
-        maybeResetGoalColumn();
-        display.windowDown();
-        maybeScrollCaret();
-        setCurrentCommand(COMMAND_WINDOW_DOWN);
     }
 
     public void maybeScrollCaret() {
@@ -3447,365 +2982,8 @@ public final class Editor extends JPanel implements Constants,
         }
     }
 
-    public void toCenter() {
-        display.toCenter();
-    }
-
-    public void toBottom() {
-        display.toBottom();
-    }
-
-    public void toTop() {
-        display.toTop();
-    }
-
-    private void selectToPosition(Position pos) {
-        if (
-            !pos.equals(dot)
-                ||
-                buffer.getCol(pos) != display.getAbsoluteCaretCol()
-        ) {
-            beginSelectMotion();
-            if (pos.getLine() != getDotLine())
-                setUpdateFlag(REPAINT);
-            else
-                updateDotLine();
-            dot.moveTo(pos);
-            moveCaretToDotCol();
-        }
-    }
-
-    public void bol() {
-        if (dot != null)
-            moveDotTo(dot.getLine(), 0);
-    }
-
-    public void home() {
-        if (dot == null)
-            return;
-        final boolean extend = prefs.getBooleanProperty(Property.EXTEND_HOME);
-        Position pos;
-        if (mark != null)
-            pos = new Position(new Region(this).getBegin());
-        else
-            pos = new Position(dot);
-        int indent = pos.getLine().getIndentation();
-        if (extend) {
-            if (pos.getOffset() > indent)
-                pos.setOffset(indent);
-            else
-                pos.setOffset(0);
-        } else {
-            if (pos.getOffset() > indent)
-                pos.setOffset(indent);
-            else if (pos.getOffset() == indent)
-                pos.setOffset(0);
-            else
-                pos.setOffset(indent);
-        }
-        if (
-            mark != null
-                || !pos.equals(dot)
-                ||
-                buffer.getCol(pos) != display.getAbsoluteCaretCol()
-        ) {
-            moveDotTo(pos);
-            setCurrentCommand(COMMAND_HOME);
-            return;
-        }
-        // Reaching here, caret is already in column 0.
-        if (!extend)
-            return;
-        if (System.currentTimeMillis() - dispatcher.getLastEventMillis() > 1000) {
-            // Timed out.
-            setUpdateFlag(REFRAME);
-            setCurrentCommand(COMMAND_HOME);
-            return;
-        }
-        if (lastCommand == COMMAND_HOME_HOME)
-            pos = new Position(buffer.getFirstLine(), 0);
-        else if (lastCommand == COMMAND_HOME) {
-            pos = new Position(getTopLine(), 0);
-            setUpdateFlag(REFRAME);
-            setCurrentCommand(COMMAND_HOME_HOME);
-        } else {
-            setUpdateFlag(REFRAME);
-            setCurrentCommand(COMMAND_HOME);
-            return;
-        }
-        if (
-            !pos.equals(dot)
-                ||
-                buffer.getCol(pos) != display.getAbsoluteCaretCol()
-        )
-            moveDotTo(pos);
-    }
-
-    public void selectHome() {
-        if (dot == null)
-            return;
-        final boolean extend = prefs.getBooleanProperty(Property.EXTEND_HOME);
-        Position pos;
-        if (mark != null)
-            pos = new Position(new Region(buffer, mark, dot).getBegin());
-        else
-            pos = new Position(dot);
-        int indent = pos.getLine().getIndentation();
-        if (extend) {
-            if (pos.getOffset() > indent)
-                pos.setOffset(indent);
-            else
-                pos.setOffset(0);
-        } else {
-            if (pos.getOffset() > indent)
-                pos.setOffset(indent);
-            else if (pos.getOffset() == indent)
-                pos.setOffset(0);
-            else
-                pos.setOffset(indent);
-        }
-        if (
-            mark != null
-                || !pos.equals(dot)
-                ||
-                buffer.getCol(pos) != display.getAbsoluteCaretCol()
-        ) {
-            selectToPosition(pos);
-            setUpdateFlag(REFRAME);
-            setCurrentCommand(COMMAND_SELECT_HOME);
-            return;
-        }
-        // Reaching here, caret is already in column 0.
-        if (!prefs.getBooleanProperty(Property.EXTEND_HOME))
-            return;
-        if (System.currentTimeMillis() - dispatcher.getLastEventMillis() > 1000) {
-            // Timed out.
-            setUpdateFlag(REFRAME);
-            setCurrentCommand(COMMAND_SELECT_HOME);
-            return;
-        }
-        if (lastCommand == COMMAND_SELECT_HOME_HOME)
-            pos = new Position(buffer.getFirstLine(), 0);
-        else if (lastCommand == COMMAND_SELECT_HOME) {
-            pos = new Position(getTopLine(), 0);
-            setUpdateFlag(REFRAME);
-            setCurrentCommand(COMMAND_SELECT_HOME_HOME);
-        } else {
-            setUpdateFlag(REFRAME);
-            setCurrentCommand(COMMAND_SELECT_HOME);
-            return;
-        }
-        if (
-            !pos.equals(dot)
-                ||
-                buffer.getCol(pos) != display.getAbsoluteCaretCol()
-        )
-            selectToPosition(pos);
-    }
-
-    public void eol() {
-        if (dot == null)
-            return;
-        if (
-            mark != null
-                || dot.getOffset() != dot.getLineLength()
-                ||
-                buffer.getCol(dot) != display.getCaretCol() + display.getShift()
-        )
-            moveDotTo(dot.getLine(), dot.getLineLength());
-    }
-
-    public void end() {
-        if (dot == null)
-            return;
-        Position pos;
-        if (mark != null)
-            pos = new Position(new Region(buffer, mark, dot).getEnd());
-        else
-            pos = new Position(dot);
-        pos.setOffset(pos.getLineLength());
-        if (
-            mark != null
-                || !pos.equals(dot)
-                ||
-                buffer.getCol(pos) != display.getAbsoluteCaretCol()
-        ) {
-            moveDotTo(pos);
-            setUpdateFlag(REFRAME);
-            setCurrentCommand(COMMAND_END);
-            return;
-        }
-        // Reaching here, caret is already at end of line.
-        if (!prefs.getBooleanProperty(Property.EXTEND_END))
-            return;
-        if (System.currentTimeMillis() - dispatcher.getLastEventMillis() > 1000) {
-            // Timed out.
-            setUpdateFlag(REFRAME);
-            setCurrentCommand(COMMAND_END);
-            return;
-        }
-        if (lastCommand == COMMAND_END_END)
-            pos = getEob();
-        else if (lastCommand == COMMAND_END) {
-            Line bottomLine = display.getBottomLine();
-            if (bottomLine != null)
-                pos = new Position(bottomLine, bottomLine.length());
-            else
-                pos = getEob();
-            setUpdateFlag(REFRAME);
-            setCurrentCommand(COMMAND_END_END);
-        } else {
-            setUpdateFlag(REFRAME);
-            setCurrentCommand(COMMAND_END);
-            return;
-        }
-        if (
-            !pos.equals(dot)
-                ||
-                buffer.getCol(pos) != display.getAbsoluteCaretCol()
-        )
-            moveDotTo(pos);
-    }
-
-    public void selectEnd() {
-        if (dot == null)
-            return;
-        Position pos;
-        if (mark != null)
-            pos = new Position(new Region(buffer, mark, dot).getEnd());
-        else
-            pos = new Position(dot);
-        pos.setOffset(pos.getLineLength());
-        if (
-            !pos.equals(dot)
-                ||
-                buffer.getCol(pos) != display.getAbsoluteCaretCol()
-        ) {
-            selectToPosition(pos);
-            setUpdateFlag(REFRAME);
-            setCurrentCommand(COMMAND_END);
-            return;
-        }
-        // Reaching here, caret is already at end of line.
-        if (!prefs.getBooleanProperty(Property.EXTEND_END))
-            return;
-        if (System.currentTimeMillis() - dispatcher.getLastEventMillis() > 1000) {
-            // Timed out.
-            setUpdateFlag(REFRAME);
-            setCurrentCommand(COMMAND_END);
-            return;
-        }
-        if (lastCommand == COMMAND_END_END)
-            pos = getEob();
-        else if (lastCommand == COMMAND_END) {
-            Line bottomLine = display.getBottomLine();
-            if (bottomLine != null)
-                pos = new Position(bottomLine, bottomLine.length());
-            else
-                pos = getEob();
-            setUpdateFlag(REFRAME);
-            setCurrentCommand(COMMAND_END_END);
-        } else {
-            setCurrentCommand(COMMAND_END);
-            return;
-        }
-        if (
-            !pos.equals(dot)
-                ||
-                buffer.getCol(pos) != display.getAbsoluteCaretCol()
-        )
-            selectToPosition(pos);
-    }
-
-    public void bob() {
-        if (buffer.getFirstLine() != null) {
-            recordJump();
-            moveDotTo(buffer.getFirstLine(), 0);
-        }
-    }
-
-    public void selectBob() {
-        if (dot == null)
-            return;
-        if (buffer.getFirstLine() == null)
-            return;
-        beginSelectMotion();
-        dot.moveTo(buffer.getFirstLine(), 0);
-        moveCaretToDotCol();
-        setUpdateFlag(REPAINT);
-    }
-
-    private final Position getEob() {
+    final Position getEob() {
         return buffer.getEnd();
-    }
-
-    public void eob() {
-        recordJump();
-        moveDotTo(getEob());
-    }
-
-    public void selectEob() {
-        if (buffer.getFirstLine() == null)
-            return;
-        Line line = buffer.getFirstLine();
-        while (line.next() != null)
-            line = line.next();
-        beginSelectMotion();
-        dot.moveTo(line, line.length());
-        moveCaretToDotCol();
-        setUpdateFlag(REPAINT);
-    }
-
-    public void top() {
-        if (dot == null)
-            return;
-        if (getDotLine() != getTopLine()) {
-            addUndo(SimpleEdit.MOVE);
-            updateDotLine();
-            dot.setLine(getTopLine());
-            moveDotToCaretCol();
-        }
-    }
-
-    public void bottom() {
-        if (dot == null)
-            return;
-        Line line = display.getBottomLine();
-        if (line != getDotLine()) {
-            addUndo(SimpleEdit.MOVE);
-            updateDotLine();
-            dot.setLine(line);
-            updateDotLine();
-            moveDotToCaretCol();
-        }
-    }
-
-    public void selectWord() {
-        if (dot == null)
-            return;
-        AWTEvent e = dispatcher.getLastEvent();
-        CompoundEdit compoundEdit = null;
-        if (e instanceof MouseEvent) {
-            compoundEdit = beginCompoundEdit();
-            mouseMoveDotToPoint((MouseEvent) e);
-        }
-        if (inWord()) {
-            addUndo(SimpleEdit.MOVE);
-            while (getDotOffset() > 0) {
-                dot.moveLeft();
-                if (!inWord()) {
-                    dot.moveRight();
-                    break;
-                }
-            }
-            setMarkAtDot();
-            final int limit = getDotLine().length();
-            while (inWord() && getDotOffset() < limit)
-                dot.moveRight();
-            moveCaretToDotCol();
-        }
-        if (compoundEdit != null)
-            endCompoundEdit(compoundEdit);
     }
 
     public void mouseMoveDotToPoint() {
@@ -3937,196 +3115,6 @@ public final class Editor extends JPanel implements Constants,
             popup = null;
             restoreFocus();
         }
-    }
-
-    private boolean inWord() {
-        return getMode().isIdentifierPart(getDotChar());
-    }
-
-    private boolean inWhitespace() {
-        return Character.isWhitespace(getDotChar());
-    }
-
-    private void skipWhitespace() {
-        while (inWhitespace())
-            if (!nextChar())
-                break;
-    }
-
-    private void nextWord() {
-        if (dot == null)
-            return;
-        if (inWord()) {
-            while (nextChar())
-                if (!inWord())
-                    break;
-            skipWhitespace();
-        } else if (inWhitespace()) {
-            skipWhitespace();
-        } else {
-            // Not in word or whitespace.
-            while (nextChar() && !inWord() && !inWhitespace())
-                ;
-            skipWhitespace();
-        }
-    }
-
-    private void prevWord() {
-        if (dot == null)
-            return;
-        if (!prevChar())
-            return;
-        if (inWord()) {
-            while (prevChar() && inWord())
-                ;
-            if (!inWord())
-                nextChar();
-        } else if (inWhitespace()) {
-            while (prevChar() && inWhitespace())
-                ;
-            if (inWord()) {
-                while (prevChar() && inWord())
-                    ;
-                if (!inWord())
-                    nextChar();
-            } else {
-                while (prevChar() && !inWord() && !inWhitespace())
-                    ;
-                if (inWord() || inWhitespace())
-                    nextChar();
-            }
-        } else {
-            // Not in word or whitespace.
-            while (prevChar()) {
-                if (inWord())
-                    break;
-                if (inWhitespace())
-                    break;
-            }
-            if (inWord() || inWhitespace())
-                nextChar();
-        }
-    }
-
-    /**
-     * Which rule a word motion follows.
-     *
-     * j's own is a block of text and then the run of blanks after it, so a
-     * word ends at punctuation only when there is whitespace there.
-     * <a href="editmodes.html">Vim's</a> sorts characters into keyword,
-     * other non-blank and blank, and a word is a run of one class, so
-     * {@code foo.bar} is three words. Neither is wrong; they suit different
-     * habits, and vim's is finer grained.
-     *
-     * @param parameters "vim" for vim's rule, anything else for j's
-     */
-    static boolean wantsVim(String parameters) {
-        return parameters != null && parameters.trim().equalsIgnoreCase("vim");
-    }
-
-    public void wordRight() {
-        wordRight(null);
-    }
-
-    /** {@code wordRight vim} moves the way vim's {@code w} does. */
-    public void wordRight(String parameters) {
-        if (dot == null)
-            return;
-        updateDotLine();
-        addUndo(SimpleEdit.MOVE);
-        if (wantsVim(parameters)) {
-            final Position to =
-                Words.forwardToWordStart(new Position(dot), getMode(), false);
-            if (to != null)
-                dot.moveTo(to);
-        } else {
-            endOfBlock();
-            nextWord();
-        }
-        moveCaretToDotCol();
-        updateDotLine();
-    }
-
-    public void wordLeft() {
-        wordLeft(null);
-    }
-
-    /** {@code wordLeft vim} moves the way vim's {@code b} does. */
-    public void wordLeft(String parameters) {
-        if (dot == null)
-            return;
-        updateDotLine();
-        addUndo(SimpleEdit.MOVE);
-        if (wantsVim(parameters)) {
-            final Position to =
-                Words.backwardToWordStart(new Position(dot), getMode(), false);
-            if (to != null)
-                dot.moveTo(to);
-        } else {
-            beginningOfBlock();
-            prevWord();
-        }
-        moveCaretToDotCol();
-        updateDotLine();
-    }
-
-    public void selectWordRight() {
-        selectWordRight(null);
-    }
-
-    /** {@code selectWordRight vim} extends by vim's {@code w}. */
-    public void selectWordRight(String parameters) {
-        if (dot == null)
-            return;
-        beginSelectMotion();
-        updateDotLine();
-        if (wantsVim(parameters)) {
-            final Position to =
-                Words.forwardToWordStart(new Position(dot), getMode(), false);
-            if (to != null)
-                dot.moveTo(to);
-        } else
-            nextWord();
-        moveCaretToDotCol();
-        updateDotLine();
-    }
-
-    public void selectWordLeft() {
-        selectWordLeft(null);
-    }
-
-    /** {@code selectWordLeft vim} extends by vim's {@code b}. */
-    public void selectWordLeft(String parameters) {
-        if (dot == null)
-            return;
-        beginSelectMotion();
-        updateDotLine();
-        if (wantsVim(parameters)) {
-            final Position to =
-                Words.backwardToWordStart(new Position(dot), getMode(), false);
-            if (to != null)
-                dot.moveTo(to);
-        } else
-            prevWord();
-        moveCaretToDotCol();
-        updateDotLine();
-    }
-
-    public void selectAll() {
-        if (dot == null)
-            return;
-        recordJump();
-        beginMotion();
-        Line line = buffer.getFirstLine();
-        dot.moveTo(line, 0);
-        display.setCaretCol(0);
-        display.setShift(0);
-        setMarkAtDot();
-        while (line.next() != null)
-            line = line.next();
-        dot.moveTo(line, line.length());
-        moveCaretToDotCol();
-        display.setUpdateFlag(REPAINT);
     }
 
     // Moves dot to the requested absolute column, based on the tab size of
@@ -4423,7 +3411,7 @@ public final class Editor extends JPanel implements Constants,
             dot.setOffset(0);
             insertChar(c);
             indentLine();
-            eol();
+            MotionCommands.eol(this);
             if (buffer.getBooleanProperty(Property.AUTO_NEWLINE))
                 newlineAndIndent();
         } else {
@@ -5861,18 +4849,18 @@ public final class Editor extends JPanel implements Constants,
         beginMotion();
         fillToCaret();
         setMarkAtDot();
-        if (inWord()) {
-            while (inWord() && nextChar())
+        if (MotionCommands.inWord(this)) {
+            while (MotionCommands.inWord(this) && MotionCommands.nextChar(this))
                 ;
-            while (inWhitespace() && nextChar())
+            while (MotionCommands.inWhitespace(this) && MotionCommands.nextChar(this))
                 ;
-        } else if (inWhitespace()) {
-            while (inWhitespace() && nextChar())
+        } else if (MotionCommands.inWhitespace(this)) {
+            while (MotionCommands.inWhitespace(this) && MotionCommands.nextChar(this))
                 ;
         } else {
-            while (!inWhitespace() && !inWord() && nextChar())
+            while (!MotionCommands.inWhitespace(this) && !MotionCommands.inWord(this) && MotionCommands.nextChar(this))
                 ;
-            while (inWhitespace() && nextChar())
+            while (MotionCommands.inWhitespace(this) && MotionCommands.nextChar(this))
                 ;
         }
         if (isKill)
@@ -5898,23 +4886,23 @@ public final class Editor extends JPanel implements Constants,
         CompoundEdit compoundEdit = beginCompoundEdit();
         beginMotion();
         setMarkAtDot();
-        prevChar();
-        if (inWord()) {
-            while (getDotOffset() > 0 && inWord() && prevChar())
+        MotionCommands.prevChar(this);
+        if (MotionCommands.inWord(this)) {
+            while (getDotOffset() > 0 && MotionCommands.inWord(this) && MotionCommands.prevChar(this))
                 ;
-            if (!inWord())
-                nextChar();
-        } else if (inWhitespace()) {
-            while (inWhitespace() && prevChar())
+            if (!MotionCommands.inWord(this))
+                MotionCommands.nextChar(this);
+        } else if (MotionCommands.inWhitespace(this)) {
+            while (MotionCommands.inWhitespace(this) && MotionCommands.prevChar(this))
                 ;
-            if (!inWhitespace())
-                nextChar();
+            if (!MotionCommands.inWhitespace(this))
+                MotionCommands.nextChar(this);
         } else {
-            while (!inWhitespace() && !inWord() && prevChar())
+            while (!MotionCommands.inWhitespace(this) && !MotionCommands.inWord(this) && MotionCommands.prevChar(this))
                 ;
-            while (inWhitespace() && prevChar())
+            while (MotionCommands.inWhitespace(this) && MotionCommands.prevChar(this))
                 ;
-            nextChar();
+            MotionCommands.nextChar(this);
         }
         if (isKill)
             killRegion();
@@ -6541,7 +5529,7 @@ public final class Editor extends JPanel implements Constants,
             moveDotTo(line, offset);
             setUpdateFlag(REFRAME);
         } else
-            eob();
+            MotionCommands.eob(this);
     }
 
     public void offset() {
@@ -6958,12 +5946,12 @@ public final class Editor extends JPanel implements Constants,
         CompoundEdit compoundEdit = beginCompoundEdit();
         insertChar('{');
         indentLine();
-        eol();
+        MotionCommands.eol(this);
         newlineAndIndent();
         insertChar('}');
         indentLine();
-        up();
-        eol();
+        MotionCommands.up(this);
+        MotionCommands.eol(this);
         newlineAndIndent();
         endCompoundEdit(compoundEdit);
     }
@@ -7068,12 +6056,12 @@ public final class Editor extends JPanel implements Constants,
         try {
             CompoundEdit compoundEdit = beginCompoundEdit();
             beginMotion();
-            while (inWhitespace() && nextChar())
+            while (MotionCommands.inWhitespace(this) && MotionCommands.nextChar(this))
                 ;
             setMarkAtDot();
-            while (prevChar()) {
-                if (!inWhitespace()) {
-                    nextChar();
+            while (MotionCommands.prevChar(this)) {
+                if (!MotionCommands.inWhitespace(this)) {
+                    MotionCommands.nextChar(this);
                     break;
                 }
             }
