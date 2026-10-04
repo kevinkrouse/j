@@ -30,16 +30,19 @@ import org.armedbear.j.Buffer;
  * "is lisp running yet" guards -- notably the one in Dispatcher, which runs on
  * every keystroke.
  */
-public interface EditorHooks
-{
+public interface EditorHooks {
     /** Does nothing, and is what core holds until an extension registers. */
-    EditorHooks NONE = new EditorHooks()
-    {
+    EditorHooks NONE = new EditorHooks() {
         public void bufferActivated(Buffer buffer) {}
+
         public void openFile(Buffer buffer) {}
+
         public void afterSave(Buffer buffer) {}
+
         public void modeCreated(String modeDisplayName) {}
+
         public void eventHandled() {}
+
         public void invoke(String hookName, Object... args) {}
     };
 

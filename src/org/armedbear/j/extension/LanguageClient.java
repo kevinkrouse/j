@@ -34,38 +34,49 @@ import org.armedbear.j.File;
  * reaches it through {@link Extensions#languageClient()}, which is never null
  * &mdash; it is {@link #NONE} until an extension registers one.
  */
-public interface LanguageClient
-{
+public interface LanguageClient {
     /** A client that is not there. Every session is unready and refuses to evaluate. */
-    LanguageClient NONE = new LanguageClient()
-    {
-        private final Session session = new Session()
-        {
-            public String getKey()      { return DEFAULT_SESSION; }
-            public boolean isReady()    { return false; }
+    LanguageClient NONE = new LanguageClient() {
+        private final Session session = new Session() {
+            public String getKey() {
+                return DEFAULT_SESSION;
+            }
 
-            public void eval(EvalRequest request, EvalHandler handler)
-            {
+            public boolean isReady() {
+                return false;
+            }
+
+            public void eval(EvalRequest request, EvalHandler handler) {
                 if (handler != null)
                     handler.onResult(EvalResult.error(NOT_INSTALLED));
             }
 
-            public EvalResult evalSync(EvalRequest request) throws EvalException
-            {
+            public EvalResult evalSync(EvalRequest request) throws EvalException {
                 throw new EvalException(NOT_INSTALLED);
             }
 
-            public void loadFile(File file) throws EvalException
-            {
+            public void loadFile(File file) throws EvalException {
                 throw new EvalException(NOT_INSTALLED);
             }
         };
 
-        public String getName()              { return "none"; }
-        public Session getSession(String key) { return session; }
-        public Session getDefaultSession()   { return session; }
-        public boolean isAvailable()         { return false; }
-        public void shutdown()               {}
+        public String getName() {
+            return "none";
+        }
+
+        public Session getSession(String key) {
+            return session;
+        }
+
+        public Session getDefaultSession() {
+            return session;
+        }
+
+        public boolean isAvailable() {
+            return false;
+        }
+
+        public void shutdown() {}
     };
 
     String DEFAULT_SESSION = "default";
@@ -83,14 +94,12 @@ public interface LanguageClient
      */
     Session getSession(String key);
 
-    default Session getDefaultSession()
-    {
+    default Session getDefaultSession() {
         return getSession(DEFAULT_SESSION);
     }
 
     /** False for {@link #NONE}; true for any real client. */
-    default boolean isAvailable()
-    {
+    default boolean isAvailable() {
         return true;
     }
 
@@ -98,8 +107,7 @@ public interface LanguageClient
      * Open a session against a runtime somewhere else, Conjure's
      * :ConjureConnect. Clients that cannot do this say so.
      */
-    default Session connect(String host, int port) throws EvalException
-    {
+    default Session connect(String host, int port) throws EvalException {
         throw new EvalException(getName().concat(" cannot connect to a remote runtime"));
     }
 
@@ -107,8 +115,7 @@ public interface LanguageClient
      * Where the runtime is installed, when that means something &mdash; ABCL
      * uses it to find swank-loader.lisp. Null when it does not apply.
      */
-    default String getHomeDirectory()
-    {
+    default String getHomeDirectory() {
         return null;
     }
 
@@ -117,8 +124,7 @@ public interface LanguageClient
      * Lisp shell buffers use it to launch an external ABCL now that core's jar
      * no longer carries abcl.jar on its manifest.
      */
-    default String getRuntimeClassPath()
-    {
+    default String getRuntimeClassPath() {
         return null;
     }
 

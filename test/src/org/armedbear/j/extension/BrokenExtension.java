@@ -21,20 +21,16 @@
 package org.armedbear.j.extension;
 
 /** Throws from initialize(), to prove one bad extension cannot stop the rest. */
-public final class BrokenExtension implements Extension
-{
-    public String getName()
-    {
+public final class BrokenExtension implements Extension {
+    public String getName() {
         return "broken";
     }
 
-    public String getVersion()
-    {
+    public String getVersion() {
         return "1.0";
     }
 
-    public void initialize(ExtensionContext context)
-    {
+    public void initialize(ExtensionContext context) {
         throw new IllegalStateException("deliberately broken");
     }
 }

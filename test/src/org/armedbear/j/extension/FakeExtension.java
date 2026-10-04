@@ -23,37 +23,36 @@ package org.armedbear.j.extension;
 import org.armedbear.j.Buffer;
 
 /** A minimal well-behaved extension, used by ExtensionsTest. */
-public final class FakeExtension implements Extension
-{
-    public static final EditorHooks HOOKS = new EditorHooks()
-    {
+public final class FakeExtension implements Extension {
+    public static final EditorHooks HOOKS = new EditorHooks() {
         public void bufferActivated(Buffer buffer) {}
+
         public void openFile(Buffer buffer) {}
+
         public void afterSave(Buffer buffer) {}
+
         public void modeCreated(String modeDisplayName) {}
+
         public void eventHandled() {}
+
         public void invoke(String hookName, Object... args) {}
     };
 
     public static boolean shutdownCalled;
 
-    public String getName()
-    {
+    public String getName() {
         return "fake";
     }
 
-    public String getVersion()
-    {
+    public String getVersion() {
         return "1.0";
     }
 
-    public void initialize(ExtensionContext context)
-    {
+    public void initialize(ExtensionContext context) {
         context.registerHooks(HOOKS);
     }
 
-    public void shutdown()
-    {
+    public void shutdown() {
         shutdownCalled = true;
     }
 }

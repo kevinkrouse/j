@@ -29,12 +29,15 @@ import org.armedbear.j.KeyMap;
  * <p>Returning null means "nothing to say" -- core then falls back to a key map
  * file named in the preferences, and finally to its own defaults.
  */
-public interface KeyMapProvider
-{
-    KeyMapProvider NONE = new KeyMapProvider()
-    {
-        public KeyMap getGlobalKeyMap() { return null; }
-        public KeyMap getKeyMapForMode(String modeDisplayName) { return null; }
+public interface KeyMapProvider {
+    KeyMapProvider NONE = new KeyMapProvider() {
+        public KeyMap getGlobalKeyMap() {
+            return null;
+        }
+
+        public KeyMap getKeyMapForMode(String modeDisplayName) {
+            return null;
+        }
     };
 
     KeyMap getGlobalKeyMap();
