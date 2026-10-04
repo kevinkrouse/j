@@ -18,6 +18,9 @@
 
 package org.armedbear.j.vcs;
 
+import java.awt.AWTEvent;
+import java.awt.event.KeyEvent;
+import java.awt.event.MouseEvent;
 import org.armedbear.j.AbstractMode;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Editor;
@@ -27,67 +30,57 @@ import org.armedbear.j.KeyMap;
 import org.armedbear.j.Line;
 import org.armedbear.j.vcs.svn.SVN;
 
-import java.awt.AWTEvent;
-import java.awt.event.KeyEvent;
-import java.awt.event.MouseEvent;
-
-public final class StatusMode extends AbstractMode
-{
+public final class StatusMode extends AbstractMode {
     private static final StatusMode mode = new StatusMode();
 
-    private StatusMode()
-    {
+    private StatusMode() {
         super(VCS_STATUS_MODE, VCS_STATUS_MODE_NAME);
     }
 
-    public static StatusMode getMode()
-    {
+    public static StatusMode getMode() {
         return mode;
     }
 
-    public Formatter getFormatter(Buffer buffer)
-    {
-        return new StatusFormatter((StatusOutputBuffer)buffer);
+    public Formatter getFormatter(Buffer buffer) {
+        return new StatusFormatter((StatusOutputBuffer) buffer);
     }
 
-    public static void diffFile()
-    {
+    public static void diffFile() {
         fileAction(true);
     }
 
-    public static void gotoFile()
-    {
+    public static void gotoFile() {
         fileAction(false);
     }
 
-    private static void fileAction(boolean useDiff)
-    {
+    private static void fileAction(boolean useDiff) {
         final Editor editor = Editor.currentEditor();
         if (editor.getDot() == null)
-          return;
+            return;
         final Buffer buffer = editor.getBuffer();
         if (!(buffer instanceof StatusOutputBuffer))
-          return;
+            return;
 
         // If this method is invoked via a mouse event mapping, move dot to
         // location of mouse click first.
         AWTEvent e = editor.getDispatcher().getLastEvent();
         if (e instanceof MouseEvent)
-          editor.mouseMoveDotToPoint((MouseEvent) e);
+            editor.mouseMoveDotToPoint((MouseEvent) e);
 
         StatusOutputBuffer outputBuffer = (StatusOutputBuffer) buffer;
         int vcType = outputBuffer.getVCType();
         switch (vcType) {
-          case VC_SVN:
-              svnFileAction(editor, outputBuffer, useDiff);
-              break;
-          default:
-              throw new IllegalStateException("statusGotoFile/statusDiffFile not supported for this version type: " + vcType);
+            case VC_SVN:
+                svnFileAction(editor, outputBuffer, useDiff);
+                break;
+            default:
+                throw new IllegalStateException(
+                    "statusGotoFile/statusDiffFile not supported for this version type: " + vcType
+                );
         }
     }
 
-    private static void svnFileAction(final Editor editor, final StatusOutputBuffer outputBuffer, boolean useDiff)
-    {
+    private static void svnFileAction(final Editor editor, final StatusOutputBuffer outputBuffer, boolean useDiff) {
         final Line dotLine = editor.getDotLine();
 
         if (dotLine == null || dotLine.length() == 0)
@@ -100,23 +93,20 @@ public final class StatusMode extends AbstractMode
 
         if (c == 'D') {
             // deleted, nothing to do.
-        }
-        else if (useDiff && c == 'M') {
+        } else if (useDiff && c == 'M') {
             // modified, open file diff
             File file = File.getInstance(outputBuffer.getDirectory(), filename);
             Buffer parentBuffer = editor.openFile(file);
             if (parentBuffer != null)
                 SVN.diff(editor, parentBuffer, file);
-        }
-        else {
+        } else {
             // otherwise, just open it
             File file = File.getInstance(outputBuffer.getDirectory(), filename);
             buf = Editor.getBuffer(file);
             if (buf != null) {
                 if (editor.getOtherEditor() != null) {
                     editor.activateInOtherWindow(buf);
-                }
-                else {
+                } else {
                     editor.makeNext(buf);
                     editor.activate(buf);
                 }
@@ -125,8 +115,7 @@ public final class StatusMode extends AbstractMode
     }
 
     @Override
-    protected void setKeyMapDefaults(KeyMap km)
-    {
+    protected void setKeyMapDefaults(KeyMap km) {
         km.mapKey(KeyEvent.VK_ENTER, 0, "statusDiffFile");
         km.mapKey(KeyEvent.VK_ENTER, CTRL_MASK, "statusGotoFile");
         km.mapKey(KeyEvent.VK_G, CTRL_MASK | SHIFT_MASK, "statusGotoFile");

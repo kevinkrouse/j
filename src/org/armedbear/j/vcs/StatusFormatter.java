@@ -23,8 +23,7 @@ import org.armedbear.j.Formatter;
 import org.armedbear.j.Line;
 import org.armedbear.j.LineSegmentList;
 
-public final class StatusFormatter extends Formatter
-{
+public final class StatusFormatter extends Formatter {
     private static final int STATUS_FORMAT_TEXT = 0;
     private static final int STATUS_FORMAT_NOCHANGE = 1;
     private static final int STATUS_FORMAT_ADDED = 2;
@@ -34,18 +33,15 @@ public final class StatusFormatter extends Formatter
     private static final int STATUS_FORMAT_UNKNOWN = 6;
     private static final int STATUS_FORMAT_IGNORED = 7;
 
-    public StatusFormatter(StatusOutputBuffer buffer)
-    {
+    public StatusFormatter(StatusOutputBuffer buffer) {
         this.buffer = buffer;
     }
 
-    public StatusOutputBuffer getBuffer()
-    {
-        return (StatusOutputBuffer)this.buffer;
+    public StatusOutputBuffer getBuffer() {
+        return (StatusOutputBuffer) this.buffer;
     }
 
-    public LineSegmentList formatLine(Line line)
-    {
+    public LineSegmentList formatLine(Line line) {
         clearSegmentList();
         if (line == null || line.length() == 0) {
             addSegment("", STATUS_FORMAT_TEXT);
@@ -62,26 +58,37 @@ public final class StatusFormatter extends Formatter
         return segmentList;
     }
 
-    private void parseSvnLine(Line line)
-    {
+    private void parseSvnLine(Line line) {
         final String text = getDetabbedText(line);
         final char c = text.charAt(0);
         int segment = STATUS_FORMAT_TEXT;
-        switch (c)
-        {
-            case ' ': segment = STATUS_FORMAT_NOCHANGE; break;
-            case 'A': segment = STATUS_FORMAT_ADDED;    break;
-            case 'D': segment = STATUS_FORMAT_REMOVED;  break;
-            case 'M': segment = STATUS_FORMAT_MODIFIED; break;
-            case 'C': segment = STATUS_FORMAT_CONFLICT; break;
-            case '?': segment = STATUS_FORMAT_UNKNOWN;  break;
-            case 'I': segment = STATUS_FORMAT_IGNORED;  break;
+        switch (c) {
+            case ' ':
+                segment = STATUS_FORMAT_NOCHANGE;
+                break;
+            case 'A':
+                segment = STATUS_FORMAT_ADDED;
+                break;
+            case 'D':
+                segment = STATUS_FORMAT_REMOVED;
+                break;
+            case 'M':
+                segment = STATUS_FORMAT_MODIFIED;
+                break;
+            case 'C':
+                segment = STATUS_FORMAT_CONFLICT;
+                break;
+            case '?':
+                segment = STATUS_FORMAT_UNKNOWN;
+                break;
+            case 'I':
+                segment = STATUS_FORMAT_IGNORED;
+                break;
         }
         addSegment(text, segment);
     }
 
-    public FormatTable getFormatTable()
-    {
+    public FormatTable getFormatTable() {
         if (formatTable == null) {
             formatTable = new FormatTable("StatusMode");
             formatTable.addEntryFromPrefs(STATUS_FORMAT_TEXT, "text");

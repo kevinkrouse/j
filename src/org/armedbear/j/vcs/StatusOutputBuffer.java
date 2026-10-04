@@ -22,20 +22,16 @@ import org.armedbear.j.Buffer;
 import org.armedbear.j.File;
 import org.armedbear.j.Property;
 
-public class StatusOutputBuffer extends VersionControlBuffer
-{
-    public StatusOutputBuffer(Buffer parentBuffer, String output, int vcType)
-    {
+public class StatusOutputBuffer extends VersionControlBuffer {
+    public StatusOutputBuffer(Buffer parentBuffer, String output, int vcType) {
         super(parentBuffer, output, vcType);
     }
 
-    public StatusOutputBuffer(File directory, String output, int vcType)
-    {
+    public StatusOutputBuffer(File directory, String output, int vcType) {
         super(directory, output, vcType);
     }
 
-    protected void init()
-    {
+    protected void init() {
         supportsUndo = false;
         type = TYPE_OUTPUT;
         mode = StatusMode.getMode();

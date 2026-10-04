@@ -21,13 +21,11 @@ package org.armedbear.j.vcs;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.File;
 
-public abstract class VersionControlBuffer extends Buffer
-{
+public abstract class VersionControlBuffer extends Buffer {
     private final File directory;
     private final int vcType;
 
-    public VersionControlBuffer(Buffer parentBuffer, String output, int vcType)
-    {
+    public VersionControlBuffer(Buffer parentBuffer, String output, int vcType) {
         super();
         this.parentBuffer = parentBuffer;
         directory =
@@ -37,8 +35,7 @@ public abstract class VersionControlBuffer extends Buffer
         setText(output);
     }
 
-    public VersionControlBuffer(File directory, String output, int vcType)
-    {
+    public VersionControlBuffer(File directory, String output, int vcType) {
         super();
         this.directory = directory;
         this.vcType = vcType;
@@ -47,24 +44,20 @@ public abstract class VersionControlBuffer extends Buffer
     }
 
     protected abstract void init();
-    
-    public final File getCurrentDirectory()
-    {
+
+    public final File getCurrentDirectory() {
         return directory;
     }
 
-    public final File getDirectory()
-    {
+    public final File getDirectory() {
         return directory;
     }
 
-    public final int getVCType()
-    {
+    public final int getVCType() {
         return vcType;
     }
 
-    public String getFileNameForDisplay()
-    {
+    public String getFileNameForDisplay() {
         return title != null ? title : "";
     }
 }
