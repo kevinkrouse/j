@@ -21,6 +21,7 @@ import org.armedbear.j.mode.vhdl.VHDLMode;
 
 /** Hardware description languages, assembly and autoconf. */
 public final class HdlModes implements ModeProvider {
+    @Override
     public List<ModeDescriptor> modes() {
         return List.of(
             new ModeDescriptor(
