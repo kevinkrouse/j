@@ -906,6 +906,25 @@ Windows.)
 <b>Default value:</b> true
 </dl>
 
+<code><a name="finderMaxFiles">finderMaxFiles</a></code>
+<dl>
+<dd>
+The most files <a href="commands.html#findFileInProject">findFileInProject</a>
+lists in a project. Past it, the scan stops and the status bar says so.
+<p>
+<b>Default value:</b> 100000
+</dl>
+
+<code><a name="finderRescanSeconds">finderRescanSeconds</a></code>
+<dl>
+<dd>
+How old, in seconds, the list of a project's files may get before
+<a href="commands.html#findFileInProject">findFileInProject</a> lists them again
+in the background. The old list is used until the new one is ready.
+<p>
+<b>Default value:</b> 30
+</dl>
+
 <code><a name="fontName">fontName</a></code>
 <dl>
 <dd>
@@ -1528,6 +1547,16 @@ server when they are retrieved. Applies only to POP mailboxes.
 Printer font size in points.
 <p>
 <b>Default value:</b> 10
+</dl>
+
+<code><a name="projectRoot">projectRoot</a></code>
+<dl>
+<dd>
+An absolute path to use as the project root, overriding the search described in
+<a href="navigation.html#projects">Projects</a>. Like other preferences, it can
+be set for a mode, as in <code>JavaMode.projectRoot</code>.
+<p>
+<b>Default value:</b> None
 </dl>
 
 <code><a name="rainbowDelimiters">rainbowDelimiters</a></code>

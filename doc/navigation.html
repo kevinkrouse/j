@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>J User's Guide - Getting Around</title>
+<LINK REL="stylesheet" HREF="j.css" TYPE="text/css">
+</head>
+<body>
+<a href="contents.html">Top</a>
+<hr>
+<h1>Getting Around</h1>
+<hr>
+<p>
+The ways to move between files, buffers and windows, and within a file, with
+their default key mappings. Any of them can be remapped; see
+<a href="keys.html">Key Mappings</a>.
+
+<h2>Files</h2>
+<ul>
+<li><b>Ctrl P</b> (<a href="commands.html#findFileInProject">findFileInProject</a>)
+finds a file in the current <a href="#projects">project</a>, its open buffers
+or its recent files. Type a few characters of the name, in order, such as
+<code>ofth</code> for <code>OpenFileTextFieldHandler.java</code>; words
+separated by spaces match in any order. Enter opens the selected file, Ctrl
+Enter opens it in the other window, and <code>name:N</code> goes to line N.
+
+<li><b>Ctrl O</b> (<a href="commands.html#openFile">openFile</a>) takes a
+path or URL in the location bar. Tab completes the name; if no name starts
+with what you typed, Tab lists the names in that directory that match it the
+way Ctrl P does.
+<a href="commands.html#openFileInOtherWindow">openFileInOtherWindow</a> and
+Ctrl Shift O (<a href="commands.html#openFileInOtherFrame">openFileInOtherFrame</a>)
+open in another window or frame.
+
+<li><b>Alt R</b> (recentFiles) lists
+the files you have visited.
+
+<li><b>Ctrl Shift G</b> (<a href="commands.html#gotoFile">gotoFile</a>) opens
+the file named at the caret.
+
+<li><b>Ctrl D</b> (<a href="commands.html#dir">dir</a>) opens a
+<a href="directories.html">directory buffer</a>;
+<a href="commands.html#dirProjectDir">dirProjectDir</a> opens the project
+root in one.
+</ul>
+
+<h2>Commands</h2>
+<ul>
+<li><b>Ctrl Shift P</b> (<a href="commands.html#findAction">findAction</a>)
+finds a command by its name or description, shows its key binding, and runs
+it. Commands recently run by name, from here or Alt X, are listed first.
+
+<li><b>Alt X</b> (<a href="commands.html#executeCommand">executeCommand</a>)
+runs a command by name, with an argument if it takes one.
+
+<li><a href="commands.html#apropos">apropos</a> lists the commands and
+preferences whose names contain a pattern.
+</ul>
+
+<h2>Buffers and windows</h2>
+<ul>
+<li><b>Alt Left</b> and <b>Alt Right</b>
+(<a href="commands.html#prevBuffer">prevBuffer</a>,
+<a href="commands.html#nextBuffer">nextBuffer</a>) cycle through the open
+buffers.
+
+<li><b>Alt B</b> (<a href="commands.html#sidebarListBuffers">sidebarListBuffers</a>)
+moves to the buffer list in the sidebar, and <b>Alt =</b>
+(<a href="commands.html#toggleSidebar">toggleSidebar</a>) shows or hides the
+sidebar.
+
+<li><b>F10</b> and <b>Ctrl F10</b>
+(<a href="commands.html#splitWindow">splitWindow</a>,
+<a href="commands.html#vsplitWindow">vsplitWindow</a>) split the window;
+<b>Alt O</b> (<a href="commands.html#nextWindow">nextWindow</a>) moves to the
+next one.
+</ul>
+
+<h2>Within a file</h2>
+<ul>
+<li><b>Ctrl J</b> (<a href="commands.html#jumpToLine">jumpToLine</a>) goes to a
+line.
+
+<li><b>Ctrl F</b>, <b>F6</b> and <b>Ctrl L</b>
+(<a href="commands.html#find">find</a>,
+<a href="commands.html#findInFiles">findInFiles</a>,
+<a href="commands.html#listOccurrences">listOccurrences</a>) search the
+buffer, a set of files, and list every match.
+
+<li><b>Ctrl T</b> and <b>Alt .</b> (<a href="commands.html#findTag">findTag</a>,
+<a href="commands.html#findTagAtDot">findTagAtDot</a>) go to a definition in
+Java, C, C++, PHP, Perl and Lisp modes (see <a href="tags.html">tags</a>);
+<b>Ctrl Shift T</b>
+(<a href="commands.html#sidebarListTags">sidebarListTags</a>) moves to the
+list of the buffer's tags in the sidebar.
+
+<li><b>Alt 0</b> to <b>Alt 9</b> drop a bookmark and <b>Ctrl 0</b> to
+<b>Ctrl 9</b> return to it (<a href="commands.html#dropBookmark">dropBookmark</a>,
+<a href="commands.html#gotoBookmark">gotoBookmark</a>).
+
+<li><b>Ctrl Alt N</b> and <b>Ctrl Alt P</b>
+(<a href="commands.html#nextChange">nextChange</a>,
+<a href="commands.html#previousChange">previousChange</a>) move between the
+changes you have made.
+</ul>
+
+<h2><a name="projects">Projects</a></h2>
+<p>
+A buffer's project is the directory
+<a href="commands.html#findFileInProject">findFileInProject</a> and
+<a href="commands.html#dirProjectDir">dirProjectDir</a> work from. It is the
+first of:
+<ol>
+<li>the <a href="preferences.html#projectRoot">projectRoot</a> preference, an
+absolute path;
+<li>the outermost directory above the buffer's file that holds a
+<code>.j-project</code> directory, which groups several repositories into one
+project;
+<li>the nearest directory above it that is a git or Subversion root;
+<li>the buffer's own directory.
+</ol>
+<p>
+The search stops below your home directory, which is never a project.
+<p>
+The project's files are listed in the background the first time you press
+Ctrl P, and kept: later, the list is shown at once and rescanned in the
+background when it is older than
+<a href="preferences.html#finderRescanSeconds">finderRescanSeconds</a>.
+<a href="commands.html#rescanProject">rescanProject</a> rescans it now. Files
+you save in j are added as you save them.
+<p>
+The list leaves out what <code>.gitignore</code> files,
+<code>.git/info/exclude</code> and <code>~/.config/git/ignore</code> ignore
+(except that <code>!</code> patterns are not supported), the directories
+<code>.git</code>, <code>.hg</code>, <code>.svn</code>,
+<code>node_modules</code>, <code>build</code>, <code>target</code>,
+<code>dist</code>, <code>out</code>, <code>.gradle</code>, <code>.idea</code>,
+<code>.cpcache</code>, <code>.clj-kondo</code>, <code>__pycache__</code> and
+<code>.venv</code>, names matching
+<a href="preferences.html#filenameCompletionsExcludePattern">filenameCompletionsExcludePattern</a>,
+and git worktrees nested in the project. It stops at
+<a href="preferences.html#finderMaxFiles">finderMaxFiles</a>.
+</body>
+</html>

@@ -73,6 +73,12 @@ public class CommandTableTest {
     }
 
     @Test
+    public void finderCommandsAreDocumented() {
+        for (String name : new String[] { "findFileInProject", "findAction", "dirProjectDir", "rescanProject" })
+            assertTrue(CommandTable.getSummary(name) != null, name);
+    }
+
+    @Test
     public void argumentForms() {
         assertTrue(CommandTable.getCommand("bob").takesNoArgument());
         assertFalse(CommandTable.getCommand("bob").takesArgument());

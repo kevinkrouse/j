@@ -92,6 +92,7 @@ The mail and news commands come from the <code>mail</code>
     <li><a href="commands.html#dirMoveFile">dirMoveFile</a></li>
     <li><a href="commands.html#dirOpenFile">dirOpenFile</a></li>
     <li><a href="commands.html#dirOpenFileAndKillDirectory">dirOpenFileAndKillDirectory</a></li>
+    <li><a href="commands.html#dirProjectDir">dirProjectDir</a></li>
     <li><a href="commands.html#dirRescan">dirRescan</a></li>
     <li><a href="commands.html#dirTagFile">dirTagFile</a></li>
     <li><a href="commands.html#dirUnlimit">dirUnlimit</a></li>
@@ -123,6 +124,8 @@ The mail and news commands come from the <code>mail</code>
     <li><a href="commands.html#executeCommand">executeCommand</a></li>
     <li><a href="commands.html#expand">expand</a></li>
     <li><a href="commands.html#find">find</a></li>
+    <li><a href="commands.html#findAction">findAction</a></li>
+    <li><a href="commands.html#findFileInProject">findFileInProject</a></li>
     <li><a href="commands.html#findFirstOccurrence">findFirstOccurrence</a></li>
     <li><a href="commands.html#findInFiles">findInFiles</a></li>
     <li><a href="commands.html#findMatchingChar">findMatchingChar</a></li>
@@ -307,6 +310,7 @@ The mail and news commands come from the <code>mail</code>
     <li><a href="commands.html#renumberRegion">renumberRegion</a></li>
     <li><a href="commands.html#replace">replace</a></li>
     <li><a href="commands.html#replaceInFiles">replaceInFiles</a></li>
+    <li><a href="commands.html#rescanProject">rescanProject</a></li>
     <li><a href="commands.html#resetDisplay">resetDisplay</a></li>
     <li><a href="commands.html#resetLisp">resetLisp</a></li>
     <li><a href="commands.html#revertBuffer">revertBuffer</a></li>
@@ -1263,6 +1267,20 @@ directory buffer and then closes the directory buffer.
 <br><br>
 </dl><!--<hr>-->
 
+<a name="dirProjectDir">dirProjectDir</a><dl><dd>
+<p>
+Shows the current buffer's project root in a directory buffer: the current
+buffer, if it is one, or else one for the root. See
+<a href="navigation.html#projects">Projects</a> for how the root is found.
+<p>
+<b>Default key mapping:</b> None
+<p>
+<b>See also:</b>
+<a href="commands.html#findFileInProject">findFileInProject</a>,
+<a href="commands.html#dirHomeDir">dirHomeDir</a>
+<br><br>
+</dl><!--<hr>-->
+
 <a name="dirRescan">dirRescan</a><dl><dd>
 <p>
 Refreshes the directory listing for the current directory buffer and rescans the
@@ -1719,6 +1737,51 @@ location of the caret.
 in your <a href="preferences.html">preferences</a> file,
 <a href="commands.html#incrementalFind">incrementalFind</a> will be mapped by
 default to Ctrl F.
+<br><br>
+</dl><!--<hr>-->
+
+<a name="findAction">findAction</a><dl><dd>
+<p>
+Finds a command by its name or description, and runs it. As you type in the
+location bar, a list shows the commands that match, each with its key binding
+and a one-line description. With nothing typed, the commands recently run by
+name, from here or with <a href="commands.html#executeCommand">executeCommand</a>,
+come first. Up and Down,
+or Ctrl P and Ctrl N, move through the list, and Enter runs the selected
+command. A command that needs an argument goes to the Command: prompt, with
+its name filled in.
+<p>
+<b>Default key mapping:</b> Ctrl Shift P
+<p>
+<b>See also:</b>
+<a href="commands.html#executeCommand">executeCommand</a>,
+<a href="commands.html#apropos">apropos</a>,
+<a href="navigation.html">Getting Around</a>
+<br><br>
+</dl><!--<hr>-->
+
+<a name="findFileInProject">findFileInProject</a><dl><dd>
+<p>
+Finds a file in the current buffer's project, its open buffers or its recent
+files, matching the characters you type in order but not necessarily together:
+<code>ofth</code> finds <code>OpenFileTextFieldHandler.java</code>. Words
+separated by spaces match in any order. With nothing typed, the list is the
+open buffers and the project's recent files; as you type, they rank ahead of
+other files that match about as well. Up and Down, or Ctrl P and Ctrl N, move through the list; Enter
+opens the selected file, and Ctrl Enter or Alt Enter opens it in the other
+window. Ending with <code>:N</code>, as in <code>KeyMap.java:156</code>, goes
+to line N.
+<p>
+The project's files are listed in the background and kept for later; see
+<a href="navigation.html#projects">Projects</a>.
+<p>
+<b>Default key mapping:</b> Ctrl P
+<p>
+<b>See also:</b>
+<a href="commands.html#openFile">openFile</a>,
+<a href="commands.html#rescanProject">rescanProject</a>,
+<a href="preferences.html#projectRoot">projectRoot</a>,
+<a href="navigation.html">Getting Around</a>
 <br><br>
 </dl><!--<hr>-->
 
@@ -4053,7 +4116,7 @@ argument moves around the cycle in the opposite order.
 <p>
 Prints the selected region, or the current buffer if no region is selected.
 <p>
-<b>Default key mapping:</b> Ctrl P
+<b>Default key mapping:</b> None
 <br><br>
 </dl><!--<hr>-->
 
@@ -4317,6 +4380,18 @@ each replacement.
 <b>Default key mapping:</b> Ctrl Shift R
 <p>
 <b>See also:</b> <a href="#findInFiles">findInFiles</a>, <a href="#replace">replace</a>
+<br><br>
+</dl><!--<hr>-->
+
+<a name="rescanProject">rescanProject</a><dl><dd>
+<p>
+Lists the current project's files again, for
+<a href="commands.html#findFileInProject">findFileInProject</a>. The list is
+rescanned anyway when it is older than
+<a href="preferences.html#finderRescanSeconds">finderRescanSeconds</a>, so
+this is only needed after files are added or removed outside j.
+<p>
+<b>Default key mapping:</b> None
 <br><br>
 </dl><!--<hr>-->
 
@@ -5770,7 +5845,7 @@ transient output buffer. You can use the commands
 <a href="commands.html#thisError">thisError</a> to jump to the location of each
 error in the source.
 <p>
-<b>Default key mapping:</b> Ctrl P in XML mode
+<b>Default key mapping:</b> None
 <p>
 <b>See also:</b>
 <a href="commands.html#xmlValidateBuffer">xmlValidateBuffer</a>,
