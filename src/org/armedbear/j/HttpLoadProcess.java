@@ -23,25 +23,31 @@ package org.armedbear.j;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.io.OutputStreamWriter;
-import java.lang.StringBuilder;
-import java.net.Socket;
+import java.net.InetSocketAddress;
+import java.net.ProxySelector;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URL;
+import java.net.http.HttpClient;
+import java.net.http.HttpHeaders;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.time.Duration;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import javax.swing.SwingUtilities;
-import org.armedbear.j.util.Tls;
 import org.armedbear.j.util.Utilities;
 
+/** Loads an http or https URL into a cache file, following redirects. */
 public final class HttpLoadProcess extends LoadProcess implements BackgroundProcess,
     Runnable, Cancellable {
-    private Socket socket;
-    private boolean render = true;
-
     private String request;
     private String responseHeaders;
-    private String contentType;
+    private volatile String contentType;
+    private volatile InputStream body;
 
-    private int redirectionCount;
-
-    private StringBuilder sbHeaders = new StringBuilder();
+    private final StringBuilder sbHeaders = new StringBuilder();
 
     public HttpLoadProcess(Buffer buffer, HttpFile file) {
         super(buffer, file);
@@ -59,10 +65,6 @@ public final class HttpLoadProcess extends LoadProcess implements BackgroundProc
         return contentType;
     }
 
-    private final void setContentType(String s) {
-        contentType = s;
-    }
-
     public void run() {
         if (buffer != null) {
             buffer.setBusy(true);
@@ -70,207 +72,106 @@ public final class HttpLoadProcess extends LoadProcess implements BackgroundProc
         }
         load();
         if (buffer != null && buffer.getBackgroundProcess() == this) {
-            Log.debug("calling setBackgroundProcess(null)");
             buffer.setBackgroundProcess(null);
             buffer.setBusy(false);
         }
     }
 
+    // A blocked read only ends when its stream closes.
+    public void cancel() {
+        super.cancel();
+        InputStream in = body;
+        if (in != null) {
+            try {
+                in.close();
+            }
+            catch (IOException e) {
+                Log.debug(e);
+            }
+        }
+    }
+
+    private static final int MAX_REDIRECTS = 5;
+
     private void load() {
-        boolean usingProxy = false;
         cache = Utilities.getTempFile();
         if (cache == null) {
-            Log.error("HttpLoadProcess.load cache is null");
-            return; // Report error!
-        }
-        Debug.assertTrue(socket == null);
-        String hostName = file.getHostName();
-        int port = file.getPort();
-        if (file.getProtocol() == File.PROTOCOL_HTTPS) {
-            socket = createSSLSocket(hostName, port);
-            if (socket == null) {
-                if (!cancelled)
-                    error("Can't create SSL socket");
-                return;
-            }
-        } else {
-            String httpProxy = Editor.preferences().getStringProperty("httpProxy");
-            if (httpProxy != null) {
-                if (httpProxy.startsWith("http://"))
-                    httpProxy = httpProxy.substring(7);
-                int index = httpProxy.indexOf(':');
-                if (index >= 0) {
-                    try {
-                        port = Integer.parseInt(httpProxy.substring(index + 1));
-                        hostName = httpProxy.substring(0, index);
-                        usingProxy = true;
-                    }
-                    catch (NumberFormatException e) {
-                        Log.error(e);
-                    }
-                }
-            }
-            connect(hostName, port);
-        }
-        if (cancelled) {
-            Log.debug("cancelled!!");
-            if (cancelRunnable != null)
-                SwingUtilities.invokeLater(cancelRunnable);
+            error("Can't create a cache file");
             return;
         }
-        if (socket == null) {
-            if (errorRunnable != null)
-                SwingUtilities.invokeLater(errorRunnable);
+        URI uri = uri(file.netPath());
+        if (uri == null) {
+            error("Invalid URL " + file.netPath());
             return;
         }
-        String location = null;
-        boolean redirected = false;
         String encoding = null;
-        OutputStream out = null;
         try {
-            InputStream in = socket.getInputStream();
-            OutputStreamWriter writer = new OutputStreamWriter(socket.getOutputStream());
-            StringBuilder sb = new StringBuilder(1024);
-            sb.append("GET ");
-            sb.append(usingProxy ? file.netPath() : file.canonicalPath());
-            sb.append(" HTTP/1.0\r\n");
-            sb.append("Host: ");
-            sb.append(file.getHostName());
-            sb.append("\r\n");
-            String userAgent = Editor.preferences().getStringProperty(Property.HTTP_USER_AGENT);
-            if (userAgent != null && userAgent.length() > 0) {
-                sb.append("User-Agent: ");
-                sb.append(userAgent);
-                sb.append("\r\n");
+            HttpResponse<InputStream> response = null;
+            // Redirects are followed here, so each hop's cookies are kept.
+            for (int hops = 0;; hops++) {
+                response = send(uri);
+                int status = response.statusCode();
+                String location = response.headers().firstValue("Location").orElse(null);
+                if (!isRedirect(status) || location == null || hops == MAX_REDIRECTS)
+                    break;
+                URI next = uri(location);
+                if (next == null)
+                    break;
+                response.body().close();
+                uri = uri.resolve(next);
             }
-            if (Editor.preferences().getBooleanProperty(Property.HTTP_ENABLE_COOKIES)) {
-                String cookie = Cookie.getCookie(Utilities.toURL(file.netPath()));
-                if (cookie != null) {
-                    sb.append("Cookie: ");
-                    sb.append(cookie);
-                    sb.append("\r\n");
-                }
+            body = response.body();
+            HttpHeaders headers = response.headers();
+            responseHeaders = headerText(headers);
+            sbHeaders.append("HTTP ")
+                .append(response.statusCode())
+                .append("\r\n")
+                .append(responseHeaders)
+                .append("\r\n");
+            contentType = headers.firstValue("Content-Type").orElse(null);
+            String charset = Utilities.getCharsetFromContentType(contentType);
+            if (charset != null)
+                encoding = Utilities.getEncodingFromCharset(charset);
+            if (!uri.toString().equals(file.netPath())) {
+                // Kept as it was if HttpFile can't name the target.
+                HttpFile target = HttpFile.getHttpFile(uri.toString());
+                if (target != null)
+                    file = target;
             }
-            sb.append("\r\n");
-            request = sb.toString();
-            writer.write(request);
-            writer.flush();
-            sb.setLength(0);
-            sbHeaders.append(request);
-            out = cache.getOutputStream();
-            byte[] buf = new byte[16384];
-            long totalBytes = 0;
-            int totalLength = 0; // Includes length of response headers.
+            long length = headers.firstValueAsLong("Content-Length").orElse(0);
             if (progressNotifier != null)
                 progressNotifier.progressStart();
-            while (!cancelled) {
-                int bytesRead = 0;
-                try {
-                    // We may get an exception here if the user cancels.
-                    bytesRead = in.read(buf);
+            try (InputStream in = body; OutputStream out = cache.getOutputStream()) {
+                byte[] buf = new byte[16384];
+                long total = 0;
+                for (int n; !cancelled && (n = in.read(buf)) > 0;) {
+                    out.write(buf, 0, n);
+                    total += n;
+                    if (progressNotifier != null)
+                        progressNotifier.progress("Received ", total, length);
                 }
-                catch (Exception e) {
-                    if (!cancelled)
-                        Log.error(e);
-                }
-                if (bytesRead <= 0)
-                    break;
-                if (sb != null) {
-                    int oldLength = sb.length();
-                    sb.append(new String(buf, 0, bytesRead, "ISO8859_1"));
-                    String s = sb.toString();
-                    int skip = 4; // "\r\n\r\n"
-                    int index = s.indexOf("\r\n\r\n");
-                    if (index < 0) {
-                        index = s.indexOf("\n\n");
-                        skip = 2; // "\n\n"
-                    }
-                    if (index >= 0) {
-                        // We've got the headers.
-                        sb = null;
-                        responseHeaders = s.substring(0, index + skip);
-                        sbHeaders.append(responseHeaders);
-                        int statusCode = getStatusCode(responseHeaders);
-                        Log.debug("statusCode = " + statusCode);
-                        if (statusCode == 301 || statusCode == 302) {
-                            // "Moved Permanently", "Moved Temporarily"
-                            location = getLocation(responseHeaders);
-                            redirected = true;
-                            Log.debug("redirected to |" + location + "|");
-                            Log.debug(request);
-                            Log.debug(responseHeaders);
-                        }
-                        // Remove status line.
-                        int end = responseHeaders.indexOf('\n');
-                        if (end >= 0)
-                            responseHeaders = responseHeaders.substring(end + 1);
-                        int contentLength = getContentLength(responseHeaders);
-                        if (contentLength != 0)
-                            totalLength = responseHeaders.length() + contentLength;
-                        Log.debug("responseHeaders = |" + responseHeaders + "|");
-                        Headers headers = Headers.parse(responseHeaders);
-                        setContentType(headers.getValue(Headers.CONTENT_TYPE));
-                        Log.debug("content-type = |" + contentType + "|");
-                        String charset =
-                            Utilities.getCharsetFromContentType(contentType);
-                        Log.debug("charset = |" + charset + "|");
-                        if (charset != null)
-                            encoding = Utilities.getEncodingFromCharset(charset);
-                        Log.debug("encoding = |" + encoding + "|");
-                        if (Editor.preferences().getBooleanProperty(Property.HTTP_ENABLE_COOKIES)) {
-                            String cookie = headers.getValue(Headers.SET_COOKIE);
-                            if (cookie != null)
-                                Cookie.setCookie(Utilities.toURL(file.netPath()), cookie);
-                        }
-                        int offset = index - oldLength + skip;
-                        int length = bytesRead - offset;
-                        out.write(buf, offset, length);
-                    }
-                } else
-                    out.write(buf, 0, bytesRead);
-                totalBytes += bytesRead;
-                if (progressNotifier != null)
-                    progressNotifier.progress("Received ", totalBytes, totalLength);
             }
+        }
+        catch (IOException | IllegalArgumentException e) {
+            if (!cancelled) {
+                Log.error(e);
+                setErrorText(e.getMessage() != null ? e.getMessage() : e.toString());
+                cache.delete();
+            }
+        }
+        catch (InterruptedException e) {
+            cancelled = true;
+        }
+        finally {
+            body = null;
             if (progressNotifier != null)
                 progressNotifier.progressStop();
         }
-        catch (Exception e) {
-            Log.error(e);
-        }
-        finally {
-            try {
-                if (out != null)
-                    out.close();
-                if (socket != null)
-                    socket.close();
-            }
-            catch (IOException e) {
-                Log.error(e);
-            }
-            socket = null;
-        }
-        if (cancelled)
+        if (cancelled) {
             cache.delete();
-        if (!cache.isFile())
-            cache = null;
-        if (!cancelled && render && redirected && redirectionCount < 5) {
-            if (cache != null) {
-                if (cache.isFile())
-                    cache.delete();
-                cache = null;
-            }
-            File parent = file.getParentFile();
-            if (parent != null) {
-                // Recurse.
-                file = HttpFile.getHttpFile((HttpFile) parent, location);
-                ++redirectionCount;
-                load();
-                return;
-            }
-        }
-        if (cache != null) {
-            // Success!
+            if (cancelRunnable != null)
+                SwingUtilities.invokeLater(cancelRunnable);
+        } else if (cache.isFile()) {
             final HttpFile httpFile = (HttpFile) file;
             httpFile.setCache(cache);
             httpFile.setHeaders(sbHeaders.toString());
@@ -279,85 +180,148 @@ public final class HttpLoadProcess extends LoadProcess implements BackgroundProc
             cache.setEncoding(encoding);
             if (successRunnable != null)
                 SwingUtilities.invokeLater(successRunnable);
-        } else if (cancelled) {
-            if (cancelRunnable != null)
-                SwingUtilities.invokeLater(cancelRunnable);
-        } else if (errorRunnable != null)
-            SwingUtilities.invokeLater(errorRunnable);
+        } else {
+            cache = null;
+            if (errorRunnable != null) {
+                errorRunnable.setMessage(getErrorText());
+                SwingUtilities.invokeLater(errorRunnable);
+            }
+        }
     }
 
-    private void connect(final String hostName, final int port) {
-        Debug.assertTrue(socket == null);
-        Log.debug("Connecting to " + hostName + " on port " + port + "...");
+    private static boolean isRedirect(int status) {
+        return status == 301 || status == 302 || status == 303 || status == 307 || status == 308;
+    }
+
+    // One GET, sending and storing this hop's cookies.
+    private HttpResponse<InputStream> send(URI uri) throws IOException, InterruptedException {
+        HttpRequest.Builder builder = HttpRequest.newBuilder(uri).GET();
+        String userAgent = Editor.preferences().getStringProperty(Property.HTTP_USER_AGENT);
+        if (userAgent != null && userAgent.length() > 0)
+            builder.header("User-Agent", userAgent);
+        final boolean cookies = Editor.preferences().getBooleanProperty(Property.HTTP_ENABLE_COOKIES);
+        if (cookies) {
+            String cookie = Cookie.getCookie(url(uri));
+            if (cookie != null)
+                builder.header("Cookie", cookie);
+        }
+        HttpRequest httpRequest = builder.build();
+        request = "GET " + uri + "\r\n" + headerText(httpRequest.headers()) + "\r\n";
+        sbHeaders.append(request);
         if (progressNotifier != null)
-            progressNotifier.setText("Connecting to " + hostName + " on port " + port + "...");
-        SocketConnection sc = new SocketConnection(hostName, port, false, 30000, 200, this);
-        socket = sc.connect();
-        if (socket != null) {
-            if (progressNotifier != null)
-                progressNotifier.setText("Connected to " + hostName);
-        } else
-            setErrorText(sc.getErrorText());
+            progressNotifier.setText("Connecting to " + uri.getHost() + "...");
+        HttpResponse<InputStream> response = client().send(httpRequest, HttpResponse.BodyHandlers.ofInputStream());
+        if (cookies) {
+            for (String cookie : response.headers().allValues("Set-Cookie"))
+                Cookie.setCookie(url(uri), cookie);
+        }
+        return response;
     }
 
-    private Socket createSSLSocket(String hostName, int port) {
-        try {
-            return Tls.connect(hostName, port);
+    private static HttpClient client;
+    private static InetSocketAddress clientProxy;
+
+    // Shared, and rebuilt only when the httpProxy preference changes.
+    private static synchronized HttpClient client() {
+        InetSocketAddress proxy = proxy();
+        if (client == null || !Objects.equals(proxy, clientProxy)) {
+            HttpClient.Builder builder = HttpClient.newBuilder()
+                .connectTimeout(Duration.ofSeconds(30))
+                .followRedirects(HttpClient.Redirect.NEVER)
+                .version(HttpClient.Version.HTTP_1_1);
+            if (proxy != null)
+                builder.proxy(ProxySelector.of(proxy));
+            client = builder.build();
+            clientProxy = proxy;
         }
-        catch (Throwable t) {
-            Log.error(t);
+        return client;
+    }
+
+    /**
+     * s as a URI, or null. Spaces, quotes, angle brackets, braces, | \ ^ `,
+     * and after the host [ ] and a % not starting an escape, are
+     * percent-encoded first, as browsers send them.
+     */
+    static URI uri(String s) {
+        int scheme = s.indexOf("://");
+        int pathStart = scheme < 0 ? 0 : s.length();
+        if (scheme >= 0) {
+            for (int i = scheme + 3; i < s.length(); i++) {
+                if ("/?#".indexOf(s.charAt(i)) >= 0) {
+                    pathStart = i;
+                    break;
+                }
+            }
+        }
+        StringBuilder sb = new StringBuilder(s.length());
+        for (int i = 0; i < s.length(); i++) {
+            char c = s.charAt(i);
+            boolean encode = c == ' ' || "\"<>\\^`{|}".indexOf(c) >= 0;
+            if (i >= pathStart)
+                encode |= c == '[' || c == ']' || c == '%' && !isEscape(s, i);
+            if (encode)
+                sb.append('%').append(String.format("%02X", (int) c));
+            else
+                sb.append(c);
+        }
+        try {
+            return new URI(sb.toString());
+        }
+        catch (URISyntaxException e) {
+            Log.debug(e);
             return null;
         }
     }
 
-    private static int getStatusCode(String responseHeaders) {
-        int begin = responseHeaders.indexOf(' ') + 1;
-        if (begin == 0)
-            return -1;
-        int end = responseHeaders.indexOf(' ', begin);
-        if (end < 0)
-            return -1;
-        try {
-            return Utilities.parseInt(responseHeaders.substring(begin, end));
-        }
-        catch (NumberFormatException e) {
-            return -1;
-        }
+    private static boolean isEscape(String s, int i) {
+        return i + 2 < s.length()
+            && Character.digit(s.charAt(i + 1), 16) >= 0
+            && Character.digit(s.charAt(i + 2), 16) >= 0;
     }
 
-    private static String getLocation(String responseHeaders) {
-        final String lookFor = "\nlocation:";
-        final int index = responseHeaders.toLowerCase().indexOf(lookFor);
+    // The httpProxy preference: "host:port", optionally after "http://".
+    private static InetSocketAddress proxy() {
+        String httpProxy = Editor.preferences().getStringProperty("httpProxy");
+        if (httpProxy == null)
+            return null;
+        if (httpProxy.startsWith("http://"))
+            httpProxy = httpProxy.substring(7);
+        int index = httpProxy.indexOf(':');
         if (index < 0)
             return null;
-        final int begin = index + lookFor.length();
-        final int end = responseHeaders.indexOf('\n', begin);
-        if (end < 0)
-            return null;
-        String location = responseHeaders.substring(begin, end).trim();
-        if (location.startsWith("http:/") && !location.startsWith("http://")) {
-            // Be permissive in what we accept.
-            location = "http://".concat(location.substring(6));
+        try {
+            return InetSocketAddress.createUnresolved(
+                httpProxy.substring(0, index),
+                Integer.parseInt(httpProxy.substring(index + 1).trim())
+            );
         }
-        return location;
+        catch (IllegalArgumentException e) {
+            Log.error(e);
+            return null;
+        }
     }
 
-    private static int getContentLength(String responseHeaders) {
-        final String lookFor = "\r\ncontent-length:";
-        final int index = responseHeaders.toLowerCase().indexOf(lookFor);
-        if (index < 0)
-            return 0; // No content length header.
-        final String value = responseHeaders.substring(index + lookFor.length()).trim();
+    private static URL url(URI uri) {
         try {
-            return Utilities.parseInt(value);
+            return uri.toURL();
         }
-        catch (NumberFormatException e) {
-            return 0;
+        catch (Exception e) {
+            return null;
         }
+    }
+
+    private static String headerText(HttpHeaders headers) {
+        StringBuilder sb = new StringBuilder();
+        for (Map.Entry<String, List<String>> entry : headers.map().entrySet()) {
+            for (String value : entry.getValue())
+                sb.append(entry.getKey()).append(": ").append(value).append("\r\n");
+        }
+        return sb.toString();
     }
 
     private void error(String errorText) {
         Log.error(errorText);
+        setErrorText(errorText);
         if (errorRunnable != null) {
             errorRunnable.setMessage(errorText);
             SwingUtilities.invokeLater(errorRunnable);

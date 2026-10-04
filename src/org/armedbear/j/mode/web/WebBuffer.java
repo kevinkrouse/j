@@ -55,7 +55,6 @@ import org.armedbear.j.mode.html.HtmlLineSegment;
 import org.armedbear.j.mode.image.ImageBuffer;
 import org.armedbear.j.mode.image.ImageLine;
 import org.armedbear.j.mode.text.PlainTextFormatter;
-import org.armedbear.j.util.Background;
 import org.armedbear.j.util.Utilities;
 
 public final class WebBuffer extends Buffer implements WebConstants {
@@ -403,7 +402,7 @@ public final class WebBuffer extends Buffer implements WebConstants {
             httpLoadProcess.setErrorRunnable(errorRunnable);
             httpLoadProcess.setProgressNotifier(new StatusBarProgressNotifier(wb));
             editor.setWaitCursor();
-            Background.start("WebBuffer http load", httpLoadProcess);
+            httpLoadProcess.start();
         } else {
             // Local file.
             String extension = Utilities.getExtension(destination);

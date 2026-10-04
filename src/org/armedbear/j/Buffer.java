@@ -1116,11 +1116,13 @@ public class Buffer extends SystemBuffer {
                 setLoaded(true);
             }
             setBusy(false);
+            setDefaultCursor();
             reloadSucceeded();
         };
         ErrorRunnable errorRunnable = new ErrorRunnable("Reload failed") {
             public void run() {
                 setBusy(false);
+                setDefaultCursor();
                 reloadFailed();
             }
         };
@@ -1147,11 +1149,13 @@ public class Buffer extends SystemBuffer {
                 setLoaded(true);
             }
             setBusy(false);
+            setDefaultCursor();
             reloadSucceeded();
         };
         ErrorRunnable errorRunnable = new ErrorRunnable("Reload failed") {
             public void run() {
                 setBusy(false);
+                setDefaultCursor();
                 reloadFailed();
             }
         };
@@ -1159,7 +1163,7 @@ public class Buffer extends SystemBuffer {
         httpLoadProcess.setSuccessRunnable(successRunnable);
         httpLoadProcess.setErrorRunnable(errorRunnable);
         setBusy(true);
-        Background.start("Buffer http load", httpLoadProcess);
+        httpLoadProcess.start();
     }
 
     private void reloadLocal(File file) {
