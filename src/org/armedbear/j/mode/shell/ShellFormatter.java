@@ -20,6 +20,8 @@
 
 package org.armedbear.j.mode.shell;
 
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.FormatTable;
 import org.armedbear.j.Formatter;
@@ -27,29 +29,23 @@ import org.armedbear.j.Line;
 import org.armedbear.j.LineSegmentList;
 import org.armedbear.j.ShellBuffer;
 
-import java.util.regex.Pattern;
-import java.util.regex.Matcher;
-
-public final class ShellFormatter extends Formatter
-{
+public final class ShellFormatter extends Formatter {
     // Formats.
-    private static final byte SHELL_FORMAT_TEXT   = 0;
+    private static final byte SHELL_FORMAT_TEXT = 0;
     private static final byte SHELL_FORMAT_PROMPT = 1;
-    private static final byte SHELL_FORMAT_INPUT  = 2;
+    private static final byte SHELL_FORMAT_INPUT = 2;
 
-    public ShellFormatter(Buffer buffer)
-    {
+    public ShellFormatter(Buffer buffer) {
         this.buffer = buffer;
     }
 
-    public LineSegmentList formatLine(final Line line)
-    {
+    public LineSegmentList formatLine(final Line line) {
         clearSegmentList();
         if (line == null) {
             addSegment("", SHELL_FORMAT_TEXT);
             return segmentList;
         }
-        final Pattern promptRE = ((ShellBuffer)buffer).getPromptRE();
+        final Pattern promptRE = ((ShellBuffer) buffer).getPromptRE();
         final String text = getDetabbedText(line);
         final int flags = line.flags();
         if (flags == STATE_PROMPT) {
@@ -101,13 +97,12 @@ public final class ShellFormatter extends Formatter
         return segmentList;
     }
 
-    public FormatTable getFormatTable()
-    {
+    public FormatTable getFormatTable() {
         if (formatTable == null) {
             formatTable = new FormatTable("ShellMode");
             formatTable.addEntryFromPrefs(SHELL_FORMAT_TEXT, "text");
             formatTable.addEntryFromPrefs(SHELL_FORMAT_PROMPT, "prompt");
-            formatTable.addEntryFromPrefs(SHELL_FORMAT_INPUT, "input" );
+            formatTable.addEntryFromPrefs(SHELL_FORMAT_INPUT, "input");
         }
         return formatTable;
     }

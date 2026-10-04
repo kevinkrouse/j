@@ -20,6 +20,7 @@
 
 package org.armedbear.j.mode.shell;
 
+import java.awt.event.KeyEvent;
 import org.armedbear.j.AbstractMode;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Constants;
@@ -28,27 +29,21 @@ import org.armedbear.j.KeyMap;
 import org.armedbear.j.Mode;
 import org.armedbear.j.Property;
 
-import java.awt.event.KeyEvent;
-
-public final class ShellMode extends AbstractMode implements Constants, Mode
-{
+public final class ShellMode extends AbstractMode implements Constants, Mode {
     private static final ShellMode mode = new ShellMode();
 
-    protected ShellMode()
-    {
+    protected ShellMode() {
         super(SHELL_MODE, SHELL_MODE_NAME);
         setProperty(Property.VERTICAL_RULE, 0);
         setProperty(Property.SHOW_LINE_NUMBERS, false);
         setProperty(Property.SHOW_CHANGE_MARKS, false);
     }
 
-    public static final ShellMode getMode()
-    {
+    public static final ShellMode getMode() {
         return mode;
     }
 
-    protected void setKeyMapDefaults(KeyMap km)
-    {
+    protected void setKeyMapDefaults(KeyMap km) {
         km.mapKey(KeyEvent.VK_HOME, 0, "shellHome");
         km.mapKey(KeyEvent.VK_BACK_SPACE, 0, "shellBackspace");
         km.mapKey(KeyEvent.VK_ESCAPE, 0, "shellEscape");
@@ -64,8 +59,7 @@ public final class ShellMode extends AbstractMode implements Constants, Mode
         km.mapKey(')', "closeParen");
     }
 
-    public Formatter getFormatter(Buffer buffer)
-    {
+    public Formatter getFormatter(Buffer buffer) {
         return new ShellFormatter(buffer);
     }
 }

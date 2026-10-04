@@ -21,16 +21,13 @@
 package org.armedbear.j.mode.shell;
 
 import java.lang.StringBuilder;
-
 import java.util.ArrayList;
 
-public final class ShellTokenizer
-{
+public final class ShellTokenizer {
     private ArrayList<String> l = new ArrayList<String>();
     private int index;
 
-    public ShellTokenizer(String s)
-    {
+    public ShellTokenizer(String s) {
         StringBuilder sb = new StringBuilder();
         char quoteChar = 0;
         int limit = s.length();
@@ -38,7 +35,7 @@ public final class ShellTokenizer
             char c = s.charAt(i);
             if (c == '\\') {
                 sb.append(c);
-                if (i < limit-1) {
+                if (i < limit - 1) {
                     sb.append(s.charAt(++i));
                     continue;
                 }
@@ -61,24 +58,21 @@ public final class ShellTokenizer
             l.add(sb.toString());
     }
 
-    public boolean hasMoreTokens()
-    {
+    public boolean hasMoreTokens() {
         return index < l.size();
     }
 
-    public String nextToken()
-    {
+    public String nextToken() {
         String token = null;
         if (index < l.size())
             token = l.get(index++);
         return token;
     }
 
-    public String lastToken()
-    {
+    public String lastToken() {
         String token = null;
         if (l.size() > 0)
-            token = l.get(l.size()-1);
+            token = l.get(l.size() - 1);
         return token;
     }
 }
