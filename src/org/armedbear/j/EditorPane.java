@@ -268,15 +268,7 @@ public class EditorPane extends JXMultiSplitPane {
                 Log.debug("  > " + c.toString());
         }
 
-        //        dumpModel();
-
         return editorCount == leafCount;
-    }
-
-    void dumpModel() {
-        System.out.println("model:");
-        MultiSplitLayout.printModel(getMultiSplitLayout().getModel());
-        System.out.println();
     }
 
     int leafCount(Node n) {

@@ -28,7 +28,6 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import org.armedbear.j.Debug;
 import org.armedbear.j.Directories;
-import org.armedbear.j.Editor;
 import org.armedbear.j.File;
 import org.armedbear.j.Log;
 import org.armedbear.j.Property;
@@ -106,7 +105,6 @@ public final class MailboxProperties {
 
     private static synchronized void initialize() {
         if (list == null) {
-            Editor.protect(MailboxProperties.class);
             list = new ArrayList<Entry>();
             File file = getFile();
             if (file.isFile()) {

@@ -144,8 +144,6 @@ public final class Directories {
             provideDirectory(File.getInstance(mailDirectory, "local/drafts"));
         registersDirectory =
             provideDirectory(File.getInstance(dataDirectory, "registers"));
-        // Avoid garbage collection.
-        Editor.protect(Directories.class);
     }
 
     private static File appDirectory(File home) {
@@ -382,17 +380,6 @@ public final class Directories {
 
     public static final File getUserHomeDirectory() {
         return userHomeDirectory;
-    }
-
-    /**
-     * @deprecated Ask for the config, data, state, cache or runtime directory
-     *             instead. Retained because extensions use it, and because it
-     *             is still correct under the legacy layout, where every root
-     *             is the same directory.
-     */
-    @Deprecated
-    public static File getEditorDirectory() {
-        return configDirectory;
     }
 
     /** Hand-edited configuration: prefs, aliases, init.lisp, extensions. */

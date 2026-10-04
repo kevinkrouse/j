@@ -30,7 +30,6 @@ public final class CommentRing extends Ring {
     public static synchronized CommentRing getInstance() {
         if (commentRing == null) {
             commentRing = new CommentRing();
-            Editor.protect(commentRing);
         }
         return commentRing;
     }

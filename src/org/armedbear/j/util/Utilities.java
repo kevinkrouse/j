@@ -1098,7 +1098,6 @@ public final class Utilities implements Constants {
 
     public static final void setUserHome(String s) {
         Log.debug("setting userHome = " + s);
-        Debug.dumpStack();
         Debug.bugIfNot(userHome == null, "userHome already set to '" + userHome + "'"); // We only want to do this once!
         userHome = s;
     }

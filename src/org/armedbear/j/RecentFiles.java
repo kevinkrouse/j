@@ -49,7 +49,7 @@ public final class RecentFiles implements Constants {
 
     public static synchronized RecentFiles getInstance() {
         if (instance == null)
-            Editor.protect(instance = new RecentFiles());
+            instance = new RecentFiles();
         return instance;
     }
 

@@ -7396,54 +7396,6 @@ public final class Editor extends JPanel implements Constants,
         }
     }
 
-    /**
-     * @deprecated Evaluate through the extension SPI instead:
-     * {@code Extensions.session().eval(EvalRequest.of(code), handler)}.
-     */
-    @Deprecated
-    public static void runLispCommand(String command) {
-        try {
-            Extensions.session().evalSync(EvalRequest.of(command).origin("hook"));
-        }
-        catch (EvalException e) {
-            Log.error(e);
-        }
-    }
-
-    /**
-     * @deprecated Ask the session: {@code Extensions.session().isReady()}. Kept
-     * because it has been public since J 0.x.
-     */
-    @Deprecated
-    public static boolean isLispInitialized() {
-        return Extensions.session().isReady();
-    }
-
-    /**
-     * @deprecated Does nothing. A session tracks its own readiness now.
-     */
-    @Deprecated
-    public static void setLispInitialized(boolean b) {}
-
-    /** @deprecated Use {@code Extensions.hooks().invoke(hook)}. */
-    @Deprecated
-    public static void invokeHook(String hook) {
-        Extensions.hooks().invoke(hook);
-    }
-
-    /**
-     * @deprecated Use {@code Extensions.hooks().invoke(hook, args)}. Note that
-     * the argument is now passed raw -- it used to be a pre-quoted fragment of
-     * Lisp -- because quoting belongs to whoever implements the hook.
-     */
-    @Deprecated
-    public static void invokeHook(String hook, String args) {
-        if (args == null || args.length() == 0)
-            Extensions.hooks().invoke(hook);
-        else
-            Extensions.hooks().invoke(hook, args);
-    }
-
     public void mode() {
         String modeName =
             InputDialog.showInputDialog(this, "New mode:", "Change Mode");
@@ -8257,13 +8209,6 @@ public final class Editor extends JPanel implements Constants,
                 MessageDialog.showMessageDialog(this, sb.toString(), "Error");
             }
         }
-    }
-
-    private static final ArrayList<Object> protectList = new ArrayList<Object>();
-
-    // Add reference to global list to protect obj from garbage collection.
-    public static synchronized void protect(Object obj) {
-        protectList.add(obj);
     }
 
     private static String sessionName;

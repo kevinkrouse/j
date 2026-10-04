@@ -74,8 +74,6 @@ public final class Dispatcher implements Constants, KeyListener, MouseListener,
     private final Editor editor;
     private final Display display;
 
-    private Thread eventQueueThread;
-
     private boolean ignoreKeyTyped;
 
     private int lastKeyEvent;
@@ -139,14 +137,6 @@ public final class Dispatcher implements Constants, KeyListener, MouseListener,
     }
 
     private void dispatch(AWTEvent e) {
-        // Ignore events that don't come from the normal event queue thread.
-        if (eventQueueThread == null)
-            eventQueueThread = Thread.currentThread();
-        else if (Thread.currentThread() != eventQueueThread) {
-            setLastEventMillis(System.currentTimeMillis());
-            return;
-        }
-
         lastEvent = e;
 
         boolean handled = false;

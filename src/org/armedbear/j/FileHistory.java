@@ -51,7 +51,6 @@ public final class FileHistory extends DefaultHandler implements ContentHandler 
     public static synchronized FileHistory getFileHistory() {
         if (fileHistory == null) {
             fileHistory = new FileHistory();
-            Editor.protect(fileHistory);
         }
         return fileHistory;
     }
