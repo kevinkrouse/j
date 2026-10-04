@@ -25,6 +25,7 @@ package org.armedbear.j.mode.ruby;
 import java.lang.StringBuilder;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Line;
+import org.armedbear.j.mode.python.PythonSyntaxIterator;
 import org.armedbear.j.util.Utilities;
 
 public final class RubyIndenter {
@@ -136,7 +137,7 @@ public final class RubyIndenter {
     // Replace syntactic whitespace (quotes and comments) with actual space
     // characters and return trimmed string.
     private static String trimSyntacticWhitespace(String s) {
-        RubySyntaxIterator it = new RubySyntaxIterator(null);
+        PythonSyntaxIterator it = new PythonSyntaxIterator(null);
         return new String(it.hideSyntacticWhitespace(s)).trim();
     }
 

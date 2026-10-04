@@ -58,20 +58,13 @@ public final class CSSMode extends AbstractMode implements Constants, Mode {
 
     public int getCorrectIndentation(Line line, Buffer buffer) {
         final int indentSize = buffer.getIndentSize();
-        final Line model = findModel(line);
+        final Line model = line.previousNonBlank();
         if (model == null)
             return 0;
         final int modelIndent = buffer.getIndentation(model);
         if (model.getText().trim().endsWith("{"))
             return modelIndent + indentSize;
         return modelIndent;
-    }
-
-    private Line findModel(Line line) {
-        Line model = line.previous();
-        while (model != null && model.isBlank())
-            model = model.previous();
-        return model;
     }
 
     public boolean isIdentifierStart(char c) {

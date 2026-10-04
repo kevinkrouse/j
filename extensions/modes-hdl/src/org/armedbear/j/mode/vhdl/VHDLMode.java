@@ -31,10 +31,14 @@ import org.armedbear.j.KeyMap;
 import org.armedbear.j.Keywords;
 import org.armedbear.j.Line;
 import org.armedbear.j.Mode;
+import org.armedbear.j.RegexTagger;
 import org.armedbear.j.SystemBuffer;
 import org.armedbear.j.Tagger;
 
 public final class VHDLMode extends AbstractMode implements Constants, Mode {
+    private static final Pattern ENTITY =
+        Pattern.compile("^entity\\s+([a-z][a-z0-9_]*[a-z0-9])", Pattern.CASE_INSENSITIVE);
+
     public static final String NAME = "VHDL";
 
     private static volatile VHDLMode mode;
@@ -80,7 +84,7 @@ public final class VHDLMode extends AbstractMode implements Constants, Mode {
     }
 
     public Tagger getTagger(SystemBuffer buffer) {
-        return new VHDLTagger(buffer);
+        return new RegexTagger(buffer, ENTITY);
     }
 
     public boolean canIndent() {
@@ -97,7 +101,7 @@ public final class VHDLMode extends AbstractMode implements Constants, Mode {
 
     public int getCorrectIndentation(Line line, Buffer buffer) {
         final int indentSize = buffer.getIndentSize();
-        final Line model = findModel(line);
+        final Line model = line.previousNonBlank();
         if (model == null)
             return 0;
         final int modelIndent = buffer.getIndentation(model);
@@ -117,13 +121,6 @@ public final class VHDLMode extends AbstractMode implements Constants, Mode {
         }
 
         return modelIndent;
-    }
-
-    private Line findModel(Line line) {
-        Line model = line.previous();
-        while (model != null && model.isBlank())
-            model = model.previous();
-        return model;
     }
 
     // Replaces syntactic whitespace (quotes and comments) with actual space

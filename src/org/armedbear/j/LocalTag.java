@@ -193,4 +193,12 @@ public class LocalTag extends Tag implements Constants {
         }
     }
 
+    /** Whether the tag file lists it: a type or a function, not a member variable. */
+    public boolean isGlobal() {
+        return switch (type) {
+            case TAG_INTERFACE, TAG_CLASS, TAG_METHOD, TAG_EXPLICIT, TAG_DEFUN, TAG_GENERIC_FUNCTION,
+                TAG_MACRO, TAG_STRUCT -> true;
+            default -> false;
+        };
+    }
 }

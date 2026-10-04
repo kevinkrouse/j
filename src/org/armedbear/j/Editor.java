@@ -7979,77 +7979,68 @@ public final class Editor extends JPanel implements Constants,
             next = next.next();
         if (next != null) {
             final String trim = line.trim();
-            switch (getModeId()) {
-                case JAVA_MODE:
-                case JAVASCRIPT_MODE:
-                case C_MODE:
-                case CPP_MODE:
-                case PERL_MODE:
-                case PHP_MODE:
-                    if (trim.endsWith("{")) {
-                        if (!next.isHidden()) {
-                            fold(next);
-                            return;
-                        }
-                    }
-                    if (trim.startsWith("}")) {
-                        // We're at the end of a code block. Find the start of
-                        // the block and fold from there.
-                        Position end =
-                            new Position(line, line.getText().indexOf('}'));
-                        Position start = findMatchInternal(end, 0);
-                        if (start != null) {
-                            foldNearLine(start.getLine());
-                            return;
-                        }
-                    }
-                    if (next.trim().startsWith("}")) {
-                        // Fold block containing current line.
-                        Position end =
-                            new Position(next, next.getText().indexOf('}'));
-                        Position start = findMatchInternal(end, 0);
-                        if (start != null) {
-                            foldNearLine(start.getLine());
-                            return;
-                        }
-                    } else if (next.trim().endsWith("{")) {
-                        Line nextNext = next.next();
-                        while (nextNext != null && nextNext.isBlank())
-                            nextNext = nextNext.next();
-                        if (nextNext != null && !nextNext.isHidden()) {
-                            fold(nextNext);
-                            return;
-                        }
-                    }
-                    break;
-                case XML_MODE: {
-                    if (trim.startsWith("/>") || trim.startsWith("</")) {
-                        Line prev = line.previous();
-                        while (prev != null && prev.isBlank())
-                            prev = prev.previous();
-                        if (prev != null) {
-                            int indent =
-                                buffer.getCol(line, line.getIndentation());
-                            int prevIndent =
-                                buffer.getCol(prev, prev.getIndentation());
-                            if (indent < prevIndent) {
-                                fold(prev);
-                                return;
-                            }
-                        }
-                    } else if (trim.startsWith("<")) {
-                        int indent =
-                            buffer.getCol(line, line.getIndentation());
-                        int nextIndent =
-                            buffer.getCol(next, next.getIndentation());
-                        if (indent < nextIndent) {
-                            fold(next);
-                            return;
-                        }
+            final Mode mode = getMode();
+            if (mode.foldsAtBraces()) {
+                if (trim.endsWith("{")) {
+                    if (!next.isHidden()) {
+                        fold(next);
+                        return;
                     }
                 }
-                default:
-                    break;
+                if (trim.startsWith("}")) {
+                    // We're at the end of a code block. Find the start of
+                    // the block and fold from there.
+                    Position end =
+                        new Position(line, line.getText().indexOf('}'));
+                    Position start = findMatchInternal(end, 0);
+                    if (start != null) {
+                        foldNearLine(start.getLine());
+                        return;
+                    }
+                }
+                if (next.trim().startsWith("}")) {
+                    // Fold block containing current line.
+                    Position end =
+                        new Position(next, next.getText().indexOf('}'));
+                    Position start = findMatchInternal(end, 0);
+                    if (start != null) {
+                        foldNearLine(start.getLine());
+                        return;
+                    }
+                } else if (next.trim().endsWith("{")) {
+                    Line nextNext = next.next();
+                    while (nextNext != null && nextNext.isBlank())
+                        nextNext = nextNext.next();
+                    if (nextNext != null && !nextNext.isHidden()) {
+                        fold(nextNext);
+                        return;
+                    }
+                }
+            } else if (mode.foldsAtTags()) {
+                if (trim.startsWith("/>") || trim.startsWith("</")) {
+                    Line prev = line.previous();
+                    while (prev != null && prev.isBlank())
+                        prev = prev.previous();
+                    if (prev != null) {
+                        int indent =
+                            buffer.getCol(line, line.getIndentation());
+                        int prevIndent =
+                            buffer.getCol(prev, prev.getIndentation());
+                        if (indent < prevIndent) {
+                            fold(prev);
+                            return;
+                        }
+                    }
+                } else if (trim.startsWith("<")) {
+                    int indent =
+                        buffer.getCol(line, line.getIndentation());
+                    int nextIndent =
+                        buffer.getCol(next, next.getIndentation());
+                    if (indent < nextIndent) {
+                        fold(next);
+                        return;
+                    }
+                }
             }
         }
         fold(line);

@@ -155,8 +155,6 @@ public interface Constants {
     // Modes.
     int ARCHIVE_MODE = 1;
     String ARCHIVE_MODE_NAME = "Archive";
-    int BEANSHELL_MODE = 4;
-    String BEANSHELL_MODE_NAME = "BeanShell";
     int BINARY_MODE = 5;
     String BINARY_MODE_NAME = "Binary";
     int CHECKIN_MODE = 6;

@@ -83,6 +83,14 @@ public interface Line {
 
     boolean isBlank();
 
+    /** The nearest line before this one that isn't blank, or null. */
+    default Line previousNonBlank() {
+        Line line = previous();
+        while (line != null && line.isBlank())
+            line = line.previous();
+        return line;
+    }
+
     int getIndentation();
 
     boolean isHidden();

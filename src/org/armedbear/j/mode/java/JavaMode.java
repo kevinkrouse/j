@@ -58,6 +58,9 @@ import org.armedbear.j.mode.compilation.CompilationCommands;
 import org.armedbear.j.util.Utilities;
 
 public class JavaMode extends AbstractMode implements Constants, Mode {
+    private static final Pattern NEW_RE = Pattern.compile("\\s+new\\s+");
+    private static final Pattern CALL_RE = Pattern.compile("([A-Za-z_$]+[A-Za-z_$0-9]*)\\s*\\(");
+
     private static final String[] javaConditionals =
         {
             "if",
@@ -514,8 +517,7 @@ public class JavaMode extends AbstractMode implements Constants, Mode {
                 return modelIndent;
         }
         if (buffer.getModeId() == JAVA_MODE) {
-            Pattern re = Pattern.compile("\\s+new\\s+");
-            if (re.matcher(pos.getLine().getText().substring(0, pos.getOffset())).find())
+            if (NEW_RE.matcher(pos.getLine().getText().substring(0, pos.getOffset())).find())
                 indent = true;
         }
         int modelIndent =
@@ -988,6 +990,7 @@ public class JavaMode extends AbstractMode implements Constants, Mode {
         return new String(it.hideSyntacticWhitespace(s)).trim();
     }
 
+    // Java's iterator for every C-family mode, PHP's too.
     public String trimSyntacticWhitespace(String s) {
         return _trimSyntacticWhitespace(s);
     }
@@ -1235,10 +1238,9 @@ public class JavaMode extends AbstractMode implements Constants, Mode {
         }
         if (posExpr == null) {
             // Not exact, or no identifier there.  Try to be smart.
-            Pattern re = Pattern.compile("([A-Za-z_$]+[A-Za-z_$0-9]*)\\s*\\(");
             final String text = editor.getDotLine().getText();
             int index = 0;
-            Matcher matcher = re.matcher(text);
+            Matcher matcher = CALL_RE.matcher(text);
             while (matcher.find(index)) {
                 String identifier = matcher.group(1);
                 if (!isKeyword(identifier)) {
@@ -1351,6 +1353,10 @@ public class JavaMode extends AbstractMode implements Constants, Mode {
     }
 
     public boolean supportsIndentBeforeBrace() {
+        return true;
+    }
+
+    public boolean foldsAtBraces() {
         return true;
     }
 

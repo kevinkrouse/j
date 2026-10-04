@@ -1139,4 +1139,9 @@ public final class XmlMode extends AbstractMode implements Constants, Mode {
         // Not found.
         return null;
     }
+
+    public boolean foldsAtTags() {
+        return true;
+    }
+
 }

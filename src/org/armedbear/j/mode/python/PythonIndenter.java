@@ -39,7 +39,7 @@ public final class PythonIndenter {
     }
 
     public int getCorrectIndentation() {
-        final Line model = findModel(line);
+        final Line model = line.previousNonBlank();
         if (model == null)
             return 0;
         final int modelIndent = buffer.getIndentation(model);
@@ -98,15 +98,6 @@ public final class PythonIndenter {
                 return buffer.getIndentation(model) + buffer.getIndentSize();
         }
         return 0;
-    }
-
-    // Return last non-blank line before this one.
-    private static Line findModel(Line line) {
-        for (Line model = line.previous(); model != null; model = model.previous()) {
-            if (!model.isBlank())
-                return model;
-        }
-        return null;
     }
 
     // Replace syntactic whitespace (quotes and comments) with actual space

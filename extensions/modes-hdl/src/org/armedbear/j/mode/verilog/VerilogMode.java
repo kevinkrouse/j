@@ -21,6 +21,7 @@
 package org.armedbear.j.mode.verilog;
 
 import java.awt.event.KeyEvent;
+import java.util.regex.Pattern;
 import org.armedbear.j.AbstractMode;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Constants;
@@ -30,11 +31,15 @@ import org.armedbear.j.KeyMap;
 import org.armedbear.j.Keywords;
 import org.armedbear.j.Line;
 import org.armedbear.j.Mode;
+import org.armedbear.j.RegexTagger;
 import org.armedbear.j.SystemBuffer;
 import org.armedbear.j.Tagger;
 import org.armedbear.j.util.Utilities;
 
 public final class VerilogMode extends AbstractMode implements Constants, Mode {
+    private static final Pattern MODULE = Pattern.compile("^module\\s+([a-zA-Z_][a-zA-Z0-9_$]*)");
+    private static final Pattern PRIMITIVE = Pattern.compile("^primitive\\s+([a-zA-Z_][a-zA-Z0-9_$]*)");
+
     public static final String NAME = "Verilog";
 
     private static volatile VerilogMode mode;
@@ -78,7 +83,7 @@ public final class VerilogMode extends AbstractMode implements Constants, Mode {
     }
 
     public Tagger getTagger(SystemBuffer buffer) {
-        return new VerilogTagger(buffer);
+        return new RegexTagger(buffer, MODULE, PRIMITIVE);
     }
 
     public boolean canIndent() {

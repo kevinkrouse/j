@@ -24,15 +24,21 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.lang.StringBuilder;
-import java.util.ArrayList;
+import java.nio.charset.StandardCharsets;
 import java.util.HashSet;
+import java.util.Locale;
+import java.util.Set;
 
+/**
+ * A mode's keywords, from MyMode.keywords beside its class or the file the
+ * MyMode.keywords preference names: one word a line. "#include
+ * mode/c/CMode.keywords" reads another list, by its path under org/armedbear/j.
+ */
 public final class Keywords {
     private final Mode mode;
     private final boolean ignoreCase;
 
-    private HashSet<String> hashSet;
+    private volatile Set<String> words = Set.of();
 
     public Keywords(Mode mode) {
         this(mode, false);
@@ -46,71 +52,57 @@ public final class Keywords {
 
     // Called by AbstractMode.reset().
     public void reload() {
-        // We could be smarter about this and only call load() if something
-        // has actually changed... ;)
         load();
     }
 
     private void load() {
-        ArrayList<String> list = new ArrayList<String>(256);
-        InputStream inputStream = null;
-        String className = mode.getClass().getName();
-        int index = className.lastIndexOf('.');
-        if (index >= 0)
-            className = className.substring(index + 1);
-        StringBuilder sb = new StringBuilder(className);
-        sb.append('.');
-        sb.append("keywords");
-        final String key = sb.toString();
+        final String key = mode.getClass().getSimpleName() + ".keywords";
+        Set<String> set = new HashSet<String>();
+        InputStream in = null;
         final String fileName = Editor.preferences().getStringProperty(key);
         if (fileName != null) {
             File file = File.getInstance(fileName);
-            if (file != null) {
-                if (file.isFile()) {
-                    try {
-                        inputStream = file.getInputStream();
-                        Log.debug(
-                            "loading " + className + " keywords from " +
-                                file
-                        );
-                    }
-                    catch (IOException e) {
-                        Log.error(e);
-                    }
-                } else
-                    Log.error("file not found " + file);
-            } else
-                Log.error("file is null, fileName = |" + fileName + "|");
-        }
-        if (inputStream == null)
-            inputStream = mode.getClass().getResourceAsStream(key);
-        if (inputStream != null) {
-            try {
-                BufferedReader reader =
-                    new BufferedReader(new InputStreamReader(inputStream));
-                String s;
-                while ((s = reader.readLine()) != null) {
-                    s = s.trim();
-                    if (s.length() > 0) {
-                        if (ignoreCase)
-                            list.add(s.toLowerCase());
-                        else
-                            list.add(s);
-                    }
+            if (file != null && file.isFile()) {
+                try {
+                    in = file.getInputStream();
                 }
-            }
-            catch (IOException e) {
-                Log.error(e);
-            }
-        } else
+                catch (IOException e) {
+                    Log.error(e);
+                }
+            } else
+                Log.error("keywords file not found: " + fileName);
+        }
+        if (in == null)
+            in = mode.getClass().getResourceAsStream(key);
+        if (in != null)
+            read(in, set);
+        else
             Log.error("no resource " + key);
-        hashSet = new HashSet<String>(list);
+        words = set;
+    }
+
+    private void read(InputStream in, Set<String> set) {
+        try (BufferedReader reader =
+            new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8))) {
+            for (String s; (s = reader.readLine()) != null;) {
+                s = s.trim();
+                if (s.startsWith("#include ")) {
+                    String path = "/org/armedbear/j/" + s.substring(9).trim();
+                    InputStream included = mode.getClass().getResourceAsStream(path);
+                    if (included != null)
+                        read(included, set);
+                    else
+                        Log.error("no resource " + path);
+                } else if (!s.isEmpty())
+                    set.add(ignoreCase ? s.toLowerCase(Locale.ROOT) : s);
+            }
+        }
+        catch (IOException e) {
+            Log.error(e);
+        }
     }
 
     public boolean isKeyword(String s) {
-        if (ignoreCase)
-            return hashSet.contains(s.toLowerCase());
-        else
-            return hashSet.contains(s);
+        return words.contains(ignoreCase ? s.toLowerCase(Locale.ROOT) : s);
     }
 }

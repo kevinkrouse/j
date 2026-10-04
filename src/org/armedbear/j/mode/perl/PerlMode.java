@@ -33,11 +33,15 @@ import org.armedbear.j.Line;
 import org.armedbear.j.Mode;
 import org.armedbear.j.Position;
 import org.armedbear.j.Property;
+import org.armedbear.j.RegexTagger;
 import org.armedbear.j.SyntaxIterator;
 import org.armedbear.j.SystemBuffer;
 import org.armedbear.j.Tagger;
 
 public final class PerlMode extends AbstractMode implements Constants, Mode {
+    // Definitions, not declarations, which end with ';'.
+    private static final Pattern SUB = Pattern.compile("^sub\\s+([a-zA-Z0-9_]+(::[a-zA-Z0-9_]+)*)(?!.*;$)");
+
     private static final PerlMode mode = new PerlMode();
 
     private PerlMode() {
@@ -90,7 +94,7 @@ public final class PerlMode extends AbstractMode implements Constants, Mode {
     }
 
     public Tagger getTagger(SystemBuffer buffer) {
-        return new PerlTagger(buffer);
+        return new RegexTagger(buffer, PerlTag::new, SUB);
     }
 
     public boolean isTaggable() {
@@ -308,10 +312,6 @@ public final class PerlMode extends AbstractMode implements Constants, Mode {
         return (new String(it.hideSyntacticWhitespace(s))).trim();
     }
 
-    public String trimSyntacticWhitespace(String s) {
-        return _trimSyntacticWhitespace(s);
-    }
-
     private static final String validChars =
         "$@%ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz_0123456789";
 
@@ -336,6 +336,10 @@ public final class PerlMode extends AbstractMode implements Constants, Mode {
     }
 
     public boolean supportsIndentBeforeBrace() {
+        return true;
+    }
+
+    public boolean foldsAtBraces() {
         return true;
     }
 

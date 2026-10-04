@@ -23,6 +23,7 @@ package org.armedbear.j.mode.python;
 import java.lang.StringBuilder;
 import java.util.ArrayList;
 import org.armedbear.j.LocalTag;
+import org.armedbear.j.Mode;
 import org.armedbear.j.Position;
 import org.armedbear.j.SystemBuffer;
 import org.armedbear.j.Tagger;
@@ -37,10 +38,12 @@ public final class PythonTagger extends Tagger {
     private static final int STATE_TRIPLE_SINGLE = 5;
     private static final int STATE_TRIPLE_DOUBLE = 6;
 
-    private static final PythonMode mode = PythonMode.getMode();
+    private final Mode mode;
 
-    public PythonTagger(SystemBuffer buffer) {
+    /** Also Ruby's: its defs and classes read the same. mode gives identifier characters. */
+    public PythonTagger(SystemBuffer buffer, Mode mode) {
         super(buffer);
+        this.mode = mode;
     }
 
     public void run() {
@@ -140,7 +143,7 @@ public final class PythonTagger extends Tagger {
         buffer.setTags(tags);
     }
 
-    private static String gatherToken(Position pos) {
+    private String gatherToken(Position pos) {
         StringBuilder sb = new StringBuilder();
         char c;
         while (mode.isIdentifierPart(c = pos.getChar())) {

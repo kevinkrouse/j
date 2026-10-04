@@ -872,7 +872,8 @@ public abstract class AbstractMode implements Constants, Mode {
         return new Position(line, start);
     }
 
+    /** s with its comments and strings blanked by the mode's syntax iterator, trimmed. */
     public String trimSyntacticWhitespace(String s) {
-        return s;
+        return new String(getSyntaxIterator(null).hideSyntacticWhitespace(s)).trim();
     }
 }

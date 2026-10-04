@@ -34,6 +34,8 @@ import org.armedbear.j.Position;
 import org.armedbear.j.SyntaxIterator;
 import org.armedbear.j.SystemBuffer;
 import org.armedbear.j.Tagger;
+import org.armedbear.j.mode.python.PythonSyntaxIterator;
+import org.armedbear.j.mode.python.PythonTagger;
 
 public final class RubyMode extends AbstractMode implements Constants, Mode {
     private static final RubyMode mode = new RubyMode();
@@ -52,7 +54,7 @@ public final class RubyMode extends AbstractMode implements Constants, Mode {
     }
 
     public final SyntaxIterator getSyntaxIterator(Position pos) {
-        return new RubySyntaxIterator(pos);
+        return new PythonSyntaxIterator(pos);
     }
 
     public final Formatter getFormatter(Buffer buffer) {
@@ -72,7 +74,7 @@ public final class RubyMode extends AbstractMode implements Constants, Mode {
     }
 
     public final Tagger getTagger(SystemBuffer buffer) {
-        return new RubyTagger(buffer);
+        return new PythonTagger(buffer, this);
     }
 
     public int getCorrectIndentation(Line line, Buffer buffer) {

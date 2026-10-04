@@ -79,7 +79,7 @@ public final class PythonMode extends AbstractMode implements Constants, Mode {
     }
 
     public final Tagger getTagger(SystemBuffer buffer) {
-        return new PythonTagger(buffer);
+        return new PythonTagger(buffer, this);
     }
 
     public int getCorrectIndentation(Line line, Buffer buffer) {

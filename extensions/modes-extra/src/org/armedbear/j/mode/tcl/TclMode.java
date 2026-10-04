@@ -21,6 +21,7 @@
 package org.armedbear.j.mode.tcl;
 
 import java.awt.event.KeyEvent;
+import java.util.regex.Pattern;
 import org.armedbear.j.AbstractMode;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Constants;
@@ -32,11 +33,14 @@ import org.armedbear.j.Line;
 import org.armedbear.j.Mode;
 import org.armedbear.j.Position;
 import org.armedbear.j.Property;
+import org.armedbear.j.RegexTagger;
 import org.armedbear.j.SyntaxIterator;
 import org.armedbear.j.SystemBuffer;
 import org.armedbear.j.Tagger;
 
 public final class TclMode extends AbstractMode implements Constants, Mode {
+    private static final Pattern PROC = Pattern.compile("^proc\\s+(\\S+)");
+
     private static final int STATE_NEUTRAL = 0;
     private static final int STATE_SINGLEQUOTE = 1;
     private static final int STATE_DOUBLEQUOTE = 2;
@@ -89,7 +93,7 @@ public final class TclMode extends AbstractMode implements Constants, Mode {
     }
 
     public Tagger getTagger(SystemBuffer buffer) {
-        return new TclTagger(buffer);
+        return new RegexTagger(buffer, PROC);
     }
 
     public boolean canIndent() {

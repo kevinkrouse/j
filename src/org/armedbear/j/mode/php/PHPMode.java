@@ -20,6 +20,7 @@
 
 package org.armedbear.j.mode.php;
 
+import java.util.regex.Pattern;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Constants;
 import org.armedbear.j.Debug;
@@ -31,6 +32,7 @@ import org.armedbear.j.Menu;
 import org.armedbear.j.Mode;
 import org.armedbear.j.Position;
 import org.armedbear.j.Property;
+import org.armedbear.j.RegexTagger;
 import org.armedbear.j.SyntaxIterator;
 import org.armedbear.j.SystemBuffer;
 import org.armedbear.j.Tagger;
@@ -38,6 +40,9 @@ import org.armedbear.j.mode.java.JavaMode;
 import org.armedbear.j.mode.web.WebMode;
 
 public final class PHPMode extends JavaMode implements Constants, Mode {
+    private static final Pattern FUNCTION =
+        Pattern.compile("^function\\s+&?([a-zA-Z_\u007f-\u00ff][a-zA-Z0-9_\u007f-\u00ff]*)\\s*\\(");
+
     private static final String[] phpConditionals = {
         "if",
         "else",
@@ -77,7 +82,7 @@ public final class PHPMode extends JavaMode implements Constants, Mode {
     }
 
     public Tagger getTagger(SystemBuffer buffer) {
-        return new PHPTagger(buffer);
+        return new RegexTagger(buffer, FUNCTION);
     }
 
     public final boolean isIdentifierStart(char c) {

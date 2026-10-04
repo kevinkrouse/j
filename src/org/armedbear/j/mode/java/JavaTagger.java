@@ -67,7 +67,6 @@ public class JavaTagger extends Tagger implements Constants {
         tags = new ArrayList<LocalTag>();
         currentClass = null;
         visibility = 0;
-        final boolean beanShell = buffer.getModeId() == BEANSHELL_MODE;
         final boolean javaScript = buffer.getModeId() == JAVASCRIPT_MODE;
         final Deque<JavaClass> stack = new ArrayDeque<JavaClass>();
         int state = NEUTRAL;
@@ -113,13 +112,9 @@ public class JavaTagger extends Tagger implements Constants {
                     continue;
                 }
                 if (c == ';') {
-                    if (beanShell) {
-                        ; // It's just a function call.
-                    } else {
-                        // Abstract or native method.
-                        addTag(TAG_METHOD);
-                        visibility = 0;
-                    }
+                    // Abstract or native method.
+                    addTag(TAG_METHOD);
+                    visibility = 0;
                     state = NEUTRAL;
                     pos.next();
                     continue;

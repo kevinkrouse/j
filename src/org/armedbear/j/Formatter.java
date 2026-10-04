@@ -69,52 +69,48 @@ public abstract class Formatter implements Constants {
         return getLanguageMode().isKeyword(s);
     }
 
-    public Color getCaretColor() {
-        if (colorCaret == null) {
-            colorCaret = buffer.getMode().getColorProperty(Property.COLOR_CARET);
-            if (colorCaret == null) {
-                colorCaret = buffer.getMode().getColorProperty(Property.COLOR_TEXT);
-                if (colorCaret == null)
-                    colorCaret = DefaultTheme.getColor("caret");
-            }
+    // The mode's color for the first of properties it sets, else the theme's
+    // for themeKey.
+    private Color color(String themeKey, Property... properties) {
+        final Mode mode = buffer.getMode();
+        for (Property property : properties) {
+            Color c = mode.getColorProperty(property);
+            if (c != null)
+                return c;
         }
+        return DefaultTheme.getColor(themeKey);
+    }
+
+    public Color getCaretColor() {
+        if (colorCaret == null)
+            colorCaret = color("caret", Property.COLOR_CARET, Property.COLOR_TEXT);
         return colorCaret;
     }
 
     public Color getBackgroundColor() {
-        if (colorBackground == null) {
-            colorBackground = buffer.getMode().getColorProperty(Property.COLOR_BACKGROUND);
-            if (colorBackground == null)
-                colorBackground = DefaultTheme.getColor("background");
-        }
+        if (colorBackground == null)
+            colorBackground = color("background", Property.COLOR_BACKGROUND);
         return colorBackground;
     }
 
     public Color getCurrentLineBackgroundColor() {
-        if (colorCurrentLineBackground == null) {
-            colorCurrentLineBackground = buffer.getMode().getColorProperty(Property.COLOR_CURRENT_LINE_BACKGROUND);
-            if (colorCurrentLineBackground == null)
-                colorCurrentLineBackground = DefaultTheme.getColor("currentLineBackground");
-        }
+        if (colorCurrentLineBackground == null)
+            colorCurrentLineBackground =
+                color("currentLineBackground", Property.COLOR_CURRENT_LINE_BACKGROUND);
         return colorCurrentLineBackground;
     }
 
     public Color getSelectionBackgroundColor() {
-        if (colorSelectionBackground == null) {
-            colorSelectionBackground = buffer.getMode().getColorProperty(Property.COLOR_SELECTION_BACKGROUND);
-            if (colorSelectionBackground == null)
-                colorSelectionBackground = DefaultTheme.getColor("selectionBackground");
-        }
+        if (colorSelectionBackground == null)
+            colorSelectionBackground =
+                color("selectionBackground", Property.COLOR_SELECTION_BACKGROUND);
         return colorSelectionBackground;
     }
 
     public Color getMatchingBracketBackgroundColor() {
-        if (colorMatchingBracketBackground == null) {
+        if (colorMatchingBracketBackground == null)
             colorMatchingBracketBackground =
-                buffer.getMode().getColorProperty(Property.COLOR_MATCHING_BRACKET_BACKGROUND);
-            if (colorMatchingBracketBackground == null)
-                colorMatchingBracketBackground = DefaultTheme.getColor("matchingBracketBackground");
-        }
+                color("matchingBracketBackground", Property.COLOR_MATCHING_BRACKET_BACKGROUND);
         return colorMatchingBracketBackground;
     }
 
@@ -124,18 +120,12 @@ public abstract class Formatter implements Constants {
      * it has already made readable behind its text.
      */
     public Color getSearchMatchBackgroundColor() {
-        if (colorSearchMatchBackground == null) {
-            final Mode mode = buffer.getMode();
-            colorSearchMatchBackground =
-                mode.getColorProperty(Property.COLOR_SEARCH_MATCH_BACKGROUND);
-            if (colorSearchMatchBackground == null)
-                colorSearchMatchBackground = mode.getColorProperty(
-                    Property.COLOR_MATCHING_BRACKET_BACKGROUND
-                );
-            if (colorSearchMatchBackground == null)
-                colorSearchMatchBackground =
-                    DefaultTheme.getColor("searchMatchBackground");
-        }
+        if (colorSearchMatchBackground == null)
+            colorSearchMatchBackground = color(
+                "searchMatchBackground",
+                Property.COLOR_SEARCH_MATCH_BACKGROUND,
+                Property.COLOR_MATCHING_BRACKET_BACKGROUND
+            );
         return colorSearchMatchBackground;
     }
 

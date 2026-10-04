@@ -46,30 +46,19 @@ public abstract class Tagger implements Constants, Runnable {
         try {
             for (LocalTag localTag : tags) {
                 if (localTag != null) {
-                    switch (localTag.getType()) {
-                        case TAG_INTERFACE:
-                        case TAG_CLASS:
-                        case TAG_METHOD:
-                        case TAG_EXPLICIT:
-                        case TAG_DEFUN: // Lisp.
-                        case TAG_GENERIC_FUNCTION: // Lisp.
-                        case TAG_MACRO: // Lisp.
-                        case TAG_STRUCT: // Lisp.
-                            writer.write(localTag.getName());
+                    if (localTag.isGlobal()) {
+                        writer.write(localTag.getName());
+                        writer.write(separatorChar);
+                        writer.write(canonicalPath);
+                        writer.write(separatorChar);
+                        writer.write(localTag.getLine().getText());
+                        final String canonicalSignature =
+                            localTag.getCanonicalSignature();
+                        if (canonicalSignature != null) {
                             writer.write(separatorChar);
-                            writer.write(canonicalPath);
-                            writer.write(separatorChar);
-                            writer.write(localTag.getLine().getText());
-                            final String canonicalSignature =
-                                localTag.getCanonicalSignature();
-                            if (canonicalSignature != null) {
-                                writer.write(separatorChar);
-                                writer.write(canonicalSignature);
-                            }
-                            writer.write('\n');
-                            break;
-                        default:
-                            break;
+                            writer.write(canonicalSignature);
+                        }
+                        writer.write('\n');
                     }
                 }
             }
