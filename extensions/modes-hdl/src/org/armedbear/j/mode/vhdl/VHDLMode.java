@@ -20,11 +20,12 @@
 
 package org.armedbear.j.mode.vhdl;
 
+import static org.armedbear.j.Constants.*;
+
 import java.awt.event.KeyEvent;
 import java.util.regex.Pattern;
 import org.armedbear.j.AbstractMode;
 import org.armedbear.j.Buffer;
-import org.armedbear.j.Constants;
 import org.armedbear.j.Editor;
 import org.armedbear.j.Formatter;
 import org.armedbear.j.KeyMap;
@@ -35,7 +36,7 @@ import org.armedbear.j.RegexTagger;
 import org.armedbear.j.SystemBuffer;
 import org.armedbear.j.Tagger;
 
-public final class VHDLMode extends AbstractMode implements Constants, Mode {
+public final class VHDLMode extends AbstractMode implements Mode {
     private static final Pattern ENTITY =
         Pattern.compile("^entity\\s+([a-z][a-z0-9_]*[a-z0-9])", Pattern.CASE_INSENSITIVE);
 
@@ -60,18 +61,22 @@ public final class VHDLMode extends AbstractMode implements Constants, Mode {
         return m != null ? m : Editor.getModeList().getModeFromModeName(NAME) instanceof VHDLMode x ? x : null;
     }
 
+    @Override
     public String getCommentStart() {
         return "-- ";
     }
 
+    @Override
     public Formatter getFormatter(Buffer buffer) {
         return new VHDLFormatter(buffer);
     }
 
+    @Override
     public boolean isKeyword(String s) {
         return keywords.isKeyword(s.toLowerCase());
     }
 
+    @Override
     protected void setKeyMapDefaults(KeyMap km) {
         km.mapKey(KeyEvent.VK_ENTER, 0, "newlineAndIndent");
         km.mapKey(KeyEvent.VK_T, CTRL_MASK, "findTag");
@@ -79,18 +84,22 @@ public final class VHDLMode extends AbstractMode implements Constants, Mode {
         km.mapKey(KeyEvent.VK_F12, 0, "wrapComment");
     }
 
+    @Override
     public boolean isTaggable() {
         return true;
     }
 
+    @Override
     public Tagger getTagger(SystemBuffer buffer) {
         return new RegexTagger(buffer, ENTITY);
     }
 
+    @Override
     public boolean canIndent() {
         return true;
     }
 
+    @Override
     public boolean canIndentPaste() {
         return false;
     }
@@ -99,6 +108,7 @@ public final class VHDLMode extends AbstractMode implements Constants, Mode {
     private static final Pattern thenRE = Pattern.compile("\\s+then$");
     private static final Pattern loopRE = Pattern.compile("\\s+loop$");
 
+    @Override
     public int getCorrectIndentation(Line line, Buffer buffer) {
         final int indentSize = buffer.getIndentSize();
         final Line model = line.previousNonBlank();
@@ -130,10 +140,12 @@ public final class VHDLMode extends AbstractMode implements Constants, Mode {
         return new String(it.hideSyntacticWhitespace(line.getText())).trim();
     }
 
+    @Override
     public boolean isIdentifierStart(char c) {
         return startChars.indexOf(c) >= 0;
     }
 
+    @Override
     public boolean isIdentifierPart(char c) {
         return partChars.indexOf(c) >= 0;
     }
