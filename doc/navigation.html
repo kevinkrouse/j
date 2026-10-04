@@ -12,7 +12,8 @@
 <p>
 The ways to move between files, buffers and windows, and within a file, with
 their default key mappings. Any of them can be remapped; see
-<a href="keys.html">Key Mappings</a>.
+<a href="keys.html">Key Mappings</a>. In vim
+<a href="editmodes.html">edit mode</a>, see also <a href="#vim">Vim keys</a>.
 
 <h2>Files</h2>
 <ul>
@@ -102,6 +103,37 @@ list of the buffer's tags in the sidebar.
 <a href="commands.html#previousChange">previousChange</a>) move between the
 changes you have made.
 </ul>
+
+<h2><a name="vim">Vim keys</a></h2>
+<p>
+In vim edit mode, outside insert mode, vim's key map is asked first. It takes
+every plain character and a few chords: Ctrl O and Ctrl I (the jump list),
+Ctrl F and Ctrl B (paging), Ctrl ^, Ctrl R, Ctrl V, Ctrl A and Ctrl X. So
+Ctrl O doesn't open the location bar and Ctrl F doesn't find; every other key
+above, Ctrl P and Ctrl Shift P among them, works as it does without vim. Any
+of j's commands also runs as an ex command, as in
+<code>:findFileInProject</code> or <code>:openFile</code>. The
+<a href="commands.html#findAction">findAction</a> list shows a command's vim
+keys before j's.
+<table border="1" cellpadding="4" cellspacing="0">
+<tr><th>To</th><th>Vim</th></tr>
+<tr><td>Go to line N</td><td><code>:N</code>, <code>NG</code>, <code>gg</code>, <code>G</code></td></tr>
+<tr><td>Search</td><td><code>/</code>, <code>?</code>, <code>n</code>, <code>N</code>, <code>*</code>, <code>#</code></td></tr>
+<tr><td>Matching bracket</td><td><code>%</code></td></tr>
+<tr><td>Top, middle, bottom of the window</td><td><code>H</code>, <code>M</code>, <code>L</code></td></tr>
+<tr><td>Scroll the caret's line to the center, top, bottom</td><td><code>zz</code>, <code>zt</code>, <code>zb</code></td></tr>
+<tr><td>Page down, up</td><td><code>&lt;C-f&gt;</code>, <code>&lt;C-b&gt;</code></td></tr>
+<tr><td>Paragraphs, sections</td><td><code>}</code>, <code>{</code>, <code>]]</code>, <code>[[</code></td></tr>
+<tr><td>Set a mark, go to it</td><td><code>m</code><i>x</i>, <code>`</code><i>x</i>, <code>'</code><i>x</i>; A to Z are file marks, shared with
+<a href="commands.html#dropBookmark">dropBookmark</a></td></tr>
+<tr><td>Back and forward through the jump list</td><td><code>&lt;C-o&gt;</code>, <code>&lt;C-i&gt;</code></td></tr>
+<tr><td>Alternate buffer</td><td><code>&lt;C-^&gt;</code></td></tr>
+<tr><td>Follow a link</td><td><code>gx</code></td></tr>
+<tr><td>Split, vertically</td><td><code>&lt;C-w&gt;s</code>, <code>&lt;C-w&gt;v</code>, <code>:sp</code> <i>file</i>, <code>:vs</code> <i>file</i></td></tr>
+<tr><td>Window left, down, up, right</td><td><code>&lt;C-w&gt;h</code>, <code>j</code>, <code>k</code>, <code>l</code></td></tr>
+<tr><td>Next, previous, prior window</td><td><code>&lt;C-w&gt;w</code>, <code>&lt;C-w&gt;W</code>, <code>&lt;C-w&gt;p</code></td></tr>
+<tr><td>Close the window, the others</td><td><code>&lt;C-w&gt;c</code>, <code>&lt;C-w&gt;o</code>, <code>:clo</code>, <code>:on</code></td></tr>
+</table>
 
 <h2><a name="projects">Projects</a></h2>
 <p>
