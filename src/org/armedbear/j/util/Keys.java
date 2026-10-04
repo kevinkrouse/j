@@ -14,6 +14,7 @@ package org.armedbear.j.util;
 
 import static org.armedbear.j.Constants.*;
 
+import java.awt.AWTKeyStroke;
 import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
 import javax.swing.KeyStroke;
@@ -33,7 +34,15 @@ public final class Keys {
      * the same bit.
      */
     public static int keyModifiers(InputEvent e) {
-        final int ex = e.getModifiersEx();
+        return fromExtended(e.getModifiersEx());
+    }
+
+    /** A key stroke's modifiers, as j's own bits. */
+    public static int keyModifiers(AWTKeyStroke keyStroke) {
+        return fromExtended(keyStroke.getModifiers());
+    }
+
+    private static int fromExtended(int ex) {
         int modifiers = 0;
         if ((ex & InputEvent.SHIFT_DOWN_MASK) != 0)
             modifiers |= SHIFT_MASK;
@@ -109,7 +118,7 @@ public final class Keys {
     }
 
     public static final String getKeyText(KeyStroke keyStroke) {
-        return getKeyText(keyStroke.getKeyChar(), keyStroke.getKeyCode(), keyStroke.getModifiers());
+        return getKeyText(keyStroke.getKeyChar(), keyStroke.getKeyCode(), keyModifiers(keyStroke));
     }
 
     public static String getKeyText(char keyChar, int keyCode, int modifiers) {

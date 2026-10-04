@@ -26,6 +26,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.lang.StringBuilder;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import javax.swing.KeyStroke;
@@ -90,7 +91,7 @@ public final class KeyMap implements Constants {
             int lineNumber = 0;
             try {
                 BufferedReader in =
-                    new BufferedReader(new InputStreamReader(file.getInputStream()));
+                    new BufferedReader(new InputStreamReader(file.getInputStream(), StandardCharsets.UTF_8));
                 while (true) {
                     String s = in.readLine();
                     if (s == null) {
@@ -416,8 +417,6 @@ public final class KeyMap implements Constants {
         int keyCode,
         int modifiers
     ) {
-        // Mask off the bits we don't care about (Java 1.4).
-        modifiers &= 0x0f;
         if (keyCode == 0 && modifiers == 0) {
             // This is the keyTyped() case. Ignore keyCode and modifiers;
             // keyChar must match the mapping.
@@ -449,7 +448,7 @@ public final class KeyMap implements Constants {
         return lookup(
             keyStroke.getKeyChar(),
             keyStroke.getKeyCode(),
-            keyStroke.getModifiers()
+            Keys.keyModifiers(keyStroke)
         );
     }
 
@@ -558,8 +557,7 @@ public final class KeyMap implements Constants {
             return false;
         char keyChar = keyStroke.getKeyChar();
         int keyCode = keyStroke.getKeyCode();
-        // Mask off the bits we don't care about (Java 1.4).
-        int modifiers = keyStroke.getModifiers() & 0x0f;
+        int modifiers = Keys.keyModifiers(keyStroke);
         if (keyCode == 0 && modifiers == 0) {
             // This is the keyTyped() case. Ignore keyCode and modifiers;
             // keyChar must match the mapping.
@@ -624,8 +622,7 @@ public final class KeyMap implements Constants {
         if (keyStroke != null) {
             char keyChar = keyStroke.getKeyChar();
             int keyCode = keyStroke.getKeyCode();
-            // Mask off the bits we don't care about (Java 1.4).
-            int modifiers = keyStroke.getModifiers() & 0x0f;
+            int modifiers = Keys.keyModifiers(keyStroke);
             if (keyCode == 0 && modifiers == 0) {
                 // This is the keyTyped() case. Ignore keyCode and modifiers;
                 // keyChar must match the mapping.

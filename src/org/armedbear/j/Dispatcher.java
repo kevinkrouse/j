@@ -238,12 +238,6 @@ public final class Dispatcher implements Constants, KeyListener, MouseListener,
             Log.debug("character = 0x" + Integer.toString((int) c, 16));
         }
 
-        // Mask off the bits we don't care about (Java 1.4).
-        modifiers &= 0x0f;
-
-        if (DEBUG_KEY_PRESSED)
-            Log.debug("modifiers = 0x" + Integer.toString(modifiers, 16));
-
         boolean handled = editor.handleJEvent(
             new JEvent(
                 JEvent.KEY_PRESSED,

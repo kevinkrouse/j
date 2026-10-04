@@ -259,7 +259,6 @@ public final class IncrementalFindTextFieldHandler extends DefaultTextFieldHandl
     }
 
     private void handleKeyEvent(KeyEvent e) {
-        // Mask off bits we don't care about (Java 1.4).
         int modifiers = Keys.keyModifiers(e);
         if (modifiers != 0 && modifiers != Constants.SHIFT_MASK)
             return;

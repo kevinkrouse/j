@@ -54,8 +54,7 @@ public class KeyMapping implements Constants {
         char c = keyStroke.getKeyChar();
         keyChar = c == 0xffff ? 0 : c;
         keyCode = keyStroke.getKeyCode();
-        // Mask off the bits we don't care about (Java 1.4).
-        modifiers = keyStroke.getModifiers() & 0x0f;
+        modifiers = Keys.keyModifiers(keyStroke);
         if (command != null)
             this.command = command.intern();
         else

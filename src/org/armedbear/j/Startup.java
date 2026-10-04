@@ -34,7 +34,6 @@ import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.List;
-import javax.swing.FocusManager;
 import javax.swing.JComponent;
 import javax.swing.RepaintManager;
 import javax.swing.SwingUtilities;
@@ -252,9 +251,7 @@ public final class Startup {
 
         Editor.currentEditor().getFrame().updateControls();
 
-        // With Java 1.4, we only need to do this to support the key-pressed
-        // hook.
-        FocusManager.setCurrentManager(new CustomFocusManager());
+        KeyPressedHook.install();
 
         Editor.currentEditor().getFrame().placeWindow();
 

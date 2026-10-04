@@ -1,7 +1,8 @@
 /*
- * CustomFocusManager.java
+ * KeyPressedHook.java
  *
  * Copyright (C) 1999-2003 Peter Graves
+ * Copyright (C) 2026 Kevin Krouse
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -21,16 +22,23 @@
 package org.armedbear.j;
 
 import java.awt.Component;
+import java.awt.KeyboardFocusManager;
 import java.awt.event.KeyEvent;
-import javax.swing.DefaultFocusManager;
 import javax.swing.JDialog;
 import org.armedbear.j.extension.Extensions;
 import org.armedbear.j.util.Keys;
 
-public final class CustomFocusManager extends DefaultFocusManager {
-    public void processKeyEvent(Component focusedComponent, KeyEvent e) {
-        if (e.getID() == KeyEvent.KEY_PRESSED) {
-            if (isComponentHookable(focusedComponent)) {
+/**
+ * Runs key-pressed-hook, when enableKeyPressedHook is set, before a key is
+ * dispatched to any component but the edit window, incremental find or a
+ * dialog.
+ */
+public final class KeyPressedHook {
+    private KeyPressedHook() {}
+
+    public static void install() {
+        KeyboardFocusManager.getCurrentKeyboardFocusManager().addKeyEventDispatcher(e -> {
+            if (e.getID() == KeyEvent.KEY_PRESSED && isComponentHookable(e.getComponent())) {
                 KeyMapping km;
                 int keyCode = e.getKeyCode();
                 if (keyCode != 0)
@@ -39,8 +47,8 @@ public final class CustomFocusManager extends DefaultFocusManager {
                     km = new KeyMapping(e.getKeyChar(), null);
                 Extensions.hooks().invoke("key-pressed-hook", km.toString());
             }
-        }
-        super.processKeyEvent(focusedComponent, e);
+            return false;
+        });
     }
 
     private static final boolean isComponentHookable(Component c) {

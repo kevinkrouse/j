@@ -92,7 +92,7 @@ public final class AbclHooks implements EditorHooks {
 
     /**
      * Arguments arrive raw -- quoting them is this end's job, which is why
-     * CustomFocusManager no longer escapes backslashes on j's behalf.
+     * KeyPressedHook does not escape backslashes on j's behalf.
      */
     private static LispObject coerce(Object arg) {
         if (arg == null)
