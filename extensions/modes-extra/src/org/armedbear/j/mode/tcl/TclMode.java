@@ -20,11 +20,12 @@
 
 package org.armedbear.j.mode.tcl;
 
+import static org.armedbear.j.Constants.*;
+
 import java.awt.event.KeyEvent;
 import java.util.regex.Pattern;
 import org.armedbear.j.AbstractMode;
 import org.armedbear.j.Buffer;
-import org.armedbear.j.Constants;
 import org.armedbear.j.Editor;
 import org.armedbear.j.Formatter;
 import org.armedbear.j.KeyMap;
@@ -38,7 +39,7 @@ import org.armedbear.j.SyntaxIterator;
 import org.armedbear.j.SystemBuffer;
 import org.armedbear.j.Tagger;
 
-public final class TclMode extends AbstractMode implements Constants, Mode {
+public final class TclMode extends AbstractMode implements Mode {
     private static final Pattern PROC = Pattern.compile("^proc\\s+(\\S+)");
 
     private static final int STATE_NEUTRAL = 0;
@@ -66,14 +67,17 @@ public final class TclMode extends AbstractMode implements Constants, Mode {
         return m != null ? m : Editor.getModeList().getModeFromModeName(NAME) instanceof TclMode x ? x : null;
     }
 
+    @Override
     public String getCommentStart() {
         return "# ";
     }
 
+    @Override
     public Formatter getFormatter(Buffer buffer) {
         return new TclFormatter(buffer);
     }
 
+    @Override
     protected void setKeyMapDefaults(KeyMap km) {
         km.mapKey('{', "electricOpenBrace");
         km.mapKey('}', "electricCloseBrace");
@@ -88,18 +92,22 @@ public final class TclMode extends AbstractMode implements Constants, Mode {
         km.mapKey(KeyEvent.VK_F12, 0, "wrapComment");
     }
 
+    @Override
     public boolean isTaggable() {
         return true;
     }
 
+    @Override
     public Tagger getTagger(SystemBuffer buffer) {
         return new RegexTagger(buffer, PROC);
     }
 
+    @Override
     public boolean canIndent() {
         return true;
     }
 
+    @Override
     public int getCorrectIndentation(Line line, Buffer buffer) {
         final int indentSize = buffer.getIndentSize();
 
@@ -201,14 +209,17 @@ public final class TclMode extends AbstractMode implements Constants, Mode {
         return new String(it.hideSyntacticWhitespace(line.getText())).trim();
     }
 
+    @Override
     public boolean isIdentifierStart(char c) {
         return !Character.isWhitespace(c);
     }
 
+    @Override
     public boolean isIdentifierPart(char c) {
         return !Character.isWhitespace(c);
     }
 
+    @Override
     public boolean supportsIndentBeforeBrace() {
         return true;
     }

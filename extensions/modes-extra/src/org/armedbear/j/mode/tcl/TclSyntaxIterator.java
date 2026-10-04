@@ -34,12 +34,14 @@ public final class TclSyntaxIterator extends DefaultSyntaxIterator {
         super(pos);
     }
 
+    @Override
     public char[] hideSyntacticWhitespace(Line line) {
         return hideSyntacticWhitespace(line.getText());
     }
 
     // Returns char array with syntactic whitespace (quotes and comments)
     // replaced with actual space characters.
+    @Override
     public char[] hideSyntacticWhitespace(String s) {
         final char[] chars = s.toCharArray();
         int state = STATE_NEUTRAL;

@@ -21,7 +21,6 @@
 package org.armedbear.j.mode.tcl;
 
 import org.armedbear.j.Buffer;
-import org.armedbear.j.Constants;
 import org.armedbear.j.Editor;
 import org.armedbear.j.FormatTable;
 import org.armedbear.j.Formatter;
@@ -30,7 +29,7 @@ import org.armedbear.j.LineSegment;
 import org.armedbear.j.LineSegmentList;
 import org.armedbear.j.util.Utilities;
 
-public final class TclFormatter extends Formatter implements Constants {
+public final class TclFormatter extends Formatter {
     private static final int TCL_STATE_NEUTRAL = 0;
     private static final int TCL_STATE_COMMENT = 1;
     private static final int TCL_STATE_QUOTE = 2;
@@ -247,6 +246,7 @@ public final class TclFormatter extends Formatter implements Constants {
         }
     }
 
+    @Override
     public LineSegmentList formatLine(Line line) {
         clearSegmentList();
         parseLine(line);
@@ -265,6 +265,7 @@ public final class TclFormatter extends Formatter implements Constants {
         return "!&|<>=+/*-".indexOf(c) >= 0;
     }
 
+    @Override
     public FormatTable getFormatTable() {
         if (formatTable == null) {
             formatTable = new FormatTable("TclMode");
