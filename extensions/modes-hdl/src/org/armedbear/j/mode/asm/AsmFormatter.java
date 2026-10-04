@@ -39,6 +39,7 @@ public final class AsmFormatter extends Formatter {
         this.buffer = buffer;
     }
 
+    @Override
     public LineSegmentList formatLine(Line line) {
         clearSegmentList();
         final String text = getDetabbedText(line);
@@ -64,6 +65,7 @@ public final class AsmFormatter extends Formatter {
         return segmentList;
     }
 
+    @Override
     public FormatTable getFormatTable() {
         if (formatTable == null) {
             formatTable = newFormatTable();

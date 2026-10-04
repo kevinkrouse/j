@@ -20,10 +20,11 @@
 
 package org.armedbear.j.mode.asm;
 
+import static org.armedbear.j.Constants.*;
+
 import java.awt.event.KeyEvent;
 import org.armedbear.j.AbstractMode;
 import org.armedbear.j.Buffer;
-import org.armedbear.j.Constants;
 import org.armedbear.j.Editor;
 import org.armedbear.j.Formatter;
 import org.armedbear.j.KeyMap;
@@ -31,7 +32,7 @@ import org.armedbear.j.Line;
 import org.armedbear.j.Mode;
 import org.armedbear.j.Property;
 
-public final class AsmMode extends AbstractMode implements Constants, Mode {
+public final class AsmMode extends AbstractMode implements Mode {
     public static final String NAME = "Assembly";
 
     private static volatile AsmMode mode;
@@ -53,28 +54,34 @@ public final class AsmMode extends AbstractMode implements Constants, Mode {
         return m != null ? m : Editor.getModeList().getModeFromModeName(NAME) instanceof AsmMode x ? x : null;
     }
 
+    @Override
     public String getCommentStart() {
         return "; ";
     }
 
+    @Override
     public Formatter getFormatter(Buffer buffer) {
         return new AsmFormatter(buffer);
     }
 
+    @Override
     protected void setKeyMapDefaults(KeyMap km) {
         km.mapKey(KeyEvent.VK_ENTER, 0, "newlineAndIndent");
         km.mapKey(KeyEvent.VK_F9, 0, "compile");
         km.mapKey(KeyEvent.VK_F9, CTRL_MASK, "recompile");
     }
 
+    @Override
     public boolean canIndent() {
         return true;
     }
 
+    @Override
     public boolean canIndentPaste() {
         return false;
     }
 
+    @Override
     public int getCorrectIndentation(Line line, Buffer buffer) {
         final int indentSize = buffer.getIndentSize();
         final Line model = line.previousNonBlank();
