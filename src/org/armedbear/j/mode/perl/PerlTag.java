@@ -23,15 +23,12 @@ package org.armedbear.j.mode.perl;
 import org.armedbear.j.Line;
 import org.armedbear.j.LocalTag;
 
-public final class PerlTag extends LocalTag
-{
-    public PerlTag(String name, Line line)
-    {
+public final class PerlTag extends LocalTag {
+    public PerlTag(String name, Line line) {
         super(name, line);
     }
 
-    public String getMethodName()
-    {
+    public String getMethodName() {
         int index = name.lastIndexOf("::");
         if (index >= 0)
             return name.substring(index + 2);
@@ -39,13 +36,11 @@ public final class PerlTag extends LocalTag
             return name;
     }
 
-    public String getLongName()
-    {
+    public String getLongName() {
         return name;
     }
 
-    public String toString()
-    {
+    public String toString() {
         return name;
     }
 }

@@ -20,32 +20,28 @@
 
 package org.armedbear.j.mode.perl;
 
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import org.armedbear.j.DefaultSyntaxIterator;
 import org.armedbear.j.Position;
 
-import java.util.regex.Pattern;
-import java.util.regex.Matcher;
-
 // Supports movement through the syntactically important text of a buffer,
 // i.e. skipping whitespace and comments.
-public class PerlSyntaxIterator extends DefaultSyntaxIterator
-{
+public class PerlSyntaxIterator extends DefaultSyntaxIterator {
     private static final int STATE_NEUTRAL = 0;
-    private static final int STATE_QUOTE   = 1;
-    private static final int STATE_REGEXP  = 2;
-    private static final int STATE_SUBST   = 3;
+    private static final int STATE_QUOTE = 1;
+    private static final int STATE_REGEXP = 2;
+    private static final int STATE_SUBST = 3;
 
     private static Pattern matchRE = Pattern.compile("(=~|!~)[ \t]+m[^a-zA-Z0-9]");
 
-    public PerlSyntaxIterator(Position pos)
-    {
+    public PerlSyntaxIterator(Position pos) {
         super(pos);
     }
 
     // Returns char array with syntactic whitespace (quotes and comments)
     // replaced with actual space characters.
-    public char[] hideSyntacticWhitespace(String s)
-    {
+    public char[] hideSyntacticWhitespace(String s) {
         char[] chars = s.toCharArray();
         char quoteChar = 0;
         char delimiter = 0;
@@ -53,7 +49,7 @@ public class PerlSyntaxIterator extends DefaultSyntaxIterator
         final int length = chars.length;
         for (int i = 0; i < length; i++) {
             char c = chars[i];
-            if (c == '\\' && i < length-1) {
+            if (c == '\\' && i < length - 1) {
                 // Escape!
                 chars[i++] = ' ';
                 chars[i] = ' ';
@@ -102,7 +98,7 @@ public class PerlSyntaxIterator extends DefaultSyntaxIterator
             if (chars[i] == '#') {
                 if (i > 0) {
                     // Ignore '#' if escaped or if preceding char is '$'.
-                    char c = chars[i-1];
+                    char c = chars[i - 1];
                     if (c == '\\' || c == '$')
                         continue;
                 }
