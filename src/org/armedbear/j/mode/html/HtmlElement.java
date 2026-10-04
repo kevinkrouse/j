@@ -21,38 +21,32 @@
 package org.armedbear.j.mode.html;
 
 import java.util.ArrayList;
-import java.util.List;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.List;
 
-public final class HtmlElement
-{
-    private String  name;
+public final class HtmlElement {
+    private String name;
     private boolean wantsEndTag;
 
-    public HtmlElement(String name, boolean wantsEndTag)
-    {
+    public HtmlElement(String name, boolean wantsEndTag) {
         this.name = name;
         this.wantsEndTag = wantsEndTag;
     }
 
-    public final String getName()
-    {
+    public final String getName() {
         return name;
     }
 
-    public final boolean wantsEndTag()
-    {
+    public final boolean wantsEndTag() {
         return wantsEndTag;
     }
 
-    public final void setWantsEndTag(boolean b)
-    {
+    public final void setWantsEndTag(boolean b) {
         wantsEndTag = b;
     }
 
-    public static List<HtmlElement> getDefaultElements()
-    {
+    public static List<HtmlElement> getDefaultElements() {
         ArrayList<HtmlElement> v = new ArrayList<HtmlElement>();
         v.add(new HtmlElement("a", true));
         v.add(new HtmlElement("address", true));
