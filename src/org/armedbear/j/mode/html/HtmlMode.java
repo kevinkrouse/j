@@ -20,6 +20,8 @@
 
 package org.armedbear.j.mode.html;
 
+import static org.armedbear.j.Constants.*;
+
 import java.awt.event.KeyEvent;
 import java.io.BufferedReader;
 import java.io.FileInputStream;
@@ -27,7 +29,6 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.lang.StringBuilder;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.regex.Matcher;
@@ -37,7 +38,6 @@ import javax.swing.undo.CompoundEdit;
 import org.armedbear.j.AbstractMode;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.CaretCommands;
-import org.armedbear.j.Constants;
 import org.armedbear.j.Debug;
 import org.armedbear.j.EditCommands;
 import org.armedbear.j.Editor;
@@ -55,7 +55,7 @@ import org.armedbear.j.SimpleEdit;
 import org.armedbear.j.mode.js.JavaScriptMode;
 import org.armedbear.j.util.Utilities;
 
-public final class HtmlMode extends AbstractMode implements Constants, Mode {
+public final class HtmlMode extends AbstractMode implements Mode {
     private static final Mode mode = new HtmlMode();
     private static List<HtmlElement> elements;
     private static Pattern tagNameRE;
@@ -73,10 +73,12 @@ public final class HtmlMode extends AbstractMode implements Constants, Mode {
         return mode;
     }
 
+    @Override
     public Formatter getFormatter(Buffer buffer) {
         return new HtmlFormatter(buffer);
     }
 
+    @Override
     protected void setKeyMapDefaults(KeyMap km) {
         km.mapKey(KeyEvent.VK_TAB, 0, "tab");
         km.mapKey(KeyEvent.VK_TAB, CTRL_MASK, "insertTab");
@@ -99,14 +101,17 @@ public final class HtmlMode extends AbstractMode implements Constants, Mode {
         km.mapKey(0x7e, CTRL_MASK | SHIFT_MASK, "htmlEndTag");
     }
 
+    @Override
     public boolean canIndent() {
         return true;
     }
 
+    @Override
     public boolean canIndentPaste() {
         return false;
     }
 
+    @Override
     public int getCorrectIndentation(Line line, Buffer buffer) {
         if (line.flags() == STATE_SCRIPT)
             return JavaScriptMode.getMode().getCorrectIndentation(line, buffer);
@@ -240,6 +245,7 @@ public final class HtmlMode extends AbstractMode implements Constants, Mode {
         return model;
     }
 
+    @Override
     public char fixCase(Editor editor, char c) {
         if (!editor.getBuffer().getBooleanProperty(Property.FIX_CASE))
             return c;

@@ -20,8 +20,9 @@
 
 package org.armedbear.j.mode.html;
 
+import static org.armedbear.j.Constants.*;
+
 import org.armedbear.j.Buffer;
-import org.armedbear.j.Constants;
 import org.armedbear.j.Editor;
 import org.armedbear.j.FormatTable;
 import org.armedbear.j.Formatter;
@@ -32,7 +33,7 @@ import org.armedbear.j.Position;
 import org.armedbear.j.mode.java.JavaFormatter;
 import org.armedbear.j.util.Utilities;
 
-public final class HtmlFormatter extends Formatter implements Constants {
+public final class HtmlFormatter extends Formatter {
     // HTML formats must not overlap with Java formats!
     private static final int HTML_FORMAT_FIRST = JavaFormatter.JAVA_FORMAT_LAST + 1;
 
@@ -81,6 +82,7 @@ public final class HtmlFormatter extends Formatter implements Constants {
         }
     }
 
+    @Override
     public LineSegmentList formatLine(Line line) {
         if (line == null) {
             clearSegmentList();
@@ -195,6 +197,7 @@ public final class HtmlFormatter extends Formatter implements Constants {
         endToken(state);
     }
 
+    @Override
     public boolean parseBuffer() {
         Line line = buffer.getFirstLine();
         if (line == null)
@@ -290,6 +293,7 @@ public final class HtmlFormatter extends Formatter implements Constants {
         return changed;
     }
 
+    @Override
     public FormatTable getFormatTable() {
         if (formatTable == null) {
             // Script blocks are formatted by javaFormatter, so its formats
@@ -309,6 +313,7 @@ public final class HtmlFormatter extends Formatter implements Constants {
         return formatTable;
     }
 
+    @Override
     public void reset() {
         javaFormatter.reset();
         super.reset();

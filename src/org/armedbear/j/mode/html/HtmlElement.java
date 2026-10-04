@@ -47,7 +47,7 @@ public final class HtmlElement {
     }
 
     public static List<HtmlElement> getDefaultElements() {
-        ArrayList<HtmlElement> v = new ArrayList<HtmlElement>();
+        ArrayList<HtmlElement> v = new ArrayList<>();
         v.add(new HtmlElement("a", true));
         v.add(new HtmlElement("address", true));
         v.add(new HtmlElement("applet", true));
