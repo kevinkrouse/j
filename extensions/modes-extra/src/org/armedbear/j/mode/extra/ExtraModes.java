@@ -19,6 +19,7 @@ import org.armedbear.j.mode.tcl.TclMode;
 
 /** Objective-C and Tcl. */
 public final class ExtraModes implements ModeProvider {
+    @Override
     public List<ModeDescriptor> modes() {
         return List.of(
             new ModeDescriptor(
