@@ -20,7 +20,8 @@
 
 package org.armedbear.j.mode.make;
 
-import java.lang.StringBuilder;
+import static org.armedbear.j.Constants.*;
+
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.armedbear.j.Buffer;
@@ -230,6 +231,7 @@ public final class MakefileFormatter extends Formatter {
         endToken(state);
     }
 
+    @Override
     public LineSegmentList formatLine(Line line) {
         if (line == null) {
             clearSegmentList();
@@ -250,6 +252,7 @@ public final class MakefileFormatter extends Formatter {
         return segmentList;
     }
 
+    @Override
     public FormatTable getFormatTable() {
         if (formatTable == null) {
             formatTable = new FormatTable("MakefileMode");

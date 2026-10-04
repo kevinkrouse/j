@@ -20,10 +20,11 @@
 
 package org.armedbear.j.mode.make;
 
+import static org.armedbear.j.Constants.*;
+
 import java.awt.event.KeyEvent;
 import org.armedbear.j.AbstractMode;
 import org.armedbear.j.Buffer;
-import org.armedbear.j.Constants;
 import org.armedbear.j.Formatter;
 import org.armedbear.j.KeyMap;
 import org.armedbear.j.Keywords;
@@ -31,7 +32,7 @@ import org.armedbear.j.Line;
 import org.armedbear.j.Mode;
 import org.armedbear.j.Property;
 
-public final class MakefileMode extends AbstractMode implements Constants, Mode {
+public final class MakefileMode extends AbstractMode implements Mode {
     private static final MakefileMode mode = new MakefileMode();
 
     private MakefileMode() {
@@ -44,24 +45,29 @@ public final class MakefileMode extends AbstractMode implements Constants, Mode 
         return mode;
     }
 
+    @Override
     public boolean canIndent() {
         return true;
     }
 
+    @Override
     public String getCommentStart() {
         return "# ";
     }
 
+    @Override
     public Formatter getFormatter(Buffer buffer) {
         return new MakefileFormatter(buffer);
     }
 
+    @Override
     protected void setKeyMapDefaults(KeyMap km) {
         km.mapKey(KeyEvent.VK_ENTER, 0, "newlineAndIndent");
         km.mapKey(KeyEvent.VK_F9, 0, "compile");
         km.mapKey(KeyEvent.VK_F9, CTRL_MASK, "recompile");
     }
 
+    @Override
     public int getCorrectIndentation(Line line, Buffer buffer) {
         Line model = getModel(line);
         if (model == null)
@@ -83,10 +89,12 @@ public final class MakefileMode extends AbstractMode implements Constants, Mode 
     private static final String validChars =
         "-./0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz";
 
+    @Override
     public boolean isIdentifierStart(char c) {
         return validChars.indexOf(c) >= 0;
     }
 
+    @Override
     public boolean isIdentifierPart(char c) {
         return validChars.indexOf(c) >= 0;
     }
