@@ -20,25 +20,23 @@
 
 package org.armedbear.j;
 
-import org.armedbear.j.util.Utilities;
-import java.lang.StringBuilder;
-
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.FontMetrics;
 import java.awt.Graphics;
 import java.awt.Insets;
+import java.lang.StringBuilder;
 import javax.swing.JComponent;
 import javax.swing.UIManager;
 import javax.swing.border.Border;
 import javax.swing.border.CompoundBorder;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.MatteBorder;
+import org.armedbear.j.util.Utilities;
 
 public final class StatusBar extends JComponent
-    implements PreferencesChangeListener
-{
+    implements PreferencesChangeListener {
     // Sized for the display rather than fixed, and recomputed whenever
     // preferences are reloaded, since uiScale may have changed.
     private static Font font;
@@ -54,8 +52,7 @@ public final class StatusBar extends JComponent
     private final Border border;
     private String messageText;
 
-    private static synchronized void initializeStaticValues()
-    {
+    private static synchronized void initializeStaticValues() {
         font = new Font("SansSerif", Font.PLAIN, UIScale.scale(12));
         leftMargin = UIScale.scale(2);
         rightMargin = UIScale.scale(2);
@@ -64,8 +61,7 @@ public final class StatusBar extends JComponent
         charDescent = fm.getDescent();
     }
 
-    public StatusBar(Frame frame)
-    {
+    public StatusBar(Frame frame) {
         this.frame = frame;
         Editor.preferences().addPreferencesChangeListener(this);
         preferencesChanged();
@@ -73,8 +69,10 @@ public final class StatusBar extends JComponent
         Dimension dim = frame.getSize();
         Insets insets = frame.getInsets();
         dim.width -= (insets.left + insets.right);
-        border = new CompoundBorder(new MatteBorder(1, 0, 0, 0, Color.gray),
-                                    new EmptyBorder(2, 0, 2, 0));
+        border = new CompoundBorder(
+            new MatteBorder(1, 0, 0, 0, Color.gray),
+            new EmptyBorder(2, 0, 2, 0)
+        );
         setBorder(border);
         insets = border.getBorderInsets(this);
         dim.height = charAscent + charDescent + insets.top + insets.bottom;
@@ -83,8 +81,7 @@ public final class StatusBar extends JComponent
 
     // The status bar outlives a preferences reload -- the frame doesn't
     // recreate it -- so it has to resize itself in place.
-    private void updateSize()
-    {
+    private void updateSize() {
         initializeStaticValues();
         Insets insets = border.getBorderInsets(this);
         Dimension dim = getPreferredSize();
@@ -94,21 +91,18 @@ public final class StatusBar extends JComponent
         repaint();
     }
 
-    public final void setText(String s)
-    {
+    public final void setText(String s) {
         messageText = s;
     }
 
-    public final String getText()
-    {
+    public final String getText() {
         return messageText;
     }
 
-    private String getStatusText(Editor editor)
-    {
+    private String getStatusText(Editor editor) {
         final Buffer buffer = editor.getBuffer();
         if (buffer == null)
-             return "";
+            return "";
         StringBuilder sb = new StringBuilder();
         final InputHandler handler = editor.getInputHandler();
         if (handler != null) {
@@ -141,8 +135,7 @@ public final class StatusBar extends JComponent
         return sb.toString();
     }
 
-    public void paint(Graphics g)
-    {
+    public void paint(Graphics g) {
         Editor editor = frame.getCurrentEditor();
         Buffer buffer = editor.getBuffer();
         border.paintBorder(this, g, 0, 0, getWidth(), getHeight());
@@ -177,13 +170,11 @@ public final class StatusBar extends JComponent
         }
     }
 
-    public void repaintNow()
-    {
+    public void repaintNow() {
         paintImmediately(0, 0, getWidth(), getHeight());
     }
 
-    public void preferencesChanged()
-    {
+    public void preferencesChanged() {
         displayContext =
             Editor.preferences().getIntegerProperty(Property.STATUS_BAR_DISPLAY_CONTEXT);
         if (font != null)

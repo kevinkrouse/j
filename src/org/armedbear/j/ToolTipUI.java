@@ -25,17 +25,14 @@ import javax.swing.JComponent;
 import javax.swing.plaf.ComponentUI;
 import javax.swing.plaf.basic.BasicToolTipUI;
 
-public final class ToolTipUI extends BasicToolTipUI
-{
+public final class ToolTipUI extends BasicToolTipUI {
     private static final ToolTipUI sharedInstance = new ToolTipUI();
 
-    public static ComponentUI createUI(JComponent c)
-    {
+    public static ComponentUI createUI(JComponent c) {
         return sharedInstance;
     }
 
-    public void paint(Graphics g, JComponent c)
-    {
+    public void paint(Graphics g, JComponent c) {
         Display.setRenderingHints(g);
         super.paint(g, c);
     }

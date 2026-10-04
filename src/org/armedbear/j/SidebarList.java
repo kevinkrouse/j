@@ -31,43 +31,38 @@ import javax.swing.border.CompoundBorder;
 import javax.swing.border.EmptyBorder;
 
 public abstract class SidebarList extends JList<Object>
-    implements NavigationComponent
-{
+    implements NavigationComponent {
     protected Sidebar sidebar;
 
-    public SidebarList(Sidebar sidebar)
-    {
+    public SidebarList(Sidebar sidebar) {
         this.sidebar = sidebar;
         setCellRenderer(new SidebarListCellRenderer(sidebar));
         setToolTipText("");
-        int h = UIScale.scaledProperty(Editor.preferences(),
-                                       Property.JLIST_FIXED_CELL_HEIGHT);
+        int h = UIScale.scaledProperty(
+            Editor.preferences(),
+            Property.JLIST_FIXED_CELL_HEIGHT
+        );
         if (h > 0)
             setFixedCellHeight(h);
         setFocusTraversalKeysEnabled(false);
     }
 
-    public void refresh()
-    {
-    }
+    public void refresh() {}
 
-    public void updatePosition()
-    {
-    }
+    public void updatePosition() {}
 
-    protected void centerIndex(int index)
-    {
+    protected void centerIndex(int index) {
         int first = getFirstVisibleIndex();
         int last = getLastVisibleIndex();
         if (first == -1 || last == -1) {
             ensureIndexIsVisible(index);
             return;
         }
-        if (first == 0 && last == getModel().getSize()-1)
+        if (first == 0 && last == getModel().getSize() - 1)
             return;
-        if (index > first + 2 && index < last-2)
+        if (index > first + 2 && index < last - 2)
             return;
-        int span  = last - first;
+        int span = last - first;
         first = index - span / 2;
         if (first < 0)
             first = 0;
@@ -75,21 +70,18 @@ public abstract class SidebarList extends JList<Object>
         if (getFirstVisibleIndex() == first)
             return;
         last = first + span;
-        if (last > getModel().getSize()-1)
-            last = getModel().getSize()-1;
+        if (last > getModel().getSize() - 1)
+            last = getModel().getSize() - 1;
         ensureIndexIsVisible(last);
     }
 
     private static final class SidebarListCellRenderer extends JLabel
-        implements ListCellRenderer<Object>
-    {
+        implements ListCellRenderer<Object> {
         private Sidebar sidebar;
 
         private static Border noFocusBorder;
 
-
-        public SidebarListCellRenderer(Sidebar sidebar)
-        {
+        public SidebarListCellRenderer(Sidebar sidebar) {
             super();
             this.sidebar = sidebar;
             noFocusBorder = new EmptyBorder(1, 1, 1, 1);
@@ -101,8 +93,8 @@ public abstract class SidebarList extends JList<Object>
             Object value,
             int index,
             boolean isSelected,
-            boolean cellHasFocus)
-        {
+            boolean cellHasFocus
+        ) {
             Frame frame = sidebar.getFrame();
             if (isSelected) {
                 if (frame.isActive() && frame.getFocusedComponent() == list)
@@ -137,8 +129,7 @@ public abstract class SidebarList extends JList<Object>
             return this;
         }
 
-        public void paintComponent(java.awt.Graphics g)
-        {
+        public void paintComponent(java.awt.Graphics g) {
             Display.setRenderingHints(g);
             super.paintComponent(g);
         }

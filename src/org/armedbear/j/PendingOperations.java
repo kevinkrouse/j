@@ -22,30 +22,24 @@ package org.armedbear.j;
 
 import java.util.ArrayList;
 
-public final class PendingOperations implements Runnable
-{
+public final class PendingOperations implements Runnable {
     private ArrayList<Object> operations;
 
-    public PendingOperations()
-    {
-    }
+    public PendingOperations() {}
 
-    public synchronized void add(Object object)
-    {
+    public synchronized void add(Object object) {
         if (operations == null)
             operations = new ArrayList<Object>();
         operations.add(object);
     }
 
-    public synchronized void remove(Object object)
-    {
+    public synchronized void remove(Object object) {
         operations.remove(object);
         if (operations.size() == 0)
             notify();
     }
 
-    public synchronized void run()
-    {
+    public synchronized void run() {
         if (operations != null && operations.size() > 0) {
             Editor.currentEditor().status("Completing pending operations...");
             while (operations.size() > 0) {

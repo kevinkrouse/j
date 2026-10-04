@@ -25,47 +25,39 @@ import javax.swing.BorderFactory;
 import javax.swing.JTextField;
 import javax.swing.UIManager;
 
-public final class StaticTextField extends JTextField
-{
-    public StaticTextField()
-    {
+public final class StaticTextField extends JTextField {
+    public StaticTextField() {
         super();
         init();
     }
 
-    public StaticTextField(int columns)
-    {
+    public StaticTextField(int columns) {
         super(columns);
         init();
     }
 
-    public StaticTextField(String text)
-    {
+    public StaticTextField(String text) {
         super(text);
         init();
     }
 
-    public StaticTextField(String text, int columns)
-    {
+    public StaticTextField(String text, int columns) {
         super(text, columns);
         init();
     }
 
-    private final void init()
-    {
+    private final void init() {
         setAlignmentX(LEFT_ALIGNMENT);
         setEditable(false);
         setBorder(BorderFactory.createEmptyBorder(0, 1, 0, 1));
         setBackground(UIManager.getColor("control"));
     }
 
-    public boolean isFocusable()
-    {
+    public boolean isFocusable() {
         return false;
     }
 
-    public void paintComponent(Graphics g)
-    {
+    public void paintComponent(Graphics g) {
         Display.setRenderingHints(g);
         super.paintComponent(g);
     }

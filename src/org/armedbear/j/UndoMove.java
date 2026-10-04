@@ -22,18 +22,15 @@ package org.armedbear.j;
 
 import javax.swing.undo.AbstractUndoableEdit;
 
-public class UndoMove extends AbstractUndoableEdit implements Constants
-{
+public class UndoMove extends AbstractUndoableEdit implements Constants {
     private final State preState;
     private State postState;
 
-    public UndoMove(Editor editor)
-    {
+    public UndoMove(Editor editor) {
         preState = new State(editor);
     }
 
-    public void undo()
-    {
+    public void undo() {
         super.undo();
         final Editor editor = Editor.currentEditor();
         postState = new State(editor);
@@ -41,16 +38,14 @@ public class UndoMove extends AbstractUndoableEdit implements Constants
         editor.setUpdateFlag(REFRAME);
     }
 
-    public void redo()
-    {
+    public void redo() {
         super.redo();
         final Editor editor = Editor.currentEditor();
         postState.restoreState(editor);
         editor.setUpdateFlag(REFRAME);
     }
 
-    private static class State
-    {
+    private static class State {
         final int dotLineNumber;
         final int dotOffset;
         final int markLineNumber;
@@ -58,9 +53,9 @@ public class UndoMove extends AbstractUndoableEdit implements Constants
         final int absCaretCol;
         final boolean isColumnSelection;
 
-        State(Editor editor)
-        {
-            dotLineNumber = editor.getDotLine().lineNumber();;
+        State(Editor editor) {
+            dotLineNumber = editor.getDotLine().lineNumber();
+            ;
             dotOffset = editor.getDotOffset();
             Position mark = editor.getMark();
             if (mark != null) {
@@ -74,8 +69,7 @@ public class UndoMove extends AbstractUndoableEdit implements Constants
             isColumnSelection = editor.isColumnSelection();
         }
 
-        void restoreState(Editor editor)
-        {
+        void restoreState(Editor editor) {
             boolean wasMarked = editor.getMark() != null;
             editor.updateDotLine();
             editor.setDot(dotLineNumber, dotOffset);

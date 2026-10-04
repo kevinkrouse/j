@@ -20,42 +20,35 @@
 
 package org.armedbear.j;
 
+import javax.swing.SwingUtilities;
 import org.armedbear.j.util.Utilities;
 
-import javax.swing.SwingUtilities;
-
 public final class SshLoadProcess extends LoadProcess implements BackgroundProcess,
-    Runnable, Cancellable
-{
+    Runnable, Cancellable {
     private boolean fileIsDirectory;
     private String listing;
 
-    public SshLoadProcess(Buffer buffer, SshFile file)
-    {
+    public SshLoadProcess(Buffer buffer, SshFile file) {
         super(buffer, file);
     }
 
-    public final String getListing()
-    {
+    public final String getListing() {
         return listing;
     }
 
-    public final boolean fileIsDirectory()
-    {
+    public final boolean fileIsDirectory() {
         return fileIsDirectory;
     }
 
-    public void run()
-    {
+    public void run() {
         buffer.setBackgroundProcess(this);
         _run();
         buffer.setBackgroundProcess(null);
     }
 
-    private void _run()
-    {
+    private void _run() {
         Debug.assertTrue(file instanceof SshFile);
-        SshSession session = SshSession.getSession((SshFile)file);
+        SshSession session = SshSession.getSession((SshFile) file);
         Debug.assertTrue(session.isLocked());
         if (!session.isConnected())
             session.setOutputBuffer(buffer);
@@ -86,7 +79,8 @@ public final class SshLoadProcess extends LoadProcess implements BackgroundProce
                 if (errorRunnable != null) {
                     String message =
                         "Unable to retrieve directory listing for ".concat(
-                            file.netPath());
+                            file.netPath()
+                        );
                     errorRunnable.setMessage(message);
                     SwingUtilities.invokeLater(errorRunnable);
                 }
@@ -118,9 +112,8 @@ public final class SshLoadProcess extends LoadProcess implements BackgroundProce
             final File parent = file.getParentFile();
             if (parent != null) {
                 Thread t = new Thread() {
-                    public void run()
-                    {
-                        ((SshFile)parent).getDirectoryListing(true);
+                    public void run() {
+                        ((SshFile) parent).getDirectoryListing(true);
                     }
                 };
                 t.start();

@@ -20,17 +20,15 @@
 
 package org.armedbear.j;
 
-import java.lang.StringBuilder;
-
 import java.io.Serializable;
+import java.lang.StringBuilder;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Map;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 
-public final class Property implements Comparable<Property>, Constants
-{
+public final class Property implements Comparable<Property>, Constants {
     // Written only while this class initialises, by the createProperty calls
     // in the field initialisers above; read-only from then on.
     private static final Map<String, Property> ht =
@@ -150,7 +148,10 @@ public final class Property implements Comparable<Property>, Constants
     public static final Property EXTEND_HOME =
         createProperty("extendHome", false);
     public static final Property FILENAME_COMPLETIONS_EXCLUDE_PATTERN =
-        createProperty("filenameCompletionsExcludePattern", "^(CVS|RCS|SCCS|_darcs|(\\.(svn|hg|darcs|git))|(.+(~|\\.(class|cls|abcl|bak|sw[op]|a|o|obj|exe))))$");
+        createProperty(
+            "filenameCompletionsExcludePattern",
+            "^(CVS|RCS|SCCS|_darcs|(\\.(svn|hg|darcs|git))|(.+(~|\\.(class|cls|abcl|bak|sw[op]|a|o|obj|exe))))$"
+        );
     public static final Property FILENAME_COMPLETIONS_IGNORE_CASE =
         createProperty("filenameCompletionsIgnoreCase", true);
     public static final Property FIX_CASE =
@@ -406,116 +407,98 @@ public final class Property implements Comparable<Property>, Constants
     private Class<? extends Serializable> type;
     private Object defaultValue;
 
-    private Property(String key)
-    {
+    private Property(String key) {
         displayName = key;
         this.key = key.toLowerCase().intern();
     }
 
-    private Property(String key, Object defaultValue)
-    {
+    private Property(String key, Object defaultValue) {
         displayName = key;
         this.key = key.toLowerCase().intern();
         this.defaultValue = defaultValue;
     }
 
-    private Property(String key, boolean defaultValue)
-    {
+    private Property(String key, boolean defaultValue) {
         displayName = key;
         this.key = key.toLowerCase().intern();
         this.type = Boolean.TYPE;
         this.defaultValue = defaultValue ? Boolean.TRUE : Boolean.FALSE;
     }
 
-    private Property(String key, int defaultValue)
-    {
+    private Property(String key, int defaultValue) {
         displayName = key;
         this.key = key.toLowerCase().intern();
         this.type = Integer.TYPE;
         this.defaultValue = defaultValue;
     }
 
-    private static Property createProperty(String key)
-    {
+    private static Property createProperty(String key) {
         Property property = new Property(key);
         put(key, property);
         return property;
     }
 
-    private static Property createProperty(String key, Object defaultValue)
-    {
+    private static Property createProperty(String key, Object defaultValue) {
         Property property = new Property(key, defaultValue);
         put(key, property);
         return property;
     }
 
-    private static Property createProperty(String key, boolean defaultValue)
-    {
+    private static Property createProperty(String key, boolean defaultValue) {
         Property property = new Property(key, defaultValue);
         put(key, property);
         return property;
     }
 
-    private static Property createProperty(String key, int defaultValue)
-    {
+    private static Property createProperty(String key, int defaultValue) {
         Property property = new Property(key, defaultValue);
         put(key, property);
         return property;
     }
 
-    private static void put(String key, Property property)
-    {
+    private static void put(String key, Property property) {
         ht.put(key.toLowerCase(), property);
     }
 
-    private static String convertLispNameToJavaName(String name)
-    {
-      Debug.assertTrue(name != null);
-      StringBuilder sb = new StringBuilder();
-      for (int i = 0, length = name.length(); i < length; i++)
-        {
-          char c = name.charAt(i);
-          if (c != '-')
-            sb.append(Character.toLowerCase(c));
+    private static String convertLispNameToJavaName(String name) {
+        Debug.assertTrue(name != null);
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0, length = name.length(); i < length; i++) {
+            char c = name.charAt(i);
+            if (c != '-')
+                sb.append(Character.toLowerCase(c));
         }
-      return sb.toString();
+        return sb.toString();
     }
 
-    public static Property findProperty(String key)
-    {
-      Property property = ht.get(key.toLowerCase());
-      if (property != null)
-        return property;
-      return ht.get(convertLispNameToJavaName(key));
+    public static Property findProperty(String key) {
+        Property property = ht.get(key.toLowerCase());
+        if (property != null)
+            return property;
+        return ht.get(convertLispNameToJavaName(key));
     }
 
-    public String getDisplayName()
-    {
+    public String getDisplayName() {
         return displayName;
     }
 
-    public String key()
-    {
+    public String key() {
         return key;
     }
 
-    public Object getDefaultValue()
-    {
+    public Object getDefaultValue() {
         return defaultValue;
     }
 
-    public boolean isBooleanProperty()
-    {
+    public boolean isBooleanProperty() {
         return type == Boolean.TYPE;
     }
 
-    public boolean isIntegerProperty()
-    {
+    public boolean isIntegerProperty() {
         return type == Integer.TYPE;
     }
 
-    public boolean validate(String value)
-    {
+    public boolean validate(String value) {
         if (type == Boolean.TYPE) {
             if (value.equals("true") || value.equals("1"))
                 return true;
@@ -535,18 +518,15 @@ public final class Property implements Comparable<Property>, Constants
         return true;
     }
 
-    public boolean equals(Object obj)
-    {
+    public boolean equals(Object obj) {
         return this == obj;
     }
 
-    public int hashCode()
-    {
+    public int hashCode() {
         return key.hashCode();
     }
 
-    public String getLispName()
-    {
+    public String getLispName() {
         Debug.assertTrue(displayName != null);
         StringBuilder sb = new StringBuilder();
         for (int i = 0, length = displayName.length(); i < length; i++) {
@@ -560,13 +540,11 @@ public final class Property implements Comparable<Property>, Constants
         return sb.toString();
     }
 
-    public int compareTo(Property p)
-    {
+    public int compareTo(Property p) {
         return displayName.compareToIgnoreCase(p.displayName);
     }
 
-    public static List<String> apropos(String s)
-    {
+    public static List<String> apropos(String s) {
         String lower = s.toLowerCase();
         ArrayList<String> list = new ArrayList<String>();
         for (Property property : ht.values()) {
@@ -577,8 +555,7 @@ public final class Property implements Comparable<Property>, Constants
         return list;
     }
 
-    public static Iterator<Property> iterator()
-    {
+    public static Iterator<Property> iterator() {
         return ht.values().iterator();
     }
 }

@@ -24,18 +24,15 @@ import javax.swing.undo.AbstractUndoableEdit;
 import javax.swing.undo.UndoableEdit;
 
 public final class UndoInsertLineSeparator extends AbstractUndoableEdit
-    implements Constants, UndoableEdit
-{
+    implements Constants, UndoableEdit {
     private PreState preState;
     private PostState postState;
 
-    public UndoInsertLineSeparator(Editor editor)
-    {
+    public UndoInsertLineSeparator(Editor editor) {
         preState = new PreState(editor);
     }
 
-    public void undo()
-    {
+    public void undo() {
         super.undo();
         final Editor editor = Editor.currentEditor();
         final Buffer buffer = editor.getBuffer();
@@ -46,15 +43,16 @@ public final class UndoInsertLineSeparator extends AbstractUndoableEdit
         if (postState.modificationCount != preState.modificationCount) {
             // Buffer was changed.
             buffer.invalidate();
-            Sidebar.setUpdateFlagInAllFrames(SIDEBAR_MODIFIED_BUFFER_COUNT |
-                SIDEBAR_REPAINT_BUFFER_LIST);
+            Sidebar.setUpdateFlagInAllFrames(
+                SIDEBAR_MODIFIED_BUFFER_COUNT |
+                    SIDEBAR_REPAINT_BUFFER_LIST
+            );
             Sidebar.repaintBufferListInAllFrames();
         }
         buffer.repaint();
     }
 
-    public void redo()
-    {
+    public void redo() {
         super.redo();
         final Editor editor = Editor.currentEditor();
         final Buffer buffer = editor.getBuffer();
@@ -64,15 +62,16 @@ public final class UndoInsertLineSeparator extends AbstractUndoableEdit
         if (postState.modificationCount != preState.modificationCount) {
             // Buffer was changed.
             buffer.invalidate();
-            Sidebar.setUpdateFlagInAllFrames(SIDEBAR_MODIFIED_BUFFER_COUNT |
-                SIDEBAR_REPAINT_BUFFER_LIST);
+            Sidebar.setUpdateFlagInAllFrames(
+                SIDEBAR_MODIFIED_BUFFER_COUNT |
+                    SIDEBAR_REPAINT_BUFFER_LIST
+            );
             Sidebar.repaintBufferListInAllFrames();
         }
         buffer.repaint();
     }
 
-    private static class PreState
-    {
+    private static class PreState {
         final int dotLineNumber;
         final int dotOffset;
         final int absCaretCol;
@@ -80,8 +79,7 @@ public final class UndoInsertLineSeparator extends AbstractUndoableEdit
         final boolean modified;
         final Line line;
 
-        PreState(Editor editor)
-        {
+        PreState(Editor editor) {
             dotLineNumber = editor.getDotLine().lineNumber();
             dotOffset = editor.getDotOffset();
             absCaretCol = editor.getAbsoluteCaretCol();
@@ -92,8 +90,7 @@ public final class UndoInsertLineSeparator extends AbstractUndoableEdit
         }
 
         // Undo.
-        void restoreState(Editor editor)
-        {
+        void restoreState(Editor editor) {
             final Buffer buffer = editor.getBuffer();
 
             editor.setDot(dotLineNumber, 0);
@@ -122,8 +119,7 @@ public final class UndoInsertLineSeparator extends AbstractUndoableEdit
         }
     }
 
-    private static class PostState
-    {
+    private static class PostState {
         int dotLineNumber;
         int dotOffset;
         int absCaretCol;
@@ -138,8 +134,7 @@ public final class UndoInsertLineSeparator extends AbstractUndoableEdit
         // without an undo record of its own (vim motions are not undo steps).
         final int splitLineNumber;
 
-        PostState(Editor editor, int splitLineNumber)
-        {
+        PostState(Editor editor, int splitLineNumber) {
             this.splitLineNumber = splitLineNumber;
             final Line dotLine = editor.getDotLine();
             dotLineNumber = dotLine.lineNumber();
@@ -156,8 +151,7 @@ public final class UndoInsertLineSeparator extends AbstractUndoableEdit
         }
 
         // Redo.
-        void restoreState(Editor editor)
-        {
+        void restoreState(Editor editor) {
             final Buffer buffer = editor.getBuffer();
 
             if (buffer.needsRenumbering())

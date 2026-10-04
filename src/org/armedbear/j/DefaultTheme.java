@@ -28,16 +28,13 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
-public final class DefaultTheme
-{
-    public static final Color getColor(String thing)
-    {
+public final class DefaultTheme {
+    public static final Color getColor(String thing) {
         return getColor(null, thing);
     }
 
     // Returns null if mode/thing not found.
-    public static final Color getColor(String mode, String thing)
-    {
+    public static final Color getColor(String mode, String thing) {
         return getColor(mode, thing, false);
     }
 
@@ -45,65 +42,64 @@ public final class DefaultTheme
      * Whether text on a background wants the colors made for a dark one: its
      * perceived brightness, as YIQ weighs it, is under half.
      */
-    public static boolean isDark(Color background)
-    {
+    public static boolean isDark(Color background) {
         return (background.getRed() * 299 + background.getGreen() * 587 +
-                background.getBlue() * 114) / 1000 < 128;
+            background.getBlue() * 114) / 1000 < 128;
     }
 
     // Styles any mode can link its own to, as emacs faces inherit and nvim
     // links highlight groups: { name, light background, dark background }.
     // The colors are GitHub Primer's, each 4.5:1 or better on its background.
     private static final Object[][] SHARED_COLORS = {
-        { "heading",          0x0550ae, 0x58a6ff },
-        { "link",             0x0969da, 0x79c0ff },
-        { "code",             0x953800, 0xffa657 },
-        { "quote",            0x57606a, 0x8b949e },
-        { "muted",            0x6e7781, 0x8b949e },
-        { "listMarker",       0x8250df, 0xd2a8ff },
-        { "todo",             0x9a6700, 0xe3b341 },
-        { "inProgress",       0x8250df, 0xbc8cff },
+        { "heading", 0x0550ae, 0x58a6ff },
+        { "link", 0x0969da, 0x79c0ff },
+        { "code", 0x953800, 0xffa657 },
+        { "quote", 0x57606a, 0x8b949e },
+        { "muted", 0x6e7781, 0x8b949e },
+        { "listMarker", 0x8250df, 0xd2a8ff },
+        { "todo", 0x9a6700, 0xe3b341 },
+        { "inProgress", 0x8250df, 0xbc8cff },
         { "inProgressMarker", 0x0969da, 0x58a6ff },
-        { "done",             0x1a7f37, 0x3fb950 },
-        { "cancelled",        0x8c959f, 0x6e7681 },
+        { "done", 0x1a7f37, 0x3fb950 },
+        { "cancelled", 0x8c959f, 0x6e7681 },
     };
 
     private static final Object[][] SHARED_STYLES = {
-        { "heading",    TextStyle.BOLD | TextStyle.ITALIC },
-        { "link",       TextStyle.UNDERLINE },
-        { "strong",     TextStyle.BOLD },
-        { "emphasis",   TextStyle.ITALIC },
-        { "quote",      TextStyle.ITALIC },
+        { "heading", TextStyle.BOLD | TextStyle.ITALIC },
+        { "link", TextStyle.UNDERLINE },
+        { "strong", TextStyle.BOLD },
+        { "emphasis", TextStyle.ITALIC },
+        { "quote", TextStyle.ITALIC },
         { "listMarker", TextStyle.BOLD },
-        { "cancelled",  TextStyle.STRIKETHROUGH },
+        { "cancelled", TextStyle.STRIKETHROUGH },
     };
 
     // The shared style a thing takes what it does not say from, unless a
     // theme or prefs link it elsewhere: { mode or null for any, thing, to }.
     private static final String[][] LINKS = {
         { null, "emphasis", "text" },
-        { null, "strong",   "text" },
-        { null, "url",      "muted" },
-        { "MarkdownMode", "heading1",       "heading" },
-        { "MarkdownMode", "heading2",       "heading" },
-        { "MarkdownMode", "heading3",       "heading" },
-        { "MarkdownMode", "heading4",       "heading" },
-        { "MarkdownMode", "heading5",       "heading" },
-        { "MarkdownMode", "heading6",       "heading" },
-        { "MarkdownMode", "headingMarker",  "muted" },
-        { "MarkdownMode", "codeBlock",      "code" },
-        { "MarkdownMode", "fence",          "muted" },
-        { "MarkdownMode", "linkText",       "link" },
-        { "MarkdownMode", "markup",         "muted" },
-        { "MarkdownMode", "codeMarker",     "markup" },
+        { null, "strong", "text" },
+        { null, "url", "muted" },
+        { "MarkdownMode", "heading1", "heading" },
+        { "MarkdownMode", "heading2", "heading" },
+        { "MarkdownMode", "heading3", "heading" },
+        { "MarkdownMode", "heading4", "heading" },
+        { "MarkdownMode", "heading5", "heading" },
+        { "MarkdownMode", "heading6", "heading" },
+        { "MarkdownMode", "headingMarker", "muted" },
+        { "MarkdownMode", "codeBlock", "code" },
+        { "MarkdownMode", "fence", "muted" },
+        { "MarkdownMode", "linkText", "link" },
+        { "MarkdownMode", "markup", "muted" },
+        { "MarkdownMode", "codeMarker", "markup" },
         { "MarkdownMode", "strongEmphasis", "text" },
-        { "MarkdownMode", "strikethrough",  "text" },
-        { "MarkdownMode", "quoteMarker",    "link" },
-        { "MarkdownMode", "rule",           "muted" },
-        { "MarkdownMode", "doneText",       "muted" },
-        { "MarkdownMode", "cancelledText",  "cancelled" },
-        { "MarkdownMode", "htmlTag",        "muted" },
-        { "MarkdownMode", "frontMatter",    "comment" },
+        { "MarkdownMode", "strikethrough", "text" },
+        { "MarkdownMode", "quoteMarker", "link" },
+        { "MarkdownMode", "rule", "muted" },
+        { "MarkdownMode", "doneText", "muted" },
+        { "MarkdownMode", "cancelledText", "cancelled" },
+        { "MarkdownMode", "htmlTag", "muted" },
+        { "MarkdownMode", "frontMatter", "comment" },
     };
 
     // What every mode has, before a mode or a shared style says otherwise:
@@ -119,14 +115,12 @@ public final class DefaultTheme
     };
 
     /** The names of the styles every mode has, for listStyles. */
-    public static List<String> getBuiltInNames()
-    {
+    public static List<String> getBuiltInNames() {
         return Arrays.asList(BUILT_IN_NAMES);
     }
 
     /** The names of the shared styles, for listStyles. */
-    public static List<String> getSharedStyleNames()
-    {
+    public static List<String> getSharedStyleNames() {
         final Set<String> names = new LinkedHashSet<String>();
         for (Object[] entry : SHARED_COLORS)
             names.add((String) entry[0]);
@@ -142,8 +136,7 @@ public final class DefaultTheme
      * The name a thing links to by default, or null. FormatTable follows it
      * for whatever the thing's own preferences leave out.
      */
-    public static String getLink(String mode, String thing)
-    {
+    public static String getLink(String mode, String thing) {
         String any = null;
         for (String[] link : LINKS) {
             if (!link[1].equals(thing))
@@ -156,16 +149,14 @@ public final class DefaultTheme
         return any;
     }
 
-    private static Color getSharedColor(String thing, boolean dark)
-    {
+    private static Color getSharedColor(String thing, boolean dark) {
         for (Object[] entry : SHARED_COLORS)
             if (entry[0] == thing)
                 return new Color((Integer) entry[dark ? 2 : 1]);
         return null;
     }
 
-    private static int getSharedStyle(String thing)
-    {
+    private static int getSharedStyle(String thing) {
         for (Object[] entry : SHARED_STYLES)
             if (entry[0] == thing)
                 return (Integer) entry[1];
@@ -177,8 +168,7 @@ public final class DefaultTheme
      * for the background, then the colors every mode shares. Returns null if
      * mode/thing not found.
      */
-    public static final Color getColor(String mode, String thing, boolean dark)
-    {
+    public static final Color getColor(String mode, String thing, boolean dark) {
         if (thing == null)
             return null;
         thing = thing.intern();
@@ -410,8 +400,7 @@ public final class DefaultTheme
 
     // A TextStyle: Font.PLAIN is 0, Font.BOLD is 1, Font.ITALIC is 2, and
     // the other bits combine with them. Returns -1 if mode/thing not found.
-    public static final int getStyle(String mode, String thing)
-    {
+    public static final int getStyle(String mode, String thing) {
         if (thing == null)
             return -1;
         thing = thing.intern();
@@ -474,7 +463,7 @@ public final class DefaultTheme
                     return Font.BOLD;
                 if (thing == "bracket")
                     return Font.BOLD;
-            } else if (mode == "XmlMode" || mode == "PHPMode" ) {
+            } else if (mode == "XmlMode" || mode == "PHPMode") {
                 if (thing == "tag")
                     return Font.BOLD;
             } else if (mode == "MakefileMode") {

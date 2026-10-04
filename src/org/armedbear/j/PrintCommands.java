@@ -20,29 +20,30 @@
 
 package org.armedbear.j;
 
-import java.lang.StringBuilder;
-
 import java.awt.print.Book;
 import java.awt.print.PrinterException;
 import java.awt.print.PrinterJob;
+import java.lang.StringBuilder;
 
-public final class PrintCommands
-{
-    public static void print()
-    {
+public final class PrintCommands {
+    public static void print() {
         final Editor editor = Editor.currentEditor();
-        if (editor.getMark() != null &&
-            editor.getMarkLine() != editor.getDotLine() &&
-            editor.getDotOffset() == 0 &&
-            editor.getMarkOffset() == 0) {
+        if (
+            editor.getMark() != null
+                &&
+                editor.getMarkLine() != editor.getDotLine()
+                &&
+                editor.getDotOffset() == 0
+                &&
+                editor.getMarkOffset() == 0
+        ) {
             printRegion();
         } else {
             printBuffer();
         }
     }
 
-    public static void printRegion()
-    {
+    public static void printRegion() {
         final Editor editor = Editor.currentEditor();
         if (editor.getMark() == null)
             return;
@@ -84,8 +85,7 @@ public final class PrintCommands
         editor.setDefaultCursor();
     }
 
-    public static void printBuffer()
-    {
+    public static void printBuffer() {
         final Editor editor = Editor.currentEditor();
         final Buffer buffer = editor.getBuffer();
         final String title = "Print Buffer";

@@ -23,29 +23,24 @@ package org.armedbear.j;
 import java.awt.Graphics;
 import javax.swing.JMenuBar;
 
-public final class MenuBar extends JMenuBar
-{
+public final class MenuBar extends JMenuBar {
     private static MenuListener listener = new MenuListener();
 
     private final String menuName;
 
-    public static final MenuListener getListener()
-    {
+    public static final MenuListener getListener() {
         return listener;
     }
 
-    public MenuBar(String menuName)
-    {
+    public MenuBar(String menuName) {
         this.menuName = menuName;
     }
 
-    public String getMenuName()
-    {
+    public String getMenuName() {
         return menuName;
     }
 
-    public void paintComponent(Graphics g)
-    {
+    public void paintComponent(Graphics g) {
         Display.setRenderingHints(g);
         super.paintComponent(g);
     }

@@ -24,8 +24,7 @@ import java.awt.event.ActionEvent;
 import java.awt.event.KeyEvent;
 import javax.swing.JPanel;
 
-public class ConfirmDialog extends MessageDialog implements Constants
-{
+public class ConfirmDialog extends MessageDialog implements Constants {
     private StandardButton yesButton;
     private StandardButton noButton;
     private StandardButton yesToAllButton;
@@ -36,19 +35,19 @@ public class ConfirmDialog extends MessageDialog implements Constants
     private boolean confirmAll;
     protected boolean cancel;
 
-    protected ConfirmDialog(Editor editor)
-    {
+    protected ConfirmDialog(Editor editor) {
         super(editor != null ? editor : Editor.currentEditor());
     }
 
-    public static int showConfirmDialog(String text, String title)
-    {
+    public static int showConfirmDialog(String text, String title) {
         return showConfirmDialog(Editor.currentEditor(), text, title);
     }
 
-    public static int showConfirmDialog(Editor editor, String text,
-                                        String title)
-    {
+    public static int showConfirmDialog(
+        Editor editor,
+        String text,
+        String title
+    ) {
         ConfirmDialog d = new ConfirmDialog(editor);
         d.initialize(text, title);
         if (editor != null)
@@ -59,9 +58,11 @@ public class ConfirmDialog extends MessageDialog implements Constants
         return d.result;
     }
 
-    public static int showConfirmAllDialog(Editor editor, String text,
-                                           String title)
-    {
+    public static int showConfirmAllDialog(
+        Editor editor,
+        String text,
+        String title
+    ) {
         ConfirmDialog d = new ConfirmDialog(editor);
         d.confirmAll = true;
         d.initialize(text, title);
@@ -73,10 +74,11 @@ public class ConfirmDialog extends MessageDialog implements Constants
         return d.result;
     }
 
-    public static int showConfirmDialogWithCancelButton(Editor editor,
-                                                        String text,
-                                                        String title)
-    {
+    public static int showConfirmDialogWithCancelButton(
+        Editor editor,
+        String text,
+        String title
+    ) {
         ConfirmDialog d = new ConfirmDialog(editor);
         d.cancel = true;
         d.initialize(text, title);
@@ -88,14 +90,12 @@ public class ConfirmDialog extends MessageDialog implements Constants
         return d.result;
     }
 
-    protected void initialize(String text, String title)
-    {
+    protected void initialize(String text, String title) {
         super.initialize(text, title);
         yesButton.requestFocus();
     }
 
-    protected void addButtons()
-    {
+    protected void addButtons() {
         JPanel buttonPanel = new JPanel();
         buttonPanel.setAlignmentX(LEFT_ALIGNMENT);
         mainPanel.add(buttonPanel);
@@ -129,32 +129,27 @@ public class ConfirmDialog extends MessageDialog implements Constants
         }
     }
 
-    protected void yes()
-    {
+    protected void yes() {
         result = RESPONSE_YES;
         dispose();
     }
 
-    protected void no()
-    {
+    protected void no() {
         result = RESPONSE_NO;
         dispose();
     }
 
-    protected void yesToAll()
-    {
+    protected void yesToAll() {
         result = RESPONSE_YES_TO_ALL;
         dispose();
     }
 
-    protected void cancel()
-    {
+    protected void cancel() {
         result = RESPONSE_CANCEL;
         dispose();
     }
 
-    public void actionPerformed(ActionEvent e)
-    {
+    public void actionPerformed(ActionEvent e) {
         if (e.getActionCommand().equals("Yes"))
             yes();
         else if (e.getActionCommand().equals("No"))
@@ -165,8 +160,7 @@ public class ConfirmDialog extends MessageDialog implements Constants
             cancel();
     }
 
-    public void keyPressed(KeyEvent e)
-    {
+    public void keyPressed(KeyEvent e) {
         int keyCode = e.getKeyCode();
         if (confirmAll) {
             switch (keyCode) {

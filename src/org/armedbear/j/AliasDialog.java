@@ -20,24 +20,20 @@
 
 package org.armedbear.j;
 
-import java.lang.StringBuilder;
-
 import java.awt.event.FocusEvent;
 import java.awt.event.FocusListener;
+import java.lang.StringBuilder;
 
-public final class AliasDialog extends AbstractDialog implements FocusListener
-{
+public final class AliasDialog extends AbstractDialog implements FocusListener {
     private final Editor editor;
     private final HistoryTextField keyTextField;
     private final HistoryTextField valueTextField;
 
-    public AliasDialog(Editor editor)
-    {
+    public AliasDialog(Editor editor) {
         this(editor, null);
     }
 
-    public AliasDialog(Editor editor, String key)
-    {
+    public AliasDialog(Editor editor, String key) {
         super(editor.getFrame(), "Alias", true);
         this.editor = editor;
         keyTextField = new HistoryTextField(20);
@@ -63,8 +59,7 @@ public final class AliasDialog extends AbstractDialog implements FocusListener
             keyTextField.requestFocus();
     }
 
-    protected void ok()
-    {
+    protected void ok() {
         dispose();
         String key = getKey();
         if (Aliases.isSystemAlias(key))
@@ -80,39 +75,32 @@ public final class AliasDialog extends AbstractDialog implements FocusListener
         }
     }
 
-    private final String getKey()
-    {
+    private final String getKey() {
         final String key = keyTextField.getText();
         return key != null ? key.trim() : "";
     }
 
-    private final String getValue()
-    {
+    private final String getValue() {
         final String value = valueTextField.getText();
         return value != null ? value.trim() : "";
     }
 
-    public void focusGained(FocusEvent e)
-    {
-    }
+    public void focusGained(FocusEvent e) {}
 
-    public void focusLost(FocusEvent e)
-    {
+    public void focusLost(FocusEvent e) {
         String value = editor.getAlias(getKey());
         if (value != null)
             valueTextField.setText(value);
     }
 
-    public static void alias()
-    {
+    public static void alias() {
         final Editor editor = Editor.currentEditor();
         AliasDialog d = new AliasDialog(editor);
         editor.centerDialog(d);
         d.setVisible(true);
     }
 
-    public static void alias(String args)
-    {
+    public static void alias(String args) {
         final Editor editor = Editor.currentEditor();
         args = args.trim();
         final StringBuilder sb = new StringBuilder();

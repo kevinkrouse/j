@@ -21,13 +21,11 @@
 package org.armedbear.j;
 
 import java.lang.StringBuilder;
-
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
-import java.net.URL;
 
-public final class Cookie
-{
+public final class Cookie {
     // Shared from HHTP load threads as well as the event thread so access must be synchronized.
     private static List<Cookie> cookies;
 
@@ -38,12 +36,9 @@ public final class Cookie
     private String expires;
     private boolean secure;
 
-    private Cookie()
-    {
-    }
+    private Cookie() {}
 
-    public static synchronized void setCookie(URL url, String s)
-    {
+    public static synchronized void setCookie(URL url, String s) {
         Cookie cookie = new Cookie();
         String remaining = s.trim();
         while (remaining.length() > 0) {
@@ -75,14 +70,13 @@ public final class Cookie
     }
 
     // BUG! Cookies with more specific path mappings should be sent first.
-    public static synchronized String getCookie(URL url)
-    {
+    public static synchronized String getCookie(URL url) {
         if (cookies == null)
             return null;
         String host = url.getHost();
         String path = url.getPath();
         StringBuilder sb = new StringBuilder(256);
-        for (int i = cookies.size()-1; i >= 0; i--) {
+        for (int i = cookies.size() - 1; i >= 0; i--) {
             Cookie cookie = cookies.get(i);
             if (cookie.domain != null && host.endsWith(cookie.domain)) {
                 if (cookie.path != null && path.startsWith(cookie.path)) {
@@ -99,19 +93,21 @@ public final class Cookie
         return sb.toString();
     }
 
-    public static synchronized void deleteCookies()
-    {
+    public static synchronized void deleteCookies() {
         cookies = null;
     }
 
-    private static void addCookie(Cookie cookie)
-    {
+    private static void addCookie(Cookie cookie) {
         if (cookies != null) {
-            for (int i = cookies.size()-1; i >= 0; i--) {
+            for (int i = cookies.size() - 1; i >= 0; i--) {
                 Cookie c = cookies.get(i);
-                if (c.domain.equals(cookie.domain) &&
-                    c.path.equals(cookie.path) &&
-                    c.name.equals(cookie.name)) {
+                if (
+                    c.domain.equals(cookie.domain)
+                        &&
+                        c.path.equals(cookie.path)
+                        &&
+                        c.name.equals(cookie.name)
+                ) {
                     // BUG! Should delete cookie here if new cookie's
                     // expiration time is in the past.
                     c.value = cookie.value;
@@ -123,8 +119,7 @@ public final class Cookie
         cookies.add(cookie);
     }
 
-    private void set(String key, String s)
-    {
+    private void set(String key, String s) {
         if (key.equals("domain"))
             domain = s;
         else if (key.equals("path"))
@@ -139,8 +134,7 @@ public final class Cookie
         }
     }
 
-    private boolean isValid()
-    {
+    private boolean isValid() {
         if (name != null && name.length() > 0)
             if (value != null && value.length() > 0)
                 return true;

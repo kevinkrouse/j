@@ -20,16 +20,14 @@
 
 package org.armedbear.j;
 
-import org.armedbear.j.util.Utilities;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.Properties;
 import java.util.Set;
+import org.armedbear.j.util.Utilities;
 
-public final class Autosave implements Constants
-{
+public final class Autosave implements Constants {
     private static final String CATALOG_NAME = "catalog";
     private static Properties catalog;
     private static File catalogFile;
@@ -38,8 +36,7 @@ public final class Autosave implements Constants
     private static File autosaveDirectory;
     private static boolean initialized;
 
-    public static synchronized File getAutosaveDirectory()
-    {
+    public static synchronized File getAutosaveDirectory() {
         if (!initialized) {
             autosaveDirectory =
                 File.getInstance(Directories.getStateDirectory(), "autosave");
@@ -57,21 +54,18 @@ public final class Autosave implements Constants
         return autosaveDirectory;
     }
 
-    public static synchronized final boolean isAutosaveEnabled()
-    {
+    public static synchronized final boolean isAutosaveEnabled() {
         return autosaveEnabled;
     }
 
-    public static synchronized void put(String netPath, String alias)
-    {
+    public static synchronized void put(String netPath, String alias) {
         if (catalog == null)
             catalog = new Properties();
         catalog.put(netPath, alias);
     }
 
     // Update catalog file when a buffer is renamed.
-    public static synchronized void rename(String oldName, String newName)
-    {
+    public static synchronized void rename(String oldName, String newName) {
         if (catalog != null && oldName != null) {
             String alias = (String) catalog.remove(oldName);
             if (alias != null) {
@@ -81,8 +75,7 @@ public final class Autosave implements Constants
         }
     }
 
-    public static synchronized void flush()
-    {
+    public static synchronized void flush() {
         if (catalogFile == null) {
             if (getAutosaveDirectory() == null)
                 return;
@@ -97,8 +90,7 @@ public final class Autosave implements Constants
         }
     }
 
-    public static synchronized void deleteCatalogFile()
-    {
+    public static synchronized void deleteCatalogFile() {
         if (catalogFile == null) {
             if (getAutosaveDirectory() == null)
                 return;
@@ -107,8 +99,7 @@ public final class Autosave implements Constants
         catalogFile.delete();
     }
 
-    public static synchronized void recover()
-    {
+    public static synchronized void recover() {
         if (catalogFile == null) {
             if (getAutosaveDirectory() == null)
                 return;
@@ -133,8 +124,7 @@ public final class Autosave implements Constants
         catalogFile.delete();
     }
 
-    private static void queryRecoverFile(String netPath, String alias)
-    {
+    private static void queryRecoverFile(String netPath, String alias) {
         File autosaveFile = File.getInstance(getAutosaveDirectory(), alias);
         if (!autosaveFile.exists()) {
             // Nothing we can do.
@@ -196,8 +186,7 @@ public final class Autosave implements Constants
         }
     }
 
-    private static final File getRecoverDirectory()
-    {
+    private static final File getRecoverDirectory() {
         return File.getInstance(Directories.getStateDirectory(), "recover");
     }
 }

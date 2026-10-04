@@ -24,17 +24,26 @@ import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.util.List;
 
-public interface TextFieldHandler extends KeyListener
-{
+public interface TextFieldHandler extends KeyListener {
     public void enter();
+
     public void escape();
+
     public boolean wantTab();
+
     public void tab();
+
     public void shiftTab();
+
     public List<String> getCompletions(String prefix);
+
     public void resetCompletions();
+
     public Expansion getExpansion(String prefix);
+
     public void keyPressed(KeyEvent e);
+
     public void keyReleased(KeyEvent e);
+
     public void keyTyped(KeyEvent e);
 }

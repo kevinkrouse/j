@@ -32,28 +32,24 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 
-public final class SidebarPanel extends JPanel implements MouseListener
-{
+public final class SidebarPanel extends JPanel implements MouseListener {
     private final Sidebar sidebar;
     private JLabel label;
     private JScrollPane scrollPane;
 
-    public SidebarPanel(Sidebar sidebar)
-    {
+    public SidebarPanel(Sidebar sidebar) {
         super();
         this.sidebar = sidebar;
         setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
     }
 
-    public void removeAll()
-    {
+    public void removeAll() {
         label = null;
         scrollPane = null;
         super.removeAll();
     }
 
-    public void setLabelText(String s)
-    {
+    public void setLabelText(String s) {
         if (s == null || s.length() == 0) {
             // Remove label.
             if (label != null) {
@@ -80,8 +76,7 @@ public final class SidebarPanel extends JPanel implements MouseListener
         }
     }
 
-    public void addScrollPane(JScrollPane scrollPane)
-    {
+    public void addScrollPane(JScrollPane scrollPane) {
         if (label == null)
             add(label = new Label());
         if (scrollPane.getVerticalScrollBar() != null)
@@ -96,29 +91,25 @@ public final class SidebarPanel extends JPanel implements MouseListener
 
     public void mouseExited(MouseEvent e) {}
 
-    public void mousePressed(MouseEvent e)
-    {
+    public void mousePressed(MouseEvent e) {
         if (scrollPane != null) {
             if (scrollPane.getViewport() != null) {
                 Component c = scrollPane.getViewport().getView();
                 if (c instanceof JComponent)
-                    sidebar.getEditor().setFocus((JComponent)c);
+                    sidebar.getEditor().setFocus((JComponent) c);
             }
         }
     }
 
     public void mouseReleased(MouseEvent e) {}
 
-    private static class Label extends JLabel
-    {
-        private Label()
-        {
+    private static class Label extends JLabel {
+        private Label() {
             super();
             setBorder(BorderFactory.createEmptyBorder(3, 3, 3, 3));
         }
 
-        public void paintComponent(Graphics g)
-        {
+        public void paintComponent(Graphics g) {
             Display.setRenderingHints(g);
             super.paintComponent(g);
         }

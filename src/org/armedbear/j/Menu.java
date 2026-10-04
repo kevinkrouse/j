@@ -22,29 +22,29 @@ package org.armedbear.j;
 
 import javax.swing.JMenu;
 
-public final class Menu extends JMenu implements Constants
-{
-    public Menu(String s)
-    {
+public final class Menu extends JMenu implements Constants {
+    public Menu(String s) {
         super(s);
     }
 
-    public Menu(String s, char mnemonic)
-    {
+    public Menu(String s, char mnemonic) {
         super(s);
         if (Editor.preferences().getBooleanProperty(Property.USE_MENU_MNEMONICS))
             setMnemonic(mnemonic);
         addMenuListener(MenuBar.getListener());
     }
 
-    public void setPopupMenuVisible(boolean b)
-    {
+    public void setPopupMenuVisible(boolean b) {
         super.setPopupMenuVisible(b);
     }
 
-    public MenuItem add(Editor editor, String label, char mnemonic,
-        String command, boolean enabled)
-    {
+    public MenuItem add(
+        Editor editor,
+        String label,
+        char mnemonic,
+        String command,
+        boolean enabled
+    ) {
         Object[] values = editor.getKeyMapping(command);
         Debug.assertTrue(values != null);
         Debug.assertTrue(values.length == 2);
@@ -65,9 +65,12 @@ public final class Menu extends JMenu implements Constants
         return menuItem;
     }
 
-    public MenuItem add(Editor editor, String label, char mnemonic,
-        String command)
-    {
+    public MenuItem add(
+        Editor editor,
+        String label,
+        char mnemonic,
+        String command
+    ) {
         return add(editor, label, mnemonic, command, true);
     }
 }

@@ -26,8 +26,7 @@ import javax.swing.JComponent;
 import javax.swing.JScrollPane;
 import javax.swing.SwingUtilities;
 
-public final class Sidebar extends JComponent implements Constants
-{
+public final class Sidebar extends JComponent implements Constants {
     private final Frame frame;
     private final SplitPane splitPane;
     private final SidebarPanel topPanel;
@@ -37,8 +36,7 @@ public final class Sidebar extends JComponent implements Constants
     private NavigationComponent bottomComponent;
     private int updateFlag;
 
-    public Sidebar(Frame frame)
-    {
+    public Sidebar(Frame frame) {
         this.frame = frame;
         setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
         topPanel = new SidebarPanel(this);
@@ -55,58 +53,48 @@ public final class Sidebar extends JComponent implements Constants
         add(splitPane);
     }
 
-    public final Frame getFrame()
-    {
+    public final Frame getFrame() {
         return frame;
     }
 
-    public final Editor getEditor()
-    {
+    public final Editor getEditor() {
         return frame.getCurrentEditor();
     }
 
-    public final SidebarBufferTree getBufferList()
-    {
+    public final SidebarBufferTree getBufferList() {
         return bufferTree;
     }
 
-    public final SidebarBufferTree getBufferTree()
-    {
+    public final SidebarBufferTree getBufferTree() {
         return bufferTree;
     }
 
-    public NavigationComponent getBottomComponent()
-    {
+    public NavigationComponent getBottomComponent() {
         return bottomComponent;
     }
 
-    public void activateBufferList()
-    {
+    public void activateBufferList() {
         if (bufferTree != null)
             frame.setFocus(bufferTree);
     }
 
-    public void activateNavigationComponent()
-    {
+    public void activateNavigationComponent() {
         if (bottomComponent != null)
             frame.setFocus((JComponent) bottomComponent);
     }
 
-    public int getDividerLocation()
-    {
+    public int getDividerLocation() {
         if (splitPane == null)
             return -1;
 
         return splitPane.getDividerLocation();
     }
 
-    public final void setBufferListLabelText(String s)
-    {
+    public final void setBufferListLabelText(String s) {
         topPanel.setLabelText(s);
     }
 
-    public static void repaintBufferListInAllFrames()
-    {
+    public static void repaintBufferListInAllFrames() {
         for (int i = 0; i < Editor.getFrameCount(); i++) {
             Frame frame = Editor.getFrame(i);
             if (frame != null) {
@@ -117,8 +105,7 @@ public final class Sidebar extends JComponent implements Constants
         }
     }
 
-    public void setBuffer()
-    {
+    public void setBuffer() {
         if (bufferTree != null) {
             Buffer buffer = frame.getCurrentEditor().getBuffer();
             if (buffer != bufferTree.getSelectedBuffer())
@@ -126,27 +113,23 @@ public final class Sidebar extends JComponent implements Constants
         }
     }
 
-    public void updatePosition()
-    {
+    public void updatePosition() {
         if (bottomComponent != null)
             bottomComponent.updatePosition();
     }
 
-    public static final boolean isTaggable(Buffer buffer)
-    {
+    public static final boolean isTaggable(Buffer buffer) {
         Mode mode = buffer.getMode();
         return mode != null && mode.isTaggable();
     }
 
-    public synchronized final void setUpdateFlag(int mask)
-    {
+    public synchronized final void setUpdateFlag(int mask) {
         updateFlag |= mask;
         if (bufferTree != null)
             bufferTree.setUpdateFlag(updateFlag & SIDEBAR_BUFFER_LIST_ALL);
     }
 
-    public static void setUpdateFlagInAllFrames(int mask)
-    {
+    public static void setUpdateFlagInAllFrames(int mask) {
         for (int i = 0; i < Editor.getFrameCount(); i++) {
             Frame frame = Editor.getFrame(i);
             Sidebar sidebar = frame.getSidebar();
@@ -155,8 +138,7 @@ public final class Sidebar extends JComponent implements Constants
         }
     }
 
-    private void setBottomComponent()
-    {
+    private void setBottomComponent() {
         if (!SwingUtilities.isEventDispatchThread())
             Debug.bug("Sidebar.setBottomComponent() called from background thread!");
         if (bottomComponent != null) {
@@ -188,7 +170,7 @@ public final class Sidebar extends JComponent implements Constants
             // uiScale change and still be carrying the old font and row
             // heights in its renderer.
             UIScale.refresh((JComponent) bottomComponent);
-            JScrollPane scrollPane = new JScrollPane((JComponent)bottomComponent);
+            JScrollPane scrollPane = new JScrollPane((JComponent) bottomComponent);
             if (bottomComponent instanceof SidebarList)
                 scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
             scrollPane.setAlignmentX(LEFT_ALIGNMENT);
@@ -199,8 +181,7 @@ public final class Sidebar extends JComponent implements Constants
             bottomPanel.repaint();
     }
 
-    public synchronized void refreshSidebar()
-    {
+    public synchronized void refreshSidebar() {
         if (updateFlag != 0) {
             if ((updateFlag & SIDEBAR_BUFFER_LIST_ALL) != 0) {
                 final SidebarBufferTree bufferTree = getBufferTree();
@@ -226,11 +207,10 @@ public final class Sidebar extends JComponent implements Constants
         }
     }
 
-    public static void refreshSidebarInAllFrames()
-    {
+    public static void refreshSidebarInAllFrames() {
         if (!SwingUtilities.isEventDispatchThread())
             Debug.bug("refreshSidebarInAllFrames() called from background thread!");
-         for (int i = 0; i < Editor.getFrameCount(); i++) {
+        for (int i = 0; i < Editor.getFrameCount(); i++) {
             Frame frame = Editor.getFrame(i);
             Sidebar sidebar = frame.getSidebar();
             if (sidebar != null)

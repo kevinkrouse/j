@@ -20,11 +20,6 @@
 
 package org.armedbear.j;
 
-import org.armedbear.j.mode.dir.DirectoryBuffer;
-import org.armedbear.j.util.Utilities;
-
-import java.util.regex.Pattern;
-import java.util.regex.PatternSyntaxException;
 import java.awt.Dimension;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -34,23 +29,26 @@ import java.awt.event.TextEvent;
 import java.awt.event.TextListener;
 import java.util.ArrayList;
 import java.util.StringTokenizer;
+import java.util.regex.Pattern;
+import java.util.regex.PatternSyntaxException;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.JComboBox;
 import javax.swing.JPanel;
+import org.armedbear.j.mode.dir.DirectoryBuffer;
+import org.armedbear.j.util.Utilities;
 
 public class FindInFilesDialog extends AbstractDialog implements Constants,
-    ActionListener, FocusListener, TextListener
-{
-    private static final String patternKey             = "find.pattern";
-    private static final String replacementKey         = "replace.replacement";
-    private static final String filesKey               = "findInFiles.files";
-    private static final String defaultExcludesKey     = "findInFiles.defaultExcludes";
-    private static final String wholeWordsOnlyKey      = "findInFiles.wholeWordsOnly";
-    private static final String regExpKey              = "findInFiles.regularExpression";
-    private static final String includeSubdirsKey      = "findInFiles.includeSubdirs";
+    ActionListener, FocusListener, TextListener {
+    private static final String patternKey = "find.pattern";
+    private static final String replacementKey = "replace.replacement";
+    private static final String filesKey = "findInFiles.files";
+    private static final String defaultExcludesKey = "findInFiles.defaultExcludes";
+    private static final String wholeWordsOnlyKey = "findInFiles.wholeWordsOnly";
+    private static final String regExpKey = "findInFiles.regularExpression";
+    private static final String includeSubdirsKey = "findInFiles.includeSubdirs";
     private static final String searchFilesInMemoryKey = "findInFiles.searchFilesInMemory";
-    private static final String listOccurrencesKey     = "findInFiles.listOccurrences";
+    private static final String listOccurrencesKey = "findInFiles.listOccurrences";
 
     private final SessionProperties sessionProperties =
         Editor.getSessionProperties();
@@ -82,8 +80,7 @@ public class FindInFilesDialog extends AbstractDialog implements Constants,
 
     private ModeListEntry[] permissibleModes;
 
-    public FindInFilesDialog(Editor editor, boolean replace)
-    {
+    public FindInFilesDialog(Editor editor, boolean replace) {
         super(editor, replace ? "Replace In Files" : "Find In Files", true);
 
         this.editor = editor;
@@ -134,8 +131,10 @@ public class FindInFilesDialog extends AbstractDialog implements Constants,
 
         filesControl.addFocusListener(this);
 
-        defaultExcludesCheckBox = new CheckBox("Default excludes",
-            sessionProperties.getBooleanProperty(defaultExcludesKey, true));
+        defaultExcludesCheckBox = new CheckBox(
+            "Default excludes",
+            sessionProperties.getBooleanProperty(defaultExcludesKey, true)
+        );
         defaultExcludesCheckBox.setMnemonic('D');
         addCheckBox(defaultExcludesCheckBox);
 
@@ -146,8 +145,10 @@ public class FindInFilesDialog extends AbstractDialog implements Constants,
         setIgnoreCaseDefault();
         addCheckBox(ignoreCaseCheckBox);
 
-        wholeWordsOnlyCheckBox = new CheckBox("Whole words only",
-            sessionProperties.getBooleanProperty(wholeWordsOnlyKey, false));
+        wholeWordsOnlyCheckBox = new CheckBox(
+            "Whole words only",
+            sessionProperties.getBooleanProperty(wholeWordsOnlyKey, false)
+        );
         wholeWordsOnlyCheckBox.setMnemonic('W');
         wholeWordsOnlyCheckBox.addActionListener(this);
         addCheckBox(wholeWordsOnlyCheckBox);
@@ -174,7 +175,8 @@ public class FindInFilesDialog extends AbstractDialog implements Constants,
 
         regExpCheckBox = new CheckBox(
             replace ? "Regular expressions" : "Regular expression",
-            sessionProperties.getBooleanProperty(regExpKey, false));
+            sessionProperties.getBooleanProperty(regExpKey, false)
+        );
         regExpCheckBox.setMnemonic('X');
         addCheckBox(regExpCheckBox);
 
@@ -184,8 +186,10 @@ public class FindInFilesDialog extends AbstractDialog implements Constants,
             addCheckBox(confirmChangesCheckBox);
         }
 
-        includeSubdirsCheckBox = new CheckBox("Include subdirectories",
-            sessionProperties.getBooleanProperty(includeSubdirsKey, false));
+        includeSubdirsCheckBox = new CheckBox(
+            "Include subdirectories",
+            sessionProperties.getBooleanProperty(includeSubdirsKey, false)
+        );
         includeSubdirsCheckBox.setMnemonic('S');
         addCheckBox(includeSubdirsCheckBox);
 
@@ -193,13 +197,19 @@ public class FindInFilesDialog extends AbstractDialog implements Constants,
         // Otherwise it's up to the user.
         if (!replace) {
             searchFilesInMemoryCheckBox =
-                new CheckBox("Search files in memory",
-                    sessionProperties.getBooleanProperty(searchFilesInMemoryKey,
-                        true));
+                new CheckBox(
+                    "Search files in memory",
+                    sessionProperties.getBooleanProperty(
+                        searchFilesInMemoryKey,
+                        true
+                    )
+                );
             searchFilesInMemoryCheckBox.setMnemonic('M');
             addCheckBox(searchFilesInMemoryCheckBox);
-            listOccurrencesCheckBox = new CheckBox("List occurrences",
-                sessionProperties.getBooleanProperty(listOccurrencesKey, true));
+            listOccurrencesCheckBox = new CheckBox(
+                "List occurrences",
+                sessionProperties.getBooleanProperty(listOccurrencesKey, true)
+            );
             listOccurrencesCheckBox.setMnemonic('L');
             addCheckBox(listOccurrencesCheckBox);
         }
@@ -213,8 +223,7 @@ public class FindInFilesDialog extends AbstractDialog implements Constants,
         patternControl.requestFocus();
     }
 
-    private ModeListEntry[] getPermissibleModes()
-    {
+    private ModeListEntry[] getPermissibleModes() {
         if (permissibleModes == null) {
             ModeList modeList = Editor.getModeList();
             ArrayList<ModeListEntry> list = new ArrayList<ModeListEntry>();
@@ -230,13 +239,11 @@ public class FindInFilesDialog extends AbstractDialog implements Constants,
         return permissibleModes;
     }
 
-    public FindInFiles getFindInFiles()
-    {
+    public FindInFiles getFindInFiles() {
         return findInFiles;
     }
 
-    protected void ok()
-    {
+    protected void ok() {
         findInFiles = new FindInFiles(editor);
 
         findInFiles.setPattern(patternControl.getText());
@@ -268,19 +275,31 @@ public class FindInFilesDialog extends AbstractDialog implements Constants,
         patternHistory.append(findInFiles.getPattern());
         patternHistory.save();
 
-        sessionProperties.setBooleanProperty(defaultExcludesKey,
-            findInFiles.getDefaultExcludes());
-        sessionProperties.setBooleanProperty(wholeWordsOnlyKey,
-            findInFiles.wholeWordsOnly());
-        sessionProperties.setBooleanProperty(regExpKey,
-            findInFiles.isRegularExpression());
-        sessionProperties.setBooleanProperty(includeSubdirsKey,
-            findInFiles.getIncludeSubdirs());
-        sessionProperties.setBooleanProperty(searchFilesInMemoryKey,
-            findInFiles.getSearchFilesInMemory());
+        sessionProperties.setBooleanProperty(
+            defaultExcludesKey,
+            findInFiles.getDefaultExcludes()
+        );
+        sessionProperties.setBooleanProperty(
+            wholeWordsOnlyKey,
+            findInFiles.wholeWordsOnly()
+        );
+        sessionProperties.setBooleanProperty(
+            regExpKey,
+            findInFiles.isRegularExpression()
+        );
+        sessionProperties.setBooleanProperty(
+            includeSubdirsKey,
+            findInFiles.getIncludeSubdirs()
+        );
+        sessionProperties.setBooleanProperty(
+            searchFilesInMemoryKey,
+            findInFiles.getSearchFilesInMemory()
+        );
         if (!replace)
-            sessionProperties.setBooleanProperty(listOccurrencesKey,
-                findInFiles.getListEachOccurrence());
+            sessionProperties.setBooleanProperty(
+                listOccurrencesKey,
+                findInFiles.getListEachOccurrence()
+            );
 
         if (findInFiles.isRegularExpression()) {
             if (findInFiles.getRE() == null) {
@@ -292,8 +311,11 @@ public class FindInFilesDialog extends AbstractDialog implements Constants,
                 }
                 catch (PatternSyntaxException e) {
                     findInFiles = null;
-                    MessageDialog.showMessageDialog(editor,
-                        e.getMessage(), "Error");
+                    MessageDialog.showMessageDialog(
+                        editor,
+                        e.getMessage(),
+                        "Error"
+                    );
                     patternControl.requestFocus();
                     return;
                 }
@@ -322,13 +344,11 @@ public class FindInFilesDialog extends AbstractDialog implements Constants,
         dispose();
     }
 
-    public void textValueChanged(TextEvent e)
-    {
+    public void textValueChanged(TextEvent e) {
         setIgnoreCaseDefault();
     }
 
-    public void actionPerformed(ActionEvent e)
-    {
+    public void actionPerformed(ActionEvent e) {
         String cmd = e.getActionCommand();
         if (cmd != null && cmd.equals(wholeWordsOnlyCheckBox.getText()))
             updateModeControl();
@@ -338,14 +358,12 @@ public class FindInFilesDialog extends AbstractDialog implements Constants,
 
     public void focusGained(FocusEvent e) {}
 
-    public void focusLost(FocusEvent e)
-    {
+    public void focusLost(FocusEvent e) {
         if (e.getComponent() == filesControl)
             updateModeControl();
     }
 
-    private void updateModeControl()
-    {
+    private void updateModeControl() {
         if (modeComboBox != null) {
             String files = filesControl.getText();
             StringTokenizer st = new StringTokenizer(files, ";");
@@ -370,8 +388,7 @@ public class FindInFilesDialog extends AbstractDialog implements Constants,
         }
     }
 
-    private void setIgnoreCaseDefault()
-    {
+    private void setIgnoreCaseDefault() {
         String pattern = patternControl.getText();
         ignoreCaseCheckBox.setSelected(pattern == null || Utilities.isLowerCase(pattern));
     }

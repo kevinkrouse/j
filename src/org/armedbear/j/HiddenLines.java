@@ -22,13 +22,11 @@ package org.armedbear.j;
 
 import java.util.ArrayList;
 
-public final class HiddenLines
-{
+public final class HiddenLines {
     private final Buffer buffer;
     private final ArrayList<HiddenLinesEntry> list;
 
-    public HiddenLines(Editor editor)
-    {
+    public HiddenLines(Editor editor) {
         buffer = editor.getBuffer();
         list = new ArrayList<HiddenLinesEntry>();
         int count = 0;
@@ -47,8 +45,7 @@ public final class HiddenLines
             addEntry(hidden, count);
     }
 
-    public void restore()
-    {
+    public void restore() {
         Line line = buffer.getFirstLine();
         for (HiddenLinesEntry entry : list) {
             for (int j = 0; j < entry.getCount(); j++) {
@@ -59,29 +56,24 @@ public final class HiddenLines
         buffer.renumber();
     }
 
-    private final void addEntry(int hidden, int count)
-    {
+    private final void addEntry(int hidden, int count) {
         list.add(new HiddenLinesEntry(hidden, count));
     }
 
-    private static final class HiddenLinesEntry
-    {
+    private static final class HiddenLinesEntry {
         private final int hidden;
         private final int count;
 
-        private HiddenLinesEntry(int hidden, int count)
-        {
+        private HiddenLinesEntry(int hidden, int count) {
             this.hidden = hidden;
             this.count = count;
         }
 
-        private final int getHidden()
-        {
+        private final int getHidden() {
             return hidden;
         }
 
-        private final int getCount()
-        {
+        private final int getCount() {
             return count;
         }
     }

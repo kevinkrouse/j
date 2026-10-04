@@ -20,8 +20,6 @@
 
 package org.armedbear.j;
 
-import java.lang.StringBuilder;
-
 import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.Graphics;
@@ -30,12 +28,12 @@ import java.awt.event.FocusListener;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.awt.event.TextListener;
+import java.lang.StringBuilder;
 import javax.swing.JTextField;
 import javax.swing.SwingUtilities;
 
 public class HistoryTextField extends JTextField implements FocusListener,
-    MouseListener
-{
+    MouseListener {
     private History history;
 
     private OpenFileDialog owner;
@@ -45,8 +43,7 @@ public class HistoryTextField extends JTextField implements FocusListener,
 
     protected TextFieldHandler handler;
 
-    public HistoryTextField(Editor editor, int columns)
-    {
+    public HistoryTextField(Editor editor, int columns) {
         super(columns);
         final Preferences preferences = Editor.preferences();
         final String fontName =
@@ -65,8 +62,7 @@ public class HistoryTextField extends JTextField implements FocusListener,
         addMouseListener(this);
     }
 
-    public HistoryTextField(int columns)
-    {
+    public HistoryTextField(int columns) {
         this(Editor.currentEditor(), columns);
     }
 
@@ -76,34 +72,28 @@ public class HistoryTextField extends JTextField implements FocusListener,
         return size;
     }
 
-    public final OpenFileDialog getOwner()
-    {
+    public final OpenFileDialog getOwner() {
         return owner;
     }
 
-    public final void setOwner(OpenFileDialog owner)
-    {
+    public final void setOwner(OpenFileDialog owner) {
         this.owner = owner;
     }
 
-    public void addTextListener(TextListener textListener)
-    {
+    public void addTextListener(TextListener textListener) {
         Debug.assertTrue(this.textListener == null);
         this.textListener = textListener;
     }
 
-    public final TextListener getTextListener()
-    {
+    public final TextListener getTextListener() {
         return textListener;
     }
 
-    public final TextFieldHandler getHandler()
-    {
+    public final TextFieldHandler getHandler() {
         return handler;
     }
 
-    public final void setHandler(TextFieldHandler handler)
-    {
+    public final void setHandler(TextFieldHandler handler) {
         Debug.assertTrue(handler != null);
         if (this.handler != null)
             removeKeyListener(this.handler);
@@ -111,25 +101,21 @@ public class HistoryTextField extends JTextField implements FocusListener,
         addKeyListener(handler);
     }
 
-    public void setHistory(History history)
-    {
+    public void setHistory(History history) {
         this.history = history;
         resetHistory();
     }
 
-    public final History getHistory()
-    {
+    public final History getHistory() {
         return history;
     }
 
-    public final void resetHistory()
-    {
+    public final void resetHistory() {
         if (history != null)
             history.reset();
     }
 
-    public String getText()
-    {
+    public String getText() {
         String s = super.getText();
         int length = s.length();
         StringBuilder sb = new StringBuilder(length);
@@ -142,8 +128,7 @@ public class HistoryTextField extends JTextField implements FocusListener,
         return sb.toString();
     }
 
-    public void previousHistory()
-    {
+    public void previousHistory() {
         if (history != null) {
             final String text = super.getText();
             while (true) {
@@ -159,8 +144,7 @@ public class HistoryTextField extends JTextField implements FocusListener,
         }
     }
 
-    public void nextHistory()
-    {
+    public void nextHistory() {
         if (history != null) {
             final String text = super.getText();
             while (true) {
@@ -176,29 +160,25 @@ public class HistoryTextField extends JTextField implements FocusListener,
         }
     }
 
-    public void recallLast()
-    {
+    public void recallLast() {
         if (history != null) {
             String s = history.getPrevious();
             setText(s != null ? s : "");
         }
     }
 
-    public void paintComponent(Graphics g)
-    {
+    public void paintComponent(Graphics g) {
         // Swing lays this field out, so let it place glyphs at their true
         // advances instead of rounding each one to a whole pixel.
         Display.setRenderingHints(g);
         super.paintComponent(g);
     }
 
-    public void focusGained(FocusEvent e)
-    {
+    public void focusGained(FocusEvent e) {
         selectAll();
     }
 
-    public void focusLost(FocusEvent e)
-    {
+    public void focusLost(FocusEvent e) {
         int length = getText().length();
         select(length, length);
     }
@@ -211,8 +191,7 @@ public class HistoryTextField extends JTextField implements FocusListener,
 
     public void mousePressed(MouseEvent e) {}
 
-    public void mouseReleased(MouseEvent e)
-    {
+    public void mouseReleased(MouseEvent e) {
         final int dot = getCaretPosition();
         final int mark = getCaret().getMark();
         Runnable r = () -> {

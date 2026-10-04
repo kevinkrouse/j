@@ -20,20 +20,18 @@
 
 package org.armedbear.j;
 
-import java.io.InputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.StringTokenizer;
 
-public final class Netrc
-{
+public final class Netrc {
     // Read from FTP/SSH/mail session threads so access is synchronized.
     private static List<Login> logins;
     private static long lastModified;
 
-    public static synchronized Login getLogin(String host)
-    {
+    public static synchronized Login getLogin(String host) {
         if (host == null)
             return null;
         parseNetrc();
@@ -46,8 +44,7 @@ public final class Netrc
         return null;
     }
 
-    public static synchronized String getPassword(String host, String user)
-    {
+    public static synchronized String getPassword(String host, String user) {
         if (host == null)
             return null;
         parseNetrc();
@@ -63,8 +60,7 @@ public final class Netrc
         return null;
     }
 
-    private static void parseNetrc()
-    {
+    private static void parseNetrc() {
         File file = File.getInstance(Directories.getUserHomeDirectory(), ".netrc");
         if (!file.isFile() || !file.canRead()) {
             logins = null; // Nuke old cache, if any.

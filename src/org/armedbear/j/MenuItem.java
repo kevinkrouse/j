@@ -29,8 +29,7 @@ import java.awt.Insets;
 import javax.swing.JMenuItem;
 import javax.swing.UIManager;
 
-public final class MenuItem extends JMenuItem
-{
+public final class MenuItem extends JMenuItem {
     private static final Font acceleratorFont =
         UIManager.getFont("MenuItem.acceleratorFont");
     private static final Color acceleratorForeground =
@@ -42,14 +41,12 @@ public final class MenuItem extends JMenuItem
 
     private final String acceleratorText;
 
-    public MenuItem(String label, String acceleratorText)
-    {
+    public MenuItem(String label, String acceleratorText) {
         super(label);
         this.acceleratorText = acceleratorText;
     }
 
-    public Dimension getPreferredSize()
-    {
+    public Dimension getPreferredSize() {
         Dimension d = super.getPreferredSize();
         if (acceleratorText != null)
             d.width += getFontMetrics(acceleratorFont).stringWidth(acceleratorText) + 30;
@@ -58,8 +55,7 @@ public final class MenuItem extends JMenuItem
 
     // We paint our own menu items so the accelerator text will be consistent
     // with our key map format.
-    public void paint(Graphics g)
-    {
+    public void paint(Graphics g) {
         Display.setRenderingHints(g);
         super.paint(g);
         if (acceleratorText != null) {
@@ -72,9 +68,11 @@ public final class MenuItem extends JMenuItem
             g.setColor(c);
             FontMetrics fm = g.getFontMetrics();
             Insets insets = getInsets();
-            g.drawString(acceleratorText,
-                         getWidth() - (fm.stringWidth(acceleratorText) + insets.right + insets.left),
-                         getFont().getSize() + (insets.top - 1));
+            g.drawString(
+                acceleratorText,
+                getWidth() - (fm.stringWidth(acceleratorText) + insets.right + insets.left),
+                getFont().getSize() + (insets.top - 1)
+            );
         }
     }
 }

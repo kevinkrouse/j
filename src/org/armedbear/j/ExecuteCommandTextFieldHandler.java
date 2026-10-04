@@ -22,15 +22,12 @@ package org.armedbear.j;
 
 import java.util.List;
 
-public final class ExecuteCommandTextFieldHandler extends DefaultTextFieldHandler
-{
-    public ExecuteCommandTextFieldHandler(Editor editor, HistoryTextField textField)
-    {
+public final class ExecuteCommandTextFieldHandler extends DefaultTextFieldHandler {
+    public ExecuteCommandTextFieldHandler(Editor editor, HistoryTextField textField) {
         super(editor, textField);
     }
 
-    public void enter()
-    {
+    public void enter() {
         String input = textField.getText();
         if (input == null)
             return;
@@ -56,13 +53,11 @@ public final class ExecuteCommandTextFieldHandler extends DefaultTextFieldHandle
         editor.getDispatcher().eventHandled();
     }
 
-    public boolean wantTab()
-    {
+    public boolean wantTab() {
         return true;
     }
 
-    public final List<String> getCompletions(String prefix)
-    {
+    public final List<String> getCompletions(String prefix) {
         return CommandTable.getCompletionsForPrefix(prefix);
     }
 }

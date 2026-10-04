@@ -24,22 +24,19 @@ import javax.swing.undo.AbstractUndoableEdit;
 import javax.swing.undo.UndoableEdit;
 
 public class UndoInsertString extends AbstractUndoableEdit
-    implements Constants, UndoableEdit
-{
+    implements Constants, UndoableEdit {
     private final Buffer buffer;
     private final PreState preState;
     private PostState postState;
     private LineSequence lines;
 
-    public UndoInsertString(Editor editor)
-    {
+    public UndoInsertString(Editor editor) {
         buffer = editor.getBuffer();
         preState = new PreState(editor);
         postState = new PostState(editor);
     }
 
-    public void undo()
-    {
+    public void undo() {
         super.undo();
         final Editor editor = Editor.currentEditor();
         Debug.assertTrue(editor.getBuffer() == buffer);
@@ -48,8 +45,7 @@ public class UndoInsertString extends AbstractUndoableEdit
         update(editor);
     }
 
-    public void redo()
-    {
+    public void redo() {
         super.redo();
         final Editor editor = Editor.currentEditor();
         Debug.assertTrue(editor.getBuffer() == buffer);
@@ -57,27 +53,26 @@ public class UndoInsertString extends AbstractUndoableEdit
         update(editor);
     }
 
-    private void update(Editor editor)
-    {
+    private void update(Editor editor) {
         editor.setUpdateFlag(REFRAME);
         if (postState.modificationCount != preState.modificationCount) {
             // Buffer was changed.
             buffer.invalidate();
-            Sidebar.setUpdateFlagInAllFrames(SIDEBAR_MODIFIED_BUFFER_COUNT |
-                SIDEBAR_REPAINT_BUFFER_LIST);
+            Sidebar.setUpdateFlagInAllFrames(
+                SIDEBAR_MODIFIED_BUFFER_COUNT |
+                    SIDEBAR_REPAINT_BUFFER_LIST
+            );
             Sidebar.repaintBufferListInAllFrames();
         }
     }
 
-    private static int lineCount(Buffer buffer)
-    {
+    private static int lineCount(Buffer buffer) {
         if (buffer.needsRenumbering())
             buffer.renumber();
         return buffer.getLineCount();
     }
 
-    private class PreState
-    {
+    private class PreState {
         final int dotLineNumber;
         final int dotOffset;
         final int markLineNumber;
@@ -89,9 +84,9 @@ public class UndoInsertString extends AbstractUndoableEdit
         final Line line;
         final int lineCount;
 
-        PreState(Editor editor)
-        {
-            dotLineNumber = editor.getDotLine().lineNumber();;
+        PreState(Editor editor) {
+            dotLineNumber = editor.getDotLine().lineNumber();
+            ;
             // The insert's last line is found from how many lines it added,
             // not from where the caret is when undo runs: something may have
             // moved it since without an undo record of its own (vim motions
@@ -114,8 +109,7 @@ public class UndoInsertString extends AbstractUndoableEdit
         }
 
         // Undo.
-        void restoreState(Editor editor)
-        {
+        void restoreState(Editor editor) {
             final Line first = buffer.getLine(dotLineNumber);
             final Line last =
                 buffer.getLine(dotLineNumber + lineCount(buffer) - lineCount);
@@ -150,8 +144,7 @@ public class UndoInsertString extends AbstractUndoableEdit
         }
     }
 
-    private class PostState
-    {
+    private class PostState {
         final int dotLineNumber;
         final int dotOffset;
         final int markLineNumber;
@@ -161,9 +154,9 @@ public class UndoInsertString extends AbstractUndoableEdit
         final int modificationCount;
         final boolean modified;
 
-        PostState(Editor editor)
-        {
-            dotLineNumber = editor.getDotLine().lineNumber();;
+        PostState(Editor editor) {
+            dotLineNumber = editor.getDotLine().lineNumber();
+            ;
             dotOffset = editor.getDotOffset();
             Position mark = editor.getMark();
             if (mark != null) {
@@ -180,8 +173,7 @@ public class UndoInsertString extends AbstractUndoableEdit
         }
 
         // Redo.
-        void restoreState(Editor editor)
-        {
+        void restoreState(Editor editor) {
             // Where the insert went in, wherever the caret is now.
             final Line dotLine = buffer.getLine(preState.dotLineNumber);
             if (lines.size() == 1) {

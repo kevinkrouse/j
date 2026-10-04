@@ -24,8 +24,7 @@ import javax.swing.undo.AbstractUndoableEdit;
 import javax.swing.undo.UndoableEdit;
 
 public class UndoDeleteRegion extends AbstractUndoableEdit
-    implements Constants, UndoableEdit
-{
+    implements Constants, UndoableEdit {
     private final PreState preState;
     private PostState postState;
     private final LineSequence lines;
@@ -36,8 +35,7 @@ public class UndoDeleteRegion extends AbstractUndoableEdit
     // its own (vim motions are not undo steps).
     private final int beginLineNumber;
 
-    public UndoDeleteRegion(Editor editor, Region r)
-    {
+    public UndoDeleteRegion(Editor editor, Region r) {
         Debug.assertTrue(!editor.isColumnSelection());
         final Buffer buffer = editor.getBuffer();
         if (buffer.needsRenumbering())
@@ -47,15 +45,13 @@ public class UndoDeleteRegion extends AbstractUndoableEdit
         beginLineNumber = r.getBeginLineNumber();
     }
 
-    private Line beginLine(Buffer buffer)
-    {
+    private Line beginLine(Buffer buffer) {
         if (buffer.needsRenumbering())
             buffer.renumber();
         return buffer.getLine(beginLineNumber);
     }
 
-    public void undo()
-    {
+    public void undo() {
         super.undo();
         final Editor editor = Editor.currentEditor();
         final Buffer buffer = editor.getBuffer();
@@ -66,14 +62,15 @@ public class UndoDeleteRegion extends AbstractUndoableEdit
         if (postState.modificationCount != preState.modificationCount) {
             // Buffer was changed.
             buffer.invalidate();
-            Sidebar.setUpdateFlagInAllFrames(SIDEBAR_MODIFIED_BUFFER_COUNT |
-                SIDEBAR_REPAINT_BUFFER_LIST);
+            Sidebar.setUpdateFlagInAllFrames(
+                SIDEBAR_MODIFIED_BUFFER_COUNT |
+                    SIDEBAR_REPAINT_BUFFER_LIST
+            );
             Sidebar.repaintBufferListInAllFrames();
         }
     }
 
-    public void redo()
-    {
+    public void redo() {
         super.redo();
         final Editor editor = Editor.currentEditor();
         final Buffer buffer = editor.getBuffer();
@@ -83,14 +80,15 @@ public class UndoDeleteRegion extends AbstractUndoableEdit
         if (postState.modificationCount != preState.modificationCount) {
             // Buffer was changed.
             buffer.invalidate();
-            Sidebar.setUpdateFlagInAllFrames(SIDEBAR_MODIFIED_BUFFER_COUNT |
-                SIDEBAR_REPAINT_BUFFER_LIST);
+            Sidebar.setUpdateFlagInAllFrames(
+                SIDEBAR_MODIFIED_BUFFER_COUNT |
+                    SIDEBAR_REPAINT_BUFFER_LIST
+            );
             Sidebar.repaintBufferListInAllFrames();
         }
     }
 
-    private class PreState
-    {
+    private class PreState {
         final int dotLineNumber;
         final int dotOffset;
         final int markLineNumber;
@@ -99,8 +97,7 @@ public class UndoDeleteRegion extends AbstractUndoableEdit
         final int modificationCount;
         final boolean modified;
 
-        PreState(Editor editor)
-        {
+        PreState(Editor editor) {
             final Line dotLine = editor.getDotLine();
             dotLineNumber = dotLine.lineNumber();
             dotOffset = editor.getDotOffset();
@@ -119,8 +116,7 @@ public class UndoDeleteRegion extends AbstractUndoableEdit
         }
 
         // Undo.
-        void restoreState(Editor editor)
-        {
+        void restoreState(Editor editor) {
             final Buffer buffer = editor.getBuffer();
 
             final Line dotLine = beginLine(buffer);
@@ -153,8 +149,7 @@ public class UndoDeleteRegion extends AbstractUndoableEdit
         }
     }
 
-    private class PostState
-    {
+    private class PostState {
         final int dotLineNumber;
         final int dotOffset;
         final int absCaretCol;
@@ -162,8 +157,7 @@ public class UndoDeleteRegion extends AbstractUndoableEdit
         final boolean modified;
         final Line line;
 
-        PostState(Editor editor)
-        {
+        PostState(Editor editor) {
             final Line dotLine = editor.getDotLine();
             dotLineNumber = dotLine.lineNumber();
             dotOffset = editor.getDotOffset();
@@ -175,8 +169,7 @@ public class UndoDeleteRegion extends AbstractUndoableEdit
         }
 
         // Redo the deletion.
-        void restoreState(Editor editor)
-        {
+        void restoreState(Editor editor) {
             final Buffer buffer = editor.getBuffer();
 
             final Line begin = beginLine(buffer);

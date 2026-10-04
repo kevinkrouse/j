@@ -23,20 +23,16 @@ package org.armedbear.j;
 import java.awt.Graphics;
 import javax.swing.JCheckBox;
 
-public final class CheckBox extends JCheckBox
-{
-    public CheckBox(String text)
-    {
+public final class CheckBox extends JCheckBox {
+    public CheckBox(String text) {
         super(text);
     }
 
-    public CheckBox(String text, boolean selected)
-    {
+    public CheckBox(String text, boolean selected) {
         super(text, selected);
     }
 
-    public void paintComponent(Graphics g)
-    {
+    public void paintComponent(Graphics g) {
         Display.setRenderingHints(g);
         super.paintComponent(g);
     }

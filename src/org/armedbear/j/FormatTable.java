@@ -25,8 +25,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
 
-public final class FormatTable
-{
+public final class FormatTable {
     private static final Preferences preferences = Editor.preferences();
 
     private String modeName;
@@ -34,24 +33,20 @@ public final class FormatTable
     private FormatTableEntry[] array;
     private boolean initialized;
 
-    public FormatTable(String modeName)
-    {
+    public FormatTable(String modeName) {
         this.modeName = modeName;
         list = new ArrayList<FormatTableEntry>();
     }
 
-    public synchronized final String getModeName()
-    {
+    public synchronized final String getModeName() {
         return modeName;
     }
 
-    public synchronized final void setModeName(String s)
-    {
+    public synchronized final void setModeName(String s) {
         modeName = s;
     }
 
-    public synchronized FormatTableEntry lookup(int format)
-    {
+    public synchronized FormatTableEntry lookup(int format) {
         if (array != null) {
             try {
                 return array[format];
@@ -65,7 +60,7 @@ public final class FormatTable
             initialized = true;
             boolean ok = true;
             int largest = -1;
-            for (int i = list.size()-1; i >= 0; i--) {
+            for (int i = list.size() - 1; i >= 0; i--) {
                 final FormatTableEntry entry = list.get(i);
                 final int f = entry.getFormat();
                 if (f < 0) {
@@ -76,8 +71,8 @@ public final class FormatTable
                     largest = f;
             }
             if (ok && largest < 128) {
-                array = new FormatTableEntry[largest+1];
-                for (int i = list.size()-1; i >= 0; i--) {
+                array = new FormatTableEntry[largest + 1];
+                for (int i = list.size() - 1; i >= 0; i--) {
                     FormatTableEntry entry = list.get(i);
                     array[entry.getFormat()] = entry;
                 }
@@ -93,7 +88,7 @@ public final class FormatTable
                 Debug.bug("FormatTableEntry.lookup unable to build array");
         }
         if (list != null) {
-            for (int i = list.size()-1; i >= 0; i--) {
+            for (int i = list.size() - 1; i >= 0; i--) {
                 FormatTableEntry entry = list.get(i);
                 if (entry.getFormat() == format)
                     return entry;
@@ -102,15 +97,16 @@ public final class FormatTable
         return null;
     }
 
-    public synchronized void addEntryFromPrefs(int format, String thing)
-    {
+    public synchronized void addEntryFromPrefs(int format, String thing) {
         addEntryFromPrefs(format, thing, (String[]) null);
     }
 
-    public synchronized void addEntryFromPrefs(int format, String thing, String fallback)
-    {
-        addEntryFromPrefs(format, thing,
-                          fallback == null ? null : new String[] { fallback });
+    public synchronized void addEntryFromPrefs(int format, String thing, String fallback) {
+        addEntryFromPrefs(
+            format,
+            thing,
+            fallback == null ? null : new String[] { fallback }
+        );
     }
 
     /**
@@ -124,9 +120,11 @@ public final class FormatTable
      * "JavaMode.link.thing = other"; DefaultTheme.getLink says where a name
      * links when they do not.
      */
-    public synchronized void addEntryFromPrefs(int format, String thing,
-                                               String... fallbacks)
-    {
+    public synchronized void addEntryFromPrefs(
+        int format,
+        String thing,
+        String... fallbacks
+    ) {
         // The thing and the names it links to, then each fallback and its.
         final List<List<String>> chains = new ArrayList<List<String>>();
         final List<String> names = new ArrayList<String>();
@@ -136,9 +134,11 @@ public final class FormatTable
                 addChain(chains, names, fallback);
 
         final boolean dark = DefaultTheme.isDark(getBackground());
-        Found<Color> foundColor = resolve(chains,
+        Found<Color> foundColor = resolve(
+            chains,
             name -> findPreference("color", name, preferences::getColorProperty),
-            name -> DefaultTheme.getColor(modeName, name, dark));
+            name -> DefaultTheme.getColor(modeName, name, dark)
+        );
         // Nothing at all: the theme's text, not DefaultTheme's black on what
         // may be a dark background.
         if (foundColor == null) {
@@ -152,7 +152,8 @@ public final class FormatTable
         final Color color = foundColor.value;
         final String colorSource = foundColor.source;
 
-        final Found<Integer> foundStyle = resolve(chains,
+        final Found<Integer> foundStyle = resolve(
+            chains,
             name -> findPreference("style", name, k -> {
                 final int parsed = TextStyle.parse(preferences.getStringProperty(k));
                 return parsed >= 0 ? parsed : null;
@@ -160,12 +161,22 @@ public final class FormatTable
             name -> {
                 final int builtIn = DefaultTheme.getStyle(modeName, name);
                 return builtIn >= 0 ? builtIn : null;
-            });
+            }
+        );
         final int style = foundStyle != null ? foundStyle.value : TextStyle.PLAIN;
         final String styleSource = foundStyle != null ? foundStyle.source : null;
 
-        addEntry(new FormatTableEntry(format, color, style, thing, names,
-                                      colorSource, styleSource));
+        addEntry(
+            new FormatTableEntry(
+                format,
+                color,
+                style,
+                thing,
+                names,
+                colorSource,
+                styleSource
+            )
+        );
     }
 
     /**
@@ -174,14 +185,15 @@ public final class FormatTable
      * else DefaultTheme's; else null. For a color no format draws text in,
      * as a background.
      */
-    public synchronized Color resolveColor(String thing, boolean withDefaults)
-    {
+    public synchronized Color resolveColor(String thing, boolean withDefaults) {
         final List<List<String>> chains = new ArrayList<List<String>>();
         addChain(chains, new ArrayList<String>(), thing);
         final boolean dark = DefaultTheme.isDark(getBackground());
-        final Found<Color> found = resolve(chains,
+        final Found<Color> found = resolve(
+            chains,
             name -> findPreference("color", name, preferences::getColorProperty),
-            name -> withDefaults ? DefaultTheme.getColor(modeName, name, dark) : null);
+            name -> withDefaults ? DefaultTheme.getColor(modeName, name, dark) : null
+        );
         return found != null ? found.value : null;
     }
 
@@ -189,8 +201,7 @@ public final class FormatTable
      * The entries, in order of format, with the names each was resolved
      * through and where its color and style came from: for listStyles.
      */
-    /*package*/ synchronized List<FormatTableEntry> getEntries()
-    {
+    /*package*/ synchronized List<FormatTableEntry> getEntries() {
         final List<FormatTableEntry> entries = new ArrayList<FormatTableEntry>();
         if (list != null)
             entries.addAll(list);
@@ -202,13 +213,11 @@ public final class FormatTable
         return entries;
     }
 
-    private static final class Found<T>
-    {
+    private static final class Found<T> {
         final T value;
         final String source;
 
-        Found(T value, String source)
-        {
+        Found(T value, String source) {
             this.value = value;
             this.source = source;
         }
@@ -221,10 +230,11 @@ public final class FormatTable
      * whatever the theme says of "text", which it takes its color from --
      * but is kept only if no later chain, a fallback's, has a preference.
      */
-    private static <T> Found<T> resolve(List<List<String>> chains,
-                                        Function<String, Preference<T>> preference,
-                                        Function<String, T> builtIn)
-    {
+    private static <T> Found<T> resolve(
+        List<List<String>> chains,
+        Function<String, Preference<T>> preference,
+        Function<String, T> builtIn
+    ) {
         Found<T> builtInFound = null;
         for (List<String> chain : chains) {
             for (String name : chain) {
@@ -243,8 +253,7 @@ public final class FormatTable
     }
 
     // Only called from synchronized methods.
-    private void addChain(List<List<String>> chains, List<String> names, String name)
-    {
+    private void addChain(List<List<String>> chains, List<String> names, String name) {
         final List<String> chain = new ArrayList<String>();
         addLinked(chain, name);
         chain.removeAll(names);
@@ -256,8 +265,7 @@ public final class FormatTable
     private static final int MAX_LINKS = 8;
 
     // Only called from synchronized methods.
-    private void addLinked(List<String> names, String name)
-    {
+    private void addLinked(List<String> names, String name) {
         for (int i = 0; name != null && i < MAX_LINKS; i++) {
             if (names.contains(name))
                 return;
@@ -268,13 +276,11 @@ public final class FormatTable
     }
 
     // A preference's key and its value.
-    private static final class Preference<T>
-    {
+    private static final class Preference<T> {
         final String key;
         final T value;
 
-        Preference(String key, T value)
-        {
+        Preference(String key, T value) {
             this.key = key;
             this.value = value;
         }
@@ -282,9 +288,11 @@ public final class FormatTable
 
     // "JavaMode.color.comment", then "color.comment": the first that get
     // makes a value of, or null.
-    private <T> Preference<T> findPreference(String kind, String name,
-                                             Function<String, T> get)
-    {
+    private <T> Preference<T> findPreference(
+        String kind,
+        String name,
+        Function<String, T> get
+    ) {
         if (modeName != null) {
             final String key = modeName + "." + kind + "." + name;
             final T value = get.apply(key);
@@ -296,30 +304,29 @@ public final class FormatTable
         return value != null ? new Preference<T>(key, value) : null;
     }
 
-    private <T> T getPreference(String kind, String name, Function<String, T> get)
-    {
+    private <T> T getPreference(String kind, String name, Function<String, T> get) {
         final Preference<T> p = findPreference(kind, name, get);
         return p != null ? p.value : null;
     }
 
     /** Whether the shared styles took their colors for a dark background. */
-    /*package*/ synchronized boolean isDarkBackground()
-    {
+    /*package*/ synchronized boolean isDarkBackground() {
         return DefaultTheme.isDark(getBackground());
     }
 
     // The background the mode's colors are for, so that a shared style can
     // take its color for a light background or a dark.
-    private Color getBackground()
-    {
-        Color background = getPreference("color", "background",
-                                         preferences::getColorProperty);
+    private Color getBackground() {
+        Color background = getPreference(
+            "color",
+            "background",
+            preferences::getColorProperty
+        );
         return background != null ? background : DefaultTheme.getColor("background");
     }
 
     // Only called from synchronized methods.
-    private void addEntry(FormatTableEntry entry)
-    {
+    private void addEntry(FormatTableEntry entry) {
         int index = indexOf(entry.getFormat());
         if (index >= 0)
             list.set(index, entry);
@@ -328,8 +335,7 @@ public final class FormatTable
     }
 
     // Only called from synchronized methods.
-    private int indexOf(int format)
-    {
+    private int indexOf(int format) {
         for (int i = 0; i < list.size(); i++) {
             FormatTableEntry entry = list.get(i);
             if (entry.getFormat() == format)

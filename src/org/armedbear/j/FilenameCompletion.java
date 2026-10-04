@@ -20,17 +20,14 @@
 
 package org.armedbear.j;
 
-import org.armedbear.j.util.Utilities;
-
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
+import org.armedbear.j.util.Utilities;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Collections;
-
-public final class FilenameCompletion
-{
+public final class FilenameCompletion {
     private final File currentDirectory;
     private final String sourcePath;
     private final String excludesPattern;
@@ -39,9 +36,13 @@ public final class FilenameCompletion
     private String prefix;
     private ArrayList<File> list;
 
-    public FilenameCompletion(File directory, String prefix,
-        String sourcePath, String excludesPattern, boolean ignoreCase)
-    {
+    public FilenameCompletion(
+        File directory,
+        String prefix,
+        String sourcePath,
+        String excludesPattern,
+        boolean ignoreCase
+    ) {
         currentDirectory = directory;
         this.prefix = prefix;
         this.sourcePath = sourcePath;
@@ -51,18 +52,17 @@ public final class FilenameCompletion
     }
 
     // Returns list of File objects.
-    public List<File> listFiles()
-    {
+    public List<File> listFiles() {
         return list;
     }
 
-    private void initialize()
-    {
+    private void initialize() {
         Pattern excludesRE = null;
         if (excludesPattern != null) {
             try {
                 excludesRE = Pattern.compile(excludesPattern, ignoreCase ? Pattern.CASE_INSENSITIVE : 0);
-            } catch (PatternSyntaxException e) {
+            }
+            catch (PatternSyntaxException e) {
                 Log.error(e);
             }
         }
@@ -120,17 +120,24 @@ public final class FilenameCompletion
                     File sourcePathDirectory =
                         File.getInstance(sourcePathDirectories.get(i));
                     if (sourcePathDirectory != null)
-                        addCompletionsFromDirectory(list, sourcePathDirectory,
-                            prefix, excludesRE);
+                        addCompletionsFromDirectory(
+                            list,
+                            sourcePathDirectory,
+                            prefix,
+                            excludesRE
+                        );
                 }
             }
             Collections.sort(list);
         }
     }
 
-    private void addCompletionsFromDirectory(List<File> list, File directory,
-        String prefix, Pattern excludesRE)
-    {
+    private void addCompletionsFromDirectory(
+        List<File> list,
+        File directory,
+        String prefix,
+        Pattern excludesRE
+    ) {
         File[] files = directory.listFiles();
         if (files != null) {
             final int limit = files.length;
@@ -141,8 +148,13 @@ public final class FilenameCompletion
                     final String name = file.getName();
                     boolean isMatch;
                     if (ignoreCase)
-                        isMatch = name.regionMatches(true, 0, prefix, 0,
-                            prefixLength);
+                        isMatch = name.regionMatches(
+                            true,
+                            0,
+                            prefix,
+                            0,
+                            prefixLength
+                        );
                     else
                         isMatch = name.startsWith(prefix);
                     if (isMatch && excludesRE != null)
@@ -151,8 +163,7 @@ public final class FilenameCompletion
                         list.add(file);
                 }
             } else {
-                for (int i = 0; i < limit; i++)
-                {
+                for (int i = 0; i < limit; i++) {
                     boolean isMatch = true;
                     if (excludesRE != null) {
                         final File file = files[i];

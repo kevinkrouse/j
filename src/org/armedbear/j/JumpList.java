@@ -26,8 +26,7 @@ import java.util.List;
  * already listed replaces that entry, as vim does. One list for the whole of
  * j, where vim keeps one per window.
  */
-public final class JumpList
-{
+public final class JumpList {
     /** Vim's 'jumplist' length. */
     private static final int MAX = 100;
 
@@ -35,18 +34,14 @@ public final class JumpList
     /** Where jumpBack and jumpForward are; the size when not travelling. */
     private static int index;
 
-    private JumpList()
-    {
-    }
+    private JumpList() {}
 
     /** A jump is leaving from here. */
-    public static void record(Buffer buffer, Position pos)
-    {
+    public static void record(Buffer buffer, Position pos) {
         record(new Marker(buffer, pos));
     }
 
-    public static synchronized void record(Marker marker)
-    {
+    public static synchronized void record(Marker marker) {
         final Position pos = marker.getPosition();
         if (pos == null)
             return;
@@ -59,10 +54,10 @@ public final class JumpList
         index = entries.size();
     }
 
-    private static boolean sameLine(Marker m, Buffer buffer, int line)
-    {
+    private static boolean sameLine(Marker m, Buffer buffer, int line) {
         final Position pos = m.getPosition();
-        return m.getBuffer() == buffer && pos != null
+        return m.getBuffer() == buffer
+            && pos != null
             && pos.lineNumber() == line;
     }
 
@@ -71,9 +66,11 @@ public final class JumpList
      * there is none. Leaving the end of the list records where the caret is,
      * so that going forward again comes back to it.
      */
-    public static synchronized Marker travel(Buffer buffer, Position here,
-                                             int count)
-    {
+    public static synchronized Marker travel(
+        Buffer buffer,
+        Position here,
+        int count
+    ) {
         if (index + count < 0 || index + count >= entries.size())
             return null;
         if (index == entries.size()) {
@@ -87,20 +84,17 @@ public final class JumpList
     }
 
     /** Whether the last jump is the latest thing done: not travelling. */
-    public static synchronized boolean isAtEnd()
-    {
+    public static synchronized boolean isAtEnd() {
         return index == entries.size();
     }
 
     /** For Marker.getAllMarkers, so that edits move the entries too. */
-    static synchronized List<Marker> getEntries()
-    {
+    static synchronized List<Marker> getEntries() {
         return Collections.unmodifiableList(new ArrayList<Marker>(entries));
     }
 
     /** Forgets every entry. */
-    public static synchronized void clear()
-    {
+    public static synchronized void clear() {
         entries.clear();
         index = 0;
     }
@@ -108,19 +102,16 @@ public final class JumpList
     // ------------------------------------------------------------ commands
 
     /** {@code jumpBack} -- to where the caret was before the last jump. */
-    public static void jumpBack()
-    {
+    public static void jumpBack() {
         go(-1, "No earlier position");
     }
 
     /** {@code jumpForward} -- back again to where jumpBack came from. */
-    public static void jumpForward()
-    {
+    public static void jumpForward() {
         go(1, "No later position");
     }
 
-    private static void go(int count, String none)
-    {
+    private static void go(int count, String none) {
         final Editor editor = Editor.currentEditor();
         final Position dot = editor.getDot();
         if (dot == null)

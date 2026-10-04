@@ -23,13 +23,11 @@ package org.armedbear.j;
 import java.util.List;
 import javax.swing.SwingUtilities;
 
-public class FollowContextTask extends IdleThreadTask implements Constants
-{
+public class FollowContextTask extends IdleThreadTask implements Constants {
     private Expression lastExpression;
     private Position lastPos;
 
-    public FollowContextTask()
-    {
+    public FollowContextTask() {
         setIdle(500); // 500 ms
         setRunnable(runnable);
     }
@@ -54,9 +52,9 @@ public class FollowContextTask extends IdleThreadTask implements Constants
             if (tag != null) {
                 Runnable r = () -> {
                     if (tag instanceof LocalTag)
-                        TagCommands.gotoLocalTag(editor, (LocalTag)tag, true);
+                        TagCommands.gotoLocalTag(editor, (LocalTag) tag, true);
                     else if (tag instanceof GlobalTag)
-                        TagCommands.gotoGlobalTag(editor, (GlobalTag)tag, true);
+                        TagCommands.gotoGlobalTag(editor, (GlobalTag) tag, true);
                     editor.updateDisplay();
                 };
                 SwingUtilities.invokeLater(r);
@@ -65,8 +63,7 @@ public class FollowContextTask extends IdleThreadTask implements Constants
         }
     };
 
-    private static Tag findMatchingTag(Editor editor, Expression expression)
-    {
+    private static Tag findMatchingTag(Editor editor, Expression expression) {
         List<? extends Tag> list =
             TagCommands.findMatchingTags(editor.getBuffer(), expression);
         if (list != null && list.size() == 1) {
@@ -76,8 +73,7 @@ public class FollowContextTask extends IdleThreadTask implements Constants
         return null;
     }
 
-    public static void followContext()
-    {
+    public static void followContext() {
         if (!Editor.checkExperimental())
             return;
         IdleThread.runFollowContextTask(new FollowContextTask());

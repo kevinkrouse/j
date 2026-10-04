@@ -26,26 +26,31 @@ import javax.swing.JLabel;
 import javax.swing.plaf.ComponentUI;
 import javax.swing.plaf.metal.MetalLabelUI;
 
-public final class LabelUI extends MetalLabelUI
-{
+public final class LabelUI extends MetalLabelUI {
     private static final LabelUI labelUI = new LabelUI();
 
-    public static ComponentUI createUI(JComponent c)
-    {
+    public static ComponentUI createUI(JComponent c) {
         return labelUI;
     }
 
-    protected void paintEnabledText(JLabel l, Graphics g, String s,
-                                    int textX, int textY)
-    {
+    protected void paintEnabledText(
+        JLabel l,
+        Graphics g,
+        String s,
+        int textX,
+        int textY
+    ) {
         Display.setRenderingHints(g);
         super.paintEnabledText(l, g, s, textX, textY);
     }
 
-
-    protected void paintDisabledText(JLabel l, Graphics g, String s,
-                                     int textX, int textY)
-    {
+    protected void paintDisabledText(
+        JLabel l,
+        Graphics g,
+        String s,
+        int textX,
+        int textY
+    ) {
         Display.setRenderingHints(g);
         super.paintDisabledText(l, g, s, textX, textY);
     }

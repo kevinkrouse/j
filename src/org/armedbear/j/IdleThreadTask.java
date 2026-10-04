@@ -22,45 +22,36 @@ package org.armedbear.j;
 
 import javax.swing.SwingUtilities;
 
-public class IdleThreadTask implements Runnable
-{
+public class IdleThreadTask implements Runnable {
     private Runnable runnable;
     private boolean invokeLater;
     private long idle;
 
-    public IdleThreadTask()
-    {
-    }
+    public IdleThreadTask() {}
 
-    public IdleThreadTask(Runnable runnable, long idle, boolean invokeLater)
-    {
+    public IdleThreadTask(Runnable runnable, long idle, boolean invokeLater) {
         this.runnable = runnable;
         this.idle = idle;
         this.invokeLater = invokeLater;
     }
 
-    public void setRunnable(Runnable runnable)
-    {
+    public void setRunnable(Runnable runnable) {
         this.runnable = runnable;
     }
 
-    public synchronized final long getIdle()
-    {
+    public synchronized final long getIdle() {
         return idle;
     }
 
-    public synchronized final void setIdle(long idle)
-    {
+    public synchronized final void setIdle(long idle) {
         this.idle = idle;
     }
 
-    public final void setInvokeLater(boolean b)
-    {
+    public final void setInvokeLater(boolean b) {
         invokeLater = b;
     }
 
-    public final void run()
-    {
+    public final void run() {
         if (runnable != null) {
             if (invokeLater)
                 SwingUtilities.invokeLater(runnable);

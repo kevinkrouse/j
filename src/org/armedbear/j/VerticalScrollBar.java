@@ -22,25 +22,21 @@ package org.armedbear.j;
 
 import javax.swing.JScrollBar;
 
-public final class VerticalScrollBar extends JScrollBar
-{
+public final class VerticalScrollBar extends JScrollBar {
     private Editor editor;
     private Display display;
 
-    public VerticalScrollBar(Editor editor)
-    {
+    public VerticalScrollBar(Editor editor) {
         super();
         this.editor = editor;
         display = editor.getDisplay();
     }
 
-    public final int getUnitIncrement(int direction)
-    {
+    public final int getUnitIncrement(int direction) {
         return display.getCharHeight() * editor.getBuffer().getIntegerProperty(Property.VERTICAL_SCROLL_INCREMENT);
     }
 
-    public final int getBlockIncrement(int direction)
-    {
+    public final int getBlockIncrement(int direction) {
         return display.getHeight();
     }
 }

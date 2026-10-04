@@ -15,9 +15,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
 import java.util.function.UnaryOperator;
-
 import javax.swing.undo.CompoundEdit;
-
 import org.armedbear.j.util.Utilities;
 
 /**
@@ -30,8 +28,7 @@ import org.armedbear.j.util.Utilities;
  * the block going with it; every other tab on the line stays a tab. A line
  * that ends before the block starts has no part in it.
  */
-public final class Block
-{
+public final class Block {
     private final Buffer buffer;
     private final Line first;
     private final Line last;
@@ -40,9 +37,14 @@ public final class Block
     private final int endCol;
     private final boolean toEol;
 
-    public Block(Buffer buffer, Line first, Line last, int startCol,
-                 int endCol, boolean toEol)
-    {
+    public Block(
+        Buffer buffer,
+        Line first,
+        Line last,
+        int startCol,
+        int endCol,
+        boolean toEol
+    ) {
         this.buffer = buffer;
         this.first = first;
         this.last = last;
@@ -56,24 +58,32 @@ public final class Block
      * as a selection from one to the other does; to the end of each line
      * when {@code toEol}.
      */
-    public static Block between(Buffer buffer, Position a, Position b,
-                                boolean toEol)
-    {
+    public static Block between(
+        Buffer buffer,
+        Position a,
+        Position b,
+        boolean toEol
+    ) {
         if (buffer.needsRenumbering())
             buffer.renumber();
         final boolean aFirst = a.lineNumber() <= b.lineNumber();
         final int colA = buffer.getCol(a);
         final int colB = buffer.getCol(b);
-        return new Block(buffer, (aFirst ? a : b).getLine(),
-                         (aFirst ? b : a).getLine(), Math.min(colA, colB),
-                         Math.max(colA + width(buffer, a, colA),
-                                  colB + width(buffer, b, colB)),
-                         toEol);
+        return new Block(
+            buffer,
+            (aFirst ? a : b).getLine(),
+            (aFirst ? b : a).getLine(),
+            Math.min(colA, colB),
+            Math.max(
+                colA + width(buffer, a, colA),
+                colB + width(buffer, b, colB)
+            ),
+            toEol
+        );
     }
 
     /** Columns the character at a position covers: one past a line's end. */
-    private static int width(Buffer buffer, Position pos, int col)
-    {
+    private static int width(Buffer buffer, Position pos, int col) {
         final String text = pos.getLine().getText();
         final int offset = pos.getOffset();
         if (text == null || offset >= text.length())
@@ -81,37 +91,31 @@ public final class Block
         return widthAt(text, offset, col, buffer.getTabWidth());
     }
 
-    public Line getFirstLine()
-    {
+    public Line getFirstLine() {
         return first;
     }
 
-    public Line getLastLine()
-    {
+    public Line getLastLine() {
         return last;
     }
 
-    public int getStartCol()
-    {
+    public int getStartCol() {
         return startCol;
     }
 
-    public boolean isToEol()
-    {
+    public boolean isToEol() {
         return toEol;
     }
 
     /** The same columns on the lines after the first, or null for none. */
-    public Block below()
-    {
+    public Block below() {
         if (first == last || first.next() == null)
             return null;
         return new Block(buffer, first.next(), last, startCol, endCol, toEol);
     }
 
     /** The lines, first to last. */
-    public List<Line> lines()
-    {
+    public List<Line> lines() {
         final List<Line> lines = new ArrayList<Line>();
         for (Line line = first; line != null; line = line.next()) {
             lines.add(line);
@@ -122,8 +126,7 @@ public final class Block
     }
 
     /** The text inside the block on each line, first to last. */
-    public List<String> getLines()
-    {
+    public List<String> getLines() {
         final List<String> texts = new ArrayList<String>();
         for (Line line : lines())
             texts.add(span(line).inside());
@@ -131,23 +134,23 @@ public final class Block
     }
 
     /** The lines' texts joined by newlines, as a column copy keeps them. */
-    public String getText()
-    {
+    public String getText() {
         return String.join("\n", getLines());
     }
 
     /** The offsets the block covers on a line, as [start, end), or null. */
-    public int[] getOffsets(Line line)
-    {
+    public int[] getOffsets(Line line) {
         final Span s = span(line);
-        return s.isShort ? null : new int[] {s.keepTo, s.keepFrom};
+        return s.isShort ? null : new int[] { s.keepTo, s.keepFrom };
     }
 
     /** Deletes the block, as one undo step, the caret at its top left. */
-    public void delete(Editor editor)
-    {
-        edit(editor, s -> s.before() + spaces(s.padBefore + s.padAfter)
-                          + s.after());
+    public void delete(Editor editor) {
+        edit(
+            editor,
+            s -> s.before() + spaces(s.padBefore + s.padAfter)
+                + s.after()
+        );
     }
 
     /**
@@ -155,12 +158,15 @@ public final class Block
      * changes do: the text passed in is the text inside, tabs cut through
      * already spaces.
      */
-    public void transform(Editor editor, UnaryOperator<String> change)
-    {
-        edit(editor, s -> s.isShort ? s.text
-                          : s.before() + spaces(s.padBefore)
-                            + change.apply(s.inside()) + spaces(s.padAfter)
-                            + s.after());
+    public void transform(Editor editor, UnaryOperator<String> change) {
+        edit(
+            editor,
+            s -> s.isShort
+                ? s.text
+                : s.before() + spaces(s.padBefore)
+                    + change.apply(s.inside()) + spaces(s.padAfter)
+                    + s.after()
+        );
     }
 
     /**
@@ -170,8 +176,7 @@ public final class Block
      * shorter than that column is skipped for an insert, and padded with
      * spaces for an append.
      */
-    public void insertOnEachLine(Editor editor, String text, boolean append)
-    {
+    public void insertOnEachLine(Editor editor, String text, boolean append) {
         final int col = append ? endCol : startCol;
         edit(editor, s -> {
             if (append && toEol)
@@ -189,8 +194,7 @@ public final class Block
      * Where vim's A inserts on a line: at the block's right edge, the line
      * padded out to it with spaces first if it is shorter.
      */
-    public Position appendPoint(Editor editor, Line line)
-    {
+    public Position appendPoint(Editor editor, Line line) {
         final Span at = new Block(buffer, line, line, endCol, endCol, false)
             .span(line);
         if (!at.isShort)
@@ -207,8 +211,7 @@ public final class Block
      * for its columns, so it may be what goes; what stays of the run is
      * spaces.
      */
-    public void shiftLeft(Editor editor, int cols)
-    {
+    public void shiftLeft(Editor editor, int cols) {
         shift(editor, -cols);
     }
 
@@ -219,18 +222,22 @@ public final class Block
      * moves over even past a tab. A line with no text from the left edge
      * on is left alone.
      */
-    public void shiftRight(Editor editor, int cols)
-    {
+    public void shiftRight(Editor editor, int cols) {
         shift(editor, cols);
     }
 
     /** The run of blanks from the left edge, so many columns wider. */
-    private void shift(Editor editor, int delta)
-    {
+    private void shift(Editor editor, int delta) {
         final int tabWidth = buffer.getTabWidth();
         edit(editor, s -> {
-            final Span at = new Block(buffer, first, last, startCol, startCol,
-                                      false).span(s.line);
+            final Span at = new Block(
+                buffer,
+                first,
+                last,
+                startCol,
+                startCol,
+                false
+            ).span(s.line);
             final String after = spaces(at.padAfter) + at.after();
             if (at.isShort || after.isEmpty())
                 return s.text;
@@ -257,16 +264,29 @@ public final class Block
      * it, so what follows stays in line. One undo step; the caret ends at the
      * top left.
      */
-    public static void put(Editor editor, Line line, int col,
-                           List<String> pieces)
-    {
-        editor.getBuffer().withWriteLock(() -> putLocked(editor, line, col,
-                                                         pieces));
+    public static void put(
+        Editor editor,
+        Line line,
+        int col,
+        List<String> pieces
+    ) {
+        editor.getBuffer()
+            .withWriteLock(
+                () -> putLocked(
+                    editor,
+                    line,
+                    col,
+                    pieces
+                )
+            );
     }
 
-    private static void putLocked(Editor editor, Line line, int col,
-                                  List<String> pieces)
-    {
+    private static void putLocked(
+        Editor editor,
+        Line line,
+        int col,
+        List<String> pieces
+    ) {
         final Buffer buffer = editor.getBuffer();
         int width = 0;
         for (String piece : pieces)
@@ -285,8 +305,14 @@ public final class Block
                     buffer.insertLineSeparator(editor.getDot());
                     target = end.next();
                 }
-                final Span at = new Block(buffer, target, target, col, col,
-                                          false).span(target);
+                final Span at = new Block(
+                    buffer,
+                    target,
+                    target,
+                    col,
+                    col,
+                    false
+                ).span(target);
                 final String piece = pieces.get(i);
                 final String text;
                 if (at.isShort) {
@@ -294,8 +320,10 @@ public final class Block
                 } else {
                     final String after = spaces(at.padAfter) + at.after();
                     text = at.before() + spaces(at.padBefore) + piece
-                        + (after.isEmpty() ? ""
-                           : spaces(width - piece.length())) + after;
+                        + (after.isEmpty()
+                            ? ""
+                            : spaces(width - piece.length()))
+                        + after;
                 }
                 setLine(editor, target, text);
                 target = target.next();
@@ -310,13 +338,11 @@ public final class Block
     }
 
     /** Every line, new text from its span, as one undo step. */
-    private void edit(Editor editor, Function<Span, String> change)
-    {
+    private void edit(Editor editor, Function<Span, String> change) {
         buffer.withWriteLock(() -> editLocked(editor, change));
     }
 
-    private void editLocked(Editor editor, Function<Span, String> change)
-    {
+    private void editLocked(Editor editor, Function<Span, String> change) {
         final CompoundEdit edit = buffer.beginCompoundEdit();
         try {
             // Undo puts the caret at the top left, as vim's does.
@@ -338,8 +364,7 @@ public final class Block
     }
 
     /** A line's new text, recorded for undo the way j records a line edit. */
-    private static void setLine(Editor editor, Line line, String text)
-    {
+    private static void setLine(Editor editor, Line line, String text) {
         editor.getDot().moveTo(line, 0);
         editor.addUndo(SimpleEdit.LINE_EDIT);
         line.setText(text);
@@ -347,34 +372,29 @@ public final class Block
     }
 
     /** The position at a screen column of a line, or its end. */
-    public static Position positionAt(Buffer buffer, Line line, int col)
-    {
+    public static Position positionAt(Buffer buffer, Line line, int col) {
         final Position pos = new Position(line, 0);
         pos.moveOntoCol(col, buffer.getTabWidth());
         return pos;
     }
 
-    private static Line lastLine(Buffer buffer)
-    {
+    private static Line lastLine(Buffer buffer) {
         Line line = buffer.getFirstLine();
         while (line.next() != null)
             line = line.next();
         return line;
     }
 
-    private static int widthAt(String text, int i, int col, int tabWidth)
-    {
+    private static int widthAt(String text, int i, int col, int tabWidth) {
         return text.charAt(i) == '\t' ? tabWidth - col % tabWidth : 1;
     }
 
-    private static String spaces(int n)
-    {
+    private static String spaces(int n) {
         return n <= 0 ? "" : Utilities.spaces(n);
     }
 
     /** Where the block falls on one line. */
-    private Span span(Line line)
-    {
+    private Span span(Line line) {
         final Span s = new Span(line);
         final String t = s.text;
         final int n = t.length();
@@ -437,8 +457,7 @@ public final class Block
     }
 
     /** One line's part: kept before, inside, kept after. */
-    private static final class Span
-    {
+    private static final class Span {
         final Line line;
         final String text;
         /** text[0:keepTo] stays before the block. */
@@ -458,25 +477,22 @@ public final class Block
         boolean isShort;
         int shortBy;
 
-        Span(Line line)
-        {
+        Span(Line line) {
             this.line = line;
             text = line.getText() == null ? "" : line.getText();
         }
 
-        String before()
-        {
+        String before() {
             return text.substring(0, keepTo);
         }
 
-        String after()
-        {
+        String after() {
             return text.substring(keepFrom);
         }
 
-        String inside()
-        {
-            return isShort ? ""
+        String inside() {
+            return isShort
+                ? ""
                 : spaces(padIn) + text.substring(from, to) + spaces(padInEnd);
         }
     }

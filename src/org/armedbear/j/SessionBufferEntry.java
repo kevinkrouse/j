@@ -21,11 +21,9 @@
 package org.armedbear.j;
 
 import java.lang.StringBuilder;
-
 import java.util.Iterator;
 
-public final class SessionBufferEntry
-{
+public final class SessionBufferEntry {
     private static final String lineSeparator =
         System.getProperty("line.separator");
 
@@ -36,12 +34,9 @@ public final class SessionBufferEntry
     private int dotOffset;
     private long lastActivated;
 
-    public SessionBufferEntry()
-    {
-    }
+    public SessionBufferEntry() {}
 
-    public SessionBufferEntry(Buffer buffer, int index)
-    {
+    public SessionBufferEntry(Buffer buffer, int index) {
         this.buffer = buffer;
         if (buffer.getFile() != null)
             path = buffer.getFile().netPath();
@@ -59,63 +54,51 @@ public final class SessionBufferEntry
         }
     }
 
-    public final String getPath()
-    {
+    public final String getPath() {
         return path;
     }
 
-    public final void setPath(String path)
-    {
+    public final void setPath(String path) {
         this.path = path;
     }
 
-    public final Mode getMode()
-    {
+    public final Mode getMode() {
         return Editor.getModeList().getModeFromModeName(modeName);
     }
 
-    public final void setMode(String modeName)
-    {
+    public final void setMode(String modeName) {
         this.modeName = modeName;
     }
 
-    public final int getModeId()
-    {
+    public final int getModeId() {
         return Editor.getModeList().getModeIdFromModeName(modeName);
     }
 
-    public final int getDotLineNumber()
-    {
+    public final int getDotLineNumber() {
         return dotLineNumber;
     }
 
-    public final void setDotLineNumber(int lineNumber)
-    {
+    public final void setDotLineNumber(int lineNumber) {
         dotLineNumber = lineNumber;
     }
 
-    public final int getDotOffset()
-    {
+    public final int getDotOffset() {
         return dotOffset;
     }
 
-    public final void setDotOffset(int offset)
-    {
+    public final void setDotOffset(int offset) {
         dotOffset = offset;
     }
 
-    public final long getLastActivated()
-    {
+    public final long getLastActivated() {
         return lastActivated;
     }
 
-    public final void setLastActivated(long l)
-    {
+    public final void setLastActivated(long l) {
         lastActivated = l;
     }
 
-    public String toXml()
-    {
+    public String toXml() {
         StringBuilder sb = new StringBuilder();
         sb.append("    <buffer");
         sb.append(" path=\"");
@@ -141,8 +124,12 @@ public final class SessionBufferEntry
                 while (it.hasNext()) {
                     Property property = it.next();
                     Object value = properties.getProperty(property);
-                    sb.append(propertyToXml(property.getDisplayName(),
-                        value.toString()));
+                    sb.append(
+                        propertyToXml(
+                            property.getDisplayName(),
+                            value.toString()
+                        )
+                    );
                 }
             }
             sb.append("  </buffer>");
@@ -151,8 +138,7 @@ public final class SessionBufferEntry
         return sb.toString();
     }
 
-    private static String propertyToXml(String name, String value)
-    {
+    private static String propertyToXml(String name, String value) {
         StringBuilder sb = new StringBuilder("      <property name=\"");
         sb.append(name);
         sb.append("\" value=\"");

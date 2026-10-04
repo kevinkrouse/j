@@ -21,13 +21,11 @@
 package org.armedbear.j;
 
 import java.lang.StringBuilder;
+import java.util.ArrayList;
+import java.util.List;
 import org.armedbear.j.util.Utilities;
 
-import java.util.List;
-import java.util.ArrayList;
-
-public final class Completion
-{
+public final class Completion {
     private String input;
     private String toBeCompleted;
     private boolean ignoreCase;
@@ -35,8 +33,7 @@ public final class Completion
 
     private ArrayList<String> list = new ArrayList<String>();
 
-    public Completion(File dir, String input, String shellCommand)
-    {
+    public Completion(File dir, String input, String shellCommand) {
         if (Platform.isPlatformWindows()) {
             if (shellCommand != null && shellCommand.toLowerCase().indexOf("cmd.exe") < 0)
                 cygnify = true;
@@ -64,10 +61,17 @@ public final class Completion
             }
             ignoreCase = true;
         }
-        String excludes = Editor.preferences().getStringProperty(
-            Property.FILENAME_COMPLETIONS_EXCLUDE_PATTERN);
-        FilenameCompletion c = new FilenameCompletion(dir, toBeCompleted, null,
-            excludes, ignoreCase);
+        String excludes = Editor.preferences()
+            .getStringProperty(
+                Property.FILENAME_COMPLETIONS_EXCLUDE_PATTERN
+            );
+        FilenameCompletion c = new FilenameCompletion(
+            dir,
+            toBeCompleted,
+            null,
+            excludes,
+            ignoreCase
+        );
         List<File> files = c.listFiles();
         if (files != null) {
             String home = Utilities.getUserHome() + "/";
@@ -116,8 +120,7 @@ public final class Completion
     }
 
     // Converts "this is a test" into "this\ is\ a\ test".
-    private static final String escapeSpaces(String s)
-    {
+    private static final String escapeSpaces(String s) {
         final int length = s.length();
         StringBuilder sb = new StringBuilder(length * 2);
         for (int i = 0; i < length; i++) {
@@ -129,25 +132,21 @@ public final class Completion
         return sb.toString();
     }
 
-    private final char getSeparatorChar()
-    {
+    private final char getSeparatorChar() {
         if (Platform.isPlatformWindows() && !cygnify)
             return '\\';
         return '/';
     }
 
-    public final List<String> getCompletions()
-    {
+    public final List<String> getCompletions() {
         return list;
     }
 
-    private boolean isUnique()
-    {
+    private boolean isUnique() {
         return list.size() == 1;
     }
 
-    private String getLongestCommonPrefix()
-    {
+    private String getLongestCommonPrefix() {
         String s = input;
         if (list.size() != 0) {
             if (list.size() == 1) {
@@ -177,8 +176,7 @@ public final class Completion
         return s;
     }
 
-    public String toString()
-    {
+    public String toString() {
         if (isUnique()) {
             String s = list.get(0);
             // Directories have file separator already appended.

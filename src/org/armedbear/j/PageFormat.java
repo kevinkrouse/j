@@ -20,19 +20,17 @@
 
 package org.armedbear.j;
 
-import org.armedbear.j.util.Utilities;
-import java.lang.StringBuilder;
-
 import java.awt.Color;
 import java.awt.Font;
 import java.awt.FontMetrics;
-import java.awt.Graphics2D;
 import java.awt.Graphics;
+import java.awt.Graphics2D;
 import java.awt.print.Paper;
+import java.lang.StringBuilder;
 import java.util.Date;
+import org.armedbear.j.util.Utilities;
 
-public final class PageFormat extends java.awt.print.PageFormat
-{
+public final class PageFormat extends java.awt.print.PageFormat {
     private static final int INCH = 72;
 
     private int linesPerPage;
@@ -44,8 +42,7 @@ public final class PageFormat extends java.awt.print.PageFormat
     private String date;
     private int pageCount;
 
-    public PageFormat(Editor editor, Region region)
-    {
+    public PageFormat(Editor editor, Region region) {
         super();
         Buffer buffer = editor.getBuffer();
         if (buffer.getFile() != null) {
@@ -83,27 +80,23 @@ public final class PageFormat extends java.awt.print.PageFormat
         linesPerPage -= 3; // footer
     }
 
-    public final Font getFont()
-    {
+    public final Font getFont() {
         return font;
     }
 
-    public final int getLinesPerPage()
-    {
+    public final int getLinesPerPage() {
         return linesPerPage;
     }
 
-    public final int getY(int i)
-    {
+    public final int getY(int i) {
         int y = (int) getImageableY();
         if (header != null)
             y += lineHeight * 2;
-        y += lineHeight * (i+1);
+        y += lineHeight * (i + 1);
         return y;
     }
 
-    public void printHeader(Graphics g, int pageIndex)
-    {
+    public void printHeader(Graphics g, int pageIndex) {
         if (header != null) {
             Graphics2D g2d = (Graphics2D) g.create();
             g2d.setPaint(Color.black);
@@ -114,8 +107,7 @@ public final class PageFormat extends java.awt.print.PageFormat
         }
     }
 
-    public void printFooter(Graphics g, int pageIndex)
-    {
+    public void printFooter(Graphics g, int pageIndex) {
         Graphics2D g2d = (Graphics2D) g.create();
         g2d.setPaint(Color.black);
         g2d.setFont(footerFont);
@@ -137,8 +129,7 @@ public final class PageFormat extends java.awt.print.PageFormat
         g2d.drawString(s, x, y);
     }
 
-    public void setPageCount(int pageCount)
-    {
+    public void setPageCount(int pageCount) {
         this.pageCount = pageCount;
     }
 }

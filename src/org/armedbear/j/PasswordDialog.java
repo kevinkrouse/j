@@ -35,14 +35,12 @@ import javax.swing.JPasswordField;
 import javax.swing.border.EmptyBorder;
 
 public final class PasswordDialog extends JDialog implements FocusListener,
-    KeyListener
-{
+    KeyListener {
     private final Editor editor;
     private final PasswordField textField;
     private String input;
 
-    private PasswordDialog(Editor editor, String prompt, String title)
-    {
+    private PasswordDialog(Editor editor, String prompt, String title) {
         super(editor.getFrame(), title, true);
         this.editor = editor;
         input = null;
@@ -60,8 +58,7 @@ public final class PasswordDialog extends JDialog implements FocusListener,
         addFocusListener(this);
     }
 
-    public void keyPressed(KeyEvent e)
-    {
+    public void keyPressed(KeyEvent e) {
         switch (e.getKeyCode()) {
             case KeyEvent.VK_ENTER:
                 input = new String(textField.getPassword());
@@ -77,32 +74,30 @@ public final class PasswordDialog extends JDialog implements FocusListener,
 
     public void keyTyped(KeyEvent e) {}
 
-    public static String showPasswordDialog(Editor editor, String prompt,
-                                            String title)
-    {
+    public static String showPasswordDialog(
+        Editor editor,
+        String prompt,
+        String title
+    ) {
         PasswordDialog d = new PasswordDialog(editor, prompt, title);
         editor.centerDialog(d);
         d.setVisible(true);
         return d.input;
     }
 
-    public void dispose()
-    {
+    public void dispose() {
         super.dispose();
         editor.restoreFocus();
     }
 
-    public void focusGained(FocusEvent e)
-    {
+    public void focusGained(FocusEvent e) {
         textField.requestFocus();
     }
 
     public void focusLost(FocusEvent e) {}
 
-    private static class PasswordField extends JPasswordField
-    {
-        public PasswordField(int columns)
-        {
+    private static class PasswordField extends JPasswordField {
+        public PasswordField(int columns) {
             super(columns);
             final Preferences preferences = Editor.preferences();
             final String fontName =
@@ -112,7 +107,7 @@ public final class PasswordDialog extends JDialog implements FocusListener,
                     UIScale.scaledProperty(preferences, Property.TEXT_FIELD_FONT_SIZE);
                 if (fontSize == 0)
                     fontSize =
-                    UIScale.scaledProperty(preferences, Property.DIALOG_FONT_SIZE);
+                        UIScale.scaledProperty(preferences, Property.DIALOG_FONT_SIZE);
                 setFont(new Font(fontName, Font.PLAIN, fontSize));
             }
         }
@@ -123,8 +118,7 @@ public final class PasswordDialog extends JDialog implements FocusListener,
             return size;
         }
 
-        public void paintComponent(Graphics g)
-        {
+        public void paintComponent(Graphics g) {
             // Laid out by Swing; see Display.setRenderingHints.
             Display.setRenderingHints(g);
             super.paintComponent(g);

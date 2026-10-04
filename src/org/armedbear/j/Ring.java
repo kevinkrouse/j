@@ -22,44 +22,38 @@ package org.armedbear.j;
 
 import java.util.ArrayList;
 
-public class Ring
-{
+public class Ring {
     private final int capacity;
     private final ArrayList<String> list;
     private int index;
     private int indexOfNextPop = -1;
     private String lastPop;
 
-    public Ring(int capacity)
-    {
+    public Ring(int capacity) {
         this.capacity = capacity;
         list = new ArrayList<String>(capacity);
     }
 
     /** Forgets every entry. */
-    public synchronized void clear()
-    {
+    public synchronized void clear() {
         list.clear();
         index = 0;
         indexOfNextPop = -1;
         lastPop = null;
     }
 
-    public synchronized final int size()
-    {
+    public synchronized final int size() {
         return list.size();
     }
 
-    public String get(int i)
-    {
+    public String get(int i) {
         if (i >= 0 && i < list.size())
             return list.get(i);
         else
             return null;
     }
 
-    public synchronized void appendToCurrent(String s)
-    {
+    public synchronized void appendToCurrent(String s) {
         if (list.size() == 0)
             list.add(s);
         else {
@@ -68,15 +62,14 @@ public class Ring
         }
     }
 
-    public synchronized void appendNew(String s)
-    {
+    public synchronized void appendNew(String s) {
         final int size = list.size();
         // See if we already have the string in question.
-        for (int i = size-1; i >= 0; i--) {
+        for (int i = size - 1; i >= 0; i--) {
             String existing = list.get(i);
             if (existing.equals(s)) {
                 // Found it! If it's not already the last element, promote it.
-                if (i != size-1) {
+                if (i != size - 1) {
                     list.remove(i);
                     list.add(s);
                 }
@@ -87,28 +80,25 @@ public class Ring
             list.add(s);
         else {
             for (int i = 1; i < size; i++)
-                list.set(i-1, list.get(i));
-            list.set(capacity-1, s);
+                list.set(i - 1, list.get(i));
+            list.set(capacity - 1, s);
         }
     }
 
-    public synchronized String peek()
-    {
+    public synchronized String peek() {
         if (list.size() == 0)
             return null;
         return list.get(list.size() - 1);
     }
 
-    public synchronized String pop()
-    {
+    public synchronized String pop() {
         indexOfNextPop = list.size() - 2;
         if (list.size() == 0)
             return null;
         return lastPop = list.get(list.size() - 1);
     }
 
-    public synchronized String popNext()
-    {
+    public synchronized String popNext() {
         if (indexOfNextPop < 0)
             return null;
         Debug.assertTrue(indexOfNextPop < list.size());
@@ -118,18 +108,16 @@ public class Ring
         return lastPop;
     }
 
-    protected synchronized void promoteLast()
-    {
+    protected synchronized void promoteLast() {
         if (lastPop != null)
             promote(lastPop);
     }
 
-    private void promote(String s)
-    {
-        for (int i = list.size()-1; i >= 0; i--) {
+    private void promote(String s) {
+        for (int i = list.size() - 1; i >= 0; i--) {
             String existing = list.get(i);
             if (existing.equals(s)) {
-                if (i != list.size()-1) {
+                if (i != list.size() - 1) {
                     list.remove(i);
                     list.add(s);
                 }

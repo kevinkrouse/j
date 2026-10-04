@@ -22,59 +22,52 @@ package org.armedbear.j;
 
 import java.lang.StringBuilder;
 
-public final class Headers
-{
+public final class Headers {
     // These are indexes into the array of values. We only store values for the
     // headers we're interested in.
-    public static final int CC                        =  0;
-    public static final int CONTENT_DISPOSITION       =  1;
-    public static final int CONTENT_TRANSFER_ENCODING =  2;
-    public static final int CONTENT_TYPE              =  3;
-    public static final int DATE                      =  4;
-    public static final int FROM                      =  5;
-    public static final int IN_REPLY_TO               =  6;
-    public static final int MESSAGE_ID                =  7;
-    public static final int REFERENCES                =  8;
-    public static final int REPLY_TO                  =  9;
-    public static final int SET_COOKIE                = 10;
-    public static final int SUBJECT                   = 11;
-    public static final int TO                        = 12;
-    public static final int X_J_STATUS                = 13;
-    public static final int X_UIDL                    = 14;
+    public static final int CC = 0;
+    public static final int CONTENT_DISPOSITION = 1;
+    public static final int CONTENT_TRANSFER_ENCODING = 2;
+    public static final int CONTENT_TYPE = 3;
+    public static final int DATE = 4;
+    public static final int FROM = 5;
+    public static final int IN_REPLY_TO = 6;
+    public static final int MESSAGE_ID = 7;
+    public static final int REFERENCES = 8;
+    public static final int REPLY_TO = 9;
+    public static final int SET_COOKIE = 10;
+    public static final int SUBJECT = 11;
+    public static final int TO = 12;
+    public static final int X_J_STATUS = 13;
+    public static final int X_UIDL = 14;
 
     private static final int MAX_HEADERS = 15;
 
     private String[] values = new String[MAX_HEADERS];
 
-    private Headers()
-    {
-    }
+    private Headers() {}
 
-    public String getValue(String name)
-    {
+    public String getValue(String name) {
         int index = getIndex(name);
         if (index >= 0)
             return values[index];
         return null;
     }
 
-    public String getValue(int index)
-    {
+    public String getValue(int index) {
         if (index < MAX_HEADERS)
             return values[index];
         Debug.bug();
         return null;
     }
 
-    private void setValue(String name, String value)
-    {
+    private void setValue(String name, String value) {
         int index = getIndex(name);
         if (index >= 0)
             values[index] = value;
     }
 
-    private int getIndex(String name)
-    {
+    private int getIndex(String name) {
         if (name.length() == 0)
             return -1;
         name = name.toLowerCase();
@@ -133,8 +126,7 @@ public final class Headers
         return -1;
     }
 
-    public static Headers parse(String s)
-    {
+    public static Headers parse(String s) {
         Headers headers = new Headers();
         StringBuilder sb = new StringBuilder();
         String name = null;
@@ -150,8 +142,8 @@ public final class Headers
             }
             String line = s.substring(begin, end);
             // Trim trailing '\r' if any.
-            if (line.length() > 0 && line.charAt(line.length()-1) == '\r')
-                line = line.substring(0, line.length()-1);
+            if (line.length() > 0 && line.charAt(line.length() - 1) == '\r')
+                line = line.substring(0, line.length() - 1);
             if (line.length() == 0) {
                 // Done.
                 if (name != null && sb.length() > 0)
@@ -178,7 +170,7 @@ public final class Headers
             // Store names in lower case.
             name = line.substring(0, i).trim();
             // Field value.
-            sb.append(line.substring(i+1).trim());
+            sb.append(line.substring(i + 1).trim());
         }
         return headers;
     }

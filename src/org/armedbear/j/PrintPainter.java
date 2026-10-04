@@ -20,15 +20,13 @@
 
 package org.armedbear.j;
 
-import java.lang.StringBuilder;
-import org.armedbear.j.util.Utilities;
-
 import java.awt.Graphics;
 import java.awt.print.Printable;
 import java.awt.print.PrinterException;
+import java.lang.StringBuilder;
+import org.armedbear.j.util.Utilities;
 
-public final class PrintPainter implements Printable
-{
+public final class PrintPainter implements Printable {
     private final Editor editor;
     private final Buffer buffer;
     private final Region region;
@@ -37,16 +35,14 @@ public final class PrintPainter implements Printable
     private Line line;
     private Line endLine;
 
-    public PrintPainter(Editor editor)
-    {
+    public PrintPainter(Editor editor) {
         this.editor = editor;
         buffer = editor.getBuffer();
         region = null;
         line = buffer.getFirstLine();
     }
 
-    public PrintPainter(Editor editor, Region region)
-    {
+    public PrintPainter(Editor editor, Region region) {
         this.editor = editor;
         buffer = editor.getBuffer();
         this.region = region;
@@ -54,8 +50,7 @@ public final class PrintPainter implements Printable
         endLine = region.getEndLine();
     }
 
-    public int print(Graphics g, java.awt.print.PageFormat pf, int pageIndex) throws PrinterException
-    {
+    public int print(Graphics g, java.awt.print.PageFormat pf, int pageIndex) throws PrinterException {
         if (pageIndex != currentPage) {
             currentPage = pageIndex;
             topLine = line;

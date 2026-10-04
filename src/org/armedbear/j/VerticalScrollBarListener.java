@@ -20,25 +20,21 @@
 
 package org.armedbear.j;
 
-import org.armedbear.j.mode.image.ImageLine;
-
 import java.awt.event.AdjustmentEvent;
 import java.awt.event.AdjustmentListener;
 import javax.swing.JScrollBar;
+import org.armedbear.j.mode.image.ImageLine;
 
-public final class VerticalScrollBarListener implements AdjustmentListener
-{
+public final class VerticalScrollBarListener implements AdjustmentListener {
     private final Editor editor;
     private final JScrollBar scrollBar;
 
-    public VerticalScrollBarListener(Editor editor, JScrollBar scrollBar)
-    {
+    public VerticalScrollBarListener(Editor editor, JScrollBar scrollBar) {
         this.editor = editor;
         this.scrollBar = scrollBar;
     }
 
-    public void adjustmentValueChanged(AdjustmentEvent e)
-    {
+    public void adjustmentValueChanged(AdjustmentEvent e) {
         if (editor.inScrollBarUpdate)
             return;
         final Display display = editor.getDisplay();

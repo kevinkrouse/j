@@ -21,43 +21,35 @@
 package org.armedbear.j;
 
 import java.lang.StringBuilder;
-
 import java.util.ArrayList;
 
-public final class EventSequence
-{
+public final class EventSequence {
     private ArrayList<JEvent> events;
 
-    public EventSequence()
-    {
+    public EventSequence() {
         events = new ArrayList<JEvent>();
     }
 
-    public int size()
-    {
+    public int size() {
         return events.size();
     }
 
-    public EventSequence copy()
-    {
+    public EventSequence copy() {
         EventSequence copy = new EventSequence();
         for (int i = 0; i < events.size(); i++)
             copy.events.add(events.get(i));
         return copy;
     }
 
-    public void addEvent(JEvent event)
-    {
+    public void addEvent(JEvent event) {
         events.add(event);
     }
 
-    public JEvent getEvent(int index)
-    {
+    public JEvent getEvent(int index) {
         return events.get(index);
     }
 
-    public String getStatusText()
-    {
+    public String getStatusText() {
         StringBuilder sb = new StringBuilder();
         for (int i = 0; i < events.size(); i++) {
             JEvent event = getEvent(i);
@@ -68,8 +60,7 @@ public final class EventSequence
         return sb.toString();
     }
 
-    public String toString()
-    {
+    public String toString() {
         StringBuilder sb = new StringBuilder();
         sb.append("begin EventSequence\n");
         for (JEvent event : events) {

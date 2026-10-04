@@ -20,36 +20,30 @@
 
 package org.armedbear.j;
 
-public final class DirectoryCacheEntry
-{
+public final class DirectoryCacheEntry {
     private final File file;
     private final String listing;
     private final long when;
 
-    public DirectoryCacheEntry(File file, String listing, long when)
-    {
+    public DirectoryCacheEntry(File file, String listing, long when) {
         this.file = file;
         this.listing = listing;
         this.when = when;
     }
 
-    public final File getFile()
-    {
+    public final File getFile() {
         return file;
     }
 
-    public final String getListing()
-    {
+    public final String getListing() {
         return listing;
     }
 
-    public final long getWhen()
-    {
+    public final long getWhen() {
         return when;
     }
-    
-    public final String toString()
-    {
+
+    public final String toString() {
         return "DirectoryCacheEntry for " + file;
     }
 }

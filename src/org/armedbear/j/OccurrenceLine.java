@@ -22,16 +22,14 @@ package org.armedbear.j;
 
 import java.lang.StringBuilder;
 
-public final class OccurrenceLine extends TextLine
-{
+public final class OccurrenceLine extends TextLine {
     private Line sourceLine;
     private int sourceLineNumber; // 1-based.
 
-    public OccurrenceLine(Line sourceLine)
-    {
+    public OccurrenceLine(Line sourceLine) {
         super();
         StringBuilder sb = new StringBuilder();
-        sb.append(sourceLine.lineNumber()+1);
+        sb.append(sourceLine.lineNumber() + 1);
         sb.append(':');
         sb.append(sourceLine.getText());
         init(sb.toString());
@@ -41,8 +39,7 @@ public final class OccurrenceLine extends TextLine
     }
 
     // sourceLineNumber is 1-based.
-    public OccurrenceLine(String s, int sourceLineNumber)
-    {
+    public OccurrenceLine(String s, int sourceLineNumber) {
         super();
         StringBuilder sb = new StringBuilder();
         sb.append(sourceLineNumber);
@@ -52,8 +49,7 @@ public final class OccurrenceLine extends TextLine
         this.sourceLineNumber = sourceLineNumber;
     }
 
-    public OccurrenceLine(Tag tag)
-    {
+    public OccurrenceLine(Tag tag) {
         super();
         String s = tag.getCanonicalSignature();
         if (s == null)
@@ -61,14 +57,12 @@ public final class OccurrenceLine extends TextLine
         init(s);
     }
 
-    public final Line getSourceLine()
-    {
+    public final Line getSourceLine() {
         return sourceLine;
     }
 
     // sourceLineNumber is 1-based.
-    public final int getSourceLineNumber()
-    {
+    public final int getSourceLineNumber() {
         return sourceLineNumber;
     }
 }

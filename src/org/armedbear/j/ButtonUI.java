@@ -27,18 +27,20 @@ import javax.swing.JComponent;
 import javax.swing.plaf.ComponentUI;
 import javax.swing.plaf.metal.MetalButtonUI;
 
-public final class ButtonUI extends MetalButtonUI
-{
+public final class ButtonUI extends MetalButtonUI {
     private static final ButtonUI buttonUI = new ButtonUI();
 
     public static ComponentUI createUI(JComponent c) {
         return buttonUI;
     }
 
-    protected void paintText(Graphics g, AbstractButton b, Rectangle textRect,
-                             String text)
-    {
+    protected void paintText(
+        Graphics g,
+        AbstractButton b,
+        Rectangle textRect,
+        String text
+    ) {
         Display.setRenderingHints(g);
-        super.paintText(g, (JComponent)b, textRect, text);
+        super.paintText(g, (JComponent) b, textRect, text);
     }
 }

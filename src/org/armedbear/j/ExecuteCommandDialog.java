@@ -21,26 +21,21 @@
 package org.armedbear.j;
 
 import java.lang.StringBuilder;
-
 import java.util.List;
 
-public final class ExecuteCommandDialog extends InputDialog
-{
-    private ExecuteCommandDialog(Editor editor, String title, String historyKey)
-    {
+public final class ExecuteCommandDialog extends InputDialog {
+    private ExecuteCommandDialog(Editor editor, String title, String historyKey) {
         super(editor, "Command:", title, null);
         History history = new History(historyKey);
         setHistory(history);
         setDefaultValue(history.getPrevious());
     }
 
-    protected final List<String> getCompletions(String prefix)
-    {
+    protected final List<String> getCompletions(String prefix) {
         return CommandTable.getCompletionsForPrefix(prefix);
     }
 
-    public static void whereIs()
-    {
+    public static void whereIs() {
         final Editor editor = Editor.currentEditor();
         ExecuteCommandDialog d =
             new ExecuteCommandDialog(editor, "Where is...", "whereIs.input");
@@ -56,8 +51,7 @@ public final class ExecuteCommandDialog extends InputDialog
         whereIs(input);
     }
 
-    public static void whereIs(String s)
-    {
+    public static void whereIs(String s) {
         final Editor editor = Editor.currentEditor();
         final Buffer buffer = editor.getBuffer();
         editor.setWaitCursor();

@@ -23,17 +23,14 @@ package org.armedbear.j;
 import java.awt.event.AdjustmentEvent;
 import java.awt.event.AdjustmentListener;
 
-public final class HorizontalScrollBarListener implements AdjustmentListener
-{
+public final class HorizontalScrollBarListener implements AdjustmentListener {
     private Editor editor;
 
-    public HorizontalScrollBarListener(Editor editor)
-    {
+    public HorizontalScrollBarListener(Editor editor) {
         this.editor = editor;
     }
 
-    public void adjustmentValueChanged(AdjustmentEvent e)
-    {
+    public void adjustmentValueChanged(AdjustmentEvent e) {
         if (editor.inScrollBarUpdate)
             return;
         final Display display = editor.getDisplay();

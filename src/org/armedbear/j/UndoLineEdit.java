@@ -24,29 +24,25 @@ import javax.swing.undo.AbstractUndoableEdit;
 import javax.swing.undo.UndoableEdit;
 
 public class UndoLineEdit extends AbstractUndoableEdit implements Constants,
-    UndoableEdit
-{
+    UndoableEdit {
     private final Buffer buffer;
     private final int changeLineNumber;
     private final State preState;
     private State postState;
 
-    public UndoLineEdit(Editor editor)
-    {
+    public UndoLineEdit(Editor editor) {
         buffer = editor.getBuffer();
         changeLineNumber = editor.getDot().lineNumber();
         preState = new State(editor);
     }
 
-    public UndoLineEdit(Buffer buffer, Line line)
-    {
+    public UndoLineEdit(Buffer buffer, Line line) {
         this.buffer = buffer;
         changeLineNumber = line.lineNumber();
         preState = new State(buffer);
     }
 
-    public boolean addEdit(UndoableEdit edit)
-    {
+    public boolean addEdit(UndoableEdit edit) {
         if (edit instanceof UndoLineEdit) {
             UndoLineEdit e = (UndoLineEdit) edit;
             if (e.changeLineNumber == this.changeLineNumber)
@@ -55,30 +51,31 @@ public class UndoLineEdit extends AbstractUndoableEdit implements Constants,
         return false;
     }
 
-    public void undo()
-    {
+    public void undo() {
         super.undo();
         final Editor editor = Editor.currentEditor();
         Debug.assertTrue(editor.getBuffer() == buffer);
         // An edit made without the editor leaves the caret to an UndoMove
         // of its own. Until that runs the caret may be past the end of a
         // line already put back, so it is not this edit's to record.
-        postState = preState.dotLineNumber < 0 ? new State(buffer)
-                                                : new State(editor);
+        postState = preState.dotLineNumber < 0
+            ? new State(buffer)
+            : new State(editor);
         preState.restoreState(editor);
         editor.setUpdateFlag(REFRAME);
 
         if (postState.modificationCount != preState.modificationCount) {
             // Buffer was changed.
             buffer.invalidate();
-            Sidebar.setUpdateFlagInAllFrames(SIDEBAR_MODIFIED_BUFFER_COUNT |
-                SIDEBAR_REPAINT_BUFFER_LIST);
+            Sidebar.setUpdateFlagInAllFrames(
+                SIDEBAR_MODIFIED_BUFFER_COUNT |
+                    SIDEBAR_REPAINT_BUFFER_LIST
+            );
             Sidebar.repaintBufferListInAllFrames();
         }
     }
 
-    public void redo()
-    {
+    public void redo() {
         super.redo();
         final Editor editor = Editor.currentEditor();
         Debug.assertTrue(editor.getBuffer() == buffer);
@@ -88,14 +85,15 @@ public class UndoLineEdit extends AbstractUndoableEdit implements Constants,
         if (postState.modificationCount != preState.modificationCount) {
             // Buffer was changed.
             buffer.invalidate();
-            Sidebar.setUpdateFlagInAllFrames(SIDEBAR_MODIFIED_BUFFER_COUNT |
-                SIDEBAR_REPAINT_BUFFER_LIST);
+            Sidebar.setUpdateFlagInAllFrames(
+                SIDEBAR_MODIFIED_BUFFER_COUNT |
+                    SIDEBAR_REPAINT_BUFFER_LIST
+            );
             Sidebar.repaintBufferListInAllFrames();
         }
     }
 
-    private class State
-    {
+    private class State {
         final int dotLineNumber;
         final int dotOffset;
         final int markLineNumber;
@@ -106,8 +104,7 @@ public class UndoLineEdit extends AbstractUndoableEdit implements Constants,
         final boolean modified;
         final Line line;
 
-        State(Editor editor)
-        {
+        State(Editor editor) {
             final Line dotLine = editor.getDotLine();
             dotLineNumber = dotLine.lineNumber();
             final int length = dotLine.length();
@@ -131,8 +128,7 @@ public class UndoLineEdit extends AbstractUndoableEdit implements Constants,
             line = buffer.getLine(changeLineNumber).copy();
         }
 
-        State(Buffer buffer)
-        {
+        State(Buffer buffer) {
             dotLineNumber = -1;
             dotOffset = -1;
             absCaretCol = -1;
@@ -144,8 +140,7 @@ public class UndoLineEdit extends AbstractUndoableEdit implements Constants,
             line = buffer.getLine(changeLineNumber).copy();
         }
 
-        void restoreState(Editor editor)
-        {
+        void restoreState(Editor editor) {
             Debug.assertTrue(editor.getBuffer() == buffer);
             Debug.assertTrue(changeLineNumber >= 0);
 

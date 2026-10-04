@@ -22,47 +22,38 @@ package org.armedbear.j;
 
 import java.io.UnsupportedEncodingException;
 
-public class TextLine extends AbstractLine
-{
+public class TextLine extends AbstractLine {
     private static final int SAVED = 0x0001;
-    private static final int NEW   = 0x0002;
+    private static final int NEW = 0x0002;
 
     private int flags;
     private String text;
     private String originalText;
     private int bits;
 
-    protected TextLine()
-    {
-    }
+    protected TextLine() {}
 
-    public TextLine(String s)
-    {
+    public TextLine(String s) {
         text = s;
     }
 
-    protected final void init(String s)
-    {
+    protected final void init(String s) {
         text = s;
     }
 
-    public final synchronized int flags()
-    {
+    public final synchronized int flags() {
         return flags;
     }
 
-    public final synchronized void setFlags(int flags)
-    {
+    public final synchronized void setFlags(int flags) {
         this.flags = flags;
     }
 
-    public final synchronized String getText()
-    {
+    public final synchronized String getText() {
         return text != null ? text : "";
     }
 
-    public final synchronized void setText(String s)
-    {
+    public final synchronized void setText(String s) {
         if (originalText == null)
             originalText = text;
         text = s;
@@ -71,101 +62,88 @@ public class TextLine extends AbstractLine
         bits &= ~SAVED;
     }
 
-    public final String getOriginalText()
-    {
+    public final String getOriginalText() {
         return originalText;
     }
 
-    public final void setOriginalText(String s)
-    {
+    public final void setOriginalText(String s) {
         originalText = s;
     }
 
-    public final boolean isModified()
-    {
+    public final boolean isModified() {
         return originalText != null || isNew();
     }
 
-    public final boolean isNew()
-    {
+    public final boolean isNew() {
         return (bits & NEW) == NEW;
     }
 
-    public final void setNew(boolean b)
-    {
+    public final void setNew(boolean b) {
         if (b)
             bits |= NEW;
         else
             bits &= ~NEW;
     }
 
-    public final boolean isSaved()
-    {
+    public final boolean isSaved() {
         return (bits & SAVED) == SAVED;
     }
 
-    public final void setSaved(boolean b)
-    {
+    public final void setSaved(boolean b) {
         if (b)
             bits |= SAVED;
         else
             bits &= ~SAVED;
     }
 
-    public final void unmodified()
-    {
+    public final void unmodified() {
         originalText = null;
         bits &= (~SAVED & ~NEW);
     }
 
-    public final char charAt(int i)
-    {
+    public final char charAt(int i) {
         return getText().charAt(i);
     }
 
-    public final String substring(int beginIndex)
-    {
+    public final String substring(int beginIndex) {
         return getText().substring(beginIndex);
     }
 
-    public final String substring(int beginIndex, int endIndex)
-    {
+    public final String substring(int beginIndex, int endIndex) {
         return getText().substring(beginIndex, endIndex);
     }
 
-    public final String trim()
-    {
+    public final String trim() {
         return getText().trim();
     }
 
-    public final int length()
-    {
+    public final int length() {
         return getText().length();
     }
 
-    public final int getWidth()
-    {
+    public final int getWidth() {
         return length() * Display.getCharWidth();
     }
 
-    public final byte[] getBytes(String encoding) throws UnsupportedEncodingException
-    {
+    public final byte[] getBytes(String encoding) throws UnsupportedEncodingException {
         byte[] bytes = getText().getBytes(encoding);
         if (bytes.length >= 2) {
-            if ((bytes[0] == (byte) 0xfe && bytes[1] == (byte) 0xff) ||
-                (bytes[0] == (byte) 0xff && bytes[1] == (byte) 0xfe)) {
+            if (
+                (bytes[0] == (byte) 0xfe && bytes[1] == (byte) 0xff)
+                    ||
+                    (bytes[0] == (byte) 0xff && bytes[1] == (byte) 0xfe)
+            ) {
                 // Get rid of byte order mark.
-                byte[] newBytes = new byte[bytes.length-2];
+                byte[] newBytes = new byte[bytes.length - 2];
                 for (int i = 0; i < newBytes.length; i++)
-                    newBytes[i] = bytes[i+2];
+                    newBytes[i] = bytes[i + 2];
                 return newBytes;
             }
         }
         return bytes;
     }
 
-    public final boolean isBlank()
-    {
+    public final boolean isBlank() {
         String s = getText();
 
         for (int i = s.length(); i-- > 0;)
@@ -176,8 +154,7 @@ public class TextLine extends AbstractLine
     }
 
     // Copies text, original text, and bit flags only.
-    public Line copy()
-    {
+    public Line copy() {
         TextLine line = new TextLine(text);
         line.originalText = originalText;
         line.bits = bits;
@@ -185,8 +162,7 @@ public class TextLine extends AbstractLine
     }
 
     // Copies text, original text, and bit flags only.
-    public void copy(Line line)
-    {
+    public void copy(Line line) {
         if (line instanceof TextLine) {
             TextLine textLine = (TextLine) line;
             text = textLine.text;

@@ -22,15 +22,12 @@ package org.armedbear.j;
 
 import javax.swing.undo.UndoableEdit;
 
-public final class UndoScrollCaret extends UndoMove
-{
-    public UndoScrollCaret(Editor editor)
-    {
+public final class UndoScrollCaret extends UndoMove {
+    public UndoScrollCaret(Editor editor) {
         super(editor);
     }
 
-    public boolean addEdit(UndoableEdit edit)
-    {
+    public boolean addEdit(UndoableEdit edit) {
         return (edit instanceof UndoScrollCaret);
     }
 }

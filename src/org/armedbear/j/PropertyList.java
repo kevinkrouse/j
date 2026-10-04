@@ -25,40 +25,32 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Set;
 
-public final class PropertyList
-{
+public final class PropertyList {
     private HashMap<Property, Object> map;
 
-    public PropertyList()
-    {
-    }
+    public PropertyList() {}
 
-    public Object getProperty(Property property)
-    {
+    public Object getProperty(Property property) {
         if (map != null)
             return map.get(property);
         return null;
     }
 
-    public void setProperty(Property property, Serializable value)
-    {
+    public void setProperty(Property property, Serializable value) {
         if (map == null)
             map = new HashMap<Property, Object>();
         map.put(property, value);
     }
 
-    public void setProperty(Property property, boolean value)
-    {
+    public void setProperty(Property property, boolean value) {
         setProperty(property, value ? Boolean.TRUE : Boolean.FALSE);
     }
 
-    public void setProperty(Property property, int value)
-    {
+    public void setProperty(Property property, int value) {
         setProperty(property, Integer.valueOf(value));
     }
 
-    public boolean setPropertyFromString(Property property, String value)
-    {
+    public boolean setPropertyFromString(Property property, String value) {
         if (property.isBooleanProperty()) {
             if (value.equals("true") || value.equals("1")) {
                 setProperty(property, true);
@@ -83,56 +75,48 @@ public final class PropertyList
         return true;
     }
 
-    public boolean removeProperty(Property property)
-    {
+    public boolean removeProperty(Property property) {
         return map.remove(property) != null;
     }
 
-    public boolean getBooleanProperty(Property property)
-    {
+    public boolean getBooleanProperty(Property property) {
         Object value = getProperty(property);
         if (!(value instanceof Boolean))
             value = property.getDefaultValue();
-        return ((Boolean)value).booleanValue();
+        return ((Boolean) value).booleanValue();
     }
 
-    public int getIntegerProperty(Property property)
-    {
+    public int getIntegerProperty(Property property) {
         Object value = getProperty(property);
         if (!(value instanceof Integer))
             value = property.getDefaultValue();
-        return ((Integer)value).intValue();
+        return ((Integer) value).intValue();
     }
 
-    public String getStringProperty(Property property)
-    {
+    public String getStringProperty(Property property) {
         Object value = getProperty(property);
         if (!(value instanceof String))
             value = property.getDefaultValue();
         return (String) value;
     }
 
-    public Iterator<Property> keyIterator()
-    {
+    public Iterator<Property> keyIterator() {
         if (map != null)
             return map.keySet().iterator();
         return null;
     }
 
-    public Set<Property> keySet()
-    {
+    public Set<Property> keySet() {
         if (map != null)
             return map.keySet();
         return null;
     }
 
-    public int size()
-    {
+    public int size() {
         return map != null ? map.size() : 0;
     }
 
-    public void putAll(PropertyList other)
-    {
+    public void putAll(PropertyList other) {
         if (other.map != null && other.map.size() > 0) {
             if (map == null)
                 map = new HashMap<Property, Object>();

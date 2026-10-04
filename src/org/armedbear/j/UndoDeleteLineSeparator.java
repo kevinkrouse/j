@@ -24,18 +24,15 @@ import javax.swing.undo.AbstractUndoableEdit;
 import javax.swing.undo.UndoableEdit;
 
 public final class UndoDeleteLineSeparator extends AbstractUndoableEdit
-    implements Constants, UndoableEdit
-{
+    implements Constants, UndoableEdit {
     private PreState preState;
     private PostState postState;
 
-    public UndoDeleteLineSeparator(Editor editor)
-    {
+    public UndoDeleteLineSeparator(Editor editor) {
         preState = new PreState(editor);
     }
 
-    public void undo()
-    {
+    public void undo() {
         super.undo();
         final Editor editor = Editor.currentEditor();
         final Buffer buffer = editor.getBuffer();
@@ -46,14 +43,15 @@ public final class UndoDeleteLineSeparator extends AbstractUndoableEdit
         if (postState.modificationCount != preState.modificationCount) {
             // Buffer was changed.
             buffer.invalidate();
-            Sidebar.setUpdateFlagInAllFrames(SIDEBAR_MODIFIED_BUFFER_COUNT |
-                SIDEBAR_REPAINT_BUFFER_LIST);
+            Sidebar.setUpdateFlagInAllFrames(
+                SIDEBAR_MODIFIED_BUFFER_COUNT |
+                    SIDEBAR_REPAINT_BUFFER_LIST
+            );
             Sidebar.repaintBufferListInAllFrames();
         }
     }
 
-    public void redo()
-    {
+    public void redo() {
         super.redo();
         final Editor editor = Editor.currentEditor();
         final Buffer buffer = editor.getBuffer();
@@ -63,21 +61,21 @@ public final class UndoDeleteLineSeparator extends AbstractUndoableEdit
         if (postState.modificationCount != preState.modificationCount) {
             // Buffer was changed.
             buffer.invalidate();
-            Sidebar.setUpdateFlagInAllFrames(SIDEBAR_MODIFIED_BUFFER_COUNT |
-                SIDEBAR_REPAINT_BUFFER_LIST);
+            Sidebar.setUpdateFlagInAllFrames(
+                SIDEBAR_MODIFIED_BUFFER_COUNT |
+                    SIDEBAR_REPAINT_BUFFER_LIST
+            );
             Sidebar.repaintBufferListInAllFrames();
         }
     }
 
-    private static Line joinedLine(Buffer buffer, int lineNumber)
-    {
+    private static Line joinedLine(Buffer buffer, int lineNumber) {
         if (buffer.needsRenumbering())
             buffer.renumber();
         return buffer.getLine(lineNumber);
     }
 
-    private static class PreState
-    {
+    private static class PreState {
         final int dotLineNumber;
         final int dotOffset;
         final int absCaretCol;
@@ -86,8 +84,7 @@ public final class UndoDeleteLineSeparator extends AbstractUndoableEdit
         final Line first;
         final Line second;
 
-        PreState(Editor editor)
-        {
+        PreState(Editor editor) {
             final Line dotLine = editor.getDotLine();
             dotLineNumber = dotLine.lineNumber();
             dotOffset = editor.getDotOffset();
@@ -100,8 +97,7 @@ public final class UndoDeleteLineSeparator extends AbstractUndoableEdit
         }
 
         // Undo.
-        void restoreState(Editor editor)
-        {
+        void restoreState(Editor editor) {
             final Buffer buffer = editor.getBuffer();
 
             // The joined line, by number rather than from where the caret is
@@ -134,8 +130,7 @@ public final class UndoDeleteLineSeparator extends AbstractUndoableEdit
         }
     }
 
-    private static class PostState
-    {
+    private static class PostState {
         final int dotLineNumber;
         final int dotOffset;
         final int absCaretCol;
@@ -144,8 +139,7 @@ public final class UndoDeleteLineSeparator extends AbstractUndoableEdit
         final Line line;
         final int joinedLineNumber;
 
-        PostState(Editor editor, int joinedLineNumber)
-        {
+        PostState(Editor editor, int joinedLineNumber) {
             this.joinedLineNumber = joinedLineNumber;
             final Line dotLine = editor.getDotLine();
             dotLineNumber = dotLine.lineNumber();
@@ -158,8 +152,7 @@ public final class UndoDeleteLineSeparator extends AbstractUndoableEdit
         }
 
         // Redo.
-        void restoreState(Editor editor)
-        {
+        void restoreState(Editor editor) {
             final Buffer buffer = editor.getBuffer();
 
             final Line first = joinedLine(buffer, joinedLineNumber);

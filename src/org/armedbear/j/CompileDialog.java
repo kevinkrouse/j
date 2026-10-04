@@ -28,15 +28,13 @@ import javax.swing.JDialog;
 import javax.swing.JPanel;
 import javax.swing.border.EmptyBorder;
 
-public final class CompileDialog extends JDialog implements KeyListener
-{
+public final class CompileDialog extends JDialog implements KeyListener {
     private final Editor editor;
     private final HistoryTextField textField;
     private final History compileHistory;
     private String command;
 
-    public CompileDialog(Editor editor)
-    {
+    public CompileDialog(Editor editor) {
         super(editor.getFrame(), "Compile", true);
         this.editor = editor;
         JPanel panel = new JPanel();
@@ -55,13 +53,11 @@ public final class CompileDialog extends JDialog implements KeyListener
         textField.addKeyListener(this);
     }
 
-    public final String getCommand()
-    {
+    public final String getCommand() {
         return command;
     }
 
-    public void keyPressed(KeyEvent e)
-    {
+    public void keyPressed(KeyEvent e) {
         final int keyCode = e.getKeyCode();
         switch (keyCode) {
             case KeyEvent.VK_ENTER: {
@@ -84,8 +80,7 @@ public final class CompileDialog extends JDialog implements KeyListener
 
     public void keyTyped(KeyEvent e) {}
 
-    public void dispose()
-    {
+    public void dispose() {
         super.dispose();
         editor.restoreFocus();
     }

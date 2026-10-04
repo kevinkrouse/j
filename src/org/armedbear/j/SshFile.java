@@ -21,26 +21,27 @@
 package org.armedbear.j;
 
 import java.lang.StringBuilder;
-import org.armedbear.j.util.Utilities;
-
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
-import java.util.regex.Matcher;
+import org.armedbear.j.util.Utilities;
 
-public final class SshFile extends File
-{
+public final class SshFile extends File {
     public static final int DEFAULT_PORT = 22;
 
-    private SshFile()
-    {
+    private SshFile() {
         isRemote = true;
         protocol = PROTOCOL_SSH;
         port = DEFAULT_PORT;
     }
 
-    public SshFile(String hostName, String path, String userName,
-        String password, int port)
-    {
+    public SshFile(
+        String hostName,
+        String path,
+        String userName,
+        String password,
+        int port
+    ) {
         isRemote = true;
         protocol = PROTOCOL_SSH;
         this.hostName = hostName;
@@ -50,16 +51,14 @@ public final class SshFile extends File
         this.port = port;
     }
 
-    public static SshFile getSshFile(String name)
-    {
+    public static SshFile getSshFile(String name) {
         SshFile file = new SshFile();
         if (file.initRemote(name, PREFIX_SSH))
             return file;
         return null;
     }
 
-    public static SshFile getSshFile(SshFile directory, String name)
-    {
+    public static SshFile getSshFile(SshFile directory, String name) {
         SshFile file = new SshFile();
 
         file.hostName = directory.hostName;
@@ -75,8 +74,7 @@ public final class SshFile extends File
         return file;
     }
 
-    public final File getRoot()
-    {
+    public final File getRoot() {
         SshFile file = new SshFile();
         file.hostName = this.hostName;
         file.userName = this.userName;
@@ -87,8 +85,7 @@ public final class SshFile extends File
         return file;
     }
 
-    public String netPath()
-    {
+    public String netPath() {
         StringBuilder sb = new StringBuilder(256);
         sb.append(PREFIX_SSH);
         if (userName != null) {
@@ -105,8 +102,7 @@ public final class SshFile extends File
         return sb.toString();
     }
 
-    public File getParentFile()
-    {
+    public File getParentFile() {
         if (canonicalPath() == null || canonicalPath.equals("/"))
             return null; // No parent.
         int index = canonicalPath.lastIndexOf('/');
@@ -114,12 +110,16 @@ public final class SshFile extends File
             return null; // No parent.
         if (index == 0) // "/usr"
             return new SshFile(hostName, "/", userName, password, port);
-        return new SshFile(hostName, canonicalPath.substring(0, index),
-            userName, password, port);
+        return new SshFile(
+            hostName,
+            canonicalPath.substring(0, index),
+            userName,
+            password,
+            port
+        );
     }
 
-    public boolean isDirectory()
-    {
+    public boolean isDirectory() {
         if (type == TYPE_LINK) {
             if (DirectoryCache.getDirectoryCache().getListing(this) != null)
                 return true;
@@ -172,13 +172,11 @@ public final class SshFile extends File
         return type == TYPE_DIRECTORY;
     }
 
-    public boolean isLink()
-    {
+    public boolean isLink() {
         return type == TYPE_LINK;
     }
 
-    public boolean exists()
-    {
+    public boolean exists() {
         RemoteSession session = SshSession.getSession(this);
         if (session == null)
             return false;
@@ -188,13 +186,11 @@ public final class SshFile extends File
         return result;
     }
 
-    public String getDirectoryListing()
-    {
+    public String getDirectoryListing() {
         return getDirectoryListing(false);
     }
 
-    public String getDirectoryListing(boolean forceRefresh)
-    {
+    public String getDirectoryListing(boolean forceRefresh) {
         if (!forceRefresh) {
             String listing =
                 DirectoryCache.getDirectoryCache().getListing(this);
@@ -214,8 +210,7 @@ public final class SshFile extends File
         return listing;
     }
 
-    public boolean equals(Object obj)
-    {
+    public boolean equals(Object obj) {
         if (!(obj instanceof SshFile))
             return false;
         SshFile f = (SshFile) obj;
@@ -241,13 +236,11 @@ public final class SshFile extends File
         return f.canonicalPath.equals(canonicalPath);
     }
 
-    public final String getSeparator()
-    {
+    public final String getSeparator() {
         return "/";
     }
 
-    public final char getSeparatorChar()
-    {
+    public final char getSeparatorChar() {
         return '/';
     }
 }

@@ -22,8 +22,7 @@ package org.armedbear.j;
 
 import java.lang.StringBuilder;
 
-public abstract class AbstractLine implements Line
-{
+public abstract class AbstractLine implements Line {
     private Line prev;
     private Line next;
     private int lineNumber = -1;
@@ -31,28 +30,23 @@ public abstract class AbstractLine implements Line
     private int hidden;
     private Annotation annotation;
 
-    public final synchronized Line previous()
-    {
+    public final synchronized Line previous() {
         return prev;
     }
 
-    public final synchronized void setPrevious(Line line)
-    {
+    public final synchronized void setPrevious(Line line) {
         prev = line;
     }
 
-    public final synchronized Line next()
-    {
+    public final synchronized Line next() {
         return next;
     }
 
-    public final synchronized void setNext(Line line)
-    {
+    public final synchronized void setNext(Line line) {
         next = line;
     }
 
-    public final synchronized void insertAfter(Line line)
-    {
+    public final synchronized void insertAfter(Line line) {
         if (line != null) {
             Line n = line.next();
             setNext(n);
@@ -64,93 +58,77 @@ public abstract class AbstractLine implements Line
             Debug.bug();
     }
 
-    public final synchronized int lineNumber()
-    {
+    public final synchronized int lineNumber() {
         return lineNumber;
     }
 
-    public final synchronized void setLineNumber(int n)
-    {
+    public final synchronized void setLineNumber(int n) {
         lineNumber = n;
     }
 
-    public final synchronized int originalLineNumber()
-    {
+    public final synchronized int originalLineNumber() {
         return originalLineNumber;
     }
 
-    public final synchronized void setOriginalLineNumber(int n)
-    {
+    public final synchronized void setOriginalLineNumber(int n) {
         originalLineNumber = n;
     }
 
-    public int getHeight()
-    {
+    public int getHeight() {
         return Display.getCharHeight();
     }
 
-    public int getWidth()
-    {
+    public int getWidth() {
         return 0;
     }
 
     // Derived classes override this!
-    public String getText()
-    {
+    public String getText() {
         return null;
     }
 
     // Derived classes override this!
-    public String getOriginalText()
-    {
+    public String getOriginalText() {
         return null;
     }
 
     // Derived classes override this!
-    public void setOriginalText(String s)
-    {
+    public void setOriginalText(String s) {
         // Do nothing.
     }
 
     // Derived classes override this!
-    public boolean isModified()
-    {
+    public boolean isModified() {
         return false;
     }
 
     // Derived classes override this!
-    public boolean isNew()
-    {
+    public boolean isNew() {
         return false;
     }
 
     // Derived classes override this!
-    public void setNew(boolean b)
-    {
+    public void setNew(boolean b) {
         // Do nothing.
     }
 
     // Derived classes override this!
-    public boolean isSaved()
-    {
+    public boolean isSaved() {
         return false;
     }
 
     // Derived classes override this!
-    public void setSaved(boolean b)
-    {
+    public void setSaved(boolean b) {
         // Do nothing.
     }
 
     // Derived classes override this!
-    public void unmodified()
-    {
+    public void unmodified() {
         // Do nothing.
     }
 
     // Returns offset (not column) of first non-whitespace character.
-    public int getIndentation()
-    {
+    public int getIndentation() {
         String text = getText();
         if (text == null)
             return 0;
@@ -161,86 +139,72 @@ public abstract class AbstractLine implements Line
         return limit;
     }
 
-    public final boolean isHidden()
-    {
+    public final boolean isHidden() {
         return hidden > 0;
     }
 
-    public final void hide()
-    {
+    public final void hide() {
         ++hidden;
     }
 
-    public final void unhide()
-    {
+    public final void unhide() {
         --hidden;
         if (Editor.isDebugEnabled() && hidden < 0)
             Debug.bug("hidden < 0");
     }
 
-    public final void show()
-    {
+    public final void show() {
         hidden = 0;
     }
 
-    public final int getHidden()
-    {
+    public final int getHidden() {
         return hidden;
     }
 
-    public final void setHidden(int hidden)
-    {
+    public final void setHidden(int hidden) {
         this.hidden = hidden;
     }
 
-    public final synchronized Line previousVisible()
-    {
+    public final synchronized Line previousVisible() {
         Line line = previous();
         while (line != null && line.isHidden())
             line = line.previous();
         return line;
     }
 
-    public final synchronized Line nextVisible()
-    {
+    public final synchronized Line nextVisible() {
         Line line = next();
         while (line != null && line.isHidden())
             line = line.next();
         return line;
     }
 
-    public final boolean isBefore(Line line)
-    {
+    public final boolean isBefore(Line line) {
         return lineNumber < line.lineNumber();
     }
 
     // Derived classes override this!
-    public Line copy()
-    {
+    public Line copy() {
         return null;
     }
 
     // Derived classes override this!
-    public void copy(Line line)
-    {
+    public void copy(Line line) {
         // Do nothing.
     }
 
-    public final Annotation getAnnotation()
-    {
+    public final Annotation getAnnotation() {
         return annotation;
     }
 
-    public final void setAnnotation(Annotation annotation)
-    {
+    public final void setAnnotation(Annotation annotation) {
         this.annotation = annotation;
     }
 
-    public final String toString()
-    {
+    public final String toString() {
         StringBuilder sb = new StringBuilder();
         sb.append("line ");
-        sb.append(lineNumber()+1);
+        sb.append(lineNumber() + 1);
         String s = getText();
         if (s != null) {
             sb.append(" text = \"");

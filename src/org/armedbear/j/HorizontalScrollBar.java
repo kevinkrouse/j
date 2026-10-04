@@ -22,23 +22,19 @@ package org.armedbear.j;
 
 import javax.swing.JScrollBar;
 
-public final class HorizontalScrollBar extends JScrollBar
-{
+public final class HorizontalScrollBar extends JScrollBar {
     private Editor editor;
 
-    public HorizontalScrollBar(Editor editor)
-    {
+    public HorizontalScrollBar(Editor editor) {
         super(HORIZONTAL);
         this.editor = editor;
     }
 
-    public int getUnitIncrement(int direction)
-    {
+    public int getUnitIncrement(int direction) {
         return editor.getDisplay().getCharWidth();
     }
 
-    public int getBlockIncrement(int direction)
-    {
+    public int getBlockIncrement(int direction) {
         return editor.getDisplay().getWidth();
     }
 }

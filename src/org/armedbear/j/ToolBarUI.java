@@ -24,21 +24,15 @@ import javax.swing.JComponent;
 import javax.swing.plaf.ComponentUI;
 import javax.swing.plaf.metal.MetalToolBarUI;
 
-public final class ToolBarUI extends MetalToolBarUI
-{
-    public static ComponentUI createUI(JComponent c)
-    {
+public final class ToolBarUI extends MetalToolBarUI {
+    public static ComponentUI createUI(JComponent c) {
         if (ToolBar.isRolloverEnabled())
             c.putClientProperty("JToolBar.isRollover", Boolean.TRUE);
         return new org.armedbear.j.ToolBarUI();
     }
 
     // Don't install default keyboard actions!
-    protected void installKeyboardActions()
-    {
-    }
+    protected void installKeyboardActions() {}
 
-    protected void uninstallKeyboardActions()
-    {
-    }
+    protected void uninstallKeyboardActions() {}
 }

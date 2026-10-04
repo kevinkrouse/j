@@ -20,43 +20,36 @@
 
 package org.armedbear.j;
 
+import javax.swing.SwingUtilities;
 import org.armedbear.j.util.Utilities;
 
-import javax.swing.SwingUtilities;
-
 public final class FtpLoadProcess extends LoadProcess implements BackgroundProcess,
-    Constants
-{
+    Constants {
     private FtpSession session;
     private boolean fileIsDirectory;
     private String listing;
 
-    public FtpLoadProcess(Buffer buffer, FtpFile file, FtpSession session)
-    {
+    public FtpLoadProcess(Buffer buffer, FtpFile file, FtpSession session) {
         super(buffer, file);
         this.session = session;
     }
 
-    public final String getListing()
-    {
+    public final String getListing() {
         return listing;
     }
 
-    public final boolean fileIsDirectory()
-    {
+    public final boolean fileIsDirectory() {
         return fileIsDirectory;
     }
 
-    public void run()
-    {
+    public void run() {
         Debug.assertTrue(buffer != null);
         buffer.setBackgroundProcess(this);
         doLoad();
         buffer.setBackgroundProcess(null);
     }
 
-    private void doLoad()
-    {
+    private void doLoad() {
         Debug.assertTrue(session != null);
         Debug.assertTrue(session.isLocked());
         session.setProgressNotifier(progressNotifier);
@@ -113,8 +106,7 @@ public final class FtpLoadProcess extends LoadProcess implements BackgroundProce
         session.unlock();
     }
 
-    private void deleteCache()
-    {
+    private void deleteCache() {
         if (cache != null) {
             if (cache.isFile())
                 cache.delete();

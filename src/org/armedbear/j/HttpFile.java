@@ -22,19 +22,16 @@ package org.armedbear.j;
 
 import java.lang.StringBuilder;
 
-public final class HttpFile extends File
-{
+public final class HttpFile extends File {
     private File cache;
     private String headers;
     private String contentType;
 
-    private HttpFile()
-    {
+    private HttpFile() {
         isRemote = true;
     }
 
-    private HttpFile(String hostName, String path, int protocol, int port)
-    {
+    private HttpFile(String hostName, String path, int protocol, int port) {
         this();
         this.hostName = hostName;
         this.canonicalPath = path;
@@ -42,8 +39,7 @@ public final class HttpFile extends File
         this.port = port;
     }
 
-    public static HttpFile getHttpFile(String name)
-    {
+    public static HttpFile getHttpFile(String name) {
         HttpFile file = new HttpFile();
         if (name.startsWith(PREFIX_HTTP)) {
             name = name.substring(PREFIX_HTTP.length());
@@ -76,8 +72,7 @@ public final class HttpFile extends File
         return file;
     }
 
-    public static HttpFile getHttpFile(HttpFile directory, String name)
-    {
+    public static HttpFile getHttpFile(HttpFile directory, String name) {
         if (name.startsWith("http://") || name.startsWith("https://")) {
             // Ignore directory.
             return getHttpFile(name);
@@ -94,59 +89,52 @@ public final class HttpFile extends File
         } else if (name.startsWith("/")) {
             return new HttpFile(directory.hostName, name, directory.protocol, directory.port);
         } else {
-            return new HttpFile(directory.hostName,
+            return new HttpFile(
+                directory.hostName,
                 canonicalize(appendNameToPath(directory.canonicalPath(), name, '/'), "/"),
-                directory.protocol, directory.port);
+                directory.protocol,
+                directory.port
+            );
         }
     }
 
-    public final File getCache()
-    {
+    public final File getCache() {
         return cache;
     }
 
-    public final void setCache(File cache)
-    {
+    public final void setCache(File cache) {
         this.cache = cache;
     }
 
-    public final String getHeaders()
-    {
+    public final String getHeaders() {
         return headers;
     }
 
-    public final void setHeaders(String s)
-    {
+    public final void setHeaders(String s) {
         headers = s;
     }
 
-    public final String getContentType()
-    {
+    public final String getContentType() {
         return contentType;
     }
 
-    public final void setContentType(String s)
-    {
+    public final void setContentType(String s) {
         contentType = s;
     }
 
-    public final File getRoot()
-    {
+    public final File getRoot() {
         return new HttpFile(hostName, "/", protocol, port);
     }
 
-    public final String getSeparator()
-    {
+    public final String getSeparator() {
         return "/";
     }
 
-    public final char getSeparatorChar()
-    {
+    public final char getSeparatorChar() {
         return '/';
     }
 
-    public File getParentFile()
-    {
+    public File getParentFile() {
         if (canonicalPath() == null || canonicalPath.equals("/")) {
             // The file might really be "http://www.cnn.com/index.html", but
             // it might appear to be "http://www.cnn.com/".
@@ -163,13 +151,16 @@ public final class HttpFile extends File
             // "/index.html"
             return new HttpFile(hostName, "/", protocol, port);
         } else {
-            return new HttpFile(hostName, stripped.substring(0, index),
-                protocol, port);
+            return new HttpFile(
+                hostName,
+                stripped.substring(0, index),
+                protocol,
+                port
+            );
         }
     }
 
-    public String netPath()
-    {
+    public String netPath() {
         StringBuilder sb = new StringBuilder(256);
         if (protocol == PROTOCOL_HTTP) {
             sb.append(PREFIX_HTTP);
@@ -189,8 +180,7 @@ public final class HttpFile extends File
         return sb.toString();
     }
 
-    public String getName()
-    {
+    public String getName() {
         int index = canonicalPath.lastIndexOf('/');
         String name = index >= 0 ? canonicalPath.substring(index + 1) : canonicalPath;
         index = name.indexOf('?');

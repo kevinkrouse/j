@@ -22,30 +22,26 @@ package org.armedbear.j;
 
 import javax.swing.event.MenuEvent;
 
-public final class MenuListener implements javax.swing.event.MenuListener
-{
-    public void menuCanceled(MenuEvent e)
-    {
-//         Log.debug("menuCanceled " + e.toString());
+public final class MenuListener implements javax.swing.event.MenuListener {
+    public void menuCanceled(MenuEvent e) {
+        //         Log.debug("menuCanceled " + e.toString());
     }
 
-    public void menuDeselected(MenuEvent e)
-    {
-//         Log.debug("menuDeselected " + e.toString());
+    public void menuDeselected(MenuEvent e) {
+        //         Log.debug("menuDeselected " + e.toString());
         if (e.getSource() instanceof org.armedbear.j.Menu) {
-//             Log.debug("menuSelected calling removeAll...");
-//             final Editor editor = Editor.currentEditor();
-//             editor.getMode().populateMenu(editor, (Menu) e.getSource());
-            ((Menu)e.getSource()).removeAll();
+            //             Log.debug("menuSelected calling removeAll...");
+            //             final Editor editor = Editor.currentEditor();
+            //             editor.getMode().populateMenu(editor, (Menu) e.getSource());
+            ((Menu) e.getSource()).removeAll();
         }
         Editor.isMenuSelected = false;
     }
 
-    public void menuSelected(MenuEvent e)
-    {
-//         Log.debug("menuSelected " + e.toString());
+    public void menuSelected(MenuEvent e) {
+        //         Log.debug("menuSelected " + e.toString());
         if (e.getSource() instanceof org.armedbear.j.Menu) {
-//             Log.debug("menuSelected calling populateMenu...");
+            //             Log.debug("menuSelected calling populateMenu...");
             final Editor editor = Editor.currentEditor();
             editor.getMode().populateMenu(editor, (Menu) e.getSource());
         }

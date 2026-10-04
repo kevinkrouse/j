@@ -23,18 +23,15 @@ package org.armedbear.j;
 import javax.swing.undo.CompoundEdit;
 import javax.swing.undo.UndoableEdit;
 
-public final class UndoManager extends javax.swing.undo.UndoManager
-{
-    public synchronized void undo()
-    {
+public final class UndoManager extends javax.swing.undo.UndoManager {
+    public synchronized void undo() {
         UndoableEdit edit = editToBeUndone();
         super.undo();
         if (edit instanceof UndoBoundary)
             super.undo();
     }
 
-    public synchronized void redo()
-    {
+    public synchronized void redo() {
         UndoableEdit edit = editToBeRedone();
         super.redo();
         if (edit instanceof UndoBoundary)
@@ -42,22 +39,19 @@ public final class UndoManager extends javax.swing.undo.UndoManager
     }
 
     /** The edit the last undo took back, which redo puts back next. */
-    public synchronized UndoableEdit lastUndone()
-    {
+    public synchronized UndoableEdit lastUndone() {
         return editToBeRedone();
     }
 
     /** The edit the last redo put back, which undo takes back next. */
-    public synchronized UndoableEdit lastRedone()
-    {
+    public synchronized UndoableEdit lastRedone() {
         return editToBeUndone();
     }
 
-    public void appendUndoFold(Editor editor)
-    {
+    public void appendUndoFold(Editor editor) {
         if (edits.size() > 0) {
             UndoFold undoFold = new UndoFold(editor);
-            UndoableEdit lastEdit = edits.remove(edits.size()-1);
+            UndoableEdit lastEdit = edits.remove(edits.size() - 1);
             CompoundEdit compoundEdit = new CompoundEdit();
             compoundEdit.addEdit(lastEdit);
             compoundEdit.addEdit(undoFold);

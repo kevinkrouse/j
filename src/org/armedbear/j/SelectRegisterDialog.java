@@ -23,26 +23,23 @@ package org.armedbear.j;
 import java.util.ArrayList;
 import java.util.List;
 
-public final class SelectRegisterDialog extends InputDialog
-{
-  public SelectRegisterDialog(Editor editor, String prompt, String title, String defaultValue)
-  {
-    super(editor, "Register:", title, null);
-    setHistory(new History("selectRegister.register"));
-  }
-
-  protected List<String> getCompletions(String prefix)
-  {
-    String lower = prefix.toLowerCase();
-    String[] names = null;
-    File directory = Directories.getRegistersDirectory();
-    if (directory != null)
-      names = directory.list();
-    ArrayList<String> list = new ArrayList<String>();
-    for (String name : names) {
-        if (name.toLowerCase().startsWith(lower))
-            list.add(name);
+public final class SelectRegisterDialog extends InputDialog {
+    public SelectRegisterDialog(Editor editor, String prompt, String title, String defaultValue) {
+        super(editor, "Register:", title, null);
+        setHistory(new History("selectRegister.register"));
     }
-    return list;
-  }
+
+    protected List<String> getCompletions(String prefix) {
+        String lower = prefix.toLowerCase();
+        String[] names = null;
+        File directory = Directories.getRegistersDirectory();
+        if (directory != null)
+            names = directory.list();
+        ArrayList<String> list = new ArrayList<String>();
+        for (String name : names) {
+            if (name.toLowerCase().startsWith(lower))
+                list.add(name);
+        }
+        return list;
+    }
 }

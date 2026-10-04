@@ -23,20 +23,16 @@ package org.armedbear.j;
 import java.awt.Graphics;
 import javax.swing.JLabel;
 
-public final class Label extends JLabel
-{
-    public Label()
-    {
+public final class Label extends JLabel {
+    public Label() {
         super();
     }
 
-    public Label(String text)
-    {
+    public Label(String text) {
         super(text);
     }
 
-    public void paintComponent(Graphics g)
-    {
+    public void paintComponent(Graphics g) {
         Display.setRenderingHints(g);
         super.paintComponent(g);
     }

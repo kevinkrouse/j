@@ -23,18 +23,19 @@ package org.armedbear.j;
 import java.util.ArrayList;
 import java.util.List;
 
-public final class ChooseSessionDialog extends InputDialog
-{
-    public ChooseSessionDialog(String title)
-    {
-        super(Editor.currentEditor(), "Name:", title,
-            Editor.getSessionName());
+public final class ChooseSessionDialog extends InputDialog {
+    public ChooseSessionDialog(String title) {
+        super(
+            Editor.currentEditor(),
+            "Name:",
+            title,
+            Editor.getSessionName()
+        );
         setHistory(new History("chooseSession"));
         editor.centerDialog(this);
     }
 
-    protected List<String> getCompletions(String prefix)
-    {
+    protected List<String> getCompletions(String prefix) {
         ArrayList<String> list = null;
         if (prefix != null) {
             final int prefixLength = prefix.length();

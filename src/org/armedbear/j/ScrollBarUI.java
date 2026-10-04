@@ -30,20 +30,17 @@ import javax.swing.UIManager;
 import javax.swing.plaf.ComponentUI;
 import javax.swing.plaf.basic.BasicScrollBarUI;
 
-public final class ScrollBarUI extends BasicScrollBarUI
-{
-    public static ComponentUI createUI(JComponent c)
-    {
+public final class ScrollBarUI extends BasicScrollBarUI {
+    public static ComponentUI createUI(JComponent c) {
         return new ScrollBarUI();
     }
 
-    protected void paintThumb(Graphics g, JComponent c, Rectangle thumbBounds)
-    {
-	if (thumbBounds.isEmpty() || !scrollbar.isEnabled())
-	    return;
+    protected void paintThumb(Graphics g, JComponent c, Rectangle thumbBounds) {
+        if (thumbBounds.isEmpty() || !scrollbar.isEnabled())
+            return;
         int w = thumbBounds.width;
         int h = thumbBounds.height;
-	g.translate(thumbBounds.x, thumbBounds.y);
+        g.translate(thumbBounds.x, thumbBounds.y);
         g.setColor(thumbHighlightColor);
         g.drawLine(0, 0, 0, h - 2); // Left side.
         g.drawLine(0, 0, w - 2, 0); // Top.
@@ -57,21 +54,18 @@ public final class ScrollBarUI extends BasicScrollBarUI
         g.setColor(thumbColor);
         g.fillRect(1, 1, w - 3, h - 3);
         // Done.
-	g.translate(-thumbBounds.x, -thumbBounds.y);
+        g.translate(-thumbBounds.x, -thumbBounds.y);
     }
 
-    protected JButton createDecreaseButton(int orientation)
-    {
+    protected JButton createDecreaseButton(int orientation) {
         return new ArrowButton(orientation);
     }
 
-    protected JButton createIncreaseButton(int orientation)
-    {
+    protected JButton createIncreaseButton(int orientation) {
         return new ArrowButton(orientation);
     }
 
-    private static class ArrowButton extends JButton
-    {
+    private static class ArrowButton extends JButton {
         private final int direction;
         private final int h;
         private final int w;
@@ -80,21 +74,19 @@ public final class ScrollBarUI extends BasicScrollBarUI
         private final Color darkShadow;
         private final Color highlight;
 
-        public ArrowButton(int direction)
-        {
+        public ArrowButton(int direction) {
             this.direction = direction;
             h = w = UIManager.getInt("ScrollBar.width");
             thumb = UIManager.getColor("ScrollBar.thumb");
-	    shadow = UIManager.getColor("ScrollBar.thumbShadow");
-	    darkShadow = UIManager.getColor("ScrollBar.thumbDarkShadow");
-	    highlight = UIManager.getColor("ScrollBar.thumbHighlight");
-	    setRequestFocusEnabled(false);
-	}
+            shadow = UIManager.getColor("ScrollBar.thumbShadow");
+            darkShadow = UIManager.getColor("ScrollBar.thumbDarkShadow");
+            highlight = UIManager.getColor("ScrollBar.thumbHighlight");
+            setRequestFocusEnabled(false);
+        }
 
-	public void paint(Graphics g)
-        {
-	    final Color origColor = g.getColor();
-	    final boolean isPressed = getModel().isPressed();
+        public void paint(Graphics g) {
+            final Color origColor = g.getColor();
+            final boolean isPressed = getModel().isPressed();
             if (isPressed) {
                 g.setColor(shadow);
                 g.drawRect(0, 0, w - 1, h - 1);
@@ -113,34 +105,29 @@ public final class ScrollBarUI extends BasicScrollBarUI
             g.fillRect(1, 1, w - 3, h - 3);
             if (isPressed)
                 g.translate(1, 1);
-	    paintTriangle(g);
+            paintTriangle(g);
             if (isPressed)
                 g.translate(-1, -1);
-	    g.setColor(origColor);
+            g.setColor(origColor);
         }
 
-        public Dimension getPreferredSize()
-        {
+        public Dimension getPreferredSize() {
             return new Dimension(w, h);
         }
 
-        public Dimension getMinimumSize()
-        {
+        public Dimension getMinimumSize() {
             return new Dimension(w, h);
         }
 
-        public Dimension getMaximumSize()
-        {
+        public Dimension getMaximumSize() {
             return new Dimension(w, h);
         }
 
-    	public boolean isFocusable()
-        {
+        public boolean isFocusable() {
             return false;
-	}
+        }
 
-	private void paintTriangle(Graphics g)
-        {
+        private void paintTriangle(Graphics g) {
             final int size = 4;
             int x = (w - size) / 2;
             int y = (h - size) / 2;
@@ -148,9 +135,9 @@ public final class ScrollBarUI extends BasicScrollBarUI
                 --y;
             else if (direction == WEST)
                 --x;
-	    g.translate(x, y);
+            g.translate(x, y);
             g.setColor(isEnabled() ? darkShadow : shadow);
-	    final int mid = (size / 2) - 1;
+            final int mid = (size / 2) - 1;
             switch (direction) {
                 case NORTH:
                     for (int i = 0; i < size; i++)
@@ -173,7 +160,7 @@ public final class ScrollBarUI extends BasicScrollBarUI
                     }
                     break;
             }
-	    g.translate(-x, -y);
-	}
+            g.translate(-x, -y);
+        }
     }
 }

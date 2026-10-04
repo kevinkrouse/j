@@ -20,20 +20,18 @@
 
 package org.armedbear.j;
 
-import java.util.Iterator;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
-public final class DirectoryCache
-{
+public final class DirectoryCache {
     private static final int timeout = 1800000; // 30 minutes
 
     private static DirectoryCache cache;
 
     private List<DirectoryCacheEntry> entries = new ArrayList<DirectoryCacheEntry>();
 
-    public static synchronized DirectoryCache getDirectoryCache()
-    {
+    public static synchronized DirectoryCache getDirectoryCache() {
         if (cache == null) {
             cache = new DirectoryCache();
             IdleThread idleThread = IdleThread.getInstance();
@@ -43,8 +41,7 @@ public final class DirectoryCache
         return cache;
     }
 
-    public synchronized String getListing(File file)
-    {
+    public synchronized String getListing(File file) {
         String netPath = file.netPath();
         for (int i = entries.size(); i-- > 0;) {
             DirectoryCacheEntry entry = entries.get(i);
@@ -60,8 +57,7 @@ public final class DirectoryCache
         return null;
     }
 
-    public synchronized void put(File file, String listing)
-    {
+    public synchronized void put(File file, String listing) {
         String netPath = file.netPath();
         for (int i = entries.size(); i-- > 0;) {
             DirectoryCacheEntry entry = entries.get(i);
@@ -71,13 +67,17 @@ public final class DirectoryCache
             }
         }
         if (listing != null && listing.length() > 0) {
-            entries.add(new DirectoryCacheEntry(file, listing,
-                System.currentTimeMillis()));
+            entries.add(
+                new DirectoryCacheEntry(
+                    file,
+                    listing,
+                    System.currentTimeMillis()
+                )
+            );
         }
     }
 
-    public synchronized void purge(String hostname)
-    {
+    public synchronized void purge(String hostname) {
         for (int i = entries.size(); i-- > 0;) {
             DirectoryCacheEntry entry = entries.get(i);
             if (entry.getFile().getHostName().equals(hostname)) {
@@ -87,8 +87,7 @@ public final class DirectoryCache
         }
     }
 
-    public synchronized void purge(File file)
-    {
+    public synchronized void purge(File file) {
         String netPath = file.netPath();
         for (int i = entries.size(); i-- > 0;) {
             DirectoryCacheEntry entry = entries.get(i);
@@ -99,21 +98,18 @@ public final class DirectoryCache
         }
     }
 
-    private static class PruneDirectoryCacheTask extends IdleThreadTask
-    {
+    private static class PruneDirectoryCacheTask extends IdleThreadTask {
         private static PruneDirectoryCacheTask instance;
 
         private long lastRun;
 
-        private PruneDirectoryCacheTask()
-        {
+        private PruneDirectoryCacheTask() {
             lastRun = System.currentTimeMillis();
             setIdle(300000); // User must be idle for 5 minutes.
             setRunnable(runnable);
         }
 
-        private static synchronized PruneDirectoryCacheTask getInstance()
-        {
+        private static synchronized PruneDirectoryCacheTask getInstance() {
             if (instance == null)
                 instance = new PruneDirectoryCacheTask();
             return instance;

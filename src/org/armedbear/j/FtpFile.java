@@ -23,17 +23,14 @@ package org.armedbear.j;
 import java.lang.StringBuilder;
 import org.armedbear.j.util.Utilities;
 
-public final class FtpFile extends File
-{
-    private FtpFile()
-    {
+public final class FtpFile extends File {
+    private FtpFile() {
         isRemote = true;
         protocol = PROTOCOL_FTP;
         port = 21;
     }
 
-    public FtpFile(String hostName, String path, String userName, String password, int port)
-    {
+    public FtpFile(String hostName, String path, String userName, String password, int port) {
         this();
         this.hostName = hostName;
         this.canonicalPath = path;
@@ -42,16 +39,14 @@ public final class FtpFile extends File
         this.port = port;
     }
 
-    public static FtpFile getFtpFile(String name)
-    {
+    public static FtpFile getFtpFile(String name) {
         FtpFile file = new FtpFile();
         if (file.initRemote(name, PREFIX_FTP))
             return file;
         return null;
     }
 
-    public static FtpFile getFtpFile(FtpFile directory, String name)
-    {
+    public static FtpFile getFtpFile(FtpFile directory, String name) {
         FtpFile file = new FtpFile();
 
         file.hostName = directory.hostName;
@@ -67,8 +62,7 @@ public final class FtpFile extends File
         return file;
     }
 
-    public static FtpFile getFtpFile(String host, String path)
-    {
+    public static FtpFile getFtpFile(String host, String path) {
         if (host == null)
             return null;
 
@@ -82,8 +76,7 @@ public final class FtpFile extends File
         return file;
     }
 
-    public File getRoot()
-    {
+    public File getRoot() {
         FtpFile file = new FtpFile();
 
         file.hostName = this.hostName;
@@ -96,18 +89,15 @@ public final class FtpFile extends File
         return file;
     }
 
-    public final String getSeparator()
-    {
+    public final String getSeparator() {
         return "/";
     }
 
-    public final char getSeparatorChar()
-    {
+    public final char getSeparatorChar() {
         return '/';
     }
 
-    public File getParentFile()
-    {
+    public File getParentFile() {
         if (canonicalPath() == null || canonicalPath.equals("/"))
             return null; // No parent.
 
@@ -122,8 +112,7 @@ public final class FtpFile extends File
         return new FtpFile(hostName, canonicalPath.substring(0, index), userName, password, port);
     }
 
-    public boolean isDirectory()
-    {
+    public boolean isDirectory() {
         if (type == TYPE_UNKNOWN) {
             FtpSession session = FtpSession.getSession(this);
             if (session != null) {
@@ -135,18 +124,15 @@ public final class FtpFile extends File
         return type == TYPE_DIRECTORY;
     }
 
-    public boolean isLink()
-    {
+    public boolean isLink() {
         return type == TYPE_LINK;
     }
 
-    public String getDirectoryListing()
-    {
+    public String getDirectoryListing() {
         return getDirectoryListing(false);
     }
-    
-    public String getDirectoryListing(boolean forceRefresh)
-    {
+
+    public String getDirectoryListing(boolean forceRefresh) {
         if (!forceRefresh) {
             String listing =
                 DirectoryCache.getDirectoryCache().getListing(this);
@@ -163,8 +149,7 @@ public final class FtpFile extends File
         return listing;
     }
 
-    public String netPath()
-    {
+    public String netPath() {
         StringBuilder sb = new StringBuilder(256);
         sb.append(PREFIX_FTP);
         sb.append(hostName);

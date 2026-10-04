@@ -22,19 +22,16 @@ package org.armedbear.j;
 
 import java.util.List;
 
-public final class FindTagDialog extends InputDialog
-{
+public final class FindTagDialog extends InputDialog {
     private final FindTagTextFieldHandler handler;
 
-    public FindTagDialog(Editor editor, String title)
-    {
+    public FindTagDialog(Editor editor, String title) {
         super(editor, "Tag:", title, null);
         setHistory(new History("findTag.tag"));
         handler = new FindTagTextFieldHandler(editor, textField);
     }
 
-    protected List<String> getCompletions(String prefix)
-    {
+    protected List<String> getCompletions(String prefix) {
         return handler.getCompletions(prefix);
     }
 }

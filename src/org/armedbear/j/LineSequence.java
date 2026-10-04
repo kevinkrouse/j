@@ -22,25 +22,20 @@ package org.armedbear.j;
 
 import java.lang.StringBuilder;
 
-public final class LineSequence
-{
+public final class LineSequence {
     private Line first;
     private Line last;
     private int size;
 
-    public LineSequence()
-    {
-    }
+    public LineSequence() {}
 
-    public LineSequence(Line line)
-    {
+    public LineSequence(Line line) {
         first = last = line.copy();
         size = 1;
     }
 
     // Copies lines.
-    public LineSequence(Line first, Line last)
-    {
+    public LineSequence(Line first, Line last) {
         Line line = first;
         while (line != null) {
             appendLine(line.copy());
@@ -50,24 +45,20 @@ public final class LineSequence
         }
     }
 
-    public final Line getFirstLine()
-    {
+    public final Line getFirstLine() {
         return first;
     }
 
-    public final Line getLastLine()
-    {
+    public final Line getLastLine() {
         return last;
     }
 
-    public final int size()
-    {
+    public final int size() {
         return size;
     }
 
     // Does not copy line.
-    public void appendLine(Line line)
-    {
+    public void appendLine(Line line) {
         line.setPrevious(last);
         if (last != null)
             last.setNext(line);
@@ -77,8 +68,7 @@ public final class LineSequence
         ++size;
     }
 
-    public String toString()
-    {
+    public String toString() {
         StringBuilder sb = new StringBuilder();
         for (Line line = first; line != null; line = line.next()) {
             sb.append(line.getText());
