@@ -26,13 +26,14 @@ import org.armedbear.j.LocationBar;
  * top of the editor rather than the bottom, which is the one visible
  * divergence from vim and is documented.
  */
-final class VimExPrompt extends DefaultTextFieldHandler
-{
+final class VimExPrompt extends DefaultTextFieldHandler {
     private final VimInputHandler handler;
 
-    private VimExPrompt(Editor editor, HistoryTextField textField,
-                        VimInputHandler handler)
-    {
+    private VimExPrompt(
+        Editor editor,
+        HistoryTextField textField,
+        VimInputHandler handler
+    ) {
         super(editor, textField);
         this.handler = handler;
     }
@@ -44,8 +45,7 @@ final class VimExPrompt extends DefaultTextFieldHandler
      *             a visual-mode {@code :} fills in
      * @return false when there is nowhere to put it, as in a frameless editor
      */
-    static boolean open(Editor editor, VimInputHandler handler, String seed)
-    {
+    static boolean open(Editor editor, VimInputHandler handler, String seed) {
         if (editor.getFrame() == null)
             return false;
         final LocationBar locationBar = editor.getLocationBar();
@@ -64,8 +64,7 @@ final class VimExPrompt extends DefaultTextFieldHandler
     }
 
     @Override
-    public void enter()
-    {
+    public void enter() {
         final String line = textField.getText();
         final History history = textField.getHistory();
         if (history != null && line != null && !line.isEmpty()) {
@@ -83,8 +82,7 @@ final class VimExPrompt extends DefaultTextFieldHandler
 
     /** Escape abandons the line, as does clicking away from the field. */
     @Override
-    public void escape()
-    {
+    public void escape() {
         handler.exCancelled(editor);
         super.escape();
         // Back from CTRL-O, the mode shown has changed.
