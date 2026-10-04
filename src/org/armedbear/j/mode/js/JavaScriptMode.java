@@ -20,9 +20,10 @@
 
 package org.armedbear.j.mode.js;
 
+import static org.armedbear.j.Constants.*;
+
 import java.awt.event.KeyEvent;
 import org.armedbear.j.Buffer;
-import org.armedbear.j.Constants;
 import org.armedbear.j.Editor;
 import org.armedbear.j.Formatter;
 import org.armedbear.j.KeyMap;
@@ -36,7 +37,7 @@ import org.armedbear.j.mode.java.JavaFormatter;
 import org.armedbear.j.mode.java.JavaMode;
 import org.armedbear.j.mode.java.JavaSyntaxIterator;
 
-public final class JavaScriptMode extends JavaMode implements Constants, Mode {
+public final class JavaScriptMode extends JavaMode implements Mode {
     // Since this class is final, we may as well construct the singleton class
     // instance right away.
     private static final JavaScriptMode mode = new JavaScriptMode();
@@ -50,19 +51,23 @@ public final class JavaScriptMode extends JavaMode implements Constants, Mode {
         return mode;
     }
 
+    @Override
     public final Formatter getFormatter(Buffer buffer) {
         return new JavaFormatter(buffer, LANGUAGE_JAVASCRIPT);
     }
 
+    @Override
     protected void setKeyMapDefaults(KeyMap km) {
         super.setKeyMapDefaults(km);
         km.mapKey(KeyEvent.VK_ENTER, CTRL_MASK, "newline");
     }
 
+    @Override
     public void populateModeMenu(Editor editor, Menu menu) {
         // No mode menu yet.
     }
 
+    @Override
     public int getCorrectIndentation(Line line, Buffer buffer) {
         final int indentSize = buffer.getIndentSize();
         int indent = 0;
