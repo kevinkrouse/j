@@ -20,58 +20,56 @@
 
 package org.armedbear.j.mode.man;
 
+import java.util.ArrayList;
+import java.util.List;
 import org.armedbear.j.Line;
 import org.armedbear.j.LocalTag;
 import org.armedbear.j.SystemBuffer;
 import org.armedbear.j.Tagger;
 
-import java.util.ArrayList;
-import java.util.List;
+public final class ManTagger extends Tagger {
+    // Heuristic: options are usally aligned in the same column.
+    private int optionColumn = -1;
 
-public final class ManTagger extends Tagger
-{
-  // Heuristic: options are usally aligned in the same column.
-  private int optionColumn = -1;
+    // Heuristic: option cannot be too far to the right.
+    private static final int STOP = 12;
 
-  // Heuristic: option cannot be too far to the right.
-  private static final int STOP = 12;
+    public ManTagger(SystemBuffer buffer) {
+        super(buffer);
+    }
 
-  public ManTagger(SystemBuffer buffer)
-  {
-    super(buffer);
-  }
-
-  public void run()
-  {
-    List<LocalTag> tags = new ArrayList<LocalTag>();
-    Line line = buffer.getFirstLine();
-    int stop = 0;
-    while (line != null)
-      {
-        String s = line.getText();
-        // We are interested only in the left-most dashes.
-        int start = 0;
-        int end = s.length();
-        if (end < STOP)
-          stop = end;
-        else
-          stop = STOP;
-        while (start < stop && Character.isWhitespace(s.charAt(start)))
-          ++start;
-        if (end > 0 && s.charAt(start) == '-' && optionColumn < 0)
-          // found option column
-          optionColumn = start;
-        if (end > 0 && start < end && start == optionColumn
-            && s.charAt(start) == '-')
-          {
-            end = s.indexOf(". ", start + 1);
-            if (end < 0)
-              end = s.length();
-            String name = s.substring(start, end);
-            tags.add(new LocalTag(name, line));
-          }
-        line = line.next();
-      }
-    buffer.setTags(tags);
-  }
+    public void run() {
+        List<LocalTag> tags = new ArrayList<LocalTag>();
+        Line line = buffer.getFirstLine();
+        int stop = 0;
+        while (line != null) {
+            String s = line.getText();
+            // We are interested only in the left-most dashes.
+            int start = 0;
+            int end = s.length();
+            if (end < STOP)
+                stop = end;
+            else
+                stop = STOP;
+            while (start < stop && Character.isWhitespace(s.charAt(start)))
+                ++start;
+            if (end > 0 && s.charAt(start) == '-' && optionColumn < 0)
+                // found option column
+                optionColumn = start;
+            if (
+                end > 0
+                    && start < end
+                    && start == optionColumn
+                    && s.charAt(start) == '-'
+            ) {
+                end = s.indexOf(". ", start + 1);
+                if (end < 0)
+                    end = s.length();
+                String name = s.substring(start, end);
+                tags.add(new LocalTag(name, line));
+            }
+            line = line.next();
+        }
+        buffer.setTags(tags);
+    }
 }

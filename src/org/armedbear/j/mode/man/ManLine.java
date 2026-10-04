@@ -20,36 +20,30 @@
 
 package org.armedbear.j.mode.man;
 
-import org.armedbear.j.AbstractLine;
+import java.io.UnsupportedEncodingException;
 import java.lang.StringBuilder;
+import org.armedbear.j.AbstractLine;
 import org.armedbear.j.Line;
 
-import java.io.UnsupportedEncodingException;
-
-public final class ManLine extends AbstractLine implements Line
-{
+public final class ManLine extends AbstractLine implements Line {
     private final String rawText;
 
     private int flags;
     private String text;
 
-    public ManLine(String s)
-    {
+    public ManLine(String s) {
         rawText = s;
     }
 
-    public final int flags()
-    {
+    public final int flags() {
         return flags;
     }
 
-    public final void setFlags(int flags)
-    {
+    public final void setFlags(int flags) {
         this.flags = flags;
     }
 
-    public final String getText()
-    {
+    public final String getText() {
         if (text == null) {
             StringBuilder sb = new StringBuilder(256);
             final int limit = rawText.length();
@@ -67,45 +61,37 @@ public final class ManLine extends AbstractLine implements Line
         return text;
     }
 
-    public final String getRawText()
-    {
+    public final String getRawText() {
         return rawText;
     }
 
     public final void setText(String s) {}
 
-    public final char charAt(int i)
-    {
+    public final char charAt(int i) {
         return getText().charAt(i);
     }
 
-    public final String substring(int beginIndex)
-    {
+    public final String substring(int beginIndex) {
         return getText().substring(beginIndex);
     }
 
-    public final String substring(int beginIndex, int endIndex)
-    {
+    public final String substring(int beginIndex, int endIndex) {
         return getText().substring(beginIndex, endIndex);
     }
 
-    public final String trim()
-    {
+    public final String trim() {
         return getText().trim();
     }
 
-    public final int length()
-    {
+    public final int length() {
         return getText().length();
     }
 
-    public final byte[] getBytes(String encoding) throws UnsupportedEncodingException
-    {
+    public final byte[] getBytes(String encoding) throws UnsupportedEncodingException {
         return getText().getBytes(encoding);
     }
 
-    public final boolean isBlank()
-    {
+    public final boolean isBlank() {
         if (text == null)
             text = getText();
         for (int i = text.length(); i-- > 0;)

@@ -20,35 +20,32 @@
 
 package org.armedbear.j.mode.man;
 
-import org.armedbear.j.Buffer;
 import java.lang.StringBuilder;
+import org.armedbear.j.Buffer;
 import org.armedbear.j.FormatTable;
 import org.armedbear.j.Formatter;
 import org.armedbear.j.Line;
 import org.armedbear.j.LineSegmentList;
 
-public class ManFormatter extends Formatter
-{
+public class ManFormatter extends Formatter {
     // States.
-    private static final int STATE_BOLD      = STATE_LAST + 1;
+    private static final int STATE_BOLD = STATE_LAST + 1;
     private static final int STATE_UNDERLINE = STATE_LAST + 2;
 
     // Formats.
-    private static final int MAN_FORMAT_PLAIN     = 0;
-    private static final int MAN_FORMAT_BOLD      = 1;
+    private static final int MAN_FORMAT_PLAIN = 0;
+    private static final int MAN_FORMAT_BOLD = 1;
     private static final int MAN_FORMAT_UNDERLINE = 2;
 
     private final StringBuilder sb = new StringBuilder();
     private final boolean apropos;
 
-    public ManFormatter(Buffer buffer, boolean apropos)
-    {
+    public ManFormatter(Buffer buffer, boolean apropos) {
         this.buffer = buffer;
         this.apropos = apropos;
     }
 
-    private void endToken(int state)
-    {
+    private void endToken(int state) {
         if (sb.length() > 0) {
             int format;
             switch (state) {
@@ -70,8 +67,7 @@ public class ManFormatter extends Formatter
         }
     }
 
-    public LineSegmentList formatLine(Line line)
-    {
+    public LineSegmentList formatLine(Line line) {
         clearSegmentList();
         if (line == null || line.length() == 0) {
             addSegment("", MAN_FORMAT_PLAIN);
@@ -84,8 +80,7 @@ public class ManFormatter extends Formatter
         return segmentList;
     }
 
-    private void parseLineApropos(Line line)
-    {
+    private void parseLineApropos(Line line) {
         String text = line.getText();
         int index = text.indexOf(' ');
         if (index >= 0) {
@@ -95,19 +90,18 @@ public class ManFormatter extends Formatter
             addSegment(text, MAN_FORMAT_PLAIN);
     }
 
-    private void parseLine(Line line)
-    {
-        final String text = ((ManLine)line).getRawText();
+    private void parseLine(Line line) {
+        final String text = ((ManLine) line).getRawText();
         final int limit = text.length();
         final int tabWidth = buffer.getTabWidth();
         int state = STATE_NEUTRAL;
         for (int i = 0, length = 0; i < limit; i++) {
             final char c = text.charAt(i);
-            final char nextChar = i+1 < limit ? text.charAt(i+1) : 0;
+            final char nextChar = i + 1 < limit ? text.charAt(i + 1) : 0;
             switch (state) {
                 case STATE_NEUTRAL:
                     if (nextChar == '\b') {
-                        final char thirdChar = i+2 < limit ? text.charAt(i+2) : 0;
+                        final char thirdChar = i + 2 < limit ? text.charAt(i + 2) : 0;
                         if (thirdChar == c) {
                             // Bold.
                             endToken(state);
@@ -140,12 +134,12 @@ public class ManFormatter extends Formatter
                     break;
                 case STATE_BOLD:
                     if (c == '\b') {
-                        char prevChar = text.charAt(i-1);
+                        char prevChar = text.charAt(i - 1);
                         if (nextChar == prevChar)
                             ++i;
                         continue;
                     } else if (nextChar == '\b') {
-                        final char thirdChar = i+2 < limit ? text.charAt(i+2) : 0;
+                        final char thirdChar = i + 2 < limit ? text.charAt(i + 2) : 0;
                         if (thirdChar == c) {
                             // Bold.
                             i += 2;
@@ -176,7 +170,7 @@ public class ManFormatter extends Formatter
                     break;
                 case STATE_UNDERLINE:
                     if (c == '_' && nextChar == '\b') {
-                        final char thirdChar = i+2 < limit ? text.charAt(i+2) : 0;
+                        final char thirdChar = i + 2 < limit ? text.charAt(i + 2) : 0;
                         if (thirdChar != 0) {
                             sb.append(thirdChar);
                             length++;
@@ -206,8 +200,7 @@ public class ManFormatter extends Formatter
         endToken(state);
     }
 
-    public FormatTable getFormatTable()
-    {
+    public FormatTable getFormatTable() {
         if (formatTable == null) {
             formatTable = new FormatTable("ManMode");
             formatTable.addEntryFromPrefs(MAN_FORMAT_PLAIN, "text");
