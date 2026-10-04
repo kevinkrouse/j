@@ -147,15 +147,15 @@ public final class DirectoryMode extends AbstractMode implements Constants, Mode
         menu.addSeparator();
         JRadioButtonMenuItem sortByName = new JRadioButtonMenuItem("Sort by Name");
         sortByName.setMnemonic('N');
-        sortByName.setActionCommand("DirectoryMode.dirSortByName");
+        sortByName.setActionCommand("dirSortByName");
         sortByName.addActionListener(editor.getDispatcher());
         JRadioButtonMenuItem sortByDate = new JRadioButtonMenuItem("Sort by Date");
         sortByDate.setMnemonic('T');
-        sortByDate.setActionCommand("DirectoryMode.dirSortByDate");
+        sortByDate.setActionCommand("dirSortByDate");
         sortByDate.addActionListener(editor.getDispatcher());
         JRadioButtonMenuItem sortBySize = new JRadioButtonMenuItem("Sort by Size");
         sortBySize.setMnemonic('S');
-        sortBySize.setActionCommand("DirectoryMode.dirSortBySize");
+        sortBySize.setActionCommand("dirSortBySize");
         sortBySize.addActionListener(editor.getDispatcher());
         ButtonGroup group = new ButtonGroup();
         group.add(sortByName);

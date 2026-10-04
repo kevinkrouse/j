@@ -513,8 +513,9 @@ public final class KeyMap implements Constants {
         mappings.add(new KeyMapping(keyCode, modifiers, command));
     }
 
-    public synchronized void mapKey(int keyCode, int modifiers, String className, String methodName) {
-        Command command = new Command(methodName, className, methodName);
+    /** Binds a key to an action that isn't a named command. */
+    public synchronized void mapKey(int keyCode, int modifiers, String name, Runnable action) {
+        Command command = new Command(name, e -> action.run());
         // See if we already have a mapping for this keystroke.
         for (int i = 0; i < mappings.size(); i++) {
             KeyMapping mapping = mappings.get(i);

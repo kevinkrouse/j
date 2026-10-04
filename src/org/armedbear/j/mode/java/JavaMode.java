@@ -161,8 +161,8 @@ public class JavaMode extends AbstractMode implements Constants, Mode {
         km.mapKey(0x7c, CTRL_MASK | SHIFT_MASK, "htmlInsertTag");
 
         if (Editor.checkExperimental()) {
-            km.mapKey(KeyEvent.VK_SEMICOLON, ALT_MASK, "mode.java.JavaMode", "insertComment");
-            km.mapKey(KeyEvent.VK_ENTER, ALT_MASK, "mode.java.JavaMode", "newlineAndIndentForComment");
+            km.mapKey(KeyEvent.VK_SEMICOLON, ALT_MASK, "insertComment", JavaMode::insertComment);
+            km.mapKey(KeyEvent.VK_ENTER, ALT_MASK, "newlineAndIndentForComment", JavaMode::newlineAndIndentForComment);
         }
     }
 

@@ -147,8 +147,7 @@ without that extension. One broken jar must not stop the editor from starting.
 
 <p>
 Note that <code>registerCommand</code> takes a <code>Class</code>, not a class
-name. j resolves the names of its own commands reflectively, on its own class
-loader, which cannot see anything in the extension &mdash; so you hand it a
+name: j's class loader cannot see anything in the extension, so you hand it a
 class your loader has already resolved.
 
 <h3>Modes and version control</h3>

@@ -414,7 +414,7 @@
     ("Backspace"                "shellbackspace")
     ("Alt P"                    "shellPreviousInput")
     ("Alt N"                    "shellNextInput")
-    ("Enter"                    "LispShellMode.enter")
+    ("Enter"                    "lispShellEnter")
     ("Alt Enter"                "newlineandindent")
     ("Ctrl R"                   "resetLisp")
     ("Tab"                      "indentLineOrRegion")

@@ -1,0 +1,67 @@
+/*
+ * CommandTableTest.java
+ *
+ * Copyright (C) 2026 Kevin Krouse
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
+ */
+
+package org.armedbear.j;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import java.util.ArrayList;
+import java.util.List;
+import org.junit.jupiter.api.Test;
+
+public class CommandTableTest {
+    // Every key in j's own key maps runs a command the table has.
+    @Test
+    public void everyBoundCommandIsInTheTable() {
+        List<String> missing = new ArrayList<String>();
+        check(KeyMap.getGlobalKeyMap(), "global", missing);
+        for (ModeListEntry entry : Editor.getModeList()) {
+            Mode mode = entry.getMode(true);
+            if (mode != null)
+                check(mode.getKeyMap(), entry.getDisplayName(), missing);
+        }
+        assertEquals(List.of(), missing);
+    }
+
+    private static void check(KeyMap keyMap, String where, List<String> missing) {
+        for (KeyMapping mapping : keyMap.getMappings()) {
+            if (mapping.getCommand() instanceof String name && !name.startsWith("(")) {
+                String[] command = Editor.parseCommand(name);
+                if (command != null && CommandTable.getCommand(command[0]) == null)
+                    missing.add(where + ": " + name);
+            }
+        }
+    }
+
+    @Test
+    public void everyCommandInTheTableCanRun() {
+        for (String name : CommandTable.getCompletionsForPrefix(""))
+            assertTrue(CommandTable.getCommand(name).isRunnable(), name);
+    }
+
+    @Test
+    public void aCommandRunsTheFormItHas() throws Exception {
+        EditorHarness h = EditorHarness.create("abc\n");
+        try {
+            assertTrue(h.editor().execute("insertString", "x"));
+            assertEquals("xabc\n", h.text());
+            assertThrows(NoSuchMethodException.class, () -> h.editor().execute("insertString", null));
+            assertThrows(NoSuchMethodException.class, () -> h.editor().execute("noSuchCommand", null));
+            assertFalse(CommandTable.getCommand("bol").run(h.editor(), "unexpected"));
+        }
+        finally {
+            h.close();
+        }
+    }
+}

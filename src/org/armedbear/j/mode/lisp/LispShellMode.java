@@ -72,7 +72,7 @@ public final class LispShellMode extends LispMode implements Constants, Mode {
         km.mapKey(KeyEvent.VK_N, CTRL_MASK, "shellNextInput");
         km.mapKey(KeyEvent.VK_P, CTRL_MASK | ALT_MASK, "shellPreviousPrompt");
         km.mapKey(KeyEvent.VK_N, CTRL_MASK | ALT_MASK, "shellNextPrompt");
-        km.mapKey(KeyEvent.VK_ENTER, 0, "mode.lisp.LispShellMode", "enter");
+        km.mapKey(KeyEvent.VK_ENTER, 0, "lispShellEnter");
         km.mapKey(KeyEvent.VK_ENTER, ALT_MASK, "newlineAndIndent");
         km.mapKey(KeyEvent.VK_R, CTRL_MASK, "resetLisp");
         km.mapKey(KeyEvent.VK_TAB, 0, "indentLineOrRegion");

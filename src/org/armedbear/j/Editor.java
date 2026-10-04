@@ -42,7 +42,6 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.lang.StringBuilder;
 import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -2700,135 +2699,29 @@ public final class Editor extends JPanel implements Constants,
         return execute(methodName, parameters);
     }
 
+    /** Runs the named command. Throws NoSuchMethodException if there is none, or it takes no such argument. */
     public boolean execute(String commandName, String parameters) throws NoSuchMethodException {
         if (commandName == null)
             return false;
-
-        try {
-            Command command = CommandTable.getCommand(commandName);
-            if (command != null) {
-                return execute(command, parameters);
-            } else {
-                // This is the old code path.
-                String className = null;
-                String methodName = null;
-                Method method = null;
-
-                Class[] parameterTypes;
-                if (parameters == null)
-                    parameterTypes = new Class[0];
-                else {
-                    parameterTypes = new Class[1];
-                    parameterTypes[0] = Class.forName("java.lang.String");
-                }
-
-                int index = commandName.indexOf('.');
-                if (index < 0) {
-                    // No class name.  Must be a method in the Editor class.
-                    method = Editor.class.getMethod(commandName, parameterTypes);
-                } else if (commandName.length() > index + 1) {
-                    // Class name was provided.
-                    className = commandName.substring(0, index);
-                    methodName = commandName.substring(index + 1);
-                    Class<? extends Object> c = null;
-                    try {
-                        c = Class.forName("org.armedbear.j." + className);
-                    }
-                    catch (ClassNotFoundException e) {}
-                    if (c != null) {
-                        // Might throw NoSuchMethodException.
-                        method = c.getMethod(methodName, parameterTypes);
-                    }
-                }
-                if (method != null) {
-                    invoke(method, parameters);
-                    return true;
-                }
-            }
-        }
-        catch (NoSuchMethodException e) {
-            throw e;
-        }
-        catch (Throwable t) {
-            Log.error(t);
-        }
-        return false;
+        Command command = CommandTable.getCommand(commandName);
+        if (command == null)
+            throw new NoSuchMethodException(commandName);
+        return execute(command, parameters);
     }
 
+    /** Runs the command. A failure inside it is logged, and still counts as handled. */
     public boolean execute(Command command, String parameters) throws NoSuchMethodException {
         try {
-            String className = null;
-            String methodName = null;
-            Method method = null;
-
-            Class[] parameterTypes;
-            if (parameters == null) {
-                parameterTypes = new Class[0];
-            } else {
-                parameterTypes = new Class[1];
-                parameterTypes[0] = Class.forName("java.lang.String");
-            }
-
-            method = command.getMethod();
-            if (method != null) {
-                try {
-                    invoke(method, parameters);
-                    return true;
-                }
-                catch (IllegalArgumentException e) {
-                    // The cached method requires different arguments.
-                    // Fall through.
-                }
-            }
-            // Method is not cached yet.
-            className = command.getClassName();
-            methodName = command.getMethodName();
-            Class<?> declaring = command.getDeclaringClass();
-            if (declaring != null) {
-                // Supplied by an extension: the class is already resolved, by
-                // a loader core cannot reach with Class.forName.
-                method = declaring.getMethod(methodName, parameterTypes);
-            } else if (className == null) {
-                // Special case. Command is implemented in org.armedbear.j.Editor.
-                method = Editor.class.getMethod(methodName, parameterTypes);
-            } else {
-                Class<?> c = Class.forName("org.armedbear.j." + className);
-                if (c != null)
-                    method = c.getMethod(methodName, parameterTypes);
-            }
-            if (method != null) {
-                // Cache the method for nest time.
-                command.setMethod(method);
-                invoke(method, parameters);
-                return true;
-            }
+            if (!command.run(this, parameters))
+                throw new NoSuchMethodException(command.getName());
         }
-        catch (NoSuchMethodException e) {
+        catch (VirtualMachineError e) {
             throw e;
         }
-        catch (Throwable t) {
-            Log.error(t);
+        catch (RuntimeException | Error e) {
+            Log.error(e);
         }
-        return false;
-    }
-
-    private void invoke(Method method, String parameters) throws IllegalArgumentException {
-        Object[] args;
-        if (parameters == null)
-            args = new Object[0]; // No arguments.
-        else {
-            args = new Object[1];
-            args[0] = parameters;
-        }
-        try {
-            method.invoke(this, args);
-        }
-        catch (IllegalArgumentException e) {
-            throw e;
-        }
-        catch (Throwable t) {
-            Log.error(t);
-        }
+        return true;
     }
 
     // FIXME Removed hard-coded Control G!
@@ -6796,7 +6689,7 @@ public final class Editor extends JPanel implements Constants,
      *   command args
      *   command("args")
      */
-    private static String[] parseCommand(String command) {
+    static String[] parseCommand(String command) {
         command = Utilities.trimLeading(command);
         // Command name is terminated by whitespace or '('.
         char delimiter = '\0';

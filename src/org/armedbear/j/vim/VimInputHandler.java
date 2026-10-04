@@ -1840,8 +1840,8 @@ public final class VimInputHandler implements InputHandler {
                 catch (NoSuchMethodException e) {
                     ran = false;
                 }
-                // execute() throws for some unknown names and quietly
-                // returns false for others; either way, say so.
+                // execute() throws for an unknown name, or one that takes
+                // no such argument.
                 // A mapping from a vimrc may name a vim ex command instead.
                 if (!ran && command.getString("ex", null) != null) {
                     exEntered(editor, command.getString("ex", null));
