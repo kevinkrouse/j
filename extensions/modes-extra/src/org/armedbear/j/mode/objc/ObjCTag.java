@@ -20,7 +20,6 @@
 
 package org.armedbear.j.mode.objc;
 
-import java.lang.StringBuilder;
 import org.armedbear.j.LocalTag;
 import org.armedbear.j.Position;
 
@@ -30,19 +29,23 @@ public final class ObjCTag extends LocalTag {
         canonicalSignature = parseCanonicalSignatureForMethod();
     }
 
+    @Override
     public String getMethodName() {
         int index = name.indexOf(':');
         return index >= 0 ? name.substring(0, index) : name;
     }
 
+    @Override
     public String getLongName() {
         return canonicalSignature;
     }
 
+    @Override
     public String toString() {
         return name;
     }
 
+    @Override
     public String getSidebarText() {
         return name;
     }

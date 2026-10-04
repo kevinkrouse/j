@@ -21,7 +21,6 @@
 package org.armedbear.j.mode.objc;
 
 import org.armedbear.j.Buffer;
-import org.armedbear.j.Constants;
 import org.armedbear.j.Editor;
 import org.armedbear.j.Expression;
 import org.armedbear.j.Formatter;
@@ -32,7 +31,7 @@ import org.armedbear.j.Tagger;
 import org.armedbear.j.mode.c.CFormatter;
 import org.armedbear.j.mode.c.CMode;
 
-public final class ObjCMode extends CMode implements Constants, Mode {
+public final class ObjCMode extends CMode implements Mode {
     private static final String[] objcConditionals = {
         "if",
         "else",
@@ -64,22 +63,27 @@ public final class ObjCMode extends CMode implements Constants, Mode {
         return m != null ? m : Editor.getModeList().getModeFromModeName(NAME) instanceof ObjCMode x ? x : null;
     }
 
+    @Override
     public final String getCommentStart() {
         return "// ";
     }
 
+    @Override
     public final String getCommentEnd() {
         return null;
     }
 
+    @Override
     public Formatter getFormatter(Buffer buffer) {
         return new CFormatter(buffer, this);
     }
 
+    @Override
     public Tagger getTagger(SystemBuffer buffer) {
         return new ObjCTagger(buffer);
     }
 
+    @Override
     public boolean isIdentifierStart(char c) {
         if (c == '@')
             return true;
@@ -87,15 +91,18 @@ public final class ObjCMode extends CMode implements Constants, Mode {
     }
 
     // Not JavaMode's: wrap after this mode's own comment start.
+    @Override
     public String getWrapCommentStart(String trimmed) {
         return getCommentStart();
     }
 
+    @Override
     public Expression getExpressionAtDot(Editor editor, boolean exact) {
         return getPlainExpressionAtDot(editor, exact);
     }
 
     // Unlike JavaMode, its properties dialog offers no brace indentation.
+    @Override
     public boolean supportsIndentBeforeBrace() {
         return false;
     }

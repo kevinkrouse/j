@@ -20,7 +20,6 @@
 
 package org.armedbear.j.mode.objc;
 
-import java.lang.StringBuilder;
 import java.util.ArrayList;
 import org.armedbear.j.LocalTag;
 import org.armedbear.j.Mode;
@@ -43,8 +42,9 @@ public final class ObjCTagger extends JavaTagger {
         super(buffer);
     }
 
+    @Override
     public void run() {
-        ArrayList<LocalTag> tags = new ArrayList<LocalTag>();
+        ArrayList<LocalTag> tags = new ArrayList<>();
         pos = new Position(buffer.getFirstLine(), 0);
         token = null;
         tokenStart = null;
