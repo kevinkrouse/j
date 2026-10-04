@@ -28,17 +28,14 @@ import org.armedbear.j.Position;
 // Supports movement through the syntactically important text of a buffer, i.e.
 // skipping whitespace and comments.
 public final class PHPSyntaxIterator extends DefaultSyntaxIterator
-    implements Constants
-{
-    public PHPSyntaxIterator(Position pos)
-    {
+    implements Constants {
+    public PHPSyntaxIterator(Position pos) {
         super(pos);
     }
 
     // Caller must make sure parseBuffer() has been called so flags will be
     // correct.
-    public char[] hideSyntacticWhitespace(Line line)
-    {
+    public char[] hideSyntacticWhitespace(Line line) {
         int initialState = PHPFormatter.getState(line.flags());
         switch (initialState) {
             case STATE_NEUTRAL:
@@ -54,21 +51,19 @@ public final class PHPSyntaxIterator extends DefaultSyntaxIterator
         return hideSyntacticWhitespace(line.getText(), initialState);
     }
 
-    public char[] hideSyntacticWhitespace(String s)
-    {
+    public char[] hideSyntacticWhitespace(String s) {
         return hideSyntacticWhitespace(s, STATE_NEUTRAL);
     }
 
     // Returns char array with syntactic whitespace (quotes and comments)
     // replaced with actual space characters.
-    private char[] hideSyntacticWhitespace(String s, int initialState)
-    {
+    private char[] hideSyntacticWhitespace(String s, int initialState) {
         final char[] chars = s.toCharArray();
         int state = initialState;
         final int length = chars.length;
         for (int i = 0; i < length; i++) {
             char c = chars[i];
-            if (c == '\\' && i < length-1) {
+            if (c == '\\' && i < length - 1) {
                 // Escape character.
                 chars[i++] = ' ';
                 chars[i] = ' ';
@@ -87,7 +82,7 @@ public final class PHPSyntaxIterator extends DefaultSyntaxIterator
                 continue;
             }
             if (state == STATE_COMMENT) {
-                if (c == '*' && i < length-1 && chars[i+1] == '/') {
+                if (c == '*' && i < length - 1 && chars[i + 1] == '/') {
                     // /* */ comment ending
                     chars[i++] = ' ';
                     chars[i] = ' ';
@@ -108,15 +103,15 @@ public final class PHPSyntaxIterator extends DefaultSyntaxIterator
                 continue;
             }
             if (c == '/') {
-                if (i < length-1) {
-                    if (chars[i+1] == '*') {
+                if (i < length - 1) {
+                    if (chars[i + 1] == '*') {
                         // /* */ comment starting
                         chars[i++] = ' ';
                         chars[i] = ' ';
                         state = STATE_COMMENT;
                         continue;
                     }
-                    if (chars[i+1] == '/') {
+                    if (chars[i + 1] == '/') {
                         // "//" comment starting
                         for (int j = i; j < length; j++)
                             chars[j] = ' ';
