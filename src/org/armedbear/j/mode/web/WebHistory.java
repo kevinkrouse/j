@@ -25,7 +25,7 @@ import java.util.List;
 import org.armedbear.j.File;
 
 public final class WebHistory {
-    private List<WebHistoryEntry> v = new ArrayList<WebHistoryEntry>();
+    private List<WebHistoryEntry> v = new ArrayList<>();
     private int index = -1;
 
     public WebHistory() {}

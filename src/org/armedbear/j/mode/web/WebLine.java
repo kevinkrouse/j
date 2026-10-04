@@ -21,7 +21,6 @@
 package org.armedbear.j.mode.web;
 
 import java.io.UnsupportedEncodingException;
-import java.lang.StringBuilder;
 import org.armedbear.j.AbstractLine;
 import org.armedbear.j.Line;
 import org.armedbear.j.LineSegmentList;
@@ -45,14 +44,17 @@ public class WebLine extends AbstractLine implements Line {
         this.sourceOffset = sourceOffset;
     }
 
+    @Override
     public final int flags() {
         return flags;
     }
 
+    @Override
     public final void setFlags(int flags) {
         this.flags = flags;
     }
 
+    @Override
     public final String getText() {
         if (text == null) {
             if (segmentList != null) {
@@ -85,34 +87,42 @@ public class WebLine extends AbstractLine implements Line {
         return null;
     }
 
+    @Override
     public final void setText(String s) {
         text = s;
     }
 
+    @Override
     public final char charAt(int i) {
         return getText().charAt(i);
     }
 
+    @Override
     public final String substring(int beginIndex) {
         return getText().substring(beginIndex);
     }
 
+    @Override
     public final String substring(int beginIndex, int endIndex) {
         return getText().substring(beginIndex, endIndex);
     }
 
+    @Override
     public final String trim() {
         return getText().trim();
     }
 
+    @Override
     public final int length() {
         return getText().length();
     }
 
+    @Override
     public final byte[] getBytes(String encoding) throws UnsupportedEncodingException {
         return getText().getBytes(encoding);
     }
 
+    @Override
     public final boolean isBlank() {
         if (text == null)
             text = getText();

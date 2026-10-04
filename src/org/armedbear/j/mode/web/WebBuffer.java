@@ -20,6 +20,8 @@
 
 package org.armedbear.j.mode.web;
 
+import static org.armedbear.j.Constants.*;
+
 import java.awt.AWTEvent;
 import java.awt.Cursor;
 import java.awt.Image;
@@ -113,6 +115,7 @@ public final class WebBuffer extends Buffer implements WebConstants {
         return maxChars;
     }
 
+    @Override
     public Position getInitialDotPos() {
         if (ref != null) {
             Position pos = findRef(ref);
@@ -190,8 +193,8 @@ public final class WebBuffer extends Buffer implements WebConstants {
         if (buf != null) {
             editor.makeNext(buf);
             editor.activate(buf);
-            if (dotLine instanceof WebLine) {
-                int sourceOffset = ((WebLine) dotLine).getSourceOffset();
+            if (dotLine instanceof WebLine webLine) {
+                int sourceOffset = webLine.getSourceOffset();
                 Position pos = buf.getPosition(sourceOffset);
                 editor.moveDotTo(pos);
             }
@@ -200,6 +203,7 @@ public final class WebBuffer extends Buffer implements WebConstants {
 
     private boolean empty = true;
 
+    @Override
     public int load() {
         if (getFirstLine() == null)
             setText("");
@@ -208,6 +212,7 @@ public final class WebBuffer extends Buffer implements WebConstants {
         return LOAD_COMPLETED;
     }
 
+    @Override
     protected void loadFile(File localFile) {
         WebLoader loader = new WebLoader(localFile);
         LineSequence lines = loader.load();
@@ -227,6 +232,7 @@ public final class WebBuffer extends Buffer implements WebConstants {
         setLoaded(true);
     }
 
+    @Override
     public Cursor getDefaultCursor(Position pos) {
         if (pos != null && pos.getLine() instanceof WebLine) {
             HtmlLineSegment segment =
@@ -237,6 +243,7 @@ public final class WebBuffer extends Buffer implements WebConstants {
         return super.getDefaultCursor();
     }
 
+    @Override
     public final int getMaximumColumns() {
         return maxChars();
     }
@@ -250,21 +257,20 @@ public final class WebBuffer extends Buffer implements WebConstants {
         // If this method is invoked via a mouse event mapping, move dot to
         // location of mouse click first.
         AWTEvent e = editor.getDispatcher().getLastEvent();
-        if (e instanceof MouseEvent)
-            editor.mouseMoveDotToPoint((MouseEvent) e);
+        if (e instanceof MouseEvent mouseEvent)
+            editor.mouseMoveDotToPoint(mouseEvent);
         followLink(true);
     }
 
     public static void followLink(boolean exact) {
         final Editor editor = Editor.currentEditor();
         final Buffer buffer = editor.getBuffer();
-        if (!(buffer instanceof WebBuffer))
+        if (!(buffer instanceof WebBuffer wb))
             return;
-        final WebBuffer wb = (WebBuffer) buffer;
         if (wb.getFile() == null)
             return;
         final Line dotLine = editor.getDotLine();
-        if (!(dotLine instanceof WebLine))
+        if (!(dotLine instanceof WebLine webLine))
             return;
 
         final File historyFile = wb.getFile();
@@ -274,7 +280,7 @@ public final class WebBuffer extends Buffer implements WebConstants {
         final int dotOffset = editor.getDotOffset();
 
         Link link = null;
-        HtmlLineSegment segment = ((WebLine) dotLine).findSegment(dotOffset);
+        HtmlLineSegment segment = webLine.findSegment(dotOffset);
         if (segment != null)
             link = segment.getLink();
         if (link == null) {
@@ -337,10 +343,10 @@ public final class WebBuffer extends Buffer implements WebConstants {
 
         final HtmlLineSegment theSegment = segment;
         final Link theLink = link;
-        if (destination instanceof HttpFile) {
+        if (destination instanceof HttpFile httpFile) {
             final String theRef = ref;
             final HttpLoadProcess httpLoadProcess =
-                new HttpLoadProcess(wb, (HttpFile) destination);
+                new HttpLoadProcess(wb, httpFile);
             Runnable successRunnable = () -> {
                 final String contentType = httpLoadProcess.getContentType();
                 Log.debug("content-type = " + contentType);
@@ -391,6 +397,7 @@ public final class WebBuffer extends Buffer implements WebConstants {
                 }
             };
             ErrorRunnable errorRunnable = new ErrorRunnable("Operation failed") {
+                @Override
                 public void run() {
                     Log.debug("followLink errorRunnable.run");
                     String errorText = httpLoadProcess.getErrorText();
@@ -442,8 +449,8 @@ public final class WebBuffer extends Buffer implements WebConstants {
 
     public static HtmlLineSegment findLink(Line line, int offset) {
         HtmlLineSegment segment = null;
-        if (line instanceof WebLine) {
-            LineSegmentList segmentList = ((WebLine) line).getSegmentList();
+        if (line instanceof WebLine webLine) {
+            LineSegmentList segmentList = webLine.getSegmentList();
             if (segmentList != null) {
                 int where = 0;
                 final int size = segmentList.size();
@@ -480,6 +487,7 @@ public final class WebBuffer extends Buffer implements WebConstants {
     }
 
     // BUG!! Optimize this - containsImageLine flag
+    @Override
     public int getDisplayHeight() {
         int height = 0;
         for (Line line = getFirstLine(); line != null; line = line.nextVisible())
@@ -653,9 +661,8 @@ public final class WebBuffer extends Buffer implements WebConstants {
     public static void back() {
         final Editor editor = Editor.currentEditor();
         final Buffer buffer = editor.getBuffer();
-        if (!(buffer instanceof WebBuffer))
+        if (!(buffer instanceof WebBuffer wb))
             return;
-        final WebBuffer wb = (WebBuffer) buffer;
         WebHistory history = wb.getHistory();
         if (history == null)
             return;
@@ -683,9 +690,8 @@ public final class WebBuffer extends Buffer implements WebConstants {
     public static void forward() {
         final Editor editor = Editor.currentEditor();
         final Buffer buffer = editor.getBuffer();
-        if (!(buffer instanceof WebBuffer))
+        if (!(buffer instanceof WebBuffer wb))
             return;
-        final WebBuffer wb = (WebBuffer) buffer;
         WebHistory history = wb.getHistory();
         if (history == null)
             return;
@@ -706,14 +712,13 @@ public final class WebBuffer extends Buffer implements WebConstants {
     public static void refresh() {
         final Editor editor = Editor.currentEditor();
         final Buffer buffer = editor.getBuffer();
-        if (buffer instanceof WebBuffer)
-            ((WebBuffer) buffer).reload(editor);
+        if (buffer instanceof WebBuffer webBuffer)
+            webBuffer.reload(editor);
     }
 
     private void reload(Editor editor) {
         final File file = getFile();
-        if (file instanceof HttpFile) {
-            HttpFile httpFile = (HttpFile) file;
+        if (file instanceof HttpFile httpFile) {
             File cache = httpFile.getCache();
             if (cache != null) {
                 if (cache.isFile())
@@ -816,6 +821,7 @@ public final class WebBuffer extends Buffer implements WebConstants {
             MessageDialog.showMessageDialog("Transfer cancelled", httpFile.netPath());
         };
         ErrorRunnable httpErrorRunnable = new ErrorRunnable("Load failed") {
+            @Override
             public void run() {
                 setFile(oldFile);
                 setBusy(false);
@@ -863,6 +869,7 @@ public final class WebBuffer extends Buffer implements WebConstants {
         Editor.currentEditor().status("Loading complete");
     }
 
+    @Override
     public boolean isTransient() {
         if (super.isTransient())
             return true;
@@ -877,6 +884,7 @@ public final class WebBuffer extends Buffer implements WebConstants {
         return false;
     }
 
+    @Override
     public boolean save() {
         // We shouldn't be trying to save a WebBuffer.
         Debug.bug();

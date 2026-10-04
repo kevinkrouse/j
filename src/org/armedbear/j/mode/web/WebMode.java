@@ -20,12 +20,12 @@
 
 package org.armedbear.j.mode.web;
 
+import static org.armedbear.j.Constants.*;
+
 import java.awt.event.KeyEvent;
-import java.lang.StringBuilder;
 import java.util.StringTokenizer;
 import org.armedbear.j.AbstractMode;
 import org.armedbear.j.Buffer;
-import org.armedbear.j.Constants;
 import org.armedbear.j.Editor;
 import org.armedbear.j.Formatter;
 import org.armedbear.j.Frame;
@@ -41,7 +41,7 @@ import org.armedbear.j.Property;
 import org.armedbear.j.ToolBar;
 import org.armedbear.j.mode.html.HtmlLineSegment;
 
-public final class WebMode extends AbstractMode implements Constants, Mode {
+public final class WebMode extends AbstractMode implements Mode {
     private static final WebMode mode = new WebMode();
 
     private WebMode() {
@@ -57,6 +57,7 @@ public final class WebMode extends AbstractMode implements Constants, Mode {
         return mode;
     }
 
+    @Override
     protected void setKeyMapDefaults(KeyMap km) {
         km.mapKey(VK_MOUSE_1, 0, "mouseFollowLink");
         km.mapKey(KeyEvent.VK_ENTER, 0, "followLink");
@@ -68,6 +69,7 @@ public final class WebMode extends AbstractMode implements Constants, Mode {
         km.mapKey(KeyEvent.VK_R, 0, "webReload");
     }
 
+    @Override
     public void populateMenu(Editor editor, Menu menu) {
         final String text = menu.getText();
         if (text == "File") {
@@ -111,18 +113,22 @@ public final class WebMode extends AbstractMode implements Constants, Mode {
             super.populateMenu(editor, menu);
     }
 
+    @Override
     public final Formatter getFormatter(Buffer buffer) {
         return new WebFormatter(buffer);
     }
 
+    @Override
     protected ToolBar getDefaultToolBar(Frame frame) {
         return new WebModeToolBar(frame);
     }
 
+    @Override
     public final String getContextString(Editor editor, boolean verbose /*ignored*/) {
         return getContextString(editor.getDot());
     }
 
+    @Override
     public final String getMouseMovedContextString(Editor editor, Position pos) {
         // We want to clear the status text if the mouse is not over a link, so
         // return "" instead of null.

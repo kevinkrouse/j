@@ -26,7 +26,6 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.PushbackReader;
 import java.io.Reader;
-import java.lang.StringBuilder;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
@@ -51,17 +50,17 @@ import org.armedbear.j.util.Utilities;
 public final class WebLoader implements WebConstants {
     private PushbackReader reader;
     private final StringBuilder textBuffer = new StringBuilder();
-    private final Deque<String> indentStack = new ArrayDeque<String>();
+    private final Deque<String> indentStack = new ArrayDeque<>();
     // A LinkedList, not an ArrayDeque: the first <table> pushes the null
     // that means "no enclosing table", and ArrayDeque rejects nulls.
-    private final Deque<Table> tableStack = new LinkedList<Table>();
+    private final Deque<Table> tableStack = new LinkedList<>();
     private Table currentTable;
     private int sourceOffset;
     private int offset;
     private final int maxChars = 80;
     private LineSegmentList segments;
     private LineSequence lines;
-    private final Map<String, Integer> refs = new HashMap<String, Integer>();
+    private final Map<String, Integer> refs = new HashMap<>();
     private int indentLevel;
     private File file;
 
@@ -815,7 +814,7 @@ public final class WebLoader implements WebConstants {
                         sb.setLength(0);
                         state = NEUTRAL;
                         if (attributes == null)
-                            attributes = new ArrayList<Tuple2<String, String>>();
+                            attributes = new ArrayList<>();
                         attributes.add(new Tuple2<String, String>(name, ""));
                         name = value = null;
                     }
@@ -841,7 +840,7 @@ public final class WebLoader implements WebConstants {
                             sb.setLength(0);
                             state = NEUTRAL;
                             if (attributes == null)
-                                attributes = new ArrayList<Tuple2<String, String>>();
+                                attributes = new ArrayList<>();
                             attributes.add(new Tuple2<String, String>(name, value));
                             name = value = null;
                         } else if (c == '&') {
@@ -871,7 +870,7 @@ public final class WebLoader implements WebConstants {
                             sb.setLength(0);
                             state = NEUTRAL;
                             if (attributes == null)
-                                attributes = new ArrayList<Tuple2<String, String>>();
+                                attributes = new ArrayList<>();
                             attributes.add(new Tuple2<String, String>(name, value));
                             name = value = null;
                         } else if (c == '&') {
