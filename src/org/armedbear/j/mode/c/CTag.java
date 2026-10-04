@@ -23,15 +23,12 @@ package org.armedbear.j.mode.c;
 import org.armedbear.j.LocalTag;
 import org.armedbear.j.Position;
 
-public final class CTag extends LocalTag
-{
-    public CTag(String name, Position pos)
-    {
+public final class CTag extends LocalTag {
+    public CTag(String name, Position pos) {
         super(name, pos);
     }
 
-    public String getLongName()
-    {
+    public String getLongName() {
         String s = signature.trim();
         if (s.startsWith("DEFUN")) {
             // Emacs source.
