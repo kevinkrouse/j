@@ -24,20 +24,16 @@ import java.lang.StringBuilder;
 import org.armedbear.j.LocalTag;
 import org.armedbear.j.Position;
 
-public final class LispTag extends LocalTag
-{
-    public LispTag(String name, Position pos)
-    {
+public final class LispTag extends LocalTag {
+    public LispTag(String name, Position pos) {
         super(name, pos);
     }
 
-    public LispTag(String name, Position pos, int type)
-    {
+    public LispTag(String name, Position pos, int type) {
         super(name, pos, type);
     }
 
-    public String getLongName()
-    {
+    public String getLongName() {
         String s = signature.trim();
 
         if (s.startsWith("("))
@@ -72,7 +68,7 @@ public final class LispTag extends LocalTag
                 return sb.toString();
             }
             if (c == ')') {
-                sb.append(s.substring(0, i+1));
+                sb.append(s.substring(0, i + 1));
                 return sb.toString();
             }
         }

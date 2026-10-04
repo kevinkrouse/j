@@ -20,6 +20,8 @@
 
 package org.armedbear.j.mode.lisp;
 
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.FormatTable;
 import org.armedbear.j.Formatter;
@@ -28,34 +30,30 @@ import org.armedbear.j.LineSegment;
 import org.armedbear.j.LineSegmentList;
 import org.armedbear.j.Position;
 
-import java.util.regex.Pattern;
-import java.util.regex.Matcher;
-
-public final class LispFormatter extends Formatter
-{
+public final class LispFormatter extends Formatter {
     // States.
-    private static final int STATE_OPEN_PAREN              = STATE_LAST + 1;
-    private static final int STATE_CLOSE_PAREN             = STATE_LAST + 2;
-    private static final int STATE_CAR                     = STATE_LAST + 3;
-    private static final int STATE_DEFUN                   = STATE_LAST + 4;
-    private static final int STATE_DEFINITION              = STATE_LAST + 5;
-    private static final int STATE_NAME                    = STATE_LAST + 6;
-    private static final int STATE_SUBSTITUTION            = STATE_LAST + 7;
-    private static final int STATE_SECONDARY_KEYWORD       = STATE_LAST + 8;
-    private static final int STATE_PUNCTUATION             = STATE_LAST + 9;
-    private static final int STATE_ARGLIST                 = STATE_LAST + 10;
-    private static final int STATE_QUOTED_LIST             = STATE_LAST + 11;
+    private static final int STATE_OPEN_PAREN = STATE_LAST + 1;
+    private static final int STATE_CLOSE_PAREN = STATE_LAST + 2;
+    private static final int STATE_CAR = STATE_LAST + 3;
+    private static final int STATE_DEFUN = STATE_LAST + 4;
+    private static final int STATE_DEFINITION = STATE_LAST + 5;
+    private static final int STATE_NAME = STATE_LAST + 6;
+    private static final int STATE_SUBSTITUTION = STATE_LAST + 7;
+    private static final int STATE_SECONDARY_KEYWORD = STATE_LAST + 8;
+    private static final int STATE_PUNCTUATION = STATE_LAST + 9;
+    private static final int STATE_ARGLIST = STATE_LAST + 10;
+    private static final int STATE_QUOTED_LIST = STATE_LAST + 11;
 
     // Formats.
-    private static final int LISP_FORMAT_TEXT              = 0;
-    private static final int LISP_FORMAT_COMMENT           = 1;
-    private static final int LISP_FORMAT_STRING            = 2;
-    private static final int LISP_FORMAT_KEYWORD           = 3;
-    private static final int LISP_FORMAT_DEFUN             = 4;
-    private static final int LISP_FORMAT_NAME              = 5;
-    private static final int LISP_FORMAT_PARENTHESIS       = 6;
-    private static final int LISP_FORMAT_PUNCTUATION       = 7;
-    private static final int LISP_FORMAT_SUBSTITUTION      = 8;
+    private static final int LISP_FORMAT_TEXT = 0;
+    private static final int LISP_FORMAT_COMMENT = 1;
+    private static final int LISP_FORMAT_STRING = 2;
+    private static final int LISP_FORMAT_KEYWORD = 3;
+    private static final int LISP_FORMAT_DEFUN = 4;
+    private static final int LISP_FORMAT_NAME = 5;
+    private static final int LISP_FORMAT_PARENTHESIS = 6;
+    private static final int LISP_FORMAT_PUNCTUATION = 7;
+    private static final int LISP_FORMAT_SUBSTITUTION = 8;
     private static final int LISP_FORMAT_SECONDARY_KEYWORD = 9;
 
     private static final Pattern condRE =
@@ -71,17 +69,14 @@ public final class LispFormatter extends Formatter
     private static final Pattern letOrDoRE =
         Pattern.compile("\\([ \t]*(let|do)\\*?[ \t]*\\(\\(");
 
-
-    public LispFormatter(Buffer buffer)
-    {
+    public LispFormatter(Buffer buffer) {
         this.buffer = buffer;
     }
 
     private Line currentLine;
     private int tokenBegin = 0;
 
-    private void endToken(String text, int tokenEnd, int state)
-    {
+    private void endToken(String text, int tokenEnd, int state) {
         if (tokenEnd - tokenBegin > 0) {
             int format = LISP_FORMAT_TEXT;
             switch (state) {
@@ -131,8 +126,7 @@ public final class LispFormatter extends Formatter
         }
     }
 
-    private static final boolean isDefiner(String s)
-    {
+    private static final boolean isDefiner(String s) {
         if (s.length() >= 5 && s.startsWith("def")) {
             String translated = LispMode.translateDefiner(s);
             if (translated != null) {
@@ -152,9 +146,10 @@ public final class LispFormatter extends Formatter
     // Returns true if token at specified offset in detabbed text from line is
     // in functional position, based on context.
     private static final boolean isPositionFunctional(
-        final String text,      // Detabbed text.
-        final int offset,       // Offset of token in detabbed text.
-        final Line line)        // Line (which may contain tab characters).
+        final String text, // Detabbed text.
+        final int offset, // Offset of token in detabbed text.
+        final Line line
+    ) // Line (which may contain tab characters).
     {
         if (offset >= 1 && text.charAt(offset - 1) == '(') {
             if (offset >= 2 && text.charAt(offset - 2) == '(') {
@@ -226,8 +221,7 @@ public final class LispFormatter extends Formatter
 
     // Returns next whitespace-delimited token starting at (or after) pos.
     // Same line only. Never returns null.
-    private static final String parseToken(Position pos)
-    {
+    private static final String parseToken(Position pos) {
         final Line line = pos.getLine();
         final int limit = line.length();
         int begin = pos.getOffset();
@@ -241,8 +235,7 @@ public final class LispFormatter extends Formatter
         return line.getText().substring(begin, end);
     }
 
-    private static final int countLeadingSpaces(String s)
-    {
+    private static final int countLeadingSpaces(String s) {
         final int limit = s.length();
         for (int i = 0; i < limit; i++) {
             if (s.charAt(i) != ' ')
@@ -251,8 +244,7 @@ public final class LispFormatter extends Formatter
         return limit;
     }
 
-    private void parseLine(Line line)
-    {
+    private void parseLine(Line line) {
         currentLine = line;
         tokenBegin = 0;
         final String text = getDetabbedText(line);
@@ -262,13 +254,13 @@ public final class LispFormatter extends Formatter
         int i = 0;
         while (i < limit) {
             char c = text.charAt(i);
-            if (c == '\\' && i < limit-1) {
+            if (c == '\\' && i < limit - 1) {
                 i += 2;
                 continue;
             }
             if (state == STATE_COMMENT) {
-                if (c == '|' && i < limit-1) {
-                    c = text.charAt(i+1);
+                if (c == '|' && i < limit - 1) {
+                    c = text.charAt(i + 1);
                     if (c == '#') {
                         i += 2;
                         endToken(text, i, state);
@@ -281,7 +273,7 @@ public final class LispFormatter extends Formatter
             }
             if (state == STATE_QUOTE) {
                 if (c == '"') {
-                    endToken(text, i+1, state);
+                    endToken(text, i + 1, state);
                     state = STATE_NEUTRAL;
                 }
                 ++i;
@@ -431,8 +423,11 @@ public final class LispFormatter extends Formatter
                 ++i;
                 continue;
             }
-            if (state == STATE_SECONDARY_KEYWORD ||
-                state == STATE_SUBSTITUTION) {
+            if (
+                state == STATE_SECONDARY_KEYWORD
+                    ||
+                    state == STATE_SUBSTITUTION
+            ) {
                 if (!getLanguageMode().isIdentifierPart(c)) {
                     endToken(text, i, state);
                     state = STATE_NEUTRAL;
@@ -446,8 +441,12 @@ public final class LispFormatter extends Formatter
                 ++i;
                 continue;
             }
-            if (state == STATE_NEUTRAL || state == STATE_ARGLIST ||
-                state == STATE_QUOTED_LIST) {
+            if (
+                state == STATE_NEUTRAL
+                    || state == STATE_ARGLIST
+                    ||
+                    state == STATE_QUOTED_LIST
+            ) {
                 if (c == ':' || c == '&') {
                     endToken(text, i, state);
                     state = STATE_SECONDARY_KEYWORD;
@@ -462,8 +461,7 @@ public final class LispFormatter extends Formatter
         endToken(text, i, state);
     }
 
-    public LineSegmentList formatLine(Line line)
-    {
+    public LineSegmentList formatLine(Line line) {
         if (line == null) {
             clearSegmentList();
             addSegment("", LISP_FORMAT_TEXT);
@@ -473,8 +471,7 @@ public final class LispFormatter extends Formatter
         return segmentList;
     }
 
-    public boolean parseBuffer()
-    {
+    public boolean parseBuffer() {
         int state = STATE_NEUTRAL;
         boolean changed = false;
         Position pos = new Position(buffer.getFirstLine(), 0);
@@ -551,8 +548,7 @@ public final class LispFormatter extends Formatter
         return changed;
     }
 
-    private static boolean skipString(Position pos)
-    {
+    private static boolean skipString(Position pos) {
         boolean changed = false;
         while (!pos.atEnd()) {
             char c = pos.getChar();
@@ -590,8 +586,7 @@ public final class LispFormatter extends Formatter
         return changed;
     }
 
-    private static boolean skipBalancedComment(Position pos)
-    {
+    private static boolean skipBalancedComment(Position pos) {
         boolean changed = false;
         int count = 1;
         while (!pos.atEnd()) {
@@ -628,8 +623,7 @@ public final class LispFormatter extends Formatter
         return changed;
     }
 
-    private int skipQuotedObject(String text, int i, int state)
-    {
+    private int skipQuotedObject(String text, int i, int state) {
         int count = 0;
         final int limit = text.length();
         // Skip whitespace after quote character.
@@ -678,8 +672,7 @@ public final class LispFormatter extends Formatter
         return i;
     }
 
-    private static boolean skipQuotedObject(Position pos)
-    {
+    private static boolean skipQuotedObject(Position pos) {
         boolean changed = false;
         int count = 0;
         while (!pos.atEnd()) {
@@ -736,22 +729,19 @@ public final class LispFormatter extends Formatter
         return changed;
     }
 
-    private static boolean setLineFlags(Line line, int newFlags)
-    {
+    private static boolean setLineFlags(Line line, int newFlags) {
         if (line.flags() == newFlags)
             return false; // No change.
         line.setFlags(newFlags);
         return true;
     }
 
-    private static void skipToken(Position pos)
-    {
+    private static void skipToken(Position pos) {
         while (!Character.isWhitespace(pos.getChar()) && pos.next())
             ;
     }
 
-    public FormatTable getFormatTable()
-    {
+    public FormatTable getFormatTable() {
         if (formatTable == null) {
             formatTable = new FormatTable("LispMode");
             formatTable.addEntryFromPrefs(LISP_FORMAT_TEXT, "text");
@@ -760,14 +750,26 @@ public final class LispFormatter extends Formatter
             formatTable.addEntryFromPrefs(LISP_FORMAT_KEYWORD, "keyword");
             formatTable.addEntryFromPrefs(LISP_FORMAT_DEFUN, "keyword");
             formatTable.addEntryFromPrefs(LISP_FORMAT_NAME, "function");
-            formatTable.addEntryFromPrefs(LISP_FORMAT_PARENTHESIS,
-                                          "parenthesis","text");
-            formatTable.addEntryFromPrefs(LISP_FORMAT_PUNCTUATION,
-                                          "punctuation", "text");
-            formatTable.addEntryFromPrefs(LISP_FORMAT_SUBSTITUTION,
-                                          "substitution", "text");
-            formatTable.addEntryFromPrefs(LISP_FORMAT_SECONDARY_KEYWORD,
-                                          "secondaryKeyword", "text");
+            formatTable.addEntryFromPrefs(
+                LISP_FORMAT_PARENTHESIS,
+                "parenthesis",
+                "text"
+            );
+            formatTable.addEntryFromPrefs(
+                LISP_FORMAT_PUNCTUATION,
+                "punctuation",
+                "text"
+            );
+            formatTable.addEntryFromPrefs(
+                LISP_FORMAT_SUBSTITUTION,
+                "substitution",
+                "text"
+            );
+            formatTable.addEntryFromPrefs(
+                LISP_FORMAT_SECONDARY_KEYWORD,
+                "secondaryKeyword",
+                "text"
+            );
         }
         return formatTable;
     }

@@ -28,38 +28,33 @@ import org.armedbear.j.Position;
 // Supports movement through the syntactically important text of a buffer,
 // i.e. skipping whitespace and comments.
 public final class LispSyntaxIterator extends DefaultSyntaxIterator
-    implements Constants
-{
-    public LispSyntaxIterator(Position pos)
-    {
+    implements Constants {
+    public LispSyntaxIterator(Position pos) {
         super(pos);
     }
 
     // Caller must make sure parseBuffer() has been called so flags will be
     // correct.
-    public char[] hideSyntacticWhitespace(Line line)
-    {
+    public char[] hideSyntacticWhitespace(Line line) {
         if (line.flags() == STATE_QUOTE)
             return hideSyntacticWhitespace(line.getText(), STATE_QUOTE);
         else
             return hideSyntacticWhitespace(line.getText(), STATE_NEUTRAL);
     }
 
-    public char[] hideSyntacticWhitespace(String s)
-    {
+    public char[] hideSyntacticWhitespace(String s) {
         return hideSyntacticWhitespace(s, STATE_NEUTRAL);
     }
 
     // Returns char array with syntactic whitespace (quotes and comments)
     // replaced with actual space characters.
-    public char[] hideSyntacticWhitespace(String s, int initialState)
-    {
+    public char[] hideSyntacticWhitespace(String s, int initialState) {
         char[] chars = s.toCharArray();
         int state = initialState;
         int length = chars.length;
         for (int i = 0; i < length; i++) {
             char c = chars[i];
-            if (c == '\\' && i < length-1) {
+            if (c == '\\' && i < length - 1) {
                 // Escape character.
                 chars[i++] = ' ';
                 chars[i] = ' ';
@@ -76,7 +71,7 @@ public final class LispSyntaxIterator extends DefaultSyntaxIterator
         }
         // Handle comment part if any.
         int index = -1;
-        for (int i = 0; i < length-1; i++) {
+        for (int i = 0; i < length - 1; i++) {
             if (chars[i] == '\\')
                 ++i; // Escape character.
             else if (chars[i] == ';') {

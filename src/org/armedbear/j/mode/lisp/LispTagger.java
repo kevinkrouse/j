@@ -20,21 +20,19 @@
 
 package org.armedbear.j.mode.lisp;
 
-import org.armedbear.j.Debug;
-import org.armedbear.j.Mode;
 import java.lang.StringBuilder;
+import java.util.ArrayList;
+import org.armedbear.j.Debug;
 import org.armedbear.j.Line;
 import org.armedbear.j.LocalTag;
+import org.armedbear.j.Mode;
 import org.armedbear.j.Position;
 import org.armedbear.j.SystemBuffer;
 import org.armedbear.j.Tagger;
 
-import java.util.ArrayList;
-
-public final class LispTagger extends Tagger
-{
+public final class LispTagger extends Tagger {
     // States.
-    private static final int NEUTRAL    = 0;
+    private static final int NEUTRAL = 0;
     private static final int OPEN_PAREN = 1;
     private static final int DEFINITION = 2;
 
@@ -42,13 +40,11 @@ public final class LispTagger extends Tagger
 
     private ArrayList<LocalTag> tags;
 
-    public LispTagger(SystemBuffer buffer)
-    {
+    public LispTagger(SystemBuffer buffer) {
         super(buffer);
     }
 
-    public synchronized void run()
-    {
+    public synchronized void run() {
         tags = new ArrayList<LocalTag>();
         Position pos = new Position(buffer.getFirstLine(), 0);
         int state = NEUTRAL;
@@ -61,7 +57,7 @@ public final class LispTagger extends Tagger
             }
             if (c == '\\') {
                 // Escape.
-                if (pos.getOffset() < pos.getLineLength()-1)
+                if (pos.getOffset() < pos.getLineLength() - 1)
                     pos.skip(2);
                 else {
                     Line nextLine = pos.getNextLine();
@@ -155,8 +151,7 @@ public final class LispTagger extends Tagger
         buffer.setTags(tags);
     }
 
-    private void addTag(String name, Position pos, String definer)
-    {
+    private void addTag(String name, Position pos, String definer) {
         int type = -1;
         if (definer.equals("defclass"))
             type = TAG_CLASS;
@@ -188,8 +183,7 @@ public final class LispTagger extends Tagger
     }
 
     // Advances pos past list.
-    private String gatherList(Position pos)
-    {
+    private String gatherList(Position pos) {
         StringBuilder sb = new StringBuilder();
         char c = pos.getChar();
         Debug.bugIf(c != '(');
@@ -204,8 +198,7 @@ public final class LispTagger extends Tagger
     }
 
     // Advances pos past token.
-    private String gatherToken(Position pos)
-    {
+    private String gatherToken(Position pos) {
         StringBuilder sb = new StringBuilder();
         char c;
         while (mode.isIdentifierPart(c = pos.getChar()) || c == ':') {
@@ -217,21 +210,19 @@ public final class LispTagger extends Tagger
     }
 
     // Advances pos past token.
-    private void skipToken(Position pos)
-    {
+    private void skipToken(Position pos) {
         while (mode.isIdentifierPart(pos.getChar())) {
             if (!pos.next())
                 return;
         }
     }
 
-    private void skipComment(Position pos)
-    {
+    private void skipComment(Position pos) {
         while (!pos.atEnd()) {
             char c = pos.getChar();
             if (c == '\\') {
                 // Escape.
-                if (pos.getOffset() < pos.getLineLength()-1)
+                if (pos.getOffset() < pos.getLineLength() - 1)
                     pos.skip(2);
                 else {
                     Line nextLine = pos.getNextLine();
