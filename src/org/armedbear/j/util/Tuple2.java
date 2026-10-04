@@ -17,10 +17,8 @@
  */
 package org.armedbear.j.util;
 
-public class Tuple2<Type1, Type2> implements java.io.Serializable
-{
-    public Tuple2(Type1 first, Type2 second)
-    {
+public class Tuple2<Type1, Type2> implements java.io.Serializable {
+    public Tuple2(Type1 first, Type2 second) {
         this.first = first;
         this.second = second;
     }
@@ -28,33 +26,27 @@ public class Tuple2<Type1, Type2> implements java.io.Serializable
     public final Type1 first;
     public final Type2 second;
 
-    public boolean equals(Object o)
-    {
+    public boolean equals(Object o) {
         if (!(o instanceof Tuple2))
             return false;
         Tuple2 that = (Tuple2) o;
         return (this.first == null ? that.first == null : this.first.equals(that.first))
-                && (this.second == null ? that.second == null : this.second.equals(that.second));
+            && (this.second == null ? that.second == null : this.second.equals(that.second));
     }
 
-    public int hashCode()
-    {
+    public int hashCode() {
         return (first == null ? 0 : first.hashCode()) ^ (second == null ? 0 : second.hashCode());
     }
 
-    public String toString()
-    {
+    public String toString() {
         return super.toString() + " (" + String.valueOf(first) + "," + String.valueOf(second) + ")";
     }
 
-    public Tuple2<Type1, Type2> copy()
-    {
+    public Tuple2<Type1, Type2> copy() {
         return new Tuple2<Type1, Type2>(first, second);
     }
 
-    static public <T1, T2> Tuple2<T1, T2> of(T1 first, T2 second)
-    {
+    static public <T1, T2> Tuple2<T1, T2> of(T1 first, T2 second) {
         return new Tuple2<T1, T2>(first, second);
     }
 }
-

@@ -20,42 +20,35 @@
 
 package org.armedbear.j.util;
 
+import java.io.Reader;
 import org.armedbear.j.Debug;
 
-import java.io.Reader;
-
-public final class FastStringReader extends Reader
-{
+public final class FastStringReader extends Reader {
     private final String s;
     private final int length;
     private int index;
     private int mark;
 
-    public FastStringReader(String s)
-    {
+    public FastStringReader(String s) {
         this.s = s;
         length = s.length();
     }
 
-    public final char readChar()
-    {
+    public final char readChar() {
         return index < length ? s.charAt(index++) : 0;
     }
 
-    public final void unreadChar()
-    {
+    public final void unreadChar() {
         Debug.assertTrue(index > 0);
         if (index > 0)
             --index;
     }
 
-    public int read()
-    {
+    public int read() {
         return index < length ? s.charAt(index++) : -1;
     }
 
-    public int read(char array[], int offset, int count)
-    {
+    public int read(char array[], int offset, int count) {
         if (offset < 0 || count < 0 || offset + count > array.length)
             throw new IndexOutOfBoundsException();
         if (count == 0)
@@ -68,8 +61,7 @@ public final class FastStringReader extends Reader
 
     // Returns next word (delimited by whitespace) or quoted substring,
     // without enclosing quotes (if any).
-    public String readToken()
-    {
+    public String readToken() {
         skipWhitespace();
         if (index == length)
             return "";
@@ -98,8 +90,7 @@ public final class FastStringReader extends Reader
         return s.substring(begin, index);
     }
 
-    public String readLine()
-    {
+    public String readLine() {
         final int limit = length;
         if (index >= limit)
             return null;
@@ -121,44 +112,37 @@ public final class FastStringReader extends Reader
         return s.substring(begin, index);
     }
 
-    public long skip(long count)
-    {
+    public long skip(long count) {
         final long actual = Math.min(count, length - index);
         index += actual;
         return actual;
     }
 
-    public boolean ready()
-    {
+    public boolean ready() {
         return true;
     }
 
-    public boolean markSupported()
-    {
+    public boolean markSupported() {
         return true;
     }
 
-    public void mark(int readAheadLimit)
-    {
+    public void mark(int readAheadLimit) {
         if (readAheadLimit < 0)
             throw new IllegalArgumentException("Read-ahead limit < 0");
         mark = index;
     }
 
-    public void reset()
-    {
+    public void reset() {
         index = mark;
     }
 
     public void close() {}
 
-    public final String remainder()
-    {
+    public final String remainder() {
         return s.substring(index);
     }
 
-    public final void skipWhitespace()
-    {
+    public final void skipWhitespace() {
         while (index < length && Character.isWhitespace(s.charAt(index)))
             ++index;
     }
