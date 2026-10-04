@@ -20,7 +20,8 @@
 
 package org.armedbear.j.mode.python;
 
-import java.lang.StringBuilder;
+import static org.armedbear.j.Constants.*;
+
 import java.util.ArrayList;
 import org.armedbear.j.LocalTag;
 import org.armedbear.j.Mode;
@@ -46,8 +47,9 @@ public final class PythonTagger extends Tagger {
         this.mode = mode;
     }
 
+    @Override
     public void run() {
-        ArrayList<LocalTag> tags = new ArrayList<LocalTag>();
+        ArrayList<LocalTag> tags = new ArrayList<>();
         Position pos = new Position(buffer.getFirstLine(), 0);
         int state = STATE_NEUTRAL;
         while (!pos.atEnd()) {

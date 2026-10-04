@@ -33,6 +33,7 @@ public final class PythonSyntaxIterator extends DefaultSyntaxIterator {
 
     // Returns char array with syntactic whitespace (quotes and comments)
     // replaced with actual space characters.
+    @Override
     public char[] hideSyntacticWhitespace(String s) {
         char[] chars = s.toCharArray();
         char quoteChar = 0;

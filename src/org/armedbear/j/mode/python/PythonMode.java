@@ -20,10 +20,11 @@
 
 package org.armedbear.j.mode.python;
 
+import static org.armedbear.j.Constants.*;
+
 import java.awt.event.KeyEvent;
 import org.armedbear.j.AbstractMode;
 import org.armedbear.j.Buffer;
-import org.armedbear.j.Constants;
 import org.armedbear.j.Formatter;
 import org.armedbear.j.KeyMap;
 import org.armedbear.j.Keywords;
@@ -34,7 +35,7 @@ import org.armedbear.j.SyntaxIterator;
 import org.armedbear.j.SystemBuffer;
 import org.armedbear.j.Tagger;
 
-public final class PythonMode extends AbstractMode implements Constants, Mode {
+public final class PythonMode extends AbstractMode implements Mode {
     private static final PythonMode mode = new PythonMode();
 
     private PythonMode() {
@@ -46,26 +47,32 @@ public final class PythonMode extends AbstractMode implements Constants, Mode {
         return mode;
     }
 
+    @Override
     public boolean canIndent() {
         return true;
     }
 
+    @Override
     public boolean canIndentPaste() {
         return false;
     }
 
+    @Override
     public final SyntaxIterator getSyntaxIterator(Position pos) {
         return new PythonSyntaxIterator(pos);
     }
 
+    @Override
     public final String getCommentStart() {
         return "#";
     }
 
+    @Override
     public final Formatter getFormatter(Buffer buffer) {
         return new PythonFormatter(buffer);
     }
 
+    @Override
     protected void setKeyMapDefaults(KeyMap km) {
         km.mapKey(KeyEvent.VK_TAB, 0, "tab");
         km.mapKey(KeyEvent.VK_TAB, SHIFT_MASK, "slideOut");
@@ -74,24 +81,29 @@ public final class PythonMode extends AbstractMode implements Constants, Mode {
         km.mapKey(KeyEvent.VK_I, ALT_MASK, "cycleIndentSize");
     }
 
+    @Override
     public final boolean isTaggable() {
         return true;
     }
 
+    @Override
     public final Tagger getTagger(SystemBuffer buffer) {
         return new PythonTagger(buffer, this);
     }
 
+    @Override
     public int getCorrectIndentation(Line line, Buffer buffer) {
         return new PythonIndenter(line, buffer).getCorrectIndentation();
     }
 
+    @Override
     public final boolean isIdentifierStart(char c) {
         if (c > 127)
             return false;
         return values[c] == 1;
     }
 
+    @Override
     public final boolean isIdentifierPart(char c) {
         if (c > 127)
             return false;

@@ -20,7 +20,6 @@
 
 package org.armedbear.j.mode.python;
 
-import java.lang.StringBuilder;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Line;
 import org.armedbear.j.util.Utilities;
