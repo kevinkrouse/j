@@ -382,7 +382,7 @@ public final class VimMotions {
         Position pos = from;
         for (int i = 0; i < ctx.count; i++) {
             final Position next =
-                ctx.editor.findUnmatched(pos, bracket, true);
+                CaretCommands.findUnmatched(ctx.editor, pos, bracket, true);
             if (next == null)
                 return i == 0 ? null : pos;
             pos = next;
@@ -517,10 +517,11 @@ public final class VimMotions {
         if (offset < 0)
             return null;
 
-        // The actual search is Editor's own, which knows the mode's comments
-        // and strings; its vim flag adds vim's rules for quotes and
-        // backslashes.
-        final Position match = ctx.editor.findMatchInternal(
+        // The actual search is CaretCommands.findMatchInternal, which knows
+        // the mode's comments and strings; its vim flag adds vim's rules for
+        // quotes and backslashes.
+        final Position match = CaretCommands.findMatchInternal(
+            ctx.editor,
             new Position(from.getLine(), offset),
             0,
             true

@@ -35,6 +35,7 @@ import java.util.regex.PatternSyntaxException;
 import javax.swing.undo.CompoundEdit;
 import org.armedbear.j.AbstractMode;
 import org.armedbear.j.Buffer;
+import org.armedbear.j.CaretCommands;
 import org.armedbear.j.Constants;
 import org.armedbear.j.Debug;
 import org.armedbear.j.Editor;
@@ -540,7 +541,7 @@ public final class HtmlMode extends AbstractMode implements Constants, Mode {
         Position dot = editor.getDot();
         char c = dot.getChar();
         if (special.indexOf(c) >= 0) {
-            editor.findMatchingChar();
+            CaretCommands.findMatchingChar(editor);
             return;
         }
         Position saved = dot.copy();

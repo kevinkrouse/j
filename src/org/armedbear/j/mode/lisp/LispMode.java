@@ -26,6 +26,7 @@ import java.util.HashMap;
 import java.util.StringTokenizer;
 import org.armedbear.j.AbstractMode;
 import org.armedbear.j.Buffer;
+import org.armedbear.j.CaretCommands;
 import org.armedbear.j.ConfirmDialog;
 import org.armedbear.j.Constants;
 import org.armedbear.j.Debug;
@@ -847,7 +848,7 @@ public class LispMode extends AbstractMode implements Constants, Mode {
             return;
         Position pos = findDelimiterNear(dot);
         editor.setWaitCursor();
-        Position match = editor.findMatchInternal(pos, 0);
+        Position match = CaretCommands.findMatchInternal(editor, pos, 0);
         editor.setDefaultCursor();
         if (match != null) {
             // Move past closing parenthesis.
@@ -878,7 +879,7 @@ public class LispMode extends AbstractMode implements Constants, Mode {
         if (pos == null)
             return;
         editor.setWaitCursor();
-        Position match = editor.findMatchInternal(pos, 0);
+        Position match = CaretCommands.findMatchInternal(editor, pos, 0);
         if (match != null) {
             if (pos.getChar() == ')')
                 pos.next();

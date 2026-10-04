@@ -62,11 +62,11 @@ public class RainbowDelimitersTest {
     }
 
     private String matchingQuote(int lineNumber, int offset) {
-        final Position match = h.editor()
-            .findMatchingQuote(
-                new Position(line(lineNumber), offset),
-                0
-            );
+        final Position match = CaretCommands.findMatchingQuote(
+            h.editor(),
+            new Position(line(lineNumber), offset),
+            0
+        );
         return match == null
             ? null
             : match.lineNumber() + ":" + match.getOffset();

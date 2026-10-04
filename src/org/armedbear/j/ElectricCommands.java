@@ -40,7 +40,7 @@ public final class ElectricCommands {
             return;
         // Limit search to 50 lines.
         Position match =
-            editor.findMatchInternal(new Position(editor.getDotLine(), editor.getDotOffset() - 1), 50);
+            CaretCommands.findMatchInternal(editor, new Position(editor.getDotLine(), editor.getDotOffset() - 1), 50);
         if (match == null)
             return;
         // We don't want to reframe.

@@ -108,7 +108,7 @@ public class CommandTable {
             add("copyAppend", ClipboardCommands::copyAppend);
             add("copyPath", ClipboardCommands::copyPath);
             add("copyRegion", ClipboardCommands::copyRegion);
-            add("cppFindMatch", Editor::cppFindMatch);
+            add("cppFindMatch", CaretCommands::cppFindMatch);
             add("cycleIndentSize", IndentCommands::cycleIndentSize);
             add("cyclePaste", ClipboardCommands::cyclePaste);
             add("cycleTabWidth", IndentCommands::cycleTabWidth);
@@ -149,7 +149,7 @@ public class CommandTable {
             add("findCharInLine", null, (e, s) -> CaretCommands.findCharInLine(s));
             add("findCharInLineBackward", null, (e, s) -> CaretCommands.findCharInLineBackward(s));
             add("findFirstOccurrence", SearchCommands::findFirstOccurrence);
-            add("findMatchingChar", Editor::findMatchingChar);
+            add("findMatchingChar", CaretCommands::findMatchingChar);
             add("findNext", SearchCommands::findNext);
             add("findNextWord", SearchCommands::findNextWord);
             add("findPrev", SearchCommands::findPrev);
@@ -250,7 +250,7 @@ public class CommandTable {
             add("selectRight", MotionCommands::selectRight);
             add("shiftLinesLeft", e -> Lines.shiftLinesLeft());
             add("shiftLinesRight", e -> Lines.shiftLinesRight());
-            add("selectSyntax", Editor::selectSyntax);
+            add("selectSyntax", CaretCommands::selectSyntax);
             add("selectUp", MotionCommands::selectUp);
             add("selectWord", MotionCommands::selectWord);
             add("selectWordLeft", MotionCommands::selectWordLeft, (e, s) -> MotionCommands.selectWordLeft(e, s));

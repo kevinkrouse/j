@@ -213,7 +213,7 @@ public final class FoldCommands {
                     // the block and fold from there.
                     Position end =
                         new Position(line, line.getText().indexOf('}'));
-                    Position start = editor.findMatchInternal(end, 0);
+                    Position start = CaretCommands.findMatchInternal(editor, end, 0);
                     if (start != null) {
                         foldNearLine(editor, start.getLine());
                         return;
@@ -223,7 +223,7 @@ public final class FoldCommands {
                     // Fold block containing current line.
                     Position end =
                         new Position(next, next.getText().indexOf('}'));
-                    Position start = editor.findMatchInternal(end, 0);
+                    Position start = CaretCommands.findMatchInternal(editor, end, 0);
                     if (start != null) {
                         foldNearLine(editor, start.getLine());
                         return;

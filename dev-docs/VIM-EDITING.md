@@ -123,7 +123,7 @@ produced, all reachable from j's key maps and `executeCommand` too:
 - borrowed as-is: `Search` for matching, `Region` for range text and deletion,
   `Marker` for marks, `Buffer.beginCompoundEdit` for undo, `newlineAndIndent`
   and `indentLine` for indentation, `toCenter`/`toTop` for `zz`/`zt`;
-- `Editor.findMatchInternal` for `%`, with a `vim` flag for vim's smart
+- `CaretCommands.findMatchInternal` for `%`, with a `vim` flag for vim's smart
   matching: brackets in `"..."` (counted from the start bracket, per line,
   only on lines with an even number of quotes) and in `'x'` are skipped, and
   an escaped bracket pairs only with an escaped one.
@@ -131,7 +131,7 @@ produced, all reachable from j's key maps and `executeCommand` too:
   had spelled out at every site, caret at the start for undo;
 - `Words.backwardToWordStart`, `b`'s scan, for insert-mode `<C-w>`.
 - `Paragraphs.find`, vim's findpar, for `{ } ]] [[ ][ []`, and
-  `Sentences.find`, its findsent, for `( )`; `Editor.findUnmatched`,
+  `Sentences.find`, its findsent, for `( )`; `CaretCommands.findUnmatched`,
   `findMatchInternal`'s scan from a caret rather than a bracket, for
   `[( ]) [{ ]}`. Each is a j command too (`forwardParagraph`,
   `forwardSection`, `forwardSentence`, `findUnmatchedBracket`).

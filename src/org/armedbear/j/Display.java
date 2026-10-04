@@ -573,15 +573,15 @@ public final class Display extends JComponent implements Constants,
                 Position quote;
                 if (c == '{' || c == '[' || c == '(') {
                     posBracket = dot;
-                    posMatch = editor.findMatchInternal(dot, 200);
+                    posMatch = CaretCommands.findMatchInternal(editor, dot, 200);
                 } else if (
                     (c == '}' || c == ']' || c == ')')
                         && caretShape() != InputHandler.CaretShape.BAR
                 ) {
                     // A block caret is on the character, as vim's is.
                     posBracket = dot;
-                    posMatch = editor.findMatchInternal(dot, 200);
-                } else if ((quote = editor.findMatchingQuote(dot, 200)) != null) {
+                    posMatch = CaretCommands.findMatchInternal(editor, dot, 200);
+                } else if ((quote = CaretCommands.findMatchingQuote(editor, dot, 200)) != null) {
                     posBracket = dot;
                     posMatch = quote;
                 } else if (
@@ -598,9 +598,9 @@ public final class Display extends JComponent implements Constants,
                         c = dot.getChar();
                         if (c == '}' || c == ']' || c == ')') {
                             posBracket = dot;
-                            posMatch = editor.findMatchInternal(dot, 200);
+                            posMatch = CaretCommands.findMatchInternal(editor, dot, 200);
                         } else if (
-                            (quote = editor.findMatchingQuote(dot, 200)) != null
+                            (quote = CaretCommands.findMatchingQuote(editor, dot, 200)) != null
                                 && quote.isBefore(dot)
                         ) {
                             // Just past a closing quote.
