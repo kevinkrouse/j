@@ -28,6 +28,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.lang.StringBuilder;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -348,7 +349,7 @@ public final class HtmlMode extends AbstractMode implements Constants, Mode {
         if (istream != null) {
             try {
                 BufferedReader in =
-                    new BufferedReader(new InputStreamReader(istream));
+                    new BufferedReader(new InputStreamReader(istream, StandardCharsets.UTF_8));
                 while (true) {
                     String s = in.readLine();
                     if (s == null)

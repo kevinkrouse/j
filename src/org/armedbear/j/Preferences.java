@@ -25,6 +25,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 import org.armedbear.j.util.Colors;
 import org.armedbear.j.util.Utilities;
@@ -180,7 +181,7 @@ public final class Preferences {
     // style or link, for all modes or for one.
     private static boolean startsWithThemeSetting(File file) {
         try (BufferedReader reader = new BufferedReader(
-            new InputStreamReader(file.getInputStream())
+            new InputStreamReader(file.getInputStream(), StandardCharsets.UTF_8)
         )) {
             String s;
             while ((s = reader.readLine()) != null) {

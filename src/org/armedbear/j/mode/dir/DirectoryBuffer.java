@@ -27,6 +27,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.StringReader;
 import java.lang.StringBuilder;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -653,7 +654,7 @@ public final class DirectoryBuffer extends Buffer {
                         process = Runtime.getRuntime().exec(cmdarray);
                     }
                     reader =
-                        new BufferedReader(new InputStreamReader(process.getInputStream()));
+                        new BufferedReader(new InputStreamReader(process.getInputStream(), StandardCharsets.UTF_8));
                 }
                 if (reader != null) {
                     String s;

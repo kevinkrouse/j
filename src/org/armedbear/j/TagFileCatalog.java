@@ -25,6 +25,7 @@ import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Date;
 
@@ -99,7 +100,7 @@ public final class TagFileCatalog {
         try {
             if (catalogFile.isFile()) {
                 BufferedReader reader =
-                    new BufferedReader(new InputStreamReader(catalogFile.getInputStream()));
+                    new BufferedReader(new InputStreamReader(catalogFile.getInputStream(), StandardCharsets.UTF_8));
                 String s;
                 while ((s = reader.readLine()) != null) {
                     if (s.trim().startsWith("#"))
@@ -135,7 +136,7 @@ public final class TagFileCatalog {
     public synchronized void save() {
         try {
             BufferedWriter writer =
-                new BufferedWriter(new OutputStreamWriter(catalogFile.getOutputStream()));
+                new BufferedWriter(new OutputStreamWriter(catalogFile.getOutputStream(), StandardCharsets.UTF_8));
             writer.write("# " + new Date().toString() + '\n');
             final int limit = entries.size();
             for (int i = 0; i < limit; i++) {

@@ -24,6 +24,7 @@ import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.lang.StringBuilder;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Iterator;
 import org.armedbear.j.Debug;
@@ -141,7 +142,7 @@ public final class MailboxProperties {
         try {
             File file = getFile();
             BufferedWriter writer =
-                new BufferedWriter(new OutputStreamWriter(file.getOutputStream()));
+                new BufferedWriter(new OutputStreamWriter(file.getOutputStream(), StandardCharsets.UTF_8));
             writer.write("<?xml version=\"1.0\"?>");
             writer.newLine();
             writer.write("<mailboxes version=\"" + getVersion() + "\">");

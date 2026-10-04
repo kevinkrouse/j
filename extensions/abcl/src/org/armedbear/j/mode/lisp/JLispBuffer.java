@@ -25,6 +25,7 @@ import java.io.OutputStreamWriter;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.nio.charset.StandardCharsets;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import javax.swing.SwingUtilities;
@@ -117,7 +118,7 @@ public final class JLispBuffer extends LispShellBuffer {
         try {
             socket = new Socket(InetAddress.getLoopbackAddress(), port);
             clientPort.complete(socket.getLocalPort());
-            stdin = new OutputStreamWriter(socket.getOutputStream());
+            stdin = new OutputStreamWriter(socket.getOutputStream(), StandardCharsets.UTF_8);
             stdoutThread = new StdoutThread(socket.getInputStream());
             stdoutThread.setName("JLispBuffer reader");
             stdoutThread.setDaemon(true);

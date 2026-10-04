@@ -195,7 +195,7 @@ public final class Log {
         logWriter = null;
         fileSize = 0;
         try {
-            logWriter = new PrintWriter(logFile.getOutputStream(), true);
+            logWriter = new PrintWriter(logFile.getOutputStream(), true, StandardCharsets.UTF_8);
             int oldLevel = getLevel();
             setLevel(INFO);
             setRollOverEnabled(false);
@@ -253,7 +253,7 @@ public final class Log {
             fileSize = logFile.length();
         try {
             // Append to file, flush automatically.
-            logWriter = new PrintWriter(logFile.getOutputStream(true), true);
+            logWriter = new PrintWriter(logFile.getOutputStream(true), true, StandardCharsets.UTF_8);
         }
         catch (Exception e) {
             logEnabled = false;

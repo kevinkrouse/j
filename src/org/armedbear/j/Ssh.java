@@ -24,6 +24,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.lang.StringBuilder;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import org.armedbear.j.util.Utilities;
 
@@ -117,8 +118,8 @@ public final class Ssh {
             Log.error(t);
             return;
         }
-        writer = new OutputStreamWriter(process.getOutputStream());
-        reader = new InputStreamReader(process.getInputStream());
+        writer = new OutputStreamWriter(process.getOutputStream(), StandardCharsets.UTF_8);
+        reader = new InputStreamReader(process.getInputStream(), StandardCharsets.UTF_8);
         SshReaderThread thread = new SshReaderThread();
         thread.start();
         try {

@@ -26,6 +26,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.StringReader;
 import java.lang.StringBuilder;
+import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -246,7 +247,7 @@ public final class Mbox {
             BufferedReader reader =
                 new BufferedReader(new StringReader(message.getRawText()));
             BufferedWriter writer =
-                new BufferedWriter(new FileWriter(file.canonicalPath(), true));
+                new BufferedWriter(new FileWriter(file.canonicalPath(), StandardCharsets.ISO_8859_1, true));
             final long messageStart = file.length();
             writer.write("From - ");
             SimpleDateFormat dateFormatter =

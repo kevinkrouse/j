@@ -24,6 +24,7 @@ import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStreamWriter;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import org.armedbear.j.mode.dir.DirectoryBuffer;
@@ -245,7 +246,8 @@ public final class Session extends DefaultHandler implements Constants {
             BufferedWriter writer =
                 new BufferedWriter(
                     new OutputStreamWriter(
-                        tempFile.getOutputStream()
+                        tempFile.getOutputStream(),
+                        StandardCharsets.UTF_8
                     )
                 );
             writer.write("<?xml version=\"1.0\"?>");

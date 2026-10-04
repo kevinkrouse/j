@@ -25,6 +25,7 @@ import java.io.EOFException;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -158,7 +159,7 @@ public final class JdbSession extends Properties {
         try {
             OutputStream out = file.getOutputStream();
             BufferedWriter writer =
-                new BufferedWriter(new OutputStreamWriter(out));
+                new BufferedWriter(new OutputStreamWriter(out, StandardCharsets.UTF_8));
             writer.write("<?xml version=\"1.0\"?>");
             writer.newLine();
             writer.write("<session version=\"" + getVersion() + "\">");

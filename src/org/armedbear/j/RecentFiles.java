@@ -25,6 +25,7 @@ import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import org.armedbear.j.mode.dir.DirectoryBuffer;
@@ -152,7 +153,7 @@ public final class RecentFiles implements Constants {
         Debug.assertTrue(entries.size() == 0);
         try {
             BufferedReader reader =
-                new BufferedReader(new InputStreamReader(file.getInputStream()));
+                new BufferedReader(new InputStreamReader(file.getInputStream(), StandardCharsets.UTF_8));
             String s = reader.readLine();
             if (s != null) {
                 try {
@@ -190,7 +191,7 @@ public final class RecentFiles implements Constants {
             return;
         try {
             BufferedWriter writer =
-                new BufferedWriter(new OutputStreamWriter(file.getOutputStream()));
+                new BufferedWriter(new OutputStreamWriter(file.getOutputStream(), StandardCharsets.UTF_8));
             writer.write(String.valueOf(RecentFilesEntry.getVersion()));
             writer.newLine();
             int limit = entries.size();

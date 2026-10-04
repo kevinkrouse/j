@@ -25,6 +25,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
 import org.armedbear.j.Editor;
 import org.armedbear.j.Log;
 import org.armedbear.j.Property;
@@ -51,7 +52,7 @@ public class ReaderThread extends Thread {
         }
         catch (UnsupportedEncodingException e) {
             Log.debug(e);
-            reader = new BufferedReader(new InputStreamReader(inputStream));
+            reader = new BufferedReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8));
         }
     }
 

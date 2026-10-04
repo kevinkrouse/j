@@ -24,6 +24,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.lang.StringBuilder;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -378,7 +379,7 @@ public final class DraftsBuffer extends MailboxBuffer {
                 StringBuilder sb = new StringBuilder();
                 try {
                     BufferedReader reader =
-                        new BufferedReader(new InputStreamReader(file.getInputStream()));
+                        new BufferedReader(new InputStreamReader(file.getInputStream(), StandardCharsets.UTF_8));
                     while (true) {
                         String s = reader.readLine();
                         if (s == null)

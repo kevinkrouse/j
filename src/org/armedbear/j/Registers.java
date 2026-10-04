@@ -25,6 +25,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.lang.StringBuilder;
+import java.nio.charset.StandardCharsets;
 import org.armedbear.j.mode.list.ListRegistersBuffer;
 import org.armedbear.j.util.Utilities;
 
@@ -76,7 +77,7 @@ public final class Registers {
         if (file == null)
             return false;
         try (OutputStreamWriter writer =
-            new OutputStreamWriter(file.getOutputStream())) {
+            new OutputStreamWriter(file.getOutputStream(), StandardCharsets.UTF_8)) {
             writer.write(text);
         }
         catch (IOException e) {
@@ -239,7 +240,7 @@ public final class Registers {
         if (file == null || !file.isFile())
             return null;
         try (BufferedReader reader = new BufferedReader(
-            new InputStreamReader(file.getInputStream())
+            new InputStreamReader(file.getInputStream(), StandardCharsets.UTF_8)
         )) {
             StringBuilder sb = new StringBuilder();
             int lineCount = 0;

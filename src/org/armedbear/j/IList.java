@@ -24,6 +24,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.lang.StringBuilder;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.HashSet;
@@ -143,7 +144,7 @@ public final class IList implements BackgroundProcess, Constants {
         }
         try {
             BufferedReader reader =
-                new BufferedReader(new InputStreamReader(file.getInputStream()));
+                new BufferedReader(new InputStreamReader(file.getInputStream(), StandardCharsets.UTF_8));
             String line;
             int lineNumber = 0;
             while ((line = reader.readLine()) != null) {

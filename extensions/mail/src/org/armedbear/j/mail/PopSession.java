@@ -24,6 +24,7 @@ import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.net.Socket;
 import java.net.SocketException;
+import java.nio.charset.StandardCharsets;
 import org.armedbear.j.Log;
 import org.armedbear.j.Netrc;
 import org.armedbear.j.SocketConnection;
@@ -131,7 +132,7 @@ public final class PopSession {
         state = AUTHORIZATION;
         try {
             reader = new MailReader(socket.getInputStream());
-            writer = new OutputStreamWriter(socket.getOutputStream());
+            writer = new OutputStreamWriter(socket.getOutputStream(), StandardCharsets.UTF_8);
             if (readLine() != null) {
                 if (write("user " + user)) {
                     if (getResponse() == OK) {

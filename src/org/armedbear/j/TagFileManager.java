@@ -25,6 +25,7 @@ import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -130,7 +131,8 @@ public final class TagFileManager extends Thread {
                     BufferedWriter writer =
                         new BufferedWriter(
                             new OutputStreamWriter(
-                                tagfile.getOutputStream()
+                                tagfile.getOutputStream(),
+                                StandardCharsets.UTF_8
                             )
                         );
                     writer.write(VERSION);
@@ -232,7 +234,7 @@ public final class TagFileManager extends Thread {
         if (tags == null) {
             try {
                 BufferedReader reader =
-                    new BufferedReader(new InputStreamReader(tagFile.getInputStream()));
+                    new BufferedReader(new InputStreamReader(tagFile.getInputStream(), StandardCharsets.UTF_8));
                 String s = reader.readLine();
                 if (s != null && s.equals(VERSION)) {
                     tags = new ArrayList<GlobalTag>();

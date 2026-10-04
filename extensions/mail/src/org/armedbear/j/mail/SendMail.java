@@ -31,6 +31,7 @@ import java.io.OutputStreamWriter;
 import java.io.Writer;
 import java.lang.StringBuilder;
 import java.net.MalformedURLException;
+import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Base64;
@@ -482,7 +483,7 @@ public final class SendMail extends Buffer {
         StringBuilder sb = new StringBuilder();
         try {
             BufferedReader reader =
-                new BufferedReader(new InputStreamReader(file.getInputStream()));
+                new BufferedReader(new InputStreamReader(file.getInputStream(), StandardCharsets.UTF_8));
             while (true) {
                 String s = reader.readLine();
                 if (s == null)
@@ -594,7 +595,7 @@ public final class SendMail extends Buffer {
                 File messageFile = Utilities.getTempFile();
                 try {
                     OutputStreamWriter writer =
-                        new OutputStreamWriter(messageFile.getOutputStream());
+                        new OutputStreamWriter(messageFile.getOutputStream(), StandardCharsets.UTF_8);
                     writeMessageText(writer);
                     writer.flush();
                     writer.close();
@@ -1528,9 +1529,10 @@ public final class SendMail extends Buffer {
             return;
         try {
             BufferedReader reader =
-                new BufferedReader(new InputStreamReader(messageFile.getInputStream()));
+                new BufferedReader(new InputStreamReader(messageFile.getInputStream(), StandardCharsets.ISO_8859_1));
+            // Latin-1 both ways copies the message's bytes, as mbox wants.
             BufferedWriter writer =
-                new BufferedWriter(new FileWriter(sentMessagesFile.canonicalPath(), true));
+                new BufferedWriter(new FileWriter(sentMessagesFile.canonicalPath(), StandardCharsets.ISO_8859_1, true));
             writer.write("From - ");
             SimpleDateFormat dateFormatter =
                 new SimpleDateFormat("EEE MMM d HH:mm:ss yyyy", Locale.US);

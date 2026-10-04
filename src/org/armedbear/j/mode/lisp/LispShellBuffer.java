@@ -22,6 +22,7 @@ package org.armedbear.j.mode.lisp;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.lang.StringBuilder;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.regex.Matcher;
 import javax.swing.SwingUtilities;
@@ -253,7 +254,7 @@ public class LispShellBuffer extends ShellBuffer {
         if (getProcess() == null)
             return; // Process exited.
         try {
-            stdin = new OutputStreamWriter(p.getOutputStream());
+            stdin = new OutputStreamWriter(p.getOutputStream(), StandardCharsets.UTF_8);
             stdoutThread = new StdoutThread(p.getInputStream());
             stderrThread = new StderrThread(p.getErrorStream());
             stdoutThread.start();

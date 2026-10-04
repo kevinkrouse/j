@@ -30,6 +30,7 @@ import java.io.OutputStreamWriter;
 import java.io.UnsupportedEncodingException;
 import java.lang.StringBuilder;
 import java.net.MalformedURLException;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Properties;
 import java.util.Set;
@@ -66,7 +67,7 @@ public final class ImapMessageCache {
         if (file.isFile()) {
             try {
                 BufferedReader reader =
-                    new BufferedReader(new InputStreamReader(file.getInputStream()));
+                    new BufferedReader(new InputStreamReader(file.getInputStream(), StandardCharsets.UTF_8));
                 String s = reader.readLine();
                 reader.close();
                 int n = Integer.parseInt(s);
@@ -87,7 +88,7 @@ public final class ImapMessageCache {
             Log.debug("getMessageCache writing UIDVALIDITY " + uidValidity);
             try {
                 BufferedWriter writer =
-                    new BufferedWriter(new OutputStreamWriter(file.getOutputStream()));
+                    new BufferedWriter(new OutputStreamWriter(file.getOutputStream(), StandardCharsets.UTF_8));
                 writer.write(String.valueOf(uidValidity));
                 writer.flush();
                 writer.close();
@@ -151,7 +152,7 @@ public final class ImapMessageCache {
                 new StringBuilder((int) (file.length() * 1.1));
             try {
                 BufferedReader reader =
-                    new BufferedReader(new InputStreamReader(file.getInputStream()));
+                    new BufferedReader(new InputStreamReader(file.getInputStream(), StandardCharsets.UTF_8));
                 String s;
                 while ((s = reader.readLine()) != null) {
                     if (s.length() == 0)

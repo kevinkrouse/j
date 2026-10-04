@@ -173,10 +173,13 @@ public final class SmtpSession extends Writer {
             if (getResponse() != 354)
                 return false;
             setEcho(false);
-            BufferedReader messageFileReader = new BufferedReader(new InputStreamReader(messageFile.getInputStream()));
-            String s;
-            while ((s = messageFileReader.readLine()) != null)
-                writeLine(s);
+            try (
+                BufferedReader messageFileReader =
+                    new BufferedReader(new InputStreamReader(messageFile.getInputStream(), StandardCharsets.UTF_8))) {
+                String s;
+                while ((s = messageFileReader.readLine()) != null)
+                    writeLine(s);
+            }
             setEcho(true);
             writeLine(".");
             if (getResponse() != 250)

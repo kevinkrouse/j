@@ -23,6 +23,8 @@ package org.armedbear.j;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.lang.StringBuilder;
+import java.lang.reflect.InvocationTargetException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
@@ -474,7 +476,7 @@ public final class SshSession implements Constants, RemoteSession {
             return false;
         }
         try {
-            stdin = new OutputStreamWriter(process.getOutputStream());
+            stdin = new OutputStreamWriter(process.getOutputStream(), StandardCharsets.UTF_8);
             int timeout =
                 Editor.preferences().getIntegerProperty(Property.SSH_TIMEOUT);
             Log.debug("ssh timeout is " + timeout + " ms");

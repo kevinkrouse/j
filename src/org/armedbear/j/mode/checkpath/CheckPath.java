@@ -24,6 +24,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.lang.StringBuilder;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -113,7 +114,7 @@ public final class CheckPath implements Constants {
         int count = 0;
         try {
             BufferedReader reader =
-                new BufferedReader(new InputStreamReader(file.getInputStream()));
+                new BufferedReader(new InputStreamReader(file.getInputStream(), StandardCharsets.UTF_8));
             String line;
             while ((line = reader.readLine()) != null) {
                 String name = Utilities.extractInclude(line);

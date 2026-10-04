@@ -32,6 +32,7 @@ import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Random;
 import java.util.StringTokenizer;
@@ -636,8 +637,8 @@ public class FtpSession implements Constants, RemoteSession {
 
         try {
             controlIn =
-                new BufferedReader(new InputStreamReader(controlSocket.getInputStream()));
-            controlOut = new OutputStreamWriter(controlSocket.getOutputStream());
+                new BufferedReader(new InputStreamReader(controlSocket.getInputStream(), StandardCharsets.UTF_8));
+            controlOut = new OutputStreamWriter(controlSocket.getOutputStream(), StandardCharsets.UTF_8);
         }
         catch (IOException e) {
             Log.error(e);

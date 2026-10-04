@@ -25,6 +25,7 @@ import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
 import java.lang.StringBuilder;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -159,7 +160,7 @@ public final class Help {
         try {
             File file = getBindingsFile();
             BufferedWriter writer =
-                new BufferedWriter(new OutputStreamWriter(file.getOutputStream()));
+                new BufferedWriter(new OutputStreamWriter(file.getOutputStream(), StandardCharsets.UTF_8));
             writer.write("<html>\n<head>\n<title>Keyboard Bindings</title>\n</head>\n<body>\n");
             File docDir = getDocumentationDirectory();
             writer.write("<b>");
@@ -355,7 +356,7 @@ public final class Help {
         try {
             File file = getAproposFile();
             BufferedWriter writer =
-                new BufferedWriter(new OutputStreamWriter(file.getOutputStream()));
+                new BufferedWriter(new OutputStreamWriter(file.getOutputStream(), StandardCharsets.UTF_8));
             writer.write("<html>\n<head>\n<title>");
             writer.write("Apropos ");
             writer.write('"');

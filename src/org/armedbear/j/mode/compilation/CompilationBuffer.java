@@ -25,6 +25,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.lang.StringBuilder;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import javax.swing.SwingUtilities;
 import org.armedbear.j.Buffer;
@@ -235,7 +236,7 @@ public final class CompilationBuffer extends CompilationErrorBuffer
             try {
                 InputStream inputStream = file.getInputStream();
                 BufferedReader reader =
-                    new BufferedReader(new InputStreamReader(inputStream));
+                    new BufferedReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8));
                 String s = reader.readLine();
                 reader.close();
                 try {

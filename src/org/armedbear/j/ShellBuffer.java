@@ -22,6 +22,7 @@ package org.armedbear.j;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.lang.StringBuilder;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.StringTokenizer;
 import java.util.regex.Matcher;
@@ -169,7 +170,7 @@ public class ShellBuffer extends CommandInterpreterBuffer implements Constants {
         else
             setPromptRE(Editor.preferences().getStringProperty(Property.SHELL_PROMPT_PATTERN));
         try {
-            stdin = new OutputStreamWriter(p.getOutputStream());
+            stdin = new OutputStreamWriter(p.getOutputStream(), StandardCharsets.UTF_8);
             stdoutThread = new StdoutThread(p.getInputStream());
             stderrThread = new StderrThread(p.getErrorStream());
             stdoutThread.setTimeOut(0);

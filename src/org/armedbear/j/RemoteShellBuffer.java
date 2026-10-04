@@ -21,6 +21,7 @@ package org.armedbear.j;
 
 import java.io.OutputStreamWriter;
 import java.lang.StringBuilder;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -90,7 +91,7 @@ public class RemoteShellBuffer extends ShellBuffer {
         if (property != null)
             setPromptRE(Editor.preferences().getStringProperty(property));
         try {
-            stdin = new OutputStreamWriter(process.getOutputStream());
+            stdin = new OutputStreamWriter(process.getOutputStream(), StandardCharsets.UTF_8);
             stdoutThread = new StdoutThread(process.getInputStream());
             stderrThread = new StderrThread(process.getErrorStream());
             stdoutThread.start();

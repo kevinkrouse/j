@@ -26,6 +26,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.StringReader;
 import java.lang.StringBuilder;
+import java.nio.charset.StandardCharsets;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
@@ -160,7 +161,7 @@ public final class XmlMode extends AbstractMode implements Constants, Mode {
         String encoding = null;
         try {
             BufferedReader reader =
-                new BufferedReader(new InputStreamReader(file.getInputStream()));
+                new BufferedReader(new InputStreamReader(file.getInputStream(), StandardCharsets.UTF_8));
             String s = reader.readLine();
             reader.close();
             if (s != null && s.toLowerCase().startsWith("<?xml")) {

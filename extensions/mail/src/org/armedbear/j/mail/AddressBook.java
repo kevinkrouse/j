@@ -27,6 +27,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import org.armedbear.j.Directories;
@@ -63,7 +64,7 @@ public final class AddressBook {
                 }
                 if (inputStream != null) {
                     BufferedReader reader =
-                        new BufferedReader(new InputStreamReader(inputStream));
+                        new BufferedReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8));
                     String s;
                     while ((s = reader.readLine()) != null) {
                         AddressBookEntry entry =
@@ -86,7 +87,7 @@ public final class AddressBook {
             File tempFile = Utilities.getTempFile();
             OutputStream outputStream = tempFile.getOutputStream();
             BufferedWriter writer =
-                new BufferedWriter(new OutputStreamWriter(outputStream));
+                new BufferedWriter(new OutputStreamWriter(outputStream, StandardCharsets.UTF_8));
             final int limit = addressBook.size();
             for (int i = 0; i < limit; i++) {
                 AddressBookEntry entry = addressBook.getEntry(i);

@@ -786,7 +786,7 @@ public final class PopMailboxBuffer extends LocalMailboxBuffer {
             return;
         }
         String filename = mailboxFile.canonicalPath() + ".expunged";
-        try (BufferedReader reader = new BufferedReader(new FileReader(filename))) {
+        try (BufferedReader reader = new BufferedReader(new FileReader(filename, StandardCharsets.UTF_8))) {
             String s;
             while ((s = reader.readLine()) != null) {
                 if (expungedUidlsList == null)
@@ -815,7 +815,7 @@ public final class PopMailboxBuffer extends LocalMailboxBuffer {
                 file.delete();
             return;
         }
-        try (BufferedWriter writer = new BufferedWriter(new FileWriter(filename))) {
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(filename, StandardCharsets.UTF_8))) {
             for (String uidl : expungedUidlsList) {
                 writer.write(uidl);
                 writer.newLine();

@@ -23,6 +23,7 @@ package org.armedbear.j;
 import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import org.armedbear.j.util.Utilities;
 import org.xml.sax.Attributes;
@@ -140,7 +141,7 @@ public final class FileHistory extends DefaultHandler implements ContentHandler 
     public synchronized void save() {
         try {
             BufferedWriter writer =
-                new BufferedWriter(new OutputStreamWriter(file.getOutputStream()));
+                new BufferedWriter(new OutputStreamWriter(file.getOutputStream(), StandardCharsets.UTF_8));
             writer.write("<?xml version=\"1.0\"?>");
             writer.newLine();
             writer.write("<files version=\"" + getVersion() + "\">");

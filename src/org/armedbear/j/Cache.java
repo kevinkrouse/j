@@ -29,6 +29,7 @@ import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import org.armedbear.j.util.Tuple2;
@@ -117,7 +118,7 @@ public final class Cache {
         List<Tuple2<String, String>> v = new ArrayList<Tuple2<String, String>>();
         if (catalogFile.exists()) {
             try (BufferedReader reader = new BufferedReader(
-                new InputStreamReader(catalogFile.getInputStream())
+                new InputStreamReader(catalogFile.getInputStream(), StandardCharsets.UTF_8)
             )) {
                 String s;
                 while ((s = reader.readLine()) != null) {
@@ -140,7 +141,7 @@ public final class Cache {
 
     private void saveCatalog() {
         try (BufferedWriter writer = new BufferedWriter(
-            new OutputStreamWriter(catalogFile.getOutputStream())
+            new OutputStreamWriter(catalogFile.getOutputStream(), StandardCharsets.UTF_8)
         )) {
             for (Tuple2<String, String> pair : catalog) {
                 writer.write(pair.first);

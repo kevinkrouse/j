@@ -24,6 +24,7 @@ import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStreamWriter;
+import java.nio.charset.StandardCharsets;
 import javax.swing.SwingUtilities;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Directories;
@@ -118,7 +119,8 @@ public final class NewsBuffer extends Buffer {
                         if (newsDir.isDirectory()) {
                             try (BufferedWriter writer = new BufferedWriter(
                                 new OutputStreamWriter(
-                                    file.getOutputStream()
+                                    file.getOutputStream(),
+                                    StandardCharsets.UTF_8
                                 )
                             )) {
                                 for (Line line = getFirstLine(); line != null; line = line.next()) {
