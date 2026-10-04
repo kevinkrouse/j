@@ -1,5 +1,5 @@
 /*
- * VimM17Test.java
+ * VimInsertModeKeysTest.java
  *
  * Copyright (C) 2026 Kevin Krouse
  *
@@ -19,11 +19,11 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
 /**
- * M17: insert-mode CTRL-W, CTRL-U, CTRL-R and CTRL-O, and the marks an
+ * Insert-mode CTRL-W, CTRL-U, CTRL-R and CTRL-O, and the marks an
  * arrow or CTRL-O leaves when it splits an insert. Every expectation is
  * nvim's.
  */
-public class VimM17Test {
+public class VimInsertModeKeysTest {
     private EditorHarness h;
 
     @AfterEach

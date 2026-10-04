@@ -438,7 +438,7 @@ public final class VimActions {
         final VimRegisters.Register register =
             VimRegisters.getInstance().get(name);
         if (register != null)
-            ctx.handler.typeText(ctx.editor, register.text);
+            ctx.handler.typeText(ctx.editor, register.text());
     }
 
     /**
@@ -558,7 +558,7 @@ public final class VimActions {
         final Editor editor = ctx.editor;
         final VimRegisters.Register register =
             VimRegisters.getInstance().get(registerName(ctx));
-        if (register == null || register.text.isEmpty())
+        if (register == null || register.text().isEmpty())
             return;
         final Position dot = editor.getDot();
         if (dot == null)
@@ -567,7 +567,7 @@ public final class VimActions {
         final boolean after = ctx.arg("after");
         final StringBuilder text = new StringBuilder();
         for (int i = 0; i < ctx.count; i++)
-            text.append(register.text);
+            text.append(register.text());
 
         final CompoundEdit edit = editor.getBuffer().beginCompoundEdit();
         try {
@@ -575,14 +575,14 @@ public final class VimActions {
             // A put moves it to the insertion point first, and that move is
             // as much a part of the change as the text is.
             VimOperators.recordCaret(editor);
-            if (register.type == VimRegisters.Type.LINEWISE)
+            if (register.type() == VimRegisters.Type.LINEWISE)
                 putLinewise(editor, ctx.state, dot, text.toString(), after);
-            else if (register.type == VimRegisters.Type.BLOCKWISE)
+            else if (register.type() == VimRegisters.Type.BLOCKWISE)
                 putBlockwise(
                     editor,
                     ctx.state,
                     dot,
-                    register.text,
+                    register.text(),
                     ctx.count,
                     after
                 );
@@ -1147,14 +1147,14 @@ public final class VimActions {
         try {
             VimOperators.recordCaret(editor);
             block.delete(editor);
-            if (register.type == VimRegisters.Type.BLOCKWISE) {
+            if (register.type() == VimRegisters.Type.BLOCKWISE) {
                 Block.put(
                     editor,
                     first,
                     col,
-                    Arrays.asList(register.text.split("\n", -1))
+                    Arrays.asList(register.text().split("\n", -1))
                 );
-            } else if (register.type == VimRegisters.Type.LINEWISE) {
+            } else if (register.type() == VimRegisters.Type.LINEWISE) {
                 editor.setDot(last, last.length());
                 editor.moveCaretToDotCol();
                 editor.insertString("\n" + text);
@@ -1207,12 +1207,12 @@ public final class VimActions {
         final VimRegisters.Register register =
             VimRegisters.getInstance().get(registerName(ctx));
         final VimRange range = VimVisual.take(editor, ctx.state);
-        if (range == null || register == null || register.text.isEmpty())
+        if (range == null || register == null || register.text().isEmpty())
             return;
-        final boolean lines = register.type == VimRegisters.Type.LINEWISE;
-        final String once = lines && register.text.endsWith("\n")
-            ? register.text.substring(0, register.text.length() - 1)
-            : register.text;
+        final boolean lines = register.type() == VimRegisters.Type.LINEWISE;
+        final String once = lines && register.text().endsWith("\n")
+            ? register.text().substring(0, register.text().length() - 1)
+            : register.text();
         final StringBuilder text = new StringBuilder(once);
         for (int i = 1; i < ctx.count; i++)
             text.append(lines ? "\n" : "").append(once);

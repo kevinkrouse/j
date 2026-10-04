@@ -42,24 +42,15 @@ import java.util.regex.PatternSyntaxException;
 final class VimRegex {
     private VimRegex() {}
 
-    /** What a translation produced. */
-    static final class Result {
-        /** The pattern in Java's syntax. */
-        final String java;
-        /** {@code \c} or {@code \C} in the pattern, or null for neither. */
-        final Boolean ignoreCase;
-        /**
-         * An upper case letter outside any escape, which is what
-         * {@code 'smartcase'} looks for. The S in {@code \S} does not count.
-         */
-        final boolean hasUppercase;
-
-        Result(String java, Boolean ignoreCase, boolean hasUppercase) {
-            this.java = java;
-            this.ignoreCase = ignoreCase;
-            this.hasUppercase = hasUppercase;
-        }
-    }
+    /**
+     * What a translation produced.
+     *
+     * @param java the pattern in Java's syntax
+     * @param ignoreCase {@code \c} or {@code \C} in the pattern, or null for neither
+     * @param hasUppercase an upper case letter outside any escape, which is
+     *        what {@code 'smartcase'} looks for; the S in {@code \S} does not count
+     */
+    record Result(String java, Boolean ignoreCase, boolean hasUppercase) {}
 
     // The four levels, in order of how much is special.
     private static final int VERY_NOMAGIC = 0;

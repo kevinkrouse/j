@@ -476,8 +476,8 @@ carries no non-JDK dependency) and `bb fmt-check`.
 - **Mutation-check every fix**: break it alone and watch only its own test
   fail. A test that passes before the fix is decoration. When running a single
   class outside `bb test`, rebuild first -- stale mutated classes have produced
-  false failures more than once -- and expect five `VimM13Test` cases to fail
-  for environmental reasons that `bb test` does not have.
+  false failures more than once -- and expect five `VimPagingAndFilesTest`
+  cases to fail for environmental reasons that `bb test` does not have.
 - **Fuzz a port of a vim scan against nvim.** M20 generated some 17,000
   short random documents from a small alphabet (`. ! ? ) " \n` for
   sentences, `{ } \f .SH .PP` for sections, brackets, quotes and

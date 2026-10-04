@@ -1,5 +1,5 @@
 /*
- * VimM21Test.java
+ * VimHlsearchTest.java
  *
  * Copyright (C) 2026 Kevin Krouse
  *
@@ -20,10 +20,10 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
 /**
- * M21: hlsearch, on by default as in nvim; :noh, and :set at the prompt.
+ * Hlsearch, on by default as in nvim; :noh, and :set at the prompt.
  * What nvim highlights was read with screenattr() after redraw!.
  */
-public class VimM21Test {
+public class VimHlsearchTest {
     private EditorHarness h;
 
     @AfterEach

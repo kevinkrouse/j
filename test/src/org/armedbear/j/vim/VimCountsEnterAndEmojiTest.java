@@ -1,5 +1,5 @@
 /*
- * VimM13LeftoversTest.java
+ * VimCountsEnterAndEmojiTest.java
  *
  * Copyright (C) 2026 Kevin Krouse
  *
@@ -19,9 +19,10 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
 /**
- * The items M13 filed for later, each expectation taken from nvim.
+ * Counted inserts and their repeats, Enter in insert mode, and emoji under
+ * f, t and r. Each expectation is nvim's.
  */
-public class VimM13LeftoversTest {
+public class VimCountsEnterAndEmojiTest {
     private EditorHarness h;
 
     @AfterEach

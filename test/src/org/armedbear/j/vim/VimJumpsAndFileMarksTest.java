@@ -1,5 +1,5 @@
 /*
- * VimM23Test.java
+ * VimJumpsAndFileMarksTest.java
  *
  * Copyright (C) 2026 Kevin Krouse
  *
@@ -24,10 +24,10 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
 /**
- * M23: CTRL-O and CTRL-I on j's jump list, and vim's file marks, A to Z,
+ * CTRL-O and CTRL-I on j's jump list, and vim's file marks, A to Z,
  * as j's bookmarks.
  */
-public class VimM23Test {
+public class VimJumpsAndFileMarksTest {
     private EditorHarness h;
     private EditorHarness other;
 

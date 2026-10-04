@@ -1114,7 +1114,7 @@ public final class VimInputHandler implements InputHandler {
      * A chord typed at the / prompt: what the c map binds it to, as CTRL-G.
      * Public for the prompt, which has the keyboard while a pattern is typed.
      *
-     * @param modifiers j's, as {@code Utilities.keyModifiers} gives them
+     * @param modifiers j's, as {@code Keys.keyModifiers} gives them
      * @return false when it is not bound, so it goes to the prompt
      */
     public boolean runCommandLineKey(

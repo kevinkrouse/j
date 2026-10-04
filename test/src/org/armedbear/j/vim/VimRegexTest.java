@@ -180,17 +180,17 @@ public class VimRegexTest {
     public void anEscapedCapitalIsNotAnUpperCaseLetter() {
         // 'smartcase' looks for an upper case letter; the S in \S is part of
         // an escape and vim does not count it. This counted it before.
-        assertFalse(VimRegex.translate("a\\Sb").hasUppercase);
-        assertFalse(VimRegex.translate("\\_S").hasUppercase);
-        assertTrue(VimRegex.translate("aBc").hasUppercase);
-        assertTrue(VimRegex.translate("[A-Z]").hasUppercase, "inside a class it counts");
+        assertFalse(VimRegex.translate("a\\Sb").hasUppercase());
+        assertFalse(VimRegex.translate("\\_S").hasUppercase());
+        assertTrue(VimRegex.translate("aBc").hasUppercase());
+        assertTrue(VimRegex.translate("[A-Z]").hasUppercase(), "inside a class it counts");
     }
 
     @Test
     public void caseFlagsInThePatternAreReported() {
-        assertEquals(Boolean.TRUE, VimRegex.translate("\\cfoo").ignoreCase);
-        assertEquals(Boolean.FALSE, VimRegex.translate("foo\\C").ignoreCase);
-        assertEquals(null, VimRegex.translate("foo").ignoreCase);
+        assertEquals(Boolean.TRUE, VimRegex.translate("\\cfoo").ignoreCase());
+        assertEquals(Boolean.FALSE, VimRegex.translate("foo\\C").ignoreCase());
+        assertEquals(null, VimRegex.translate("foo").ignoreCase());
     }
 
     // ------------------------------------------------------------- refusals

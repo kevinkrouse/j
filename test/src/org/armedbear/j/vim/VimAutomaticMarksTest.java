@@ -1,5 +1,5 @@
 /*
- * VimM16Test.java
+ * VimAutomaticMarksTest.java
  *
  * Copyright (C) 2026 Kevin Krouse
  *
@@ -18,10 +18,10 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
 /**
- * M16: the marks vim keeps for itself -- '. '[ '] '^ -- and the jump list.
+ * The marks vim keeps for itself -- '. '[ '] '^ -- and the jump list.
  * Every expectation is nvim's.
  */
-public class VimM16Test {
+public class VimAutomaticMarksTest {
     private EditorHarness h;
 
     @AfterEach

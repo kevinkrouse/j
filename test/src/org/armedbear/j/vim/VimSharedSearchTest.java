@@ -1,5 +1,5 @@
 /*
- * VimM22Test.java
+ * VimSharedSearchTest.java
  *
  * Copyright (C) 2026 Kevin Krouse
  *
@@ -19,10 +19,10 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
 /**
- * M22: one last search for vim edit mode and j's find, and highlighting
+ * One last search for vim edit mode and j's find, and highlighting
  * that is j's.
  */
-public class VimM22Test {
+public class VimSharedSearchTest {
     private EditorHarness h;
 
     @AfterEach

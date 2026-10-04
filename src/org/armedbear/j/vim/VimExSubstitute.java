@@ -321,7 +321,7 @@ final class VimExSubstitute {
     private static String replaceFirst(Matcher matcher, String replacement) {
         if (!matcher.find())
             return null;
-        final StringBuffer sb = new StringBuffer();
+        final StringBuilder sb = new StringBuilder();
         matcher.appendReplacement(sb, replacement);
         matcher.appendTail(sb);
         return sb.toString();
@@ -332,7 +332,7 @@ final class VimExSubstitute {
         String text,
         String replacement
     ) {
-        final StringBuffer sb = new StringBuffer();
+        final StringBuilder sb = new StringBuilder();
         boolean any = false;
         while (matcher.find()) {
             matcher.appendReplacement(sb, replacement);

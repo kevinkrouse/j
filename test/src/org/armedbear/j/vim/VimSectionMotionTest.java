@@ -1,5 +1,5 @@
 /*
- * VimM20Test.java
+ * VimSectionMotionTest.java
  *
  * Copyright (C) 2026 Kevin Krouse
  *
@@ -18,10 +18,10 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
 /**
- * M20: section, bracket and sentence motions, and { and } on the same scan
+ * Section, bracket and sentence motions, and { and } on the same scan
  * as sections. Every expectation is nvim's.
  */
-public class VimM20Test {
+public class VimSectionMotionTest {
     private EditorHarness h;
 
     @AfterEach

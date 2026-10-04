@@ -1,5 +1,5 @@
 /*
- * VimM25Test.java
+ * VimSharedRegistersTest.java
  *
  * Copyright (C) 2026 Kevin Krouse
  *
@@ -21,11 +21,11 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
 /**
- * M25: vim's registers are j's -- "a to "z its register files, the unnamed
+ * Vim's registers are j's -- "a to "z its register files, the unnamed
  * register and "1 to "9 its kill ring, "+ and "* the clipboard and the
  * primary selection.
  */
-public class VimM25Test {
+public class VimSharedRegistersTest {
     private EditorHarness h;
 
     @AfterEach
@@ -102,8 +102,8 @@ public class VimM25Test {
     @Test
     public void theNumberedRegistersAreTheKillRingNewestFirst() {
         vim("one\ntwo\nthree").keys("ddyy");
-        assertEquals("two\n", VimRegisters.getInstance().get('1').text);
-        assertEquals("one\n", VimRegisters.getInstance().get('2').text);
+        assertEquals("two\n", VimRegisters.getInstance().get('1').text());
+        assertEquals("one\n", VimRegisters.getInstance().get('2').text());
     }
 
     // ------------------------------------------------ clipboard, selection

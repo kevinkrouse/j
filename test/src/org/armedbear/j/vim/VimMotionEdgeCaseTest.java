@@ -1,5 +1,5 @@
 /*
- * VimM15Test.java
+ * VimMotionEdgeCaseTest.java
  *
  * Copyright (C) 2026 Kevin Krouse
  *
@@ -18,10 +18,10 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
 /**
- * M15: ge over line ends, the {@code :help d} rule, % past brackets in
+ * Ge over line ends, the {@code :help d} rule, % past brackets in
  * strings, and an arrow splitting an insert. Every expectation is nvim's.
  */
-public class VimM15Test {
+public class VimMotionEdgeCaseTest {
     private EditorHarness h;
 
     @AfterEach

@@ -35,7 +35,7 @@ public class VimRegisterTest {
 
     private static String reg(char name) {
         final VimRegisters.Register r = VimRegisters.getInstance().get(name);
-        return r == null ? null : r.text;
+        return r == null ? null : r.text();
     }
 
     // ------------------------------------------------------------ charwise

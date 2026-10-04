@@ -88,12 +88,12 @@
 #                           line's indent behind. nvim ('autoindent' on)
 #                           takes an indent nothing was typed after away
 #                           again, leaving an empty line, and so do we. Sx
-#                           keeps it: "  x". Unit tested in VimM13Test
+#                           keeps it: "  x". Unit tested in VimPagingAndFilesTest
 #   c_visual_block          CodeMirror copies what is typed on the first line
 #   c_visual_block_replay   of a block onto the others as it is typed, and
 #   s_visual_block          these check the lines before Escape. nvim copies
 #   A_visual_block          it at Escape, and so do we. Every end result
-#   I_visual_block          matches nvim: unit tested in VimM26Test
+#   I_visual_block          matches nvim: unit tested in VimVisualBlockTest
 #   ><visualblock           the corpus's shiftwidth is 2; vim's default is 8
 #   blockwise_paste         its second half puts characters over a block. The
 #                           corpus puts them once; nvim puts them on each of

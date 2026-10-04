@@ -1,5 +1,5 @@
 /*
- * VimM26Test.java
+ * VimVisualBlockTest.java
  *
  * Copyright (C) 2026 Kevin Krouse
  *
@@ -18,9 +18,9 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
 /**
- * M26: visual block mode, CTRL-V, on j's Block. Every expectation is nvim's.
+ * Visual block mode, CTRL-V, on j's Block. Every expectation is nvim's.
  */
-public class VimM26Test {
+public class VimVisualBlockTest {
     private EditorHarness h;
 
     @AfterEach
@@ -63,10 +63,10 @@ public class VimM26Test {
             run("abcd\nefgh\nijkl", 0, 1, "<C-v>jlX")
         );
         run("abcd\nefgh\nijkl", 0, 1, "<C-v>jlY");
-        assertEquals("bc\nfg", VimRegisters.getInstance().get('"').text);
+        assertEquals("bc\nfg", VimRegisters.getInstance().get('"').text());
         assertEquals(
             VimRegisters.Type.BLOCKWISE,
-            VimRegisters.getInstance().get('"').type
+            VimRegisters.getInstance().get('"').type()
         );
     }
 

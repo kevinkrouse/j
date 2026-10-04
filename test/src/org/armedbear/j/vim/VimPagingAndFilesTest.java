@@ -1,5 +1,5 @@
 /*
- * VimM13Test.java
+ * VimPagingAndFilesTest.java
  *
  * Copyright (C) 2026 Kevin Krouse
  *
@@ -29,7 +29,7 @@ import org.junit.jupiter.api.Test;
  * CTRL-F and CTRL-B, insert-mode CTRL-T and CTRL-D, :w and :wq, and CTRL-^.
  * Each is one of j's own commands underneath; the expectations are nvim's.
  */
-public class VimM13Test {
+public class VimPagingAndFilesTest {
     private EditorHarness h;
 
     @AfterEach

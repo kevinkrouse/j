@@ -1,5 +1,5 @@
 /*
- * VimM18Test.java
+ * VimIncrementTest.java
  *
  * Copyright (C) 2026 Kevin Krouse
  *
@@ -18,10 +18,10 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
 /**
- * M18: CTRL-A and CTRL-X, with nvim's default 'nrformats' of bin,hex. Every
+ * CTRL-A and CTRL-X, with nvim's default 'nrformats' of bin,hex. Every
  * expectation is nvim's.
  */
-public class VimM18Test {
+public class VimIncrementTest {
     private EditorHarness h;
 
     @AfterEach

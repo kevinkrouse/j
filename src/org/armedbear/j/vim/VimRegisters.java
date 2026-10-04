@@ -49,15 +49,7 @@ public final class VimRegisters {
         BLOCKWISE
     }
 
-    public static final class Register {
-        public final String text;
-        public final Type type;
-
-        Register(String text, Type type) {
-            this.text = text;
-            this.type = type;
-        }
-    }
+    public record Register(String text, Type type) {}
 
     /** The register a command uses when none is named. */
     public static final char UNNAMED = '"';

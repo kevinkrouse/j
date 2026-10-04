@@ -335,7 +335,7 @@ public final class VimSearch {
                 query.pattern,
                 VimExSubstitute.lastReplacement()
             );
-            search.setPattern(translated.java);
+            search.setPattern(translated.java());
             search.setIgnoreCase(
                 VimRegex.ignoreCase(
                     translated,
@@ -366,7 +366,8 @@ public final class VimSearch {
 
     /** A vim pattern in Java's syntax; see {@link VimRegex}. */
     static String toJavaRegex(String pattern) {
-        return VimRegex.translate(pattern, VimExSubstitute.lastReplacement()).java;
+        return VimRegex.translate(pattern, VimExSubstitute.lastReplacement())
+            .java();
     }
 
     /** What * and # decided to search for, and where it starts. */
