@@ -20,17 +20,17 @@
 
 package org.armedbear.j.mode.cpp;
 
-import java.lang.StringBuilder;
+import static org.armedbear.j.Constants.*;
+
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
-import org.armedbear.j.Constants;
 import org.armedbear.j.LocalTag;
 import org.armedbear.j.Position;
 import org.armedbear.j.SystemBuffer;
 import org.armedbear.j.mode.c.CTagger;
 
-public final class CppTagger extends CTagger implements Constants {
+public final class CppTagger extends CTagger {
     // States.
     private static final int NEUTRAL = 0;
     private static final int CLASS_NAME = 1;
@@ -45,10 +45,11 @@ public final class CppTagger extends CTagger implements Constants {
         super(buffer);
     }
 
+    @Override
     public void run() {
-        ArrayList<LocalTag> tags = new ArrayList<LocalTag>();
+        ArrayList<LocalTag> tags = new ArrayList<>();
         String className = null;
-        Deque<String> classNames = new ArrayDeque<String>();
+        Deque<String> classNames = new ArrayDeque<>();
         pos = new Position(buffer.getFirstLine(), 0);
         token = null;
         tokenStart = null;

@@ -20,8 +20,9 @@
 
 package org.armedbear.j.mode.cpp;
 
+import static org.armedbear.j.Constants.*;
+
 import org.armedbear.j.Buffer;
-import org.armedbear.j.Constants;
 import org.armedbear.j.Formatter;
 import org.armedbear.j.KeyMap;
 import org.armedbear.j.Keywords;
@@ -33,7 +34,7 @@ import org.armedbear.j.Tagger;
 import org.armedbear.j.mode.c.CFormatter;
 import org.armedbear.j.mode.c.CMode;
 
-public final class CppMode extends CMode implements Constants, Mode {
+public final class CppMode extends CMode implements Mode {
     private static final String[] cppConditionals =
         {
             "if",
@@ -60,35 +61,43 @@ public final class CppMode extends CMode implements Constants, Mode {
         return mode;
     }
 
+    @Override
     public final String getCommentStart() {
         return "// ";
     }
 
+    @Override
     public final String getCommentEnd() {
         return null;
     }
 
+    @Override
     public final Formatter getFormatter(Buffer buffer) {
         return new CFormatter(buffer, this);
     }
 
+    @Override
     protected void setKeyMapDefaults(KeyMap km) {
         super.setKeyMapDefaults(km);
         km.unmapKey(':'); // No electric ':'.
     }
 
+    @Override
     public Tagger getTagger(SystemBuffer buffer) {
         return new CppTagger(buffer);
     }
 
+    @Override
     public boolean hasQualifiedNames() {
         return true;
     }
 
+    @Override
     public boolean isQualifiedName(String s) {
         return s.indexOf("::") >= 0;
     }
 
+    @Override
     public int getCorrectIndentation(Line line, Buffer buffer) {
         String trim = line.trim();
         final char trimFirstChar = trim.length() > 0 ? trim.charAt(0) : 0;
@@ -116,6 +125,7 @@ public final class CppMode extends CMode implements Constants, Mode {
         return indent;
     }
 
+    @Override
     protected int indentClosingBrace(Line line, Buffer buffer) {
         Position pos = matchClosingBrace(new Position(line, 0));
         if (!pos.getLine().trim().startsWith("{"))

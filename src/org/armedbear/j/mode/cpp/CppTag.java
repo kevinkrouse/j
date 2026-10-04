@@ -20,6 +20,8 @@
 
 package org.armedbear.j.mode.cpp;
 
+import static org.armedbear.j.Constants.*;
+
 import org.armedbear.j.LocalTag;
 import org.armedbear.j.Position;
 
@@ -30,6 +32,7 @@ public final class CppTag extends LocalTag {
             canonicalSignature = pos.getLine().trim();
     }
 
+    @Override
     public String getMethodName() {
         int index = name.indexOf("::");
         if (index >= 0)
@@ -38,6 +41,7 @@ public final class CppTag extends LocalTag {
             return name;
     }
 
+    @Override
     public String getLongName() {
         if (name.startsWith("class "))
             return name;
