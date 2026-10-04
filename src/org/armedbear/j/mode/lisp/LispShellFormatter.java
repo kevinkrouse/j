@@ -20,6 +20,8 @@
 
 package org.armedbear.j.mode.lisp;
 
+import static org.armedbear.j.Constants.*;
+
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.armedbear.j.Annotation;
@@ -44,6 +46,7 @@ public final class LispShellFormatter extends Formatter {
         this.buffer = buffer;
     }
 
+    @Override
     public LineSegmentList formatLine(Line line) {
         clearSegmentList();
         if (line == null) {
@@ -117,6 +120,7 @@ public final class LispShellFormatter extends Formatter {
         return 0;
     }
 
+    @Override
     public FormatTable getFormatTable() {
         if (formatTable == null) {
             formatTable = new FormatTable("LispShellMode");

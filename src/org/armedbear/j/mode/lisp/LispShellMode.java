@@ -20,16 +20,16 @@
 
 package org.armedbear.j.mode.lisp;
 
+import static org.armedbear.j.Constants.*;
+
 import java.awt.AWTEvent;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseEvent;
-import java.lang.StringBuilder;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import javax.swing.undo.CompoundEdit;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.ClipboardCommands;
-import org.armedbear.j.Constants;
 import org.armedbear.j.Debug;
 import org.armedbear.j.Display;
 import org.armedbear.j.Editor;
@@ -46,7 +46,7 @@ import org.armedbear.j.SystemBuffer;
 import org.armedbear.j.SystemSelection;
 import org.armedbear.j.Tagger;
 
-public final class LispShellMode extends LispMode implements Constants, Mode {
+public final class LispShellMode extends LispMode implements Mode {
     private static final LispShellMode mode = new LispShellMode();
 
     protected LispShellMode() {
@@ -62,10 +62,12 @@ public final class LispShellMode extends LispMode implements Constants, Mode {
         return mode;
     }
 
+    @Override
     public Formatter getFormatter(Buffer buffer) {
         return new LispShellFormatter(buffer);
     }
 
+    @Override
     protected void setKeyMapDefaults(KeyMap km) {
         km.mapKey(KeyEvent.VK_HOME, 0, "shellHome");
         km.mapKey(KeyEvent.VK_BACK_SPACE, 0, "shellBackspace");
@@ -89,6 +91,7 @@ public final class LispShellMode extends LispMode implements Constants, Mode {
         km.mapKey(VK_MOUSE_2, 0, "mouseCopyToInput");
     }
 
+    @Override
     public void populateModeMenu(Editor editor, Menu menu) {
         menu.add(editor, "Reset Lisp", 'L', "resetLisp", true);
         menu.addSeparator();
@@ -98,14 +101,17 @@ public final class LispShellMode extends LispMode implements Constants, Mode {
         menu.add(editor, "Goto Next Prompt", 'T', "shellNextPrompt", true);
     }
 
+    @Override
     public boolean isTaggable() {
         return false;
     }
 
+    @Override
     public Tagger getTagger(SystemBuffer buffer) {
         return null;
     }
 
+    @Override
     public boolean acceptsLinePaste(Editor editor) {
         // XXX: Why is this block needed?
         /*
@@ -125,8 +131,8 @@ public final class LispShellMode extends LispMode implements Constants, Mode {
             Debug.bug();
             return;
         }
-        if (buffer instanceof LispShellBuffer)
-            ((LispShellBuffer) buffer).enter();
+        if (buffer instanceof LispShellBuffer lispShellBuffer)
+            lispShellBuffer.enter();
         else
             Debug.bug();
     }
@@ -138,8 +144,8 @@ public final class LispShellMode extends LispMode implements Constants, Mode {
             Debug.bug();
             return;
         }
-        if (buffer instanceof LispShellBuffer)
-            ((LispShellBuffer) buffer).electricCloseParen();
+        if (buffer instanceof LispShellBuffer lispShellBuffer)
+            lispShellBuffer.electricCloseParen();
         else
             Debug.bug();
     }
@@ -151,8 +157,8 @@ public final class LispShellMode extends LispMode implements Constants, Mode {
             Debug.bug();
             return;
         }
-        if (buffer instanceof LispShellBuffer)
-            ((LispShellBuffer) buffer).resetLisp();
+        if (buffer instanceof LispShellBuffer lispShellBuffer)
+            lispShellBuffer.resetLisp();
         else
             Debug.bug();
     }
@@ -168,11 +174,10 @@ public final class LispShellMode extends LispMode implements Constants, Mode {
             Debug.bug();
             return;
         }
-        if (!(buffer instanceof LispShellBuffer)) {
+        if (!(buffer instanceof LispShellBuffer lisp)) {
             Debug.bug();
             return;
         }
-        LispShellBuffer lisp = (LispShellBuffer) buffer;
         if (s == null) {
             if (editor.getDot() == null)
                 return;
@@ -261,14 +266,13 @@ public final class LispShellMode extends LispMode implements Constants, Mode {
     public static void mouseCopyToInput() {
         final Editor editor = Editor.currentEditor();
         final Buffer buffer = editor.getBuffer();
-        if (!(buffer instanceof LispShellBuffer)) {
+        if (!(buffer instanceof LispShellBuffer lisp)) {
             Debug.bug();
             return;
         }
         final Display display = editor.getDisplay();
         final AWTEvent e = editor.getDispatcher().getLastEvent();
-        if (e instanceof MouseEvent) {
-            MouseEvent mouseEvent = (MouseEvent) e;
+        if (e instanceof MouseEvent mouseEvent) {
             Position pos = display.positionFromPoint(mouseEvent.getPoint());
             if (pos != null) {
                 Line endLine = buffer.getEnd().getLine();
@@ -277,7 +281,6 @@ public final class LispShellMode extends LispMode implements Constants, Mode {
                 } else {
                     int offset = pos.getOffset();
                     String s = pos.getLine().getText();
-                    final LispShellBuffer lisp = (LispShellBuffer) buffer;
                     Pattern promptRE = lisp.getPromptRE();
                     if (promptRE != null) {
                         Matcher matcher = promptRE.matcher(s);

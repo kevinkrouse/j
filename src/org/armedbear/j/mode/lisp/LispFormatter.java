@@ -20,6 +20,8 @@
 
 package org.armedbear.j.mode.lisp;
 
+import static org.armedbear.j.Constants.*;
+
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.armedbear.j.Buffer;
@@ -461,6 +463,7 @@ public final class LispFormatter extends Formatter {
         endToken(text, i, state);
     }
 
+    @Override
     public LineSegmentList formatLine(Line line) {
         if (line == null) {
             clearSegmentList();
@@ -471,6 +474,7 @@ public final class LispFormatter extends Formatter {
         return segmentList;
     }
 
+    @Override
     public boolean parseBuffer() {
         int state = STATE_NEUTRAL;
         boolean changed = false;
@@ -741,6 +745,7 @@ public final class LispFormatter extends Formatter {
             ;
     }
 
+    @Override
     public FormatTable getFormatTable() {
         if (formatTable == null) {
             formatTable = new FormatTable("LispMode");

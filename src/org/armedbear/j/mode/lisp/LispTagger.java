@@ -20,7 +20,8 @@
 
 package org.armedbear.j.mode.lisp;
 
-import java.lang.StringBuilder;
+import static org.armedbear.j.Constants.*;
+
 import java.util.ArrayList;
 import org.armedbear.j.Debug;
 import org.armedbear.j.Line;
@@ -44,8 +45,9 @@ public final class LispTagger extends Tagger {
         super(buffer);
     }
 
+    @Override
     public synchronized void run() {
-        tags = new ArrayList<LocalTag>();
+        tags = new ArrayList<>();
         Position pos = new Position(buffer.getFirstLine(), 0);
         int state = NEUTRAL;
         String definer = null;

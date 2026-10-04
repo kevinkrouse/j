@@ -20,15 +20,15 @@
 
 package org.armedbear.j.mode.lisp;
 
+import static org.armedbear.j.Constants.*;
+
 import java.awt.event.KeyEvent;
-import java.lang.StringBuilder;
 import java.util.HashMap;
 import java.util.StringTokenizer;
 import org.armedbear.j.AbstractMode;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.CaretCommands;
 import org.armedbear.j.ConfirmDialog;
-import org.armedbear.j.Constants;
 import org.armedbear.j.Debug;
 import org.armedbear.j.Editor;
 import org.armedbear.j.File;
@@ -51,7 +51,7 @@ import org.armedbear.j.extension.Extensions;
 import org.armedbear.j.mode.web.WebBuffer;
 import org.armedbear.j.util.Utilities;
 
-public class LispMode extends AbstractMode implements Constants, Mode {
+public class LispMode extends AbstractMode implements Mode {
     private static final LispMode mode = new LispMode();
 
     private LispMode() {
@@ -69,18 +69,22 @@ public class LispMode extends AbstractMode implements Constants, Mode {
         return mode;
     }
 
+    @Override
     public String getCommentStart() {
         return ";; ";
     }
 
+    @Override
     public final SyntaxIterator getSyntaxIterator(Position pos) {
         return new LispSyntaxIterator(pos);
     }
 
+    @Override
     public Formatter getFormatter(Buffer buffer) {
         return new LispFormatter(buffer);
     }
 
+    @Override
     protected void setKeyMapDefaults(KeyMap km) {
         km.mapKey(KeyEvent.VK_TAB, 0, "tab");
         km.mapKey(KeyEvent.VK_TAB, CTRL_MASK, "insertTab");
@@ -108,6 +112,7 @@ public class LispMode extends AbstractMode implements Constants, Mode {
         km.mapKey(KeyEvent.VK_SPACE, CTRL_MASK | SHIFT_MASK, "justOneSpace");
     }
 
+    @Override
     public void populateModeMenu(Editor editor, Menu menu) {
         boolean enabled = LispShellBuffer.findLisp(null) != null;
         if (isSlimeLoaded()) {
@@ -131,10 +136,12 @@ public class LispMode extends AbstractMode implements Constants, Mode {
         return Extensions.session().hasFeature("slime");
     }
 
+    @Override
     public boolean isTaggable() {
         return true;
     }
 
+    @Override
     public Tagger getTagger(SystemBuffer buffer) {
         return new LispTagger(buffer);
     }
@@ -142,16 +149,19 @@ public class LispMode extends AbstractMode implements Constants, Mode {
     private static final String validChars =
         "!$%&*+-./0123456789<=>?ABCDEFGHIJKLMNOPQRSTUVWXYZ[]^_abcdefghijklmnopqrstuvwxyz{}~";
 
+    @Override
     public final boolean isIdentifierStart(char c) {
         return validChars.indexOf(c) >= 0;
     }
 
+    @Override
     public final boolean isIdentifierPart(char c) {
         return validChars.indexOf(c) >= 0;
     }
 
     // This needs to pick out a keyword (":FOO"), but should ignore embedded
     // colons ("FOO:BAR").
+    @Override
     public String getIdentifier(Line line, int offset) {
         final int limit = line.length();
         if (offset < limit) {
@@ -229,6 +239,7 @@ public class LispMode extends AbstractMode implements Constants, Mode {
         return null;
     }
 
+    @Override
     public boolean isDelimited(Position pos, int length) {
         final Line line = pos.getLine();
         final int offset = pos.getOffset();
@@ -266,7 +277,7 @@ public class LispMode extends AbstractMode implements Constants, Mode {
         return true;
     }
 
-    private static final HashMap<String, String> definers = new HashMap<String, String>();
+    private static final HashMap<String, String> definers = new HashMap<>();
 
     static {
         String[] strings = new String[] {
@@ -294,6 +305,7 @@ public class LispMode extends AbstractMode implements Constants, Mode {
         return null;
     }
 
+    @Override
     public boolean isInQuote(Buffer buffer, Position pos) {
         final Line line = pos.getLine();
         final int offset = pos.getOffset();
@@ -313,6 +325,7 @@ public class LispMode extends AbstractMode implements Constants, Mode {
         return inQuote;
     }
 
+    @Override
     public boolean isInComment(Buffer buffer, Position pos) {
         if (buffer.needsParsing()) {
             if (buffer.getFormatter().parseBuffer())
@@ -346,6 +359,7 @@ public class LispMode extends AbstractMode implements Constants, Mode {
         return state == STATE_COMMENT;
     }
 
+    @Override
     public boolean canIndent() {
         return true;
     }
@@ -374,6 +388,7 @@ public class LispMode extends AbstractMode implements Constants, Mode {
         return -1;
     }
 
+    @Override
     public int getCorrectIndentation(Line line, Buffer buffer) {
         final Line model = findModel(line);
         if (model == null)
@@ -960,8 +975,7 @@ public class LispMode extends AbstractMode implements Constants, Mode {
         Editor ed = editor.getOtherEditor();
         if (ed != null) {
             Buffer b = ed.getBuffer();
-            if (b instanceof LispShellBuffer) {
-                LispShellBuffer shell = (LispShellBuffer) b;
+            if (b instanceof LispShellBuffer shell) {
                 Debug.bugIfNot(shell.isLisp());
                 return ed;
             }
@@ -1258,7 +1272,7 @@ public class LispMode extends AbstractMode implements Constants, Mode {
             buf.load();
             if (!buf.isLoaded())
                 return;
-            map = new HashMap<String, String>();
+            map = new HashMap<>();
             Line line = buf.getFirstLine();
             while (true) {
                 String key = line.trim().toLowerCase();
@@ -1285,15 +1299,15 @@ public class LispMode extends AbstractMode implements Constants, Mode {
         File file = File.getInstance(dataDir, filename);
         WebBuffer buf = null;
         // Look for existing buffer.
-        if (buffer instanceof WebBuffer) {
+        if (buffer instanceof WebBuffer webBuffer) {
             if (buffer.getFile().canonicalPath().startsWith(rootPath))
-                buf = (WebBuffer) buffer;
+                buf = webBuffer;
         }
         if (buf == null) {
             for (Buffer b : Editor.getBufferList()) {
-                if (b instanceof WebBuffer) {
+                if (b instanceof WebBuffer webBuffer) {
                     if (b.getFile().canonicalPath().startsWith(rootPath)) {
-                        buf = (WebBuffer) b;
+                        buf = webBuffer;
                         break;
                     }
                 }

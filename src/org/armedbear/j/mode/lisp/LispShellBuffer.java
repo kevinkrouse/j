@@ -19,9 +19,10 @@
 
 package org.armedbear.j.mode.lisp;
 
+import static org.armedbear.j.Constants.*;
+
 import java.io.IOException;
 import java.io.OutputStreamWriter;
-import java.lang.StringBuilder;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.regex.Matcher;
@@ -100,6 +101,7 @@ public class LispShellBuffer extends ShellBuffer {
         slime = title.startsWith("slime ");
     }
 
+    @Override
     public final boolean isLisp() {
         return true;
     }
@@ -206,6 +208,7 @@ public class LispShellBuffer extends ShellBuffer {
         return lisp;
     }
 
+    @Override
     protected void startProcess() {
         if (shellCommand == null) {
             Debug.bug();
@@ -266,10 +269,12 @@ public class LispShellBuffer extends ShellBuffer {
         }
     }
 
+    @Override
     protected void initializeHistory() {
         history = new History("lisp.history", 30);
     }
 
+    @Override
     public void enter() {
         if (!checkProcess())
             return;
@@ -428,6 +433,7 @@ public class LispShellBuffer extends ShellBuffer {
         sendInputToLisp(command);
     }
 
+    @Override
     protected void stdOutUpdate(final String s) {
         String prompt;
         int index = s.lastIndexOf('\n');
@@ -477,6 +483,7 @@ public class LispShellBuffer extends ShellBuffer {
         SwingUtilities.invokeLater(r);
     }
 
+    @Override
     protected void stdErrUpdate(final String s) {
         Runnable r = () -> {
             appendString(s);
@@ -488,6 +495,7 @@ public class LispShellBuffer extends ShellBuffer {
         SwingUtilities.invokeLater(r);
     }
 
+    @Override
     protected void appendString(String s) {
         try {
             lockWrite();
@@ -601,12 +609,14 @@ public class LispShellBuffer extends ShellBuffer {
         }
     }
 
+    @Override
     public void dispose() {
         if (!checkProcess()) {
             Log.debug("checkProcess returned false");
             return;
         }
         Thread t = new Thread("LispShellBuffer dispose") {
+            @Override
             public void run() {
                 try {
                     stdin.write(3);
@@ -636,18 +646,22 @@ public class LispShellBuffer extends ShellBuffer {
         t.start();
     }
 
+    @Override
     public File getCurrentDirectory() {
         return currentDirectory;
     }
 
+    @Override
     public File getCompletionDirectory() {
         return currentDirectory;
     }
 
+    @Override
     public String getFileNameForDisplay() {
         return title;
     }
 
+    @Override
     public String toString() {
         return title;
     }
@@ -848,8 +862,7 @@ public class LispShellBuffer extends ShellBuffer {
 
     public static LispShellBuffer findLisp(String title) {
         for (Buffer b : Editor.getBufferList()) {
-            if (b instanceof LispShellBuffer) {
-                LispShellBuffer shell = (LispShellBuffer) b;
+            if (b instanceof LispShellBuffer shell) {
                 Debug.bugIfNot(shell.isLisp());
                 if (title == null || title.equals(shell.getTitle()))
                     return shell;

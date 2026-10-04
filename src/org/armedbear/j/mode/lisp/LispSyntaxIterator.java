@@ -20,21 +20,22 @@
 
 package org.armedbear.j.mode.lisp;
 
-import org.armedbear.j.Constants;
+import static org.armedbear.j.Constants.*;
+
 import org.armedbear.j.DefaultSyntaxIterator;
 import org.armedbear.j.Line;
 import org.armedbear.j.Position;
 
 // Supports movement through the syntactically important text of a buffer,
 // i.e. skipping whitespace and comments.
-public final class LispSyntaxIterator extends DefaultSyntaxIterator
-    implements Constants {
+public final class LispSyntaxIterator extends DefaultSyntaxIterator {
     public LispSyntaxIterator(Position pos) {
         super(pos);
     }
 
     // Caller must make sure parseBuffer() has been called so flags will be
     // correct.
+    @Override
     public char[] hideSyntacticWhitespace(Line line) {
         if (line.flags() == STATE_QUOTE)
             return hideSyntacticWhitespace(line.getText(), STATE_QUOTE);
@@ -42,6 +43,7 @@ public final class LispSyntaxIterator extends DefaultSyntaxIterator
             return hideSyntacticWhitespace(line.getText(), STATE_NEUTRAL);
     }
 
+    @Override
     public char[] hideSyntacticWhitespace(String s) {
         return hideSyntacticWhitespace(s, STATE_NEUTRAL);
     }

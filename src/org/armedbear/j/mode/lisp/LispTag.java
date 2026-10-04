@@ -20,7 +20,6 @@
 
 package org.armedbear.j.mode.lisp;
 
-import java.lang.StringBuilder;
 import org.armedbear.j.LocalTag;
 import org.armedbear.j.Position;
 
@@ -33,6 +32,7 @@ public final class LispTag extends LocalTag {
         super(name, pos, type);
     }
 
+    @Override
     public String getLongName() {
         String s = signature.trim();
 
