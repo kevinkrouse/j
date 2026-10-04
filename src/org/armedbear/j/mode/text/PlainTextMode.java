@@ -20,33 +20,31 @@
 
 package org.armedbear.j.mode.text;
 
+import java.awt.event.KeyEvent;
 import org.armedbear.j.AbstractMode;
 import org.armedbear.j.Constants;
 import org.armedbear.j.KeyMap;
 import org.armedbear.j.Mode;
 import org.armedbear.j.Property;
 
-import java.awt.event.KeyEvent;
-
-public final class PlainTextMode extends AbstractMode implements Constants, Mode
-{
+public final class PlainTextMode extends AbstractMode implements Constants, Mode {
     private static final PlainTextMode mode = new PlainTextMode();
 
-    private PlainTextMode()
-    {
+    private PlainTextMode() {
         super(PLAIN_TEXT_MODE, PLAIN_TEXT_MODE_NAME);
         setProperty(Property.HIGHLIGHT_MATCHING_BRACKET, false);
         setProperty(Property.HIGHLIGHT_BRACKETS, false);
     }
 
-    public static final PlainTextMode getMode()
-    {
+    public static final PlainTextMode getMode() {
         return mode;
     }
 
-    protected void setKeyMapDefaults(KeyMap km)
-    {
-        km.mapKey(KeyEvent.VK_F12, CTRL_MASK | SHIFT_MASK,
-                  "wrapParagraphsInRegion");
+    protected void setKeyMapDefaults(KeyMap km) {
+        km.mapKey(
+            KeyEvent.VK_F12,
+            CTRL_MASK | SHIFT_MASK,
+            "wrapParagraphsInRegion"
+        );
     }
 }

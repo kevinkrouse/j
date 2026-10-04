@@ -26,24 +26,20 @@ import org.armedbear.j.Formatter;
 import org.armedbear.j.Line;
 import org.armedbear.j.LineSegmentList;
 
-public final class PlainTextFormatter extends Formatter
-{
+public final class PlainTextFormatter extends Formatter {
     private static final byte FORMAT_TEXT = 0;
 
-    public PlainTextFormatter(Buffer buffer)
-    {
+    public PlainTextFormatter(Buffer buffer) {
         this.buffer = buffer;
     }
 
-    public LineSegmentList formatLine(Line line)
-    {
+    public LineSegmentList formatLine(Line line) {
         clearSegmentList();
         addSegment(getDetabbedText(line), FORMAT_TEXT);
         return segmentList;
     }
 
-    public FormatTable getFormatTable()
-    {
+    public FormatTable getFormatTable() {
         if (formatTable == null) {
             formatTable = new FormatTable(null);
             formatTable.addEntryFromPrefs(FORMAT_TEXT, "text");
