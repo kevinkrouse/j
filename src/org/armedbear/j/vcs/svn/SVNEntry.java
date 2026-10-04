@@ -22,7 +22,6 @@ package org.armedbear.j.vcs.svn;
 
 import java.io.IOException;
 import java.io.StringReader;
-import java.lang.StringBuilder;
 import java.util.LinkedList;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Constants;
@@ -49,14 +48,17 @@ public final class SVNEntry extends VersionControlEntry {
         this.changelist = changelist;
     }
 
+    @Override
     public int getVersionControl() {
         return Constants.VC_SVN;
     }
 
+    @Override
     public String getStatusText() {
         return statusText(true);
     }
 
+    @Override
     public String getLongStatusText() {
         return statusText(false);
     }
@@ -122,7 +124,7 @@ public final class SVNEntry extends VersionControlEntry {
     }
 
     private static class Handler extends DefaultHandler {
-        private LinkedList<String> stack = new LinkedList<String>();
+        private LinkedList<String> stack = new LinkedList<>();
 
         public String changelist = null;
         public String revision = null;
@@ -130,6 +132,7 @@ public final class SVNEntry extends VersionControlEntry {
         public String author = null;
         public String status = null;
 
+        @Override
         public void startElement(String uri, String localName, String qName, Attributes attributes)
             throws SAXException {
             stack.addFirst(localName);
@@ -151,6 +154,7 @@ public final class SVNEntry extends VersionControlEntry {
                 date = new String(ch, start, length);
         }
 
+        @Override
         public void endElement(String uri, String localName, String qName) throws SAXException {
             stack.removeFirst();
             // since we only expect a single <entry>, we'll just ignore end elements

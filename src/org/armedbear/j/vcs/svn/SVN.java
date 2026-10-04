@@ -20,7 +20,8 @@
 
 package org.armedbear.j.vcs.svn;
 
-import java.lang.StringBuilder;
+import static org.armedbear.j.Constants.*;
+
 import java.util.Collections;
 import java.util.List;
 import java.util.regex.Matcher;
@@ -29,7 +30,6 @@ import java.util.regex.PatternSyntaxException;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.BufferCommands;
 import org.armedbear.j.ConfirmDialog;
-import org.armedbear.j.Constants;
 import org.armedbear.j.Debug;
 import org.armedbear.j.Editor;
 import org.armedbear.j.File;
@@ -50,7 +50,7 @@ import org.armedbear.j.vcs.StatusOutputBuffer;
 import org.armedbear.j.vcs.VersionControl;
 import org.armedbear.j.vcs.VersionControlBuffer;
 
-public class SVN extends VersionControl implements Constants {
+public class SVN extends VersionControl {
     public static void svn() {
         if (!checkSVNInstalled())
             return;
@@ -200,8 +200,8 @@ public class SVN extends VersionControl implements Constants {
         final File directory = buffer.getCurrentDirectory();
         // Kill existing diff output buffer if any for same directory.
         for (Buffer b : Editor.getBufferList()) {
-            if (b instanceof DiffOutputBuffer) {
-                if (directory.equals(((DiffOutputBuffer) b).getDirectory())) {
+            if (b instanceof DiffOutputBuffer diffOutputBuffer) {
+                if (directory.equals(diffOutputBuffer.getDirectory())) {
                     b.kill();
                     break; // There should be one at most.
                 }
@@ -271,8 +271,8 @@ public class SVN extends VersionControl implements Constants {
         editor.setWaitCursor();
         // Kill existing status output buffer if any for same directory.
         for (Buffer b : Editor.getBufferList()) {
-            if (b instanceof VersionControlBuffer) {
-                if (directory.equals(((VersionControlBuffer) b).getDirectory())) {
+            if (b instanceof VersionControlBuffer versionControlBuffer) {
+                if (directory.equals(versionControlBuffer.getDirectory())) {
                     b.kill();
                     break; // There should be one at most.
                 }
@@ -360,9 +360,9 @@ public class SVN extends VersionControl implements Constants {
             // Look for existing checkin buffer before making a new one.
             SVNCheckinBuffer checkinBuffer = null;
             for (Buffer buf : Editor.getBufferList()) {
-                if (buf instanceof SVNCheckinBuffer) {
+                if (buf instanceof SVNCheckinBuffer svnCheckinBuffer) {
                     if (buf.getParentBuffer() == parentBuffer) {
-                        checkinBuffer = (SVNCheckinBuffer) buf;
+                        checkinBuffer = svnCheckinBuffer;
                         break;
                     }
                 }

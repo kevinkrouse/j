@@ -11,8 +11,9 @@
 
 package org.armedbear.j.vcs.svn;
 
+import static org.armedbear.j.Constants.*;
+
 import org.armedbear.j.Buffer;
-import org.armedbear.j.Constants;
 import org.armedbear.j.Editor;
 import org.armedbear.j.File;
 import org.armedbear.j.mode.checkin.CheckinBuffer;
@@ -21,28 +22,34 @@ import org.armedbear.j.mode.diff.DiffOutputBuffer;
 import org.armedbear.j.vcs.VcsBackend;
 import org.armedbear.j.vcs.VersionControlEntry;
 
-public final class SvnBackend implements VcsBackend, Constants {
+public final class SvnBackend implements VcsBackend {
+    @Override
     public int id() {
         return VC_SVN;
     }
 
+    @Override
     public String name() {
         return "svn";
     }
 
+    @Override
     public boolean isRoot(File dir) {
         File svn = File.getInstance(dir, ".svn");
         return svn != null && svn.isDirectory();
     }
 
+    @Override
     public VersionControlEntry getEntry(Buffer buffer) {
         return SVNEntry.getEntry(buffer);
     }
 
+    @Override
     public void finish(Editor editor, CheckinBuffer buffer) {
         SVN.finish(editor, buffer);
     }
 
+    @Override
     public boolean gotoDiffSource(Editor editor, DiffOutputBuffer buffer) {
         DiffMode.gotoUnifiedDiffSource(
             editor,
