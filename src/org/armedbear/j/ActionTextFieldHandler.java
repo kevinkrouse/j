@@ -38,14 +38,9 @@ public final class ActionTextFieldHandler extends FinderTextFieldHandler {
     public ActionTextFieldHandler(Editor editor, HistoryTextField textField) {
         super(editor, textField);
         Map<String, FinderItem> byName = new HashMap<>();
-        List<Command> commands = CommandTable.getCommands();
-        commands.sort(Comparator.comparing(c -> c.getName().toLowerCase(Locale.ROOT)));
-        List<FinderItem> all = new ArrayList<>(commands.size());
-        for (Command command : commands) {
-            FinderItem item = new ActionItem(editor, command);
-            all.add(item);
-            byName.put(command.getName().toLowerCase(Locale.ROOT), item);
-        }
+        List<FinderItem> all = commandItems(editor);
+        for (FinderItem item : all)
+            byName.put(item.insertText().toLowerCase(Locale.ROOT), item);
         candidates = List.copyOf(all);
         // Recently run commands first, then the rest.
         Set<FinderItem> empty = new LinkedHashSet<>();
@@ -60,9 +55,19 @@ public final class ActionTextFieldHandler extends FinderTextFieldHandler {
         emptyQueryItems = List.copyOf(empty);
     }
 
-    public void start() {
-        if (isActive())
-            refilter();
+    @Override
+    protected String command() {
+        return "findAction";
+    }
+
+    /** Every command, by name, as items whose insertText() is the name. */
+    public static List<FinderItem> commandItems(Editor editor) {
+        List<Command> commands = CommandTable.getCommands();
+        commands.sort(Comparator.comparing(c -> c.getName().toLowerCase(Locale.ROOT)));
+        List<FinderItem> items = new ArrayList<>(commands.size());
+        for (Command command : commands)
+            items.add(new ActionItem(editor, command));
+        return items;
     }
 
     @Override
@@ -211,6 +216,11 @@ public final class ActionTextFieldHandler extends FinderTextFieldHandler {
         @Override
         public String keyText() {
             return keyText;
+        }
+
+        @Override
+        public String insertText() {
+            return command.getName();
         }
 
         @Override

@@ -50,6 +50,11 @@ public interface FinderItem {
         return null;
     }
 
+    /** What a prompt fills in for this item, as a command's name. */
+    default String insertText() {
+        return label();
+    }
+
     /** Added to the match score, to rank this item ahead of others. */
     default int boost() {
         return 0;

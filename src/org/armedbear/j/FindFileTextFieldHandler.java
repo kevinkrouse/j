@@ -53,7 +53,13 @@ public class FindFileTextFieldHandler extends FinderTextFieldHandler {
         listener = pf -> SwingUtilities.invokeLater(this::projectFilesChanged);
     }
 
+    @Override
+    protected String command() {
+        return "findFileInProject";
+    }
+
     /** Lists the candidates and starts a rescan if the project's list is stale. */
+    @Override
     public void start() {
         if (!isActive())
             return;
@@ -210,7 +216,7 @@ public class FindFileTextFieldHandler extends FinderTextFieldHandler {
     }
 
     // Root-relative with '/' under the root; otherwise the full path, home as "~".
-    private static String display(String path, String rootPath) {
+    static String display(String path, String rootPath) {
         if (rootPath != null && isUnder(path, rootPath))
             return ProjectFiles.relative(Path.of(rootPath), Path.of(path));
         String home = Utilities.getUserHome();
@@ -227,6 +233,13 @@ public class FindFileTextFieldHandler extends FinderTextFieldHandler {
         private final int base;
         private final Buffer buffer;
         private final int boost;
+        private int line; // To open at, one-based; 0 for where the buffer was.
+
+        /** This item, opening at line, one-based. */
+        FileItem atLine(int line) {
+            this.line = line;
+            return this;
+        }
 
         FileItem(String path, String text, Buffer buffer, int boost) {
             this(null, path, text, buffer, boost);
@@ -289,7 +302,7 @@ public class FindFileTextFieldHandler extends FinderTextFieldHandler {
 
         @Override
         public void accept(Editor editor, boolean otherWindow) {
-            open(editor, otherWindow, 0);
+            open(editor, otherWindow, line);
         }
 
         void open(Editor editor, boolean otherWindow, int line) {

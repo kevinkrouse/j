@@ -51,6 +51,11 @@ public final class LocationBar extends JPanel implements ActionListener, MouseLi
         "Pattern:",
         "Find file:",
         "Action:",
+        "Recent file:",
+        "Buffer:",
+        "Help:",
+        "Register:",
+        "Bookmark:",
     };
 
     public static final int PROMPT_LOCATION = 0;
@@ -59,6 +64,11 @@ public final class LocationBar extends JPanel implements ActionListener, MouseLi
     public static final int PROMPT_PATTERN = 3;
     public static final int PROMPT_FIND_FILE = 4;
     public static final int PROMPT_ACTION = 5;
+    public static final int PROMPT_RECENT = 6;
+    public static final int PROMPT_BUFFER = 7;
+    public static final int PROMPT_HELP = 8;
+    public static final int PROMPT_REGISTER = 9;
+    public static final int PROMPT_BOOKMARK = 10;
 
     public LocationBar(final Editor editor) {
         this.editor = editor;

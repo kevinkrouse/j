@@ -51,17 +51,47 @@ public abstract class FinderTextFieldHandler extends DefaultTextFieldHandler {
     private final DocumentListener documentListener = new DocumentListener() {
         @Override
         public void insertUpdate(DocumentEvent e) {
-            debounce.restart();
+            edited();
         }
 
         @Override
         public void removeUpdate(DocumentEvent e) {
-            debounce.restart();
+            edited();
         }
 
         @Override
         public void changedUpdate(DocumentEvent e) {}
     };
+    // Up and Down are stepping through the history, until the text is edited.
+    private boolean browsingHistory;
+    private boolean recalling;
+
+    private void edited() {
+        if (!recalling)
+            browsingHistory = false;
+        debounce.restart();
+    }
+
+    // Up, Down, Ctrl P and Ctrl N step through the history while there's no
+    // list, and go on doing so once they have begun.
+    private boolean history(KeyEvent e, boolean previous) {
+        if (popup.isShowing() && !browsingHistory)
+            return false;
+        e.consume();
+        browsingHistory = true;
+        recalling = true;
+        try {
+            if (previous)
+                textField.previousHistory();
+            else
+                textField.nextHistory();
+        }
+        finally {
+            recalling = false;
+        }
+        return true;
+    }
+
     // The text the popup's rows were ranked for.
     private String shownText;
 
@@ -78,6 +108,17 @@ public abstract class FinderTextFieldHandler extends DefaultTextFieldHandler {
         debounce = new Timer(DEBOUNCE_MILLIS, e -> refilter());
         debounce.setRepeats(false);
         textField.getDocument().addDocumentListener(documentListener);
+    }
+
+    /** Lists the candidates, once the field has the focus. */
+    public void start() {
+        if (isActive())
+            refilter();
+    }
+
+    /** The command that opens this finder, which its key switches to; null for none. */
+    protected String command() {
+        return null;
     }
 
     /** Every candidate, in the order an empty query lists them. Called on the event dispatch thread. */
@@ -305,30 +346,38 @@ public abstract class FinderTextFieldHandler extends DefaultTextFieldHandler {
             case KeyEvent.VK_UP:
             case KeyEvent.VK_KP_UP:
                 if (modifiers == 0) {
-                    e.consume();
-                    popup.move(-1, false);
+                    if (!history(e, true)) {
+                        e.consume();
+                        popup.move(-1, false);
+                    }
                     return;
                 }
                 break;
             case KeyEvent.VK_DOWN:
             case KeyEvent.VK_KP_DOWN:
                 if (modifiers == 0) {
-                    e.consume();
-                    popup.move(+1, false);
+                    if (!history(e, false)) {
+                        e.consume();
+                        popup.move(+1, false);
+                    }
                     return;
                 }
                 break;
             case KeyEvent.VK_P:
                 if (modifiers == CTRL_MASK) {
-                    e.consume();
-                    popup.move(-1, false);
+                    if (!history(e, true)) {
+                        e.consume();
+                        popup.move(-1, false);
+                    }
                     return;
                 }
                 break;
             case KeyEvent.VK_N:
                 if (modifiers == CTRL_MASK) {
-                    e.consume();
-                    popup.move(+1, false);
+                    if (!history(e, false)) {
+                        e.consume();
+                        popup.move(+1, false);
+                    }
                     return;
                 }
                 break;
@@ -343,23 +392,20 @@ public abstract class FinderTextFieldHandler extends DefaultTextFieldHandler {
             default:
                 break;
         }
-        // findAction's key toggles between the finders, and findFileInProject's
-        // goes to it; the query comes along.
+        // Another finder's key goes to it, taking the query along; findAction's
+        // toggles with findFileInProject.
+        // The global map, too: a mode's own use of a finder's key, such as HTML
+        // mode's Ctrl E, means nothing in the location bar.
         KeyMapping mapping = editor.getKeyMapping(e.getKeyChar(), e.getKeyCode(), modifiers);
-        if (mapping != null) {
-            Object command = mapping.getCommand();
-            final String query = textField.getText();
-            if ("findAction".equals(command)) {
+        if (mapping == null || !(mapping.getCommand() instanceof String c && Finders.isFinder(c)))
+            mapping = KeyMap.getGlobalKeyMap().lookup(e.getKeyChar(), e.getKeyCode(), modifiers);
+        if (mapping != null && mapping.getCommand() instanceof String command && Finders.isFinder(command)) {
+            String target = command;
+            if (target.equals(command()))
+                target = target.equals("findAction") ? "findFileInProject" : null;
+            if (target != null) {
                 e.consume();
-                if (this instanceof ActionTextFieldHandler)
-                    ProjectCommands.findFileInProject(editor, query);
-                else
-                    ProjectCommands.findAction(editor, query);
-                return;
-            }
-            if ("findFileInProject".equals(command) && !(this instanceof FindFileTextFieldHandler)) {
-                e.consume();
-                ProjectCommands.findFileInProject(editor, query);
+                Finders.open(target, editor, textField.getText());
                 return;
             }
         }

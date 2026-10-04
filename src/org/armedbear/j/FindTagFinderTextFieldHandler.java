@@ -34,7 +34,13 @@ public final class FindTagFinderTextFieldHandler extends FinderTextFieldHandler 
         super(editor, textField);
     }
 
+    @Override
+    protected String command() {
+        return "findTag";
+    }
+
     /** Collects the tags and lists them. */
+    @Override
     public void start() {
         if (!isActive())
             return;

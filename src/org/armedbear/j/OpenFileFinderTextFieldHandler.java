@@ -63,6 +63,11 @@ public final class OpenFileFinderTextFieldHandler extends FindFileTextFieldHandl
     }
 
     @Override
+    protected String command() {
+        return "openFile";
+    }
+
+    @Override
     public void detached() {
         super.detached();
         textField.removeFocusListener(focusListener);

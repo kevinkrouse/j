@@ -57,19 +57,15 @@ public final class ProjectCommands {
 
     /** As findFileInProject, starting from query. */
     static void findFileInProject(Editor editor, String query) {
-        final LocationBar locationBar = editor.getLocationBar();
-        if (locationBar == null)
-            return;
-        locationBar.setLabelText(LocationBar.PROMPT_FIND_FILE);
-        HistoryTextField textField = locationBar.getTextField();
-        FindFileTextFieldHandler handler = new FindFileTextFieldHandler(editor, textField);
-        textField.setHandler(handler);
-        textField.setHistory(new History("findFileInProject.input", 30));
-        textField.setText(query);
-        textField.setCaretPosition(query.length());
-        editor.setFocusToTextField();
-        // After the focus has moved, so the list shows.
-        SwingUtilities.invokeLater(handler::start);
+        HistoryTextField textField = editor.getLocationBarTextField();
+        if (textField != null)
+            Finders.show(
+                editor,
+                LocationBar.PROMPT_FIND_FILE,
+                new FindFileTextFieldHandler(editor, textField),
+                "findFileInProject.input",
+                query
+            );
     }
 
     /** Finds a command by name or summary, from the location bar, and runs it. */
@@ -79,19 +75,17 @@ public final class ProjectCommands {
 
     /** As findAction, starting from query. */
     static void findAction(Editor editor, String query) {
-        final LocationBar locationBar = editor.getLocationBar();
-        if (locationBar == null)
+        HistoryTextField textField = editor.getLocationBarTextField();
+        if (textField == null)
             return;
-        locationBar.setLabelText(LocationBar.PROMPT_ACTION);
         editor.status("");
-        HistoryTextField textField = locationBar.getTextField();
-        ActionTextFieldHandler handler = new ActionTextFieldHandler(editor, textField);
-        textField.setHandler(handler);
-        textField.setHistory(new History("findAction.input", 30));
-        textField.setText(query);
-        textField.setCaretPosition(query.length());
-        editor.setFocusToTextField();
-        SwingUtilities.invokeLater(handler::start);
+        Finders.show(
+            editor,
+            LocationBar.PROMPT_ACTION,
+            new ActionTextFieldHandler(editor, textField),
+            "findAction.input",
+            query
+        );
     }
 
     /** Opens file, in the other window if otherWindow, at line if it's positive. */

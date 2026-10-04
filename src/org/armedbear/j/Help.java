@@ -50,7 +50,15 @@ public final class Help {
             String ref = null;
             if (arg == null || arg.length() == 0)
                 ;
-            else if (arg.endsWith(".html")) {
+            else if (arg.matches("[\\w.-]+\\.html#[\\w.-]+")) {
+                // "page.html#anchor", as the help finder gives.
+                int hash = arg.indexOf('#');
+                File file = File.getInstance(dir, arg.substring(0, hash));
+                if (file != null && file.isFile()) {
+                    fileName = arg.substring(0, hash);
+                    ref = arg.substring(hash + 1);
+                }
+            } else if (arg.endsWith(".html")) {
                 File file = File.getInstance(dir, arg);
                 if (file != null && file.isFile())
                     fileName = arg;

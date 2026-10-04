@@ -72,23 +72,7 @@ public final class TagCommands {
     }
 
     public static void findTag() {
-        final Editor editor = Editor.currentEditor();
-        final LocationBar locationBar = editor.getLocationBar();
-        locationBar.setLabelText(LocationBar.PROMPT_TAG);
-        HistoryTextField textField = locationBar.getTextField();
-        FindTagFinderTextFieldHandler handler = new FindTagFinderTextFieldHandler(editor, textField);
-        textField.setHandler(handler);
-        textField.setHistory(new History("findTag.tag"));
-        textField.setText("");
-        if (editor.getDispatcher().getLastEvent().getSource() instanceof MenuItem) {
-            Runnable r = () -> {
-                editor.setFocusToTextField();
-            };
-            SwingUtilities.invokeLater(r);
-        } else
-            editor.setFocusToTextField();
-        // After the focus has moved, so the list shows.
-        SwingUtilities.invokeLater(handler::start);
+        Finders.findTag(Editor.currentEditor(), "");
     }
 
     private static boolean findTag(

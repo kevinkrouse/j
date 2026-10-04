@@ -190,6 +190,7 @@ public class CommandTable {
             add("findCharInLine", null, (e, s) -> CaretCommands.findCharInLine(s));
             add("findCharInLineBackward", null, (e, s) -> CaretCommands.findCharInLineBackward(s));
             add("findAction", ProjectCommands::findAction);
+            add("findBookmark", Finders::findBookmark);
             add("findFileInProject", ProjectCommands::findFileInProject);
             add("findFirstOccurrence", SearchCommands::findFirstOccurrence);
             add("findMatchingChar", CaretCommands::findMatchingChar);
@@ -403,7 +404,7 @@ public class CommandTable {
             add("git", e -> Git.git(), (e, s) -> Git.git(s));
             add("google", e -> WebMode.google(), (e, s) -> WebMode.google(s));
             add("gotoFile", e -> GotoFile.gotoFile());
-            add("help", e -> Help.help(), (e, s) -> Help.help(s));
+            add("help", Finders::help, (e, s) -> Help.help(s));
             add("htmlBold", e -> HtmlMode.htmlBold());
             add("htmlElectricEquals", e -> HtmlMode.htmlElectricEquals());
             add("htmlEndTag", e -> HtmlMode.htmlEndTag());
@@ -420,7 +421,7 @@ public class CommandTable {
             add("imageZoomIn", e -> ImageMode.imageZoomIn());
             add("imageZoomOut", e -> ImageMode.imageZoomOut());
             add("incrementNumber", e -> NumberCommands.incrementNumber(), (e, s) -> NumberCommands.incrementNumber(s));
-            add("insertRegister", e -> Registers.insertRegister(), (e, s) -> Registers.insertRegister(s));
+            add("insertRegister", Finders::insertRegister, (e, s) -> Registers.insertRegister(s));
             add("jdkHelp", e -> JDKHelp.jdkHelp(), (e, s) -> JDKHelp.jdkHelp(s));
             add("jumpBack", e -> JumpList.jumpBack());
             add("jumpForward", e -> JumpList.jumpForward());
@@ -472,7 +473,7 @@ public class CommandTable {
             add("printBuffer", e -> PrintCommands.printBuffer());
             add("printRegion", e -> PrintCommands.printRegion());
             add("properties", e -> PropertiesDialog.properties());
-            add("recentFiles", e -> RecentFilesDialog.recentFiles());
+            add("recentFiles", Finders::recentFiles);
             add("recompile", e -> CompilationCommands.recompile());
             add("recordMacro", e -> Macro.recordMacro());
             add("reloadKeyMaps", e -> KeyMap.reloadKeyMaps());
@@ -515,6 +516,7 @@ public class CommandTable {
             add("svnLog", e -> SVN.log(), (e, s) -> SVN.log(s));
             add("svnRevert", e -> SVN.revert());
             add("svnStatus", e -> SVN.status());
+            add("switchBuffer", Finders::switchBuffer);
             add("tagDown", e -> ListTagsMode.tagDown());
             add("tagUp", e -> ListTagsMode.tagUp());
             add("task", e -> MarkdownTasks.task(), (e, s) -> MarkdownTasks.task(s));
@@ -562,7 +564,7 @@ public class CommandTable {
 
             // Abbreviations.
             add("sr", e -> Registers.saveToRegister(), (e, s) -> Registers.saveToRegister(s));
-            add("ir", e -> Registers.insertRegister(), (e, s) -> Registers.insertRegister(s));
+            add("ir", Finders::insertRegister, (e, s) -> Registers.insertRegister(s));
             add("lr", e -> Registers.listRegisters());
             add("hs", e -> LispMode.hyperspec(), (e, s) -> LispMode.hyperspec(s));
             add("clhs", e -> LispMode.hyperspec(), (e, s) -> LispMode.hyperspec(s));

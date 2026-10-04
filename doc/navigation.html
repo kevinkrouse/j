@@ -15,6 +15,13 @@ their default key mappings. Any of them can be remapped; see
 <a href="keys.html">Key Mappings</a>. In vim
 <a href="editmodes.html">edit mode</a>, see also <a href="#vim">Vim keys</a>.
 
+<p>
+The finders below share their keys. In any of them, the key of another,
+such as Ctrl T in the middle of a Ctrl P search, switches to it with what you
+have typed; Ctrl Shift P there switches back. Up and Down move through the
+list, or through the history when there is no list, and Alt Down lists the
+history.
+
 <h2>Files</h2>
 <ul>
 <li><b>Ctrl P</b> (<a href="commands.html#findFileInProject">findFileInProject</a>)
@@ -34,8 +41,8 @@ exactly what you typed.
 Ctrl Shift O (<a href="commands.html#openFileInOtherFrame">openFileInOtherFrame</a>)
 open in another window or frame.
 
-<li><b>Alt R</b> (recentFiles) lists
-the files you have visited.
+<li><b>Alt R</b> (<a href="commands.html#recentFiles">recentFiles</a>) finds
+a file you have visited recently, the most recent first.
 
 <li><b>Ctrl Shift G</b> (<a href="commands.html#gotoFile">gotoFile</a>) opens
 the file named at the caret.
@@ -46,8 +53,11 @@ the file named at the caret.
 root in one.
 </ul>
 
-<h2>Commands</h2>
+<h2>Commands and help</h2>
 <ul>
+<li><b>F1</b> (<a href="commands.html#help">help</a>) finds a help topic: a
+page of this manual, a command or a preference.
+
 <li><b>Ctrl Shift P</b> (<a href="commands.html#findAction">findAction</a>)
 finds a command by its name or description, shows its key binding, and runs
 it. Commands recently run by name, from here or Alt X, are listed first.
@@ -61,6 +71,10 @@ preferences whose names contain a pattern.
 
 <h2>Buffers and windows</h2>
 <ul>
+<li><b>Ctrl E</b> (<a href="commands.html#switchBuffer">switchBuffer</a>)
+finds an open buffer and switches to it; with nothing typed, Enter goes back
+to the buffer before.
+
 <li><b>Alt Left</b> and <b>Alt Right</b>
 (<a href="commands.html#prevBuffer">prevBuffer</a>,
 <a href="commands.html#nextBuffer">nextBuffer</a>) cycle through the open
@@ -102,6 +116,8 @@ list of the buffer's tags in the sidebar.
 <li><b>Alt 0</b> to <b>Alt 9</b> drop a bookmark and <b>Ctrl 0</b> to
 <b>Ctrl 9</b> return to it (<a href="commands.html#dropBookmark">dropBookmark</a>,
 <a href="commands.html#gotoBookmark">gotoBookmark</a>).
+<a href="commands.html#findBookmark">findBookmark</a> lists them all, with
+their lines, to pick from.
 
 <li><b>Ctrl Alt N</b> and <b>Ctrl Alt P</b>
 (<a href="commands.html#nextChange">nextChange</a>,
@@ -117,7 +133,10 @@ Ctrl F and Ctrl B (paging), Ctrl ^, Ctrl R, Ctrl V, Ctrl A and Ctrl X. So
 Ctrl O doesn't open the location bar and Ctrl F doesn't find; every other key
 above, Ctrl P and Ctrl Shift P among them, works as it does without vim. Any
 of j's commands also runs as an ex command, as in
-<b>:findFileInProject</b> or <b>:openFile</b>. The
+<b>:findFileInProject</b> or <b>:openFile</b>. As you type a name after
+<b>:</b>, a list shows the ex commands and j commands that match it: Tab
+fills one in, and Enter runs the line, or the command you moved the selection
+to. The
 <a href="commands.html#findAction">findAction</a> list shows a command's vim
 keys before j's.
 <p>

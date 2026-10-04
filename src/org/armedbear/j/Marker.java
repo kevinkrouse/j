@@ -44,6 +44,16 @@ public final class Marker {
         return buffer;
     }
 
+    /** The file it's in, if it's in one. */
+    public File getFile() {
+        return file;
+    }
+
+    /** Its line, zero-based, even after its buffer is closed. */
+    public int getLineNumber() {
+        return pos != null ? pos.lineNumber() : lineNumber;
+    }
+
     // Returns an alias, not a copy.
     public Position getPosition() {
         return pos;

@@ -125,6 +125,7 @@ The mail and news commands come from the <code>mail</code>
     <li><a href="commands.html#expand">expand</a></li>
     <li><a href="commands.html#find">find</a></li>
     <li><a href="commands.html#findAction">findAction</a></li>
+    <li><a href="commands.html#findBookmark">findBookmark</a></li>
     <li><a href="commands.html#findFileInProject">findFileInProject</a></li>
     <li><a href="commands.html#findFirstOccurrence">findFirstOccurrence</a></li>
     <li><a href="commands.html#findInFiles">findInFiles</a></li>
@@ -303,6 +304,7 @@ The mail and news commands come from the <code>mail</code>
     <li><a href="commands.html#properties">properties</a></li>
     <li><a href="commands.html#pushPosition">pushPosition</a></li>
     <li><a href="commands.html#quit">quit</a></li>
+    <li><a href="commands.html#recentFiles">recentFiles</a></li>
     <li><a href="commands.html#recompile">recompile</a></li>
     <li><a href="commands.html#recordMacro">recordMacro</a></li>
     <li><a href="commands.html#redo">redo</a></li>
@@ -390,6 +392,7 @@ The mail and news commands come from the <code>mail</code>
     <li><a href="commands.html#svnLog">svnLog</a></li>
     <li><a href="commands.html#svnRevert">svnRevert</a></li>
     <li><a href="commands.html#svnStatus">svnStatus</a></li>
+    <li><a href="commands.html#switchBuffer">switchBuffer</a></li>
     <li><a href="commands.html#tab">tab</a></li>
     <li><a href="commands.html#task">task</a></li>
     <li><a href="commands.html#tempBufferQuit">tempBufferQuit</a></li>
@@ -1760,6 +1763,18 @@ its name filled in.
 <br><br>
 </dl><!--<hr>-->
 
+<a name="findBookmark">findBookmark</a><dl><dd>
+<p>
+Lists the bookmarks, 0 to 9 and A to Z, each with its file, line and text,
+and goes to the one you pick. Typing narrows the list.
+<p>
+<b>Default key mapping:</b> None
+<p>
+<b>See also:</b> <a href="commands.html#dropBookmark">dropBookmark</a>,
+<a href="commands.html#gotoBookmark">gotoBookmark</a>
+<br><br>
+</dl><!--<hr>-->
+
 <a name="findFileInProject">findFileInProject</a><dl><dd>
 <p>
 Finds a file in the current buffer's project, its open buffers or its recent
@@ -2176,7 +2191,10 @@ Returns to a previously dropped temporary marker.
 
 <a name="help">help</a><dl><dd>
 <p>
-Displays help.
+Finds a help topic: a page of this manual, a command or a preference, by
+matching what you type as
+<a href="commands.html#findFileInProject">findFileInProject</a> does, and
+displays it.
 <p>
 For this command to work, you may need to set the <a href="preferences.html#docPath">docPath</a>
 property in your <a href="preferences.html">preferences</a> file to point to the
@@ -2582,8 +2600,9 @@ Perl modes
 
 <a name="insertRegister">insertRegister</a><dl><dd>
 <p>
-Prompts for a register name and inserts the contents of the selected register
-at the location of the caret in the current buffer.
+Lists the registers, each with the first line it holds, and inserts the
+contents of the one you pick at the location of the caret in the current
+buffer. Typing narrows the list, by name or content.
 <p>
 Register names must be lower case letters (a-z). The contents of registers
 persist automatically from one j session to the next.
@@ -4182,6 +4201,16 @@ buffers with unsaved changes.
 <br><br>
 </dl><!--<hr>-->
 
+<a name="recentFiles">recentFiles</a><dl><dd>
+<p>
+Finds a file you've visited recently, by matching what you type as
+<a href="commands.html#findFileInProject">findFileInProject</a> does; with
+nothing typed, the most recent come first. Enter opens it where you left it.
+<p>
+<b>Default key mapping:</b> Alt R
+<br><br>
+</dl><!--<hr>-->
+
 <a name="recompile">recompile</a><dl><dd>
 <p>
 Compiles the source file in the current buffer, using the last specified
@@ -5349,6 +5378,19 @@ the file for the current line and Ctrl Enter will open the file.
 <b>Default key mapping:</b> None
 <p>
 <b>See also:</b> <a href="vcs.html">Version Control Systems</a>
+<br><br>
+</dl><!--<hr>-->
+
+<a name="switchBuffer">switchBuffer</a><dl><dd>
+<p>
+Finds an open buffer, by matching what you type as
+<a href="commands.html#findFileInProject">findFileInProject</a> does, and
+switches to it; Ctrl Enter shows it in the other window. With nothing typed,
+the most recently used come first and the current buffer last, so Enter goes
+back to the one before.
+<p>
+<b>Default key mapping:</b> Ctrl E (in HTML and XML modes, Ctrl E inserts the
+matching end tag; in a finder it still switches to this one)
 <br><br>
 </dl><!--<hr>-->
 
