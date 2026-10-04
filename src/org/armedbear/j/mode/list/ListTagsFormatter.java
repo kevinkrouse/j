@@ -27,46 +27,41 @@ import org.armedbear.j.Line;
 import org.armedbear.j.LineSegmentList;
 import org.armedbear.j.TagLine;
 
-public final class ListTagsFormatter extends Formatter
-{
-    private static final byte FORMAT_TEXT          = 0;
-    private static final byte FORMAT_HEADER_NAME   = 1;
-    private static final byte FORMAT_HEADER_VALUE  = 2;
+public final class ListTagsFormatter extends Formatter {
+    private static final byte FORMAT_TEXT = 0;
+    private static final byte FORMAT_HEADER_NAME = 1;
+    private static final byte FORMAT_HEADER_VALUE = 2;
     private static final byte FORMAT_MATCHING_TEXT = 3;
-    private static final byte FORMAT_STATUS        = 4;
-    private static final byte FORMAT_VISITED       = 5;
+    private static final byte FORMAT_STATUS = 4;
+    private static final byte FORMAT_VISITED = 5;
 
-    public ListTagsFormatter(Buffer buffer)
-    {
+    public ListTagsFormatter(Buffer buffer) {
         this.buffer = buffer;
     }
 
-    public LineSegmentList formatLine(Line line)
-    {
+    public LineSegmentList formatLine(Line line) {
         clearSegmentList();
         if (line instanceof TagLine)
-            return formatTagLine((TagLine)line);
+            return formatTagLine((TagLine) line);
         else if (line instanceof FileLine)
-            return formatFileLine((FileLine)line);
+            return formatFileLine((FileLine) line);
         else
             return formatHeaderLine(line);
     }
 
-    private LineSegmentList formatHeaderLine(Line line)
-    {
+    private LineSegmentList formatHeaderLine(Line line) {
         final String text = getDetabbedText(line);
         int index = text.indexOf(':');
         if (index > 0) {
-            addSegment(text, 0, index+1, FORMAT_HEADER_NAME);
-            addSegment(text, index+1, FORMAT_HEADER_VALUE);
+            addSegment(text, 0, index + 1, FORMAT_HEADER_NAME);
+            addSegment(text, index + 1, FORMAT_HEADER_VALUE);
             return segmentList;
         }
         addSegment(text, FORMAT_TEXT);
         return segmentList;
     }
 
-    private LineSegmentList formatTagLine(TagLine line)
-    {
+    private LineSegmentList formatTagLine(TagLine line) {
         final String text = getDetabbedText(line);
         final String name = line.getTag().getMethodName();
         if (name != null) {
@@ -84,20 +79,18 @@ public final class ListTagsFormatter extends Formatter
         return segmentList;
     }
 
-    private LineSegmentList formatFileLine(FileLine line)
-    {
+    private LineSegmentList formatFileLine(FileLine line) {
         final String text = getDetabbedText(line);
         int index = text.indexOf(':');
         if (index > 0) {
-            addSegment(text, 0, index+1, FORMAT_HEADER_NAME);
-            addSegment(text, index+1, FORMAT_HEADER_VALUE);
+            addSegment(text, 0, index + 1, FORMAT_HEADER_NAME);
+            addSegment(text, index + 1, FORMAT_HEADER_VALUE);
         } else
             addSegment(text, line.visited() ? FORMAT_VISITED : FORMAT_TEXT);
         return segmentList;
     }
 
-    public FormatTable getFormatTable()
-    {
+    public FormatTable getFormatTable() {
         if (formatTable == null) {
             formatTable = new FormatTable("ListTagsMode");
             formatTable.addEntryFromPrefs(FORMAT_TEXT, "text");

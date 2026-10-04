@@ -20,6 +20,8 @@
 
 package org.armedbear.j.mode.list;
 
+import java.awt.event.KeyEvent;
+import javax.swing.JPopupMenu;
 import org.armedbear.j.AbstractMode;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Constants;
@@ -29,15 +31,10 @@ import org.armedbear.j.KeyMap;
 import org.armedbear.j.Mode;
 import org.armedbear.j.Property;
 
-import java.awt.event.KeyEvent;
-import javax.swing.JPopupMenu;
-
-public final class ListOccurrencesMode extends AbstractMode implements Constants, Mode
-{
+public final class ListOccurrencesMode extends AbstractMode implements Constants, Mode {
     private static final ListOccurrencesMode mode = new ListOccurrencesMode();
 
-    private ListOccurrencesMode()
-    {
+    private ListOccurrencesMode() {
         super(LIST_OCCURRENCES_MODE, LIST_OCCURRENCES_MODE_NAME);
         setProperty(Property.VERTICAL_RULE, 0);
         setProperty(Property.SHOW_LINE_NUMBERS, false);
@@ -46,23 +43,19 @@ public final class ListOccurrencesMode extends AbstractMode implements Constants
         setProperty(Property.HIGHLIGHT_BRACKETS, false);
     }
 
-    public static final ListOccurrencesMode getMode()
-    {
+    public static final ListOccurrencesMode getMode() {
         return mode;
     }
 
-    public JPopupMenu getContextMenu(Editor editor)
-    {
+    public JPopupMenu getContextMenu(Editor editor) {
         return null;
     }
 
-    public Formatter getFormatter(Buffer buffer)
-    {
+    public Formatter getFormatter(Buffer buffer) {
         return new ListOccurrencesFormatter(buffer);
     }
 
-    protected void setKeyMapDefaults(KeyMap km)
-    {
+    protected void setKeyMapDefaults(KeyMap km) {
         km.mapKey(KeyEvent.VK_ENTER, 0, "findOccurrenceAtDot");
         km.mapKey(KeyEvent.VK_G, CTRL_MASK | SHIFT_MASK, "findOccurrenceAtDot");
         km.mapKey(VK_DOUBLE_MOUSE_1, 0, "mouseFindOccurrence");

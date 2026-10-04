@@ -20,6 +20,10 @@
 
 package org.armedbear.j.mode.list;
 
+import java.awt.AWTEvent;
+import java.awt.event.KeyEvent;
+import java.awt.event.MouseEvent;
+import javax.swing.JPopupMenu;
 import org.armedbear.j.AbstractMode;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Constants;
@@ -31,17 +35,10 @@ import org.armedbear.j.Mode;
 import org.armedbear.j.Property;
 import org.armedbear.j.TagLine;
 
-import java.awt.AWTEvent;
-import java.awt.event.KeyEvent;
-import java.awt.event.MouseEvent;
-import javax.swing.JPopupMenu;
-
-public final class ListTagsMode extends AbstractMode implements Constants, Mode
-{
+public final class ListTagsMode extends AbstractMode implements Constants, Mode {
     private static final ListTagsMode mode = new ListTagsMode();
 
-    private ListTagsMode()
-    {
+    private ListTagsMode() {
         super(LIST_TAGS_MODE, LIST_TAGS_MODE_NAME);
         setProperty(Property.VERTICAL_RULE, 0);
         setProperty(Property.SHOW_LINE_NUMBERS, false);
@@ -50,23 +47,19 @@ public final class ListTagsMode extends AbstractMode implements Constants, Mode
         setProperty(Property.HIGHLIGHT_BRACKETS, false);
     }
 
-    public static final ListTagsMode getMode()
-    {
+    public static final ListTagsMode getMode() {
         return mode;
     }
 
-    public JPopupMenu getContextMenu(Editor editor)
-    {
+    public JPopupMenu getContextMenu(Editor editor) {
         return null;
     }
 
-    public Formatter getFormatter(Buffer buffer)
-    {
+    public Formatter getFormatter(Buffer buffer) {
         return new ListTagsFormatter(buffer);
     }
 
-    protected void setKeyMapDefaults(KeyMap km)
-    {
+    protected void setKeyMapDefaults(KeyMap km) {
         km.mapKey(KeyEvent.VK_UP, 0, "tagUp");
         km.mapKey(KeyEvent.VK_KP_UP, 0, "tagUp");
         km.mapKey(KeyEvent.VK_DOWN, 0, "tagDown");
@@ -79,37 +72,33 @@ public final class ListTagsMode extends AbstractMode implements Constants, Mode
         km.mapKey('q', "tempBufferQuit");
     }
 
-    public static void jumpToTag()
-    {
+    public static void jumpToTag() {
         final Editor editor = Editor.currentEditor();
         final Buffer buffer = editor.getBuffer();
         if (buffer instanceof ListTagsBuffer)
-            ((ListTagsBuffer)buffer).jumpToTag(editor, false);
+            ((ListTagsBuffer) buffer).jumpToTag(editor, false);
     }
 
-    public static void jumpToTagAndKillList()
-    {
+    public static void jumpToTagAndKillList() {
         final Editor editor = Editor.currentEditor();
         final Buffer buffer = editor.getBuffer();
         if (buffer instanceof ListTagsBuffer)
-            ((ListTagsBuffer)buffer).jumpToTag(editor, true);
+            ((ListTagsBuffer) buffer).jumpToTag(editor, true);
     }
 
-    public static void mouseJumpToTag()
-    {
+    public static void mouseJumpToTag() {
         final Editor editor = Editor.currentEditor();
         final Buffer buffer = editor.getBuffer();
         if (buffer instanceof ListTagsBuffer) {
             AWTEvent e = editor.getDispatcher().getLastEvent();
             if (e instanceof MouseEvent) {
-                editor.mouseMoveDotToPoint((MouseEvent)e);
-                ((ListTagsBuffer)buffer).jumpToTag(editor, false);
+                editor.mouseMoveDotToPoint((MouseEvent) e);
+                ((ListTagsBuffer) buffer).jumpToTag(editor, false);
             }
         }
     }
 
-    public static void tagDown()
-    {
+    public static void tagDown() {
         final Editor editor = Editor.currentEditor();
         final Buffer buffer = editor.getBuffer();
         if (buffer instanceof ListTagsBuffer) {
@@ -122,8 +111,7 @@ public final class ListTagsMode extends AbstractMode implements Constants, Mode
         }
     }
 
-    public static void tagUp()
-    {
+    public static void tagUp() {
         final Editor editor = Editor.currentEditor();
         final Buffer buffer = editor.getBuffer();
         if (buffer instanceof ListTagsBuffer) {

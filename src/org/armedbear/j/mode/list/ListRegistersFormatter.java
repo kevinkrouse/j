@@ -26,27 +26,23 @@ import org.armedbear.j.Formatter;
 import org.armedbear.j.Line;
 import org.armedbear.j.LineSegmentList;
 
-public final class ListRegistersFormatter extends Formatter
-{
-    private static final byte FORMAT_TEXT            = 0;
+public final class ListRegistersFormatter extends Formatter {
+    private static final byte FORMAT_TEXT = 0;
     private static final byte FORMAT_REGISTER_HEADER = 1;
-    private static final byte FORMAT_REGISTER_NAME   = 2;
-    private static final byte FORMAT_ELLIPSIS        = 3;
+    private static final byte FORMAT_REGISTER_NAME = 2;
+    private static final byte FORMAT_ELLIPSIS = 3;
 
-    public ListRegistersFormatter(Buffer buffer)
-    {
+    public ListRegistersFormatter(Buffer buffer) {
         this.buffer = buffer;
     }
 
-    public LineSegmentList formatLine(Line line)
-    {
+    public LineSegmentList formatLine(Line line) {
         if (line instanceof ListRegistersLine)
-            return formatStatusLine((ListRegistersLine)line);
+            return formatStatusLine((ListRegistersLine) line);
         return formatTextLine(line);
     }
 
-    private LineSegmentList formatStatusLine(ListRegistersLine line)
-    {
+    private LineSegmentList formatStatusLine(ListRegistersLine line) {
         clearSegmentList();
         final String text = getDetabbedText(line);
         if (text.startsWith("Register ")) {
@@ -57,16 +53,14 @@ public final class ListRegistersFormatter extends Formatter
         return segmentList;
     }
 
-    private LineSegmentList formatTextLine(Line line)
-    {
+    private LineSegmentList formatTextLine(Line line) {
         clearSegmentList();
         final String text = getDetabbedText(line);
         addSegment(text, FORMAT_TEXT);
         return segmentList;
     }
 
-    public FormatTable getFormatTable()
-    {
+    public FormatTable getFormatTable() {
         if (formatTable == null) {
             formatTable = new FormatTable("ListRegistersMode");
             formatTable.addEntryFromPrefs(FORMAT_TEXT, "text");
