@@ -23,7 +23,8 @@ package org.armedbear.j;
 import java.awt.Image;
 import java.awt.MediaTracker;
 import java.awt.Toolkit;
-import java.lang.reflect.Method;
+import java.io.IOException;
+import javax.imageio.ImageIO;
 
 public final class ImageLoader {
     private File file;
@@ -37,50 +38,38 @@ public final class ImageLoader {
     public Image loadImage() {
         final Editor editor = Editor.currentEditor();
         editor.setWaitCursor();
-        image = Toolkit.getDefaultToolkit().createImage(file.canonicalPath());
-        mt = new MediaTracker(editor);
         try {
-            mt.addImage(image, 0);
-            mt.waitForID(0);
-        }
-        catch (Exception e) {
-            Log.error(e);
-        }
-        if (mt.isErrorAny())
-            image = null;
-        if (image == null) {
-            // Try again using JIMI.
-            try {
-                Class<?> c = Class.forName("com.sun.jimi.core.Jimi");
-                Method method = c.getMethod("getImage", String.class);
-                Object returned = method.invoke(null, file.canonicalPath());
-                if (returned instanceof Image)
-                    image = (Image) returned;
-            }
-            catch (ClassNotFoundException e) {
-                // JIMI not found.
-            }
-            catch (Exception e) {
-                Log.error(e);
-            }
+            image = Toolkit.getDefaultToolkit().createImage(file.canonicalPath());
             mt = new MediaTracker(editor);
             try {
                 mt.addImage(image, 0);
                 mt.waitForID(0);
             }
-            catch (Exception e) {
-                Log.error(e);
+            catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
             }
-            if (mt.isErrorAny())
-                image = null;
+            if (mt.isErrorAny()) {
+                // Toolkit reads GIF, JPEG and PNG; ImageIO adds BMP and TIFF.
+                dispose();
+                try {
+                    image = ImageIO.read(new java.io.File(file.canonicalPath()));
+                }
+                catch (IOException | RuntimeException e) {
+                    // Malformed files make the readers throw more than IOException.
+                    Log.error(e);
+                }
+            }
+            return image;
         }
-        editor.setDefaultCursor();
-        return image;
+        finally {
+            editor.setDefaultCursor();
+        }
     }
 
     public void dispose() {
-        if (image != null && mt != null) {
-            mt.removeImage(image);
+        if (image != null) {
+            if (mt != null)
+                mt.removeImage(image);
             image.flush();
             image = null;
             mt = null;

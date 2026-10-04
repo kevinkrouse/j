@@ -158,7 +158,7 @@ final class BuiltinModes implements ModeProvider, Constants {
                 ImageMode.class,
                 id -> ImageMode.getMode(),
                 false,
-                ".+\\.gif|.+\\.jpe?g|.+\\.png",
+                ".+\\.gif|.+\\.jpe?g|.+\\.png|.+\\.bmp|.+\\.tiff?",
                 List.of(),
                 List.of()
             ),
