@@ -20,6 +20,7 @@
 
 package org.armedbear.j.mode.list;
 
+import java.awt.event.KeyEvent;
 import org.armedbear.j.AbstractMode;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Constants;
@@ -32,14 +33,10 @@ import org.armedbear.j.Mode;
 import org.armedbear.j.Property;
 import org.armedbear.j.Registers;
 
-import java.awt.event.KeyEvent;
-
-public class ListRegistersMode extends AbstractMode implements Constants, Mode
-{
+public class ListRegistersMode extends AbstractMode implements Constants, Mode {
     private static final ListRegistersMode mode = new ListRegistersMode();
 
-    private ListRegistersMode()
-    {
+    private ListRegistersMode() {
         super(LIST_REGISTERS_MODE, LIST_REGISTERS_MODE_NAME);
         setProperty(Property.SHOW_LINE_NUMBERS, false);
         setProperty(Property.SHOW_CHANGE_MARKS, false);
@@ -47,23 +44,28 @@ public class ListRegistersMode extends AbstractMode implements Constants, Mode
         setProperty(Property.HIGHLIGHT_BRACKETS, false);
     }
 
-    public static final ListRegistersMode getMode()
-    {
+    public static final ListRegistersMode getMode() {
         return mode;
     }
 
-    public Formatter getFormatter(Buffer buffer)
-    {
+    public Formatter getFormatter(Buffer buffer) {
         return new ListRegistersFormatter(buffer);
     }
 
-    protected void setKeyMapDefaults(KeyMap km)
-    {
+    protected void setKeyMapDefaults(KeyMap km) {
         km.mapKey(KeyEvent.VK_ENTER, 0, "mode.list.ListRegistersMode", "_editRegister");
-        km.mapKey(KeyEvent.VK_ENTER, CTRL_MASK,
-            "mode.list.ListRegistersMode", "_insertRegister");
-        km.mapKey(KeyEvent.VK_G, CTRL_MASK | SHIFT_MASK,
-            "mode.list.ListRegistersMode", "_editRegister");
+        km.mapKey(
+            KeyEvent.VK_ENTER,
+            CTRL_MASK,
+            "mode.list.ListRegistersMode",
+            "_insertRegister"
+        );
+        km.mapKey(
+            KeyEvent.VK_G,
+            CTRL_MASK | SHIFT_MASK,
+            "mode.list.ListRegistersMode",
+            "_editRegister"
+        );
         km.mapKey(KeyEvent.VK_DELETE, 0, "mode.list.ListRegistersMode", "_clearRegister");
         km.mapKey(KeyEvent.VK_UP, 0, "mode.list.ListRegistersMode", "registerUp");
         km.mapKey(KeyEvent.VK_KP_UP, 0, "mode.list.ListRegistersMode", "registerUp");
@@ -71,8 +73,7 @@ public class ListRegistersMode extends AbstractMode implements Constants, Mode
         km.mapKey(KeyEvent.VK_KP_DOWN, 0, "mode.list.ListRegistersMode", "registerDown");
     }
 
-    public static final void _editRegister()
-    {
+    public static final void _editRegister() {
         final Editor editor = Editor.currentEditor();
         if (editor.getDot() == null)
             return;
@@ -86,13 +87,12 @@ public class ListRegistersMode extends AbstractMode implements Constants, Mode
                 return;
         }
         Debug.assertTrue(line instanceof ListRegistersLine);
-        String name = ((ListRegistersLine)line).getRegisterName();
+        String name = ((ListRegistersLine) line).getRegisterName();
         if (name != null)
             Registers.editRegister(name);
     }
 
-    public static final void _insertRegister()
-    {
+    public static final void _insertRegister() {
         final Editor editor = Editor.currentEditor();
         final Editor other = editor.getOtherEditor();
         if (other == null)
@@ -109,14 +109,13 @@ public class ListRegistersMode extends AbstractMode implements Constants, Mode
                 return;
         }
         Debug.assertTrue(line instanceof ListRegistersLine);
-        String name = ((ListRegistersLine)line).getRegisterName();
+        String name = ((ListRegistersLine) line).getRegisterName();
         if (name != null) {
             Registers.insertRegister(name, other);
         }
     }
 
-    public static final void _clearRegister()
-    {
+    public static final void _clearRegister() {
         final Editor editor = Editor.currentEditor();
         if (editor.getDot() == null)
             return;
@@ -130,19 +129,21 @@ public class ListRegistersMode extends AbstractMode implements Constants, Mode
                 return;
         }
         Debug.assertTrue(line instanceof ListRegistersLine);
-        String name = ((ListRegistersLine)line).getRegisterName();
+        String name = ((ListRegistersLine) line).getRegisterName();
         if (name != null)
             Registers.clearRegister(name);
     }
 
-    public static void registerDown()
-    {
+    public static void registerDown() {
         final Editor editor = Editor.currentEditor();
         final Buffer buffer = editor.getBuffer();
         if (buffer instanceof ListRegistersBuffer) {
             for (Line line = editor.getDotLine().next(); line != null; line = line.next()) {
-                if (line instanceof ListRegistersLine &&
-                    line.getText().startsWith("Register ")) {
+                if (
+                    line instanceof ListRegistersLine
+                        &&
+                        line.getText().startsWith("Register ")
+                ) {
                     editor.moveDotTo(line, 0);
                     break;
                 }
@@ -150,14 +151,16 @@ public class ListRegistersMode extends AbstractMode implements Constants, Mode
         }
     }
 
-    public static void registerUp()
-    {
+    public static void registerUp() {
         final Editor editor = Editor.currentEditor();
         final Buffer buffer = editor.getBuffer();
         if (buffer instanceof ListRegistersBuffer) {
             for (Line line = editor.getDotLine().previous(); line != null; line = line.previous()) {
-                if (line instanceof ListRegistersLine &&
-                    line.getText().startsWith("Register ")) {
+                if (
+                    line instanceof ListRegistersLine
+                        &&
+                        line.getText().startsWith("Register ")
+                ) {
                     editor.moveDotTo(line, 0);
                     break;
                 }

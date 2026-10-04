@@ -20,13 +20,14 @@
 
 package org.armedbear.j;
 
-public final class JumpCommands implements Constants
-{
-    public static void jumpToLine()
-    {
+public final class JumpCommands implements Constants {
+    public static void jumpToLine() {
         final Editor editor = Editor.currentEditor();
-        String response = InputDialog.showInputDialog(editor, "Line number:",
-            "Jump To Line");
+        String response = InputDialog.showInputDialog(
+            editor,
+            "Line number:",
+            "Jump To Line"
+        );
         if (response == null || response.length() == 0)
             return;
         try {
@@ -39,11 +40,13 @@ public final class JumpCommands implements Constants
         }
     }
 
-    public static void jumpToColumn()
-    {
+    public static void jumpToColumn() {
         final Editor editor = Editor.currentEditor();
-        String response = InputDialog.showInputDialog(editor, "Column number:",
-            "Jump To Column");
+        String response = InputDialog.showInputDialog(
+            editor,
+            "Column number:",
+            "Jump To Column"
+        );
         if (response == null || response.length() == 0)
             return;
         try {
@@ -63,11 +66,13 @@ public final class JumpCommands implements Constants
         }
     }
 
-    public static void jumpToOffset()
-    {
+    public static void jumpToOffset() {
         final Editor editor = Editor.currentEditor();
-        String response = InputDialog.showInputDialog(editor, "Offset:",
-            "Jump To Offset");
+        String response = InputDialog.showInputDialog(
+            editor,
+            "Offset:",
+            "Jump To Offset"
+        );
         if (response == null || response.length() == 0)
             return;
         try {
@@ -87,8 +92,7 @@ public final class JumpCommands implements Constants
         }
     }
 
-    private static int parseNumericInput(String s, int here) throws NumberFormatException
-    {
+    private static int parseNumericInput(String s, int here) throws NumberFormatException {
         s = s.trim();
         if (s.length() == 0)
             throw new NumberFormatException();

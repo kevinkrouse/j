@@ -20,23 +20,19 @@
 
 package org.armedbear.j;
 
-import org.armedbear.j.mode.html.HtmlElement;
-import org.armedbear.j.mode.html.HtmlMode;
-
 import java.util.ArrayList;
 import java.util.List;
 import javax.swing.undo.CompoundEdit;
+import org.armedbear.j.mode.html.HtmlElement;
+import org.armedbear.j.mode.html.HtmlMode;
 
-public final class InsertTagDialog extends InputDialog implements Constants
-{
-    public InsertTagDialog(Editor editor)
-    {
+public final class InsertTagDialog extends InputDialog implements Constants {
+    public InsertTagDialog(Editor editor) {
         super(editor, "Element:", "Insert Element", null);
         setHistory(new History("insertTag"));
     }
 
-    protected List<String> getCompletions(String prefix)
-    {
+    protected List<String> getCompletions(String prefix) {
         prefix = prefix.toLowerCase();
         List<HtmlElement> elements = HtmlMode.elements();
         int limit = elements.size();
@@ -48,9 +44,12 @@ public final class InsertTagDialog extends InputDialog implements Constants
         return completions;
     }
 
-    public static void insertTag(Editor editor, String tagName, String extra,
-                                 boolean wantEndTag)
-    {
+    public static void insertTag(
+        Editor editor,
+        String tagName,
+        String extra,
+        boolean wantEndTag
+    ) {
         if (extra == null)
             extra = "";
         final Buffer buffer = editor.getBuffer();
@@ -69,12 +68,12 @@ public final class InsertTagDialog extends InputDialog implements Constants
             final Line dotLine = dot.getLine();
             final int offset = dot.getOffset();
             if (offset > 0 && offset < dotLine.length()) {
-                char before = dotLine.charAt(offset-1);
+                char before = dotLine.charAt(offset - 1);
                 char after = dotLine.charAt(offset);
                 if (!Character.isWhitespace(before) && !Character.isWhitespace(after)) {
                     int begin = offset;
                     char c;
-                    while (begin > 0 && !Character.isWhitespace(c = dotLine.charAt(begin-1))) {
+                    while (begin > 0 && !Character.isWhitespace(c = dotLine.charAt(begin - 1))) {
                         if (c == '>')
                             break;
                         --begin;
@@ -86,8 +85,11 @@ public final class InsertTagDialog extends InputDialog implements Constants
                         ++end;
                     }
                     if (begin != end)
-                        r = new Region(buffer, new Position(dotLine, begin),
-                                       new Position(dotLine, end));
+                        r = new Region(
+                            buffer,
+                            new Position(dotLine, begin),
+                            new Position(dotLine, end)
+                        );
                 }
             }
         }
@@ -128,7 +130,7 @@ public final class InsertTagDialog extends InputDialog implements Constants
                     }
                 }
                 // Put dot before '>' of start tag.
-                editor.moveDotTo(startTagLine, startTagLine.length()-1);
+                editor.moveDotTo(startTagLine, startTagLine.length() - 1);
             } else {
                 int newOffset;
                 if (extra.endsWith(" "))

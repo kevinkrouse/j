@@ -18,11 +18,7 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
  */
 
-
 package org.armedbear.j;
-
-import org.armedbear.j.mode.web.WebBuffer;
-import org.armedbear.j.util.Utilities;
 
 import java.awt.AWTEvent;
 import java.awt.event.MouseEvent;
@@ -32,6 +28,8 @@ import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import org.armedbear.j.mode.web.WebBuffer;
+import org.armedbear.j.util.Utilities;
 
 /**
  * followLink: goes where the link at the caret points. The mode says what
@@ -49,19 +47,20 @@ import java.util.regex.Pattern;
  *
  * A jump within j is recorded first, so jumpBack, vim's Ctrl-O, returns.
  */
-public final class FollowLink
-{
+public final class FollowLink {
     /**
      * An autolink, CommonMark's: a URL, group 1, or an email address,
      * group 2, between angle brackets. What is highlighted as one and what
      * is followed as one are the same.
      */
     public static final Pattern AUTOLINK = Pattern.compile(
-        "<(?:([a-zA-Z][a-zA-Z0-9+.-]{1,31}:[^\\s<>]*)|([^\\s<>@]+@[^\\s<>]+))>");
+        "<(?:([a-zA-Z][a-zA-Z0-9+.-]{1,31}:[^\\s<>]*)|([^\\s<>@]+@[^\\s<>]+))>"
+    );
 
     /** A URL in text, without punctuation that ends a sentence after it. */
     public static final Pattern BARE_URL = Pattern.compile(
-        "(?:https?://|ftp://|file:/|mailto:)[^\\s<>()\\[\\]]*[^\\s<>()\\[\\].,;:!?'\"]");
+        "(?:https?://|ftp://|file:/|mailto:)[^\\s<>()\\[\\]]*[^\\s<>()\\[\\].,;:!?'\"]"
+    );
     // A scheme, but not a Windows drive letter.
     private static final Pattern SCHEME = Pattern.compile("^[a-zA-Z][a-zA-Z0-9+.-]+:");
     private static final Pattern LINE_ANCHOR = Pattern.compile("L(\\d+)(?:-L?\\d+)?");
@@ -84,13 +83,17 @@ public final class FollowLink
      * The URL at offset in text, an autolink's without its brackets, or a
      * bare one; or null.
      */
-    public static TextLink urlAt(String text, int offset)
-    {
+    public static TextLink urlAt(String text, int offset) {
         Matcher m = AUTOLINK.matcher(text);
         while (m.find())
             if (m.start() <= offset && offset < m.end())
-                return new TextLink(m.group(1) != null ? m.group(1)
-                                    : "mailto:" + m.group(2), m.start(), m.end());
+                return new TextLink(
+                    m.group(1) != null
+                        ? m.group(1)
+                        : "mailto:" + m.group(2),
+                    m.start(),
+                    m.end()
+                );
         m = BARE_URL.matcher(text);
         while (m.find())
             if (startsWord(text, m.start()) && m.start() <= offset && offset < m.end())
@@ -99,8 +102,7 @@ public final class FollowLink
     }
 
     /** Whether a bare URL may start at i: not inside a word. */
-    public static boolean startsWord(String text, int i)
-    {
+    public static boolean startsWord(String text, int i) {
         return i == 0 || !Character.isLetterOrDigit(text.charAt(i - 1));
     }
 
@@ -108,8 +110,7 @@ public final class FollowLink
      * A target for followLink that is a file, at an anchor or not: its path
      * with the '%' and '#' a path may have escaped, as follow reads them.
      */
-    public static String fileTarget(File file, String anchor)
-    {
+    public static String fileTarget(File file, String anchor) {
         final String path = file.canonicalPath().replace("%", "%25").replace("#", "%23");
         return anchor != null ? path + "#" + anchor : path;
     }
@@ -120,8 +121,7 @@ public final class FollowLink
      * the buffer, or the tag files of its directory and tag path. Not the
      * declaration itself, which would only go to where it is.
      */
-    public static TextLink definitionAt(Editor editor, Position pos)
-    {
+    public static TextLink definitionAt(Editor editor, Position pos) {
         final Buffer buffer = editor.getBuffer();
         final Mode mode = buffer.getMode();
         if (mode == null || !buffer.isTaggable())
@@ -140,21 +140,22 @@ public final class FollowLink
             return null;
         for (Tag tag : tags) {
             if (!(tag instanceof LocalTag) || ((LocalTag) tag).getLine() != line)
-                return TextLink.definition(name, start.getOffset(),
-                                           start.getOffset() + name.length());
+                return TextLink.definition(
+                    name,
+                    start.getOffset(),
+                    start.getOffset() + name.length()
+                );
         }
         return null;
     }
 
     /** Whether there is a link at the caret. */
-    public static boolean hasLinkAt(Editor editor)
-    {
+    public static boolean hasLinkAt(Editor editor) {
         return editor.getDot() != null
             && editor.getMode().getLinkAt(editor, editor.getDot()) != null;
     }
 
-    public static void followLink()
-    {
+    public static void followLink() {
         final Editor editor = Editor.currentEditor();
         // j's own web browser has links of its own.
         if (editor.getBuffer() instanceof WebBuffer) {
@@ -179,8 +180,7 @@ public final class FollowLink
     }
 
     /** Goes where target points, from editor's buffer. */
-    public static void follow(Editor editor, String target)
-    {
+    public static void follow(Editor editor, String target) {
         target = target.trim();
         if (SCHEME.matcher(target).find() && !target.startsWith("file:")) {
             browser.accept(target);
@@ -228,8 +228,7 @@ public final class FollowLink
 
     // The line an anchor names: "L42", or the first of the buffer's tags it
     // names.
-    private static Line findLine(Buffer buffer, String anchor)
-    {
+    private static Line findLine(Buffer buffer, String anchor) {
         if (buffer.needsParsing())
             buffer.getFormatter().parseBuffer();
         final Matcher m = LINE_ANCHOR.matcher(anchor);
@@ -246,19 +245,18 @@ public final class FollowLink
         return null;
     }
 
-    private static File resolve(Editor editor, String path)
-    {
+    private static File resolve(Editor editor, String path) {
         if (Utilities.isFilenameAbsolute(path) || path.startsWith("~"))
             return File.getInstance(path);
         final File file = editor.getBuffer().getFile();
-        final File dir = file != null ? file.getParentFile()
+        final File dir = file != null
+            ? file.getParentFile()
             : editor.getCurrentDirectory();
         return dir != null ? File.getInstance(dir, path) : null;
     }
 
     // "my%20notes.md" as it is named; a '+' stays a '+'.
-    private static String decode(String s)
-    {
+    private static String decode(String s) {
         try {
             return URLDecoder.decode(s.replace("+", "%2B"), StandardCharsets.UTF_8);
         }

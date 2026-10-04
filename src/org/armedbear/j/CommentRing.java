@@ -20,17 +20,14 @@
 
 package org.armedbear.j;
 
-public final class CommentRing extends Ring
-{
+public final class CommentRing extends Ring {
     private static CommentRing commentRing;
 
-    private CommentRing()
-    {
+    private CommentRing() {
         super(30);
     }
 
-    public static synchronized CommentRing getInstance()
-    {
+    public static synchronized CommentRing getInstance() {
         if (commentRing == null) {
             commentRing = new CommentRing();
             Editor.protect(commentRing);

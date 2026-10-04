@@ -24,7 +24,6 @@ import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.util.ArrayList;
-
 import org.armedbear.j.util.Utilities;
 import org.xml.sax.Attributes;
 import org.xml.sax.ContentHandler;
@@ -33,8 +32,7 @@ import org.xml.sax.SAXException;
 import org.xml.sax.XMLReader;
 import org.xml.sax.helpers.DefaultHandler;
 
-public final class FileHistory extends DefaultHandler implements ContentHandler
-{
+public final class FileHistory extends DefaultHandler implements ContentHandler {
     private static final int MAX_ENTRIES = 100;
 
     // Singleton.
@@ -44,15 +42,13 @@ public final class FileHistory extends DefaultHandler implements ContentHandler
 
     private File file;
 
-    private FileHistory()
-    {
+    private FileHistory() {
         file = File.getInstance(Directories.getStateDirectory(), "files.xml");
         if (file.isFile())
             load();
     }
 
-    public static synchronized FileHistory getFileHistory()
-    {
+    public static synchronized FileHistory getFileHistory() {
         if (fileHistory == null) {
             fileHistory = new FileHistory();
             Editor.protect(fileHistory);
@@ -60,8 +56,7 @@ public final class FileHistory extends DefaultHandler implements ContentHandler
         return fileHistory;
     }
 
-    public synchronized FileHistoryEntry findEntry(String canonicalPath)
-    {
+    public synchronized FileHistoryEntry findEntry(String canonicalPath) {
         for (FileHistoryEntry entry : list) {
             if (entry.getName().equals(canonicalPath))
                 return entry;
@@ -69,8 +64,7 @@ public final class FileHistory extends DefaultHandler implements ContentHandler
         return null;
     }
 
-    public synchronized void store(FileHistoryEntry newEntry)
-    {
+    public synchronized void store(FileHistoryEntry newEntry) {
         Debug.assertTrue(newEntry != null);
         Debug.assertTrue(newEntry.getName() != null);
         final int limit = list.size();
@@ -89,8 +83,7 @@ public final class FileHistory extends DefaultHandler implements ContentHandler
         list.add(0, newEntry);
     }
 
-    private void load()
-    {
+    private void load() {
         XMLReader xmlReader = Utilities.getDefaultXMLReader();
         if (xmlReader != null) {
             xmlReader.setContentHandler(this);
@@ -106,9 +99,12 @@ public final class FileHistory extends DefaultHandler implements ContentHandler
 
     private FileHistoryEntry currentEntry = null;
 
-    public void startElement(String uri, String localName, String qName,
-        Attributes attributes) throws SAXException
-    {
+    public void startElement(
+        String uri,
+        String localName,
+        String qName,
+        Attributes attributes
+    ) throws SAXException {
         if (localName.equals("files") || qName.equals("files")) {
             String version = attributes.getValue("version");
             if (!version.equals(getVersion()))
@@ -135,16 +131,14 @@ public final class FileHistory extends DefaultHandler implements ContentHandler
         }
     }
 
-    public void endElement(String uri, String localName, String qName)
-    {
+    public void endElement(String uri, String localName, String qName) {
         if (localName.equals("file") || qName.equals("file")) {
             list.add(currentEntry);
             currentEntry = null;
         }
     }
 
-    public synchronized void save()
-    {
+    public synchronized void save() {
         try {
             BufferedWriter writer =
                 new BufferedWriter(new OutputStreamWriter(file.getOutputStream()));
@@ -167,8 +161,7 @@ public final class FileHistory extends DefaultHandler implements ContentHandler
         }
     }
 
-    private static final String getVersion()
-    {
+    private static final String getVersion() {
         return "2";
     }
 }

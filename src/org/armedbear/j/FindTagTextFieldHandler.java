@@ -20,26 +20,21 @@
 
 package org.armedbear.j;
 
+import java.util.ArrayList;
+import java.util.List;
 import org.armedbear.j.mode.list.ListTagsBuffer;
 import org.armedbear.j.util.Utilities;
 
-import java.util.ArrayList;
-import java.util.List;
-
-public final class FindTagTextFieldHandler extends DefaultTextFieldHandler
-{
-    public FindTagTextFieldHandler(Editor editor, HistoryTextField textField)
-    {
+public final class FindTagTextFieldHandler extends DefaultTextFieldHandler {
+    public FindTagTextFieldHandler(Editor editor, HistoryTextField textField) {
         super(editor, textField);
     }
 
-    public boolean wantTab()
-    {
+    public boolean wantTab() {
         return true;
     }
 
-    public void enter()
-    {
+    public void enter() {
         String pattern = textField.getText();
         if (pattern == null)
             return;
@@ -59,8 +54,7 @@ public final class FindTagTextFieldHandler extends DefaultTextFieldHandler
         editor.getDispatcher().eventHandled();
     }
 
-    private void findTag(String pattern)
-    {
+    private void findTag(String pattern) {
         final Buffer buffer = editor.getBuffer();
         List<? extends Tag> tags = findMatchingTags(buffer, pattern);
         if (tags != null) {
@@ -75,8 +69,12 @@ public final class FindTagTextFieldHandler extends DefaultTextFieldHandler
                         if (type == TAG_METHOD || type == TAG_EXPLICIT)
                             shortList.add(tag);
                         // Lisp.
-                        if (type == TAG_DEFUN || type == TAG_GENERIC_FUNCTION ||
-                                type == TAG_MACRO)
+                        if (
+                            type == TAG_DEFUN
+                                || type == TAG_GENERIC_FUNCTION
+                                ||
+                                type == TAG_MACRO
+                        )
                             shortList.add(tag);
                     }
                 }
@@ -110,8 +108,7 @@ public final class FindTagTextFieldHandler extends DefaultTextFieldHandler
             editor.status("Tag \"".concat(pattern).concat("\" not found"));
     }
 
-    private static List<? extends Tag> findMatchingTags(Buffer buffer, String pattern)
-    {
+    private static List<? extends Tag> findMatchingTags(Buffer buffer, String pattern) {
         boolean ignoreCase = Utilities.isLowerCase(pattern);
         final Mode mode = buffer.getMode();
 
@@ -124,8 +121,13 @@ public final class FindTagTextFieldHandler extends DefaultTextFieldHandler
         // No exact match in the current buffer. Look in the current
         // directory.
         List<GlobalTag> globalTags =
-            TagCommands.findMatchingTagsInDirectory(pattern,
-                buffer.getCurrentDirectory(), mode, -1, ignoreCase);
+            TagCommands.findMatchingTagsInDirectory(
+                pattern,
+                buffer.getCurrentDirectory(),
+                mode,
+                -1,
+                ignoreCase
+            );
         if (globalTags == null) {
             // Look at all the directories in the buffer's tag path.
             List<String> dirs = TagCommands.getDirectoriesInTagPath(buffer);
@@ -135,8 +137,13 @@ public final class FindTagTextFieldHandler extends DefaultTextFieldHandler
                     if (directory.equals(buffer.getCurrentDirectory()))
                         continue;
                     List<GlobalTag> tagsInDir =
-                            TagCommands.findMatchingTagsInDirectory(pattern,
-                                    directory, mode, -1, ignoreCase);
+                        TagCommands.findMatchingTagsInDirectory(
+                            pattern,
+                            directory,
+                            mode,
+                            -1,
+                            ignoreCase
+                        );
                     if (tagsInDir != null) {
                         if (globalTags == null)
                             globalTags = new ArrayList<GlobalTag>();
@@ -149,9 +156,11 @@ public final class FindTagTextFieldHandler extends DefaultTextFieldHandler
         return (globalTags != null && globalTags.size() > 0) ? globalTags : null;
     }
 
-    private static List<LocalTag> findMatchingTagsInBuffer(Buffer buffer, String pattern,
-        boolean ignoreCase)
-    {
+    private static List<LocalTag> findMatchingTagsInBuffer(
+        Buffer buffer,
+        String pattern,
+        boolean ignoreCase
+    ) {
         if (buffer.getTags() == null) {
             Tagger tagger = buffer.getMode().getTagger(buffer);
             if (tagger != null)
@@ -182,13 +191,15 @@ public final class FindTagTextFieldHandler extends DefaultTextFieldHandler
         return list.size() > 0 ? list : null;
     }
 
-    public List<String> getCompletions(final String prefix)
-    {
+    public List<String> getCompletions(final String prefix) {
         List<String> list = getCompletionsInCurrentBuffer(prefix);
         Mode mode = editor.getMode();
         List<GlobalTag> tags =
-            Editor.getTagFileManager().getTags(editor.getCurrentDirectory(),
-                mode);
+            Editor.getTagFileManager()
+                .getTags(
+                    editor.getCurrentDirectory(),
+                    mode
+                );
         if (tags != null) {
             boolean prefixIsQualified = mode.isQualifiedName(prefix);
             boolean ignoreCase = Utilities.isLowerCase(prefix);
@@ -220,8 +231,7 @@ public final class FindTagTextFieldHandler extends DefaultTextFieldHandler
         return list;
     }
 
-    private List<String> getCompletionsInCurrentBuffer(String prefix)
-    {
+    private List<String> getCompletionsInCurrentBuffer(String prefix) {
         List<String> list = new ArrayList<String>();
         List<LocalTag> tags = editor.getBuffer().getTags();
         if (tags != null) {
@@ -237,8 +247,7 @@ public final class FindTagTextFieldHandler extends DefaultTextFieldHandler
     }
 
     // Add name if it's not already in the list.
-    private void maybeAdd(List<String> list, String name)
-    {
+    private void maybeAdd(List<String> list, String name) {
         if (name != null) {
             for (int i = list.size(); i-- > 0;)
                 if (name.equals(list.get(i)))

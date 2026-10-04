@@ -20,10 +20,8 @@
 
 import java.lang.reflect.Method;
 
-public final class Main
-{
-    public static void main(String[] args)
-    {
+public final class Main {
+    public static void main(String[] args) {
         final String version = System.getProperty("java.version");
         final int majorVersion = Integer.parseInt(version.split("\\.")[0]);
         System.out.println("java version: " + version);

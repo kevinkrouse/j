@@ -18,7 +18,6 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
  */
 
-
 package org.armedbear.j.mode.markdown;
 
 import org.armedbear.j.Buffer;
@@ -31,8 +30,7 @@ import org.armedbear.j.Line;
  * where one is already folded folds the one around it, so that folding again
  * and again closes outward, as vim's zc does.
  */
-public final class MarkdownFolding
-{
+public final class MarkdownFolding {
     private static final Line[] NOTHING = new Line[0];
 
     private MarkdownFolding() {}
@@ -42,8 +40,7 @@ public final class MarkdownFolding
      * it is in or heads with a line still to be seen. An empty array if
      * everything around it is folded or there is nothing to fold.
      */
-    static Line[] getFoldRange(Buffer buffer, Line line)
-    {
+    static Line[] getFoldRange(Buffer buffer, Line line) {
         parse(buffer);
         final Line[] fence = fenceBody(line);
         if (isOpen(fence))
@@ -52,7 +49,8 @@ public final class MarkdownFolding
             return indentedCode(line);
         Line item = MarkdownFormatter.startsListItem(line.getText())
             && !MarkdownFormatter.isInFence(line)
-            ? line : enclosingItem(buffer, line);
+                ? line
+                : enclosingItem(buffer, line);
         for (; item != null; item = enclosingItem(buffer, item)) {
             final Line[] range = children(buffer, item);
             if (isOpen(range))
@@ -67,8 +65,7 @@ public final class MarkdownFolding
     }
 
     // Whether any line of a range is still to be seen.
-    private static boolean isOpen(Line[] range)
-    {
+    private static boolean isOpen(Line[] range) {
         if (range == null)
             return false;
         for (Line l = range[0]; l != null; l = l.next()) {
@@ -80,20 +77,17 @@ public final class MarkdownFolding
         return false;
     }
 
-    private static void parse(Buffer buffer)
-    {
+    private static void parse(Buffer buffer) {
         if (buffer.needsParsing())
             buffer.getFormatter().parseBuffer();
     }
 
-    private static int level(Line line)
-    {
+    private static int level(Line line) {
         return MarkdownFormatter.getHeadingLevel(line);
     }
 
     // The fence's code and the line closing it, or null.
-    private static Line[] fenceBody(Line line)
-    {
+    private static Line[] fenceBody(Line line) {
         final Line[] block = MarkdownFormatter.fenceBlock(line);
         if (block == null || block[1] == block[0])
             return null;
@@ -102,8 +96,7 @@ public final class MarkdownFolding
 
     // An indented code block's lines after its first, which stays to show
     // where it is.
-    private static Line[] indentedCode(Line line)
-    {
+    private static Line[] indentedCode(Line line) {
         if (!MarkdownFormatter.isIndentedCodeBlock(line))
             return null;
         Line first = line;
@@ -125,8 +118,7 @@ public final class MarkdownFolding
 
     // The lines under a list item: those after it indented more than it,
     // with the blank lines among them.
-    private static Line[] children(Buffer buffer, Line item)
-    {
+    private static Line[] children(Buffer buffer, Line item) {
         final int indent = buffer.getIndentation(item);
         Line last = item;
         for (Line line = item.next(); line != null; line = line.next()) {
@@ -141,8 +133,7 @@ public final class MarkdownFolding
 
     // The list item line is under, or null. A blank line is as far in as
     // the line after it.
-    private static Line enclosingItem(Buffer buffer, Line line)
-    {
+    private static Line enclosingItem(Buffer buffer, Line line) {
         Line measured = line;
         while (measured != null && measured.isBlank())
             measured = measured.next();
@@ -156,8 +147,10 @@ public final class MarkdownFolding
                 return null;
             final int i = buffer.getIndentation(l);
             if (i < indent) {
-                if (MarkdownFormatter.startsListItem(l.getText())
-                    && !MarkdownFormatter.isInFence(l))
+                if (
+                    MarkdownFormatter.startsListItem(l.getText())
+                        && !MarkdownFormatter.isInFence(l)
+                )
                     return l;
                 indent = i;
             }
@@ -166,16 +159,14 @@ public final class MarkdownFolding
     }
 
     // The heading line is, or whose underline it is, or the one it is under.
-    private static Line headingAt(Line line)
-    {
+    private static Line headingAt(Line line) {
         for (Line l = line; l != null; l = l.previous())
             if (level(l) > 0)
                 return l;
         return null;
     }
 
-    private static Line parentHeading(Line heading)
-    {
+    private static Line parentHeading(Line heading) {
         final int level = level(heading);
         for (Line l = heading.previous(); l != null; l = l.previous()) {
             final int n = level(l);
@@ -187,8 +178,7 @@ public final class MarkdownFolding
 
     // Everything under a heading down to the next as high, but the blank
     // lines before that, which keep the headings apart when folded.
-    private static Line[] section(Line heading)
-    {
+    private static Line[] section(Line heading) {
         final int level = level(heading);
         Line first = heading.next();
         if (first != null && MarkdownFormatter.isSetextHeading(heading))
@@ -204,12 +194,12 @@ public final class MarkdownFolding
         }
         while (last != null && last != first.previous() && last.isBlank())
             last = last.previous();
-        return last == null || last == first.previous() ? null
+        return last == null || last == first.previous()
+            ? null
             : new Line[] { first, last };
     }
 
-    public static void foldHeadings()
-    {
+    public static void foldHeadings() {
         foldHeadings(null);
     }
 
@@ -217,8 +207,7 @@ public final class MarkdownFolding
      * Folds all but the headings down to a level, 1-6, all of them if none
      * is given: an outline of the document.
      */
-    public static void foldHeadings(String arg)
-    {
+    public static void foldHeadings(String arg) {
         final Editor editor = Editor.currentEditor();
         int depth = 6;
         if (arg != null && !arg.trim().isEmpty()) {
@@ -236,8 +225,7 @@ public final class MarkdownFolding
         foldHeadings(editor, depth);
     }
 
-    static void foldHeadings(Editor editor, int depth)
-    {
+    static void foldHeadings(Editor editor, int depth) {
         final Buffer buffer = editor.getBuffer();
         // Elsewhere a line beginning with # is a comment, not a heading.
         if (!(buffer.getMode() instanceof MarkdownMode)) {
@@ -258,8 +246,8 @@ public final class MarkdownFolding
             final int n = level(line);
             return n > 0 && n <= depth
                 || line.previous() != null
-                   && MarkdownFormatter.isSetextHeading(line.previous())
-                   && level(line.previous()) <= depth;
+                    && MarkdownFormatter.isSetextHeading(line.previous())
+                    && level(line.previous()) <= depth;
         });
     }
 }

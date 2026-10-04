@@ -20,22 +20,20 @@
 
 package org.armedbear.j;
 
-import org.armedbear.j.mode.list.ListOccurrencesBuffer;
-import org.armedbear.j.util.Utilities;
-
-import java.util.regex.PatternSyntaxException;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.TextEvent;
 import java.awt.event.TextListener;
+import java.util.regex.PatternSyntaxException;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.JPanel;
+import org.armedbear.j.mode.list.ListOccurrencesBuffer;
+import org.armedbear.j.util.Utilities;
 
 public final class FindDialog extends AbstractDialog implements ActionListener,
-    TextListener
-{
-    private static final String patternKey         = "find.pattern";
+    TextListener {
+    private static final String patternKey = "find.pattern";
     private static final String searchFromStartKey = "find.searchFromStart";
 
     private static boolean wholeWordsOnly;
@@ -55,8 +53,7 @@ public final class FindDialog extends AbstractDialog implements ActionListener,
     private boolean listOccurrences;
     private boolean searchFromStart;
 
-    public FindDialog(Editor editor)
-    {
+    public FindDialog(Editor editor) {
         super(editor, "Find", true);
         this.editor = editor;
         search = new Search();
@@ -115,23 +112,19 @@ public final class FindDialog extends AbstractDialog implements ActionListener,
         patternControl.requestFocus();
     }
 
-    public Search getSearch()
-    {
+    public Search getSearch() {
         return search;
     }
 
-    public boolean getListOccurrences()
-    {
+    public boolean getListOccurrences() {
         return listOccurrences;
     }
 
-    public boolean searchFromStart()
-    {
+    public boolean searchFromStart() {
         return searchFromStart;
     }
 
-    protected void ok()
-    {
+    protected void ok() {
         search.setPattern(patternControl.getText());
         search.setIgnoreCase(ignoreCaseCheckBox.isSelected());
         wholeWordsOnly = wholeWordsCheckBox.isSelected();
@@ -147,8 +140,11 @@ public final class FindDialog extends AbstractDialog implements ActionListener,
                 search.setREFromPattern();
             }
             catch (PatternSyntaxException e) {
-                MessageDialog.showMessageDialog(editor,
-                    e.getMessage(), "Error");
+                MessageDialog.showMessageDialog(
+                    editor,
+                    e.getMessage(),
+                    "Error"
+                );
                 patternControl.requestFocus();
                 return;
             }
@@ -161,20 +157,17 @@ public final class FindDialog extends AbstractDialog implements ActionListener,
         dispose();
     }
 
-    protected void cancel()
-    {
+    protected void cancel() {
         cancelled = true;
         search = null;
         dispose();
     }
 
-    public void textValueChanged(TextEvent e)
-    {
+    public void textValueChanged(TextEvent e) {
         setIgnoreCaseDefault();
     }
 
-    public void actionPerformed(ActionEvent e)
-    {
+    public void actionPerformed(ActionEvent e) {
         String cmd = e.getActionCommand();
         if (cmd != null && cmd.equals(regularExpressionCheckBox.getText())) {
             if (multilinePatternCheckBox != null) {
@@ -187,21 +180,18 @@ public final class FindDialog extends AbstractDialog implements ActionListener,
             super.actionPerformed(e);
     }
 
-    private void setIgnoreCaseDefault()
-    {
+    private void setIgnoreCaseDefault() {
         String pattern = patternControl.getText();
         ignoreCaseCheckBox.setSelected(pattern == null || Utilities.isLowerCase(pattern));
     }
 
-    public static void find()
-    {
+    public static void find() {
         find(Editor.currentEditor());
     }
 
     // Also called from IncrementalTextFieldHandler.finish() if the user hits
     // Enter with an empty search string.
-    public static void find(Editor editor)
-    {
+    public static void find(Editor editor) {
         if (editor.getDot() == null)
             return;
         FindDialog d = new FindDialog(editor);

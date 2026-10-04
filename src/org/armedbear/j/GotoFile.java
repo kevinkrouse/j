@@ -20,27 +20,24 @@
 
 package org.armedbear.j;
 
-import org.armedbear.j.mode.dir.DirectoryBuffer;
-import org.armedbear.j.mode.java.JavaSource;
-import java.lang.StringBuilder;
-import org.armedbear.j.util.Utilities;
-
-import java.util.regex.Pattern;
-import java.util.regex.Matcher;
 import java.awt.AWTEvent;
 import java.awt.event.MouseEvent;
+import java.lang.StringBuilder;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import org.armedbear.j.mode.dir.DirectoryBuffer;
+import org.armedbear.j.mode.java.JavaSource;
+import org.armedbear.j.util.Utilities;
 
-public final class GotoFile implements Constants
-{
-    public static void gotoFile()
-    {
+public final class GotoFile implements Constants {
+    public static void gotoFile() {
         final Editor editor = Editor.currentEditor();
 
         // If this method is invoked via a mouse event mapping, move dot to
         // location of mouse click first.
         AWTEvent event = editor.getDispatcher().getLastEvent();
         if (event instanceof MouseEvent)
-            editor.mouseMoveDotToPoint((MouseEvent)event);
+            editor.mouseMoveDotToPoint((MouseEvent) event);
 
         String filename = gotoFileGetFileName(editor);
         if (filename == null)
@@ -52,7 +49,7 @@ public final class GotoFile implements Constants
         if (index >= 0) {
             // "test.pl line 3"
             try {
-                lineNumber = Integer.parseInt(filename.substring(index+6)) - 1;
+                lineNumber = Integer.parseInt(filename.substring(index + 6)) - 1;
                 // Shorten filename to exclude line number.
                 filename = filename.substring(0, index);
             }
@@ -65,7 +62,7 @@ public final class GotoFile implements Constants
                 // "Position.java:140"
                 try {
                     lineNumber =
-                        Integer.parseInt(filename.substring(index+1)) - 1;
+                        Integer.parseInt(filename.substring(index + 1)) - 1;
                     // Shorten filename to exclude line number.
                     filename = filename.substring(0, index);
                 }
@@ -77,13 +74,17 @@ public final class GotoFile implements Constants
 
         boolean tryCurrentDirectory = true;
 
-        if (filename.length() >= 2 &&
-            filename.charAt(0) == '<' &&
-            filename.charAt(filename.length()-1) == '>') {
+        if (
+            filename.length() >= 2
+                &&
+                filename.charAt(0) == '<'
+                &&
+                filename.charAt(filename.length() - 1) == '>'
+        ) {
             // We'll only get the angle brackets if we're in C or C++ mode.
             // Strip the angle brackets and don't look for the file in the
             // current directory.
-            filename = filename.substring(1, filename.length()-1);
+            filename = filename.substring(1, filename.length() - 1);
             tryCurrentDirectory = false;
         }
 
@@ -95,8 +96,10 @@ public final class GotoFile implements Constants
             // The filename is not absolute.
             if (tryCurrentDirectory)
                 // Try current directory first.
-                file = File.getInstance(editor.getCurrentDirectory(),
-                    filename);
+                file = File.getInstance(
+                    editor.getCurrentDirectory(),
+                    filename
+                );
 
             // Try source and include paths if applicable.
             if (file == null || (file.isLocal() && !file.exists()))
@@ -129,8 +132,7 @@ public final class GotoFile implements Constants
         }
     }
 
-    private static String gotoFileGetFileName(Editor editor)
-    {
+    private static String gotoFileGetFileName(Editor editor) {
         if (editor.getDot() == null)
             return null;
         final Line dotLine = editor.getDotLine();
@@ -162,8 +164,7 @@ public final class GotoFile implements Constants
         return editor.getFilenameAtDot();
     }
 
-    private static String getFileNameFromImport(Buffer buffer, String s)
-    {
+    private static String getFileNameFromImport(Buffer buffer, String s) {
         if (s.indexOf('*') >= 0)
             return null;
         s = s.trim();
@@ -189,8 +190,7 @@ public final class GotoFile implements Constants
     private static final Pattern includeRE =
         Pattern.compile("[ \t]*#[ \t]*include[ \t]");
 
-    private static final String getFileNameFromInclude(String s)
-    {
+    private static final String getFileNameFromInclude(String s) {
         Matcher matcher = includeRE.matcher(s);
         if (!matcher.find())
             return null;
@@ -208,7 +208,7 @@ public final class GotoFile implements Constants
         if (c == '<') {
             int index = s.indexOf('>', 1);
             if (index >= 0)
-                return s.substring(0, index+1); // Include angle brackets.
+                return s.substring(0, index + 1); // Include angle brackets.
         }
         return null;
     }

@@ -23,23 +23,20 @@ package org.armedbear.j;
 import java.lang.StringBuilder;
 import org.armedbear.j.util.Utilities;
 
-public final class CloseBufferConfirmationDialog extends ConfirmDialog
-{
+public final class CloseBufferConfirmationDialog extends ConfirmDialog {
     private final Editor editor;
     private final Buffer buffer;
 
     private boolean confirmed;
 
-    public static boolean confirmClose(Editor editor, Buffer buffer)
-    {
+    public static boolean confirmClose(Editor editor, Buffer buffer) {
         CloseBufferConfirmationDialog d =
             new CloseBufferConfirmationDialog(editor, buffer);
         d.setVisible(true);
         return d.confirmed();
     }
 
-    private CloseBufferConfirmationDialog(Editor editor, Buffer buffer)
-    {
+    private CloseBufferConfirmationDialog(Editor editor, Buffer buffer) {
         super(editor);
         this.editor = editor;
         this.buffer = buffer;
@@ -52,14 +49,12 @@ public final class CloseBufferConfirmationDialog extends ConfirmDialog
         centerDialog();
     }
 
-    private boolean confirmed()
-    {
+    private boolean confirmed() {
         return confirmed;
     }
 
     // Save the changes.
-    protected void yes()
-    {
+    protected void yes() {
         setVisible(false);
         editor.save(buffer);
         if (!buffer.isModified()) {
@@ -72,14 +67,12 @@ public final class CloseBufferConfirmationDialog extends ConfirmDialog
     }
 
     // Don't save the changes.
-    protected void no()
-    {
+    protected void no() {
         confirmed = true;
         dispose();
     }
 
-    protected void cancel()
-    {
+    protected void cancel() {
         cancelled = true;
         dispose();
     }

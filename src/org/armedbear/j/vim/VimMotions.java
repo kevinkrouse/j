@@ -13,16 +13,15 @@ package org.armedbear.j.vim;
 
 import java.util.HashMap;
 import java.util.Map;
-
 import org.armedbear.j.Buffer;
 import org.armedbear.j.CaretCommands;
 import org.armedbear.j.Line;
 import org.armedbear.j.Marker;
 import org.armedbear.j.Mode;
 import org.armedbear.j.Paragraphs;
-import org.armedbear.j.Words;
 import org.armedbear.j.Position;
 import org.armedbear.j.Sentences;
+import org.armedbear.j.Words;
 
 /**
  * The motions, by the names the key map table uses.
@@ -35,11 +34,9 @@ import org.armedbear.j.Sentences;
  * {@code dw} the motion says how far {@code w} would go, and the delete uses
  * the span without the caret ever visiting the far end.
  */
-public final class VimMotions
-{
+public final class VimMotions {
     /** Computes where a motion ends. */
-    public interface Motion
-    {
+    public interface Motion {
         Position move(MotionContext ctx, Position from);
 
         /**
@@ -48,8 +45,7 @@ public final class VimMotions
          * Usually the table row says, but ';' and ',' cannot: their kind
          * follows the f/t search they repeat, which is only known at run time.
          */
-        default MotionKind kindOf(MotionContext ctx)
-        {
+        default MotionKind kindOf(MotionContext ctx) {
             return MotionKind.of(ctx.command);
         }
     }
@@ -57,17 +53,13 @@ public final class VimMotions
     private static final Map<String, Motion> MOTIONS =
         new HashMap<String, Motion>();
 
-    private VimMotions()
-    {
-    }
+    private VimMotions() {}
 
-    public static Motion get(String name)
-    {
+    public static Motion get(String name) {
         return MOTIONS.get(name);
     }
 
-    public static void register(String name, Motion motion)
-    {
+    public static void register(String name, Motion motion) {
         MOTIONS.put(name, motion);
     }
 
@@ -102,8 +94,7 @@ public final class VimMotions
      * Vim's h and l stop at the ends of the line rather than wrapping, and a
      * count that would overshoot moves as far as it can instead of failing.
      */
-    private static Position moveByCharacters(MotionContext ctx, Position from)
-    {
+    private static Position moveByCharacters(MotionContext ctx, Position from) {
         final boolean forward = ctx.arg("forward");
         // dl on the last character of a line deletes it, so the exclusive end
         // has to be able to sit one past where the caret could.
@@ -112,8 +103,9 @@ public final class VimMotions
             : lastOffset(ctx, from.getLine());
         int offset = from.getOffset();
         for (int i = 0; i < ctx.count; i++)
-            offset = forward ? CodePoints.next(from.getLine(), offset)
-                             : CodePoints.previous(from.getLine(), offset);
+            offset = forward
+                ? CodePoints.next(from.getLine(), offset)
+                : CodePoints.previous(from.getLine(), offset);
         if (offset > last)
             offset = last;
         return offset == from.getOffset() ? null : at(from.getLine(), offset);
@@ -125,8 +117,7 @@ public final class VimMotions
      * The column the caret wants is remembered across a run of them, so that
      * passing through a short line does not lose the column on the way back.
      */
-    private static Position moveByLines(MotionContext ctx, Position from)
-    {
+    private static Position moveByLines(MotionContext ctx, Position from) {
         final boolean forward = ctx.arg("forward");
         Line line = from.getLine();
         for (int i = 0; i < ctx.count; i++) {
@@ -152,8 +143,7 @@ public final class VimMotions
     }
 
     /** ^ */
-    private static Position moveToFirstNonBlank(MotionContext ctx, Position from)
-    {
+    private static Position moveToFirstNonBlank(MotionContext ctx, Position from) {
         return at(from.getLine(), firstNonBlank(from.getLine()));
     }
 
@@ -162,8 +152,7 @@ public final class VimMotions
      *
      * With a count, {@code 3$} goes to the end of the third line down.
      */
-    private static Position moveToEol(MotionContext ctx, Position from)
-    {
+    private static Position moveToEol(MotionContext ctx, Position from) {
         Line line = from.getLine();
         for (int i = 1; i < ctx.count; i++) {
             final Line next = line.nextVisible();
@@ -180,8 +169,7 @@ public final class VimMotions
      * Both take a line number as their count; without one, gg goes to the
      * first line and G to the last. The caret lands on the first non-blank.
      */
-    private static Position moveToLine(MotionContext ctx, Position from)
-    {
+    private static Position moveToLine(MotionContext ctx, Position from) {
         final Buffer buffer = ctx.editor.getBuffer();
         final Line line;
         if (ctx.countGiven)
@@ -196,8 +184,7 @@ public final class VimMotions
     }
 
     /** | -- to a screen column, counting from one. */
-    private static Position moveToColumn(MotionContext ctx, Position from)
-    {
+    private static Position moveToColumn(MotionContext ctx, Position from) {
         final Position to = new Position(from.getLine(), 0);
         to.moveOntoCol(ctx.count - 1, ctx.editor.getBuffer().getTabWidth());
         clampToLine(ctx, to);
@@ -205,8 +192,7 @@ public final class VimMotions
     }
 
     /** w W b B e E ge gE -- one implementation, four arguments. */
-    private static Position moveByWords(MotionContext ctx, Position from)
-    {
+    private static Position moveByWords(MotionContext ctx, Position from) {
         final Mode mode = ctx.editor.getBuffer().getMode();
         final boolean forward = ctx.arg("forward");
         final boolean wordEnd = ctx.arg("wordEnd");
@@ -216,11 +202,13 @@ public final class VimMotions
         for (int i = 0; i < ctx.count; i++) {
             final Position next;
             if (forward)
-                next = wordEnd ? Words.forwardToWordEnd(pos, mode, bigWord)
-                               : Words.forwardToWordStart(pos, mode, bigWord);
+                next = wordEnd
+                    ? Words.forwardToWordEnd(pos, mode, bigWord)
+                    : Words.forwardToWordStart(pos, mode, bigWord);
             else
-                next = wordEnd ? Words.backwardToWordEnd(pos, mode, bigWord)
-                               : Words.backwardToWordStart(pos, mode, bigWord);
+                next = wordEnd
+                    ? Words.backwardToWordEnd(pos, mode, bigWord)
+                    : Words.backwardToWordStart(pos, mode, bigWord);
             if (next == null) {
                 // Out of words. Going forward that means the end of the
                 // buffer, not failure: `de` on the last word still deletes
@@ -243,8 +231,7 @@ public final class VimMotions
      *
      * Confined to the line the caret is on: vim does not search past the end.
      */
-    private static Position moveToCharacter(MotionContext ctx, Position from)
-    {
+    private static Position moveToCharacter(MotionContext ctx, Position from) {
         final int target = ctx.codePointArg();
         if (target == 0)
             return null;
@@ -262,33 +249,38 @@ public final class VimMotions
      * those applies. So `d;` after `f4` takes the 4 and `d;` after `F4` does
      * not.
      */
-    private static final class RepeatCharacterSearch implements Motion
-    {
+    private static final class RepeatCharacterSearch implements Motion {
         @Override
-        public Position move(MotionContext ctx, Position from)
-        {
+        public Position move(MotionContext ctx, Position from) {
             final VimState.CharacterSearch last =
                 ctx.state.getLastCharacterSearch();
             if (last == null)
                 return null;
-            return findCharacter(from, last.target, forward(ctx, last),
-                                 last.till, ctx.count, true);
+            return findCharacter(
+                from,
+                last.target,
+                forward(ctx, last),
+                last.till,
+                ctx.count,
+                true
+            );
         }
 
         @Override
-        public MotionKind kindOf(MotionContext ctx)
-        {
+        public MotionKind kindOf(MotionContext ctx) {
             final VimState.CharacterSearch last =
                 ctx.state.getLastCharacterSearch();
             if (last == null)
                 return MotionKind.of(ctx.command);
-            return forward(ctx, last) ? MotionKind.CHARWISE_INCLUSIVE
-                                      : MotionKind.CHARWISE_EXCLUSIVE;
+            return forward(ctx, last)
+                ? MotionKind.CHARWISE_INCLUSIVE
+                : MotionKind.CHARWISE_EXCLUSIVE;
         }
 
-        private static boolean forward(MotionContext ctx,
-                                       VimState.CharacterSearch last)
-        {
+        private static boolean forward(
+            MotionContext ctx,
+            VimState.CharacterSearch last
+        ) {
             return ctx.arg("reverse") ? !last.forward : last.forward;
         }
     }
@@ -300,17 +292,28 @@ public final class VimMotions
      *        till search: the caret is already parked against the character
      *        it stopped before, so searching from there would never move.
      */
-    private static Position findCharacter(Position from, int target,
-                                          boolean forward, boolean till,
-                                          int count, boolean repeat)
-    {
-        return CaretCommands.findCharacter(from,
-            new CaretCommands.CharSearch(target, forward, till), count, repeat);
+    private static Position findCharacter(
+        Position from,
+        int target,
+        boolean forward,
+        boolean till,
+        int count,
+        boolean repeat
+    ) {
+        return CaretCommands.findCharacter(
+            from,
+            new CaretCommands.CharSearch(target, forward, till),
+            count,
+            repeat
+        );
     }
 
-    private static int indexOf(String text, char target, int from,
-                               boolean forward)
-    {
+    private static int indexOf(
+        String text,
+        char target,
+        int from,
+        boolean forward
+    ) {
         for (int i = from; i >= 0 && i < text.length(); i += forward ? 1 : -1)
             if (text.charAt(i) == target)
                 return i;
@@ -322,15 +325,23 @@ public final class VimMotions
      * run of them. Running out of buffer lands on its edge, but a count that
      * runs out with some left over goes nowhere, as in vim.
      */
-    private static Position moveByParagraph(MotionContext ctx, Position from)
-    {
-        final Position to = Paragraphs.find(from, ctx.arg("forward"),
-                                            ctx.count, (char) 0, false);
+    private static Position moveByParagraph(MotionContext ctx, Position from) {
+        final Position to = Paragraphs.find(
+            from,
+            ctx.arg("forward"),
+            ctx.count,
+            (char) 0,
+            false
+        );
         // Paragraphs.find stops at the end of the last line, which for an
         // operator is the same as taking its last character. A move rests
         // on that character instead, as vim's findpar does.
-        if (to != null && !ctx.forOperator && to.getOffset() > 0
-            && to.getOffset() == to.getLine().length())
+        if (
+            to != null
+                && !ctx.forOperator
+                && to.getOffset() > 0
+                && to.getOffset() == to.getLine().length()
+        )
             return at(to.getLine(), to.getOffset() - 1);
         return to;
     }
@@ -340,21 +351,25 @@ public final class VimMotions
      * '}'. Without an operator the caret goes to the first non-blank; with
      * one, d]] stops at a '}' too and takes it.
      */
-    private static Position moveBySection(MotionContext ctx, Position from)
-    {
+    private static Position moveBySection(MotionContext ctx, Position from) {
         final boolean forward = ctx.arg("forward");
         final char what = ctx.arg("end") ? '}' : '{';
-        final Position to = Paragraphs.find(from, forward, ctx.count, what,
-                                            ctx.forOperator && forward
-                                            && what == '{');
+        final Position to = Paragraphs.find(
+            from,
+            forward,
+            ctx.count,
+            what,
+            ctx.forOperator
+                && forward
+                && what == '{'
+        );
         if (to == null || ctx.forOperator)
             return to;
         return at(to.getLine(), firstNonBlank(to.getLine()));
     }
 
     /** ( and ) -- to the start of a sentence, j's {@link Sentences}. */
-    private static Position moveBySentence(MotionContext ctx, Position from)
-    {
+    private static Position moveBySentence(MotionContext ctx, Position from) {
         return Sentences.find(from, ctx.arg("forward"), ctx.count);
     }
 
@@ -362,8 +377,7 @@ public final class VimMotions
      * [( [{ ]) ]} -- to the bracket still open at the caret, count levels
      * out, through j's own bracket matching with vim's rules, as for %.
      */
-    private static Position moveToUnmatched(MotionContext ctx, Position from)
-    {
+    private static Position moveToUnmatched(MotionContext ctx, Position from) {
         final char bracket = ctx.arg("bracket", "(").charAt(0);
         Position pos = from;
         for (int i = 0; i < ctx.count; i++) {
@@ -383,14 +397,16 @@ public final class VimMotions
      * first non-blank of its line and is linewise, which is why {@code d'a}
      * takes whole lines and {@code d`a} does not.
      */
-    private static Position goToMark(MotionContext ctx, Position from)
-    {
+    private static Position goToMark(MotionContext ctx, Position from) {
         final char name = ctx.characterArg();
         if (name == 0)
             return null;
         // `` and '' are one mark.
-        final Position mark = ctx.state.getMarks().get(
-            name == '`' ? '\'' : name, ctx.editor.getBuffer());
+        final Position mark = ctx.state.getMarks()
+            .get(
+                name == '`' ? '\'' : name,
+                ctx.editor.getBuffer()
+            );
         if (mark == null) {
             goToFileMarkElsewhere(ctx, from, name);
             return null;
@@ -405,12 +421,17 @@ public final class VimMotions
      * it goes, which has to be in this buffer, and not under an operator,
      * which vim refuses across files too.
      */
-    private static void goToFileMarkElsewhere(MotionContext ctx, Position from,
-                                              char name)
-    {
+    private static void goToFileMarkElsewhere(
+        MotionContext ctx,
+        Position from,
+        char name
+    ) {
         final Marker marker = VimMarks.getFileMark(name);
-        if (marker == null || ctx.forOperator
-            || marker.getBuffer() == ctx.editor.getBuffer())
+        if (
+            marker == null
+                || ctx.forOperator
+                || marker.getBuffer() == ctx.editor.getBuffer()
+        )
             return;
         ctx.state.jumped(ctx.editor, from);
         marker.gotoMarker(ctx.editor);
@@ -429,17 +450,19 @@ public final class VimMotions
      * count, and with no mark to go to they still land on the first
      * non-blank, as nvim does.
      */
-    private static Position jumpToMark(MotionContext ctx, Position from)
-    {
+    private static Position jumpToMark(MotionContext ctx, Position from) {
         final VimMarks marks = ctx.state.getMarks();
         final boolean forward = ctx.arg("forward");
         final boolean linewise = ctx.arg("linewise");
         Position pos = from;
         for (int i = 0; i < ctx.count; i++) {
             // Searching from the far end of the line skips its own marks.
-            final Position after = !linewise ? pos
-                : new Position(pos.getLine(),
-                               forward ? pos.getLine().length() : 0);
+            final Position after = !linewise
+                ? pos
+                : new Position(
+                    pos.getLine(),
+                    forward ? pos.getLine().length() : 0
+                );
             final Position next = forward
                 ? marks.next(ctx.editor.getBuffer(), after)
                 : marks.previous(ctx.editor.getBuffer(), after);
@@ -460,12 +483,13 @@ public final class VimMotions
      *
      * H and L take a count of lines in from the edge; M ignores it.
      */
-    private static Position moveToScreenLine(MotionContext ctx, Position from)
-    {
+    private static Position moveToScreenLine(MotionContext ctx, Position from) {
         // H, M and L, which are j's own moveToWindowTop and friends.
-        final Line line = CaretCommands.screenLine(ctx.editor,
-                                                   ctx.arg("where", "top"),
-                                                   ctx.count);
+        final Line line = CaretCommands.screenLine(
+            ctx.editor,
+            ctx.arg("where", "top"),
+            ctx.count
+        );
         return line == null ? null : at(line, firstNonBlank(line));
     }
 
@@ -475,8 +499,7 @@ public final class VimMotions
      * Only looks on the caret's line for the bracket to match from, as vim
      * does; the match itself may be anywhere.
      */
-    private static Position moveToMatchingBracket(MotionContext ctx, Position from)
-    {
+    private static Position moveToMatchingBracket(MotionContext ctx, Position from) {
         final String open = "([{";
         final String close = ")]}";
         final String text = from.getLine().getText();
@@ -498,7 +521,10 @@ public final class VimMotions
         // and strings; its vim flag adds vim's rules for quotes and
         // backslashes.
         final Position match = ctx.editor.findMatchInternal(
-            new Position(from.getLine(), offset), 0, true);
+            new Position(from.getLine(), offset),
+            0,
+            true
+        );
         return match == null ? null : at(match.getLine(), match.getOffset());
     }
 
@@ -508,8 +534,7 @@ public final class VimMotions
      * n and N -- the last pattern again, in the same direction or the other
      * one. A motion like any other, so {@code dn} works.
      */
-    private static Position repeatSearch(MotionContext ctx, Position from)
-    {
+    private static Position repeatSearch(MotionContext ctx, Position from) {
         final VimSearch.Query last = ctx.state.getLastSearch(ctx.editor);
         if (last == null) {
             ctx.editor.status("No previous search");
@@ -525,15 +550,17 @@ public final class VimMotions
      *
      * Sets the last pattern, so n carries on from where these left off.
      */
-    private static Position searchWordAtDot(MotionContext ctx, Position from)
-    {
+    private static Position searchWordAtDot(MotionContext ctx, Position from) {
         final VimSearch.Word word = VimSearch.wordAtDot(ctx.editor);
         if (word == null)
             return null;
         final VimSearch.Query query =
-            new VimSearch.Query(VimSearch.literal(word.text),
-                                ctx.arg("forward"),
-                                word.keyword && !ctx.arg("partial"), false);
+            new VimSearch.Query(
+                VimSearch.literal(word.text),
+                ctx.arg("forward"),
+                word.keyword && !ctx.arg("partial"),
+                false
+            );
         ctx.state.setLastSearch(ctx.editor, query);
         // From the word, not from the caret: * with the caret on the spaces
         // before a word searches from the word, so the word itself is not a
@@ -541,9 +568,11 @@ public final class VimMotions
         return found(ctx, query, new Position(from.getLine(), word.offset));
     }
 
-    private static Position found(MotionContext ctx, VimSearch.Query query,
-                                  Position from)
-    {
+    private static Position found(
+        MotionContext ctx,
+        VimSearch.Query query,
+        Position from
+    ) {
         try {
             final Position to =
                 VimSearch.find(ctx.editor, query, from, ctx.count);
@@ -559,8 +588,7 @@ public final class VimMotions
 
     // ------------------------------------------------------------ helpers
 
-    private static Position at(Line line, int offset)
-    {
+    private static Position at(Line line, int offset) {
         return new Position(line, offset);
     }
 
@@ -570,29 +598,25 @@ public final class VimMotions
      * One less in a command mode than in insert, because in normal mode the
      * caret is on a character rather than between two.
      */
-    private static int lastOffset(MotionContext ctx, Line line)
-    {
+    private static int lastOffset(MotionContext ctx, Line line) {
         final int length = line.length();
         return ctx.state.getMode().isCommandMode()
             ? CodePoints.snap(line, Math.max(0, length - 1))
             : length;
     }
 
-    private static void clampToLine(MotionContext ctx, Position pos)
-    {
+    private static void clampToLine(MotionContext ctx, Position pos) {
         final int last = lastOffset(ctx, pos.getLine());
         if (pos.getOffset() > last)
             pos.setOffset(last);
     }
 
     /** j's own, which moveToWindowTop and its kin use too. */
-    static int firstNonBlank(Line line)
-    {
+    static int firstNonBlank(Line line) {
         return CaretCommands.firstNonBlank(line);
     }
 
-    private static Line lineNumbered(Buffer buffer, int number)
-    {
+    private static Line lineNumbered(Buffer buffer, int number) {
         Line line = buffer.getFirstLine();
         for (int i = 1; i < number && line != null; i++) {
             final Line next = line.nextVisible();
@@ -603,8 +627,7 @@ public final class VimMotions
         return line;
     }
 
-    private static Line lastLine(Buffer buffer)
-    {
+    private static Line lastLine(Buffer buffer) {
         Line line = buffer.getFirstLine();
         if (line == null)
             return null;

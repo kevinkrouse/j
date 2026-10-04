@@ -22,8 +22,7 @@ package org.armedbear.j;
 
 import java.lang.reflect.Method;
 
-public final class Command
-{
+public final class Command {
     private final String name;
     private final String methodName;
 
@@ -33,8 +32,7 @@ public final class Command
     // Null for build-in commands or set when the command came from an extension.
     private final Class<?> declaringClass;
 
-    public Command(String name, String className, String methodName)
-    {
+    public Command(String name, String className, String methodName) {
         this.name = name;
         this.className = className;
         this.methodName = methodName;
@@ -43,8 +41,7 @@ public final class Command
     }
 
     /** For commands supplied by an extension. */
-    public Command(String name, Class<?> declaringClass, String methodName)
-    {
+    public Command(String name, Class<?> declaringClass, String methodName) {
         this.name = name;
         this.className = declaringClass.getName();
         this.methodName = methodName;
@@ -54,8 +51,7 @@ public final class Command
 
     // Constructor for commands that are implemented by a method of the same
     // name in the Editor class.
-    public Command(String name)
-    {
+    public Command(String name) {
         this.name = name;
         this.className = Editor.class.getSimpleName();
         this.methodName = name;
@@ -63,8 +59,7 @@ public final class Command
         checkExists();
     }
 
-    private void checkExists()
-    {
+    private void checkExists() {
         if (Editor.isDebugEnabled()) {
             Class<?> clazz = declaringClass;
             try {
@@ -89,33 +84,27 @@ public final class Command
         }
     }
 
-    public final String getName()
-    {
+    public final String getName() {
         return name;
     }
 
-    public final String getClassName()
-    {
+    public final String getClassName() {
         return className;
     }
 
-    public final Class<?> getDeclaringClass()
-    {
+    public final Class<?> getDeclaringClass() {
         return declaringClass;
     }
 
-    public final String getMethodName()
-    {
+    public final String getMethodName() {
         return methodName;
     }
 
-    public final Method getMethod()
-    {
+    public final Method getMethod() {
         return method;
     }
 
-    public final void setMethod(Method method)
-    {
+    public final void setMethod(Method method) {
         this.method = method;
     }
 }

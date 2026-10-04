@@ -20,22 +20,20 @@
 
 package org.armedbear.j;
 
-import java.lang.StringBuilder;
-
-import java.util.regex.PatternSyntaxException;
 import java.awt.Dimension;
 import java.awt.Point;
 import java.awt.event.ActionEvent;
 import java.awt.event.TextEvent;
 import java.awt.event.TextListener;
+import java.lang.StringBuilder;
+import java.util.regex.PatternSyntaxException;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.JPanel;
 import javax.swing.undo.CompoundEdit;
 
 public final class ReplaceDialog extends AbstractDialog implements Constants,
-    TextListener
-{
+    TextListener {
     private static final String FIND_PATTERN = "find.pattern";
     private static final String REPLACE_REPLACEMENT = "replace.replacement";
     private static final String REPLACE_IGNORE_CASE = "replace.ignoreCase";
@@ -62,8 +60,7 @@ public final class ReplaceDialog extends AbstractDialog implements Constants,
     private CheckBox restrictToSelectionCheckBox;
     private CheckBox confirmChangesCheckBox;
 
-    public ReplaceDialog()
-    {
+    public ReplaceDialog() {
         super(Editor.currentEditor(), "Replace", true);
         editor = Editor.currentEditor();
         replacement = new Replacement(editor);
@@ -91,23 +88,32 @@ public final class ReplaceDialog extends AbstractDialog implements Constants,
         addVerticalStrut();
         SessionProperties sessionProperties = Editor.getSessionProperties();
         replacement.setIgnoreCase(
-            sessionProperties.getBooleanProperty(REPLACE_IGNORE_CASE, false));
+            sessionProperties.getBooleanProperty(REPLACE_IGNORE_CASE, false)
+        );
         ignoreCaseCheckBox =
             new CheckBox("Ignore case", replacement.ignoreCase());
         ignoreCaseCheckBox.setMnemonic('I');
         addCheckBox(ignoreCaseCheckBox);
         replacement.setWholeWordsOnly(
-            sessionProperties.getBooleanProperty(REPLACE_WHOLE_WORDS_ONLY,
-                false));
+            sessionProperties.getBooleanProperty(
+                REPLACE_WHOLE_WORDS_ONLY,
+                false
+            )
+        );
         wholeWordsOnlyCheckBox =
             new CheckBox("Whole words only", replacement.wholeWordsOnly());
         wholeWordsOnlyCheckBox.setMnemonic('W');
         addCheckBox(wholeWordsOnlyCheckBox);
         replacement.setRegularExpression(
-            sessionProperties.getBooleanProperty(REPLACE_REGULAR_EXPRESSION,
-                false));
-        regularExpressionCheckBox = new CheckBox("Regular expression",
-            replacement.isRegularExpression());
+            sessionProperties.getBooleanProperty(
+                REPLACE_REGULAR_EXPRESSION,
+                false
+            )
+        );
+        regularExpressionCheckBox = new CheckBox(
+            "Regular expression",
+            replacement.isRegularExpression()
+        );
         regularExpressionCheckBox.setMnemonic('X');
         regularExpressionCheckBox.addActionListener(this);
         addCheckBox(regularExpressionCheckBox);
@@ -117,26 +123,36 @@ public final class ReplaceDialog extends AbstractDialog implements Constants,
             panel.setLayout(new BoxLayout(panel, BoxLayout.X_AXIS));
             panel.add(Box.createHorizontalStrut(17));
             if (replacement.isRegularExpression()) {
-                replacement.setMultiline(sessionProperties.getBooleanProperty(
-                        REPLACE_MULTILINE_PATTERN, false));
+                replacement.setMultiline(
+                    sessionProperties.getBooleanProperty(
+                        REPLACE_MULTILINE_PATTERN,
+                        false
+                    )
+                );
             } else
                 replacement.setMultiline(false);
             multilinePatternCheckBox =
-                new CheckBox("Multiline pattern (experimental)",
-                    replacement.isMultilinePattern());
+                new CheckBox(
+                    "Multiline pattern (experimental)",
+                    replacement.isMultilinePattern()
+                );
             multilinePatternCheckBox.setMnemonic('M');
             panel.add(multilinePatternCheckBox);
             multilinePatternCheckBox.addKeyListener(this);
             multilinePatternCheckBox.setEnabled(
-                regularExpressionCheckBox.isSelected());
+                regularExpressionCheckBox.isSelected()
+            );
             mainPanel.add(panel);
         }
         restrictToSelectionCheckBox =
             new CheckBox("Restrict changes to selected text");
         restrictToSelectionCheckBox.setMnemonic('R');
         replacement.setConfirmChanges(
-            sessionProperties.getBooleanProperty(REPLACE_CONFIRM_CHANGES,
-                true));
+            sessionProperties.getBooleanProperty(
+                REPLACE_CONFIRM_CHANGES,
+                true
+            )
+        );
         confirmChangesCheckBox =
             new CheckBox("Confirm changes", replacement.confirmChanges());
         confirmChangesCheckBox.setMnemonic('C');
@@ -151,18 +167,15 @@ public final class ReplaceDialog extends AbstractDialog implements Constants,
         patternControl.requestFocus();
     }
 
-    public final Replacement getReplacement()
-    {
+    public final Replacement getReplacement() {
         return replacement;
     }
 
-    public void textValueChanged(TextEvent e)
-    {
+    public void textValueChanged(TextEvent e) {
         setRestrictToSelectionDefault();
     }
 
-    public void actionPerformed(ActionEvent e)
-    {
+    public void actionPerformed(ActionEvent e) {
         final String cmd = e.getActionCommand();
         if (cmd != null && cmd.equals(regularExpressionCheckBox.getText())) {
             if (multilinePatternCheckBox != null) {
@@ -175,8 +188,7 @@ public final class ReplaceDialog extends AbstractDialog implements Constants,
             super.actionPerformed(e);
     }
 
-    private void setRestrictToSelectionDefault()
-    {
+    private void setRestrictToSelectionDefault() {
         if (restrictToSelectionCheckBox == null)
             return;
         // Enable the checkbox if a selection is active.
@@ -210,8 +222,7 @@ public final class ReplaceDialog extends AbstractDialog implements Constants,
         restrictToSelectionCheckBox.setSelected(checked);
     }
 
-    protected void ok()
-    {
+    protected void ok() {
         replacement.setPattern(patternControl.getText());
         if (replacement.getPatternLength() == 0) {
             editor.status("No pattern");
@@ -239,8 +250,11 @@ public final class ReplaceDialog extends AbstractDialog implements Constants,
                 replacement.setREFromPattern();
             }
             catch (PatternSyntaxException e) {
-                MessageDialog.showMessageDialog(editor,
-                    e.getMessage(), "Error");
+                MessageDialog.showMessageDialog(
+                    editor,
+                    e.getMessage(),
+                    "Error"
+                );
                 patternControl.requestFocus();
                 return;
             }
@@ -250,28 +264,36 @@ public final class ReplaceDialog extends AbstractDialog implements Constants,
         replacementHistory.append(replacement.getReplaceWith());
         replacementHistory.save();
         SessionProperties sessionProperties = Editor.getSessionProperties();
-        sessionProperties.setBooleanProperty(REPLACE_IGNORE_CASE,
-            replacement.ignoreCase());
-        sessionProperties.setBooleanProperty(REPLACE_WHOLE_WORDS_ONLY,
-            replacement.wholeWordsOnly());
-        sessionProperties.setBooleanProperty(REPLACE_REGULAR_EXPRESSION,
-            replacement.isRegularExpression());
-        sessionProperties.setBooleanProperty(REPLACE_MULTILINE_PATTERN,
-            replacement.isMultilinePattern());
-        sessionProperties.setBooleanProperty(REPLACE_CONFIRM_CHANGES,
-            replacement.confirmChanges());
+        sessionProperties.setBooleanProperty(
+            REPLACE_IGNORE_CASE,
+            replacement.ignoreCase()
+        );
+        sessionProperties.setBooleanProperty(
+            REPLACE_WHOLE_WORDS_ONLY,
+            replacement.wholeWordsOnly()
+        );
+        sessionProperties.setBooleanProperty(
+            REPLACE_REGULAR_EXPRESSION,
+            replacement.isRegularExpression()
+        );
+        sessionProperties.setBooleanProperty(
+            REPLACE_MULTILINE_PATTERN,
+            replacement.isMultilinePattern()
+        );
+        sessionProperties.setBooleanProperty(
+            REPLACE_CONFIRM_CHANGES,
+            replacement.confirmChanges()
+        );
         sessionProperties.save();
         dispose();
     }
 
-    protected void cancel()
-    {
+    protected void cancel() {
         replacement = null;
         dispose();
     }
 
-    public static void replace()
-    {
+    public static void replace() {
         final Editor editor = Editor.currentEditor();
         if (!editor.checkReadOnly())
             return;

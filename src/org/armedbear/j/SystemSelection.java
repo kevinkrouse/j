@@ -30,21 +30,18 @@ import java.awt.datatransfer.Transferable;
 import java.awt.event.MouseEvent;
 import javax.swing.undo.CompoundEdit;
 
-public final class SystemSelection implements ClipboardOwner, Constants
-{
+public final class SystemSelection implements ClipboardOwner, Constants {
     private static SystemSelection systemSelection =
         getSystemSelection();
 
     private final Clipboard clipboard;
     private String primarySelection;
 
-    private SystemSelection(Clipboard clipboard)
-    {
+    private SystemSelection(Clipboard clipboard) {
         this.clipboard = clipboard;
     }
 
-    private static SystemSelection getSystemSelection()
-    {
+    private static SystemSelection getSystemSelection() {
         try {
             Clipboard clipboard =
                 Toolkit.getDefaultToolkit().getSystemSelection();
@@ -55,13 +52,11 @@ public final class SystemSelection implements ClipboardOwner, Constants
         }
     }
 
-    public void lostOwnership(Clipboard clipboard, Transferable contents)
-    {
+    public void lostOwnership(Clipboard clipboard, Transferable contents) {
         primarySelection = null;
     }
 
-    public void update(Editor editor)
-    {
+    public void update(Editor editor) {
         try {
             if (clipboard != null) {
                 StringSelection ss = null;
@@ -81,8 +76,7 @@ public final class SystemSelection implements ClipboardOwner, Constants
         }
     }
 
-    public String getPrimarySelection()
-    {
+    public String getPrimarySelection() {
         if (primarySelection != null) {
             // We own the primary selection.
             return primarySelection;
@@ -97,14 +91,12 @@ public final class SystemSelection implements ClipboardOwner, Constants
         return null;
     }
 
-    public static void updateSystemSelection(Editor editor)
-    {
+    public static void updateSystemSelection(Editor editor) {
         if (systemSelection != null)
             systemSelection.update(editor);
     }
 
-    public static void pastePrimarySelection()
-    {
+    public static void pastePrimarySelection() {
         final Editor editor = Editor.currentEditor();
         if (!editor.checkReadOnly())
             return;

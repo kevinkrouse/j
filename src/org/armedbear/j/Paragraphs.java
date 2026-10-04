@@ -17,15 +17,12 @@ package org.armedbear.j;
  * in the first column, and both at a form feed or an nroff macro such as
  * {@code .SH}, from vim's default 'sections' and 'paragraphs'.
  */
-public final class Paragraphs
-{
+public final class Paragraphs {
     /** Vim's 'sections' and 'paragraphs': nroff macros, two letters each. */
     private static final String SECTIONS = "SHNHH HUnhsh";
     private static final String PARAGRAPHS = "IPLPPPQPP TPHPLIPpLpItpplpipbp";
 
-    private Paragraphs()
-    {
-    }
+    private Paragraphs() {}
 
     /**
      * Where {@code count} paragraphs or sections away is: the start of the
@@ -38,9 +35,13 @@ public final class Paragraphs
      *              d]]
      * @return null when the count runs past the edge of the buffer
      */
-    public static Position find(Position from, boolean forward, int count,
-                                char what, boolean both)
-    {
+    public static Position find(
+        Position from,
+        boolean forward,
+        int count,
+        char what,
+        boolean both
+    ) {
         Line line = from.getLine();
         while (count-- > 0) {
             // Only once a line of text has gone by, so that a run of
@@ -51,8 +52,9 @@ public final class Paragraphs
                     skipped = true;
                 if (!first && skipped && isStart(line, what, both))
                     break;
-                final Line next = forward ? line.nextVisible()
-                                          : line.previousVisible();
+                final Line next = forward
+                    ? line.nextVisible()
+                    : line.previousVisible();
                 if (next == null) {
                     if (count > 0)
                         return null;
@@ -66,8 +68,9 @@ public final class Paragraphs
             // A '}' on the last line: its start, or where the scan began if
             // that is on the line too, so that d]] takes nothing.
             if (next == null)
-                return line == from.getLine() ? new Position(from)
-                                               : new Position(line, 0);
+                return line == from.getLine()
+                    ? new Position(from)
+                    : new Position(line, 0);
             line = next;
         }
         if (forward && what != '}' && line.nextVisible() == null)
@@ -76,20 +79,19 @@ public final class Paragraphs
     }
 
     /** Vim's startPS: does this line start a paragraph or a section? */
-    public static boolean isStart(Line line, char what, boolean both)
-    {
+    public static boolean isStart(Line line, char what, boolean both) {
         final String text = line.getText();
         if (text == null || text.isEmpty())
             return what == 0;
         final char c = text.charAt(0);
         if (c == what || c == '\f' || both && c == '}')
             return true;
-        return c == '.' && (isMacro(SECTIONS, text)
-                            || what == 0 && isMacro(PARAGRAPHS, text));
+        return c == '.'
+            && (isMacro(SECTIONS, text)
+                || what == 0 && isMacro(PARAGRAPHS, text));
     }
 
-    private static boolean startsWith(Line line, char c)
-    {
+    private static boolean startsWith(Line line, char c) {
         return line.length() > 0 && line.charAt(0) == c;
     }
 
@@ -98,37 +100,36 @@ public final class Paragraphs
      * option's pairs. A space in the option stands for a space or for the
      * end of the line.
      */
-    private static boolean isMacro(String macros, String text)
-    {
+    private static boolean isMacro(String macros, String text) {
         final char s0 = charAt(text, 1);
         final char s1 = charAt(text, 2);
         for (int i = 0; i < macros.length(); i += 2) {
             final char m0 = macros.charAt(i);
             final char m1 = charAt(macros, i + 1);
-            if ((m0 == s0 || m0 == ' ' && (s0 == 0 || s0 == ' '))
-                && (m1 == s1 || (m1 == 0 || m1 == ' ')
-                                && (s0 == 0 || s1 == 0 || s1 == ' ')))
+            if (
+                (m0 == s0 || m0 == ' ' && (s0 == 0 || s0 == ' '))
+                    && (m1 == s1
+                        || (m1 == 0 || m1 == ' ')
+                            && (s0 == 0 || s1 == 0 || s1 == ' '))
+            )
                 return true;
         }
         return false;
     }
 
-    private static char charAt(String s, int i)
-    {
+    private static char charAt(String s, int i) {
         return i < s.length() ? s.charAt(i) : 0;
     }
 
     // ------------------------------------------------------------ commands
 
     /** {@code forwardParagraph} -- to the empty line after this paragraph. */
-    public static void forwardParagraph()
-    {
+    public static void forwardParagraph() {
         moveTo(true, (char) 0);
     }
 
     /** {@code backwardParagraph} -- to the empty line before it. */
-    public static void backwardParagraph()
-    {
+    public static void backwardParagraph() {
         moveTo(false, (char) 0);
     }
 
@@ -136,35 +137,30 @@ public final class Paragraphs
      * {@code forwardSection} -- to the next '{' in the first column, or with
      * {@code forwardSection &#125;} the next '}'.
      */
-    public static void forwardSection(String parameters)
-    {
+    public static void forwardSection(String parameters) {
         moveTo(true, section(parameters));
     }
 
-    public static void forwardSection()
-    {
+    public static void forwardSection() {
         moveTo(true, '{');
     }
 
     /** {@code backwardSection} -- the same, backward. */
-    public static void backwardSection(String parameters)
-    {
+    public static void backwardSection(String parameters) {
         moveTo(false, section(parameters));
     }
 
-    public static void backwardSection()
-    {
+    public static void backwardSection() {
         moveTo(false, '{');
     }
 
-    private static char section(String parameters)
-    {
+    private static char section(String parameters) {
         return parameters != null && parameters.trim().equals("}")
-            ? '}' : '{';
+            ? '}'
+            : '{';
     }
 
-    private static void moveTo(boolean forward, char what)
-    {
+    private static void moveTo(boolean forward, char what) {
         final Editor editor = Editor.currentEditor();
         final Position dot = editor.getDot();
         if (dot == null)
@@ -174,8 +170,10 @@ public final class Paragraphs
             return;
         // A section lands on the first non-blank, as vim's does.
         if (what != 0)
-            to = new Position(to.getLine(),
-                              CaretCommands.firstNonBlank(to.getLine()));
+            to = new Position(
+                to.getLine(),
+                CaretCommands.firstNonBlank(to.getLine())
+            );
         editor.addUndo(SimpleEdit.MOVE);
         editor.unmark();
         editor.setDot(to);
