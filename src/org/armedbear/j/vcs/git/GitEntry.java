@@ -20,40 +20,35 @@
 
 package org.armedbear.j.vcs.git;
 
+import java.lang.StringBuilder;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Constants;
-import java.lang.StringBuilder;
 import org.armedbear.j.File;
 import org.armedbear.j.Log;
 import org.armedbear.j.vcs.VersionControlEntry;
 
-public class GitEntry extends VersionControlEntry
-{
+public class GitEntry extends VersionControlEntry {
     private String xy;
     private String status;
 
-    protected GitEntry(Buffer buffer, String xy, String status)
-    {
+    protected GitEntry(Buffer buffer, String xy, String status) {
         super(buffer, "");
         this.xy = xy;
         this.status = status;
     }
 
     @Override
-    public int getVersionControl()
-    {
+    public int getVersionControl() {
         return Constants.VC_GIT;
     }
 
     @Override
-    public String getStatusText()
-    {
+    public String getStatusText() {
         return statusText(true);
     }
 
     @Override
-    public String getLongStatusText()
-    {
+    public String getLongStatusText() {
         return statusText(false);
     }
 
@@ -66,16 +61,18 @@ public class GitEntry extends VersionControlEntry
      * otherwise read as an ordinary add or delete.
      */
     @Override
-    public int getStatusKind()
-    {
+    public int getStatusKind() {
         if (xy == null || xy.length() < 2)
             return Constants.VCS_UNKNOWN;
         final char index = xy.charAt(0);
         final char tree = xy.charAt(1);
 
-        if (index == 'U' || tree == 'U'
-            || (index == 'D' && tree == 'D')
-            || (index == 'A' && tree == 'A'))
+        if (
+            index == 'U'
+                || tree == 'U'
+                || (index == 'D' && tree == 'D')
+                || (index == 'A' && tree == 'A')
+        )
             return Constants.VCS_CONFLICT;
         if (index == '?' || tree == '?' || index == 'A' || tree == 'A')
             return Constants.VCS_NEW;
@@ -88,8 +85,7 @@ public class GitEntry extends VersionControlEntry
         return Constants.VCS_UNKNOWN;
     }
 
-    private String statusText(boolean brief)
-    {
+    private String statusText(boolean brief) {
         StringBuilder sb = new StringBuilder("git");
         if (status != null) {
             sb.append(" ").append(brief ? xy : status);
@@ -102,8 +98,7 @@ public class GitEntry extends VersionControlEntry
         return sb.toString();
     }
 
-    public static GitEntry getEntry(Buffer buffer)
-    {
+    public static GitEntry getEntry(Buffer buffer) {
         if (!Git.haveGit())
             return null;
 
@@ -160,7 +155,7 @@ public class GitEntry extends VersionControlEntry
                     status = "added+deleted"; // no change?
                 else if (y == 'U')
                     status = "unmerged, added by us";
-                else if ( y == 'A')
+                else if (y == 'A')
                     status = "unmerged, both added";
                 else {
                     Log.debug("Unexpected git xy status = |" + xy + "|");
@@ -173,7 +168,7 @@ public class GitEntry extends VersionControlEntry
                     status = "deleted";
                 else if (y == 'U')
                     status = "unmerged, deleted by us";
-                else if ( y == 'D')
+                else if (y == 'D')
                     status = "unmerged, both deleted";
                 else {
                     Log.debug("Unexpected git xy status = |" + xy + "|");
