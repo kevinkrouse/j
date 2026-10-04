@@ -22,13 +22,12 @@ package org.armedbear.j.mode.autoconf;
 
 import org.armedbear.j.AbstractMode;
 import org.armedbear.j.Buffer;
-import org.armedbear.j.Constants;
 import org.armedbear.j.Editor;
 import org.armedbear.j.Formatter;
 import org.armedbear.j.Keywords;
 import org.armedbear.j.Mode;
 
-public final class AutoconfMode extends AbstractMode implements Constants, Mode {
+public final class AutoconfMode extends AbstractMode implements Mode {
     public static final String NAME = "Autoconf";
 
     private static volatile AutoconfMode mode;
@@ -50,10 +49,12 @@ public final class AutoconfMode extends AbstractMode implements Constants, Mode 
         return m != null ? m : Editor.getModeList().getModeFromModeName(NAME) instanceof AutoconfMode x ? x : null;
     }
 
+    @Override
     public final String getCommentStart() {
         return "dnl ";
     }
 
+    @Override
     public final Formatter getFormatter(Buffer buffer) {
         return new AutoconfFormatter(buffer);
     }
@@ -61,10 +62,12 @@ public final class AutoconfMode extends AbstractMode implements Constants, Mode 
     private static final String validChars =
         "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz_0123456789";
 
+    @Override
     public final boolean isIdentifierStart(char c) {
         return (validChars.indexOf(c) >= 0);
     }
 
+    @Override
     public final boolean isIdentifierPart(char c) {
         return (validChars.indexOf(c) >= 0);
     }

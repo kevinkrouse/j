@@ -20,7 +20,8 @@
 
 package org.armedbear.j.mode.autoconf;
 
-import java.lang.StringBuilder;
+import static org.armedbear.j.Constants.*;
+
 import java.util.Set;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Editor;
@@ -54,6 +55,7 @@ public final class AutoconfFormatter extends Formatter {
             functions = Sets.newHashSet(autoconfFunctions);
     }
 
+    @Override
     public LineSegmentList formatLine(Line line) {
         clearSegmentList();
         if (line == null || line.length() == 0) {
@@ -226,6 +228,7 @@ public final class AutoconfFormatter extends Formatter {
         endToken(state);
     }
 
+    @Override
     public FormatTable getFormatTable() {
         if (formatTable == null) {
             formatTable = new FormatTable("AutoconfMode");
