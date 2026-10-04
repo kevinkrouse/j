@@ -20,11 +20,10 @@
 
 package org.armedbear.j.mode.shell;
 
-import java.lang.StringBuilder;
 import java.util.ArrayList;
 
 public final class ShellTokenizer {
-    private ArrayList<String> l = new ArrayList<String>();
+    private ArrayList<String> l = new ArrayList<>();
     private int index;
 
     public ShellTokenizer(String s) {

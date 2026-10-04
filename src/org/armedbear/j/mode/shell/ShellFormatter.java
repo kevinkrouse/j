@@ -20,6 +20,8 @@
 
 package org.armedbear.j.mode.shell;
 
+import static org.armedbear.j.Constants.*;
+
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.armedbear.j.Buffer;
@@ -39,6 +41,7 @@ public final class ShellFormatter extends Formatter {
         this.buffer = buffer;
     }
 
+    @Override
     public LineSegmentList formatLine(final Line line) {
         clearSegmentList();
         if (line == null) {
@@ -97,6 +100,7 @@ public final class ShellFormatter extends Formatter {
         return segmentList;
     }
 
+    @Override
     public FormatTable getFormatTable() {
         if (formatTable == null) {
             formatTable = new FormatTable("ShellMode");

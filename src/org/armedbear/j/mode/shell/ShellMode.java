@@ -20,16 +20,17 @@
 
 package org.armedbear.j.mode.shell;
 
+import static org.armedbear.j.Constants.*;
+
 import java.awt.event.KeyEvent;
 import org.armedbear.j.AbstractMode;
 import org.armedbear.j.Buffer;
-import org.armedbear.j.Constants;
 import org.armedbear.j.Formatter;
 import org.armedbear.j.KeyMap;
 import org.armedbear.j.Mode;
 import org.armedbear.j.Property;
 
-public final class ShellMode extends AbstractMode implements Constants, Mode {
+public final class ShellMode extends AbstractMode implements Mode {
     private static final ShellMode mode = new ShellMode();
 
     protected ShellMode() {
@@ -43,6 +44,7 @@ public final class ShellMode extends AbstractMode implements Constants, Mode {
         return mode;
     }
 
+    @Override
     protected void setKeyMapDefaults(KeyMap km) {
         km.mapKey(KeyEvent.VK_HOME, 0, "shellHome");
         km.mapKey(KeyEvent.VK_BACK_SPACE, 0, "shellBackspace");
@@ -59,6 +61,7 @@ public final class ShellMode extends AbstractMode implements Constants, Mode {
         km.mapKey(')', "closeParen");
     }
 
+    @Override
     public Formatter getFormatter(Buffer buffer) {
         return new ShellFormatter(buffer);
     }
