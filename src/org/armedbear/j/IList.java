@@ -190,7 +190,7 @@ public final class IList implements BackgroundProcess, Constants {
         final Editor editor = Editor.currentEditor();
         int modeId = editor.getModeId();
         if (modeId == C_MODE || modeId == CPP_MODE) {
-            final Search search = editor.getSearchAtDot();
+            final Search search = SearchCommands.getSearchAtDot(editor);
             if (search != null) {
                 editor.setLastSearch(search);
                 editor.setWaitCursor();

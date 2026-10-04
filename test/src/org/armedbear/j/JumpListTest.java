@@ -75,7 +75,7 @@ public class JumpListTest {
         JumpList.jumpBack();
         assertEquals("1,0", at());
         editor.setLastSearch(new Search("x", false, false));
-        editor.findNext();
+        SearchCommands.findNext(editor);
         assertEquals("3,0", at());
         JumpList.jumpBack();
         assertEquals("1,0", at());

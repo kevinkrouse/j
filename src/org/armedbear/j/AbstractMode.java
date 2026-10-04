@@ -373,7 +373,7 @@ public abstract class AbstractMode implements Constants, Mode {
         menuItem = new JMenuItem();
         menuItem.setActionCommand("listOccurrencesOfPatternAtDot");
         menuItem.addActionListener(dispatcher);
-        Search search = editor.getSearchAtDot();
+        Search search = SearchCommands.getSearchAtDot(editor);
         if (search != null) {
             if (editor.getMark() != null)
                 menuItem.setText("List occurrences of selected text");

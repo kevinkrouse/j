@@ -39,7 +39,7 @@ public class ShareSearchTest {
         final Search search = new Search("one", false, true);
         a.editor().setLastSearch(search);
         assertSame(search, b.editor().getLastSearch());
-        b.editor().findNext();
+        SearchCommands.findNext(b.editor());
         assertEquals(4, b.editor().getDotOffset());
     }
 
@@ -50,7 +50,7 @@ public class ShareSearchTest {
         b = EditorHarness.create("two one\n");
         a.editor().setLastSearch(new Search("one", false, true));
         assertNull(b.editor().getLastSearch());
-        b.editor().findNext();
+        SearchCommands.findNext(b.editor());
         assertEquals(0, b.editor().getDotOffset());
     }
 }

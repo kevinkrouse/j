@@ -214,7 +214,7 @@ public final class FindDialog extends AbstractDialog implements ActionListener,
             editor.setDefaultCursor();
             if (pos != null) {
                 editor.moveDotTo(pos);
-                editor.markFoundPattern(search);
+                SearchCommands.markFoundPattern(editor, search);
             } else
                 search.notFound(editor);
         }

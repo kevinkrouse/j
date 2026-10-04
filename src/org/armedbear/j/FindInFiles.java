@@ -651,7 +651,7 @@ public final class FindInFiles extends Replacement implements Constants,
         }
         final boolean wasModified = buffer.isModified();
         editor.moveDotTo(pos);
-        editor.markFoundPattern(this);
+        SearchCommands.markFoundPattern(editor, this);
         editor.updateDisplay();
         confirmDialog = new ConfirmReplacementDialog(this, true);
         confirmDialog.setTitle(file.netPath());

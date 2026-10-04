@@ -103,7 +103,7 @@ public final class ConfirmReplacementDialog extends AbstractDialog {
             }
         }
         editor.moveDotTo(pos);
-        editor.markFoundPattern(replacement);
+        SearchCommands.markFoundPattern(editor, replacement);
         editor.updateDisplay();
     }
 
@@ -134,7 +134,7 @@ public final class ConfirmReplacementDialog extends AbstractDialog {
             }
         }
         editor.moveDotTo(pos);
-        editor.markFoundPattern(replacement);
+        SearchCommands.markFoundPattern(editor, replacement);
         editor.updateDisplay();
     }
 
@@ -166,7 +166,7 @@ public final class ConfirmReplacementDialog extends AbstractDialog {
                 }
             }
             if (replacement.isMultilinePattern())
-                editor.markFoundPattern(replacement);
+                SearchCommands.markFoundPattern(editor, replacement);
             replacement.replaceOccurrence();
         }
         editor.addUndo(SimpleEdit.MOVE);

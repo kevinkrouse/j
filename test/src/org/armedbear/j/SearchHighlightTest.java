@@ -63,7 +63,7 @@ public class SearchHighlightTest {
         h.editor().setLastSearch(new Search("b", false, false));
         h.editor().clearSearchHighlight();
         assertEquals("", h.searchMatches(0));
-        h.editor().findNext();
+        SearchCommands.findNext(h.editor());
         assertEquals("1-2 4-5", h.searchMatches(0));
         h.editor().clearSearchHighlight();
         h.editor().setLastSearch(new Search("a", false, false));

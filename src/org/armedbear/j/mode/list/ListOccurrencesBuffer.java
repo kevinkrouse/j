@@ -36,6 +36,7 @@ import org.armedbear.j.OccurrenceLine;
 import org.armedbear.j.Position;
 import org.armedbear.j.Replacement;
 import org.armedbear.j.Search;
+import org.armedbear.j.SearchCommands;
 import org.armedbear.j.WindowCommands;
 
 public class ListOccurrencesBuffer extends Buffer {
@@ -214,7 +215,7 @@ public class ListOccurrencesBuffer extends Buffer {
             Position found = search.find(buf.getMode(), ed.getDot());
             if (found != null) {
                 ed.setDot(found);
-                ed.markFoundPattern(search);
+                SearchCommands.markFoundPattern(ed, search);
             } else {
                 ed.moveCaretToDotCol();
             }
@@ -315,7 +316,7 @@ public class ListOccurrencesBuffer extends Buffer {
 
     public static void listOccurrencesOfPatternAtDot() {
         final Editor editor = Editor.currentEditor();
-        final Search search = editor.getSearchAtDot();
+        final Search search = SearchCommands.getSearchAtDot(editor);
         if (search != null) {
             editor.setLastSearch(search);
             editor.setWaitCursor();

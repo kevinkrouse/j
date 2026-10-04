@@ -325,7 +325,7 @@ public final class ReplaceDialog extends AbstractDialog implements Constants,
                 return;
             }
             editor.moveDotTo(pos);
-            editor.markFoundPattern(replacement);
+            SearchCommands.markFoundPattern(editor, replacement);
             editor.updateDisplay();
             ConfirmReplacementDialog confirmDialog =
                 new ConfirmReplacementDialog(replacement, false);
@@ -356,7 +356,7 @@ public final class ReplaceDialog extends AbstractDialog implements Constants,
                 editor.addUndo(SimpleEdit.MOVE);
                 editor.getDot().moveTo(pos);
                 if (replacement.isMultilinePattern())
-                    editor.markFoundPattern(replacement);
+                    SearchCommands.markFoundPattern(editor, replacement);
                 replacement.replaceOccurrence();
             }
             if (replacement.restrictToSelection() && replacement.getRegion() != null) {

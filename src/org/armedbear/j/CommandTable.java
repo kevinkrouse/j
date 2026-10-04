@@ -148,12 +148,12 @@ public class CommandTable {
             add("executeCommand", Editor::executeCommand, (e, s) -> e.executeCommand(s));
             add("findCharInLine", null, (e, s) -> CaretCommands.findCharInLine(s));
             add("findCharInLineBackward", null, (e, s) -> CaretCommands.findCharInLineBackward(s));
-            add("findFirstOccurrence", Editor::findFirstOccurrence);
+            add("findFirstOccurrence", SearchCommands::findFirstOccurrence);
             add("findMatchingChar", Editor::findMatchingChar);
-            add("findNext", Editor::findNext);
-            add("findNextWord", Editor::findNextWord);
-            add("findPrev", Editor::findPrev);
-            add("findPrevWord", Editor::findPrevWord);
+            add("findNext", SearchCommands::findNext);
+            add("findNextWord", SearchCommands::findNextWord);
+            add("findPrev", SearchCommands::findPrev);
+            add("findPrevWord", SearchCommands::findPrevWord);
             add("findUnmatchedBracket", null, (e, s) -> CaretCommands.findUnmatchedBracket(s));
             add("forwardParagraph", e -> Paragraphs.forwardParagraph());
             add("forwardSection", e -> Paragraphs.forwardSection(), (e, s) -> Paragraphs.forwardSection(s));
@@ -167,7 +167,7 @@ public class CommandTable {
             add("gotoWindow", null, (e, s) -> WindowCommands.gotoWindow(e, s));
             add("home", MotionCommands::home);
             add("httpDeleteCookies", Editor::httpDeleteCookies);
-            add("incrementalFind", Editor::incrementalFind);
+            add("incrementalFind", SearchCommands::incrementalFind);
             add("duplicateLines", e -> Lines.duplicateLines());
             add("indentLine", Editor::indentLine);
             add("indentLineOrRegion", Editor::indentLineOrRegion);

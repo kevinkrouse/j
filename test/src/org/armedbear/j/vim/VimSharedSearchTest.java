@@ -15,6 +15,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import org.armedbear.j.EditorHarness;
 import org.armedbear.j.Search;
+import org.armedbear.j.SearchCommands;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
@@ -57,7 +58,7 @@ public class VimSharedSearchTest {
     public void findNextGoesOnWithASlashSearch() {
         vim("ab ab ab").keys("/b<CR>");
         assertEquals("0,1", caret());
-        h.editor().findNext();
+        SearchCommands.findNext(h.editor());
         assertEquals("0,4", caret());
     }
 
@@ -102,7 +103,7 @@ public class VimSharedSearchTest {
         vim("ab ab").keys("/b<CR>");
         h.editor().clearSearchHighlight();
         assertEquals("", h.searchMatches(0));
-        h.editor().findNext();
+        SearchCommands.findNext(h.editor());
         assertEquals("1-2 4-5", h.searchMatches(0));
     }
 
@@ -113,7 +114,7 @@ public class VimSharedSearchTest {
         h.keys("n");
         assertEquals("0,1", caret());
         assertEquals("", h.searchMatches(0));
-        h.editor().findNext();
+        SearchCommands.findNext(h.editor());
         assertEquals("0,1", caret());
     }
 }

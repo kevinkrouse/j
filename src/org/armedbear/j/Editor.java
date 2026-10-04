@@ -74,7 +74,6 @@ import org.armedbear.j.mode.compilation.CompilationBuffer;
 import org.armedbear.j.mode.dir.DirectoryBuffer;
 import org.armedbear.j.mode.dir.DirectoryTree;
 import org.armedbear.j.mode.image.ImageBuffer;
-import org.armedbear.j.mode.list.ListOccurrencesInFilesBuffer;
 import org.armedbear.j.util.Keys;
 import org.armedbear.j.util.Utilities;
 import org.armedbear.j.vcs.VcsBackend;
@@ -4201,180 +4200,6 @@ public final class Editor extends JPanel implements Constants,
         }
     }
 
-    public Search getSearchAtDot() {
-        if (dot == null)
-            return null;
-        String pattern = null;
-        boolean wholeWordsOnly = false;
-        if (mark != null) {
-            // No action if there's a multi-line selection.
-            if (getMarkLine() == getDotLine())
-                pattern = (new Region(buffer, dot, mark)).toString();
-        } else {
-            pattern = tokenAt(dot);
-            wholeWordsOnly = true;
-        }
-        if (pattern != null && pattern.length() != 0)
-            return new Search(pattern, false, wholeWordsOnly);
-        else
-            return null;
-    }
-
-    // Assumes dot is on first char of found pattern.
-    public void markFoundPattern(Search search) {
-        if (search.isRegularExpression() && search.isMultilinePattern()) {
-            Matcher matcher = search.getMatch();
-            if (matcher != null) {
-                setDot(buffer.getPosition(matcher.start()));
-                setMark(buffer.getPosition(matcher.end()));
-                final Line markLine = getMarkLine();
-                for (Line line = getDotLine(); line != null; line = line.next()) {
-                    update(line);
-                    if (line == markLine)
-                        break;
-                }
-                moveCaretToDotCol();
-            }
-        } else {
-            final int context = 2; // This could be a preference.
-            Position saved = dot.copy();
-
-            // Move dot to end of found pattern.
-            int length;
-            if (search.getMatch() != null)
-                length = search.getMatch().group().length();
-            else
-                length = search.getPatternLength();
-
-            // Found pattern might go beyond end of line.
-            dot.setOffset(Math.min(dot.getOffset() + length, getDotLine().length()));
-
-            // Set mark at end of pattern.
-            moveCaretToDotCol();
-            setMarkAtDot();
-
-            // Make sure end of pattern is actually visible, with additional
-            // context as appropriate.
-            int absCol = getDotCol() + context;
-            display.ensureColumnVisible(getDotLine(), absCol);
-
-            // Restore dot to original position at start of pattern.
-            dot = saved;
-
-            // Make sure start of pattern is actually visible, with additional
-            // context as appropriate.
-            absCol = getDotCol() - context;
-            if (absCol < 0)
-                absCol = 0;
-            display.ensureColumnVisible(getDotLine(), absCol);
-            moveCaretToDotCol();
-        }
-    }
-
-    public void findNext() {
-        final Search search = getLastSearch();
-        if (search != null) {
-            // Shows the matches again after clearSearchHighlight.
-            setSearchHighlightHidden(false);
-            Position start;
-            if (mark != null) {
-                Region r = new Region(this);
-                start = new Position(r.getBegin());
-            } else
-                start = new Position(dot);
-            if (!start.next())
-                return;
-            setWaitCursor();
-            Position pos = search.find(buffer, start);
-            setDefaultCursor();
-            if (pos != null) {
-                recordJump();
-                moveDotTo(pos);
-                markFoundPattern(search);
-                if (search instanceof FindInFiles) {
-                    if (buffer.getFile() != null) {
-                        ListOccurrencesInFilesBuffer buf =
-                            ((FindInFiles) search).getOutputBuffer();
-                        if (buf != null)
-                            buf.follow(buffer.getFile(), getDotLine());
-                    }
-                }
-                return;
-            }
-            if (search instanceof FindInFiles) {
-                Editor ed = getOtherEditor();
-                if (ed != null) {
-                    ListOccurrencesInFilesBuffer buf =
-                        ((FindInFiles) search).getOutputBuffer();
-                    if (ed.getBuffer() == buf) {
-                        buf.findNextOccurrence(ed);
-                        return;
-                    }
-                }
-            }
-            search.notFound(this);
-        }
-    }
-
-    public void findPrev() {
-        final Search search = getLastSearch();
-        if (search != null) {
-            setSearchHighlightHidden(false);
-            Position start;
-            if (mark != null) {
-                Region r = new Region(this);
-                start = new Position(r.getBegin());
-            } else
-                start = new Position(dot);
-            if (!start.prev())
-                return;
-            setWaitCursor();
-            Position pos = search.reverseFind(buffer, start);
-            setDefaultCursor();
-            if (pos != null) {
-                recordJump();
-                moveDotTo(pos);
-                markFoundPattern(search);
-                if (search instanceof FindInFiles) {
-                    if (buffer.getFile() != null) {
-                        ListOccurrencesInFilesBuffer buf =
-                            ((FindInFiles) search).getOutputBuffer();
-                        if (buf != null)
-                            buf.follow(buffer.getFile(), getDotLine());
-                    }
-                }
-                return;
-            }
-            if (search instanceof FindInFiles) {
-                Editor ed = getOtherEditor();
-                if (ed != null) {
-                    ListOccurrencesInFilesBuffer buf =
-                        ((FindInFiles) search).getOutputBuffer();
-                    if (ed.getBuffer() == buf) {
-                        buf.findPreviousOccurrence(ed);
-                        return;
-                    }
-                }
-            }
-            search.notFound(this);
-        }
-    }
-
-    public void incrementalFind() {
-        if (dot == null)
-            return;
-
-        // Use location bar.
-        if (locationBar != null) {
-            locationBar.setLabelText(LocationBar.PROMPT_PATTERN);
-            HistoryTextField textField = locationBar.getTextField();
-            textField.setHandler(new IncrementalFindTextFieldHandler(this, textField));
-            textField.setHistory(new History("incrementalFind.pattern"));
-            textField.setText("");
-            setFocusToTextField();
-        }
-    }
-
     public String getCurrentText() {
         String s = getSelectionOnCurrentLine();
         if (s == null)
@@ -4462,7 +4287,7 @@ public final class Editor extends JPanel implements Constants,
         return sb.toString();
     }
 
-    private String getTokenAtDot() {
+    String getTokenAtDot() {
         // If a selection is marked, return the token at the beginning of the
         // marked region.
         if (mark != null) {
@@ -4472,91 +4297,8 @@ public final class Editor extends JPanel implements Constants,
         return tokenAt(dot);
     }
 
-    private String tokenAt(Position pos) {
+    String tokenAt(Position pos) {
         return getMode().getIdentifier(pos);
-    }
-
-    public void findNextWord() {
-        if (dot == null)
-            return;
-        String pattern = getTokenAtDot();
-        if (pattern == null || pattern.length() == 0)
-            return;
-        final Search search = new Search(pattern, false, true);
-        setLastSearch(search);
-        Position start;
-        if (mark != null && dot.isBefore(mark))
-            start = new Position(mark);
-        else
-            start = new Position(dot);
-        Position pos = search.find(buffer.getMode(), start);
-        if (pos != null && pos.equals(start)) {
-            if (pos.next())
-                pos = search.find(buffer.getMode(), pos);
-        }
-        if (pos != null && !pos.equals(start)) {
-            recordJump();
-            moveDotTo(pos);
-            markFoundPattern(search);
-        } else
-            search.notFound(this);
-    }
-
-    public void findPrevWord() {
-        if (dot == null)
-            return;
-        String pattern = getTokenAtDot();
-        if (pattern == null || pattern.length() == 0)
-            return;
-        final Search search = new Search(pattern, false, true);
-        setLastSearch(search);
-        boolean found = false;
-        Position start = null;
-        if (mark != null)
-            start = new Region(this).getBegin();
-        else
-            start = new Position(dot);
-        if (start.prev()) {
-            Position pos = search.reverseFind(buffer, start);
-            if (pos != null && pos.getLine() == start.getLine()) {
-                if (pos.getOffset() + search.getPatternLength() > start.getOffset()) {
-                    // We've found the instance we started with. Keep looking.
-                    start = new Position(pos);
-                    if (start.prev())
-                        pos = search.reverseFind(buffer, start);
-                    else
-                        pos = null;
-                }
-            }
-            if (pos != null) {
-                found = true;
-                recordJump();
-                moveDotTo(pos);
-                markFoundPattern(search);
-            }
-        }
-        if (!found)
-            search.notFound(this);
-    }
-
-    public void findFirstOccurrence() {
-        if (dot == null)
-            return;
-        String pattern = getTokenAtDot();
-        if (pattern == null || pattern.length() == 0)
-            return;
-        final Search search = new Search(pattern, false, true);
-        setLastSearch(search);
-        Position pos = search.find(
-            buffer.getMode(),
-            new Position(buffer.getFirstLine(), 0)
-        );
-        if (pos != null) {
-            recordJump();
-            moveDotTo(pos);
-            markFoundPattern(search);
-        } else
-            search.notFound(this);
     }
 
     public void copyPath() {

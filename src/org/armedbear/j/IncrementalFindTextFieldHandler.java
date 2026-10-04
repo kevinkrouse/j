@@ -206,7 +206,7 @@ public final class IncrementalFindTextFieldHandler extends DefaultTextFieldHandl
             s = s.toLowerCase();
         if (!s.equals(search.getPattern())) {
             search.setPattern(s);
-            editor.markFoundPattern(search);
+            SearchCommands.markFoundPattern(editor, search);
             editor.updateDisplay();
         }
     }
@@ -379,7 +379,7 @@ public final class IncrementalFindTextFieldHandler extends DefaultTextFieldHandl
 
     private final Runnable foundRunnable = () -> {
         if (dirty) {
-            editor.markFoundPattern(search);
+            SearchCommands.markFoundPattern(editor, search);
             editor.updateDisplay();
             dirty = false;
         }
