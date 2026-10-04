@@ -59,50 +59,63 @@ public final class ImageLine extends AbstractLine implements Line {
         return imageWidth;
     }
 
+    @Override
     public final int getHeight() {
         return height;
     }
 
+    @Override
     public final int getWidth() {
         return getImageWidth();
     }
 
+    @Override
     public final int flags() {
         return 0;
     }
 
+    @Override
     public final void setFlags(int flags) {}
 
+    @Override
     public String getText() {
         return null;
     }
 
+    @Override
     public final void setText(String s) {}
 
+    @Override
     public final char charAt(int i) {
         return '\0';
     }
 
+    @Override
     public final String substring(int beginIndex) {
         return null;
     }
 
+    @Override
     public final String substring(int beginIndex, int endIndex) {
         return null;
     }
 
+    @Override
     public final String trim() {
         return null;
     }
 
+    @Override
     public final int length() {
         return 0;
     }
 
+    @Override
     public final byte[] getBytes(String encoding) {
         return null;
     }
 
+    @Override
     public final boolean isBlank() {
         return false;
     }

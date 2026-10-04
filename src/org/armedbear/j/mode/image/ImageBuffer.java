@@ -20,13 +20,13 @@
 
 package org.armedbear.j.mode.image;
 
+import static org.armedbear.j.Constants.*;
+
 import java.awt.Color;
 import java.awt.Cursor;
 import java.awt.Image;
 import java.awt.MediaTracker;
-import java.lang.StringBuilder;
 import org.armedbear.j.Buffer;
-import org.armedbear.j.Constants;
 import org.armedbear.j.Debug;
 import org.armedbear.j.Display;
 import org.armedbear.j.Editor;
@@ -43,7 +43,7 @@ import org.armedbear.j.MessageDialog;
 import org.armedbear.j.Position;
 import org.armedbear.j.StatusBarProgressNotifier;
 
-public class ImageBuffer extends Buffer implements Constants {
+public class ImageBuffer extends Buffer {
     private static Color backgrounds[];
 
     static {
@@ -95,10 +95,12 @@ public class ImageBuffer extends Buffer implements Constants {
             return null;
     }
 
+    @Override
     public final Position getInitialDotPos() {
         return null;
     }
 
+    @Override
     public final boolean needsParsing() {
         return false;
     }
@@ -107,6 +109,7 @@ public class ImageBuffer extends Buffer implements Constants {
         return currentImage;
     }
 
+    @Override
     public final int getDisplayHeight() {
         if (getModeId() == IMAGE_MODE)
             return currentImage.getHeight(null) + Display.getImageBorderHeight() * 2;
@@ -114,6 +117,7 @@ public class ImageBuffer extends Buffer implements Constants {
             return super.getDisplayHeight();
     }
 
+    @Override
     public final int getDisplayWidth() {
         if (getModeId() == IMAGE_MODE)
             return currentImage.getWidth(null) + Display.getImageBorderWidth() * 2;
@@ -121,6 +125,7 @@ public class ImageBuffer extends Buffer implements Constants {
             return super.getDisplayWidth();
     }
 
+    @Override
     public int load() {
         if (!isLoaded()) {
             Debug.assertTrue(loader == null);
@@ -139,6 +144,7 @@ public class ImageBuffer extends Buffer implements Constants {
         return LOAD_COMPLETED;
     }
 
+    @Override
     public void reload() {
         switch (getModeId()) {
             case BINARY_MODE:
@@ -181,11 +187,11 @@ public class ImageBuffer extends Buffer implements Constants {
     private void reloadRemote() {
         final File file = getFile();
         LoadProcess p = null;
-        if (file instanceof FtpFile) {
-            FtpSession session = FtpSession.getSession((FtpFile) file);
-            p = new FtpLoadProcess(this, (FtpFile) file, session);
-        } else if (file instanceof HttpFile) {
-            p = new HttpLoadProcess(this, (HttpFile) file);
+        if (file instanceof FtpFile ftpFile) {
+            FtpSession session = FtpSession.getSession(ftpFile);
+            p = new FtpLoadProcess(this, ftpFile, session);
+        } else if (file instanceof HttpFile httpFile) {
+            p = new HttpLoadProcess(this, httpFile);
         } else {
             Debug.bug();
             return;
@@ -348,24 +354,29 @@ public class ImageBuffer extends Buffer implements Constants {
         editor.status(String.valueOf(percent) + '%');
     }
 
+    @Override
     public void dispose() {
         if (loader != null)
             loader.dispose();
         super.dispose();
     }
 
+    @Override
     public Cursor getDefaultCursor() {
         return Cursor.getDefaultCursor();
     }
 
+    @Override
     public Cursor getDefaultCursor(Position pos) {
         return Cursor.getDefaultCursor();
     }
 
+    @Override
     public void saveView(Editor editor) {
         // Nothing to do.
     }
 
+    @Override
     public String getStatusText(Editor editor) {
         StringBuilder sb = new StringBuilder(String.valueOf(getImageWidth()));
         sb.append('x');
