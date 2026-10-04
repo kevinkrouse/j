@@ -20,6 +20,9 @@
 
 package org.armedbear.j.mode.web;
 
+import java.awt.Color;
+import java.awt.Font;
+import java.util.regex.Pattern;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.FormatTable;
 import org.armedbear.j.Formatter;
@@ -28,24 +31,17 @@ import org.armedbear.j.LineSegmentList;
 import org.armedbear.j.MessageHeaderLine;
 import org.armedbear.j.mode.html.HtmlLineSegment;
 
-import java.util.regex.Pattern;
-import java.awt.Color;
-import java.awt.Font;
-
-public final class WebFormatter extends Formatter implements WebConstants
-{
+public final class WebFormatter extends Formatter implements WebConstants {
     // Includes '/' for "Parts/Attachments".
     private static final Pattern headerRE = Pattern.compile("^ *[a-zA-Z\\-/]+:");
 
-    public WebFormatter(Buffer buffer)
-    {
+    public WebFormatter(Buffer buffer) {
         this.buffer = buffer;
     }
 
-    public final LineSegmentList formatLine(Line line)
-    {
+    public final LineSegmentList formatLine(Line line) {
         if (line instanceof WebLine) {
-            LineSegmentList list = ((WebLine)line).getSegmentList();
+            LineSegmentList list = ((WebLine) line).getSegmentList();
             if (list == null) {
                 list = new LineSegmentList();
                 list.addSegment(new HtmlLineSegment("", 0));
@@ -58,8 +54,8 @@ public final class WebFormatter extends Formatter implements WebConstants
             if (text.length() > 0) {
                 int i = text.indexOf(':');
                 if (i >= 0 && headerRE.matcher(text).find()) {
-                    addSegment(text, 0, i+1, FORMAT_HEADER_NAME);
-                    addSegment(text, i+1, FORMAT_HEADER_VALUE);
+                    addSegment(text, 0, i + 1, FORMAT_HEADER_NAME);
+                    addSegment(text, i + 1, FORMAT_HEADER_VALUE);
                     return segmentList;
                 }
             }
@@ -70,13 +66,11 @@ public final class WebFormatter extends Formatter implements WebConstants
         return segmentList;
     }
 
-    public final Color getColor(int format)
-    {
+    public final Color getColor(int format) {
         return super.getColor(format & ~(FORMAT_BOLD | FORMAT_ITALIC));
     }
 
-    public int getStyle(int format)
-    {
+    public int getStyle(int format) {
         int style = super.getStyle(format & ~(FORMAT_BOLD | FORMAT_ITALIC));
         if ((format & FORMAT_BOLD) != 0)
             style |= Font.BOLD;
@@ -85,16 +79,14 @@ public final class WebFormatter extends Formatter implements WebConstants
         return style;
     }
 
-    public final boolean getUnderline(int format)
-    {
+    public final boolean getUnderline(int format) {
         if ((format & FORMAT_WHITESPACE) != 0)
             return false;
         else
             return (format & FORMAT_LINK) != 0;
     }
 
-    public FormatTable getFormatTable()
-    {
+    public FormatTable getFormatTable() {
         if (formatTable == null) {
             formatTable = new FormatTable("WebMode");
             formatTable.addEntryFromPrefs(FORMAT_TEXT, "text");

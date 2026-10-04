@@ -20,38 +20,30 @@
 
 package org.armedbear.j.mode.web;
 
-import org.armedbear.j.File;
-
 import java.util.ArrayList;
 import java.util.List;
+import org.armedbear.j.File;
 
-public final class WebHistory
-{
+public final class WebHistory {
     private List<WebHistoryEntry> v = new ArrayList<WebHistoryEntry>();
     private int index = -1;
 
-    public WebHistory()
-    {
-    }
+    public WebHistory() {}
 
-    public boolean atEnd()
-    {
+    public boolean atEnd() {
         return index == -1;
     }
 
-    public void truncate()
-    {
+    public void truncate() {
         if (index >= 0)
             v.subList(index, v.size()).clear();
     }
 
-    public void append(File file, int offset, String contentType)
-    {
+    public void append(File file, int offset, String contentType) {
         v.add(new WebHistoryEntry(file, offset, contentType));
     }
 
-    public WebHistoryEntry getPrevious()
-    {
+    public WebHistoryEntry getPrevious() {
         if (v.size() == 0)
             return null;
         if (index < 0)
@@ -61,26 +53,23 @@ public final class WebHistory
         return null;
     }
 
-    public WebHistoryEntry getNext()
-    {
+    public WebHistoryEntry getNext() {
         if (v.size() == 0)
             return null;
         if (index < 0)
             return null;
-        if (index < v.size()-1)
+        if (index < v.size() - 1)
             return v.get(++index);
         return null;
     }
 
-    public WebHistoryEntry getCurrent()
-    {
+    public WebHistoryEntry getCurrent() {
         if (index >= 0 && index < v.size())
             return v.get(index);
         return null;
     }
 
-    public void reset()
-    {
+    public void reset() {
         index = -1;
     }
 }

@@ -20,16 +20,14 @@
 
 package org.armedbear.j.mode.web;
 
-import org.armedbear.j.AbstractLine;
+import java.io.UnsupportedEncodingException;
 import java.lang.StringBuilder;
+import org.armedbear.j.AbstractLine;
 import org.armedbear.j.Line;
 import org.armedbear.j.LineSegmentList;
 import org.armedbear.j.mode.html.HtmlLineSegment;
 
-import java.io.UnsupportedEncodingException;
-
-public class WebLine extends AbstractLine implements Line
-{
+public class WebLine extends AbstractLine implements Line {
     private int flags;
     private String text;
     private LineSegmentList segmentList;
@@ -38,29 +36,24 @@ public class WebLine extends AbstractLine implements Line
     private int sourceOffset;
 
     // Constructs an empty line.
-    public WebLine(int sourceOffset)
-    {
+    public WebLine(int sourceOffset) {
         this.sourceOffset = sourceOffset;
     }
 
-    public WebLine(LineSegmentList segmentList, int sourceOffset)
-    {
+    public WebLine(LineSegmentList segmentList, int sourceOffset) {
         this.segmentList = segmentList;
         this.sourceOffset = sourceOffset;
     }
 
-    public final int flags()
-    {
+    public final int flags() {
         return flags;
     }
 
-    public final void setFlags(int flags)
-    {
+    public final void setFlags(int flags) {
         this.flags = flags;
     }
 
-    public final String getText()
-    {
+    public final String getText() {
         if (text == null) {
             if (segmentList != null) {
                 StringBuilder sb = new StringBuilder(256);
@@ -73,13 +66,11 @@ public class WebLine extends AbstractLine implements Line
         return text;
     }
 
-    public final int getSourceOffset()
-    {
+    public final int getSourceOffset() {
         return sourceOffset;
     }
 
-    public HtmlLineSegment findSegment(int offset)
-    {
+    public HtmlLineSegment findSegment(int offset) {
         if (segmentList == null)
             return null;
         int begin = 0;
@@ -94,43 +85,35 @@ public class WebLine extends AbstractLine implements Line
         return null;
     }
 
-    public final void setText(String s)
-    {
+    public final void setText(String s) {
         text = s;
     }
 
-    public final char charAt(int i)
-    {
+    public final char charAt(int i) {
         return getText().charAt(i);
     }
 
-    public final String substring(int beginIndex)
-    {
+    public final String substring(int beginIndex) {
         return getText().substring(beginIndex);
     }
 
-    public final String substring(int beginIndex, int endIndex)
-    {
+    public final String substring(int beginIndex, int endIndex) {
         return getText().substring(beginIndex, endIndex);
     }
 
-    public final String trim()
-    {
+    public final String trim() {
         return getText().trim();
     }
 
-    public final int length()
-    {
+    public final int length() {
         return getText().length();
     }
 
-    public final byte[] getBytes(String encoding) throws UnsupportedEncodingException
-    {
+    public final byte[] getBytes(String encoding) throws UnsupportedEncodingException {
         return getText().getBytes(encoding);
     }
 
-    public final boolean isBlank()
-    {
+    public final boolean isBlank() {
         if (text == null)
             text = getText();
         for (int i = text.length(); i-- > 0;)
@@ -139,8 +122,7 @@ public class WebLine extends AbstractLine implements Line
         return true;
     }
 
-    public final LineSegmentList getSegmentList()
-    {
+    public final LineSegmentList getSegmentList() {
         return segmentList;
     }
 }
