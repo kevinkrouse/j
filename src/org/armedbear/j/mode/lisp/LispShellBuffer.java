@@ -31,6 +31,7 @@ import org.armedbear.j.Debug;
 import org.armedbear.j.Directories;
 import org.armedbear.j.Display;
 import org.armedbear.j.Editor;
+import org.armedbear.j.ElectricCommands;
 import org.armedbear.j.File;
 import org.armedbear.j.History;
 import org.armedbear.j.IndentCommands;
@@ -338,7 +339,7 @@ public class LispShellBuffer extends ShellBuffer {
 
     public void electricCloseParen() {
         final Editor editor = Editor.currentEditor();
-        editor.closeParen();
+        ElectricCommands.closeParen(editor);
         Position dot = editor.getDotCopy();
         if (dot == null)
             return;

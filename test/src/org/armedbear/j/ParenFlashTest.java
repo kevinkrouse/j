@@ -45,7 +45,7 @@ public class ParenFlashTest {
         h.cursor(0, 3).keys(")");
         h.assertCursorAt(0, 4);
         assertEquals(1, h.editor().getDisplay().getMatchingBracketPosition().getOffset());
-        h.editor().endParenFlash();
+        ElectricCommands.endParenFlash(h.editor());
         assertNull(h.editor().getDisplay().getMatchingBracketPosition());
     }
 
