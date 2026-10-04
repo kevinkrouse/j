@@ -23,26 +23,22 @@ package org.armedbear.j.mode.cpp;
 import org.armedbear.j.LocalTag;
 import org.armedbear.j.Position;
 
-public final class CppTag extends LocalTag
-{
-    public CppTag(String name, Position pos, int type)
-    {
+public final class CppTag extends LocalTag {
+    public CppTag(String name, Position pos, int type) {
         super(name, pos, type);
         if (type == TAG_EXPLICIT)
             canonicalSignature = pos.getLine().trim();
     }
 
-    public String getMethodName()
-    {
+    public String getMethodName() {
         int index = name.indexOf("::");
         if (index >= 0)
-            return name.substring(index+2);
+            return name.substring(index + 2);
         else
             return name;
     }
 
-    public String getLongName()
-    {
+    public String getLongName() {
         if (name.startsWith("class "))
             return name;
         String s = signature.trim();
