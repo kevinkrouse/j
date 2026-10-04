@@ -23,15 +23,14 @@ package org.armedbear.j;
 import static org.armedbear.j.Constants.*;
 
 import java.awt.Container;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
 import java.awt.event.TextEvent;
 import java.awt.event.TextListener;
+import java.util.ArrayList;
 import java.util.List;
+import javax.swing.Icon;
 import javax.swing.JDialog;
-import javax.swing.JMenuItem;
-import javax.swing.JPopupMenu;
+import org.armedbear.j.util.Icons;
 import org.armedbear.j.util.Keys;
 
 public class DefaultTextFieldHandler implements TextFieldHandler {
@@ -188,6 +187,8 @@ public class DefaultTextFieldHandler implements TextFieldHandler {
             return;
         if (handler != this)
             Debug.bug();
+        if (historyKeyPressed(e))
+            return;
         final char keyChar = e.getKeyChar();
         final int keyCode = e.getKeyCode();
         final int modifiers = Keys.keyModifiers(e);
@@ -242,7 +243,7 @@ public class DefaultTextFieldHandler implements TextFieldHandler {
             case KeyEvent.VK_KP_DOWN:
                 resetExpansion();
                 if (modifiers == ALT_MASK)
-                    showPopup();
+                    showHistory();
                 else
                     textField.nextHistory();
                 return;
@@ -296,37 +297,131 @@ public class DefaultTextFieldHandler implements TextFieldHandler {
     @Override
     public void keyTyped(KeyEvent e) {}
 
-    private void showPopup() {
-        if (textField == null)
+    private CompletionPopup<FinderItem.Row> history;
+
+    /** Lists the field's history, newest first, as the finders list. */
+    protected void showHistory() {
+        if (textField == null || textField.getHistory() == null)
             return;
-        History history = textField.getHistory();
-        if (history == null)
-            return;
+        final History h = textField.getHistory();
         final String existing = textField.getText();
-        JPopupMenu popup = null;
-        for (int i = history.size(); i-- > 0;) {
-            String s = history.get(i);
-            if (s.equals(existing))
-                continue;
-            if (popup == null)
-                popup = new JPopupMenu();
-            JMenuItem menuItem = new JMenuItem();
-            menuItem.setText(history.get(i));
-            menuItem.setActionCommand(s);
-            menuItem.addActionListener(popupActionListener);
-            popup.add(menuItem);
+        List<FinderItem.Row> rows = new ArrayList<>();
+        for (int i = h.size(); i-- > 0;) {
+            String s = h.get(i);
+            if (!s.equals(existing))
+                rows.add(new FinderItem.Row(new HistoryItem(s), null));
         }
-        if (popup != null)
-            popup.show(textField, 0, textField.getHeight());
+        if (rows.isEmpty())
+            return;
+        if (history == null) {
+            history = new CompletionPopup<>(textField, 15);
+            history.setCellRenderer(new FinderCellRenderer());
+            history.setOnClick(row -> chooseHistory(row));
+        }
+        history.show(rows, 0);
     }
 
-    // An anonymous class rather than a lambda: textField is a blank final the
-    // constructor assigns, and a lambda in a field initialiser may not read it.
-    private ActionListener popupActionListener = new ActionListener() {
-        @Override
-        public void actionPerformed(ActionEvent e) {
-            textField.setText(e.getActionCommand());
-            enter();
+    /** Whether the history list is showing. */
+    protected final boolean isHistoryShowing() {
+        return history != null && history.isShowing();
+    }
+
+    private void chooseHistory(FinderItem.Row row) {
+        history.hide();
+        if (row != null)
+            historyChosen(row.item().label());
+    }
+
+    /** What picking an entry from the history does: by default, runs it. */
+    protected void historyChosen(String s) {
+        textField.setText(s);
+        enter();
+    }
+
+    /** Called when Escape closes the history list. */
+    protected void historyClosed() {}
+
+    /**
+     * Keys for the history list while it shows: Up, Down, Ctrl P, Ctrl N,
+     * Page Up and Page Down move; Enter picks; Tab puts the entry in the field;
+     * Escape closes the list. Any other key closes it and goes on as usual.
+     */
+    protected final boolean historyKeyPressed(KeyEvent e) {
+        if (!isHistoryShowing())
+            return false;
+        final int modifiers = Keys.keyModifiers(e);
+        switch (e.getKeyCode()) {
+            case KeyEvent.VK_UP, KeyEvent.VK_KP_UP -> history.move(-1, false);
+            case KeyEvent.VK_DOWN, KeyEvent.VK_KP_DOWN -> history.move(+1, false);
+            case KeyEvent.VK_P -> {
+                if (modifiers != CTRL_MASK) {
+                    history.hide();
+                    return false;
+                }
+                history.move(-1, false);
+            }
+            case KeyEvent.VK_N -> {
+                if (modifiers != CTRL_MASK) {
+                    history.hide();
+                    return false;
+                }
+                history.move(+1, false);
+            }
+            case KeyEvent.VK_PAGE_UP -> history.page(-1);
+            case KeyEvent.VK_PAGE_DOWN -> history.page(+1);
+            case KeyEvent.VK_ENTER -> chooseHistory(history.getSelected());
+            case KeyEvent.VK_TAB -> {
+                FinderItem.Row row = history.getSelected();
+                history.hide();
+                if (row != null) {
+                    textField.setText(row.item().label());
+                    textField.setCaretPosition(textField.getText().length());
+                }
+            }
+            case KeyEvent.VK_ESCAPE -> {
+                history.hide();
+                historyClosed();
+            }
+            case KeyEvent.VK_SHIFT, KeyEvent.VK_CONTROL, KeyEvent.VK_META, KeyEvent.VK_ALT -> {
+                return true;
+            }
+            default -> {
+                history.hide();
+                return false;
+            }
         }
-    };
+        e.consume();
+        return true;
+    }
+
+    private static final class HistoryItem implements FinderItem {
+        private final String text;
+
+        HistoryItem(String text) {
+            this.text = text;
+        }
+
+        @Override
+        public String matchText() {
+            return text;
+        }
+
+        @Override
+        public String label() {
+            return text;
+        }
+
+        @Override
+        public int labelOffset() {
+            return 0;
+        }
+
+        @Override
+        public Icon icon() {
+            return Icons.getIconFromFile("history");
+        }
+
+        @Override
+        public void accept(Editor editor, boolean otherWindow) {}
+    }
 }

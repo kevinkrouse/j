@@ -265,8 +265,32 @@ public abstract class FinderTextFieldHandler extends DefaultTextFieldHandler {
         popup.move(-1, true);
     }
 
+    // The history list takes the finder's place while it shows.
+    @Override
+    protected void showHistory() {
+        debounce.stop();
+        generation.incrementAndGet();
+        popup.hide();
+        super.showHistory();
+    }
+
+    // A query from the history is shown with its matches, to pick from.
+    @Override
+    protected void historyChosen(String s) {
+        textField.setText(s);
+        textField.setCaretPosition(s.length());
+        refilter();
+    }
+
+    @Override
+    protected void historyClosed() {
+        refilter();
+    }
+
     @Override
     public void keyPressed(KeyEvent e) {
+        if (historyKeyPressed(e))
+            return;
         final int modifiers = Keys.keyModifiers(e);
         switch (e.getKeyCode()) {
             case KeyEvent.VK_ENTER:
