@@ -29,7 +29,6 @@ import com.sun.jdi.connect.IllegalConnectorArgumentsException;
 import com.sun.jdi.connect.LaunchingConnector;
 import com.sun.jdi.connect.VMStartException;
 import java.io.IOException;
-import java.lang.StringBuilder;
 import java.util.Map;
 import org.armedbear.j.Debug;
 import org.armedbear.j.Log;

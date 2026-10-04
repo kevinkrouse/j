@@ -78,8 +78,8 @@ public abstract class ResolvableBreakpoint {
         }
         if (line != null) {
             Annotation annotation = line.getAnnotation();
-            if (annotation instanceof BreakpointAnnotation)
-                if (((BreakpointAnnotation) annotation).getBreakpoint() == this)
+            if (annotation instanceof BreakpointAnnotation breakpointAnnotation)
+                if (breakpointAnnotation.getBreakpoint() == this)
                     line.setAnnotation(null);
         }
     }

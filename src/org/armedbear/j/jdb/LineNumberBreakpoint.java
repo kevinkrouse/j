@@ -24,7 +24,6 @@ import com.sun.jdi.Location;
 import com.sun.jdi.ReferenceType;
 import com.sun.jdi.request.EventRequest;
 import com.sun.jdi.request.EventRequestManager;
-import java.lang.StringBuilder;
 import java.util.List;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Debug;
@@ -72,6 +71,7 @@ public final class LineNumberBreakpoint extends ResolvableBreakpoint {
         return lineNumber;
     }
 
+    @Override
     public EventRequest resolveEventRequest(ReferenceType refType)
         throws Exception {
         Log.debug("LineNumberBreakpoint.resolveEventRequest");
@@ -100,6 +100,7 @@ public final class LineNumberBreakpoint extends ResolvableBreakpoint {
         return null;
     }
 
+    @Override
     public void resolved() {
         if (line != null) {
             line.setAnnotation(new BreakpointAnnotation(this));
@@ -124,6 +125,7 @@ public final class LineNumberBreakpoint extends ResolvableBreakpoint {
         jdb.log("Breakpoint resolved: " + getLocationString());
     }
 
+    @Override
     public String getLocationString() {
         StringBuilder sb = new StringBuilder();
         if (file != null) {
@@ -136,6 +138,7 @@ public final class LineNumberBreakpoint extends ResolvableBreakpoint {
         return sb.toString();
     }
 
+    @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();
         if (file != null) {

@@ -20,7 +20,6 @@
 
 package org.armedbear.j.jdb;
 
-import java.lang.StringBuilder;
 import org.armedbear.j.Log;
 import org.xml.sax.Attributes;
 
@@ -64,6 +63,7 @@ public final class BreakpointSpecification {
     }
 
     // Only used to generate meaningful trace output.
+    @Override
     public String toString() {
         final String separator = System.getProperty("line.separator");
         StringBuilder sb = new StringBuilder("BreakpointSpecification: ");

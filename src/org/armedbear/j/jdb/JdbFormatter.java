@@ -41,6 +41,7 @@ public final class JdbFormatter extends Formatter {
         this.buffer = buffer;
     }
 
+    @Override
     public LineSegmentList formatLine(Line line) {
         clearSegmentList();
         if (line == null) {
@@ -60,6 +61,7 @@ public final class JdbFormatter extends Formatter {
         return segmentList;
     }
 
+    @Override
     public FormatTable getFormatTable() {
         if (formatTable == null) {
             formatTable = new FormatTable("JdbMode");

@@ -20,6 +20,8 @@
 
 package org.armedbear.j.jdb;
 
+import static org.armedbear.j.Constants.*;
+
 import com.sun.jdi.AbsentInformationException;
 import com.sun.jdi.ArrayReference;
 import com.sun.jdi.ClassNotLoadedException;
@@ -50,7 +52,6 @@ import com.sun.jdi.request.ThreadStartRequest;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.lang.StringBuilder;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -95,10 +96,10 @@ public final class Jdb extends Buffer implements JdbConstants {
     private String sourcePath;
     private JdbControlDialog controlDialog;
     private Position posEndOfBuffer;
-    private ArrayList<BreakpointListener> breakpointListeners = new ArrayList<BreakpointListener>();
-    private ArrayList<ContextListener> contextListeners = new ArrayList<ContextListener>();
+    private ArrayList<BreakpointListener> breakpointListeners = new ArrayList<>();
+    private ArrayList<ContextListener> contextListeners = new ArrayList<>();
     private int lastCommand;
-    private final List<ResolvableBreakpoint> breakpoints = new ArrayList<ResolvableBreakpoint>();
+    private final List<ResolvableBreakpoint> breakpoints = new ArrayList<>();
 
     public static synchronized void jdb() {
         final Editor editor = Editor.currentEditor();
@@ -262,10 +263,12 @@ public final class Jdb extends Buffer implements JdbConstants {
             SwingUtilities.invokeLater(fireContextChangedRunnable);
     }
 
+    @Override
     public void initialize() {
         // Nothing to do.
     }
 
+    @Override
     public synchronized int load() {
         if (!isLoaded()) {
             try {
@@ -518,6 +521,7 @@ public final class Jdb extends Buffer implements JdbConstants {
 
     public void displayRemoteOutput(InputStream inputStream) {
         ReaderThread readerThread = new ReaderThread(inputStream) {
+            @Override
             public void update(final String s) {
                 Runnable runnable = () -> {
                     appendString(s, false, JdbFormatter.JDB_FORMAT_OUTPUT);
@@ -647,9 +651,9 @@ public final class Jdb extends Buffer implements JdbConstants {
         final Editor editor = Editor.currentEditor();
         final Line line = editor.getDotLine();
         Annotation annotation = line.getAnnotation();
-        if (annotation instanceof BreakpointAnnotation) {
+        if (annotation instanceof BreakpointAnnotation breakpointAnnotation) {
             ResolvableBreakpoint bp =
-                ((BreakpointAnnotation) annotation).getBreakpoint();
+                breakpointAnnotation.getBreakpoint();
             jdb.log("clear " + bp.getLocationString());
             jdb.deleteBreakpoint(bp);
             File file = bp.getFile();
@@ -918,6 +922,7 @@ public final class Jdb extends Buffer implements JdbConstants {
         return true;
     }
 
+    @Override
     public void dispose() {
         killVM();
         if (controlDialog != null) {
@@ -1213,8 +1218,7 @@ public final class Jdb extends Buffer implements JdbConstants {
             return;
         }
         for (ResolvableBreakpoint obj : breakpoints) {
-            if (obj instanceof LineNumberBreakpoint) {
-                LineNumberBreakpoint bp = (LineNumberBreakpoint) obj;
+            if (obj instanceof LineNumberBreakpoint bp) {
                 File file = bp.getFile();
                 if (file != null) {
                     if (fileName.equals(file.getName())) {
@@ -1242,8 +1246,7 @@ public final class Jdb extends Buffer implements JdbConstants {
             methodName = arg;
         }
         for (ResolvableBreakpoint obj : breakpoints) {
-            if (obj instanceof MethodBreakpoint) {
-                MethodBreakpoint bp = (MethodBreakpoint) obj;
+            if (obj instanceof MethodBreakpoint bp) {
                 if (className != null) {
                     if (className.equals(bp.getClassName())) {
                         if (methodName.equals(bp.getMethodName())) {
@@ -1412,14 +1415,14 @@ public final class Jdb extends Buffer implements JdbConstants {
                 log("null");
             } else if (value instanceof StringReference) {
                 log(value.toString());
-            } else if (value instanceof ArrayReference) {
+            } else if (value instanceof ArrayReference arrayReference) {
                 log(value.toString());
-                log(getStringValueOfArray(what, (ArrayReference) value));
+                log(getStringValueOfArray(what, arrayReference));
             } else {
                 log(value.toString());
-                if (value instanceof ObjectReference) {
+                if (value instanceof ObjectReference objectReference) {
                     String s = getStringValueOfObject(
-                        (ObjectReference) value,
+                        objectReference,
                         currentThread
                     );
                     if (s != null) {
@@ -1496,18 +1499,18 @@ public final class Jdb extends Buffer implements JdbConstants {
                 sb.append(value);
                 if (value instanceof StringReference) {
                     ;
-                } else if (value instanceof ArrayReference) {
+                } else if (value instanceof ArrayReference arrayReference) {
                     String s = getStringValueOfArray(
                         variable.name(),
-                        (ArrayReference) value
+                        arrayReference
                     );
                     if (s.length() > 0) {
                         sb.append('\n');
                         sb.append(s);
                     }
-                } else if (value instanceof ObjectReference) {
+                } else if (value instanceof ObjectReference objectReference) {
                     String s = getStringValueOfObject(
-                        (ObjectReference) value,
+                        objectReference,
                         currentThread
                     );
                     if (s != null) {
@@ -1692,19 +1695,23 @@ public final class Jdb extends Buffer implements JdbConstants {
         return currentValue;
     }
 
+    @Override
     public boolean isModified() {
         return false;
     }
 
     // For the buffer list.
+    @Override
     public String toString() {
         return "jdb";
     }
 
+    @Override
     public String getTitle() {
         return "jdb";
     }
 
+    @Override
     public Icon getIcon() {
         return Icons.getIconFromFile("jpty");
     }

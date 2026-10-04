@@ -41,8 +41,8 @@ public final class BreakpointPanel implements BreakpointListener, KeyListener {
     public BreakpointPanel(Jdb jdb, JdbControlDialog dialog) {
         this.jdb = jdb;
         this.dialog = dialog;
-        List<ResolvableBreakpoint> v = new ArrayList<ResolvableBreakpoint>(jdb.getBreakpoints());
-        list = new JList<ResolvableBreakpoint>(
+        List<ResolvableBreakpoint> v = new ArrayList<>(jdb.getBreakpoints());
+        list = new JList<>(
             v.toArray(new ResolvableBreakpoint[0])
         );
         scrollPane = new JScrollPane(list);
@@ -54,6 +54,7 @@ public final class BreakpointPanel implements BreakpointListener, KeyListener {
         return scrollPane;
     }
 
+    @Override
     public void breakpointChanged() {
         list.setListData(
             jdb.getBreakpoints().toArray(new ResolvableBreakpoint[0])
@@ -61,6 +62,7 @@ public final class BreakpointPanel implements BreakpointListener, KeyListener {
         list.setSelectedIndex(-1);
     }
 
+    @Override
     public void keyPressed(KeyEvent e) {
         final int keyCode = e.getKeyCode();
         final int modifiers = Keys.keyModifiers(e);
@@ -87,7 +89,9 @@ public final class BreakpointPanel implements BreakpointListener, KeyListener {
         }
     }
 
+    @Override
     public void keyTyped(KeyEvent e) {}
 
+    @Override
     public void keyReleased(KeyEvent e) {}
 }

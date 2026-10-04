@@ -26,7 +26,6 @@ import com.sun.jdi.Method;
 import com.sun.jdi.ReferenceType;
 import com.sun.jdi.request.EventRequest;
 import com.sun.jdi.request.EventRequestManager;
-import java.lang.StringBuilder;
 import java.util.List;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Editor;
@@ -49,6 +48,7 @@ public final class MethodBreakpoint extends ResolvableBreakpoint {
         return methodName;
     }
 
+    @Override
     public EventRequest resolveEventRequest(ReferenceType refType) throws Exception {
         Method method = findMatchingMethod(refType);
         if (method == null)
@@ -129,6 +129,7 @@ public final class MethodBreakpoint extends ResolvableBreakpoint {
         }
     }
 
+    @Override
     public void resolved() {
         if (file != null) {
             Buffer buffer = Editor.getBufferList().findBuffer(file);
@@ -140,6 +141,7 @@ public final class MethodBreakpoint extends ResolvableBreakpoint {
         jdb.log("Breakpoint resolved: " + getLocationString());
     }
 
+    @Override
     public String getLocationString() {
         StringBuilder sb = new StringBuilder();
         if (className != null) {
@@ -152,6 +154,7 @@ public final class MethodBreakpoint extends ResolvableBreakpoint {
         return sb.toString();
     }
 
+    @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();
         if (className != null) {

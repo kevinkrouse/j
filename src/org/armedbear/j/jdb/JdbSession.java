@@ -189,12 +189,10 @@ public final class JdbSession extends Properties {
                 Iterator<ResolvableBreakpoint> iter = breakpoints.iterator();
                 while (iter.hasNext()) {
                     Object obj = iter.next();
-                    if (obj instanceof MethodBreakpoint) {
-                        MethodBreakpoint bp = (MethodBreakpoint) obj;
+                    if (obj instanceof MethodBreakpoint bp) {
                         if (!bp.isTemporary())
                             writer.write(bp.toXml());
-                    } else if (obj instanceof LineNumberBreakpoint) {
-                        LineNumberBreakpoint bp = (LineNumberBreakpoint) obj;
+                    } else if (obj instanceof LineNumberBreakpoint bp) {
                         if (!bp.isTemporary())
                             writer.write(bp.toXml());
                     }
@@ -236,6 +234,7 @@ public final class JdbSession extends Properties {
     }
 
     private class Handler extends DefaultHandler implements ContentHandler {
+        @Override
         public void startElement(
             String uri,
             String localName,
@@ -252,7 +251,7 @@ public final class JdbSession extends Properties {
                 String value = attributes.getValue("value");
                 setProperty(propertyName, value);
             } else if (localName.equals("breakpoints") || qName.equals("breakpoints")) {
-                breakpointSpecifications = new ArrayList<BreakpointSpecification>();
+                breakpointSpecifications = new ArrayList<>();
             } else if (localName.equals("breakpoint") || qName.equals("breakpoint")) {
                 BreakpointSpecification spec =
                     new BreakpointSpecification(attributes);

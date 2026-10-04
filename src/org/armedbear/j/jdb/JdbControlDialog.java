@@ -20,6 +20,8 @@
 
 package org.armedbear.j.jdb;
 
+import static org.armedbear.j.Constants.*;
+
 import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.FontMetrics;
@@ -40,7 +42,6 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JTabbedPane;
 import javax.swing.JToolBar;
-import org.armedbear.j.Constants;
 import org.armedbear.j.DefaultTextFieldHandler;
 import org.armedbear.j.Editor;
 import org.armedbear.j.Expansion;
@@ -51,8 +52,8 @@ import org.armedbear.j.StandardButton;
 import org.armedbear.j.util.Keys;
 import org.armedbear.j.util.Utilities;
 
-public final class JdbControlDialog extends JDialog implements JdbConstants,
-    Constants, ContextListener, ActionListener, ComponentListener, KeyListener {
+public final class JdbControlDialog extends JDialog
+    implements JdbConstants, ContextListener, ActionListener, ComponentListener, KeyListener {
     private static final String commandKey = "jdb.command";
 
     private static final SessionProperties sessionProperties =
@@ -173,6 +174,7 @@ public final class JdbControlDialog extends JDialog implements JdbConstants,
         super.setVisible(true);
     }
 
+    @Override
     public void contextChanged() {
         if (jdb.getVM() == null) {
             suspendButton.setEnabled(false);
@@ -186,10 +188,12 @@ public final class JdbControlDialog extends JDialog implements JdbConstants,
         }
     }
 
+    @Override
     public void actionPerformed(ActionEvent e) {
         Editor.currentEditor().getDispatcher().actionPerformed(e);
     }
 
+    @Override
     public void keyPressed(KeyEvent e) {
         if (e.getKeyCode() == KeyEvent.VK_ENTER) {
             if (Keys.isUnmodified(e)) {
@@ -210,22 +214,28 @@ public final class JdbControlDialog extends JDialog implements JdbConstants,
         }
     }
 
+    @Override
     public void keyReleased(KeyEvent e) {}
 
+    @Override
     public void keyTyped(KeyEvent e) {}
 
+    @Override
     public void componentResized(ComponentEvent e) {
         saveWindowPlacement();
     }
 
+    @Override
     public void componentMoved(ComponentEvent e) {
         saveWindowPlacement();
     }
 
+    @Override
     public void componentShown(ComponentEvent e) {
         saveWindowPlacement();
     }
 
+    @Override
     public void componentHidden(ComponentEvent e) {}
 
     private void saveWindowPlacement() {
@@ -237,6 +247,7 @@ public final class JdbControlDialog extends JDialog implements JdbConstants,
     }
 
     private class WindowMonitor extends WindowAdapter {
+        @Override
         public void windowClosing(WindowEvent e) {
             setVisible(false);
             dispose();
@@ -249,14 +260,17 @@ public final class JdbControlDialog extends JDialog implements JdbConstants,
             super(textField);
         }
 
+        @Override
         public void enter() {
             commandHistory.append(textField.getText());
         }
 
+        @Override
         public void escape() {
             textField.setText("");
         }
 
+        @Override
         public Expansion getExpansion(String prefix) {
             Expansion expansion = new Expansion(jdb, prefix, prefix);
             for (Editor ed : Editor.getEditorList()) {

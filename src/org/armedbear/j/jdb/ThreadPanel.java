@@ -29,7 +29,6 @@ import com.sun.jdi.VirtualMachine;
 import java.awt.Component;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
-import java.lang.StringBuilder;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.List;
@@ -54,8 +53,8 @@ public final class ThreadPanel implements ContextListener, MouseListener {
     public ThreadPanel(Jdb jdb, JdbControlDialog dialog) {
         this.jdb = jdb;
         this.dialog = dialog;
-        List<String> v = new ArrayList<String>();
-        list = new JList<String>(v.toArray(new String[0]));
+        List<String> v = new ArrayList<>();
+        list = new JList<>(v.toArray(new String[0]));
         scrollPane = new JScrollPane(list);
         jdb.addContextListener(this);
         list.addMouseListener(this);
@@ -65,8 +64,9 @@ public final class ThreadPanel implements ContextListener, MouseListener {
         return scrollPane;
     }
 
+    @Override
     public void contextChanged() {
-        final List<String> v = new ArrayList<String>();
+        final List<String> v = new ArrayList<>();
         int index = -1;
         VirtualMachine vm = jdb.getVM();
         if (vm != null) {
@@ -114,6 +114,7 @@ public final class ThreadPanel implements ContextListener, MouseListener {
         SwingUtilities.invokeLater(r);
     }
 
+    @Override
     public void mousePressed(MouseEvent e) {
         if (!jdb.isSuspended())
             return;
@@ -180,11 +181,15 @@ public final class ThreadPanel implements ContextListener, MouseListener {
         dialog.requestDefaultFocus();
     }
 
+    @Override
     public void mouseReleased(MouseEvent e) {}
 
+    @Override
     public void mouseClicked(MouseEvent e) {}
 
+    @Override
     public void mouseEntered(MouseEvent e) {}
 
+    @Override
     public void mouseExited(MouseEvent e) {}
 }

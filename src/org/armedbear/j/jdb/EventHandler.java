@@ -45,7 +45,6 @@ import com.sun.jdi.event.VMStartEvent;
 import com.sun.jdi.event.WatchpointEvent;
 import com.sun.jdi.request.BreakpointRequest;
 import com.sun.jdi.request.EventRequest;
-import java.lang.StringBuilder;
 import java.util.Iterator;
 import java.util.List;
 import javax.swing.SwingUtilities;
@@ -67,6 +66,7 @@ public final class EventHandler implements Runnable {
         eventHandlerThread.start();
     }
 
+    @Override
     public void run() {
         EventQueue queue = jdb.getVM().eventQueue();
         while (connected) {
@@ -126,16 +126,16 @@ public final class EventHandler implements Runnable {
     }
 
     private static ThreadReference getThreadForEvent(Event event) {
-        if (event instanceof ClassPrepareEvent)
-            return ((ClassPrepareEvent) event).thread();
-        else if (event instanceof LocatableEvent)
-            return ((LocatableEvent) event).thread();
-        else if (event instanceof ThreadStartEvent)
-            return ((ThreadStartEvent) event).thread();
-        else if (event instanceof ThreadDeathEvent)
-            return ((ThreadDeathEvent) event).thread();
-        else if (event instanceof VMStartEvent)
-            return ((VMStartEvent) event).thread();
+        if (event instanceof ClassPrepareEvent classPrepareEvent)
+            return classPrepareEvent.thread();
+        else if (event instanceof LocatableEvent locatableEvent)
+            return locatableEvent.thread();
+        else if (event instanceof ThreadStartEvent threadStartEvent)
+            return threadStartEvent.thread();
+        else if (event instanceof ThreadDeathEvent threadDeathEvent)
+            return threadDeathEvent.thread();
+        else if (event instanceof VMStartEvent vmStartEvent)
+            return vmStartEvent.thread();
         else
             return null;
     }
@@ -193,8 +193,7 @@ public final class EventHandler implements Runnable {
         jdb.source();
         // If breakpoint is temporary, delete it.
         EventRequest er = evt.request();
-        if (er instanceof BreakpointRequest) {
-            BreakpointRequest br = (BreakpointRequest) er;
+        if (er instanceof BreakpointRequest br) {
             for (Iterator<ResolvableBreakpoint> it = jdb.getBreakpoints().iterator(); it.hasNext();) {
                 ResolvableBreakpoint bp = it.next();
                 if (bp.getEventRequest() == br) {
