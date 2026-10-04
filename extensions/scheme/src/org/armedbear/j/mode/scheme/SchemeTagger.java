@@ -20,7 +20,6 @@
 
 package org.armedbear.j.mode.scheme;
 
-import java.lang.StringBuilder;
 import java.util.ArrayList;
 import org.armedbear.j.Line;
 import org.armedbear.j.LocalTag;
@@ -45,8 +44,9 @@ public final class SchemeTagger extends Tagger {
         super(buffer);
     }
 
+    @Override
     public void run() {
-        ArrayList<LocalTag> tags = new ArrayList<LocalTag>();
+        ArrayList<LocalTag> tags = new ArrayList<>();
         pos = new Position(buffer.getFirstLine(), 0);
         token = null;
         tokenStart = null;

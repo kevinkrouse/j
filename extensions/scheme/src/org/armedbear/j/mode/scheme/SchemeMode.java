@@ -20,10 +20,11 @@
 
 package org.armedbear.j.mode.scheme;
 
+import static org.armedbear.j.Constants.*;
+
 import java.awt.event.KeyEvent;
 import org.armedbear.j.AbstractMode;
 import org.armedbear.j.Buffer;
-import org.armedbear.j.Constants;
 import org.armedbear.j.Editor;
 import org.armedbear.j.Formatter;
 import org.armedbear.j.KeyMap;
@@ -35,7 +36,7 @@ import org.armedbear.j.Property;
 import org.armedbear.j.SystemBuffer;
 import org.armedbear.j.Tagger;
 
-public final class SchemeMode extends AbstractMode implements Constants, Mode {
+public final class SchemeMode extends AbstractMode implements Mode {
     public static final String NAME = "Scheme";
 
     private static volatile SchemeMode mode;
@@ -59,14 +60,17 @@ public final class SchemeMode extends AbstractMode implements Constants, Mode {
         return m != null ? m : Editor.getModeList().getModeFromModeName(NAME) instanceof SchemeMode x ? x : null;
     }
 
+    @Override
     public final String getCommentStart() {
         return "; ";
     }
 
+    @Override
     public final Formatter getFormatter(Buffer buffer) {
         return new SchemeFormatter(buffer);
     }
 
+    @Override
     protected void setKeyMapDefaults(KeyMap km) {
         km.mapKey(KeyEvent.VK_ENTER, 0, "newlineAndIndent");
         km.mapKey(KeyEvent.VK_T, CTRL_MASK, "findTag");
@@ -75,10 +79,12 @@ public final class SchemeMode extends AbstractMode implements Constants, Mode {
         km.mapKey(')', "closeParen");
     }
 
+    @Override
     public boolean isTaggable() {
         return true;
     }
 
+    @Override
     public Tagger getTagger(SystemBuffer buffer) {
         return new SchemeTagger(buffer);
     }
@@ -86,14 +92,17 @@ public final class SchemeMode extends AbstractMode implements Constants, Mode {
     private static final String validChars =
         "!$%&*+-./0123456789:<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[]^_abcdefghijklmnopqrstuvwxyz{}~";
 
+    @Override
     public final boolean isIdentifierStart(char c) {
         return validChars.indexOf(c) >= 0;
     }
 
+    @Override
     public final boolean isIdentifierPart(char c) {
         return validChars.indexOf(c) >= 0;
     }
 
+    @Override
     public boolean isInQuote(Buffer buffer, Position pos) {
         // This implementation only considers the current line.
         Line line = pos.getLine();

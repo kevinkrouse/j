@@ -16,6 +16,7 @@ import org.armedbear.j.extension.ModeDescriptor;
 import org.armedbear.j.extension.ModeProvider;
 
 public final class SchemeModes implements ModeProvider {
+    @Override
     public List<ModeDescriptor> modes() {
         return List.of(
             new ModeDescriptor(

@@ -20,7 +20,8 @@
 
 package org.armedbear.j.mode.scheme;
 
-import java.lang.StringBuilder;
+import static org.armedbear.j.Constants.*;
+
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Editor;
 import org.armedbear.j.FormatTable;
@@ -213,6 +214,7 @@ public final class SchemeFormatter extends Formatter {
         endToken(state);
     }
 
+    @Override
     public LineSegmentList formatLine(Line line) {
         if (line == null) {
             clearSegmentList();
@@ -243,6 +245,7 @@ public final class SchemeFormatter extends Formatter {
         return segmentList;
     }
 
+    @Override
     public boolean parseBuffer() {
         int state = STATE_NEUTRAL;
         boolean changed = false;
@@ -294,6 +297,7 @@ public final class SchemeFormatter extends Formatter {
         return changed;
     }
 
+    @Override
     public FormatTable getFormatTable() {
         if (formatTable == null) {
             formatTable = new FormatTable("SchemeMode");
