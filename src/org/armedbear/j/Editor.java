@@ -307,7 +307,14 @@ public final class Editor extends JPanel implements ComponentListener, MouseWhee
         display = new Display(this);
         dispatcher = new Dispatcher(this);
         init();
-        frame = f != null ? f : new Frame(this);
+        try {
+            frame = f != null ? f : new Frame(this);
+        }
+        catch (RuntimeException | Error e) {
+            // Leave no frameless editor in the list.
+            editorList.remove(this);
+            throw e;
+        }
     }
 
     /**

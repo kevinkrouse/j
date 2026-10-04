@@ -178,7 +178,9 @@ public final class StatusBar extends JComponent
     public void preferencesChanged() {
         displayContext =
             Editor.preferences().getIntegerProperty(Property.STATUS_BAR_DISPLAY_CONTEXT);
-        if (font != null)
-            updateSize(); // Not during construction; the border isn't set yet.
+        // Not during construction, when the border isn't set yet. The font is
+        // static, so it's already set when a second frame is made.
+        if (border != null)
+            updateSize();
     }
 }
