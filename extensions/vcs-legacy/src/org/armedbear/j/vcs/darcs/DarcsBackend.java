@@ -11,8 +11,9 @@
 
 package org.armedbear.j.vcs.darcs;
 
+import static org.armedbear.j.Constants.*;
+
 import org.armedbear.j.Buffer;
-import org.armedbear.j.Constants;
 import org.armedbear.j.Debug;
 import org.armedbear.j.Editor;
 import org.armedbear.j.File;
@@ -23,20 +24,24 @@ import org.armedbear.j.mode.diff.DiffOutputBuffer;
 import org.armedbear.j.util.Utilities;
 import org.armedbear.j.vcs.VcsBackend;
 
-public final class DarcsBackend implements VcsBackend, Constants {
+public final class DarcsBackend implements VcsBackend {
+    @Override
     public int id() {
         return VC_DARCS;
     }
 
+    @Override
     public String name() {
         return "darcs";
     }
 
+    @Override
     public boolean isRoot(File dir) {
         File darcs = File.getInstance(dir, "_darcs");
         return darcs != null && darcs.isDirectory();
     }
 
+    @Override
     public boolean gotoDiffSource(Editor editor, DiffOutputBuffer buffer) {
         gotoFile(editor, buffer);
         return true;

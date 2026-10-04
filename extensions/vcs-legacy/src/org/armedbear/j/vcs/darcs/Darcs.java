@@ -20,10 +20,10 @@
 
 package org.armedbear.j.vcs.darcs;
 
-import java.lang.StringBuilder;
+import static org.armedbear.j.Constants.*;
+
 import java.util.List;
 import org.armedbear.j.Buffer;
-import org.armedbear.j.Constants;
 import org.armedbear.j.Editor;
 import org.armedbear.j.File;
 import org.armedbear.j.MessageDialog;
@@ -31,7 +31,7 @@ import org.armedbear.j.util.ProcessRunner;
 import org.armedbear.j.util.Utilities;
 import org.armedbear.j.vcs.VersionControl;
 
-public class Darcs extends VersionControl implements Constants {
+public class Darcs extends VersionControl {
     public static void darcs() {
         darcs("");
     }
