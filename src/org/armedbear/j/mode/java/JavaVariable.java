@@ -21,22 +21,19 @@
 package org.armedbear.j.mode.java;
 
 import java.lang.StringBuilder;
-
 import java.util.StringTokenizer;
 
-public final class JavaVariable
-{
+public final class JavaVariable {
     // what
-    public static final int FIELD     = 1;
+    public static final int FIELD = 1;
     public static final int PARAMETER = 2;
-    public static final int LOCAL     = 3;
+    public static final int LOCAL = 3;
 
     private final String type;
     private final String name;
     private final int what;
 
-    public JavaVariable(String s, int what)
-    {
+    public JavaVariable(String s, int what) {
         StringTokenizer st = new StringTokenizer(s);
         StringBuilder sb = new StringBuilder();
         while (st.hasMoreTokens()) {
@@ -45,7 +42,7 @@ public final class JavaVariable
         }
         s = sb.toString();
         int length = s.length();
-        for (int i = length-1; i >= 0; i--) {
+        for (int i = length - 1; i >= 0; i--) {
             if (" \t=;,".indexOf(s.charAt(i)) >= 0)
                 --length;
             else
@@ -57,7 +54,7 @@ public final class JavaVariable
             index = s.lastIndexOf('\t');
         if (index >= 0) {
             type = s.substring(0, index);
-            name = s.substring(index+1).trim();
+            name = s.substring(index + 1).trim();
         } else {
             type = "";
             name = s;
@@ -65,13 +62,11 @@ public final class JavaVariable
         this.what = what;
     }
 
-    public final String getName()
-    {
+    public final String getName() {
         return name;
     }
 
-    public String toString()
-    {
+    public String toString() {
         StringBuilder sb = new StringBuilder(type);
         sb.append(' ');
         sb.append(name);

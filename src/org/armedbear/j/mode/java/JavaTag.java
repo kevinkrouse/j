@@ -20,26 +20,27 @@
 
 package org.armedbear.j.mode.java;
 
-import org.armedbear.j.Editor;
 import java.lang.StringBuilder;
+import java.util.StringTokenizer;
+import org.armedbear.j.Editor;
 import org.armedbear.j.LocalTag;
 import org.armedbear.j.Position;
 import org.armedbear.j.TagCommands;
 
-import java.util.StringTokenizer;
-
-public final class JavaTag extends LocalTag
-{
+public final class JavaTag extends LocalTag {
     private final JavaClass parent;
 
-    public JavaTag(String name, Position pos, int type, int flags)
-    {
+    public JavaTag(String name, Position pos, int type, int flags) {
         this(name, pos, type, flags, null);
     }
 
-    public JavaTag(String name, Position pos, int type, int flags,
-        JavaClass parent)
-    {
+    public JavaTag(
+        String name,
+        Position pos,
+        int type,
+        int flags,
+        JavaClass parent
+    ) {
         super(name, pos, type, flags);
         this.parent = parent;
         switch (type) {
@@ -52,13 +53,11 @@ public final class JavaTag extends LocalTag
         }
     }
 
-    public final JavaClass getParent()
-    {
+    public final JavaClass getParent() {
         return parent;
     }
 
-    public String getMethodName()
-    {
+    public String getMethodName() {
         return getShortName();
     }
 
@@ -68,8 +67,7 @@ public final class JavaTag extends LocalTag
      * types of its parameters, simple or qualified, if the reference gives
      * them.
      */
-    public boolean isNamedBy(String anchor)
-    {
+    public boolean isNamedBy(String anchor) {
         String wanted = anchor.trim();
         String params = null;
         final int paren = wanted.indexOf('(');
@@ -96,8 +94,7 @@ public final class JavaTag extends LocalTag
 
     // "Map<String, List<Integer>> m, final int... n" as "Map,int[]": the
     // simple types, without type arguments, modifiers or names.
-    private static String types(String list)
-    {
+    private static String types(String list) {
         final StringBuilder sb = new StringBuilder();
         final StringBuilder param = new StringBuilder();
         int depth = 0;
@@ -125,27 +122,26 @@ public final class JavaTag extends LocalTag
     // A parameter's type, its first word once annotations and final are
     // gone, with its package dropped: "final java.util.List<X> list" as
     // "List".
-    private static String type(String param)
-    {
+    private static String type(String param) {
         final String s = param.replace("...", "[]")
-            .replaceAll("@[\\w.]+", "").replaceAll("\\bfinal\\b", "").trim();
+            .replaceAll("@[\\w.]+", "")
+            .replaceAll("\\bfinal\\b", "")
+            .trim();
         if (s.isEmpty())
             return "";
         final String type = s.split("\\s+")[0];
         return type.substring(type.lastIndexOf('.') + 1);
     }
 
-    private String getShortName()
-    {
+    private String getShortName() {
         int index = name.lastIndexOf('.');
         if (index >= 0)
-            return name.substring(index+1);
+            return name.substring(index + 1);
         else
             return name;
     }
 
-    public String getLongName()
-    {
+    public String getLongName() {
         if (name.startsWith("class "))
             return name;
         if (canonicalSignature != null)
@@ -170,15 +166,13 @@ public final class JavaTag extends LocalTag
         return s;
     }
 
-    public String getClassName()
-    {
+    public String getClassName() {
         if (parent != null)
             return parent.getName();
         return null;
     }
 
-    private String parseCanonicalSignatureForField()
-    {
+    private String parseCanonicalSignatureForField() {
         String s = signature.trim();
         // Strip comment if any.
         int index = s.indexOf("//");
@@ -204,7 +198,7 @@ public final class JavaTag extends LocalTag
         StringTokenizer st = new StringTokenizer(s);
         int count = st.countTokens();
         StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < count-1; i++) {
+        for (int i = 0; i < count - 1; i++) {
             sb.append(st.nextToken());
             sb.append(' ');
         }
@@ -212,8 +206,7 @@ public final class JavaTag extends LocalTag
         return sb.toString();
     }
 
-    private String parseCanonicalSignatureForMethod()
-    {
+    private String parseCanonicalSignatureForMethod() {
         StringBuilder sb = new StringBuilder();
         Position pos = getPosition().copy();
         pos.setOffset(0);
@@ -247,8 +240,7 @@ public final class JavaTag extends LocalTag
 
     // On entry, pos points at second char of "//" or "/*" (which might not
     // actually be '/' or '*').
-    private static void skipComment(Position pos)
-    {
+    private static void skipComment(Position pos) {
         char c = pos.getChar();
         if (!pos.next())
             return;
@@ -265,8 +257,7 @@ public final class JavaTag extends LocalTag
         }
     }
 
-    public String getSidebarText()
-    {
+    public String getSidebarText() {
         switch (getType()) {
             case TAG_EXTENDS:
                 return "extends ".concat(getMethodName());
@@ -277,8 +268,7 @@ public final class JavaTag extends LocalTag
         }
     }
 
-    public String getToolTipText()
-    {
+    public String getToolTipText() {
         switch (getType()) {
             case TAG_EXTENDS:
                 return "class ".concat(getMethodName());
@@ -289,8 +279,7 @@ public final class JavaTag extends LocalTag
         }
     }
 
-    public void gotoTag(Editor editor)
-    {
+    public void gotoTag(Editor editor) {
         switch (getType()) {
             case TAG_EXTENDS:
             case TAG_IMPLEMENTS:

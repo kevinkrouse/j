@@ -28,17 +28,14 @@ import org.armedbear.j.Position;
 // Supports movement through the syntactically important text of a buffer, i.e.
 // skipping whitespace and comments.
 public final class JavaSyntaxIterator extends DefaultSyntaxIterator
-    implements Constants
-{
-    public JavaSyntaxIterator(Position pos)
-    {
+    implements Constants {
+    public JavaSyntaxIterator(Position pos) {
         super(pos);
     }
 
     // Caller must make sure parseBuffer() has been called so flags will be
     // correct.
-    public char[] hideSyntacticWhitespace(Line line)
-    {
+    public char[] hideSyntacticWhitespace(Line line) {
         if (line.flags() == STATE_COMMENT)
             return hideSyntacticWhitespace(line.getText(), STATE_COMMENT);
         if (line.flags() == STATE_QUOTE)
@@ -46,15 +43,13 @@ public final class JavaSyntaxIterator extends DefaultSyntaxIterator
         return hideSyntacticWhitespace(line.getText(), STATE_NEUTRAL);
     }
 
-    public char[] hideSyntacticWhitespace(String s)
-    {
+    public char[] hideSyntacticWhitespace(String s) {
         return hideSyntacticWhitespace(s, STATE_NEUTRAL);
     }
 
     // Replaces comments with space characters and double-quoted strings with
     // 'X' characters.
-    private char[] hideSyntacticWhitespace(String s, int initialState)
-    {
+    private char[] hideSyntacticWhitespace(String s, int initialState) {
         final char[] chars = s.toCharArray();
         final int length = chars.length;
         if (length > 0 && chars[0] == '#') {
@@ -66,7 +61,7 @@ public final class JavaSyntaxIterator extends DefaultSyntaxIterator
         int state = initialState;
         for (int i = 0; i < length; i++) {
             char c = chars[i];
-            if (c == '\\' && i < length-1) {
+            if (c == '\\' && i < length - 1) {
                 // Escape character.
                 chars[i++] = ' ';
                 chars[i] = ' ';
@@ -85,7 +80,7 @@ public final class JavaSyntaxIterator extends DefaultSyntaxIterator
                 continue;
             }
             if (state == STATE_COMMENT) {
-                if (c == '*' && i < length-1 && chars[i+1] == '/') {
+                if (c == '*' && i < length - 1 && chars[i + 1] == '/') {
                     // /* */ comment ending
                     chars[i++] = ' ';
                     chars[i] = ' ';
@@ -107,15 +102,15 @@ public final class JavaSyntaxIterator extends DefaultSyntaxIterator
                 continue;
             }
             if (c == '/') {
-                if (i < length-1) {
-                    if (chars[i+1] == '*') {
+                if (i < length - 1) {
+                    if (chars[i + 1] == '*') {
                         // /* */ comment starting
                         chars[i++] = ' ';
                         chars[i] = ' ';
                         state = STATE_COMMENT;
                         continue;
                     }
-                    if (chars[i+1] == '/') {
+                    if (chars[i + 1] == '/') {
                         // "//" comment starting
                         for (int j = i; j < length; j++)
                             chars[j] = ' ';

@@ -20,21 +20,19 @@
 
 package org.armedbear.j.mode.java;
 
+import java.lang.StringBuilder;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import org.armedbear.j.Constants;
 import org.armedbear.j.Editor;
-import java.lang.StringBuilder;
 import org.armedbear.j.Line;
 import org.armedbear.j.LocalTag;
 import org.armedbear.j.Log;
 import org.armedbear.j.Position;
 
-import java.util.regex.Pattern;
-import java.util.regex.Matcher;
-import java.util.ArrayList;
-import java.util.List;
-
-public final class JavaContext implements Constants
-{
+public final class JavaContext implements Constants {
     private static final boolean DEBUG = false;
 
     private static final Pattern parameterRE =
@@ -48,13 +46,11 @@ public final class JavaContext implements Constants
     private final Editor editor;
     private final List<Scope> scopes = new ArrayList<Scope>();
 
-    public JavaContext(Editor editor)
-    {
+    public JavaContext(Editor editor) {
         this.editor = editor;
     }
 
-    public void parseContext(Position dot)
-    {
+    public void parseContext(Position dot) {
         final List<LocalTag> tags = editor.getBuffer().getTags();
         if (tags != null) {
             Scope scope = new Scope(new Position(editor.getBuffer().getFirstLine(), 0));
@@ -88,8 +84,7 @@ public final class JavaContext implements Constants
         }
     }
 
-    public JavaVariable findDeclaration(String name)
-    {
+    public JavaVariable findDeclaration(String name) {
         if (DEBUG)
             Log.debug("findDeclaration name = |" + name + "|");
         if (name == null)
@@ -102,7 +97,7 @@ public final class JavaContext implements Constants
             if (!prefix.equals("this"))
                 return null;
             // It's a member of the current class.
-            name = name.substring(index+1);
+            name = name.substring(index + 1);
             if (scopes.size() > 0) {
                 Scope scope = scopes.get(0);
                 for (int j = 0; j < scope.list.size(); j++) {
@@ -115,7 +110,7 @@ public final class JavaContext implements Constants
         }
         // It's a simple name. A local variable hides a class member with the
         // same name.
-        for (int i = scopes.size()-1; i >= 0; i--) {
+        for (int i = scopes.size() - 1; i >= 0; i--) {
             Scope scope = scopes.get(i);
             for (int j = 0; j < scope.list.size(); j++) {
                 JavaVariable var = scope.getVariable(j);
@@ -126,8 +121,7 @@ public final class JavaContext implements Constants
         return null;
     }
 
-    private Position findStartOfMethod(Position dot)
-    {
+    private Position findStartOfMethod(Position dot) {
         if (dot != null) {
             final List<LocalTag> tags = editor.getBuffer().getTags();
             if (tags != null) {
@@ -149,21 +143,18 @@ public final class JavaContext implements Constants
         return null;
     }
 
-    private final class Scope
-    {
+    private final class Scope {
         final ArrayList<JavaVariable> list = new ArrayList<JavaVariable>();
 
         final Position start;
         final Position pos;
 
-        Scope(Position pos)
-        {
+        Scope(Position pos) {
             this.pos = pos;
             start = pos.copy();
         }
 
-        void parse(Position dot)
-        {
+        void parse(Position dot) {
             // Skip initial '{'.
             if (pos.getChar() == '{') {
                 if (!pos.next())
@@ -209,8 +200,7 @@ public final class JavaContext implements Constants
             }
         }
 
-        void parseParameters()
-        {
+        void parseParameters() {
             if (pos.getChar() == '(') {
                 if (!pos.next())
                     return;
@@ -262,37 +252,31 @@ public final class JavaContext implements Constants
             }
         }
 
-        void addField(String signature)
-        {
+        void addField(String signature) {
             int index = signature.indexOf('=');
             if (index >= 0)
                 signature = signature.substring(0, index);
             list.add(new JavaVariable(signature, JavaVariable.FIELD));
         }
 
-        void addParameter(String s)
-        {
+        void addParameter(String s) {
             list.add(new JavaVariable(s, JavaVariable.PARAMETER));
         }
 
-        void addLocalVariable(String s)
-        {
+        void addLocalVariable(String s) {
             list.add(new JavaVariable(s, JavaVariable.LOCAL));
         }
 
-        JavaVariable getVariable(int index)
-        {
+        JavaVariable getVariable(int index) {
             return list.get(index);
         }
 
-        int getVariableCount()
-        {
+        int getVariableCount() {
             return list.size();
         }
 
         // For debugging.
-        void dump()
-        {
+        void dump() {
             Log.debug("scope at " + start);
             for (JavaVariable jv : list)
                 Log.debug(jv.getName());
@@ -300,8 +284,7 @@ public final class JavaContext implements Constants
     }
 
     // For debugging.
-    public static void context()
-    {
+    public static void context() {
         final Editor editor = Editor.currentEditor();
         JavaContext context = new JavaContext(editor);
         context.parseContext(editor.getDot());
@@ -310,8 +293,7 @@ public final class JavaContext implements Constants
     }
 
     // For debugging.
-    private void dump()
-    {
+    private void dump() {
         for (Scope s : scopes)
             s.dump();
     }

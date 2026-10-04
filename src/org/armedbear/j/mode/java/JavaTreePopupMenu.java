@@ -25,15 +25,13 @@ import java.awt.event.ActionListener;
 import javax.swing.JCheckBoxMenuItem;
 import javax.swing.JPopupMenu;
 
-public final class JavaTreePopupMenu extends JPopupMenu implements ActionListener
-{
+public final class JavaTreePopupMenu extends JPopupMenu implements ActionListener {
     private static final String ARRANGE_BY_TYPE = "Arrange by type";
-    private static final String SORT            = "Sort alphabetically";
+    private static final String SORT = "Sort alphabetically";
 
     private final JavaTree tree;
 
-    public JavaTreePopupMenu(JavaTree tree)
-    {
+    public JavaTreePopupMenu(JavaTree tree) {
         super();
         this.tree = tree;
         JCheckBoxMenuItem item = new JCheckBoxMenuItem(ARRANGE_BY_TYPE);
@@ -46,8 +44,7 @@ public final class JavaTreePopupMenu extends JPopupMenu implements ActionListene
         add(item);
     }
 
-    public void actionPerformed(ActionEvent e)
-    {
+    public void actionPerformed(ActionEvent e) {
         Object object = e.getSource();
         if (object instanceof JCheckBoxMenuItem) {
             JCheckBoxMenuItem item = (JCheckBoxMenuItem) object;

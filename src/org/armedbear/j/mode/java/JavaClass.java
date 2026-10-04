@@ -22,29 +22,24 @@ package org.armedbear.j.mode.java;
 
 import org.armedbear.j.Constants;
 
-public final class JavaClass implements Constants
-{
+public final class JavaClass implements Constants {
     private final String name;
     private final int type;
 
-    public JavaClass(String name, int type)
-    {
+    public JavaClass(String name, int type) {
         this.name = name;
         this.type = type;
     }
 
-    public final String getName()
-    {
+    public final String getName() {
         return name;
     }
 
-    public final boolean isInterface()
-    {
+    public final boolean isInterface() {
         return type == TAG_INTERFACE;
     }
 
-    public final boolean isClass()
-    {
+    public final boolean isClass() {
         return type == TAG_CLASS;
     }
 }
