@@ -67,12 +67,12 @@ public final class KeyStrokeTrie<T> {
     }
 
     private static final class Node<T> {
-        final Map<String, Node<T>> children = new HashMap<String, Node<T>>();
+        final Map<String, Node<T>> children = new HashMap<>();
         Node<T> anyCharacter;
         T value;
     }
 
-    private final Node<T> root = new Node<T>();
+    private final Node<T> root = new Node<>();
 
     /**
      * Binds a key sequence.
@@ -85,12 +85,12 @@ public final class KeyStrokeTrie<T> {
         for (String key : keys) {
             if (key.equals(ANY_CHARACTER)) {
                 if (node.anyCharacter == null)
-                    node.anyCharacter = new Node<T>();
+                    node.anyCharacter = new Node<>();
                 node = node.anyCharacter;
             } else {
                 Node<T> child = node.children.get(key);
                 if (child == null) {
-                    child = new Node<T>();
+                    child = new Node<>();
                     node.children.put(key, child);
                 }
                 node = child;
@@ -120,15 +120,15 @@ public final class KeyStrokeTrie<T> {
                 character = key;
             }
             if (next == null)
-                return new Match<T>(Status.NONE, null, null, null);
+                return new Match<>(Status.NONE, null, null, null);
             node = next;
         }
         // A command that is also the start of a longer one waits: the longer
         // one wins if it arrives, and this is the fallback if it does not.
         if (node.value != null && hasChildren(node))
-            return new Match<T>(Status.PARTIAL, null, character, node.value);
+            return new Match<>(Status.PARTIAL, null, character, node.value);
         if (node.value != null)
-            return new Match<T>(Status.FULL, node.value, character, null);
+            return new Match<>(Status.FULL, node.value, character, null);
         return hasChildren(node)
             ? new Match<T>(Status.PARTIAL, null, character, null)
             : new Match<T>(Status.NONE, null, null, null);

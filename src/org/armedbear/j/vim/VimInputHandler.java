@@ -353,7 +353,7 @@ public final class VimInputHandler implements InputHandler {
      * Keys of an insert-mode binding typed so far, while CTRL-R waits for
      * its register.
      */
-    private final List<String> insertBindingKeys = new ArrayList<String>();
+    private final List<String> insertBindingKeys = new ArrayList<>();
 
     /**
      * Feeds a key to the insert-mode bindings: a whole one runs, and the
@@ -368,7 +368,7 @@ public final class VimInputHandler implements InputHandler {
             .match(insertBindingKeys);
         if (match.status == KeyStrokeTrie.Status.PARTIAL)
             return true;
-        final List<String> keys = new ArrayList<String>(insertBindingKeys);
+        final List<String> keys = new ArrayList<>(insertBindingKeys);
         insertBindingKeys.clear();
         if (match.status != KeyStrokeTrie.Status.FULL)
             // What came before is dropped; the key may start another.

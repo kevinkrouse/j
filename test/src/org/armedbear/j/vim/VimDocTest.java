@@ -21,7 +21,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -62,7 +61,7 @@ public class VimDocTest {
 
     /** The modes each row's keys must resolve in. */
     private static final Map<String, Set<MappingMode>> ROWS =
-        new LinkedHashMap<String, Set<MappingMode>>();
+        new LinkedHashMap<>();
     static {
         ROWS.put("motions", NVO);
         ROWS.put("operators", NVO);
@@ -85,7 +84,7 @@ public class VimDocTest {
 
     /** Keys a row names that belong to another mode than the row's. */
     private static final Map<String, Set<MappingMode>> KEY_MODES =
-        new HashMap<String, Set<MappingMode>>();
+        new HashMap<>();
     static {
         KEY_MODES.put("insert <C-t>", I);
         KEY_MODES.put("insert <C-d>", I);
@@ -100,7 +99,7 @@ public class VimDocTest {
     }
 
     /** What a row names in code that is not a key in the map, and why. */
-    private static final Set<String> NOT_KEYS = new HashSet<String>(
+    private static final Set<String> NOT_KEYS = new HashSet<>(
         Arrays.asList(
             // The dispatcher's own: leaving insert and replace, and replace's
             // walk backwards.
@@ -146,7 +145,7 @@ public class VimDocTest {
     );
 
     /** Ex commands the check does not run, and why. */
-    private static final Set<String> NOT_RUN = new HashSet<String>(
+    private static final Set<String> NOT_RUN = new HashSet<>(
         Arrays.asList(
             // A frameless buffer has no file: :w would open the Save As dialog.
             ":w",
@@ -159,7 +158,7 @@ public class VimDocTest {
     @Test
     public void everyDocumentedKeyIsBound() throws IOException {
         final VimKeyMap map = VimKeyMap.getDefault();
-        final List<String> failures = new ArrayList<String>();
+        final List<String> failures = new ArrayList<>();
         final Map<String, List<String>> table = table();
         assertFalse(table.isEmpty(), "no rows found in " + DOC);
         for (Map.Entry<String, List<String>> row : table.entrySet()) {
@@ -192,7 +191,7 @@ public class VimDocTest {
 
     @Test
     public void everyDocumentedExCommandRuns() throws IOException {
-        final List<String> failures = new ArrayList<String>();
+        final List<String> failures = new ArrayList<>();
         int ran = 0;
         for (Map.Entry<String, List<String>> row : table().entrySet())
             for (String key : row.getValue()) {
@@ -238,7 +237,7 @@ public class VimDocTest {
         if (m.status == KeyStrokeTrie.Status.FULL || m.fallback != null)
             return true;
         if (m.status == KeyStrokeTrie.Status.PARTIAL) {
-            final List<String> withCharacter = new ArrayList<String>(keys);
+            final List<String> withCharacter = new ArrayList<>(keys);
             withCharacter.add("x");
             if (trie.match(withCharacter).status == KeyStrokeTrie.Status.FULL)
                 return true;
@@ -279,10 +278,10 @@ public class VimDocTest {
         final int start = html.indexOf("<h2>What is there</h2>");
         final int end = html.indexOf("</dl>", start);
         final Map<String, List<String>> rows =
-            new LinkedHashMap<String, List<String>>();
+            new LinkedHashMap<>();
         final Matcher row = ROW.matcher(html.substring(start, end));
         while (row.find()) {
-            final List<String> keys = new ArrayList<String>();
+            final List<String> keys = new ArrayList<>();
             final Matcher code = CODE.matcher(row.group(2));
             while (code.find())
                 keys.addAll(keys(code.group(1)));
@@ -298,7 +297,7 @@ public class VimDocTest {
             .replace("&amp;", "&")
             .trim()
             .split("\\s+");
-        final List<String> keys = new ArrayList<String>();
+        final List<String> keys = new ArrayList<>();
         for (int i = 0; i < words.length; ++i) {
             if (words[i].equals("Ctrl") && i + 1 < words.length)
                 keys.add("<C-" + words[++i].toLowerCase() + ">");

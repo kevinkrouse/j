@@ -37,7 +37,7 @@ import org.armedbear.j.Position;
  */
 public final class VimMarks {
     private final Map<Character, Marker> marks =
-        new HashMap<Character, Marker>();
+        new HashMap<>();
 
     /** True for a name that {@code m} accepts. */
     public static boolean isValidName(char name) {
@@ -159,7 +159,7 @@ public final class VimMarks {
 
     private List<Position> positionsIn(Buffer buffer) {
         // Lowercase marks only, as in vim: not '< or '[ or the rest.
-        final List<Position> positions = new ArrayList<Position>();
+        final List<Position> positions = new ArrayList<>();
         for (Map.Entry<Character, Marker> entry : marks.entrySet()) {
             final char name = entry.getKey().charValue();
             final Marker marker = entry.getValue();

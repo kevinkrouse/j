@@ -71,7 +71,7 @@ public final class VimRegisters {
 
     /** "0 and "-, which only vim mode has. */
     private final Map<Character, Register> own =
-        new HashMap<Character, Register>();
+        new HashMap<>();
 
     /** How vim took the texts it put in j's registers, newest last. */
     private final Map<String, Type> types =

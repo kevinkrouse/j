@@ -499,7 +499,7 @@ public final class VimExCommands {
         // ones still to come cannot be shifted by an edit above them. Vim
         // works top down; for the commands that make sense here -- d, s and
         // another g -- each line is independent and the result is the same.
-        final List<Integer> targets = new ArrayList<Integer>();
+        final List<Integer> targets = new ArrayList<>();
         editor.getBuffer().renumber();
         Line scan = VimEx.lineAt(editor, range.first);
         for (int n = range.first;

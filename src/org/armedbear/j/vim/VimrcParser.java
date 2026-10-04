@@ -14,8 +14,6 @@ package org.armedbear.j.vim;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.Reader;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.EnumSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -188,7 +186,7 @@ public final class VimrcParser {
         String to,
         boolean remap
     ) {
-        final Map<String, String> noArgs = new LinkedHashMap<String, String>();
+        final Map<String, String> noArgs = new LinkedHashMap<>();
         if (remap)
             noArgs.put("remap", "true");
         if (to.startsWith(":")) {
@@ -198,7 +196,7 @@ public final class VimrcParser {
             // j's own command of that name if there is one; otherwise the
             // line goes to the ex layer, which is where :w and :bn live.
             final Map<String, String> args =
-                new LinkedHashMap<String, String>(noArgs);
+                new LinkedHashMap<>(noArgs);
             args.put("ex", body.trim());
             return new VimCommand(
                 modes,

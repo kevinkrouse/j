@@ -47,7 +47,7 @@ public final class VimActions {
     }
 
     private static final Map<String, Action> ACTIONS =
-        new HashMap<String, Action>();
+        new HashMap<>();
 
     private VimActions() {}
 
@@ -187,7 +187,7 @@ public final class VimActions {
      * undo list takes its entry with it.
      */
     private static final Map<UndoableEdit, int[]> undonePlaces =
-        new WeakHashMap<UndoableEdit, int[]>();
+        new WeakHashMap<>();
 
     private static void noteUndoneAt(Editor editor) {
         final UndoManager undo = editor.getBuffer().getUndoManager();
@@ -610,7 +610,7 @@ public final class VimActions {
         int count,
         boolean after
     ) {
-        final List<String> pieces = new ArrayList<String>();
+        final List<String> pieces = new ArrayList<>();
         for (String piece : text.split("\n", -1))
             pieces.add(piece.repeat(Math.max(1, count)));
         int col = editor.getBuffer().getCol(dot);

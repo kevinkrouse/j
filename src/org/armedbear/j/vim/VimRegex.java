@@ -189,7 +189,7 @@ final class VimRegex {
         private Boolean ignoreCase;
 
         /** Where each open group's output starts, innermost last. */
-        private final Deque<Integer> groups = new ArrayDeque<Integer>();
+        private final Deque<Integer> groups = new ArrayDeque<>();
         /** Where the last complete atom's output starts, or -1 if none. */
         private int lastAtom = -1;
         /** True at the start of a branch, where ^ anchors and * is literal. */

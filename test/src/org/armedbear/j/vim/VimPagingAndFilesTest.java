@@ -294,7 +294,7 @@ public class VimPagingAndFilesTest {
      */
     private void onlyThisBuffer() {
         final java.util.List<org.armedbear.j.Buffer> others =
-            new java.util.ArrayList<org.armedbear.j.Buffer>();
+            new java.util.ArrayList<>();
         for (org.armedbear.j.Buffer b : org.armedbear.j.Editor.getBufferList()) {
             if (b != h.buffer())
                 others.add(b);

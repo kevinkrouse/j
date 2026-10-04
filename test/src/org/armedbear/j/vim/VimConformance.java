@@ -11,15 +11,12 @@
 
 package org.armedbear.j.vim;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
@@ -85,10 +82,10 @@ public final class VimConformance {
     // ------------------------------------------------------------ parsing
 
     public static List<Case> load(Path file) throws IOException {
-        final List<Case> cases = new ArrayList<Case>();
+        final List<Case> cases = new ArrayList<>();
         String name = null;
-        List<Step> steps = new ArrayList<Step>();
-        List<String> notes = new ArrayList<String>();
+        List<Step> steps = new ArrayList<>();
+        List<String> notes = new ArrayList<>();
 
         final List<String> lines =
             Files.readAllLines(file, StandardCharsets.UTF_8);
@@ -105,8 +102,8 @@ public final class VimConformance {
                 if (name != null)
                     cases.add(new Case(name, steps, notes));
                 name = line.substring(1, line.length() - 1);
-                steps = new ArrayList<Step>();
-                notes = new ArrayList<String>();
+                steps = new ArrayList<>();
+                notes = new ArrayList<>();
                 continue;
             }
             if (name == null)
@@ -279,7 +276,7 @@ public final class VimConformance {
      * empty because the modal engine does not exist yet.
      */
     public static Set<String> loadExpectedPassing(Path file) throws IOException {
-        final Set<String> names = new LinkedHashSet<String>();
+        final Set<String> names = new LinkedHashSet<>();
         if (!Files.exists(file))
             return names;
         for (String raw : Files.readAllLines(file, StandardCharsets.UTF_8)) {

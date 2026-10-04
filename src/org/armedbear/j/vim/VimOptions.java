@@ -27,7 +27,7 @@ import org.armedbear.j.Buffer;
 public final class VimOptions {
     /** Short names vim accepts, mapped to the long ones. */
     private static final Map<String, String> ALIASES =
-        new HashMap<String, String>();
+        new HashMap<>();
 
     static {
         ALIASES.put("sw", "shiftwidth");
@@ -47,7 +47,7 @@ public final class VimOptions {
      * smartcase, which is on here and off in both vim and nvim.
      */
     private static final Map<String, Boolean> SWITCHES =
-        new HashMap<String, Boolean>();
+        new HashMap<>();
 
     static {
         SWITCHES.put("hlsearch", true);
@@ -57,7 +57,7 @@ public final class VimOptions {
         SWITCHES.put("wrapscan", true);
     }
 
-    private final Map<String, String> values = new HashMap<String, String>();
+    private final Map<String, String> values = new HashMap<>();
 
     private static String canonical(String name) {
         final String longName = ALIASES.get(name);

@@ -82,9 +82,9 @@ public final class KeyNotation {
     }
 
     // Named keys, as vim spells them. Several names share one key.
-    private static final Map<String, int[]> NAMED = new HashMap<String, int[]>();
+    private static final Map<String, int[]> NAMED = new HashMap<>();
     // The name to use when going the other way, keyed by key code.
-    private static final Map<Integer, String> CANONICAL = new HashMap<Integer, String>();
+    private static final Map<Integer, String> CANONICAL = new HashMap<>();
 
     private static void named(
         String name,
@@ -136,7 +136,7 @@ public final class KeyNotation {
      *         treated as seven literal characters.
      */
     public static List<Stroke> parse(String keys) {
-        final List<Stroke> strokes = new ArrayList<Stroke>();
+        final List<Stroke> strokes = new ArrayList<>();
         for (String token : tokenize(keys)) {
             if (token.charAt(0) == '<')
                 strokes.add(
@@ -168,7 +168,7 @@ public final class KeyNotation {
      * that key the same way.
      */
     public static List<String> tokenize(String keys) {
-        final List<String> tokens = new ArrayList<String>();
+        final List<String> tokens = new ArrayList<>();
         final int length = keys.length();
         int i = 0;
         while (i < length) {

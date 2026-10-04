@@ -24,7 +24,7 @@ import java.util.List;
  */
 public final class CommandBuilder {
     private final StringBuilder count = new StringBuilder();
-    private final List<String> keys = new ArrayList<String>();
+    private final List<String> keys = new ArrayList<>();
 
     /** The operator waiting for a motion, in d{motion}. */
     private VimCommand operator;

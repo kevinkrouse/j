@@ -35,7 +35,7 @@ public final class VimOperators {
     }
 
     private static final Map<String, Operator> OPERATORS =
-        new HashMap<String, Operator>();
+        new HashMap<>();
 
     private VimOperators() {}
 

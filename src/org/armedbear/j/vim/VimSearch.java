@@ -106,8 +106,8 @@ public final class VimSearch {
     static Query queryOf(Search search) {
         if (search == null)
             return null;
-        if (search instanceof Compiled)
-            return ((Compiled) search).query;
+        if (search instanceof Compiled compiled)
+            return compiled.query;
         final String pattern = search.getPattern();
         final String spelled = (search.ignoreCase() ? "\\c" : "")
             + (search.isRegularExpression()

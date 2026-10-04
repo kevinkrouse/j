@@ -51,7 +51,7 @@ public final class VimMotions {
     }
 
     private static final Map<String, Motion> MOTIONS =
-        new HashMap<String, Motion>();
+        new HashMap<>();
 
     private VimMotions() {}
 

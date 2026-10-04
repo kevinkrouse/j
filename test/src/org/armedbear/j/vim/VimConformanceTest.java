@@ -64,8 +64,8 @@ public class VimConformanceTest {
                 VimConformance.corpusDir().resolve("passing.txt")
             );
 
-        final Set<String> passing = new TreeSet<String>();
-        final Map<String, String> failures = new LinkedHashMap<String, String>();
+        final Set<String> passing = new TreeSet<>();
+        final Map<String, String> failures = new LinkedHashMap<>();
 
         for (VimConformance.Case c : cases) {
             try {
@@ -80,7 +80,7 @@ public class VimConformanceTest {
         report(cases.size(), passing, expected);
         reportFailures(failures);
 
-        final List<String> regressed = new ArrayList<String>();
+        final List<String> regressed = new ArrayList<>();
         for (String name : expected)
             if (!passing.contains(name))
                 regressed.add(name + "  --  " + failures.get(name));
@@ -117,7 +117,7 @@ public class VimConformanceTest {
                 + " expected by passing.txt)"
         );
 
-        final Set<String> unlisted = new TreeSet<String>(passing);
+        final Set<String> unlisted = new TreeSet<>(passing);
         unlisted.removeAll(expected);
         if (!unlisted.isEmpty()) {
             System.out.println(

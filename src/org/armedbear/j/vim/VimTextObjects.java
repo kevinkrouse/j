@@ -14,7 +14,6 @@ package org.armedbear.j.vim;
 import java.util.HashMap;
 import java.util.Map;
 import org.armedbear.j.Buffer;
-import org.armedbear.j.Editor;
 import org.armedbear.j.Line;
 import org.armedbear.j.Mode;
 import org.armedbear.j.Position;
@@ -43,7 +42,7 @@ public final class VimTextObjects {
     }
 
     private static final Map<String, TextObject> OBJECTS =
-        new HashMap<String, TextObject>();
+        new HashMap<>();
 
     private VimTextObjects() {}
 

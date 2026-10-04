@@ -57,10 +57,10 @@ public final class VimKeyMap {
     public static final String DEFAULT_RESOURCE = "default-keymap.conf";
 
     private final Map<MappingMode, KeyStrokeTrie<VimCommand>> tries =
-        new EnumMap<MappingMode, KeyStrokeTrie<VimCommand>>(MappingMode.class);
+        new EnumMap<>(MappingMode.class);
 
     /** Every row added, in order, so the map can be copied. */
-    private final List<VimCommand> rows = new ArrayList<VimCommand>();
+    private final List<VimCommand> rows = new ArrayList<>();
 
     /**
      * The map as it was before a vimrc changed it, which a noremap's keys
@@ -255,7 +255,7 @@ public final class VimKeyMap {
     }
 
     private static Set<MappingMode> parseModes(String field) {
-        final Set<MappingMode> modes = new LinkedHashSet<MappingMode>();
+        final Set<MappingMode> modes = new LinkedHashSet<>();
         for (String letter : field.split(",")) {
             if (letter.length() != 1)
                 throw new IllegalArgumentException(
@@ -267,7 +267,7 @@ public final class VimKeyMap {
     }
 
     private static Map<String, String> parseArgs(String field) {
-        final Map<String, String> args = new LinkedHashMap<String, String>();
+        final Map<String, String> args = new LinkedHashMap<>();
         if (field.equals("-"))
             return args;
         for (String arg : field.split(",")) {
