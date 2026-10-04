@@ -20,42 +20,36 @@
 
 package org.armedbear.j.mode.binary;
 
+import java.awt.event.KeyEvent;
+import java.lang.StringBuilder;
 import org.armedbear.j.AbstractMode;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Constants;
 import org.armedbear.j.Editor;
-import org.armedbear.j.Mode;
-import java.lang.StringBuilder;
 import org.armedbear.j.KeyMap;
 import org.armedbear.j.Line;
+import org.armedbear.j.Mode;
 import org.armedbear.j.Property;
 
-import java.awt.event.KeyEvent;
-
-public final class BinaryMode extends AbstractMode implements Constants, Mode
-{
+public final class BinaryMode extends AbstractMode implements Constants, Mode {
     private static final BinaryMode mode = new BinaryMode();
 
-    private BinaryMode()
-    {
+    private BinaryMode() {
         super(BINARY_MODE, BINARY_MODE_NAME);
         setProperty(Property.VERTICAL_RULE, 0);
         setProperty(Property.SHOW_LINE_NUMBERS, false);
     }
 
-    public static final BinaryMode getMode()
-    {
+    public static final BinaryMode getMode() {
         return mode;
     }
 
-    protected final void setKeyMapDefaults(KeyMap km)
-    {
+    protected final void setKeyMapDefaults(KeyMap km) {
         km.mapKey(KeyEvent.VK_B, CTRL_MASK | ALT_MASK, "defaultMode");
     }
 
     // For the status bar.
-    public String getContextString(Editor editor, boolean verbose /*ignored*/)
-    {
+    public String getContextString(Editor editor, boolean verbose /*ignored*/) {
         if (editor.getMode() instanceof BinaryMode) {
             final Line dotLine = editor.getDotLine();
             int col = editor.getDisplay().getCaretCol();
@@ -87,8 +81,7 @@ public final class BinaryMode extends AbstractMode implements Constants, Mode
         return null;
     }
 
-    public static void binaryMode()
-    {
+    public static void binaryMode() {
         final Editor editor = Editor.currentEditor();
         final Buffer buffer = editor.getBuffer();
         if (buffer.isModified()) {

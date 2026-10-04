@@ -20,33 +20,29 @@
 
 package org.armedbear.j.mode.binary;
 
+import java.lang.StringBuilder;
 import org.armedbear.j.AbstractLine;
 import org.armedbear.j.Debug;
-import java.lang.StringBuilder;
 import org.armedbear.j.Line;
 
-public final class BinaryLine extends AbstractLine implements Line
-{
+public final class BinaryLine extends AbstractLine implements Line {
     private final int start;
     private final byte[] bytes;
     private final int count;
 
-    public BinaryLine(int start, byte[] bytes, int count)
-    {
-         this.start = start;
-         this.bytes = bytes;
-         this.count = count;
+    public BinaryLine(int start, byte[] bytes, int count) {
+        this.start = start;
+        this.bytes = bytes;
+        this.count = count;
     }
 
-    public final int flags()
-    {
+    public final int flags() {
         return 0;
     }
 
     public final void setFlags(int flags) {}
 
-    public final String getText()
-    {
+    public final String getText() {
         Debug.assertTrue(bytes != null);
         StringBuilder sb = new StringBuilder(256);
         String s = Long.toHexString(0x100000000L + start);
@@ -72,38 +68,31 @@ public final class BinaryLine extends AbstractLine implements Line
 
     public final void setText(String s) {}
 
-    public final char charAt(int i)
-    {
+    public final char charAt(int i) {
         return getText().charAt(i);
     }
 
-    public final String substring(int beginIndex)
-    {
+    public final String substring(int beginIndex) {
         return getText().substring(beginIndex);
     }
 
-    public final String substring(int beginIndex, int endIndex)
-    {
+    public final String substring(int beginIndex, int endIndex) {
         return getText().substring(beginIndex, endIndex);
     }
 
-    public final String trim()
-    {
+    public final String trim() {
         return getText().trim();
     }
 
-    public final int length()
-    {
+    public final int length() {
         return getText().length();
     }
 
-    public final byte[] getBytes(String encoding)
-    {
+    public final byte[] getBytes(String encoding) {
         return bytes;
     }
 
-    public final boolean isBlank()
-    {
+    public final boolean isBlank() {
         return false;
     }
 }
