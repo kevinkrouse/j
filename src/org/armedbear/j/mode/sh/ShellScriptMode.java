@@ -20,17 +20,17 @@
 
 package org.armedbear.j.mode.sh;
 
+import static org.armedbear.j.Constants.*;
+
 import java.awt.event.KeyEvent;
 import org.armedbear.j.AbstractMode;
 import org.armedbear.j.Buffer;
-import org.armedbear.j.Constants;
 import org.armedbear.j.Formatter;
 import org.armedbear.j.KeyMap;
 import org.armedbear.j.Keywords;
 import org.armedbear.j.Mode;
 
-public final class ShellScriptMode extends AbstractMode implements Constants,
-    Mode {
+public final class ShellScriptMode extends AbstractMode implements Mode {
     private static final ShellScriptMode mode = new ShellScriptMode();
 
     private ShellScriptMode() {
@@ -42,14 +42,17 @@ public final class ShellScriptMode extends AbstractMode implements Constants,
         return mode;
     }
 
+    @Override
     public final String getCommentStart() {
         return "# ";
     }
 
+    @Override
     public final Formatter getFormatter(Buffer buffer) {
         return new ShellScriptFormatter(buffer);
     }
 
+    @Override
     protected void setKeyMapDefaults(KeyMap km) {
         km.mapKey(KeyEvent.VK_ENTER, 0, "newlineAndIndent");
     }
@@ -57,10 +60,12 @@ public final class ShellScriptMode extends AbstractMode implements Constants,
     private static final String validChars =
         "-./0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz";
 
+    @Override
     public boolean isIdentifierStart(char c) {
         return validChars.indexOf(c) >= 0;
     }
 
+    @Override
     public boolean isIdentifierPart(char c) {
         return validChars.indexOf(c) >= 0;
     }

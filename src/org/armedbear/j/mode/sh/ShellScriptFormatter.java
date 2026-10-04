@@ -20,7 +20,8 @@
 
 package org.armedbear.j.mode.sh;
 
-import java.lang.StringBuilder;
+import static org.armedbear.j.Constants.*;
+
 import java.util.Set;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Editor;
@@ -300,6 +301,7 @@ public final class ShellScriptFormatter extends Formatter {
         endToken(state);
     }
 
+    @Override
     public LineSegmentList formatLine(Line line) {
         if (line == null) {
             clearSegmentList();
@@ -320,6 +322,7 @@ public final class ShellScriptFormatter extends Formatter {
         return segmentList;
     }
 
+    @Override
     public boolean parseBuffer() {
         int state = STATE_NEUTRAL;
         Line line = buffer.getFirstLine();
@@ -408,6 +411,7 @@ public final class ShellScriptFormatter extends Formatter {
         return changed;
     }
 
+    @Override
     public FormatTable getFormatTable() {
         if (formatTable == null) {
             formatTable = new FormatTable("ShellScriptMode");
