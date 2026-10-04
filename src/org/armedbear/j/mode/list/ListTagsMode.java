@@ -20,13 +20,14 @@
 
 package org.armedbear.j.mode.list;
 
+import static org.armedbear.j.Constants.*;
+
 import java.awt.AWTEvent;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseEvent;
 import javax.swing.JPopupMenu;
 import org.armedbear.j.AbstractMode;
 import org.armedbear.j.Buffer;
-import org.armedbear.j.Constants;
 import org.armedbear.j.Editor;
 import org.armedbear.j.Formatter;
 import org.armedbear.j.KeyMap;
@@ -35,7 +36,7 @@ import org.armedbear.j.Mode;
 import org.armedbear.j.Property;
 import org.armedbear.j.TagLine;
 
-public final class ListTagsMode extends AbstractMode implements Constants, Mode {
+public final class ListTagsMode extends AbstractMode implements Mode {
     private static final ListTagsMode mode = new ListTagsMode();
 
     private ListTagsMode() {
@@ -51,14 +52,17 @@ public final class ListTagsMode extends AbstractMode implements Constants, Mode 
         return mode;
     }
 
+    @Override
     public JPopupMenu getContextMenu(Editor editor) {
         return null;
     }
 
+    @Override
     public Formatter getFormatter(Buffer buffer) {
         return new ListTagsFormatter(buffer);
     }
 
+    @Override
     protected void setKeyMapDefaults(KeyMap km) {
         km.mapKey(KeyEvent.VK_UP, 0, "tagUp");
         km.mapKey(KeyEvent.VK_KP_UP, 0, "tagUp");
@@ -75,25 +79,25 @@ public final class ListTagsMode extends AbstractMode implements Constants, Mode 
     public static void jumpToTag() {
         final Editor editor = Editor.currentEditor();
         final Buffer buffer = editor.getBuffer();
-        if (buffer instanceof ListTagsBuffer)
-            ((ListTagsBuffer) buffer).jumpToTag(editor, false);
+        if (buffer instanceof ListTagsBuffer listTagsBuffer)
+            listTagsBuffer.jumpToTag(editor, false);
     }
 
     public static void jumpToTagAndKillList() {
         final Editor editor = Editor.currentEditor();
         final Buffer buffer = editor.getBuffer();
-        if (buffer instanceof ListTagsBuffer)
-            ((ListTagsBuffer) buffer).jumpToTag(editor, true);
+        if (buffer instanceof ListTagsBuffer listTagsBuffer)
+            listTagsBuffer.jumpToTag(editor, true);
     }
 
     public static void mouseJumpToTag() {
         final Editor editor = Editor.currentEditor();
         final Buffer buffer = editor.getBuffer();
-        if (buffer instanceof ListTagsBuffer) {
+        if (buffer instanceof ListTagsBuffer listTagsBuffer) {
             AWTEvent e = editor.getDispatcher().getLastEvent();
-            if (e instanceof MouseEvent) {
-                editor.mouseMoveDotToPoint((MouseEvent) e);
-                ((ListTagsBuffer) buffer).jumpToTag(editor, false);
+            if (e instanceof MouseEvent mouseEvent) {
+                editor.mouseMoveDotToPoint(mouseEvent);
+                listTagsBuffer.jumpToTag(editor, false);
             }
         }
     }

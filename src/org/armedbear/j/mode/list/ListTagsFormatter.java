@@ -39,12 +39,13 @@ public final class ListTagsFormatter extends Formatter {
         this.buffer = buffer;
     }
 
+    @Override
     public LineSegmentList formatLine(Line line) {
         clearSegmentList();
-        if (line instanceof TagLine)
-            return formatTagLine((TagLine) line);
-        else if (line instanceof FileLine)
-            return formatFileLine((FileLine) line);
+        if (line instanceof TagLine tagLine)
+            return formatTagLine(tagLine);
+        else if (line instanceof FileLine fileLine)
+            return formatFileLine(fileLine);
         else
             return formatHeaderLine(line);
     }
@@ -90,6 +91,7 @@ public final class ListTagsFormatter extends Formatter {
         return segmentList;
     }
 
+    @Override
     public FormatTable getFormatTable() {
         if (formatTable == null) {
             formatTable = new FormatTable("ListTagsMode");

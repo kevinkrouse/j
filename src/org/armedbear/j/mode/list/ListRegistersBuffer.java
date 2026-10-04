@@ -20,7 +20,8 @@
 
 package org.armedbear.j.mode.list;
 
-import java.lang.StringBuilder;
+import static org.armedbear.j.Constants.*;
+
 import java.util.Arrays;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Debug;
@@ -50,6 +51,7 @@ public final class ListRegistersBuffer extends Buffer {
         setInitialized(true);
     }
 
+    @Override
     public int load() {
         if (!isLoaded()) {
             loadInternal();
@@ -59,6 +61,7 @@ public final class ListRegistersBuffer extends Buffer {
         return LOAD_COMPLETED;
     }
 
+    @Override
     public void reload() {
         for (Editor ed : Editor.getEditorList()) {
             if (ed.getBuffer() == this) {
@@ -136,10 +139,12 @@ public final class ListRegistersBuffer extends Buffer {
         }
     }
 
+    @Override
     public String getFileNameForDisplay() {
         return "listRegisters";
     }
 
+    @Override
     public String toString() {
         return "listRegisters";
     }

@@ -20,7 +20,6 @@
 
 package org.armedbear.j.mode.list;
 
-import java.lang.StringBuilder;
 import java.util.List;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Debug;
@@ -28,7 +27,6 @@ import org.armedbear.j.Editor;
 import org.armedbear.j.GlobalTag;
 import org.armedbear.j.JumpList;
 import org.armedbear.j.Line;
-import org.armedbear.j.Log;
 import org.armedbear.j.Marker;
 import org.armedbear.j.Position;
 import org.armedbear.j.Tag;
@@ -61,6 +59,7 @@ public final class ListTagsBuffer extends Buffer {
         setInitialized(true);
     }
 
+    @Override
     public Position getInitialDotPos() {
         for (Line line = getFirstLine(); line != null; line = line.next()) {
             if (line instanceof TagLine)
@@ -84,8 +83,8 @@ public final class ListTagsBuffer extends Buffer {
     private void appendTag(Tag tag) {
         // In the current implementation, the tags for a given file will be
         // grouped together in the tag file.
-        if (tag instanceof GlobalTag) {
-            String fileName = ((GlobalTag) tag).getFileName();
+        if (tag instanceof GlobalTag globalTag) {
+            String fileName = globalTag.getFileName();
             if (fileName != null && !fileName.equals(lastFileName)) {
                 appendLine(new FileLine(fileName));
                 lastFileName = fileName;
@@ -104,9 +103,9 @@ public final class ListTagsBuffer extends Buffer {
         if (editor.getDot() == null)
             return;
         final Line dotLine = editor.getDotLine();
-        if (!(dotLine instanceof TagLine))
+        if (!(dotLine instanceof TagLine tagLine))
             return;
-        final Tag tag = ((TagLine) dotLine).getTag();
+        final Tag tag = tagLine.getTag();
         if (tag == null) {
             Debug.bug();
             return;

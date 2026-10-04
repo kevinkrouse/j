@@ -48,14 +48,15 @@ public final class ListOccurrencesFormatter extends Formatter {
         parentMode = ((ListOccurrencesBuffer) buffer).getParentMode();
     }
 
+    @Override
     public LineSegmentList formatLine(Line line) {
         clearSegmentList();
-        if (line instanceof OccurrenceLine)
-            return formatOutputLine((OccurrenceLine) line);
-        else if (line instanceof FileLine)
-            return formatFileLine((FileLine) line);
-        else if (line instanceof ListOccurrencesStatusLine)
-            return formatStatusLine((ListOccurrencesStatusLine) line);
+        if (line instanceof OccurrenceLine occurrenceLine)
+            return formatOutputLine(occurrenceLine);
+        else if (line instanceof FileLine fileLine)
+            return formatFileLine(fileLine);
+        else if (line instanceof ListOccurrencesStatusLine listOccurrencesStatusLine)
+            return formatStatusLine(listOccurrencesStatusLine);
         else
             return formatHeaderLine(line);
     }
@@ -117,6 +118,7 @@ public final class ListOccurrencesFormatter extends Formatter {
         return segmentList;
     }
 
+    @Override
     public FormatTable getFormatTable() {
         if (formatTable == null) {
             formatTable = new FormatTable("ListOccurrencesMode");

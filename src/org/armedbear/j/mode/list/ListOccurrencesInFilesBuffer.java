@@ -38,10 +38,10 @@ public final class ListOccurrencesInFilesBuffer extends ListOccurrencesBuffer {
     // Find in files.
     public ListOccurrencesInFilesBuffer(Search search) {
         super(search);
-        if (search instanceof FindInFiles) {
-            appendLine("Files: " + ((FindInFiles) search).getFiles());
+        if (search instanceof FindInFiles findInFiles) {
+            appendLine("Files: " + findInFiles.getFiles());
             if (search.wholeWordsOnly())
-                appendLine("Mode: " + ((FindInFiles) search).getMode().getDisplayName());
+                appendLine("Mode: " + findInFiles.getMode().getDisplayName());
             renumber();
         }
         title = "\"" + search.getPattern() + "\"";
@@ -56,10 +56,12 @@ public final class ListOccurrencesInFilesBuffer extends ListOccurrencesBuffer {
         return lastDotPos != null ? lastDotPos : getInitialDotPos();
     }
 
+    @Override
     public final File getCurrentDirectory() {
         return Directories.getUserHomeDirectory();
     }
 
+    @Override
     public void findOccurrenceAtDot(Editor editor, boolean killList) {
         Position pos = editor.getDotCopy();
         if (pos == null)
@@ -70,8 +72,8 @@ public final class ListOccurrencesInFilesBuffer extends ListOccurrencesBuffer {
         String canonicalPath = null;
         setLastDotPos(pos);
         final Line line = pos.getLine();
-        if ((line instanceof OccurrenceLine)) {
-            sourceLine = ((OccurrenceLine) line).getSourceLine();
+        if ((line instanceof OccurrenceLine occurrenceLine)) {
+            sourceLine = occurrenceLine.getSourceLine();
             Line ln = line;
             if (!ln.getText().startsWith("File: "))
                 sourceLineNumber = Utilities.parseInt(ln.getText()) - 1;
@@ -82,8 +84,8 @@ public final class ListOccurrencesInFilesBuffer extends ListOccurrencesBuffer {
                 }
                 ln = ln.previous();
             }
-        } else if (line instanceof FileLine)
-            canonicalPath = ((FileLine) line).getCanonicalPath();
+        } else if (line instanceof FileLine fileLine)
+            canonicalPath = fileLine.getCanonicalPath();
         if (buf == null && canonicalPath != null)
             buf = Editor.getBuffer(File.getInstance(canonicalPath));
         if (buf != null) {
@@ -96,9 +98,9 @@ public final class ListOccurrencesInFilesBuffer extends ListOccurrencesBuffer {
                     return;
                 }
             }
-            if (line instanceof FileLine) {
+            if (line instanceof FileLine fileLine) {
                 // Mark file visited.
-                ((FileLine) line).markVisited();
+                fileLine.markVisited();
                 // Advance dot to next line.
                 Position dot = editor.getDot();
                 if (dot.equals(pos) && dot.getNextLine() != null) {
@@ -155,18 +157,20 @@ public final class ListOccurrencesInFilesBuffer extends ListOccurrencesBuffer {
         appendLine(new FileLine(file, listEachOccurrence));
     }
 
+    @Override
     protected String getOptions() {
         String s = super.getOptions();
-        if (search instanceof FindInFiles)
-            if (((FindInFiles) search).getIncludeSubdirs())
+        if (search instanceof FindInFiles findInFiles)
+            if (findInFiles.getIncludeSubdirs())
                 s = s.concat(", include subdirectories");
         return s;
     }
 
+    @Override
     public Position getInitialDotPos() {
         final boolean listEachOccurrence;
-        if (search instanceof FindInFiles)
-            listEachOccurrence = ((FindInFiles) search).getListEachOccurrence();
+        if (search instanceof FindInFiles findInFiles)
+            listEachOccurrence = findInFiles.getListEachOccurrence();
         else
             listEachOccurrence = true;
         for (Line line = getFirstLine(); line != null; line = line.next()) {
@@ -220,6 +224,7 @@ public final class ListOccurrencesInFilesBuffer extends ListOccurrencesBuffer {
         return best;
     }
 
+    @Override
     public String getFileNameForDisplay() {
         return "";
     }

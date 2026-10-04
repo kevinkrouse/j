@@ -23,7 +23,6 @@ package org.armedbear.j.mode.list;
 import java.awt.Dimension;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
-import java.lang.StringBuilder;
 import java.util.ArrayList;
 import java.util.List;
 import javax.swing.JList;
@@ -75,7 +74,7 @@ public final class ListTagsDialog extends AbstractDialog implements MouseListene
                 }
             }
             if (tags == null)
-                tags = new ArrayList<LocalTag>();
+                tags = new ArrayList<>();
             // We want to set the selection to the next tag after the cursor
             // position in the current editor.
             for (int i = 0; i < tags.size(); i++) {
@@ -91,7 +90,7 @@ public final class ListTagsDialog extends AbstractDialog implements MouseListene
             Tag t = tags.get(i);
             array[i] = t.getLongName();
         }
-        list = new JList<String>(array);
+        list = new JList<>(array);
         int h = Editor.preferences().getIntegerProperty(Property.JLIST_FIXED_CELL_HEIGHT);
         if (h > 0)
             list.setFixedCellHeight(h);
@@ -125,6 +124,7 @@ public final class ListTagsDialog extends AbstractDialog implements MouseListene
         return tag;
     }
 
+    @Override
     protected void ok() {
         dispose();
         int index = list.getSelectedIndex();
@@ -132,11 +132,13 @@ public final class ListTagsDialog extends AbstractDialog implements MouseListene
             tag = tags.get(index);
     }
 
+    @Override
     public void mouseClicked(MouseEvent e) {
         if (e.getClickCount() == 2)
             ok();
     }
 
+    @Override
     public void mousePressed(MouseEvent e) {
         if ((Keys.isUnmodified(e) && e.getButton() == MouseEvent.BUTTON2)) {
             int index = list.locationToIndex(e.getPoint());
@@ -145,10 +147,13 @@ public final class ListTagsDialog extends AbstractDialog implements MouseListene
         }
     }
 
+    @Override
     public void mouseReleased(MouseEvent e) {}
 
+    @Override
     public void mouseEntered(MouseEvent e) {}
 
+    @Override
     public void mouseExited(MouseEvent e) {}
 
     public static void listTags() {
@@ -163,7 +168,7 @@ public final class ListTagsDialog extends AbstractDialog implements MouseListene
         editor.centerDialog(d);
         d.setVisible(true);
         Tag tag = d.getTag();
-        if (tag instanceof LocalTag)
-            TagCommands.gotoLocalTag(editor, (LocalTag) tag, false);
+        if (tag instanceof LocalTag localTag)
+            TagCommands.gotoLocalTag(editor, localTag, false);
     }
 }
