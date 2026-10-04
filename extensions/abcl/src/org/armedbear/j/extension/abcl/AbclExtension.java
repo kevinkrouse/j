@@ -32,20 +32,16 @@ import org.armedbear.j.mode.lisp.JLispBuffer;
  * the first time something evaluates a form: opening a buffer, saving a file
  * or pressing a key costs nothing until then.
  */
-public final class AbclExtension implements Extension
-{
-    public String getName()
-    {
+public final class AbclExtension implements Extension {
+    public String getName() {
         return "abcl";
     }
 
-    public String getVersion()
-    {
+    public String getVersion() {
         return "1.8.0";
     }
 
-    public void initialize(ExtensionContext context)
-    {
+    public void initialize(ExtensionContext context) {
         // The class literal, not its name: core resolves command classes with
         // Class.forName on its own loader, which cannot see this one.
         context.registerCommand("jlisp", JLispBuffer.class, "jlisp");
@@ -54,8 +50,7 @@ public final class AbclExtension implements Extension
         context.registerKeyMapProvider(new AbclKeyMapProvider());
     }
 
-    public void shutdown()
-    {
+    public void shutdown() {
         Log.debug("abcl extension shutting down");
     }
 }

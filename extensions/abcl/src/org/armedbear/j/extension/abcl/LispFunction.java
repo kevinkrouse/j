@@ -33,32 +33,31 @@ import org.armedbear.lisp.LispThread;
  * {@code instanceof}. It holds this instead, so that {@code KeyMapping} can
  * carry a closure from init.lisp without core ever naming an ABCL type.
  */
-public final class LispFunction implements ScriptFunction
-{
+public final class LispFunction implements ScriptFunction {
     private final LispObject function;
 
-    public LispFunction(LispObject function)
-    {
+    public LispFunction(LispObject function) {
         if (function == null)
             throw new IllegalArgumentException("function is required");
         this.function = function;
     }
 
     /** The object itself, for Lisp code that wants it back. */
-    public LispObject getFunction()
-    {
+    public LispObject getFunction() {
         return function;
     }
 
-    public void invoke()
-    {
+    public void invoke() {
         // Reports rather than throws: this runs from the dispatcher, where a
         // broken binding must not take the editor down with it -- and must not
         // drop it into ABCL's debugger on standard input either, which is what
         // a bare execute() does.
         try {
-            LispObject result = LispThread.currentThread().execute(
-                AbclSession.safeCaller(), Lisp.coerceToFunction(function));
+            LispObject result = LispThread.currentThread()
+                .execute(
+                    AbclSession.safeCaller(),
+                    Lisp.coerceToFunction(function)
+                );
             if (result != Lisp.NIL)
                 Log.error("key binding failed: ".concat(AbclSession.report(result)));
         }
@@ -67,8 +66,7 @@ public final class LispFunction implements ScriptFunction
         }
     }
 
-    public String describe()
-    {
+    public String describe() {
         try {
             return function.printObject();
         }
@@ -79,8 +77,7 @@ public final class LispFunction implements ScriptFunction
     }
 
     @Override
-    public String toString()
-    {
+    public String toString() {
         return describe();
     }
 }

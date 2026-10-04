@@ -21,7 +21,6 @@
 package org.armedbear.j.extension.abcl;
 
 import java.util.Locale;
-
 import org.armedbear.j.KeyMap;
 import org.armedbear.j.Log;
 import org.armedbear.j.extension.KeyMapProvider;
@@ -36,35 +35,32 @@ import org.armedbear.lisp.LispObject;
  * map file and finally to its own defaults -- so an interpreter that has not
  * started yet is simply silent, not an error.
  */
-public final class AbclKeyMapProvider implements KeyMapProvider
-{
-    public KeyMap getGlobalKeyMap()
-    {
+public final class AbclKeyMapProvider implements KeyMapProvider {
+    public KeyMap getGlobalKeyMap() {
         return evaluate("(j:current-global-map)");
     }
 
-    public KeyMap getKeyMapForMode(String modeDisplayName)
-    {
+    public KeyMap getKeyMapForMode(String modeDisplayName) {
         if (modeDisplayName == null)
             return null;
         // "Lisp Shell" -> (j::lisp-shell-mode-map), which init.lisp may or may
         // not have defined; ignore-errors covers the may-not.
         String function =
-            modeDisplayName.toLowerCase(Locale.ROOT).replace(' ', '-')
-                           .concat("-mode-map");
+            modeDisplayName.toLowerCase(Locale.ROOT)
+                .replace(' ', '-')
+                .concat("-mode-map");
         return evaluate("(ignore-errors (j::".concat(function).concat("))"));
     }
 
-    private static KeyMap evaluate(String form)
-    {
+    private static KeyMap evaluate(String form) {
         if (!AbclSession.isInitialized())
             return null;
         try {
             LispObject result = Interpreter.evaluate(form);
             if (result instanceof JavaObject) {
-                Object obj = ((JavaObject)result).getObject();
+                Object obj = ((JavaObject) result).getObject();
                 if (obj instanceof KeyMap)
-                    return (KeyMap)obj;
+                    return (KeyMap) obj;
             }
         }
         catch (Throwable t) {
