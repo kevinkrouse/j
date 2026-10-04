@@ -20,14 +20,17 @@ import org.armedbear.j.vcs.p4.P4;
 
 /** CVS, Perforce and darcs commands. Their backends are services of their own. */
 public final class VcsLegacyExtension implements Extension {
+    @Override
     public String getName() {
         return "vcs-legacy";
     }
 
+    @Override
     public String getVersion() {
         return Version.getVersion();
     }
 
+    @Override
     public void initialize(ExtensionContext context) {
         context.registerCommand("cvs", CVS.class, "cvs");
         context.registerCommand("cvsAdd", CVS.class, "add");

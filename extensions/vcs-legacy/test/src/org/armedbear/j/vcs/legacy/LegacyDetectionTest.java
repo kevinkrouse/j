@@ -11,12 +11,12 @@
 
 package org.armedbear.j.vcs.legacy;
 
+import static org.armedbear.j.Constants.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
-import org.armedbear.j.Constants;
 import org.armedbear.j.File;
 import org.armedbear.j.vcs.VcsBackends;
 import org.armedbear.j.vcs.VersionControl;
@@ -27,7 +27,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
-public class LegacyDetectionTest implements Constants {
+public class LegacyDetectionTest {
     @TempDir
     Path root;
 
