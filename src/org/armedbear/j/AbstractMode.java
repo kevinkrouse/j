@@ -563,7 +563,7 @@ public abstract class AbstractMode implements Constants, Mode {
             try {
                 return Integer.parseInt(s.trim());
             }
-            catch (NumberFormatException e) {}
+            catch (NumberFormatException ignored) {}
         }
 
         // Not in preferences or property list for mode.

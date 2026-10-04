@@ -82,7 +82,7 @@ public final class PopURL extends MailboxURL {
                 try {
                     port = Integer.parseInt(s.substring(index + 1));
                 }
-                catch (Exception e) {
+                catch (NumberFormatException e) {
                     throw new MalformedURLException();
                 }
                 s = s.substring(0, index);
@@ -95,7 +95,7 @@ public final class PopURL extends MailboxURL {
                 try {
                     port = Integer.parseInt(s.substring(index + 1));
                 }
-                catch (Exception e) {
+                catch (NumberFormatException e) {
                     throw new MalformedURLException();
                 }
                 s = s.substring(0, index);

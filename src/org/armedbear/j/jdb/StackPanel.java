@@ -21,6 +21,7 @@
 package org.armedbear.j.jdb;
 
 import com.sun.jdi.AbsentInformationException;
+import com.sun.jdi.IncompatibleThreadStateException;
 import com.sun.jdi.Location;
 import com.sun.jdi.Method;
 import com.sun.jdi.ReferenceType;
@@ -122,7 +123,7 @@ public final class StackPanel implements ContextListener, MouseListener {
                 };
                 SwingUtilities.invokeLater(r);
             }
-            catch (Exception e) {
+            catch (IncompatibleThreadStateException | RuntimeException e) {
                 Log.error(e);
             }
         }

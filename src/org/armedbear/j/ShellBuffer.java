@@ -143,7 +143,7 @@ public class ShellBuffer extends CommandInterpreterBuffer implements Constants {
                 );
             setProcess(p);
         }
-        catch (Throwable t) {
+        catch (IOException | RuntimeException e) {
             setProcess(null);
             return;
         }
@@ -179,8 +179,8 @@ public class ShellBuffer extends CommandInterpreterBuffer implements Constants {
             stderrThread.start();
             readOnly = false;
         }
-        catch (Throwable t) {
-            Log.error(t);
+        catch (RuntimeException e) {
+            Log.error(e);
         }
     }
 

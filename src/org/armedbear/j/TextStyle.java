@@ -74,7 +74,7 @@ public final class TextStyle {
             int style = Integer.parseInt(value);
             return (style & ~ALL) == 0 ? style : -1;
         }
-        catch (NumberFormatException e) {}
+        catch (NumberFormatException ignored) {}
         int style = PLAIN;
         for (String word : value.toLowerCase().split("[\\s,|]+")) {
             switch (word) {

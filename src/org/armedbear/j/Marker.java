@@ -150,7 +150,7 @@ public final class Marker implements Constants {
             if (index >= 0 && index < bookmarks.length)
                 m = bookmarks[index];
         }
-        catch (NumberFormatException e) {}
+        catch (NumberFormatException ignored) {}
         if (m == null) {
             MessageDialog.showMessageDialog(
                 editor,

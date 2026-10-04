@@ -105,7 +105,9 @@ public class IdleThread extends Thread {
             try {
                 Thread.sleep(500);
             }
-            catch (InterruptedException e) {}
+            catch (InterruptedException e) {
+                // Nothing stops this thread: an interrupt only cuts the nap short.
+            }
             final long lastEventMillis = Dispatcher.getLastEventMillis();
             final long idle = System.currentTimeMillis() - lastEventMillis;
             if (idle > 500) {

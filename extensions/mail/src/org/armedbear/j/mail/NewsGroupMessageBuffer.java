@@ -354,8 +354,11 @@ public final class NewsGroupMessageBuffer extends MessageBuffer {
                 return true;
             }
         }
-        catch (Throwable t) {
-            Log.error(t);
+        catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+        catch (IOException e) {
+            Log.error(e);
         }
         return false;
     }

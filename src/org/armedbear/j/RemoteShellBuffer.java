@@ -19,6 +19,7 @@
 
 package org.armedbear.j;
 
+import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.lang.StringBuilder;
 import java.nio.charset.StandardCharsets;
@@ -66,7 +67,7 @@ public class RemoteShellBuffer extends ShellBuffer {
             process = new ProcessBuilder(cmd).start();
             setProcess(process);
         }
-        catch (Throwable t) {
+        catch (IOException | RuntimeException e) {
             setProcess(null);
             return;
         }
@@ -98,8 +99,8 @@ public class RemoteShellBuffer extends ShellBuffer {
             stderrThread.start();
             readOnly = false;
         }
-        catch (Throwable t) {
-            Log.error(t);
+        catch (RuntimeException e) {
+            Log.error(e);
         }
     }
 

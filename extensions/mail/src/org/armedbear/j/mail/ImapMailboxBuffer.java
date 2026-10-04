@@ -1043,7 +1043,7 @@ public final class ImapMailboxBuffer extends MailboxBuffer {
                 progressNotifier.progress(getProgressText(list.size()));
             }
         }
-        catch (Exception e) {
+        catch (RuntimeException e) {
             Log.error(e);
         }
         finally {
@@ -1286,7 +1286,7 @@ public final class ImapMailboxBuffer extends MailboxBuffer {
                 moveToFolder(list, destination);
                 Log.debug("processMove back from moveToFolder");
             }
-            catch (Exception e) {
+            catch (MailException e) {
                 Log.error(e);
             }
         }
@@ -1315,7 +1315,7 @@ public final class ImapMailboxBuffer extends MailboxBuffer {
         try {
             delete(list);
         }
-        catch (Exception e) {
+        catch (MailException e) {
             Log.error(e);
         }
     }
@@ -1602,7 +1602,7 @@ public final class ImapMailboxBuffer extends MailboxBuffer {
                     progressNotifier.progress("Received ", sb.length(), length);
             }
         }
-        catch (Exception e) {
+        catch (RuntimeException e) {
             Log.error(e);
         }
         if (sb != null) {

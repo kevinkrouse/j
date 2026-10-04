@@ -80,7 +80,7 @@ public final class XmlParserImpl extends DefaultHandler implements Runnable,
                     .getDeclaredConstructor()
                     .newInstance();
             }
-            catch (Exception e) {
+            catch (ReflectiveOperationException | ClassCastException e) {
                 Log.debug(e);
             }
         }
@@ -135,8 +135,8 @@ public final class XmlParserImpl extends DefaultHandler implements Runnable,
         try {
             return xmlReader.getFeature(VALIDATION);
         }
-        catch (SAXNotRecognizedException e) {}
-        catch (SAXNotSupportedException e) {}
+        catch (SAXNotRecognizedException ignored) {}
+        catch (SAXNotSupportedException ignored) {}
         return false;
     }
 
@@ -216,7 +216,7 @@ public final class XmlParserImpl extends DefaultHandler implements Runnable,
             try {
                 xmlReader.parse(inputSource);
             }
-            catch (Exception e) {
+            catch (IOException | SAXException e) {
                 exception = e;
             }
             long elapsed = System.currentTimeMillis() - start;
@@ -242,7 +242,9 @@ public final class XmlParserImpl extends DefaultHandler implements Runnable,
             try {
                 return new InputSource(new FileInputStream(filename));
             }
-            catch (FileNotFoundException e) {}
+            catch (FileNotFoundException e) {
+                Log.debug(e);
+            }
             // FileNotFoundException was thrown.
             if (
                 filename.length() > 3
@@ -257,7 +259,9 @@ public final class XmlParserImpl extends DefaultHandler implements Runnable,
                 try {
                     return new InputSource(new FileInputStream(file.canonicalPath()));
                 }
-                catch (Exception e) {}
+                catch (FileNotFoundException e) {
+                    Log.debug(e);
+                }
             }
         }
         if (aelfred) {
@@ -289,7 +293,7 @@ public final class XmlParserImpl extends DefaultHandler implements Runnable,
                         inputSource.setSystemId(systemId);
                         return inputSource;
                     }
-                    catch (Exception e) {
+                    catch (FileNotFoundException e) {
                         Log.error(e);
                     }
                 }

@@ -25,6 +25,8 @@ import java.awt.Cursor;
 import java.awt.Image;
 import java.awt.Rectangle;
 import java.awt.event.MouseEvent;
+import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.io.InputStream;
 import java.util.Map;
 import javax.swing.SwingUtilities;
@@ -570,7 +572,7 @@ public final class WebBuffer extends Buffer implements WebConstants {
         try {
             inputStream = localFile.getInputStream();
         }
-        catch (Exception e) {
+        catch (FileNotFoundException e) {
             Log.error(e);
             errorText = "File not found";
             return false; // File not found.
@@ -587,14 +589,14 @@ public final class WebBuffer extends Buffer implements WebConstants {
                     encoding = "UnicodeLittle";
             }
         }
-        catch (Exception e) {
+        catch (IOException | RuntimeException e) {
             Log.error(e);
             return false;
         }
         try {
             inputStream = localFile.getInputStream();
         }
-        catch (Exception e) {
+        catch (FileNotFoundException e) {
             Log.error(e);
             errorText = "File not found";
             return false; // File not found.

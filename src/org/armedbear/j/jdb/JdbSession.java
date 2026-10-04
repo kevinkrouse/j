@@ -217,7 +217,7 @@ public final class JdbSession extends Properties {
                 xmlReader.parse(inputSource);
             }
             catch (EOFException ignored) {}
-            catch (Exception e) {
+            catch (IOException | SAXException e) {
                 Log.error(e);
             }
         }

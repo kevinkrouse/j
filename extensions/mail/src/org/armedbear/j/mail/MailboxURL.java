@@ -252,7 +252,7 @@ public abstract class MailboxURL {
                 try {
                     port = Integer.parseInt(s.substring(index + 1, digit));
                 }
-                catch (Exception e) {
+                catch (NumberFormatException e) {
                     throw new MalformedURLException();
                 }
                 s = s.substring(digit);

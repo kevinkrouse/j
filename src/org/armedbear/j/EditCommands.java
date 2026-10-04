@@ -326,7 +326,7 @@ public final class EditCommands {
                 SimpleDateFormat df = new SimpleDateFormat(stampFormat);
                 dateString = df.format(now);
             }
-            catch (Throwable t) {
+            catch (IllegalArgumentException e) {
                 // Fall through...
             }
         }
@@ -372,8 +372,8 @@ public final class EditCommands {
             editor.checkDotInOtherFrames();
             editor.setCurrentCommand(COMMAND_UNDO);
         }
-        catch (Throwable t) {
-            Log.error(t);
+        catch (RuntimeException e) {
+            Log.error(e);
         }
         finally {
             editor.getBuffer().unlockWrite();
@@ -394,8 +394,8 @@ public final class EditCommands {
             editor.getBuffer().redo();
             editor.checkDotInOtherFrames();
         }
-        catch (Throwable t) {
-            Log.error(t);
+        catch (RuntimeException e) {
+            Log.error(e);
         }
         finally {
             editor.getBuffer().unlockWrite();

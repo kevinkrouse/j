@@ -57,7 +57,7 @@ public final class DateSentMailboxFilter extends MailboxFilter {
                     return new DateSentMailboxFilter(begin, end);
                 }
             }
-            catch (InvalidDateException e) {}
+            catch (InvalidDateException ignored) {}
         }
         return null;
     }

@@ -25,6 +25,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.lang.StringBuilder;
+import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.ArrayList;
 import java.util.List;
@@ -494,7 +495,10 @@ public final class FindInFiles extends Replacement implements Constants,
             try {
                 SwingUtilities.invokeAndWait(runnable);
             }
-            catch (Exception ex) {
+            catch (InterruptedException ex) {
+                Thread.currentThread().interrupt();
+            }
+            catch (InvocationTargetException ex) {
                 Log.error(ex);
             }
         }
@@ -523,7 +527,10 @@ public final class FindInFiles extends Replacement implements Constants,
             try {
                 SwingUtilities.invokeAndWait(runnable);
             }
-            catch (Exception ex) {
+            catch (InterruptedException ex) {
+                Thread.currentThread().interrupt();
+            }
+            catch (InvocationTargetException ex) {
                 Log.error(ex);
             }
         }
@@ -552,7 +559,10 @@ public final class FindInFiles extends Replacement implements Constants,
                 try {
                     SwingUtilities.invokeAndWait(runnable);
                 }
-                catch (Exception e) {
+                catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
+                catch (InvocationTargetException e) {
                     Log.error(e);
                 }
                 if (FindInFiles.this.saveException != null)

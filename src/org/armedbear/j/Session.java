@@ -301,7 +301,7 @@ public final class Session extends DefaultHandler implements Constants {
             InputSource inputSource = new InputSource(inputStream);
             xmlReader.parse(inputSource);
         }
-        catch (Exception e) {
+        catch (IOException | SAXException e) {
             Log.error(e);
             return false;
         }

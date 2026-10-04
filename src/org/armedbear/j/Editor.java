@@ -34,6 +34,7 @@ import java.awt.event.MouseWheelEvent;
 import java.awt.event.MouseWheelListener;
 import java.awt.event.WindowEvent;
 import java.lang.StringBuilder;
+import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -1126,7 +1127,7 @@ public final class Editor extends JPanel implements Constants,
                     try {
                         return execute(methodName, parameters);
                     }
-                    catch (NoSuchMethodException e) {}
+                    catch (NoSuchMethodException ignored) {}
                 }
             } else if (command instanceof Command) {
                 requestedKeyMap = null;
@@ -1136,8 +1137,8 @@ public final class Editor extends JPanel implements Constants,
                 try {
                     execute(c, null);
                 }
-                catch (Throwable t) {
-                    Log.error(t);
+                catch (NoSuchMethodException e) {
+                    Log.error(e);
                 }
                 return true;
             } else if (command instanceof ScriptFunction) {
@@ -1147,8 +1148,8 @@ public final class Editor extends JPanel implements Constants,
                 try {
                     ((ScriptFunction) command).invoke();
                 }
-                catch (Throwable t) {
-                    Log.error(t);
+                catch (Throwable e) {
+                    Log.error(e);
                 }
                 return true;
             }
@@ -1841,7 +1842,7 @@ public final class Editor extends JPanel implements Constants,
                 try {
                     lineNumber = Integer.parseInt(s.substring(1)) - 1;
                 }
-                catch (NumberFormatException e) {}
+                catch (NumberFormatException ignored) {}
                 continue;
             }
             // Aliases.
@@ -2629,8 +2630,11 @@ public final class Editor extends JPanel implements Constants,
                 try {
                     SwingUtilities.invokeAndWait(r);
                 }
-                catch (Throwable t) {
-                    Log.debug(t);
+                catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
+                catch (InvocationTargetException e) {
+                    Log.debug(e);
                 }
             }
         }
@@ -2980,8 +2984,8 @@ public final class Editor extends JPanel implements Constants,
                 sb.append(" ms)");
                 Log.info(sb.toString());
             }
-            catch (Throwable t) {
-                Log.error(t);
+            catch (Throwable e) {
+                Log.error(e);
                 Log.error("error loading " + file.canonicalPath());
             }
         }

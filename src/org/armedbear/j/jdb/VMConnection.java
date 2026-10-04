@@ -25,7 +25,10 @@ import com.sun.jdi.VMDisconnectedException;
 import com.sun.jdi.VirtualMachine;
 import com.sun.jdi.VirtualMachineManager;
 import com.sun.jdi.connect.Connector;
+import com.sun.jdi.connect.IllegalConnectorArgumentsException;
 import com.sun.jdi.connect.LaunchingConnector;
+import com.sun.jdi.connect.VMStartException;
+import java.io.IOException;
 import java.lang.StringBuilder;
 import java.util.Map;
 import org.armedbear.j.Debug;
@@ -98,7 +101,7 @@ public final class VMConnection {
         catch (VMDisconnectedException disconnected) {
             return null;
         }
-        catch (Exception e) {
+        catch (IOException | IllegalConnectorArgumentsException | VMStartException e) {
             Log.error(e);
             return null;
         }

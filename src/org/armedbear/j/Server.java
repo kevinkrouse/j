@@ -106,7 +106,9 @@ public class Server implements Runnable {
                 try {
                     s.close();
                 }
-                catch (IOException ignored) {}
+                catch (IOException closing) {
+                    Log.debug(closing);
+                }
             }
         }
     }

@@ -42,7 +42,7 @@ public final class Main {
             parameters[0] = args;
             method.invoke(null, parameters);
         }
-        catch (Exception e) {
+        catch (ReflectiveOperationException e) {
             e.printStackTrace();
         }
     }

@@ -20,6 +20,7 @@
 
 package org.armedbear.j.extension.abcl;
 
+import java.net.URISyntaxException;
 import org.armedbear.j.Log;
 import org.armedbear.j.extension.LanguageClient;
 import org.armedbear.j.extension.Session;
@@ -74,7 +75,7 @@ public final class AbclClient implements LanguageClient {
                 return null;
             return new java.io.File(source.getLocation().toURI()).getPath();
         }
-        catch (Exception e) {
+        catch (URISyntaxException e) {
             Log.debug("abcl: cannot locate abcl.jar: " + e);
             return null;
         }

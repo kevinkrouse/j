@@ -20,10 +20,12 @@
 
 package org.armedbear.j.mail;
 
+import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.io.Writer;
 import java.lang.StringBuilder;
 import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import org.armedbear.j.Directories;
@@ -215,7 +217,7 @@ public final class Mail {
                 writer.write("\r\n");
             return true;
         }
-        catch (Exception e) {
+        catch (IOException | RuntimeException e) {
             Log.error(e);
             return false;
         }
@@ -229,7 +231,7 @@ public final class Mail {
             InetAddress addr = InetAddress.getLocalHost();
             hostName = addr.getHostName();
         }
-        catch (Exception e) {
+        catch (UnknownHostException e) {
             Log.error(e);
         }
         if (hostName == null)

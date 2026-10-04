@@ -319,7 +319,7 @@ public final class Preferences {
                 try {
                     return Integer.parseInt(value);
                 }
-                catch (NumberFormatException e) {}
+                catch (NumberFormatException ignored) {}
             }
         }
         return ((Integer) property.getDefaultValue()).intValue();

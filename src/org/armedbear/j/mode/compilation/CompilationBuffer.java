@@ -184,9 +184,9 @@ public final class CompilationBuffer extends CompilationErrorBuffer
                 .directory(new java.io.File(currentDir.canonicalPath()))
                 .start();
         }
-        catch (Throwable t) {
-            Log.error(t);
-            appendLater(t + "\n");
+        catch (IOException e) {
+            Log.error(e);
+            appendLater(e + "\n");
         }
     }
 
@@ -242,9 +242,11 @@ public final class CompilationBuffer extends CompilationErrorBuffer
                 try {
                     ret = Integer.parseInt(s);
                 }
-                catch (NumberFormatException e) {}
+                catch (NumberFormatException ignored) {}
             }
-            catch (IOException e) {}
+            catch (IOException e) {
+                Log.debug(e);
+            }
         }
         return ret;
     }

@@ -70,7 +70,7 @@ public final class MboxSummary implements Serializable {
             long elapsed = System.currentTimeMillis() - start;
             Log.debug("MboxSummary.write completed " + elapsed + " ms");
         }
-        catch (Exception e) {
+        catch (IOException e) {
             Log.error(e);
         }
     }
@@ -96,7 +96,7 @@ public final class MboxSummary implements Serializable {
             // serialized class. No big deal.
             Log.debug(e);
         }
-        catch (Exception e) {
+        catch (IOException | ReflectiveOperationException | RuntimeException e) {
             Log.error(e);
         }
         finally {

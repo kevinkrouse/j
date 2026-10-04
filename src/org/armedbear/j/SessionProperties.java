@@ -195,7 +195,7 @@ public final class SessionProperties {
             if (s != null)
                 return Integer.parseInt(s);
         }
-        catch (NumberFormatException e) {}
+        catch (NumberFormatException ignored) {}
         return defaultValue;
     }
 
@@ -224,7 +224,7 @@ public final class SessionProperties {
             if (s != null)
                 return Float.parseFloat(s);
         }
-        catch (NumberFormatException e) {}
+        catch (NumberFormatException ignored) {}
         return defaultValue;
     }
 

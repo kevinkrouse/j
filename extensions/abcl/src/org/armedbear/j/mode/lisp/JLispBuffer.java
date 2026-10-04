@@ -85,7 +85,7 @@ public final class JLispBuffer extends LispShellBuffer {
                         interpreter.run();
                     }
                 }
-                catch (Exception e) {
+                catch (RuntimeException e) {
                     Log.error(e);
                 }
                 Log.debug("interpreter thread exiting");

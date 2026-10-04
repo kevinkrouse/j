@@ -2980,8 +2980,8 @@ public class Buffer extends SystemBuffer {
                 try {
                     buf.checkVCS();
                 }
-                catch (Throwable t) {
-                    Log.error(t);
+                catch (Throwable e) {
+                    Log.error(e);
                     // Don't let one bad file stop the rest.
                     buf.vcsChecked = true;
                 }

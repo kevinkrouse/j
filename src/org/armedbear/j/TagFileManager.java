@@ -164,7 +164,7 @@ public final class TagFileManager extends Thread {
                 }
             }
         }
-        catch (Exception e) {
+        catch (IOException | RuntimeException e) {
             Log.error(e);
         }
     }

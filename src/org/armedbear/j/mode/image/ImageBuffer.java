@@ -39,7 +39,6 @@ import org.armedbear.j.HttpFile;
 import org.armedbear.j.HttpLoadProcess;
 import org.armedbear.j.ImageLoader;
 import org.armedbear.j.LoadProcess;
-import org.armedbear.j.Log;
 import org.armedbear.j.MessageDialog;
 import org.armedbear.j.Position;
 import org.armedbear.j.StatusBarProgressNotifier;
@@ -301,8 +300,8 @@ public class ImageBuffer extends Buffer implements Constants {
             mt.addImage(img, 0);
             mt.waitForID(0);
         }
-        catch (Exception e) {
-            Log.error(e);
+        catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
         }
         finally {
             editor.setDefaultCursor();

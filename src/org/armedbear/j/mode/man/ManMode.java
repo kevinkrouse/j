@@ -21,6 +21,7 @@ package org.armedbear.j.mode.man;
 import java.awt.AWTEvent;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseEvent;
+import java.io.IOException;
 import java.util.ArrayList;
 import javax.swing.JPopupMenu;
 import org.armedbear.j.AbstractMode;
@@ -192,7 +193,10 @@ public final class ManMode extends AbstractMode implements Constants, Mode {
                     .start();
                 process.waitFor();
             }
-            catch (Exception e) {
+            catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+            catch (IOException e) {
                 Log.error(e);
             }
             if (tempFile.isFile() && tempFile.length() > 0) {

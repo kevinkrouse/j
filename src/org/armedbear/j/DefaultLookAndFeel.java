@@ -25,6 +25,7 @@ import java.awt.Font;
 import javax.swing.BorderFactory;
 import javax.swing.UIDefaults;
 import javax.swing.UIManager;
+import javax.swing.UnsupportedLookAndFeelException;
 import javax.swing.plaf.ColorUIResource;
 import javax.swing.plaf.FontUIResource;
 import javax.swing.plaf.metal.DefaultMetalTheme;
@@ -84,7 +85,7 @@ public final class DefaultLookAndFeel extends DefaultMetalTheme {
         try {
             UIManager.setLookAndFeel(lookAndFeelClassName);
         }
-        catch (Exception e) {
+        catch (ReflectiveOperationException | UnsupportedLookAndFeelException e) {
             Log.error(e);
         }
         // We want to do this in any case.

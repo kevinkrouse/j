@@ -27,6 +27,8 @@ import java.awt.datatransfer.ClipboardOwner;
 import java.awt.datatransfer.DataFlavor;
 import java.awt.datatransfer.StringSelection;
 import java.awt.datatransfer.Transferable;
+import java.awt.datatransfer.UnsupportedFlavorException;
+import java.io.IOException;
 
 public final class KillRing extends Ring implements ClipboardOwner {
     private ClipboardOwner clipboardOwner; // Either this or null.
@@ -115,7 +117,7 @@ public final class KillRing extends Ring implements ClipboardOwner {
             if (t != null)
                 return (String) t.getTransferData(DataFlavor.stringFlavor);
         }
-        catch (Exception e) {
+        catch (IOException | UnsupportedFlavorException | IllegalStateException e) {
             // Not text, or not now.
         }
         return null;

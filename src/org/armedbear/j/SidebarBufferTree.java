@@ -209,8 +209,8 @@ public final class SidebarBufferTree extends SidebarTree implements Constants,
                     rowIndent = bounds.x;
             }
         }
-        catch (Throwable t) {
-            Log.error(t);
+        catch (RuntimeException e) {
+            Log.error(e);
         }
         finally {
             measuringRowIndent = false;

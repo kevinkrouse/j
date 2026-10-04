@@ -103,9 +103,7 @@ public class ReaderThread extends Thread {
             return null;
         }
         catch (InterruptedException e) {
-            return null;
-        }
-        catch (Throwable t) {
+            Thread.currentThread().interrupt();
             return null;
         }
         return sb.toString();

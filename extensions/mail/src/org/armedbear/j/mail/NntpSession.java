@@ -259,7 +259,7 @@ public final class NntpSession {
             writer.flush();
             return true;
         }
-        catch (Exception e) {
+        catch (IOException e) {
             Log.error(e);
         }
         // Things didn't go exactly as planned. Try to reconnect.

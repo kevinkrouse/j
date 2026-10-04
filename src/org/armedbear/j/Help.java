@@ -259,8 +259,8 @@ public final class Help {
                 try {
                     sb.append(sanitize(((ScriptFunction) command).describe()));
                 }
-                catch (Throwable t) {
-                    Log.debug(t);
+                catch (Throwable e) {
+                    Log.debug(e);
                 }
             } else if (command instanceof KeyMap) {
                 sb.append(mapping.getKeyText());

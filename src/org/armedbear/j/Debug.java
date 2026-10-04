@@ -92,7 +92,9 @@ public final class Debug {
                 catch (NumberFormatException e) {
                     Log.error(e);
                 }
-                catch (InterruptedException e) {}
+                catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
             }
         }
     }

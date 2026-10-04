@@ -68,8 +68,8 @@ public final class ModeListEntry {
                 try {
                     mode = descriptor.factory().apply(id);
                 }
-                catch (Throwable t) {
-                    Log.error(t);
+                catch (Throwable e) {
+                    Log.error(e);
                 }
             }
             return mode;

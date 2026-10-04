@@ -52,6 +52,7 @@ import javax.swing.BoxLayout;
 import javax.swing.JPanel;
 import javax.swing.border.Border;
 import javax.swing.border.TitledBorder;
+import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.parsers.SAXParserFactory;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Constants;
@@ -69,6 +70,7 @@ import org.armedbear.j.Platform;
 import org.armedbear.j.Position;
 import org.armedbear.j.Property;
 import org.armedbear.j.mode.java.JavaMode;
+import org.xml.sax.SAXException;
 import org.xml.sax.XMLReader;
 
 public final class Utilities implements Constants {
@@ -252,7 +254,9 @@ public final class Utilities implements Constants {
                     file.delete();
                 }
             }
-            catch (IOException e) {}
+            catch (IOException e) {
+                Log.debug(e);
+            }
         }
         return isWritable;
     }
@@ -472,7 +476,7 @@ public final class Utilities implements Constants {
             if (s != null)
                 return Integer.parseInt(s);
         }
-        catch (NumberFormatException e) {}
+        catch (NumberFormatException ignored) {}
         return defaultValue;
     }
 
@@ -755,7 +759,9 @@ public final class Utilities implements Constants {
                             fileType = FILETYPE_ZIP;
                             istream.close();
                         }
-                        catch (Exception e) {}
+                        catch (IOException e) {
+                            Log.debug(e);
+                        }
                     } else {
                         try {
                             GZIPInputStream istream =
@@ -763,7 +769,9 @@ public final class Utilities implements Constants {
                             fileType = FILETYPE_GZIP;
                             istream.close();
                         }
-                        catch (IOException e) {}
+                        catch (IOException e) {
+                            Log.debug(e);
+                        }
                     }
                 }
             } else {
@@ -812,7 +820,9 @@ public final class Utilities implements Constants {
                 }
             }
         }
-        catch (Exception e) {}
+        catch (IOException | RuntimeException e) {
+            Log.debug(e);
+        }
         return fileType;
     }
 
@@ -833,7 +843,9 @@ public final class Utilities implements Constants {
             try {
                 Thread.sleep(100);
             }
-            catch (InterruptedException ex) {}
+            catch (InterruptedException ex) {
+                Thread.currentThread().interrupt();
+            }
         }
         // Last resort.
         // We might not have delete rights in the destination directory. Try to
@@ -1439,7 +1451,7 @@ public final class Utilities implements Constants {
             factory.setNamespaceAware(true);
             return factory.newSAXParser().getXMLReader();
         }
-        catch (Exception e) {
+        catch (ParserConfigurationException | SAXException e) {
             Log.error(e);
             return null;
         }

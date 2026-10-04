@@ -21,9 +21,11 @@
 package org.armedbear.j.mail;
 
 import java.io.BufferedWriter;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
+import java.io.UnsupportedEncodingException;
 import java.io.Writer;
 import org.armedbear.j.File;
 import org.armedbear.j.Log;
@@ -46,7 +48,7 @@ public final class MailboxFileWriter extends BufferedWriter {
                 writer.offset = file.length();
             return writer;
         }
-        catch (Exception e) {
+        catch (FileNotFoundException | UnsupportedEncodingException e) {
             Log.error(e);
             return null;
         }

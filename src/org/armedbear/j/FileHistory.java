@@ -91,7 +91,7 @@ public final class FileHistory extends DefaultHandler implements ContentHandler 
                 InputSource inputSource = new InputSource(file.getInputStream());
                 xmlReader.parse(inputSource);
             }
-            catch (Exception e) {
+            catch (IOException | SAXException e) {
                 Log.error(e);
             }
         }

@@ -190,9 +190,9 @@ public final class UIScale {
             );
             return detected;
         }
-        catch (Throwable t) {
+        catch (Throwable e) {
             // A missing or unusual display is not worth failing to start over.
-            Log.error(t);
+            Log.error(e);
             return 1.0;
         }
     }

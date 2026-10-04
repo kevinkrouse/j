@@ -108,7 +108,7 @@ public final class ImapMailboxCache implements Serializable {
             cache.setMailbox(mb);
             return cache;
         }
-        catch (Exception e) {
+        catch (IOException | ReflectiveOperationException | RuntimeException e) {
             Log.debug("ImapMailboxCache.readCache returning null");
             return null;
         }

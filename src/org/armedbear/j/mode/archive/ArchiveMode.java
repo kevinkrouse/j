@@ -152,14 +152,14 @@ public final class ArchiveMode extends AbstractMode implements Constants, Mode {
                 }
             }
         }
-        catch (Exception e) {
+        catch (IOException | RuntimeException e) {
             Log.error(e);
         }
         try {
             if (in != null)
                 in.close();
         }
-        catch (Exception e) {
+        catch (IOException e) {
             Log.error(e);
         }
     }
@@ -206,14 +206,14 @@ public final class ArchiveMode extends AbstractMode implements Constants, Mode {
                 buffer.setLastModified(file.lastModified());
                 buffer.setLoaded(true);
             }
-            catch (Exception e) {
+            catch (IOException e) {
                 Log.error(e);
             }
             try {
                 if (in != null)
                     in.close();
             }
-            catch (Exception e) {
+            catch (IOException e) {
                 Log.error(e);
             }
         }

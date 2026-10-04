@@ -397,8 +397,8 @@ public class Search implements Cloneable {
             try {
                 setREFromPattern();
             }
-            catch (Throwable t) {
-                Log.error(t);
+            catch (PatternSyntaxException e) {
+                Log.error(e);
                 return null;
             }
         }
@@ -432,8 +432,8 @@ public class Search implements Cloneable {
             try {
                 setREFromPattern();
             }
-            catch (Throwable t) {
-                Log.error(t);
+            catch (PatternSyntaxException e) {
+                Log.error(e);
                 return null;
             }
         }
@@ -481,8 +481,8 @@ public class Search implements Cloneable {
             try {
                 setREFromPattern();
             }
-            catch (Throwable t) {
-                Log.error(t);
+            catch (PatternSyntaxException e) {
+                Log.error(e);
                 return null;
             }
         }
@@ -570,8 +570,8 @@ public class Search implements Cloneable {
             try {
                 re = Pattern.compile(pattern, ignoreCase ? Pattern.CASE_INSENSITIVE : 0);
             }
-            catch (Throwable t) {
-                Log.error(t);
+            catch (PatternSyntaxException e) {
+                Log.error(e);
                 return null;
             }
         }

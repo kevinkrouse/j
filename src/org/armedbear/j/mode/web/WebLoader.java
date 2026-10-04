@@ -682,13 +682,13 @@ public final class WebLoader implements WebConstants {
             try {
                 w = Integer.parseInt(width);
             }
-            catch (NumberFormatException e) {}
+            catch (NumberFormatException ignored) {}
         }
         if (height != null) {
             try {
                 h = Integer.parseInt(height);
             }
-            catch (NumberFormatException e) {}
+            catch (NumberFormatException ignored) {}
         }
         // Create image link if appropriate.
         ImageLink imageLink = null;
@@ -1119,7 +1119,7 @@ public final class WebLoader implements WebConstants {
             try {
                 n = Integer.parseInt(s);
             }
-            catch (NumberFormatException e) {}
+            catch (NumberFormatException ignored) {}
 
             if (n >= 0) {
                 switch (n) {

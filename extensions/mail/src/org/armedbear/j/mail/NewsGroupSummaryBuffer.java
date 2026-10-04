@@ -24,6 +24,7 @@ import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.lang.StringBuilder;
+import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import javax.swing.Icon;
@@ -126,7 +127,10 @@ public final class NewsGroupSummaryBuffer extends MailboxBuffer {
                 try {
                     SwingUtilities.invokeAndWait(confirmRunnable);
                 }
-                catch (Exception e) {
+                catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
+                catch (InvocationTargetException e) {
                     Log.error(e);
                 }
             } else

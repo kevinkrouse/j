@@ -310,7 +310,7 @@ public final class SshSession implements Constants, RemoteSession {
                     if ((n & 0100000) == 0100000)
                         return File.TYPE_FILE;
                 }
-                catch (NumberFormatException e) {}
+                catch (NumberFormatException ignored) {}
             }
         }
         return File.TYPE_UNKNOWN;
@@ -471,8 +471,8 @@ public final class SshSession implements Constants, RemoteSession {
         try {
             process = new ProcessBuilder(cmd).start();
         }
-        catch (Throwable t) {
-            Log.error(t);
+        catch (IOException e) {
+            Log.error(e);
             return false;
         }
         try {
@@ -487,8 +487,8 @@ public final class SshSession implements Constants, RemoteSession {
             stdoutThread.start();
             stderrThread.start();
         }
-        catch (Throwable t) {
-            Log.error(t);
+        catch (RuntimeException e) {
+            Log.error(e);
             return false;
         }
         if (!authenticate()) {
@@ -561,7 +561,10 @@ public final class SshSession implements Constants, RemoteSession {
                     try {
                         SwingUtilities.invokeAndWait(getPasswordRunnable);
                     }
-                    catch (Exception e) {
+                    catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                    }
+                    catch (InvocationTargetException e) {
                         Log.error(e);
                     }
                 }
@@ -582,7 +585,10 @@ public final class SshSession implements Constants, RemoteSession {
                 try {
                     SwingUtilities.invokeAndWait(getPassphraseRunnable);
                 }
-                catch (Exception e) {
+                catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
+                catch (InvocationTargetException e) {
                     Log.error(e);
                 }
             }
@@ -751,7 +757,7 @@ public final class SshSession implements Constants, RemoteSession {
             try {
                 stdin.write("exit\n");
             }
-            catch (Exception e) {
+            catch (IOException e) {
                 Log.error(e);
             }
             killProcess();
@@ -956,7 +962,7 @@ public final class SshSession implements Constants, RemoteSession {
                 writeToOutputBuffer(sb.toString());
             }
         }
-        catch (Exception e) {
+        catch (IOException e) {
             Log.error(e);
         }
     }

@@ -117,7 +117,7 @@ public final class RFC822Date implements Serializable {
                     try {
                         dayOfMonth = Integer.parseInt(before);
                     }
-                    catch (NumberFormatException e) {}
+                    catch (NumberFormatException ignored) {}
                     if (dayOfMonth >= 1 && dayOfMonth <= 31) {
                         tokens.set(i - 1, null);
                         break;
@@ -128,7 +128,7 @@ public final class RFC822Date implements Serializable {
                     try {
                         dayOfMonth = Integer.parseInt(after);
                     }
-                    catch (NumberFormatException e) {}
+                    catch (NumberFormatException ignored) {}
                     tokens.set(i + 1, null);
                 }
                 break;
@@ -142,7 +142,7 @@ public final class RFC822Date implements Serializable {
             try {
                 year = Integer.parseInt(token);
             }
-            catch (NumberFormatException e) {}
+            catch (NumberFormatException ignored) {}
             if (year >= 1900 && year < 2100) {
                 tokens.set(i, null);
                 break;
@@ -158,7 +158,7 @@ public final class RFC822Date implements Serializable {
                 try {
                     year = Integer.parseInt(token);
                 }
-                catch (NumberFormatException e) {}
+                catch (NumberFormatException ignored) {}
                 if (year >= 0 && year < 200) {
                     year += 1900;
                     if (year < 1971) // There was no email before 1971.
@@ -201,7 +201,7 @@ public final class RFC822Date implements Serializable {
                 try {
                     second = Utilities.parseInt(token);
                 }
-                catch (NumberFormatException e) {}
+                catch (NumberFormatException ignored) {}
             }
             tokens.set(i, null);
             break;

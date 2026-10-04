@@ -370,7 +370,7 @@ public final class ImapSession {
                 }
             }
         }
-        catch (Exception e) {
+        catch (RuntimeException e) {
             Log.error(e);
             disconnect();
             this.folderName = null;

@@ -159,7 +159,7 @@ public final class RecentFiles implements Constants {
                 try {
                     version = Integer.parseInt(s);
                 }
-                catch (NumberFormatException e) {}
+                catch (NumberFormatException ignored) {}
                 if (version == RecentFilesEntry.getVersion()) {
                     while ((s = reader.readLine()) != null) {
                         try {
@@ -167,7 +167,7 @@ public final class RecentFiles implements Constants {
                             RecentFilesEntry entry = new RecentFilesEntry(s);
                             entries.add(entry);
                         }
-                        catch (Exception e) {
+                        catch (RuntimeException e) {
                             Log.error("malformed recent files entry");
                         }
                     }
@@ -206,7 +206,7 @@ public final class RecentFiles implements Constants {
             writer.close();
             changed = false;
         }
-        catch (Exception e) {
+        catch (IOException | RuntimeException e) {
             Log.error(e);
         }
     }

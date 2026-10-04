@@ -103,8 +103,8 @@ public final class GitStatusCache {
             cmd.run();
             parse(cmd.getOutput(), status);
         }
-        catch (Throwable t) {
-            Log.error(t);
+        catch (RuntimeException e) {
+            Log.error(e);
         }
         return status;
     }

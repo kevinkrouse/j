@@ -25,6 +25,7 @@ import static org.armedbear.j.ToolBarIcon.*;
 import java.awt.Color;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.BooleanSupplier;
@@ -169,7 +170,7 @@ public class ToolBar extends JToolBar implements ActionListener {
             xmlReader.parse(inputSource);
             return toolBar;
         }
-        catch (Exception e) {
+        catch (IOException | SAXException e) {
             Log.error(e);
             return null;
         }

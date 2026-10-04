@@ -20,6 +20,7 @@
 
 package org.armedbear.j;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -255,7 +256,7 @@ public final class Log {
             // Append to file, flush automatically.
             logWriter = new PrintWriter(logFile.getOutputStream(true), true, StandardCharsets.UTF_8);
         }
-        catch (Exception e) {
+        catch (FileNotFoundException e) {
             logEnabled = false;
             e.printStackTrace();
         }

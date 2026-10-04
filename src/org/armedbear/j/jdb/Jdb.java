@@ -22,7 +22,11 @@ package org.armedbear.j.jdb;
 
 import com.sun.jdi.AbsentInformationException;
 import com.sun.jdi.ArrayReference;
+import com.sun.jdi.ClassNotLoadedException;
 import com.sun.jdi.Field;
+import com.sun.jdi.IncompatibleThreadStateException;
+import com.sun.jdi.InvalidTypeException;
+import com.sun.jdi.InvocationException;
 import com.sun.jdi.LocalVariable;
 import com.sun.jdi.Location;
 import com.sun.jdi.Method;
@@ -1203,7 +1207,7 @@ public final class Jdb extends Buffer implements JdbConstants {
         try {
             lineNumber = Integer.parseInt(arg.substring(index + 1));
         }
-        catch (NumberFormatException e) {}
+        catch (NumberFormatException ignored) {}
         if (lineNumber < 1) {
             log("Invalid breakpoint");
             return;
@@ -1522,7 +1526,7 @@ public final class Jdb extends Buffer implements JdbConstants {
             log("Local variable information is not available.");
             log("Compile with -g to generate local variable information.");
         }
-        catch (Exception e) {
+        catch (IncompatibleThreadStateException | RuntimeException e) {
             Log.error(e);
         }
         if (contextChanged)
@@ -1568,7 +1572,8 @@ public final class Jdb extends Buffer implements JdbConstants {
             if (value != null)
                 return value.toString();
         }
-        catch (Exception e) {
+        catch (ClassNotLoadedException | IncompatibleThreadStateException | InvalidTypeException | InvocationException
+            | RuntimeException e) {
             Log.error(e);
         }
         return null;

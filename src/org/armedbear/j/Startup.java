@@ -372,9 +372,9 @@ public final class Startup {
                     virtualBounds.height
             );
         }
-        catch (Throwable t) {
+        catch (Throwable e) {
             // Nothing here is worth failing to start over.
-            Log.error(t);
+            Log.error(e);
         }
     }
 

@@ -122,7 +122,7 @@ public final class CVSEntry extends VersionControlEntry {
                 cal.set(Calendar.MILLISECOND, 0);
                 checkoutTime = cal.getTime().getTime();
             }
-            catch (NoSuchElementException e) {}
+            catch (NoSuchElementException ignored) {}
             catch (NumberFormatException ex) {
                 Log.error("CVS.getEntry NumberFormatException");
                 Log.error("text = |" + text + "|");

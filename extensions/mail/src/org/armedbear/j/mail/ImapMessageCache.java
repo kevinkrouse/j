@@ -76,7 +76,7 @@ public final class ImapMessageCache {
                 else
                     Log.warn("getMessageCache UIDVALIDITY has changed");
             }
-            catch (Exception e) {
+            catch (IOException e) {
                 Log.error(e);
             }
         }
@@ -162,7 +162,7 @@ public final class ImapMessageCache {
                 }
                 reader.close();
             }
-            catch (Exception e) {
+            catch (IOException e) {
                 Log.error(e);
             }
             Headers headers = Headers.parse(sb.toString());
@@ -182,7 +182,7 @@ public final class ImapMessageCache {
                 }
                 reader.close();
             }
-            catch (Exception e) {
+            catch (IOException e) {
                 Log.error(e);
             }
             if (sb.length() > 0)

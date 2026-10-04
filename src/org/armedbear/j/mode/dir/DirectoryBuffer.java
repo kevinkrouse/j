@@ -738,7 +738,7 @@ public final class DirectoryBuffer extends Buffer {
                 unlockWrite();
             }
         }
-        catch (Exception e) {
+        catch (IOException | RuntimeException e) {
             Log.error(e);
         }
     }
@@ -1787,7 +1787,7 @@ public final class DirectoryBuffer extends Buffer {
                     }
                 }
             }
-            catch (Exception e) {
+            catch (NumberFormatException e) {
                 Log.error(e);
             }
         }

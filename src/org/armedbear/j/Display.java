@@ -2900,8 +2900,8 @@ public final class Display extends JComponent implements Constants,
                     return value;
             }
         }
-        catch (Throwable t) {
-            Log.error(t);
+        catch (RuntimeException e) {
+            Log.error(e);
         }
         return null;
     }

@@ -20,6 +20,7 @@
 
 package org.armedbear.j.vcs.svn;
 
+import java.io.IOException;
 import java.io.StringReader;
 import java.lang.StringBuilder;
 import java.util.LinkedList;
@@ -113,7 +114,7 @@ public final class SVNEntry extends VersionControlEntry {
             InputSource source = new InputSource(new StringReader(output));
             xmlReader.parse(source);
         }
-        catch (Exception e) {
+        catch (IOException | SAXException e) {
             Log.warn(e.getMessage());
             return null;
         }

@@ -21,13 +21,16 @@
 package org.armedbear.j;
 
 import java.awt.AWTEvent;
+import java.awt.HeadlessException;
 import java.awt.Toolkit;
 import java.awt.datatransfer.Clipboard;
 import java.awt.datatransfer.ClipboardOwner;
 import java.awt.datatransfer.DataFlavor;
 import java.awt.datatransfer.StringSelection;
 import java.awt.datatransfer.Transferable;
+import java.awt.datatransfer.UnsupportedFlavorException;
 import java.awt.event.MouseEvent;
+import java.io.IOException;
 import javax.swing.undo.CompoundEdit;
 
 public final class SystemSelection implements ClipboardOwner, Constants {
@@ -47,7 +50,7 @@ public final class SystemSelection implements ClipboardOwner, Constants {
                 Toolkit.getDefaultToolkit().getSystemSelection();
             return new SystemSelection(clipboard);
         }
-        catch (Exception e) {
+        catch (HeadlessException e) {
             return null;
         }
     }
@@ -86,7 +89,9 @@ public final class SystemSelection implements ClipboardOwner, Constants {
             try {
                 return (String) t.getTransferData(DataFlavor.stringFlavor);
             }
-            catch (Exception e) {}
+            catch (IOException | UnsupportedFlavorException e) {
+                Log.debug(e);
+            }
         }
         return null;
     }

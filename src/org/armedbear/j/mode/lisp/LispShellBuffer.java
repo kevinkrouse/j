@@ -235,7 +235,7 @@ public class LispShellBuffer extends ShellBuffer {
                 );
             setProcess(p);
         }
-        catch (Throwable t) {
+        catch (IOException | RuntimeException e) {
             setProcess(null);
             return;
         }
@@ -261,8 +261,8 @@ public class LispShellBuffer extends ShellBuffer {
             stderrThread.start();
             readOnly = false;
         }
-        catch (Throwable t) {
-            Log.error(t);
+        catch (RuntimeException e) {
+            Log.error(e);
         }
     }
 
@@ -756,8 +756,8 @@ public class LispShellBuffer extends ShellBuffer {
                 eval("(slime:slime)");
                 //LispThread.remove(Thread.currentThread());
             }
-            catch (Throwable t) {
-                Log.debug(t);
+            catch (Throwable e) {
+                Log.debug(e);
             }
         };
         Background.start("startSlime", r);
@@ -770,8 +770,8 @@ public class LispShellBuffer extends ShellBuffer {
                 eval("(setq slime::*repl-buffer* nil)");
                 //LispThread.remove(Thread.currentThread());
             }
-            catch (Throwable t) {
-                Log.debug(t);
+            catch (Throwable e) {
+                Log.debug(e);
             }
         };
         Background.start("killSlime", r);

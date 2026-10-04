@@ -23,6 +23,7 @@ package org.armedbear.j;
 import java.awt.Desktop;
 import java.io.IOException;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -93,7 +94,7 @@ public final class BrowseFile implements Constants {
                             else
                                 desktop.browse(new URI(url));
                         }
-                        catch (Exception e) {
+                        catch (IOException | URISyntaxException e) {
                             Log.error(e);
                         }
                     }, "openUrl " + url);

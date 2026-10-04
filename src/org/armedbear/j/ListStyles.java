@@ -71,8 +71,8 @@ public final class ListStyles {
                     if (mode != null)
                         addTable(tables, titles, seen, mode.getFormatter(buffer));
                 }
-                catch (Throwable t) {
-                    Log.debug("listStyles " + entry.getDisplayName() + ": " + t);
+                catch (RuntimeException e) {
+                    Log.debug("listStyles " + entry.getDisplayName() + ": " + e);
                 }
             }
         }

@@ -20,6 +20,7 @@
 
 package org.armedbear.j;
 
+import java.io.IOException;
 import java.net.ConnectException;
 import java.net.NoRouteToHostException;
 import java.net.Socket;
@@ -122,7 +123,7 @@ public final class SocketConnection {
             catch (SSLException e) {
                 setErrorText("TLS failed for " + hostName + ": " + e.getMessage());
             }
-            catch (Exception e) {
+            catch (IOException | RuntimeException e) {
                 Log.error(e);
                 setErrorText("Unable to connect to " + hostName);
             }

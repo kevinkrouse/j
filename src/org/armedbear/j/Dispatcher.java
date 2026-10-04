@@ -29,6 +29,7 @@ import java.awt.Toolkit;
 import java.awt.datatransfer.DataFlavor;
 import java.awt.datatransfer.StringSelection;
 import java.awt.datatransfer.Transferable;
+import java.awt.datatransfer.UnsupportedFlavorException;
 import java.awt.dnd.DnDConstants;
 import java.awt.dnd.DragGestureEvent;
 import java.awt.dnd.DragGestureListener;
@@ -50,6 +51,7 @@ import java.awt.event.KeyListener;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.awt.event.MouseMotionListener;
+import java.io.IOException;
 import java.util.List;
 import javax.swing.ImageIcon;
 import javax.swing.JPopupMenu;
@@ -810,7 +812,7 @@ public final class Dispatcher implements Constants, KeyListener, MouseListener,
             }
             event.getDropTargetContext().dropComplete(true);
         }
-        catch (Exception e) {
+        catch (IOException | UnsupportedFlavorException | RuntimeException e) {
             Log.error(e);
             event.rejectDrop();
         }
@@ -894,7 +896,7 @@ public final class Dispatcher implements Constants, KeyListener, MouseListener,
             Editor.setCurrentEditor(editor);
             editor.setFocusToDisplay();
         }
-        catch (Exception e) {
+        catch (IOException | UnsupportedFlavorException | RuntimeException e) {
             Log.error(e);
             event.rejectDrop();
         }
@@ -1029,8 +1031,8 @@ public final class Dispatcher implements Constants, KeyListener, MouseListener,
                     );
             }
         }
-        catch (Throwable t) {
-            Log.error(t);
+        catch (RuntimeException e) {
+            Log.error(e);
         }
         if (cursor == null)
             cursor = Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR);

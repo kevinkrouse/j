@@ -114,8 +114,8 @@ public final class Ssh {
         try {
             process = Runtime.getRuntime().exec(cmdarray);
         }
-        catch (Throwable t) {
-            Log.error(t);
+        catch (IOException e) {
+            Log.error(e);
             return;
         }
         writer = new OutputStreamWriter(process.getOutputStream(), StandardCharsets.UTF_8);
@@ -209,7 +209,7 @@ public final class Ssh {
                         sb.append(buf, 0, numChars);
                 } while (reader.ready());
             }
-            catch (Exception e) {
+            catch (IOException e) {
                 Log.error(e);
                 return null;
             }

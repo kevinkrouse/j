@@ -21,6 +21,7 @@
 package org.armedbear.j.extension;
 
 import java.io.IOException;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.nio.file.DirectoryStream;
@@ -202,17 +203,17 @@ public final class Extensions {
             for (ModeProvider provider : ServiceLoader.load(ModeProvider.class, loader))
                 ModeList.getInstance().register(provider);
         }
-        catch (Throwable t) {
+        catch (Throwable e) {
             Log.error("modes in " + directory + " failed to register");
-            Log.error(t);
+            Log.error(e);
         }
         try {
             for (VcsBackend backend : ServiceLoader.load(VcsBackend.class, loader))
                 VcsBackends.register(backend);
         }
-        catch (Throwable t) {
+        catch (Throwable e) {
             Log.error("version control in " + directory + " failed to register");
-            Log.error(t);
+            Log.error(e);
         }
     }
 
@@ -230,10 +231,10 @@ public final class Extensions {
                     extension.getVersion()
             );
         }
-        catch (Throwable t) {
+        catch (Throwable e) {
             // One broken extension must not stop j from starting.
             Log.error("extension " + extension.getName() + " failed to initialize");
-            Log.error(t);
+            Log.error(e);
         }
         finally {
             thread.setContextClassLoader(saved);
@@ -246,8 +247,8 @@ public final class Extensions {
             try {
                 extension.shutdown();
             }
-            catch (Throwable t) {
-                Log.error(t);
+            catch (Throwable e) {
+                Log.error(e);
             }
         }
         loaded.clear();
@@ -309,7 +310,7 @@ public final class Extensions {
             Path root = location.getParent();
             return root == null ? null : root.resolve("lib").resolve("extensions");
         }
-        catch (Exception e) {
+        catch (URISyntaxException e) {
             Log.debug("cannot locate the installed extensions directory: " + e);
             return null;
         }

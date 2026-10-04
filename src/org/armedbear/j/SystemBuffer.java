@@ -330,7 +330,7 @@ public class SystemBuffer implements Constants {
             }
             isLoaded = true;
         }
-        catch (Exception e) {
+        catch (IOException | RuntimeException e) {
             Log.error(e);
         }
         loadFinished(isLoaded);

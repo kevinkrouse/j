@@ -117,7 +117,7 @@ public final class MailboxProperties {
                             new InputSource(file.getInputStream());
                         xmlReader.parse(inputSource);
                     }
-                    catch (Exception e) {
+                    catch (IOException | SAXException e) {
                         Log.error(e);
                     }
                 }

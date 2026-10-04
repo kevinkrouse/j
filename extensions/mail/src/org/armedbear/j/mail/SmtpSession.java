@@ -186,8 +186,9 @@ public final class SmtpSession extends Writer {
                 return false;
             quit();
         }
-        catch (Throwable t) {
-            Log.error(t);
+        catch (IOException e) {
+            Log.error(e);
+            return false;
         }
         finally {
             setEcho(false);

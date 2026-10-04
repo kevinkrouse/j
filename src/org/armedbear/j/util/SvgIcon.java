@@ -29,6 +29,7 @@ import java.awt.geom.AffineTransform;
 import java.awt.geom.Arc2D;
 import java.awt.geom.Ellipse2D;
 import java.awt.geom.Path2D;
+import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -117,7 +118,7 @@ public final class SvgIcon {
             try {
                 in.close();
             }
-            catch (Exception ignored) {}
+            catch (IOException ignored) {}
         }
 
         Element root = doc.getDocumentElement();

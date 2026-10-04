@@ -459,7 +459,7 @@ public class FtpSession implements Constants, RemoteSession {
                         getReplyString(); // Ignore reply.
                     }
                 }
-                catch (Exception e) {
+                catch (IOException | RuntimeException e) {
                     Log.error(e);
                 }
             }
@@ -543,7 +543,7 @@ public class FtpSession implements Constants, RemoteSession {
                     // We may get an exception here if user cancels.
                     bytesRead = in.read(bytes);
                 }
-                catch (Exception e) {
+                catch (IOException e) {
                     if (progressNotifier == null || !progressNotifier.cancelled())
                         Log.error(e);
                     else
@@ -581,7 +581,7 @@ public class FtpSession implements Constants, RemoteSession {
             else
                 Log.error(e);
         }
-        catch (Exception e) {
+        catch (IOException | RuntimeException e) {
             Log.error(e);
         }
         if (progressNotifier != null) {
@@ -703,7 +703,7 @@ public class FtpSession implements Constants, RemoteSession {
             controlOut.flush();
             return;
         }
-        catch (Exception e) {
+        catch (IOException e) {
             Log.error("exception command " + s);
             reconnect = true;
         }
@@ -720,7 +720,7 @@ public class FtpSession implements Constants, RemoteSession {
                     controlOut.flush();
                     return;
                 }
-                catch (Exception e) {
+                catch (IOException e) {
                     Log.error("2nd exception command " + s);
                     reconnect = true;
                 }
@@ -740,7 +740,9 @@ public class FtpSession implements Constants, RemoteSession {
                     Log.debug("<== " + s);
             } while (s != null && !isEndOfReply(s));
         }
-        catch (Exception e) {}
+        catch (IOException e) {
+            Log.debug(e);
+        }
         lastReply = s;
         return s;
     }
@@ -918,7 +920,7 @@ public class FtpSession implements Constants, RemoteSession {
                 command(s);
                 return getReply(200);
             }
-            catch (Exception e) {
+            catch (IOException | RuntimeException e) {
                 Log.error(e);
             }
             return false;
@@ -933,7 +935,7 @@ public class FtpSession implements Constants, RemoteSession {
                 dataOut = dataSocket.getOutputStream();
             }
         }
-        catch (Exception e) {
+        catch (IOException e) {
             Log.error(e);
         }
     }
