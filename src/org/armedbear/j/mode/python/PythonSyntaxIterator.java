@@ -23,27 +23,24 @@ package org.armedbear.j.mode.python;
 import org.armedbear.j.DefaultSyntaxIterator;
 import org.armedbear.j.Position;
 
-public final class PythonSyntaxIterator extends DefaultSyntaxIterator
-{
+public final class PythonSyntaxIterator extends DefaultSyntaxIterator {
     private static final int STATE_NEUTRAL = 0;
-    private static final int STATE_QUOTE   = 1;
+    private static final int STATE_QUOTE = 1;
 
-    public PythonSyntaxIterator(Position pos)
-    {
+    public PythonSyntaxIterator(Position pos) {
         super(pos);
     }
 
     // Returns char array with syntactic whitespace (quotes and comments)
     // replaced with actual space characters.
-    public char[] hideSyntacticWhitespace(String s)
-    {
+    public char[] hideSyntacticWhitespace(String s) {
         char[] chars = s.toCharArray();
         char quoteChar = 0;
         int state = STATE_NEUTRAL;
         final int length = chars.length;
         for (int i = 0; i < length; i++) {
             char c = chars[i];
-            if (c == '\\' && i < length-1) {
+            if (c == '\\' && i < length - 1) {
                 // Escape!
                 chars[++i] = ' ';
             } else if (state == STATE_QUOTE) {
@@ -62,7 +59,7 @@ public final class PythonSyntaxIterator extends DefaultSyntaxIterator
             if (chars[i] == '#') {
                 if (i > 0) {
                     // Ignore '#' if escaped.
-                    char c = chars[i-1];
+                    char c = chars[i - 1];
                     if (c == '\\')
                         continue;
                 }
