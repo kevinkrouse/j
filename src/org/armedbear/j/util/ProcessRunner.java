@@ -67,7 +67,7 @@ public final class ProcessRunner {
     /** A command line for the shell: /bin/sh -c, or cmd.exe /c on Windows. */
     public static ProcessRunner shell(String commandLine) {
         if (Platform.isPlatformWindows()) {
-            List<String> list = new ArrayList<String>(List.of("cmd.exe", "/c"));
+            List<String> list = new ArrayList<>(List.of("cmd.exe", "/c"));
             list.addAll(Utilities.tokenize(commandLine));
             return new ProcessRunner(list);
         }
@@ -205,7 +205,7 @@ public final class ProcessRunner {
 
     /** The program's path, from the PATH or j's own bin directory, or null. */
     public static String which(String program) {
-        List<Path> dirs = new ArrayList<Path>();
+        List<Path> dirs = new ArrayList<>();
         String path = System.getenv("PATH");
         if (path != null) {
             for (String dir : path.split(java.io.File.pathSeparator)) {
@@ -224,7 +224,7 @@ public final class ProcessRunner {
         for (File dir : Utilities.binDirectories())
             dirs.add(Path.of(dir.canonicalPath()));
         // On Windows, program.exe before an extensionless shim beside it.
-        List<String> names = new ArrayList<String>();
+        List<String> names = new ArrayList<>();
         if (Platform.isPlatformWindows()) {
             String ext = System.getenv("PATHEXT");
             for (String e : (ext != null ? ext : ".EXE;.BAT;.CMD").split(";"))

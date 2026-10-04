@@ -63,7 +63,7 @@ public class SvgIconTest {
         assertTrue(dir.isDirectory(), "cannot find the icon directory: " + dir.getAbsolutePath());
         String[] files = dir.list();
         Arrays.sort(files);
-        List<String> names = new ArrayList<String>();
+        List<String> names = new ArrayList<>();
         for (int i = 0; i < files.length; i++) {
             if (files[i].endsWith(".svg"))
                 names.add(files[i].substring(0, files[i].length() - 4));
@@ -74,7 +74,7 @@ public class SvgIconTest {
 
     @Test
     public void everyIconParsesAndPaints() {
-        List<String> failures = new ArrayList<String>();
+        List<String> failures = new ArrayList<>();
         List<String> names = iconNames();
         // 16 is the authored size; 33 is deliberately odd and not a multiple of
         // it, so a scale that only works on round factors is caught too.

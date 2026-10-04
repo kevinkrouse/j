@@ -12,7 +12,7 @@ public class Sets {
     @SafeVarargs
     public static <E> Set<E> newHashSet(E... values) {
         int capacity = Math.max(2 * values.length, 11);
-        HashSet<E> set = new HashSet<E>(capacity);
+        HashSet<E> set = new HashSet<>(capacity);
         Collections.addAll(set, values);
         return set;
     }

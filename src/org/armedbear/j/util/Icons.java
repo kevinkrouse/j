@@ -33,12 +33,12 @@ public final class Icons {
 
     // Geometry, parsed once per icon and shared by every size and color.
     private static final HashMap<String, SvgIcon> svgCache =
-        new HashMap<String, SvgIcon>();
+        new HashMap<>();
 
     // Painted icons, keyed by name + badges and size. Renderers ask for an icon
     // on every row of every repaint, so this is the cache that matters.
     private static final HashMap<String, ImageIcon> iconCache =
-        new HashMap<String, ImageIcon>();
+        new HashMap<>();
 
     private static Color iconColor;
 

@@ -75,7 +75,7 @@ public final class SvgIcon {
     private final String name;
     private final double viewBoxWidth;
     private final double viewBoxHeight;
-    private final List<Op> ops = new ArrayList<Op>();
+    private final List<Op> ops = new ArrayList<>();
 
     /**
      * Parses an icon from the classpath resource
@@ -127,7 +127,7 @@ public final class SvgIcon {
         viewBoxHeight = box.length == 4 ? box[3] : 16;
 
         // Presentation attributes on <svg> are inherited by everything below.
-        Map<String, String> inherited = new HashMap<String, String>();
+        Map<String, String> inherited = new HashMap<>();
         final String[] presentation = {
             "fill", "stroke", "stroke-width", "stroke-linecap",
             "stroke-linejoin", "stroke-dasharray", "color"
@@ -234,7 +234,7 @@ public final class SvgIcon {
                 continue;
             Element e = (Element) n;
 
-            Map<String, String> attrs = new HashMap<String, String>(inherited);
+            Map<String, String> attrs = new HashMap<>(inherited);
             NamedNodeMap map = e.getAttributes();
             for (int i = 0; i < map.getLength(); i++)
                 attrs.put(map.item(i).getNodeName(), map.item(i).getNodeValue());

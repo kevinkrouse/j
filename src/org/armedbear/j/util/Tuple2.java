@@ -26,27 +26,29 @@ public class Tuple2<Type1, Type2> implements java.io.Serializable {
     public final Type1 first;
     public final Type2 second;
 
+    @Override
     public boolean equals(Object o) {
-        if (!(o instanceof Tuple2))
+        if (!(o instanceof Tuple2<?, ?> that))
             return false;
-        Tuple2 that = (Tuple2) o;
         return (this.first == null ? that.first == null : this.first.equals(that.first))
             && (this.second == null ? that.second == null : this.second.equals(that.second));
     }
 
+    @Override
     public int hashCode() {
         return (first == null ? 0 : first.hashCode()) ^ (second == null ? 0 : second.hashCode());
     }
 
+    @Override
     public String toString() {
         return super.toString() + " (" + String.valueOf(first) + "," + String.valueOf(second) + ")";
     }
 
     public Tuple2<Type1, Type2> copy() {
-        return new Tuple2<Type1, Type2>(first, second);
+        return new Tuple2<>(first, second);
     }
 
     static public <T1, T2> Tuple2<T1, T2> of(T1 first, T2 second) {
-        return new Tuple2<T1, T2>(first, second);
+        return new Tuple2<>(first, second);
     }
 }

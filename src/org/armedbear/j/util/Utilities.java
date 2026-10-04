@@ -20,6 +20,8 @@
 
 package org.armedbear.j.util;
 
+import static org.armedbear.j.Constants.*;
+
 import java.awt.Component;
 import java.awt.Font;
 import java.awt.FontMetrics;
@@ -55,7 +57,6 @@ import javax.swing.border.TitledBorder;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.parsers.SAXParserFactory;
 import org.armedbear.j.Buffer;
-import org.armedbear.j.Constants;
 import org.armedbear.j.Debug;
 import org.armedbear.j.Directories;
 import org.armedbear.j.Display;
@@ -73,7 +74,7 @@ import org.armedbear.j.mode.java.JavaMode;
 import org.xml.sax.SAXException;
 import org.xml.sax.XMLReader;
 
-public final class Utilities implements Constants {
+public final class Utilities {
     // Returns false if the string contains any upper case letters, true
     // otherwise. "abc123" and "123" are lower case.
     public static boolean isLowerCase(String s) {
@@ -579,7 +580,7 @@ public final class Utilities implements Constants {
 
     // Returns a list of strings.
     public static List<String> getDirectoriesInPath(String path) {
-        ArrayList<String> list = new ArrayList<String>();
+        ArrayList<String> list = new ArrayList<>();
         if (path != null) {
             final char sep = LocalFile.getPathSeparatorChar();
             int begin = 0;
@@ -1220,7 +1221,7 @@ public final class Utilities implements Constants {
 
     /** j's own bin directories, beside the installed jar or in the build: where jpty is. */
     public static List<File> binDirectories() {
-        List<File> bins = new ArrayList<File>();
+        List<File> bins = new ArrayList<>();
         for (File d : resourceDirs()) {
             File bin = File.getInstance(d, "bin");
             if (!bin.isDirectory())
@@ -1359,7 +1360,7 @@ public final class Utilities implements Constants {
 
     // Does not handle embedded single-quoted strings.
     public static List<String> tokenize(String s) {
-        ArrayList<String> list = new ArrayList<String>();
+        ArrayList<String> list = new ArrayList<>();
         if (s != null) {
             StringBuilder sb = new StringBuilder();
             boolean inQuote = false;
@@ -1429,6 +1430,7 @@ public final class Utilities implements Constants {
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
         Border border =
             new TitledBorder(BorderFactory.createEtchedBorder(), title) {
+                @Override
                 public void paintBorder(
                     Component c,
                     Graphics g,
