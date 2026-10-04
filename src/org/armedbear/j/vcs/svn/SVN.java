@@ -27,6 +27,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 import org.armedbear.j.Buffer;
+import org.armedbear.j.BufferCommands;
 import org.armedbear.j.ConfirmDialog;
 import org.armedbear.j.Constants;
 import org.armedbear.j.Debug;
@@ -177,7 +178,7 @@ public class SVN extends VersionControl implements Constants {
             for (Buffer b : Editor.getBufferList()) {
                 if (b instanceof DiffOutputBuffer) {
                     if (b.getParentBuffer() == parentBuffer) {
-                        editor.maybeKillBuffer(b);
+                        BufferCommands.maybeKillBuffer(editor, b);
                         break; // There should be one at most.
                     }
                 }

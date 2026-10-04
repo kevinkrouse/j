@@ -27,6 +27,7 @@ import java.util.regex.Pattern;
 import javax.swing.SwingUtilities;
 import javax.swing.undo.CompoundEdit;
 import org.armedbear.j.Buffer;
+import org.armedbear.j.BufferCommands;
 import org.armedbear.j.ConfirmDialog;
 import org.armedbear.j.Constants;
 import org.armedbear.j.Debug;
@@ -260,7 +261,7 @@ public class P4 extends VersionControl implements Constants {
             for (Buffer b : Editor.getBufferList()) {
                 if (b instanceof DiffOutputBuffer) {
                     if (b.getParentBuffer() == parentBuffer) {
-                        editor.maybeKillBuffer(b);
+                        BufferCommands.maybeKillBuffer(editor, b);
                         break; // There should be one at most.
                     }
                 }
@@ -716,7 +717,7 @@ public class P4 extends VersionControl implements Constants {
             for (Buffer b : Editor.getBufferList()) {
                 if (b instanceof OutputBuffer) {
                     if (title.equals(b.getTitle())) {
-                        editor.maybeKillBuffer(b);
+                        BufferCommands.maybeKillBuffer(editor, b);
                         break; // One at most.
                     }
                 }

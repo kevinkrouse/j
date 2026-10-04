@@ -396,7 +396,7 @@ public final class SidebarBufferTree extends SidebarTree implements Constants,
     private void closeBuffers(Buffer[] buffers) {
         Editor editor = sidebar.getEditor();
         for (Buffer buffer : buffers)
-            editor.maybeKillBuffer(buffer);
+            BufferCommands.maybeKillBuffer(editor, buffer);
         for (Editor ed : Editor.getEditorList())
             ed.updateDisplay();
         for (int i = 0; i < Editor.getFrameCount(); i++) {

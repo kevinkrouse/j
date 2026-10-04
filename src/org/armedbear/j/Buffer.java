@@ -193,7 +193,7 @@ public class Buffer extends SystemBuffer {
         Editor.getBufferList().add(this);
     }
 
-    // Called only by Editor.newBuffer().
+    // Called only by BufferCommands.newBuffer().
     public Buffer(int i /*ignored*/) {
         this();
         Debug.assertTrue(Editor.getBufferList().contains(this));

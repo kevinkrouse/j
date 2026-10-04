@@ -2468,69 +2468,6 @@ public final class Editor extends JPanel implements Constants,
         return null;
     }
 
-    public void nextBuffer() {
-        Buffer buf = bufferList.getNextPrimaryBuffer(buffer);
-        if (buf == null)
-            return;
-        if (buf.isPaired()) {
-            Buffer secondary = buf.getSecondary();
-            if (secondary != null) {
-                if (secondary.getLastActivated() > buf.getLastActivated())
-                    buf = secondary;
-            }
-        }
-        if (buf != buffer)
-            switchToBuffer(buf);
-    }
-
-    /**
-     * {@code prevBuffer alternate} goes to the buffer used most recently
-     * before this one -- vim's alternate file, CTRL-^ -- rather than to the
-     * one before this in the buffer list.
-     */
-    public void prevBuffer(String parameters) {
-        if (
-            parameters == null
-                || !parameters.trim().equalsIgnoreCase("alternate")
-        ) {
-            prevBuffer();
-            return;
-        }
-        final Buffer alternate = alternateBuffer();
-        if (alternate == null) {
-            status("E23: No alternate file");
-            return;
-        }
-        switchToBuffer(alternate);
-    }
-
-    /** The buffer activated most recently, other than this one. */
-    Buffer alternateBuffer() {
-        Buffer best = null;
-        for (Buffer b : Editor.getBufferList()) {
-            if (b == buffer || !b.isPrimary())
-                continue;
-            if (best == null || b.getLastActivated() > best.getLastActivated())
-                best = b;
-        }
-        return best;
-    }
-
-    public void prevBuffer() {
-        Buffer buf = bufferList.getPreviousPrimaryBuffer(buffer);
-        if (buf == null)
-            return;
-        if (buf.isPaired()) {
-            Buffer secondary = buf.getSecondary();
-            if (secondary != null) {
-                if (secondary.getLastActivated() > buf.getLastActivated())
-                    buf = secondary;
-            }
-        }
-        if (buf != buffer)
-            switchToBuffer(buf);
-    }
-
     public void switchToBuffer(Buffer buf) {
         if (buf != null) {
             if (!buf.isPaired() && (buffer == null || !buffer.isPaired())) {
@@ -2552,12 +2489,6 @@ public final class Editor extends JPanel implements Constants,
 
     public void makeNext(final Buffer buf) {
         bufferList.makeNext(buf, buffer);
-    }
-
-    public void newBuffer() {
-        Buffer buf = new Buffer(0);
-        makeNext(buf);
-        switchToBuffer(buf);
     }
 
     public Buffer openFile(File file) {
@@ -2772,7 +2703,7 @@ public final class Editor extends JPanel implements Constants,
         }
 
         if (buffer instanceof RemoteBuffer && buffer.isEmpty()) {
-            killBuffer();
+            BufferCommands.killBuffer(this);
             return;
         }
 
@@ -2792,7 +2723,7 @@ public final class Editor extends JPanel implements Constants,
                 WindowCommands.otherWindow(this);
                 WindowCommands.unsplitWindow(this);
             }
-            maybeKillBuffer(buffer);
+            BufferCommands.maybeKillBuffer(this, buffer);
             restoreFocus();
             Sidebar.refreshSidebarInAllFrames();
             return true;
@@ -2801,7 +2732,7 @@ public final class Editor extends JPanel implements Constants,
             WindowCommands.otherWindow(this);
             WindowCommands.unsplitWindow(this);
             if (!buffer.isModified())
-                maybeKillBuffer(buffer);
+                BufferCommands.maybeKillBuffer(this, buffer);
             restoreFocus();
             return true;
         }
@@ -2812,7 +2743,7 @@ public final class Editor extends JPanel implements Constants,
             if (buf instanceof CompilationBuffer || buf.isTransient()) {
                 if (buf.unsplitOnClose())
                     WindowCommands.unsplitWindow(this);
-                maybeKillBuffer(buf);
+                BufferCommands.maybeKillBuffer(this, buf);
                 if (!buf.unsplitOnClose())
                     ed.updateDisplay();
                 Sidebar.refreshSidebarInAllFrames();
@@ -2821,25 +2752,11 @@ public final class Editor extends JPanel implements Constants,
             if (buf.getModeId() == CHECKIN_MODE) {
                 WindowCommands.unsplitWindow(this);
                 if (!buf.isModified())
-                    maybeKillBuffer(buf);
+                    BufferCommands.maybeKillBuffer(this, buf);
                 return true;
             }
         }
         return false;
-    }
-
-    public void tempBufferQuit() {
-        if (buffer instanceof CompilationBuffer || buffer.isTransient()) {
-            if (buffer.unsplitOnClose()) {
-                buffer.windowClosing();
-                WindowCommands.otherWindow(this);
-                WindowCommands.unsplitWindow(this);
-            }
-            maybeKillBuffer(buffer);
-            restoreFocus();
-            Sidebar.refreshSidebarInAllFrames();
-            return;
-        }
     }
 
     public void stamp() {
@@ -3075,62 +2992,6 @@ public final class Editor extends JPanel implements Constants,
         int response = ConfirmDialog.showConfirmAllDialog(this, text, title);
         repaintNow();
         return response;
-    }
-
-    public void killBuffer() {
-        try {
-            if (buffer.isSecondary()) {
-                buffer.windowClosing();
-                WindowCommands.otherWindow(this);
-                WindowCommands.unsplitWindow(this);
-                currentEditor.maybeKillBuffer(buffer);
-                restoreFocus();
-                return;
-            }
-            Buffer buf = buffer.getSecondary();
-            if (buf != null) {
-                WindowCommands.unsplitWindow(this);
-                maybeKillBuffer(buf);
-                return;
-            }
-            // Normal buffer.
-            maybeKillBuffer(buffer);
-            // If we're left with two editors next to each other showing exactly the same thing,
-            // unsplit the window.
-            Frame frame = currentEditor.getFrame();
-            frame.coalesceEditors(frame.getCurrentEditor());
-        }
-        finally {
-            Sidebar.refreshSidebarInAllFrames();
-        }
-    }
-
-    public void maybeKillBuffer(Buffer toBeKilled) {
-        if (!bufferList.contains(toBeKilled)) {
-            Debug.bug("maybeKillBuffer buffer not in list " + toBeKilled);
-            return;
-        }
-
-        // Don't kill the last buffer if it's a directory.
-        if (bufferList.size() == 1 && toBeKilled instanceof DirectoryBuffer)
-            return;
-
-        // Cancel background process if any.
-        BackgroundProcess backgroundProcess = toBeKilled.getBackgroundProcess();
-        if (backgroundProcess != null) {
-            Log.debug("maybeKillBuffer calling backgroundProcess.cancel...");
-            backgroundProcess.cancel();
-            // backgroundProcess.cancel() may have killed the buffer, so
-            // verify that it's still in the list.
-            if (!bufferList.contains(toBeKilled)) {
-                Log.debug("maybeKillBuffer buffer is no longer in list");
-                return;
-            }
-        }
-
-        Mode mode = toBeKilled.getMode();
-        if (mode == null || mode.confirmClose(this, toBeKilled))
-            toBeKilled.kill();
     }
 
     public void clearStatusText() {
@@ -3648,84 +3509,6 @@ public final class Editor extends JPanel implements Constants,
             status("Invalid integer value \"" + value + "\"");
         else if (property.isBooleanProperty())
             status("Invalid boolean value \"" + value + "\"");
-    }
-
-    public void dirHome() {
-        if (buffer instanceof DirectoryBuffer)
-            ((DirectoryBuffer) buffer).home();
-    }
-
-    public void dirTagFile() {
-        if (buffer instanceof DirectoryBuffer)
-            ((DirectoryBuffer) buffer).tagFileAtDot();
-    }
-
-    public void dirBrowseFile() {
-        if (buffer instanceof DirectoryBuffer && !buffer.getFile().isRemote()) {
-            DirectoryBuffer d = (DirectoryBuffer) buffer;
-            d.browseFileAtDot();
-        }
-    }
-
-    public void dirDeleteFiles() {
-        if (mark != null && getMarkLine() != getDotLine()) {
-            MessageDialog.showMessageDialog(
-                this,
-                "This operation is not supported with multi-line text selections.",
-                "Delete Files"
-            );
-            return;
-        }
-        if (buffer instanceof DirectoryBuffer) {
-            if (buffer.getFile() instanceof SshFile) {
-                MessageDialog
-                    .showMessageDialog(this, "Deletions are not yet supported in ssh directory buffers.", "Error");
-                return;
-            }
-            ((DirectoryBuffer) buffer).deleteFiles();
-        }
-    }
-
-    public void dirCopyFile() {
-        if (buffer instanceof DirectoryBuffer && buffer.getFile().isLocal())
-            ((DirectoryBuffer) buffer).copyFileAtDot();
-    }
-
-    public void dirGetFile() {
-        if (buffer instanceof DirectoryBuffer && buffer.getFile() instanceof FtpFile)
-            ((DirectoryBuffer) buffer).getFileAtDot();
-    }
-
-    public void dirMoveFile() {
-        if (buffer instanceof DirectoryBuffer && buffer.getFile().isLocal())
-            ((DirectoryBuffer) buffer).moveFileAtDot();
-    }
-
-    public void dirRescan() {
-        if (buffer instanceof DirectoryBuffer) {
-            setWaitCursor();
-            ((DirectoryBuffer) buffer).rescan();
-            setDefaultCursor();
-        }
-    }
-
-    public void dirHomeDir() {
-        File homeDir = File.getInstance(Utilities.getUserHome());
-        if (buffer instanceof DirectoryBuffer) {
-            if (!buffer.getFile().equals(homeDir))
-                ((DirectoryBuffer) buffer).changeDirectory(homeDir);
-        } else {
-            Buffer buf = getBuffer(homeDir);
-            if (buf != null) {
-                makeNext(buf);
-                activate(buf);
-            }
-        }
-    }
-
-    public void dirUpDir() {
-        if (buffer instanceof DirectoryBuffer)
-            ((DirectoryBuffer) buffer).upDir();
     }
 
     public void setFocusToTextField() {

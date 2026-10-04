@@ -32,6 +32,7 @@ import java.util.List;
 import javax.swing.SwingUtilities;
 import org.armedbear.j.BackgroundProcess;
 import org.armedbear.j.Buffer;
+import org.armedbear.j.BufferCommands;
 import org.armedbear.j.Directories;
 import org.armedbear.j.Editor;
 import org.armedbear.j.File;
@@ -413,7 +414,7 @@ public final class NewsGroupMessageBuffer extends MessageBuffer {
                     Buffer buf = editor.openFile(f);
                     editor.makeNext(buf);
                     editor.activate(buf);
-                    editor.maybeKillBuffer(this);
+                    BufferCommands.maybeKillBuffer(editor, this);
                     return;
                 }
             }
