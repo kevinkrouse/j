@@ -81,7 +81,7 @@ public class MultiSplitLayout implements LayoutManager {
     public static final int NO_MIN_SIZE_LAYOUT = 1;
     public static final int USER_MIN_SIZE_LAYOUT = 2;
 
-    private final Map<String, Component> childMap = new HashMap<String, Component>();
+    private final Map<String, Component> childMap = new HashMap<>();
     private final PropertyChangeSupport pcs = new PropertyChangeSupport(this);
     private Node model;
     private int dividerSize;
@@ -308,11 +308,11 @@ public class MultiSplitLayout implements LayoutManager {
      */
     public Node getNodeForName(Split split, String name) {
         for (Node n : split.getChildren()) {
-            if (n instanceof Leaf) {
-                if (((Leaf) n).getName().equals(name))
+            if (n instanceof Leaf leaf) {
+                if (leaf.getName().equals(name))
                     return n;
-            } else if (n instanceof Split) {
-                Node n1 = getNodeForName((Split) n, name);
+            } else if (n instanceof Split split2) {
+                Node n1 = getNodeForName(split2, name);
                 if (n1 != null)
                     return n1;
             }
@@ -480,6 +480,7 @@ public class MultiSplitLayout implements LayoutManager {
      * @param child the component to be added
      * @see #removeLayoutComponent
      */
+    @Override
     public void addLayoutComponent(String name, Component child) {
         if (name == null) {
             throw new IllegalArgumentException("name not specified");
@@ -493,6 +494,7 @@ public class MultiSplitLayout implements LayoutManager {
      * @param child the component to be removed
      * @see #addLayoutComponent
      */
+    @Override
     public void removeLayoutComponent(Component child) {
         String name = getNameForComponent(child);
 
@@ -585,8 +587,7 @@ public class MultiSplitLayout implements LayoutManager {
     }
 
     private Component childForNode(Node node) {
-        if (node instanceof Leaf) {
-            Leaf leaf = (Leaf) node;
+        if (node instanceof Leaf leaf) {
             String name = leaf.getName();
             return (name != null) ? childMap.get(name) : null;
         }
@@ -612,8 +613,8 @@ public class MultiSplitLayout implements LayoutManager {
     private Dimension preferredNodeSize(Node root) {
         if (root instanceof Leaf) {
             return preferredComponentSize(root);
-        } else if (root instanceof Divider) {
-            if (!((Divider) root).isVisible())
+        } else if (root instanceof Divider divider) {
+            if (!divider.isVisible())
                 return new Dimension(0, 0);
             int divSize = getDividerSize();
             return new Dimension(divSize, divSize);
@@ -658,8 +659,8 @@ public class MultiSplitLayout implements LayoutManager {
 
             Component child = childForNode(root);
             return ((child != null) && child.isVisible()) ? child.getMinimumSize() : new Dimension(0, 0);
-        } else if (root instanceof Divider) {
-            if (!((Divider) root).isVisible())
+        } else if (root instanceof Divider divider) {
+            if (!divider.isVisible())
                 return new Dimension(0, 0);
             int divSize = getDividerSize();
             return new Dimension(divSize, divSize);
@@ -701,8 +702,8 @@ public class MultiSplitLayout implements LayoutManager {
         if (root instanceof Leaf) {
             Component child = childForNode(root);
             return ((child != null) && child.isVisible()) ? child.getMaximumSize() : new Dimension(0, 0);
-        } else if (root instanceof Divider) {
-            if (!((Divider) root).isVisible())
+        } else if (root instanceof Divider divider) {
+            if (!divider.isVisible())
                 return new Dimension(0, 0);
             int divSize = getDividerSize();
             return new Dimension(divSize, divSize);
@@ -739,11 +740,13 @@ public class MultiSplitLayout implements LayoutManager {
         return new Dimension(width, height);
     }
 
+    @Override
     public Dimension preferredLayoutSize(Container parent) {
         Dimension size = preferredNodeSize(getModel());
         return sizeWithInsets(parent, size);
     }
 
+    @Override
     public Dimension minimumLayoutSize(Container parent) {
         Dimension size = minimumNodeSize(getModel());
         return sizeWithInsets(parent, size);
@@ -1075,8 +1078,7 @@ public class MultiSplitLayout implements LayoutManager {
             root.setBounds(bounds);
         } else if (root instanceof Divider) {
             root.setBounds(bounds);
-        } else if (root instanceof Split) {
-            Split split = (Split) root;
+        } else if (root instanceof Split split) {
             boolean grow = split.isRowLayout()
                 ? (split.getBounds().width <= bounds.width)
                 : (split.getBounds().height <= bounds.height);
@@ -1107,8 +1109,7 @@ public class MultiSplitLayout implements LayoutManager {
     private void layout1(Node root, Rectangle bounds) {
         if (root instanceof Leaf) {
             root.setBounds(bounds);
-        } else if (root instanceof Split) {
-            Split split = (Split) root;
+        } else if (root instanceof Split split) {
             Iterator<Node> splitChildren = split.getChildren().iterator();
             Rectangle childBounds = null;
             int divSize = getDividerSize();
@@ -1303,8 +1304,7 @@ public class MultiSplitLayout implements LayoutManager {
     }
 
     private void checkLayout(Node root) {
-        if (root instanceof Split) {
-            Split split = (Split) root;
+        if (root instanceof Split split) {
             if (split.getChildren().size() <= 2) {
                 throwInvalidLayout("Split must have > 2 children", root);
             }
@@ -1341,6 +1341,7 @@ public class MultiSplitLayout implements LayoutManager {
      * the layout model, and then set the bounds of each child component
      * with a matching Leaf Node.
      */
+    @Override
     public void layoutContainer(Container parent) {
         if (layoutByWeight && floatingDividers)
             doLayoutByWeight(parent);
@@ -1356,11 +1357,9 @@ public class MultiSplitLayout implements LayoutManager {
     }
 
     private Divider dividerAt(Node root, int x, int y) {
-        if (root instanceof Divider) {
-            Divider divider = (Divider) root;
+        if (root instanceof Divider divider) {
             return (divider.getBounds().contains(x, y)) ? divider : null;
-        } else if (root instanceof Split) {
-            Split split = (Split) root;
+        } else if (root instanceof Split split) {
             for (Node child : split.getChildren()) {
                 if (!child.isVisible())
                     continue;
@@ -1394,12 +1393,12 @@ public class MultiSplitLayout implements LayoutManager {
     }
 
     private List<Divider> dividersThatOverlap(Node root, Rectangle r) {
-        if (nodeOverlapsRectangle(root, r) && (root instanceof Split)) {
-            List<Divider> dividers = new ArrayList<Divider>();
-            for (Node child : ((Split) root).getChildren()) {
-                if (child instanceof Divider) {
+        if (nodeOverlapsRectangle(root, r) && (root instanceof Split split)) {
+            List<Divider> dividers = new ArrayList<>();
+            for (Node child : split.getChildren()) {
+                if (child instanceof Divider divider) {
                     if (nodeOverlapsRectangle(child, r)) {
-                        dividers.add((Divider) child);
+                        dividers.add(divider);
                     }
                 } else if (child instanceof Split) {
                     dividers.addAll(dividersThatOverlap(child, r));
@@ -1685,7 +1684,7 @@ public class MultiSplitLayout implements LayoutManager {
          * @see #setChildren
          */
         public List<Node> getChildren() {
-            return new ArrayList<Node>(children);
+            return new ArrayList<>(children);
         }
 
         /**
@@ -1819,7 +1818,7 @@ public class MultiSplitLayout implements LayoutManager {
                 child.setParent(null);
             }
 
-            this.children = new ArrayList<Node>(children);
+            this.children = new ArrayList<>(children);
             for (Node child : this.children) {
                 child.setParent(this);
             }
@@ -2008,10 +2007,10 @@ public class MultiSplitLayout implements LayoutManager {
             }
         } else if (name.equalsIgnoreCase("NAME")) {
             if (st.nextToken() == StreamTokenizer.TT_WORD) {
-                if (node instanceof Leaf) {
-                    ((Leaf) node).setName(st.sval);
-                } else if (node instanceof Split) {
-                    ((Split) node).setName(st.sval);
+                if (node instanceof Leaf leaf) {
+                    leaf.setName(st.sval);
+                } else if (node instanceof Split split) {
+                    split.setName(st.sval);
                 } else {
                     throwParseException(st, "can't specify name for " + node);
                 }
@@ -2024,7 +2023,7 @@ public class MultiSplitLayout implements LayoutManager {
     }
 
     private static void addSplitChild(Split parent, Node child) {
-        List<Node> children = new ArrayList<Node>(parent.getChildren());
+        List<Node> children = new ArrayList<>(parent.getChildren());
         if (children.size() == 0) {
             children.add(child);
         } else {
@@ -2152,8 +2151,7 @@ public class MultiSplitLayout implements LayoutManager {
     }
 
     private static void printModel(String indent, Node root) {
-        if (root instanceof Split) {
-            Split split = (Split) root;
+        if (root instanceof Split split) {
             System.out.println(indent + split);
             for (Node child : split.getChildren()) {
                 printModel(indent + "  ", child);
