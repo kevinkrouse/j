@@ -53,7 +53,8 @@ import org.armedbear.j.NavigationComponent;
 import org.armedbear.j.Position;
 import org.armedbear.j.SidebarTree;
 import org.armedbear.j.util.Background;
-import org.armedbear.j.util.Utilities;
+import org.armedbear.j.util.Icons;
+import org.armedbear.j.util.Keys;
 
 public final class JavaTree extends SidebarTree implements Constants,
     NavigationComponent, KeyListener, MouseListener {
@@ -390,7 +391,7 @@ public final class JavaTree extends SidebarTree implements Constants,
         LocationBar.cancelInput();
         editor.ensureActive();
         final int button = e.getButton();
-        final boolean unmodified = Utilities.isUnmodified(e);
+        final boolean unmodified = Keys.isUnmodified(e);
         if (!(unmodified && button == MouseEvent.BUTTON1) && !(unmodified && button == MouseEvent.BUTTON2)) {
             e.consume();
             editor.setFocusToDisplay();
@@ -522,13 +523,13 @@ public final class JavaTree extends SidebarTree implements Constants,
                     setText(t.getSidebarText());
                 } else if (obj instanceof String) {
                     if (obj.equals(CAPTION_FIELDS))
-                        setIcon(Utilities.getIconFromFile("field"));
+                        setIcon(Icons.getIconFromFile("field"));
                     else if (obj.equals(CAPTION_CONSTRUCTORS))
-                        setIcon(Utilities.getIconFromFile("method"));
+                        setIcon(Icons.getIconFromFile("method"));
                     else if (obj.equals(CAPTION_METHODS))
-                        setIcon(Utilities.getIconFromFile("method"));
+                        setIcon(Icons.getIconFromFile("method"));
                     else if (obj.equals(CAPTION_NESTED_CLASSES))
-                        setIcon(Utilities.getIconFromFile("class"));
+                        setIcon(Icons.getIconFromFile("class"));
                 }
             }
             return this;

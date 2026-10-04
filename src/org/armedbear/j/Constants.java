@@ -227,7 +227,7 @@ public interface Constants {
     int CANCELLED = 1;
 
     // j's own modifiers. The values are what AWTKeyStroke uses and aligns
-    // with KeyStroke.getModifiers(). See Utilities.keyModifiers.
+    // with KeyStroke.getModifiers(). See Keys.keyModifiers.
     int SHIFT_MASK = 1 << 0;
     int CTRL_MASK = 1 << 1;
     int META_MASK = 1 << 2;

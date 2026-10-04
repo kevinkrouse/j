@@ -25,7 +25,7 @@ import java.lang.StringBuilder;
 import javax.swing.JLabel;
 import javax.swing.JTextField;
 import javax.swing.SwingUtilities;
-import org.armedbear.j.util.Utilities;
+import org.armedbear.j.util.Keys;
 
 public final class DescribeKeyDialog extends AbstractDialog {
     private static final String title = "Describe Key";
@@ -69,7 +69,7 @@ public final class DescribeKeyDialog extends AbstractDialog {
         )
             return;
         seenKeyPressed = true;
-        final int modifiers = Utilities.keyModifiers(e);
+        final int modifiers = Keys.keyModifiers(e);
         KeyMapping mapping = new KeyMapping(keycode, modifiers, null);
         lastKeyText = mapping.getKeyText();
         Object command = describeKey(new JEvent(e));
@@ -87,7 +87,7 @@ public final class DescribeKeyDialog extends AbstractDialog {
     public void keyTyped(KeyEvent e) {
         if (!eventHandled) {
             final char c = e.getKeyChar();
-            final int modifiers = Utilities.keyModifiers(e);
+            final int modifiers = Keys.keyModifiers(e);
             if (modifiers == 0 || modifiers == Constants.SHIFT_MASK) {
                 // Ignore whitespace key chars (e.g. Space, Shift Tab).
                 if (c > ' ') {

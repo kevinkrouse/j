@@ -30,7 +30,7 @@ import java.util.ArrayList;
 import java.util.List;
 import javax.swing.KeyStroke;
 import org.armedbear.j.extension.Extensions;
-import org.armedbear.j.util.Utilities;
+import org.armedbear.j.util.Keys;
 
 public final class KeyMap implements Constants {
     private static KeyMap globalKeyMap;
@@ -552,7 +552,7 @@ public final class KeyMap implements Constants {
 
     // For Lisp API.
     public synchronized boolean mapKey(String keyText, Object command) {
-        KeyStroke keyStroke = Utilities.getKeyStroke(keyText);
+        KeyStroke keyStroke = Keys.getKeyStroke(keyText);
         if (keyStroke == null)
             return false;
         char keyChar = keyStroke.getKeyChar();
@@ -619,7 +619,7 @@ public final class KeyMap implements Constants {
 
     // For Lisp API.
     public synchronized boolean unmapKey(String keyText) {
-        KeyStroke keyStroke = Utilities.getKeyStroke(keyText);
+        KeyStroke keyStroke = Keys.getKeyStroke(keyText);
         if (keyStroke != null) {
             char keyChar = keyStroke.getKeyChar();
             int keyCode = keyStroke.getKeyCode();

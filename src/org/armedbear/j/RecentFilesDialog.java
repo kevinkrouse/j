@@ -30,7 +30,7 @@ import javax.swing.ListSelectionModel;
 import javax.swing.table.JTableHeader;
 import javax.swing.table.TableColumn;
 import javax.swing.table.TableColumnModel;
-import org.armedbear.j.util.Utilities;
+import org.armedbear.j.util.Keys;
 
 public final class RecentFilesDialog extends AbstractDialog implements MouseListener {
     private final JTable table;
@@ -132,7 +132,7 @@ public final class RecentFilesDialog extends AbstractDialog implements MouseList
     public void mouseClicked(MouseEvent e) {
         if (e.getClickCount() == 2)
             openSelectedFile();
-        else if ((Utilities.isUnmodified(e) && e.getButton() == MouseEvent.BUTTON2))
+        else if ((Keys.isUnmodified(e) && e.getButton() == MouseEvent.BUTTON2))
             openFileAtPoint(e.getPoint());
         else if (e.getComponent() == table.getTableHeader()) {
             TableColumnModel columnModel = table.getColumnModel();

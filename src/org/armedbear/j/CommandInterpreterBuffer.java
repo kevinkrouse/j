@@ -29,8 +29,8 @@ import java.util.regex.PatternSyntaxException;
 import javax.swing.Icon;
 import javax.swing.SwingUtilities;
 import javax.swing.undo.CompoundEdit;
+import org.armedbear.j.util.Icons;
 import org.armedbear.j.util.ReaderThread;
-import org.armedbear.j.util.Utilities;
 
 public class CommandInterpreterBuffer extends Buffer {
     protected Pattern promptRE = Pattern.compile(DEFAULT_SHELL_PROMPT_PATTERN);
@@ -113,7 +113,7 @@ public class CommandInterpreterBuffer extends Buffer {
     }
 
     public Icon getIcon() {
-        return Utilities.getIconFromFile("jpty");
+        return Icons.getIconFromFile("jpty");
     }
 
     public int load() {

@@ -40,6 +40,7 @@ import org.armedbear.j.StatusBarProgressNotifier;
 import org.armedbear.j.View;
 import org.armedbear.j.util.Background;
 import org.armedbear.j.util.FastStringReader;
+import org.armedbear.j.util.Icons;
 import org.armedbear.j.util.Utilities;
 
 public final class NewsGroupSummaryBuffer extends MailboxBuffer {
@@ -295,7 +296,7 @@ public final class NewsGroupSummaryBuffer extends MailboxBuffer {
 
     // For the buffer list.
     public Icon getIcon() {
-        return Utilities.getIconFromFile("mailbox");
+        return Icons.getIconFromFile("mailbox");
     }
 
     public void getNewMessages() {}

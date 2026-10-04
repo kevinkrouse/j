@@ -30,7 +30,7 @@ import javax.swing.JPopupMenu;
 import org.armedbear.j.extension.Extensions;
 import org.armedbear.j.mode.dir.DirectoryBuffer;
 import org.armedbear.j.mode.text.PlainTextFormatter;
-import org.armedbear.j.util.Utilities;
+import org.armedbear.j.util.Colors;
 
 public abstract class AbstractMode implements Constants, Mode {
     private static final Preferences preferences = Editor.preferences();
@@ -615,7 +615,7 @@ public abstract class AbstractMode implements Constants, Mode {
         }
 
         if (value != null)
-            return Utilities.getColor(value);
+            return Colors.parseColor(value);
         else
             return null;
     }

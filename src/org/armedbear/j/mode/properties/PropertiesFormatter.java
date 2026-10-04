@@ -26,7 +26,7 @@ import org.armedbear.j.FormatTable;
 import org.armedbear.j.Formatter;
 import org.armedbear.j.Line;
 import org.armedbear.j.LineSegmentList;
-import org.armedbear.j.util.Utilities;
+import org.armedbear.j.util.Colors;
 
 public final class PropertiesFormatter extends Formatter {
     private static final byte PROPERTIES_FORMAT_TEXT = 0;
@@ -105,7 +105,7 @@ public final class PropertiesFormatter extends Formatter {
         String value = text.substring(index).trim();
         if (!value.isEmpty() && (value.charAt(0) == '=' || value.charAt(0) == ':'))
             value = value.substring(1);
-        return Utilities.parseColor(value);
+        return Colors.parseColor(value);
     }
 
     public FormatTable getFormatTable() {

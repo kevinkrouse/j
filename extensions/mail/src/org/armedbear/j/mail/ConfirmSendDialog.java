@@ -35,7 +35,7 @@ import org.armedbear.j.Label;
 import org.armedbear.j.MessageDialog;
 import org.armedbear.j.Property;
 import org.armedbear.j.SessionProperties;
-import org.armedbear.j.util.Utilities;
+import org.armedbear.j.util.Keys;
 
 public final class ConfirmSendDialog extends AbstractDialog {
     private static final int TEXTFIELD_WIDTH = 22;
@@ -203,7 +203,7 @@ public final class ConfirmSendDialog extends AbstractDialog {
             editor.getKeyMapping(
                 e.getKeyChar(),
                 e.getKeyCode(),
-                Utilities.keyModifiers(e)
+                Keys.keyModifiers(e)
             );
         if (mapping != null && mapping.getCommand() == "send") {
             e.consume();

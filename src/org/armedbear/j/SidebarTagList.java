@@ -30,7 +30,7 @@ import javax.swing.SwingUtilities;
 import javax.swing.ToolTipManager;
 import org.armedbear.j.Constants;
 import org.armedbear.j.util.Background;
-import org.armedbear.j.util.Utilities;
+import org.armedbear.j.util.Keys;
 
 public class SidebarTagList extends SidebarList implements Constants,
     NavigationComponent, KeyListener, MouseListener, MouseMotionListener {
@@ -185,7 +185,7 @@ public class SidebarTagList extends SidebarList implements Constants,
 
     public void keyPressed(KeyEvent e) {
         int keyCode = e.getKeyCode();
-        int modifiers = Utilities.keyModifiers(e);
+        int modifiers = Keys.keyModifiers(e);
         modifiers &= 0x0f;
         switch (keyCode) {
             // Ignore modifier keystrokes.
@@ -232,7 +232,7 @@ public class SidebarTagList extends SidebarList implements Constants,
         LocationBar.cancelInput();
         editor.ensureActive();
         final int button = e.getButton();
-        final boolean unmodified = Utilities.isUnmodified(e);
+        final boolean unmodified = Keys.isUnmodified(e);
         if (
             (unmodified && button == MouseEvent.BUTTON1)
                 ||

@@ -48,6 +48,7 @@ import org.armedbear.j.History;
 import org.armedbear.j.HistoryTextField;
 import org.armedbear.j.SessionProperties;
 import org.armedbear.j.StandardButton;
+import org.armedbear.j.util.Keys;
 import org.armedbear.j.util.Utilities;
 
 public final class JdbControlDialog extends JDialog implements JdbConstants,
@@ -191,7 +192,7 @@ public final class JdbControlDialog extends JDialog implements JdbConstants,
 
     public void keyPressed(KeyEvent e) {
         if (e.getKeyCode() == KeyEvent.VK_ENTER) {
-            if (Utilities.isUnmodified(e)) {
+            if (Keys.isUnmodified(e)) {
                 if (commandTextField.getText().trim().length() > 0) {
                     jdb.doCommand(commandTextField.getText());
                     commandTextField.setText("");

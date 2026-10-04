@@ -30,7 +30,7 @@ import java.util.List;
 import javax.swing.JDialog;
 import javax.swing.JMenuItem;
 import javax.swing.JPopupMenu;
-import org.armedbear.j.util.Utilities;
+import org.armedbear.j.util.Keys;
 
 public class DefaultTextFieldHandler implements Constants, TextFieldHandler {
     protected final Editor editor;
@@ -179,7 +179,7 @@ public class DefaultTextFieldHandler implements Constants, TextFieldHandler {
             Debug.bug();
         final char keyChar = e.getKeyChar();
         final int keyCode = e.getKeyCode();
-        final int modifiers = Utilities.keyModifiers(e);
+        final int modifiers = Keys.keyModifiers(e);
         switch (keyCode) {
             case KeyEvent.VK_ENTER:
                 resetExpansion();

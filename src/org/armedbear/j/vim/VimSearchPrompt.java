@@ -17,7 +17,7 @@ import org.armedbear.j.Editor;
 import org.armedbear.j.History;
 import org.armedbear.j.HistoryTextField;
 import org.armedbear.j.LocationBar;
-import org.armedbear.j.util.Utilities;
+import org.armedbear.j.util.Keys;
 
 /**
  * Where the pattern for {@code /} and {@code ?} is typed.
@@ -107,7 +107,7 @@ final class VimSearchPrompt extends DefaultTextFieldHandler {
                 editor,
                 e.getKeyCode(),
                 e.getKeyChar(),
-                Utilities.keyModifiers(e)
+                Keys.keyModifiers(e)
             )
         ) {
             e.consume();

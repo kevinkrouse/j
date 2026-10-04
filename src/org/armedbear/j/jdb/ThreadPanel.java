@@ -41,7 +41,7 @@ import org.armedbear.j.Editor;
 import org.armedbear.j.File;
 import org.armedbear.j.Log;
 import org.armedbear.j.mode.java.JavaSource;
-import org.armedbear.j.util.Utilities;
+import org.armedbear.j.util.Keys;
 
 public final class ThreadPanel implements ContextListener, MouseListener {
     private final Jdb jdb;
@@ -118,7 +118,7 @@ public final class ThreadPanel implements ContextListener, MouseListener {
         if (!jdb.isSuspended())
             return;
         final int button = e.getButton();
-        final boolean unmodified = Utilities.isUnmodified(e);
+        final boolean unmodified = Keys.isUnmodified(e);
         if (
             (unmodified && button == MouseEvent.BUTTON1)
                 ||

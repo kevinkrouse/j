@@ -68,6 +68,7 @@ import org.armedbear.j.SimpleEdit;
 import org.armedbear.j.mode.java.JavaMode;
 import org.armedbear.j.mode.java.JavaSource;
 import org.armedbear.j.util.Background;
+import org.armedbear.j.util.Icons;
 import org.armedbear.j.util.ReaderThread;
 import org.armedbear.j.util.Utilities;
 
@@ -1701,6 +1702,6 @@ public final class Jdb extends Buffer implements JdbConstants {
     }
 
     public Icon getIcon() {
-        return Utilities.getIconFromFile("jpty");
+        return Icons.getIconFromFile("jpty");
     }
 }

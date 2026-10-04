@@ -20,25 +20,17 @@
 
 package org.armedbear.j.util;
 
-import java.awt.AlphaComposite;
-import java.awt.Color;
 import java.awt.Component;
 import java.awt.Font;
 import java.awt.FontMetrics;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
-import java.awt.event.InputEvent;
-import java.awt.event.KeyEvent;
 import java.awt.image.BufferedImage;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
-import java.io.BufferedReader;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.io.OutputStream;
-import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -47,22 +39,17 @@ import java.nio.charset.Charset;
 import java.nio.charset.IllegalCharsetNameException;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Properties;
 import java.util.Set;
-import java.util.StringTokenizer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.ZipInputStream;
-import javax.imageio.ImageIO;
 import javax.swing.BorderFactory;
 import javax.swing.BoxLayout;
-import javax.swing.ImageIcon;
 import javax.swing.JPanel;
-import javax.swing.KeyStroke;
 import javax.swing.border.Border;
 import javax.swing.border.TitledBorder;
 import javax.xml.parsers.SAXParserFactory;
@@ -80,9 +67,7 @@ import org.armedbear.j.Mode;
 import org.armedbear.j.Path;
 import org.armedbear.j.Platform;
 import org.armedbear.j.Position;
-import org.armedbear.j.Preferences;
 import org.armedbear.j.Property;
-import org.armedbear.j.UIScale;
 import org.armedbear.j.mode.java.JavaMode;
 import org.xml.sax.XMLReader;
 
@@ -112,14 +97,6 @@ public final class Utilities implements Constants {
         }
         // We didn't encounter any letters that weren't upper case.
         return containsLetter;
-    }
-
-    public static boolean isWhitespace(String s) {
-        for (int i = s.length() - 1; i >= 0; i--) {
-            if (!Character.isWhitespace(s.charAt(i)))
-                return false;
-        }
-        return true;
     }
 
     public static int countLines(String s) {
@@ -1049,75 +1026,6 @@ public final class Utilities implements Constants {
         return false;
     }
 
-    public static Color getColor(String s) {
-        return parseColor(s);
-    }
-
-    /**
-     * A color as preferences write one: a name (black, white, yellow, blue,
-     * red, gray, green), "#rgb", "#rrggbb", or three numbers 0-255 for red,
-     * green and blue. Returns null for anything else, and says nothing about
-     * it, so it can be asked of any text.
-     */
-    public static Color parseColor(String s) {
-        if (s == null)
-            return null;
-        s = s.trim();
-        switch (s) {
-            case "black":
-                return Color.black;
-            case "white":
-                return Color.white;
-            case "yellow":
-                return Color.yellow;
-            case "blue":
-                return Color.blue;
-            case "red":
-                return Color.red;
-            case "gray":
-                return Color.gray;
-            case "green":
-                return Color.green;
-        }
-        if (s.startsWith("#"))
-            return parseHexColor(s);
-        final StringTokenizer st = new StringTokenizer(s);
-        if (st.countTokens() != 3)
-            return null;
-        final int[] rgb = new int[3];
-        for (int i = 0; i < 3; i++) {
-            try {
-                rgb[i] = Integer.parseInt(st.nextToken());
-            }
-            catch (NumberFormatException e) {
-                return null;
-            }
-            if (rgb[i] < 0 || rgb[i] > 255)
-                return null;
-        }
-        return new Color(rgb[0], rgb[1], rgb[2]);
-    }
-
-    /**
-     * "#rgb" or "#rrggbb", as CSS writes them; null for anything else. In
-     * "#rgb" each digit is doubled, so "#f80" is "#ff8800".
-     */
-    public static Color parseHexColor(String s) {
-        final int length = s.length();
-        if (length != 4 && length != 7 || s.charAt(0) != '#')
-            return null;
-        int rgb = 0;
-        for (int i = 1; i < length; i++) {
-            final int digit = Character.digit(s.charAt(i), 16);
-            if (digit < 0)
-                return null;
-            rgb = rgb << 4 | digit;
-            if (length == 4)
-                rgb = rgb << 4 | digit;
-        }
-        return new Color(rgb);
-    }
-
     // BUG! Not really correct!
     private static final String filenameChars =
         "#-./0123456789:ABCDEFGHIJKLMNOPQRSTUVWXYZ\\_abcdefghijklmnopqrstuvwxyz~";
@@ -1153,20 +1061,6 @@ public final class Utilities implements Constants {
         return "'" + s.replace("'", "'\\''") + "'";
     }
 
-    public static boolean isProcessAlive(Process process) {
-        if (process == null)
-            return false;
-        try {
-            process.exitValue();
-            // If process is alive, we won't reach here.
-            return false;
-        }
-        catch (IllegalThreadStateException e) {
-            // If this exception is thrown, the process is still alive.
-            return true;
-        }
-    }
-
     private static volatile String jpty;
 
     public static String jptyPath() {
@@ -1198,33 +1092,6 @@ public final class Utilities implements Constants {
             mue.initCause(e);
             throw mue;
         }
-    }
-
-    /**
-     * The keyboard modifiers held during an event, as j's own bits.
-     *
-     * <p>Read from getModifiersEx() rather than the deprecated getModifiers(),
-     * which cannot tell some of these apart from mouse buttons: it reports the
-     * middle button and Alt as the same bit, and the right button and Meta as
-     * the same bit.
-     */
-    public static int keyModifiers(InputEvent e) {
-        final int ex = e.getModifiersEx();
-        int modifiers = 0;
-        if ((ex & InputEvent.SHIFT_DOWN_MASK) != 0)
-            modifiers |= SHIFT_MASK;
-        if ((ex & InputEvent.CTRL_DOWN_MASK) != 0)
-            modifiers |= CTRL_MASK;
-        if ((ex & InputEvent.META_DOWN_MASK) != 0)
-            modifiers |= META_MASK;
-        if ((ex & InputEvent.ALT_DOWN_MASK) != 0)
-            modifiers |= ALT_MASK;
-        return modifiers;
-    }
-
-    /** True when the event carries no keyboard modifier. */
-    public static boolean isUnmodified(InputEvent e) {
-        return keyModifiers(e) == 0;
     }
 
     private static String userHome;
@@ -1271,6 +1138,12 @@ public final class Utilities implements Constants {
     /** A Cygwin path as a Windows one, or s if cygpath fails. */
     public static String uncygnify(String s) {
         return cygpath("-w", s);
+    }
+
+    private static String cygpath(String option, String s) {
+        ProcessRunner.Result r = ProcessRunner.of("cygpath", option, s).discardErrors().run();
+        String converted = r.output().strip();
+        return r.succeeded() && !converted.isEmpty() ? converted : s;
     }
 
     /**
@@ -1334,174 +1207,17 @@ public final class Utilities implements Constants {
         return dirs;
     }
 
-    // The size j's icons are drawn for before the display scale is applied.
-    public static final int ICON_SIZE = 16;
-
-    // Geometry, parsed once per icon and shared by every size and color.
-    private static final HashMap<String, SvgIcon> svgCache =
-        new HashMap<String, SvgIcon>();
-
-    // Painted icons, keyed by name + badges and size. Renderers ask for an icon
-    // on every row of every repaint, so this is the cache that matters.
-    private static final HashMap<String, ImageIcon> iconCache =
-        new HashMap<String, ImageIcon>();
-
-    private static Color iconColor;
-
-    /** An icon from j's own set, at the standard size, scaled for the display. */
-    public static ImageIcon getIconFromFile(String name) {
-        return getIconFromFile(name, UIScale.scale(ICON_SIZE));
-    }
-
-    /** The icon rendered at exactly {@code size} pixels. */
-    public static synchronized ImageIcon getIconFromFile(String name, int size) {
-        if (size <= 0)
-            return null;
-        final String key = name + '@' + size;
-        if (iconCache.containsKey(key))
-            return iconCache.get(key);
-
-        ImageIcon icon = null;
-        try {
-            SvgIcon svg = getSvgIcon(name);
-            if (svg != null) {
-                BufferedImage image =
-                    new BufferedImage(size, size, BufferedImage.TYPE_INT_ARGB);
-                Graphics2D g2d = image.createGraphics();
-                try {
-                    svg.paint(g2d, size);
-                }
-                finally {
-                    g2d.dispose();
-                }
-                icon = new ImageIcon(image);
-            }
+    /** j's own bin directories, beside the installed jar or in the build: where jpty is. */
+    public static List<File> binDirectories() {
+        List<File> bins = new ArrayList<File>();
+        for (File d : resourceDirs()) {
+            File bin = File.getInstance(d, "bin");
+            if (!bin.isDirectory())
+                bin = File.getInstance(d, "build/bin");
+            if (bin.isDirectory())
+                bins.add(bin);
         }
-        catch (Throwable t) {
-            Log.error(t);
-        }
-        iconCache.put(key, icon);
-        return icon;
-    }
-
-    /**
-     * A base icon with badges drawn over it, separated by a cleared gap.
-     *
-     * <p>A badge sits in a corner of the same 16 by 16 field as the icon it
-     * marks, so the two can touch. Each badge first erases a fattened silhouette
-     * of itself from what has been drawn so far. Because this is composited
-     * into a transparent image, erasing shows the background the icon is sitting
-     * on, whatever that happens to be, rather than punching a hole in the row.
-     *
-     * @param badges drawn in order; nulls are skipped so a caller can pass a
-     *               badge it may not have without branching.
-     */
-    public static ImageIcon getBadgedIcon(String base, String... badges) {
-        return getBadgedIcon(UIScale.scale(ICON_SIZE), base, badges);
-    }
-
-    public static synchronized ImageIcon getBadgedIcon(
-        int size,
-        String base,
-        String... badges
-    ) {
-        if (size <= 0 || base == null)
-            return null;
-        StringBuilder sb = new StringBuilder(base);
-        for (int i = 0; i < badges.length; i++) {
-            if (badges[i] != null)
-                sb.append('+').append(badges[i]);
-        }
-        sb.append('@').append(size);
-        final String key = sb.toString();
-        if (iconCache.containsKey(key))
-            return iconCache.get(key);
-
-        ImageIcon icon = null;
-        try {
-            SvgIcon baseIcon = getSvgIcon(base);
-            if (baseIcon != null) {
-                BufferedImage image =
-                    new BufferedImage(size, size, BufferedImage.TYPE_INT_ARGB);
-                Graphics2D g2d = image.createGraphics();
-                try {
-                    baseIcon.paint(g2d, size);
-                    for (int i = 0; i < badges.length; i++) {
-                        if (badges[i] == null)
-                            continue;
-                        SvgIcon badge = getSvgIcon(badges[i]);
-                        if (badge == null)
-                            continue;
-                        g2d.setComposite(AlphaComposite.Clear);
-                        badge.paintOutline(g2d, size, BADGE_GAP);
-                        g2d.setComposite(AlphaComposite.SrcOver);
-                        badge.paint(g2d, size);
-                    }
-                }
-                finally {
-                    g2d.dispose();
-                }
-                icon = new ImageIcon(image);
-            }
-        }
-        catch (Throwable t) {
-            Log.error(t);
-        }
-        iconCache.put(key, icon);
-        return icon;
-    }
-
-    // How far a badge holds the drawing underneath it at bay, in the icon's own
-    // 16 unit coordinates.
-    private static final float BADGE_GAP = 1.6f;
-
-    private static SvgIcon getSvgIcon(String name) throws Exception {
-        if (svgCache.containsKey(name))
-            return svgCache.get(name);
-        SvgIcon svg = null;
-        try {
-            svg = new SvgIcon(name, getIconColor());
-        }
-        catch (IllegalArgumentException e) {
-            Log.warn("failed to get icon: " + name + " (" + e.getMessage() + ")");
-        }
-        svgCache.put(name, svg);
-        return svg;
-    }
-
-    public static synchronized Color getIconColor() {
-        if (iconColor == null) {
-            Preferences preferences = Editor.preferences();
-            if (preferences != null) {
-                String s = preferences.getStringProperty(Property.ICON_COLOR);
-                if (s != null && s.trim().length() > 0)
-                    iconColor = SvgIcon.parseColor(s, null);
-            }
-        }
-        return iconColor;
-    }
-
-    /** Called when uiScale, the theme, or any other icon input changes. */
-    public static synchronized void clearIconCache() {
-        iconCache.clear();
-        svgCache.clear();
-        iconColor = null;
-    }
-
-    public static BufferedImage getImageFromFile(String iconFile) {
-        String path = "images/".concat(iconFile);
-        InputStream is = Editor.class.getResourceAsStream(path);
-        if (is == null) {
-            Log.warn("failed to get icon: " + path);
-            return null;
-        }
-        try {
-            return ImageIO.read(is);
-        }
-        catch (IOException e) {
-            Log.error(e);
-            return null;
-        }
+        return bins;
     }
 
     // Parses integer from string. Parsing stops when we encounter a non-digit.
@@ -1554,27 +1270,8 @@ public final class Utilities implements Constants {
         return false;
     }
 
-    private static final String SPACES;
-    private static final int SPACES_LENGTH = 256;
-
-    static {
-        char[] chars = new char[SPACES_LENGTH];
-        for (int i = 0; i < SPACES_LENGTH; i++)
-            chars[i] = ' ';
-        SPACES = new String(chars);
-    }
-
     public static String spaces(int count) {
-        if (count <= 0)
-            return "";
-        else if (count <= SPACES_LENGTH)
-            return SPACES.substring(0, count);
-        else {
-            StringBuilder sb = new StringBuilder(count);
-            for (int i = 0; i < count; i++)
-                sb.append(' ');
-            return sb.toString();
-        }
+        return count > 0 ? " ".repeat(count) : "";
     }
 
     public static final String getCharsetFromContentType(String contentType) {
@@ -1707,206 +1404,6 @@ public final class Utilities implements Constants {
         return sb.toString();
     }
 
-    public static KeyStroke getKeyStroke(String keyText) {
-        if (keyText == null)
-            return null;
-        keyText = keyText.trim();
-        if (keyText.length() == 0)
-            return null;
-        if (keyText.startsWith("'")) {
-            if (keyText.length() != 3)
-                return null;
-            if (keyText.charAt(2) != '\'')
-                return null;
-            return KeyStroke.getKeyStroke(keyText.charAt(1));
-        }
-        if (keyText.length() == 1)
-            return KeyStroke.getKeyStroke(keyText.charAt(0));
-        int modifiers = 0;
-        while (true) {
-            if (keyText.startsWith("Ctrl ") || keyText.startsWith("Ctrl\t")) {
-                modifiers |= CTRL_MASK;
-                keyText = keyText.substring(5).trim();
-                continue;
-            }
-            if (keyText.startsWith("Shift ") || keyText.startsWith("Shift\t")) {
-                modifiers |= SHIFT_MASK;
-                keyText = keyText.substring(6).trim();
-                continue;
-            }
-            if (keyText.startsWith("Alt ") || keyText.startsWith("Alt\t")) {
-                modifiers |= ALT_MASK;
-                keyText = keyText.substring(4).trim();
-                continue;
-            }
-            if (keyText.startsWith("Meta ") || keyText.startsWith("Meta\t")) {
-                modifiers |= META_MASK;
-                keyText = keyText.substring(5).trim();
-                continue;
-            }
-            // No more modifiers.  What's left is the key name.
-            break;
-        }
-        if (modifiers == 0 && keyText.length() == 1) {
-            char c = keyText.charAt(0);
-            return KeyStroke.getKeyStroke(c);
-        }
-        if (modifiers == SHIFT_MASK && keyText.length() == 1) {
-            char c = keyText.charAt(0);
-            char lower = Character.toLowerCase(c);
-            char upper = Character.toUpperCase(c);
-            if (lower != upper)
-                return KeyStroke.getKeyStroke(upper);
-        }
-        int keyCode = getKeyCode(keyText);
-        if (keyCode == 0)
-            return null;
-        return KeyStroke.getKeyStroke(keyCode, modifiers);
-    }
-
-    public static final String getKeyText(KeyStroke keyStroke) {
-        return getKeyText(keyStroke.getKeyChar(), keyStroke.getKeyCode(), keyStroke.getModifiers());
-    }
-
-    public static String getKeyText(char keyChar, int keyCode, int modifiers) {
-        StringBuilder sb = new StringBuilder();
-        if (keyChar >= ' ' && keyChar != 0xffff) {
-            // Mapping is defined by character.
-            if (keyChar >= 'A' && keyChar <= 'Z') {
-                sb.append("Shift ");
-                sb.append(keyChar);
-            } else {
-                sb.append('\'');
-                sb.append(keyChar);
-                sb.append('\'');
-            }
-        } else {
-            // Mapping is defined by key code and modifiers.
-            if ((modifiers & CTRL_MASK) != 0)
-                sb.append("Ctrl ");
-            if ((modifiers & SHIFT_MASK) != 0)
-                sb.append("Shift ");
-            if ((modifiers & ALT_MASK) != 0)
-                sb.append("Alt ");
-            if ((modifiers & META_MASK) != 0) {
-                if (Platform.isPlatformMacOSX())
-                    sb.append("Cmd ");
-                else
-                    sb.append("Meta ");
-            }
-            sb.append(getKeyName(keyCode));
-        }
-        return sb.toString();
-    }
-
-    private static String[] keyNames = {
-        "Enter",
-        "Backspace",
-        "Tab",
-        "Escape",
-        "Space",
-        "Page Up",
-        "Page Down",
-        "Home",
-        "End",
-        "Delete",
-        "Left",
-        "Right",
-        "Up",
-        "Down",
-        "NumPad Left",
-        "NumPad Right",
-        "NumPad Up",
-        "NumPad Down",
-        "NumPad *",
-        "NumPad +",
-        "NumPad -",
-        "NumPad Insert",
-        "Mouse-1",
-        "Double Mouse-1",
-        "Mouse-2",
-        "Double Mouse-2",
-        "Mouse-3",
-        "Double Mouse-3"
-    };
-
-    private static int[] keyCodes = {
-        KeyEvent.VK_ENTER,
-        KeyEvent.VK_BACK_SPACE,
-        KeyEvent.VK_TAB,
-        KeyEvent.VK_ESCAPE,
-        KeyEvent.VK_SPACE,
-        KeyEvent.VK_PAGE_UP,
-        KeyEvent.VK_PAGE_DOWN,
-        KeyEvent.VK_HOME,
-        KeyEvent.VK_END,
-        KeyEvent.VK_DELETE,
-        KeyEvent.VK_LEFT,
-        KeyEvent.VK_RIGHT,
-        KeyEvent.VK_UP,
-        KeyEvent.VK_DOWN,
-        KeyEvent.VK_KP_LEFT,
-        KeyEvent.VK_KP_RIGHT,
-        KeyEvent.VK_KP_UP,
-        KeyEvent.VK_KP_DOWN,
-        0x6a,
-        0x6b,
-        0x6d,
-        0x9b,
-        VK_MOUSE_1,
-        VK_DOUBLE_MOUSE_1,
-        VK_MOUSE_2,
-        VK_DOUBLE_MOUSE_2,
-        VK_MOUSE_3,
-        VK_DOUBLE_MOUSE_3
-    };
-
-    private static int getKeyCode(String keyName) {
-        if (keyName.length() == 0)
-            return 0;
-        if (keyName.length() == 1)
-            return (int) keyName.charAt(0);
-        if (keyName.startsWith("0x")) {
-            try {
-                return Integer.parseInt(keyName.substring(2), 16);
-            }
-            catch (NumberFormatException e) {
-                Log.error(e);
-            }
-            return 0;
-        }
-        for (int i = 0; i < keyNames.length; i++) {
-            if (keyName.equals(keyNames[i]))
-                return keyCodes[i];
-        }
-        if (keyName.charAt(0) == 'F') {
-            try {
-                int n = Integer.parseInt(keyName.substring(1));
-                return KeyEvent.VK_F1 + n - 1;
-            }
-            catch (NumberFormatException e) {
-                Log.error(e);
-            }
-        }
-        return 0;
-    }
-
-    private static String getKeyName(int keyCode) {
-        if (
-            keyCode >= KeyEvent.VK_0 && keyCode <= KeyEvent.VK_9 || keyCode >= KeyEvent.VK_A && keyCode <= KeyEvent.VK_Z
-        )
-            return String.valueOf((char) keyCode);
-        if (keyCode >= KeyEvent.VK_F1 && keyCode <= KeyEvent.VK_F12)
-            return "F" + Integer.toString(keyCode - KeyEvent.VK_F1 + 1);
-        if (",./;=[\\]".indexOf(keyCode) >= 0)
-            return String.valueOf((char) keyCode);
-        for (int i = 0; i < keyCodes.length; i++) {
-            if (keyCode == keyCodes[i])
-                return keyNames[i];
-        }
-        return "0x" + Integer.toString(keyCode, 16);
-    }
-
     public static String propertyToXml(String name, String value) {
         StringBuilder sb = new StringBuilder("<property name=\"");
         sb.append(name);
@@ -1968,24 +1465,5 @@ public final class Utilities implements Constants {
         finally {
             g.dispose();
         }
-    }
-
-    private static String cygpath(String option, String s) {
-        ProcessRunner.Result r = ProcessRunner.of("cygpath", option, s).discardErrors().run();
-        String converted = r.output().strip();
-        return r.succeeded() && !converted.isEmpty() ? converted : s;
-    }
-
-    /** j's own bin directories, beside the installed jar or in the build: where jpty is. */
-    public static List<File> binDirectories() {
-        List<File> bins = new ArrayList<File>();
-        for (File d : resourceDirs()) {
-            File bin = File.getInstance(d, "bin");
-            if (!bin.isDirectory())
-                bin = File.getInstance(d, "build/bin");
-            if (bin.isDirectory())
-                bins.add(bin);
-        }
-        return bins;
     }
 }

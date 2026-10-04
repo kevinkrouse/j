@@ -28,6 +28,7 @@ import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
+import org.armedbear.j.util.Icons;
 import org.armedbear.j.util.Utilities;
 
 public final class ToolBarButton extends JButton implements ActionListener,
@@ -63,7 +64,7 @@ public final class ToolBarButton extends JButton implements ActionListener,
             }
         } else {
             // One of j's own icons: drawn at exactly the size asked for.
-            icon = Utilities.getIconFromFile(filename, size);
+            icon = Icons.getIconFromFile(filename, size);
         }
         if (icon != null)
             setIcon(icon);

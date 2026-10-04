@@ -26,6 +26,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.*;
+import org.armedbear.j.util.Colors;
 import org.armedbear.j.util.Utilities;
 
 public final class Preferences {
@@ -326,7 +327,7 @@ public final class Preferences {
     public synchronized Color getColorProperty(String key) {
         String value = getStringProperty(key);
         if (value != null)
-            return Utilities.getColor(value);
+            return Colors.parseColor(value);
         return null;
     }
 

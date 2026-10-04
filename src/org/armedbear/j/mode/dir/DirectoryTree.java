@@ -49,7 +49,8 @@ import org.armedbear.j.LocationBar;
 import org.armedbear.j.NavigationComponent;
 import org.armedbear.j.SidebarTree;
 import org.armedbear.j.util.Background;
-import org.armedbear.j.util.Utilities;
+import org.armedbear.j.util.Icons;
+import org.armedbear.j.util.Keys;
 
 public final class DirectoryTree extends SidebarTree implements NavigationComponent,
     TreeSelectionListener, TreeExpansionListener, MouseListener,
@@ -192,7 +193,7 @@ public final class DirectoryTree extends SidebarTree implements NavigationCompon
 
     public void keyPressed(KeyEvent e) {
         int keyCode = e.getKeyCode();
-        int modifiers = Utilities.keyModifiers(e);
+        int modifiers = Keys.keyModifiers(e);
 
         switch (keyCode) {
             // Ignore modifier keystrokes.
@@ -215,7 +216,7 @@ public final class DirectoryTree extends SidebarTree implements NavigationCompon
                         editor.setWaitCursor();
                         expandNode(node, file);
                         editor.setDefaultCursor();
-                        if (Utilities.keyModifiers(e) == Constants.ALT_MASK)
+                        if (Keys.keyModifiers(e) == Constants.ALT_MASK)
                             editor.setFocusToDisplay();
                         repaint();
                         ((DirectoryBuffer) editor.getBuffer()).changeDirectory(file);
@@ -263,14 +264,14 @@ public final class DirectoryTree extends SidebarTree implements NavigationCompon
         LocationBar.cancelInput();
         editor.ensureActive();
         final int button = e.getButton();
-        final boolean unmodified = Utilities.isUnmodified(e);
+        final boolean unmodified = Keys.isUnmodified(e);
         if (
             (unmodified && button == MouseEvent.BUTTON1)
                 ||
                 (unmodified && button == MouseEvent.BUTTON2)
         ) {
             Point point = e.getPoint();
-            if ((Utilities.isUnmodified(e) && e.getButton() == MouseEvent.BUTTON2)) {
+            if ((Keys.isUnmodified(e) && e.getButton() == MouseEvent.BUTTON2)) {
                 int row = getRowForLocation(point.x, point.y);
                 setSelectionRow(row);
             }
@@ -293,7 +294,7 @@ public final class DirectoryTree extends SidebarTree implements NavigationCompon
             return;
         }
         final int button = e.getButton();
-        final boolean unmodified = Utilities.isUnmodified(e);
+        final boolean unmodified = Keys.isUnmodified(e);
         if (
             !(unmodified && button == MouseEvent.BUTTON1)
                 &&
@@ -356,9 +357,9 @@ public final class DirectoryTree extends SidebarTree implements NavigationCompon
 
         public void updateUI() {
             super.updateUI();
-            setOpenIcon(Utilities.getIconFromFile("dir_open"));
-            setClosedIcon(Utilities.getIconFromFile("dir_close"));
-            setLeafIcon(Utilities.getIconFromFile("dir_close"));
+            setOpenIcon(Icons.getIconFromFile("dir_open"));
+            setClosedIcon(Icons.getIconFromFile("dir_close"));
+            setLeafIcon(Icons.getIconFromFile("dir_close"));
         }
 
         public Component getTreeCellRendererComponent(

@@ -243,7 +243,7 @@ public final class WrapText implements Constants {
         if (prefixLength > 0)
             s = s.substring(prefixLength);
 
-        if (!Utilities.isWhitespace(prefix)) {
+        if (!prefix.isBlank()) {
             // Replace prefix with spaces.
             sb.setLength(0);
             int index;

@@ -71,6 +71,7 @@ import org.armedbear.j.SshFile;
 import org.armedbear.j.SshSession;
 import org.armedbear.j.StatusBarProgressNotifier;
 import org.armedbear.j.util.Background;
+import org.armedbear.j.util.Icons;
 import org.armedbear.j.util.Utilities;
 
 public final class DirectoryBuffer extends Buffer {
@@ -1986,7 +1987,7 @@ public final class DirectoryBuffer extends Buffer {
 
     // For the buffer list.
     public final Icon getIcon() {
-        return Utilities.getIconFromFile("directory");
+        return Icons.getIconFromFile("directory");
     }
 }
 

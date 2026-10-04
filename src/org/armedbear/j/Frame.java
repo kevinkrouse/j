@@ -45,7 +45,7 @@ import javax.swing.JButton;
 import javax.swing.JComponent;
 import javax.swing.JFrame;
 import javax.swing.SwingUtilities;
-import org.armedbear.j.util.Utilities;
+import org.armedbear.j.util.Icons;
 
 public final class Frame extends JFrame implements Constants, ComponentListener,
     FocusListener, WindowListener, WindowStateListener {
@@ -110,7 +110,7 @@ public final class Frame extends JFrame implements Constants, ComponentListener,
         final int[] sizes = new int[] { 16, 32, 64, 128, 256 };
         ArrayList<Image> images = new ArrayList<Image>(sizes.length);
         for (int i = 0; i < sizes.length; i++) {
-            ImageIcon icon = Utilities.getIconFromFile("j-logo", sizes[i]);
+            ImageIcon icon = Icons.getIconFromFile("j-logo", sizes[i]);
             if (icon != null)
                 images.add(icon.getImage());
         }

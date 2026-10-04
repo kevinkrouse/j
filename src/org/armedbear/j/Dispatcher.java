@@ -24,7 +24,6 @@ import java.awt.AWTEvent;
 import java.awt.Cursor;
 import java.awt.Dimension;
 import java.awt.GraphicsEnvironment;
-import java.awt.Image;
 import java.awt.Point;
 import java.awt.Toolkit;
 import java.awt.datatransfer.DataFlavor;
@@ -51,7 +50,6 @@ import java.awt.event.KeyListener;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.awt.event.MouseMotionListener;
-import java.net.URL;
 import java.util.List;
 import javax.swing.ImageIcon;
 import javax.swing.JPopupMenu;
@@ -59,7 +57,8 @@ import javax.swing.SwingUtilities;
 import javax.swing.ToolTipManager;
 import javax.swing.undo.CompoundEdit;
 import org.armedbear.j.extension.Extensions;
-import org.armedbear.j.util.Utilities;
+import org.armedbear.j.util.Icons;
+import org.armedbear.j.util.Keys;
 
 public final class Dispatcher implements Constants, KeyListener, MouseListener,
     MouseMotionListener, ActionListener, DragGestureListener, DragSourceListener,
@@ -238,7 +237,7 @@ public final class Dispatcher implements Constants, KeyListener, MouseListener,
         )
             return false;
 
-        int modifiers = Utilities.keyModifiers(e);
+        int modifiers = Keys.keyModifiers(e);
 
         char c = e.getKeyChar();
 
@@ -287,7 +286,7 @@ public final class Dispatcher implements Constants, KeyListener, MouseListener,
 
         final boolean altGraph =
             (e.getModifiersEx() & InputEvent.ALT_GRAPH_DOWN_MASK) != 0;
-        int modifiers = Utilities.keyModifiers(e);
+        int modifiers = Keys.keyModifiers(e);
 
         if (!altGraph && modifiers != 0 && modifiers != SHIFT_MASK)
             return false;
@@ -393,7 +392,7 @@ public final class Dispatcher implements Constants, KeyListener, MouseListener,
     }
 
     public void mouseClicked(MouseEvent e) {
-        final int modifiers = Utilities.keyModifiers(e);
+        final int modifiers = Keys.keyModifiers(e);
         final int button = e.getButton();
         if (button != MouseEvent.BUTTON1 || modifiers != 0)
             return;
@@ -441,7 +440,7 @@ public final class Dispatcher implements Constants, KeyListener, MouseListener,
         }
         // A plain left click, with no keyboard modifier.
         final boolean plainButton1 =
-            e.getButton() == MouseEvent.BUTTON1 && Utilities.isUnmodified(e);
+            e.getButton() == MouseEvent.BUTTON1 && Keys.isUnmodified(e);
         JPopupMenu popup = editor.getPopup();
         if (popup != null) {
             if (popup.isVisible()) {
@@ -497,7 +496,7 @@ public final class Dispatcher implements Constants, KeyListener, MouseListener,
         final int x = e.getX();
         final int y = e.getY();
 
-        final int modifiers = Utilities.keyModifiers(e);
+        final int modifiers = Keys.keyModifiers(e);
         final int button = e.getButton();
 
         final Mode mode = editor.getMode();
@@ -673,7 +672,7 @@ public final class Dispatcher implements Constants, KeyListener, MouseListener,
                 | InputEvent.BUTTON3_DOWN_MASK)) != 0
         )
             return false;
-        if (!Utilities.isUnmodified(e))
+        if (!Keys.isUnmodified(e))
             return false;
 
         // No drag select with column selections.
@@ -1038,7 +1037,7 @@ public final class Dispatcher implements Constants, KeyListener, MouseListener,
             Dimension size = toolkit.getBestCursorSize(32, 32);
             if (size.width > 0 && size.height > 0) {
                 ImageIcon icon =
-                    Utilities.getIconFromFile(iconName, size.width);
+                    Icons.getIconFromFile(iconName, size.width);
                 if (icon != null)
                     cursor = toolkit.createCustomCursor(
                         icon.getImage(),

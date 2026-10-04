@@ -44,7 +44,7 @@ import org.armedbear.j.PropertyList;
 import org.armedbear.j.Sidebar;
 import org.armedbear.j.View;
 import org.armedbear.j.util.Background;
-import org.armedbear.j.util.Utilities;
+import org.armedbear.j.util.Icons;
 
 public abstract class MailboxBuffer extends Buffer {
     public static final int SORT_BY_DATE_SENT = 0;
@@ -980,7 +980,7 @@ public abstract class MailboxBuffer extends Buffer {
 
     // For the buffer list.
     public Icon getIcon() {
-        return Utilities.getIconFromFile(newMessageCount > 0 ? "mailbox_new.png" : "mailbox.png");
+        return Icons.getIconFromFile(newMessageCount > 0 ? "mailbox_new.png" : "mailbox.png");
     }
 
     public String getFileNameForDisplay() {

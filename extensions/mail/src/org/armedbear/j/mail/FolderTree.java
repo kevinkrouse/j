@@ -39,7 +39,8 @@ import org.armedbear.j.Display;
 import org.armedbear.j.Editor;
 import org.armedbear.j.Frame;
 import org.armedbear.j.NavigationComponent;
-import org.armedbear.j.util.Utilities;
+import org.armedbear.j.util.Icons;
+import org.armedbear.j.util.Keys;
 
 public final class FolderTree extends JTree implements NavigationComponent,
     MouseListener {
@@ -126,7 +127,7 @@ public final class FolderTree extends JTree implements NavigationComponent,
     public void mouseClicked(MouseEvent e) {
         final Editor editor = frame.getCurrentEditor();
         final int button = e.getButton();
-        final boolean unmodified = Utilities.isUnmodified(e);
+        final boolean unmodified = Keys.isUnmodified(e);
         if (
             !(unmodified && button == MouseEvent.BUTTON1)
                 &&
@@ -176,9 +177,9 @@ public final class FolderTree extends JTree implements NavigationComponent,
 
         public void updateUI() {
             super.updateUI();
-            setOpenIcon(Utilities.getIconFromFile("dir_open"));
-            setClosedIcon(Utilities.getIconFromFile("dir_close"));
-            setLeafIcon(Utilities.getIconFromFile("mailbox"));
+            setOpenIcon(Icons.getIconFromFile("dir_open"));
+            setClosedIcon(Icons.getIconFromFile("dir_close"));
+            setLeafIcon(Icons.getIconFromFile("mailbox"));
         }
 
         public Component getTreeCellRendererComponent(

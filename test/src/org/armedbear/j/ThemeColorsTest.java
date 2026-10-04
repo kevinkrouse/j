@@ -18,7 +18,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.awt.Color;
 import org.armedbear.j.mode.java.JavaMode;
 import org.armedbear.j.mode.properties.PropertiesMode;
-import org.armedbear.j.util.Utilities;
+import org.armedbear.j.util.Colors;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
@@ -38,22 +38,22 @@ public class ThemeColorsTest {
 
     @Test
     public void parsesHex() {
-        assertEquals(new Color(0xff, 0x88, 0x00), Utilities.parseColor("#f80"));
-        assertEquals(new Color(0x05, 0x50, 0xae), Utilities.parseColor("#0550AE"));
-        assertEquals(new Color(0x05, 0x50, 0xae), Utilities.parseColor(" #0550ae "));
-        assertNull(Utilities.parseColor("#0550a"));
-        assertNull(Utilities.parseColor("#05g0ae"));
-        assertNull(Utilities.parseColor("#"));
+        assertEquals(new Color(0xff, 0x88, 0x00), Colors.parseColor("#f80"));
+        assertEquals(new Color(0x05, 0x50, 0xae), Colors.parseColor("#0550AE"));
+        assertEquals(new Color(0x05, 0x50, 0xae), Colors.parseColor(" #0550ae "));
+        assertNull(Colors.parseColor("#0550a"));
+        assertNull(Colors.parseColor("#05g0ae"));
+        assertNull(Colors.parseColor("#"));
     }
 
     @Test
     public void parsesNumbersAndNames() {
-        assertEquals(new Color(1, 2, 3), Utilities.parseColor("1 2 3"));
-        assertEquals(Color.red, Utilities.parseColor("red"));
-        assertNull(Utilities.parseColor("1 2"));
-        assertNull(Utilities.parseColor("1 2 300"));
-        assertNull(Utilities.parseColor("one two three"));
-        assertNull(Utilities.parseColor(null));
+        assertEquals(new Color(1, 2, 3), Colors.parseColor("1 2 3"));
+        assertEquals(Color.red, Colors.parseColor("red"));
+        assertNull(Colors.parseColor("1 2"));
+        assertNull(Colors.parseColor("1 2 300"));
+        assertNull(Colors.parseColor("one two three"));
+        assertNull(Colors.parseColor(null));
     }
 
     @Test
@@ -211,7 +211,7 @@ public class ThemeColorsTest {
         Formatter f = buf.getFormatter();
         // Its swatch shows the color; its name is in the text's.
         assertEquals(
-            Utilities.parseColor(
+            Colors.parseColor(
                 background.getText().trim().split(" +")[1]
             ),
             f.getGutterColor(background)

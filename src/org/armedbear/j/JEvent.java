@@ -22,7 +22,7 @@ package org.armedbear.j;
 
 import java.awt.event.KeyEvent;
 import java.lang.StringBuilder;
-import org.armedbear.j.util.Utilities;
+import org.armedbear.j.util.Keys;
 
 // A keyboard or mouse event, from j's point of view.
 public final class JEvent {
@@ -56,7 +56,7 @@ public final class JEvent {
             translateID(e),
             e.getKeyCode(),
             e.getKeyChar(),
-            Utilities.keyModifiers(e)
+            Keys.keyModifiers(e)
         );
     }
 
@@ -96,7 +96,7 @@ public final class JEvent {
     }
 
     public String getKeyText() {
-        return Utilities.getKeyText(keyChar, keyCode, modifiers);
+        return Keys.getKeyText(keyChar, keyCode, modifiers);
     }
 
     public String toString() {
@@ -121,7 +121,7 @@ public final class JEvent {
         sb.append(' ');
         sb.append(String.valueOf(keyChar));
         sb.append(" \"");
-        sb.append(Utilities.getKeyText(keyChar, keyCode, modifiers));
+        sb.append(Keys.getKeyText(keyChar, keyCode, modifiers));
         sb.append('"');
         return sb.toString();
     }

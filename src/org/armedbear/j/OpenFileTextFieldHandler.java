@@ -39,6 +39,7 @@ import org.armedbear.j.extension.Extensions;
 import org.armedbear.j.extension.Opener;
 import org.armedbear.j.mode.web.WebBuffer;
 import org.armedbear.j.mode.web.WebMode;
+import org.armedbear.j.util.Keys;
 import org.armedbear.j.util.Utilities;
 
 public final class OpenFileTextFieldHandler extends DefaultTextFieldHandler
@@ -833,7 +834,7 @@ public final class OpenFileTextFieldHandler extends DefaultTextFieldHandler
             MenuSelectionManager manager
         ) {
             final int keyCode = e.getKeyCode();
-            final int modifiers = Utilities.keyModifiers(e);
+            final int modifiers = Keys.keyModifiers(e);
             final int id = e.getID();
             if (id == KeyEvent.KEY_PRESSED) {
                 switch (keyCode) {
@@ -914,7 +915,7 @@ public final class OpenFileTextFieldHandler extends DefaultTextFieldHandler
 
         public void mousePressed(MouseEvent e) {
             final int button = e.getButton();
-            final boolean unmodified = Utilities.isUnmodified(e);
+            final boolean unmodified = Keys.isUnmodified(e);
             if ((unmodified && button == MouseEvent.BUTTON1) || (unmodified && button == MouseEvent.BUTTON2)) {
                 listbox.setSelectedIndex(listbox.locationToIndex(e.getPoint()));
                 String s = listbox.getSelectedValue();
@@ -931,7 +932,7 @@ public final class OpenFileTextFieldHandler extends DefaultTextFieldHandler
 
     public void keyPressed(KeyEvent e) {
         if (popup != null) {
-            int modifiers = Utilities.keyModifiers(e);
+            int modifiers = Keys.keyModifiers(e);
             switch (e.getKeyCode()) {
                 case KeyEvent.VK_ENTER:
                     enterPopup();
@@ -999,7 +1000,7 @@ public final class OpenFileTextFieldHandler extends DefaultTextFieldHandler
             textField.getCaret().setVisible(true);
             return;
         }
-        if ((Utilities.keyModifiers(e) & (ALT_MASK | CTRL_MASK | META_MASK)) != 0) {
+        if ((Keys.keyModifiers(e) & (ALT_MASK | CTRL_MASK | META_MASK)) != 0) {
             e.consume();
             return;
         }

@@ -43,7 +43,7 @@ import javax.swing.tree.TreeNode;
 import javax.swing.tree.TreePath;
 import javax.swing.tree.TreeSelectionModel;
 import org.armedbear.j.util.Background;
-import org.armedbear.j.util.Utilities;
+import org.armedbear.j.util.Keys;
 
 /**
  * A buffer's tags as an outline: each tag under the nearest one before it
@@ -223,7 +223,7 @@ public class SidebarTagTree extends SidebarTree implements NavigationComponent,
         LocationBar.cancelInput();
         editor.ensureActive();
         final int button = e.getButton();
-        final boolean unmodified = Utilities.isUnmodified(e);
+        final boolean unmodified = Keys.isUnmodified(e);
         if (unmodified && (button == MouseEvent.BUTTON1 || button == MouseEvent.BUTTON2)) {
             final LocalTag tag = getTagAtPoint(e.getPoint());
             if (tag != null)

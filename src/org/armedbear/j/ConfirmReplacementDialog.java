@@ -26,7 +26,7 @@ import java.awt.Rectangle;
 import java.awt.event.ActionEvent;
 import java.awt.event.KeyEvent;
 import javax.swing.JPanel;
-import org.armedbear.j.util.Utilities;
+import org.armedbear.j.util.Keys;
 
 public final class ConfirmReplacementDialog extends AbstractDialog {
     private static Rectangle rect;
@@ -204,7 +204,7 @@ public final class ConfirmReplacementDialog extends AbstractDialog {
     public void keyPressed(KeyEvent e) {
         if (e.isConsumed())
             return;
-        final int modifiers = Utilities.keyModifiers(e);
+        final int modifiers = Keys.keyModifiers(e);
         if (modifiers == 0) {
             int keyCode = e.getKeyCode();
             switch (keyCode) {

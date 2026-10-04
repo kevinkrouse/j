@@ -28,7 +28,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Locale;
 import javax.swing.*;
-import org.armedbear.j.util.Utilities;
+import org.armedbear.j.util.Icons;
 
 public class AboutDialog extends AbstractDialog {
     public AboutDialog() {
@@ -65,7 +65,7 @@ public class AboutDialog extends AbstractDialog {
                 0
             );
 
-        ImageIcon image = Utilities.getIconFromFile("j-logo", UIScale.scale(64));
+        ImageIcon image = Icons.getIconFromFile("j-logo", UIScale.scale(64));
         JLabel icon = new JLabel(image);
 
         icon.setOpaque(false);

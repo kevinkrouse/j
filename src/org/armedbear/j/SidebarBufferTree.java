@@ -78,7 +78,7 @@ import javax.swing.tree.TreeCellRenderer;
 import javax.swing.tree.TreeNode;
 import javax.swing.tree.TreePath;
 import org.armedbear.j.Constants;
-import org.armedbear.j.util.Utilities;
+import org.armedbear.j.util.Keys;
 
 // Consider an option to make the folders either the first things or last
 // things in the buffer list. That way all of the folders will be listed
@@ -512,7 +512,7 @@ public final class SidebarBufferTree extends SidebarTree implements Constants,
 
     public void keyPressed(KeyEvent e) {
         final int keyCode = e.getKeyCode();
-        final int modifiers = Utilities.keyModifiers(e);
+        final int modifiers = Keys.keyModifiers(e);
         final Editor editor = sidebar.getEditor();
         switch (keyCode) {
             // Ignore modifier keystrokes.
@@ -567,7 +567,7 @@ public final class SidebarBufferTree extends SidebarTree implements Constants,
         Editor editor = sidebar.getEditor();
         editor.ensureActive();
         final int button = e.getButton();
-        final boolean unmodified = Utilities.isUnmodified(e);
+        final boolean unmodified = Keys.isUnmodified(e);
         Point p = e.getPoint();
         if (
             (unmodified && button == MouseEvent.BUTTON1)
@@ -591,7 +591,7 @@ public final class SidebarBufferTree extends SidebarTree implements Constants,
 
     public void mouseClicked(MouseEvent e) {
         final int button = e.getButton();
-        final boolean unmodified = Utilities.isUnmodified(e);
+        final boolean unmodified = Keys.isUnmodified(e);
         Point p = e.getPoint();
         // If the user clicks with the first or second mouse button while
         // there is a popup menu visible, the tree doesn't get painted
@@ -604,7 +604,7 @@ public final class SidebarBufferTree extends SidebarTree implements Constants,
             setSelectionRow(getRowForLocation(p.x, p.y));
             paintImmediately(0, 0, getWidth(), getHeight());
             switchToBuffer();
-        } else if ((Utilities.isUnmodified(e) && e.getButton() == MouseEvent.BUTTON3)) {
+        } else if ((Keys.isUnmodified(e) && e.getButton() == MouseEvent.BUTTON3)) {
             showPopup(e.getComponent(), e.getX(), e.getY());
         }
     }

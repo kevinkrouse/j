@@ -22,7 +22,7 @@ package org.armedbear.j;
 
 import javax.swing.Icon;
 import javax.swing.undo.CompoundEdit;
-import org.armedbear.j.util.Utilities;
+import org.armedbear.j.util.Icons;
 
 public class LocalTag extends Tag implements Constants {
     private final Position pos;
@@ -165,7 +165,7 @@ public class LocalTag extends Tag implements Constants {
             visibility = "protected";
         else if (isPrivate())
             visibility = "private";
-        return Utilities.getBadgedIcon(base, visibility, modifierBadge(this));
+        return Icons.getBadgedIcon(base, visibility, modifierBadge(this));
     }
 
     public String toString() {

@@ -25,7 +25,7 @@ import java.awt.event.KeyEvent;
 import javax.swing.DefaultFocusManager;
 import javax.swing.JDialog;
 import org.armedbear.j.extension.Extensions;
-import org.armedbear.j.util.Utilities;
+import org.armedbear.j.util.Keys;
 
 public final class CustomFocusManager extends DefaultFocusManager {
     public void processKeyEvent(Component focusedComponent, KeyEvent e) {
@@ -34,7 +34,7 @@ public final class CustomFocusManager extends DefaultFocusManager {
                 KeyMapping km;
                 int keyCode = e.getKeyCode();
                 if (keyCode != 0)
-                    km = new KeyMapping(keyCode, Utilities.keyModifiers(e), null);
+                    km = new KeyMapping(keyCode, Keys.keyModifiers(e), null);
                 else
                     km = new KeyMapping(e.getKeyChar(), null);
                 Extensions.hooks().invoke("key-pressed-hook", km.toString());

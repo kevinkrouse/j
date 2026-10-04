@@ -29,7 +29,7 @@ import javax.swing.plaf.ColorUIResource;
 import javax.swing.plaf.FontUIResource;
 import javax.swing.plaf.metal.DefaultMetalTheme;
 import javax.swing.plaf.metal.MetalLookAndFeel;
-import org.armedbear.j.util.Utilities;
+import org.armedbear.j.util.Icons;
 
 public final class DefaultLookAndFeel extends DefaultMetalTheme {
     private static final Preferences preferences = Editor.preferences();
@@ -72,11 +72,11 @@ public final class DefaultLookAndFeel extends DefaultMetalTheme {
             MetalLookAndFeel.setCurrentTheme(new DefaultLookAndFeel());
             UIManager.put(
                 "Tree.collapsedIcon",
-                Utilities.getIconFromFile("collapsed")
+                Icons.getIconFromFile("collapsed")
             );
             UIManager.put(
                 "Tree.expandedIcon",
-                Utilities.getIconFromFile("expanded")
+                Icons.getIconFromFile("expanded")
             );
         } else {
             MetalLookAndFeel.setCurrentTheme(new DefaultMetalTheme());

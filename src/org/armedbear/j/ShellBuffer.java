@@ -246,7 +246,7 @@ public class ShellBuffer extends CommandInterpreterBuffer implements Constants {
         Process p = getProcess();
         if (p == null)
             return false;
-        if (Utilities.isProcessAlive(p))
+        if (p.isAlive())
             return true;
         // Not alive.
         setProcess(null);

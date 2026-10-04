@@ -52,6 +52,7 @@ import org.armedbear.j.mode.text.PlainTextMode;
 import org.armedbear.j.mode.web.WebBuffer;
 import org.armedbear.j.util.Background;
 import org.armedbear.j.util.FastStringReader;
+import org.armedbear.j.util.Icons;
 import org.armedbear.j.util.Utilities;
 import org.armedbear.j.vcs.VersionControl;
 import org.armedbear.j.vcs.VersionControlEntry;
@@ -2423,7 +2424,7 @@ public class Buffer extends SystemBuffer {
             badge = "modified";
         else if (isReadOnly())
             badge = "locked";
-        return Utilities.getBadgedIcon("buffer", badge);
+        return Icons.getBadgedIcon("buffer", badge);
     }
 
     public final int getCol(Position pos) {

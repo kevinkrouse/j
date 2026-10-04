@@ -33,7 +33,7 @@ listed below.
 <p>
 One file per icon, in <code>src/org/armedbear/j/images/svg</code>, named after
 the icon. Code asks for them by that bare name through
-<code>org.armedbear.j.util.Utilities.getIconFromFile</code> &mdash;
+<code>org.armedbear.j.util.Icons.getIconFromFile</code> &mdash;
 <code>"buffer"</code>, not <code>"buffer.png"</code>, since the artwork is vector
 and the renderer picks the size. The result is cached per name, size and color.
 <p>
@@ -161,7 +161,7 @@ Node glyphs for the structure tree &mdash; <code>class</code>,
 hand corners free for badges.
 <p>
 Badges are full 16&nbsp;by&nbsp;16 canvases with the mark in one corner, composed
-over a base icon by <code>Utilities.getBadgedIcon</code>. Visibility
+over a base icon by <code>Icons.getBadgedIcon</code>. Visibility
 (<code>public</code>, <code>protected</code>, <code>private</code>),
 <code>locked</code> and <code>modified</code> go bottom right; modifiers
 (<code>static</code>, <code>abstract</code>, <code>final</code>) go top right,

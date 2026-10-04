@@ -28,7 +28,7 @@ import javax.swing.BoxLayout;
 import javax.swing.JDialog;
 import javax.swing.JPanel;
 import javax.swing.border.EmptyBorder;
-import org.armedbear.j.util.Utilities;
+import org.armedbear.j.util.Keys;
 
 public class InputDialog extends JDialog implements KeyListener {
     protected final Editor editor;
@@ -122,7 +122,7 @@ public class InputDialog extends JDialog implements KeyListener {
 
     public void keyPressed(KeyEvent e) {
         final int keyCode = e.getKeyCode();
-        final int modifiers = Utilities.keyModifiers(e);
+        final int modifiers = Keys.keyModifiers(e);
         switch (keyCode) {
             case KeyEvent.VK_TAB: {
                 String s = null;

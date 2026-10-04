@@ -22,7 +22,7 @@ package org.armedbear.j;
 
 import java.lang.StringBuilder;
 import javax.swing.KeyStroke;
-import org.armedbear.j.util.Utilities;
+import org.armedbear.j.util.Keys;
 
 public class KeyMapping implements Constants {
     private final char keyChar;
@@ -82,7 +82,7 @@ public class KeyMapping implements Constants {
     }
 
     private static KeyMapping createKeyMapping(String keyText, String command) {
-        KeyStroke keyStroke = Utilities.getKeyStroke(keyText);
+        KeyStroke keyStroke = Keys.getKeyStroke(keyText);
         if (keyStroke == null)
             return null;
         if (command != null)
@@ -108,7 +108,7 @@ public class KeyMapping implements Constants {
 
     public String toString() {
         StringBuilder sb = new StringBuilder(64);
-        sb.append(Utilities.getKeyText(keyChar, keyCode, modifiers));
+        sb.append(Keys.getKeyText(keyChar, keyCode, modifiers));
         if (command != null) {
             while (sb.length() < 32)
                 sb.append(' ');
@@ -118,6 +118,6 @@ public class KeyMapping implements Constants {
     }
 
     public final String getKeyText() {
-        return Utilities.getKeyText(keyChar, keyCode, modifiers);
+        return Keys.getKeyText(keyChar, keyCode, modifiers);
     }
 }

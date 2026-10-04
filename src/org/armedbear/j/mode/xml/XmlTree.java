@@ -54,7 +54,8 @@ import org.armedbear.j.Position;
 import org.armedbear.j.SimpleEdit;
 import org.armedbear.j.XmlParserImpl;
 import org.armedbear.j.util.Background;
-import org.armedbear.j.util.Utilities;
+import org.armedbear.j.util.Icons;
+import org.armedbear.j.util.Keys;
 
 public final class XmlTree extends JTree implements Constants, NavigationComponent,
     TreeSelectionListener, MouseListener, MouseMotionListener, KeyListener {
@@ -222,7 +223,7 @@ public final class XmlTree extends JTree implements Constants, NavigationCompone
                             // If dot is in whitespace at the beginning of the
                             // line, immediately to the left of the current
                             // node's start tag, we want the current node.
-                            if (Utilities.isWhitespace(dotLine.substring(0, index)))
+                            if (dotLine.substring(0, index).isBlank())
                                 rowToBeSelected = row;
                             break;
                         }
@@ -268,7 +269,7 @@ public final class XmlTree extends JTree implements Constants, NavigationCompone
 
     public void keyPressed(KeyEvent e) {
         final int keyCode = e.getKeyCode();
-        final int modifiers = Utilities.keyModifiers(e);
+        final int modifiers = Keys.keyModifiers(e);
         switch (keyCode) {
             // Ignore modifier keystrokes.
             case KeyEvent.VK_SHIFT:
@@ -320,7 +321,7 @@ public final class XmlTree extends JTree implements Constants, NavigationCompone
         LocationBar.cancelInput();
         editor.ensureActive();
         final int button = e.getButton();
-        final boolean unmodified = Utilities.isUnmodified(e);
+        final boolean unmodified = Keys.isUnmodified(e);
         if (
             (unmodified && button == MouseEvent.BUTTON1)
                 ||
@@ -340,7 +341,7 @@ public final class XmlTree extends JTree implements Constants, NavigationCompone
 
     public void mouseClicked(MouseEvent e) {
         final int button = e.getButton();
-        final boolean unmodified = Utilities.isUnmodified(e);
+        final boolean unmodified = Keys.isUnmodified(e);
         if (
             (unmodified && button == MouseEvent.BUTTON1)
                 ||
@@ -629,9 +630,9 @@ public final class XmlTree extends JTree implements Constants, NavigationCompone
 
         public void updateUI() {
             super.updateUI();
-            setOpenIcon(Utilities.getIconFromFile("branch"));
-            setClosedIcon(Utilities.getIconFromFile("branch"));
-            setLeafIcon(Utilities.getIconFromFile("leaf"));
+            setOpenIcon(Icons.getIconFromFile("branch"));
+            setClosedIcon(Icons.getIconFromFile("branch"));
+            setLeafIcon(Icons.getIconFromFile("leaf"));
         }
 
         public Component getTreeCellRendererComponent(

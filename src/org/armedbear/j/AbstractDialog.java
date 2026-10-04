@@ -39,7 +39,7 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
 import javax.swing.border.EmptyBorder;
-import org.armedbear.j.util.Utilities;
+import org.armedbear.j.util.Keys;
 
 public abstract class AbstractDialog extends JDialog implements ActionListener,
     KeyListener, WindowListener {
@@ -187,7 +187,7 @@ public abstract class AbstractDialog extends JDialog implements ActionListener,
     }
 
     public void keyPressed(KeyEvent e) {
-        if (Utilities.isUnmodified(e)) {
+        if (Keys.isUnmodified(e)) {
             // Special case for combo box.
             if (e.getComponent() instanceof JComboBox) {
                 JComboBox<?> cb = (JComboBox<?>) e.getComponent();

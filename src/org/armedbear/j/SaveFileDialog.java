@@ -31,6 +31,7 @@ import javax.swing.BoxLayout;
 import javax.swing.JDialog;
 import javax.swing.JPanel;
 import javax.swing.border.EmptyBorder;
+import org.armedbear.j.util.Keys;
 import org.armedbear.j.util.Utilities;
 
 public class SaveFileDialog extends JDialog implements FocusListener, KeyListener {
@@ -129,7 +130,7 @@ public class SaveFileDialog extends JDialog implements FocusListener, KeyListene
 
     public void keyPressed(KeyEvent e) {
         int keyCode = e.getKeyCode();
-        int modifiers = Utilities.keyModifiers(e);
+        int modifiers = Keys.keyModifiers(e);
         switch (keyCode) {
             case KeyEvent.VK_TAB: {
                 String s = null;

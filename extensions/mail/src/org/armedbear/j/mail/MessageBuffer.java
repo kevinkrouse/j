@@ -58,6 +58,7 @@ import org.armedbear.j.mode.web.WebFormatter;
 import org.armedbear.j.mode.web.WebLoader;
 import org.armedbear.j.util.Background;
 import org.armedbear.j.util.FastStringReader;
+import org.armedbear.j.util.Icons;
 import org.armedbear.j.util.Utilities;
 
 public class MessageBuffer extends Buffer {
@@ -394,7 +395,7 @@ public class MessageBuffer extends Buffer {
             Log.debug("quoteBody toBeQuoted is null");
             return null;
         }
-        if (Utilities.isWhitespace(toBeQuoted)) {
+        if (toBeQuoted.isBlank()) {
             Log.debug("quoteBody toBeQuoted is whitespace");
             return null;
         }
@@ -1063,7 +1064,7 @@ public class MessageBuffer extends Buffer {
 
     // For the buffer list.
     public Icon getIcon() {
-        return Utilities.getIconFromFile("message");
+        return Icons.getIconFromFile("message");
     }
 
     public String getFileNameForDisplay() {

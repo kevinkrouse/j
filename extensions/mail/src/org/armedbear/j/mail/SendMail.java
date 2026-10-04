@@ -65,6 +65,7 @@ import org.armedbear.j.Sidebar;
 import org.armedbear.j.SimpleEdit;
 import org.armedbear.j.Version;
 import org.armedbear.j.util.Background;
+import org.armedbear.j.util.Icons;
 import org.armedbear.j.util.Utilities;
 
 public final class SendMail extends Buffer {
@@ -1385,8 +1386,8 @@ public final class SendMail extends Buffer {
     // For the buffer list.
     public Icon getIcon() {
         if (isModified())
-            return Utilities.getIconFromFile("compose_modified");
-        return Utilities.getIconFromFile("compose");
+            return Icons.getIconFromFile("compose_modified");
+        return Icons.getIconFromFile("compose");
     }
 
     public String getFileNameForDisplay() {

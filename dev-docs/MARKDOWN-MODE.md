@@ -57,7 +57,7 @@ Done: `TextStyle`, `DefaultTheme`'s shared styles and links,
 color at all now takes the theme's `color.text` rather than DefaultTheme's
 black.
 
-Also from review: colors may be `#rgb` or `#rrggbb` (`Utilities.parseColor`);
+Also from review: colors may be `#rgb` or `#rrggbb` (`Colors.parseColor`);
 a properties line that sets a color shows a swatch of it in the gutter
 (`Formatter.getGutterColor`); and `listStyles [all]` lists each style drawn
 in itself, with the names it resolved through and where its color and style

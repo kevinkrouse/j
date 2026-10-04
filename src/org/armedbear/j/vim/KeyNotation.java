@@ -26,6 +26,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.armedbear.j.Constants;
+import org.armedbear.j.util.Keys;
 
 /**
  * Vim's key notation: the "&lt;C-w&gt;" in ":map &lt;C-w&gt;h".
@@ -36,7 +37,7 @@ import org.armedbear.j.Constants;
  * modified key ("&lt;C-w&gt;", "&lt;S-Tab&gt;", "&lt;C-S-Right&gt;"). A literal "&lt;"
  * is written "&lt;lt&gt;".
  *
- * This is not j's own key text format, which is what {@code Utilities.getKeyStroke}
+ * This is not j's own key text format, which is what {@code Keys.getKeyStroke}
  * parses ("Ctrl Alt S"). The two notations coexist: j's for j's key maps, vim's
  * for modal key maps and for anything the user would recognise from a vimrc.
  *

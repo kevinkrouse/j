@@ -27,7 +27,7 @@ import javax.swing.JTree;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.TreeModel;
 import javax.swing.tree.TreePath;
-import org.armedbear.j.util.Utilities;
+import org.armedbear.j.util.Keys;
 
 public class SidebarTree extends JTree {
     /** A selection's background in a sidebar list without the focus. */
@@ -51,7 +51,7 @@ public class SidebarTree extends JTree {
         LocalTag selected,
         Runnable updatePosition
     ) {
-        final int modifiers = Utilities.keyModifiers(e);
+        final int modifiers = Keys.keyModifiers(e);
         switch (e.getKeyCode()) {
             // Ignore modifier keystrokes.
             case KeyEvent.VK_SHIFT:

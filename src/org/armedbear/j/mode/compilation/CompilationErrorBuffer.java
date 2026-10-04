@@ -27,7 +27,7 @@ import org.armedbear.j.Log;
 import org.armedbear.j.Property;
 import org.armedbear.j.mode.text.PlainTextFormatter;
 import org.armedbear.j.mode.text.PlainTextMode;
-import org.armedbear.j.util.Utilities;
+import org.armedbear.j.util.Icons;
 
 public abstract class CompilationErrorBuffer extends Buffer {
     private CompilationError currentError;
@@ -136,6 +136,6 @@ public abstract class CompilationErrorBuffer extends Buffer {
 
     // For the buffer list.
     public Icon getIcon() {
-        return Utilities.getIconFromFile("jpty");
+        return Icons.getIconFromFile("jpty");
     }
 }

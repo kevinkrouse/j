@@ -25,6 +25,7 @@ import org.armedbear.j.JEvent;
 import org.armedbear.j.Line;
 import org.armedbear.j.Log;
 import org.armedbear.j.Position;
+import org.armedbear.j.util.Keys;
 
 /**
  * Modal editing: the keystroke side.

@@ -27,7 +27,7 @@ import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.JTextArea;
 import javax.swing.UIManager;
-import org.armedbear.j.util.Utilities;
+import org.armedbear.j.util.Keys;
 
 public class MessageDialog extends AbstractDialog {
     private Editor editor;
@@ -80,7 +80,7 @@ public class MessageDialog extends AbstractDialog {
             escape();
             return;
         }
-        if (Utilities.isUnmodified(e)) {
+        if (Keys.isUnmodified(e)) {
             switch (e.getKeyCode()) {
                 case KeyEvent.VK_ENTER:
                 case KeyEvent.VK_SPACE:

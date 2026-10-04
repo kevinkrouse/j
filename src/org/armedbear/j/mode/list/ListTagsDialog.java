@@ -36,7 +36,7 @@ import org.armedbear.j.Property;
 import org.armedbear.j.Tag;
 import org.armedbear.j.TagCommands;
 import org.armedbear.j.Tagger;
-import org.armedbear.j.util.Utilities;
+import org.armedbear.j.util.Keys;
 
 public final class ListTagsDialog extends AbstractDialog implements MouseListener {
     private Editor editor;
@@ -138,7 +138,7 @@ public final class ListTagsDialog extends AbstractDialog implements MouseListene
     }
 
     public void mousePressed(MouseEvent e) {
-        if ((Utilities.isUnmodified(e) && e.getButton() == MouseEvent.BUTTON2)) {
+        if ((Keys.isUnmodified(e) && e.getButton() == MouseEvent.BUTTON2)) {
             int index = list.locationToIndex(e.getPoint());
             list.setSelectedIndex(index);
             ok();

@@ -28,7 +28,7 @@ import java.awt.Toolkit;
 import java.awt.geom.AffineTransform;
 import javax.swing.JComponent;
 import javax.swing.SwingUtilities;
-import org.armedbear.j.util.Utilities;
+import org.armedbear.j.util.Icons;
 
 /**
  * The factor by which j's built-in pixel and point sizes are multiplied so
@@ -92,7 +92,7 @@ public final class UIScale {
             scale = 0;
             ++generation;
         }
-        Utilities.clearIconCache();
+        Icons.clearIconCache();
     }
 
     /**

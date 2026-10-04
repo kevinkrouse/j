@@ -30,7 +30,7 @@ import javax.swing.JScrollPane;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Editor;
 import org.armedbear.j.File;
-import org.armedbear.j.util.Utilities;
+import org.armedbear.j.util.Keys;
 
 public final class BreakpointPanel implements BreakpointListener, KeyListener {
     private final Jdb jdb;
@@ -63,7 +63,7 @@ public final class BreakpointPanel implements BreakpointListener, KeyListener {
 
     public void keyPressed(KeyEvent e) {
         final int keyCode = e.getKeyCode();
-        final int modifiers = Utilities.keyModifiers(e);
+        final int modifiers = Keys.keyModifiers(e);
         if (modifiers != 0)
             return;
         if (keyCode == KeyEvent.VK_DELETE) {

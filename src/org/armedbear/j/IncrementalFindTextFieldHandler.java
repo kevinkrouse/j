@@ -25,6 +25,7 @@ import java.awt.event.KeyEvent;
 import javax.swing.SwingUtilities;
 import javax.swing.undo.CompoundEdit;
 import org.armedbear.j.Constants;
+import org.armedbear.j.util.Keys;
 import org.armedbear.j.util.Utilities;
 
 public final class IncrementalFindTextFieldHandler extends DefaultTextFieldHandler
@@ -99,7 +100,7 @@ public final class IncrementalFindTextFieldHandler extends DefaultTextFieldHandl
     public void keyPressed(KeyEvent e) {
         final char keyChar = e.getKeyChar();
         final int keyCode = e.getKeyCode();
-        final int modifiers = Utilities.keyModifiers(e);
+        final int modifiers = Keys.keyModifiers(e);
         switch (keyCode) {
             case KeyEvent.VK_ESCAPE:
                 escape();
@@ -252,14 +253,14 @@ public final class IncrementalFindTextFieldHandler extends DefaultTextFieldHandl
     }
 
     public void keyTyped(KeyEvent e) {
-        final int modifiers = Utilities.keyModifiers(e);
+        final int modifiers = Keys.keyModifiers(e);
         if (modifiers == 0 || modifiers == SHIFT_MASK)
             handleKeyEvent(e);
     }
 
     private void handleKeyEvent(KeyEvent e) {
         // Mask off bits we don't care about (Java 1.4).
-        int modifiers = Utilities.keyModifiers(e);
+        int modifiers = Keys.keyModifiers(e);
         if (modifiers != 0 && modifiers != Constants.SHIFT_MASK)
             return;
         char c = e.getKeyChar();

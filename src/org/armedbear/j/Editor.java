@@ -79,6 +79,7 @@ import org.armedbear.j.mode.image.ImageBuffer;
 import org.armedbear.j.mode.java.JavaMode;
 import org.armedbear.j.mode.list.ListOccurrencesInFilesBuffer;
 import org.armedbear.j.mode.perl.PerlMode;
+import org.armedbear.j.util.Keys;
 import org.armedbear.j.util.Utilities;
 import org.armedbear.j.vcs.VcsBackend;
 import org.armedbear.j.vcs.VcsBackends;
@@ -2844,7 +2845,7 @@ public final class Editor extends JPanel implements Constants,
         if (object instanceof KeyEvent) {
             KeyEvent e = (KeyEvent) object;
             if (e.getID() == KeyEvent.KEY_PRESSED) {
-                if (e.getKeyCode() == 0x47 && Utilities.keyModifiers(e) == CTRL_MASK)
+                if (e.getKeyCode() == 0x47 && Keys.keyModifiers(e) == CTRL_MASK)
                     return true;
             }
             return false;
@@ -7148,7 +7149,7 @@ public final class Editor extends JPanel implements Constants,
                 addUndo(SimpleEdit.MOVE);
                 unmark();
                 dot.moveTo(pos);
-                if (Utilities.isWhitespace(getDotLine().substring(0, getDotOffset()))) {
+                if (getDotLine().substring(0, getDotOffset()).isBlank()) {
                     justOneSpace();
                     addUndo(SimpleEdit.MOVE);
                     dot.skip(-1);
