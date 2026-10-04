@@ -49,9 +49,8 @@ public final class ActionTextFieldHandler extends FinderTextFieldHandler {
         Set<FinderItem> empty = new LinkedHashSet<>();
         History history = new History(HISTORY, 30);
         for (int i = history.size(); i-- > 0;) {
-            String s = history.get(i).strip();
-            int space = s.indexOf(' ');
-            FinderItem item = byName.get((space < 0 ? s : s.substring(0, space)).toLowerCase(Locale.ROOT));
+            String[] parsed = Editor.parseCommand(history.get(i));
+            FinderItem item = parsed == null ? null : byName.get(parsed[0].toLowerCase(Locale.ROOT));
             if (item != null)
                 empty.add(item);
         }
@@ -60,7 +59,8 @@ public final class ActionTextFieldHandler extends FinderTextFieldHandler {
     }
 
     public void start() {
-        refilter();
+        if (isActive())
+            refilter();
     }
 
     @Override
@@ -111,7 +111,7 @@ public final class ActionTextFieldHandler extends FinderTextFieldHandler {
             "recentFiles"
         );
         icon("document-save", "save", "saveAs", "saveCopy", "saveAll");
-        icon("close", "killBuffer", "closeAll", "closeOthers", "closeWindow");
+        icon("close", "killBuffer", "closeAll", "closeOthers", "killWindow");
         icon("undo", "undo");
         icon("redo", "redo");
         icon("cut", "killRegion", "killLine", "killAppend");
@@ -154,8 +154,11 @@ public final class ActionTextFieldHandler extends FinderTextFieldHandler {
             label = humanize(name);
             String summary = CommandTable.getSummary(name);
             note = summary == null ? "" : summary;
-            // The name, so a query in its exact case matches, and the summary.
-            text = note.isEmpty() ? label + " " + name : label + " " + name + " " + note;
+            // The name, so a query in its exact case matches, and the summary, its
+            // slashes blanked so the matcher doesn't take its tail for a file name.
+            text = note.isEmpty()
+                ? label + " " + name
+                : label + " " + name + " " + note.replace('/', ' ').replace('\\', ' ');
             keyText = keyText(editor, name);
         }
 
@@ -224,6 +227,9 @@ public final class ActionTextFieldHandler extends FinderTextFieldHandler {
             history.append(name);
             history.save();
             editor.executeCommand(name, true);
+            // As the Command: prompt does, so an edit is shown.
+            editor.ensureActive();
+            editor.getDispatcher().eventHandled();
         }
     }
 }

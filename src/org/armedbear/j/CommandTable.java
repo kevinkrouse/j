@@ -93,21 +93,11 @@ public class CommandTable {
         map.put(name.toLowerCase(Locale.ROOT), new Command(name, owner, methodName));
     }
 
-    /** As registerCommand(), with a one-sentence summary for the action finder. */
-    public static void registerCommand(String name, Class<?> owner, String methodName, String summary) {
-        registerCommand(name, owner, methodName);
-        if (summary != null)
-            extraSummaries.put(name.toLowerCase(Locale.ROOT), summary);
-    }
-
-    private static final Map<String, String> extraSummaries = new ConcurrentHashMap<>();
     private static Map<String, String> summaries;
 
     /** The command's one-sentence summary, or null. */
     public static String getSummary(String name) {
-        String key = name.toLowerCase(Locale.ROOT);
-        String s = extraSummaries.get(key);
-        return s != null ? s : summaries().get(key);
+        return summaries().get(name.toLowerCase(Locale.ROOT));
     }
 
     // From command-summaries.properties, which `bb command-summaries` writes.

@@ -70,6 +70,11 @@ public abstract class FinderTextFieldHandler extends DefaultTextFieldHandler {
         popup = new CompletionPopup<>(textField, MAX_ROWS);
         popup.setCellRenderer(new FinderCellRenderer());
         popup.setOnClick(row -> accept(row.item(), false));
+        // Focus went elsewhere: give the location bar back.
+        popup.setOnDismiss(() -> {
+            if (isActive())
+                editor.updateLocation();
+        });
         debounce = new Timer(DEBOUNCE_MILLIS, e -> refilter());
         debounce.setRepeats(false);
         textField.getDocument().addDocumentListener(documentListener);

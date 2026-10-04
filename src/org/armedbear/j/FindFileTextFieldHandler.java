@@ -54,6 +54,8 @@ public final class FindFileTextFieldHandler extends FinderTextFieldHandler {
 
     /** Lists the candidates and starts a rescan if the project's list is stale. */
     public void start() {
+        if (!isActive())
+            return;
         if (projectFiles != null) {
             projectFiles.addListener(listener);
             projectFiles.refreshIfStale(Editor.preferences().getIntegerProperty(Property.FINDER_RESCAN_SECONDS));

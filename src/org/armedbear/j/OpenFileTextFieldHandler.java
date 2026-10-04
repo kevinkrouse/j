@@ -26,9 +26,10 @@ import java.awt.event.KeyEvent;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
-import java.util.function.Function;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
@@ -61,6 +62,9 @@ public final class OpenFileTextFieldHandler extends DefaultTextFieldHandler impl
     private String encoding;
 
     private CompletionPopup<String> popup;
+    // The completions are fuzzy matches, not names starting with what was typed.
+    private boolean fuzzy;
+    private final Map<String, FinderItem.Row> rows = new HashMap<>();
 
     private String originalText;
     private String originalPrefix;
@@ -412,14 +416,15 @@ public final class OpenFileTextFieldHandler extends DefaultTextFieldHandler impl
                 index = 0;
                 originalText = textField.getText();
                 originalPrefix = prefix;
-                if (completions.size() == 1) {
+                // A lone fuzzy match is only a guess: list it, so Escape can undo it.
+                if (completions.size() == 1 && !fuzzy) {
                     String s = completions.get(0);
                     textField.setText(s);
                     Runnable r = () -> {
                         textField.setCaretPosition(textField.getText().length());
                     };
                     SwingUtilities.invokeLater(r);
-                } else if (completions.size() > 1)
+                } else if (!completions.isEmpty())
                     showCompletionsPopup();
             } else
                 tabPopup(+1, true);
@@ -455,12 +460,8 @@ public final class OpenFileTextFieldHandler extends DefaultTextFieldHandler impl
         ArrayList<String> completions = new ArrayList<>();
         final String sourcePath = checkSourcePath ? getSourcePath() : null;
         prefix = File.normalize(prefix);
-        boolean ignoreCase = Platform.isFileSystemCaseInsensitive()
-            ||
-            Editor.preferences()
-                .getBooleanProperty(
-                    Property.FILENAME_COMPLETIONS_IGNORE_CASE
-                );
+        fuzzy = false;
+        final boolean ignoreCase = ignoreCase();
         String excludes = Editor.preferences()
             .getStringProperty(
                 Property.FILENAME_COMPLETIONS_EXCLUDE_PATTERN
@@ -497,9 +498,38 @@ public final class OpenFileTextFieldHandler extends DefaultTextFieldHandler impl
                 ignoreCase
             );
         }
-        if (completions.isEmpty())
+        if (completions.isEmpty()) {
+            fuzzy = true;
             return fuzzyCompletions(dir, prefix, excludes, ignoreCase);
+        }
         return completions;
+    }
+
+    private static boolean ignoreCase() {
+        return Platform.isFileSystemCaseInsensitive()
+            ||
+            Editor.preferences().getBooleanProperty(Property.FILENAME_COMPLETIONS_IGNORE_CASE);
+    }
+
+    // A case-insensitive file system matches regardless of case.
+    private static Query fuzzyQuery(String name, boolean ignoreCase) {
+        return Query.parse(ignoreCase ? name.toLowerCase(Locale.ROOT) : name);
+    }
+
+    private static boolean isSeparator(char c) {
+        return c == '/' || c == LocalFile.getSeparatorChar();
+    }
+
+    // Where the last component of s begins, ignoring a trailing separator.
+    private static int nameStart(String s) {
+        int end = s.length();
+        if (end > 0 && isSeparator(s.charAt(end - 1)))
+            end--;
+        for (int i = end; i > 0; i--) {
+            if (isSeparator(s.charAt(i - 1)))
+                return i;
+        }
+        return 0;
     }
 
     private static final int MAX_FUZZY_COMPLETIONS = 50;
@@ -510,7 +540,7 @@ public final class OpenFileTextFieldHandler extends DefaultTextFieldHandler impl
         final int index = prefix.lastIndexOf(LocalFile.getSeparatorChar());
         final String head = prefix.substring(0, index + 1);
         final String name = prefix.substring(index + 1);
-        if (name.isEmpty())
+        if (name.isBlank())
             return new ArrayList<>();
         File directory = head.isEmpty() ? dir : File.getInstance(dir, head);
         if (directory == null || directory.isRemote() || !directory.isDirectory())
@@ -524,21 +554,21 @@ public final class OpenFileTextFieldHandler extends DefaultTextFieldHandler impl
                 Log.error(e);
             }
         }
-        List<String> names = new ArrayList<>();
-        File[] files = directory.listFiles();
-        if (files != null) {
-            for (File file : files) {
-                String s = file.getName();
-                if (excludesRE != null && excludesRE.matcher(s).matches())
-                    continue;
-                names.add(file.isDirectory() ? s + file.getSeparator() : s);
+        List<File> files = new ArrayList<>();
+        File[] listed = directory.listFiles();
+        if (listed != null) {
+            for (File file : listed) {
+                if (excludesRE == null || !excludesRE.matcher(file.getName()).matches())
+                    files.add(file);
             }
         }
-        // A case-insensitive file system matches regardless of case.
-        Query query = Query.parse(ignoreCase ? name.toLowerCase(Locale.ROOT) : name);
         List<String> result = new ArrayList<>();
-        for (Ranked<String> r : FuzzyMatcher.rank(names, Function.identity(), query, MAX_FUZZY_COMPLETIONS))
-            result.add(head + r.item());
+        // Only the best are asked whether they're directories.
+        for (Ranked<File> r : FuzzyMatcher
+            .rank(files, File::getName, fuzzyQuery(name, ignoreCase), MAX_FUZZY_COMPLETIONS)) {
+            File file = r.item();
+            result.add(head + file.getName() + (file.isDirectory() ? file.getSeparator() : ""));
+        }
         return result;
     }
 
@@ -703,7 +733,13 @@ public final class OpenFileTextFieldHandler extends DefaultTextFieldHandler impl
         if (popup == null) {
             popup = new CompletionPopup<>(textField, 8);
             FinderCellRenderer renderer = new FinderCellRenderer();
-            popup.setCellRenderer((list, value, index, selected, focus) -> renderer.render(list, row(value), selected));
+            popup.setCellRenderer(
+                (list, value, index, selected, focus) -> renderer.render(
+                    list,
+                    rows.computeIfAbsent(value, this::row),
+                    selected
+                )
+            );
             popup.setOnClick(completion -> {
                 textField.setText(completion);
                 enterPopup();
@@ -713,6 +749,7 @@ public final class OpenFileTextFieldHandler extends DefaultTextFieldHandler impl
                 originalPrefix = null;
             });
         }
+        rows.clear();
         if (!popup.show(completions, 0))
             return;
         final String completion = completions.get(0);
@@ -725,17 +762,16 @@ public final class OpenFileTextFieldHandler extends DefaultTextFieldHandler impl
     // A completion as a list row: its file's icon, and the characters typed marked.
     private FinderItem.Row row(String completion) {
         String typed = originalPrefix == null ? "" : originalPrefix;
-        String name = typed.substring(typed.lastIndexOf(LocalFile.getSeparatorChar()) + 1);
-        int start = completion.lastIndexOf(LocalFile.getSeparatorChar(), completion.length() - 2) + 1;
-        FuzzyMatcher.Match m =
-            FuzzyMatcher.match(completion.substring(start), Query.parse(name.toLowerCase(Locale.ROOT)));
+        String name = typed.substring(nameStart(typed));
+        final int start = nameStart(completion);
+        FuzzyMatcher.Match m = FuzzyMatcher.match(completion.substring(start), fuzzyQuery(name, ignoreCase()));
         int[] positions = null;
         if (m != null) {
             positions = m.positions().clone();
             for (int i = 0; i < positions.length; i++)
                 positions[i] += start;
         }
-        final boolean isDirectory = completion.endsWith(LocalFile.getSeparator());
+        final boolean isDirectory = !completion.isEmpty() && isSeparator(completion.charAt(completion.length() - 1));
         FinderItem item = new FinderItem() {
             @Override
             public String matchText() {
@@ -754,7 +790,9 @@ public final class OpenFileTextFieldHandler extends DefaultTextFieldHandler impl
 
             @Override
             public Icon icon() {
-                return isDirectory ? Icons.getIconFromFile("dir_close") : FileIcons.getIcon(completion, null);
+                return isDirectory
+                    ? Icons.getIconFromFile("dir_close")
+                    : FileIcons.getIcon(completion.substring(start), null);
             }
 
             @Override
@@ -825,7 +863,7 @@ public final class OpenFileTextFieldHandler extends DefaultTextFieldHandler impl
                         }
                     } else {
                         Pattern re = Pattern.compile(
-                            "[\\/]".concat(originalText),
+                            "[\\/]".concat(Pattern.quote(originalText)),
                             ignoreCase ? Pattern.CASE_INSENSITIVE : 0
                         );
                         boolean found = false;
@@ -986,10 +1024,19 @@ public final class OpenFileTextFieldHandler extends DefaultTextFieldHandler impl
             return;
         }
         if (c >= ' ' && c != 127) {
+            // The key press has already hidden the list.
+            final boolean refine = fuzzy && originalText != null;
             if (popup != null)
                 popup.hide();
             String text = textField.getText();
-            if (textField.getSelectionStart() != textField.getSelectionEnd()) {
+            if (refine) {
+                // Typing after a fuzzy Tab adds to what was typed, not to the guess.
+                text = originalText;
+                originalText = null;
+                originalPrefix = null;
+                textField.setText(text);
+                textField.setCaretPosition(text.length());
+            } else if (textField.getSelectionStart() != textField.getSelectionEnd()) {
                 if (originalText != null) {
                     text = originalText;
                     originalText = null;
