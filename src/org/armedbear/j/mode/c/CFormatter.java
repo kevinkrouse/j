@@ -20,6 +20,8 @@
 
 package org.armedbear.j.mode.c;
 
+import static org.armedbear.j.Constants.*;
+
 import org.armedbear.j.Buffer;
 import org.armedbear.j.FormatTable;
 import org.armedbear.j.Line;
@@ -37,23 +39,28 @@ public final class CFormatter extends JavaFormatter {
         setLanguageMode(mode);
     }
 
+    @Override
     protected boolean hasPreprocessor() {
         return true;
     }
 
     // A string continues only after a backslash.
+    @Override
     protected boolean quoteContinues(boolean backslashAtEnd) {
         return backslashAtEnd;
     }
 
+    @Override
     protected boolean isOperatorChar(char c) {
         return "!&|<>=+/*-".indexOf(c) >= 0;
     }
 
+    @Override
     protected int format(int state) {
         return state == STATE_PREPROCESSOR ? C_FORMAT_PREPROCESSOR : super.format(state);
     }
 
+    @Override
     protected void parseLine(Line line) {
         if (line.flags() == STATE_DISABLED)
             addSegment(getDetabbedText(line), C_FORMAT_DISABLED);
@@ -63,6 +70,7 @@ public final class CFormatter extends JavaFormatter {
 
     // Through the matching #endif, which is disabled too; an #else or #elif
     // is not.
+    @Override
     protected Line endOfDisabledBlock(Line line) {
         if (!line.getText().startsWith("#if 0"))
             return line;
@@ -72,6 +80,7 @@ public final class CFormatter extends JavaFormatter {
         return match;
     }
 
+    @Override
     public FormatTable getFormatTable() {
         if (formatTable == null) {
             // Shared by C, C++ and Objective-C: CMode.color.* colors all three.

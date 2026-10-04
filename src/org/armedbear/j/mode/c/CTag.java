@@ -28,6 +28,7 @@ public final class CTag extends LocalTag {
         super(name, pos);
     }
 
+    @Override
     public String getLongName() {
         String s = signature.trim();
         if (s.startsWith("DEFUN")) {

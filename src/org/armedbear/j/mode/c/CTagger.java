@@ -20,7 +20,8 @@
 
 package org.armedbear.j.mode.c;
 
-import java.lang.StringBuilder;
+import static org.armedbear.j.Constants.*;
+
 import java.util.ArrayList;
 import java.util.regex.Pattern;
 import org.armedbear.j.LocalTag;
@@ -42,8 +43,9 @@ public class CTagger extends JavaTagger {
         super(buffer);
     }
 
+    @Override
     public void run() {
-        ArrayList<LocalTag> tags = new ArrayList<LocalTag>();
+        ArrayList<LocalTag> tags = new ArrayList<>();
         pos = new Position(buffer.getFirstLine(), 0);
         token = null;
         tokenStart = null;

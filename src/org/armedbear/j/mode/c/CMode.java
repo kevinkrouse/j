@@ -20,10 +20,10 @@
 
 package org.armedbear.j.mode.c;
 
+import static org.armedbear.j.Constants.*;
+
 import java.awt.event.KeyEvent;
-import java.lang.StringBuilder;
 import org.armedbear.j.Buffer;
-import org.armedbear.j.Constants;
 import org.armedbear.j.Editor;
 import org.armedbear.j.Formatter;
 import org.armedbear.j.KeyMap;
@@ -36,7 +36,7 @@ import org.armedbear.j.Tagger;
 import org.armedbear.j.mode.compilation.CompilationCommands;
 import org.armedbear.j.mode.java.JavaMode;
 
-public class CMode extends JavaMode implements Constants, Mode {
+public class CMode extends JavaMode implements Mode {
     private static final String[] cConditionals = {
         "if",
         "else",
@@ -65,18 +65,22 @@ public class CMode extends JavaMode implements Constants, Mode {
         return Instance.mode;
     }
 
+    @Override
     public String getCommentStart() {
         return "/*";
     }
 
+    @Override
     public String getCommentEnd() {
         return "*/";
     }
 
+    @Override
     public Formatter getFormatter(Buffer buffer) {
         return new CFormatter(buffer, this);
     }
 
+    @Override
     protected void setKeyMapDefaults(KeyMap km) {
         super.setKeyMapDefaults(km);
         km.mapKey('#', "electricPound");
@@ -84,6 +88,7 @@ public class CMode extends JavaMode implements Constants, Mode {
         km.mapKey(KeyEvent.VK_F6, CTRL_MASK, "iList");
     }
 
+    @Override
     public void populateModeMenu(Editor editor, Menu menu) {
         menu.add(editor, "Compile...", 'C', "compile");
         menu.add(editor, "Recompile", 'R', "recompile");
@@ -94,18 +99,22 @@ public class CMode extends JavaMode implements Constants, Mode {
         menu.add(editor, "Show Error Message", 'M', "showMessage", enabled);
     }
 
+    @Override
     public Tagger getTagger(SystemBuffer buffer) {
         return new CTagger(buffer);
     }
 
+    @Override
     public boolean hasQualifiedNames() {
         return false;
     }
 
+    @Override
     public boolean isQualifiedName(String s) {
         return false;
     }
 
+    @Override
     public int getCorrectIndentation(Line line, Buffer buffer) {
         if (line.trim().startsWith("#"))
             return 0; // Preprocessor directive.
@@ -191,6 +200,7 @@ public class CMode extends JavaMode implements Constants, Mode {
         return null;
     }
 
+    @Override
     public boolean isIdentifierStart(char c) {
         if (c >= 'a' && c <= 'z')
             return true;
@@ -201,6 +211,7 @@ public class CMode extends JavaMode implements Constants, Mode {
         return false;
     }
 
+    @Override
     public boolean isIdentifierPart(char c) {
         if (c >= 'a' && c <= 'z')
             return true;
