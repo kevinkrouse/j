@@ -112,28 +112,28 @@ Ctrl F and Ctrl B (paging), Ctrl ^, Ctrl R, Ctrl V, Ctrl A and Ctrl X. So
 Ctrl O doesn't open the location bar and Ctrl F doesn't find; every other key
 above, Ctrl P and Ctrl Shift P among them, works as it does without vim. Any
 of j's commands also runs as an ex command, as in
-<code>:findFileInProject</code> or <code>:openFile</code>. The
+<b>:findFileInProject</b> or <b>:openFile</b>. The
 <a href="commands.html#findAction">findAction</a> list shows a command's vim
 keys before j's.
-<table border="1" cellpadding="4" cellspacing="0">
-<tr><th>To</th><th>Vim</th></tr>
-<tr><td>Go to line N</td><td><code>:N</code>, <code>NG</code>, <code>gg</code>, <code>G</code></td></tr>
-<tr><td>Search</td><td><code>/</code>, <code>?</code>, <code>n</code>, <code>N</code>, <code>*</code>, <code>#</code></td></tr>
-<tr><td>Matching bracket</td><td><code>%</code></td></tr>
-<tr><td>Top, middle, bottom of the window</td><td><code>H</code>, <code>M</code>, <code>L</code></td></tr>
-<tr><td>Scroll the caret's line to the center, top, bottom</td><td><code>zz</code>, <code>zt</code>, <code>zb</code></td></tr>
-<tr><td>Page down, up</td><td><code>&lt;C-f&gt;</code>, <code>&lt;C-b&gt;</code></td></tr>
-<tr><td>Paragraphs, sections</td><td><code>}</code>, <code>{</code>, <code>]]</code>, <code>[[</code></td></tr>
-<tr><td>Set a mark, go to it</td><td><code>m</code><i>x</i>, <code>`</code><i>x</i>, <code>'</code><i>x</i>; A to Z are file marks, shared with
-<a href="commands.html#dropBookmark">dropBookmark</a></td></tr>
-<tr><td>Back and forward through the jump list</td><td><code>&lt;C-o&gt;</code>, <code>&lt;C-i&gt;</code></td></tr>
-<tr><td>Alternate buffer</td><td><code>&lt;C-^&gt;</code></td></tr>
-<tr><td>Follow a link</td><td><code>gx</code></td></tr>
-<tr><td>Split, vertically</td><td><code>&lt;C-w&gt;s</code>, <code>&lt;C-w&gt;v</code>, <code>:sp</code> <i>file</i>, <code>:vs</code> <i>file</i></td></tr>
-<tr><td>Window left, down, up, right</td><td><code>&lt;C-w&gt;h</code>, <code>j</code>, <code>k</code>, <code>l</code></td></tr>
-<tr><td>Next, previous, prior window</td><td><code>&lt;C-w&gt;w</code>, <code>&lt;C-w&gt;W</code>, <code>&lt;C-w&gt;p</code></td></tr>
-<tr><td>Close the window, the others</td><td><code>&lt;C-w&gt;c</code>, <code>&lt;C-w&gt;o</code>, <code>:clo</code>, <code>:on</code></td></tr>
-</table>
+<p>
+Vim's own keys for getting around:
+<ul>
+<li><b>:</b><i>N</i>, <i>N</i><b>G</b>, <b>gg</b>, <b>G</b>: go to a line, the first, the last.
+<li><b>/</b>, <b>?</b>, <b>n</b>, <b>N</b>, <b>*</b>, <b>#</b>: search forward, back, again, for the word at the caret.
+<li><b>%</b>: the matching bracket.
+<li><b>H</b>, <b>M</b>, <b>L</b>: the top, middle and bottom of the window.
+<li><b>zz</b>, <b>zt</b>, <b>zb</b>: scroll the caret's line to the center, top or bottom.
+<li><b>&lt;C-f&gt;</b>, <b>&lt;C-b&gt;</b>: page down, up.
+<li><b>}</b>, <b>{</b>, <b>]]</b>, <b>[[</b>: paragraphs, sections.
+<li><b>m</b><i>x</i>, <b>`</b><i>x</i>, <b>'</b><i>x</i>: set a mark, go to it; A to Z are file marks, shared with <a href="commands.html#dropBookmark">dropBookmark</a>.
+<li><b>&lt;C-o&gt;</b>, <b>&lt;C-i&gt;</b>: back and forward through the jump list.
+<li><b>&lt;C-^&gt;</b>: the alternate buffer.
+<li><b>gx</b>: follow a link.
+<li><b>&lt;C-w&gt;s</b>, <b>&lt;C-w&gt;v</b>, <b>:sp</b> <i>file</i>, <b>:vs</b> <i>file</i>: split the window, or side by side.
+<li><b>&lt;C-w&gt;h</b>, <b>j</b>, <b>k</b>, <b>l</b>: the window left, down, up, right.
+<li><b>&lt;C-w&gt;w</b>, <b>&lt;C-w&gt;W</b>, <b>&lt;C-w&gt;p</b>: the next, previous, prior window.
+<li><b>&lt;C-w&gt;c</b>, <b>&lt;C-w&gt;o</b>, <b>:clo</b>, <b>:on</b>: close the window, the others.
+</ul>
 
 <h2><a name="projects">Projects</a></h2>
 <p>
