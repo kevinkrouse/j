@@ -77,16 +77,11 @@ public class File implements Comparable<File> {
 
     private File(String path) {
         file = new java.io.File(path);
-        if (Platform.isPlatformWindows() && path.indexOf('*') >= 0) {
-            // Workaround for Windows 2000, Java 1.1.8.
+        try {
+            canonicalPath = file.getCanonicalPath();
+        }
+        catch (IOException e) {
             canonicalPath = path;
-        } else {
-            try {
-                canonicalPath = file.getCanonicalPath();
-            }
-            catch (IOException e) {
-                canonicalPath = path;
-            }
         }
     }
 
@@ -597,11 +592,7 @@ public class File implements Comparable<File> {
         if (isRemote)
             return canonicalPath();
         if (file != null) {
-            String absPath = file.getAbsolutePath();
-            if (Platform.isPlatformUnix() && absPath.startsWith("//")) {
-                absPath = absPath.substring(1); // Workaround for Java 1.1.8.
-            }
-            return absPath;
+            return file.getAbsolutePath();
         }
         return null;
     }

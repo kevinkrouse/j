@@ -712,9 +712,6 @@ public class LispShellBuffer extends ShellBuffer {
             MessageDialog.showMessageDialog(JPTY_NOT_FOUND, "Error");
             return;
         }
-        if (Platform.isPlatformWindows())
-            if (!Platform.isPlatformWindows5())
-                return;
         final Editor editor = Editor.currentEditor();
         // Look for an existing LispShellBuffer buffer with the same shell command.
         Buffer buf = findLisp(title);

@@ -32,7 +32,6 @@ import org.armedbear.j.History;
 import org.armedbear.j.IdleThread;
 import org.armedbear.j.Line;
 import org.armedbear.j.MessageDialog;
-import org.armedbear.j.Platform;
 import org.armedbear.j.Position;
 import org.armedbear.j.Property;
 import org.armedbear.j.Sidebar;
@@ -49,8 +48,6 @@ public final class CompilationCommands implements Constants {
     }
 
     public static void compile() {
-        if (!checkPlatform("Compile"))
-            return;
         final Editor editor = Editor.currentEditor();
         CompileDialog d = new CompileDialog(editor);
         editor.centerDialog(d);
@@ -62,8 +59,6 @@ public final class CompilationCommands implements Constants {
     }
 
     public static void compile(String args) {
-        if (!checkPlatform("Compile"))
-            return;
         if (args != null && args.length() > 0) {
             History history = new History("compile.command");
             history.append(args);
@@ -73,31 +68,12 @@ public final class CompilationCommands implements Constants {
     }
 
     public static void recompile() {
-        if (!checkPlatform("Recompile"))
-            return;
         final History history = new History("compile.command");
         final String command = history.getPrevious();
         if (command != null && command.length() > 0)
             compile(command, Editor.currentEditor());
         else
             compile();
-    }
-
-    private static boolean checkPlatform(String command) {
-        if (Platform.isPlatformWindows()) {
-            if (Platform.isPlatformWindows5())
-                ; // OK (Windows 2000, Windows XP)
-            else if (Platform.isPlatformWindowsNT4())
-                ; // OK (NT 4)
-            else {
-                MessageDialog.showMessageDialog(
-                    "This feature requires Windows NT 4, Windows 2000 or Windows XP.",
-                    command
-                );
-                return false;
-            }
-        }
-        return true;
     }
 
     private static void compile(final String command, final Editor editor) {

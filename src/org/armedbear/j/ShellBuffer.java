@@ -575,15 +575,9 @@ public class ShellBuffer extends CommandInterpreterBuffer implements Constants {
         }
         if (!Editor.checkExperimental())
             return;
-        if (Platform.isPlatformWindows()) {
-            if (!Platform.isPlatformWindows5())
-                return;
-        } else {
-            // Unix.
-            if (!Utilities.haveJpty()) {
-                MessageDialog.showMessageDialog(JPTY_NOT_FOUND, "Error");
-                return;
-            }
+        if (!Platform.isPlatformWindows() && !Utilities.haveJpty()) {
+            MessageDialog.showMessageDialog(JPTY_NOT_FOUND, "Error");
+            return;
         }
         // Look for existing shell buffer.
         Buffer buf = null;

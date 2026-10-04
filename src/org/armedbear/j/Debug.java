@@ -119,8 +119,6 @@ public final class Debug {
         String output = null;
         if (Platform.isPlatformLinux()) {
             output = ProcessRunner.of("ps", "-o", "pid,pri,%cpu,rss,start,time,command").discardErrors().run().output();
-        } else if (Platform.isPlatformSunOS()) {
-            output = ProcessRunner.of("ps", "-efo", "pid,pri,pcpu,rss,time,args").discardErrors().run().output();
         }
         if (output != null) {
             FastStringReader reader = new FastStringReader(output);
