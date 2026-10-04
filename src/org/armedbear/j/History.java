@@ -36,8 +36,9 @@ public final class History {
         this.name = name;
         this.limit = limit;
         strings = new String[limit];
-        if (name != null) {
-            SessionProperties sessionProperties = Editor.getSessionProperties();
+        // No session, as in a headless editor: no saved history.
+        SessionProperties sessionProperties = name == null ? null : Editor.getSessionProperties();
+        if (sessionProperties != null) {
             int i;
             for (i = 0; i < limit; i++) {
                 String key = "history." + name + "." + String.valueOf(i);
@@ -56,8 +57,8 @@ public final class History {
     }
 
     public void save() {
-        if (name != null) {
-            SessionProperties sessionProperties = Editor.getSessionProperties();
+        SessionProperties sessionProperties = name == null ? null : Editor.getSessionProperties();
+        if (sessionProperties != null) {
             for (int i = 0; i < count; i++) {
                 if (strings[i] == null)
                     break;

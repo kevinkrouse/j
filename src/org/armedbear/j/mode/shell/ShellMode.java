@@ -56,7 +56,6 @@ public final class ShellMode extends AbstractMode implements Mode {
         km.mapKey(KeyEvent.VK_ENTER, 0, "shellEnter");
         km.mapKey(KeyEvent.VK_TAB, 0, "shellTab");
         km.mapKey(KeyEvent.VK_C, CTRL_MASK | ALT_MASK, "shellInterrupt");
-        km.mapKey(KeyEvent.VK_T, CTRL_MASK, "findTag");
         km.mapKey(KeyEvent.VK_F9, CTRL_MASK, "recompile");
         km.mapKey(')', "closeParen");
     }

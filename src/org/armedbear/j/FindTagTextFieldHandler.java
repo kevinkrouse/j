@@ -58,7 +58,8 @@ public final class FindTagTextFieldHandler extends DefaultTextFieldHandler {
         editor.getDispatcher().eventHandled();
     }
 
-    private void findTag(String pattern) {
+    // The exact lookup: one match goes there, several are listed.
+    void findTag(String pattern) {
         final Buffer buffer = editor.getBuffer();
         List<? extends Tag> tags = findMatchingTags(buffer, pattern);
         if (tags != null) {

@@ -76,7 +76,8 @@ public final class TagCommands {
         final LocationBar locationBar = editor.getLocationBar();
         locationBar.setLabelText(LocationBar.PROMPT_TAG);
         HistoryTextField textField = locationBar.getTextField();
-        textField.setHandler(new FindTagTextFieldHandler(editor, textField));
+        FindTagFinderTextFieldHandler handler = new FindTagFinderTextFieldHandler(editor, textField);
+        textField.setHandler(handler);
         textField.setHistory(new History("findTag.tag"));
         textField.setText("");
         if (editor.getDispatcher().getLastEvent().getSource() instanceof MenuItem) {
@@ -86,6 +87,8 @@ public final class TagCommands {
             SwingUtilities.invokeLater(r);
         } else
             editor.setFocusToTextField();
+        // After the focus has moved, so the list shows.
+        SwingUtilities.invokeLater(handler::start);
     }
 
     private static boolean findTag(

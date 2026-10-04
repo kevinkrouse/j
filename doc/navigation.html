@@ -89,9 +89,12 @@ line.
 <a href="commands.html#listOccurrences">listOccurrences</a>) search the
 buffer, a set of files, and list every match.
 
-<li><b>Ctrl T</b> and <b>Alt .</b> (<a href="commands.html#findTag">findTag</a>,
-<a href="commands.html#findTagAtDot">findTagAtDot</a>) go to a definition in
-Java, C, C++, PHP, Perl and Lisp modes (see <a href="tags.html">tags</a>);
+<li><b>Ctrl T</b> (<a href="commands.html#findTag">findTag</a>) finds a
+definition, fuzzily, among the buffer's tags and its
+<a href="tags.html">tag files</a>; in any mode with tags, Markdown's headings
+among them. <b>Alt .</b>
+(<a href="commands.html#findTagAtDot">findTagAtDot</a>) goes to the definition
+of the name at the caret in Java, C, C++, PHP, Perl and Lisp modes;
 <b>Ctrl Shift T</b>
 (<a href="commands.html#sidebarListTags">sidebarListTags</a>) moves to the
 list of the buffer's tags in the sidebar.

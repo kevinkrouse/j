@@ -139,7 +139,6 @@ public class JavaMode extends AbstractMode implements Mode {
         km.mapKey(';', "electricSemi");
         km.mapKey(':', "electricColon");
         km.mapKey('*', "electricStar");
-        km.mapKey(KeyEvent.VK_T, CTRL_MASK, "findTag");
         km.mapKey(KeyEvent.VK_PERIOD, ALT_MASK, "findTagAtDot");
         km.mapKey(KeyEvent.VK_COMMA, ALT_MASK, "listMatchingTagsAtDot");
         km.mapKey(KeyEvent.VK_PERIOD, CTRL_MASK | ALT_MASK, "findTagAtDotOtherWindow");

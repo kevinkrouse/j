@@ -82,7 +82,6 @@ public final class PerlMode extends AbstractMode implements Mode {
         km.mapKey(';', "electricSemi");
         km.mapKey(KeyEvent.VK_TAB, 0, "tab");
         km.mapKey(KeyEvent.VK_ENTER, 0, "newlineAndIndent");
-        km.mapKey(KeyEvent.VK_T, CTRL_MASK, "findTag");
         km.mapKey(KeyEvent.VK_PERIOD, ALT_MASK, "findTagAtDot");
         km.mapKey(KeyEvent.VK_L, CTRL_MASK | SHIFT_MASK, "listTags");
         km.mapKey(')', "closeParen");

@@ -1938,8 +1938,14 @@ option was specified.
 <a name="findTag">findTag</a><dl><dd>
 <p>
 Prompts for a tag (generally speaking, a tag is a function name) and moves the
-caret to the definition of the specified function. The current location of the
-caret is first put on the
+caret to the definition of the specified function. As you type, a list shows
+the tags that match, in the way
+<a href="commands.html#findFileInProject">findFileInProject</a> matches
+files: the current buffer's first, with their line numbers, then those in the
+<a href="tags.html">tag files</a> of its directory and tag path. With nothing
+typed, the list is the buffer's own tags, in order. Enter goes to the selected
+tag and Ctrl Enter goes there in the other window; with no match, Enter looks
+the name up exactly. The current location of the caret is first put on the
 jump list, so you can
 use <a href="#popPosition">popPosition</a>, mapped by default to Shift F5, to
 get back where you came from.

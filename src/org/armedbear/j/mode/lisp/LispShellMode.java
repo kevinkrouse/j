@@ -82,7 +82,6 @@ public final class LispShellMode extends LispMode implements Mode {
         km.mapKey(KeyEvent.VK_TAB, 0, "indentLineOrRegion");
         if (!Platform.isPlatformWindows())
             km.mapKey(KeyEvent.VK_C, CTRL_MASK | ALT_MASK, "shellInterrupt");
-        km.mapKey(KeyEvent.VK_T, CTRL_MASK, "findTag");
         km.mapKey(KeyEvent.VK_F9, CTRL_MASK, "recompile");
         km.mapKey(KeyEvent.VK_F1, ALT_MASK, "hyperspec");
         km.mapKey(KeyEvent.VK_M, CTRL_MASK, "lispFindMatchingChar");

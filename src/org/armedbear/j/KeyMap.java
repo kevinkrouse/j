@@ -155,6 +155,7 @@ public final class KeyMap {
         mapKey(KeyEvent.VK_X, ALT_MASK, "executeCommand");
         mapKey(KeyEvent.VK_P, CTRL_MASK, "findFileInProject");
         mapKey(KeyEvent.VK_P, CTRL_MASK | SHIFT_MASK, "findAction");
+        mapKey(KeyEvent.VK_T, CTRL_MASK, "findTag");
         mapKey(KeyEvent.VK_Q, CTRL_MASK | SHIFT_MASK, "saveAllExit");
         mapKey(KeyEvent.VK_Q, CTRL_MASK, "quit");
 

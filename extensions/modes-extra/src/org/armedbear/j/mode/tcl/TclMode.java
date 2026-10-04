@@ -84,7 +84,6 @@ public final class TclMode extends AbstractMode implements Mode {
         km.mapKey(KeyEvent.VK_TAB, CTRL_MASK, "insertTab");
         km.mapKey(KeyEvent.VK_TAB, 0, "tab");
         km.mapKey(KeyEvent.VK_ENTER, 0, "newlineAndIndent");
-        km.mapKey(KeyEvent.VK_T, CTRL_MASK, "findTag");
         km.mapKey(KeyEvent.VK_PERIOD, ALT_MASK, "findTagAtDot");
         km.mapKey(KeyEvent.VK_OPEN_BRACKET, CTRL_MASK | SHIFT_MASK, "insertBraces");
         // Duplicate mapping for 1.4.
