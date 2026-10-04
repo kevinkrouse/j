@@ -124,6 +124,7 @@ public class CommandTable {
             add("dirHome", BufferCommands::dirHome);
             add("dirHomeDir", BufferCommands::dirHomeDir);
             add("dirMoveFile", BufferCommands::dirMoveFile);
+            add("dirProjectDir", ProjectCommands::dirProjectDir);
             add("dirRescan", BufferCommands::dirRescan);
             add("dirSortByDate", e -> DirectoryMode.dirSortByDate());
             add("dirSortByName", e -> DirectoryMode.dirSortByName());
@@ -438,6 +439,7 @@ public class CommandTable {
             add("replace", e -> ReplaceDialog.replace());
             add("replaceChar", null, (e, s) -> CaretCommands.replaceChar(s));
             add("replaceInFiles", e -> FindInFiles.replaceInFiles());
+            add("rescanProject", ProjectCommands::rescanProject);
             add("resetLisp", e -> LispShellMode.resetLisp());
             add("saveSession", e -> Session.saveSession(), (e, s) -> Session.saveSession(s));
             add("saveToRegister", e -> Registers.saveToRegister(), (e, s) -> Registers.saveToRegister(s));

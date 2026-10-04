@@ -201,12 +201,15 @@ public final class BufferCommands {
                 return;
             }
             ((DirectoryBuffer) editor.getBuffer()).deleteFiles();
+            ProjectFiles.invalidate();
         }
     }
 
     public static void dirCopyFile(Editor editor) {
-        if (editor.getBuffer() instanceof DirectoryBuffer && editor.getBuffer().getFile().isLocal())
+        if (editor.getBuffer() instanceof DirectoryBuffer && editor.getBuffer().getFile().isLocal()) {
             ((DirectoryBuffer) editor.getBuffer()).copyFileAtDot();
+            ProjectFiles.invalidate();
+        }
     }
 
     public static void dirGetFile(Editor editor) {
@@ -215,8 +218,10 @@ public final class BufferCommands {
     }
 
     public static void dirMoveFile(Editor editor) {
-        if (editor.getBuffer() instanceof DirectoryBuffer && editor.getBuffer().getFile().isLocal())
+        if (editor.getBuffer() instanceof DirectoryBuffer && editor.getBuffer().getFile().isLocal()) {
             ((DirectoryBuffer) editor.getBuffer()).moveFileAtDot();
+            ProjectFiles.invalidate();
+        }
     }
 
     public static void dirRescan(Editor editor) {

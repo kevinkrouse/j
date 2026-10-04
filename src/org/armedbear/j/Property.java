@@ -53,6 +53,12 @@ public final class Property implements Comparable<Property> {
         createProperty("checkInterval", 60);
     public static final Property DIALOG_FONT_SIZE =
         createProperty("dialogFontSize", 11);
+    // The most files the project finder lists.
+    public static final Property FINDER_MAX_FILES =
+        createProperty("finderMaxFiles", 100000);
+    // How old, in seconds, the finder's file list may get before a rescan.
+    public static final Property FINDER_RESCAN_SECONDS =
+        createProperty("finderRescanSeconds", 30);
     public static final Property FONT_SIZE =
         createProperty("fontSize", 12);
     public static final Property GUTTER_FONT_SIZE =
@@ -350,6 +356,9 @@ public final class Property implements Comparable<Property> {
         createProperty("news");
     public static final Property PATCH_MODE =
         createProperty("patchMode");
+    // A directory to use as the project root; see ProjectRoot.
+    public static final Property PROJECT_ROOT =
+        createProperty("projectRoot");
     public static final Property SHELL_FILE_NAME =
         createProperty("shellFileName");
     public static final Property SIGNATURE =

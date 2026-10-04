@@ -1672,6 +1672,7 @@ public class Buffer extends SystemBuffer {
         if (succeeded) {
             saved();
             changeFile(destination);
+            ProjectFiles.fileSaved(destination);
             setLastModified(getFile().lastModified());
             VersionControl.invalidate();
             checkVCS();
@@ -1985,6 +1986,7 @@ public class Buffer extends SystemBuffer {
     public void saved() {
         saveModCount = modCount;
         autosaveModCount = modCount;
+        ProjectFiles.fileSaved(getFile());
         if (isNewFile()) {
             for (Line line = getFirstLine(); line != null; line = line.next()) {
                 line.setOriginalText(null);
