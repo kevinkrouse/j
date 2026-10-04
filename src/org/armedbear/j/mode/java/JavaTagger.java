@@ -20,11 +20,11 @@
 
 package org.armedbear.j.mode.java;
 
-import java.lang.StringBuilder;
+import static org.armedbear.j.Constants.*;
+
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
-import org.armedbear.j.Constants;
 import org.armedbear.j.Editor;
 import org.armedbear.j.Line;
 import org.armedbear.j.LocalTag;
@@ -34,7 +34,7 @@ import org.armedbear.j.SystemBuffer;
 import org.armedbear.j.Tagger;
 import org.armedbear.j.mode.cpp.CppTag;
 
-public class JavaTagger extends Tagger implements Constants {
+public class JavaTagger extends Tagger {
     // States.
     private static final int NEUTRAL = 0;
     private static final int INTERFACE_NAME = 1;
@@ -60,15 +60,16 @@ public class JavaTagger extends Tagger implements Constants {
         super(buffer);
     }
 
+    @Override
     public synchronized void run() {
         pos = new Position(buffer.getFirstLine(), 0);
         token = null;
         tokenStart = null;
-        tags = new ArrayList<LocalTag>();
+        tags = new ArrayList<>();
         currentClass = null;
         visibility = 0;
         final boolean javaScript = buffer.getModeId() == JAVASCRIPT_MODE;
-        final Deque<JavaClass> stack = new ArrayDeque<JavaClass>();
+        final Deque<JavaClass> stack = new ArrayDeque<>();
         int state = NEUTRAL;
         while (!pos.atEnd()) {
             char c = pos.getChar();

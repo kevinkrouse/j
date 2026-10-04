@@ -20,19 +20,19 @@
 
 package org.armedbear.j.mode.java;
 
-import java.lang.StringBuilder;
+import static org.armedbear.j.Constants.*;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import org.armedbear.j.Constants;
 import org.armedbear.j.Editor;
 import org.armedbear.j.Line;
 import org.armedbear.j.LocalTag;
 import org.armedbear.j.Log;
 import org.armedbear.j.Position;
 
-public final class JavaContext implements Constants {
+public final class JavaContext {
     private static final boolean DEBUG = false;
 
     private static final Pattern parameterRE =
@@ -44,7 +44,7 @@ public final class JavaContext implements Constants {
     private static final Pattern returnRE = Pattern.compile("^return[ \t]");
 
     private final Editor editor;
-    private final List<Scope> scopes = new ArrayList<Scope>();
+    private final List<Scope> scopes = new ArrayList<>();
 
     public JavaContext(Editor editor) {
         this.editor = editor;
@@ -144,7 +144,7 @@ public final class JavaContext implements Constants {
     }
 
     private final class Scope {
-        final ArrayList<JavaVariable> list = new ArrayList<JavaVariable>();
+        final ArrayList<JavaVariable> list = new ArrayList<>();
 
         final Position start;
         final Position pos;

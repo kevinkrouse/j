@@ -20,6 +20,8 @@
 
 package org.armedbear.j.mode.java;
 
+import static org.armedbear.j.Constants.*;
+
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Graphics;
@@ -42,7 +44,6 @@ import javax.swing.tree.TreeNode;
 import javax.swing.tree.TreePath;
 import javax.swing.tree.TreeSelectionModel;
 import org.armedbear.j.Buffer;
-import org.armedbear.j.Constants;
 import org.armedbear.j.Display;
 import org.armedbear.j.Editor;
 import org.armedbear.j.File;
@@ -56,8 +57,7 @@ import org.armedbear.j.util.Background;
 import org.armedbear.j.util.Icons;
 import org.armedbear.j.util.Keys;
 
-public final class JavaTree extends SidebarTree implements Constants,
-    NavigationComponent, KeyListener, MouseListener {
+public final class JavaTree extends SidebarTree implements NavigationComponent, KeyListener, MouseListener {
     private static final String CAPTION_FIELDS = "Fields";
     private static final String CAPTION_CONSTRUCTORS = "Constructors";
     private static final String CAPTION_METHODS = "Methods";
@@ -111,6 +111,7 @@ public final class JavaTree extends SidebarTree implements Constants,
         setToolTipText("");
     }
 
+    @Override
     public void refresh() {
         boolean force = (arrangedByType != arrangeByType)
             ||
@@ -175,8 +176,8 @@ public final class JavaTree extends SidebarTree implements Constants,
 
     // Doesn't modify passed-in list.
     private static List<LocalTag> sort(List<LocalTag> list) {
-        List<JavaTag> methodsAndFields = new ArrayList<JavaTag>();
-        List<LocalTag> allTags = new ArrayList<LocalTag>();
+        List<JavaTag> methodsAndFields = new ArrayList<>();
+        List<LocalTag> allTags = new ArrayList<>();
         for (int i = 0; i < list.size(); i++) {
             JavaTag t = (JavaTag) list.get(i);
             switch (t.getType()) {
@@ -210,8 +211,7 @@ public final class JavaTree extends SidebarTree implements Constants,
             DefaultMutableTreeNode node =
                 (DefaultMutableTreeNode) nodes.nextElement();
             Object obj = node.getUserObject();
-            if (obj instanceof JavaTag) {
-                JavaTag t = (JavaTag) obj;
+            if (obj instanceof JavaTag t) {
                 String name = t.getName();
                 switch (t.getType()) {
                     case TAG_CLASS:
@@ -239,8 +239,8 @@ public final class JavaTree extends SidebarTree implements Constants,
         JavaTag tag,
         boolean arrangeByType
     ) {
-        if (parentNode instanceof ClassNode) {
-            ((ClassNode) parentNode).addTag(tag);
+        if (parentNode instanceof ClassNode classNode) {
+            classNode.addTag(tag);
         } else {
             final int type = tag.getType();
             if (type == TAG_CLASS || type == TAG_INTERFACE)
@@ -248,6 +248,7 @@ public final class JavaTree extends SidebarTree implements Constants,
         }
     }
 
+    @Override
     public void updatePosition() {
         TreeModel model = getModel();
         if (model == null)
@@ -333,11 +334,13 @@ public final class JavaTree extends SidebarTree implements Constants,
         }
     }
 
+    @Override
     public final String getLabelText() {
         File file = editor.getBuffer().getFile();
         return file != null ? file.getName() : null;
     }
 
+    @Override
     public String getToolTipText(MouseEvent e) {
         JavaTag t = getJavaTagAtPoint(e.getPoint());
         return t != null ? t.getToolTipText() : null;
@@ -349,32 +352,36 @@ public final class JavaTree extends SidebarTree implements Constants,
             DefaultMutableTreeNode node =
                 (DefaultMutableTreeNode) treePath.getLastPathComponent();
             Object obj = node.getUserObject();
-            if (obj instanceof JavaTag)
-                return (JavaTag) obj;
+            if (obj instanceof JavaTag javaTag)
+                return javaTag;
         }
         return null;
     }
 
+    @Override
     public void keyPressed(KeyEvent e) {
         final TreePath path = getSelectionPath();
         LocalTag selected = null;
         if (path != null) {
             final Object obj =
                 ((DefaultMutableTreeNode) path.getLastPathComponent()).getUserObject();
-            if (obj instanceof LocalTag)
-                selected = (LocalTag) obj;
+            if (obj instanceof LocalTag localTag)
+                selected = localTag;
         }
         tagKeyPressed(editor, e, selected, this::updatePosition);
     }
 
+    @Override
     public void keyReleased(KeyEvent e) {
         tagKeyReleased(editor, e);
     }
 
+    @Override
     public void keyTyped(KeyEvent e) {
         e.consume();
     }
 
+    @Override
     protected void processMouseEvent(MouseEvent e) {
         if (e.isPopupTrigger()) {
             JavaTreePopupMenu popup = new JavaTreePopupMenu(this);
@@ -383,10 +390,13 @@ public final class JavaTree extends SidebarTree implements Constants,
             super.processMouseEvent(e);
     }
 
+    @Override
     public void mousePressed(MouseEvent e) {}
 
+    @Override
     public void mouseReleased(MouseEvent e) {}
 
+    @Override
     public void mouseClicked(MouseEvent e) {
         LocationBar.cancelInput();
         editor.ensureActive();
@@ -403,8 +413,10 @@ public final class JavaTree extends SidebarTree implements Constants,
         editor.setFocusToDisplay();
     }
 
+    @Override
     public void mouseEntered(MouseEvent e) {}
 
+    @Override
     public void mouseExited(MouseEvent e) {
         giveBackFocus(editor);
     }
@@ -489,6 +501,7 @@ public final class JavaTree extends SidebarTree implements Constants,
             oldBackgroundSelectionColor = getBackgroundSelectionColor();
         }
 
+        @Override
         public Component getTreeCellRendererComponent(
             JTree tree,
             Object value,
@@ -515,10 +528,9 @@ public final class JavaTree extends SidebarTree implements Constants,
                 setBackgroundSelectionColor(oldBackgroundSelectionColor);
             else
                 setBackgroundSelectionColor(NO_FOCUS_SELECTION_BACKGROUND);
-            if (value instanceof DefaultMutableTreeNode) {
-                Object obj = ((DefaultMutableTreeNode) value).getUserObject();
-                if (obj instanceof JavaTag) {
-                    JavaTag t = (JavaTag) obj;
+            if (value instanceof DefaultMutableTreeNode defaultMutableTreeNode) {
+                Object obj = defaultMutableTreeNode.getUserObject();
+                if (obj instanceof JavaTag t) {
                     setIcon(t.getIcon());
                     setText(t.getSidebarText());
                 } else if (obj instanceof String) {
@@ -535,6 +547,7 @@ public final class JavaTree extends SidebarTree implements Constants,
             return this;
         }
 
+        @Override
         public void paintComponent(Graphics g) {
             Display.setRenderingHints(g);
             super.paintComponent(g);

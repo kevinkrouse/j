@@ -20,16 +20,16 @@
 
 package org.armedbear.j.mode.java;
 
-import java.lang.StringBuilder;
+import static org.armedbear.j.Constants.*;
+
 import java.util.Objects;
-import org.armedbear.j.Constants;
 import org.armedbear.j.Expression;
 import org.armedbear.j.LocalTag;
 
 /**
  * A JavaExpression represents an instance of a method call in Java source.
  */
-public final class JavaExpression extends Expression implements Constants {
+public final class JavaExpression extends Expression {
     private final int type; // TAG_METHOD etc.
 
     public JavaExpression(String name, int arity) {
@@ -46,6 +46,7 @@ public final class JavaExpression extends Expression implements Constants {
         return type;
     }
 
+    @Override
     public boolean matches(LocalTag tag) {
         if (!name.equals(tag.getMethodName()))
             return false;
@@ -63,11 +64,11 @@ public final class JavaExpression extends Expression implements Constants {
         return true;
     }
 
+    @Override
     public boolean equals(Object obj) {
         if (this == obj)
             return true;
-        if (obj instanceof JavaExpression) {
-            JavaExpression expr = (JavaExpression) obj;
+        if (obj instanceof JavaExpression expr) {
             if (arity != expr.arity)
                 return false;
             if (type != expr.type)
@@ -83,6 +84,7 @@ public final class JavaExpression extends Expression implements Constants {
         return Objects.hash(name, arity, type);
     }
 
+    @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();
         switch (type) {

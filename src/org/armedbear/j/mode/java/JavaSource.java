@@ -20,12 +20,12 @@
 
 package org.armedbear.j.mode.java;
 
-import java.lang.StringBuilder;
+import static org.armedbear.j.Constants.*;
+
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import org.armedbear.j.Buffer;
-import org.armedbear.j.Constants;
 import org.armedbear.j.File;
 import org.armedbear.j.Line;
 import org.armedbear.j.LocalFile;
@@ -34,7 +34,7 @@ import org.armedbear.j.MessageDialog;
 import org.armedbear.j.Property;
 import org.armedbear.j.util.Utilities;
 
-public final class JavaSource implements Constants {
+public final class JavaSource {
     private static final char SEPARATOR_CHAR = LocalFile.getSeparatorChar();
 
     public static File findSource(String className, String sourcePath) {
@@ -145,7 +145,7 @@ public final class JavaSource implements Constants {
     }
 
     private static String[] getCandidates(String s) {
-        ArrayList<String> list = new ArrayList<String>();
+        ArrayList<String> list = new ArrayList<>();
         int index = s.indexOf('.');
         while (index >= 0) {
             list.add(s.substring(0, index));
@@ -208,7 +208,7 @@ public final class JavaSource implements Constants {
     public static String[] getImports(Buffer buffer) {
         if (buffer.getModeId() != JAVA_MODE)
             return null;
-        ArrayList<String> list = new ArrayList<String>();
+        ArrayList<String> list = new ArrayList<>();
         list.add("java.lang.*");
         for (Line line = buffer.getFirstLine(); line != null; line = line.next()) {
             String trim = line.trim();

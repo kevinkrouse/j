@@ -20,8 +20,9 @@
 
 package org.armedbear.j.mode.java;
 
+import static org.armedbear.j.Constants.*;
+
 import org.armedbear.j.Buffer;
-import org.armedbear.j.Constants;
 import org.armedbear.j.FormatTable;
 import org.armedbear.j.Formatter;
 import org.armedbear.j.Line;
@@ -32,7 +33,7 @@ import org.armedbear.j.LineSegmentList;
  * Java's and JavaScript's formatter, and the C family's base: CFormatter adds
  * preprocessor lines and #if 0 blocks.
  */
-public class JavaFormatter extends Formatter implements Constants {
+public class JavaFormatter extends Formatter {
     protected static final int JAVA_FORMAT_TEXT = 0;
     protected static final int JAVA_FORMAT_COMMENT = 1;
     protected static final int JAVA_FORMAT_STRING = 2;
@@ -298,6 +299,7 @@ public class JavaFormatter extends Formatter implements Constants {
         }
     }
 
+    @Override
     public LineSegmentList formatLine(Line line) {
         clearSegmentList();
         if (line == null)
@@ -315,6 +317,7 @@ public class JavaFormatter extends Formatter implements Constants {
         return line;
     }
 
+    @Override
     public boolean parseBuffer() {
         int state = STATE_NEUTRAL;
         boolean backslashAtEnd = false;
@@ -387,6 +390,7 @@ public class JavaFormatter extends Formatter implements Constants {
         return changed;
     }
 
+    @Override
     public FormatTable getFormatTable() {
         if (formatTable == null) {
             // Shared with JavaScript: JavaMode.color.* colors both.

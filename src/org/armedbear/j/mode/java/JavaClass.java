@@ -20,9 +20,9 @@
 
 package org.armedbear.j.mode.java;
 
-import org.armedbear.j.Constants;
+import static org.armedbear.j.Constants.*;
 
-public final class JavaClass implements Constants {
+public final class JavaClass {
     private final String name;
     private final int type;
 

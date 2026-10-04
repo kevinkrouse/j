@@ -20,9 +20,10 @@
 
 package org.armedbear.j.mode.java;
 
+import static org.armedbear.j.Constants.*;
+
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseEvent;
-import java.lang.StringBuilder;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import javax.swing.JMenuItem;
@@ -30,7 +31,6 @@ import javax.swing.JPopupMenu;
 import javax.swing.undo.CompoundEdit;
 import org.armedbear.j.AbstractMode;
 import org.armedbear.j.Buffer;
-import org.armedbear.j.Constants;
 import org.armedbear.j.Debug;
 import org.armedbear.j.Dispatcher;
 import org.armedbear.j.Display;
@@ -60,7 +60,7 @@ import org.armedbear.j.jdb.Jdb;
 import org.armedbear.j.mode.compilation.CompilationCommands;
 import org.armedbear.j.util.Utilities;
 
-public class JavaMode extends AbstractMode implements Constants, Mode {
+public class JavaMode extends AbstractMode implements Mode {
     private static final Pattern NEW_RE = Pattern.compile("\\s+new\\s+");
     private static final Pattern CALL_RE = Pattern.compile("([A-Za-z_$]+[A-Za-z_$0-9]*)\\s*\\(");
 
@@ -109,22 +109,27 @@ public class JavaMode extends AbstractMode implements Constants, Mode {
         jdb = obj;
     }
 
+    @Override
     public boolean canIndent() {
         return true;
     }
 
+    @Override
     public SyntaxIterator getSyntaxIterator(Position pos) {
         return new JavaSyntaxIterator(pos);
     }
 
+    @Override
     public String getCommentStart() {
         return "// ";
     }
 
+    @Override
     public Formatter getFormatter(Buffer buffer) {
         return new JavaFormatter(buffer);
     }
 
+    @Override
     protected void setKeyMapDefaults(KeyMap km) {
         km.mapKey('{', "electricOpenBrace");
         km.mapKey('}', "electricCloseBrace");
@@ -169,6 +174,7 @@ public class JavaMode extends AbstractMode implements Constants, Mode {
         }
     }
 
+    @Override
     public void populateModeMenu(Editor editor, Menu menu) {
         menu.add(editor, "Compile...", 'C', "compile");
         menu.add(editor, "Recompile", 'R', "recompile");
@@ -191,6 +197,7 @@ public class JavaMode extends AbstractMode implements Constants, Mode {
         }
     }
 
+    @Override
     public JPopupMenu getContextMenu(Editor editor) {
         final JPopupMenu popup = new JPopupMenu();
         if (jdb != null) {
@@ -232,6 +239,7 @@ public class JavaMode extends AbstractMode implements Constants, Mode {
         return popup;
     }
 
+    @Override
     public NavigationComponent getSidebarComponent(Editor editor) {
         if (getId() == JAVA_MODE) {
             View view = editor.getCurrentView();
@@ -246,6 +254,7 @@ public class JavaMode extends AbstractMode implements Constants, Mode {
     }
 
     /** A Javadoc reference, {@link Foo#bar}, or else a URL. */
+    @Override
     public TextLink getLinkAt(Editor editor, Position pos) {
         if (getId() == JAVA_MODE) {
             final TextLink link =
@@ -256,26 +265,32 @@ public class JavaMode extends AbstractMode implements Constants, Mode {
         return super.getLinkAt(editor, pos);
     }
 
+    @Override
     public Tagger getTagger(SystemBuffer buffer) {
         return new JavaTagger(buffer);
     }
 
+    @Override
     public boolean isTaggable() {
         return true;
     }
 
+    @Override
     public void foldAll(Editor editor) {
         FoldCommands.foldMethods(editor);
     }
 
+    @Override
     public boolean hasQualifiedNames() {
         return true;
     }
 
+    @Override
     public boolean isQualifiedName(String s) {
         return s.indexOf('.') >= 0;
     }
 
+    @Override
     public int getCorrectIndentation(final Line line, final Buffer buffer) {
         if (line.flags() == STATE_COMMENT)
             return indentComment(line, buffer);
@@ -994,18 +1009,22 @@ public class JavaMode extends AbstractMode implements Constants, Mode {
     }
 
     // Java's iterator for every C-family mode, PHP's too.
+    @Override
     public String trimSyntacticWhitespace(String s) {
         return _trimSyntacticWhitespace(s);
     }
 
+    @Override
     public boolean isIdentifierStart(char c) {
         return Character.isJavaIdentifierStart(c);
     }
 
+    @Override
     public boolean isIdentifierPart(char c) {
         return Character.isJavaIdentifierPart(c);
     }
 
+    @Override
     public boolean isInComment(Buffer buffer, Position pos) {
         if (buffer == null || pos == null) {
             Debug.bug();
@@ -1072,6 +1091,7 @@ public class JavaMode extends AbstractMode implements Constants, Mode {
         return state == STATE_COMMENT;
     }
 
+    @Override
     public boolean isCommentLine(Line line) {
         return line.trim().startsWith("//");
     }
@@ -1157,6 +1177,7 @@ public class JavaMode extends AbstractMode implements Constants, Mode {
         buffer.endCompoundEdit(compoundEdit);
     }
 
+    @Override
     public String getToolTipText(Editor editor, MouseEvent e) {
         if (editor.getModeId() == JAVA_MODE) {
             if (editor.getBuffer().getBooleanProperty(Property.ENABLE_TOOL_TIPS)) {
@@ -1220,6 +1241,7 @@ public class JavaMode extends AbstractMode implements Constants, Mode {
         return super.getExpressionAtDot(editor, exact);
     }
 
+    @Override
     public Expression getExpressionAtDot(final Editor editor, final boolean exact) {
         if (editor.getDot() == null)
             return null;
@@ -1351,14 +1373,17 @@ public class JavaMode extends AbstractMode implements Constants, Mode {
     }
 
     // Line comments and the "* " lines of block comments.
+    @Override
     public String getWrapCommentStart(String trimmed) {
         return Mode.wrapPrefix(trimmed, "// ", "* ");
     }
 
+    @Override
     public boolean supportsIndentBeforeBrace() {
         return true;
     }
 
+    @Override
     public boolean foldsAtBraces() {
         return true;
     }

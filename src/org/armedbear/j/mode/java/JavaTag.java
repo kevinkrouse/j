@@ -20,7 +20,8 @@
 
 package org.armedbear.j.mode.java;
 
-import java.lang.StringBuilder;
+import static org.armedbear.j.Constants.*;
+
 import java.util.StringTokenizer;
 import org.armedbear.j.Editor;
 import org.armedbear.j.LocalTag;
@@ -57,6 +58,7 @@ public final class JavaTag extends LocalTag {
         return parent;
     }
 
+    @Override
     public String getMethodName() {
         return getShortName();
     }
@@ -67,6 +69,7 @@ public final class JavaTag extends LocalTag {
      * types of its parameters, simple or qualified, if the reference gives
      * them.
      */
+    @Override
     public boolean isNamedBy(String anchor) {
         String wanted = anchor.trim();
         String params = null;
@@ -141,6 +144,7 @@ public final class JavaTag extends LocalTag {
             return name;
     }
 
+    @Override
     public String getLongName() {
         if (name.startsWith("class "))
             return name;
@@ -166,6 +170,7 @@ public final class JavaTag extends LocalTag {
         return s;
     }
 
+    @Override
     public String getClassName() {
         if (parent != null)
             return parent.getName();
@@ -257,6 +262,7 @@ public final class JavaTag extends LocalTag {
         }
     }
 
+    @Override
     public String getSidebarText() {
         switch (getType()) {
             case TAG_EXTENDS:
@@ -268,6 +274,7 @@ public final class JavaTag extends LocalTag {
         }
     }
 
+    @Override
     public String getToolTipText() {
         switch (getType()) {
             case TAG_EXTENDS:
@@ -279,6 +286,7 @@ public final class JavaTag extends LocalTag {
         }
     }
 
+    @Override
     public void gotoTag(Editor editor) {
         switch (getType()) {
             case TAG_EXTENDS:

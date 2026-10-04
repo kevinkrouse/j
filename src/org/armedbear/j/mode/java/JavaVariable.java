@@ -20,7 +20,6 @@
 
 package org.armedbear.j.mode.java;
 
-import java.lang.StringBuilder;
 import java.util.StringTokenizer;
 
 public final class JavaVariable {
@@ -66,6 +65,7 @@ public final class JavaVariable {
         return name;
     }
 
+    @Override
     public String toString() {
         StringBuilder sb = new StringBuilder(type);
         sb.append(' ');
