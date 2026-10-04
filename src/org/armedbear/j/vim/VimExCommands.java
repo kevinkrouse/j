@@ -17,6 +17,7 @@ import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 import javax.swing.undo.CompoundEdit;
 import org.armedbear.j.Editor;
+import org.armedbear.j.FileCommands;
 import org.armedbear.j.Line;
 import org.armedbear.j.Lines;
 import org.armedbear.j.Position;
@@ -341,10 +342,10 @@ public final class VimExCommands {
             );
         final org.armedbear.j.Buffer buffer = editor.getBuffer();
         if (file.isEmpty()) {
-            editor.save();
+            FileCommands.save(editor);
             return !buffer.isModified();
         }
-        final org.armedbear.j.File destination = editor.fileNamed(file);
+        final org.armedbear.j.File destination = FileCommands.fileNamed(editor, file);
         if (destination == null)
             throw new VimEx.BadCommand("E32: No file name");
         // The dialog asks before overwriting; without one, vim's rule does.
@@ -359,8 +360,8 @@ public final class VimExCommands {
         // A buffer with no name takes the one it is written to, as in vim;
         // one that has a name keeps it, and FILE gets a copy.
         final boolean written = buffer.isUntitled()
-            ? editor.saveAs(file)
-            : editor.saveCopy(file);
+            ? FileCommands.saveAs(editor, file)
+            : FileCommands.saveCopy(editor, file);
         if (!written)
             throw new VimEx.BadCommand("E212: Can't open file for writing");
         return true;
@@ -383,7 +384,7 @@ public final class VimExCommands {
         if (frame.getEditorCount() > 1)
             WindowCommands.killWindow(editor, "vim");
         else if (quit)
-            editor.quit();
+            FileCommands.quit(editor);
         else
             editor.status("E444: Cannot close last window");
     }
@@ -399,9 +400,9 @@ public final class VimExCommands {
         boolean vertical
     ) {
         if (vertical)
-            editor.openFileInVsplit(command.args);
+            FileCommands.openFileInVsplit(editor, command.args);
         else
-            editor.openFileInSplit(command.args);
+            FileCommands.openFileInSplit(editor, command.args);
     }
 
     // --------------------------------------------------------------- marks

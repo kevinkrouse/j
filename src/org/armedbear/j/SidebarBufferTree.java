@@ -433,7 +433,7 @@ public final class SidebarBufferTree extends SidebarTree implements Constants,
         Editor editor = sidebar.getEditor();
         Buffer[] array = getSelectedBuffers();
         for (int i = 0; i < array.length; i++)
-            editor.save(array[i]);
+            FileCommands.save(editor, array[i]);
         Sidebar.repaintBufferListInAllFrames();
     }
 

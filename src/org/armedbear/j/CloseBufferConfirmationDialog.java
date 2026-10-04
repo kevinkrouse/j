@@ -56,7 +56,7 @@ public final class CloseBufferConfirmationDialog extends ConfirmDialog {
     // Save the changes.
     protected void yes() {
         setVisible(false);
-        editor.save(buffer);
+        FileCommands.save(editor, buffer);
         if (!buffer.isModified()) {
             confirmed = true;
             dispose();

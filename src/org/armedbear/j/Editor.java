@@ -664,7 +664,7 @@ public final class Editor extends JPanel implements Constants,
                 desktop.setAboutHandler(e -> AboutDialog.about());
 
             if (desktop.isSupported(Desktop.Action.APP_QUIT_HANDLER))
-                desktop.setQuitHandler((e, r) -> Editor.currentEditor().quit());
+                desktop.setQuitHandler((e, r) -> FileCommands.quit(Editor.currentEditor()));
         }
     }
 
@@ -1595,195 +1595,6 @@ public final class Editor extends JPanel implements Constants,
         moveCaretToDotCol();
     }
 
-    public void save() {
-        save(buffer);
-    }
-
-    public void save(Buffer toBeSaved) {
-        if (toBeSaved.isLocked())
-            return;
-        if (toBeSaved.getType() == Buffer.TYPE_NORMAL) {
-            if (toBeSaved.isModified()) {
-                if (toBeSaved.isUntitled()) {
-                    saveAs(toBeSaved);
-                } else {
-                    setWaitCursor();
-                    status("Saving...");
-                    if (toBeSaved.getBooleanProperty(Property.REMOVE_TRAILING_WHITESPACE))
-                        toBeSaved.removeTrailingWhitespace();
-                    if (toBeSaved.save())
-                        status("Saving...done");
-                    else
-                        status("Save failed");
-                    setDefaultCursor();
-                }
-            } else
-                status("Not modified");
-        }
-    }
-
-    public void saveAs() {
-        saveAs(buffer);
-    }
-
-    /**
-     * {@code saveAs FILE} saves to FILE and renames the buffer to it, without
-     * the dialog -- which is also what vim's {@code :w FILE} does to a buffer
-     * that has no name yet. A relative name is taken from the buffer's own
-     * directory.
-     *
-     * @return true when the buffer was saved
-     */
-    public boolean saveAs(String path) {
-        if (path == null || path.trim().isEmpty()) {
-            saveAs();
-            return !buffer.isModified();
-        }
-        final File destination = fileNamed(path.trim());
-        if (destination == null)
-            return false;
-        return saveAsTo(buffer, destination);
-    }
-
-    /** A path typed by the user, resolved against this buffer's directory. */
-    public File fileNamed(String path) {
-        final File dir = buffer.getCurrentDirectory();
-        return dir == null
-            ? File.getInstance(path)
-            : File.getInstance(dir, path);
-    }
-
-    private void saveAs(Buffer toBeSaved) {
-        if (toBeSaved.isLocked())
-            return;
-        if (toBeSaved.getType() == Buffer.TYPE_NORMAL) {
-            final String dialogTitle = "Save As";
-            File destination =
-                SaveFileDialog.getSaveFile(this, dialogTitle);
-            if (destination == null)
-                return;
-
-            // At this point, if the target file exists, the user has said
-            // it's OK to overwrite it.
-            repaintNow();
-            saveAsTo(toBeSaved, destination);
-        }
-    }
-
-    /** The checks and the save shared by saveAs, with and without a dialog. */
-    private boolean saveAsTo(Buffer toBeSaved, File destination) {
-        if (
-            toBeSaved.isLocked()
-                || toBeSaved.getType() != Buffer.TYPE_NORMAL
-        )
-            return false;
-        final String dialogTitle = "Save As";
-        // Do we have the target file in a buffer?
-        Buffer buf = bufferList.findBuffer(destination);
-        if (buf != null) {
-            // We do. Can we just get rid of it?
-            if (!buf.isModified()) {
-                buf.deleteAutosaveFile();
-                bufferList.remove(buf);
-            } else {
-                // Buffer is modified.  Make user deal with it.
-                setDefaultCursor();
-                String message = "Target file is in an active buffer.  Please take care of that first.";
-                MessageDialog.showMessageDialog(this, message, dialogTitle);
-                return false;
-            }
-        }
-
-        toBeSaved.saveAs(destination);
-        return !toBeSaved.isModified();
-    }
-
-    /**
-     * {@code saveCopy FILE} writes the buffer to FILE and leaves it named as
-     * it was, without the dialog -- vim's {@code :w FILE} on a buffer that
-     * already has a name.
-     *
-     * @return true when the copy was written
-     */
-    public boolean saveCopy(String path) {
-        if (path == null || path.trim().isEmpty())
-            return false;
-        final File destination = fileNamed(path.trim());
-        return destination != null && saveCopyTo(destination);
-    }
-
-    public void saveCopy() {
-        if (buffer.isLocked())
-            return;
-        if (buffer.getType() == Buffer.TYPE_NORMAL) {
-            final String dialogTitle = "Save Copy";
-            final File destination =
-                SaveFileDialog.getSaveFile(this, dialogTitle);
-            if (destination == null)
-                return;
-
-            repaintNow();
-            saveCopyTo(destination);
-        }
-    }
-
-    /** The checks and the write shared by saveCopy, with and without a dialog. */
-    private boolean saveCopyTo(File destination) {
-        if (buffer.isLocked() || buffer.getType() != Buffer.TYPE_NORMAL)
-            return false;
-        // Do we have the target file in a buffer?
-        Buffer buf = bufferList.findBuffer(destination);
-        if (buf != null) {
-            // We do.  Do we care?
-            if (buf.isModified()) {
-                // Buffer is modified.  Make user deal with it.
-                setDefaultCursor();
-                String message = "Target file is in an active buffer.  Please take care of that first.";
-                MessageDialog.showMessageDialog(this, message, "Save Copy");
-                return false;
-            }
-        }
-
-        buffer.saveCopy(destination);
-        if (buf != null && buf.isLoaded())
-            reload(buf);
-        return true;
-    }
-
-    public void saveAll() {
-        setWaitCursor();
-        int numModified = 0;
-        int numErrors = 0;
-        for (Buffer buf : Editor.getBufferList()) {
-            if (buf.getModeId() == CHECKIN_MODE)
-                continue;
-            if (buf.isUntitled()) {
-                setDefaultCursor();
-                makeNext(buf);
-                activate(buf);
-                saveAs();
-                setWaitCursor();
-            } else if (buf.isModified()) {
-                status("Saving modified buffers...");
-                ++numModified;
-                if (buffer.getFile() != null)
-                    if (buffer.getBooleanProperty(Property.REMOVE_TRAILING_WHITESPACE))
-                        buffer.removeTrailingWhitespace();
-                if (!buf.save())
-                    ++numErrors;
-            }
-        }
-        if (numModified == 0)
-            status("No modified buffers");
-        else if (numErrors == 0)
-            status("Saving modified buffers...done");
-        else {
-            // User will already have seen detailed error information from Buffer.save().
-            status("Unable to save all modified buffers");
-        }
-        setDefaultCursor();
-    }
-
     public boolean okToClose(Buffer buf) {
         if (buf.getType() != Buffer.TYPE_NORMAL)
             return true;
@@ -1795,91 +1606,6 @@ public final class Editor extends JPanel implements Constants,
                 return false;
         }
         return true;
-    }
-
-    public void closeAll() {
-        repaintNow();
-
-        for (Buffer buf : Editor.getBufferList()) {
-            if (!okToClose(buf))
-                return;
-        }
-
-        Marker.invalidateAllMarkers();
-
-        Buffer toBeActivated = null;
-
-        for (Buffer buf : Editor.getBufferList()) {
-            if (buf instanceof DirectoryBuffer && buf.getFile().equals(getCurrentDirectory())) {
-                toBeActivated = buf;
-                break;
-            }
-        }
-
-        if (toBeActivated == null)
-            toBeActivated = new DirectoryBuffer(getCurrentDirectory());
-
-        setWaitCursor();
-
-        for (int i = 0; i < getEditorCount(); i++) {
-            Editor ed = getEditor(i);
-            ed.activate(toBeActivated);
-        }
-
-        for (Buffer buf : Editor.getBufferList()) {
-            if (buf != toBeActivated) {
-                for (Editor ed : Editor.getEditorList()) {
-                    ed.views.remove(buf);
-                }
-                buf.deleteAutosaveFile();
-                Editor.getBufferList().remove(buf);
-                buf.dispose();
-            }
-        }
-
-        setSessionName(null);
-
-        Sidebar.setUpdateFlagInAllFrames(SIDEBAR_BUFFER_LIST_ALL);
-        Sidebar.refreshSidebarInAllFrames();
-        setDefaultCursor();
-    }
-
-    public void closeOthers() {
-        repaintNow();
-
-        Buffer toBeActivated = buffer;
-
-        for (Buffer buf : Editor.getBufferList()) {
-            if (buf != buffer && !okToClose(buf))
-                return;
-        }
-
-        List<Marker> markers = Marker.getAllMarkers();
-        for (int i = 0; i < markers.size(); i++) {
-            Marker m = markers.get(i);
-            if (m != null && m.getBuffer() != buffer)
-                m.invalidate();
-        }
-
-        setWaitCursor();
-
-        for (Editor ed : Editor.getEditorList())
-            ed.activate(toBeActivated);
-
-        for (Buffer buf : Editor.getBufferList()) {
-            if (buf != buffer) {
-                for (Editor ed : Editor.getEditorList()) {
-                    ed.views.remove(buf);
-                }
-                buf.deleteAutosaveFile();
-                Editor.getBufferList().remove(buf);
-                buf.dispose();
-            }
-        }
-
-        Sidebar.setUpdateFlagInAllFrames(SIDEBAR_BUFFER_LIST_ALL);
-        Sidebar.refreshSidebarInAllFrames();
-        setDefaultCursor();
     }
 
     public boolean execute(String command) throws NoSuchMethodException {
@@ -2537,34 +2263,6 @@ public final class Editor extends JPanel implements Constants,
         }
     }
 
-    // It might make sense to move this code into the Buffer class.
-    public void reload(Buffer buf) {
-        if (buf.getFile() instanceof SshFile)
-            return; // Not supported.
-        setWaitCursor();
-        Debug.assertTrue(SwingUtilities.isEventDispatchThread());
-        for (Editor ed : Editor.getEditorList()) {
-            if (ed.getBuffer() == buf)
-                ed.saveView();
-        }
-
-        // May be asynchronous.
-        buf.reload();
-        setDefaultCursor();
-    }
-
-    public void revertBuffer() {
-        final File file = buffer.getFile();
-        if (file instanceof SshFile)
-            return; // Not supported.
-        if (buffer.isModified()) {
-            String prompt = "Discard changes to " + file.canonicalPath() + "?";
-            if (!confirm("Revert Buffer", prompt))
-                return;
-            reload(buffer);
-        }
-    }
-
     // Returns true if the buffer is active and there has been some change
     // that requires us to redraw the menus, title bar or display, false
     // otherwise.
@@ -2608,13 +2306,13 @@ public final class Editor extends JPanel implements Constants,
                     String prompt = file.canonicalPath() +
                         " has changed on disk. Reload and lose current changes?";
                     if (confirm("Reload File From Disk", prompt)) {
-                        reload(buf);
+                        FileCommands.reload(this, buf);
                         changed = true;
                     } else
                         buf.setLastModified(file.lastModified());
                 } else {
                     // No need for confirmation.
-                    reload(buf);
+                    FileCommands.reload(this, buf);
                     changed = true;
                 }
             }
@@ -2689,17 +2387,6 @@ public final class Editor extends JPanel implements Constants,
             }
             frame.dispatchEvent(new WindowEvent(frame, WindowEvent.WINDOW_ACTIVATED));
         }
-    }
-
-    public void quit() {
-        maybeExit();
-    }
-
-    public void saveAllExit() {
-        tagFileManager.setEnabled(false);
-        saveAll();
-        maybeExit(); // May never return.
-        tagFileManager.setEnabled(true);
     }
 
     void maybeExit() {
@@ -2871,68 +2558,6 @@ public final class Editor extends JPanel implements Constants,
         Buffer buf = new Buffer(0);
         makeNext(buf);
         switchToBuffer(buf);
-    }
-
-    public final void openFile() {
-        AWTEvent e = dispatcher.getLastEvent();
-        if (e != null && e.getSource() instanceof MenuItem) {
-            Runnable r = () -> {
-                setFocusToTextField();
-            };
-            SwingUtilities.invokeLater(r);
-        } else
-            setFocusToTextField();
-    }
-
-    /**
-     * {@code openFileInSplit FILE} -- splits the window and opens FILE in
-     * the top one, with the caret, as vim's {@code :split FILE}.
-     */
-    public void openFileInSplit(String file) {
-        splitAndOpen(file, false);
-    }
-
-    /** {@code openFileInVsplit FILE} -- the same, side by side, on the left. */
-    public void openFileInVsplit(String file) {
-        splitAndOpen(file, true);
-    }
-
-    private void splitAndOpen(String file, boolean vertical) {
-        if (frame == null)
-            return;
-        if (vertical)
-            WindowCommands.vsplitWindow(this, "vim");
-        else
-            WindowCommands.splitWindow(this, "vim");
-        if (file == null || file.trim().isEmpty())
-            return;
-        // The caret is in the top or left window now.
-        final Editor top = currentEditor();
-        final Buffer opened = top.openFile(top.fileNamed(file.trim()));
-        if (opened != null) {
-            top.makeNext(opened);
-            top.switchToBuffer(opened);
-        }
-    }
-
-    public void openFileInOtherWindow() {
-        saveView();
-        boolean alreadySplit = frame.hasSplit();
-        if (!alreadySplit)
-            WindowCommands.splitWindow(this);
-        final Editor ed = getOtherEditor();
-        if (ed.getLocationBar() != null) {
-            Runnable r = () -> {
-                frame.setFocus(ed.getLocationBar().getTextField());
-            };
-            SwingUtilities.invokeLater(r);
-            setCurrentEditor(ed);
-            if (alreadySplit) {
-                // Current editor has changed.
-                repaint();
-                ed.repaint();
-            }
-        }
     }
 
     public Buffer openFile(File file) {
@@ -4371,10 +3996,6 @@ public final class Editor extends JPanel implements Constants,
         }
     }
 
-    public void httpDeleteCookies() {
-        Cookie.deleteCookies();
-    }
-
     private static void runStartupScript() {
         File file =
             File.getInstance(Directories.getConfigDirectory(), "init.lisp");
@@ -4506,41 +4127,6 @@ public final class Editor extends JPanel implements Constants,
 
     public final void removeAlias(String alias) {
         getAliases().remove(alias);
-    }
-
-    public void setEncoding() {
-        File file = buffer.getFile();
-        if (file != null) {
-            InputDialog d =
-                new InputDialog(
-                    this,
-                    "Encoding:",
-                    "Set Encoding",
-                    buffer.getSaveEncoding()
-                );
-            d.setHistory(new History("setEncoding"));
-            centerDialog(d);
-            d.setVisible(true);
-            String encoding = d.getInput();
-            if (encoding != null)
-                setEncoding(encoding);
-        }
-    }
-
-    public void setEncoding(String encoding) {
-        File file = buffer.getFile();
-        if (file != null) {
-            if (Utilities.isSupportedEncoding(encoding)) {
-                file.setEncoding(encoding);
-                buffer.saveProperties();
-            } else {
-                StringBuilder sb =
-                    new StringBuilder("Unsupported encoding \"");
-                sb.append(encoding);
-                sb.append('"');
-                MessageDialog.showMessageDialog(this, sb.toString(), "Error");
-            }
-        }
     }
 
     private static String sessionName;

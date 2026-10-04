@@ -32,6 +32,7 @@ import org.armedbear.j.Constants;
 import org.armedbear.j.Debug;
 import org.armedbear.j.Editor;
 import org.armedbear.j.File;
+import org.armedbear.j.FileCommands;
 import org.armedbear.j.Log;
 import org.armedbear.j.MessageDialog;
 import org.armedbear.j.OutputBuffer;
@@ -211,7 +212,7 @@ public class P4 extends VersionControl implements Constants {
                 editor.makeNext(buf);
                 editor.activateInOtherWindow(buf);
             }
-            editor.reload(buffer);
+            FileCommands.reload(editor, buffer);
             // Update read-only status.
             if (editor.reactivate(buffer))
                 Sidebar.repaintBufferListInAllFrames();
