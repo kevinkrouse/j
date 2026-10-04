@@ -298,6 +298,8 @@ public final class KeyMap {
         mapKey(KeyEvent.VK_7, CTRL_MASK, "gotoBookmark");
         mapKey(KeyEvent.VK_8, CTRL_MASK, "gotoBookmark");
         mapKey(KeyEvent.VK_9, CTRL_MASK, "gotoBookmark");
+        // Beside them, and ` is vim's go-to-mark.
+        mapKey(KeyEvent.VK_BACK_QUOTE, CTRL_MASK, "findBookmark");
 
         // Temporary marker commands.
         mapKey(KeyEvent.VK_BACK_SLASH, ALT_MASK, "dropTemporaryMarker");
