@@ -11,8 +11,9 @@
 
 package org.armedbear.j.vcs.git;
 
+import static org.armedbear.j.Constants.*;
+
 import org.armedbear.j.Buffer;
-import org.armedbear.j.Constants;
 import org.armedbear.j.Editor;
 import org.armedbear.j.File;
 import org.armedbear.j.mode.diff.DiffMode;
@@ -20,25 +21,30 @@ import org.armedbear.j.mode.diff.DiffOutputBuffer;
 import org.armedbear.j.vcs.VcsBackend;
 import org.armedbear.j.vcs.VersionControlEntry;
 
-public final class GitBackend implements VcsBackend, Constants {
+public final class GitBackend implements VcsBackend {
+    @Override
     public int id() {
         return VC_GIT;
     }
 
+    @Override
     public String name() {
         return "git";
     }
 
     // A worktree or submodule has a .git file, not a directory.
+    @Override
     public boolean isRoot(File dir) {
         File git = File.getInstance(dir, ".git");
         return git != null && git.exists();
     }
 
+    @Override
     public VersionControlEntry getEntry(Buffer buffer) {
         return GitEntry.getEntry(buffer);
     }
 
+    @Override
     public boolean gotoDiffSource(Editor editor, DiffOutputBuffer buffer) {
         DiffMode.gotoUnifiedDiffSource(editor, buffer, GitBackend::filename, Git::findRoot);
         return true;

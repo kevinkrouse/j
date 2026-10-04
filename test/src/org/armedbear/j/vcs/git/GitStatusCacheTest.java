@@ -34,7 +34,7 @@ import org.junit.jupiter.api.Test;
  */
 public class GitStatusCacheTest {
     private static Map<String, String> parse(String output) {
-        Map<String, String> status = new HashMap<String, String>();
+        Map<String, String> status = new HashMap<>();
         GitStatusCache.parse(output, status);
         return status;
     }

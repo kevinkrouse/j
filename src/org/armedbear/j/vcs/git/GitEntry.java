@@ -20,7 +20,6 @@
 
 package org.armedbear.j.vcs.git;
 
-import java.lang.StringBuilder;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Constants;
 import org.armedbear.j.File;

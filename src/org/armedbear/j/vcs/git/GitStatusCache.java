@@ -36,10 +36,10 @@ import org.armedbear.j.ShellCommand;
 public final class GitStatusCache {
     /** Repository root path -> (path relative to that root -> two letter code). */
     private static final Map<String, Map<String, String>> repositories =
-        new HashMap<String, Map<String, String>>();
+        new HashMap<>();
 
     /** Directories already resolved to a repository root, "" meaning none. */
-    private static final Map<String, String> roots = new HashMap<String, String>();
+    private static final Map<String, String> roots = new HashMap<>();
 
     private GitStatusCache() {}
 
@@ -92,7 +92,7 @@ public final class GitStatusCache {
     }
 
     private static Map<String, String> read(String root) {
-        Map<String, String> status = new HashMap<String, String>();
+        Map<String, String> status = new HashMap<>();
         try {
             // -z so paths arrive verbatim: without it git quotes and escapes
             // anything unusual, which would have to be undone here.
