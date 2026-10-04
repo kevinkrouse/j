@@ -20,9 +20,10 @@
 
 package org.armedbear.j.mode.php;
 
+import static org.armedbear.j.Constants.*;
+
 import java.util.regex.Pattern;
 import org.armedbear.j.Buffer;
-import org.armedbear.j.Constants;
 import org.armedbear.j.Debug;
 import org.armedbear.j.Editor;
 import org.armedbear.j.Formatter;
@@ -39,7 +40,7 @@ import org.armedbear.j.Tagger;
 import org.armedbear.j.mode.java.JavaMode;
 import org.armedbear.j.mode.web.WebMode;
 
-public final class PHPMode extends JavaMode implements Constants, Mode {
+public final class PHPMode extends JavaMode implements Mode {
     private static final Pattern FUNCTION =
         Pattern.compile("^function\\s+&?([a-zA-Z_\u007f-\u00ff][a-zA-Z0-9_\u007f-\u00ff]*)\\s*\\(");
 
@@ -69,34 +70,41 @@ public final class PHPMode extends JavaMode implements Constants, Mode {
         return mode;
     }
 
+    @Override
     public void populateModeMenu(Editor editor, Menu menu) {
         // No mode menu yet.
     }
 
+    @Override
     public SyntaxIterator getSyntaxIterator(Position pos) {
         return new PHPSyntaxIterator(pos);
     }
 
+    @Override
     public Formatter getFormatter(Buffer buffer) {
         return new PHPFormatter(buffer);
     }
 
+    @Override
     public Tagger getTagger(SystemBuffer buffer) {
         return new RegexTagger(buffer, FUNCTION);
     }
 
+    @Override
     public final boolean isIdentifierStart(char c) {
         if (c > 255)
             return false;
         return values[c] == 1;
     }
 
+    @Override
     public final boolean isIdentifierPart(char c) {
         if (c > 255)
             return false;
         return values[c] != 0;
     }
 
+    @Override
     public boolean isInQuote(Buffer buffer, Position pos) {
         if (buffer.getMode() != this)
             Debug.bug();
@@ -177,11 +185,13 @@ public final class PHPMode extends JavaMode implements Constants, Mode {
     };
 
     // Not JavaMode's: wrap after this mode's own comment start.
+    @Override
     public String getWrapCommentStart(String trimmed) {
         return getCommentStart();
     }
 
     // Unlike JavaMode, its properties dialog offers no brace indentation.
+    @Override
     public boolean supportsIndentBeforeBrace() {
         return false;
     }

@@ -20,8 +20,9 @@
 
 package org.armedbear.j.mode.php;
 
+import static org.armedbear.j.Constants.*;
+
 import org.armedbear.j.Buffer;
-import org.armedbear.j.Constants;
 import org.armedbear.j.Debug;
 import org.armedbear.j.Editor;
 import org.armedbear.j.FormatTable;
@@ -34,7 +35,7 @@ import org.armedbear.j.Position;
 import org.armedbear.j.StringPosition;
 import org.armedbear.j.util.Utilities;
 
-public final class PHPFormatter extends Formatter implements Constants {
+public final class PHPFormatter extends Formatter {
     private static final int PHP_STATE_IDENTIFIER = STATE_LAST + 1;
     private static final int PHP_STATE_OPERATOR = STATE_LAST + 2;
     private static final int PHP_STATE_BRACE = STATE_LAST + 3;
@@ -537,6 +538,7 @@ public final class PHPFormatter extends Formatter implements Constants {
         }
     }
 
+    @Override
     public LineSegmentList formatLine(Line line) {
         clearSegmentList();
         if (line == null) {
@@ -547,6 +549,7 @@ public final class PHPFormatter extends Formatter implements Constants {
         return segmentList;
     }
 
+    @Override
     public boolean parseBuffer() {
         Line line = buffer.getFirstLine();
         if (line == null)
@@ -804,6 +807,7 @@ public final class PHPFormatter extends Formatter implements Constants {
         return opchars.indexOf(c) >= 0;
     }
 
+    @Override
     public FormatTable getFormatTable() {
         if (formatTable == null) {
             formatTable = new FormatTable("PHPMode");
