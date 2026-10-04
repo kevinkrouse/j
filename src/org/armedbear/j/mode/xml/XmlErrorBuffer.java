@@ -20,7 +20,6 @@
 
 package org.armedbear.j.mode.xml;
 
-import java.lang.StringBuilder;
 import org.armedbear.j.Editor;
 import org.armedbear.j.File;
 import org.armedbear.j.mode.compilation.CompilationErrorBuffer;
@@ -50,6 +49,7 @@ public final class XmlErrorBuffer extends CompilationErrorBuffer {
         }
     }
 
+    @Override
     public String toString() {
         if (file != null) {
             StringBuilder sb = new StringBuilder();

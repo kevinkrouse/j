@@ -20,7 +20,8 @@
 
 package org.armedbear.j.mode.xml;
 
-import java.lang.StringBuilder;
+import static org.armedbear.j.Constants.*;
+
 import org.armedbear.j.Buffer;
 import org.armedbear.j.FormatTable;
 import org.armedbear.j.Formatter;
@@ -91,6 +92,7 @@ public final class XmlFormatter extends Formatter {
         }
     }
 
+    @Override
     public LineSegmentList formatLine(Line line) {
         clearSegmentList();
         if (line != null)
@@ -350,6 +352,7 @@ public final class XmlFormatter extends Formatter {
             endToken(state);
     }
 
+    @Override
     public boolean parseBuffer() {
         int state = STATE_NEUTRAL;
         Line line = buffer.getFirstLine();
@@ -449,6 +452,7 @@ public final class XmlFormatter extends Formatter {
         return c <= ' ';
     }
 
+    @Override
     public FormatTable getFormatTable() {
         if (formatTable == null) {
             formatTable = new FormatTable("XmlMode");

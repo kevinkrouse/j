@@ -20,7 +20,6 @@
 
 package org.armedbear.j.mode.xml;
 
-import java.lang.StringBuilder;
 import org.xml.sax.Attributes;
 import org.xml.sax.helpers.AttributesImpl;
 
@@ -48,6 +47,7 @@ public final class XmlTreeElement {
     }
 
     // This is used for the text in the sidebar tree.
+    @Override
     public String toString() {
         return getStatusText();
     }

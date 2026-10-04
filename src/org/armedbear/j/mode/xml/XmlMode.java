@@ -20,12 +20,13 @@
 
 package org.armedbear.j.mode.xml;
 
+import static org.armedbear.j.Constants.*;
+
 import java.awt.event.KeyEvent;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.StringReader;
-import java.lang.StringBuilder;
 import java.nio.charset.StandardCharsets;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -37,7 +38,6 @@ import javax.swing.tree.TreePath;
 import javax.swing.undo.CompoundEdit;
 import org.armedbear.j.AbstractMode;
 import org.armedbear.j.Buffer;
-import org.armedbear.j.Constants;
 import org.armedbear.j.Debug;
 import org.armedbear.j.EditCommands;
 import org.armedbear.j.Editor;
@@ -64,7 +64,7 @@ import org.armedbear.j.XmlParserImpl;
 import org.armedbear.j.util.Utilities;
 import org.xml.sax.SAXParseException;
 
-public final class XmlMode extends AbstractMode implements Constants, Mode {
+public final class XmlMode extends AbstractMode implements Mode {
     private static final String COMMENT_START = "<!--";
     private static final String COMMENT_END = "-->";
     private static final String CDATA_START = "<![CDATA[";
@@ -92,6 +92,7 @@ public final class XmlMode extends AbstractMode implements Constants, Mode {
         return errorBuffer;
     }
 
+    @Override
     public NavigationComponent getSidebarComponent(Editor editor) {
         Debug.assertTrue(editor.getBuffer().getMode() == getMode());
         if (!editor.getBuffer().getBooleanProperty(Property.ENABLE_TREE))
@@ -104,18 +105,22 @@ public final class XmlMode extends AbstractMode implements Constants, Mode {
         return view.getSidebarComponent();
     }
 
+    @Override
     public String getCommentStart() {
         return COMMENT_START;
     }
 
+    @Override
     public String getCommentEnd() {
         return COMMENT_END;
     }
 
+    @Override
     public Formatter getFormatter(Buffer buffer) {
         return new XmlFormatter(buffer);
     }
 
+    @Override
     protected void setKeyMapDefaults(KeyMap km) {
         km.mapKey(KeyEvent.VK_TAB, 0, "tab");
         km.mapKey(KeyEvent.VK_TAB, CTRL_MASK, "insertTab");
@@ -144,6 +149,7 @@ public final class XmlMode extends AbstractMode implements Constants, Mode {
         km.mapKey(KeyEvent.VK_F9, CTRL_MASK, "recompile");
     }
 
+    @Override
     public void populateModeMenu(Editor editor, Menu menu) {
         menu.add(editor, "Insert Element", 'I', "xmlInsertTag");
         menu.add(editor, "End Current Element", 'E', "xmlInsertMatchingEndTag");
@@ -157,6 +163,7 @@ public final class XmlMode extends AbstractMode implements Constants, Mode {
         menu.add(editor, "Show Error Message", 'M', "showMessage", enabled);
     }
 
+    @Override
     public void loadFile(Buffer buffer, File file) {
         String encoding = null;
         try {
@@ -206,10 +213,12 @@ public final class XmlMode extends AbstractMode implements Constants, Mode {
         }
     }
 
+    @Override
     public boolean canIndent() {
         return true;
     }
 
+    @Override
     public int getCorrectIndentation(Line line, Buffer buffer) {
         final Line model = getModel(line);
         if (model == null)
@@ -589,6 +598,7 @@ public final class XmlMode extends AbstractMode implements Constants, Mode {
         return model;
     }
 
+    @Override
     public char fixCase(Editor editor, char c) {
         if (!Character.isUpperCase(c) && !Character.isLowerCase(c))
             return c;
@@ -1143,6 +1153,7 @@ public final class XmlMode extends AbstractMode implements Constants, Mode {
         return null;
     }
 
+    @Override
     public boolean foldsAtTags() {
         return true;
     }

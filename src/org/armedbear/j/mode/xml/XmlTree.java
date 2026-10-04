@@ -20,6 +20,8 @@
 
 package org.armedbear.j.mode.xml;
 
+import static org.armedbear.j.Constants.*;
+
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Graphics;
@@ -58,8 +60,8 @@ import org.armedbear.j.util.Background;
 import org.armedbear.j.util.Icons;
 import org.armedbear.j.util.Keys;
 
-public final class XmlTree extends JTree implements Constants, NavigationComponent,
-    TreeSelectionListener, MouseListener, MouseMotionListener, KeyListener {
+public final class XmlTree extends JTree
+    implements NavigationComponent, TreeSelectionListener, MouseListener, MouseMotionListener, KeyListener {
     private final Editor editor;
     private final Buffer buffer;
     private String parserClassName;
@@ -80,6 +82,7 @@ public final class XmlTree extends JTree implements Constants, NavigationCompone
         setCellRenderer(new XmlTreeCellRenderer(this));
     }
 
+    @Override
     public final String getLabelText() {
         return buffer.getFile() != null ? buffer.getFile().getName() : null;
     }
@@ -98,6 +101,7 @@ public final class XmlTree extends JTree implements Constants, NavigationCompone
         return editor;
     }
 
+    @Override
     public synchronized void refresh() {
         if (!SwingUtilities.isEventDispatchThread())
             Debug.bug("XmlTree.refresh() called from background thread!");
@@ -148,6 +152,7 @@ public final class XmlTree extends JTree implements Constants, NavigationCompone
 
     // Update the selected node in the tree, based on the position of dot in
     // the edit buffer.
+    @Override
     public void updatePosition() {
         if (disabled)
             return;
@@ -253,6 +258,7 @@ public final class XmlTree extends JTree implements Constants, NavigationCompone
         );
     }
 
+    @Override
     public void valueChanged(TreeSelectionEvent e) {
         if (editor.getFocusedComponent() != this)
             return;
@@ -268,6 +274,7 @@ public final class XmlTree extends JTree implements Constants, NavigationCompone
         editor.status(statusText);
     }
 
+    @Override
     public void keyPressed(KeyEvent e) {
         final int keyCode = e.getKeyCode();
         final int modifiers = Keys.keyModifiers(e);
@@ -309,15 +316,18 @@ public final class XmlTree extends JTree implements Constants, NavigationCompone
         editor.getDispatcher().setEnabled(false);
     }
 
+    @Override
     public void keyReleased(KeyEvent e) {
         e.consume();
         editor.getDispatcher().setEnabled(true);
     }
 
+    @Override
     public void keyTyped(KeyEvent e) {
         e.consume();
     }
 
+    @Override
     public void mousePressed(MouseEvent e) {
         LocationBar.cancelInput();
         editor.ensureActive();
@@ -338,8 +348,10 @@ public final class XmlTree extends JTree implements Constants, NavigationCompone
             editor.setFocusToDisplay();
     }
 
+    @Override
     public void mouseReleased(MouseEvent e) {}
 
+    @Override
     public void mouseClicked(MouseEvent e) {
         final int button = e.getButton();
         final boolean unmodified = Keys.isUnmodified(e);
@@ -354,6 +366,7 @@ public final class XmlTree extends JTree implements Constants, NavigationCompone
         editor.setFocusToDisplay();
     }
 
+    @Override
     public void mouseMoved(MouseEvent e) {
         if (editor.getStatusBar() == null)
             return;
@@ -372,8 +385,10 @@ public final class XmlTree extends JTree implements Constants, NavigationCompone
         }
     }
 
+    @Override
     public void mouseEntered(MouseEvent e) {}
 
+    @Override
     public void mouseExited(MouseEvent e) {
         editor.setFocusToDisplay();
         if (editor.getStatusBar() != null) {
@@ -382,6 +397,7 @@ public final class XmlTree extends JTree implements Constants, NavigationCompone
         }
     }
 
+    @Override
     public void mouseDragged(MouseEvent e) {}
 
     private void moveDotToNode(DefaultMutableTreeNode node) {
@@ -629,6 +645,7 @@ public final class XmlTree extends JTree implements Constants, NavigationCompone
             oldBackgroundSelectionColor = getBackgroundSelectionColor();
         }
 
+        @Override
         public void updateUI() {
             super.updateUI();
             setOpenIcon(Icons.getIconFromFile("branch"));
@@ -636,6 +653,7 @@ public final class XmlTree extends JTree implements Constants, NavigationCompone
             setLeafIcon(Icons.getIconFromFile("leaf"));
         }
 
+        @Override
         public Component getTreeCellRendererComponent(
             JTree tree,
             Object value,
@@ -665,6 +683,7 @@ public final class XmlTree extends JTree implements Constants, NavigationCompone
             return this;
         }
 
+        @Override
         public void paintComponent(Graphics g) {
             Display.setRenderingHints(g);
             super.paintComponent(g);
