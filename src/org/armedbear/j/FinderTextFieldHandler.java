@@ -287,18 +287,23 @@ public abstract class FinderTextFieldHandler extends DefaultTextFieldHandler {
             default:
                 break;
         }
-        // The other finder's key switches to it.
+        // findAction's key toggles between the finders, and findFileInProject's
+        // goes to it; the query comes along.
         KeyMapping mapping = editor.getKeyMapping(e.getKeyChar(), e.getKeyCode(), modifiers);
         if (mapping != null) {
             Object command = mapping.getCommand();
-            if ("findAction".equals(command) && !(this instanceof ActionTextFieldHandler)) {
+            final String query = textField.getText();
+            if ("findAction".equals(command)) {
                 e.consume();
-                ProjectCommands.findAction(editor);
+                if (this instanceof ActionTextFieldHandler)
+                    ProjectCommands.findFileInProject(editor, query);
+                else
+                    ProjectCommands.findAction(editor, query);
                 return;
             }
             if ("findFileInProject".equals(command) && !(this instanceof FindFileTextFieldHandler)) {
                 e.consume();
-                ProjectCommands.findFileInProject(editor);
+                ProjectCommands.findFileInProject(editor, query);
                 return;
             }
         }

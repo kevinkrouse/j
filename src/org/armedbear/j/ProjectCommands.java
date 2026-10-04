@@ -52,6 +52,11 @@ public final class ProjectCommands {
 
     /** Finds a file in the project, open buffers and recent files, from the location bar. */
     public static void findFileInProject(Editor editor) {
+        findFileInProject(editor, "");
+    }
+
+    /** As findFileInProject, starting from query. */
+    static void findFileInProject(Editor editor, String query) {
         final LocationBar locationBar = editor.getLocationBar();
         if (locationBar == null)
             return;
@@ -60,7 +65,8 @@ public final class ProjectCommands {
         FindFileTextFieldHandler handler = new FindFileTextFieldHandler(editor, textField);
         textField.setHandler(handler);
         textField.setHistory(new History("findFileInProject.input", 30));
-        textField.setText("");
+        textField.setText(query);
+        textField.setCaretPosition(query.length());
         editor.setFocusToTextField();
         // After the focus has moved, so the list shows.
         SwingUtilities.invokeLater(handler::start);
@@ -68,6 +74,11 @@ public final class ProjectCommands {
 
     /** Finds a command by name or summary, from the location bar, and runs it. */
     public static void findAction(Editor editor) {
+        findAction(editor, "");
+    }
+
+    /** As findAction, starting from query. */
+    static void findAction(Editor editor, String query) {
         final LocationBar locationBar = editor.getLocationBar();
         if (locationBar == null)
             return;
@@ -77,7 +88,8 @@ public final class ProjectCommands {
         ActionTextFieldHandler handler = new ActionTextFieldHandler(editor, textField);
         textField.setHandler(handler);
         textField.setHistory(new History("findAction.input", 30));
-        textField.setText("");
+        textField.setText(query);
+        textField.setCaretPosition(query.length());
         editor.setFocusToTextField();
         SwingUtilities.invokeLater(handler::start);
     }
