@@ -20,14 +20,15 @@
 
 package org.armedbear.j.mode.text;
 
+import static org.armedbear.j.Constants.*;
+
 import java.awt.event.KeyEvent;
 import org.armedbear.j.AbstractMode;
-import org.armedbear.j.Constants;
 import org.armedbear.j.KeyMap;
 import org.armedbear.j.Mode;
 import org.armedbear.j.Property;
 
-public final class PlainTextMode extends AbstractMode implements Constants, Mode {
+public final class PlainTextMode extends AbstractMode implements Mode {
     private static final PlainTextMode mode = new PlainTextMode();
 
     private PlainTextMode() {
@@ -40,6 +41,7 @@ public final class PlainTextMode extends AbstractMode implements Constants, Mode
         return mode;
     }
 
+    @Override
     protected void setKeyMapDefaults(KeyMap km) {
         km.mapKey(
             KeyEvent.VK_F12,

@@ -33,12 +33,14 @@ public final class PlainTextFormatter extends Formatter {
         this.buffer = buffer;
     }
 
+    @Override
     public LineSegmentList formatLine(Line line) {
         clearSegmentList();
         addSegment(getDetabbedText(line), FORMAT_TEXT);
         return segmentList;
     }
 
+    @Override
     public FormatTable getFormatTable() {
         if (formatTable == null) {
             formatTable = new FormatTable(null);
