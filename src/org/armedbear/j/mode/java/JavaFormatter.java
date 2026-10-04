@@ -28,17 +28,22 @@ import org.armedbear.j.Line;
 import org.armedbear.j.LineSegment;
 import org.armedbear.j.LineSegmentList;
 
-public final class JavaFormatter extends Formatter implements Constants {
-    private static final int JAVA_FORMAT_TEXT = 0;
-    private static final int JAVA_FORMAT_COMMENT = 1;
-    private static final int JAVA_FORMAT_STRING = 2;
-    private static final int JAVA_FORMAT_IDENTIFIER = 3;
-    private static final int JAVA_FORMAT_KEYWORD = 4;
-    private static final int JAVA_FORMAT_FUNCTION = 5;
-    private static final int JAVA_FORMAT_OPERATOR = 6;
-    private static final int JAVA_FORMAT_BRACE = 7;
-    private static final int JAVA_FORMAT_NUMBER = 8;
+/**
+ * Java's and JavaScript's formatter, and the C family's base: CFormatter adds
+ * preprocessor lines and #if 0 blocks.
+ */
+public class JavaFormatter extends Formatter implements Constants {
+    protected static final int JAVA_FORMAT_TEXT = 0;
+    protected static final int JAVA_FORMAT_COMMENT = 1;
+    protected static final int JAVA_FORMAT_STRING = 2;
+    protected static final int JAVA_FORMAT_IDENTIFIER = 3;
+    protected static final int JAVA_FORMAT_KEYWORD = 4;
+    protected static final int JAVA_FORMAT_FUNCTION = 5;
+    protected static final int JAVA_FORMAT_OPERATOR = 6;
+    protected static final int JAVA_FORMAT_BRACE = 7;
+    protected static final int JAVA_FORMAT_NUMBER = 8;
 
+    /** The last format JavaFormatter uses; CFormatter and HtmlFormatter number theirs after it. */
     public static final int JAVA_FORMAT_LAST = 8;
 
     private final int language;
@@ -52,41 +57,59 @@ public final class JavaFormatter extends Formatter implements Constants {
         this.language = language;
     }
 
+    /** Whether lines starting with '#' are preprocessor directives, as in C. */
+    protected boolean hasPreprocessor() {
+        return false;
+    }
+
+    /** Whether a string open at the end of a line continues on the next. */
+    protected boolean quoteContinues(boolean backslashAtEnd) {
+        return language != LANGUAGE_JAVA;
+    }
+
+    protected boolean isOperatorChar(char c) {
+        return "!&|<>=+/*-^".indexOf(c) >= 0;
+    }
+
+    /** The format for a token in state; a subclass maps states of its own. */
+    protected int format(int state) {
+        switch (state) {
+            case STATE_QUOTE:
+                return JAVA_FORMAT_STRING;
+            case STATE_IDENTIFIER:
+                return JAVA_FORMAT_IDENTIFIER;
+            case STATE_COMMENT:
+                return JAVA_FORMAT_COMMENT;
+            case STATE_OPERATOR:
+                return JAVA_FORMAT_OPERATOR;
+            case STATE_BRACE:
+                return JAVA_FORMAT_BRACE;
+            case STATE_NUMBER:
+            case STATE_HEXNUMBER:
+                return JAVA_FORMAT_NUMBER;
+            default:
+                return JAVA_FORMAT_TEXT;
+        }
+    }
+
     private int tokenBegin = 0;
 
     private void endToken(String text, int tokenEnd, int state) {
         if (tokenEnd - tokenBegin > 0) {
-            int format = JAVA_FORMAT_TEXT;
-            switch (state) {
-                case STATE_NEUTRAL:
-                    format = JAVA_FORMAT_TEXT;
-                    break;
-                case STATE_QUOTE:
-                    format = JAVA_FORMAT_STRING;
-                    break;
-                case STATE_IDENTIFIER:
-                    format = JAVA_FORMAT_IDENTIFIER;
-                    break;
-                case STATE_COMMENT:
-                    format = JAVA_FORMAT_COMMENT;
-                    break;
-                case STATE_OPERATOR:
-                    format = JAVA_FORMAT_OPERATOR;
-                    break;
-                case STATE_BRACE:
-                    format = JAVA_FORMAT_BRACE;
-                    break;
-                case STATE_NUMBER:
-                case STATE_HEXNUMBER:
-                    format = JAVA_FORMAT_NUMBER;
-                    break;
-            }
-            addSegment(text, tokenBegin, tokenEnd, format);
+            addSegment(text, tokenBegin, tokenEnd, format(state));
             tokenBegin = tokenEnd;
         }
     }
 
-    private void parseLine(Line line) {
+    private boolean isIdentifierStart(char c) {
+        return getLanguageMode().isIdentifierStart(c);
+    }
+
+    private boolean isIdentifierPart(char c) {
+        return getLanguageMode().isIdentifierPart(c);
+    }
+
+    protected void parseLine(Line line) {
         final String text = getDetabbedText(line);
         tokenBegin = 0;
         boolean isPreprocessorLine = false;
@@ -106,6 +129,18 @@ public final class JavaFormatter extends Formatter implements Constants {
             }
         }
         char c;
+        // A preprocessor directive's '#' is the first non-whitespace character.
+        if (hasPreprocessor() && i < limit && state == STATE_NEUTRAL && text.charAt(i) == '#') {
+            state = STATE_PREPROCESSOR;
+            isPreprocessorLine = true;
+            ++i;
+            while (i < limit && (Character.isWhitespace(c = text.charAt(i)) || c == '#'))
+                ++i;
+            while (i < limit && (c = text.charAt(i)) >= 'a' && c <= 'z')
+                ++i;
+            endToken(text, i, state);
+            state = STATE_NEUTRAL;
+        }
         if (state == STATE_SCRIPT)
             state = STATE_NEUTRAL;
         while (i < limit) {
@@ -154,7 +189,7 @@ public final class JavaFormatter extends Formatter implements Constants {
                     ++i;
                 continue;
             }
-            if (isOperatorChar(c)) {
+            if (!isPreprocessorLine && isOperatorChar(c)) {
                 if (state != STATE_OPERATOR) {
                     endToken(text, i, state);
                     // Check for keyword (as in e.g. "char*").
@@ -171,7 +206,7 @@ public final class JavaFormatter extends Formatter implements Constants {
                     endToken(text, i, state);
                     // Check for keyword (e.g. "try").
                     LineSegment segment = getLastSegment();
-                    if (segment != null && isKeyword(segment.getText()))
+                    if (!isPreprocessorLine && segment != null && isKeyword(segment.getText()))
                         segment.setFormat(JAVA_FORMAT_KEYWORD);
                     state = STATE_BRACE;
                 }
@@ -179,21 +214,18 @@ public final class JavaFormatter extends Formatter implements Constants {
                 continue;
             }
             if (state == STATE_OPERATOR || state == STATE_BRACE) {
-                if (Character.isJavaIdentifierStart(c)) {
-                    endToken(text, i, state);
+                endToken(text, i, state);
+                if (isIdentifierStart(c))
                     state = STATE_IDENTIFIER;
-                } else if (Character.isDigit(c)) {
-                    endToken(text, i, state);
+                else if (Character.isDigit(c))
                     state = STATE_NUMBER;
-                } else {
-                    endToken(text, i, state);
+                else
                     state = STATE_NEUTRAL;
-                }
                 ++i;
                 continue;
             }
             if (state == STATE_IDENTIFIER) {
-                if (!Character.isJavaIdentifierPart(c)) {
+                if (!isIdentifierPart(c)) {
                     endToken(text, i, state);
                     // Check for keyword or function.
                     LineSegment segment = getLastSegment();
@@ -226,10 +258,7 @@ public final class JavaFormatter extends Formatter implements Constants {
                     state = STATE_HEXNUMBER;
                 else {
                     endToken(text, i, state);
-                    if (Character.isJavaIdentifierStart(c))
-                        state = STATE_IDENTIFIER;
-                    else
-                        state = STATE_NEUTRAL;
+                    state = isIdentifierStart(c) ? STATE_IDENTIFIER : STATE_NEUTRAL;
                 }
                 ++i;
                 continue;
@@ -243,16 +272,13 @@ public final class JavaFormatter extends Formatter implements Constants {
                     ;
                 else {
                     endToken(text, i, state);
-                    if (Character.isJavaIdentifierStart(c))
-                        state = STATE_IDENTIFIER;
-                    else
-                        state = STATE_NEUTRAL;
+                    state = isIdentifierStart(c) ? STATE_IDENTIFIER : STATE_NEUTRAL;
                 }
                 ++i;
                 continue;
             }
             if (state == STATE_NEUTRAL) {
-                if (Character.isJavaIdentifierStart(c)) {
+                if (isIdentifierStart(c)) {
                     endToken(text, i, state);
                     state = STATE_IDENTIFIER;
                 } else if (Character.isDigit(c)) {
@@ -264,7 +290,7 @@ public final class JavaFormatter extends Formatter implements Constants {
         }
         // Reached end of line.
         endToken(text, i, state);
-        if (state == STATE_IDENTIFIER) {
+        if (state == STATE_IDENTIFIER && !isPreprocessorLine) {
             // Last token might be a keyword.
             LineSegment segment = getLastSegment();
             if (segment != null && isKeyword(segment.getText()))
@@ -274,32 +300,50 @@ public final class JavaFormatter extends Formatter implements Constants {
 
     public LineSegmentList formatLine(Line line) {
         clearSegmentList();
-        if (line == null) {
+        if (line == null)
             addSegment("", JAVA_FORMAT_TEXT);
-            return segmentList;
-        }
-        parseLine(line);
+        else
+            parseLine(line);
         return segmentList;
+    }
+
+    /**
+     * If line starts a block the language disables, as C's #if 0, the first
+     * line past it (null at the end of the buffer); otherwise line itself.
+     */
+    protected Line endOfDisabledBlock(Line line) {
+        return line;
     }
 
     public boolean parseBuffer() {
         int state = STATE_NEUTRAL;
+        boolean backslashAtEnd = false;
         Line line = buffer.getFirstLine();
         boolean changed = false;
         while (line != null) {
-            int oldflags = line.flags();
-            // Quoted strings can't span lines in Java.
-            if (state == STATE_QUOTE && language == LANGUAGE_JAVA)
+            if (state == STATE_QUOTE && !quoteContinues(backslashAtEnd))
                 state = STATE_NEUTRAL;
-
-            if (state != oldflags) {
+            if (state == STATE_NEUTRAL) {
+                Line end = endOfDisabledBlock(line);
+                if (end != line) {
+                    for (; line != end; line = line.next()) {
+                        if (line.flags() != STATE_DISABLED) {
+                            line.setFlags(STATE_DISABLED);
+                            changed = true;
+                        }
+                    }
+                    continue;
+                }
+            }
+            if (state != line.flags()) {
                 line.setFlags(state);
                 changed = true;
             }
             char quoteChar = state == STATE_QUOTE ? '"' : '\0';
             final int limit = line.length();
+            char c = '\0';
             for (int i = 0; i < limit; i++) {
-                char c = line.charAt(i);
+                c = line.charAt(i);
                 if (c == '\\' && i < limit - 1) {
                     // Escape.
                     ++i;
@@ -322,7 +366,6 @@ public final class JavaFormatter extends Formatter implements Constants {
                     }
                     continue;
                 }
-
                 // Not in comment or quoted string.
                 if (c == '/' && i < limit - 1) {
                     c = line.charAt(++i);
@@ -337,30 +380,31 @@ public final class JavaFormatter extends Formatter implements Constants {
                     quoteChar = c;
                 }
             }
+            backslashAtEnd = c == '\\';
             line = line.next();
         }
         buffer.setNeedsParsing(false);
         return changed;
     }
 
-    private static final boolean isOperatorChar(char c) {
-        return "!&|<>=+/*-^".indexOf(c) >= 0;
-    }
-
     public FormatTable getFormatTable() {
         if (formatTable == null) {
             // Shared with JavaScript: JavaMode.color.* colors both.
             formatTable = new FormatTable("JavaMode");
-            formatTable.addEntryFromPrefs(JAVA_FORMAT_TEXT, "text");
-            formatTable.addEntryFromPrefs(JAVA_FORMAT_COMMENT, "comment");
-            formatTable.addEntryFromPrefs(JAVA_FORMAT_STRING, "string");
-            formatTable.addEntryFromPrefs(JAVA_FORMAT_IDENTIFIER, "identifier", "text");
-            formatTable.addEntryFromPrefs(JAVA_FORMAT_KEYWORD, "keyword");
-            formatTable.addEntryFromPrefs(JAVA_FORMAT_FUNCTION, "function");
-            formatTable.addEntryFromPrefs(JAVA_FORMAT_OPERATOR, "operator");
-            formatTable.addEntryFromPrefs(JAVA_FORMAT_BRACE, "brace");
-            formatTable.addEntryFromPrefs(JAVA_FORMAT_NUMBER, "number");
+            addEntries(formatTable);
         }
         return formatTable;
+    }
+
+    protected static void addEntries(FormatTable table) {
+        table.addEntryFromPrefs(JAVA_FORMAT_TEXT, "text");
+        table.addEntryFromPrefs(JAVA_FORMAT_COMMENT, "comment");
+        table.addEntryFromPrefs(JAVA_FORMAT_STRING, "string");
+        table.addEntryFromPrefs(JAVA_FORMAT_IDENTIFIER, "identifier", "text");
+        table.addEntryFromPrefs(JAVA_FORMAT_KEYWORD, "keyword");
+        table.addEntryFromPrefs(JAVA_FORMAT_FUNCTION, "function");
+        table.addEntryFromPrefs(JAVA_FORMAT_OPERATOR, "operator");
+        table.addEntryFromPrefs(JAVA_FORMAT_BRACE, "brace");
+        table.addEntryFromPrefs(JAVA_FORMAT_NUMBER, "number");
     }
 }
