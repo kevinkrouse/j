@@ -101,6 +101,7 @@ public final class IncrementalFindTextFieldHandler extends DefaultTextFieldHandl
     }
 
     @Override
+    @SuppressWarnings("fallthrough") // Enter ends the search as the arrow keys do.
     public void keyPressed(KeyEvent e) {
         final char keyChar = e.getKeyChar();
         final int keyCode = e.getKeyCode();

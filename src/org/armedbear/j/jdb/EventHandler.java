@@ -84,7 +84,7 @@ public final class EventHandler implements Runnable {
                     jdb.setSuspended(true);
                     // Set current thread and stack frame.
                     if (eventSet.size() > 0) {
-                        Event event = (Event) eventSet.iterator().next();
+                        Event event = eventSet.iterator().next();
                         ThreadReference threadRef = getThreadForEvent(event);
                         if (threadRef != null) {
                             jdb.setCurrentThread(threadRef);

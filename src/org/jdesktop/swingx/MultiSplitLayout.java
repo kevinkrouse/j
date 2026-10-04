@@ -247,7 +247,7 @@ public class MultiSplitLayout implements LayoutManager {
      */
     public Component getComponentForNode(Node n) {
         String name = ((Leaf) n).getName();
-        return (name != null) ? (Component) childMap.get(name) : null;
+        return (name != null) ? childMap.get(name) : null;
     }
 
     /**
@@ -529,7 +529,7 @@ public class MultiSplitLayout implements LayoutManager {
                         Split p = s.getParent();
                         if (p == null) {
                             if (s.getChildren().size() > 0)
-                                model = (Node) s.getChildren().get(0);
+                                model = s.getChildren().get(0);
                             else
                                 model = null;
                             s.setChildren(Collections.<Node>emptyList()); // KHK: release model node from parent, and null out model's parent

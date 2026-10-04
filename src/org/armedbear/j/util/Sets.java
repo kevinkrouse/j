@@ -1,6 +1,5 @@
 package org.armedbear.j.util;
 
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -13,7 +12,8 @@ public class Sets {
     public static <E> Set<E> newHashSet(E... values) {
         int capacity = Math.max(2 * values.length, 11);
         HashSet<E> set = new HashSet<>(capacity);
-        Collections.addAll(set, values);
+        for (E value : values)
+            set.add(value);
         return set;
     }
 }

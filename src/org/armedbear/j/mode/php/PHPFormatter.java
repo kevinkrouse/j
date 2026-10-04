@@ -139,6 +139,7 @@ public final class PHPFormatter extends Formatter {
         }
     }
 
+    @SuppressWarnings("fallthrough") // PHP code ends at ?>, and HTML follows.
     private void parseLine(Line line) {
         String text;
         if (Editor.tabsAreVisible())

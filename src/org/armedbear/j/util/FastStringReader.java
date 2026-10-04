@@ -117,7 +117,7 @@ public final class FastStringReader extends Reader {
     @Override
     public long skip(long count) {
         final long actual = Math.min(count, length - index);
-        index += actual;
+        index += (int) actual;
         return actual;
     }
 

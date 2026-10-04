@@ -1031,11 +1031,11 @@ public final class VimInputHandler implements InputHandler {
     }
 
     /**
-     * : takes the keyboard the same way, but parks no command: an ex line is
-     * read and run on its own rather than completing something half-typed.
-     */
-    /**
      * The two EX-kind commands: {@code :} opens the prompt, {@code @} repeats.
+     *
+     * {@code :} takes the keyboard as a search does, but parks no command: an
+     * ex line is read and run on its own rather than completing something
+     * half-typed.
      *
      * {@code @} is the macro command, and macros are not built: only the
      * {@code :} register it can name exists, so {@code @a} does nothing,
@@ -1301,7 +1301,6 @@ public final class VimInputHandler implements InputHandler {
         resumeInsert(editor);
     }
 
-    /** The prompt was abandoned, so the command it belonged to is too. */
     /**
      * incsearch: the pattern typed so far, shown as the prompt is typed in
      * -- the caret on the match it would find, and with hlsearch every
@@ -1415,6 +1414,7 @@ public final class VimInputHandler implements InputHandler {
         editor.updateDotLine();
     }
 
+    /** The prompt was abandoned, so the command it belonged to is too. */
     public void searchCancelled(Editor editor) {
         dropPartialCommand(editor);
         // Else the d of an abandoned d/ stays recorded, and the next change

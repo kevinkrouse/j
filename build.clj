@@ -405,10 +405,19 @@
 
 ;; lint
 
+(def ^:private errorprone-promoted
+  "Warning-level checks the code is clean of, made errors so it stays so."
+  ["BadInstanceof" "ClassCanBeStatic" "DefaultCharset" "FallThrough" "IntLongMath"
+   "JavaTimeDefaultTimeZone" "MissingOverride" "NarrowCalculation" "NarrowingCompoundAssignment"
+   "PatternMatchingInstanceof" "StaticAssignmentInConstructor" "StaticQualifiedUsingExpression"
+   "StringCaseLocaleUsage" "SynchronizeOnNonFinalField" "ToStringReturnsNull"
+   "UnsafeReflectiveConstructionCast" "UnsynchronizedOverridesSynchronized"])
+
 (def ^:private errorprone-opts
   (concat
    ["-XDcompilePolicy=simple" "--should-stop=ifError=FLOW"
-    "-Xplugin:ErrorProne -XepDisableAllWarnings"]
+    (str/join " " (into ["-Xplugin:ErrorProne" "-XepDisableAllWarnings"]
+                        (map #(str "-Xep:" % ":ERROR") errorprone-promoted)))]
    ;; Error Prone runs inside javac and uses its internals.
    (for [p ["api" "file" "main" "model" "parser" "processing" "tree" "util"]]
      (str "-J--add-exports=jdk.compiler/com.sun.tools.javac." p "=ALL-UNNAMED"))
@@ -416,8 +425,9 @@
      (str "-J--add-opens=jdk.compiler/com.sun.tools.javac." p "=ALL-UNNAMED"))))
 
 (defn lint
-  "Compile core with -Xlint and Error Prone. Error Prone errors fail the
-  build; -Xlint warnings are counted, not yet fatal."
+  "Compile core with -Xlint and Error Prone. Any warning or error fails.
+  this-escape is off: Swing components register themselves as listeners in
+  their constructors."
   [opts]
   (check-javac!)
   (let [out     (str build-dir "/lint")
@@ -429,12 +439,10 @@
     (let [{:keys [exit err]}
           (apply shell {:continue true :err :string}
                  "javac" "--release" java-version-min "-d" (abs-path out)
-                 "-Xlint:all,-serial" "-Xmaxwarns" "100000"
+                 "-Xlint:all,-serial,-this-escape" "-Werror" "-Xmaxwarns" "100000"
                  "-processorpath" (join-paths (lib-jars (basis :errorprone)))
                  (concat errorprone-opts [(str "@" (abs-path sources))]))]
       (binding [*out* *err*] (print err) (flush))
-      ;; javac's lint keys are lower case; Error Prone's are CamelCase.
-      (println "-Xlint warnings:" (count (re-seq #": warning: \[[a-z-]+\]" err)))
       (when-not (zero? exit)
         (throw (ex-info "lint failed" {})))))
   opts)
