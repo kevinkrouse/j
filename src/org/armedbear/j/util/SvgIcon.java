@@ -59,11 +59,9 @@ import org.w3c.dom.Node;
  * See {@link Utilities#getIconFromFile} for the cache that callers actually go
  * through.
  */
-public final class SvgIcon
-{
+public final class SvgIcon {
     /** One shape plus the paint settings in force where it appeared. */
-    private static final class Op
-    {
+    private static final class Op {
         Shape shape;
         Color fill;
         Color stroke;
@@ -85,13 +83,11 @@ public final class SvgIcon
      * @param defaultColor resolves {@code currentColor} when the file doesn't
      *                     name a color of its own; may be null.
      */
-    public SvgIcon(String name, Color defaultColor) throws Exception
-    {
+    public SvgIcon(String name, Color defaultColor) throws Exception {
         this(name, open(name), defaultColor);
     }
 
-    private static InputStream open(String name)
-    {
+    private static InputStream open(String name) {
         final String path = "images/svg/" + name + ".svg";
         InputStream in = org.armedbear.j.Editor.class.getResourceAsStream(path);
         if (in == null)
@@ -108,8 +104,7 @@ public final class SvgIcon
      * drift, and a test that lists one while loading the other quietly stops
      * checking anything.
      */
-    public SvgIcon(String name, InputStream in, Color defaultColor) throws Exception
-    {
+    public SvgIcon(String name, InputStream in, Color defaultColor) throws Exception {
         this.name = name;
         Document doc;
         try {
@@ -119,7 +114,10 @@ public final class SvgIcon
             doc = builder.parse(in);
         }
         finally {
-            try { in.close(); } catch (Exception ignored) {}
+            try {
+                in.close();
+            }
+            catch (Exception ignored) {}
         }
 
         Element root = doc.getDocumentElement();
@@ -145,20 +143,22 @@ public final class SvgIcon
         walk(root, inherited, current);
     }
 
-    public double getViewBoxWidth()
-    {
+    public double getViewBoxWidth() {
         return viewBoxWidth;
     }
 
     /** Paints the icon into a {@code size} by {@code size} box at the origin. */
-    public void paint(Graphics2D g, int size)
-    {
+    public void paint(Graphics2D g, int size) {
         Graphics2D g2d = (Graphics2D) g.create();
         try {
-            g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
-                                 RenderingHints.VALUE_ANTIALIAS_ON);
-            g2d.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL,
-                                 RenderingHints.VALUE_STROKE_PURE);
+            g2d.setRenderingHint(
+                RenderingHints.KEY_ANTIALIASING,
+                RenderingHints.VALUE_ANTIALIAS_ON
+            );
+            g2d.setRenderingHint(
+                RenderingHints.KEY_STROKE_CONTROL,
+                RenderingHints.VALUE_STROKE_PURE
+            );
             g2d.scale(size / viewBoxWidth, size / viewBoxHeight);
             for (int i = 0; i < ops.size(); i++) {
                 Op op = ops.get(i);
@@ -168,9 +168,11 @@ public final class SvgIcon
                 }
                 if (op.stroke != null) {
                     g2d.setColor(op.stroke);
-                    g2d.setStroke(op.dash == null
-                        ? new BasicStroke(op.width, op.cap, op.join, 10f)
-                        : new BasicStroke(op.width, op.cap, op.join, 10f, op.dash, 0f));
+                    g2d.setStroke(
+                        op.dash == null
+                            ? new BasicStroke(op.width, op.cap, op.join, 10f)
+                            : new BasicStroke(op.width, op.cap, op.join, 10f, op.dash, 0f)
+                    );
                     g2d.draw(op.shape);
                 }
             }
@@ -189,14 +191,17 @@ public final class SvgIcon
      * caller decides what it means: {@link Utilities#getBadgedIcon} clears with it,
      * which opens a gap between a badge and whatever it sits on top of.
      */
-    public void paintOutline(Graphics2D g, int size, float spread)
-    {
+    public void paintOutline(Graphics2D g, int size, float spread) {
         Graphics2D g2d = (Graphics2D) g.create();
         try {
-            g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
-                                 RenderingHints.VALUE_ANTIALIAS_ON);
-            g2d.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL,
-                                 RenderingHints.VALUE_STROKE_PURE);
+            g2d.setRenderingHint(
+                RenderingHints.KEY_ANTIALIASING,
+                RenderingHints.VALUE_ANTIALIAS_ON
+            );
+            g2d.setRenderingHint(
+                RenderingHints.KEY_STROKE_CONTROL,
+                RenderingHints.VALUE_STROKE_PURE
+            );
             g2d.scale(size / viewBoxWidth, size / viewBoxHeight);
             for (int i = 0; i < ops.size(); i++) {
                 Op op = ops.get(i);
@@ -204,8 +209,14 @@ public final class SvgIcon
                     continue;
                 // A filled shape has no stroke width of its own to widen.
                 final float width = (op.stroke != null ? op.width : 0f) + spread;
-                g2d.setStroke(new BasicStroke(width, BasicStroke.CAP_ROUND,
-                                              BasicStroke.JOIN_ROUND, 10f));
+                g2d.setStroke(
+                    new BasicStroke(
+                        width,
+                        BasicStroke.CAP_ROUND,
+                        BasicStroke.JOIN_ROUND,
+                        10f
+                    )
+                );
                 g2d.draw(op.shape);
                 if (op.fill != null)
                     g2d.fill(op.shape);
@@ -216,8 +227,7 @@ public final class SvgIcon
         }
     }
 
-    private void walk(Node parent, Map<String, String> inherited, Color current)
-    {
+    private void walk(Node parent, Map<String, String> inherited, Color current) {
         for (Node n = parent.getFirstChild(); n != null; n = n.getNextSibling()) {
             if (n.getNodeType() != Node.ELEMENT_NODE)
                 continue;
@@ -242,7 +252,8 @@ public final class SvgIcon
                 continue;
             } else {
                 throw new IllegalArgumentException(
-                    name + ".svg: unsupported element <" + tag + ">");
+                    name + ".svg: unsupported element <" + tag + ">"
+                );
             }
             if (shape == null)
                 continue;
@@ -254,11 +265,15 @@ public final class SvgIcon
             String width = attrs.get("stroke-width");
             if (width != null)
                 op.width = (float) number(width);
-            op.cap = "round".equals(attrs.get("stroke-linecap")) ? BasicStroke.CAP_ROUND
-                   : "square".equals(attrs.get("stroke-linecap")) ? BasicStroke.CAP_SQUARE
-                   : BasicStroke.CAP_BUTT;
-            op.join = "round".equals(attrs.get("stroke-linejoin")) ? BasicStroke.JOIN_ROUND
-                    : "bevel".equals(attrs.get("stroke-linejoin")) ? BasicStroke.JOIN_BEVEL
+            op.cap = "round".equals(attrs.get("stroke-linecap"))
+                ? BasicStroke.CAP_ROUND
+                : "square".equals(attrs.get("stroke-linecap"))
+                    ? BasicStroke.CAP_SQUARE
+                    : BasicStroke.CAP_BUTT;
+            op.join = "round".equals(attrs.get("stroke-linejoin"))
+                ? BasicStroke.JOIN_ROUND
+                : "bevel".equals(attrs.get("stroke-linejoin"))
+                    ? BasicStroke.JOIN_BEVEL
                     : BasicStroke.JOIN_MITER;
             String dash = attrs.get("stroke-dasharray");
             if (dash != null && !dash.equals("none")) {
@@ -273,8 +288,7 @@ public final class SvgIcon
 
     // ---------------------------------------------------------------- paint
 
-    private static Color parsePaint(String s, Color current)
-    {
+    private static Color parsePaint(String s, Color current) {
         if (s == null || s.equals("none"))
             return null;
         if (s.equals("currentColor"))
@@ -282,17 +296,18 @@ public final class SvgIcon
         return parseColor(s, null);
     }
 
-    public static Color parseColor(String s, Color defaultColor)
-    {
+    public static Color parseColor(String s, Color defaultColor) {
         if (s == null)
             return defaultColor;
         s = s.trim();
         try {
             if (s.startsWith("#")) {
                 if (s.length() == 4) {
-                    return new Color(Integer.parseInt("" + s.charAt(1) + s.charAt(1), 16),
-                                     Integer.parseInt("" + s.charAt(2) + s.charAt(2), 16),
-                                     Integer.parseInt("" + s.charAt(3) + s.charAt(3), 16));
+                    return new Color(
+                        Integer.parseInt("" + s.charAt(1) + s.charAt(1), 16),
+                        Integer.parseInt("" + s.charAt(2) + s.charAt(2), 16),
+                        Integer.parseInt("" + s.charAt(3) + s.charAt(3), 16)
+                    );
                 }
                 if (s.length() == 7)
                     return new Color(Integer.parseInt(s.substring(1), 16));
@@ -304,13 +319,11 @@ public final class SvgIcon
 
     // -------------------------------------------------------------- numbers
 
-    private static double number(String s)
-    {
+    private static double number(String s) {
         return (s == null || s.length() == 0) ? 0 : Double.parseDouble(s.trim());
     }
 
-    private static double[] numbers(String s)
-    {
+    private static double[] numbers(String s) {
         if (s == null || s.length() == 0)
             return new double[0];
         String[] parts = s.trim().split("[\\s,]+");
@@ -322,8 +335,7 @@ public final class SvgIcon
 
     // ------------------------------------------------------------ path data
 
-    private Path2D.Double parsePath(String d)
-    {
+    private Path2D.Double parsePath(String d) {
         if (d == null)
             return null;
         Path2D.Double path = new Path2D.Double();
@@ -337,7 +349,10 @@ public final class SvgIcon
             switch (Character.toUpperCase(command)) {
                 case 'M': {
                     double nx = t.number(), ny = t.number();
-                    if (relative) { nx += x; ny += y; }
+                    if (relative) {
+                        nx += x;
+                        ny += y;
+                    }
                     path.moveTo(nx, ny);
                     x = startX = nx;
                     y = startY = ny;
@@ -347,21 +362,27 @@ public final class SvgIcon
                 }
                 case 'L': {
                     double nx = t.number(), ny = t.number();
-                    if (relative) { nx += x; ny += y; }
+                    if (relative) {
+                        nx += x;
+                        ny += y;
+                    }
                     path.lineTo(nx, ny);
-                    x = nx; y = ny;
+                    x = nx;
+                    y = ny;
                     break;
                 }
                 case 'H': {
                     double nx = t.number();
-                    if (relative) nx += x;
+                    if (relative)
+                        nx += x;
                     path.lineTo(nx, y);
                     x = nx;
                     break;
                 }
                 case 'V': {
                     double ny = t.number();
-                    if (relative) ny += y;
+                    if (relative)
+                        ny += y;
                     path.lineTo(x, ny);
                     y = ny;
                     break;
@@ -371,19 +392,25 @@ public final class SvgIcon
                     boolean large = t.number() != 0;
                     boolean sweep = t.number() != 0;
                     double nx = t.number(), ny = t.number();
-                    if (relative) { nx += x; ny += y; }
+                    if (relative) {
+                        nx += x;
+                        ny += y;
+                    }
                     arcTo(path, x, y, rx, ry, rotation, large, sweep, nx, ny);
-                    x = nx; y = ny;
+                    x = nx;
+                    y = ny;
                     break;
                 }
                 case 'Z': {
                     path.closePath();
-                    x = startX; y = startY;
+                    x = startX;
+                    y = startY;
                     break;
                 }
                 default:
                     throw new IllegalArgumentException(
-                        name + ".svg: unsupported path command '" + command + "' in \"" + d + "\"");
+                        name + ".svg: unsupported path command '" + command + "' in \"" + d + "\""
+                    );
             }
         }
         return path;
@@ -396,10 +423,18 @@ public final class SvgIcon
      * angle and a sweep. The conversion is the one piece of real geometry in
      * this class and follows SVG 1.1 appendix F.6.5.
      */
-    private static void arcTo(Path2D.Double path, double x1, double y1,
-                              double rx, double ry, double rotationDegrees,
-                              boolean large, boolean sweep, double x2, double y2)
-    {
+    private static void arcTo(
+        Path2D.Double path,
+        double x1,
+        double y1,
+        double rx,
+        double ry,
+        double rotationDegrees,
+        boolean large,
+        boolean sweep,
+        double x2,
+        double y2
+    ) {
         if (rx == 0 || ry == 0) {
             path.lineTo(x2, y2);
             return;
@@ -411,7 +446,7 @@ public final class SvgIcon
         final double sinPhi = Math.sin(phi);
         final double dx = (x1 - x2) / 2.0;
         final double dy = (y1 - y2) / 2.0;
-        final double x1p =  cosPhi * dx + sinPhi * dy;
+        final double x1p = cosPhi * dx + sinPhi * dy;
         final double y1p = -sinPhi * dx + cosPhi * dy;
 
         // Radii too small to reach the endpoint are scaled up, per the spec.
@@ -424,18 +459,22 @@ public final class SvgIcon
 
         final double sign = (large == sweep) ? -1 : 1;
         final double numerator = rx * rx * ry * ry
-                               - rx * rx * y1p * y1p
-                               - ry * ry * x1p * x1p;
+            - rx * rx * y1p * y1p
+            - ry * ry * x1p * x1p;
         final double denominator = rx * rx * y1p * y1p + ry * ry * x1p * x1p;
         final double coefficient = sign * Math.sqrt(Math.max(0, numerator / denominator));
-        final double cxp =  coefficient * rx * y1p / ry;
+        final double cxp = coefficient * rx * y1p / ry;
         final double cyp = -coefficient * ry * x1p / rx;
         final double cx = cosPhi * cxp - sinPhi * cyp + (x1 + x2) / 2.0;
         final double cy = sinPhi * cxp + cosPhi * cyp + (y1 + y2) / 2.0;
 
         final double theta = angle(1, 0, (x1p - cxp) / rx, (y1p - cyp) / ry);
-        double delta = angle((x1p - cxp) / rx, (y1p - cyp) / ry,
-                             (-x1p - cxp) / rx, (-y1p - cyp) / ry);
+        double delta = angle(
+            (x1p - cxp) / rx,
+            (y1p - cyp) / ry,
+            (-x1p - cxp) / rx,
+            (-y1p - cyp) / ry
+        );
         if (!sweep && delta > 0)
             delta -= 2 * Math.PI;
         else if (sweep && delta < 0)
@@ -443,17 +482,21 @@ public final class SvgIcon
 
         // Arc2D measures angles counter-clockwise; SVG's y axis points down,
         // which flips the sign of both the start angle and the sweep.
-        Arc2D.Double arc = new Arc2D.Double(-rx, -ry, rx * 2, ry * 2,
-                                            Math.toDegrees(-theta),
-                                            Math.toDegrees(-delta),
-                                            Arc2D.OPEN);
+        Arc2D.Double arc = new Arc2D.Double(
+            -rx,
+            -ry,
+            rx * 2,
+            ry * 2,
+            Math.toDegrees(-theta),
+            Math.toDegrees(-delta),
+            Arc2D.OPEN
+        );
         AffineTransform tx = AffineTransform.getTranslateInstance(cx, cy);
         tx.rotate(phi);
         path.append(tx.createTransformedShape(arc), true);
     }
 
-    private static double angle(double ux, double uy, double vx, double vy)
-    {
+    private static double angle(double ux, double uy, double vx, double vy) {
         final double dot = ux * vx + uy * vy;
         final double length = Math.sqrt(ux * ux + uy * uy) * Math.sqrt(vx * vx + vy * vy);
         final double a = Math.acos(Math.max(-1, Math.min(1, dot / length)));
@@ -461,18 +504,15 @@ public final class SvgIcon
     }
 
     /** Splits path data into commands and numbers. */
-    private static final class Tokenizer
-    {
+    private static final class Tokenizer {
         private final String s;
         private int i;
 
-        Tokenizer(String s)
-        {
+        Tokenizer(String s) {
             this.s = s;
         }
 
-        private void skipWhitespace()
-        {
+        private void skipWhitespace() {
             while (i < s.length()) {
                 char c = s.charAt(i);
                 if (c == ' ' || c == ',' || c == '\n' || c == '\t' || c == '\r')
@@ -482,26 +522,22 @@ public final class SvgIcon
             }
         }
 
-        boolean hasNext()
-        {
+        boolean hasNext() {
             skipWhitespace();
             return i < s.length();
         }
 
-        boolean atCommand()
-        {
+        boolean atCommand() {
             skipWhitespace();
             return i < s.length() && Character.isLetter(s.charAt(i));
         }
 
-        char command()
-        {
+        char command() {
             skipWhitespace();
             return s.charAt(i++);
         }
 
-        double number()
-        {
+        double number() {
             skipWhitespace();
             final int start = i;
             if (i < s.length() && (s.charAt(i) == '-' || s.charAt(i) == '+'))

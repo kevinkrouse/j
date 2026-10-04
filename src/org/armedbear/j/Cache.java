@@ -20,9 +20,6 @@
 
 package org.armedbear.j;
 
-import org.armedbear.j.util.Tuple2;
-import org.armedbear.j.util.Utilities;
-
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.IOException;
@@ -34,9 +31,10 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
+import org.armedbear.j.util.Tuple2;
+import org.armedbear.j.util.Utilities;
 
-public final class Cache
-{
+public final class Cache {
     private static final File cacheDir =
         File.getInstance(Directories.getCacheDirectory(), "cache");
 
@@ -45,12 +43,9 @@ public final class Cache
     private File catalogFile;
     private List<Tuple2<String, String>> catalog;
 
-    private Cache()
-    {
-    }
+    private Cache() {}
 
-    public static Cache getCache()
-    {
+    public static Cache getCache() {
         if (cache == null) {
             cache = new Cache();
             if (!cache.initialize())
@@ -61,19 +56,17 @@ public final class Cache
 
     // Currently this just deletes everything in the cache directory.
     // Called from Editor.maybeExit.
-    public static void cleanup()
-    {
+    public static void cleanup() {
         if (cacheDir.isDirectory()) {
             String[] files = cacheDir.list();
-            for (int i = files.length-1; i >= 0; i--) {
+            for (int i = files.length - 1; i >= 0; i--) {
                 File file = File.getInstance(cacheDir, files[i]);
                 file.delete();
             }
         }
     }
 
-    private boolean initialize()
-    {
+    private boolean initialize() {
         if (!cacheDir.isDirectory())
             cacheDir.mkdirs();
         if (!cacheDir.isDirectory())
@@ -83,9 +76,8 @@ public final class Cache
         return true;
     }
 
-    public File get(String netPath)
-    {
-        for (int i = catalog.size()-1; i >= 0; i--) {
+    public File get(String netPath) {
+        for (int i = catalog.size() - 1; i >= 0; i--) {
             Tuple2<String, String> pair = catalog.get(i);
             if (pair.second.equals(netPath))
                 return File.getInstance(cacheDir, pair.first);
@@ -93,8 +85,7 @@ public final class Cache
         return null;
     }
 
-    public File put(String netPath)
-    {
+    public File put(String netPath) {
         File file = null;
         try {
             URL url = Utilities.toURL(netPath);
@@ -102,7 +93,7 @@ public final class Cache
                 (HttpURLConnection) url.openConnection();
             file = Utilities.getTempFile(cacheDir);
             try (InputStream in = connection.getInputStream();
-                 OutputStream out = file.getOutputStream()) {
+                OutputStream out = file.getOutputStream()) {
                 byte[] buf = new byte[4096];
                 int bytesRead;
                 while ((bytesRead = in.read(buf)) > 0)
@@ -122,18 +113,22 @@ public final class Cache
         return file;
     }
 
-    private List<Tuple2<String, String>> loadCatalog()
-    {
+    private List<Tuple2<String, String>> loadCatalog() {
         List<Tuple2<String, String>> v = new ArrayList<Tuple2<String, String>>();
         if (catalogFile.exists()) {
             try (BufferedReader reader = new BufferedReader(
-                     new InputStreamReader(catalogFile.getInputStream()))) {
+                new InputStreamReader(catalogFile.getInputStream())
+            )) {
                 String s;
                 while ((s = reader.readLine()) != null) {
                     int index = s.indexOf(' ');
                     if (index >= 0)
-                        v.add(new Tuple2<String, String>(s.substring(0, index),
-                                                         s.substring(index+1)));
+                        v.add(
+                            new Tuple2<String, String>(
+                                s.substring(0, index),
+                                s.substring(index + 1)
+                            )
+                        );
                 }
             }
             catch (IOException e) {
@@ -143,10 +138,10 @@ public final class Cache
         return v;
     }
 
-    private void saveCatalog()
-    {
+    private void saveCatalog() {
         try (BufferedWriter writer = new BufferedWriter(
-                 new OutputStreamWriter(catalogFile.getOutputStream()))) {
+            new OutputStreamWriter(catalogFile.getOutputStream())
+        )) {
             for (Tuple2<String, String> pair : catalog) {
                 writer.write(pair.first);
                 writer.write(' ');

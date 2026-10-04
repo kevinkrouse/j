@@ -20,9 +20,22 @@
 
 package org.armedbear.j.mode.web;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.PushbackReader;
+import java.io.Reader;
+import java.lang.StringBuilder;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Deque;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
 import org.armedbear.j.Debug;
 import org.armedbear.j.Editor;
-import java.lang.StringBuilder;
 import org.armedbear.j.File;
 import org.armedbear.j.ImageLink;
 import org.armedbear.j.Line;
@@ -31,26 +44,11 @@ import org.armedbear.j.LineSequence;
 import org.armedbear.j.Link;
 import org.armedbear.j.Log;
 import org.armedbear.j.Property;
+import org.armedbear.j.mode.html.HtmlLineSegment;
 import org.armedbear.j.util.Tuple2;
 import org.armedbear.j.util.Utilities;
-import org.armedbear.j.mode.html.HtmlLineSegment;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.PushbackReader;
-import java.io.Reader;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.List;
-import java.util.ArrayDeque;
-import java.util.Deque;
-import java.util.LinkedList;
-
-public final class WebLoader implements WebConstants
-{
+public final class WebLoader implements WebConstants {
     private PushbackReader reader;
     private final StringBuilder textBuffer = new StringBuilder();
     private final Deque<String> indentStack = new ArrayDeque<String>();
@@ -67,26 +65,22 @@ public final class WebLoader implements WebConstants
     private int indentLevel;
     private File file;
 
-    public WebLoader(File file)
-    {
+    public WebLoader(File file) {
         this.file = file;
         if (file.getEncoding() == null)
             file.setEncoding("iso-8859-1");
         Debug.assertTrue(file.isLocal());
     }
 
-    public WebLoader(Reader reader)
-    {
+    public WebLoader(Reader reader) {
         this.reader = new PushbackReader(new BufferedReader(reader));
     }
 
-    public final Map<String, Integer> getRefs()
-    {
+    public final Map<String, Integer> getRefs() {
         return refs;
     }
 
-    public LineSequence load()
-    {
+    public LineSequence load() {
         try {
             loadInternal();
         }
@@ -108,8 +102,7 @@ public final class WebLoader implements WebConstants
         return lines;
     }
 
-    private void loadInternal() throws EncodingChangeException
-    {
+    private void loadInternal() throws EncodingChangeException {
         if (reader == null) {
             Debug.assertTrue(file != null);
             String encoding = file.getEncoding();
@@ -141,7 +134,7 @@ public final class WebLoader implements WebConstants
                         processEntity();
                         break;
                     default:
-                        doChar((char)c);
+                        doChar((char) c);
                         break;
                 }
             }
@@ -163,13 +156,11 @@ public final class WebLoader implements WebConstants
     private boolean whitespace;
     private Link link;
 
-    private final boolean centered()
-    {
+    private final boolean centered() {
         return center || h1;
     }
 
-    private void processMarkup() throws EncodingChangeException
-    {
+    private void processMarkup() throws EncodingChangeException {
         final String tag = gatherTag();
         if (tag.length() < 3) {
             doText(tag);
@@ -331,20 +322,32 @@ public final class WebLoader implements WebConstants
             h1 = false;
             return;
         }
-        if (tagName == "h2" ||
-            tagName == "h3" ||
-            tagName == "h4" ||
-            tagName == "h5" ||
-            tagName == "h6") {
+        if (
+            tagName == "h2"
+                ||
+                tagName == "h3"
+                ||
+                tagName == "h4"
+                ||
+                tagName == "h5"
+                ||
+                tagName == "h6"
+        ) {
             newLine();
             heading = true;
             return;
         }
-        if (tagName == "/h2" ||
-            tagName == "/h3" ||
-            tagName == "/h4" ||
-            tagName == "/h5" ||
-            tagName == "/h6") {
+        if (
+            tagName == "/h2"
+                ||
+                tagName == "/h3"
+                ||
+                tagName == "/h4"
+                ||
+                tagName == "/h5"
+                ||
+                tagName == "/h6"
+        ) {
             newLine();
             heading = false;
             return;
@@ -551,7 +554,7 @@ public final class WebLoader implements WebConstants
                 String s = getAttribute(tag, "width");
                 if (s != null) {
                     if (s.endsWith("%")) {
-                        s = s.substring(0, s.length()-1).trim();
+                        s = s.substring(0, s.length() - 1).trim();
                         if (s.length() > 0) {
                             try {
                                 int percent = Integer.parseInt(s);
@@ -606,8 +609,7 @@ public final class WebLoader implements WebConstants
         }
     }
 
-    private void processTitle()
-    {
+    private void processTitle() {
         StringBuilder sb = new StringBuilder();
         try {
             int c;
@@ -623,7 +625,7 @@ public final class WebLoader implements WebConstants
                     String entity = gatherEntity();
                     sb.append(substituteEntity(entity));
                 } else
-                    sb.append((char)c);
+                    sb.append((char) c);
             }
         }
         catch (IOException e) {
@@ -640,8 +642,7 @@ public final class WebLoader implements WebConstants
         }
     }
 
-    private void processAnchor(String tag)
-    {
+    private void processAnchor(String tag) {
         flushSegment();
         List<Tuple2<String, String>> attributes = getAttributes(tag);
         if (attributes != null) {
@@ -654,8 +655,7 @@ public final class WebLoader implements WebConstants
         }
     }
 
-    private void processEndAnchor()
-    {
+    private void processEndAnchor() {
         boolean appendSpace = false;
         while (textBuffer.toString().endsWith(" ")) {
             appendSpace = true;
@@ -669,8 +669,7 @@ public final class WebLoader implements WebConstants
         }
     }
 
-    private void processImg(String tag)
-    {
+    private void processImg(String tag) {
         flushSegment();
         List<Tuple2<String, String>> attributes = getAttributes(tag);
         String alt = getAttribute(attributes, "alt");
@@ -729,27 +728,24 @@ public final class WebLoader implements WebConstants
             HtmlLineSegment segment = (HtmlLineSegment) segments.getSegment(i);
             sb.append(segment.getText());
         }
-        if (sb.length() == 0 || sb.charAt(sb.length()-1) == ' ')
+        if (sb.length() == 0 || sb.charAt(sb.length() - 1) == ' ')
             return;
         // The last character is not a space, so we need to add one.
         textBuffer.append(' ');
         flushSegment(null, FORMAT_WHITESPACE);
     }
 
-    private final void addRef(String ref, int offset)
-    {
+    private final void addRef(String ref, int offset) {
         refs.put(ref, offset);
     }
 
-    private static final String getAttribute(String tag, String attributeName)
-    {
+    private static final String getAttribute(String tag, String attributeName) {
         return getAttribute(getAttributes(tag), attributeName);
     }
 
-    private static String getAttribute(List<Tuple2<String, String>> attributes, String attributeName)
-    {
+    private static String getAttribute(List<Tuple2<String, String>> attributes, String attributeName) {
         if (attributes != null) {
-            for (int i = attributes.size()-1; i >= 0; i--) {
+            for (int i = attributes.size() - 1; i >= 0; i--) {
                 Tuple2<String, String> pair = attributes.get(i);
                 if (pair.first.equals(attributeName))
                     return pair.second;
@@ -758,12 +754,11 @@ public final class WebLoader implements WebConstants
         return null;
     }
 
-    private static List<Tuple2<String, String>> getAttributes(String tag)
-    {
-        final int NEUTRAL         = 0;
-        final int ATTRIBUTE_NAME  = 1;
+    private static List<Tuple2<String, String>> getAttributes(String tag) {
+        final int NEUTRAL = 0;
+        final int ATTRIBUTE_NAME = 1;
         final int SPACE_BEFORE_EQ = 2;
-        final int SPACE_AFTER_EQ  = 3;
+        final int SPACE_AFTER_EQ = 3;
         final int ATTRIBUTE_VALUE = 4;
 
         int state = NEUTRAL;
@@ -828,7 +823,7 @@ public final class WebLoader implements WebConstants
                 case SPACE_AFTER_EQ:
                     if (Character.isWhitespace(c))
                         ;
-                    else if ( c == '"' || c == '\'') {
+                    else if (c == '"' || c == '\'') {
                         delim = c;
                         sb.setLength(0);
                         state = ATTRIBUTE_VALUE;
@@ -906,8 +901,7 @@ public final class WebLoader implements WebConstants
     }
 
     // tagName can be e.g. "table" or "/table".
-    private static boolean isTag(String s, String tagName)
-    {
+    private static boolean isTag(String s, String tagName) {
         Debug.assertTrue(tagName.indexOf('<') < 0);
         Debug.assertTrue(tagName.indexOf('>') < 0);
         Debug.assertTrue(tagName.indexOf(' ') < 0);
@@ -927,17 +921,16 @@ public final class WebLoader implements WebConstants
         return c == '>' || Character.isWhitespace(c);
     }
 
-    private String gatherTag()
-    {
-        final int TAG_NAME        = 0;
-        final int NEUTRAL         = 1;
-        final int ATTRIBUTE_NAME  = 2;
+    private String gatherTag() {
+        final int TAG_NAME = 0;
+        final int NEUTRAL = 1;
+        final int ATTRIBUTE_NAME = 2;
         final int SPACE_BEFORE_EQ = 3;
-        final int SPACE_AFTER_EQ  = 4;
+        final int SPACE_AFTER_EQ = 4;
         final int ATTRIBUTE_VALUE = 5;
-        final int MARKED_SECTION  = 6;
-        final int BANG            = 7;
-        final int INVALID         = 8;
+        final int MARKED_SECTION = 6;
+        final int BANG = 7;
+        final int INVALID = 8;
 
         StringBuilder sb = new StringBuilder(256);
         sb.append('<');
@@ -1033,7 +1026,7 @@ public final class WebLoader implements WebConstants
                             return sb.toString();
                         else if (Character.isWhitespace(c))
                             ;
-                        else if ( c == '"' || c == '\'') {
+                        else if (c == '"' || c == '\'') {
                             delim = c;
                             state = ATTRIBUTE_VALUE;
                         } else {
@@ -1061,8 +1054,10 @@ public final class WebLoader implements WebConstants
                         break;
                     case INVALID:
                         if (c == '>') {
-                            Log.error("invalid tag |" + sb.toString() +
-                                "| sourceOffset = " + sourceOffset);
+                            Log.error(
+                                "invalid tag |" + sb.toString() +
+                                    "| sourceOffset = " + sourceOffset
+                            );
                             return sb.toString();
                         }
                         break;
@@ -1076,14 +1071,12 @@ public final class WebLoader implements WebConstants
         return sb.toString();
     }
 
-    private void processEntity()
-    {
+    private void processEntity() {
         String entity = gatherEntity();
         doText(substituteEntity(entity));
     }
 
-    private String gatherEntity()
-    {
+    private String gatherEntity() {
         StringBuilder sb = new StringBuilder();
         sb.append('&');
         try {
@@ -1108,8 +1101,7 @@ public final class WebLoader implements WebConstants
         return sb.toString();
     }
 
-    private static String substituteEntity(String entity)
-    {
+    private static String substituteEntity(String entity) {
         final int length = entity.length();
         if (length < 2)
             return entity;
@@ -1138,7 +1130,7 @@ public final class WebLoader implements WebConstants
                     case 148: // Right double quote.
                         return "\"";
                     case 149: // Bullet.
-                        return String.valueOf((char)8226);
+                        return String.valueOf((char) 8226);
                     case 150: // En dash.
                         return "-";
                     case 151: // Em dash.
@@ -1148,7 +1140,7 @@ public final class WebLoader implements WebConstants
                     case 174:
                         return "(R)";
                     default:
-                        return String.valueOf((char)n);
+                        return String.valueOf((char) n);
                 }
             }
         }
@@ -1156,7 +1148,7 @@ public final class WebLoader implements WebConstants
         // Remove leading '&' and trailing ';' if present.
         String s;
         if (entity.charAt(length - 1) == ';')
-            s = entity.substring(1, length-1).intern();
+            s = entity.substring(1, length - 1).intern();
         else
             s = entity.substring(1).intern();
 
@@ -1165,33 +1157,33 @@ public final class WebLoader implements WebConstants
         else if (s == "trade") // 153
             return "(TM)";
         else if (s == "nbsp")
-            return String.valueOf((char)160);
+            return String.valueOf((char) 160);
         else if (s == "copy")
-            return String.valueOf((char)169);
+            return String.valueOf((char) 169);
         else if (s == "laquo")
-            return String.valueOf((char)171);
+            return String.valueOf((char) 171);
         else if (s == "reg") // 174
             return "(R)";
         else if (s == "acute")
-            return String.valueOf((char)180);
+            return String.valueOf((char) 180);
         else if (s == "auml")
-            return String.valueOf((char)228);
+            return String.valueOf((char) 228);
         else if (s == "middot")
-            return String.valueOf((char)183);
+            return String.valueOf((char) 183);
         else if (s == "raquo")
-            return String.valueOf((char)187);
+            return String.valueOf((char) 187);
         else if (s == "eacute")
-            return String.valueOf((char)233);
+            return String.valueOf((char) 233);
         else if (s == "iuml")
-            return String.valueOf((char)239);
+            return String.valueOf((char) 239);
         else if (s == "mdash")
-            return String.valueOf((char)8212);
+            return String.valueOf((char) 8212);
         else if (s == "ldquo")
-            return String.valueOf((char)8220);
+            return String.valueOf((char) 8220);
         else if (s == "rdquo")
-            return String.valueOf((char)8221);
+            return String.valueOf((char) 8221);
         else if (s == "bull")
-            return String.valueOf((char)8226);
+            return String.valueOf((char) 8226);
         else if (s == "AElig")
             return "AE";
         else if (s == "amp")
@@ -1204,8 +1196,7 @@ public final class WebLoader implements WebConstants
             return entity;
     }
 
-    private void skipComment()
-    {
+    private void skipComment() {
         StringBuilder sb = new StringBuilder();
         try {
             int c;
@@ -1217,13 +1208,12 @@ public final class WebLoader implements WebConstants
                     return;
             }
         }
-        catch (IOException e){
+        catch (IOException e) {
             Log.error(e);
         }
     }
 
-    private void skipTag(String tagName)
-    {
+    private void skipTag(String tagName) {
         try {
             int c;
             while ((c = reader.read()) >= 0) {
@@ -1241,8 +1231,7 @@ public final class WebLoader implements WebConstants
         }
     }
 
-    private void skipScript()
-    {
+    private void skipScript() {
         try {
             int c;
             while ((c = reader.read()) >= 0) {
@@ -1259,8 +1248,7 @@ public final class WebLoader implements WebConstants
         }
     }
 
-    private boolean readEndScriptTag()
-    {
+    private boolean readEndScriptTag() {
         final String s = "</script>";
         final int length = s.length();
         StringBuilder sb = new StringBuilder();
@@ -1270,7 +1258,7 @@ public final class WebLoader implements WebConstants
             while ((c = reader.read()) >= 0) {
                 if (c != '\r')
                     ++sourceOffset;
-                sb.append(Character.toLowerCase((char)c));
+                sb.append(Character.toLowerCase((char) c));
                 if (sb.length() < length) {
                     if (!s.startsWith(sb.toString()))
                         return false;
@@ -1284,20 +1272,18 @@ public final class WebLoader implements WebConstants
         return false;
     }
 
-    private void doText(String s)
-    {
+    private void doText(String s) {
         final int length = s.length();
         for (int i = 0; i < length; i++)
             doChar(s.charAt(i));
     }
 
-    private void doChar(char c)
-    {
+    private void doChar(char c) {
         if (preformatted) {
             switch (c) {
                 case '\t':
                     final int spaces = 8 - getCurrentOffset() % 8;
-                    for (int i = spaces-1; i >= 0; i--)
+                    for (int i = spaces - 1; i >= 0; i--)
                         textBuffer.append(' ');
                     break;
                 case '\r':
@@ -1331,7 +1317,7 @@ public final class WebLoader implements WebConstants
                 textBuffer.append('"');
                 break;
             case 149: // Bullet.
-                textBuffer.append((char)8226);
+                textBuffer.append((char) 8226);
                 break;
             case 150:
                 // En dash.
@@ -1380,8 +1366,7 @@ public final class WebLoader implements WebConstants
             maybeWrap();
     }
 
-    private void maybeIndent()
-    {
+    private void maybeIndent() {
         if (indentLevel > 0) {
             if (segments == null && textBuffer.length() == 0) {
                 textBuffer.append(Utilities.spaces(getIndent()));
@@ -1390,29 +1375,25 @@ public final class WebLoader implements WebConstants
         }
     }
 
-    private final int getIndent()
-    {
+    private final int getIndent() {
         return indentLevel * 4;
     }
 
-    private int getCurrentOffset()
-    {
+    private int getCurrentOffset() {
         int currentOffset = 0;
         if (segments != null) {
-            for (int i = segments.size()-1; i >= 0; i--)
+            for (int i = segments.size() - 1; i >= 0; i--)
                 currentOffset += segments.getSegment(i).length();
         }
         currentOffset += textBuffer.length();
         return currentOffset;
     }
 
-    private final void flushSegment()
-    {
+    private final void flushSegment() {
         flushSegment(true);
     }
 
-    private void flushSegment(boolean wrap)
-    {
+    private void flushSegment(boolean wrap) {
         if (textBuffer.length() > 0) {
             if (wrap)
                 maybeWrap();
@@ -1433,8 +1414,7 @@ public final class WebLoader implements WebConstants
         }
     }
 
-    private void flushSegment(Link link, int format)
-    {
+    private void flushSegment(Link link, int format) {
         if (textBuffer.length() > 0) {
             if (segments == null)
                 segments = new LineSegmentList();
@@ -1444,8 +1424,7 @@ public final class WebLoader implements WebConstants
         }
     }
 
-    private void maybeWrap()
-    {
+    private void maybeWrap() {
         if (preformatted)
             return;
         int currentOffset = getCurrentOffset();
@@ -1531,16 +1510,21 @@ public final class WebLoader implements WebConstants
     }
 
     // Returns true if it does anything.
-    private boolean flushLine()
-    {
+    private boolean flushLine() {
         flushSegment();
         if (centered() && currentTable == null && segments != null) {
             int length = getCurrentOffset();
             if (maxChars() > length) {
                 int numSpaces = (maxChars() - length) / 2;
                 if (numSpaces > 0) {
-                    segments.addSegment(0, new HtmlLineSegment(Utilities.spaces(numSpaces),
-                                                               FORMAT_WHITESPACE, null));
+                    segments.addSegment(
+                        0,
+                        new HtmlLineSegment(
+                            Utilities.spaces(numSpaces),
+                            FORMAT_WHITESPACE,
+                            null
+                        )
+                    );
                     offset += numSpaces;
                 }
             }
@@ -1554,8 +1538,7 @@ public final class WebLoader implements WebConstants
             return false;
     }
 
-    private void newLine()
-    {
+    private void newLine() {
         flushLine();
         Line lastLine = lines.getLastLine();
         if (lastLine != null && lastLine.length() > 0 && !lastLine.isBlank()) {
@@ -1564,37 +1547,33 @@ public final class WebLoader implements WebConstants
         }
     }
 
-    private final int maxChars()
-    {
-//         if (maxChars == 0) {
-//             // We have to be careful here because this might get called before
-//             // the display is initialized if we're opening a file on the
-//             // command line.
-//             Display display = Editor.currentEditor().getDisplay();
-//             int displayWidth = display.getWidth();
-//             if (displayWidth > 0) {
-//                 int charWidth = display.getCharWidth();
-//                 if (charWidth > 0)
-//                     maxChars = display.getWidth() / charWidth - 2;
-//             }
-//             if (maxChars <= 0)
-//                 maxChars = 80;
-//         }
+    private final int maxChars() {
+        //         if (maxChars == 0) {
+        //             // We have to be careful here because this might get called before
+        //             // the display is initialized if we're opening a file on the
+        //             // command line.
+        //             Display display = Editor.currentEditor().getDisplay();
+        //             int displayWidth = display.getWidth();
+        //             if (displayWidth > 0) {
+        //                 int charWidth = display.getCharWidth();
+        //                 if (charWidth > 0)
+        //                     maxChars = display.getWidth() / charWidth - 2;
+        //             }
+        //             if (maxChars <= 0)
+        //                 maxChars = 80;
+        //         }
         Debug.assertTrue(maxChars == 80);
         return maxChars;
     }
 
-    private static class EncodingChangeException extends Exception
-    {
+    private static class EncodingChangeException extends Exception {
         private String newEncoding;
 
-        EncodingChangeException(String newEncoding)
-        {
+        EncodingChangeException(String newEncoding) {
             this.newEncoding = newEncoding;
         }
 
-        String getNewEncoding()
-        {
+        String getNewEncoding() {
             return newEncoding;
         }
     }

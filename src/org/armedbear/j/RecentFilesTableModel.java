@@ -27,18 +27,17 @@ import java.util.List;
 import javax.swing.event.TableModelEvent;
 import javax.swing.table.AbstractTableModel;
 
-public final class RecentFilesTableModel extends AbstractTableModel
-{
-    private static final int NAME        = 0;
-    private static final int LOCATION    = 1;
-    private static final int LAST_VISIT  = 2;
+public final class RecentFilesTableModel extends AbstractTableModel {
+    private static final int NAME = 0;
+    private static final int LOCATION = 1;
+    private static final int LAST_VISIT = 2;
     private static final int FIRST_VISIT = 3;
 
-    private static final int ASCENDING   = 0;
-    private static final int DESCENDING  = 1;
+    private static final int ASCENDING = 0;
+    private static final int DESCENDING = 1;
 
     private final String[] columnNames =
-        {"Name", "Location", "Last Visit", "First Visit"};
+        { "Name", "Location", "Last Visit", "First Visit" };
 
     private static SimpleDateFormat timeFormat = new SimpleDateFormat("h:mm a");
     private static SimpleDateFormat shortDateFormat =
@@ -56,8 +55,7 @@ public final class RecentFilesTableModel extends AbstractTableModel
     private int sortColumn = LAST_VISIT;
     private int sortOrder = DESCENDING;
 
-    public RecentFilesTableModel()
-    {
+    public RecentFilesTableModel() {
         indexes = new int[data.size()];
 
         for (int i = 0; i < indexes.length; i++)
@@ -76,23 +74,19 @@ public final class RecentFilesTableModel extends AbstractTableModel
         startOfWeek.add(Calendar.DATE, -6);
     }
 
-    public int getColumnCount()
-    {
+    public int getColumnCount() {
         return columnNames.length;
     }
 
-    public int getRowCount()
-    {
+    public int getRowCount() {
         return data.size();
     }
 
-    public String getColumnName(int col)
-    {
+    public String getColumnName(int col) {
         return columnNames[col];
     }
 
-    private String format(long date)
-    {
+    private String format(long date) {
         Date d = new Date(date);
 
         Calendar c = Calendar.getInstance();
@@ -108,15 +102,13 @@ public final class RecentFilesTableModel extends AbstractTableModel
         return timeFormat.format(d);
     }
 
-    public RecentFilesEntry getEntryAtRow(int row)
-    {
+    public RecentFilesEntry getEntryAtRow(int row) {
         int i = indexes[row];
         return data.get(i);
     }
 
-    public int getRowForEntry(RecentFilesEntry entry)
-    {
-        for (int row = 0; row < indexes.length; row ++) {
+    public int getRowForEntry(RecentFilesEntry entry) {
+        for (int row = 0; row < indexes.length; row++) {
             int i = indexes[row];
             if (entry == data.get(i))
                 return row;
@@ -124,8 +116,7 @@ public final class RecentFilesTableModel extends AbstractTableModel
         return -1;
     }
 
-    public Object getValueAt(int row, int col)
-    {
+    public Object getValueAt(int row, int col) {
         int i = indexes[row];
         RecentFilesEntry entry = data.get(i);
         if (entry != null) {
@@ -143,8 +134,7 @@ public final class RecentFilesTableModel extends AbstractTableModel
         return null;
     }
 
-    public void sortByColumn(int column)
-    {
+    public void sortByColumn(int column) {
         if (column == sortColumn) {
             // Sorting on same column.  Reverse sort order.
             sortByColumn(column, sortOrder == DESCENDING ? ASCENDING : DESCENDING);
@@ -168,8 +158,7 @@ public final class RecentFilesTableModel extends AbstractTableModel
         fireTableChanged(new TableModelEvent(this));
     }
 
-    private void sortByColumn(int column, int order)
-    {
+    private void sortByColumn(int column, int order) {
         if (order == DESCENDING) {
             for (int i = 0; i < getRowCount(); i++) {
                 for (int j = i + 1; j < getRowCount(); j++) {
@@ -189,8 +178,7 @@ public final class RecentFilesTableModel extends AbstractTableModel
         sortOrder = order;
     }
 
-    private void sortByName()
-    {
+    private void sortByName() {
         for (int i = 0; i < getRowCount(); i++) {
             for (int j = i + 1; j < getRowCount(); j++) {
                 if (compareByColumn(indexes[i], indexes[j], 0) > 0)
@@ -199,8 +187,7 @@ public final class RecentFilesTableModel extends AbstractTableModel
         }
     }
 
-    private void sortByLocation()
-    {
+    private void sortByLocation() {
         for (int i = 0; i < getRowCount(); i++) {
             for (int j = i + 1; j < getRowCount(); j++) {
                 if (compareByColumn(indexes[i], indexes[j], 1) > 0)
@@ -209,8 +196,7 @@ public final class RecentFilesTableModel extends AbstractTableModel
         }
     }
 
-    private void sortByFirstVisit()
-    {
+    private void sortByFirstVisit() {
         for (int i = 0; i < getRowCount(); i++) {
             for (int j = i + 1; j < getRowCount(); j++) {
                 if (compareByColumn(indexes[i], indexes[j], 2) < 0)
@@ -219,8 +205,7 @@ public final class RecentFilesTableModel extends AbstractTableModel
         }
     }
 
-    private void sortByLastVisit()
-    {
+    private void sortByLastVisit() {
         for (int i = 0; i < getRowCount(); i++) {
             for (int j = i + 1; j < getRowCount(); j++) {
                 if (compareByColumn(indexes[i], indexes[j], 3) < 0)
@@ -229,8 +214,7 @@ public final class RecentFilesTableModel extends AbstractTableModel
         }
     }
 
-    private int compareByColumn(int i, int j, int column)
-    {
+    private int compareByColumn(int i, int j, int column) {
         RecentFilesEntry entry1 = data.get(i);
         RecentFilesEntry entry2 = data.get(j);
         switch (column) {
@@ -256,15 +240,13 @@ public final class RecentFilesTableModel extends AbstractTableModel
         return 0;
     }
 
-    private void swap(int i, int j)
-    {
+    private void swap(int i, int j) {
         int tmp = indexes[i];
         indexes[i] = indexes[j];
         indexes[j] = tmp;
     }
 
-    public Class<String> getColumnClass(int col)
-    {
+    public Class<String> getColumnClass(int col) {
         return String.class;
     }
 }

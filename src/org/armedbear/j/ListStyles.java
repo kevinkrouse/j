@@ -34,17 +34,14 @@ import java.util.Set;
  * With no argument, the shared styles and the current buffer's mode; with
  * "all", every mode's.
  */
-public final class ListStyles
-{
+public final class ListStyles {
     private ListStyles() {}
 
-    public static void listStyles()
-    {
+    public static void listStyles() {
         listStyles(null);
     }
 
-    public static void listStyles(String arg)
-    {
+    public static void listStyles(String arg) {
         final Editor editor = Editor.currentEditor();
         final boolean all = arg != null && arg.trim().equalsIgnoreCase("all");
         final OutputBuffer buf = makeBuffer(editor.getBuffer(), all);
@@ -53,8 +50,7 @@ public final class ListStyles
     }
 
     /** The listing for buffer's mode, or every mode's. */
-    /*package*/ static OutputBuffer makeBuffer(Buffer buffer, boolean all)
-    {
+    /*package*/ static OutputBuffer makeBuffer(Buffer buffer, boolean all) {
         final List<FormatTable> tables = new ArrayList<FormatTable>();
         final List<String> titles = new ArrayList<String>();
         final FormatTable builtIn = table(DefaultTheme.getBuiltInNames());
@@ -85,15 +81,21 @@ public final class ListStyles
         final String theme = prefs.getStringProperty(Property.THEME);
         final Listing listing = new Listing(tables);
         listing.add("Theme: " + (theme != null ? theme : "none"), TEXT);
-        listing.add("Sources dimmed are j's defaults; the others are the " +
-                    "theme's or your preferences'.", MUTED);
+        listing.add(
+            "Sources dimmed are j's defaults; the others are the " +
+                "theme's or your preferences'.",
+            MUTED
+        );
         for (int i = 0; i < tables.size(); i++) {
             final FormatTable table = tables.get(i);
             listing.add("", TEXT);
-            listing.add(titles.get(i) +
-                        (table.isDarkBackground() ? " (dark background)"
-                                                  : " (light background)"),
-                        HEADING);
+            listing.add(
+                titles.get(i) +
+                    (table.isDarkBackground()
+                        ? " (dark background)"
+                        : " (light background)"),
+                HEADING
+            );
             listing.addColumnHeadings();
             for (FormatTableEntry entry : table.getEntries())
                 listing.add(entry);
@@ -107,8 +109,7 @@ public final class ListStyles
     }
 
     // The styles of names as no mode in particular has them.
-    private static FormatTable table(List<String> names)
-    {
+    private static FormatTable table(List<String> names) {
         final FormatTable table = new FormatTable(null);
         int format = 0;
         for (String name : names)
@@ -116,9 +117,12 @@ public final class ListStyles
         return table;
     }
 
-    private static void addTable(List<FormatTable> tables, List<String> titles,
-                                 Set<String> seen, Formatter formatter)
-    {
+    private static void addTable(
+        List<FormatTable> tables,
+        List<String> titles,
+        Set<String> seen,
+        Formatter formatter
+    ) {
         if (formatter == null)
             return;
         final FormatTable table = formatter.getFormatTable();
@@ -127,8 +131,11 @@ public final class ListStyles
         final String key = String.valueOf(table.getModeName());
         if (seen.add(key)) {
             tables.add(table);
-            titles.add(table.getModeName() != null ? table.getModeName()
-                       : formatter.getClass().getSimpleName());
+            titles.add(
+                table.getModeName() != null
+                    ? table.getModeName()
+                    : formatter.getClass().getSimpleName()
+            );
         }
     }
 
@@ -150,15 +157,13 @@ public final class ListStyles
      * widest of any table, so that they line up from one to the next; and
      * for each line, the runs of it to draw other than as text.
      */
-    private static final class Listing
-    {
+    private static final class Listing {
         private final StringBuilder sb = new StringBuilder();
         private final List<FormatTableEntry> entries = new ArrayList<FormatTableEntry>();
         private final List<int[]> runs = new ArrayList<int[]>();
         private final int[] widths = new int[COLUMNS.length];
 
-        Listing(List<FormatTable> tables)
-        {
+        Listing(List<FormatTable> tables) {
             for (int i = 0; i < COLUMNS.length; i++)
                 widths[i] = COLUMNS[i].length();
             for (FormatTable table : tables)
@@ -169,15 +174,13 @@ public final class ListStyles
                 }
         }
 
-        void add(String text, int format)
-        {
+        void add(String text, int format) {
             sb.append(text).append('\n');
             entries.add(null);
             runs.add(text.isEmpty() ? null : new int[] { 0, text.length(), format });
         }
 
-        void addColumnHeadings()
-        {
+        void addColumnHeadings() {
             final int start = sb.length();
             row(COLUMNS);
             final String text = sb.substring(start, sb.length() - 1);
@@ -186,8 +189,7 @@ public final class ListStyles
         }
 
         // "  heading1   #0550ae  bold italic  → heading  color.heading  default"
-        void add(FormatTableEntry entry)
-        {
+        void add(FormatTableEntry entry) {
             final int lineNumber = entries.size();
             final String[] cells = cells(entry);
             final int[] starts = row(cells);
@@ -197,8 +199,12 @@ public final class ListStyles
             final List<Integer> list = new ArrayList<Integer>();
             // A background's color is for behind text, not text: its swatch
             // shows it, and its name stays readable.
-            addRun(list, starts[0], cells[0].length(),
-                   isBackground(entry) ? TEXT : FIRST_ROW + lineNumber);
+            addRun(
+                list,
+                starts[0],
+                cells[0].length(),
+                isBackground(entry) ? TEXT : FIRST_ROW + lineNumber
+            );
             addRun(list, starts[3], cells[3].length(), MUTED);
             for (int i = 4; i <= 5; i++)
                 if (isDefault(cells[i]))
@@ -209,9 +215,12 @@ public final class ListStyles
             runs.add(array);
         }
 
-        private static void addRun(List<Integer> list, int start, int length,
-                                   int format)
-        {
+        private static void addRun(
+            List<Integer> list,
+            int start,
+            int length,
+            int format
+        ) {
             if (length == 0)
                 return;
             list.add(start);
@@ -220,8 +229,7 @@ public final class ListStyles
         }
 
         // Appends the cells padded to their columns; returns where each began.
-        private int[] row(String[] cells)
-        {
+        private int[] row(String[] cells) {
             final int lineStart = sb.length();
             final int[] starts = new int[cells.length];
             sb.append(INDENT);
@@ -238,26 +246,24 @@ public final class ListStyles
             return starts;
         }
 
-        String text()
-        {
+        String text() {
             return sb.toString();
         }
 
-        FormatTableEntry entry(int lineNumber)
-        {
+        FormatTableEntry entry(int lineNumber) {
             return lineNumber >= 0 && lineNumber < entries.size()
-                ? entries.get(lineNumber) : null;
+                ? entries.get(lineNumber)
+                : null;
         }
 
-        int[] runs(int lineNumber)
-        {
+        int[] runs(int lineNumber) {
             return lineNumber >= 0 && lineNumber < runs.size()
-                ? runs.get(lineNumber) : null;
+                ? runs.get(lineNumber)
+                : null;
         }
     }
 
-    private static String[] cells(FormatTableEntry entry)
-    {
+    private static String[] cells(FormatTableEntry entry) {
         final List<String> names = entry.getNames();
         return new String[] {
             entry.getName(),
@@ -273,8 +279,7 @@ public final class ListStyles
 
     // "color.heading" as it is; "default" for DefaultTheme's for the entry's
     // own name, "default text" for another's; "-" for nothing.
-    private static String source(String source, String name)
-    {
+    private static String source(String source, String name) {
         if (source == null)
             return "\u2014";
         if (source.equals("default " + name))
@@ -282,18 +287,15 @@ public final class ListStyles
         return source;
     }
 
-    private static boolean isBackground(FormatTableEntry entry)
-    {
+    private static boolean isBackground(FormatTableEntry entry) {
         return entry.getName().endsWith("ackground");
     }
 
-    private static boolean isDefault(String source)
-    {
+    private static boolean isDefault(String source) {
         return source.startsWith("default") || source.equals("\u2014");
     }
 
-    private static String hex(Color color)
-    {
+    private static String hex(Color color) {
         return String.format("#%06x", color.getRGB() & 0xffffff);
     }
 
@@ -302,21 +304,18 @@ public final class ListStyles
      * swatch in the gutter; the headings bold, and what is only explanation
      * dimmed.
      */
-    private static final class StylesFormatter extends Formatter
-    {
+    private static final class StylesFormatter extends Formatter {
         private final Listing listing;
         private final FormatTable shared;
 
-        StylesFormatter(Buffer buffer, Listing listing, FormatTable shared)
-        {
+        StylesFormatter(Buffer buffer, Listing listing, FormatTable shared) {
             this.buffer = buffer;
             this.listing = listing;
             this.shared = shared;
         }
 
         @Override
-        public LineSegmentList formatLine(Line line)
-        {
+        public LineSegmentList formatLine(Line line) {
             clearSegmentList();
             final String text = line.getText();
             final int[] runs = listing.runs(line.lineNumber());
@@ -337,14 +336,12 @@ public final class ListStyles
             return segmentList;
         }
 
-        private FormatTableEntry entryFor(int format)
-        {
+        private FormatTableEntry entryFor(int format) {
             return format >= FIRST_ROW ? listing.entry(format - FIRST_ROW) : null;
         }
 
         @Override
-        public Color getColor(int format)
-        {
+        public Color getColor(int format) {
             final FormatTableEntry entry = entryFor(format);
             if (entry != null)
                 return entry.getColor();
@@ -354,8 +351,7 @@ public final class ListStyles
         }
 
         // The shared muted, for whichever background the theme has.
-        private Color mutedColor()
-        {
+        private Color mutedColor() {
             for (FormatTableEntry entry : shared.getEntries())
                 if (entry.getName().equals("muted"))
                     return entry.getColor();
@@ -363,8 +359,7 @@ public final class ListStyles
         }
 
         @Override
-        public int getStyle(int format)
-        {
+        public int getStyle(int format) {
             if (format == HEADING)
                 return TextStyle.BOLD;
             final FormatTableEntry entry = entryFor(format);
@@ -372,15 +367,13 @@ public final class ListStyles
         }
 
         @Override
-        public Color getGutterColor(Line line)
-        {
+        public Color getGutterColor(Line line) {
             final FormatTableEntry entry = listing.entry(line.lineNumber());
             return entry != null ? entry.getColor() : null;
         }
 
         @Override
-        public FormatTable getFormatTable()
-        {
+        public FormatTable getFormatTable() {
             if (formatTable == null) {
                 formatTable = new FormatTable(null);
                 formatTable.addEntryFromPrefs(TEXT, "text");

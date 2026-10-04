@@ -20,21 +20,18 @@
 
 package org.armedbear.j;
 
-import org.armedbear.j.mode.web.WebBuffer;
-
-import java.util.regex.Pattern;
-import java.util.regex.Matcher;
 import java.awt.Desktop;
 import java.io.IOException;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import org.armedbear.j.mode.web.WebBuffer;
 
-public final class BrowseFile implements Constants
-{
-    public static void browseFileAtDot()
-    {
+public final class BrowseFile implements Constants {
+    public static void browseFileAtDot() {
         final Editor editor = Editor.currentEditor();
         String filename = browseFileGetFilename(editor);
         if (filename == null)
@@ -63,8 +60,7 @@ public final class BrowseFile implements Constants
      * desktop's; "j", j's own; else that command, given browserOpts, split
      * at white space, before the URL.
      */
-    public static void openUrl(String url)
-    {
+    public static void openUrl(String url) {
         final Preferences prefs = Editor.preferences();
         final String browser = prefs.getStringProperty(Property.BROWSER);
         try {
@@ -86,7 +82,8 @@ public final class BrowseFile implements Constants
             if (Desktop.isDesktopSupported()) {
                 final Desktop desktop = Desktop.getDesktop();
                 final Desktop.Action action = url.startsWith("mailto:")
-                    ? Desktop.Action.MAIL : Desktop.Action.BROWSE;
+                    ? Desktop.Action.MAIL
+                    : Desktop.Action.BROWSE;
                 if (desktop.isSupported(action)) {
                     // It can take a while to start a browser.
                     final Thread thread = new Thread(() -> {
@@ -105,16 +102,18 @@ public final class BrowseFile implements Constants
                     return;
                 }
             }
-            Runtime.getRuntime().exec(new String[] {
-                Platform.isPlatformMacOSX() ? "open" : "xdg-open", url });
+            Runtime.getRuntime()
+                .exec(
+                    new String[] {
+                        Platform.isPlatformMacOSX() ? "open" : "xdg-open", url }
+                );
         }
         catch (IOException e) {
             Log.error(e);
         }
     }
 
-    private static String browseFileGetFilename(Editor editor)
-    {
+    private static String browseFileGetFilename(Editor editor) {
         if (editor.getMark() != null && editor.getMarkLine() == editor.getDotLine()) {
             // Use selection.
             return new Region(editor).toString();
@@ -127,8 +126,7 @@ public final class BrowseFile implements Constants
         return editor.getFilenameAtDot();
     }
 
-    static String getHref(String text, int dotOffset)
-    {
+    static String getHref(String text, int dotOffset) {
         Pattern re = Pattern.compile("(href|src)=\"([^\"]+)\"", Pattern.CASE_INSENSITIVE);
         Matcher m = re.matcher(text);
         int index = 0;

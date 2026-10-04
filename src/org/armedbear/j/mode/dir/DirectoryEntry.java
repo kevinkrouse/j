@@ -20,16 +20,14 @@
 
 package org.armedbear.j.mode.dir;
 
-import org.armedbear.j.DirectoryFilenameFilter;
 import java.lang.StringBuilder;
-import org.armedbear.j.Log;
-
-import java.util.regex.Matcher;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.regex.Matcher;
+import org.armedbear.j.DirectoryFilenameFilter;
+import org.armedbear.j.Log;
 
-public final class DirectoryEntry
-{
+public final class DirectoryEntry {
     private String name;
     private long date;
     private long size;
@@ -48,8 +46,7 @@ public final class DirectoryEntry
         new SimpleDateFormat(DATEFORMAT);
 
     // Constructor for native "ls -l" format.
-    private DirectoryEntry(String string, char firstChar)
-    {
+    private DirectoryEntry(String string, char firstChar) {
         this.string = string;
         if (firstChar == 'd')
             isDirectory = true;
@@ -59,8 +56,7 @@ public final class DirectoryEntry
     }
 
     // Constructor for internal format.
-    public DirectoryEntry(String name, long date, long size)
-    {
+    public DirectoryEntry(String name, long date, long size) {
         this.name = name;
         this.date = date;
         this.size = size;
@@ -68,8 +64,7 @@ public final class DirectoryEntry
     }
 
     // Constructor for internal format.
-    public DirectoryEntry(String name, long date, long size, boolean isDirectory)
-    {
+    public DirectoryEntry(String name, long date, long size, boolean isDirectory) {
         this.name = name;
         this.date = date;
         this.size = size;
@@ -80,9 +75,10 @@ public final class DirectoryEntry
     // Wrapper for constructor for native "ls -l" format.
     // Ignore strings that aren't really directory entries.
     // Apply filter (if any).
-    public static DirectoryEntry getDirectoryEntry(String s,
-                                                   DirectoryFilenameFilter filter)
-    {
+    public static DirectoryEntry getDirectoryEntry(
+        String s,
+        DirectoryFilenameFilter filter
+    ) {
         if (s.length() == 0)
             return null;
         // Ignore "total" line, command line echo.
@@ -100,8 +96,7 @@ public final class DirectoryEntry
     }
 
     // Extracts filename from "ls -l" directory listing.
-    public static String getName(String s)
-    {
+    public static String getName(String s) {
         // Strip symbolic link if any.
         int end = s.indexOf(" -> ");
         if (end >= 0)
@@ -113,8 +108,7 @@ public final class DirectoryEntry
         return null;
     }
 
-    public static int getNameColumn(String s)
-    {
+    public static int getNameColumn(String s) {
         // Strip symbolic link if any.
         int end = s.indexOf(" -> ");
         if (end >= 0)
@@ -125,16 +119,14 @@ public final class DirectoryEntry
         return 0;
     }
 
-    public final String extractName()
-    {
+    public final String extractName() {
         if (name == null && string != null)
             name = getName(string);
         return name;
     }
 
     // nameColumn must be > 0. It's just a hint.
-    public final String extractName(int nameColumn)
-    {
+    public final String extractName(int nameColumn) {
         if (name != null)
             return name; // Cached.
         if (string == null)
@@ -145,7 +137,7 @@ public final class DirectoryEntry
             int end = s.indexOf(" -> ");
             if (end >= 0)
                 s = s.substring(0, end);
-            if (s.charAt(nameColumn-1) == ' ')
+            if (s.charAt(nameColumn - 1) == ' ')
                 if (!Character.isWhitespace(s.charAt(nameColumn)))
                     return name = s.substring(nameColumn);
         }
@@ -153,58 +145,47 @@ public final class DirectoryEntry
         return getName(string);
     }
 
-    public final String getName()
-    {
+    public final String getName() {
         return name;
     }
 
-    public final long getDate()
-    {
+    public final long getDate() {
         return date;
     }
 
-    public final long getSize()
-    {
+    public final long getSize() {
         return size;
     }
 
-    public final void setSize(long size)
-    {
+    public final void setSize(long size) {
         this.size = size;
     }
 
-    public final boolean isDirectory()
-    {
+    public final boolean isDirectory() {
         return isDirectory;
     }
 
-    public final boolean isLink()
-    {
+    public final boolean isLink() {
         return isLink;
     }
 
-    public final void setLinkedTo(String linkedTo)
-    {
+    public final void setLinkedTo(String linkedTo) {
         this.linkedTo = linkedTo;
     }
 
-    public final boolean isMarked()
-    {
+    public final boolean isMarked() {
         return isMarked;
     }
 
-    public final void setMarked(boolean b)
-    {
+    public final void setMarked(boolean b) {
         isMarked = b;
     }
 
-    public final String getString()
-    {
+    public final String getString() {
         return string;
     }
 
-    public String toString()
-    {
+    public String toString() {
         String marked = isMarked ? "T " : "  ";
         // Use saved string for native format.
         if (string != null)

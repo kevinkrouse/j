@@ -25,19 +25,16 @@ import java.awt.MediaTracker;
 import java.awt.Toolkit;
 import java.lang.reflect.Method;
 
-public final class ImageLoader
-{
+public final class ImageLoader {
     private File file;
     private MediaTracker mt;
     private Image image;
 
-    public ImageLoader(File file)
-    {
+    public ImageLoader(File file) {
         this.file = file;
     }
 
-    public Image loadImage()
-    {
+    public Image loadImage() {
         final Editor editor = Editor.currentEditor();
         editor.setWaitCursor();
         image = Toolkit.getDefaultToolkit().createImage(file.canonicalPath());
@@ -68,7 +65,7 @@ public final class ImageLoader
             }
             mt = new MediaTracker(editor);
             try {
-                mt.addImage(image , 0);
+                mt.addImage(image, 0);
                 mt.waitForID(0);
             }
             catch (Exception e) {
@@ -81,8 +78,7 @@ public final class ImageLoader
         return image;
     }
 
-    public void dispose()
-    {
+    public void dispose() {
         if (image != null && mt != null) {
             mt.removeImage(image);
             image.flush();

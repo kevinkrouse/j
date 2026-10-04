@@ -20,6 +20,7 @@
 
 package org.armedbear.j.mode.js;
 
+import java.awt.event.KeyEvent;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Constants;
 import org.armedbear.j.Editor;
@@ -35,43 +36,34 @@ import org.armedbear.j.mode.java.JavaFormatter;
 import org.armedbear.j.mode.java.JavaMode;
 import org.armedbear.j.mode.java.JavaSyntaxIterator;
 
-import java.awt.event.KeyEvent;
-
-public final class JavaScriptMode extends JavaMode implements Constants, Mode
-{
+public final class JavaScriptMode extends JavaMode implements Constants, Mode {
     // Since this class is final, we may as well construct the singleton class
     // instance right away.
     private static JavaScriptMode mode = new JavaScriptMode();
 
-    private JavaScriptMode()
-    {
+    private JavaScriptMode() {
         super(JAVASCRIPT_MODE, JAVASCRIPT_MODE_NAME);
         keywords = new Keywords(this);
     }
 
-    public static final Mode getMode()
-    {
+    public static final Mode getMode() {
         return mode;
     }
 
-    public final Formatter getFormatter(Buffer buffer)
-    {
+    public final Formatter getFormatter(Buffer buffer) {
         return new JavaFormatter(buffer, LANGUAGE_JAVASCRIPT);
     }
 
-    protected void setKeyMapDefaults(KeyMap km)
-    {
+    protected void setKeyMapDefaults(KeyMap km) {
         super.setKeyMapDefaults(km);
         km.mapKey(KeyEvent.VK_ENTER, CTRL_MASK, "newline");
     }
 
-    public void populateModeMenu(Editor editor, Menu menu)
-    {
+    public void populateModeMenu(Editor editor, Menu menu) {
         // No mode menu yet.
     }
 
-    public int getCorrectIndentation(Line line, Buffer buffer)
-    {
+    public int getCorrectIndentation(Line line, Buffer buffer) {
         final int indentSize = buffer.getIndentSize();
         int indent = 0;
         String text = line.trim();
@@ -93,18 +85,24 @@ public final class JavaScriptMode extends JavaMode implements Constants, Mode
             return indent;
         }
 
-        Position paren = findEnclosingParen(new Position(line, 0) );
+        Position paren = findEnclosingParen(new Position(line, 0));
 
         if (paren != null) {
             if (text.startsWith(")"))
                 return buffer.getIndentation(paren.getLine());
-            if (paren.getLine().trim().endsWith("(") ||
-                !buffer.getBooleanProperty(Property.LINEUP_ARGLIST)) {
+            if (
+                paren.getLine().trim().endsWith("(")
+                    ||
+                    !buffer.getBooleanProperty(Property.LINEUP_ARGLIST)
+            ) {
                 indent = buffer.getIndentation(paren.getLine()) + indentSize;
             } else {
                 paren.skip(1);
-                while (paren.getOffset() < paren.getLineLength() &&
-                    paren.getLine().charAt(paren.getOffset()) <= ' ') {
+                while (
+                    paren.getOffset() < paren.getLineLength()
+                        &&
+                        paren.getLine().charAt(paren.getOffset()) <= ' '
+                ) {
                     paren.skip(1);
                 }
                 if (paren.getOffset() <= paren.getLineLength())
@@ -144,7 +142,7 @@ public final class JavaScriptMode extends JavaMode implements Constants, Mode
             buffer.getBooleanProperty(Property.INDENT_AFTER_BRACE);
 
         if (modelText.endsWith(")")) {
-            Position pos = new Position(model, model.length()-1);
+            Position pos = new Position(model, model.length() - 1);
             while (pos.getChar() != ')')
                 pos.skip(-1);
             pos = matchClosingParen(pos);
@@ -158,11 +156,17 @@ public final class JavaScriptMode extends JavaMode implements Constants, Mode
 
             String firstToken = getFirstIdentifier(s);
 
-            if (!firstToken.equals("if") &&
-                !firstToken.equals("else") &&
-                !firstToken.equals("for") &&
-                !firstToken.equals("while") &&
-                !firstToken.equals("switch")) {
+            if (
+                !firstToken.equals("if")
+                    &&
+                    !firstToken.equals("else")
+                    &&
+                    !firstToken.equals("for")
+                    &&
+                    !firstToken.equals("while")
+                    &&
+                    !firstToken.equals("switch")
+            ) {
                 Position begin = findBeginningOfBlock(pos);
                 if (begin != null) {
                     indent = buffer.getIndentation(begin.getLine());
@@ -212,15 +216,13 @@ public final class JavaScriptMode extends JavaMode implements Constants, Mode
         return indent;
     }
 
-    private boolean isContinued(String text)
-    {
+    private boolean isContinued(String text) {
         if (text.length() == 0)
             return false;
-        return isContinued(text, text.charAt(text.length()-1));
+        return isContinued(text, text.charAt(text.length() - 1));
     }
 
-    private static Position findBeginningOfBlock(Position pos)
-    {
+    private static Position findBeginningOfBlock(Position pos) {
         JavaSyntaxIterator iter = new JavaSyntaxIterator(pos);
 
         int count = 1;

@@ -21,7 +21,6 @@
 package org.armedbear.j.extension.abcl;
 
 import java.util.Locale;
-
 import org.armedbear.j.Buffer;
 import org.armedbear.j.LispAPI;
 import org.armedbear.j.Log;
@@ -40,51 +39,48 @@ import org.armedbear.lisp.SimpleString;
  * it the first keystroke in the location bar would boot ABCL synchronously on
  * the event dispatch thread, which is exactly what used to happen.
  */
-public final class AbclHooks implements EditorHooks
-{
-    public void bufferActivated(Buffer buffer)
-    {
+public final class AbclHooks implements EditorHooks {
+    public void bufferActivated(Buffer buffer) {
         if (ready() && buffer != null)
             LispAPI.invokeBufferActivatedHook(buffer);
     }
 
-    public void openFile(Buffer buffer)
-    {
+    public void openFile(Buffer buffer) {
         if (ready())
             LispAPI.invokeOpenFileHook(buffer);
     }
 
-    public void afterSave(Buffer buffer)
-    {
+    public void afterSave(Buffer buffer) {
         if (ready())
             LispAPI.invokeAfterSaveHook(buffer);
     }
 
-    public void modeCreated(String modeDisplayName)
-    {
+    public void modeCreated(String modeDisplayName) {
         if (ready() && modeDisplayName != null) {
             // "Java" -> java-mode-hook, the name init.lisp defines.
-            invoke(modeDisplayName.toLowerCase(Locale.ROOT).replace(' ', '-')
-                                  .concat("-mode-hook"));
+            invoke(
+                modeDisplayName.toLowerCase(Locale.ROOT)
+                    .replace(' ', '-')
+                    .concat("-mode-hook")
+            );
         }
     }
 
-    public void eventHandled()
-    {
+    public void eventHandled() {
         // On the dispatcher's path, once per keystroke.
         if (ready())
             LispAPI.eventHandled();
     }
 
-    public void invoke(String hookName, Object... args)
-    {
+    public void invoke(String hookName, Object... args) {
         if (!ready() || hookName == null)
             return;
         try {
             LispObject[] form = new LispObject[args.length + 2];
             form[0] = LispAPI.PACKAGE_J.intern("INVOKE-HOOK");
             form[1] = LispAPI.PACKAGE_J.intern(
-                hookName.toUpperCase(Locale.ROOT).replace('_', '-'));
+                hookName.toUpperCase(Locale.ROOT).replace('_', '-')
+            );
             for (int i = 0; i < args.length; i++)
                 form[i + 2] = coerce(args[i]);
             Primitives.FUNCALL.execute(form);
@@ -98,19 +94,17 @@ public final class AbclHooks implements EditorHooks
      * Arguments arrive raw -- quoting them is this end's job, which is why
      * CustomFocusManager no longer escapes backslashes on j's behalf.
      */
-    private static LispObject coerce(Object arg)
-    {
+    private static LispObject coerce(Object arg) {
         if (arg == null)
             return org.armedbear.lisp.Lisp.NIL;
         if (arg instanceof LispObject)
-            return (LispObject)arg;
+            return (LispObject) arg;
         if (arg instanceof String)
-            return new SimpleString((String)arg);
+            return new SimpleString((String) arg);
         return new JavaObject(arg);
     }
 
-    private static boolean ready()
-    {
+    private static boolean ready() {
         return AbclSession.isInitialized();
     }
 }

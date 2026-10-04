@@ -32,32 +32,28 @@ import org.armedbear.lisp.Site;
  *
  * <p>One session, because one JVM can hold one ABCL.
  */
-public final class AbclClient implements LanguageClient
-{
+public final class AbclClient implements LanguageClient {
     private final AbclSession session = new AbclSession(DEFAULT_SESSION);
 
-    public String getName()
-    {
+    public String getName() {
         return "abcl";
     }
 
-    public Session getSession(String key)
-    {
+    public Session getSession(String key) {
         return session;
     }
 
-    public boolean isAvailable()
-    {
+    public boolean isAvailable() {
         return true;
     }
 
     /** Where ABCL is installed; swank-loader.lisp is looked for beside it. */
-    public String getHomeDirectory()
-    {
+    public String getHomeDirectory() {
         try {
             Object home = Site.getLispHome();
             return home instanceof Pathname
-                ? ((Pathname)home).getNamestring() : null;
+                ? ((Pathname) home).getNamestring()
+                : null;
         }
         catch (Throwable t) {
             Log.debug(t);
@@ -70,8 +66,7 @@ public final class AbclClient implements LanguageClient
      * longer names it on its manifest Class-Path, so the path is read back off
      * the loader that actually has it.
      */
-    public String getRuntimeClassPath()
-    {
+    public String getRuntimeClassPath() {
         try {
             java.security.CodeSource source =
                 Interpreter.class.getProtectionDomain().getCodeSource();
@@ -85,8 +80,7 @@ public final class AbclClient implements LanguageClient
         }
     }
 
-    public void shutdown()
-    {
+    public void shutdown() {
         session.close();
     }
 }

@@ -20,6 +20,13 @@
 
 package org.armedbear.j.mode.checkpath;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.lang.StringBuilder;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Constants;
 import org.armedbear.j.Editor;
@@ -28,18 +35,9 @@ import org.armedbear.j.Line;
 import org.armedbear.j.Log;
 import org.armedbear.j.OutputBuffer;
 import org.armedbear.j.Property;
-import java.lang.StringBuilder;
 import org.armedbear.j.util.Utilities;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.util.HashSet;
-import java.util.ArrayList;
-import java.util.List;
-
-public final class CheckPath implements Constants
-{
+public final class CheckPath implements Constants {
     private final Editor editor;
     private final boolean showAll;
     private final Buffer buffer;
@@ -50,8 +48,7 @@ public final class CheckPath implements Constants
     private List<File> files = new ArrayList<File>();
     private int depthDisplayed;
 
-    private CheckPath(Editor editor, boolean showAll)
-    {
+    private CheckPath(Editor editor, boolean showAll) {
         this.editor = editor;
         this.showAll = showAll;
         buffer = editor.getBuffer();
@@ -59,13 +56,11 @@ public final class CheckPath implements Constants
         currentDirectory = editor.getCurrentDirectory();
     }
 
-    private String getOutput()
-    {
+    private String getOutput() {
         return sb.toString();
     }
 
-    private void run()
-    {
+    private void run() {
         sb.append("File: ");
         sb.append(buffer.getFile().netPath());
         sb.append('\n');
@@ -79,8 +74,7 @@ public final class CheckPath implements Constants
         checkBuffer(buffer, 0);
     }
 
-    private void checkBuffer(Buffer b, int depth)
-    {
+    private void checkBuffer(Buffer b, int depth) {
         for (Line line = b.getFirstLine(); line != null; line = line.next()) {
             String s = Utilities.extractInclude(line.getText());
             if (s != null) {
@@ -90,7 +84,7 @@ public final class CheckPath implements Constants
                         sb.append("  NOT FOUND");
                     else if (result == ALREADY_LISTED)
                         sb.append("  (Already listed)");
-                    if (sb.length() == 0 || sb.charAt(sb.length()-1) != '\n')
+                    if (sb.length() == 0 || sb.charAt(sb.length() - 1) != '\n')
                         sb.append('\n');
                 } else if (result == NOT_FOUND) {
                     sb.append(s);
@@ -100,12 +94,11 @@ public final class CheckPath implements Constants
         }
     }
 
-    private static final int NOT_FOUND      = 0;
-    private static final int FOUND          = 1;
+    private static final int NOT_FOUND = 0;
+    private static final int FOUND = 1;
     private static final int ALREADY_LISTED = 2;
 
-    private int checkFile(final String s, final int depth)
-    {
+    private int checkFile(final String s, final int depth) {
         if (showAll) {
             sb.append(spaces(depth));
             sb.append(s);
@@ -133,13 +126,13 @@ public final class CheckPath implements Constants
                     }
                     // Recurse!
                     files.add(file);
-                    int result = checkFile(name, depth+1);
+                    int result = checkFile(name, depth + 1);
                     if (showAll) {
                         if (result == NOT_FOUND)
                             sb.append("  NOT FOUND");
                         else if (result == ALREADY_LISTED)
                             sb.append("  (Already listed)");
-                        if (sb.length() == 0 || sb.charAt(sb.length()-1) != '\n')
+                        if (sb.length() == 0 || sb.charAt(sb.length() - 1) != '\n')
                             sb.append('\n');
                     } else if (result == NOT_FOUND) {
                         while (depthDisplayed < files.size()) {
@@ -148,7 +141,7 @@ public final class CheckPath implements Constants
                             sb.append(" -->\n");
                             ++depthDisplayed;
                         }
-                        sb.append(spaces(depth+1));
+                        sb.append(spaces(depth + 1));
                         sb.append(name);
                         sb.append("  NOT FOUND\n");
                     }
@@ -164,31 +157,26 @@ public final class CheckPath implements Constants
         return FOUND;
     }
 
-    private String getDisplayName(File file)
-    {
+    private String getDisplayName(File file) {
         File dir = file.getParentFile();
         if (dir.equals(currentDirectory))
             return file.getName();
         return file.canonicalPath();
     }
 
-    private static String spaces(int depth)
-    {
+    private static String spaces(int depth) {
         return Utilities.spaces(depth * 2);
     }
 
-    public static void checkPath()
-    {
+    public static void checkPath() {
         checkPathInternal(false);
     }
 
-    public static void listIncludes()
-    {
+    public static void listIncludes() {
         checkPathInternal(true);
     }
 
-    private static void checkPathInternal(boolean showAll)
-    {
+    private static void checkPathInternal(boolean showAll) {
         final Editor editor = Editor.currentEditor();
         final int modeId = editor.getModeId();
         if (modeId != C_MODE && modeId != CPP_MODE)

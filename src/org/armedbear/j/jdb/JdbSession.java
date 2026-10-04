@@ -30,7 +30,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Properties;
 import java.util.Set;
-
 import org.armedbear.j.Directories;
 import org.armedbear.j.File;
 import org.armedbear.j.Log;
@@ -42,24 +41,19 @@ import org.xml.sax.SAXException;
 import org.xml.sax.XMLReader;
 import org.xml.sax.helpers.DefaultHandler;
 
-public final class JdbSession extends Properties
-{
+public final class JdbSession extends Properties {
     private List<BreakpointSpecification> breakpointSpecifications;
     private List<ResolvableBreakpoint> breakpoints;
 
-    public JdbSession()
-    {
-    }
+    public JdbSession() {}
 
-    public String getName()
-    {
+    public String getName() {
         return getProperty("name", "");
     }
 
     private static File jdbDir;
 
-    private static File getSettingsDirectory()
-    {
+    private static File getSettingsDirectory() {
         if (jdbDir == null) {
             jdbDir = File.getInstance(Directories.getStateDirectory(), "jdb");
             if (!jdbDir.isDirectory())
@@ -70,119 +64,97 @@ public final class JdbSession extends Properties
 
     private static File sessionDir;
 
-    private File getDefaultSessionFile()
-    {
+    private File getDefaultSessionFile() {
         return File.getInstance(getSettingsDirectory(), "defaults.xml");
     }
 
-    public static String[] getSessionNames()
-    {
+    public static String[] getSessionNames() {
         return sessionDir.list();
     }
 
-    public static void deleteSession(String name)
-    {
+    public static void deleteSession(String name) {
         File file = File.getInstance(sessionDir, name);
         if (file.isFile())
             file.delete();
     }
 
-    public String getMainClass()
-    {
+    public String getMainClass() {
         return getProperty("mainClass", "");
     }
 
-    public void setMainClass(String s)
-    {
+    public void setMainClass(String s) {
         put("mainClass", s);
     }
 
-    public String getMainClassArgs()
-    {
+    public String getMainClassArgs() {
         return getProperty("mainClassArgs", "");
     }
 
-    public void setMainClassArgs(String s)
-    {
+    public void setMainClassArgs(String s) {
         put("mainClassArgs", s);
     }
 
-    public String getClassPath()
-    {
+    public String getClassPath() {
         return getProperty("classPath", "");
     }
 
-    public void setClassPath(String s)
-    {
+    public void setClassPath(String s) {
         put("classPath", s);
     }
 
-    public String getJavaHome()
-    {
+    public String getJavaHome() {
         return getProperty("javaHome", "");
     }
 
-    public void setJavaHome(String s)
-    {
+    public void setJavaHome(String s) {
         put("javaHome", s);
     }
 
-    public String getJavaExecutable()
-    {
+    public String getJavaExecutable() {
         return getProperty("javaExecutable", "");
     }
 
-    public void setJavaExecutable(String s)
-    {
+    public void setJavaExecutable(String s) {
         put("javaExecutable", s);
     }
 
-    public String getVMArgs()
-    {
+    public String getVMArgs() {
         return getProperty("vmArgs", "");
     }
 
-    public void setVMArgs(String s)
-    {
+    public void setVMArgs(String s) {
         put("vmArgs", s);
     }
 
-    public boolean getStartSuspended()
-    {
+    public boolean getStartSuspended() {
         String s = getProperty("startSuspended");
         return s != null && s.equals("true");
     }
 
-    public void setStartSuspended(boolean b)
-    {
+    public void setStartSuspended(boolean b) {
         put("startSuspended", b ? "true" : "false");
     }
 
-    public String getSourcePath()
-    {
+    public String getSourcePath() {
         return getProperty("sourcePath", "");
     }
 
-    public void setSourcePath(String s)
-    {
+    public void setSourcePath(String s) {
         put("sourcePath", s);
     }
 
-    public void saveDefaults()
-    {
+    public void saveDefaults() {
         save(getDefaultSessionFile());
     }
 
-    public void loadDefaults()
-    {
+    public void loadDefaults() {
         clear();
         File file = getDefaultSessionFile();
         if (file != null && file.isFile())
             load(file);
     }
 
-    private void save(File file)
-    {
+    private void save(File file) {
         try {
             OutputStream out = file.getOutputStream();
             BufferedWriter writer =
@@ -208,8 +180,7 @@ public final class JdbSession extends Properties
         }
     }
 
-    private void saveBreakpoints(BufferedWriter writer)
-    {
+    private void saveBreakpoints(BufferedWriter writer) {
         if (breakpoints != null && breakpoints.size() > 0) {
             try {
                 writer.write("  <breakpoints>");
@@ -236,8 +207,7 @@ public final class JdbSession extends Properties
         }
     }
 
-    private void load(File file)
-    {
+    private void load(File file) {
         XMLReader xmlReader = Utilities.getDefaultXMLReader();
         if (xmlReader != null) {
             xmlReader.setContentHandler(new Handler());
@@ -252,26 +222,25 @@ public final class JdbSession extends Properties
         }
     }
 
-    public List<BreakpointSpecification> getBreakpointSpecifications()
-    {
+    public List<BreakpointSpecification> getBreakpointSpecifications() {
         return breakpointSpecifications;
     }
 
-    public void setBreakpoints(List<ResolvableBreakpoint> breakpoints)
-    {
+    public void setBreakpoints(List<ResolvableBreakpoint> breakpoints) {
         this.breakpoints = breakpoints;
     }
 
-    private static final String getVersion()
-    {
+    private static final String getVersion() {
         return "1";
     }
 
-    private class Handler extends DefaultHandler implements ContentHandler
-    {
-        public void startElement(String uri, String localName, String qName,
-            Attributes attributes) throws SAXException
-        {
+    private class Handler extends DefaultHandler implements ContentHandler {
+        public void startElement(
+            String uri,
+            String localName,
+            String qName,
+            Attributes attributes
+        ) throws SAXException {
             if (localName.equals("session") || qName.equals("session")) {
                 String version = attributes.getValue("version");
                 if (!version.equals(getVersion()))

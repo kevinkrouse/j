@@ -20,33 +20,34 @@
 
 package org.armedbear.j.util;
 
-import org.armedbear.j.Editor;
-import org.armedbear.j.Log;
-import org.armedbear.j.Property;
-
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
+import org.armedbear.j.Editor;
+import org.armedbear.j.Log;
+import org.armedbear.j.Property;
 
-public class ReaderThread extends Thread
-{
+public class ReaderThread extends Thread {
     private char[] buf = new char[4096];
     private InputStream inputStream;
     private BufferedReader reader;
     private boolean done = false;
     private int timeOut = 10; // Milliseconds.
 
-    public ReaderThread(InputStream inputStream)
-    {
+    public ReaderThread(InputStream inputStream) {
         super("reader thread");
         this.inputStream = inputStream;
         String encoding =
             Editor.preferences().getStringProperty(Property.DEFAULT_ENCODING);
         try {
-            reader = new BufferedReader(new InputStreamReader(inputStream,
-                                                              encoding));
+            reader = new BufferedReader(
+                new InputStreamReader(
+                    inputStream,
+                    encoding
+                )
+            );
         }
         catch (UnsupportedEncodingException e) {
             Log.debug(e);
@@ -54,13 +55,11 @@ public class ReaderThread extends Thread
         }
     }
 
-    public void setTimeOut(int n)
-    {
+    public void setTimeOut(int n) {
         timeOut = n;
     }
 
-    public void run()
-    {
+    public void run() {
         while (!done) {
             String s = read();
             if (s == null)
@@ -69,8 +68,7 @@ public class ReaderThread extends Thread
         }
     }
 
-    public void cancel()
-    {
+    public void cancel() {
         interrupt();
         if (inputStream != null) {
             try {
@@ -83,8 +81,7 @@ public class ReaderThread extends Thread
         }
     }
 
-    private String read()
-    {
+    private String read() {
         StringBuilder sb = new StringBuilder();
         try {
             do {
@@ -99,8 +96,7 @@ public class ReaderThread extends Thread
                     Thread.sleep(timeOut);
                 else
                     Thread.yield();
-            }
-            while (reader.ready());
+            } while (reader.ready());
         }
         catch (IOException e) {
             return null;
@@ -114,12 +110,9 @@ public class ReaderThread extends Thread
         return sb.toString();
     }
 
-    public String filter(String s)
-    {
+    public String filter(String s) {
         return s;
     }
 
-    public void update(String s)
-    {
-    }
+    public void update(String s) {}
 }

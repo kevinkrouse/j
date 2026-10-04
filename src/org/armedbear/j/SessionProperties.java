@@ -20,8 +20,6 @@
 
 package org.armedbear.j;
 
-import org.armedbear.j.util.Utilities;
-
 import java.awt.Dimension;
 import java.awt.Rectangle;
 import java.awt.Toolkit;
@@ -29,15 +27,14 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.Properties;
+import org.armedbear.j.util.Utilities;
 
-public final class SessionProperties
-{
+public final class SessionProperties {
     private Properties properties;
     private File file;
     private File backupFile;
 
-    public SessionProperties()
-    {
+    public SessionProperties() {
         properties = new Properties();
         file = File.getInstance(Directories.getStateDirectory(), "props");
         backupFile = File.getInstance(Directories.getStateDirectory(), "props~");
@@ -59,14 +56,12 @@ public final class SessionProperties
         }
     }
 
-    public void saveWindowPlacement()
-    {
+    public void saveWindowPlacement() {
         for (int i = 0; i < Editor.getFrameCount(); i++)
             saveWindowPlacement(Editor.getFrame(i));
     }
 
-    private void saveWindowPlacement(Frame frame)
-    {
+    private void saveWindowPlacement(Frame frame) {
         saveSidebarState(frame);
         String prefix = getPrefix(frame);
         if (prefix != null) {
@@ -85,8 +80,7 @@ public final class SessionProperties
         }
     }
 
-    public Rectangle getWindowPlacement(int index)
-    {
+    public Rectangle getWindowPlacement(int index) {
         Rectangle r = new Rectangle();
         String prefix = getPrefix(index);
         if (prefix != null) {
@@ -98,14 +92,12 @@ public final class SessionProperties
         return r;
     }
 
-    public int getExtendedState(int index)
-    {
+    public int getExtendedState(int index) {
         String prefix = getPrefix(index);
         return getIntegerProperty(prefix + "extendedState", 0);
     }
 
-    public void saveSidebarState(Frame frame)
-    {
+    public void saveSidebarState(Frame frame) {
         String prefix = getPrefix(frame);
         if (prefix != null) {
             if (frame.getSidebar() != null) {
@@ -115,12 +107,16 @@ public final class SessionProperties
                 int dividerLocation = frame.getSidebar().getDividerLocation();
                 if (dividerLocation >= 0) {
                     // If < 0, sidebar has no divider.
-                    setIntegerProperty(prefix.concat("sidebar.dividerLocation"),
-                        dividerLocation);
+                    setIntegerProperty(
+                        prefix.concat("sidebar.dividerLocation"),
+                        dividerLocation
+                    );
                 }
             }
-            setBooleanProperty(prefix.concat("sidebar.show"),
-                frame.getSidebar() != null);
+            setBooleanProperty(
+                prefix.concat("sidebar.show"),
+                frame.getSidebar() != null
+            );
         }
     }
 
@@ -129,16 +125,16 @@ public final class SessionProperties
     // change reaches saveSidebarState the factor has already moved, and
     // stamping the new factor onto a width measured under the old one would
     // lose exactly the information needed to correct it.
-    public void recordSidebarScale(Frame frame)
-    {
+    public void recordSidebarScale(Frame frame) {
         String prefix = getPrefix(frame);
         if (prefix != null)
-            setIntegerProperty(prefix.concat("sidebar.scale"),
-                               (int) Math.round(UIScale.getScale() * 100));
+            setIntegerProperty(
+                prefix.concat("sidebar.scale"),
+                (int) Math.round(UIScale.getScale() * 100)
+            );
     }
 
-    public boolean getShowSidebar(Frame frame)
-    {
+    public boolean getShowSidebar(Frame frame) {
         int index = Editor.indexOf(frame);
 
         // By default, only show sidebar in primary frame.
@@ -146,25 +142,24 @@ public final class SessionProperties
 
         String prefix = getPrefix(frame);
         if (prefix != null)
-            toBeReturned = getBooleanProperty(prefix.concat("sidebar.show"),
-                toBeReturned);
+            toBeReturned = getBooleanProperty(
+                prefix.concat("sidebar.show"),
+                toBeReturned
+            );
         return toBeReturned;
     }
 
-    public int getSidebarWidth(Frame frame)
-    {
+    public int getSidebarWidth(Frame frame) {
         return getScaledSidebarProperty(frame, "sidebar.width", 150);
     }
 
-    public int getSidebarDividerLocation(Frame frame)
-    {
+    public int getSidebarDividerLocation(Frame frame) {
         return getScaledSidebarProperty(frame, "sidebar.dividerLocation", 200);
     }
 
     // A stored sidebar size, corrected for any change in uiScale since it was
     // stored, falling back to a scaled default.
-    private int getScaledSidebarProperty(Frame frame, String key, int defaultValue)
-    {
+    private int getScaledSidebarProperty(Frame frame, String key, int defaultValue) {
         String prefix = getPrefix(frame);
         if (prefix == null)
             return UIScale.scale(defaultValue);
@@ -181,23 +176,20 @@ public final class SessionProperties
         return (int) Math.round(stored * factor);
     }
 
-    public boolean getShowToolbar(Frame frame)
-    {
+    public boolean getShowToolbar(Frame frame) {
         String prefix = getPrefix(frame);
         if (prefix != null)
             return getBooleanProperty(prefix.concat("toolbar.show"), true);
         return true;
     }
 
-    public void setShowToolbar(Frame frame, boolean show)
-    {
+    public void setShowToolbar(Frame frame, boolean show) {
         String prefix = getPrefix(frame);
         if (prefix != null)
             setBooleanProperty(prefix.concat("toolbar.show"), show);
     }
 
-    public int getIntegerProperty(String key, int defaultValue)
-    {
+    public int getIntegerProperty(String key, int defaultValue) {
         try {
             String s = properties.getProperty(key);
             if (s != null)
@@ -207,13 +199,11 @@ public final class SessionProperties
         return defaultValue;
     }
 
-    public void setBooleanProperty(String key, boolean value)
-    {
+    public void setBooleanProperty(String key, boolean value) {
         properties.put(key, value ? "true" : "false");
     }
 
-    public boolean getBooleanProperty(String key, boolean defaultValue)
-    {
+    public boolean getBooleanProperty(String key, boolean defaultValue) {
         String s = properties.getProperty(key);
         if (s != null) {
             if (s.equals("true"))
@@ -224,13 +214,11 @@ public final class SessionProperties
         return defaultValue;
     }
 
-    public void setIntegerProperty(String key, int value)
-    {
+    public void setIntegerProperty(String key, int value) {
         properties.put(key, String.valueOf(value));
     }
 
-    public float getFloatProperty(String key, float defaultValue)
-    {
+    public float getFloatProperty(String key, float defaultValue) {
         try {
             String s = properties.getProperty(key);
             if (s != null)
@@ -240,29 +228,25 @@ public final class SessionProperties
         return defaultValue;
     }
 
-    public void setFloatProperty(String key, float value)
-    {
+    public void setFloatProperty(String key, float value) {
         properties.put(key, String.valueOf(value));
     }
 
-    public String getStringProperty(String key, String defaultValue)
-    {
+    public String getStringProperty(String key, String defaultValue) {
         String s = properties.getProperty(key);
         if (s != null)
             return s;
         return defaultValue;
     }
 
-    public void setStringProperty(String key, String value)
-    {
+    public void setStringProperty(String key, String value) {
         if (value != null)
             properties.put(key, value);
         else
             properties.remove(key);
     }
 
-    public void save()
-    {
+    public void save() {
         try {
             File tempFile = Utilities.getTempFile();
             try (OutputStream out = tempFile.getOutputStream()) {
@@ -285,13 +269,11 @@ public final class SessionProperties
         }
     }
 
-    private String getPrefix(Frame frame)
-    {
+    private String getPrefix(Frame frame) {
         return getPrefix(Editor.indexOf(frame));
     }
 
-    private String getPrefix(int index)
-    {
+    private String getPrefix(int index) {
         if (index < 0) {
             // Should never happen.
             Debug.assertTrue(false);

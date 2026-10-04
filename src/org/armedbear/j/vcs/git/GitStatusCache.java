@@ -33,8 +33,7 @@ import org.armedbear.j.ShellCommand;
  * that have just changed the working tree -- saving a file, say -- are expected
  * to say so.
  */
-public final class GitStatusCache
-{
+public final class GitStatusCache {
     /** Repository root path -> (path relative to that root -> two letter code). */
     private static final Map<String, Map<String, String>> repositories =
         new HashMap<String, Map<String, String>>();
@@ -42,14 +41,13 @@ public final class GitStatusCache
     /** Directories already resolved to a repository root, "" meaning none. */
     private static final Map<String, String> roots = new HashMap<String, String>();
 
-    private GitStatusCache() { }
+    private GitStatusCache() {}
 
     /**
      * The two letter porcelain code for a file, or null if git says nothing
      * about it -- unchanged, or not in a repository at all.
      */
-    public static synchronized String statusFor(File file)
-    {
+    public static synchronized String statusFor(File file) {
         if (file == null || file.isRemote())
             return null;
         final String root = rootFor(file);
@@ -64,13 +62,11 @@ public final class GitStatusCache
     }
 
     /** Forgets every snapshot, so the next question re-runs git. */
-    public static synchronized void invalidate()
-    {
+    public static synchronized void invalidate() {
         repositories.clear();
     }
 
-    private static String rootFor(File file)
-    {
+    private static String rootFor(File file) {
         File parent = file.getParentFile();
         if (parent == null)
             return null;
@@ -85,8 +81,7 @@ public final class GitStatusCache
         return value.length() == 0 ? null : value;
     }
 
-    private static String relativePath(String root, File file)
-    {
+    private static String relativePath(String root, File file) {
         String path = file.canonicalPath();
         if (path.startsWith(root)) {
             path = path.substring(root.length());
@@ -96,15 +91,15 @@ public final class GitStatusCache
         return path;
     }
 
-    private static Map<String, String> read(String root)
-    {
+    private static Map<String, String> read(String root) {
         Map<String, String> status = new HashMap<String, String>();
         try {
             // -z so paths arrive verbatim: without it git quotes and escapes
             // anything unusual, which would have to be undone here.
             ShellCommand cmd = new ShellCommand(
                 "git status -z --porcelain --ignored --untracked",
-                File.getInstance(root));
+                File.getInstance(root)
+            );
             cmd.run();
             parse(cmd.getOutput(), status);
         }
@@ -121,8 +116,7 @@ public final class GitStatusCache
      * record straight after the first. It has to be stepped over, or every
      * entry after the first rename is read as a status.
      */
-    static void parse(String output, Map<String, String> status)
-    {
+    static void parse(String output, Map<String, String> status) {
         if (output == null)
             return;
         int i = 0;
@@ -138,8 +132,12 @@ public final class GitStatusCache
             final String xy = record.substring(0, 2);
             final String path = record.substring(3);
             status.put(path, xy);
-            if (xy.charAt(0) == 'R' || xy.charAt(0) == 'C'
-                || xy.charAt(1) == 'R' || xy.charAt(1) == 'C') {
+            if (
+                xy.charAt(0) == 'R'
+                    || xy.charAt(0) == 'C'
+                    || xy.charAt(1) == 'R'
+                    || xy.charAt(1) == 'C'
+            ) {
                 int source = output.indexOf('\0', i);
                 i = (source < 0) ? length : source + 1;
             }

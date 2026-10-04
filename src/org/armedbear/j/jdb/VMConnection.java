@@ -26,27 +26,24 @@ import com.sun.jdi.VirtualMachine;
 import com.sun.jdi.VirtualMachineManager;
 import com.sun.jdi.connect.Connector;
 import com.sun.jdi.connect.LaunchingConnector;
+import java.lang.StringBuilder;
 import java.util.Map;
 import org.armedbear.j.Debug;
-import java.lang.StringBuilder;
 import org.armedbear.j.Log;
 
-public final class VMConnection
-{
+public final class VMConnection {
     private final Connector connector;
-    private final Map<String,Connector.Argument> map;
+    private final Map<String, Connector.Argument> map;
 
-    public VMConnection(Connector connector, Map<String,Connector.Argument> map)
-    {
+    public VMConnection(Connector connector, Map<String, Connector.Argument> map) {
         this.connector = connector;
         this.map = map;
     }
 
-    public static VMConnection getConnection(Jdb jdb)
-    {
+    public static VMConnection getConnection(Jdb jdb) {
         VirtualMachineManager vmm = Bootstrap.virtualMachineManager();
         LaunchingConnector connector = vmm.defaultConnector();
-        Map<String,Connector.Argument> map = connector.defaultArguments();
+        Map<String, Connector.Argument> map = connector.defaultArguments();
         String javaHome = jdb.getJavaHome();
         (map.get("home")).setValue(javaHome);
         String javaExecutable = jdb.getJavaExecutable();
@@ -85,8 +82,7 @@ public final class VMConnection
         return new VMConnection(connector, map);
     }
 
-    public VirtualMachine open(Jdb jdb)
-    {
+    public VirtualMachine open(Jdb jdb) {
         if (connector instanceof LaunchingConnector)
             return launchTarget(jdb);
         // Otherwise...
@@ -94,11 +90,10 @@ public final class VMConnection
         return null;
     }
 
-    private VirtualMachine launchTarget(Jdb jdb)
-    {
+    private VirtualMachine launchTarget(Jdb jdb) {
         VirtualMachine vm = null;
         try {
-            vm = ((LaunchingConnector)connector).launch(map);
+            vm = ((LaunchingConnector) connector).launch(map);
         }
         catch (VMDisconnectedException disconnected) {
             return null;

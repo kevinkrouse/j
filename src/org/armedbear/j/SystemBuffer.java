@@ -20,15 +20,11 @@
 
 package org.armedbear.j;
 
-import org.armedbear.j.mode.binary.BinaryLine;
-import org.armedbear.j.util.ByteBuffer;
-import java.lang.StringBuilder;
-import org.armedbear.j.util.Utilities;
-
 import java.io.BufferedOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
+import java.lang.StringBuilder;
 import java.nio.charset.CharacterCodingException;
 import java.nio.charset.Charset;
 import java.nio.charset.CharsetDecoder;
@@ -36,21 +32,23 @@ import java.nio.charset.CodingErrorAction;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import javax.swing.SwingUtilities;
+import org.armedbear.j.mode.binary.BinaryLine;
+import org.armedbear.j.util.ByteBuffer;
+import org.armedbear.j.util.Utilities;
 
 // System buffers are NOT linked into the normal buffer ring.
-public class SystemBuffer implements Constants
-{
-    public static final int TYPE_SYSTEM           =  0;
-    public static final int TYPE_NORMAL           =  1;
-    public static final int TYPE_ARCHIVE          =  2;
-    public static final int TYPE_DIRECTORY        =  3;
-    public static final int TYPE_SHELL            =  4;
-    public static final int TYPE_MAN              =  5;
-    public static final int TYPE_OUTPUT           =  6;
-    public static final int TYPE_IMAGE            =  7;
-    public static final int TYPE_MAILBOX          =  8;
-    public static final int TYPE_TELNET           =  9;
-    public static final int TYPE_SSH              = 10;
+public class SystemBuffer implements Constants {
+    public static final int TYPE_SYSTEM = 0;
+    public static final int TYPE_NORMAL = 1;
+    public static final int TYPE_ARCHIVE = 2;
+    public static final int TYPE_DIRECTORY = 3;
+    public static final int TYPE_SHELL = 4;
+    public static final int TYPE_MAN = 5;
+    public static final int TYPE_OUTPUT = 6;
+    public static final int TYPE_IMAGE = 7;
+    public static final int TYPE_MAILBOX = 8;
+    public static final int TYPE_TELNET = 9;
+    public static final int TYPE_SSH = 10;
     public static final int TYPE_LIST_OCCURRENCES = 11;
 
     protected int type = TYPE_SYSTEM;
@@ -67,32 +65,25 @@ public class SystemBuffer implements Constants
     private String loadEncoding;
     private List<LocalTag> tags;
 
-    public SystemBuffer()
-    {
-    }
+    public SystemBuffer() {}
 
-    public SystemBuffer(File file)
-    {
+    public SystemBuffer(File file) {
         this.file = file;
     }
 
-    public final int getType()
-    {
+    public final int getType() {
         return type;
     }
 
-    public final synchronized Line getFirstLine()
-    {
+    public final synchronized Line getFirstLine() {
         return firstLine;
     }
 
-    public synchronized void setFirstLine(Line line)
-    {
+    public synchronized void setFirstLine(Line line) {
         firstLine = line;
     }
 
-    public final Position getEnd()
-    {
+    public final Position getEnd() {
         Line line = firstLine;
         if (line == null)
             return null;
@@ -101,63 +92,51 @@ public class SystemBuffer implements Constants
         return new Position(line, line.length());
     }
 
-    public final File getFile()
-    {
+    public final File getFile() {
         return file;
     }
 
-    public final void setFile(File file)
-    {
+    public final void setFile(File file) {
         this.file = file;
     }
 
-    public final synchronized boolean isLoaded()
-    {
+    public final synchronized boolean isLoaded() {
         return isLoaded;
     }
 
-    public final synchronized void setLoaded(boolean b)
-    {
+    public final synchronized void setLoaded(boolean b) {
         isLoaded = b;
     }
 
-    public final Mode getMode()
-    {
+    public final Mode getMode() {
         return mode;
     }
 
-    public final int getModeId()
-    {
+    public final int getModeId() {
         return mode == null ? 0 : mode.getId();
     }
 
-    public final String getModeName()
-    {
+    public final String getModeName() {
         return mode == null ? null : mode.toString();
     }
 
-    public synchronized final List<LocalTag> getTags()
-    {
+    public synchronized final List<LocalTag> getTags() {
         return tags;
     }
 
-    public synchronized final void setTags(List<LocalTag> tags)
-    {
+    public synchronized final void setTags(List<LocalTag> tags) {
         this.tags = tags;
     }
 
-    public final void setForceReadOnly(boolean b)
-    {
+    public final void setForceReadOnly(boolean b) {
         forceReadOnly = b;
     }
 
-    public String getLineSeparator()
-    {
+    public String getLineSeparator() {
         return lineSeparator;
     }
 
-    public final boolean contains(Line line)
-    {
+    public final boolean contains(Line line) {
         Line l = getFirstLine();
         while (l != null) {
             if (l == line)
@@ -167,8 +146,7 @@ public class SystemBuffer implements Constants
         return false;
     }
 
-    public int load()
-    {
+    public int load() {
         if (!isLoaded) {
             try {
                 if (file.isFile()) {
@@ -191,8 +169,7 @@ public class SystemBuffer implements Constants
         return LOAD_COMPLETED;
     }
 
-    public void load(InputStream istream, String encoding)
-    {
+    public void load(InputStream istream, String encoding) {
         // What a load before found is no longer so.
         undecided = false;
         guessed = false;
@@ -286,7 +263,10 @@ public class SystemBuffer implements Constants
                         Editor.preferences().getStringProperty(Property.DEFAULT_ENCODING);
                     if (Editor.preferences().getBooleanProperty(Property.DETECT_ENCODING)) {
                         final EncodingDetector.Result detected = EncodingDetector.detect(
-                            buf, bytesRead, file != null ? file.getName() : null);
+                            buf,
+                            bytesRead,
+                            file != null ? file.getName() : null
+                        );
                         first = detected.skip;
                         utf8ByteOrderMark = detected.skip > 0;
                         if (detected.encoding != null)
@@ -371,8 +351,7 @@ public class SystemBuffer implements Constants
         .onMalformedInput(CodingErrorAction.REPORT)
         .onUnmappableCharacter(CodingErrorAction.REPORT);
 
-    private String decodeLine(ByteBuffer bb) throws UnsupportedEncodingException
-    {
+    private String decodeLine(ByteBuffer bb) throws UnsupportedEncodingException {
         final byte[] bytes = bb.getBytes();
         final int length = bb.length();
         if (undecided) {
@@ -382,11 +361,15 @@ public class SystemBuffer implements Constants
                 undecided = false;
             }
         }
-        if (guessed && !undecided
-            && Charset.forName(loadEncoding).equals(StandardCharsets.UTF_8)) {
+        if (
+            guessed
+                && !undecided
+                && Charset.forName(loadEncoding).equals(StandardCharsets.UTF_8)
+        ) {
             try {
                 return utf8Decoder.reset()
-                    .decode(java.nio.ByteBuffer.wrap(bytes, 0, length)).toString();
+                    .decode(java.nio.ByteBuffer.wrap(bytes, 0, length))
+                    .toString();
             }
             catch (CharacterCodingException e) {
                 notUtf8(bytes, length);
@@ -399,13 +382,16 @@ public class SystemBuffer implements Constants
     // bytes to U+FFFD, the file is an 8-bit encoding after all, as the line
     // says. The lines before were well-formed UTF-8, so their bytes, and
     // what they are in the new encoding, are had again exactly.
-    private void notUtf8(byte[] bytes, int length) throws UnsupportedEncodingException
-    {
+    private void notUtf8(byte[] bytes, int length) throws UnsupportedEncodingException {
         final String encoding = EncodingDetector.classify(bytes, 0, length, false);
         int lines = 0;
         for (Line line = getFirstLine(); line != null; line = line.next()) {
-            line.setText(new String(line.getText().getBytes(StandardCharsets.UTF_8),
-                                    encoding));
+            line.setText(
+                new String(
+                    line.getText().getBytes(StandardCharsets.UTF_8),
+                    encoding
+                )
+            );
             ++lines;
         }
         loadEncoding = encoding;
@@ -420,18 +406,15 @@ public class SystemBuffer implements Constants
         });
     }
 
-    public final Line getLastLine()
-    {
+    public final Line getLastLine() {
         return lastLine;
     }
 
-    public final void setLastLine(Line line)
-    {
+    public final void setLastLine(Line line) {
         lastLine = line;
     }
 
-    protected void appendLine(Line line)
-    {
+    protected void appendLine(Line line) {
         line.setPrevious(lastLine);
         if (lastLine != null)
             lastLine.setNext(line);
@@ -440,13 +423,11 @@ public class SystemBuffer implements Constants
             setFirstLine(line);
     }
 
-    public void appendLine(String s)
-    {
+    public void appendLine(String s) {
         appendLine(new TextLine(s));
     }
 
-    public void append(String s)
-    {
+    public void append(String s) {
         int begin = 0;
         int end = 0;
         boolean skipLF = false;
@@ -479,24 +460,23 @@ public class SystemBuffer implements Constants
             appendLine(s.substring(begin, end));
     }
 
-    private void appendBinaryLine(int start, byte[] bytes, int numBytes)
-    {
+    private void appendBinaryLine(int start, byte[] bytes, int numBytes) {
         appendLine(new BinaryLine(start, bytes, numBytes));
     }
 
     // Overridden by Buffer.renumber().
-    public void renumber()
-    {
+    public void renumber() {
         for (Line line = getFirstLine(); line != null; line = line.next())
             line.setLineNumber(lineCount++);
     }
 
-    public void writeBuffer() throws SaveException
-    {
+    public void writeBuffer() throws SaveException {
         if (file.isFile() && !file.canWrite()) {
             Log.error("writeFile: file is not writable: " + file);
-            throw new SaveException(file,
-                                    file.canonicalPath() + " is not writable");
+            throw new SaveException(
+                file,
+                file.canonicalPath() + " is not writable"
+            );
         }
         if (Platform.isPlatformWindows()) {
             // writeTemporaryFile() throws a SaveException if an error occurs.
@@ -504,15 +484,21 @@ public class SystemBuffer implements Constants
             if (!makePatchFile()) {
                 if (!Utilities.makeBackup(file, false)) {
                     Log.error("backup failed");
-                    throw new SaveException(file,
-                        "Unable to write backup file for " + file.canonicalPath());
+                    throw new SaveException(
+                        file,
+                        "Unable to write backup file for " + file.canonicalPath()
+                    );
                 }
             }
             if (!Utilities.deleteRename(tempFile, file)) {
-                Log.error("unable to rename " + tempFile.canonicalPath() +
-                    " to " + file.canonicalPath());
-                throw new SaveException(file,
-                    "Unable to rename temporary file");
+                Log.error(
+                    "unable to rename " + tempFile.canonicalPath() +
+                        " to " + file.canonicalPath()
+                );
+                throw new SaveException(
+                    file,
+                    "Unable to rename temporary file"
+                );
             }
         } else {
             // Save in place on Unix to preserve permissions and ownership of
@@ -520,23 +506,27 @@ public class SystemBuffer implements Constants
             if (!makePatchFile()) {
                 if (!Utilities.makeBackup(file, true)) {
                     Log.error("backup failed");
-                    throw new SaveException(file,
+                    throw new SaveException(
+                        file,
                         "Unable to write backup file for ".concat(
-                            file.canonicalPath()));
+                            file.canonicalPath()
+                        )
+                    );
                 }
             }
             // Write directly to original file.
             if (!writeFile(file)) {
                 Log.error("writeFile failed");
-                throw new SaveException(file,
-                    "Unable to write ".concat(file.canonicalPath()));
+                throw new SaveException(
+                    file,
+                    "Unable to write ".concat(file.canonicalPath())
+                );
             }
         }
     }
 
     // Returns true if patch file was created successfully.
-    private final boolean makePatchFile()
-    {
+    private final boolean makePatchFile() {
         if (file.isFile()) {
             File patchFile = getPatchFile();
             if (patchFile != null) {
@@ -549,11 +539,10 @@ public class SystemBuffer implements Constants
 
     // Returns null if "patchmode" preference is not set.
     // Public for DiffMode.diff().
-    public final File getPatchFile()
-    {
+    public final File getPatchFile() {
         String suffix;
         if (this instanceof Buffer)
-            suffix = ((Buffer)this).getStringProperty(Property.PATCH_MODE);
+            suffix = ((Buffer) this).getStringProperty(Property.PATCH_MODE);
         else if (mode != null)
             suffix = mode.getStringProperty(Property.PATCH_MODE);
         else {
@@ -571,10 +560,9 @@ public class SystemBuffer implements Constants
         return null;
     }
 
-    public boolean writeFile(File outputFile)
-    {
+    public boolean writeFile(File outputFile) {
         try (BufferedOutputStream out =
-                 new BufferedOutputStream(outputFile.getOutputStream())) {
+            new BufferedOutputStream(outputFile.getOutputStream())) {
             if (lineSeparator == null)
                 lineSeparator = System.getProperty("line.separator");
             String encoding = outputFile.getEncoding();
@@ -603,27 +591,30 @@ public class SystemBuffer implements Constants
         }
     }
 
-    public String getSaveEncoding()
-    {
+    public String getSaveEncoding() {
         String encoding = file == null ? null : file.getEncoding();
         if (encoding == null) {
             encoding = loadEncoding;
             if (encoding == null)
-                encoding = Editor.preferences().getStringProperty(
-                    Property.DEFAULT_ENCODING);
+                encoding = Editor.preferences()
+                    .getStringProperty(
+                        Property.DEFAULT_ENCODING
+                    );
         }
         if (encoding == null)
             Debug.bug();
         return encoding;
     }
 
-    byte[] getByteOrderMark(String encoding) throws UnsupportedEncodingException
-    {
+    byte[] getByteOrderMark(String encoding) throws UnsupportedEncodingException {
         if (utf8ByteOrderMark && Charset.forName(encoding).equals(StandardCharsets.UTF_8))
             return new byte[] { (byte) 0xef, (byte) 0xbb, (byte) 0xbf };
         byte[] bytes = "test".getBytes(encoding);
-        if ((bytes[0] == (byte) 0xfe && bytes[1] == (byte) 0xff) ||
-            (bytes[0] == (byte) 0xff && bytes[1] == (byte) 0xfe)) {
+        if (
+            (bytes[0] == (byte) 0xfe && bytes[1] == (byte) 0xff)
+                ||
+                (bytes[0] == (byte) 0xff && bytes[1] == (byte) 0xfe)
+        ) {
             byte[] byteOrderMark = new byte[2];
             byteOrderMark[0] = bytes[0];
             byteOrderMark[1] = bytes[1];
@@ -632,13 +623,15 @@ public class SystemBuffer implements Constants
         return null;
     }
 
-    byte[] getSeparatorBytes(String encoding) throws UnsupportedEncodingException
-    {
+    byte[] getSeparatorBytes(String encoding) throws UnsupportedEncodingException {
         byte[] bytes = lineSeparator.getBytes(encoding);
         if (bytes.length > 2) {
-            if ((bytes[0] == (byte) 0xfe && bytes[1] == (byte) 0xff) ||
-                (bytes[0] == (byte) 0xff && bytes[1] == (byte) 0xfe)) {
-                byte[] sepBytes = new byte[bytes.length-2];
+            if (
+                (bytes[0] == (byte) 0xfe && bytes[1] == (byte) 0xff)
+                    ||
+                    (bytes[0] == (byte) 0xff && bytes[1] == (byte) 0xfe)
+            ) {
+                byte[] sepBytes = new byte[bytes.length - 2];
                 System.arraycopy(bytes, 2, sepBytes, 0, sepBytes.length);
                 return sepBytes;
             }
@@ -646,8 +639,7 @@ public class SystemBuffer implements Constants
         return bytes;
     }
 
-    /*package*/ synchronized void _empty()
-    {
+    /*package*/ synchronized void _empty() {
         Line line = getFirstLine();
         while (line != null) {
             Line nextLine = line.next();
@@ -660,18 +652,15 @@ public class SystemBuffer implements Constants
         isLoaded = false;
     }
 
-    protected void loadProgress(int totalBytesRead)
-    {
+    protected void loadProgress(int totalBytesRead) {
         // Default behavior is to do nothing.
     }
 
-    protected void loadFinished(boolean success)
-    {
+    protected void loadFinished(boolean success) {
         // Default behavior is to do nothing.
     }
 
-    private void loadBinary(InputStream istream)
-    {
+    private void loadBinary(InputStream istream) {
         byte[] array = readAllBytes(istream);
         if (array != null) {
             for (int start = 0; start < array.length; start += 16) {
@@ -684,12 +673,11 @@ public class SystemBuffer implements Constants
         loadFinished(isLoaded);
     }
 
-    private byte[] readAllBytes(InputStream in)
-    {
+    private byte[] readAllBytes(InputStream in) {
         final int chunkSize = 0x8000;
         byte[] array = null;
         int totalBytes = 0;
-        byte[] chunk = new byte[ chunkSize ];
+        byte[] chunk = new byte[chunkSize];
         int bytesRead;
         try {
             while ((bytesRead = in.read(chunk, 0, chunk.length)) > 0) {
@@ -720,8 +708,7 @@ public class SystemBuffer implements Constants
         return array;
     }
 
-    private File writeTemporaryFile() throws SaveException
-    {
+    private File writeTemporaryFile() throws SaveException {
         boolean succeeded = false;
         // First try to write out a temporary file in the current directory.
         File tempFile = Utilities.getTempFile(file.getParent());
@@ -736,9 +723,12 @@ public class SystemBuffer implements Constants
                 succeeded = writeFile(tempFile);
         }
         if (!succeeded) {
-            throw new SaveException(file,
+            throw new SaveException(
+                file,
                 "Unable to write temporary file for ".concat(
-                    file.canonicalPath()));
+                    file.canonicalPath()
+                )
+            );
         }
         return tempFile;
     }

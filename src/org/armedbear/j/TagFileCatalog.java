@@ -28,23 +28,20 @@ import java.io.OutputStreamWriter;
 import java.util.ArrayList;
 import java.util.Date;
 
-public final class TagFileCatalog
-{
+public final class TagFileCatalog {
     private File tagfileDir;
     private File catalogFile;
     private ArrayList<CatalogEntry> entries = new ArrayList<CatalogEntry>();
 
-    public TagFileCatalog(File tagfileDir)
-    {
+    public TagFileCatalog(File tagfileDir) {
         this.tagfileDir = tagfileDir;
         catalogFile = File.getInstance(tagfileDir, "catalog");
     }
 
-    public synchronized void addEntry(File dir, File tagfile, Mode mode)
-    {
+    public synchronized void addEntry(File dir, File tagfile, Mode mode) {
         String directoryPath = dir.canonicalPath();
         String modeName = mode.toString();
-        for (int i = entries.size()-1; i >= 0; i--) {
+        for (int i = entries.size() - 1; i >= 0; i--) {
             CatalogEntry entry = getEntry(i);
             if (entry.directoryPath.equals(directoryPath)) {
                 if (entry.modeName == null) {
@@ -61,9 +58,8 @@ public final class TagFileCatalog
         entries.add(new CatalogEntry(directoryPath, modeName, tagfile.getName()));
     }
 
-    public synchronized boolean containsTagFileName(String name)
-    {
-        for (int i = entries.size()-1; i >= 0; i--) {
+    public synchronized boolean containsTagFileName(String name) {
+        for (int i = entries.size() - 1; i >= 0; i--) {
             CatalogEntry entry = getEntry(i);
             if (entry.tagfileName.equals(name))
                 return true;
@@ -72,12 +68,11 @@ public final class TagFileCatalog
         return false;
     }
 
-    public synchronized File getTagFile(File dir, Mode mode)
-    {
+    public synchronized File getTagFile(File dir, Mode mode) {
         Debug.assertTrue(mode != null);
         String directoryPath = dir.canonicalPath();
         String modeName = mode.toString();
-        for (int i = entries.size()-1; i >= 0; i--) {
+        for (int i = entries.size() - 1; i >= 0; i--) {
             CatalogEntry entry = getEntry(i);
             if (directoryPath.equals(entry.directoryPath) && modeName.equals(entry.modeName))
                 return File.getInstance(tagfileDir, entry.tagfileName);
@@ -86,10 +81,9 @@ public final class TagFileCatalog
         return null;
     }
 
-    public synchronized void update()
-    {
+    public synchronized void update() {
         boolean changed = false;
-        for (int i = entries.size()-1; i >= 0; i--) {
+        for (int i = entries.size() - 1; i >= 0; i--) {
             CatalogEntry entry = getEntry(i);
             File file = File.getInstance(tagfileDir, entry.tagfileName);
             if (!file.exists()) {
@@ -101,8 +95,7 @@ public final class TagFileCatalog
             save();
     }
 
-    public synchronized void load()
-    {
+    public synchronized void load() {
         try {
             if (catalogFile.isFile()) {
                 BufferedReader reader =
@@ -119,7 +112,7 @@ public final class TagFileCatalog
                         break;
                     }
                     String tagFileName = s.substring(0, i);
-                    String remaining = s.substring(i+1).trim();
+                    String remaining = s.substring(i + 1).trim();
                     i = remaining.indexOf('\t');
                     if (i < 0) {
                         // Invalid format.
@@ -128,7 +121,7 @@ public final class TagFileCatalog
                         break;
                     }
                     String modeName = remaining.substring(0, i);
-                    String directoryPath = remaining.substring(i+1).trim();
+                    String directoryPath = remaining.substring(i + 1).trim();
                     entries.add(new CatalogEntry(directoryPath, modeName, tagFileName));
                 }
                 reader.close();
@@ -139,8 +132,7 @@ public final class TagFileCatalog
         }
     }
 
-    public synchronized void save()
-    {
+    public synchronized void save() {
         try {
             BufferedWriter writer =
                 new BufferedWriter(new OutputStreamWriter(catalogFile.getOutputStream()));
@@ -163,26 +155,22 @@ public final class TagFileCatalog
         }
     }
 
-    private final CatalogEntry getEntry(int i)
-    {
+    private final CatalogEntry getEntry(int i) {
         return entries.get(i);
     }
 
-    private static class CatalogEntry
-    {
+    private static class CatalogEntry {
         final String directoryPath;
         String modeName;
         String tagfileName;
 
-        CatalogEntry(String directoryPath, String modeName, String tagfileName)
-        {
+        CatalogEntry(String directoryPath, String modeName, String tagfileName) {
             this.directoryPath = directoryPath;
             this.modeName = modeName;
             this.tagfileName = tagfileName;
         }
 
-        public String toString()
-        {
+        public String toString() {
             return tagfileName + " " + directoryPath + " " + modeName;
         }
     }

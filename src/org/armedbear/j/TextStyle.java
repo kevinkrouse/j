@@ -27,12 +27,11 @@ import java.awt.Font;
  * bold italic. BOLD and ITALIC are Font's own, so a style a theme gave as the
  * old 0, 1 or 2 means what it always did.
  */
-public final class TextStyle
-{
-    public static final int PLAIN         = Font.PLAIN;
-    public static final int BOLD          = Font.BOLD;
-    public static final int ITALIC        = Font.ITALIC;
-    public static final int UNDERLINE     = 4;
+public final class TextStyle {
+    public static final int PLAIN = Font.PLAIN;
+    public static final int BOLD = Font.BOLD;
+    public static final int ITALIC = Font.ITALIC;
+    public static final int UNDERLINE = 4;
     public static final int STRIKETHROUGH = 8;
 
     private static final int ALL = BOLD | ITALIC | UNDERLINE | STRIKETHROUGH;
@@ -40,14 +39,12 @@ public final class TextStyle
     private TextStyle() {}
 
     /** Just the bits that choose a font: BOLD and ITALIC. */
-    public static int fontStyle(int style)
-    {
+    public static int fontStyle(int style) {
         return style & (BOLD | ITALIC);
     }
 
     /** A style in the words parse takes: "bold italic", "plain". */
-    public static String toString(int style)
-    {
+    public static String toString(int style) {
         if (style == PLAIN)
             return "plain";
         final StringBuilder sb = new StringBuilder();
@@ -67,8 +64,7 @@ public final class TextStyle
      * or words, "bold italic", "underline", "strikethrough", "plain", apart by
      * spaces, commas or '|'. Returns -1 for null or anything else.
      */
-    public static int parse(String value)
-    {
+    public static int parse(String value) {
         if (value == null)
             return -1;
         value = value.trim();

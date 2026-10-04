@@ -25,14 +25,13 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
+import java.lang.StringBuilder;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeModel;
 import javax.swing.tree.TreeModel;
-
 import org.armedbear.j.mode.xml.XmlTreeElement;
-import java.lang.StringBuilder;
 import org.armedbear.j.util.Utilities;
 import org.xml.sax.Attributes;
 import org.xml.sax.ContentHandler;
@@ -47,8 +46,7 @@ import org.xml.sax.XMLReader;
 import org.xml.sax.helpers.DefaultHandler;
 
 public final class XmlParserImpl extends DefaultHandler implements Runnable,
-    ContentHandler, EntityResolver
-{
+    ContentHandler, EntityResolver {
     private static final String VALIDATION =
         "http://xml.org/sax/features/validation";
 
@@ -64,14 +62,12 @@ public final class XmlParserImpl extends DefaultHandler implements Runnable,
     private Locator locator;
     private StringBuilder output;
 
-    public XmlParserImpl(Buffer buffer)
-    {
+    public XmlParserImpl(Buffer buffer) {
         Debug.assertTrue(buffer != null);
         this.buffer = buffer;
     }
 
-    public boolean initialize()
-    {
+    public boolean initialize() {
         String className =
             Editor.preferences().getStringProperty("org.xml.sax.driver");
         if (className == null)
@@ -80,9 +76,9 @@ public final class XmlParserImpl extends DefaultHandler implements Runnable,
             try {
                 // The org.xml.sax.driver preference names a parser class to
                 // use in place of the platform one.
-                xmlReader = (XMLReader)
-                    Class.forName(className).getDeclaredConstructor()
-                        .newInstance();
+                xmlReader = (XMLReader) Class.forName(className)
+                    .getDeclaredConstructor()
+                    .newInstance();
             }
             catch (Exception e) {
                 Log.debug(e);
@@ -104,18 +100,15 @@ public final class XmlParserImpl extends DefaultHandler implements Runnable,
         return xmlReader != null;
     }
 
-    public String getParserClassName()
-    {
+    public String getParserClassName() {
         return parserClassName;
     }
 
-    public void setReader(Reader reader)
-    {
+    public void setReader(Reader reader) {
         this.reader = reader;
     }
 
-    public boolean enableValidation(boolean enable)
-    {
+    public boolean enableValidation(boolean enable) {
         if (xmlReader == null) {
             Debug.bug();
             return false;
@@ -134,8 +127,7 @@ public final class XmlParserImpl extends DefaultHandler implements Runnable,
         return true;
     }
 
-    private boolean isValidating()
-    {
+    private boolean isValidating() {
         if (xmlReader == null) {
             Debug.bug();
             return false;
@@ -148,18 +140,15 @@ public final class XmlParserImpl extends DefaultHandler implements Runnable,
         return false;
     }
 
-    public Exception getException()
-    {
+    public Exception getException() {
         return exception;
     }
 
-    public String getOutput()
-    {
+    public String getOutput() {
         return output != null ? output.toString() : "";
     }
 
-    public void run()
-    {
+    public void run() {
         if (xmlReader == null) {
             Debug.bug();
             initialize();
@@ -239,8 +228,7 @@ public final class XmlParserImpl extends DefaultHandler implements Runnable,
         }
     }
 
-    public InputSource resolveEntity(String publicId, String systemId)
-    {
+    public InputSource resolveEntity(String publicId, String systemId) {
         if (systemId == null)
             return null;
         if (Platform.isPlatformWindows() && systemId.startsWith("file://")) {
@@ -256,11 +244,16 @@ public final class XmlParserImpl extends DefaultHandler implements Runnable,
             }
             catch (FileNotFoundException e) {}
             // FileNotFoundException was thrown.
-            if (filename.length() > 3 && filename.charAt(1) == ':'
-                && filename.charAt(2) == '\\') {
+            if (
+                filename.length() > 3
+                    && filename.charAt(1) == ':'
+                    && filename.charAt(2) == '\\'
+            ) {
                 // Try relative to buffer's directory.
-                File file = File.getInstance(buffer.getFile().getParentFile(),
-                    filename.substring(3));
+                File file = File.getInstance(
+                    buffer.getFile().getParentFile(),
+                    filename.substring(3)
+                );
                 try {
                     return new InputSource(new FileInputStream(file.canonicalPath()));
                 }
@@ -305,14 +298,16 @@ public final class XmlParserImpl extends DefaultHandler implements Runnable,
         return null;
     }
 
-    public void setDocumentLocator(Locator locator)
-    {
+    public void setDocumentLocator(Locator locator) {
         this.locator = locator;
     }
 
-    public void startElement(String uri, String localName, String qName,
-        Attributes attributes) throws SAXException
-    {
+    public void startElement(
+        String uri,
+        String localName,
+        String qName,
+        Attributes attributes
+    ) throws SAXException {
         int lineNumber = 0;
         int columnNumber = 0;
         if (locator != null) {
@@ -320,8 +315,14 @@ public final class XmlParserImpl extends DefaultHandler implements Runnable,
             columnNumber = locator.getColumnNumber();
         }
         DefaultMutableTreeNode node =
-            new DefaultMutableTreeNode(new XmlTreeElement(localName,
-                attributes, lineNumber, columnNumber));
+            new DefaultMutableTreeNode(
+                new XmlTreeElement(
+                    localName,
+                    attributes,
+                    lineNumber,
+                    columnNumber
+                )
+            );
         if (treeModel == null) {
             treeModel = new DefaultTreeModel(node);
         } else {
@@ -332,8 +333,7 @@ public final class XmlParserImpl extends DefaultHandler implements Runnable,
         current = node;
     }
 
-    public void endElement(String uri, String localName, String qName)
-    {
+    public void endElement(String uri, String localName, String qName) {
         if (stack.isEmpty())
             current = null;
         else
@@ -341,25 +341,21 @@ public final class XmlParserImpl extends DefaultHandler implements Runnable,
     }
 
     public void warning(SAXParseException e)
-	throws SAXException
-    {
+        throws SAXException {
         appendMessage("Warning", e);
     }
 
     public void error(SAXParseException e)
-	throws SAXException
-    {
+        throws SAXException {
         appendMessage("Error", e);
     }
 
     public void fatalError(SAXParseException e)
-	throws SAXException
-    {
+        throws SAXException {
         appendMessage("Fatal error", e);
     }
 
-    private void appendMessage(String what, SAXParseException e)
-    {
+    private void appendMessage(String what, SAXParseException e) {
         StringBuilder sb = new StringBuilder();
         final String systemId = e.getSystemId();
         final int lineNumber = e.getLineNumber();
@@ -384,8 +380,7 @@ public final class XmlParserImpl extends DefaultHandler implements Runnable,
         output.append(sb.toString());
     }
 
-    public TreeModel getTreeModel()
-    {
+    public TreeModel getTreeModel() {
         return treeModel;
     }
 }

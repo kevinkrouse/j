@@ -28,28 +28,24 @@ import java.awt.datatransfer.DataFlavor;
 import java.awt.datatransfer.StringSelection;
 import java.awt.datatransfer.Transferable;
 
-public final class KillRing extends Ring implements ClipboardOwner
-{
+public final class KillRing extends Ring implements ClipboardOwner {
     private ClipboardOwner clipboardOwner; // Either this or null.
 
     /** In place of the system's, for a j with no display: tests. */
     private static Clipboard clipboardInstead;
     private static Clipboard selectionInstead;
 
-    public KillRing()
-    {
+    public KillRing() {
         super(30);
     }
 
-    public void copyLastKillToSystemClipboard()
-    {
+    public void copyLastKillToSystemClipboard() {
         String kill = pop();
         if (kill != null)
             setClipboardContents(kill);
     }
 
-    public void promoteLastPaste()
-    {
+    public void promoteLastPaste() {
         promoteLast();
         // Don't change the contents of the system clipboard unless we are the
         // clipboard owner!
@@ -61,21 +57,18 @@ public final class KillRing extends Ring implements ClipboardOwner
      * What paste does first: text another program put on the system
      * clipboard becomes the newest kill, so that it is what is pasted.
      */
-    public void takeClipboard()
-    {
+    public void takeClipboard() {
         final String text = getText(systemClipboard());
         if (text != null && text.length() > 0)
             appendNew(text);
     }
 
-    private void setClipboardContents(String s)
-    {
+    private void setClipboardContents(String s) {
         if (setText(systemClipboard(), s, this))
             clipboardOwner = this;
     }
 
-    public void lostOwnership(Clipboard clipboard, Transferable contents)
-    {
+    public void lostOwnership(Clipboard clipboard, Transferable contents) {
         clipboardOwner = null;
     }
 
@@ -84,15 +77,13 @@ public final class KillRing extends Ring implements ClipboardOwner
      * selection, as a j with no display has neither; null goes back to the
      * system's.
      */
-    public static void useClipboards(Clipboard clipboard, Clipboard selection)
-    {
+    public static void useClipboards(Clipboard clipboard, Clipboard selection) {
         clipboardInstead = clipboard;
         selectionInstead = selection;
     }
 
     /** The system clipboard, or null where there is none. */
-    public static Clipboard systemClipboard()
-    {
+    public static Clipboard systemClipboard() {
         if (clipboardInstead != null)
             return clipboardInstead;
         try {
@@ -104,8 +95,7 @@ public final class KillRing extends Ring implements ClipboardOwner
     }
 
     /** The primary selection, as X has it, or null where there is none. */
-    public static Clipboard systemSelection()
-    {
+    public static Clipboard systemSelection() {
         if (selectionInstead != null)
             return selectionInstead;
         try {
@@ -117,8 +107,7 @@ public final class KillRing extends Ring implements ClipboardOwner
     }
 
     /** The text on a clipboard, or null for none. */
-    public static String getText(Clipboard clipboard)
-    {
+    public static String getText(Clipboard clipboard) {
         if (clipboard == null)
             return null;
         try {
@@ -133,9 +122,11 @@ public final class KillRing extends Ring implements ClipboardOwner
     }
 
     /** Puts text on a clipboard; false where it could not be done. */
-    public static boolean setText(Clipboard clipboard, String s,
-                                  ClipboardOwner owner)
-    {
+    public static boolean setText(
+        Clipboard clipboard,
+        String s,
+        ClipboardOwner owner
+    ) {
         if (clipboard == null || s == null)
             return false;
         // Work around Java bug 4213197. Make sure the string we put on the
