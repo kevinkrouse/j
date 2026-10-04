@@ -20,6 +20,7 @@
 
 package org.armedbear.j.mode.markdown;
 
+import java.awt.event.KeyEvent;
 import org.armedbear.j.AbstractMode;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Constants;
@@ -33,93 +34,81 @@ import org.armedbear.j.Position;
 import org.armedbear.j.Property;
 import org.armedbear.j.SidebarTagTree;
 import org.armedbear.j.SystemBuffer;
-import org.armedbear.j.TextLink;
 import org.armedbear.j.Tagger;
+import org.armedbear.j.TextLink;
 import org.armedbear.j.View;
 
-import java.awt.event.KeyEvent;
-
-public final class MarkdownMode extends AbstractMode implements Constants, Mode
-{
+public final class MarkdownMode extends AbstractMode implements Constants, Mode {
     private static final MarkdownMode mode = new MarkdownMode();
 
-    private MarkdownMode()
-    {
+    private MarkdownMode() {
         super(MARKDOWN_MODE, MARKDOWN_MODE_NAME);
         // Brackets in prose are links and task boxes, colored as such.
         setProperty(Property.RAINBOW_DELIMITERS, false);
     }
 
-    public static final MarkdownMode getMode()
-    {
+    public static final MarkdownMode getMode() {
         return mode;
     }
 
-    public final Formatter getFormatter(Buffer buffer)
-    {
+    public final Formatter getFormatter(Buffer buffer) {
         return new MarkdownFormatter(buffer);
     }
 
-    public boolean isTaggable()
-    {
+    public boolean isTaggable() {
         return true;
     }
 
-    public Tagger getTagger(SystemBuffer buffer)
-    {
+    public Tagger getTagger(SystemBuffer buffer) {
         return new MarkdownTagger(buffer);
     }
 
     /** The headings, as an outline. */
-    public NavigationComponent getSidebarComponent(Editor editor)
-    {
+    public NavigationComponent getSidebarComponent(Editor editor) {
         final View view = editor.getCurrentView();
         if (view == null)
             return null; // Shouldn't happen.
         if (!(view.getSidebarComponent() instanceof SidebarTagTree))
-            view.setSidebarComponent(new SidebarTagTree(editor, tag ->
-                tag instanceof MarkdownTag ? ((MarkdownTag) tag).getLevel() : 1));
+            view.setSidebarComponent(
+                new SidebarTagTree(editor, tag -> tag instanceof MarkdownTag ? ((MarkdownTag) tag).getLevel() : 1)
+            );
         return view.getSidebarComponent();
     }
 
     /** The headings down to the caret's: "Syntaxes › Markdown › Tasks". */
-    public String getContextString(Editor editor, boolean verbose)
-    {
+    public String getContextString(Editor editor, boolean verbose) {
         return super.getContextString(editor, true);
     }
 
     /** The link at pos: inline, reference, autolink or bare URL. */
-    public TextLink getLinkAt(Editor editor, Position pos)
-    {
+    public TextLink getLinkAt(Editor editor, Position pos) {
         return MarkdownLinks.find(editor.getBuffer(), pos.getLine(), pos.getOffset());
     }
 
     /** A fence's code, a list item's children, or a heading's section. */
-    public Line[] getFoldRange(Editor editor, Line line)
-    {
+    public Line[] getFoldRange(Editor editor, Line line) {
         return MarkdownFolding.getFoldRange(editor.getBuffer(), line);
     }
 
     /** All but the headings. */
-    public void foldAll(Editor editor)
-    {
+    public void foldAll(Editor editor) {
         MarkdownFolding.foldHeadings(editor, 6);
     }
 
-    public String getCommentStart()
-    {
+    public String getCommentStart() {
         return "<!-- ";
     }
 
-    public String getCommentEnd()
-    {
+    public String getCommentEnd() {
         return " -->";
     }
 
-    protected void setKeyMapDefaults(KeyMap km)
-    {
-        km.mapKey(KeyEvent.VK_F12, CTRL_MASK | SHIFT_MASK,
-                  "wrapParagraphsInRegion");
+    protected void setKeyMapDefaults(KeyMap km) {
+        km.mapKey(
+            KeyEvent.VK_F12,
+            CTRL_MASK | SHIFT_MASK,
+            "wrapParagraphsInRegion"
+        );
         km.mapKey(KeyEvent.VK_ENTER, CTRL_MASK, "followLinkOrTask");
         // Tasks alone, VS Code's Markdown All in One's key and one beside
         // Ctrl+Enter's.

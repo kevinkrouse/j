@@ -20,34 +20,31 @@
 
 package org.armedbear.j.mode.markdown;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import org.armedbear.j.LocalTag;
 import org.armedbear.j.SystemBuffer;
 import org.armedbear.j.Tagger;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Locale;
-import java.util.Map;
-import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
 /** Tags a Markdown buffer's headings, each knowing the one it is under. */
-public final class MarkdownTagger extends Tagger
-{
+public final class MarkdownTagger extends Tagger {
     // An escape, a link or image, or emphasis, strikethrough or code markup.
     private static final Pattern MARKUP = Pattern.compile(
         "\\\\(\\p{Punct})"
-        + "|!?\\[([^\\]]*)\\](?:\\([^)]*\\)|\\[[^\\]]*\\])"
-        + "|\\*\\*|__|~~|\\*|`|(?<![\\p{L}\\p{N}])_|_(?![\\p{L}\\p{N}])");
+            + "|!?\\[([^\\]]*)\\](?:\\([^)]*\\)|\\[[^\\]]*\\])"
+            + "|\\*\\*|__|~~|\\*|`|(?<![\\p{L}\\p{N}])_|_(?![\\p{L}\\p{N}])"
+    );
 
-    public MarkdownTagger(SystemBuffer buffer)
-    {
+    public MarkdownTagger(SystemBuffer buffer) {
         super(buffer);
     }
 
-    public void run()
-    {
+    public void run() {
         final List<LocalTag> tags = new ArrayList<LocalTag>();
         final MarkdownTag[] under = new MarkdownTag[7];
         final Map<String, Integer> anchors = new HashMap<String, Integer>();
@@ -80,8 +77,7 @@ public final class MarkdownTagger extends Tagger
      * "Hello, World!" as GitHub's anchor for it, "hello-world": in lower
      * case, punctuation dropped, spaces made hyphens.
      */
-    static String slug(String heading)
-    {
+    static String slug(String heading) {
         final StringBuilder sb = new StringBuilder();
         for (char c : heading.toLowerCase(Locale.ROOT).trim().toCharArray()) {
             if (Character.isLetterOrDigit(c) || c == '-' || c == '_')
@@ -93,14 +89,14 @@ public final class MarkdownTagger extends Tagger
     }
 
     /** A heading's text as it reads: links as their text, no markup. */
-    static String plain(String text)
-    {
+    static String plain(String text) {
         if (text == null)
             return "";
         final Matcher m = MARKUP.matcher(text);
         final StringBuilder sb = new StringBuilder();
         while (m.find()) {
-            final String kept = m.group(1) != null ? m.group(1)
+            final String kept = m.group(1) != null
+                ? m.group(1)
                 : m.group(2) != null ? plain(m.group(2)) : "";
             m.appendReplacement(sb, Matcher.quoteReplacement(kept));
         }

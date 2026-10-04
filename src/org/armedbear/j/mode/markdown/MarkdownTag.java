@@ -20,22 +20,24 @@
 
 package org.armedbear.j.mode.markdown;
 
+import javax.swing.Icon;
 import org.armedbear.j.Line;
 import org.armedbear.j.LocalTag;
 import org.armedbear.j.Position;
 
-import javax.swing.Icon;
-
 /** A heading, for the sidebar's outline and the status bar. */
-public final class MarkdownTag extends LocalTag
-{
+public final class MarkdownTag extends LocalTag {
     private final int level;
     private final MarkdownTag parent;
     private final String anchor;
 
-    MarkdownTag(String name, Line line, int level, MarkdownTag parent,
-                String anchor)
-    {
+    MarkdownTag(
+        String name,
+        Line line,
+        int level,
+        MarkdownTag parent,
+        String anchor
+    ) {
         super(name, new Position(line, 0), TAG_HEADING);
         this.level = level;
         this.parent = parent;
@@ -43,38 +45,32 @@ public final class MarkdownTag extends LocalTag
     }
 
     /** The heading's anchor as GitHub makes it: "hello-world", "notes-1". */
-    public String getAnchor()
-    {
+    public String getAnchor() {
         return anchor;
     }
 
     /** Its anchor, whatever the case, or its name. */
-    public boolean isNamedBy(String anchor)
-    {
+    public boolean isNamedBy(String anchor) {
         return anchor.equalsIgnoreCase(this.anchor) || super.isNamedBy(anchor);
     }
 
     /** 1 for a top-level heading, through 6. */
-    public int getLevel()
-    {
+    public int getLevel() {
         return level;
     }
 
     /** The heading this one is under, or null. */
-    public MarkdownTag getParent()
-    {
+    public MarkdownTag getParent() {
         return parent;
     }
 
     /** The headings down to this one: "Syntaxes › Markdown › Tasks". */
-    public String getLongName()
-    {
+    public String getLongName() {
         return parent == null ? name : parent.getLongName() + " › " + name;
     }
 
     // A heading needs no icon to say what it is.
-    public Icon getIcon()
-    {
+    public Icon getIcon() {
         return null;
     }
 }
