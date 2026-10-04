@@ -20,6 +20,7 @@
 
 package org.armedbear.j.mode.make;
 
+import java.awt.event.KeyEvent;
 import org.armedbear.j.AbstractMode;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Constants;
@@ -30,56 +31,45 @@ import org.armedbear.j.Line;
 import org.armedbear.j.Mode;
 import org.armedbear.j.Property;
 
-import java.awt.event.KeyEvent;
-
-public final class MakefileMode extends AbstractMode implements Constants, Mode
-{
+public final class MakefileMode extends AbstractMode implements Constants, Mode {
     private static final MakefileMode mode = new MakefileMode();
 
-    private MakefileMode()
-    {
+    private MakefileMode() {
         super(MAKEFILE_MODE, MAKEFILE_MODE_NAME);
         keywords = new Keywords(this);
         setProperty(Property.USE_TABS, true);
     }
 
-    public static final MakefileMode getMode()
-    {
+    public static final MakefileMode getMode() {
         return mode;
     }
 
-    public boolean canIndent()
-    {
+    public boolean canIndent() {
         return true;
     }
 
-    public String getCommentStart()
-    {
+    public String getCommentStart() {
         return "# ";
     }
 
-    public Formatter getFormatter(Buffer buffer)
-    {
+    public Formatter getFormatter(Buffer buffer) {
         return new MakefileFormatter(buffer);
     }
 
-    protected void setKeyMapDefaults(KeyMap km)
-    {
+    protected void setKeyMapDefaults(KeyMap km) {
         km.mapKey(KeyEvent.VK_ENTER, 0, "newlineAndIndent");
         km.mapKey(KeyEvent.VK_F9, 0, "compile");
         km.mapKey(KeyEvent.VK_F9, CTRL_MASK, "recompile");
     }
 
-    public int getCorrectIndentation(Line line, Buffer buffer)
-    {
+    public int getCorrectIndentation(Line line, Buffer buffer) {
         Line model = getModel(line);
         if (model == null)
             return 0;
         return buffer.getIndentation(model);
     }
 
-    private static Line getModel(Line line)
-    {
+    private static Line getModel(Line line) {
         Line model = line.previous();
         while (model != null) {
             if (model.isBlank() || model.charAt(0) == '#')
@@ -93,13 +83,11 @@ public final class MakefileMode extends AbstractMode implements Constants, Mode
     private static final String validChars =
         "-./0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz";
 
-    public boolean isIdentifierStart(char c)
-    {
+    public boolean isIdentifierStart(char c) {
         return validChars.indexOf(c) >= 0;
     }
 
-    public boolean isIdentifierPart(char c)
-    {
+    public boolean isIdentifierPart(char c) {
         return validChars.indexOf(c) >= 0;
     }
 }
