@@ -33,14 +33,17 @@ import org.armedbear.j.mode.lisp.JLispBuffer;
  * or pressing a key costs nothing until then.
  */
 public final class AbclExtension implements Extension {
+    @Override
     public String getName() {
         return "abcl";
     }
 
+    @Override
     public String getVersion() {
         return "1.8.0";
     }
 
+    @Override
     public void initialize(ExtensionContext context) {
         // The class literal, not its name: core resolves command classes with
         // Class.forName on its own loader, which cannot see this one.
@@ -50,6 +53,7 @@ public final class AbclExtension implements Extension {
         context.registerKeyMapProvider(new AbclKeyMapProvider());
     }
 
+    @Override
     public void shutdown() {
         Log.debug("abcl extension shutting down");
     }

@@ -59,10 +59,12 @@ public final class AbclSession implements Session {
         this.key = key != null ? key : LanguageClient.DEFAULT_SESSION;
     }
 
+    @Override
     public String getKey() {
         return key;
     }
 
+    @Override
     public boolean isReady() {
         return isInitialized();
     }
@@ -141,9 +143,9 @@ public final class AbclSession implements Session {
 
     /** A condition object, as a line fit to log. Never throws. */
     static String report(LispObject condition) {
-        if (condition instanceof Condition) {
+        if (condition instanceof Condition condition2) {
             try {
-                String message = ((Condition) condition).getConditionReport();
+                String message = condition2.getConditionReport();
                 if (message != null && message.length() > 0)
                     return message;
             }
@@ -154,6 +156,7 @@ public final class AbclSession implements Session {
         return "error";
     }
 
+    @Override
     public EvalResult evalSync(EvalRequest request) throws EvalException {
         ensureInitialized();
         try {
@@ -169,6 +172,7 @@ public final class AbclSession implements Session {
         }
     }
 
+    @Override
     public void eval(final EvalRequest request, final EvalHandler handler) {
         Runnable r = () -> {
             EvalResult result;
@@ -186,6 +190,7 @@ public final class AbclSession implements Session {
         Background.start("abcl eval", r);
     }
 
+    @Override
     public void loadFile(File file) throws EvalException {
         ensureInitialized();
         try {
@@ -196,6 +201,7 @@ public final class AbclSession implements Session {
         }
     }
 
+    @Override
     public boolean hasFeature(String name) {
         // Deliberately does not boot the interpreter: "is slime loaded" is
         // asked while building a menu, and the answer before startup is no.
@@ -213,6 +219,7 @@ public final class AbclSession implements Session {
         }
     }
 
+    @Override
     public void interrupt() {
         if (isInitialized())
             Interpreter.getInstance().kill(0);
@@ -264,12 +271,12 @@ public final class AbclSession implements Session {
      */
     static String report(Throwable t) {
         String message = null;
-        if (t instanceof ControlTransfer) {
+        if (t instanceof ControlTransfer controlTransfer) {
             try {
-                LispObject condition = ((ControlTransfer) t).getCondition();
-                if (condition instanceof Condition) {
+                LispObject condition = controlTransfer.getCondition();
+                if (condition instanceof Condition condition2) {
                     try {
-                        message = ((Condition) condition).getConditionReport();
+                        message = condition2.getConditionReport();
                     }
                     catch (Throwable ignored) {
                         // At least we tried.

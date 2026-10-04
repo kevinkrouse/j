@@ -40,21 +40,25 @@ import org.armedbear.lisp.SimpleString;
  * the event dispatch thread, which is exactly what used to happen.
  */
 public final class AbclHooks implements EditorHooks {
+    @Override
     public void bufferActivated(Buffer buffer) {
         if (ready() && buffer != null)
             LispAPI.invokeBufferActivatedHook(buffer);
     }
 
+    @Override
     public void openFile(Buffer buffer) {
         if (ready())
             LispAPI.invokeOpenFileHook(buffer);
     }
 
+    @Override
     public void afterSave(Buffer buffer) {
         if (ready())
             LispAPI.invokeAfterSaveHook(buffer);
     }
 
+    @Override
     public void modeCreated(String modeDisplayName) {
         if (ready() && modeDisplayName != null) {
             // "Java" -> java-mode-hook, the name init.lisp defines.
@@ -66,12 +70,14 @@ public final class AbclHooks implements EditorHooks {
         }
     }
 
+    @Override
     public void eventHandled() {
         // On the dispatcher's path, once per keystroke.
         if (ready())
             LispAPI.eventHandled();
     }
 
+    @Override
     public void invoke(String hookName, Object... args) {
         if (!ready() || hookName == null)
             return;
@@ -97,10 +103,10 @@ public final class AbclHooks implements EditorHooks {
     private static LispObject coerce(Object arg) {
         if (arg == null)
             return org.armedbear.lisp.Lisp.NIL;
-        if (arg instanceof LispObject)
-            return (LispObject) arg;
-        if (arg instanceof String)
-            return new SimpleString((String) arg);
+        if (arg instanceof LispObject lispObject)
+            return lispObject;
+        if (arg instanceof String string)
+            return new SimpleString(string);
         return new JavaObject(arg);
     }
 

@@ -36,24 +36,28 @@ import org.armedbear.lisp.Site;
 public final class AbclClient implements LanguageClient {
     private final AbclSession session = new AbclSession(DEFAULT_SESSION);
 
+    @Override
     public String getName() {
         return "abcl";
     }
 
+    @Override
     public Session getSession(String key) {
         return session;
     }
 
+    @Override
     public boolean isAvailable() {
         return true;
     }
 
     /** Where ABCL is installed; swank-loader.lisp is looked for beside it. */
+    @Override
     public String getHomeDirectory() {
         try {
             Object home = Site.getLispHome();
-            return home instanceof Pathname
-                ? ((Pathname) home).getNamestring()
+            return home instanceof Pathname pathname
+                ? pathname.getNamestring()
                 : null;
         }
         catch (Throwable t) {
@@ -67,6 +71,7 @@ public final class AbclClient implements LanguageClient {
      * longer names it on its manifest Class-Path, so the path is read back off
      * the loader that actually has it.
      */
+    @Override
     public String getRuntimeClassPath() {
         try {
             java.security.CodeSource source =
@@ -81,6 +86,7 @@ public final class AbclClient implements LanguageClient {
         }
     }
 
+    @Override
     public void shutdown() {
         session.close();
     }

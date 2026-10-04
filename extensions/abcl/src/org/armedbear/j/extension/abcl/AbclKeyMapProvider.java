@@ -36,10 +36,12 @@ import org.armedbear.lisp.LispObject;
  * started yet is simply silent, not an error.
  */
 public final class AbclKeyMapProvider implements KeyMapProvider {
+    @Override
     public KeyMap getGlobalKeyMap() {
         return evaluate("(j:current-global-map)");
     }
 
+    @Override
     public KeyMap getKeyMapForMode(String modeDisplayName) {
         if (modeDisplayName == null)
             return null;
@@ -57,10 +59,10 @@ public final class AbclKeyMapProvider implements KeyMapProvider {
             return null;
         try {
             LispObject result = Interpreter.evaluate(form);
-            if (result instanceof JavaObject) {
-                Object obj = ((JavaObject) result).getObject();
-                if (obj instanceof KeyMap)
-                    return (KeyMap) obj;
+            if (result instanceof JavaObject javaObject) {
+                Object obj = javaObject.getObject();
+                if (obj instanceof KeyMap keyMap)
+                    return keyMap;
             }
         }
         catch (Throwable t) {

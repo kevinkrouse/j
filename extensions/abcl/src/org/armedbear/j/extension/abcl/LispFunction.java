@@ -47,6 +47,7 @@ public final class LispFunction implements ScriptFunction {
         return function;
     }
 
+    @Override
     public void invoke() {
         // Reports rather than throws: this runs from the dispatcher, where a
         // broken binding must not take the editor down with it -- and must not
@@ -66,6 +67,7 @@ public final class LispFunction implements ScriptFunction {
         }
     }
 
+    @Override
     public String describe() {
         try {
             return function.printObject();
