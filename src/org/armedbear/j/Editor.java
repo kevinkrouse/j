@@ -40,7 +40,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
-import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -294,7 +294,7 @@ public final class Editor extends JPanel implements ComponentListener, MouseWhee
     static String unknownCommandMessage(String command) {
         String extension = command == null
             ? null
-            : commandProviders.get(command.toLowerCase());
+            : commandProviders.get(command.toLowerCase(Locale.ROOT));
         if (extension == null)
             return "Unknown command \"".concat(String.valueOf(command)).concat("\"");
         return "\"".concat(command)

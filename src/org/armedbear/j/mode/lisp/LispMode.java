@@ -24,6 +24,7 @@ import static org.armedbear.j.Constants.*;
 
 import java.awt.event.KeyEvent;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.StringTokenizer;
 import org.armedbear.j.AbstractMode;
 import org.armedbear.j.Buffer;
@@ -1030,7 +1031,7 @@ public class LispMode extends AbstractMode implements Mode {
             // Skip first token.
             st.nextToken();
             // Return second token.
-            return st.nextToken().toUpperCase();
+            return st.nextToken().toUpperCase(Locale.ROOT);
         }
         return "";
     }
@@ -1275,7 +1276,7 @@ public class LispMode extends AbstractMode implements Mode {
             map = new HashMap<>();
             Line line = buf.getFirstLine();
             while (true) {
-                String key = line.trim().toLowerCase();
+                String key = line.trim().toLowerCase(Locale.ROOT);
                 line = line.next();
                 if (line == null)
                     break;
@@ -1289,7 +1290,7 @@ public class LispMode extends AbstractMode implements Mode {
                     break;
             }
         }
-        String filename = map.get(s.toLowerCase());
+        String filename = map.get(s.toLowerCase(Locale.ROOT));
         if (filename == null) {
             editor.status("No entry for \"" + s + '"');
             return;

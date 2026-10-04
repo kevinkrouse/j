@@ -31,6 +31,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Locale;
 import javax.swing.Icon;
 import javax.swing.SwingUtilities;
 import org.armedbear.j.Annotation;
@@ -609,7 +610,7 @@ public class MessageBuffer extends Buffer {
     }
 
     private boolean isDefaultHeader(String s) {
-        s = s.toLowerCase();
+        s = s.toLowerCase(Locale.ROOT);
         if (
             s.startsWith("from:")
                 ||
@@ -958,7 +959,7 @@ public class MessageBuffer extends Buffer {
                         String filename = part.getAttachmentFileName();
                         if (filename == null)
                             continue;
-                        filename = filename.toLowerCase();
+                        filename = filename.toLowerCase(Locale.ROOT);
                         if (
                             filename.endsWith(".jpg")
                                 ||

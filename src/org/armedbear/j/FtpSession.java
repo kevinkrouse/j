@@ -822,7 +822,7 @@ public class FtpSession implements RemoteSession {
                 int bytesRead = dataIn.read(buf); // Blocks.
                 if (bytesRead < 0)
                     break;
-                sb.append(new String(buf, 0, bytesRead));
+                sb.append(new String(buf, 0, bytesRead, StandardCharsets.UTF_8));
             }
         }
         catch (IOException e) {

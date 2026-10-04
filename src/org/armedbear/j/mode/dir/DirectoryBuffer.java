@@ -30,11 +30,10 @@ import java.io.InputStreamReader;
 import java.io.StringReader;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
-import java.util.List;
+import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import javax.swing.Icon;
@@ -1047,7 +1046,7 @@ public final class DirectoryBuffer extends Buffer {
             changeDirectory(f);
             return;
         }
-        Buffer buf = editor.getBuffer(f);
+        Buffer buf = Editor.getBuffer(f);
         if (buf != null) {
             editor.makeNext(buf);
             editor.activate(buf);
@@ -1950,9 +1949,9 @@ public final class DirectoryBuffer extends Buffer {
         if (name != null) {
             if (Platform.isPlatformWindows()) {
                 // Case-insensitive filesystem.
-                name = name.toLowerCase();
+                name = name.toLowerCase(Locale.ROOT);
                 for (Line line = getFirstLine(); line != null; line = line.next()) {
-                    String text = line.getText().toLowerCase();
+                    String text = line.getText().toLowerCase(Locale.ROOT);
                     if (text.contains(name)) // Performance!
                         if (name.equalsIgnoreCase(getName(line)))
                             return line;

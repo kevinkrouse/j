@@ -25,6 +25,7 @@ import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Locale;
 import java.util.StringTokenizer;
 import java.util.regex.Matcher;
 import javax.swing.SwingUtilities;
@@ -115,7 +116,7 @@ public class ShellBuffer extends CommandInterpreterBuffer {
             return;
         }
         if (Platform.isPlatformWindows())
-            if (!shellCommand.toLowerCase().contains("cmd.exe"))
+            if (!shellCommand.toLowerCase(Locale.ROOT).contains("cmd.exe"))
                 cygnify = true;
         // Only set initialDir the first time we run, so that if we restart
         // this shell, it will start up in the same directory each time.
@@ -166,7 +167,7 @@ public class ShellBuffer extends CommandInterpreterBuffer {
         if (
             Platform.isPlatformWindows()
                 &&
-                shellCommand.toLowerCase().contains("cmd.exe")
+                shellCommand.toLowerCase(Locale.ROOT).contains("cmd.exe")
         )
             setPromptRE(DEFAULT_CMD_EXE_PROMPT_PATTERN);
         else
@@ -548,7 +549,7 @@ public class ShellBuffer extends CommandInterpreterBuffer {
         final String text = line.trim();
         if (text.startsWith("Enter passphrase") && text.endsWith(":"))
             return true;
-        if (text.toLowerCase().endsWith("password:"))
+        if (text.toLowerCase(Locale.ROOT).endsWith("password:"))
             return true;
         if (text.equals("Response:"))
             return true;

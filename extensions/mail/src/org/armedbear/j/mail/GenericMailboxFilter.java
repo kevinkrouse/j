@@ -20,6 +20,7 @@
 
 package org.armedbear.j.mail;
 
+import java.util.Locale;
 import org.armedbear.j.util.Utilities;
 
 public final class GenericMailboxFilter extends MailboxFilter {
@@ -36,7 +37,7 @@ public final class GenericMailboxFilter extends MailboxFilter {
         String subject = entry.getSubject();
         if (subject != null) {
             if (ignoreCase) {
-                if (subject.toLowerCase().indexOf(pattern) >= 0)
+                if (subject.toLowerCase(Locale.ROOT).indexOf(pattern) >= 0)
                     return true; // Subject matches.
             } else {
                 if (subject.indexOf(pattern) >= 0)

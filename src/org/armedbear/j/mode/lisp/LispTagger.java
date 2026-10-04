@@ -23,6 +23,7 @@ package org.armedbear.j.mode.lisp;
 import static org.armedbear.j.Constants.*;
 
 import java.util.ArrayList;
+import java.util.Locale;
 import org.armedbear.j.Debug;
 import org.armedbear.j.Line;
 import org.armedbear.j.LocalTag;
@@ -91,7 +92,7 @@ public final class LispTagger extends Tagger {
                     if (definer != null) {
                         if (definer.equals("defun")) {
                             String s = gatherToken(pos.copy());
-                            if (s.toLowerCase().equals("setf")) {
+                            if (s.toLowerCase(Locale.ROOT).equals("setf")) {
                                 Position tokenStart = pos.copy();
                                 String name = gatherList(pos);
                                 addTag(name, tokenStart, definer);
@@ -135,7 +136,7 @@ public final class LispTagger extends Tagger {
                         state = NEUTRAL;
                         continue;
                     }
-                    String token = gatherToken(pos).toLowerCase();
+                    String token = gatherToken(pos).toLowerCase(Locale.ROOT);
                     token = LispMode.translateDefiner(token);
                     if (token != null) {
                         state = DEFINITION;

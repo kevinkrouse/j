@@ -111,7 +111,7 @@ public class OpenFileDialog extends JDialog implements FocusListener {
     @Override
     public void dispose() {
         super.dispose();
-        editor.restoreFocus();
+        Editor.restoreFocus();
     }
 
     public static void openFileInOtherFrame() {

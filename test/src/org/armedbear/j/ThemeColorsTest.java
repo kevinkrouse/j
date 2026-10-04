@@ -16,6 +16,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.awt.Color;
+import java.nio.charset.StandardCharsets;
 import org.armedbear.j.mode.java.JavaMode;
 import org.armedbear.j.mode.properties.PropertiesMode;
 import org.armedbear.j.util.Colors;
@@ -169,15 +170,15 @@ public class ThemeColorsTest {
         );
         try {
             java.nio.file.Path theme = themes.resolve("Bright");
-            java.nio.file.Files.write(theme, "# Bright\ncolor.text = 0 0 0\n".getBytes());
+            java.nio.file.Files.write(theme, "# Bright\ncolor.text = 0 0 0\n".getBytes(StandardCharsets.UTF_8));
             assertEquals(PropertiesMode.getMode(), modeOf(theme));
 
             java.nio.file.Path notes = themes.resolve("notes.txt");
-            java.nio.file.Files.write(notes, "color.text = 0 0 0\n".getBytes());
+            java.nio.file.Files.write(notes, "color.text = 0 0 0\n".getBytes(StandardCharsets.UTF_8));
             assertTrue(modeOf(notes) != PropertiesMode.getMode());
 
             java.nio.file.Path elsewhere = other.resolve("Bright");
-            java.nio.file.Files.write(elsewhere, "color.text = 0 0 0\n".getBytes());
+            java.nio.file.Files.write(elsewhere, "color.text = 0 0 0\n".getBytes(StandardCharsets.UTF_8));
             assertTrue(modeOf(elsewhere) != PropertiesMode.getMode());
 
             // A directory on themePath is as good as one named themes.

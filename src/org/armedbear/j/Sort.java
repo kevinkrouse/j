@@ -24,6 +24,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
@@ -380,7 +381,7 @@ public final class Sort {
         // *with* the lines whose match left nothing after it.
         return new Entry(
             text,
-            options.ignoreCase ? key.toLowerCase() : key,
+            options.ignoreCase ? key.toLowerCase(Locale.ROOT) : key,
             null,
             true
         );

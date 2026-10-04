@@ -21,6 +21,8 @@
 package org.armedbear.j.mail;
 
 import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
+import java.util.Locale;
 import org.armedbear.j.Log;
 
 public final class QuotedPrintableEncoder {
@@ -37,7 +39,7 @@ public final class QuotedPrintableEncoder {
         }
         catch (UnsupportedEncodingException e) {
             Log.error(e);
-            bytes = input.getBytes();
+            bytes = input.getBytes(StandardCharsets.UTF_8);
         }
         StringBuilder sb = new StringBuilder();
         int outputLength = 0;
@@ -98,6 +100,6 @@ public final class QuotedPrintableEncoder {
         StringBuilder sb = new StringBuilder();
         sb.append('=');
         sb.append(Integer.toString(n, 16));
-        return sb.toString().toUpperCase();
+        return sb.toString().toUpperCase(Locale.ROOT);
     }
 }

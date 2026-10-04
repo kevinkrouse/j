@@ -24,6 +24,7 @@ import java.awt.event.KeyEvent;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import org.armedbear.j.Constants;
 import org.armedbear.j.util.Keys;
@@ -92,7 +93,7 @@ public final class KeyNotation {
         char keyChar,
         boolean canonical
     ) {
-        NAMED.put(name.toLowerCase(), new int[] { keyCode, keyChar });
+        NAMED.put(name.toLowerCase(Locale.ROOT), new int[] { keyCode, keyChar });
         if (canonical)
             CANONICAL.put(Integer.valueOf(keyCode), name);
     }
@@ -215,7 +216,7 @@ public final class KeyNotation {
                 "empty key name in \"" + whole + "\""
             );
 
-        final int[] key = NAMED.get(body.toLowerCase());
+        final int[] key = NAMED.get(body.toLowerCase(Locale.ROOT));
         if (key != null)
             return new Stroke(key[0], (char) key[1], modifiers);
 
@@ -388,7 +389,7 @@ public final class KeyNotation {
         if (key.charAt(0) != '<' || key.charAt(key.length() - 1) != '>')
             return 0;
         final int[] named = NAMED.get(
-            key.substring(1, key.length() - 1).toLowerCase()
+            key.substring(1, key.length() - 1).toLowerCase(Locale.ROOT)
         );
         if (named == null)
             return 0;

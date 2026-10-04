@@ -21,6 +21,7 @@
 package org.armedbear.j.mode.properties;
 
 import java.awt.Color;
+import java.util.Locale;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.FormatTable;
 import org.armedbear.j.Formatter;
@@ -102,7 +103,7 @@ public final class PropertiesFormatter extends Formatter {
             ++index;
         if (index == text.length())
             return null;
-        if (!text.substring(0, index).toLowerCase().contains("color"))
+        if (!text.substring(0, index).toLowerCase(Locale.ROOT).contains("color"))
             return null;
         String value = text.substring(index).trim();
         if (!value.isEmpty() && (value.charAt(0) == '=' || value.charAt(0) == ':'))

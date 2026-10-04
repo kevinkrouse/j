@@ -92,7 +92,7 @@ public final class RecentFilesDialog extends AbstractDialog implements MouseList
         RecentFilesEntry entry = model.getEntryAtRow(row);
         File parent = File.getInstance(entry.location);
         File file = File.getInstance(parent, entry.name);
-        Buffer buf = editor.getBuffer(file);
+        Buffer buf = Editor.getBuffer(file);
         if (buf == null)
             editor.status("File not found");
         else if (buf != editor.getBuffer()) {

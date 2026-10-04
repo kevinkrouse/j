@@ -22,6 +22,7 @@ package org.armedbear.j.mode.html;
 
 import static org.armedbear.j.Constants.*;
 
+import java.util.Locale;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Editor;
 import org.armedbear.j.FormatTable;
@@ -105,7 +106,7 @@ public final class HtmlFormatter extends Formatter {
             LineSegment segment = segmentList.getSegment(i);
             if (segment.getFormat() != HTML_FORMAT_TAG)
                 continue;
-            String token = segment.getText().toLowerCase();
+            String token = segment.getText().toLowerCase(Locale.ROOT);
             if (token.startsWith("<a ") || token.equals("<a>") || token.equals("</a>"))
                 segment.setFormat(HTML_FORMAT_TAG_ANCHOR);
             else if (token.startsWith("<img ") || token.equals("<img>"))

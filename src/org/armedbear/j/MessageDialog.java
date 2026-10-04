@@ -77,7 +77,7 @@ public class MessageDialog extends AbstractDialog {
 
     @Override
     public void keyPressed(KeyEvent e) {
-        if (editor.checkKeyboardQuit(e)) {
+        if (Editor.checkKeyboardQuit(e)) {
             escape();
             return;
         }

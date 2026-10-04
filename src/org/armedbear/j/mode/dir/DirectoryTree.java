@@ -140,7 +140,7 @@ public final class DirectoryTree extends SidebarTree implements NavigationCompon
     }
 
     private void expandNode(DefaultMutableTreeNode node, File file) {
-        treeModel.expandNode(node, file);
+        DirectoryTreeModel.expandNode(node, file);
     }
 
     private DefaultMutableTreeNode getNode(File file) {

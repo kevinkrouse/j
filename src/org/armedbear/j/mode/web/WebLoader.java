@@ -32,6 +32,7 @@ import java.util.Deque;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import org.armedbear.j.Debug;
 import org.armedbear.j.Editor;
@@ -187,7 +188,7 @@ public final class WebLoader implements WebConstants {
                 return;
             }
         }
-        final String tagName = Utilities.getTagName(tag).toLowerCase().intern();
+        final String tagName = Utilities.getTagName(tag).toLowerCase(Locale.ROOT).intern();
 
         // Unsupported tags.
         if (tagName == "applet") {
@@ -587,7 +588,7 @@ public final class WebLoader implements WebConstants {
             List<Tuple2<String, String>> attributes = getAttributes(tag);
             String httpEquiv = getAttribute(attributes, "http-equiv");
             if (httpEquiv != null) {
-                if (httpEquiv.toLowerCase().equals("content-type")) {
+                if (httpEquiv.toLowerCase(Locale.ROOT).equals("content-type")) {
                     String contentType = getAttribute(attributes, "content");
                     if (contentType != null) {
                         String charset =
@@ -692,7 +693,7 @@ public final class WebLoader implements WebConstants {
         // Create image link if appropriate.
         ImageLink imageLink = null;
         if (src != null && src.length() > 0) {
-            String lower = src.toLowerCase();
+            String lower = src.toLowerCase(Locale.ROOT);
             if (lower.endsWith(".jpg") || lower.endsWith(".gif") || lower.endsWith(".png")) {
                 // Only provide image link if image is big enough.
                 if (w >= 100 && h >= 100)
@@ -794,11 +795,11 @@ public final class WebLoader implements WebConstants {
                     break;
                 case ATTRIBUTE_NAME:
                     if (c == '=') {
-                        name = sb.toString().toLowerCase();
+                        name = sb.toString().toLowerCase(Locale.ROOT);
                         sb.setLength(0);
                         state = SPACE_AFTER_EQ;
                     } else if (Character.isWhitespace(c)) {
-                        name = sb.toString().toLowerCase();
+                        name = sb.toString().toLowerCase(Locale.ROOT);
                         sb.setLength(0);
                         state = SPACE_BEFORE_EQ;
                     } else

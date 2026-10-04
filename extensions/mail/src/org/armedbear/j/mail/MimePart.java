@@ -25,8 +25,10 @@ import java.io.ByteArrayOutputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import org.armedbear.j.Directories;
 import org.armedbear.j.File;
 import org.armedbear.j.Headers;
@@ -107,7 +109,7 @@ public class MimePart {
         final String charset =
             Utilities.getCharsetFromContentType(getHeaderValue(Headers.CONTENT_TYPE));
         final String characterEncoding = Utilities.getEncodingFromCharset(charset);
-        if (contentType == null || contentType.toLowerCase().startsWith("text/")) {
+        if (contentType == null || contentType.toLowerCase(Locale.ROOT).startsWith("text/")) {
             if (
                 transferEncoding == null
                     ||
@@ -125,7 +127,7 @@ public class MimePart {
                 }
                 catch (UnsupportedEncodingException e) {
                     Log.error(e);
-                    return new String(bytes);
+                    return new String(bytes, StandardCharsets.UTF_8);
                 }
             } else if (transferEncoding.equals("base64")) {
                 try {
@@ -143,7 +145,7 @@ public class MimePart {
                         }
                         catch (UnsupportedEncodingException e) {
                             Log.error(e);
-                            return new String(bytes, 0, bytes.length);
+                            return new String(bytes, 0, bytes.length, StandardCharsets.UTF_8);
                         }
                     }
                 }
@@ -246,14 +248,14 @@ public class MimePart {
         int index = s.indexOf(';');
         if (index >= 0)
             s = s.substring(0, index);
-        return s.toLowerCase();
+        return s.toLowerCase(Locale.ROOT);
     }
 
     public final String getTransferEncoding() {
         String s = getHeaderValue(Headers.CONTENT_TRANSFER_ENCODING);
         if (s == null)
             return null;
-        return s.toLowerCase();
+        return s.toLowerCase(Locale.ROOT);
     }
 
     public final String getDisposition() {
@@ -319,7 +321,7 @@ public class MimePart {
         String s = getHeaderValue(header);
         if (s != null) {
             s = s.trim();
-            String lower = s.toLowerCase();
+            String lower = s.toLowerCase(Locale.ROOT);
             int index = lower.indexOf(parameterName.concat("="));
             if (index >= 0) {
                 int begin = index + parameterName.length() + 1;
@@ -419,8 +421,8 @@ public class MimePart {
         final String contentType = getHeaderValue(Headers.CONTENT_TYPE);
         if (contentType == null)
             return;
-        if (contentType.toLowerCase().startsWith("multipart/")) {
-            int index = contentType.toLowerCase().indexOf(BOUNDARY_START);
+        if (contentType.toLowerCase(Locale.ROOT).startsWith("multipart/")) {
+            int index = contentType.toLowerCase(Locale.ROOT).indexOf(BOUNDARY_START);
             if (index < 0) {
                 Log.error("can't find boundary parameter");
                 return;

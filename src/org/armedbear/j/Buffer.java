@@ -34,6 +34,7 @@ import java.lang.ref.SoftReference;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -504,7 +505,7 @@ public class Buffer extends SystemBuffer {
                 s = s.substring(begin + 3);
                 int end = s.indexOf("-*-");
                 if (end >= 0) {
-                    s = s.substring(0, end).trim().toLowerCase();
+                    s = s.substring(0, end).trim().toLowerCase(Locale.ROOT);
                     int index = s.indexOf("mode:");
                     String modeName;
                     if (index < 0) {

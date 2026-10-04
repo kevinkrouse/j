@@ -24,6 +24,7 @@ import static org.armedbear.j.Constants.*;
 
 import java.awt.Color;
 import java.awt.event.KeyEvent;
+import java.util.Locale;
 import javax.swing.SwingUtilities;
 import javax.swing.undo.CompoundEdit;
 import org.armedbear.j.Constants;
@@ -206,7 +207,7 @@ public final class IncrementalFindTextFieldHandler extends DefaultTextFieldHandl
         // If the current pattern is all lower case, convert the new pattern
         // to lower case so the search will continue to be case insensitive.
         if (Utilities.isLowerCase(search.getPattern()))
-            s = s.toLowerCase();
+            s = s.toLowerCase(Locale.ROOT);
         if (!s.equals(search.getPattern())) {
             search.setPattern(s);
             SearchCommands.markFoundPattern(editor, search);

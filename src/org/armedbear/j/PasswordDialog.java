@@ -91,7 +91,7 @@ public final class PasswordDialog extends JDialog implements FocusListener,
     @Override
     public void dispose() {
         super.dispose();
-        editor.restoreFocus();
+        Editor.restoreFocus();
     }
 
     @Override

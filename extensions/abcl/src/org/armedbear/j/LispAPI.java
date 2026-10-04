@@ -1703,8 +1703,7 @@ public final class LispAPI {
                 final Pathname pathname = coerceToPathname(arg);
                 final String namestring = pathname.getNamestring();
                 if (namestring != null) {
-                    final Editor editor = Editor.currentEditor();
-                    final Buffer buffer = editor.getBuffer(File.getInstance(namestring));
+                    final Buffer buffer = Editor.getBuffer(File.getInstance(namestring));
                     if (buffer != null)
                         return new JavaObject(buffer);
                 }

@@ -21,6 +21,7 @@
 package org.armedbear.j;
 
 import java.awt.Font;
+import java.util.Locale;
 
 /**
  * The style a format is drawn in: bits that combine, so that BOLD | ITALIC is
@@ -76,7 +77,7 @@ public final class TextStyle {
         }
         catch (NumberFormatException ignored) {}
         int style = PLAIN;
-        for (String word : value.toLowerCase().split("[\\s,|]+")) {
+        for (String word : value.toLowerCase(Locale.ROOT).split("[\\s,|]+")) {
             switch (word) {
                 case "plain":
                 case "normal":

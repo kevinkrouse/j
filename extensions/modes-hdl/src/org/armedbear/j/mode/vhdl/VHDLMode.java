@@ -23,6 +23,7 @@ package org.armedbear.j.mode.vhdl;
 import static org.armedbear.j.Constants.*;
 
 import java.awt.event.KeyEvent;
+import java.util.Locale;
 import java.util.regex.Pattern;
 import org.armedbear.j.AbstractMode;
 import org.armedbear.j.Buffer;
@@ -73,7 +74,7 @@ public final class VHDLMode extends AbstractMode implements Mode {
 
     @Override
     public boolean isKeyword(String s) {
-        return keywords.isKeyword(s.toLowerCase());
+        return keywords.isKeyword(s.toLowerCase(Locale.ROOT));
     }
 
     @Override

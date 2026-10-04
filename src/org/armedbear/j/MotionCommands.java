@@ -573,7 +573,7 @@ public final class MotionCommands {
         // Reaching here, caret is already in column 0.
         if (!extend)
             return;
-        if (System.currentTimeMillis() - editor.getDispatcher().getLastEventMillis() > 1000) {
+        if (System.currentTimeMillis() - Dispatcher.getLastEventMillis() > 1000) {
             // Timed out.
             editor.setUpdateFlag(REFRAME);
             editor.setCurrentCommand(COMMAND_HOME);
@@ -636,7 +636,7 @@ public final class MotionCommands {
         // Reaching here, caret is already in column 0.
         if (!Editor.preferences().getBooleanProperty(Property.EXTEND_HOME))
             return;
-        if (System.currentTimeMillis() - editor.getDispatcher().getLastEventMillis() > 1000) {
+        if (System.currentTimeMillis() - Dispatcher.getLastEventMillis() > 1000) {
             // Timed out.
             editor.setUpdateFlag(REFRAME);
             editor.setCurrentCommand(COMMAND_SELECT_HOME);
@@ -698,7 +698,7 @@ public final class MotionCommands {
         // Reaching here, caret is already at end of line.
         if (!Editor.preferences().getBooleanProperty(Property.EXTEND_END))
             return;
-        if (System.currentTimeMillis() - editor.getDispatcher().getLastEventMillis() > 1000) {
+        if (System.currentTimeMillis() - Dispatcher.getLastEventMillis() > 1000) {
             // Timed out.
             editor.setUpdateFlag(REFRAME);
             editor.setCurrentCommand(COMMAND_END);
@@ -750,7 +750,7 @@ public final class MotionCommands {
         // Reaching here, caret is already at end of line.
         if (!Editor.preferences().getBooleanProperty(Property.EXTEND_END))
             return;
-        if (System.currentTimeMillis() - editor.getDispatcher().getLastEventMillis() > 1000) {
+        if (System.currentTimeMillis() - Dispatcher.getLastEventMillis() > 1000) {
             // Timed out.
             editor.setUpdateFlag(REFRAME);
             editor.setCurrentCommand(COMMAND_END);

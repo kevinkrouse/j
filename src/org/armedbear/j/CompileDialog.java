@@ -86,6 +86,6 @@ public final class CompileDialog extends JDialog implements KeyListener {
     @Override
     public void dispose() {
         super.dispose();
-        editor.restoreFocus();
+        Editor.restoreFocus();
     }
 }

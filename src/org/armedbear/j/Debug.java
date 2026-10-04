@@ -99,9 +99,9 @@ public final class Debug {
     }
 
     public static void listThreads() {
-        int threadCount = Thread.currentThread().activeCount();
+        int threadCount = Thread.activeCount();
         Thread[] threads = new Thread[threadCount];
-        threadCount = Thread.currentThread().enumerate(threads);
+        threadCount = Thread.enumerate(threads);
         StringBuilder sb = new StringBuilder();
         Log.debug("----- listThreads -----");
         for (int i = 0; i < threadCount; i++) {

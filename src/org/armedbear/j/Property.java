@@ -27,6 +27,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 public final class Property implements Comparable<Property> {
@@ -410,25 +411,25 @@ public final class Property implements Comparable<Property> {
 
     private Property(String key) {
         displayName = key;
-        this.key = key.toLowerCase().intern();
+        this.key = key.toLowerCase(Locale.ROOT).intern();
     }
 
     private Property(String key, Object defaultValue) {
         displayName = key;
-        this.key = key.toLowerCase().intern();
+        this.key = key.toLowerCase(Locale.ROOT).intern();
         this.defaultValue = defaultValue;
     }
 
     private Property(String key, boolean defaultValue) {
         displayName = key;
-        this.key = key.toLowerCase().intern();
+        this.key = key.toLowerCase(Locale.ROOT).intern();
         this.type = Boolean.TYPE;
         this.defaultValue = defaultValue ? Boolean.TRUE : Boolean.FALSE;
     }
 
     private Property(String key, int defaultValue) {
         displayName = key;
-        this.key = key.toLowerCase().intern();
+        this.key = key.toLowerCase(Locale.ROOT).intern();
         this.type = Integer.TYPE;
         this.defaultValue = defaultValue;
     }
@@ -458,7 +459,7 @@ public final class Property implements Comparable<Property> {
     }
 
     private static void put(String key, Property property) {
-        ht.put(key.toLowerCase(), property);
+        ht.put(key.toLowerCase(Locale.ROOT), property);
     }
 
     private static String convertLispNameToJavaName(String name) {
@@ -473,7 +474,7 @@ public final class Property implements Comparable<Property> {
     }
 
     public static Property findProperty(String key) {
-        Property property = ht.get(key.toLowerCase());
+        Property property = ht.get(key.toLowerCase(Locale.ROOT));
         if (property != null)
             return property;
         return ht.get(convertLispNameToJavaName(key));
@@ -549,11 +550,11 @@ public final class Property implements Comparable<Property> {
     }
 
     public static List<String> apropos(String s) {
-        String lower = s.toLowerCase();
+        String lower = s.toLowerCase(Locale.ROOT);
         ArrayList<String> list = new ArrayList<>();
         for (Property property : ht.values()) {
             String displayName = property.getDisplayName();
-            if (displayName.toLowerCase().contains(lower))
+            if (displayName.toLowerCase(Locale.ROOT).contains(lower))
                 list.add(displayName);
         }
         return list;

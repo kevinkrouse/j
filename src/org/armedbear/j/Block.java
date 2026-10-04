@@ -368,7 +368,7 @@ public final class Block {
         editor.getDot().moveTo(line, 0);
         editor.addUndo(SimpleEdit.LINE_EDIT);
         line.setText(text);
-        editor.updateInAllEditors(line);
+        Editor.updateInAllEditors(line);
     }
 
     /** The position at a screen column of a line, or its end. */

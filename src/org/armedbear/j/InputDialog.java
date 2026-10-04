@@ -166,7 +166,7 @@ public class InputDialog extends JDialog implements KeyListener {
     @Override
     public void dispose() {
         super.dispose();
-        editor.restoreFocus();
+        Editor.restoreFocus();
     }
 
     private String guess(String prefix) {

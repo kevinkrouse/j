@@ -27,6 +27,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
+import java.util.Locale;
 import org.armedbear.j.util.Colors;
 import org.armedbear.j.util.Utilities;
 
@@ -100,7 +101,7 @@ public final class Preferences {
         Properties newProperties = new Properties();
         for (Map.Entry<Object, Object> entry : properties.entrySet()) {
             String key = (String) entry.getKey();
-            newProperties.put(key.toLowerCase(), entry.getValue());
+            newProperties.put(key.toLowerCase(Locale.ROOT), entry.getValue());
         }
         return newProperties;
     }
@@ -185,7 +186,7 @@ public final class Preferences {
         )) {
             String s;
             while ((s = reader.readLine()) != null) {
-                s = s.trim().toLowerCase();
+                s = s.trim().toLowerCase(Locale.ROOT);
                 if (s.isEmpty() || s.charAt(0) == '#' || s.charAt(0) == '!')
                     continue;
                 return s.matches("(\\w+\\.)?(color|style|link)\\..*");
@@ -248,11 +249,11 @@ public final class Preferences {
     }
 
     public synchronized void setProperty(String key, String value) {
-        properties.setProperty(key.toLowerCase(), value);
+        properties.setProperty(key.toLowerCase(Locale.ROOT), value);
     }
 
     public synchronized void removeProperty(String key) {
-        properties.remove(key.toLowerCase());
+        properties.remove(key.toLowerCase(Locale.ROOT));
     }
 
     // Strips quotes if present.
@@ -333,7 +334,7 @@ public final class Preferences {
     }
 
     private String getProperty(String key) {
-        return properties.getProperty(key.toLowerCase());
+        return properties.getProperty(key.toLowerCase(Locale.ROOT));
     }
 
     private static String stripQuotes(String s) {

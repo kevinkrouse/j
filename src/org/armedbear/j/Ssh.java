@@ -25,6 +25,7 @@ import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Locale;
 import org.armedbear.j.util.Utilities;
 
 public final class Ssh {
@@ -139,7 +140,7 @@ public final class Ssh {
                 } else {
                     // No error if response is a single line starting with
                     // "warning:".
-                    if (errorText.toLowerCase().startsWith("warning:"))
+                    if (errorText.toLowerCase(Locale.ROOT).startsWith("warning:"))
                         if (errorText.indexOf('\n') < 0)
                             succeeded = true;
                 }
@@ -218,7 +219,7 @@ public final class Ssh {
     }
 
     private boolean isPasswordPrompt(String s) {
-        String trim = s.trim().toLowerCase();
+        String trim = s.trim().toLowerCase(Locale.ROOT);
         if (trim.endsWith("password:"))
             return true;
         if (trim.endsWith("response:"))

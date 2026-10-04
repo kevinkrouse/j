@@ -20,6 +20,7 @@
 
 package org.armedbear.j;
 
+import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
@@ -31,7 +32,7 @@ public final class DirectoryFilenameFilter {
     public DirectoryFilenameFilter(String s) throws PatternSyntaxException {
         ignoreCase = Platform.isFileSystemCaseInsensitive();
         if (ignoreCase)
-            s = s.toLowerCase();
+            s = s.toLowerCase(Locale.ROOT);
         StringBuilder sb = new StringBuilder();
         for (int i = 0; i < s.length(); i++) {
             char c = s.charAt(i);
@@ -63,7 +64,7 @@ public final class DirectoryFilenameFilter {
         if (pattern == null)
             return false;
         if (ignoreCase)
-            name = name.toLowerCase();
+            name = name.toLowerCase(Locale.ROOT);
         Matcher matcher = pattern.matcher(name);
         return matcher.matches();
     }

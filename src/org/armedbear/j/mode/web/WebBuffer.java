@@ -30,6 +30,7 @@ import java.awt.event.MouseEvent;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Locale;
 import java.util.Map;
 import javax.swing.SwingUtilities;
 import org.armedbear.j.Buffer;
@@ -106,7 +107,7 @@ public final class WebBuffer extends Buffer implements WebConstants {
     private final int maxChars() {
         if (maxChars == 0) {
             Display display = Editor.currentEditor().getDisplay();
-            int charWidth = display.getCharWidth();
+            int charWidth = Display.getCharWidth();
             if (charWidth > 0)
                 maxChars = display.getWidth() / charWidth - 2;
             else
@@ -351,12 +352,12 @@ public final class WebBuffer extends Buffer implements WebConstants {
                 final String contentType = httpLoadProcess.getContentType();
                 Log.debug("content-type = " + contentType);
                 boolean isImage = false;
-                if (contentType != null && contentType.toLowerCase().startsWith("image/"))
+                if (contentType != null && contentType.toLowerCase(Locale.ROOT).startsWith("image/"))
                     isImage = true;
                 else {
                     String extension = Utilities.getExtension(destination);
                     if (extension != null) {
-                        extension = extension.toLowerCase();
+                        extension = extension.toLowerCase(Locale.ROOT);
                         if (extension.equals(".jpg") || extension.equals(".gif") || extension.equals(".png"))
                             isImage = true;
                     }
@@ -416,7 +417,7 @@ public final class WebBuffer extends Buffer implements WebConstants {
             // Local file.
             String extension = Utilities.getExtension(destination);
             if (extension != null) {
-                extension = extension.toLowerCase();
+                extension = extension.toLowerCase(Locale.ROOT);
                 if (extension.equals(".jpg") || extension.equals(".gif") || extension.equals(".png")) {
                     if (theLink instanceof ImageLink) {
                         ImageLoader loader = new ImageLoader(destination);
@@ -611,7 +612,7 @@ public final class WebBuffer extends Buffer implements WebConstants {
         }
         boolean isHtml = false;
         if (contentType != null) {
-            if (contentType.toLowerCase().startsWith("text/html"))
+            if (contentType.toLowerCase(Locale.ROOT).startsWith("text/html"))
                 isHtml = true;
         } else {
             if (Editor.getModeList().modeAccepts(HTML_MODE, localFile.getName()))
@@ -933,7 +934,7 @@ public final class WebBuffer extends Buffer implements WebConstants {
                         }
                     }
                     if (copy != null) {
-                        KillRing killRing = editor.getKillRing();
+                        KillRing killRing = Editor.getKillRing();
                         killRing.appendNew(copy);
                         killRing.copyLastKillToSystemClipboard();
                         editor.status("Link copied to clipboard");

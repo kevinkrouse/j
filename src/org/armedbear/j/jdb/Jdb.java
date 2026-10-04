@@ -52,8 +52,10 @@ import com.sun.jdi.request.ThreadStartRequest;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.StringTokenizer;
@@ -595,7 +597,7 @@ public final class Jdb extends Buffer implements JdbConstants {
         final Editor editor = Editor.currentEditor();
         final Buffer buffer = editor.getBuffer();
         final File file = buffer.getFile();
-        if (file != null && file.getName().toLowerCase().endsWith(".java")) {
+        if (file != null && file.getName().toLowerCase(Locale.ROOT).endsWith(".java")) {
             final Line line = editor.getDotLine();
             StringBuilder sb = new StringBuilder();
             if (temporary)
@@ -624,7 +626,7 @@ public final class Jdb extends Buffer implements JdbConstants {
                     } else {
                         classFilter = file.getName();
                     }
-                    if (classFilter.toLowerCase().endsWith(".java")) {
+                    if (classFilter.toLowerCase(Locale.ROOT).endsWith(".java")) {
                         classFilter =
                             classFilter.substring(0, classFilter.length() - 5);
                     }
@@ -1039,7 +1041,7 @@ public final class Jdb extends Buffer implements JdbConstants {
             return;
         }
         String className = file.getName();
-        if (className.toLowerCase().endsWith(".java"))
+        if (className.toLowerCase(Locale.ROOT).endsWith(".java"))
             className = className.substring(0, className.length() - 5);
         Buffer buffer = Editor.getBuffer(file);
         if (buffer != null) {
@@ -1206,7 +1208,7 @@ public final class Jdb extends Buffer implements JdbConstants {
     private void doClearLineNumberBreakpoint(String arg) {
         int index = arg.indexOf(':');
         String fileName = arg.substring(0, index);
-        if (!fileName.toLowerCase().endsWith(".java"))
+        if (!fileName.toLowerCase(Locale.ROOT).endsWith(".java"))
             fileName = fileName.concat(".java");
         int lineNumber = -1;
         try {
@@ -1460,7 +1462,7 @@ public final class Jdb extends Buffer implements JdbConstants {
             OutputStream out = process.getOutputStream();
             try {
                 if (s != null) {
-                    out.write(s.getBytes());
+                    out.write(s.getBytes(StandardCharsets.UTF_8));
                     // Format stdin like stdout. JDB_FORMAT_INPUT is for
                     // debugger commands.
                     log(s, false, JdbFormatter.JDB_FORMAT_OUTPUT);

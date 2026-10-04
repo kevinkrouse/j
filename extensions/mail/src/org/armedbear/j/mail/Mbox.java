@@ -270,7 +270,7 @@ public final class Mbox {
                     break;
                 }
                 // Skip X-UIDL.
-                if (s.toUpperCase().startsWith("X-UIDL"))
+                if (s.toUpperCase(Locale.ROOT).startsWith("X-UIDL"))
                     continue;
                 // Skip X-J-Status.
                 if (s.startsWith("X-J-Status:"))

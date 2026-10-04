@@ -108,7 +108,7 @@ public final class GotoFile {
         }
 
         if (file != null) {
-            Buffer buf = editor.getBuffer(file);
+            Buffer buf = Editor.getBuffer(file);
             if (buf != null) {
                 final Frame frame = editor.getFrame();
                 editor.makeNext(buf);

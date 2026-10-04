@@ -21,6 +21,7 @@
 package org.armedbear.j;
 
 import java.util.Arrays;
+import java.util.Locale;
 import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -60,7 +61,7 @@ public class Search implements Cloneable {
     public final void setPattern(String s) {
         if (s != null) {
             pattern = s;
-            lowerCasePattern = s.toLowerCase();
+            lowerCasePattern = s.toLowerCase(Locale.ROOT);
             patternLength = s.length();
         } else {
             pattern = lowerCasePattern = "";
@@ -70,7 +71,7 @@ public class Search implements Cloneable {
 
     public final void appendCharToPattern(char c) {
         pattern += c;
-        lowerCasePattern = pattern.toLowerCase();
+        lowerCasePattern = pattern.toLowerCase(Locale.ROOT);
         ++patternLength;
     }
 
@@ -225,7 +226,7 @@ public class Search implements Cloneable {
     // Search is restricted to region if restrictToSelection is true and
     // region is not null.
     private Position findString(Mode mode, Position start) {
-        Debug.assertTrue(lowerCasePattern.equals(pattern.toLowerCase()));
+        Debug.assertTrue(lowerCasePattern.equals(pattern.toLowerCase(Locale.ROOT)));
         Debug.assertTrue(patternLength == pattern.length());
         Line line = start.getLine();
         int begin = start.getOffset();
@@ -251,7 +252,7 @@ public class Search implements Cloneable {
 
     // Region is ignored.
     public Position findString(Buffer buffer, Position start, boolean wrapBuffer) {
-        Debug.assertTrue(lowerCasePattern.equals(pattern.toLowerCase()));
+        Debug.assertTrue(lowerCasePattern.equals(pattern.toLowerCase(Locale.ROOT)));
         Debug.assertTrue(patternLength == pattern.length());
         Mode mode = buffer.getMode();
         Line line = start.getLine();
@@ -286,7 +287,7 @@ public class Search implements Cloneable {
         int limit = end - patternLength;
         while (index <= limit) {
             if (ignoreCase)
-                index = toBeSearched.toLowerCase().indexOf(lowerCasePattern, index);
+                index = toBeSearched.toLowerCase(Locale.ROOT).indexOf(lowerCasePattern, index);
             else
                 index = toBeSearched.indexOf(pattern, index);
             if (index < 0)
@@ -305,7 +306,7 @@ public class Search implements Cloneable {
         int limit = s.length() - patternLength;
         while (index <= limit) {
             if (ignoreCase)
-                index = s.toLowerCase().indexOf(lowerCasePattern, index);
+                index = s.toLowerCase(Locale.ROOT).indexOf(lowerCasePattern, index);
             else
                 index = s.indexOf(pattern, index);
             if (index < 0)
@@ -324,7 +325,7 @@ public class Search implements Cloneable {
         int limit = s.length() - patternLength;
         while (index <= limit) {
             if (ignoreCase)
-                index = s.toLowerCase().indexOf(lowerCasePattern, index);
+                index = s.toLowerCase(Locale.ROOT).indexOf(lowerCasePattern, index);
             else
                 index = s.indexOf(pattern, index);
             if (index < 0)
@@ -338,7 +339,7 @@ public class Search implements Cloneable {
 
     // Region is ignored.
     public Position reverseFindString(Buffer buffer, Position start) {
-        Debug.assertTrue(lowerCasePattern.equals(pattern.toLowerCase()));
+        Debug.assertTrue(lowerCasePattern.equals(pattern.toLowerCase(Locale.ROOT)));
         Debug.assertTrue(patternLength == pattern.length());
         Line line = start.getLine();
         Position pos = reverseFindStringInLine(buffer, line, 0, start.getOffset());
@@ -358,7 +359,7 @@ public class Search implements Cloneable {
         int index = end;
         while (index >= begin) {
             if (ignoreCase)
-                index = line.getText().toLowerCase().lastIndexOf(lowerCasePattern, index);
+                index = line.getText().toLowerCase(Locale.ROOT).lastIndexOf(lowerCasePattern, index);
             else
                 index = line.getText().lastIndexOf(pattern, index);
             if (index < 0)

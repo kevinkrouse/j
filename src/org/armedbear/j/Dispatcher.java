@@ -497,7 +497,7 @@ public final class Dispatcher implements KeyListener, MouseListener, MouseMotion
         final Buffer buffer = editor.getBuffer();
 
         // Folding.
-        if (x < display.getGutterWidth(buffer)) {
+        if (x < Display.getGutterWidth(buffer)) {
             Position pos = display.positionFromPoint(x, y);
             Line next = pos.getLine().next();
             if (next != null && next.isHidden()) {
@@ -685,7 +685,7 @@ public final class Dispatcher implements KeyListener, MouseListener, MouseMotion
             display.windowUp();
             point.y = 1;
         } else {
-            int limit = display.getRows() * display.getCharHeight();
+            int limit = display.getRows() * Display.getCharHeight();
             if (point.y >= limit) {
                 display.windowDown();
                 point.y = limit - 1;

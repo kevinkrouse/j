@@ -25,6 +25,7 @@ import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Locale;
 import java.util.regex.Matcher;
 import javax.swing.SwingUtilities;
 import org.armedbear.j.Annotation;
@@ -821,7 +822,7 @@ public class LispShellBuffer extends ShellBuffer {
             // Only one component in classpath.
             String path = classPath;
             if (Platform.isPlatformWindows())
-                path = path.toLowerCase();
+                path = path.toLowerCase(Locale.ROOT);
             if (
                 path.equals("j.jar")
                     || path.endsWith("/j.jar")

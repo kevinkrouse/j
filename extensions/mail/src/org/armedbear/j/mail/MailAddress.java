@@ -22,6 +22,7 @@ package org.armedbear.j.mail;
 
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.Locale;
 import java.util.Objects;
 
 public final class MailAddress implements Serializable {
@@ -153,10 +154,10 @@ public final class MailAddress implements Serializable {
     // Pattern is already lower case.
     public final boolean matchesIgnoreCase(String pattern) {
         if (personal != null)
-            if (personal.toLowerCase().indexOf(pattern) >= 0)
+            if (personal.toLowerCase(Locale.ROOT).indexOf(pattern) >= 0)
                 return true; // Personal name matches.
         if (address != null)
-            if (address.toLowerCase().indexOf(pattern) >= 0)
+            if (address.toLowerCase(Locale.ROOT).indexOf(pattern) >= 0)
                 return true; // Address matches.
         return false;
     }

@@ -22,6 +22,8 @@ package org.armedbear.j;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import javax.swing.undo.CompoundEdit;
@@ -176,9 +178,9 @@ public final class RegionCommands {
         /** Applies this change to a string. */
         public String apply(String s) {
             if (this == UPPER)
-                return s.toUpperCase();
+                return s.toUpperCase(Locale.getDefault());
             if (this == LOWER)
-                return s.toLowerCase();
+                return s.toLowerCase(Locale.getDefault());
             final StringBuilder sb = new StringBuilder(s.length());
             for (int i = 0; i < s.length(); i++) {
                 final char c = s.charAt(i);
@@ -313,7 +315,7 @@ public final class RegionCommands {
             }
         } else {
             Buffer buf = new Buffer(0);
-            buf.setText(new String(bytes, 0, length));
+            buf.setText(new String(bytes, 0, length, StandardCharsets.UTF_8));
             editor.makeNext(buf);
             editor.activate(buf);
         }

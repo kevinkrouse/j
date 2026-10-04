@@ -25,6 +25,7 @@ import java.io.InterruptedIOException;
 import java.io.OutputStreamWriter;
 import java.net.Socket;
 import java.net.SocketException;
+import java.util.Locale;
 import org.armedbear.j.Debug;
 import org.armedbear.j.Editor;
 import org.armedbear.j.Log;
@@ -312,7 +313,7 @@ public final class ImapSession {
                     recent = 0;
                     return false;
                 }
-                final String upper = s.toUpperCase();
+                final String upper = s.toUpperCase(Locale.ROOT);
                 if (upper.startsWith("* NO ")) {
                     mailbox.setStatusText(s.substring(5).trim());
                     continue;
@@ -506,7 +507,7 @@ public final class ImapSession {
             String s = readLine();
             if (s == null)
                 return BYE;
-            String upper = s.toUpperCase();
+            String upper = s.toUpperCase(Locale.ROOT);
             int index = upper.indexOf("[ALERT]");
             if (index >= 0)
                 mailbox.setAlertText(s.substring(index + 7).trim());
@@ -543,7 +544,7 @@ public final class ImapSession {
     private void processUntaggedResponse(String s) {
         Log.debug("processUntaggedResponse |" + s + "|");
         if (s.startsWith("* ")) {
-            final String upper = s.toUpperCase();
+            final String upper = s.toUpperCase(Locale.ROOT);
             if (upper.endsWith(" EXISTS")) {
                 try {
                     messageCount = Integer.parseInt(upper.substring(2, upper.length() - 7));

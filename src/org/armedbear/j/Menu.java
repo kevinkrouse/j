@@ -20,6 +20,7 @@
 
 package org.armedbear.j;
 
+import java.util.Locale;
 import javax.swing.JMenu;
 
 public final class Menu extends JMenu {
@@ -53,7 +54,7 @@ public final class Menu extends JMenu {
         String keyText = mapping != null ? mapping.getKeyText() : "";
         if (keyText.length() == 3) {
             if (keyText.charAt(0) == '\'' && keyText.charAt(2) == '\'')
-                keyText = keyText.substring(1, 2).toUpperCase(); // 'a' => A
+                keyText = keyText.substring(1, 2).toUpperCase(Locale.ROOT); // 'a' => A
         }
         MenuItem menuItem = new MenuItem(label, keyText);
         if (mnemonic != '\0')

@@ -23,6 +23,7 @@ package org.armedbear.j.mode.vhdl;
 import static org.armedbear.j.Constants.*;
 
 import java.util.HashSet;
+import java.util.Locale;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Editor;
 import org.armedbear.j.FormatTable;
@@ -262,7 +263,7 @@ public final class VHDLFormatter extends Formatter {
     }
 
     private static boolean isType(String s) {
-        return getTypes().contains(s.toLowerCase());
+        return getTypes().contains(s.toLowerCase(Locale.ROOT));
     }
 
     private static HashSet<String> typeHashSet;

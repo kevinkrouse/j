@@ -326,7 +326,7 @@ public class SaveFileDialog extends JDialog implements FocusListener, KeyListene
     @Override
     public void dispose() {
         super.dispose();
-        editor.restoreFocus();
+        Editor.restoreFocus();
     }
 
     public static File getSaveFile(Editor editor, String dialogTitle) {

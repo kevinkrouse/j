@@ -28,6 +28,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.StringReader;
 import java.nio.charset.StandardCharsets;
+import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
@@ -171,7 +172,7 @@ public final class XmlMode extends AbstractMode implements Mode {
                 new BufferedReader(new InputStreamReader(file.getInputStream(), StandardCharsets.UTF_8));
             String s = reader.readLine();
             reader.close();
-            if (s != null && s.toLowerCase().startsWith("<?xml")) {
+            if (s != null && s.toLowerCase(Locale.ROOT).startsWith("<?xml")) {
                 int end = s.indexOf("?>");
                 if (end >= 0) {
                     s = s.substring(5, end);
@@ -874,7 +875,7 @@ public final class XmlMode extends AbstractMode implements Mode {
                                 sb.append(element.getName());
                             }
                             if (sb.length() > 0) {
-                                KillRing killRing = editor.getKillRing();
+                                KillRing killRing = Editor.getKillRing();
                                 killRing.appendNew(sb.toString());
                                 killRing.copyLastKillToSystemClipboard();
                                 editor.status("XPath copied to clipboard");
@@ -967,9 +968,9 @@ public final class XmlMode extends AbstractMode implements Mode {
         final Buffer buffer = editor.getBuffer();
         if (buffer.getBooleanProperty(Property.FIX_CASE)) {
             if (buffer.getBooleanProperty(Property.UPPER_CASE_TAG_NAMES))
-                tagName = tagName.toUpperCase();
+                tagName = tagName.toUpperCase(Locale.ROOT);
             else
-                tagName = tagName.toLowerCase();
+                tagName = tagName.toLowerCase(Locale.ROOT);
         }
         CompoundEdit compoundEdit = editor.beginCompoundEdit();
         editor.fillToCaret();

@@ -49,7 +49,7 @@ public final class RecentFilesTableModel extends AbstractTableModel {
 
     private int[] indexes;
 
-    private final ZonedDateTime startOfDay = LocalDate.now().atStartOfDay(ZoneId.systemDefault());
+    private final ZonedDateTime startOfDay = LocalDate.now(ZoneId.systemDefault()).atStartOfDay(ZoneId.systemDefault());
     private final ZonedDateTime startOfWeek = startOfDay.minusDays(6);
 
     private int sortColumn = LAST_VISIT;

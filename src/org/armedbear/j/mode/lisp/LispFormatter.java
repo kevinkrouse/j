@@ -22,6 +22,7 @@ package org.armedbear.j.mode.lisp;
 
 import static org.armedbear.j.Constants.*;
 
+import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.armedbear.j.Buffer;
@@ -163,7 +164,7 @@ public final class LispFormatter extends Formatter {
                     if (pos != null) {
                         // Skip '('.
                         pos.skip();
-                        String s = parseToken(pos).toLowerCase();
+                        String s = parseToken(pos).toLowerCase(Locale.ROOT);
                         if (s.equals("cond"))
                             return true;
                         // Check for end-test form after DO/DO*.
@@ -194,7 +195,7 @@ public final class LispFormatter extends Formatter {
                     } else {
                         // Skip '('.
                         pos.skip();
-                        String s = parseToken(pos).toLowerCase();
+                        String s = parseToken(pos).toLowerCase(Locale.ROOT);
                         if (s.equals("case"))
                             return false;
                         if (s.equals("ccase"))

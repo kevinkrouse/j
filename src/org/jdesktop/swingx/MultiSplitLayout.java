@@ -40,6 +40,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
+import java.util.Locale;
 import java.util.Map;
 import javax.swing.UIManager;
 
@@ -2066,7 +2067,7 @@ public class MultiSplitLayout implements LayoutManager {
                 if ((token = st.nextToken()) != StreamTokenizer.TT_WORD) {
                     throwParseException(st, "invalid node type");
                 }
-                String nodeType = st.sval.toUpperCase();
+                String nodeType = st.sval.toUpperCase(Locale.ROOT);
                 if (nodeType.equals("LEAF")) {
                     parseLeaf(st, parent);
                 } else if (nodeType.equals("ROW") || nodeType.equals("COLUMN")) {

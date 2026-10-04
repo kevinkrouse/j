@@ -22,6 +22,7 @@ package org.armedbear.j;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import org.armedbear.j.util.Utilities;
 
 public final class Completion {
@@ -34,7 +35,7 @@ public final class Completion {
 
     public Completion(File dir, String input, String shellCommand) {
         if (Platform.isPlatformWindows()) {
-            if (shellCommand != null && shellCommand.toLowerCase().indexOf("cmd.exe") < 0)
+            if (shellCommand != null && shellCommand.toLowerCase(Locale.ROOT).indexOf("cmd.exe") < 0)
                 cygnify = true;
         }
         final char separatorChar = getSeparatorChar();

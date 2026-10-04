@@ -30,6 +30,7 @@ import java.nio.file.Files;
 import java.nio.file.attribute.PosixFilePermission;
 import java.util.ArrayList;
 import java.util.EnumSet;
+import java.util.Locale;
 import java.util.Set;
 import java.util.StringTokenizer;
 import org.armedbear.j.mode.dir.DirectoryEntry;
@@ -329,7 +330,7 @@ public class File implements Comparable<File> {
                         return s.substring(0, index);
                 }
             } else if (s.charAt(1) == ':') {
-                String prefix = s.substring(0, 2).toUpperCase();
+                String prefix = s.substring(0, 2).toUpperCase(Locale.ROOT);
                 char c = prefix.charAt(0);
                 if (c >= 'A' && c <= 'Z')
                     return prefix;

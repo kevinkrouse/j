@@ -437,7 +437,7 @@ import org.armedbear.j.util.Tuple2;
 
         int flags = 0;
         if (p.first != null) {
-            String flagsList = p.first.toLowerCase();
+            String flagsList = p.first.toLowerCase(Locale.ROOT);
             if (flagsList.length() > 0) {
                 if (flagsList.indexOf("seen") >= 0)
                     flags |= SEEN;

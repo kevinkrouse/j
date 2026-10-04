@@ -127,7 +127,7 @@ public final class P4Backend implements VcsBackend {
                 filename = filename.substring(0, filename.length() - 5);
             File file = File.getInstance(dir, filename);
             if (file != null && file.isFile()) {
-                Buffer buf = editor.getBuffer(file);
+                Buffer buf = Editor.getBuffer(file);
                 if (buf != null)
                     DiffMode.gotoLocation(
                         editor,

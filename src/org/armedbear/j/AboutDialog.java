@@ -25,6 +25,7 @@ import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.Locale;
 import javax.swing.*;
@@ -181,7 +182,7 @@ public class AboutDialog extends AbstractDialog {
      * nothing useful.
      */
     static String getUptimeString() {
-        String dateString = LocalDateTime.now()
+        String dateString = LocalDateTime.now(ZoneId.systemDefault())
             .format(
                 DateTimeFormatter.ofPattern("EE MMM d yyyy h:mm a", Locale.US)
             );

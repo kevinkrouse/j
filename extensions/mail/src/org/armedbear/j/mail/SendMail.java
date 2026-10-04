@@ -231,7 +231,7 @@ public final class SendMail extends Buffer {
             if (replyToGroup && group.size() > 0)
                 appendAddressHeader("Cc: ", group);
             String subject = entryRepliedTo.getSubject();
-            if (!subject.toLowerCase().startsWith("re:"))
+            if (!subject.toLowerCase(Locale.ROOT).startsWith("re:"))
                 subject = "Re: ".concat(subject);
             appendLine("Subject: ".concat(subject));
             appendLine("In-Reply-To: " + entryRepliedTo.getMessageId());
@@ -675,7 +675,7 @@ public final class SendMail extends Buffer {
             String text = line.getText();
             if (text.equals(HEADER_SEPARATOR))
                 return;
-            String lower = text.toLowerCase();
+            String lower = text.toLowerCase(Locale.ROOT);
             if (
                 lower.startsWith("to:")
                     || lower.startsWith("cc:")
@@ -720,9 +720,9 @@ public final class SendMail extends Buffer {
         Line line;
         for (line = getFirstLine(); line != null; line = line.next()) {
             String text = line.getText();
-            if (text.toLowerCase().startsWith("subject:"))
+            if (text.toLowerCase(Locale.ROOT).startsWith("subject:"))
                 subjectLine = line;
-            else if (text.toLowerCase().startsWith("attachment:"))
+            else if (text.toLowerCase(Locale.ROOT).startsWith("attachment:"))
                 return; // Not empty.
             else if (text.equals(HEADER_SEPARATOR))
                 break;
@@ -814,11 +814,11 @@ public final class SendMail extends Buffer {
                         inBcc = false;
                     }
                 }
-                if (text.toLowerCase().startsWith("bcc:")) {
+                if (text.toLowerCase(Locale.ROOT).startsWith("bcc:")) {
                     inBcc = true;
                     continue;
                 }
-                if (text.toLowerCase().startsWith("attachment:"))
+                if (text.toLowerCase(Locale.ROOT).startsWith("attachment:"))
                     continue;
                 writer.write(line.getText());
                 writer.write(separator);
@@ -1054,7 +1054,7 @@ public final class SendMail extends Buffer {
             removeHeaders(editor, "cc:");
             // Move dot to line after "To:" header.
             for (Line line = getFirstLine(); line != null; line = line.next()) {
-                if (line.getText().toLowerCase().startsWith("to:")) {
+                if (line.getText().toLowerCase(Locale.ROOT).startsWith("to:")) {
                     // Found first line of "To:" header.
                     for (Line next = line.next(); next != null; next = next.next()) {
                         if (
@@ -1106,7 +1106,7 @@ public final class SendMail extends Buffer {
     // current editor gets passed in to manage undo.
     private void removeHeaders(Editor editor, String hdr) {
         // Make sure hdr is all lower case and ends with a colon.
-        hdr = hdr.toLowerCase();
+        hdr = hdr.toLowerCase(Locale.ROOT);
         if (!hdr.endsWith(":"))
             hdr = hdr.concat(":");
         while (true) {
@@ -1117,7 +1117,7 @@ public final class SendMail extends Buffer {
                 String text = line.getText();
                 if (text.equals(HEADER_SEPARATOR))
                     return;
-                if (text.toLowerCase().startsWith(hdr)) {
+                if (text.toLowerCase(Locale.ROOT).startsWith(hdr)) {
                     beginLine = line;
                     break;
                 }
@@ -1218,7 +1218,7 @@ public final class SendMail extends Buffer {
     // Combines multiple occurrences of "To:", "Cc:", "Bcc:".
     private String getHeaderValue(String headerName) {
         boolean combine = false;
-        String key = headerName.toLowerCase() + ':';
+        String key = headerName.toLowerCase(Locale.ROOT) + ':';
         if (key.equals("to:") || key.equals("cc:") || key.equals("bcc:"))
             combine = true;
         StringBuilder sb = null;
@@ -1226,7 +1226,7 @@ public final class SendMail extends Buffer {
             String text = line.getText();
             if (text.equals(HEADER_SEPARATOR))
                 break;
-            if (text.toLowerCase().startsWith(key)) {
+            if (text.toLowerCase(Locale.ROOT).startsWith(key)) {
                 if (sb == null) {
                     sb = new StringBuilder();
                 } else {
@@ -1280,7 +1280,7 @@ public final class SendMail extends Buffer {
         for (Line line = getFirstLine(); line != null; line = line.next()) {
             if (line.getText().equals(HEADER_SEPARATOR))
                 break;
-            if (line.getText().toLowerCase().startsWith("attachment:")) {
+            if (line.getText().toLowerCase(Locale.ROOT).startsWith("attachment:")) {
                 String filename = line.getText().substring(11).trim();
                 if (filename.length() > 0) {
                     if (attachments == null)
@@ -1357,11 +1357,11 @@ public final class SendMail extends Buffer {
         }
         String extension = Utilities.getExtension(file);
         if (extension != null)
-            extension = extension.toLowerCase();
+            extension = extension.toLowerCase(Locale.ROOT);
         if (isBinary) {
             if (extension != null) {
                 // Check for known image types.
-                extension = extension.toLowerCase();
+                extension = extension.toLowerCase(Locale.ROOT);
                 if (extension.equals(".jpeg") || extension.equals(".jpg"))
                     return "image/jpeg";
                 if (extension.equals(".gif"))

@@ -39,10 +39,12 @@ import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.charset.Charset;
 import java.nio.charset.IllegalCharsetNameException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Properties;
 import java.util.Set;
 import java.util.regex.Matcher;
@@ -609,7 +611,7 @@ public final class Utilities {
             buffer != null ? buffer.getCurrentDirectory() : null;
 
         // Look for .h files in the include path.
-        if (filename.toLowerCase().endsWith(".h")) {
+        if (filename.toLowerCase(Locale.ROOT).endsWith(".h")) {
             String includePath;
             if (buffer != null)
                 includePath = buffer.getStringProperty(Property.INCLUDE_PATH);
@@ -787,7 +789,7 @@ public final class Utilities {
                         isLittleEndian
                     );
                 else
-                    s = new String(bytes, 0, bytesRead);
+                    s = new String(bytes, 0, bytesRead, StandardCharsets.UTF_8);
                 if (s.length() >= 3) {
                     if (s.charAt(0) == '#' && s.charAt(1) == '!') {
                         // Only consider the first line.
@@ -1289,7 +1291,7 @@ public final class Utilities {
     public static final String getCharsetFromContentType(String contentType) {
         if (contentType == null)
             return null;
-        int index = contentType.toLowerCase().indexOf("charset=");
+        int index = contentType.toLowerCase(Locale.ROOT).indexOf("charset=");
         if (index < 0)
             return null;
         String s = contentType.substring(index + 8);
@@ -1313,7 +1315,7 @@ public final class Utilities {
     public static final String getEncodingFromCharset(String charset) {
         if (charset == null)
             return "iso-8859-1";
-        String lower = charset.toLowerCase();
+        String lower = charset.toLowerCase(Locale.ROOT);
         if (
             lower.equals("unknown-8bit")
                 ||

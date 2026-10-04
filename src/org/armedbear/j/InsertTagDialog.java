@@ -22,6 +22,7 @@ package org.armedbear.j;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import javax.swing.undo.CompoundEdit;
 import org.armedbear.j.mode.html.HtmlElement;
 import org.armedbear.j.mode.html.HtmlMode;
@@ -34,7 +35,7 @@ public final class InsertTagDialog extends InputDialog {
 
     @Override
     protected List<String> getCompletions(String prefix) {
-        prefix = prefix.toLowerCase();
+        prefix = prefix.toLowerCase(Locale.ROOT);
         List<HtmlElement> elements = HtmlMode.elements();
         int limit = elements.size();
         ArrayList<String> completions = new ArrayList<>(limit);
@@ -56,9 +57,9 @@ public final class InsertTagDialog extends InputDialog {
         final Buffer buffer = editor.getBuffer();
         if (buffer.getBooleanProperty(Property.FIX_CASE)) {
             if (buffer.getBooleanProperty(Property.UPPER_CASE_TAG_NAMES))
-                tagName = tagName.toUpperCase();
+                tagName = tagName.toUpperCase(Locale.ROOT);
             else
-                tagName = tagName.toLowerCase();
+                tagName = tagName.toLowerCase(Locale.ROOT);
         }
         Region r = null;
         if (editor.getMark() != null)

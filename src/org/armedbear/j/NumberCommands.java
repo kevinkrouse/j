@@ -11,6 +11,7 @@
 
 package org.armedbear.j;
 
+import java.util.Locale;
 import javax.swing.undo.CompoundEdit;
 
 /**
@@ -134,7 +135,7 @@ public final class NumberCommands {
         } else {
             number = Long.toHexString(n);
             if (lastLetterIsUpper(text, start, stop))
-                number = number.toUpperCase();
+                number = number.toUpperCase(Locale.ROOT);
         }
         // The width stays, where the number starts with a zero.
         if (text.charAt(col) == '0')

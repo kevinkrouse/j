@@ -28,6 +28,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
@@ -353,7 +354,7 @@ public final class SshSession implements RemoteSession {
             Log.debug("changeDirectory succeeded");
             return true;
         }
-        String lower = response.toLowerCase();
+        String lower = response.toLowerCase(Locale.ROOT);
         if (lower.indexOf("not a directory") >= 0)
             return false;
         else if (lower.indexOf("no such file or directory") >= 0)
@@ -646,7 +647,7 @@ public final class SshSession implements RemoteSession {
                 check = s;
         }
         Log.debug("check = |" + check + "|");
-        String lower = check.toLowerCase();
+        String lower = check.toLowerCase(Locale.ROOT);
         if (lower.indexOf("connection refused") >= 0)
             return NO;
         if (lower.endsWith("password:")) {
@@ -696,7 +697,7 @@ public final class SshSession implements RemoteSession {
 
     // Helper for checkAuthenticationResponse().
     private int checkResponse(String s) {
-        if (s.toLowerCase().indexOf("denied") >= 0)
+        if (s.toLowerCase(Locale.ROOT).indexOf("denied") >= 0)
             return NO;
         String prompt = null;
         for (int i = s.length(); i-- > 0;) {

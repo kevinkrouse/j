@@ -94,7 +94,7 @@ public final class DarcsBackend implements VcsBackend {
             dir = darcs_root;
         File file = File.getInstance(dir, filename);
         if (file != null && file.isFile()) {
-            Buffer buf = editor.getBuffer(file);
+            Buffer buf = Editor.getBuffer(file);
             if (buf != null)
                 DiffMode.gotoLocation(editor, buf, lineNumber + added, 0);
         }

@@ -28,9 +28,8 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.List;
+import java.util.Locale;
 import java.util.StringTokenizer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -868,7 +867,7 @@ public final class FindInFiles extends Replacement implements BackgroundProcess 
         public Filter(String s) throws Exception {
             this.originalPattern = s;
             ignoreCase = Platform.isFileSystemCaseInsensitive();
-            File file = File.getInstance(ignoreCase ? s.toLowerCase() : s);
+            File file = File.getInstance(ignoreCase ? s.toLowerCase(Locale.ROOT) : s);
             if (!processFilter(file.getName()))
                 throw new Exception("process pattern failed");
         }
@@ -908,7 +907,7 @@ public final class FindInFiles extends Replacement implements BackgroundProcess 
 
         public boolean accepts(String name) {
             if (ignoreCase)
-                name = name.toLowerCase();
+                name = name.toLowerCase(Locale.ROOT);
             Matcher matcher = pattern.matcher(name);
             return matcher.matches();
         }

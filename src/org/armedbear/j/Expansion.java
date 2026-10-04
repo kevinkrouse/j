@@ -24,6 +24,7 @@ import static org.armedbear.j.Constants.*;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import javax.swing.undo.CompoundEdit;
 import org.armedbear.j.util.Utilities;
 
@@ -104,7 +105,7 @@ public class Expansion {
             if (index >= 0) {
                 s = line.substring(0, begin);
                 if (ignoreCase)
-                    s = s.toLowerCase();
+                    s = s.toLowerCase(Locale.ROOT);
                 while ((index = s.lastIndexOf(prefix, index)) >= 0) {
                     maybeAddCandidate(list, new Position(line, index));
                     --index;
@@ -113,7 +114,7 @@ public class Expansion {
             // Search backwards to start of buffer.
             for (line = pos.getLine().previous(); line != null; line = line.previous()) {
                 index = line.length();
-                s = ignoreCase ? line.getText().toLowerCase() : line.getText();
+                s = ignoreCase ? line.getText().toLowerCase(Locale.ROOT) : line.getText();
                 while ((index = s.lastIndexOf(prefix, index)) >= 0) {
                     maybeAddCandidate(list, new Position(line, index));
                     --index;
@@ -123,7 +124,7 @@ public class Expansion {
             // line again to pick up possible matches to right of dot.
             for (line = pos.getLine(); line != null; line = line.next()) {
                 index = 0;
-                s = ignoreCase ? line.getText().toLowerCase() : line.getText();
+                s = ignoreCase ? line.getText().toLowerCase(Locale.ROOT) : line.getText();
                 while ((index = s.indexOf(prefix, index)) >= 0) {
                     maybeAddCandidate(list, new Position(line, index));
                     ++index;
@@ -147,7 +148,7 @@ public class Expansion {
         if (candidate.equals(current))
             return;
         if (forceLowerCase)
-            candidate = candidate.toLowerCase();
+            candidate = candidate.toLowerCase(Locale.getDefault());
         for (int i = list.size(); i-- > 0;) {
             if (candidate.equals(list.get(i))) {
                 // It's already in the list.

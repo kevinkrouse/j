@@ -286,7 +286,7 @@ public final class DiffMode extends AbstractMode implements Mode {
         }
         final String text = dotLine.getText();
         if (text.startsWith("---")) {
-            Buffer buf = editor.getBuffer(File.getInstance(filename1));
+            Buffer buf = Editor.getBuffer(File.getInstance(filename1));
             if (buf != null) {
                 editor.makeNext(buf);
                 editor.activateInOtherWindow(buf);
@@ -294,7 +294,7 @@ public final class DiffMode extends AbstractMode implements Mode {
             return;
         }
         if (text.startsWith("+++")) {
-            Buffer buf = editor.getBuffer(File.getInstance(filename2));
+            Buffer buf = Editor.getBuffer(File.getInstance(filename2));
             if (buf != null) {
                 editor.makeNext(buf);
                 editor.activateInOtherWindow(buf);
@@ -362,7 +362,7 @@ public final class DiffMode extends AbstractMode implements Mode {
         else
             file = File.getInstance(filename);
         if (file != null && file.isFile()) {
-            Buffer buf = editor.getBuffer(file);
+            Buffer buf = Editor.getBuffer(file);
             if (buf != null) {
                 int lineNumber =
                     (filename == filename1) ? oldLineNumber : newLineNumber;

@@ -25,6 +25,7 @@ import static org.armedbear.j.Constants.*;
 import java.awt.Color;
 import java.awt.event.MouseEvent;
 import java.util.List;
+import java.util.Locale;
 import javax.swing.JCheckBoxMenuItem;
 import javax.swing.JMenuItem;
 import javax.swing.JPopupMenu;
@@ -684,7 +685,7 @@ public abstract class AbstractMode implements Mode {
 
     /** The preference key of a setting of this mode's: "JavaMode.indentSize". */
     protected String getFullKey(String key) {
-        return (getClass().getSimpleName() + '.' + key).toLowerCase();
+        return (getClass().getSimpleName() + '.' + key).toLowerCase(Locale.ROOT);
     }
 
     /**
@@ -699,7 +700,7 @@ public abstract class AbstractMode implements Mode {
         String name = getClass().getName();
         if (name.startsWith("org.armedbear.j."))
             name = name.substring(16);
-        return preferences.getStringProperty((name + '.' + key).toLowerCase());
+        return preferences.getStringProperty((name + '.' + key).toLowerCase(Locale.ROOT));
     }
 
     @Override

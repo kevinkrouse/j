@@ -136,7 +136,7 @@ public abstract class MailboxEntry implements Serializable {
             return null;
         String s = subject.trim();
         while (true) {
-            if (s.toLowerCase().startsWith("re:")) {
+            if (s.toLowerCase(Locale.ROOT).startsWith("re:")) {
                 s = s.substring(3).trim();
                 continue;
             }
@@ -149,7 +149,7 @@ public abstract class MailboxEntry implements Serializable {
             }
             break;
         }
-        while (s.toLowerCase().endsWith("(fwd)"))
+        while (s.toLowerCase(Locale.ROOT).endsWith("(fwd)"))
             s = s.substring(0, s.length() - 5).trim();
 
         // Some broken mailers (or MTAs) arbitrarily break the subject line
@@ -169,7 +169,7 @@ public abstract class MailboxEntry implements Serializable {
     }
 
     public final boolean subjectIsReply() {
-        if (subject != null && subject.toLowerCase().startsWith("re:"))
+        if (subject != null && subject.toLowerCase(Locale.ROOT).startsWith("re:"))
             return true;
         return false;
     }

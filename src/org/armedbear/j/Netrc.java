@@ -22,6 +22,7 @@ package org.armedbear.j;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.StringTokenizer;
@@ -82,7 +83,7 @@ public final class Netrc {
                 if (in.read(bytes) != length)
                     return;
             }
-            String s = new String(bytes);
+            String s = new String(bytes, StandardCharsets.UTF_8);
             StringTokenizer st = new StringTokenizer(s);
             String host = null;
             String user = null;

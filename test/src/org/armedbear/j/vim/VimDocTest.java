@@ -26,6 +26,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.regex.Matcher;
@@ -300,14 +301,14 @@ public class VimDocTest {
         final List<String> keys = new ArrayList<>();
         for (int i = 0; i < words.length; ++i) {
             if (words[i].equals("Ctrl") && i + 1 < words.length)
-                keys.add("<C-" + words[++i].toLowerCase() + ">");
+                keys.add("<C-" + words[++i].toLowerCase(Locale.ROOT) + ">");
             // g Ctrl A is one key sequence, g<C-a>.
             else if (
                 words[i].equals("g")
                     && i + 2 < words.length
                     && words[i + 1].equals("Ctrl")
             )
-                keys.add("g<C-" + words[i += 2].toLowerCase() + ">");
+                keys.add("g<C-" + words[i += 2].toLowerCase(Locale.ROOT) + ">");
             else if (words[i].equals("Escape"))
                 keys.add("<Esc>");
             else if (words[i].equals("Backspace"))

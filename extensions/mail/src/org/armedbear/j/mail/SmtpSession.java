@@ -154,7 +154,7 @@ public final class SmtpSession extends Writer {
             if (getResponse() != 250)
                 return false;
             for (String addressee : addressees) {
-                String addr = sm.getAddress(addressee);
+                String addr = SendMail.getAddress(addressee);
                 if (addr == null) {
                     errorText = "Invalid addressee \"" + addressee + "\"";
                     return false;

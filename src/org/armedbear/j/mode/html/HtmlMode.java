@@ -31,6 +31,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
@@ -138,7 +139,7 @@ public final class HtmlMode extends AbstractMode implements Mode {
             if (trim.startsWith("<!")) // Document type declaration.
                 return indent;
             // Model starts with start tag.
-            String name = Utilities.getTagName(trim).toLowerCase();
+            String name = Utilities.getTagName(trim).toLowerCase(Locale.ROOT);
             if (name.equals("html") || name.equals("head") || name.equals("body") || name.equals("form"))
                 return indent;
             boolean wantsEndTag = wantsEndTag(name);
@@ -323,7 +324,7 @@ public final class HtmlMode extends AbstractMode implements Mode {
     }
 
     private static boolean wantsEndTag(String elementName) {
-        elementName = elementName.trim().toLowerCase();
+        elementName = elementName.trim().toLowerCase(Locale.ROOT);
         if (elements == null)
             loadElementList();
         if (elements != null) {
@@ -370,7 +371,7 @@ public final class HtmlMode extends AbstractMode implements Mode {
                     int index = s.indexOf('=');
                     if (index >= 0) {
                         // Element names are always stored in lower case.
-                        String name = s.substring(0, index).trim().toLowerCase();
+                        String name = s.substring(0, index).trim().toLowerCase(Locale.ROOT);
                         String value = s.substring(index + 1).trim();
                         boolean wantsEndTag = value.equals("1") || value.equals("true");
                         boolean found = false;

@@ -22,6 +22,7 @@ package org.armedbear.j;
 
 import static org.armedbear.j.Constants.*;
 
+import java.util.Locale;
 import javax.swing.SwingUtilities;
 import org.armedbear.j.mode.dir.DirectoryBuffer;
 import org.armedbear.j.mode.web.WebBuffer;
@@ -153,7 +154,7 @@ public final class RemoteBuffer extends Buffer {
                     ModeList modeList = Editor.getModeList();
                     String contentType = httpLoadProcess.getContentType();
                     Mode mode;
-                    if (contentType != null && contentType.toLowerCase().startsWith("text/html"))
+                    if (contentType != null && contentType.toLowerCase(Locale.ROOT).startsWith("text/html"))
                         mode = modeList.getMode(HTML_MODE);
                     else {
                         mode = modeList.getModeForFileName(file.getName());

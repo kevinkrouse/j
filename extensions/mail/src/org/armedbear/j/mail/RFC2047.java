@@ -21,6 +21,7 @@
 package org.armedbear.j.mail;
 
 import java.io.UnsupportedEncodingException;
+import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.armedbear.j.Log;
@@ -36,7 +37,7 @@ public final class RFC2047 {
         // Fail fast.
         if (encoded.indexOf("=?") < 0)
             return encoded;
-        Matcher matcher = prefixRE.matcher(encoded.toLowerCase());
+        Matcher matcher = prefixRE.matcher(encoded.toLowerCase(Locale.ROOT));
         if (!matcher.find()) {
             Log.error("RFC2047.decode prefix is null");
             Log.error("encoded = |" + encoded + "|");
@@ -78,7 +79,7 @@ public final class RFC2047 {
                 return encoded;
             }
             remaining = remaining.substring(end + 2);
-            index = remaining.toLowerCase().indexOf(prefix);
+            index = remaining.toLowerCase(Locale.ROOT).indexOf(prefix);
             if (index < 0) {
                 sb.append(remaining);
                 break;

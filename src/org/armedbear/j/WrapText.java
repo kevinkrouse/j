@@ -22,6 +22,7 @@ package org.armedbear.j;
 
 import static org.armedbear.j.Constants.*;
 
+import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import javax.swing.undo.CompoundEdit;
@@ -419,7 +420,7 @@ public final class WrapText {
                     if (c == 'a' || c == 'A') {
                         if (s.regionMatches(true, i, "<a ", 0, 3)) {
                             // It's an <a> tag. Look for end tag.
-                            int index = s.toLowerCase().indexOf("</a>", i + 3);
+                            int index = s.toLowerCase(Locale.ROOT).indexOf("</a>", i + 3);
                             if (index >= 0 && index + 4 < limit) {
                                 breakOffset = index + 4;
                                 i = breakOffset;
@@ -456,7 +457,7 @@ public final class WrapText {
             if (s.endsWith(">"))
                 break;
             pos.setLine(previousLine);
-            s = s.toLowerCase();
+            s = s.toLowerCase(Locale.ROOT);
             if (s.startsWith("<p>") || s.startsWith("<br>"))
                 break;
         }
@@ -472,7 +473,7 @@ public final class WrapText {
             line = line.next();
             if (line.isBlank())
                 return new Position(line, 0);
-            String s = line.trim().toLowerCase();
+            String s = line.trim().toLowerCase(Locale.ROOT);
             // Honor HTML breaks.
             if (
                 s.startsWith("<p>")

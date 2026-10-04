@@ -26,6 +26,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Locale;
 import javax.swing.Icon;
 import javax.swing.SwingUtilities;
 import org.armedbear.j.Buffer;
@@ -365,7 +366,7 @@ public abstract class MailboxBuffer extends Buffer {
         String subject = entry.getSubject();
         if (subject == null)
             return null; // But there are other things we could try...
-        if (subject.toLowerCase().startsWith("re: "))
+        if (subject.toLowerCase(Locale.ROOT).startsWith("re: "))
             subject = subject.substring(4);
         // Find current entry.
         Line line;
@@ -382,7 +383,7 @@ public abstract class MailboxBuffer extends Buffer {
                     // Note that we don't skip over deleted messages here.
                     String s = maybe.getSubject();
                     if (s != null) {
-                        if (s.toLowerCase().startsWith("re: "))
+                        if (s.toLowerCase(Locale.ROOT).startsWith("re: "))
                             s = s.substring(4);
                         if (s.equals(subject))
                             return maybe;
@@ -397,7 +398,7 @@ public abstract class MailboxBuffer extends Buffer {
         String subject = entry.getSubject();
         if (subject == null)
             return null; // But there are other things we could try...
-        if (subject.toLowerCase().startsWith("re: "))
+        if (subject.toLowerCase(Locale.ROOT).startsWith("re: "))
             subject = subject.substring(4);
         // Find current entry.
         Line line;
@@ -414,7 +415,7 @@ public abstract class MailboxBuffer extends Buffer {
                     // Note that we don't skip over deleted messages here.
                     String s = maybe.getSubject();
                     if (s != null) {
-                        if (s.toLowerCase().startsWith("re: "))
+                        if (s.toLowerCase(Locale.ROOT).startsWith("re: "))
                             s = s.substring(4);
                         if (s.equals(subject))
                             return maybe;

@@ -28,6 +28,7 @@ import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import javax.swing.JList;
@@ -588,7 +589,7 @@ public final class OpenFileTextFieldHandler extends DefaultTextFieldHandler impl
         if (extension == null)
             return false;
         if (Platform.isPlatformWindows())
-            extension = extension.toLowerCase();
+            extension = extension.toLowerCase(Locale.ROOT);
         if (
             extension.equals(".class")
                 ||
@@ -732,9 +733,9 @@ public final class OpenFileTextFieldHandler extends DefaultTextFieldHandler impl
                     ) {
                         final int index;
                         if (ignoreCase) {
-                            index = completion.toLowerCase()
+                            index = completion.toLowerCase(Locale.ROOT)
                                 .lastIndexOf(
-                                    originalText.toLowerCase()
+                                    originalText.toLowerCase(Locale.ROOT)
                                 );
                         } else {
                             index = completion.lastIndexOf(originalText);

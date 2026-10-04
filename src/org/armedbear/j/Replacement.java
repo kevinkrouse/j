@@ -20,6 +20,7 @@
 
 package org.armedbear.j;
 
+import java.util.Locale;
 import java.util.regex.Matcher;
 import org.armedbear.j.util.Utilities;
 
@@ -168,7 +169,7 @@ public class Replacement extends Search {
             if (Utilities.isUpperCase(toBeReplaced)) {
                 // The string to be replaced is all upper case. Make the
                 // replacement all upper case too.
-                replacementText = replacementText.toUpperCase();
+                replacementText = replacementText.toUpperCase(Locale.getDefault());
             } else {
                 char c = toBeReplaced.charAt(0);
                 if (Character.isUpperCase(c)) {

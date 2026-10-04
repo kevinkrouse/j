@@ -22,6 +22,7 @@ package org.armedbear.j;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiConsumer;
@@ -69,7 +70,7 @@ public class CommandTable {
         if (name == null)
             return null;
         init();
-        return map.get(name.toLowerCase());
+        return map.get(name.toLowerCase(Locale.ROOT));
     }
 
     /**
@@ -83,7 +84,7 @@ public class CommandTable {
         if (name == null || owner == null || methodName == null)
             throw new IllegalArgumentException("name, owner and method are all required");
         init();
-        map.put(name.toLowerCase(), new Command(name, owner, methodName));
+        map.put(name.toLowerCase(Locale.ROOT), new Command(name, owner, methodName));
     }
 
     private static synchronized void init() {
@@ -536,15 +537,15 @@ public class CommandTable {
     }
 
     private static void add(String name, Consumer<Editor> run, BiConsumer<Editor, String> runWithArgument) {
-        map.put(name.toLowerCase(), new Command(name, run, runWithArgument));
+        map.put(name.toLowerCase(Locale.ROOT), new Command(name, run, runWithArgument));
     }
 
     public static List<String> getCompletionsForPrefix(String prefix) {
         init();
-        String lower = prefix.toLowerCase();
+        String lower = prefix.toLowerCase(Locale.ROOT);
         ArrayList<String> list = new ArrayList<>();
         for (Command command : map.values()) {
-            if (command.getName().toLowerCase().startsWith(lower))
+            if (command.getName().toLowerCase(Locale.ROOT).startsWith(lower))
                 list.add(command.getName());
         }
         return list;
@@ -552,11 +553,11 @@ public class CommandTable {
 
     public static List<String> apropos(String s) {
         init();
-        String lower = s.toLowerCase();
+        String lower = s.toLowerCase(Locale.ROOT);
         ArrayList<String> list = new ArrayList<>();
         for (Command command : map.values()) {
             String name = command.getName();
-            if (name.toLowerCase().contains(lower))
+            if (name.toLowerCase(Locale.ROOT).contains(lower))
                 list.add(name);
         }
         return list;

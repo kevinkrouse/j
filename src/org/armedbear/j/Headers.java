@@ -20,6 +20,8 @@
 
 package org.armedbear.j;
 
+import java.util.Locale;
+
 public final class Headers {
     // These are indexes into the array of values. We only store values for the
     // headers we're interested in.
@@ -68,7 +70,7 @@ public final class Headers {
     private int getIndex(String name) {
         if (name.length() == 0)
             return -1;
-        name = name.toLowerCase();
+        name = name.toLowerCase(Locale.ROOT);
         switch (name.charAt(0)) {
             case 'c':
                 if (name.equals("cc"))

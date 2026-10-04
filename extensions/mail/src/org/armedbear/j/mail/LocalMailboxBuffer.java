@@ -29,9 +29,8 @@ import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.RandomAccessFile;
 import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.List;
 import java.util.function.Predicate;
 import javax.swing.SwingUtilities;
@@ -167,8 +166,8 @@ public class LocalMailboxBuffer extends MailboxBuffer {
         catch (UnsupportedEncodingException e) {
             Log.error(e);
         }
-        // Use platform's default character encoding.
-        return new String(bytes);
+        // An unknown charset: read it as UTF-8.
+        return new String(bytes, StandardCharsets.UTF_8);
     }
 
     @Override

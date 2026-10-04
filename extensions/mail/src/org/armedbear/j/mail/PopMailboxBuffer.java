@@ -32,6 +32,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.RandomAccessFile;
 import java.nio.charset.StandardCharsets;
+import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -546,7 +547,7 @@ public final class PopMailboxBuffer extends LocalMailboxBuffer {
                     writer.write('\n');
                     break;
                 }
-                if (s.toUpperCase().startsWith("X-UIDL"))
+                if (s.toUpperCase(Locale.ROOT).startsWith("X-UIDL"))
                     continue;
                 writer.write(s);
                 writer.write('\n');
@@ -844,7 +845,7 @@ public final class PopMailboxBuffer extends LocalMailboxBuffer {
     private static final DateTimeFormatter df = DateTimeFormatter.ofPattern("EEE MMM dd HH:mm:ss yyyy", Locale.US);
 
     private final String getDateTimeStamp() {
-        return df.format(ZonedDateTime.now());
+        return df.format(ZonedDateTime.now(ZoneId.systemDefault()));
     }
 
     private File getLocalStore() {
