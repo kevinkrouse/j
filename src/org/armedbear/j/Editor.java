@@ -28,7 +28,6 @@ import java.awt.Dimension;
 import java.awt.GraphicsConfiguration;
 import java.awt.GraphicsDevice;
 import java.awt.GraphicsEnvironment;
-import java.awt.Point;
 import java.awt.Rectangle;
 import java.awt.Toolkit;
 import java.awt.dnd.DropTarget;
@@ -6250,14 +6249,7 @@ public final class Editor extends JPanel implements Constants,
     }
 
     public void centerDialog(JDialog d) {
-        Dimension parent = frame.getSize();
-        Dimension window = d.getSize();
-        Point p = frame.getLocation();
-        p.translate(
-            (parent.width - window.width) / 2,
-            (parent.height - window.height) / 2
-        );
-        d.setLocation(p);
+        d.setLocationRelativeTo(frame);
     }
 
     public boolean confirm(String title, String text) {

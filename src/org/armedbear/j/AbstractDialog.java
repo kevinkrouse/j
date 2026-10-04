@@ -20,10 +20,7 @@
 
 package org.armedbear.j;
 
-import java.awt.Dimension;
-import java.awt.Point;
 import java.awt.SystemColor;
-import java.awt.Toolkit;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
@@ -233,23 +230,8 @@ public abstract class AbstractDialog extends JDialog implements ActionListener,
 
     public void windowDeiconified(WindowEvent e) {}
 
+    // Over the owner, or the screen if there is none.
     protected void centerDialog() {
-        Dimension window = getSize();
-        Point p;
-        if (owner != null) {
-            p = owner.getLocation();
-            Dimension parent = owner.getSize();
-            p.translate(
-                (parent.width - window.width) / 2,
-                (parent.height - window.height) / 2
-            );
-        } else {
-            Dimension parent = Toolkit.getDefaultToolkit().getScreenSize();
-            p = new Point(
-                (parent.width - window.width) / 2,
-                (parent.height - window.height) / 2
-            );
-        }
-        setLocation(p);
+        setLocationRelativeTo(owner);
     }
 }
