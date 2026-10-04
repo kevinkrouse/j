@@ -20,9 +20,10 @@
 
 package org.armedbear.j.mode.verilog;
 
+import static org.armedbear.j.Constants.*;
+
 import java.util.HashSet;
 import org.armedbear.j.Buffer;
-import org.armedbear.j.Constants;
 import org.armedbear.j.Editor;
 import org.armedbear.j.FormatTable;
 import org.armedbear.j.Formatter;
@@ -31,7 +32,7 @@ import org.armedbear.j.LineSegment;
 import org.armedbear.j.LineSegmentList;
 import org.armedbear.j.util.Utilities;
 
-public final class VerilogFormatter extends Formatter implements Constants {
+public final class VerilogFormatter extends Formatter {
     private static final int VERILOG_FORMAT_TEXT = 0;
     private static final int VERILOG_FORMAT_COMMENT = 1;
     private static final int VERILOG_FORMAT_STRING = 2;
@@ -275,12 +276,14 @@ public final class VerilogFormatter extends Formatter implements Constants {
         }
     }
 
+    @Override
     public LineSegmentList formatLine(Line line) {
         clearSegmentList();
         parseLine(line);
         return segmentList;
     }
 
+    @Override
     public boolean parseBuffer() {
         int state = STATE_NEUTRAL;
         Line line = buffer.getFirstLine();
@@ -339,6 +342,7 @@ public final class VerilogFormatter extends Formatter implements Constants {
         return "!&|<>=+/*-".indexOf(c) >= 0;
     }
 
+    @Override
     public FormatTable getFormatTable() {
         if (formatTable == null) {
             formatTable = new FormatTable("VerilogMode");
@@ -367,7 +371,7 @@ public final class VerilogFormatter extends Formatter implements Constants {
         if (compilerDirectiveHashSet == null) {
             String[] array = compilerDirectives;
             int count = array.length;
-            compilerDirectiveHashSet = new HashSet<String>(Math.max(2 * count, 11));
+            compilerDirectiveHashSet = new HashSet<>(Math.max(2 * count, 11));
             for (int i = count - 1; i >= 0; i--)
                 compilerDirectiveHashSet.add(array[i]);
         }

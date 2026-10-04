@@ -20,11 +20,12 @@
 
 package org.armedbear.j.mode.verilog;
 
+import static org.armedbear.j.Constants.*;
+
 import java.awt.event.KeyEvent;
 import java.util.regex.Pattern;
 import org.armedbear.j.AbstractMode;
 import org.armedbear.j.Buffer;
-import org.armedbear.j.Constants;
 import org.armedbear.j.Editor;
 import org.armedbear.j.Formatter;
 import org.armedbear.j.KeyMap;
@@ -36,7 +37,7 @@ import org.armedbear.j.SystemBuffer;
 import org.armedbear.j.Tagger;
 import org.armedbear.j.util.Utilities;
 
-public final class VerilogMode extends AbstractMode implements Constants, Mode {
+public final class VerilogMode extends AbstractMode implements Mode {
     private static final Pattern MODULE = Pattern.compile("^module\\s+([a-zA-Z_][a-zA-Z0-9_$]*)");
     private static final Pattern PRIMITIVE = Pattern.compile("^primitive\\s+([a-zA-Z_][a-zA-Z0-9_$]*)");
 
@@ -61,14 +62,17 @@ public final class VerilogMode extends AbstractMode implements Constants, Mode {
         return m != null ? m : Editor.getModeList().getModeFromModeName(NAME) instanceof VerilogMode x ? x : null;
     }
 
+    @Override
     public String getCommentStart() {
         return "// ";
     }
 
+    @Override
     public Formatter getFormatter(Buffer buffer) {
         return new VerilogFormatter(buffer);
     }
 
+    @Override
     protected void setKeyMapDefaults(KeyMap km) {
         km.mapKey(KeyEvent.VK_TAB, CTRL_MASK, "insertTab");
         km.mapKey(KeyEvent.VK_TAB, 0, "tab");
@@ -78,18 +82,22 @@ public final class VerilogMode extends AbstractMode implements Constants, Mode {
         km.mapKey(KeyEvent.VK_F12, 0, "wrapComment");
     }
 
+    @Override
     public boolean isTaggable() {
         return true;
     }
 
+    @Override
     public Tagger getTagger(SystemBuffer buffer) {
         return new RegexTagger(buffer, MODULE, PRIMITIVE);
     }
 
+    @Override
     public boolean canIndent() {
         return true;
     }
 
+    @Override
     public int getCorrectIndentation(Line line, Buffer buffer) {
         final int indentSize = buffer.getIndentSize();
         final Line model = findModel(line);
@@ -164,10 +172,12 @@ public final class VerilogMode extends AbstractMode implements Constants, Mode {
         }
     }
 
+    @Override
     public boolean isIdentifierStart(char c) {
         return startChars.indexOf(c) >= 0;
     }
 
+    @Override
     public boolean isIdentifierPart(char c) {
         return partChars.indexOf(c) >= 0;
     }
@@ -204,6 +214,7 @@ public final class VerilogMode extends AbstractMode implements Constants, Mode {
         "while"
     };
 
+    @Override
     public String getWrapCommentStart(String trimmed) {
         return Mode.wrapPrefix(trimmed, "// ", "* ");
     }
