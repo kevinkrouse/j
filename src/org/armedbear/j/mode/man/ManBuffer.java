@@ -20,9 +20,10 @@
 
 package org.armedbear.j.mode.man;
 
+import static org.armedbear.j.Constants.*;
+
 import java.io.IOException;
 import java.io.InputStream;
-import java.lang.StringBuilder;
 import java.util.StringTokenizer;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Directories;
@@ -60,6 +61,7 @@ public final class ManBuffer extends Buffer {
         return apropos;
     }
 
+    @Override
     public int load() {
         if (!isLoaded()) {
             try {
@@ -168,6 +170,7 @@ public final class ManBuffer extends Buffer {
         }
     }
 
+    @Override
     public final void appendLine(String s) {
         appendLine(new ManLine(s));
     }
@@ -181,10 +184,12 @@ public final class ManBuffer extends Buffer {
             next.setPrevious(prev);
     }
 
+    @Override
     public final File getCurrentDirectory() {
         return Directories.getUserHomeDirectory();
     }
 
+    @Override
     public final String getFileNameForDisplay() {
         return "";
     }

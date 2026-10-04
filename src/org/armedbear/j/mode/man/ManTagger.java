@@ -38,8 +38,9 @@ public final class ManTagger extends Tagger {
         super(buffer);
     }
 
+    @Override
     public void run() {
-        List<LocalTag> tags = new ArrayList<LocalTag>();
+        List<LocalTag> tags = new ArrayList<>();
         Line line = buffer.getFirstLine();
         int stop = 0;
         while (line != null) {

@@ -20,7 +20,8 @@
 
 package org.armedbear.j.mode.man;
 
-import java.lang.StringBuilder;
+import static org.armedbear.j.Constants.*;
+
 import org.armedbear.j.Buffer;
 import org.armedbear.j.FormatTable;
 import org.armedbear.j.Formatter;
@@ -67,6 +68,7 @@ public class ManFormatter extends Formatter {
         }
     }
 
+    @Override
     public LineSegmentList formatLine(Line line) {
         clearSegmentList();
         if (line == null || line.length() == 0) {
@@ -200,6 +202,7 @@ public class ManFormatter extends Formatter {
         endToken(state);
     }
 
+    @Override
     public FormatTable getFormatTable() {
         if (formatTable == null) {
             formatTable = new FormatTable("ManMode");

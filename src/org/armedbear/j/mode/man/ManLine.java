@@ -21,7 +21,6 @@
 package org.armedbear.j.mode.man;
 
 import java.io.UnsupportedEncodingException;
-import java.lang.StringBuilder;
 import org.armedbear.j.AbstractLine;
 import org.armedbear.j.Line;
 
@@ -35,14 +34,17 @@ public final class ManLine extends AbstractLine implements Line {
         rawText = s;
     }
 
+    @Override
     public final int flags() {
         return flags;
     }
 
+    @Override
     public final void setFlags(int flags) {
         this.flags = flags;
     }
 
+    @Override
     public final String getText() {
         if (text == null) {
             StringBuilder sb = new StringBuilder(256);
@@ -65,32 +67,40 @@ public final class ManLine extends AbstractLine implements Line {
         return rawText;
     }
 
+    @Override
     public final void setText(String s) {}
 
+    @Override
     public final char charAt(int i) {
         return getText().charAt(i);
     }
 
+    @Override
     public final String substring(int beginIndex) {
         return getText().substring(beginIndex);
     }
 
+    @Override
     public final String substring(int beginIndex, int endIndex) {
         return getText().substring(beginIndex, endIndex);
     }
 
+    @Override
     public final String trim() {
         return getText().trim();
     }
 
+    @Override
     public final int length() {
         return getText().length();
     }
 
+    @Override
     public final byte[] getBytes(String encoding) throws UnsupportedEncodingException {
         return getText().getBytes(encoding);
     }
 
+    @Override
     public final boolean isBlank() {
         if (text == null)
             text = getText();

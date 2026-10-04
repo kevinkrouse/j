@@ -18,6 +18,8 @@
 
 package org.armedbear.j.mode.man;
 
+import static org.armedbear.j.Constants.*;
+
 import java.awt.AWTEvent;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseEvent;
@@ -26,7 +28,6 @@ import java.util.ArrayList;
 import javax.swing.JPopupMenu;
 import org.armedbear.j.AbstractMode;
 import org.armedbear.j.Buffer;
-import org.armedbear.j.Constants;
 import org.armedbear.j.Editor;
 import org.armedbear.j.File;
 import org.armedbear.j.Formatter;
@@ -42,7 +43,7 @@ import org.armedbear.j.SystemBuffer;
 import org.armedbear.j.Tagger;
 import org.armedbear.j.util.Utilities;
 
-public final class ManMode extends AbstractMode implements Constants, Mode {
+public final class ManMode extends AbstractMode implements Mode {
     private static final ManMode mode = new ManMode();
 
     private ManMode() {
@@ -57,16 +58,19 @@ public final class ManMode extends AbstractMode implements Constants, Mode {
         return mode;
     }
 
+    @Override
     public JPopupMenu getContextMenu(Editor editor) {
         return null;
     }
 
+    @Override
     public Formatter getFormatter(Buffer buffer) {
         if (buffer.getType() != Buffer.TYPE_MAN)
             return null;
         return new ManFormatter(buffer, ((ManBuffer) buffer).isApropos());
     }
 
+    @Override
     protected void setKeyMapDefaults(KeyMap km) {
         km.mapKey(KeyEvent.VK_ENTER, 0, "manFollowLink");
         km.mapKey(KeyEvent.VK_G, CTRL_MASK | SHIFT_MASK, "manFollowLink");
@@ -74,10 +78,12 @@ public final class ManMode extends AbstractMode implements Constants, Mode {
         km.mapKey(VK_MOUSE_2, 0, "manFollowLink");
     }
 
+    @Override
     public Tagger getTagger(SystemBuffer buffer) {
         return new ManTagger(buffer);
     }
 
+    @Override
     public boolean isTaggable() {
         return true;
     }
@@ -176,7 +182,7 @@ public final class ManMode extends AbstractMode implements Constants, Mode {
                 }
             }
             File tempFile = Utilities.getTempFile();
-            ArrayList<String> cmd = new ArrayList<String>();
+            ArrayList<String> cmd = new ArrayList<>();
             cmd.add("man");
             for (String word : topic.trim().split("\\s+")) {
                 // Topics come from page text: a section and a name, or -k
@@ -221,8 +227,8 @@ public final class ManMode extends AbstractMode implements Constants, Mode {
         // If this method is invoked via a mouse event mapping, move dot to
         // location of mouse click before following link.
         AWTEvent e = editor.getDispatcher().getLastEvent();
-        if (e instanceof MouseEvent)
-            editor.mouseMoveDotToPoint((MouseEvent) e);
+        if (e instanceof MouseEvent mouseEvent)
+            editor.mouseMoveDotToPoint(mouseEvent);
         followLink(editor);
     }
 }
