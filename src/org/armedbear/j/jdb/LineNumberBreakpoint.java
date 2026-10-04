@@ -24,31 +24,28 @@ import com.sun.jdi.Location;
 import com.sun.jdi.ReferenceType;
 import com.sun.jdi.request.EventRequest;
 import com.sun.jdi.request.EventRequestManager;
+import java.lang.StringBuilder;
 import java.util.List;
-
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Debug;
 import org.armedbear.j.Editor;
 import org.armedbear.j.File;
-import java.lang.StringBuilder;
-import org.armedbear.j.mode.java.JavaSource;
 import org.armedbear.j.Line;
 import org.armedbear.j.Log;
+import org.armedbear.j.mode.java.JavaSource;
 import org.armedbear.j.util.Utilities;
 
-public final class LineNumberBreakpoint extends ResolvableBreakpoint
-{
+public final class LineNumberBreakpoint extends ResolvableBreakpoint {
     private Buffer buffer;
     private final int lineNumber;
 
-    public LineNumberBreakpoint(Jdb jdb, Buffer buffer, Line line)
-    {
+    public LineNumberBreakpoint(Jdb jdb, Buffer buffer, Line line) {
         super(jdb);
         this.buffer = buffer;
         this.line = line;
         file = buffer.getFile();
         final String fileName = file.getName();
-        String name = fileName.substring(0, fileName.length()-5);
+        String name = fileName.substring(0, fileName.length() - 5);
         String packageName = JavaSource.getPackageName(buffer);
         if (packageName != null)
             className = packageName.concat(".").concat(name);
@@ -59,23 +56,24 @@ public final class LineNumberBreakpoint extends ResolvableBreakpoint
         lineNumber = line.lineNumber() + 1;
     }
 
-    public LineNumberBreakpoint(Jdb jdb, String className, File file,
-        int lineNumber)
-    {
+    public LineNumberBreakpoint(
+        Jdb jdb,
+        String className,
+        File file,
+        int lineNumber
+    ) {
         super(jdb);
         this.className = className;
         this.file = file;
         this.lineNumber = lineNumber;
     }
 
-    public int getLineNumber()
-    {
+    public int getLineNumber() {
         return lineNumber;
     }
 
     public EventRequest resolveEventRequest(ReferenceType refType)
-        throws Exception
-    {
+        throws Exception {
         Log.debug("LineNumberBreakpoint.resolveEventRequest");
         Location location = findLocation(refType, lineNumber);
         if (location == null) {
@@ -91,8 +89,7 @@ public final class LineNumberBreakpoint extends ResolvableBreakpoint
     }
 
     private Location findLocation(ReferenceType refType, int lineNumber)
-        throws Exception
-    {
+        throws Exception {
         Location location = null;
         List<Location> locations = refType.locationsOfLine(lineNumber);
         if (locations.size() > 0) {
@@ -103,8 +100,7 @@ public final class LineNumberBreakpoint extends ResolvableBreakpoint
         return null;
     }
 
-    public void resolved()
-    {
+    public void resolved() {
         if (line != null) {
             line.setAnnotation(new BreakpointAnnotation(this));
         } else {
@@ -128,8 +124,7 @@ public final class LineNumberBreakpoint extends ResolvableBreakpoint
         jdb.log("Breakpoint resolved: " + getLocationString());
     }
 
-    public String getLocationString()
-    {
+    public String getLocationString() {
         StringBuilder sb = new StringBuilder();
         if (file != null) {
             sb.append(file.getName());
@@ -141,8 +136,7 @@ public final class LineNumberBreakpoint extends ResolvableBreakpoint
         return sb.toString();
     }
 
-    public String toString()
-    {
+    public String toString() {
         StringBuilder sb = new StringBuilder();
         if (file != null) {
             sb.append(file.getName());
@@ -156,8 +150,7 @@ public final class LineNumberBreakpoint extends ResolvableBreakpoint
         return sb.toString();
     }
 
-    public String toXml()
-    {
+    public String toXml() {
         int indent = 4;
         final String separator = System.getProperty("line.separator");
         StringBuilder sb = new StringBuilder(Utilities.spaces(indent));
@@ -166,21 +159,21 @@ public final class LineNumberBreakpoint extends ResolvableBreakpoint
         if (className == null)
             Debug.bug();
         if (className != null) {
-            sb.append(Utilities.spaces(indent+2));
+            sb.append(Utilities.spaces(indent + 2));
             sb.append("className=\"");
             sb.append(className);
             sb.append('"');
             sb.append(separator);
         }
-        if (file!= null) {
-            sb.append(Utilities.spaces(indent+2));
+        if (file != null) {
+            sb.append(Utilities.spaces(indent + 2));
             sb.append("fileName=\"");
             sb.append(file.canonicalPath());
             sb.append('"');
             sb.append(separator);
         }
         if (lineNumber > 0) {
-            sb.append(Utilities.spaces(indent+2));
+            sb.append(Utilities.spaces(indent + 2));
             sb.append("lineNumber=\"");
             sb.append(String.valueOf(lineNumber));
             sb.append('"');

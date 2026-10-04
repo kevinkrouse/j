@@ -26,35 +26,30 @@ import com.sun.jdi.Method;
 import com.sun.jdi.ReferenceType;
 import com.sun.jdi.request.EventRequest;
 import com.sun.jdi.request.EventRequestManager;
-
+import java.lang.StringBuilder;
 import java.util.List;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Editor;
-import java.lang.StringBuilder;
-import org.armedbear.j.mode.java.JavaSource;
 import org.armedbear.j.Line;
 import org.armedbear.j.LocalTag;
 import org.armedbear.j.Log;
+import org.armedbear.j.mode.java.JavaSource;
 import org.armedbear.j.util.Utilities;
 
-public final class MethodBreakpoint extends ResolvableBreakpoint
-{
+public final class MethodBreakpoint extends ResolvableBreakpoint {
     private final String methodName;
 
-    public MethodBreakpoint(Jdb jdb, String className, String methodName)
-    {
+    public MethodBreakpoint(Jdb jdb, String className, String methodName) {
         super(jdb);
         this.className = className;
         this.methodName = methodName;
     }
 
-    public String getMethodName()
-    {
+    public String getMethodName() {
         return methodName;
     }
 
-    public EventRequest resolveEventRequest(ReferenceType refType) throws Exception
-    {
+    public EventRequest resolveEventRequest(ReferenceType refType) throws Exception {
         Method method = findMatchingMethod(refType);
         if (method == null)
             throw new InvalidTypeException();
@@ -71,8 +66,7 @@ public final class MethodBreakpoint extends ResolvableBreakpoint
     }
 
     // BUG! Overloads are not handled correctly.
-    private Method findMatchingMethod(ReferenceType refType)
-    {
+    private Method findMatchingMethod(ReferenceType refType) {
         for (Method method : refType.methods()) {
             if (method.name().equals(methodName))
                 return method;
@@ -80,8 +74,7 @@ public final class MethodBreakpoint extends ResolvableBreakpoint
         return null;
     }
 
-    private void setBreakpointInSource(ReferenceType refType, Method method)
-    {
+    private void setBreakpointInSource(ReferenceType refType, Method method) {
         file = JavaSource.findSource(refType.name(), jdb.getSourcePath());
         if (file == null) {
             Log.debug("setBreakpointInSource findSource returned null");
@@ -101,7 +94,7 @@ public final class MethodBreakpoint extends ResolvableBreakpoint
         // Remove package prefix.
         int index = lookFor.lastIndexOf('.');
         if (index >= 0)
-            lookFor = lookFor.substring(index+1);
+            lookFor = lookFor.substring(index + 1);
         lookFor += '.';
         lookFor += method.name();
         Log.debug("lookFor = |" + lookFor + "|");
@@ -136,8 +129,7 @@ public final class MethodBreakpoint extends ResolvableBreakpoint
         }
     }
 
-    public void resolved()
-    {
+    public void resolved() {
         if (file != null) {
             Buffer buffer = Editor.getBufferList().findBuffer(file);
             if (buffer != null)
@@ -148,8 +140,7 @@ public final class MethodBreakpoint extends ResolvableBreakpoint
         jdb.log("Breakpoint resolved: " + getLocationString());
     }
 
-    public String getLocationString()
-    {
+    public String getLocationString() {
         StringBuilder sb = new StringBuilder();
         if (className != null) {
             sb.append(className);
@@ -161,8 +152,7 @@ public final class MethodBreakpoint extends ResolvableBreakpoint
         return sb.toString();
     }
 
-    public String toString()
-    {
+    public String toString() {
         StringBuilder sb = new StringBuilder();
         if (className != null) {
             sb.append(className);
@@ -176,22 +166,21 @@ public final class MethodBreakpoint extends ResolvableBreakpoint
         return sb.toString();
     }
 
-    public String toXml()
-    {
+    public String toXml() {
         int indent = 4;
         final String separator = System.getProperty("line.separator");
         StringBuilder sb = new StringBuilder(Utilities.spaces(indent));
         sb.append("<breakpoint");
         sb.append(separator);
         if (className != null) {
-            sb.append(Utilities.spaces(indent+2));
+            sb.append(Utilities.spaces(indent + 2));
             sb.append("className=\"");
             sb.append(className);
             sb.append('"');
             sb.append(separator);
         }
         if (methodName != null) {
-            sb.append(Utilities.spaces(indent+2));
+            sb.append(Utilities.spaces(indent + 2));
             sb.append("methodName=\"");
             sb.append(methodName);
             sb.append('"');

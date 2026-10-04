@@ -36,16 +36,15 @@ import org.armedbear.j.HistoryTextField;
 import org.armedbear.j.MessageDialog;
 import org.armedbear.j.util.Utilities;
 
-public final class JdbDialog extends AbstractDialog
-{
+public final class JdbDialog extends AbstractDialog {
     // History.
-    private static final String mainClassKey      = "jdb.mainClass";
-    private static final String mainClassArgsKey  = "jdb.mainClassArgs";
-    private static final String classPathKey      = "jdb.classPath";
-    private static final String sourcePathKey     = "jdb.sourcePath";
-    private static final String javaHomeKey       = "jdb.javaHome";
+    private static final String mainClassKey = "jdb.mainClass";
+    private static final String mainClassArgsKey = "jdb.mainClassArgs";
+    private static final String classPathKey = "jdb.classPath";
+    private static final String sourcePathKey = "jdb.sourcePath";
+    private static final String javaHomeKey = "jdb.javaHome";
     private static final String javaExecutableKey = "jdb.javaExecutable";
-    private static final String vmArgsKey         = "jdb.vmArgs";
+    private static final String vmArgsKey = "jdb.vmArgs";
 
     private final Editor editor;
     private final HistoryTextField classPathTextField;
@@ -65,8 +64,7 @@ public final class JdbDialog extends AbstractDialog
     private final JCheckBox startSuspendedCheckBox;
     private final JdbSession session;
 
-    public JdbDialog(Editor editor)
-    {
+    public JdbDialog(Editor editor) {
         super(editor, "Jdb", true);
         this.editor = editor;
         JLabel label;
@@ -86,7 +84,7 @@ public final class JdbDialog extends AbstractDialog
         label.setDisplayedMnemonic('A');
         addLabelAndTextField(applicationPanel, label, mainClassArgsTextField);
         mainPanel.add(applicationPanel);
-        JPanel debuggeeVMPanel= Utilities.createPanel("Debuggee VM");
+        JPanel debuggeeVMPanel = Utilities.createPanel("Debuggee VM");
         classPathTextField = new HistoryTextField(30);
         classPathHistory = new History(classPathKey);
         classPathTextField.setHistory(classPathHistory);
@@ -142,9 +140,11 @@ public final class JdbDialog extends AbstractDialog
         mainClassTextField.requestFocus();
     }
 
-    private void addLabelAndTextField(JPanel panel, JLabel label,
-        JTextField textField)
-    {
+    private void addLabelAndTextField(
+        JPanel panel,
+        JLabel label,
+        JTextField textField
+    ) {
         label.setLabelFor(textField);
         if (label.getBorder() == null)
             label.setBorder(new EmptyBorder(0, 0, 3, 0));
@@ -153,13 +153,11 @@ public final class JdbDialog extends AbstractDialog
         textField.addKeyListener(this);
     }
 
-    private void addVerticalStrut(JPanel panel)
-    {
+    private void addVerticalStrut(JPanel panel) {
         panel.add(Box.createVerticalStrut(6));
     }
 
-    private void setDialogDefaults(JdbSession session)
-    {
+    private void setDialogDefaults(JdbSession session) {
         mainClassTextField.setText(session.getMainClass());
         mainClassArgsTextField.setText(session.getMainClassArgs());
         String classPath = session.getClassPath();
@@ -179,13 +177,11 @@ public final class JdbDialog extends AbstractDialog
         sourcePathTextField.setText(session.getSourcePath());
     }
 
-    public JdbSession getSession()
-    {
+    public JdbSession getSession() {
         return session;
     }
 
-    protected void ok()
-    {
+    protected void ok() {
         String mainClass = mainClassTextField.getText();
         if (mainClass == null || mainClass.length() < 1) {
             mainClassTextField.requestFocus();
@@ -202,19 +198,21 @@ public final class JdbDialog extends AbstractDialog
         for (Iterator<String> it = list.iterator(); it.hasNext();) {
             String s = it.next();
             File file = File.getInstance(s);
-            if (file == null){
+            if (file == null) {
                 classPathTextField.requestFocus();
                 MessageDialog.showMessageDialog(
                     "Invalid class path component \"" + s + '"',
-                    "Error");
+                    "Error"
+                );
                 return;
             }
             // File might be directory or jar file.
-            if (!file.exists()){
+            if (!file.exists()) {
                 classPathTextField.requestFocus();
                 MessageDialog.showMessageDialog(
                     "Class path component \"" + s + "\" does not exist",
-                    "Error");
+                    "Error"
+                );
                 return;
             }
         }
@@ -234,18 +232,20 @@ public final class JdbDialog extends AbstractDialog
         for (Iterator<String> it = list.iterator(); it.hasNext();) {
             String s = it.next();
             File file = File.getInstance(s);
-            if (file == null){
+            if (file == null) {
                 sourcePathTextField.requestFocus();
                 MessageDialog.showMessageDialog(
                     "Invalid source path component \"" + s + '"',
-                    "Error");
+                    "Error"
+                );
                 return;
             }
-            if (!file.isDirectory()){
+            if (!file.isDirectory()) {
                 sourcePathTextField.requestFocus();
                 MessageDialog.showMessageDialog(
                     "Source path component \"" + s + "\" does not exist",
-                    "Error");
+                    "Error"
+                );
                 return;
             }
         }

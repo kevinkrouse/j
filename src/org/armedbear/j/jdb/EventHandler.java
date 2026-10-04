@@ -45,33 +45,29 @@ import com.sun.jdi.event.VMStartEvent;
 import com.sun.jdi.event.WatchpointEvent;
 import com.sun.jdi.request.BreakpointRequest;
 import com.sun.jdi.request.EventRequest;
-
+import java.lang.StringBuilder;
 import java.util.Iterator;
 import java.util.List;
 import javax.swing.SwingUtilities;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Editor;
-import java.lang.StringBuilder;
 import org.armedbear.j.File;
 import org.armedbear.j.Log;
 import org.armedbear.j.Platform;
 
-public final class EventHandler implements Runnable
-{
+public final class EventHandler implements Runnable {
     private final Jdb jdb;
     private final Thread eventHandlerThread;
     private boolean connected = true;
     private boolean completed;
 
-    public EventHandler(Jdb jdb)
-    {
+    public EventHandler(Jdb jdb) {
         this.jdb = jdb;
         eventHandlerThread = new Thread(this, "jdb event handler");
         eventHandlerThread.start();
     }
 
-    public void run()
-    {
+    public void run() {
         EventQueue queue = jdb.getVM().eventQueue();
         while (connected) {
             try {
@@ -129,25 +125,23 @@ public final class EventHandler implements Runnable
         jdb.setVM(null);
     }
 
-    private static ThreadReference getThreadForEvent(Event event)
-    {
+    private static ThreadReference getThreadForEvent(Event event) {
         if (event instanceof ClassPrepareEvent)
-            return ((ClassPrepareEvent)event).thread();
+            return ((ClassPrepareEvent) event).thread();
         else if (event instanceof LocatableEvent)
-            return ((LocatableEvent)event).thread();
+            return ((LocatableEvent) event).thread();
         else if (event instanceof ThreadStartEvent)
-            return ((ThreadStartEvent)event).thread();
+            return ((ThreadStartEvent) event).thread();
         else if (event instanceof ThreadDeathEvent)
-            return ((ThreadDeathEvent)event).thread();
+            return ((ThreadDeathEvent) event).thread();
         else if (event instanceof VMStartEvent)
-            return ((VMStartEvent)event).thread();
+            return ((VMStartEvent) event).thread();
         else
             return null;
     }
 
     // Return true to resume.
-    private boolean handleEvent(Event event)
-    {
+    private boolean handleEvent(Event event) {
         if (event instanceof ExceptionEvent)
             return handleExceptionEvent(event);
         else if (event instanceof BreakpointEvent)
@@ -178,8 +172,7 @@ public final class EventHandler implements Runnable
         return false;
     }
 
-    private boolean handleExceptionEvent(Event event)
-    {
+    private boolean handleExceptionEvent(Event event) {
         ExceptionEvent ee = (ExceptionEvent) event;
         if (ee.catchLocation() != null)
             jdb.log("Exception encountered: " + ee.exception());
@@ -192,8 +185,7 @@ public final class EventHandler implements Runnable
         return false;
     }
 
-    private boolean handleBreakpointEvent(Event event)
-    {
+    private boolean handleBreakpointEvent(Event event) {
         jdb.log("Breakpoint hit");
         BreakpointEvent evt = (BreakpointEvent) event;
         jdb.printCurrentLocation(evt);
@@ -225,14 +217,12 @@ public final class EventHandler implements Runnable
         return false;
     }
 
-    private boolean handleFieldWatchEvent(Event event)
-    {
+    private boolean handleFieldWatchEvent(Event event) {
         jdb.log("handleFieldWatchEvent");
         return true;
     }
 
-    private boolean handleStepEvent(Event event)
-    {
+    private boolean handleStepEvent(Event event) {
         StepEvent evt = (StepEvent) event;
         jdb.printCurrentLocation(evt);
         jdb.setLocation(evt.location());
@@ -241,8 +231,7 @@ public final class EventHandler implements Runnable
         return false;
     }
 
-    private boolean handleMethodEntryEvent(Event event)
-    {
+    private boolean handleMethodEntryEvent(Event event) {
         MethodEntryEvent evt = (MethodEntryEvent) event;
         Method method = evt.method();
         StringBuilder sb = new StringBuilder("Method entered: ");
@@ -253,8 +242,7 @@ public final class EventHandler implements Runnable
         return true;
     }
 
-    private boolean handleMethodExitEvent(Event event)
-    {
+    private boolean handleMethodExitEvent(Event event) {
         MethodExitEvent evt = (MethodExitEvent) event;
         Method method = evt.method();
         StringBuilder sb = new StringBuilder("Method exited: ");
@@ -265,39 +253,34 @@ public final class EventHandler implements Runnable
         return true;
     }
 
-    private boolean handleClassPrepareEvent(Event event)
-    {
+    private boolean handleClassPrepareEvent(Event event) {
         ClassPrepareEvent evt = (ClassPrepareEvent) event;
         jdb.log("Class loaded: ".concat(evt.referenceType().name()));
         jdb.resolveDeferredRequests(evt);
         return true;
     }
 
-    private boolean handleClassUnloadEvent(Event event)
-    {
+    private boolean handleClassUnloadEvent(Event event) {
         ClassUnloadEvent evt = (ClassUnloadEvent) event;
         jdb.log("Class unloaded: ".concat(evt.className()));
         return true;
     }
 
-    private boolean handleThreadStartEvent(Event event)
-    {
+    private boolean handleThreadStartEvent(Event event) {
         ThreadStartEvent evt = (ThreadStartEvent) event;
         ThreadReference threadRef = evt.thread();
         jdb.log("Thread started: ".concat(threadRef.name()));
         return true;
     }
 
-    private boolean handleThreadDeathEvent(Event event)
-    {
+    private boolean handleThreadDeathEvent(Event event) {
         ThreadDeathEvent evt = (ThreadDeathEvent) event;
         ThreadReference threadRef = evt.thread();
         jdb.log("Thread exited: ".concat(threadRef.name()));
         return true;
     }
 
-    private boolean handleVMStartEvent(Event event)
-    {
+    private boolean handleVMStartEvent(Event event) {
         jdb.log("VM loaded");
         if (jdb.isSuspended()) {
             jdb.log("VM suspended");
@@ -306,14 +289,12 @@ public final class EventHandler implements Runnable
         return true;
     }
 
-    private boolean handleVMDeathEvent(Event event)
-    {
+    private boolean handleVMDeathEvent(Event event) {
         jdb.log("VM exited");
         return true;
     }
 
-    private boolean handleVMDisconnectEvent(Event event)
-    {
+    private boolean handleVMDisconnectEvent(Event event) {
         jdb.log("VM disconnected");
         return true;
     }

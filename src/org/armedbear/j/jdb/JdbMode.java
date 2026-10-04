@@ -21,39 +21,34 @@
 package org.armedbear.j.jdb;
 
 import org.armedbear.j.AbstractMode;
-import org.armedbear.j.Mode;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Constants;
 import org.armedbear.j.Formatter;
 import org.armedbear.j.Frame;
-import org.armedbear.j.mode.java.JavaMode;
+import org.armedbear.j.Mode;
 import org.armedbear.j.Property;
 import org.armedbear.j.ToolBar;
+import org.armedbear.j.mode.java.JavaMode;
 
-public final class JdbMode extends AbstractMode implements Constants, Mode
-{
+public final class JdbMode extends AbstractMode implements Constants, Mode {
     private static final JdbMode mode = new JdbMode();
 
-    private JdbMode()
-    {
+    private JdbMode() {
         super(JDB_MODE, JDB_MODE_NAME);
         setProperty(Property.VERTICAL_RULE, 0);
         setProperty(Property.SHOW_LINE_NUMBERS, false);
         setProperty(Property.SHOW_CHANGE_MARKS, false);
     }
 
-    public static final JdbMode getMode()
-    {
+    public static final JdbMode getMode() {
         return mode;
     }
 
-    public ToolBar getToolBar(Frame frame)
-    {
+    public ToolBar getToolBar(Frame frame) {
         return JavaMode.getMode().getToolBar(frame);
     }
 
-    public Formatter getFormatter(Buffer buffer)
-    {
+    public Formatter getFormatter(Buffer buffer) {
         return new JdbFormatter(buffer);
     }
 }

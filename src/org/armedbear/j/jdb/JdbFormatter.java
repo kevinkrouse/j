@@ -26,25 +26,22 @@ import org.armedbear.j.Formatter;
 import org.armedbear.j.Line;
 import org.armedbear.j.LineSegmentList;
 
-public final class JdbFormatter extends Formatter
-{
+public final class JdbFormatter extends Formatter {
     private static final String prompt = Jdb.getPrompt();
     private static final int promptLength = prompt.length();
 
     // Formats.
-    public static final byte JDB_FORMAT_TEXT   = 0;
+    public static final byte JDB_FORMAT_TEXT = 0;
     public static final byte JDB_FORMAT_PROMPT = 1;
-    public static final byte JDB_FORMAT_INPUT  = 2;
+    public static final byte JDB_FORMAT_INPUT = 2;
     public static final byte JDB_FORMAT_OUTPUT = 3;
-    public static final byte JDB_FORMAT_LOG    = 4;
+    public static final byte JDB_FORMAT_LOG = 4;
 
-    public JdbFormatter(Buffer buffer)
-    {
+    public JdbFormatter(Buffer buffer) {
         this.buffer = buffer;
     }
 
-    public LineSegmentList formatLine(Line line)
-    {
+    public LineSegmentList formatLine(Line line) {
         clearSegmentList();
         if (line == null) {
             addSegment("", JDB_FORMAT_TEXT);
@@ -63,8 +60,7 @@ public final class JdbFormatter extends Formatter
         return segmentList;
     }
 
-    public FormatTable getFormatTable()
-    {
+    public FormatTable getFormatTable() {
         if (formatTable == null) {
             formatTable = new FormatTable("JdbMode");
             formatTable.addEntryFromPrefs(JDB_FORMAT_TEXT, "text");

@@ -30,8 +30,7 @@ import org.armedbear.j.File;
 import org.armedbear.j.Line;
 import org.armedbear.j.Log;
 
-public abstract class ResolvableBreakpoint
-{
+public abstract class ResolvableBreakpoint {
     protected final Jdb jdb;
 
     protected String className;
@@ -41,43 +40,35 @@ public abstract class ResolvableBreakpoint
 
     private boolean temporary;
 
-    protected ResolvableBreakpoint(Jdb jdb)
-    {
+    protected ResolvableBreakpoint(Jdb jdb) {
         this.jdb = jdb;
     }
 
-    public final String getClassName()
-    {
+    public final String getClassName() {
         return className;
     }
 
-    public final File getFile()
-    {
+    public final File getFile() {
         return file;
     }
 
-    public final Line getLine()
-    {
+    public final Line getLine() {
         return line;
     }
 
-    public final EventRequest getEventRequest()
-    {
+    public final EventRequest getEventRequest() {
         return eventRequest;
     }
 
-    public boolean isTemporary()
-    {
+    public boolean isTemporary() {
         return temporary;
     }
 
-    public void setTemporary()
-    {
+    public void setTemporary() {
         temporary = true;
     }
 
-    public final void clear()
-    {
+    public final void clear() {
         if (eventRequest != null) {
             eventRequest.disable();
             VirtualMachine vm = eventRequest.virtualMachine();
@@ -88,18 +79,16 @@ public abstract class ResolvableBreakpoint
         if (line != null) {
             Annotation annotation = line.getAnnotation();
             if (annotation instanceof BreakpointAnnotation)
-                if (((BreakpointAnnotation)annotation).getBreakpoint() == this)
+                if (((BreakpointAnnotation) annotation).getBreakpoint() == this)
                     line.setAnnotation(null);
         }
     }
 
-    public final boolean isResolved()
-    {
+    public final boolean isResolved() {
         return eventRequest != null;
     }
 
-    public EventRequest resolveAgainstPreparedClasses() throws Exception
-    {
+    public EventRequest resolveAgainstPreparedClasses() throws Exception {
         Log.debug("resolveAgainstPreparedClasses className = |" + className + "|");
         Iterator<ReferenceType> iter = jdb.getVM().allClasses().iterator();
         while (eventRequest == null && iter.hasNext()) {

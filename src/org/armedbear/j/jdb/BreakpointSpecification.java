@@ -24,15 +24,13 @@ import java.lang.StringBuilder;
 import org.armedbear.j.Log;
 import org.xml.sax.Attributes;
 
-public final class BreakpointSpecification
-{
+public final class BreakpointSpecification {
     private final String className;
     private final String methodName;
     private final String fileName;
     private final int lineNumber;
 
-    public BreakpointSpecification(Attributes attributes)
-    {
+    public BreakpointSpecification(Attributes attributes) {
         className = attributes.getValue("className");
         methodName = attributes.getValue("methodName");
         fileName = attributes.getValue("fileName");
@@ -49,29 +47,24 @@ public final class BreakpointSpecification
         lineNumber = n;
     }
 
-    public String getClassName()
-    {
+    public String getClassName() {
         return className;
     }
 
-    public String getMethodName()
-    {
+    public String getMethodName() {
         return methodName;
     }
 
-    public String getFileName()
-    {
+    public String getFileName() {
         return fileName;
     }
 
-    public int getLineNumber()
-    {
+    public int getLineNumber() {
         return lineNumber;
     }
 
     // Only used to generate meaningful trace output.
-    public String toString()
-    {
+    public String toString() {
         final String separator = System.getProperty("line.separator");
         StringBuilder sb = new StringBuilder("BreakpointSpecification: ");
         sb.append(separator);
