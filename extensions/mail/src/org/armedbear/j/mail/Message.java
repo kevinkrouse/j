@@ -35,10 +35,12 @@ public final class Message extends MimePart {
         super(raw, headers);
     }
 
+    @Override
     public List<MimePart> getParts() {
         return messageParts;
     }
 
+    @Override
     public MimePart getPart(int i) {
         if (messageParts == null)
             return null;
@@ -49,12 +51,13 @@ public final class Message extends MimePart {
         return messageParts.get(i);
     }
 
+    @Override
     public void parse() {
         super.parse();
         List<? extends MimePart> parts = super.getParts();
         if (parts == null || parts.size() == 0)
             return;
-        List<MimePart> v = new ArrayList<MimePart>();
+        List<MimePart> v = new ArrayList<>();
         addParts(v);
         messageParts = v;
     }

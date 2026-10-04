@@ -20,6 +20,8 @@
 
 package org.armedbear.j.mail;
 
+import static org.armedbear.j.Constants.*;
+
 import java.awt.Image;
 import java.awt.Rectangle;
 import java.io.BufferedReader;
@@ -27,7 +29,6 @@ import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.StringReader;
-import java.lang.StringBuilder;
 import java.util.List;
 import javax.swing.SwingUtilities;
 import org.armedbear.j.BackgroundProcess;
@@ -131,6 +132,7 @@ public final class NewsGroupMessageBuffer extends MessageBuffer {
     private final BackgroundProcess loadProcess = new BackgroundProcess() {
         private ProgressNotifier progressNotifier;
 
+        @Override
         public void run() {
             setBackgroundProcess(this);
             progressNotifier =
@@ -142,6 +144,7 @@ public final class NewsGroupMessageBuffer extends MessageBuffer {
             setBackgroundProcess(null);
         }
 
+        @Override
         public void cancel() {
             cancelled = true;
             progressNotifier.cancel();
@@ -151,6 +154,7 @@ public final class NewsGroupMessageBuffer extends MessageBuffer {
         }
     };
 
+    @Override
     protected void loadMessage(ProgressNotifier progressNotifier) {
         final String rawText =
             summary.getArticle(
@@ -424,6 +428,7 @@ public final class NewsGroupMessageBuffer extends MessageBuffer {
         }
     }
 
+    @Override
     public void toggleHeaders() {
         showFullHeaders = !showFullHeaders;
         empty();
@@ -439,6 +444,7 @@ public final class NewsGroupMessageBuffer extends MessageBuffer {
         }
     }
 
+    @Override
     public void toggleRaw() {
         showRawText = !showRawText;
         empty();
@@ -455,6 +461,7 @@ public final class NewsGroupMessageBuffer extends MessageBuffer {
         Editor.currentEditor().status("Raw mode ".concat((showRawText ? "on" : "off")));
     }
 
+    @Override
     protected void setText() {
         empty();
         if (showRawText) {

@@ -56,6 +56,7 @@ public final class MessageFormatter extends Formatter {
         diffFormatter = new DiffFormatter(buffer);
     }
 
+    @Override
     public synchronized LineSegmentList formatLine(Line line) {
         if (line.flags() == MESSAGE_FORMAT_DIFF)
             return diffFormatter.formatLine(line);
@@ -110,6 +111,7 @@ public final class MessageFormatter extends Formatter {
         return segmentList;
     }
 
+    @Override
     public synchronized boolean parseBuffer() {
         startOfBody = null;
         boolean inDiff = false;
@@ -251,6 +253,7 @@ public final class MessageFormatter extends Formatter {
         return false;
     }
 
+    @Override
     public FormatTable getFormatTable() {
         if (formatTable == null) {
             formatTable = diffFormatter.getFormatTable();
@@ -265,6 +268,7 @@ public final class MessageFormatter extends Formatter {
         return formatTable;
     }
 
+    @Override
     public void reset() {
         diffFormatter.reset();
         super.reset();

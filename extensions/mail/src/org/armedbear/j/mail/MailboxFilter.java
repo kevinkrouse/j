@@ -42,7 +42,7 @@ public abstract class MailboxFilter {
     }
 
     private static MailboxFilter parse(FastStringReader reader) throws Exception {
-        Deque<MailboxFilter> stack = new ArrayDeque<MailboxFilter>();
+        Deque<MailboxFilter> stack = new ArrayDeque<>();
         while (parseNextTerm(reader, stack))
             ;
         Debug.assertTrue(stack.size() == 1);
@@ -60,8 +60,8 @@ public abstract class MailboxFilter {
                 if (filter != null) {
                     if (stack.size() > 0) {
                         MailboxFilter existing = stack.pop();
-                        if (existing instanceof AndTerm) {
-                            ((AndTerm) existing).add(filter);
+                        if (existing instanceof AndTerm andTerm) {
+                            andTerm.add(filter);
                             stack.push(existing);
                         } else
                             stack.push(new AndTerm(existing, filter));
@@ -75,8 +75,8 @@ public abstract class MailboxFilter {
                 if (filter != null) {
                     if (stack.size() > 0) {
                         MailboxFilter existing = stack.pop();
-                        if (existing instanceof AndTerm) {
-                            ((AndTerm) existing).add(filter);
+                        if (existing instanceof AndTerm andTerm) {
+                            andTerm.add(filter);
                             stack.push(existing);
                         } else
                             stack.push(new AndTerm(existing, filter));
@@ -96,8 +96,8 @@ public abstract class MailboxFilter {
                 if (filter != null) {
                     if (stack.size() > 0) {
                         MailboxFilter existing = stack.pop();
-                        if (existing instanceof OrTerm) {
-                            ((OrTerm) existing).add(filter);
+                        if (existing instanceof OrTerm orTerm) {
+                            orTerm.add(filter);
                             stack.push(existing);
                         } else
                             stack.push(new OrTerm(existing, filter));

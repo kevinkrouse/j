@@ -20,6 +20,8 @@
 
 package org.armedbear.j.mail;
 
+import static org.armedbear.j.Constants.*;
+
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.FileNotFoundException;
@@ -29,7 +31,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.RandomAccessFile;
-import java.lang.StringBuilder;
 import java.nio.charset.StandardCharsets;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
@@ -54,6 +55,7 @@ import org.armedbear.j.util.Background;
 import org.armedbear.j.util.Utilities;
 
 public final class PopMailboxBuffer extends LocalMailboxBuffer {
+    @Override
     public String getAliasValue() {
         return getUrl().toString();
     }
@@ -74,6 +76,7 @@ public final class PopMailboxBuffer extends LocalMailboxBuffer {
         setInitialized(true);
     }
 
+    @Override
     public String getFileNameForDisplay() {
         StringBuilder sb = new StringBuilder(64);
         sb.append(url.toString());
@@ -85,10 +88,12 @@ public final class PopMailboxBuffer extends LocalMailboxBuffer {
         return sb.toString();
     }
 
+    @Override
     public final String getName() {
         return url.toString();
     }
 
+    @Override
     public synchronized int load() {
         if (isLoaded())
             return LOAD_COMPLETED;
@@ -105,6 +110,7 @@ public final class PopMailboxBuffer extends LocalMailboxBuffer {
     }
 
     private BackgroundProcess loadProcess = new BackgroundProcess() {
+        @Override
         public void run() {
             // Mailbox is already locked at this point.
             boolean abort = false;
@@ -166,6 +172,7 @@ public final class PopMailboxBuffer extends LocalMailboxBuffer {
             }
         }
 
+        @Override
         public void cancel() {
             Log.debug("loadProcess.cancel");
             cancelled = true;
@@ -177,6 +184,7 @@ public final class PopMailboxBuffer extends LocalMailboxBuffer {
         }
     };
 
+    @Override
     public void getNewMessages() {
         if (session.getPassword() == null) {
             String password =
@@ -195,6 +203,7 @@ public final class PopMailboxBuffer extends LocalMailboxBuffer {
             Editor.currentEditor().status("Mailbox is locked");
     }
 
+    @Override
     public void getNewMessages(boolean userInitiated) {
         Debug.assertTrue(isLocked());
         // This method can get called in the background so we can't put up a
@@ -219,6 +228,7 @@ public final class PopMailboxBuffer extends LocalMailboxBuffer {
             this.userInitiated = userInitiated;
         }
 
+        @Override
         public void run() {
             try {
                 boolean changed = false;
@@ -256,6 +266,7 @@ public final class PopMailboxBuffer extends LocalMailboxBuffer {
             }
         }
 
+        @Override
         public void cancel() {
             Log.debug("GetNewMessagesProcess.cancel");
             cancelled = true;
@@ -413,7 +424,7 @@ public final class PopMailboxBuffer extends LocalMailboxBuffer {
             Log.error(response);
             return null;
         }
-        List<MessageListEntry> list = new ArrayList<MessageListEntry>(count);
+        List<MessageListEntry> list = new ArrayList<>(count);
         while (true) {
             String s = session.readLine();
             if (s == null)
@@ -438,14 +449,14 @@ public final class PopMailboxBuffer extends LocalMailboxBuffer {
         HashSet<String> hashSet = null;
         if (entries != null) {
             int size = entries.size();
-            hashSet = new HashSet<String>(size);
+            hashSet = new HashSet<>(size);
             for (int i = 0; i < size; i++) {
                 LocalMailboxEntry mailboxEntry =
                     (LocalMailboxEntry) entries.get(i);
                 hashSet.add(mailboxEntry.getUidl());
             }
         }
-        List<MessageListEntry> toBeReturned = new ArrayList<MessageListEntry>();
+        List<MessageListEntry> toBeReturned = new ArrayList<>();
         int size = serverMessageList.size();
         for (MessageListEntry messageListEntry : serverMessageList) {
             String uidl = messageListEntry.uidl;
@@ -598,6 +609,7 @@ public final class PopMailboxBuffer extends LocalMailboxBuffer {
         return true;
     }
 
+    @Override
     public void expunge() {
         if (lock()) {
             setBusy(true);
@@ -609,6 +621,7 @@ public final class PopMailboxBuffer extends LocalMailboxBuffer {
     }
 
     private Runnable expungeProcess = new BackgroundProcess() {
+        @Override
         public void run() {
             try {
                 setBackgroundProcess(this);
@@ -632,6 +645,7 @@ public final class PopMailboxBuffer extends LocalMailboxBuffer {
             }
         }
 
+        @Override
         public void cancel() {
             Log.debug("expungeProcess.cancel");
             cancelled = true;
@@ -748,7 +762,7 @@ public final class PopMailboxBuffer extends LocalMailboxBuffer {
 
     private final void addToExpungedUidlsList(String uidl) {
         if (expungedUidlsList == null)
-            expungedUidlsList = new HashSet<String>();
+            expungedUidlsList = new HashSet<>();
         expungedUidlsList.add(uidl);
     }
 
@@ -761,7 +775,7 @@ public final class PopMailboxBuffer extends LocalMailboxBuffer {
         boolean changed = false;
         long start = System.currentTimeMillis();
         int size = serverMessageList.size();
-        HashSet<String> serverUidls = new HashSet<String>(size);
+        HashSet<String> serverUidls = new HashSet<>(size);
         for (MessageListEntry entry : serverMessageList) {
             serverUidls.add(entry.uidl);
         }
@@ -790,7 +804,7 @@ public final class PopMailboxBuffer extends LocalMailboxBuffer {
             String s;
             while ((s = reader.readLine()) != null) {
                 if (expungedUidlsList == null)
-                    expungedUidlsList = new HashSet<String>();
+                    expungedUidlsList = new HashSet<>();
                 expungedUidlsList.add(s);
             }
         }
@@ -878,6 +892,7 @@ public final class PopMailboxBuffer extends LocalMailboxBuffer {
         }
     }
 
+    @Override
     public void dispose() {
         Log.debug("PopMailboxBuffer.dispose");
         Runnable disposeRunnable = () -> {
@@ -907,6 +922,7 @@ public final class PopMailboxBuffer extends LocalMailboxBuffer {
         MailboxProperties.saveProperties(this);
     }
 
+    @Override
     public String toString() {
         int newMessageCount = getNewMessageCount();
         if (newMessageCount > 0) {
@@ -919,6 +935,7 @@ public final class PopMailboxBuffer extends LocalMailboxBuffer {
             return url.toString();
     }
 
+    @Override
     public String getTitle() {
         return toString();
     }

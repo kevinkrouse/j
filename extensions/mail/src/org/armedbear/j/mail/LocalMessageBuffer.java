@@ -20,6 +20,8 @@
 
 package org.armedbear.j.mail;
 
+import static org.armedbear.j.Constants.*;
+
 import org.armedbear.j.Editor;
 
 /*package*/ final class LocalMessageBuffer extends MessageBuffer {
@@ -37,6 +39,7 @@ import org.armedbear.j.Editor;
         readOnly = true;
     }
 
+    @Override
     public int load() {
         if (mailbox.lock()) {
             try {
@@ -52,6 +55,7 @@ import org.armedbear.j.Editor;
         return LOAD_FAILED;
     }
 
+    @Override
     public void deleteMessage() {
         if (mailbox.lock()) {
             try {
@@ -76,6 +80,7 @@ import org.armedbear.j.Editor;
         }
     }
 
+    @Override
     public void flagMessage() {
         if (mailbox.lock()) {
             try {

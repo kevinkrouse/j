@@ -22,7 +22,6 @@ package org.armedbear.j.mail;
 
 import java.io.IOException;
 import java.io.OutputStreamWriter;
-import java.lang.StringBuilder;
 import java.net.ConnectException;
 import java.net.Socket;
 import java.net.SocketException;

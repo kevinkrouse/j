@@ -23,7 +23,6 @@ package org.armedbear.j.mail;
 import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
-import java.lang.StringBuilder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -106,7 +105,7 @@ public final class MailboxProperties {
 
     private static synchronized void initialize() {
         if (list == null) {
-            list = new ArrayList<Entry>();
+            list = new ArrayList<>();
             File file = getFile();
             if (file.isFile()) {
                 XMLReader xmlReader = Utilities.getDefaultXMLReader();
@@ -233,6 +232,7 @@ public final class MailboxProperties {
     private static class Handler extends DefaultHandler implements ContentHandler {
         private Entry currentEntry = null;
 
+        @Override
         public void startElement(
             String uri,
             String localName,
@@ -271,6 +271,7 @@ public final class MailboxProperties {
             }
         }
 
+        @Override
         public void endElement(String uri, String localName, String qName) {
             if (localName.equals("mailbox") || qName.equals("mailbox")) {
                 MailboxProperties.add(currentEntry);

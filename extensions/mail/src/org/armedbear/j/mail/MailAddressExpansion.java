@@ -60,7 +60,7 @@ public final class MailAddressExpansion extends Expansion {
         prefixOffset = begin;
         int length = prefix.length();
         boolean ignoreCase = Utilities.isLowerCase(prefix);
-        candidates = new ArrayList<Object>();
+        candidates = new ArrayList<>();
         AddressBook addressBook = AddressBook.getGlobalAddressBook();
         if (addressBook != null) {
             final int limit = addressBook.size();
@@ -80,6 +80,7 @@ public final class MailAddressExpansion extends Expansion {
         }
     }
 
+    @Override
     public String getNextCandidate() {
         if (candidates == null || candidates.size() == 0)
             return null;

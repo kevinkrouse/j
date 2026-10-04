@@ -20,10 +20,11 @@
 
 package org.armedbear.j.mail;
 
+import static org.armedbear.j.Constants.*;
+
 import java.awt.event.KeyEvent;
 import org.armedbear.j.AbstractMode;
 import org.armedbear.j.Buffer;
-import org.armedbear.j.Constants;
 import org.armedbear.j.Editor;
 import org.armedbear.j.File;
 import org.armedbear.j.Formatter;
@@ -37,7 +38,7 @@ import org.armedbear.j.Property;
 import org.armedbear.j.ToolBar;
 import org.armedbear.j.View;
 
-public final class SendMailMode extends AbstractMode implements Constants, Mode {
+public final class SendMailMode extends AbstractMode implements Mode {
     public static final String NAME = "Send Mail";
 
     private static volatile SendMailMode mode;
@@ -71,10 +72,12 @@ public final class SendMailMode extends AbstractMode implements Constants, Mode 
         return m != null ? m : Editor.getModeList().getModeFromModeName(NAME) instanceof SendMailMode x ? x : null;
     }
 
+    @Override
     public Buffer createBuffer(File file) {
         return new SendMail(file);
     }
 
+    @Override
     public NavigationComponent getSidebarComponent(Editor editor) {
         View view = editor.getCurrentView();
         if (view == null)
@@ -84,10 +87,12 @@ public final class SendMailMode extends AbstractMode implements Constants, Mode 
         return view.getSidebarComponent();
     }
 
+    @Override
     public Formatter getFormatter(Buffer buffer) {
         return new MessageFormatter(buffer);
     }
 
+    @Override
     protected void setKeyMapDefaults(KeyMap km) {
         km.mapKey(KeyEvent.VK_ENTER, 0, "newlineAndIndent");
         km.mapKey(':', "sendMailElectricColon");
@@ -101,29 +106,34 @@ public final class SendMailMode extends AbstractMode implements Constants, Mode 
         );
     }
 
+    @Override
     protected ToolBar getDefaultToolBar(Frame frame) {
         return new SendMailModeToolBar(frame);
     }
 
+    @Override
     public boolean canIndent() {
         return true;
     }
 
+    @Override
     public boolean canIndentPaste() {
         return false;
     }
 
+    @Override
     public int getCorrectIndentation(Line line, Buffer buffer) {
-        if (buffer instanceof SendMail)
-            if (((SendMail) buffer).isHeaderLine(line))
+        if (buffer instanceof SendMail sendMail)
+            if (sendMail.isHeaderLine(line))
                 return buffer.getIndentSize();
 
         return 0;
     }
 
+    @Override
     public boolean confirmClose(Editor editor, Buffer buffer) {
-        if (buffer instanceof SendMail) {
-            if (((SendMail) buffer).hasBeenSent())
+        if (buffer instanceof SendMail sendMail) {
+            if (sendMail.hasBeenSent())
                 return true;
             else if (!buffer.isModified())
                 return true;

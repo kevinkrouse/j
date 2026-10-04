@@ -33,6 +33,7 @@ public final class FromMailboxFilter extends MailboxFilter {
         ignoreCase = Utilities.isLowerCase(pattern);
     }
 
+    @Override
     public boolean accept(MailboxEntry entry) {
         MailAddress[] from = entry.getFrom();
         if (from != null) {

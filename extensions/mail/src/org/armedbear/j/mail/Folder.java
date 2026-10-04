@@ -33,6 +33,7 @@ public final class Folder {
         return url;
     }
 
+    @Override
     public String toString() {
         return displayName;
     }

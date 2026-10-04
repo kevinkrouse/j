@@ -20,6 +20,8 @@
 
 package org.armedbear.j.mail;
 
+import static org.armedbear.j.Constants.*;
+
 import java.awt.event.KeyEvent;
 import org.armedbear.j.Editor;
 import org.armedbear.j.Frame;
@@ -51,15 +53,18 @@ public final class NewsGroupSummaryMode extends MailboxMode {
             : Editor.getModeList().getModeFromModeName(NAME) instanceof NewsGroupSummaryMode x ? x : null;
     }
 
+    @Override
     public NavigationComponent getSidebarComponent(Editor editor) {
         return null;
     }
 
+    @Override
     protected final void setKeyMapDefaults(KeyMap km) {
         km.mapKey(KeyEvent.VK_ENTER, 0, "readArticleOtherWindow");
         km.mapKey(KeyEvent.VK_ENTER, CTRL_MASK, "readArticle");
     }
 
+    @Override
     protected ToolBar getDefaultToolBar(Frame frame) {
         return frame.getDefaultToolBar();
     }

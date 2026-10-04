@@ -23,7 +23,6 @@ package org.armedbear.j.mail;
 import java.io.IOException;
 import java.io.InterruptedIOException;
 import java.io.OutputStreamWriter;
-import java.lang.StringBuilder;
 import java.net.Socket;
 import java.net.SocketException;
 import org.armedbear.j.Debug;

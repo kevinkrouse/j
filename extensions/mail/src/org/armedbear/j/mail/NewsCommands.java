@@ -52,10 +52,10 @@ public final class NewsCommands {
     public static void openGroupAtDot() {
         final Editor editor = Editor.currentEditor();
         final Buffer buffer = editor.getBuffer();
-        if (buffer instanceof NewsBuffer && editor.getDot() != null) {
+        if (buffer instanceof NewsBuffer newsBuffer && editor.getDot() != null) {
             String groupName = editor.getDotLine().getText();
             NntpSession session =
-                NntpSession.getSession(((NewsBuffer) buffer).getHost());
+                NntpSession.getSession(newsBuffer.getHost());
             NewsGroupSummaryBuffer summary = new NewsGroupSummaryBuffer(session, groupName);
             editor.makeNext(summary);
             editor.activate(summary);
@@ -88,8 +88,8 @@ public final class NewsCommands {
     private static void readArticle(boolean useOtherWindow) {
         final Editor editor = Editor.currentEditor();
         final Buffer buffer = editor.getBuffer();
-        if (buffer instanceof NewsGroupSummaryBuffer && editor.getDot() != null)
-            ((NewsGroupSummaryBuffer) buffer).readArticle(
+        if (buffer instanceof NewsGroupSummaryBuffer newsGroupSummaryBuffer && editor.getDot() != null)
+            newsGroupSummaryBuffer.readArticle(
                 editor,
                 editor.getDotLine(),
                 useOtherWindow

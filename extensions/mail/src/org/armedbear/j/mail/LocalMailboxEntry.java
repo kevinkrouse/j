@@ -87,6 +87,7 @@ public final class LocalMailboxEntry extends MailboxEntry {
         nextMessageStart = offset;
     }
 
+    @Override
     public final String getUidl() {
         return uidl;
     }

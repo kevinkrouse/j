@@ -20,7 +20,6 @@
 
 package org.armedbear.j.mail;
 
-import java.lang.StringBuilder;
 import java.net.MalformedURLException;
 import org.armedbear.j.Log;
 

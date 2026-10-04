@@ -39,7 +39,7 @@ public final class MboxSummary implements Serializable {
     private long length;
 
     public MboxSummary(File mailboxFile, List<LocalMailboxEntry> entries) {
-        this.entries = new ArrayList<LocalMailboxEntry>(entries);
+        this.entries = new ArrayList<>(entries);
         path = mailboxFile.canonicalPath();
         lastModified = mailboxFile.lastModified();
         length = mailboxFile.length();

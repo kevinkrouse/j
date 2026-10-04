@@ -20,7 +20,6 @@
 
 package org.armedbear.j.mail;
 
-import java.lang.StringBuilder;
 import java.net.MalformedURLException;
 import java.util.Objects;
 
@@ -114,10 +113,10 @@ public final class PopURL extends MailboxURL {
         return new PopURL(user, host, port, ssl, ssl, true, true, false);
     }
 
+    @Override
     public boolean equals(Object object) {
-        if (!(object instanceof PopURL))
+        if (!(object instanceof PopURL url))
             return false;
-        PopURL url = (PopURL) object;
         if (host != url.host) {
             if (host == null)
                 return false;
@@ -140,6 +139,7 @@ public final class PopURL extends MailboxURL {
         return Objects.hash(host, user, port);
     }
 
+    @Override
     public String toString() {
         StringBuilder sb = new StringBuilder("pop://");
         if (user != null) {
@@ -159,6 +159,7 @@ public final class PopURL extends MailboxURL {
         return sb.toString();
     }
 
+    @Override
     public String getCanonicalName() {
         if (urlScheme) {
             StringBuilder sb = new StringBuilder("pop://");

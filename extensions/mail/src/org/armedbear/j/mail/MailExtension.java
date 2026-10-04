@@ -28,14 +28,17 @@ import org.armedbear.j.extension.Opener;
 
 /** Mail and news. Its modes are a ModeProvider service of their own. */
 public final class MailExtension implements Extension {
+    @Override
     public String getName() {
         return "mail";
     }
 
+    @Override
     public String getVersion() {
         return Version.getVersion();
     }
 
+    @Override
     public void initialize(ExtensionContext context) {
         context.registerCommand("attachFile", MailCommands.class, "attachFile");
         context.registerCommand("bounce", MailCommands.class, "bounce");
@@ -114,19 +117,23 @@ public final class MailExtension implements Extension {
 
     // Mailbox URLs, and the drafts folder's files as messages to send.
     private static final class MailboxOpener implements Opener {
+        @Override
         public boolean handles(String name) {
             return name.startsWith("pop://") || name.startsWith("{") || name.startsWith("mailbox:");
         }
 
+        @Override
         public Buffer getBuffer(Editor editor, String name) {
             MailboxURL url = MailboxURL.parse(name);
             return url != null ? MailCommands.getMailboxBuffer(editor, url) : null;
         }
 
+        @Override
         public void open(Editor editor, String name) {
             MailCommands.openMailbox(editor, name);
         }
 
+        @Override
         public Buffer createBuffer(File file) {
             File dir = file.getParentFile();
             SendMailMode mode = SendMailMode.getMode();

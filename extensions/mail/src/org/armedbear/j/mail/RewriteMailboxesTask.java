@@ -44,14 +44,14 @@ public final class RewriteMailboxesTask extends IdleThreadTask {
     private final Runnable runnable = new Runnable() {
         private long lastRun;
 
+        @Override
         public void run() {
             if (!Mail.isEnabled())
                 return;
             long now = System.currentTimeMillis();
             if (lastRun == 0 || now - lastRun > REWRITE_MAILBOXES_IDLE) {
                 for (Buffer buf : Editor.getBufferList()) {
-                    if (buf instanceof PopMailboxBuffer) {
-                        final PopMailboxBuffer mb = (PopMailboxBuffer) buf;
+                    if (buf instanceof PopMailboxBuffer mb) {
                         // User must be idle for 5 minutes if mailbox is in
                         // foreground, 1 minute if mailbox is in background.
                         if (mb.isDirty() && mb.isIdle(300, 60)) {

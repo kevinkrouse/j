@@ -20,11 +20,12 @@
 
 package org.armedbear.j.mail;
 
+import static org.armedbear.j.Constants.*;
+
 import java.awt.event.KeyEvent;
 import javax.swing.JCheckBoxMenuItem;
 import org.armedbear.j.AbstractMode;
 import org.armedbear.j.Buffer;
-import org.armedbear.j.Constants;
 import org.armedbear.j.Dispatcher;
 import org.armedbear.j.Editor;
 import org.armedbear.j.Formatter;
@@ -39,7 +40,7 @@ import org.armedbear.j.Property;
 import org.armedbear.j.ToolBar;
 import org.armedbear.j.View;
 
-public class MailboxMode extends AbstractMode implements Constants, Mode {
+public class MailboxMode extends AbstractMode implements Mode {
     public static final String NAME = "Mailbox";
 
     private static volatile MailboxMode mode;
@@ -69,6 +70,7 @@ public class MailboxMode extends AbstractMode implements Constants, Mode {
         return m != null ? m : Editor.getModeList().getModeFromModeName(NAME) instanceof MailboxMode x ? x : null;
     }
 
+    @Override
     public NavigationComponent getSidebarComponent(Editor editor) {
         View view = editor.getCurrentView();
         if (view == null)
@@ -78,10 +80,12 @@ public class MailboxMode extends AbstractMode implements Constants, Mode {
         return view.getSidebarComponent();
     }
 
+    @Override
     public Formatter getFormatter(Buffer buffer) {
         return new MailboxFormatter(buffer);
     }
 
+    @Override
     protected void setKeyMapDefaults(KeyMap km) {
         km.mapKey(KeyEvent.VK_HOME, 0, "bol");
         km.mapKey(KeyEvent.VK_END, CTRL_MASK, "mailboxLastMessage");
@@ -109,6 +113,7 @@ public class MailboxMode extends AbstractMode implements Constants, Mode {
         km.mapKey('F', "mailboxFlag");
     }
 
+    @Override
     public void populateMenu(Editor editor, Menu menu) {
         final String text = menu.getText();
         if (text == "View") {
@@ -145,16 +150,18 @@ public class MailboxMode extends AbstractMode implements Constants, Mode {
             super.populateMenu(editor, menu);
     }
 
+    @Override
     protected ToolBar getDefaultToolBar(Frame frame) {
         return new MailboxModeToolBar(frame);
     }
 
+    @Override
     public String getContextString(Editor editor, boolean verbose) {
         Position dot = editor.getDot();
         if (dot != null) {
             final Line dotLine = dot.getLine();
-            if (dotLine instanceof MailboxLine) {
-                MailboxEntry entry = ((MailboxLine) dotLine).getMailboxEntry();
+            if (dotLine instanceof MailboxLine mailboxLine) {
+                MailboxEntry entry = mailboxLine.getMailboxEntry();
                 if (entry != null)
                     return entry.getSubject();
             }

@@ -150,6 +150,7 @@ public final class ConfirmSendDialog extends AbstractDialog {
         return bccOther;
     }
 
+    @Override
     protected void ok() {
         from = fromTextField.getText().trim();
         bccAddSender = bccAddSenderCheckBox.isSelected();
@@ -197,6 +198,7 @@ public final class ConfirmSendDialog extends AbstractDialog {
         dispose();
     }
 
+    @Override
     public void keyPressed(KeyEvent e) {
         // Treat the user's mapping(s) for the send command like Enter.
         KeyMapping mapping =
@@ -212,6 +214,7 @@ public final class ConfirmSendDialog extends AbstractDialog {
             super.keyPressed(e);
     }
 
+    @Override
     public void actionPerformed(ActionEvent e) {
         String cmd = e.getActionCommand();
         if (cmd != null && cmd.equals(bccAddOtherCheckBox.getText()))

@@ -20,7 +20,6 @@
 
 package org.armedbear.j.mail;
 
-import java.lang.StringBuilder;
 import java.util.Objects;
 
 public final class AddressBookEntry {
@@ -101,11 +100,11 @@ public final class AddressBookEntry {
         address = s;
     }
 
+    @Override
     public boolean equals(Object object) {
         if (this == object)
             return true;
-        if (object instanceof AddressBookEntry) {
-            AddressBookEntry entry = (AddressBookEntry) object;
+        if (object instanceof AddressBookEntry entry) {
             if (personal != null) {
                 if (!personal.equals(entry.personal))
                     return false;
@@ -126,6 +125,7 @@ public final class AddressBookEntry {
         return Objects.hash(personal, address);
     }
 
+    @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();
         if (personal != null) {

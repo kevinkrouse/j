@@ -50,7 +50,7 @@ public final class CheckMailTask extends IdleThreadTask {
             return;
         // Only check every 10 seconds.
         if (System.currentTimeMillis() - lastRun > 10000) {
-            ArrayList<Buffer> mailboxes = new ArrayList<Buffer>();
+            ArrayList<Buffer> mailboxes = new ArrayList<>();
             BufferList bufferList = Editor.getBufferList();
             for (Buffer buf : Editor.getBufferList()) {
                 if (buf instanceof ImapMailboxBuffer || buf instanceof PopMailboxBuffer)

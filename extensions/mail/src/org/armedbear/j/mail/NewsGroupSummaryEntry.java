@@ -20,7 +20,6 @@
 
 package org.armedbear.j.mail;
 
-import java.lang.StringBuilder;
 import org.armedbear.j.Log;
 import org.armedbear.j.util.Utilities;
 
@@ -108,10 +107,12 @@ public final class NewsGroupSummaryEntry extends MailboxEntry {
         return messageNumber;
     }
 
+    @Override
     public String toString() {
         return toString(1);
     }
 
+    @Override
     public String toString(int depth) {
         StringBuilder sb = new StringBuilder();
         if (SHOW_MESSAGE_NUMBERS) {
@@ -132,6 +133,7 @@ public final class NewsGroupSummaryEntry extends MailboxEntry {
         return sb.toString();
     }
 
+    @Override
     protected String formatFrom(int fieldWidth) {
         String s = from;
         int index = s.indexOf('<');

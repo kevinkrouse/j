@@ -20,6 +20,8 @@
 
 package org.armedbear.j.mail;
 
+import static org.armedbear.j.Constants.*;
+
 import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.InputStream;
@@ -58,6 +60,7 @@ public final class NewsBuffer extends Buffer {
         return session.getHost();
     }
 
+    @Override
     public int load() {
         setBusy(true);
         Background.start("NewsBuffer load", loadRunnable);
@@ -66,6 +69,7 @@ public final class NewsBuffer extends Buffer {
     }
 
     private Runnable loadRunnable = new Runnable() {
+        @Override
         public void run() {
             if (!withWriteLock(() -> {
                 _load();
@@ -148,6 +152,7 @@ public final class NewsBuffer extends Buffer {
     }
 
     private Runnable errorRunnable = new Runnable() {
+        @Override
         public void run() {
             kill();
             String errorText = session.getErrorText();
@@ -157,6 +162,7 @@ public final class NewsBuffer extends Buffer {
     };
 
     private Runnable updateDisplayRunnable = new Runnable() {
+        @Override
         public void run() {
             setBusy(false);
             invalidate();

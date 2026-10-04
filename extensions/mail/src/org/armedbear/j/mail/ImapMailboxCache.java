@@ -53,7 +53,7 @@ public final class ImapMailboxCache implements Serializable {
         this.mailbox = mailbox;
         mailboxName = mailbox.getName();
         uidValidity = mailbox.getUidValidity();
-        entries = new ArrayList<MailboxEntry>(mailbox.getEntries());
+        entries = new ArrayList<>(mailbox.getEntries());
     }
 
     private final void setMailbox(ImapMailboxBuffer mailbox) {

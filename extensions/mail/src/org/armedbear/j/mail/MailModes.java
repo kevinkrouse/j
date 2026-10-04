@@ -17,6 +17,7 @@ import org.armedbear.j.extension.ModeProvider;
 
 /** The mailbox, message, news and compose modes. */
 public final class MailModes implements ModeProvider {
+    @Override
     public List<ModeDescriptor> modes() {
         return List.of(
             new ModeDescriptor(

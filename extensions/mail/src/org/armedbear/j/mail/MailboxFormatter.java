@@ -68,6 +68,7 @@ public final class MailboxFormatter extends Formatter {
         this.buffer = buffer;
     }
 
+    @Override
     public LineSegmentList formatLine(Line line) {
         String text;
         if (Editor.tabsAreVisible())
@@ -75,8 +76,8 @@ public final class MailboxFormatter extends Formatter {
         else
             text = Utilities.detab(line.getText(), buffer.getTabWidth());
         clearSegmentList();
-        if (line instanceof MailboxLine) {
-            MailboxEntry entry = ((MailboxLine) line).getMailboxEntry();
+        if (line instanceof MailboxLine mailboxLine) {
+            MailboxEntry entry = mailboxLine.getMailboxEntry();
             if (entry.isTagged()) {
                 addSegment(text, FORMAT_TAGGED);
             } else if (entry.isDeleted()) {
@@ -106,6 +107,7 @@ public final class MailboxFormatter extends Formatter {
         return segmentList;
     }
 
+    @Override
     public FormatTable getFormatTable() {
         if (formatTable == null) {
             formatTable = new FormatTable("MailboxMode");

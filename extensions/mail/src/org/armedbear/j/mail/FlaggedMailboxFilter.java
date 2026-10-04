@@ -21,6 +21,7 @@
 package org.armedbear.j.mail;
 
 public final class FlaggedMailboxFilter extends MailboxFilter {
+    @Override
     public final boolean accept(MailboxEntry entry) {
         return entry.isFlagged();
     }

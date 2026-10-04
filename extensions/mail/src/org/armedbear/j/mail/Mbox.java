@@ -25,7 +25,6 @@ import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.StringReader;
-import java.lang.StringBuilder;
 import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -57,7 +56,7 @@ public final class Mbox {
 
     public static synchronized Mbox getInstance(File file) {
         if (mboxList == null)
-            mboxList = new ArrayList<Mbox>();
+            mboxList = new ArrayList<>();
         else {
             for (int i = mboxList.size() - 1; i >= 0; i--) {
                 Mbox mbox = mboxList.get(i);
@@ -88,8 +87,7 @@ public final class Mbox {
     private static MailboxBuffer findMailbox(Mbox mbox) {
         File file = mbox.getFile();
         for (Buffer buf : Editor.getBufferList()) {
-            if (buf instanceof LocalMailboxBuffer) {
-                LocalMailboxBuffer mb = (LocalMailboxBuffer) buf;
+            if (buf instanceof LocalMailboxBuffer mb) {
                 if (mb.getMailboxFile().equals(file))
                     return mb;
             }
@@ -131,7 +129,7 @@ public final class Mbox {
                 read(progressNotifier);
             }
         }
-        return new ArrayList<MailboxEntry>(entries);
+        return new ArrayList<>(entries);
     }
 
     public synchronized boolean lock() {
@@ -155,7 +153,7 @@ public final class Mbox {
         Log.debug("entering Mbox.read");
         long start = System.currentTimeMillis();
         Debug.assertTrue(isLocked());
-        entries = new ArrayList<LocalMailboxEntry>(1000);
+        entries = new ArrayList<>(1000);
         long messageStart = 0;
         MailReader reader = null;
         try {
@@ -324,8 +322,7 @@ public final class Mbox {
         if (entries == null)
             return;
         for (Buffer buf : Editor.getBufferList()) {
-            if (buf instanceof LocalMailboxBuffer) {
-                LocalMailboxBuffer mb = (LocalMailboxBuffer) buf;
+            if (buf instanceof LocalMailboxBuffer mb) {
                 if (mb.getMailboxFile().equals(file)) {
                     if (mb.lock()) {
                         try {

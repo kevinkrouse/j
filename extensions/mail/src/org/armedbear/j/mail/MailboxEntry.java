@@ -21,7 +21,6 @@
 package org.armedbear.j.mail;
 
 import java.io.Serializable;
-import java.lang.StringBuilder;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -405,6 +404,7 @@ public abstract class MailboxEntry implements Serializable {
         return s;
     }
 
+    @Override
     public String toString() {
         return toString(1);
     }
@@ -459,7 +459,7 @@ public abstract class MailboxEntry implements Serializable {
             if (end < 0)
                 break;
             if (list == null)
-                list = new ArrayList<String>();
+                list = new ArrayList<>();
             list.add(s.substring(begin, ++end));
             begin = end;
         }

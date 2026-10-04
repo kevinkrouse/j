@@ -20,6 +20,8 @@
 
 package org.armedbear.j.mail;
 
+import static org.armedbear.j.Constants.*;
+
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.IOException;
@@ -27,7 +29,6 @@ import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.RandomAccessFile;
 import java.io.UnsupportedEncodingException;
-import java.lang.StringBuilder;
 import java.util.ArrayList;
 import java.util.ArrayList;
 import java.util.List;
@@ -51,6 +52,7 @@ import org.armedbear.j.util.Background;
 import org.armedbear.j.util.Utilities;
 
 public class LocalMailboxBuffer extends MailboxBuffer {
+    @Override
     public String getAliasValue() {
         return "mailbox:" + getMailboxFile().netPath();
     }
@@ -59,8 +61,8 @@ public class LocalMailboxBuffer extends MailboxBuffer {
 
     public LocalMailboxBuffer(MailboxURL url) {
         super(url);
-        if (url instanceof LocalMailboxURL)
-            mailboxFile = ((LocalMailboxURL) url).getFile();
+        if (url instanceof LocalMailboxURL localMailboxUrl)
+            mailboxFile = localMailboxUrl.getFile();
         init();
     }
 
@@ -75,6 +77,7 @@ public class LocalMailboxBuffer extends MailboxBuffer {
         setInitialized(true);
     }
 
+    @Override
     public String getName() {
         Debug.assertTrue(mailboxFile != null);
         return mailboxFile.canonicalPath();
@@ -88,12 +91,14 @@ public class LocalMailboxBuffer extends MailboxBuffer {
         this.mailboxFile = mailboxFile;
     }
 
+    @Override
     public int getMessageCount() {
         if (entries == null)
             return 0;
         return entries.size();
     }
 
+    @Override
     public Message getMessage(MailboxEntry entry, ProgressNotifier progressNotifier) {
         try {
             RandomAccessFile raf = mailboxFile.getRandomAccessFile("r");
@@ -166,43 +171,53 @@ public class LocalMailboxBuffer extends MailboxBuffer {
         return new String(bytes);
     }
 
+    @Override
     public void getNewMessages() {
         Log.error("LocalMailboxBuffer.getNewMessages is not implemented");
     }
 
+    @Override
     public void createFolder() {
         Log.error("LocalMailboxBuffer.createFolder is not implemented");
     }
 
+    @Override
     public void deleteFolder() {
         Log.error("LocalMailboxBuffer.deleteFolder is not implemented");
     }
 
+    @Override
     public void saveToFolder() {
         Log.error("LocalMailboxBuffer.saveToFolder is not implemented");
     }
 
+    @Override
     public void moveToFolder() {
         Log.error("LocalMailboxBuffer.moveToFolder is not implemented");
     }
 
+    @Override
     public void delete() {
         changeEntries(true, true, true, entry -> setFlag(entry, MailboxEntry.DELETED, true));
     }
 
+    @Override
     public void undelete() {
         boolean advance = getBooleanProperty(Property.UNDELETE_ADVANCE_DOT);
         changeEntries(true, advance, true, entry -> setFlag(entry, MailboxEntry.DELETED, false));
     }
 
+    @Override
     public void markRead() {
         changeEntries(false, true, true, entry -> setFlag(entry, MailboxEntry.SEEN, true));
     }
 
+    @Override
     public void markUnread() {
         changeEntries(false, true, true, entry -> setFlag(entry, MailboxEntry.SEEN, false));
     }
 
+    @Override
     public void flag() {
         changeEntries(false, true, false, entry -> {
             entry.toggleFlag();
@@ -241,9 +256,9 @@ public class LocalMailboxBuffer extends MailboxBuffer {
             List<MailboxEntry> list = getTaggedEntries();
             if (list == null) {
                 Line line = editor.getDotLine();
-                if (!(line instanceof MailboxLine))
+                if (!(line instanceof MailboxLine mailboxLine))
                     return;
-                list = List.of(((MailboxLine) line).getMailboxEntry());
+                list = List.of(mailboxLine.getMailboxEntry());
             } else
                 advance = false;
             for (MailboxEntry entry : list) {
@@ -265,6 +280,7 @@ public class LocalMailboxBuffer extends MailboxBuffer {
         }
     }
 
+    @Override
     public void setAnsweredFlag(MailboxEntry entry) {
         if ((entry.getFlags() & MailboxEntry.ANSWERED) == 0) {
             entry.setFlags(entry.getFlags() | MailboxEntry.ANSWERED);
@@ -273,10 +289,12 @@ public class LocalMailboxBuffer extends MailboxBuffer {
         }
     }
 
+    @Override
     public void expunge() {
         Log.error("LocalMailboxBuffer.expunge is not implemented");
     }
 
+    @Override
     public int load() {
         if (lock()) {
             setBusy(true);
@@ -323,10 +341,12 @@ public class LocalMailboxBuffer extends MailboxBuffer {
         Log.debug("readMailboxFile " + (System.currentTimeMillis() - start) + " ms");
     }
 
+    @Override
     public void readMessage(Line line) {
         readMessage(line, false);
     }
 
+    @Override
     public void readMessageOtherWindow(Line line) {
         readMessage(line, true);
     }
@@ -336,8 +356,8 @@ public class LocalMailboxBuffer extends MailboxBuffer {
         MailboxEntry entry = ((MailboxLine) line).getMailboxEntry();
         Buffer buf = null;
         for (Buffer b : Editor.getBufferList()) {
-            if (b instanceof MessageBuffer) {
-                if (((MessageBuffer) b).getMailboxEntry() == entry) {
+            if (b instanceof MessageBuffer messageBuffer) {
+                if (messageBuffer.getMailboxEntry() == entry) {
                     buf = b;
                     break;
                 }
@@ -443,7 +463,7 @@ public class LocalMailboxBuffer extends MailboxBuffer {
                 if (purge) {
                     // Copy entries to new list, skipping deleted entries.
                     ArrayList<MailboxEntry> v =
-                        new ArrayList<MailboxEntry>(entries.size());
+                        new ArrayList<>(entries.size());
                     for (i = 0; i < entries.size(); i++) {
                         MailboxEntry entry = entries.get(i);
                         if (!entry.isDeleted())
@@ -490,6 +510,7 @@ public class LocalMailboxBuffer extends MailboxBuffer {
         return mailboxFile.canonicalPath().startsWith(localPrefix);
     }
 
+    @Override
     public void dispose() {
         Log.debug("LocalMailboxBuffer.dispose");
         Mbox.cleanup();
@@ -524,6 +545,7 @@ public class LocalMailboxBuffer extends MailboxBuffer {
         Background.start("LocalMailboxBuffer dispose", disposeRunnable);
     }
 
+    @Override
     public String toString() {
         final String name;
         if (isOwned())

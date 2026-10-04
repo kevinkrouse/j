@@ -93,22 +93,21 @@ public final class FolderTreeModel extends DefaultTreeModel {
             DefaultMutableTreeNode node =
                 (DefaultMutableTreeNode) nodes.nextElement();
             Object obj = node.getUserObject();
-            if (obj instanceof Folder && ((Folder) obj).getUrl().equals(url))
+            if (obj instanceof Folder folder && folder.getUrl().equals(url))
                 return node;
         }
         return null;
     }
 
     private void addNodeForFolder(MailboxURL url) {
-        if (url instanceof ImapURL) {
+        if (url instanceof ImapURL imapUrl) {
             Enumeration<? extends TreeNode> nodes = root.children();
             DefaultMutableTreeNode parent = null;
             while (nodes.hasMoreElements()) {
                 DefaultMutableTreeNode node =
                     (DefaultMutableTreeNode) nodes.nextElement();
                 Object obj = node.getUserObject();
-                if (obj instanceof String) {
-                    String s = (String) obj;
+                if (obj instanceof String s) {
                     if (s.equals(url.getHost())) {
                         parent = node;
                         break;
@@ -119,7 +118,7 @@ public final class FolderTreeModel extends DefaultTreeModel {
                 parent = new DefaultMutableTreeNode(url.getHost());
                 ((DefaultMutableTreeNode) root).add(parent);
             }
-            List<String> list = ((ImapURL) url).getFolderPathComponents();
+            List<String> list = imapUrl.getFolderPathComponents();
             for (int i = 0; i < list.size() - 1; i++) {
                 boolean add = true;
                 nodes = parent.children();
@@ -127,8 +126,7 @@ public final class FolderTreeModel extends DefaultTreeModel {
                     DefaultMutableTreeNode node =
                         (DefaultMutableTreeNode) nodes.nextElement();
                     Object obj = node.getUserObject();
-                    if (obj instanceof String) {
-                        String s = (String) obj;
+                    if (obj instanceof String s) {
                         if (s.equals(list.get(i))) {
                             parent = node;
                             add = false;

@@ -20,12 +20,13 @@
 
 package org.armedbear.j.mail;
 
+import static org.armedbear.j.Constants.*;
+
 import java.awt.Image;
 import java.awt.Rectangle;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.StringReader;
-import java.lang.StringBuilder;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
@@ -62,6 +63,7 @@ import org.armedbear.j.util.Icons;
 import org.armedbear.j.util.Utilities;
 
 public class MessageBuffer extends Buffer {
+    @Override
     public boolean isMessage() {
         return true;
     }
@@ -107,24 +109,28 @@ public class MessageBuffer extends Buffer {
         setInitialized(true);
     }
 
+    @Override
     public final boolean isPrimary() {
         if (mailbox == null)
             return true;
         return mailbox.getPreviewBuffer() != this;
     }
 
+    @Override
     public final boolean isSecondary() {
         if (mailbox == null)
             return false;
         return mailbox.getPreviewBuffer() == this;
     }
 
+    @Override
     public final Buffer getPrimary() {
         if (mailbox != null && mailbox.getPreviewBuffer() == this)
             return mailbox;
         return null;
     }
 
+    @Override
     public final void promote() {
         if (mailbox != null && mailbox.getPreviewBuffer() == this)
             mailbox.setPreviewBuffer(null);
@@ -134,6 +140,7 @@ public class MessageBuffer extends Buffer {
         return headerLineCount;
     }
 
+    @Override
     public int getDisplayHeight() {
         int height = 0;
         for (Line line = getFirstLine(); line != null; line = line.nextVisible())
@@ -141,6 +148,7 @@ public class MessageBuffer extends Buffer {
         return height;
     }
 
+    @Override
     public int getDisplayWidth() {
         int width = 0;
         for (Line line = getFirstLine(); line != null; line = line.nextVisible()) {
@@ -152,6 +160,7 @@ public class MessageBuffer extends Buffer {
     }
 
     // Returns cumulative height to top of target line.
+    @Override
     public int getY(Line target) {
         int y = 0;
         for (Line line = getFirstLine(); line != null && line != target; line = line.nextVisible())
@@ -182,6 +191,7 @@ public class MessageBuffer extends Buffer {
         });
     }
 
+    @Override
     public int load() {
         Debug.assertTrue(false); // Shouldn't be called.
         return LOAD_COMPLETED;
@@ -363,7 +373,7 @@ public class MessageBuffer extends Buffer {
                 break;
             String msgId = s.substring(begin, end + 1);
             if (list == null)
-                list = new ArrayList<String>();
+                list = new ArrayList<>();
             Log.debug("adding |" + msgId + "|");
             list.add(msgId);
             s = s.substring(end + 1);
@@ -524,7 +534,7 @@ public class MessageBuffer extends Buffer {
         if (message == null)
             return "";
         Headers headers = Headers.parse(message.getRawHeaders());
-        ArrayList<String> names = new ArrayList<String>(); // Header names.
+        ArrayList<String> names = new ArrayList<>(); // Header names.
         names.add("From");
         names.add("To");
         names.add("Cc");
@@ -543,7 +553,7 @@ public class MessageBuffer extends Buffer {
                 if (name == "From" || name == "To" || name == "Cc") {
                     MailAddress[] array =
                         MailAddress.parseAddresses(RFC2047.decode(value));
-                    ArrayList<MailAddress> list = new ArrayList<MailAddress>();
+                    ArrayList<MailAddress> list = new ArrayList<>();
                     Collections.addAll(list, array);
                     String prefix =
                         Utilities.rightJustify(name, width).concat(": ");
@@ -627,8 +637,7 @@ public class MessageBuffer extends Buffer {
             Buffer buf = null;
             // See if we already have this attachment open in a buffer.
             for (Buffer b : Editor.getBufferList()) {
-                if (b instanceof MessageBuffer) {
-                    MessageBuffer mb = (MessageBuffer) b;
+                if (b instanceof MessageBuffer mb) {
                     Message m = mb.getMessage();
                     if (m.getRawText().equals(rawText)) {
                         buf = b;
@@ -696,8 +705,8 @@ public class MessageBuffer extends Buffer {
             Annotation annotation = dot.getLine().getAnnotation();
             if (annotation != null) {
                 Object obj = annotation.getUserObject();
-                if (obj instanceof MimePart)
-                    return (MimePart) obj;
+                if (obj instanceof MimePart mimePart)
+                    return mimePart;
             }
         }
         return null;
@@ -777,7 +786,7 @@ public class MessageBuffer extends Buffer {
             return null;
         }
         int shown = -1;
-        ArrayList<Line> list = new ArrayList<Line>();
+        ArrayList<Line> list = new ArrayList<>();
         list.add(new MessageHeaderLine("Parts/Attachments:"));
         for (int i = 0; i < parts.size(); i++) {
             StringBuilder sb = new StringBuilder();
@@ -1058,15 +1067,18 @@ public class MessageBuffer extends Buffer {
         appendLine(new MessageHeaderLine(s));
     }
 
+    @Override
     public String toString() {
         return title;
     }
 
     // For the buffer list.
+    @Override
     public Icon getIcon() {
         return Icons.getIconFromFile("message");
     }
 
+    @Override
     public String getFileNameForDisplay() {
         return "";
     }
@@ -1085,10 +1097,12 @@ public class MessageBuffer extends Buffer {
         }
     }
 
+    @Override
     public float getSplit() {
         return Editor.getSessionProperties().getFloatProperty(SPLIT_KEY, 0.5F);
     }
 
+    @Override
     public void windowClosing() {
         Editor editor = Editor.currentEditor();
         if (editor.getBuffer() == this)
@@ -1100,12 +1114,14 @@ public class MessageBuffer extends Buffer {
         }
     }
 
+    @Override
     public void dispose() {
         if (mailbox != null && mailbox.getPreviewBuffer() == this)
             mailbox.setPreviewBuffer(null);
         flushImages();
     }
 
+    @Override
     public void empty() {
         flushImages();
         super.empty();

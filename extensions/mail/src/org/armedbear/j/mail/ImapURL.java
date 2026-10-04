@@ -20,7 +20,6 @@
 
 package org.armedbear.j.mail;
 
-import java.lang.StringBuilder;
 import java.net.MalformedURLException;
 import java.util.ArrayList;
 import java.util.List;
@@ -58,7 +57,7 @@ public final class ImapURL extends MailboxURL {
     }
 
     public final List<String> getFolderPathComponents() {
-        ArrayList<String> list = new ArrayList<String>();
+        ArrayList<String> list = new ArrayList<>();
         int begin = 0;
         while (true) {
             int index = folderName.indexOf('/', begin);
@@ -75,10 +74,10 @@ public final class ImapURL extends MailboxURL {
         return list;
     }
 
+    @Override
     public boolean equals(Object object) {
-        if (!(object instanceof ImapURL))
+        if (!(object instanceof ImapURL url))
             return false;
-        ImapURL url = (ImapURL) object;
         if (host != url.host) {
             if (host == null)
                 return false;
@@ -113,6 +112,7 @@ public final class ImapURL extends MailboxURL {
         return Objects.hash(host, folderName, user, port);
     }
 
+    @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();
         sb.append('{');
@@ -130,6 +130,7 @@ public final class ImapURL extends MailboxURL {
         return sb.toString();
     }
 
+    @Override
     public String getCanonicalName() {
         StringBuilder sb = baseCanonicalURL();
         sb.append(folderName);

@@ -26,7 +26,7 @@ public final class AndTerm extends MailboxFilter {
     private final ArrayList<MailboxFilter> filters;
 
     public AndTerm(MailboxFilter first, MailboxFilter second) {
-        filters = new ArrayList<MailboxFilter>();
+        filters = new ArrayList<>();
         filters.add(first);
         filters.add(second);
     }
@@ -35,6 +35,7 @@ public final class AndTerm extends MailboxFilter {
         filters.add(filter);
     }
 
+    @Override
     public final boolean accept(MailboxEntry entry) {
         for (MailboxFilter filter : filters) {
             if (!filter.accept(entry))

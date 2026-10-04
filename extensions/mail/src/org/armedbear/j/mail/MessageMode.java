@@ -20,10 +20,11 @@
 
 package org.armedbear.j.mail;
 
+import static org.armedbear.j.Constants.*;
+
 import java.awt.event.KeyEvent;
 import org.armedbear.j.AbstractMode;
 import org.armedbear.j.Buffer;
-import org.armedbear.j.Constants;
 import org.armedbear.j.Editor;
 import org.armedbear.j.Formatter;
 import org.armedbear.j.Frame;
@@ -39,7 +40,7 @@ import org.armedbear.j.View;
 import org.armedbear.j.mode.html.HtmlLineSegment;
 import org.armedbear.j.mode.web.WebLine;
 
-public final class MessageMode extends AbstractMode implements Constants, Mode {
+public final class MessageMode extends AbstractMode implements Mode {
     public static final String NAME = "Message";
 
     private static volatile MessageMode mode;
@@ -65,6 +66,7 @@ public final class MessageMode extends AbstractMode implements Constants, Mode {
         return m != null ? m : Editor.getModeList().getModeFromModeName(NAME) instanceof MessageMode x ? x : null;
     }
 
+    @Override
     public NavigationComponent getSidebarComponent(Editor editor) {
         View view = editor.getCurrentView();
         if (view == null)
@@ -74,10 +76,12 @@ public final class MessageMode extends AbstractMode implements Constants, Mode {
         return view.getSidebarComponent();
     }
 
+    @Override
     public final Formatter getFormatter(Buffer buffer) {
         return new MessageFormatter(buffer);
     }
 
+    @Override
     protected void setKeyMapDefaults(KeyMap km) {
         km.mapKey('h', "messageToggleHeaders");
         km.mapKey('f', "messageForward");
@@ -100,14 +104,17 @@ public final class MessageMode extends AbstractMode implements Constants, Mode {
         km.mapKey('q', "tempBufferQuit");
     }
 
+    @Override
     protected final ToolBar getDefaultToolBar(Frame frame) {
         return new MessageModeToolBar(frame);
     }
 
+    @Override
     public final String getContextString(Editor editor, boolean verbose /*ignored*/) {
         return getContextString(editor.getDot());
     }
 
+    @Override
     public final String getMouseMovedContextString(Editor editor, Position pos) {
         // We want to clear the status text if the mouse is not over a link, so
         // return "" instead of null.

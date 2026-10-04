@@ -45,10 +45,11 @@ public final class LocalMailboxURL extends MailboxURL {
         return file;
     }
 
+    @Override
     public boolean equals(Object object) {
-        if (!(object instanceof LocalMailboxURL))
+        if (!(object instanceof LocalMailboxURL localMailboxUrl))
             return false;
-        return file.equals(((LocalMailboxURL) object).getFile());
+        return file.equals(localMailboxUrl.getFile());
     }
 
     @Override
@@ -56,6 +57,7 @@ public final class LocalMailboxURL extends MailboxURL {
         return file.hashCode();
     }
 
+    @Override
     public String getCanonicalName() {
         return file.canonicalPath();
     }

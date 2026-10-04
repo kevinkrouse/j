@@ -20,10 +20,11 @@
 
 package org.armedbear.j.mail;
 
+import static org.armedbear.j.Constants.*;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.lang.StringBuilder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Date;
@@ -59,45 +60,53 @@ public final class DraftsBuffer extends MailboxBuffer {
         return directory;
     }
 
+    @Override
     public String getName() {
         return directory.canonicalPath();
     }
 
+    @Override
     public int getMessageCount() {
         return 0;
     }
 
+    @Override
     public void getNewMessages() {
         reload();
     }
 
+    @Override
     public void createFolder() {
         notImplemented("DraftsBuffer.createFolder");
     }
 
+    @Override
     public void deleteFolder() {
         notImplemented("DraftsBuffer.deleteFolder");
     }
 
+    @Override
     public void saveToFolder() {
         notImplemented("DraftsBuffer.saveToFolder");
     }
 
+    @Override
     public void moveToFolder() {
         notImplemented("DraftsBuffer.moveToFolder");
     }
 
+    @Override
     public void delete() {
         final Editor editor = Editor.currentEditor();
         boolean advanceDot = false;
         List<MailboxEntry> list = getTaggedEntries();
         if (list == null) {
             Line line = editor.getDotLine();
-            if (!(line instanceof MailboxLine))
+            if (!(line instanceof MailboxLine mailboxLine))
                 return;
             advanceDot = true;
-            list = new ArrayList<MailboxEntry>();
-            list.add(((MailboxLine) line).getMailboxEntry());
+            list = new ArrayList<>();
+            list.add(mailboxLine.getMailboxEntry());
         }
         for (MailboxEntry aList : list) {
             DraftsEntry entry = (DraftsEntry) aList;
@@ -131,17 +140,18 @@ public final class DraftsBuffer extends MailboxBuffer {
             advanceDot(editor.getDotLine());
     }
 
+    @Override
     public void undelete() {
         final Editor editor = Editor.currentEditor();
         boolean advanceDot = false;
         List<MailboxEntry> list = getTaggedEntries();
         if (list == null) {
             Line line = editor.getDotLine();
-            if (!(line instanceof MailboxLine))
+            if (!(line instanceof MailboxLine mailboxLine))
                 return;
             advanceDot = true;
-            list = new ArrayList<MailboxEntry>();
-            list.add(((MailboxLine) line).getMailboxEntry());
+            list = new ArrayList<>();
+            list.add(mailboxLine.getMailboxEntry());
         }
         for (MailboxEntry aList : list) {
             DraftsEntry entry = (DraftsEntry) aList;
@@ -177,22 +187,27 @@ public final class DraftsBuffer extends MailboxBuffer {
             advanceDot(editor.getDotLine());
     }
 
+    @Override
     public void markRead() {
         notImplemented("DraftsBuffer.markRead");
     }
 
+    @Override
     public void markUnread() {
         notImplemented("DraftsBuffer.markUnread");
     }
 
+    @Override
     public void flag() {
         notImplemented("DraftsBuffer.flag");
     }
 
+    @Override
     public void setAnsweredFlag(MailboxEntry entry) {
         notImplemented("DraftsBuffer.setAnsweredFlag");
     }
 
+    @Override
     public void expunge() {
         if (lock()) {
             setBusy(true);
@@ -219,7 +234,7 @@ public final class DraftsBuffer extends MailboxBuffer {
     // Returns true if at least one message is expunged.
     private boolean expungeInternal() {
         boolean result = false;
-        entries = new ArrayList<MailboxEntry>();
+        entries = new ArrayList<>();
         String[] names = directory.list();
         if (names != null) {
             for (final String name : names) {
@@ -234,6 +249,7 @@ public final class DraftsBuffer extends MailboxBuffer {
         return result;
     }
 
+    @Override
     public int load() {
         if (lock()) {
             setBusy(true);
@@ -244,6 +260,7 @@ public final class DraftsBuffer extends MailboxBuffer {
             return LOAD_FAILED;
     }
 
+    @Override
     public void reload() {
         if (lock()) {
             setBusy(true);
@@ -289,7 +306,7 @@ public final class DraftsBuffer extends MailboxBuffer {
     };
 
     private void loadInternal() {
-        entries = new ArrayList<MailboxEntry>();
+        entries = new ArrayList<>();
         String[] names = directory.list();
         if (names != null) {
             for (final String name : names) {
@@ -305,6 +322,7 @@ public final class DraftsBuffer extends MailboxBuffer {
         refreshBuffer();
     }
 
+    @Override
     public MailboxEntry getInitialEntry() {
         Line line = getFirstLine();
         if (line == null)
@@ -317,10 +335,12 @@ public final class DraftsBuffer extends MailboxBuffer {
         return ((MailboxLine) line).getMailboxEntry();
     }
 
+    @Override
     public void readMessage(Line line) {
         readMessage(line, false);
     }
 
+    @Override
     public void readMessageOtherWindow(Line line) {
         readMessage(line, true);
     }
@@ -350,10 +370,12 @@ public final class DraftsBuffer extends MailboxBuffer {
         editor.switchToBuffer(buf);
     }
 
+    @Override
     public File getCurrentDirectory() {
         return directory;
     }
 
+    @Override
     public String toString() {
         return "drafts";
     }

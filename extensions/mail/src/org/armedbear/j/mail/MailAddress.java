@@ -21,7 +21,6 @@
 package org.armedbear.j.mail;
 
 import java.io.Serializable;
-import java.lang.StringBuilder;
 import java.util.ArrayList;
 import java.util.Objects;
 
@@ -86,6 +85,7 @@ public final class MailAddress implements Serializable {
         return address;
     }
 
+    @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();
         if (personal != null && personal.length() > 0) {
@@ -123,11 +123,11 @@ public final class MailAddress implements Serializable {
         return sb.toString();
     }
 
+    @Override
     public boolean equals(Object o) {
         if (this == o)
             return true;
-        if (o instanceof MailAddress) {
-            MailAddress ma = (MailAddress) o;
+        if (o instanceof MailAddress ma) {
             return Objects.equals(personal, ma.personal)
                 && Objects.equals(encodedPersonal, ma.encodedPersonal)
                 && Objects.equals(address, ma.address);
@@ -207,7 +207,7 @@ public final class MailAddress implements Serializable {
         input = input.trim();
         if (input.length() == 0)
             return null;
-        ArrayList<MailAddress> addresses = new ArrayList<MailAddress>();
+        ArrayList<MailAddress> addresses = new ArrayList<>();
         StringBuilder sb = new StringBuilder();
         boolean inQuote = false;
         final int limit = input.length();

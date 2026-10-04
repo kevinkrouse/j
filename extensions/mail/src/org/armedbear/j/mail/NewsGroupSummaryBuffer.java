@@ -20,10 +20,11 @@
 
 package org.armedbear.j.mail;
 
+import static org.armedbear.j.Constants.*;
+
 import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
-import java.lang.StringBuilder;
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -47,7 +48,7 @@ import org.armedbear.j.util.Utilities;
 public final class NewsGroupSummaryBuffer extends MailboxBuffer {
     private final NntpSession session;
     private final String groupName;
-    private final HashMap<String, String> map = new HashMap<String, String>();
+    private final HashMap<String, String> map = new HashMap<>();
 
     private ProgressNotifier progressNotifier;
     private String errorText;
@@ -71,10 +72,12 @@ public final class NewsGroupSummaryBuffer extends MailboxBuffer {
         return session;
     }
 
+    @Override
     public final String getName() {
         return groupName;
     }
 
+    @Override
     public int load() {
         setBusy(true);
         Background.start("NewsGroupSummaryBuffer load", loadRunnable);
@@ -83,6 +86,7 @@ public final class NewsGroupSummaryBuffer extends MailboxBuffer {
     }
 
     private Runnable loadRunnable = new Runnable() {
+        @Override
         public void run() {
             if (!session.connect()) {
                 errorText = session.getErrorText();
@@ -151,6 +155,7 @@ public final class NewsGroupSummaryBuffer extends MailboxBuffer {
     };
 
     private Runnable updateDisplayRunnable = new Runnable() {
+        @Override
         public void run() {
             setBusy(false);
             invalidate();
@@ -167,6 +172,7 @@ public final class NewsGroupSummaryBuffer extends MailboxBuffer {
     };
 
     private Runnable errorRunnable = new Runnable() {
+        @Override
         public void run() {
             Editor editor = Editor.currentEditor();
             editor.setDefaultCursor();
@@ -180,10 +186,10 @@ public final class NewsGroupSummaryBuffer extends MailboxBuffer {
     };
 
     public void readArticle(Editor editor, Line line, boolean useOtherWindow) {
-        if (line instanceof MailboxLine) {
+        if (line instanceof MailboxLine mailboxLine) {
             editor.setMark(null);
             NewsGroupSummaryEntry entry =
-                (NewsGroupSummaryEntry) ((MailboxLine) line).getMailboxEntry();
+                (NewsGroupSummaryEntry) mailboxLine.getMailboxEntry();
             NewsGroupMessageBuffer mb = new NewsGroupMessageBuffer(this, entry);
             activateMessageBuffer(editor, mb, useOtherWindow);
         }
@@ -249,6 +255,7 @@ public final class NewsGroupSummaryBuffer extends MailboxBuffer {
         }
     }
 
+    @Override
     public Position getInitialDotPos() {
         return getFirstLine() != null ? new Position(getFirstLine(), 0) : null;
     }
@@ -264,7 +271,7 @@ public final class NewsGroupSummaryBuffer extends MailboxBuffer {
             return;
         if (last - first > numberToGet)
             first = last - numberToGet;
-        entries = new ArrayList<MailboxEntry>();
+        entries = new ArrayList<>();
         if (session.writeLine("XOVER " + first + "-" + last)) {
             String s = session.readLine();
             if (s.startsWith("224")) {
@@ -289,6 +296,7 @@ public final class NewsGroupSummaryBuffer extends MailboxBuffer {
         }
     }
 
+    @Override
     public void dispose() {
         if (session != null) {
             Runnable r = () -> {
@@ -299,38 +307,53 @@ public final class NewsGroupSummaryBuffer extends MailboxBuffer {
     }
 
     // For the buffer list.
+    @Override
     public Icon getIcon() {
         return Icons.getIconFromFile("mailbox");
     }
 
+    @Override
     public void getNewMessages() {}
 
+    @Override
     public void readMessage(Line line) {}
 
+    @Override
     public void createFolder() {}
 
+    @Override
     public void deleteFolder() {}
 
+    @Override
     public void saveToFolder() {}
 
+    @Override
     public void moveToFolder() {}
 
+    @Override
     public void delete() {}
 
+    @Override
     public void undelete() {}
 
+    @Override
     public void markRead() {}
 
+    @Override
     public void markUnread() {}
 
+    @Override
     public void setAnsweredFlag(MailboxEntry entry) {}
 
+    @Override
     public void expunge() {}
 
+    @Override
     public int getMessageCount() {
         return 0;
     }
 
+    @Override
     public void saveView(Editor editor) {
         final View view = saveViewInternal(editor);
         editor.setView(this, view);

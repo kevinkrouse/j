@@ -20,6 +20,8 @@
 
 package org.armedbear.j.mail;
 
+import static org.armedbear.j.Constants.*;
+
 import java.io.BufferedInputStream;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -29,7 +31,6 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
-import java.lang.StringBuilder;
 import java.net.MalformedURLException;
 import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
@@ -72,10 +73,12 @@ import org.armedbear.j.util.Icons;
 import org.armedbear.j.util.Utilities;
 
 public final class SendMail extends Buffer {
+    @Override
     public boolean isMessageHeader(Line line) {
         return isHeaderLine(line) || line.getText().equals(HEADER_SEPARATOR);
     }
 
+    @Override
     public boolean isManagedFile() {
         return true;
     }
@@ -166,11 +169,11 @@ public final class SendMail extends Buffer {
             // Get senders.
             List<MailAddress> senders = null;
             if (replyTo != null && replyTo.length > 0) {
-                senders = new ArrayList<MailAddress>();
+                senders = new ArrayList<>();
                 for (int i = 0; i < replyTo.length; i++)
                     senders.add(replyTo[i]);
             } else if (from != null && from.length > 0) {
-                senders = new ArrayList<MailAddress>();
+                senders = new ArrayList<>();
                 for (int i = 0; i < from.length; i++)
                     senders.add(from[i]);
             }
@@ -194,7 +197,7 @@ public final class SendMail extends Buffer {
                 appendAddressHeader("To: ", senders);
             }
             // Gather addresses for reply to group.
-            group = new ArrayList<MailAddress>();
+            group = new ArrayList<>();
             if (!skipTo && to != null) {
                 for (int i = 0; i < to.length; i++) {
                     MailAddress a = to[i];
@@ -279,6 +282,7 @@ public final class SendMail extends Buffer {
         setInitialized(true);
     }
 
+    @Override
     public int load() {
         super.load();
         title = getSubject();
@@ -287,11 +291,11 @@ public final class SendMail extends Buffer {
         return LOAD_COMPLETED;
     }
 
+    @Override
     public boolean save() {
         boolean result = super.save();
         for (Buffer buf : Editor.getBufferList()) {
-            if (buf instanceof DraftsBuffer) {
-                DraftsBuffer draftsBuffer = (DraftsBuffer) buf;
+            if (buf instanceof DraftsBuffer draftsBuffer) {
                 draftsBuffer.reload();
                 break;
             }
@@ -505,6 +509,7 @@ public final class SendMail extends Buffer {
         return HEADER_SEPARATOR;
     }
 
+    @Override
     public void modified() {
         super.modified();
         setTitle();
@@ -629,7 +634,7 @@ public final class SendMail extends Buffer {
         if (from != null)
             replaceFrom(from);
         if (d.bccAddSender() || d.bccAddOther()) {
-            List<MailAddress> bccList = new ArrayList<MailAddress>();
+            List<MailAddress> bccList = new ArrayList<>();
             MailAddress[] bcc = MailAddress.parseAddresses(getBcc());
             if (bcc != null) {
                 Collections.addAll(bccList, bcc);
@@ -748,8 +753,7 @@ public final class SendMail extends Buffer {
             Log.debug("deleting draft " + file);
             file.delete();
             for (Buffer buf : Editor.getBufferList()) {
-                if (buf instanceof DraftsBuffer) {
-                    DraftsBuffer draftsBuffer = (DraftsBuffer) buf;
+                if (buf instanceof DraftsBuffer draftsBuffer) {
                     draftsBuffer.reload();
                     break;
                 }
@@ -1001,7 +1005,7 @@ public final class SendMail extends Buffer {
         if (group == null)
             return;
         // Entries from the original group will come first in the new list.
-        List<MailAddress> newList = new ArrayList<MailAddress>(group);
+        List<MailAddress> newList = new ArrayList<>(group);
         // Add the entries from the existing "Cc:" header (if any) back in.
         MailAddress[] cc = MailAddress.parseAddresses(getCc());
         if (cc != null) {
@@ -1157,7 +1161,7 @@ public final class SendMail extends Buffer {
     }
 
     public List<String> getAddressees() {
-        ArrayList<String> list = new ArrayList<String>();
+        ArrayList<String> list = new ArrayList<>();
         appendAddressesFromString(list, getTo());
         appendAddressesFromString(list, getCc());
         appendAddressesFromString(list, getBcc());
@@ -1250,6 +1254,7 @@ public final class SendMail extends Buffer {
         return sb != null ? sb.toString() : null;
     }
 
+    @Override
     public Position getInitialDotPos() {
         if (reply) {
             for (Line line = getFirstLine(); line != null; line = line.next()) {
@@ -1279,7 +1284,7 @@ public final class SendMail extends Buffer {
                 String filename = line.getText().substring(11).trim();
                 if (filename.length() > 0) {
                     if (attachments == null)
-                        attachments = new ArrayList<String>();
+                        attachments = new ArrayList<>();
                     attachments.add(filename);
                 }
             }
@@ -1378,21 +1383,25 @@ public final class SendMail extends Buffer {
         }
     }
 
+    @Override
     public File getCurrentDirectory() {
         return Directories.getUserHomeDirectory();
     }
 
+    @Override
     public File getCompletionDirectory() {
         return Directories.getUserHomeDirectory();
     }
 
     // For the buffer list.
+    @Override
     public Icon getIcon() {
         if (isModified())
             return Icons.getIconFromFile("compose_modified");
         return Icons.getIconFromFile("compose");
     }
 
+    @Override
     public String getFileNameForDisplay() {
         return "";
     }
@@ -1555,6 +1564,7 @@ public final class SendMail extends Buffer {
         }
     }
 
+    @Override
     public Expansion getExpansion(Position dot) {
         int endOfHeaders = -1;
         for (Line line = getFirstLine(); line != null; line = line.next()) {

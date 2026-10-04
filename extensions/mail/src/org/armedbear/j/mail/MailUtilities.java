@@ -21,7 +21,6 @@
 package org.armedbear.j.mail;
 
 import java.io.ObjectInputFilter;
-import java.lang.StringBuilder;
 import java.util.List;
 import org.armedbear.j.util.Utilities;
 

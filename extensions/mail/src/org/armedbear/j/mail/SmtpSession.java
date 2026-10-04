@@ -61,7 +61,7 @@ public final class SmtpSession extends Writer {
     private boolean connected;
     private String errorText;
     private String responseText;
-    private final List<String> responseLines = new ArrayList<String>();
+    private final List<String> responseLines = new ArrayList<>();
     private boolean echo;
 
     private SmtpSession(SmtpURL url, String user, String password) {
@@ -413,30 +413,37 @@ public final class SmtpSession extends Writer {
         }
     }
 
+    @Override
     public void write(int c) throws IOException {
         writer.write(c);
     }
 
+    @Override
     public void write(char[] chars) throws IOException {
         writer.write(chars);
     }
 
+    @Override
     public void write(char[] chars, int offset, int length) throws IOException {
         writer.write(chars, offset, length);
     }
 
+    @Override
     public void write(String s) throws IOException {
         writer.write(s);
     }
 
+    @Override
     public void write(String s, int offset, int length) throws IOException {
         writer.write(s, offset, length);
     }
 
+    @Override
     public void flush() throws IOException {
         writer.flush();
     }
 
+    @Override
     public void close() throws IOException {
         writer.close();
     }

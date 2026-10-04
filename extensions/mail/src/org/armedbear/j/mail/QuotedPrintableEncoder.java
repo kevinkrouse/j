@@ -21,7 +21,6 @@
 package org.armedbear.j.mail;
 
 import java.io.UnsupportedEncodingException;
-import java.lang.StringBuilder;
 import org.armedbear.j.Log;
 
 public final class QuotedPrintableEncoder {

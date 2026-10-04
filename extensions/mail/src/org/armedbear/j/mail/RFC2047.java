@@ -21,7 +21,6 @@
 package org.armedbear.j.mail;
 
 import java.io.UnsupportedEncodingException;
-import java.lang.StringBuilder;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.armedbear.j.Log;

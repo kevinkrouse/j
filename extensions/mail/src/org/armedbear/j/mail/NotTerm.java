@@ -27,6 +27,7 @@ public final class NotTerm extends MailboxFilter {
         this.filter = filter;
     }
 
+    @Override
     public final boolean accept(MailboxEntry entry) {
         return !filter.accept(entry);
     }

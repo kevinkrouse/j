@@ -21,7 +21,6 @@
 package org.armedbear.j.mail;
 
 import java.io.Serializable;
-import java.lang.StringBuilder;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
@@ -56,7 +55,7 @@ public final class RFC822Date implements Serializable {
         if (input == null || input.length() == 0)
             return new RFC822Date();
         final StringTokenizer st = new StringTokenizer(input, " ,");
-        final ArrayList<String> tokens = new ArrayList<String>();
+        final ArrayList<String> tokens = new ArrayList<>();
         while (st.hasMoreTokens())
             tokens.add(st.nextToken());
         final int tokenCount = tokens.size();
@@ -282,6 +281,7 @@ public final class RFC822Date implements Serializable {
     private static final DateTimeFormatter toStringFormat =
         DateTimeFormatter.ofPattern("EEE, dd MMM yyyy HH:mm:ss", Locale.US);
 
+    @Override
     public String toString() {
         if (date == null)
             return "null";

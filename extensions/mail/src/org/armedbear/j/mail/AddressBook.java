@@ -45,7 +45,7 @@ public final class AddressBook {
     private List<AddressBookEntry> entries;
 
     private AddressBook() {
-        entries = new ArrayList<AddressBookEntry>();
+        entries = new ArrayList<>();
     }
 
     public static AddressBook getGlobalAddressBook() {

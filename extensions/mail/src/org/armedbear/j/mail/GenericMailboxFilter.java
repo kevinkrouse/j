@@ -31,6 +31,7 @@ public final class GenericMailboxFilter extends MailboxFilter {
         ignoreCase = Utilities.isLowerCase(pattern);
     }
 
+    @Override
     public boolean accept(MailboxEntry entry) {
         String subject = entry.getSubject();
         if (subject != null) {

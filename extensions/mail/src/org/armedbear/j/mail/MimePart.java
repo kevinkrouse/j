@@ -442,7 +442,7 @@ public class MimePart {
         }
         final String disposition = getDisposition();
         if (disposition != null && disposition.equalsIgnoreCase("attachment")) {
-            parts = new ArrayList<MimePart>();
+            parts = new ArrayList<>();
             MimePart part = new MimePart(raw);
             parts.add(part);
         }
@@ -455,7 +455,7 @@ public class MimePart {
         int start = raw.indexOf(marker);
         if (start < 0)
             return null;
-        List<MimePart> v = new ArrayList<MimePart>();
+        List<MimePart> v = new ArrayList<>();
         while (true) {
             start += marker.length();
             if (raw.charAt(start) == '\r')

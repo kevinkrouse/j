@@ -67,16 +67,18 @@ public final class FolderTree extends JTree implements NavigationComponent,
         return tree;
     }
 
+    @Override
     public void refresh() {}
 
+    @Override
     public void updatePosition() {
         int row = -1;
         final Buffer buf = frame.getCurrentEditor().getBuffer();
         MailboxURL url = null;
-        if (buf instanceof MailboxBuffer)
-            url = ((MailboxBuffer) buf).getUrl();
-        else if (buf instanceof MessageBuffer) {
-            MailboxBuffer mailboxBuffer = ((MessageBuffer) buf).getMailbox();
+        if (buf instanceof MailboxBuffer mailboxBuffer)
+            url = mailboxBuffer.getUrl();
+        else if (buf instanceof MessageBuffer messageBuffer) {
+            MailboxBuffer mailboxBuffer = messageBuffer.getMailbox();
             if (mailboxBuffer != null)
                 url = mailboxBuffer.getUrl();
         }
@@ -116,14 +118,18 @@ public final class FolderTree extends JTree implements NavigationComponent,
         repaint();
     }
 
+    @Override
     public final String getLabelText() {
         return "Folders";
     }
 
+    @Override
     public void mousePressed(MouseEvent e) {}
 
+    @Override
     public void mouseReleased(MouseEvent e) {}
 
+    @Override
     public void mouseClicked(MouseEvent e) {
         final Editor editor = frame.getCurrentEditor();
         final int button = e.getButton();
@@ -143,8 +149,7 @@ public final class FolderTree extends JTree implements NavigationComponent,
             DefaultMutableTreeNode node =
                 (DefaultMutableTreeNode) treePath.getLastPathComponent();
             Object object = node.getUserObject();
-            if (object instanceof Folder) {
-                Folder folder = (Folder) object;
+            if (object instanceof Folder folder) {
                 MailboxURL url = folder.getUrl();
                 editor.setWaitCursor();
                 MailCommands.openMailbox(editor, url);
@@ -155,8 +160,10 @@ public final class FolderTree extends JTree implements NavigationComponent,
         editor.setFocusToDisplay();
     }
 
+    @Override
     public void mouseEntered(MouseEvent e) {}
 
+    @Override
     public void mouseExited(MouseEvent e) {
         updatePosition();
         frame.getCurrentEditor().setFocusToDisplay();
@@ -175,6 +182,7 @@ public final class FolderTree extends JTree implements NavigationComponent,
             oldBackgroundSelectionColor = getBackgroundSelectionColor();
         }
 
+        @Override
         public void updateUI() {
             super.updateUI();
             setOpenIcon(Icons.getIconFromFile("dir_open"));
@@ -182,6 +190,7 @@ public final class FolderTree extends JTree implements NavigationComponent,
             setLeafIcon(Icons.getIconFromFile("mailbox"));
         }
 
+        @Override
         public Component getTreeCellRendererComponent(
             JTree tree,
             Object value,
@@ -211,6 +220,7 @@ public final class FolderTree extends JTree implements NavigationComponent,
             return this;
         }
 
+        @Override
         public void paintComponent(Graphics g) {
             Display.setRenderingHints(g);
             super.paintComponent(g);

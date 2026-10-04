@@ -21,7 +21,6 @@
 package org.armedbear.j.mail;
 
 import java.io.Serializable;
-import java.lang.StringBuilder;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -337,7 +336,7 @@ import org.armedbear.j.util.Tuple2;
 
         try {
             int num = Integer.parseInt(s.substring(0, i));
-            return new Tuple2<Integer, String>(num, s.substring(i));
+            return new Tuple2<>(num, s.substring(i));
         }
         catch (NumberFormatException e) {
             Log.error(e);
@@ -464,7 +463,7 @@ import org.armedbear.j.util.Tuple2;
                     flags |= JUNK;
             }
         }
-        return new Tuple2<Integer, String>(flags, p.second);
+        return new Tuple2<>(flags, p.second);
     }
 
     private static Tuple2<String, String> parseQuoted(String s) {
@@ -529,7 +528,7 @@ import org.armedbear.j.util.Tuple2;
             quoted = s.substring(begin + 1, end);
             remaining = s.substring(end + 1);
         }
-        return new Tuple2<String, String>(quoted, remaining);
+        return new Tuple2<>(quoted, remaining);
     }
 
     private static Tuple2<String, String> parseParenthesized(String s) {
@@ -560,13 +559,13 @@ import org.armedbear.j.util.Tuple2;
             return null;
         String parenthesized = s.substring(begin + 1, end);
         String remaining = s.substring(end + 1);
-        return new Tuple2<String, String>(parenthesized, remaining);
+        return new Tuple2<>(parenthesized, remaining);
     }
 
     static private Tuple2<String, String> parseParenthesizedList(String s) {
         s = s.trim();
         if (s.startsWith("NIL"))
-            return new Tuple2<String, String>(null, s.substring(3).trim());
+            return new Tuple2<>(null, s.substring(3).trim());
         final int begin = s.indexOf("((");
         if (begin < 0)
             return null;
@@ -594,13 +593,13 @@ import org.armedbear.j.util.Tuple2;
             return null;
         String list = s.substring(begin, end + 2);
         String remaining = s.substring(end + 2);
-        return new Tuple2<String, String>(list, remaining);
+        return new Tuple2<>(list, remaining);
     }
 
     private static MailAddress[] parseAddressList(String list) {
         if (list == null)
             return null;
-        ArrayList<MailAddress> addresses = new ArrayList<MailAddress>();
+        ArrayList<MailAddress> addresses = new ArrayList<>();
         String remaining = list.substring(1, list.length() - 1);
         while (remaining.length() > 0) {
             Tuple2<String, String> p = parseParenthesized(remaining);

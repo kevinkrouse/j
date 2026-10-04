@@ -106,7 +106,7 @@ public final class IncomingFilter {
             return;
         }
         if (filterList == null)
-            filterList = new ArrayList<IncomingFilter>();
+            filterList = new ArrayList<>();
         filterList.add(
             new IncomingFilter(
                 mailbox,

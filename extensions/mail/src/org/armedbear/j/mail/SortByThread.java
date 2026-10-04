@@ -35,7 +35,7 @@ public final class SortByThread {
     private final List<MailboxEntry> entries;
 
     private final Node root = new Node();
-    private final Map<String, Node> idMap = new HashMap<String, Node>();
+    private final Map<String, Node> idMap = new HashMap<>();
 
     public SortByThread(List<? extends MailboxEntry> entries) {
         this.entries = Collections.unmodifiableList(entries);
@@ -44,7 +44,7 @@ public final class SortByThread {
     public void run() {
         final int count = entries.size();
         // Create all the nodes and populate the ID map.
-        ArrayList<Node> nodes = new ArrayList<Node>(count);
+        ArrayList<Node> nodes = new ArrayList<>(count);
         for (final MailboxEntry entry : entries) {
             Node node = new Node(entry);
             nodes.add(node);
@@ -210,7 +210,7 @@ public final class SortByThread {
     }
 
     private HashMap<String, Node> createSubjectMap() {
-        HashMap<String, Node> subjectMap = new HashMap<String, Node>();
+        HashMap<String, Node> subjectMap = new HashMap<>();
         for (int i = 0, limit = root.getChildCount(); i < limit; i++) {
             final Node node = (Node) root.getChildAt(i);
             MailboxEntry entry = node.getMailboxEntry();

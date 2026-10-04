@@ -20,6 +20,8 @@
 
 package org.armedbear.j.mail;
 
+import static org.armedbear.j.Constants.*;
+
 import javax.swing.SwingUtilities;
 import org.armedbear.j.BackgroundProcess;
 import org.armedbear.j.Debug;
@@ -77,6 +79,7 @@ public final class ImapMessageBuffer extends MessageBuffer {
         readOnly = true;
     }
 
+    @Override
     public int load() {
         if (isLoaded())
             return LOAD_COMPLETED;
@@ -93,6 +96,7 @@ public final class ImapMessageBuffer extends MessageBuffer {
     private BackgroundProcess loadProcess = new BackgroundProcess() {
         private ProgressNotifier progressNotifier;
 
+        @Override
         public void run() {
             // Mailbox is locked in ImapMailboxBuffer.readMessage() before calling
             // ImapMessageBuffer constructor.
@@ -118,6 +122,7 @@ public final class ImapMessageBuffer extends MessageBuffer {
             }
         }
 
+        @Override
         public void cancel() {
             Log.debug("loadProcess.cancel cancelled!");
             cancelled = true;
@@ -129,10 +134,12 @@ public final class ImapMessageBuffer extends MessageBuffer {
         }
     };
 
+    @Override
     public void deleteMessage() {
         storeFlagsInternal(ACTION_DELETE);
     }
 
+    @Override
     public void flagMessage() {
         storeFlagsInternal(ACTION_FLAG);
     }
@@ -216,6 +223,7 @@ public final class ImapMessageBuffer extends MessageBuffer {
         Background.start("ImapMessageBuffer delete message", deleteMessageRunnable);
     }
 
+    @Override
     public void moveMessage() {
         final Editor editor = Editor.currentEditor();
         final ImapMailboxEntry toBeMoved = (ImapMailboxEntry) entry;

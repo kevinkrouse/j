@@ -20,7 +20,8 @@
 
 package org.armedbear.j.mail;
 
-import java.lang.StringBuilder;
+import static org.armedbear.j.Constants.*;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -85,6 +86,7 @@ public abstract class MailboxBuffer extends Buffer {
         previewBuffer = buf;
     }
 
+    @Override
     public Buffer getSecondary() {
         return previewBuffer;
     }
@@ -220,8 +222,8 @@ public abstract class MailboxBuffer extends Buffer {
     }
 
     public void tag(Editor editor, Line line) {
-        if (line instanceof MailboxLine) {
-            MailboxEntry entry = ((MailboxLine) line).getMailboxEntry();
+        if (line instanceof MailboxLine mailboxLine) {
+            MailboxEntry entry = mailboxLine.getMailboxEntry();
             entry.toggleTag();
             Editor.updateInAllEditors(line);
             if (line.next() != null) {
@@ -295,7 +297,7 @@ public abstract class MailboxBuffer extends Buffer {
         for (MailboxEntry entry : entries) {
             if (entry.isTagged()) {
                 if (taggedEntries == null)
-                    taggedEntries = new ArrayList<MailboxEntry>();
+                    taggedEntries = new ArrayList<>();
                 taggedEntries.add(entry);
             }
         }
@@ -304,8 +306,8 @@ public abstract class MailboxBuffer extends Buffer {
 
     public MailboxEntry getEntryAtDot(Editor editor) {
         Line line = editor.getDotLine();
-        if (line instanceof MailboxLine)
-            return ((MailboxLine) line).getMailboxEntry();
+        if (line instanceof MailboxLine mailboxLine)
+            return mailboxLine.getMailboxEntry();
         else
             return null;
     }
@@ -446,7 +448,7 @@ public abstract class MailboxBuffer extends Buffer {
             MailboxEntry entry = getEntryAtDot(editor);
             if (entry == null)
                 return;
-            list = new ArrayList<MailboxEntry>(1);
+            list = new ArrayList<>(1);
             list.add(entry);
         }
         final List<MailboxEntry> toBeBounced = list;
@@ -689,6 +691,7 @@ public abstract class MailboxBuffer extends Buffer {
     }
 
     // Find first message that's not seen and not deleted.
+    @Override
     public Position getInitialDotPos() {
         if (getFirstLine() == null)
             return null;
@@ -785,13 +788,12 @@ public abstract class MailboxBuffer extends Buffer {
     public void foldThread(Line line) {
         if (!getBooleanProperty(Property.GROUP_BY_THREAD))
             return;
-        if (line instanceof MailboxLine) {
-            MailboxLine begin = (MailboxLine) line;
+        if (line instanceof MailboxLine begin) {
             // Find start of thread.
             while (begin.getDepth() > 1) {
                 Line prev = begin.previous();
-                if (prev instanceof MailboxLine)
-                    begin = (MailboxLine) prev;
+                if (prev instanceof MailboxLine mailboxLine)
+                    begin = mailboxLine;
                 else
                     break;
             }
@@ -799,8 +801,8 @@ public abstract class MailboxBuffer extends Buffer {
                 MailboxLine end = (MailboxLine) begin.next();
                 while (end.getDepth() > 1) {
                     Line next = end.next();
-                    if (next instanceof MailboxLine)
-                        end = (MailboxLine) next;
+                    if (next instanceof MailboxLine mailboxLine)
+                        end = mailboxLine;
                     else
                         break;
                 }
@@ -825,8 +827,8 @@ public abstract class MailboxBuffer extends Buffer {
                         MailboxLine end = (MailboxLine) begin.next();
                         while (end.getDepth() > 1) {
                             Line next = end.next();
-                            if (next instanceof MailboxLine)
-                                end = (MailboxLine) next;
+                            if (next instanceof MailboxLine mailboxLine)
+                                end = mailboxLine;
                             else
                                 break;
                         }
@@ -862,7 +864,7 @@ public abstract class MailboxBuffer extends Buffer {
         } else {
             Debug.assertTrue(sortBy == SORT_BY_DATE_SENT);
             // Don't change order of entries!
-            ArrayList<MailboxEntry> temp = new ArrayList<MailboxEntry>(entries);
+            ArrayList<MailboxEntry> temp = new ArrayList<>(entries);
             sortEntriesByDate(temp);
             List<MailboxEntry> matchingEntries = getMatchingEntries(temp, limitFilter);
             if (!withWriteLock(() -> {
@@ -883,10 +885,10 @@ public abstract class MailboxBuffer extends Buffer {
     // Never returns null.
     private static List<MailboxEntry> getMatchingEntries(List<MailboxEntry> list, MailboxFilter filter) {
         if (list == null)
-            return new ArrayList<MailboxEntry>();
+            return new ArrayList<>();
         if (filter == null)
-            return new ArrayList<MailboxEntry>(list);
-        ArrayList<MailboxEntry> matchingEntries = new ArrayList<MailboxEntry>();
+            return new ArrayList<>(list);
+        ArrayList<MailboxEntry> matchingEntries = new ArrayList<>();
         final int size = list.size();
         for (MailboxEntry entry : list) {
             if (filter.accept(entry))
@@ -980,10 +982,12 @@ public abstract class MailboxBuffer extends Buffer {
     }
 
     // For the buffer list.
+    @Override
     public Icon getIcon() {
         return Icons.getIconFromFile(newMessageCount > 0 ? "mailbox_new.png" : "mailbox.png");
     }
 
+    @Override
     public String getFileNameForDisplay() {
         return "";
     }
@@ -1021,8 +1025,8 @@ public abstract class MailboxBuffer extends Buffer {
     public boolean isChildVisible() {
         for (Editor ed : Editor.getEditorList()) {
             Buffer buffer = ed.getBuffer();
-            if (buffer instanceof MessageBuffer)
-                if (((MessageBuffer) buffer).getMailbox() == this)
+            if (buffer instanceof MessageBuffer messageBuffer)
+                if (messageBuffer.getMailbox() == this)
                     return true;
         }
         return false;
@@ -1172,6 +1176,7 @@ public abstract class MailboxBuffer extends Buffer {
             SwingUtilities.invokeLater(r);
     }
 
+    @Override
     public String getStatusText(Editor editor) {
         StringBuilder sb = new StringBuilder();
         if (editor.getDot() != null) {
@@ -1196,20 +1201,22 @@ public abstract class MailboxBuffer extends Buffer {
         return sb.toString();
     }
 
+    @Override
     public void saveView(Editor editor) {
         final View view = saveViewInternal(editor);
         final Line topLine = editor.getTopLine();
-        if (topLine instanceof MailboxLine)
-            view.setTopEntry(((MailboxLine) topLine).getMailboxEntry());
+        if (topLine instanceof MailboxLine mailboxLine)
+            view.setTopEntry(mailboxLine.getMailboxEntry());
         if (editor.getDot() != null) {
             Line dotLine = editor.getDotLine();
-            if (dotLine instanceof MailboxLine)
-                view.setDotEntry(((MailboxLine) dotLine).getMailboxEntry());
+            if (dotLine instanceof MailboxLine mailboxLine)
+                view.setDotEntry(mailboxLine.getMailboxEntry());
         }
         editor.setView(this, view);
         setLastView(view);
     }
 
+    @Override
     public void restoreView(Editor editor) {
         final Display display = editor.getDisplay();
         final View view = editor.getView(this);
