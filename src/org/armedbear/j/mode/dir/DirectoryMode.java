@@ -20,12 +20,13 @@
 
 package org.armedbear.j.mode.dir;
 
+import static org.armedbear.j.Constants.*;
+
 import java.awt.event.KeyEvent;
 import javax.swing.ButtonGroup;
 import javax.swing.JRadioButtonMenuItem;
 import org.armedbear.j.AbstractMode;
 import org.armedbear.j.Buffer;
-import org.armedbear.j.Constants;
 import org.armedbear.j.Debug;
 import org.armedbear.j.Editor;
 import org.armedbear.j.Formatter;
@@ -39,7 +40,7 @@ import org.armedbear.j.Property;
 import org.armedbear.j.ToolBar;
 import org.armedbear.j.View;
 
-public final class DirectoryMode extends AbstractMode implements Constants, Mode {
+public final class DirectoryMode extends AbstractMode implements Mode {
     private static final DirectoryMode mode = new DirectoryMode();
 
     private DirectoryMode() {
@@ -55,6 +56,7 @@ public final class DirectoryMode extends AbstractMode implements Constants, Mode
         return mode;
     }
 
+    @Override
     public NavigationComponent getSidebarComponent(Editor editor) {
         Debug.assertTrue(editor.getBuffer().getMode() == mode);
         if (!editor.getBuffer().getBooleanProperty(Property.ENABLE_TREE))
@@ -67,10 +69,12 @@ public final class DirectoryMode extends AbstractMode implements Constants, Mode
         return view.getSidebarComponent();
     }
 
+    @Override
     public Formatter getFormatter(Buffer buffer) {
         return new DirectoryFormatter(buffer);
     }
 
+    @Override
     protected void setKeyMapDefaults(KeyMap km) {
         km.mapKey(KeyEvent.VK_ENTER, 0, "dirOpenFile");
         km.mapKey(KeyEvent.VK_G, CTRL_MASK | SHIFT_MASK, "dirOpenFile");
@@ -95,6 +99,7 @@ public final class DirectoryMode extends AbstractMode implements Constants, Mode
         km.mapKey('f', "dirForward");
     }
 
+    @Override
     public void populateMenu(Editor editor, Menu menu) {
         final String text = menu.getText();
         if (text == "File") {
@@ -133,9 +138,10 @@ public final class DirectoryMode extends AbstractMode implements Constants, Mode
             super.populateMenu(editor, menu);
     }
 
+    @Override
     public void populateModeMenu(Editor editor, Menu menu) {
         Buffer buffer = editor.getBuffer();
-        DirectoryBuffer dir = buffer instanceof DirectoryBuffer ? (DirectoryBuffer) buffer : null;
+        DirectoryBuffer dir = buffer instanceof DirectoryBuffer directoryBuffer ? directoryBuffer : null;
         menu.add(editor, "Copy File...", 'C', "dirCopyFile");
         menu.add(editor, "Move File...", 'M', "dirMoveFile");
         menu.add(editor, "Delete File", 'D', "dirDeleteFiles");
@@ -192,13 +198,14 @@ public final class DirectoryMode extends AbstractMode implements Constants, Mode
     private static void resort(int sortBy) {
         final Editor editor = Editor.currentEditor();
         final Buffer buffer = editor.getBuffer();
-        if (buffer instanceof DirectoryBuffer) {
+        if (buffer instanceof DirectoryBuffer directoryBuffer) {
             editor.setWaitCursor();
-            ((DirectoryBuffer) buffer).resort(sortBy);
+            directoryBuffer.resort(sortBy);
             editor.setDefaultCursor();
         }
     }
 
+    @Override
     protected ToolBar getDefaultToolBar(Frame frame) {
         return new DirectoryModeToolBar(frame);
     }

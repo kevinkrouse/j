@@ -74,7 +74,7 @@ public class DirectoryTreeModel extends DefaultTreeModel {
         model = new DirectoryTreeModel(root, rootFile);
         addChildren(rootFile, root);
         if (remoteModels == null)
-            remoteModels = new ArrayList<DirectoryTreeModel>();
+            remoteModels = new ArrayList<>();
         remoteModels.add(model);
         return model;
     }

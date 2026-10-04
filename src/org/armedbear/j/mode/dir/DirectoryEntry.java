@@ -20,7 +20,6 @@
 
 package org.armedbear.j.mode.dir;
 
-import java.lang.StringBuilder;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
@@ -185,6 +184,7 @@ public final class DirectoryEntry {
         return string;
     }
 
+    @Override
     public String toString() {
         String marked = isMarked ? "T " : "  ";
         // Use saved string for native format.

@@ -37,6 +37,7 @@ public final class DirectoryTreeElement {
         return file.canonicalPath();
     }
 
+    @Override
     public String toString() {
         if (file.canonicalPath().equals("/")) {
             if (file.isRemote())

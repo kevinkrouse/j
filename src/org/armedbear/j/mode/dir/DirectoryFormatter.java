@@ -41,6 +41,7 @@ public final class DirectoryFormatter extends Formatter {
         directory = (DirectoryBuffer) buffer;
     }
 
+    @Override
     public LineSegmentList formatLine(Line line) {
         clearSegmentList();
         if (line == null || line.length() == 0) {
@@ -86,6 +87,7 @@ public final class DirectoryFormatter extends Formatter {
         return matcher.find() ? matcher.end() : text.length();
     }
 
+    @Override
     public FormatTable getFormatTable() {
         if (formatTable == null) {
             formatTable = new FormatTable("DirectoryMode");
