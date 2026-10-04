@@ -23,7 +23,7 @@ package org.armedbear.j.vcs;
 import java.lang.StringBuilder;
 import java.util.ArrayList;
 import java.util.List;
-import javax.swing.SwingUtilities;
+import java.util.function.Consumer;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Constants;
 import org.armedbear.j.Directories;
@@ -34,7 +34,7 @@ import org.armedbear.j.OutputBuffer;
 import org.armedbear.j.Property;
 import org.armedbear.j.ShellCommand;
 import org.armedbear.j.mode.diff.DiffOutputBuffer;
-import org.armedbear.j.util.Background;
+import org.armedbear.j.util.ProcessRunner;
 import org.armedbear.j.util.Utilities;
 import org.armedbear.j.vcs.git.GitStatusCache;
 
@@ -205,6 +205,13 @@ public abstract class VersionControl implements Constants {
     }
 
     // Implementation.
+    /** Runs cmd in the shell in the background, then onDone with its output on the event thread. */
+    protected static void commandAsync(String cmd, File workingDirectory, Consumer<String> onDone) {
+        ProcessRunner.shell(cmd)
+            .directory(workingDirectory)
+            .runAsync("version control", r -> onDone.accept(r.output()));
+    }
+
     protected static String command(String cmd, File workingDirectory) {
         ShellCommand shellCommand = new ShellCommand(cmd, workingDirectory);
         shellCommand.run();
@@ -213,18 +220,13 @@ public abstract class VersionControl implements Constants {
 
     protected static void outputBufferCommand(final Editor editor, final String cmd, final File workingDirectory) {
         editor.setWaitCursor();
-        Runnable commandRunnable = () -> {
-            final String output = command(cmd, workingDirectory);
-            Runnable completionRunnable = () -> {
-                OutputBuffer buf = OutputBuffer.getOutputBuffer(output);
-                buf.setTitle(cmd);
-                editor.makeNext(buf);
-                editor.activateInOtherWindow(buf);
-                editor.setDefaultCursor();
-            };
-            SwingUtilities.invokeLater(completionRunnable);
-        };
-        Background.start("VersionControl command", commandRunnable);
+        commandAsync(cmd, workingDirectory, output -> {
+            OutputBuffer buf = OutputBuffer.getOutputBuffer(output);
+            buf.setTitle(cmd);
+            editor.makeNext(buf);
+            editor.activateInOtherWindow(buf);
+            editor.setDefaultCursor();
+        });
     }
 
     protected static List<Buffer> getModifiedBuffers() {

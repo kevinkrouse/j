@@ -47,6 +47,7 @@ import org.armedbear.j.StatusBarProgressNotifier;
 import org.armedbear.j.TextLine;
 import org.armedbear.j.mode.image.ImageLine;
 import org.armedbear.j.util.Background;
+import org.armedbear.j.util.ProcessRunner;
 import org.armedbear.j.util.Utilities;
 
 public final class NewsGroupMessageBuffer extends MessageBuffer {
@@ -385,13 +386,13 @@ public final class NewsGroupMessageBuffer extends MessageBuffer {
 
     private static boolean haveUudecode() {
         if (haveUudecode < 0)
-            haveUudecode = Utilities.have("uudecode -h") ? 1 : 0;
+            haveUudecode = ProcessRunner.exists("uudecode") ? 1 : 0;
         return haveUudecode == 1;
     }
 
     private static boolean haveYydecode() {
         if (haveYydecode < 0)
-            haveYydecode = Utilities.have("yydecode -h") ? 1 : 0;
+            haveYydecode = ProcessRunner.exists("yydecode") ? 1 : 0;
         return haveYydecode == 1;
     }
 

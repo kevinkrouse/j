@@ -21,13 +21,12 @@
 package org.armedbear.j.vcs.git;
 
 import java.util.List;
-import javax.swing.SwingUtilities;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Constants;
 import org.armedbear.j.Editor;
 import org.armedbear.j.File;
 import org.armedbear.j.MessageDialog;
-import org.armedbear.j.util.Background;
+import org.armedbear.j.util.ProcessRunner;
 import org.armedbear.j.util.Utilities;
 import org.armedbear.j.vcs.VersionControl;
 
@@ -48,15 +47,9 @@ public class Git extends VersionControl implements Constants {
         // Append current file name for diff
         final String cmd = parseArgs("git", s, true, command.startsWith("diff"));
         final Buffer parentBuffer = editor.getBuffer();
-        Runnable commandRunnable = () -> {
-            final String output =
-                command(cmd, editor.getCurrentDirectory());
-            Runnable completionRunnable = () -> {
-                gitCompleted(editor, parentBuffer, cmd, output);
-            };
-            SwingUtilities.invokeLater(completionRunnable);
-        };
-        Background.start("Git command", commandRunnable);
+        commandAsync(cmd, editor.getCurrentDirectory(), output -> {
+            gitCompleted(editor, parentBuffer, cmd, output);
+        });
     }
 
     private static void gitCompleted(
@@ -94,7 +87,7 @@ public class Git extends VersionControl implements Constants {
     protected static boolean haveGit() {
         if (haveGit > 0)
             return true;
-        if (Utilities.have("git")) {
+        if (ProcessRunner.exists("git")) {
             haveGit = 1; // Cache positive result.
             return true;
         }

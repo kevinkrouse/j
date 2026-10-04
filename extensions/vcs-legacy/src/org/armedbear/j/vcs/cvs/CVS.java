@@ -22,17 +22,14 @@ package org.armedbear.j.vcs.cvs;
 
 import java.lang.StringBuilder;
 import javax.swing.SwingUtilities;
-import javax.swing.undo.CompoundEdit;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.ConfirmDialog;
 import org.armedbear.j.Constants;
 import org.armedbear.j.Debug;
 import org.armedbear.j.Editor;
 import org.armedbear.j.File;
-import org.armedbear.j.Log;
 import org.armedbear.j.MessageDialog;
 import org.armedbear.j.OutputBuffer;
-import org.armedbear.j.Position;
 import org.armedbear.j.ShellCommand;
 import org.armedbear.j.mode.checkin.CheckinBuffer;
 import org.armedbear.j.mode.diff.DiffOutputBuffer;
@@ -60,15 +57,9 @@ public final class CVS extends VersionControl implements Constants {
             args = "";
         // "cvs -H" doesn't need a filename.
         final String cmd = parseArgs("cvs", args, true, !args.trim().startsWith("-H"));
-        Runnable commandRunnable = () -> {
-            final String output =
-                command(cmd, buffer.getCurrentDirectory());
-            Runnable completionRunnable = () -> {
-                cvsCompleted(editor, buffer, cmd, output);
-            };
-            SwingUtilities.invokeLater(completionRunnable);
-        };
-        Background.start("CVS command", commandRunnable);
+        commandAsync(cmd, buffer.getCurrentDirectory(), output -> {
+            cvsCompleted(editor, buffer, cmd, output);
+        });
     }
 
     private static void cvsCompleted(
@@ -91,15 +82,9 @@ public final class CVS extends VersionControl implements Constants {
         StringBuilder sb = new StringBuilder("cvs add ");
         sb.append(Utilities.maybeQuoteFile(name));
         final String cmd = sb.toString();
-        Runnable commandRunnable = () -> {
-            final String output =
-                command(cmd, buffer.getCurrentDirectory());
-            Runnable completionRunnable = () -> {
-                addCompleted(editor, buffer, cmd, output);
-            };
-            SwingUtilities.invokeLater(completionRunnable);
-        };
-        Background.start("CVS command", commandRunnable);
+        commandAsync(cmd, buffer.getCurrentDirectory(), output -> {
+            addCompleted(editor, buffer, cmd, output);
+        });
     }
 
     private static void addCompleted(
@@ -224,21 +209,15 @@ public final class CVS extends VersionControl implements Constants {
                 }
             }
             final Buffer finalParentBuffer = parentBuffer;
-            Runnable commandRunnable = () -> {
-                final String output =
-                    command(cmd, finalParentBuffer.getCurrentDirectory());
-                Runnable completionRunnable = () -> {
-                    diffCompleted(
-                        editor,
-                        finalParentBuffer,
-                        cmd,
-                        output,
-                        VC_CVS
-                    );
-                };
-                SwingUtilities.invokeLater(completionRunnable);
-            };
-            Background.start("CVS command", commandRunnable);
+            commandAsync(cmd, finalParentBuffer.getCurrentDirectory(), output -> {
+                diffCompleted(
+                    editor,
+                    finalParentBuffer,
+                    cmd,
+                    output,
+                    VC_CVS
+                );
+            });
         }
     }
 
@@ -263,14 +242,9 @@ public final class CVS extends VersionControl implements Constants {
         Editor ed = editor.activateInOtherWindow(buf);
         ed.setWaitCursor();
         buf.setBusy(true);
-        Runnable commandRunnable = () -> {
-            final String output = command(cmd, directory);
-            Runnable completionRunnable = () -> {
-                processCompleted(buf, output);
-            };
-            SwingUtilities.invokeLater(completionRunnable);
-        };
-        Background.start("CVS command", commandRunnable);
+        commandAsync(cmd, directory, output -> {
+            processCompleted(buf, output);
+        });
     }
 
     public static void finish(final Editor editor, final CheckinBuffer checkinBuffer) {

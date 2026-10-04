@@ -43,7 +43,6 @@ import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
-import java.net.URL;
 import java.nio.charset.Charset;
 import java.nio.charset.IllegalCharsetNameException;
 import java.util.ArrayList;
@@ -1168,65 +1167,26 @@ public final class Utilities implements Constants {
         }
     }
 
-    public static void kill(int pid) {
-        if (Platform.isPlatformUnix()) {
-            try {
-                String[] cmdarray = { "/bin/sh", "-c", "kill -9 " + pid };
-                Process p = Runtime.getRuntime().exec(cmdarray);
-                p.waitFor();
-            }
-            catch (Throwable t) {
-                Log.error(t);
-            }
-        }
-    }
-
-    private static final String NOT_FOUND = "~nope~";
-
-    private static String jpty = null;
+    private static volatile String jpty;
 
     public static String jptyPath() {
-        if (Utilities.haveJpty())
-            return jpty;
-
-        return null;
+        return haveJpty() ? jpty : null;
     }
 
     public static boolean haveJpty() {
         if (jpty == null) {
-            String bin = which("jpty");
-            if (bin == null)
-                jpty = NOT_FOUND;
-            else
-                jpty = bin;
+            String bin = ProcessRunner.which("jpty");
+            jpty = bin != null ? bin : "";
         }
-        return jpty != NOT_FOUND;
+        return !jpty.isEmpty();
     }
 
-    private static int haveLs = -1;
+    private static volatile Boolean haveLs;
 
     public static boolean haveLs() {
-        if (haveLs == -1)
-            haveLs = have("ls") ? 1 : 0;
-        return haveLs == 1;
-    }
-
-    // Find the binary on the PATH
-    // - on unix and mac, uses "which"
-    // - on windows, uses "where.exe"
-    public static String which(final String s) {
-        String which = "which";
-        if (Platform.isPlatformWindows())
-            which = "where.exe";
-
-        String binary = Utilities.exec(which, s);
-        if (binary == null || binary.isBlank()) {
-            Log.info("which: couldn't find binary on PATH: " + s);
-            return null;
-        }
-
-        Log.debug("which: " + s + " -> " + binary);
-        return binary;
+        if (haveLs == null)
+            haveLs = ProcessRunner.exists("ls");
+        return haveLs;
     }
 
     public static URL toURL(String s) throws MalformedURLException {
@@ -1267,44 +1227,6 @@ public final class Utilities implements Constants {
         return keyModifiers(e) == 0;
     }
 
-    // s is a program and its arguments, separated by spaces.
-    public static boolean have(final String s) {
-        try {
-            final Process p = new ProcessBuilder(s.split(" ")).start();
-            if (p != null) {
-                Thread t = new Thread("Utilities.have(\"" + s + "\") destroy") {
-                    public void run() {
-                        try {
-                            final BufferedReader reader =
-                                new BufferedReader(new InputStreamReader(p.getInputStream()));
-                            while (reader.readLine() != null)
-                                ;
-                            p.getInputStream().close();
-                            p.getOutputStream().close();
-                            p.getErrorStream().close();
-                        }
-                        catch (IOException e) {
-                            Log.error(e);
-                        }
-                        p.destroy();
-                        try {
-                            p.waitFor();
-                        }
-                        catch (InterruptedException e) {
-                            Log.error(e);
-                        }
-                    }
-                };
-                t.setDaemon(true);
-                t.setPriority(Thread.MIN_PRIORITY);
-                t.start();
-                return true;
-            }
-        }
-        catch (Throwable t) {}
-        return false;
-    }
-
     private static String userHome;
 
     public static final void setUserHome(String s) {
@@ -1317,8 +1239,8 @@ public final class Utilities implements Constants {
     public static String getUserHome() {
         if (userHome == null) {
             if (Platform.isPlatformWindows()) {
-                String[] cmdarray = { "bash", "-c", "echo $HOME" };
-                String output = exec(cmdarray);
+                ProcessRunner.Result home = ProcessRunner.of("bash", "-c", "echo $HOME").discardErrors().run();
+                String output = home.succeeded() ? home.output() : null;
                 if (output != null) {
                     output = output.trim();
                     if (output.length() > 0) {
@@ -1341,16 +1263,14 @@ public final class Utilities implements Constants {
         return userHome;
     }
 
+    /** A Cygwin path as a Unix one, or s if cygpath fails. */
     public static String cygnify(String s) {
-        String[] cmdArray = { "cygpath", "-u", s };
-        String converted = Utilities.exec(cmdArray);
-        return converted != null ? converted : s;
+        return cygpath("-u", s);
     }
 
+    /** A Cygwin path as a Windows one, or s if cygpath fails. */
     public static String uncygnify(String s) {
-        String[] cmdArray = { "cygpath", "-w", s };
-        String converted = Utilities.exec(cmdArray);
-        return converted != null ? converted : s;
+        return cygpath("-w", s);
     }
 
     /**
@@ -1412,68 +1332,6 @@ public final class Utilities implements Constants {
         }
 
         return dirs;
-    }
-
-    public static String exec(String... cmdarray) {
-        return exec(List.of(cmdarray), null);
-    }
-
-    public static String exec(List<String> cmd, java.io.File dir) {
-        try {
-            ProcessBuilder pb = new ProcessBuilder(cmd);
-            if (dir != null) {
-                pb.directory(dir);
-            }
-
-            // include 'bin' from same directory as the j.jar if it exists
-            String path = pb.environment().get("PATH");
-            Log.debug("current PATH is: " + path);
-            if (path != null) {
-                Set<File> dirs = resourceDirs();
-                for (File d : dirs) {
-                    // try "~/j/bin"
-                    File bin = File.getInstance(d, "bin");
-                    if (!bin.isDirectory()) {
-                        // try "~/j/build/bin" -- used when building from source
-                        bin = File.getInstance(d, "build/bin");
-                    }
-
-                    if (bin.isDirectory()) {
-                        path += java.io.File.pathSeparator + bin.canonicalPath();
-                        Log.debug("setting PATH to: " + path);
-                        pb.environment().put("PATH", path);
-                    }
-                }
-            }
-
-            // Unread, stderr could fill its pipe and stall the command.
-            pb.redirectError(ProcessBuilder.Redirect.DISCARD);
-            Process process = pb.start();
-            process.getOutputStream().close();
-            StringBuilder sb = new StringBuilder();
-            try (BufferedReader reader = new BufferedReader(
-                new InputStreamReader(process.getInputStream())
-            )) {
-                String s;
-                while ((s = reader.readLine()) != null) {
-                    if (s.length() > 0) {
-                        if (sb.length() > 0)
-                            sb.append('\n');
-                        sb.append(s);
-                    }
-                }
-            }
-            process.waitFor();
-            return sb.toString();
-        }
-        catch (IOException e) {
-            Log.debug(cmd + ": " + e);
-            return null;
-        }
-        catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            return null;
-        }
     }
 
     // The size j's icons are drawn for before the display scale is applied.
@@ -2110,5 +1968,24 @@ public final class Utilities implements Constants {
         finally {
             g.dispose();
         }
+    }
+
+    private static String cygpath(String option, String s) {
+        ProcessRunner.Result r = ProcessRunner.of("cygpath", option, s).discardErrors().run();
+        String converted = r.output().strip();
+        return r.succeeded() && !converted.isEmpty() ? converted : s;
+    }
+
+    /** j's own bin directories, beside the installed jar or in the build: where jpty is. */
+    public static List<File> binDirectories() {
+        List<File> bins = new ArrayList<File>();
+        for (File d : resourceDirs()) {
+            File bin = File.getInstance(d, "bin");
+            if (!bin.isDirectory())
+                bin = File.getInstance(d, "build/bin");
+            if (bin.isDirectory())
+                bins.add(bin);
+        }
+        return bins;
     }
 }

@@ -23,7 +23,7 @@ package org.armedbear.j;
 import java.lang.StringBuilder;
 import javax.swing.SwingUtilities;
 import org.armedbear.j.util.FastStringReader;
-import org.armedbear.j.util.Utilities;
+import org.armedbear.j.util.ProcessRunner;
 
 public final class Debug {
     // Assertions.
@@ -118,13 +118,9 @@ public final class Debug {
         int processCount = 0;
         String output = null;
         if (Platform.isPlatformLinux()) {
-            String[] cmdarray = { "bash", "-c",
-                "ps -o pid,pri,%cpu,rss,start,time,command" };
-            output = Utilities.exec(cmdarray);
+            output = ProcessRunner.of("ps", "-o", "pid,pri,%cpu,rss,start,time,command").discardErrors().run().output();
         } else if (Platform.isPlatformSunOS()) {
-            String[] cmdarray = { "sh", "-c",
-                "ps -efo pid,pri,pcpu,rss,time,args" };
-            output = Utilities.exec(cmdarray);
+            output = ProcessRunner.of("ps", "-efo", "pid,pri,pcpu,rss,time,args").discardErrors().run().output();
         }
         if (output != null) {
             FastStringReader reader = new FastStringReader(output);

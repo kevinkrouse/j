@@ -20,23 +20,14 @@
 
 package org.armedbear.j;
 
-import java.io.BufferedWriter;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStreamWriter;
-import java.lang.StringBuilder;
-import java.util.ArrayList;
-import org.armedbear.j.util.ReaderThread;
-import org.armedbear.j.util.Utilities;
+import org.armedbear.j.util.ProcessRunner;
 
+/** Runs a command line in the shell and keeps its output. */
 public final class ShellCommand implements Runnable {
     private final String cmdline;
     private final File workingDirectory;
     private final String input;
-    // A StringBuffer, not a StringBuilder: the stdout and stderr reader
-    // threads both append to this one, concurrently.
-    private final StringBuffer output = new StringBuffer();
-    private int exitValue = -1;
+    private volatile ProcessRunner.Result result = new ProcessRunner.Result(-1, "");
 
     public ShellCommand(String cmdline) {
         this(cmdline, null, null);
@@ -57,93 +48,16 @@ public final class ShellCommand implements Runnable {
     }
 
     public final String getOutput() {
-        return output.toString();
+        return result.output();
     }
 
     public final int exitValue() {
-        return exitValue;
-    }
-
-    private void appendOutput(String s) {
-        output.append(s);
+        return result.exitValue();
     }
 
     public void run() {
-        Process process = null;
-        try {
-            if (cmdline != null) {
-                ArrayList<String> list = new ArrayList<String>();
-                if (Platform.isPlatformUnix()) {
-                    list.add("/bin/sh");
-                    list.add("-c");
-                    list.add(cmdline);
-                } else if (Platform.isPlatformWindows()) {
-                    list.add("cmd.exe");
-                    list.add("/c");
-                    list.addAll(Utilities.tokenize(cmdline));
-                }
-                if (!list.isEmpty()) {
-                    ProcessBuilder pb = new ProcessBuilder(list);
-                    if (workingDirectory != null)
-                        pb.directory(new java.io.File(workingDirectory.canonicalPath()));
-                    process = pb.start();
-                }
-            }
-        }
-        catch (IOException e) {
-            // Report the failure to start, e.g. a missing working directory, as output.
-            Log.error(e);
-            appendOutput(e.getMessage() + "\n");
-        }
-        if (process != null) {
-            ShellCommandReaderThread stdoutThread =
-                new ShellCommandReaderThread(process.getInputStream());
-            stdoutThread.start();
-            ShellCommandReaderThread stderrThread =
-                new ShellCommandReaderThread(process.getErrorStream());
-            stderrThread.start();
-            if (input != null) {
-                BufferedWriter writer =
-                    new BufferedWriter(new OutputStreamWriter(process.getOutputStream()));
-                try {
-                    writer.write(input);
-                    writer.flush();
-                    writer.close();
-                }
-                catch (IOException e) {
-                    Log.error(e);
-                }
-            }
-            try {
-                exitValue = process.waitFor();
-            }
-            catch (InterruptedException e) {
-                Log.error(e);
-            }
-            try {
-                stdoutThread.join();
-            }
-            catch (InterruptedException e) {
-                Log.error(e);
-            }
-            try {
-                stderrThread.join();
-            }
-            catch (InterruptedException e) {
-                Log.error(e);
-            }
-        }
-    }
-
-    private class ShellCommandReaderThread extends ReaderThread {
-        // If this constructor is private, we run into jikes 1.15 bug #2256.
-        ShellCommandReaderThread(InputStream inputStream) {
-            super(inputStream);
-        }
-
-        public void update(final String s) {
-            appendOutput(s);
-        }
+        if (cmdline != null)
+            result = ProcessRunner.shell(cmdline).directory(workingDirectory).input(input).run();
     }
 
     public static void shellCommand() {

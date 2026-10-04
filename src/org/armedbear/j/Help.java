@@ -20,10 +20,8 @@
 
 package org.armedbear.j;
 
-import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
 import java.lang.StringBuilder;
@@ -504,31 +502,11 @@ public final class Help {
             if (isDocDir(dir))
                 return dir;
         } else if (Platform.isPlatformWindows()) {
-            String dirname = cygpath("/usr/local/share/doc/j");
-            if (dirname != null) {
-                File dir = File.getInstance(dirname);
-                if (isDocDir(dir))
-                    return dir;
-            }
+            File dir = File.getInstance(Utilities.uncygnify("/usr/local/share/doc/j"));
+            if (isDocDir(dir))
+                return dir;
         }
         return null;
-    }
-
-    private static String cygpath(String s) {
-        try {
-            Process process = new ProcessBuilder("cygpath", "-w", s).start();
-            try (BufferedReader reader = new BufferedReader(
-                new InputStreamReader(process.getInputStream())
-            )) {
-                return reader.readLine();
-            }
-            finally {
-                process.destroy();
-            }
-        }
-        catch (IOException e) {
-            return null;
-        }
     }
 
     // Return true if dir seems to contain j's documentation.

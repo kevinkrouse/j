@@ -42,6 +42,7 @@ import org.armedbear.j.Sidebar;
 import org.armedbear.j.mode.checkin.CheckinBuffer;
 import org.armedbear.j.mode.diff.DiffOutputBuffer;
 import org.armedbear.j.util.Background;
+import org.armedbear.j.util.ProcessRunner;
 import org.armedbear.j.util.Utilities;
 import org.armedbear.j.vcs.VersionControl;
 
@@ -74,15 +75,9 @@ public class P4 extends VersionControl implements Constants {
         editor.setWaitCursor();
         final String cmd = parseArgs("p4", s, true, false);
         final Buffer parentBuffer = editor.getBuffer();
-        Runnable commandRunnable = () -> {
-            final String output =
-                command(cmd, editor.getCurrentDirectory());
-            Runnable completionRunnable = () -> {
-                p4Completed(editor, parentBuffer, cmd, output);
-            };
-            SwingUtilities.invokeLater(completionRunnable);
-        };
-        Background.start("P4 command", commandRunnable);
+        commandAsync(cmd, editor.getCurrentDirectory(), output -> {
+            p4Completed(editor, parentBuffer, cmd, output);
+        });
     }
 
     private static void p4Completed(
@@ -122,14 +117,9 @@ public class P4 extends VersionControl implements Constants {
         StringBuilder sb = new StringBuilder("p4 edit ");
         sb.append(Utilities.maybeQuoteFile(file.getName()));
         final String cmd = sb.toString();
-        Runnable commandRunnable = () -> {
-            final String output = command(cmd, buffer.getCurrentDirectory());
-            Runnable completionRunnable = () -> {
-                editCompleted(editor, buffer, cmd, output);
-            };
-            SwingUtilities.invokeLater(completionRunnable);
-        };
-        Background.start("P4 command", commandRunnable);
+        commandAsync(cmd, buffer.getCurrentDirectory(), output -> {
+            editCompleted(editor, buffer, cmd, output);
+        });
     }
 
     private static void editCompleted(
@@ -211,25 +201,20 @@ public class P4 extends VersionControl implements Constants {
                 return;
         }
         final String cmd = "p4 revert " + Utilities.maybeQuoteFile(file.getName());
-        Runnable commandRunnable = () -> {
-            final String output = command(cmd, buffer.getCurrentDirectory());
-            Runnable completionRunnable = () -> {
-                if (output.trim().endsWith(" - was edit, reverted"))
-                    editor.status("File reverted");
-                else {
-                    OutputBuffer buf = OutputBuffer.getOutputBuffer(output);
-                    buf.setTitle(cmd);
-                    editor.makeNext(buf);
-                    editor.activateInOtherWindow(buf);
-                }
-                editor.reload(buffer);
-                // Update read-only status.
-                if (editor.reactivate(buffer))
-                    Sidebar.repaintBufferListInAllFrames();
-            };
-            SwingUtilities.invokeLater(completionRunnable);
-        };
-        Background.start("P4 command", commandRunnable);
+        commandAsync(cmd, buffer.getCurrentDirectory(), output -> {
+            if (output.trim().endsWith(" - was edit, reverted"))
+                editor.status("File reverted");
+            else {
+                OutputBuffer buf = OutputBuffer.getOutputBuffer(output);
+                buf.setTitle(cmd);
+                editor.makeNext(buf);
+                editor.activateInOtherWindow(buf);
+            }
+            editor.reload(buffer);
+            // Update read-only status.
+            if (editor.reactivate(buffer))
+                Sidebar.repaintBufferListInAllFrames();
+        });
     }
 
     public static void diff() {
@@ -279,15 +264,9 @@ public class P4 extends VersionControl implements Constants {
                 }
             }
             final String cmd = baseCmd + Utilities.maybeQuote(file.canonicalPath());
-            Runnable commandRunnable = () -> {
-                final String output =
-                    command(cmd, parentBuffer.getCurrentDirectory());
-                Runnable completionRunnable = () -> {
-                    diffCompleted(editor, parentBuffer, title, output, VC_P4);
-                };
-                SwingUtilities.invokeLater(completionRunnable);
-            };
-            Background.start("P4 command", commandRunnable);
+            commandAsync(cmd, parentBuffer.getCurrentDirectory(), output -> {
+                diffCompleted(editor, parentBuffer, title, output, VC_P4);
+            });
         }
     }
 
@@ -314,14 +293,9 @@ public class P4 extends VersionControl implements Constants {
         Editor ed = editor.activateInOtherWindow(buf);
         ed.setWaitCursor();
         buf.setBusy(true);
-        Runnable commandRunnable = () -> {
-            final String output = command(cmd, directory);
-            Runnable completionRunnable = () -> {
-                processCompleted(buf, output);
-            };
-            SwingUtilities.invokeLater(completionRunnable);
-        };
-        Background.start("P4 command", commandRunnable);
+        commandAsync(cmd, directory, output -> {
+            processCompleted(buf, output);
+        });
     }
 
     public static void log() {
@@ -368,14 +342,9 @@ public class P4 extends VersionControl implements Constants {
         editor.makeNext(outputBuffer);
         Editor ed = editor.activateInOtherWindow(outputBuffer);
         ed.setWaitCursor();
-        Runnable commandRunnable = () -> {
-            final String output = command(cmd, parentBuffer.getCurrentDirectory());
-            Runnable completionRunnable = () -> {
-                processCompleted(outputBuffer, output);
-            };
-            SwingUtilities.invokeLater(completionRunnable);
-        };
-        Background.start("P4 command", commandRunnable);
+        commandAsync(cmd, parentBuffer.getCurrentDirectory(), output -> {
+            processCompleted(outputBuffer, output);
+        });
     }
 
     public static void change(String arg) {
@@ -835,7 +804,7 @@ public class P4 extends VersionControl implements Constants {
     private static boolean haveP4() {
         if (haveP4 > 0)
             return true;
-        if (Utilities.have("p4")) {
+        if (ProcessRunner.exists("p4")) {
             haveP4 = 1; // Cache positive result.
             return true;
         }

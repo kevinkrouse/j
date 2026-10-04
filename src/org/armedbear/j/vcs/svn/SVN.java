@@ -26,7 +26,6 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
-import javax.swing.SwingUtilities;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.ConfirmDialog;
 import org.armedbear.j.Constants;
@@ -42,6 +41,7 @@ import org.armedbear.j.mode.checkin.CheckinBuffer;
 import org.armedbear.j.mode.diff.DiffOutputBuffer;
 import org.armedbear.j.mode.text.PlainTextFormatter;
 import org.armedbear.j.util.Background;
+import org.armedbear.j.util.ProcessRunner;
 import org.armedbear.j.util.Utilities;
 import org.armedbear.j.vcs.StatusOutputBuffer;
 import org.armedbear.j.vcs.VersionControl;
@@ -72,15 +72,9 @@ public class SVN extends VersionControl implements Constants {
         editor.setWaitCursor();
         final String cmd = parseArgs("svn", s, true, false);
         final Buffer parentBuffer = editor.getBuffer();
-        Runnable commandRunnable = () -> {
-            final String output =
-                command(cmd, editor.getCurrentDirectory());
-            Runnable completionRunnable = () -> {
-                svnCompleted(editor, parentBuffer, cmd, output);
-            };
-            SwingUtilities.invokeLater(completionRunnable);
-        };
-        Background.start("SVN command", commandRunnable);
+        commandAsync(cmd, editor.getCurrentDirectory(), output -> {
+            svnCompleted(editor, parentBuffer, cmd, output);
+        });
     }
 
     private static void svnCompleted(
@@ -119,25 +113,20 @@ public class SVN extends VersionControl implements Constants {
                 return;
         }
         final String cmd = "svn revert " + Utilities.maybeQuoteFile(file.getName());
-        Runnable commandRunnable = () -> {
-            final String output = command(cmd, buffer.getCurrentDirectory());
-            Runnable completionRunnable = () -> {
-                if (output.length() == 0 || output.trim().startsWith("Reverted "))
-                    editor.status("File reverted");
-                else {
-                    OutputBuffer buf = OutputBuffer.getOutputBuffer(output);
-                    buf.setTitle(cmd);
-                    editor.makeNext(buf);
-                    editor.activateInOtherWindow(buf);
-                }
-                editor.reload(buffer);
-                // Update read-only status.
-                if (editor.reactivate(buffer))
-                    Sidebar.repaintBufferListInAllFrames();
-            };
-            SwingUtilities.invokeLater(completionRunnable);
-        };
-        Background.start("SVN command", commandRunnable);
+        commandAsync(cmd, buffer.getCurrentDirectory(), output -> {
+            if (output.length() == 0 || output.trim().startsWith("Reverted "))
+                editor.status("File reverted");
+            else {
+                OutputBuffer buf = OutputBuffer.getOutputBuffer(output);
+                buf.setTitle(cmd);
+                editor.makeNext(buf);
+                editor.activateInOtherWindow(buf);
+            }
+            editor.reload(buffer);
+            // Update read-only status.
+            if (editor.reactivate(buffer))
+                Sidebar.repaintBufferListInAllFrames();
+        });
 
     }
 
@@ -192,15 +181,9 @@ public class SVN extends VersionControl implements Constants {
                 }
             }
             final String cmd = baseCmd + Utilities.maybeQuote(file.canonicalPath());
-            Runnable commandRunnable = () -> {
-                final String output =
-                    command(cmd, parentBuffer.getCurrentDirectory());
-                Runnable completionRunnable = () -> {
-                    diffCompleted(editor, parentBuffer, title, output, VC_SVN);
-                };
-                SwingUtilities.invokeLater(completionRunnable);
-            };
-            Background.start("SVN command", commandRunnable);
+            commandAsync(cmd, parentBuffer.getCurrentDirectory(), output -> {
+                diffCompleted(editor, parentBuffer, title, output, VC_SVN);
+            });
         }
     }
 
@@ -227,14 +210,9 @@ public class SVN extends VersionControl implements Constants {
         Editor ed = editor.activateInOtherWindow(buf);
         ed.setWaitCursor();
         buf.setBusy(true);
-        Runnable commandRunnable = () -> {
-            final String output = command(cmd, directory);
-            Runnable completionRunnable = () -> {
-                processCompleted(buf, output);
-            };
-            SwingUtilities.invokeLater(completionRunnable);
-        };
-        Background.start("SVN command", commandRunnable);
+        commandAsync(cmd, directory, output -> {
+            processCompleted(buf, output);
+        });
     }
 
     public static void log() {
@@ -276,15 +254,9 @@ public class SVN extends VersionControl implements Constants {
             sb.append("--remove");
         sb.append(" ").append(Utilities.maybeQuoteFile(parentBuffer.getFile().getName()));
         final String cmd = sb.toString();
-        Runnable commandRunnable = () -> {
-            final String output =
-                command(cmd, editor.getCurrentDirectory());
-            Runnable completionRunnable = () -> {
-                svnCompleted(editor, parentBuffer, cmd, output);
-            };
-            SwingUtilities.invokeLater(completionRunnable);
-        };
-        Background.start("SVN command", commandRunnable);
+        commandAsync(cmd, editor.getCurrentDirectory(), output -> {
+            svnCompleted(editor, parentBuffer, cmd, output);
+        });
     }
 
     public static void status() {
@@ -310,14 +282,9 @@ public class SVN extends VersionControl implements Constants {
         Editor ed = editor.activateInOtherWindow(buf);
         ed.setWaitCursor();
         buf.setBusy(true);
-        Runnable commandRunnable = () -> {
-            final String output = command(cmd, directory);
-            Runnable completionRunnable = () -> {
-                processCompleted(buf, output);
-            };
-            SwingUtilities.invokeLater(completionRunnable);
-        };
-        Background.start("SVN command", commandRunnable);
+        commandAsync(cmd, directory, output -> {
+            processCompleted(buf, output);
+        });
     }
 
     public static void commit() {
@@ -487,9 +454,9 @@ public class SVN extends VersionControl implements Constants {
     protected static boolean haveSVN() {
         if (version != null)
             return true;
-        if (Utilities.have("svn")) {
+        if (ProcessRunner.exists("svn")) {
             version = new int[3];
-            String versionInfo = Utilities.exec("svn", "--version");
+            String versionInfo = ProcessRunner.of("svn", "--version").discardErrors().run().output();
             if (versionInfo != null && versionInfo.length() > 0) {
                 try {
                     Pattern versionRE = Pattern.compile("svn, version (\\d+)\\.(\\d+)\\.(\\d+)");

@@ -22,13 +22,12 @@ package org.armedbear.j.vcs.darcs;
 
 import java.lang.StringBuilder;
 import java.util.List;
-import javax.swing.SwingUtilities;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Constants;
 import org.armedbear.j.Editor;
 import org.armedbear.j.File;
 import org.armedbear.j.MessageDialog;
-import org.armedbear.j.util.Background;
+import org.armedbear.j.util.ProcessRunner;
 import org.armedbear.j.util.Utilities;
 import org.armedbear.j.vcs.VersionControl;
 
@@ -59,15 +58,9 @@ public class Darcs extends VersionControl implements Constants {
         }
         final String cmd = sb.toString().trim();
         final Buffer parentBuffer = editor.getBuffer();
-        Runnable commandRunnable = () -> {
-            final String output =
-                command(cmd, editor.getCurrentDirectory());
-            Runnable completionRunnable = () -> {
-                darcsCompleted(editor, parentBuffer, cmd, output);
-            };
-            SwingUtilities.invokeLater(completionRunnable);
-        };
-        Background.start("Darcs command", commandRunnable);
+        commandAsync(cmd, editor.getCurrentDirectory(), output -> {
+            darcsCompleted(editor, parentBuffer, cmd, output);
+        });
     }
 
     private static void darcsCompleted(
@@ -105,7 +98,7 @@ public class Darcs extends VersionControl implements Constants {
     private static boolean haveDarcs() {
         if (haveDarcs > 0)
             return true;
-        if (Utilities.have("darcs")) {
+        if (ProcessRunner.exists("darcs")) {
             haveDarcs = 1; // Cache positive result.
             return true;
         }
