@@ -20,9 +20,10 @@
 
 package org.armedbear.j.mode.sh;
 
+import java.lang.StringBuilder;
+import java.util.Set;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Editor;
-import java.lang.StringBuilder;
 import org.armedbear.j.FormatTable;
 import org.armedbear.j.Formatter;
 import org.armedbear.j.Line;
@@ -30,24 +31,21 @@ import org.armedbear.j.LineSegment;
 import org.armedbear.j.LineSegmentList;
 import org.armedbear.j.util.Utilities;
 
-import java.util.Set;
-
-public final class ShellScriptFormatter extends Formatter
-{
-    private static final int STATE_BACKQUOTE     = STATE_LAST + 1;
-    private static final int STATE_EXPANSION     = STATE_LAST + 2;
+public final class ShellScriptFormatter extends Formatter {
+    private static final int STATE_BACKQUOTE = STATE_LAST + 1;
+    private static final int STATE_EXPANSION = STATE_LAST + 2;
     private static final int STATE_HERE_DOCUMENT = STATE_LAST + 3;
-    private static final int STATE_ECHO          = STATE_LAST + 4;
+    private static final int STATE_ECHO = STATE_LAST + 4;
 
-    private static final int SHELLSCRIPT_FORMAT_TEXT     =  0;
-    private static final int SHELLSCRIPT_FORMAT_COMMENT  =  2;
+    private static final int SHELLSCRIPT_FORMAT_TEXT = 0;
+    private static final int SHELLSCRIPT_FORMAT_COMMENT = 2;
 
-    private static final int SHELLSCRIPT_FORMAT_STRING   =  4;
-    private static final int SHELLSCRIPT_FORMAT_KEYWORD  =  5;
-    private static final int SHELLSCRIPT_FORMAT_FUNCTION =  6;
-    private static final int SHELLSCRIPT_FORMAT_OPERATOR =  7;
-    private static final int SHELLSCRIPT_FORMAT_BRACE    =  8;
-    private static final int SHELLSCRIPT_FORMAT_NUMBER   =  9;
+    private static final int SHELLSCRIPT_FORMAT_STRING = 4;
+    private static final int SHELLSCRIPT_FORMAT_KEYWORD = 5;
+    private static final int SHELLSCRIPT_FORMAT_FUNCTION = 6;
+    private static final int SHELLSCRIPT_FORMAT_OPERATOR = 7;
+    private static final int SHELLSCRIPT_FORMAT_BRACE = 8;
+    private static final int SHELLSCRIPT_FORMAT_NUMBER = 9;
 
     private static Set<String> keywords;
 
@@ -57,13 +55,11 @@ public final class ShellScriptFormatter extends Formatter
 
     private String endOfText;
 
-    public ShellScriptFormatter(Buffer buffer)
-    {
+    public ShellScriptFormatter(Buffer buffer) {
         this.buffer = buffer;
     }
 
-    private void endToken(int state)
-    {
+    private void endToken(int state) {
         if (sb.length() > 0) {
             int format = -1;
             switch (state) {
@@ -99,8 +95,7 @@ public final class ShellScriptFormatter extends Formatter
         }
     }
 
-    private void parseLine(String text, int state)
-    {
+    private void parseLine(String text, int state) {
         if (Editor.tabsAreVisible())
             text = Utilities.makeTabsVisible(text, buffer.getTabWidth());
         else
@@ -141,7 +136,7 @@ public final class ShellScriptFormatter extends Formatter
                     state = STATE_NEUTRAL;
                 } else {
                     sb.append(c);
-                    if (c == '\\' && i < limit-1) {
+                    if (c == '\\' && i < limit - 1) {
                         // Escape char.
                         sb.append(text.charAt(++i));
                     }
@@ -194,7 +189,7 @@ public final class ShellScriptFormatter extends Formatter
                 continue;
             }
             if (state == STATE_ECHO) {
-                if (c == '\\' && i < limit-1) {
+                if (c == '\\' && i < limit - 1) {
                     // Escape.
                     sb.append(c);
                     ++i;
@@ -222,7 +217,7 @@ public final class ShellScriptFormatter extends Formatter
                 if (c == '}') {
                     --braceCount;
                     if (braceCount == 0) {
-                        sb.append(c) ;
+                        sb.append(c);
                         endToken(state);
                         state = STATE_NEUTRAL;
                         ++i;
@@ -236,7 +231,7 @@ public final class ShellScriptFormatter extends Formatter
                 if (braceCount == 0) {
                     if (!getLanguageMode().isIdentifierPart(c)) {
                         endToken(state);
-                        sb.append(c) ;
+                        sb.append(c);
                         state = STATE_NEUTRAL;
                         ++i;
                         continue;
@@ -305,8 +300,7 @@ public final class ShellScriptFormatter extends Formatter
         endToken(state);
     }
 
-    public LineSegmentList formatLine(Line line)
-    {
+    public LineSegmentList formatLine(Line line) {
         if (line == null) {
             clearSegmentList();
             addSegment("", SHELLSCRIPT_FORMAT_TEXT);
@@ -326,8 +320,7 @@ public final class ShellScriptFormatter extends Formatter
         return segmentList;
     }
 
-    public boolean parseBuffer()
-    {
+    public boolean parseBuffer() {
         int state = STATE_NEUTRAL;
         Line line = buffer.getFirstLine();
         boolean changed = false;
@@ -365,21 +358,27 @@ public final class ShellScriptFormatter extends Formatter
                     continue;
                 }
                 // Not in comment or quoted string.
-                if (c == '<' && i < limit-2) {
+                if (c == '<' && i < limit - 2) {
                     if (line.charAt(i + 1) == '<') {
                         endOfText = line.substring(i + 2).trim();
                         if (endOfText.startsWith("-"))
                             endOfText = endOfText.substring(1);
                         int length = endOfText.length();
                         if (length > 2) {
-                            if (endOfText.charAt(0) == '"' &&
-                                endOfText.charAt(length - 1) == '"') {
+                            if (
+                                endOfText.charAt(0) == '"'
+                                    &&
+                                    endOfText.charAt(length - 1) == '"'
+                            ) {
                                 // Removed enclosing double quotes.
-                                endOfText = endOfText.substring(1, length-1);
-                            } else if (endOfText.charAt(0) == '\'' &&
-                                endOfText.charAt(length - 1) == '\'') {
+                                endOfText = endOfText.substring(1, length - 1);
+                            } else if (
+                                endOfText.charAt(0) == '\''
+                                    &&
+                                    endOfText.charAt(length - 1) == '\''
+                            ) {
                                 // Removed enclosing single quotes.
-                                endOfText = endOfText.substring(1, length-1);
+                                endOfText = endOfText.substring(1, length - 1);
                             }
                         }
                         if (endOfText.length() > 0) {
@@ -409,8 +408,7 @@ public final class ShellScriptFormatter extends Formatter
         return changed;
     }
 
-    public FormatTable getFormatTable()
-    {
+    public FormatTable getFormatTable() {
         if (formatTable == null) {
             formatTable = new FormatTable("ShellScriptMode");
             formatTable.addEntryFromPrefs(SHELLSCRIPT_FORMAT_TEXT, "text");

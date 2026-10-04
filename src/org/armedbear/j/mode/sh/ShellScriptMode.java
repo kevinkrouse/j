@@ -20,6 +20,7 @@
 
 package org.armedbear.j.mode.sh;
 
+import java.awt.event.KeyEvent;
 import org.armedbear.j.AbstractMode;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Constants;
@@ -28,49 +29,39 @@ import org.armedbear.j.KeyMap;
 import org.armedbear.j.Keywords;
 import org.armedbear.j.Mode;
 
-import java.awt.event.KeyEvent;
-
 public final class ShellScriptMode extends AbstractMode implements Constants,
-        Mode
-{
+    Mode {
     private static final ShellScriptMode mode = new ShellScriptMode();
 
-    private ShellScriptMode()
-    {
+    private ShellScriptMode() {
         super(SHELL_SCRIPT_MODE, SHELL_SCRIPT_MODE_NAME);
         keywords = new Keywords(this);
     }
 
-    public static final ShellScriptMode getMode()
-    {
+    public static final ShellScriptMode getMode() {
         return mode;
     }
 
-    public final String getCommentStart()
-    {
+    public final String getCommentStart() {
         return "# ";
     }
 
-    public final Formatter getFormatter(Buffer buffer)
-    {
+    public final Formatter getFormatter(Buffer buffer) {
         return new ShellScriptFormatter(buffer);
     }
 
-    protected void setKeyMapDefaults(KeyMap km)
-    {
+    protected void setKeyMapDefaults(KeyMap km) {
         km.mapKey(KeyEvent.VK_ENTER, 0, "newlineAndIndent");
     }
 
     private static final String validChars =
         "-./0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz";
 
-    public boolean isIdentifierStart(char c)
-    {
+    public boolean isIdentifierStart(char c) {
         return validChars.indexOf(c) >= 0;
     }
 
-    public boolean isIdentifierPart(char c)
-    {
+    public boolean isIdentifierPart(char c) {
         return validChars.indexOf(c) >= 0;
     }
 }
