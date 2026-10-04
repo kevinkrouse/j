@@ -2061,7 +2061,7 @@ public class Buffer extends SystemBuffer {
             view.topLineNumber = view.topLine.lineNumber();
         view.pixelsAboveTopLine = display.getPixelsAboveTopLine();
         view.shift = display.shift;
-        view.caretCol = display.caretCol;
+        view.caretCol = display.getCaretCol();
         view.timestamp = System.currentTimeMillis();
         if (view.dot == null) {
             view.lineNumber = 0;

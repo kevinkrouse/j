@@ -119,8 +119,7 @@ public final class GotoFile implements Constants {
                     if (lineNumber >= 0) {
                         if (ed.getDot() != null) {
                             if (ed.getDotLineNumber() != lineNumber) {
-                                ed.addUndo(SimpleEdit.MOVE);
-                                ed.unmark();
+                                ed.beginMotion();
                                 ed.gotoline(lineNumber);
                                 ed.moveCaretToDotCol();
                             }

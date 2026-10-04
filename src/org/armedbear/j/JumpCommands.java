@@ -54,8 +54,7 @@ public final class JumpCommands implements Constants {
             int col = parseNumericInput(response, here) - 1;
             final Display display = editor.getDisplay();
             if (col >= 0 && col != display.getAbsoluteCaretCol()) {
-                editor.addUndo(SimpleEdit.MOVE);
-                editor.unmark();
+                editor.beginMotion();
                 display.setCaretCol(col - display.getShift());
                 editor.moveDotToCaretCol();
                 display.setUpdateFlag(REFRAME);

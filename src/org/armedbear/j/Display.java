@@ -95,7 +95,7 @@ public final class Display extends JComponent implements Constants,
     // The column containing the caret, relative to the first visible column
     // of the display. The absolute column number will be different if we're
     // horizontally scrolled (absolute column number = caretCol + shift).
-    int caretCol;
+    private int caretCol;
 
     private char[] textArray;
     private int[] formatArray;

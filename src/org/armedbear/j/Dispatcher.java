@@ -392,8 +392,7 @@ public final class Dispatcher implements Constants, KeyListener, MouseListener,
                 Region r = new Region(editor);
                 Position pos = display.positionFromPoint(e.getPoint());
                 if (pos.isAfter(r.getBegin()) && pos.isBefore(r.getEnd())) {
-                    editor.addUndo(SimpleEdit.MOVE);
-                    editor.unmark();
+                    editor.beginMotion();
                     display.moveCaretToPoint(e.getPoint());
                     if (buffer.getBooleanProperty(Property.RESTRICT_CARET))
                         editor.moveCaretToDotCol();

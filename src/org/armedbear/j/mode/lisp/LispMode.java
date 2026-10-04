@@ -852,8 +852,7 @@ public class LispMode extends AbstractMode implements Constants, Mode {
             // Move past closing parenthesis.
             if (match.getChar() == ')')
                 match.next();
-            editor.addUndo(SimpleEdit.MOVE);
-            editor.unmark();
+            editor.beginMotion();
             editor.updateDotLine();
             editor.getDot().moveTo(match);
             editor.updateDotLine();
@@ -908,8 +907,7 @@ public class LispMode extends AbstractMode implements Constants, Mode {
                     }
                 }
             }
-            editor.addUndo(SimpleEdit.MOVE);
-            editor.unmark();
+            editor.beginMotion();
             editor.getDot().moveTo(pos);
             editor.setMarkAtDot();
             editor.updateDotLine();

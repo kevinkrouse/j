@@ -164,8 +164,7 @@ public final class CaretCommands {
             editor.status("not found on this line");
             return;
         }
-        editor.addUndo(SimpleEdit.MOVE);
-        editor.unmark();
+        editor.beginMotion();
         editor.setDot(to);
         editor.moveCaretToDotCol();
         editor.updateDotLine();
@@ -194,8 +193,7 @@ public final class CaretCommands {
             editor.status("No match");
             return;
         }
-        editor.addUndo(SimpleEdit.MOVE);
-        editor.unmark();
+        editor.beginMotion();
         editor.setDot(to);
         editor.moveCaretToDotCol();
         editor.updateDotLine();
@@ -254,8 +252,7 @@ public final class CaretCommands {
         final Line line = screenLine(editor, where, 1);
         if (line == null)
             return;
-        editor.addUndo(SimpleEdit.MOVE);
-        editor.unmark();
+        editor.beginMotion();
         editor.setDot(line, firstNonBlank(line));
         editor.moveCaretToDotCol();
         editor.updateDotLine();

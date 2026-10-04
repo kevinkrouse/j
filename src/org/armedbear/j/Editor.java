@@ -1475,7 +1475,7 @@ public final class Editor extends JPanel implements Constants,
             } else if (display.getCaretCol() > buffer.getCol(getDotLine(), getDotLine().length())) {
                 // The caret is beyond the end of the actual text on the current line.
                 addUndo(SimpleEdit.MOVE);
-                --display.caretCol;
+                display.setCaretCol(display.getCaretCol() - 1);
                 updateDotLine();
             } else if (dot.getOffset() > 0) {
                 addUndo(SimpleEdit.LINE_EDIT);
@@ -1777,8 +1777,7 @@ public final class Editor extends JPanel implements Constants,
                 // beyond it.
                 if ("})]".indexOf(match.getChar()) >= 0)
                     match.next();
-                addUndo(SimpleEdit.MOVE);
-                unmark();
+                beginMotion();
                 updateDotLine();
                 dot.moveTo(match);
                 updateDotLine();
@@ -1825,8 +1824,7 @@ public final class Editor extends JPanel implements Constants,
                         }
                     }
                 }
-                addUndo(SimpleEdit.MOVE);
-                unmark();
+                beginMotion();
                 dot.moveTo(pos);
                 setMarkAtDot();
                 updateDotLine();
@@ -3224,7 +3222,7 @@ public final class Editor extends JPanel implements Constants,
             dot.skip(1);
             moveCaretToDotCol();
         } else {
-            ++display.caretCol;
+            display.setCaretCol(display.getCaretCol() + 1);
         }
         updateDotLine();
         setCurrentCommand(COMMAND_RIGHT);
@@ -3236,9 +3234,7 @@ public final class Editor extends JPanel implements Constants,
             return;
         if (getDotOffset() < getDotLine().length()) {
             if (mark == null || lastCommand != COMMAND_RIGHT)
-                addUndo(SimpleEdit.MOVE);
-            if (mark == null)
-                setMarkAtDot();
+                beginSelectMotion();
             dot.moveRight();
             moveCaretToDotCol();
         } else {
@@ -3247,9 +3243,7 @@ public final class Editor extends JPanel implements Constants,
                 if (getDotLine().next() == null)
                     return;
                 if (mark == null || lastCommand != COMMAND_RIGHT)
-                    addUndo(SimpleEdit.MOVE);
-                if (mark == null)
-                    setMarkAtDot();
+                    beginSelectMotion();
                 updateDotLine();
                 dot.moveTo(getDotLine().next(), 0);
                 moveCaretToDotCol();
@@ -3257,7 +3251,7 @@ public final class Editor extends JPanel implements Constants,
                 // Don't start a new selection, since there's no text there.
                 if (lastCommand != COMMAND_RIGHT)
                     addUndo(SimpleEdit.MOVE);
-                ++display.caretCol;
+                display.setCaretCol(display.getCaretCol() + 1);
             }
         }
         updateDotLine();
@@ -3285,7 +3279,7 @@ public final class Editor extends JPanel implements Constants,
                 moveCaretToDotCol();
             } else if (absCaretCol > 0) {
                 // We're beyond the end of the text on the line.
-                --display.caretCol;
+                display.setCaretCol(display.getCaretCol() - 1);
             } else if (dot.getOffset() == 0) {
                 // Back up to the end of the text on the previous line.
                 update(dotLine);
@@ -3324,7 +3318,7 @@ public final class Editor extends JPanel implements Constants,
             moveCaretToDotCol();
         } else if (absCaretCol > 0) {
             // We're beyond the end of the text on the line.
-            --display.caretCol;
+            display.setCaretCol(display.getCaretCol() - 1);
         } else if (dotOffset == 0) {
             // Back up to the end of the text on the previous line.
             updateDotLine();
@@ -3471,9 +3465,7 @@ public final class Editor extends JPanel implements Constants,
                 ||
                 buffer.getCol(pos) != display.getAbsoluteCaretCol()
         ) {
-            addUndo(SimpleEdit.MOVE);
-            if (mark == null)
-                setMarkAtDot();
+            beginSelectMotion();
             if (pos.getLine() != getDotLine())
                 setUpdateFlag(REPAINT);
             else
@@ -3737,9 +3729,7 @@ public final class Editor extends JPanel implements Constants,
             return;
         if (buffer.getFirstLine() == null)
             return;
-        addUndo(SimpleEdit.MOVE);
-        if (mark == null)
-            setMarkAtDot();
+        beginSelectMotion();
         dot.moveTo(buffer.getFirstLine(), 0);
         moveCaretToDotCol();
         setUpdateFlag(REPAINT);
@@ -3760,9 +3750,7 @@ public final class Editor extends JPanel implements Constants,
         Line line = buffer.getFirstLine();
         while (line.next() != null)
             line = line.next();
-        addUndo(SimpleEdit.MOVE);
-        if (mark == null)
-            setMarkAtDot();
+        beginSelectMotion();
         dot.moveTo(line, line.length());
         moveCaretToDotCol();
         setUpdateFlag(REPAINT);
@@ -4090,9 +4078,7 @@ public final class Editor extends JPanel implements Constants,
     public void selectWordRight(String parameters) {
         if (dot == null)
             return;
-        addUndo(SimpleEdit.MOVE);
-        if (mark == null)
-            setMarkAtDot();
+        beginSelectMotion();
         updateDotLine();
         if (wantsVim(parameters)) {
             final Position to =
@@ -4113,9 +4099,7 @@ public final class Editor extends JPanel implements Constants,
     public void selectWordLeft(String parameters) {
         if (dot == null)
             return;
-        addUndo(SimpleEdit.MOVE);
-        if (mark == null)
-            setMarkAtDot();
+        beginSelectMotion();
         updateDotLine();
         if (wantsVim(parameters)) {
             final Position to =
@@ -4132,8 +4116,7 @@ public final class Editor extends JPanel implements Constants,
         if (dot == null)
             return;
         recordJump();
-        addUndo(SimpleEdit.MOVE);
-        unmark();
+        beginMotion();
         Line line = buffer.getFirstLine();
         dot.moveTo(line, 0);
         display.setCaretCol(0);
@@ -5083,6 +5066,19 @@ public final class Editor extends JPanel implements Constants,
         }
     }
 
+    /** Starts a caret motion: records the caret for undo and drops the selection. */
+    public void beginMotion() {
+        addUndo(SimpleEdit.MOVE);
+        unmark();
+    }
+
+    /** Starts a selecting motion: records the caret for undo and anchors a selection there if there is none. */
+    public void beginSelectMotion() {
+        addUndo(SimpleEdit.MOVE);
+        if (mark == null)
+            setMarkAtDot();
+    }
+
     public void cancelBackgroundProcess() {
         BackgroundProcess backgroundProcess = buffer.getBackgroundProcess();
         if (backgroundProcess != null)
@@ -5831,8 +5827,7 @@ public final class Editor extends JPanel implements Constants,
 
         CompoundEdit compoundEdit = beginCompoundEdit();
 
-        addUndo(SimpleEdit.MOVE);
-        unmark();
+        beginMotion();
 
         if (getDotOffset() < getDotLine().length()) {
             setMarkAtDot();
@@ -5863,8 +5858,7 @@ public final class Editor extends JPanel implements Constants,
         if (!checkReadOnly())
             return;
         CompoundEdit compoundEdit = beginCompoundEdit();
-        addUndo(SimpleEdit.MOVE);
-        unmark();
+        beginMotion();
         fillToCaret();
         setMarkAtDot();
         if (inWord()) {
@@ -5902,8 +5896,7 @@ public final class Editor extends JPanel implements Constants,
         if (getDotOffset() == 0 && getDotLine().previous() == null)
             return;
         CompoundEdit compoundEdit = beginCompoundEdit();
-        addUndo(SimpleEdit.MOVE);
-        unmark();
+        beginMotion();
         setMarkAtDot();
         prevChar();
         if (inWord()) {
@@ -7031,8 +7024,7 @@ public final class Editor extends JPanel implements Constants,
         if (count == 0) {
             buffer.withWriteLock(() -> {
                 CompoundEdit compoundEdit = beginCompoundEdit();
-                addUndo(SimpleEdit.MOVE);
-                unmark();
+                beginMotion();
                 dot.moveTo(pos);
                 if (getDotLine().substring(0, getDotOffset()).isBlank()) {
                     justOneSpace();
@@ -7075,8 +7067,7 @@ public final class Editor extends JPanel implements Constants,
         }
         try {
             CompoundEdit compoundEdit = beginCompoundEdit();
-            addUndo(SimpleEdit.MOVE);
-            unmark();
+            beginMotion();
             while (inWhitespace() && nextChar())
                 ;
             setMarkAtDot();

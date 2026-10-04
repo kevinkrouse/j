@@ -64,7 +64,6 @@ import org.armedbear.j.Line;
 import org.armedbear.j.Log;
 import org.armedbear.j.Platform;
 import org.armedbear.j.Position;
-import org.armedbear.j.SimpleEdit;
 import org.armedbear.j.mode.java.JavaMode;
 import org.armedbear.j.mode.java.JavaSource;
 import org.armedbear.j.util.Background;
@@ -904,8 +903,7 @@ public final class Jdb extends Buffer implements JdbConstants {
         if (line == null) {
             ed.eob();
         } else {
-            ed.addUndo(SimpleEdit.MOVE);
-            ed.unmark();
+            ed.beginMotion();
             ed.update(ed.getDotLine());
             ed.setDot(line, 0);
             ed.update(ed.getDotLine());

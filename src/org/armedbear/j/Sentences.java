@@ -249,8 +249,7 @@ public final class Sentences {
         final Position to = find(dot, forward, 1);
         if (to == null)
             return;
-        editor.addUndo(SimpleEdit.MOVE);
-        editor.unmark();
+        editor.beginMotion();
         editor.setDot(to);
         editor.moveCaretToDotCol();
         editor.updateDotLine();

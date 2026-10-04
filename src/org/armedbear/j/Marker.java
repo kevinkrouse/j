@@ -70,8 +70,7 @@ public final class Marker implements Constants {
                 || (file != null && file.equals(editor.getBuffer().getFile()))
         ) {
             // Marker is in current buffer.
-            editor.addUndo(SimpleEdit.MOVE);
-            editor.unmark();
+            editor.beginMotion();
             editor.updateDotLine();
             if (pos != null && editor.getBuffer().contains(pos.getLine())) {
                 editor.getDot().moveTo(pos);
@@ -169,8 +168,7 @@ public final class Marker implements Constants {
                 || (file != null && file.equals(editor.getBuffer().getFile()))
         ) {
             // Marker is in current buffer.
-            editor.addUndo(SimpleEdit.MOVE);
-            editor.unmark();
+            editor.beginMotion();
             editor.setMarkAtDot();
             editor.updateDotLine();
             if (pos != null && editor.getBuffer().contains(pos.getLine())) {

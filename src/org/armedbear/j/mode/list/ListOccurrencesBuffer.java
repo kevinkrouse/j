@@ -36,7 +36,6 @@ import org.armedbear.j.OccurrenceLine;
 import org.armedbear.j.Position;
 import org.armedbear.j.Replacement;
 import org.armedbear.j.Search;
-import org.armedbear.j.SimpleEdit;
 
 public class ListOccurrencesBuffer extends Buffer {
     protected final Search search;
@@ -208,8 +207,7 @@ public class ListOccurrencesBuffer extends Buffer {
                 ed.activate(buf);
             }
             ed.setLastSearch(search);
-            ed.addUndo(SimpleEdit.MOVE);
-            ed.unmark();
+            ed.beginMotion();
             ed.update(ed.getDotLine());
             ed.setDot(target, 0);
             Position found = search.find(buf.getMode(), ed.getDot());

@@ -174,8 +174,7 @@ public final class Paragraphs {
                 to.getLine(),
                 CaretCommands.firstNonBlank(to.getLine())
             );
-        editor.addUndo(SimpleEdit.MOVE);
-        editor.unmark();
+        editor.beginMotion();
         editor.setDot(to);
         editor.moveCaretToDotCol();
         editor.updateDotLine();
