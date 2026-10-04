@@ -20,18 +20,18 @@
 
 package org.armedbear.j.mode.binary;
 
+import static org.armedbear.j.Constants.*;
+
 import java.awt.event.KeyEvent;
-import java.lang.StringBuilder;
 import org.armedbear.j.AbstractMode;
 import org.armedbear.j.Buffer;
-import org.armedbear.j.Constants;
 import org.armedbear.j.Editor;
 import org.armedbear.j.KeyMap;
 import org.armedbear.j.Line;
 import org.armedbear.j.Mode;
 import org.armedbear.j.Property;
 
-public final class BinaryMode extends AbstractMode implements Constants, Mode {
+public final class BinaryMode extends AbstractMode implements Mode {
     private static final BinaryMode mode = new BinaryMode();
 
     private BinaryMode() {
@@ -44,11 +44,13 @@ public final class BinaryMode extends AbstractMode implements Constants, Mode {
         return mode;
     }
 
+    @Override
     protected final void setKeyMapDefaults(KeyMap km) {
         km.mapKey(KeyEvent.VK_B, CTRL_MASK | ALT_MASK, "defaultMode");
     }
 
     // For the status bar.
+    @Override
     public String getContextString(Editor editor, boolean verbose /*ignored*/) {
         if (editor.getMode() instanceof BinaryMode) {
             final Line dotLine = editor.getDotLine();

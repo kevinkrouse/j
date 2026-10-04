@@ -20,7 +20,6 @@
 
 package org.armedbear.j.mode.binary;
 
-import java.lang.StringBuilder;
 import org.armedbear.j.AbstractLine;
 import org.armedbear.j.Debug;
 import org.armedbear.j.Line;
@@ -36,12 +35,15 @@ public final class BinaryLine extends AbstractLine implements Line {
         this.count = count;
     }
 
+    @Override
     public final int flags() {
         return 0;
     }
 
+    @Override
     public final void setFlags(int flags) {}
 
+    @Override
     public final String getText() {
         Debug.assertTrue(bytes != null);
         StringBuilder sb = new StringBuilder(256);
@@ -66,32 +68,40 @@ public final class BinaryLine extends AbstractLine implements Line {
         return sb.toString();
     }
 
+    @Override
     public final void setText(String s) {}
 
+    @Override
     public final char charAt(int i) {
         return getText().charAt(i);
     }
 
+    @Override
     public final String substring(int beginIndex) {
         return getText().substring(beginIndex);
     }
 
+    @Override
     public final String substring(int beginIndex, int endIndex) {
         return getText().substring(beginIndex, endIndex);
     }
 
+    @Override
     public final String trim() {
         return getText().trim();
     }
 
+    @Override
     public final int length() {
         return getText().length();
     }
 
+    @Override
     public final byte[] getBytes(String encoding) {
         return bytes;
     }
 
+    @Override
     public final boolean isBlank() {
         return false;
     }
