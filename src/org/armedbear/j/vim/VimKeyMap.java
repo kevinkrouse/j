@@ -196,6 +196,27 @@ public final class VimKeyMap {
         return keyMap;
     }
 
+    /**
+     * The normal mode keys, in vim notation, that run the j command named
+     * name; the table's first such binding still in effect, or null.
+     */
+    public String keysFor(String name) {
+        final KeyStrokeTrie<VimCommand> trie = tries.get(MappingMode.NORMAL);
+        for (VimCommand row : rows) {
+            if (
+                row.getKind() != VimCommand.Kind.EDITOR_COMMAND
+                    || !row.getModes().contains(MappingMode.NORMAL)
+                    || !row.getCommand().equalsIgnoreCase(name)
+            )
+                continue;
+            // A later mapping of the same keys replaces this row.
+            KeyStrokeTrie.Match<VimCommand> m = trie.match(KeyNotation.tokenize(row.getKeys()));
+            if (m.value == row || m.fallback == row)
+                return row.getKeys();
+        }
+        return null;
+    }
+
     public KeyStrokeTrie<VimCommand> getTrie(MappingMode mode) {
         return tries.get(mode);
     }

@@ -14,6 +14,7 @@ package org.armedbear.j.vim;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
@@ -229,5 +230,32 @@ public class VimKeyMapTest {
                     break;
             }
         }
+    }
+
+    // ------------------------------------------------------- keys for a command
+
+    @Test
+    public void keysForAJCommand() throws Exception {
+        final VimKeyMap map = new VimKeyMap();
+        map.load(
+            new StringReader(
+                "n,v  <C-w>v  command  vsplitWindow  param=vim\n"
+                    + "n,v  <C-w><C-v>  command  vsplitWindow  param=vim\n"
+                    + "v  zz  command  toCenter  -\n"
+                    + "n  i  action  enterInsertMode  -\n"
+            )
+        );
+        assertEquals("<C-w>v", map.keysFor("vsplitWindow"));
+        assertEquals("<C-w>v", map.keysFor("VSPLITWINDOW"));
+        assertNull(map.keysFor("toCenter")); // Not in normal mode.
+        assertNull(map.keysFor("enterInsertMode")); // Not a j command.
+        // Remapped keys no longer run it; the next binding does.
+        map.add(VimKeyMap.parse("n  <C-w>v  command  splitWindow  -"));
+        assertEquals("<C-w><C-v>", map.keysFor("vsplitWindow"));
+    }
+
+    @Test
+    public void builtInTableNamesWindowCommands() {
+        assertEquals("<C-w>s", VimKeyMap.getDefault().keysFor("splitWindow"));
     }
 }

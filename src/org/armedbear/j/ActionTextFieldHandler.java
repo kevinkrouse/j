@@ -21,6 +21,8 @@ import java.util.Map;
 import java.util.Set;
 import javax.swing.Icon;
 import org.armedbear.j.util.Icons;
+import org.armedbear.j.vim.VimInputHandler;
+import org.armedbear.j.vim.VimKeyMap;
 
 /**
  * Finds a command by its name or summary, shows its key binding, and runs
@@ -162,11 +164,18 @@ public final class ActionTextFieldHandler extends FinderTextFieldHandler {
             keyText = keyText(editor, name);
         }
 
+        // In vim mode, vim's keys first, then j's.
         private static String keyText(Editor editor, String name) {
+            String keys = "";
             Object[] values = editor.getKeyMapping(name);
-            if (!(values[0] instanceof KeyMapping mapping))
-                return "";
-            return values[1] instanceof Mode mode ? mapping.getKeyText() + " (" + mode + ")" : mapping.getKeyText();
+            if (values[0] instanceof KeyMapping mapping)
+                keys = values[1] instanceof Mode mode ? mapping.getKeyText() + " (" + mode + ")" : mapping.getKeyText();
+            if (editor.getInputHandler() instanceof VimInputHandler) {
+                String vim = VimKeyMap.getShared().keysFor(name);
+                if (vim != null)
+                    keys = keys.isEmpty() ? vim : vim + ", " + keys;
+            }
+            return keys;
         }
 
         @Override
