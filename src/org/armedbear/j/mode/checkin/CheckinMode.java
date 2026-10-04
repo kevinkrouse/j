@@ -20,20 +20,17 @@
 
 package org.armedbear.j.mode.checkin;
 
+import java.awt.event.KeyEvent;
 import org.armedbear.j.AbstractMode;
 import org.armedbear.j.Constants;
 import org.armedbear.j.KeyMap;
 import org.armedbear.j.Mode;
 import org.armedbear.j.Property;
 
-import java.awt.event.KeyEvent;
-
-public class CheckinMode extends AbstractMode implements Constants, Mode
-{
+public class CheckinMode extends AbstractMode implements Constants, Mode {
     private static final CheckinMode mode = new CheckinMode();
 
-    private CheckinMode()
-    {
+    private CheckinMode() {
         super(CHECKIN_MODE, CHECKIN_MODE_NAME);
         setProperty(Property.SHOW_LINE_NUMBERS, false);
         setProperty(Property.SHOW_CHANGE_MARKS, false);
@@ -41,13 +38,11 @@ public class CheckinMode extends AbstractMode implements Constants, Mode
         setProperty(Property.HIGHLIGHT_BRACKETS, false);
     }
 
-    public static final CheckinMode getMode()
-    {
+    public static final CheckinMode getMode() {
         return mode;
     }
 
-    protected void setKeyMapDefaults(KeyMap km)
-    {
+    protected void setKeyMapDefaults(KeyMap km) {
         km.mapKey(KeyEvent.VK_P, CTRL_MASK, "previousComment");
         km.mapKey(KeyEvent.VK_N, CTRL_MASK, "nextComment");
         km.mapKey(KeyEvent.VK_ENTER, 0, "newlineAndIndent");
