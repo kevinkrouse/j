@@ -429,7 +429,7 @@ public class CommandTable {
             addCommand("svnChangeList", "vcs.svn.SVN", "changelist");
             addCommand("svnCommit", "vcs.svn.SVN", "commit");
             addCommand("svnDiff", "vcs.svn.SVN", "diff");
-            addCommand("svnDiffDir", "vcs.svn.SVN", "diffDif");
+            addCommand("svnDiffDir", "vcs.svn.SVN", "diffDir");
             addCommand("svnLog", "vcs.svn.SVN", "log");
             addCommand("svnRevert", "vcs.svn.SVN", "revert");
             addCommand("svnStatus", "vcs.svn.SVN", "status");

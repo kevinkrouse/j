@@ -187,7 +187,7 @@ public class SVN extends VersionControl implements Constants {
         }
     }
 
-    public static void diffDif() {
+    public static void diffDir() {
         if (!checkSVNInstalled())
             return;
         final Editor editor = Editor.currentEditor();

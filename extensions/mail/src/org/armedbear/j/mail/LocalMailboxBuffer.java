@@ -32,6 +32,7 @@ import java.util.ArrayList;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.List;
+import java.util.function.Predicate;
 import javax.swing.SwingUtilities;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Debug;
@@ -186,173 +187,82 @@ public class LocalMailboxBuffer extends MailboxBuffer {
     }
 
     public void delete() {
-        Editor editor = Editor.currentEditor();
-        if (lock()) {
-            try {
-                editor.setWaitCursor();
-                boolean advanceDot = false;
-                List<MailboxEntry> toBeDeleted = getTaggedEntries();
-                if (toBeDeleted == null) {
-                    Line line = editor.getDotLine();
-                    if (!(line instanceof MailboxLine))
-                        return;
-                    toBeDeleted = new ArrayList<MailboxEntry>();
-                    toBeDeleted.add(((MailboxLine) line).getMailboxEntry());
-                    advanceDot = true;
-                }
-                int size = toBeDeleted.size();
-                for (MailboxEntry entry : toBeDeleted) {
-                    if (!entry.isDeleted()) {
-                        entry.setFlags(entry.getFlags() | MailboxEntry.DELETED);
-                        dirty = true;
-                        updateEntry(entry);
-                    }
-                }
-                countMessages();
-                // Update message count in sidebar buffer list.
-                Sidebar.repaintBufferListInAllFrames();
-                if (advanceDot)
-                    advanceDot(editor.getDotLine());
-            }
-            finally {
-                unlock();
-            }
-        } else
-            editor.status("Mailbox is locked");
+        changeEntries(true, true, true, entry -> setFlag(entry, MailboxEntry.DELETED, true));
     }
 
     public void undelete() {
-        Editor editor = Editor.currentEditor();
-        if (lock()) {
-            try {
-                editor.setWaitCursor();
-                boolean advanceDot = false;
-                List<MailboxEntry> toBeUndeleted = getTaggedEntries();
-                if (toBeUndeleted == null) {
-                    Line line = editor.getDotLine();
-                    if (!(line instanceof MailboxLine))
-                        return;
-                    toBeUndeleted = new ArrayList<MailboxEntry>();
-                    toBeUndeleted.add(((MailboxLine) line).getMailboxEntry());
-                    if (getBooleanProperty(Property.UNDELETE_ADVANCE_DOT))
-                        advanceDot = true;
-                }
-                int size = toBeUndeleted.size();
-                for (MailboxEntry entry : toBeUndeleted) {
-                    if (entry.isDeleted()) {
-                        entry.setFlags(entry.getFlags() & ~MailboxEntry.DELETED);
-                        dirty = true;
-                        updateEntry(entry);
-                    }
-                }
-                countMessages();
-                // Update message count in sidebar buffer list.
-                Sidebar.repaintBufferListInAllFrames();
-                if (advanceDot)
-                    advanceDot(editor.getDotLine());
-            }
-            finally {
-                unlock();
-            }
-        } else
-            editor.status("Mailbox is locked");
+        boolean advance = getBooleanProperty(Property.UNDELETE_ADVANCE_DOT);
+        changeEntries(true, advance, true, entry -> setFlag(entry, MailboxEntry.DELETED, false));
     }
 
     public void markRead() {
-        Editor editor = Editor.currentEditor();
-        if (lock()) {
-            try {
-                boolean advanceDot = false;
-                List<MailboxEntry> list = getTaggedEntries();
-                if (list == null) {
-                    Line line = editor.getDotLine();
-                    if (!(line instanceof MailboxLine))
-                        return;
-                    list = new ArrayList<MailboxEntry>();
-                    list.add(((MailboxLine) line).getMailboxEntry());
-                    advanceDot = true;
-                }
-                for (MailboxEntry entry : list) {
-                    if ((entry.getFlags() & MailboxEntry.SEEN) == 0) {
-                        entry.setFlags(entry.getFlags() | MailboxEntry.SEEN);
-                        dirty = true;
-                        updateEntry(entry);
-                    }
-                }
-                countMessages();
-                // Update message count in sidebar buffer list.
-                Sidebar.repaintBufferListInAllFrames();
-                if (advanceDot)
-                    advanceDot(editor.getDotLine());
-            }
-            finally {
-                unlock();
-            }
-        } else
-            editor.status("Mailbox is locked");
+        changeEntries(false, true, true, entry -> setFlag(entry, MailboxEntry.SEEN, true));
     }
 
     public void markUnread() {
-        Editor editor = Editor.currentEditor();
-        if (lock()) {
-            try {
-                boolean advanceDot = false;
-                List<MailboxEntry> list = getTaggedEntries();
-                if (list == null) {
-                    Line line = editor.getDotLine();
-                    if (!(line instanceof MailboxLine))
-                        return;
-                    list = new ArrayList<MailboxEntry>();
-                    list.add(((MailboxLine) line).getMailboxEntry());
-                    advanceDot = true;
-                }
-                for (MailboxEntry entry : list) {
-                    if ((entry.getFlags() & MailboxEntry.SEEN) == MailboxEntry.SEEN) {
-                        entry.setFlags(entry.getFlags() & ~MailboxEntry.SEEN);
-                        dirty = true;
-                        updateEntry(entry);
-                    }
-                }
-                countMessages();
-                // Update message count in sidebar buffer list.
-                Sidebar.repaintBufferListInAllFrames();
-                if (advanceDot)
-                    advanceDot(editor.getDotLine());
-            }
-            finally {
-                unlock();
-            }
-        } else
-            editor.status("Mailbox is locked");
+        changeEntries(false, true, true, entry -> setFlag(entry, MailboxEntry.SEEN, false));
     }
 
     public void flag() {
-        final Editor editor = Editor.currentEditor();
-        if (lock()) {
-            try {
-                boolean advanceDot = false;
-                List<MailboxEntry> list = getTaggedEntries();
-                if (list == null) {
-                    Line line = editor.getDotLine();
-                    if (!(line instanceof MailboxLine))
-                        return;
-                    list = new ArrayList<MailboxEntry>();
-                    list.add(((MailboxLine) line).getMailboxEntry());
-                    advanceDot = true;
-                }
-                for (MailboxEntry entry : list) {
-                    entry.toggleFlag();
-                    updateEntry(entry);
-                    dirty = true;
-                }
-                if (advanceDot)
-                    advanceDot(editor.getDotLine());
-            }
-            finally {
-                unlock();
-            }
-        } else
+        changeEntries(false, true, false, entry -> {
+            entry.toggleFlag();
+            return true;
+        });
+    }
+
+    // Sets or clears flag; false if it was already so.
+    private static boolean setFlag(MailboxEntry entry, int flag, boolean on) {
+        int flags = on ? entry.getFlags() | flag : entry.getFlags() & ~flag;
+        if (flags == entry.getFlags())
+            return false;
+        entry.setFlags(flags);
+        return true;
+    }
+
+    /**
+     * Applies change to the tagged entries or, if none are, the caret's, then
+     * moves the caret to the next message if advance. change says whether it
+     * changed the entry. recount updates the message counts.
+     */
+    private void changeEntries(
+        boolean waitCursor,
+        boolean advance,
+        boolean recount,
+        Predicate<MailboxEntry> change
+    ) {
+        Editor editor = Editor.currentEditor();
+        if (!lock()) {
             editor.status("Mailbox is locked");
+            return;
+        }
+        try {
+            if (waitCursor)
+                editor.setWaitCursor();
+            List<MailboxEntry> list = getTaggedEntries();
+            if (list == null) {
+                Line line = editor.getDotLine();
+                if (!(line instanceof MailboxLine))
+                    return;
+                list = List.of(((MailboxLine) line).getMailboxEntry());
+            } else
+                advance = false;
+            for (MailboxEntry entry : list) {
+                if (change.test(entry)) {
+                    dirty = true;
+                    updateEntry(entry);
+                }
+            }
+            if (recount) {
+                countMessages();
+                // Update message count in sidebar buffer list.
+                Sidebar.repaintBufferListInAllFrames();
+            }
+            if (advance)
+                advanceDot(editor.getDotLine());
+        }
+        finally {
+            unlock();
+        }
     }
 
     public void setAnsweredFlag(MailboxEntry entry) {
