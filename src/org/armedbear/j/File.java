@@ -26,7 +26,6 @@ import java.io.FileOutputStream;
 import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.RandomAccessFile;
-import java.lang.StringBuilder;
 import java.nio.file.Files;
 import java.nio.file.attribute.PosixFilePermission;
 import java.util.ArrayList;
@@ -231,12 +230,12 @@ public class File implements Comparable<File> {
         if (directory == null)
             return null;
 
-        if (directory instanceof HttpFile)
-            return HttpFile.getHttpFile((HttpFile) directory, name);
-        if (directory instanceof FtpFile)
-            return FtpFile.getFtpFile((FtpFile) directory, name);
-        if (directory instanceof SshFile)
-            return SshFile.getSshFile((SshFile) directory, name);
+        if (directory instanceof HttpFile httpFile)
+            return HttpFile.getHttpFile(httpFile, name);
+        if (directory instanceof FtpFile ftpFile)
+            return FtpFile.getFtpFile(ftpFile, name);
+        if (directory instanceof SshFile sshFile)
+            return SshFile.getSshFile(sshFile, name);
         if (directory.isRemote) {
             Debug.assertTrue(false);
             File file = new File();
@@ -720,7 +719,7 @@ public class File implements Comparable<File> {
             if (listing == null)
                 return null;
             FastStringReader reader = new FastStringReader(listing);
-            ArrayList<String> list = new ArrayList<String>();
+            ArrayList<String> list = new ArrayList<>();
             String s;
             while ((s = reader.readLine()) != null) {
                 String name = DirectoryEntry.getName(s);
@@ -750,7 +749,7 @@ public class File implements Comparable<File> {
                 return null;
             long start = System.currentTimeMillis();
             FastStringReader reader = new FastStringReader(listing);
-            ArrayList<File> list = new ArrayList<File>();
+            ArrayList<File> list = new ArrayList<>();
             int nameColumn = -1;
             String s;
             while ((s = reader.readLine()) != null) {
@@ -830,18 +829,19 @@ public class File implements Comparable<File> {
         return file.delete();
     }
 
+    @Override
     public int hashCode() {
         if (file == null)
             throw new NotSupportedException();
         return file.hashCode();
     }
 
+    @Override
     public boolean equals(Object obj) {
         if (this == obj)
             return true;
-        if (!(obj instanceof File))
+        if (!(obj instanceof File f))
             return false;
-        File f = (File) obj;
         // Protocol.
         if (f.protocol != protocol)
             return false;
@@ -864,6 +864,7 @@ public class File implements Comparable<File> {
         return f.canonicalPath.equals(canonicalPath);
     }
 
+    @Override
     public String toString() {
         return netPath();
     }
@@ -947,6 +948,7 @@ public class File implements Comparable<File> {
         }
     }
 
+    @Override
     public final int compareTo(File f) {
         return getName().compareTo(f.getName());
     }

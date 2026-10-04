@@ -183,9 +183,8 @@ public class EditorPane extends JXMultiSplitPane {
     /** Shares the space out evenly, row or column, all the way down. */
     private void place(Node node, Rectangle bounds) {
         node.setBounds(bounds);
-        if (!(node instanceof Split))
+        if (!(node instanceof Split split))
             return;
-        final Split split = (Split) node;
         final boolean row = split.isRowLayout();
         final int divider = getDividerSize();
         final List<Node> children = split.getChildren();
@@ -216,7 +215,7 @@ public class EditorPane extends JXMultiSplitPane {
             return Collections.emptyList();
 
         MultiSplitLayout layout = getMultiSplitLayout();
-        List<Editor> editors = new ArrayList<Editor>();
+        List<Editor> editors = new ArrayList<>();
         for (MultiSplitLayout.Node n : split.getChildren()) {
             if (n instanceof MultiSplitLayout.Leaf) {
                 Editor ed = (Editor) layout.getComponentForNode(n);
@@ -231,8 +230,8 @@ public class EditorPane extends JXMultiSplitPane {
         Node model = getMultiSplitLayout().getModel();
         if (model instanceof Leaf)
             model.setWeight(1.0);
-        else if (model instanceof Split)
-            adjustWeights(((Split) model).getChildren());
+        else if (model instanceof Split split)
+            adjustWeights(split.getChildren());
     }
 
     // evenly distribute weights among nodes, skipping dividers
@@ -247,13 +246,13 @@ public class EditorPane extends JXMultiSplitPane {
         for (Node n : children) {
             if (n instanceof Leaf || n instanceof Split)
                 n.setWeight(weight);
-            if (n instanceof Split)
-                adjustWeights(((Split) n).getChildren());
+            if (n instanceof Split split)
+                adjustWeights(split.getChildren());
         }
     }
 
     boolean checkEditorLeafCount() {
-        List<Component> editors = new ArrayList<Component>();
+        List<Component> editors = new ArrayList<>();
         for (Component c : getComponents())
             if (c instanceof Editor)
                 editors.add(c);
@@ -274,9 +273,9 @@ public class EditorPane extends JXMultiSplitPane {
     int leafCount(Node n) {
         if (n instanceof Leaf)
             return 1;
-        if (n instanceof Split) {
+        if (n instanceof Split split) {
             int count = 0;
-            for (Node child : ((Split) n).getChildren())
+            for (Node child : split.getChildren())
                 count += leafCount(child);
             return count;
         }

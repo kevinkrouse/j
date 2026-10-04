@@ -107,15 +107,14 @@ public final class UIScale {
      * changed.
      */
     public static void refresh(Component c) {
-        if (!(c instanceof JComponent))
+        if (!(c instanceof JComponent component))
             return;
-        final JComponent component = (JComponent) c;
         final int current;
         synchronized (UIScale.class) {
             current = generation;
         }
         Object seen = component.getClientProperty(GENERATION_KEY);
-        if (seen instanceof Integer && ((Integer) seen).intValue() == current)
+        if (seen instanceof Integer i && i.intValue() == current)
             return;
         component.putClientProperty(GENERATION_KEY, Integer.valueOf(current));
         SwingUtilities.updateComponentTreeUI(component);

@@ -20,7 +20,6 @@
 
 package org.armedbear.j;
 
-import java.lang.StringBuilder;
 import java.util.List;
 
 public final class ExecuteCommandDialog extends InputDialog {
@@ -31,6 +30,7 @@ public final class ExecuteCommandDialog extends InputDialog {
         setDefaultValue(history.getPrevious());
     }
 
+    @Override
     protected final List<String> getCompletions(String prefix) {
         return CommandTable.getCompletionsForPrefix(prefix);
     }

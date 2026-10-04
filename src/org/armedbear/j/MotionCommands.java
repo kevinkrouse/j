@@ -842,9 +842,9 @@ public final class MotionCommands {
             return;
         AWTEvent e = editor.getDispatcher().getLastEvent();
         CompoundEdit compoundEdit = null;
-        if (e instanceof MouseEvent) {
+        if (e instanceof MouseEvent mouseEvent) {
             compoundEdit = editor.beginCompoundEdit();
-            editor.mouseMoveDotToPoint((MouseEvent) e);
+            editor.mouseMoveDotToPoint(mouseEvent);
         }
         if (inWord(editor)) {
             editor.addUndo(SimpleEdit.MOVE);

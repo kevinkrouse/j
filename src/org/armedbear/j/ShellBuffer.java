@@ -19,9 +19,10 @@
 
 package org.armedbear.j;
 
+import static org.armedbear.j.Constants.*;
+
 import java.io.IOException;
 import java.io.OutputStreamWriter;
-import java.lang.StringBuilder;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.StringTokenizer;
@@ -31,7 +32,7 @@ import javax.swing.undo.CompoundEdit;
 import org.armedbear.j.mode.shell.ShellTokenizer;
 import org.armedbear.j.util.Utilities;
 
-public class ShellBuffer extends CommandInterpreterBuffer implements Constants {
+public class ShellBuffer extends CommandInterpreterBuffer {
     protected static final String JPTY_NOT_FOUND =
         "Unable to start shell process (jpty not found in PATH)";
 
@@ -85,6 +86,7 @@ public class ShellBuffer extends CommandInterpreterBuffer implements Constants {
         return Platform.isPlatformWindows() ? "cmd.exe /q" : "bash -i";
     }
 
+    @Override
     protected void initializeHistory() {
         history = new History("shell.history", 30);
     }
@@ -184,12 +186,14 @@ public class ShellBuffer extends CommandInterpreterBuffer implements Constants {
         }
     }
 
+    @Override
     public void dispose() {
         if (!checkProcess()) {
             Log.debug("checkProcess returned false");
             return;
         }
         Thread thread = new Thread("shell dispose") {
+            @Override
             public void run() {
                 try {
                     stdin.write(3);
@@ -215,6 +219,7 @@ public class ShellBuffer extends CommandInterpreterBuffer implements Constants {
         thread.start();
     }
 
+    @Override
     protected void enter(final String s) {
         super.enter(s);
         // If it's a local shell (i.e. not telnet or ssh), keep track of the
@@ -243,6 +248,7 @@ public class ShellBuffer extends CommandInterpreterBuffer implements Constants {
         }
     }
 
+    @Override
     protected boolean checkProcess() {
         Process p = getProcess();
         if (p == null)
@@ -258,6 +264,7 @@ public class ShellBuffer extends CommandInterpreterBuffer implements Constants {
 
     protected void startWatcherThread() {
         Thread thread = new Thread("shell watcher") {
+            @Override
             public void run() {
                 try {
                     Process p = getProcess();
@@ -430,23 +437,28 @@ public class ShellBuffer extends CommandInterpreterBuffer implements Constants {
         return sb.toString();
     }
 
+    @Override
     public String getFileNameForDisplay() {
         return (currentDir != null) ? currentDir.canonicalPath() : "";
     }
 
     // For the buffer list.
+    @Override
     public String toString() {
         return shellCommand != null ? shellCommand : "";
     }
 
+    @Override
     public File getCurrentDirectory() {
         return currentDir;
     }
 
+    @Override
     public File getCompletionDirectory() {
         return currentDir;
     }
 
+    @Override
     protected void appendString(String s) {
         if (s.indexOf(0x1b) >= 0) {
             // Strip escape sequences used for ls colorization.
@@ -467,6 +479,7 @@ public class ShellBuffer extends CommandInterpreterBuffer implements Constants {
         super.appendString(s);
     }
 
+    @Override
     protected void stdOutUpdate(final String s) {
         Runnable r = () -> {
             if (s.length() > 0) {
@@ -481,6 +494,7 @@ public class ShellBuffer extends CommandInterpreterBuffer implements Constants {
         SwingUtilities.invokeLater(r);
     }
 
+    @Override
     protected void stdErrUpdate(final String s) {
         if (promptIsStderr) {
             Matcher matcher = promptRE.matcher(s);
@@ -583,8 +597,8 @@ public class ShellBuffer extends CommandInterpreterBuffer implements Constants {
         // Look for existing shell buffer.
         Buffer buf = null;
         for (Buffer b : Editor.getBufferList()) {
-            if (b instanceof ShellBuffer) {
-                if (shellCommand.equals(((ShellBuffer) b).shellCommand)) {
+            if (b instanceof ShellBuffer shellBuffer) {
+                if (shellCommand.equals(shellBuffer.shellCommand)) {
                     buf = b;
                     break;
                 }
@@ -605,13 +619,13 @@ public class ShellBuffer extends CommandInterpreterBuffer implements Constants {
 
     public static void shellTab() {
         final Buffer buffer = Editor.currentEditor().getBuffer();
-        if (buffer instanceof ShellBuffer && !(buffer instanceof RemoteShellBuffer))
-            ((ShellBuffer) buffer).tab();
+        if (buffer instanceof ShellBuffer shellBuffer && !(buffer instanceof RemoteShellBuffer))
+            shellBuffer.tab();
     }
 
     public static void shellInterrupt() {
         final Buffer buffer = Editor.currentEditor().getBuffer();
-        if (buffer instanceof ShellBuffer)
-            ((ShellBuffer) buffer).sendChar(3);
+        if (buffer instanceof ShellBuffer shellBuffer)
+            shellBuffer.sendChar(3);
     }
 }

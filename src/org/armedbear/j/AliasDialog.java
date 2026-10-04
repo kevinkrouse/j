@@ -22,7 +22,6 @@ package org.armedbear.j;
 
 import java.awt.event.FocusEvent;
 import java.awt.event.FocusListener;
-import java.lang.StringBuilder;
 
 public final class AliasDialog extends AbstractDialog implements FocusListener {
     private final Editor editor;
@@ -59,6 +58,7 @@ public final class AliasDialog extends AbstractDialog implements FocusListener {
             keyTextField.requestFocus();
     }
 
+    @Override
     protected void ok() {
         dispose();
         String key = getKey();
@@ -85,8 +85,10 @@ public final class AliasDialog extends AbstractDialog implements FocusListener {
         return value != null ? value.trim() : "";
     }
 
+    @Override
     public void focusGained(FocusEvent e) {}
 
+    @Override
     public void focusLost(FocusEvent e) {
         String value = editor.getAlias(getKey());
         if (value != null)

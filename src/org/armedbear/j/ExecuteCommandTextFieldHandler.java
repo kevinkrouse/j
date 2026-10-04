@@ -27,6 +27,7 @@ public final class ExecuteCommandTextFieldHandler extends DefaultTextFieldHandle
         super(editor, textField);
     }
 
+    @Override
     public void enter() {
         String input = textField.getText();
         if (input == null)
@@ -53,10 +54,12 @@ public final class ExecuteCommandTextFieldHandler extends DefaultTextFieldHandle
         editor.getDispatcher().eventHandled();
     }
 
+    @Override
     public boolean wantTab() {
         return true;
     }
 
+    @Override
     public final List<String> getCompletions(String prefix) {
         return CommandTable.getCompletionsForPrefix(prefix);
     }

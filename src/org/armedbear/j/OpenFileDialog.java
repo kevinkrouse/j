@@ -100,12 +100,15 @@ public class OpenFileDialog extends JDialog implements FocusListener {
         editor.setFocusToDisplay();
     }
 
+    @Override
     public void focusGained(FocusEvent e) {
         textField.requestFocus();
     }
 
+    @Override
     public void focusLost(FocusEvent e) {}
 
+    @Override
     public void dispose() {
         super.dispose();
         editor.restoreFocus();
@@ -119,10 +122,10 @@ public class OpenFileDialog extends JDialog implements FocusListener {
         editor.repaintNow();
         Buffer buf = null;
         Object obj = dialog.getResult();
-        if (obj instanceof Buffer)
-            buf = (Buffer) obj;
-        else if (obj instanceof File)
-            buf = editor.openFile((File) obj);
+        if (obj instanceof Buffer buffer)
+            buf = buffer;
+        else if (obj instanceof File file)
+            buf = editor.openFile(file);
         if (buf != null) {
             editor.makeNext(buf);
             editor.activateInOtherFrame(buf);

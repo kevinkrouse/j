@@ -20,10 +20,12 @@
 
 package org.armedbear.j;
 
+import static org.armedbear.j.Constants.*;
+
 import java.util.ArrayList;
 import java.util.List;
 
-public final class Marker implements Constants {
+public final class Marker {
     private Buffer buffer;
     private Position pos;
     private final File file;
@@ -192,11 +194,11 @@ public final class Marker implements Constants {
         }
     }
 
+    @Override
     public boolean equals(Object object) {
         if (this == object)
             return true;
-        if (object instanceof Marker) {
-            Marker m = (Marker) object;
+        if (object instanceof Marker m) {
             if (buffer != null && buffer == m.buffer)
                 if (pos != null && pos.equals(m.pos))
                     return true;
@@ -235,7 +237,7 @@ public final class Marker implements Constants {
     public static List<Marker> getAllMarkers() {
         Marker[] bookmarks = Editor.getBookmarks();
         List<Marker> jumps = JumpList.getEntries();
-        ArrayList<Marker> list = new ArrayList<Marker>(bookmarks.length + jumps.size());
+        ArrayList<Marker> list = new ArrayList<>(bookmarks.length + jumps.size());
         for (int i = bookmarks.length; i-- > 0;) {
             Marker m = bookmarks[i];
             if (m != null)

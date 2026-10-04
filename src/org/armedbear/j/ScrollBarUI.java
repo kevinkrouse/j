@@ -35,6 +35,7 @@ public final class ScrollBarUI extends BasicScrollBarUI {
         return new ScrollBarUI();
     }
 
+    @Override
     protected void paintThumb(Graphics g, JComponent c, Rectangle thumbBounds) {
         if (thumbBounds.isEmpty() || !scrollbar.isEnabled())
             return;
@@ -57,10 +58,12 @@ public final class ScrollBarUI extends BasicScrollBarUI {
         g.translate(-thumbBounds.x, -thumbBounds.y);
     }
 
+    @Override
     protected JButton createDecreaseButton(int orientation) {
         return new ArrowButton(orientation);
     }
 
+    @Override
     protected JButton createIncreaseButton(int orientation) {
         return new ArrowButton(orientation);
     }
@@ -84,6 +87,7 @@ public final class ScrollBarUI extends BasicScrollBarUI {
             setRequestFocusEnabled(false);
         }
 
+        @Override
         public void paint(Graphics g) {
             final Color origColor = g.getColor();
             final boolean isPressed = getModel().isPressed();
@@ -111,18 +115,22 @@ public final class ScrollBarUI extends BasicScrollBarUI {
             g.setColor(origColor);
         }
 
+        @Override
         public Dimension getPreferredSize() {
             return new Dimension(w, h);
         }
 
+        @Override
         public Dimension getMinimumSize() {
             return new Dimension(w, h);
         }
 
+        @Override
         public Dimension getMaximumSize() {
             return new Dimension(w, h);
         }
 
+        @Override
         public boolean isFocusable() {
             return false;
         }

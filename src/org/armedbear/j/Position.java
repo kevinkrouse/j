@@ -20,9 +20,9 @@
 
 package org.armedbear.j;
 
-import java.lang.StringBuilder;
+import static org.armedbear.j.Constants.*;
 
-public final class Position implements Constants {
+public final class Position {
     private Line line;
     private int offset;
 
@@ -74,10 +74,10 @@ public final class Position implements Constants {
         return line.previous();
     }
 
+    @Override
     public final boolean equals(Object obj) {
-        if (!(obj instanceof Position))
+        if (!(obj instanceof Position pos))
             return false;
-        Position pos = (Position) obj;
         return (line == pos.line && offset == pos.offset);
     }
 
@@ -295,6 +295,7 @@ public final class Position implements Constants {
         return line.substring(begin, end);
     }
 
+    @Override
     public String toString() {
         StringBuilder sb = new StringBuilder("line ");
         if (line != null)

@@ -226,8 +226,8 @@ public final class EditorHarness {
 
     private org.armedbear.j.vim.VimInputHandler vimHandler() {
         final InputHandler handler = editor.getInputHandler();
-        return handler instanceof org.armedbear.j.vim.VimInputHandler
-            ? (org.armedbear.j.vim.VimInputHandler) handler
+        return handler instanceof org.armedbear.j.vim.VimInputHandler vimInputHandler
+            ? vimInputHandler
             : null;
     }
 

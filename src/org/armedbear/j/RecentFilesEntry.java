@@ -20,7 +20,6 @@
 
 package org.armedbear.j;
 
-import java.lang.StringBuilder;
 import java.util.StringTokenizer;
 
 public final class RecentFilesEntry {
@@ -92,10 +91,10 @@ public final class RecentFilesEntry {
         return ignoreCase ? location.equalsIgnoreCase(file.getParent()) : location.equals(file.getParent());
     }
 
+    @Override
     public boolean equals(Object obj) {
-        if (!(obj instanceof RecentFilesEntry))
+        if (!(obj instanceof RecentFilesEntry entry))
             return false;
-        RecentFilesEntry entry = (RecentFilesEntry) obj;
         if (ignoreCase) {
             if (entry.name.equalsIgnoreCase(name))
                 if (entry.location.equalsIgnoreCase(location))
@@ -121,6 +120,7 @@ public final class RecentFilesEntry {
         return h;
     }
 
+    @Override
     public String toString() {
         StringBuilder sb = new StringBuilder(name);
         if (sb.length() == 0)

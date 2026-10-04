@@ -20,8 +20,6 @@
 
 package org.armedbear.j;
 
-import java.lang.StringBuilder;
-
 public final class LineSequence {
     private Line first;
     private Line last;
@@ -68,6 +66,7 @@ public final class LineSequence {
         ++size;
     }
 
+    @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();
         for (Line line = first; line != null; line = line.next()) {

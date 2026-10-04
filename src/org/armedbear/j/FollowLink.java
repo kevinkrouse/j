@@ -139,7 +139,7 @@ public final class FollowLink {
         if (tags == null)
             return null;
         for (Tag tag : tags) {
-            if (!(tag instanceof LocalTag) || ((LocalTag) tag).getLine() != line)
+            if (!(tag instanceof LocalTag localTag) || localTag.getLine() != line)
                 return TextLink.definition(
                     name,
                     start.getOffset(),
@@ -164,8 +164,8 @@ public final class FollowLink {
         }
         // Clicked rather than typed: where the click was.
         final AWTEvent event = editor.getDispatcher().getLastEvent();
-        if (event instanceof MouseEvent)
-            editor.mouseMoveDotToPoint((MouseEvent) event);
+        if (event instanceof MouseEvent mouseEvent)
+            editor.mouseMoveDotToPoint(mouseEvent);
         if (editor.getDot() == null)
             return;
         final TextLink link = editor.getMode().getLinkAt(editor, editor.getDot());

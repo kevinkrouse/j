@@ -30,10 +30,10 @@ import org.junit.jupiter.api.Test;
 /** followLink: what a link at the caret is, and where it goes. */
 public class MarkdownLinksTest {
     private EditorHarness h;
-    private final List<String> browsed = new ArrayList<String>();
+    private final List<String> browsed = new ArrayList<>();
     private Consumer<String> browser;
     private java.util.function.BiConsumer<Editor, Buffer> switcher;
-    private final List<Path> files = new ArrayList<Path>();
+    private final List<Path> files = new ArrayList<>();
 
     @BeforeEach
     public void setUp() {

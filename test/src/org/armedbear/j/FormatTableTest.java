@@ -28,7 +28,7 @@ import org.junit.jupiter.api.Test;
 public class FormatTableTest {
     private static final String MODE = "FormatTableTestMode";
 
-    private final List<String> keys = new ArrayList<String>();
+    private final List<String> keys = new ArrayList<>();
 
     private void set(String key, String value) {
         keys.add(key);

@@ -70,27 +70,34 @@ public final class ToolBarButton extends JButton implements ActionListener,
             setIcon(icon);
     }
 
+    @Override
     protected void paintBorder(Graphics g) {
         if (!isRolloverEnabled() || model.isRollover())
             super.paintBorder(g);
     }
 
+    @Override
     public void actionPerformed(ActionEvent e) {
         model.setPressed(false);
         model.setArmed(false);
         model.setRollover(false);
     }
 
+    @Override
     public void mouseClicked(MouseEvent e) {}
 
+    @Override
     public void mousePressed(MouseEvent e) {}
 
+    @Override
     public void mouseReleased(MouseEvent e) {}
 
+    @Override
     public void mouseEntered(MouseEvent e) {
         frame.setStatusText(this.getToolTipText());
     }
 
+    @Override
     public void mouseExited(MouseEvent e) {
         frame.setStatusText("");
     }

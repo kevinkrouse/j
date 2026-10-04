@@ -20,9 +20,10 @@
 
 package org.armedbear.j;
 
+import static org.armedbear.j.Constants.*;
+
 import java.io.IOException;
 import java.io.OutputStreamWriter;
-import java.lang.StringBuilder;
 import java.lang.reflect.InvocationTargetException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -35,7 +36,7 @@ import javax.swing.Timer;
 import org.armedbear.j.util.ReaderThread;
 import org.armedbear.j.util.Utilities;
 
-public final class SshSession implements Constants, RemoteSession {
+public final class SshSession implements RemoteSession {
     public static final int DEFAULT_PORT = 22;
 
     private static final int TRY_AGAIN = 0;
@@ -104,7 +105,7 @@ public final class SshSession implements Constants, RemoteSession {
 
     private static synchronized void register(SshSession session) {
         if (sessionList == null)
-            sessionList = new ArrayList<SshSession>();
+            sessionList = new ArrayList<>();
         sessionList.add(session);
         if (cleanupTimer == null) {
             cleanupTimer = new Timer(60000, e -> cleanup());
@@ -187,6 +188,7 @@ public final class SshSession implements Constants, RemoteSession {
         return null;
     }
 
+    @Override
     public final synchronized boolean isLocked() {
         return locked;
     }
@@ -198,6 +200,7 @@ public final class SshSession implements Constants, RemoteSession {
         return true;
     }
 
+    @Override
     public synchronized void unlock() {
         if (locked)
             locked = false;
@@ -211,14 +214,17 @@ public final class SshSession implements Constants, RemoteSession {
         }
     }
 
+    @Override
     public final String getHostName() {
         return hostName;
     }
 
+    @Override
     public final String getUserName() {
         return userName;
     }
 
+    @Override
     public final String getPassword() {
         return password;
     }
@@ -231,10 +237,12 @@ public final class SshSession implements Constants, RemoteSession {
         return passphrase;
     }
 
+    @Override
     public final int getPort() {
         return port;
     }
 
+    @Override
     public final String getLoginDirectory() {
         return loginDirectory;
     }
@@ -243,6 +251,7 @@ public final class SshSession implements Constants, RemoteSession {
         outputBuffer = buf;
     }
 
+    @Override
     public boolean isDirectory(String canonicalPath) {
         SshFile file =
             new SshFile(hostName, canonicalPath, userName, null, port);
@@ -277,6 +286,7 @@ public final class SshSession implements Constants, RemoteSession {
         }
     }
 
+    @Override
     public boolean isFile(String canonicalPath) {
         throw new RuntimeException("NYI");
     }
@@ -374,6 +384,7 @@ public final class SshSession implements Constants, RemoteSession {
         throw new Exception();
     }
 
+    @Override
     public boolean exists(String canonicalPath) {
         if (connect()) {
             String response = lsld(canonicalPath);
@@ -387,13 +398,13 @@ public final class SshSession implements Constants, RemoteSession {
     }
 
     public static String getDirectoryListing(File file) {
-        if (!(file instanceof SshFile)) {
+        if (!(file instanceof SshFile sshFile)) {
             Debug.assertTrue(false);
             return null;
         }
         String listing = DirectoryCache.getDirectoryCache().getListing(file);
         if (listing == null) {
-            SshSession session = getSession((SshFile) file);
+            SshSession session = getSession(sshFile);
             if (session != null) {
                 listing = session.retrieveDirectoryListing(file);
                 session.unlock();
@@ -404,6 +415,7 @@ public final class SshSession implements Constants, RemoteSession {
         return listing;
     }
 
+    @Override
     public String retrieveDirectoryListing(File file) {
         if (!(file instanceof SshFile)) {
             Debug.bug();
@@ -427,6 +439,7 @@ public final class SshSession implements Constants, RemoteSession {
         return null;
     }
 
+    @Override
     public synchronized boolean chmod(File file, int permissions) {
         Debug.bugIfNot(file instanceof SshFile);
         if (permissions != 0 && connect()) {
@@ -445,16 +458,18 @@ public final class SshSession implements Constants, RemoteSession {
         return false;
     }
 
+    @Override
     public synchronized boolean isConnected() {
         return connected;
     }
 
+    @Override
     public synchronized boolean connect() {
         if (connected) {
             Log.debug("SshSession.connect(): already connected");
             return true;
         }
-        List<String> cmd = new ArrayList<String>();
+        List<String> cmd = new ArrayList<>();
         cmd.add(Utilities.jptyPath());
         cmd.add("ssh");
         if (userName != null && userName.length() > 0) {
@@ -1008,6 +1023,7 @@ public final class SshSession implements Constants, RemoteSession {
         SwingUtilities.invokeLater(r);
     }
 
+    @Override
     public boolean checkLogin() {
         if (userName == null)
             userName = System.getProperty("user.name");
@@ -1114,10 +1130,12 @@ public final class SshSession implements Constants, RemoteSession {
             super(process.getInputStream());
         }
 
+        @Override
         public String filter(String s) {
             return stdOutFilter(s);
         }
 
+        @Override
         public void update(String s) {
             stdOutUpdate(s);
         }
@@ -1129,10 +1147,12 @@ public final class SshSession implements Constants, RemoteSession {
             super(process.getErrorStream());
         }
 
+        @Override
         public String filter(String s) {
             return stdErrFilter(s);
         }
 
+        @Override
         public void update(String s) {
             stdErrUpdate(s);
         }

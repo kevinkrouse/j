@@ -35,7 +35,7 @@ public final class FormatTable {
 
     public FormatTable(String modeName) {
         this.modeName = modeName;
-        list = new ArrayList<FormatTableEntry>();
+        list = new ArrayList<>();
     }
 
     public synchronized final String getModeName() {
@@ -126,8 +126,8 @@ public final class FormatTable {
         String... fallbacks
     ) {
         // The thing and the names it links to, then each fallback and its.
-        final List<List<String>> chains = new ArrayList<List<String>>();
-        final List<String> names = new ArrayList<String>();
+        final List<List<String>> chains = new ArrayList<>();
+        final List<String> names = new ArrayList<>();
         addChain(chains, names, thing);
         if (fallbacks != null)
             for (String fallback : fallbacks)
@@ -145,10 +145,10 @@ public final class FormatTable {
             final Preference<Color> p =
                 findPreference("color", "text", preferences::getColorProperty);
             if (p != null)
-                foundColor = new Found<Color>(p.value, p.key);
+                foundColor = new Found<>(p.value, p.key);
         }
         if (foundColor == null)
-            foundColor = new Found<Color>(DefaultTheme.getColor("text"), "default text");
+            foundColor = new Found<>(DefaultTheme.getColor("text"), "default text");
         final Color color = foundColor.value;
         final String colorSource = foundColor.source;
 
@@ -186,7 +186,7 @@ public final class FormatTable {
      * as a background.
      */
     public synchronized Color resolveColor(String thing, boolean withDefaults) {
-        final List<List<String>> chains = new ArrayList<List<String>>();
+        final List<List<String>> chains = new ArrayList<>();
         addChain(chains, new ArrayList<String>(), thing);
         final boolean dark = DefaultTheme.isDark(getBackground());
         final Found<Color> found = resolve(
@@ -202,7 +202,7 @@ public final class FormatTable {
      * through and where its color and style came from: for listStyles.
      */
     /*package*/ synchronized List<FormatTableEntry> getEntries() {
-        final List<FormatTableEntry> entries = new ArrayList<FormatTableEntry>();
+        final List<FormatTableEntry> entries = new ArrayList<>();
         if (list != null)
             entries.addAll(list);
         else if (array != null)
@@ -240,11 +240,11 @@ public final class FormatTable {
             for (String name : chain) {
                 final Preference<T> p = preference.apply(name);
                 if (p != null)
-                    return new Found<T>(p.value, p.key);
+                    return new Found<>(p.value, p.key);
                 final T value = builtIn.apply(name);
                 if (value != null) {
                     if (builtInFound == null)
-                        builtInFound = new Found<T>(value, "default " + name);
+                        builtInFound = new Found<>(value, "default " + name);
                     break;
                 }
             }
@@ -254,7 +254,7 @@ public final class FormatTable {
 
     // Only called from synchronized methods.
     private void addChain(List<List<String>> chains, List<String> names, String name) {
-        final List<String> chain = new ArrayList<String>();
+        final List<String> chain = new ArrayList<>();
         addLinked(chain, name);
         chain.removeAll(names);
         names.addAll(chain);
@@ -297,7 +297,7 @@ public final class FormatTable {
             final String key = modeName + "." + kind + "." + name;
             final T value = get.apply(key);
             if (value != null)
-                return new Preference<T>(key, value);
+                return new Preference<>(key, value);
         }
         final String key = kind + "." + name;
         final T value = get.apply(key);

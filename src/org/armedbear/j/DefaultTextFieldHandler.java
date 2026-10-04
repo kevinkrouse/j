@@ -20,6 +20,8 @@
 
 package org.armedbear.j;
 
+import static org.armedbear.j.Constants.*;
+
 import java.awt.Container;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -32,7 +34,7 @@ import javax.swing.JMenuItem;
 import javax.swing.JPopupMenu;
 import org.armedbear.j.util.Keys;
 
-public class DefaultTextFieldHandler implements Constants, TextFieldHandler {
+public class DefaultTextFieldHandler implements TextFieldHandler {
     protected final Editor editor;
     protected final HistoryTextField textField;
 
@@ -53,8 +55,10 @@ public class DefaultTextFieldHandler implements Constants, TextFieldHandler {
         this(Editor.currentEditor(), textField);
     }
 
+    @Override
     public void enter() {}
 
+    @Override
     public void escape() {
         Container c = textField.getParent();
         while (true) {
@@ -72,10 +76,12 @@ public class DefaultTextFieldHandler implements Constants, TextFieldHandler {
         editor.updateLocation();
     }
 
+    @Override
     public boolean wantTab() {
         return false;
     }
 
+    @Override
     public void tab() {
         if (textField != null) {
             String prefix = textField.getText();
@@ -87,6 +93,7 @@ public class DefaultTextFieldHandler implements Constants, TextFieldHandler {
         }
     }
 
+    @Override
     public void shiftTab() {
         if (textField != null) {
             String s = getPreviousCompletion();
@@ -100,6 +107,7 @@ public class DefaultTextFieldHandler implements Constants, TextFieldHandler {
         }
     }
 
+    @Override
     public void resetCompletions() {
         completions = null;
     }
@@ -126,6 +134,7 @@ public class DefaultTextFieldHandler implements Constants, TextFieldHandler {
         return null;
     }
 
+    @Override
     public List<String> getCompletions(String prefix) {
         return null;
     }
@@ -162,6 +171,7 @@ public class DefaultTextFieldHandler implements Constants, TextFieldHandler {
         head = null;
     }
 
+    @Override
     public Expansion getExpansion(String prefix) {
         return new Expansion(editor.getBuffer(), prefix, prefix);
     }
@@ -171,6 +181,7 @@ public class DefaultTextFieldHandler implements Constants, TextFieldHandler {
         textField.getHandler().resetCompletions();
     }
 
+    @Override
     public void keyPressed(KeyEvent e) {
         TextFieldHandler handler = textField.getHandler();
         if (handler == null)
@@ -275,12 +286,14 @@ public class DefaultTextFieldHandler implements Constants, TextFieldHandler {
         resetExpansion();
     }
 
+    @Override
     public void keyReleased(KeyEvent e) {
         TextListener textListener = textField.getTextListener();
         if (textListener != null)
             textListener.textValueChanged(new TextEvent(this, TextEvent.TEXT_VALUE_CHANGED));
     }
 
+    @Override
     public void keyTyped(KeyEvent e) {}
 
     private void showPopup() {
@@ -310,6 +323,7 @@ public class DefaultTextFieldHandler implements Constants, TextFieldHandler {
     // An anonymous class rather than a lambda: textField is a blank final the
     // constructor assigns, and a lambda in a field initialiser may not read it.
     private ActionListener popupActionListener = new ActionListener() {
+        @Override
         public void actionPerformed(ActionEvent e) {
             textField.setText(e.getActionCommand());
             enter();

@@ -22,7 +22,7 @@ package org.armedbear.j;
 
 import javax.swing.JMenu;
 
-public final class Menu extends JMenu implements Constants {
+public final class Menu extends JMenu {
     public Menu(String s) {
         super(s);
     }
@@ -34,6 +34,7 @@ public final class Menu extends JMenu implements Constants {
         addMenuListener(MenuBar.getListener());
     }
 
+    @Override
     public void setPopupMenuVisible(boolean b) {
         super.setPopupMenuVisible(b);
     }

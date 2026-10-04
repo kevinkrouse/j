@@ -20,9 +20,10 @@
 
 package org.armedbear.j;
 
+import static org.armedbear.j.Constants.*;
+
 import java.awt.Color;
 import java.awt.event.MouseEvent;
-import java.lang.StringBuilder;
 import java.util.List;
 import javax.swing.JCheckBoxMenuItem;
 import javax.swing.JMenuItem;
@@ -32,7 +33,7 @@ import org.armedbear.j.mode.dir.DirectoryBuffer;
 import org.armedbear.j.mode.text.PlainTextFormatter;
 import org.armedbear.j.util.Colors;
 
-public abstract class AbstractMode implements Constants, Mode {
+public abstract class AbstractMode implements Mode {
     private static final Preferences preferences = Editor.preferences();
 
     protected KeyMap keyMap;
@@ -51,27 +52,33 @@ public abstract class AbstractMode implements Constants, Mode {
         Extensions.hooks().modeCreated(displayName);
     }
 
+    @Override
     public final int getId() {
         return id;
     }
 
+    @Override
     public final String getDisplayName() {
         return displayName;
     }
 
+    @Override
     public Buffer createBuffer(File file) {
         return null;
     }
 
+    @Override
     public Formatter getFormatter(Buffer buffer) {
         return new PlainTextFormatter(buffer);
     }
 
+    @Override
     public final String toString() {
         return displayName;
     }
 
     // Should never return null.
+    @Override
     public synchronized final KeyMap getKeyMap() {
         if (keyMap == null) {
             KeyMap supplied = Extensions.keyMaps().getKeyMapForMode(displayName);
@@ -107,23 +114,28 @@ public abstract class AbstractMode implements Constants, Mode {
         // Default implementation just leaves keymap empty.
     }
 
+    @Override
     public File getKeyMapFile() {
         return keyMapFile;
     }
 
+    @Override
     public synchronized final void useDefaultKeyMap() {
         keyMap = new KeyMap();
         setKeyMapDefaults(keyMap);
     }
 
+    @Override
     public synchronized final void deleteKeyMap() {
         keyMap = null;
     }
 
+    @Override
     public String getMenuName() {
         return "Default";
     }
 
+    @Override
     public MenuBar createMenuBar(Frame frame) {
         MenuBar menuBar = new MenuBar("Default");
         menuBar.add(new Menu("File", 'F'));
@@ -137,6 +149,7 @@ public abstract class AbstractMode implements Constants, Mode {
         return menuBar;
     }
 
+    @Override
     public void populateMenu(Editor editor, Menu menu) {
         final String text = menu.getText();
         if (text == "File")
@@ -288,6 +301,7 @@ public abstract class AbstractMode implements Constants, Mode {
         menu.add(editor, "Pop Position", 'P', "popPosition");
     }
 
+    @Override
     public void populateModeMenu(Editor editor, Menu menu) {}
 
     public void populateLispMenu(Editor editor, Menu menu) {
@@ -313,6 +327,7 @@ public abstract class AbstractMode implements Constants, Mode {
             menu.add(editor, "About J", 'O', "about");
     }
 
+    @Override
     public JPopupMenu getContextMenu(Editor editor) {
         final JPopupMenu popup = new JPopupMenu();
         addDefaultContextMenuItems(editor, popup);
@@ -428,6 +443,7 @@ public abstract class AbstractMode implements Constants, Mode {
         return menuItem;
     }
 
+    @Override
     public ToolBar getToolBar(Frame frame) {
         ToolBar tb = getCustomToolBar(frame);
         if (tb != null)
@@ -453,6 +469,7 @@ public abstract class AbstractMode implements Constants, Mode {
         return frame.getDefaultToolBar();
     }
 
+    @Override
     public NavigationComponent getSidebarComponent(Editor editor) {
         if (isTaggable())
             return new SidebarTagList(editor.getSidebar(), editor);
@@ -460,50 +477,62 @@ public abstract class AbstractMode implements Constants, Mode {
             return null;
     }
 
+    @Override
     public Tagger getTagger(SystemBuffer buffer) {
         return null;
     }
 
+    @Override
     public boolean isTaggable() {
         return false;
     }
 
+    @Override
     public boolean hasQualifiedNames() {
         return false;
     }
 
+    @Override
     public boolean isQualifiedName(String s) {
         return s.indexOf('.') >= 0 || s.indexOf("::") >= 0;
     }
 
+    @Override
     public boolean canIndent() {
         return false;
     }
 
+    @Override
     public boolean canIndentPaste() {
         return canIndent();
     }
 
+    @Override
     public boolean acceptsLinePaste(Editor editor) {
         return true;
     }
 
+    @Override
     public int getCorrectIndentation(Line line, Buffer buffer) {
         return 0;
     }
 
+    @Override
     public SyntaxIterator getSyntaxIterator(Position pos) {
         return new DefaultSyntaxIterator(pos);
     }
 
+    @Override
     public String getCommentStart() {
         return null;
     }
 
+    @Override
     public String getCommentEnd() {
         return null;
     }
 
+    @Override
     public boolean getBooleanProperty(Property property) {
         String key = property.key();
 
@@ -516,8 +545,8 @@ public abstract class AbstractMode implements Constants, Mode {
             // (Property list for mode overrides global preference!)
             if (properties != null) {
                 Object value = properties.getProperty(property);
-                if (value instanceof Boolean)
-                    return ((Boolean) value).booleanValue();
+                if (value instanceof Boolean b)
+                    return b.booleanValue();
             }
 
             // Not in property list for mode.
@@ -538,6 +567,7 @@ public abstract class AbstractMode implements Constants, Mode {
         return ((Boolean) getDefaultValue(property)).booleanValue();
     }
 
+    @Override
     public int getIntegerProperty(Property property) {
         String key = property.key();
 
@@ -550,8 +580,8 @@ public abstract class AbstractMode implements Constants, Mode {
             // (Property list for mode overrides global preference!)
             if (properties != null) {
                 Object value = properties.getProperty(property);
-                if (value instanceof Integer)
-                    return ((Integer) value).intValue();
+                if (value instanceof Integer i)
+                    return i.intValue();
             }
 
             // Not in property list for mode.
@@ -571,6 +601,7 @@ public abstract class AbstractMode implements Constants, Mode {
         return ((Integer) getDefaultValue(property)).intValue();
     }
 
+    @Override
     public String getStringProperty(Property property) {
         String key = property.key();
 
@@ -583,8 +614,8 @@ public abstract class AbstractMode implements Constants, Mode {
             // (Property list for mode overrides global preference!)
             if (properties != null) {
                 Object value = properties.getProperty(property);
-                if (value instanceof String)
-                    return (String) value;
+                if (value instanceof String string)
+                    return string;
             }
 
             // Not in property list for mode.
@@ -600,6 +631,7 @@ public abstract class AbstractMode implements Constants, Mode {
         return (String) getDefaultValue(property); // May be null.
     }
 
+    @Override
     public Color getColorProperty(Property property) {
         String key = property.key();
 
@@ -620,18 +652,21 @@ public abstract class AbstractMode implements Constants, Mode {
             return null;
     }
 
+    @Override
     public void setProperty(Property property, String value) {
         if (properties == null)
             properties = new PropertyList();
         properties.setProperty(property, value);
     }
 
+    @Override
     public void setProperty(Property property, boolean value) {
         if (properties == null)
             properties = new PropertyList();
         properties.setProperty(property, value);
     }
 
+    @Override
     public void setProperty(Property property, int value) {
         if (properties == null)
             properties = new PropertyList();
@@ -642,6 +677,7 @@ public abstract class AbstractMode implements Constants, Mode {
         return property.getDefaultValue();
     }
 
+    @Override
     public final boolean accepts(String filename) {
         return Editor.getModeList().modeAccepts(id, filename);
     }
@@ -666,14 +702,17 @@ public abstract class AbstractMode implements Constants, Mode {
         return preferences.getStringProperty((name + '.' + key).toLowerCase());
     }
 
+    @Override
     public boolean isIdentifierStart(char c) {
         return Character.isJavaIdentifierStart(c);
     }
 
+    @Override
     public boolean isIdentifierPart(char c) {
         return Character.isJavaIdentifierPart(c);
     }
 
+    @Override
     public boolean isDelimited(Position pos, int length) {
         final Line line = pos.getLine();
         final int offset = pos.getOffset();
@@ -687,6 +726,7 @@ public abstract class AbstractMode implements Constants, Mode {
         return true;
     }
 
+    @Override
     public boolean isInQuote(Buffer buffer, Position pos) {
         // The default implementation considers both single and double quotes
         // (which is wrong for Lisp) and only looks at the current line (which
@@ -713,32 +753,39 @@ public abstract class AbstractMode implements Constants, Mode {
         return inQuote;
     }
 
+    @Override
     public boolean isInComment(Buffer buffer, Position pos) {
         return false;
     }
 
+    @Override
     public boolean isCommentLine(Line line) {
         return false;
     }
 
     /** A URL, or an identifier whose definition the tags know. */
+    @Override
     public TextLink getLinkAt(Editor editor, Position pos) {
         final TextLink url = FollowLink.urlAt(pos.getLine().getText(), pos.getOffset());
         return url != null ? url : FollowLink.definitionAt(editor, pos);
     }
 
+    @Override
     public Line[] getFoldRange(Editor editor, Line line) {
         return null;
     }
 
+    @Override
     public void foldAll(Editor editor) {
         editor.status("Nothing to fold");
     }
 
+    @Override
     public char fixCase(Editor editor, char c) {
         return c;
     }
 
+    @Override
     public String getContextString(Editor editor, boolean verbose) {
         final List<LocalTag> tags = editor.getBuffer().getTags();
         if (tags != null) {
@@ -761,16 +808,20 @@ public abstract class AbstractMode implements Constants, Mode {
         return null;
     }
 
+    @Override
     public String getMouseMovedContextString(Editor editor, Position pos) {
         return null;
     }
 
+    @Override
     public String getToolTipText(Editor editor, MouseEvent e) {
         return null;
     }
 
+    @Override
     public void loadFile(Buffer buffer, File file) {}
 
+    @Override
     public boolean confirmClose(Editor editor, Buffer buffer) {
         if (!buffer.isModified())
             return true;
@@ -779,12 +830,14 @@ public abstract class AbstractMode implements Constants, Mode {
         return CloseBufferConfirmationDialog.confirmClose(editor, buffer);
     }
 
+    @Override
     public boolean isKeyword(String s) {
         if (keywords != null)
             return keywords.isKeyword(s);
         return false;
     }
 
+    @Override
     public Expression getExpressionAtDot(Editor editor, boolean exact) {
         if (editor.getDot() == null)
             return null;
@@ -824,10 +877,12 @@ public abstract class AbstractMode implements Constants, Mode {
         return null;
     }
 
+    @Override
     public final String getIdentifier(Position pos) {
         return getIdentifier(pos.getLine(), pos.getOffset());
     }
 
+    @Override
     public String getIdentifier(Line line, int offset) {
         final int limit = line.length();
         if (offset < limit) {
@@ -860,6 +915,7 @@ public abstract class AbstractMode implements Constants, Mode {
         return null;
     }
 
+    @Override
     public Position findIdentifierStart(Line line, int offset) {
         if (!isIdentifierPart(line.charAt(offset)))
             return null;
@@ -873,6 +929,7 @@ public abstract class AbstractMode implements Constants, Mode {
     }
 
     /** s with its comments and strings blanked by the mode's syntax iterator, trimmed. */
+    @Override
     public String trimSyntacticWhitespace(String s) {
         return new String(getSyntaxIterator(null).hideSyntacticWhitespace(s)).trim();
     }

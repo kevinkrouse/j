@@ -20,12 +20,13 @@
 
 package org.armedbear.j;
 
-import java.lang.StringBuilder;
+import static org.armedbear.j.Constants.*;
+
 import javax.swing.undo.CompoundEdit;
 import org.armedbear.j.mode.diff.DiffOutputBuffer;
 import org.armedbear.j.util.Utilities;
 
-public final class ChangeMarks implements Constants {
+public final class ChangeMarks {
     public static void nextChange() {
         final Editor editor = Editor.currentEditor();
         if (editor.getDot() == null)
@@ -241,9 +242,9 @@ public final class ChangeMarks implements Constants {
             shellCommand.run();
             // Kill existing diff output buffer if any for same parent buffer.
             for (Buffer b : Editor.getBufferList()) {
-                if (b instanceof DiffOutputBuffer) {
-                    if (((DiffOutputBuffer) b).getParentBuffer() == buffer) {
-                        if (((DiffOutputBuffer) b).getVCType() == 0) {
+                if (b instanceof DiffOutputBuffer diffOutputBuffer) {
+                    if (diffOutputBuffer.getParentBuffer() == buffer) {
+                        if (diffOutputBuffer.getVCType() == 0) {
                             b.kill();
                             break; // There should be one at most.
                         }

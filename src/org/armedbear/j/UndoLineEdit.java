@@ -20,11 +20,12 @@
 
 package org.armedbear.j;
 
+import static org.armedbear.j.Constants.*;
+
 import javax.swing.undo.AbstractUndoableEdit;
 import javax.swing.undo.UndoableEdit;
 
-public class UndoLineEdit extends AbstractUndoableEdit implements Constants,
-    UndoableEdit {
+public class UndoLineEdit extends AbstractUndoableEdit implements UndoableEdit {
     private final Buffer buffer;
     private final int changeLineNumber;
     private final State preState;
@@ -42,15 +43,16 @@ public class UndoLineEdit extends AbstractUndoableEdit implements Constants,
         preState = new State(buffer);
     }
 
+    @Override
     public boolean addEdit(UndoableEdit edit) {
-        if (edit instanceof UndoLineEdit) {
-            UndoLineEdit e = (UndoLineEdit) edit;
+        if (edit instanceof UndoLineEdit e) {
             if (e.changeLineNumber == this.changeLineNumber)
                 return true;
         }
         return false;
     }
 
+    @Override
     public void undo() {
         super.undo();
         final Editor editor = Editor.currentEditor();
@@ -75,6 +77,7 @@ public class UndoLineEdit extends AbstractUndoableEdit implements Constants,
         }
     }
 
+    @Override
     public void redo() {
         super.redo();
         final Editor editor = Editor.currentEditor();

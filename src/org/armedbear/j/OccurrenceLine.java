@@ -20,8 +20,6 @@
 
 package org.armedbear.j;
 
-import java.lang.StringBuilder;
-
 public final class OccurrenceLine extends TextLine {
     private Line sourceLine;
     private int sourceLineNumber; // 1-based.

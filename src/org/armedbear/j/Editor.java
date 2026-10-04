@@ -20,6 +20,8 @@
 
 package org.armedbear.j;
 
+import static org.armedbear.j.Constants.*;
+
 import java.awt.AWTEvent;
 import java.awt.BorderLayout;
 import java.awt.Cursor;
@@ -33,7 +35,6 @@ import java.awt.event.MouseEvent;
 import java.awt.event.MouseWheelEvent;
 import java.awt.event.MouseWheelListener;
 import java.awt.event.WindowEvent;
-import java.lang.StringBuilder;
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -67,8 +68,7 @@ import org.armedbear.j.vcs.VcsBackend;
 import org.armedbear.j.vcs.VcsBackends;
 import org.jdesktop.swingx.MultiSplitLayout;
 
-public final class Editor extends JPanel implements Constants,
-    ComponentListener, MouseWheelListener {
+public final class Editor extends JPanel implements ComponentListener, MouseWheelListener {
     private static boolean debug = false;
     private static boolean saveSession = true;
 
@@ -218,7 +218,7 @@ public final class Editor extends JPanel implements Constants,
     private Selection selection;
     private boolean isColumnSelection;
 
-    Map<SystemBuffer, View> views = new HashMap<SystemBuffer, View>();
+    Map<SystemBuffer, View> views = new HashMap<>();
 
     // BUG! This stuff should be factored somehow...
     private int currentCommand = COMMAND_NOTHING;
@@ -476,7 +476,7 @@ public final class Editor extends JPanel implements Constants,
         frame.setWindowHeight(this, n);
     }
 
-    private static final List<Frame> frames = new ArrayList<Frame>();
+    private static final List<Frame> frames = new ArrayList<>();
 
     static void addFrame(Frame frame) {
         frames.add(frame);
@@ -986,16 +986,14 @@ public final class Editor extends JPanel implements Constants,
 
     // FIXME Removed hard-coded Control G!
     public static boolean checkKeyboardQuit(Object object) {
-        if (object instanceof JEvent) {
-            JEvent e = (JEvent) object;
+        if (object instanceof JEvent e) {
             if (e.getID() == JEvent.KEY_PRESSED) {
                 if (e.getKeyCode() == 0x47 && e.getModifiers() == CTRL_MASK)
                     return true;
             }
             return false;
         }
-        if (object instanceof KeyEvent) {
-            KeyEvent e = (KeyEvent) object;
+        if (object instanceof KeyEvent e) {
             if (e.getID() == KeyEvent.KEY_PRESSED) {
                 if (e.getKeyCode() == 0x47 && Keys.keyModifiers(e) == CTRL_MASK)
                     return true;
@@ -1099,22 +1097,21 @@ public final class Editor extends JPanel implements Constants,
         }
         if (mapping != null) {
             Object command = mapping.getCommand();
-            if (command instanceof KeyMap) {
+            if (command instanceof KeyMap keyMap) {
                 // Emacs-style key sequence.
                 if (currentEventSequence == null)
                     currentEventSequence = new EventSequence();
                 currentEventSequence.addEvent(event);
-                requestedKeyMap = (KeyMap) command;
+                requestedKeyMap = keyMap;
                 status(currentEventSequence.getStatusText() + "-");
                 return true;
             }
             if (isRecordingMacro())
                 Macro.record(this, command);
-            if (command instanceof String) {
+            if (command instanceof String commandString) {
                 requestedKeyMap = null;
                 currentEventSequence = null;
                 local = false;
-                String commandString = (String) command;
                 if (commandString.length() > 0 && commandString.charAt(0) == '(') {
                     // A Lisp form.
                     executeCommand(commandString);
@@ -1129,11 +1126,10 @@ public final class Editor extends JPanel implements Constants,
                     }
                     catch (NoSuchMethodException ignored) {}
                 }
-            } else if (command instanceof Command) {
+            } else if (command instanceof Command c) {
                 requestedKeyMap = null;
                 currentEventSequence = null;
                 local = false;
-                Command c = (Command) command;
                 try {
                     execute(c, null);
                 }
@@ -1141,12 +1137,12 @@ public final class Editor extends JPanel implements Constants,
                     Log.error(e);
                 }
                 return true;
-            } else if (command instanceof ScriptFunction) {
+            } else if (command instanceof ScriptFunction scriptFunction) {
                 requestedKeyMap = null;
                 currentEventSequence = null;
                 local = false;
                 try {
-                    ((ScriptFunction) command).invoke();
+                    scriptFunction.invoke();
                 }
                 catch (Throwable e) {
                     Log.error(e);
@@ -1275,8 +1271,8 @@ public final class Editor extends JPanel implements Constants,
 
     public void mouseMoveDotToPoint() {
         AWTEvent e = dispatcher.getLastEvent();
-        if (e instanceof MouseEvent)
-            mouseMoveDotToPoint((MouseEvent) e);
+        if (e instanceof MouseEvent mouseEvent)
+            mouseMoveDotToPoint(mouseEvent);
     }
 
     public void mouseMoveDotToPoint(MouseEvent e) {
@@ -1297,8 +1293,7 @@ public final class Editor extends JPanel implements Constants,
     public void mouseSelect() {
         if (dot != null) {
             AWTEvent e = dispatcher.getLastEvent();
-            if (e instanceof MouseEvent) {
-                MouseEvent mouseEvent = (MouseEvent) e;
+            if (e instanceof MouseEvent mouseEvent) {
                 Position pos = display.positionFromPoint(mouseEvent.getPoint());
                 addUndo(SimpleEdit.MOVE);
                 Position min, max;
@@ -1350,8 +1345,7 @@ public final class Editor extends JPanel implements Constants,
     public void mouseSelectColumn() {
         if (dot != null) {
             AWTEvent e = dispatcher.getLastEvent();
-            if (e instanceof MouseEvent) {
-                MouseEvent mouseEvent = (MouseEvent) e;
+            if (e instanceof MouseEvent mouseEvent) {
                 if (getMark() == null)
                     setMarkAtDot();
                 display.moveCaretToPoint(mouseEvent.getPoint());
@@ -1365,8 +1359,7 @@ public final class Editor extends JPanel implements Constants,
 
     public void mouseShowContextMenu() {
         AWTEvent e = dispatcher.getLastEvent();
-        if (e instanceof MouseEvent) {
-            MouseEvent mouseEvent = (MouseEvent) e;
+        if (e instanceof MouseEvent mouseEvent) {
             int x = mouseEvent.getX();
             int y = mouseEvent.getY();
             popup = buffer.getMode().getContextMenu(this);
@@ -1577,8 +1570,8 @@ public final class Editor extends JPanel implements Constants,
     // that requires us to redraw the menus, title bar or display, false
     // otherwise.
     public boolean reactivate(Buffer buf) {
-        if (buf instanceof ImageBuffer)
-            return ((ImageBuffer) buf).reactivate();
+        if (buf instanceof ImageBuffer imageBuffer)
+            return imageBuffer.reactivate();
 
         if (buf.getType() != Buffer.TYPE_NORMAL)
             return false;
@@ -1652,16 +1645,21 @@ public final class Editor extends JPanel implements Constants,
         SwingUtilities.invokeLater(r);
     }
 
+    @Override
     public void componentHidden(ComponentEvent e) {}
 
+    @Override
     public void componentMoved(ComponentEvent e) {}
 
+    @Override
     public void componentResized(ComponentEvent e) {
         updateScrollBars();
     }
 
+    @Override
     public void componentShown(ComponentEvent e) {}
 
+    @Override
     public void mouseWheelMoved(MouseWheelEvent e) {
         // Without this, focus ends up in the location bar textfield if you use
         // the mouse wheel in the edit window after using the openFile
@@ -2943,6 +2941,7 @@ public final class Editor extends JPanel implements Constants,
         display.setCursor(cursor);
     }
 
+    @Override
     public final void setCursor(Cursor cursor) {
         display.setCursor(cursor);
     }

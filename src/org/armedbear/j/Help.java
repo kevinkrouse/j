@@ -24,7 +24,6 @@ import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
-import java.lang.StringBuilder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -242,8 +241,7 @@ public final class Help {
             for (int j = spaces - keytext.length(); j-- > 0;)
                 sb.append("&nbsp;");
             Object command = mapping.getCommand();
-            if (command instanceof String) {
-                String commandString = (String) command;
+            if (command instanceof String commandString) {
                 if (docDir != null) {
                     sb.append("<a href=\"");
                     sb.append(docDir.canonicalPath());
@@ -255,9 +253,9 @@ public final class Help {
                     sb.append("</a>");
                 } else
                     sb.append(commandString);
-            } else if (command instanceof ScriptFunction) {
+            } else if (command instanceof ScriptFunction scriptFunction) {
                 try {
-                    sb.append(sanitize(((ScriptFunction) command).describe()));
+                    sb.append(sanitize(scriptFunction.describe()));
                 }
                 catch (Throwable e) {
                     Log.debug(e);
@@ -266,7 +264,7 @@ public final class Help {
                 sb.append(mapping.getKeyText());
                 sb.append(" prefix command");
                 if (submappings == null)
-                    submappings = new ArrayList<KeyMapping>();
+                    submappings = new ArrayList<>();
                 submappings.add(mapping);
             }
             sb.append("<br>\n");

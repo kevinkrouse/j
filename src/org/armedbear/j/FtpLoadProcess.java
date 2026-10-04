@@ -20,11 +20,12 @@
 
 package org.armedbear.j;
 
+import static org.armedbear.j.Constants.*;
+
 import javax.swing.SwingUtilities;
 import org.armedbear.j.util.Utilities;
 
-public final class FtpLoadProcess extends LoadProcess implements BackgroundProcess,
-    Constants {
+public final class FtpLoadProcess extends LoadProcess implements BackgroundProcess {
     private FtpSession session;
     private boolean fileIsDirectory;
     private String listing;
@@ -42,6 +43,7 @@ public final class FtpLoadProcess extends LoadProcess implements BackgroundProce
         return fileIsDirectory;
     }
 
+    @Override
     public void run() {
         Debug.assertTrue(buffer != null);
         buffer.setBackgroundProcess(this);

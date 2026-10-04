@@ -20,6 +20,8 @@
 
 package org.armedbear.j;
 
+import static org.armedbear.j.Constants.*;
+
 import java.io.IOException;
 import java.io.InputStream;
 import javax.swing.SwingUtilities;
@@ -28,7 +30,7 @@ import org.armedbear.j.mode.text.PlainTextMode;
 import org.armedbear.j.util.Background;
 import org.armedbear.j.util.ReaderThread;
 
-public final class AsynchronousShellCommand implements Constants, Runnable {
+public final class AsynchronousShellCommand implements Runnable {
     private final String command;
     private final File directory;
     private final String cmdline;
@@ -56,6 +58,7 @@ public final class AsynchronousShellCommand implements Constants, Runnable {
         thread.start();
     }
 
+    @Override
     public void run() {
         if (!Platform.isPlatformUnix()) {
             Debug.bug();
@@ -129,6 +132,7 @@ public final class AsynchronousShellCommand implements Constants, Runnable {
             super(inputStream);
         }
 
+        @Override
         public void update(final String s) {
             appendLater(s);
         }
@@ -162,18 +166,22 @@ public final class AsynchronousShellCommand implements Constants, Runnable {
             this.shellCommand = shellCommand;
         }
 
+        @Override
         public int load() {
             return LOAD_COMPLETED;
         }
 
+        @Override
         public String getFileNameForDisplay() {
             return title != null ? title : "";
         }
 
+        @Override
         public boolean isModified() {
             return false;
         }
 
+        @Override
         public void dispose() {
             if (shellCommand != null)
                 shellCommand.interrupt();

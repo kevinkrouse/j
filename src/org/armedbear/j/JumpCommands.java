@@ -20,11 +20,13 @@
 
 package org.armedbear.j;
 
+import static org.armedbear.j.Constants.*;
+
 import java.awt.AWTEvent;
 import java.awt.event.KeyEvent;
 
 /** Jumping to a line, column or offset, a bookmark, or the temporary marker. */
-public final class JumpCommands implements Constants {
+public final class JumpCommands {
     public static void jumpToLine() {
         final Editor editor = Editor.currentEditor();
         String response = InputDialog.showInputDialog(

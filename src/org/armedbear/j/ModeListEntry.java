@@ -121,6 +121,7 @@ public final class ModeListEntry {
         }
     }
 
+    @Override
     public String toString() {
         return descriptor.name();
     }

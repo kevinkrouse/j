@@ -20,13 +20,14 @@
 
 package org.armedbear.j;
 
-import java.lang.StringBuilder;
+import static org.armedbear.j.Constants.*;
+
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import javax.swing.undo.CompoundEdit;
 import org.armedbear.j.util.Utilities;
 
-public final class WrapText implements Constants {
+public final class WrapText {
     private final Editor editor;
     private final Buffer buffer;
     private Position dot;

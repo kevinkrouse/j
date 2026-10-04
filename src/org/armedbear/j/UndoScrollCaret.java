@@ -27,6 +27,7 @@ public final class UndoScrollCaret extends UndoMove {
         super(editor);
     }
 
+    @Override
     public boolean addEdit(UndoableEdit edit) {
         return (edit instanceof UndoScrollCaret);
     }

@@ -55,6 +55,7 @@ public final class ShellCommand implements Runnable {
         return result.exitValue();
     }
 
+    @Override
     public void run() {
         if (cmdline != null)
             result = ProcessRunner.shell(cmdline).directory(workingDirectory).input(input).run();

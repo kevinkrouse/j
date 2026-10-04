@@ -51,8 +51,8 @@ public final class ListStyles {
 
     /** The listing for buffer's mode, or every mode's. */
     /*package*/ static OutputBuffer makeBuffer(Buffer buffer, boolean all) {
-        final List<FormatTable> tables = new ArrayList<FormatTable>();
-        final List<String> titles = new ArrayList<String>();
+        final List<FormatTable> tables = new ArrayList<>();
+        final List<String> titles = new ArrayList<>();
         final FormatTable builtIn = table(DefaultTheme.getBuiltInNames());
         tables.add(builtIn);
         titles.add("Built-in styles");
@@ -60,7 +60,7 @@ public final class ListStyles {
         tables.add(shared);
         titles.add("Shared styles");
 
-        final Set<String> seen = new HashSet<String>();
+        final Set<String> seen = new HashSet<>();
         final Formatter current = buffer.getFormatter();
         if (current != null && !(current instanceof StylesFormatter))
             addTable(tables, titles, seen, current);
@@ -159,8 +159,8 @@ public final class ListStyles {
      */
     private static final class Listing {
         private final StringBuilder sb = new StringBuilder();
-        private final List<FormatTableEntry> entries = new ArrayList<FormatTableEntry>();
-        private final List<int[]> runs = new ArrayList<int[]>();
+        private final List<FormatTableEntry> entries = new ArrayList<>();
+        private final List<int[]> runs = new ArrayList<>();
         private final int[] widths = new int[COLUMNS.length];
 
         Listing(List<FormatTable> tables) {
@@ -196,7 +196,7 @@ public final class ListStyles {
             entries.add(entry);
             // The name in itself; the sources that are only defaults dimmed,
             // so that what the theme set stands out.
-            final List<Integer> list = new ArrayList<Integer>();
+            final List<Integer> list = new ArrayList<>();
             // A background's color is for behind text, not text: its swatch
             // shows it, and its name stays readable.
             addRun(

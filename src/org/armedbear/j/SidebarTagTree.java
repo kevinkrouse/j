@@ -76,8 +76,8 @@ public class SidebarTagTree extends SidebarTree implements NavigationComponent,
         ToIntFunction<LocalTag> level
     ) {
         final DefaultMutableTreeNode root = new DefaultMutableTreeNode();
-        final Deque<DefaultMutableTreeNode> open = new ArrayDeque<DefaultMutableTreeNode>();
-        final Deque<Integer> levels = new ArrayDeque<Integer>();
+        final Deque<DefaultMutableTreeNode> open = new ArrayDeque<>();
+        final Deque<Integer> levels = new ArrayDeque<>();
         for (LocalTag tag : tags) {
             final int n = level.applyAsInt(tag);
             while (!levels.isEmpty() && levels.peek() >= n) {
@@ -92,6 +92,7 @@ public class SidebarTagTree extends SidebarTree implements NavigationComponent,
         return root;
     }
 
+    @Override
     public void refresh() {
         final Buffer buffer = editor.getBuffer();
         final List<LocalTag> bufferTags = buffer.getTags();
@@ -134,6 +135,7 @@ public class SidebarTagTree extends SidebarTree implements NavigationComponent,
         });
     }
 
+    @Override
     public void updatePosition() {
         final TreeModel model = getModel();
         if (model == null || tags == null)
@@ -181,11 +183,13 @@ public class SidebarTagTree extends SidebarTree implements NavigationComponent,
         return null;
     }
 
+    @Override
     public final String getLabelText() {
         final File file = editor.getBuffer().getFile();
         return file != null ? file.getName() : null;
     }
 
+    @Override
     public String getToolTipText(MouseEvent e) {
         final LocalTag tag = getTagAtPoint(e.getPoint());
         return tag != null ? tag.getToolTipText() : null;
@@ -199,26 +203,32 @@ public class SidebarTagTree extends SidebarTree implements NavigationComponent,
     private static LocalTag tagOf(TreePath path) {
         final Object obj =
             ((DefaultMutableTreeNode) path.getLastPathComponent()).getUserObject();
-        return obj instanceof LocalTag ? (LocalTag) obj : null;
+        return obj instanceof LocalTag localTag ? localTag : null;
     }
 
+    @Override
     public void keyPressed(KeyEvent e) {
         final TreePath path = getSelectionPath();
         tagKeyPressed(editor, e, path != null ? tagOf(path) : null, this::updatePosition);
     }
 
+    @Override
     public void keyReleased(KeyEvent e) {
         tagKeyReleased(editor, e);
     }
 
+    @Override
     public void keyTyped(KeyEvent e) {
         e.consume();
     }
 
+    @Override
     public void mousePressed(MouseEvent e) {}
 
+    @Override
     public void mouseReleased(MouseEvent e) {}
 
+    @Override
     public void mouseClicked(MouseEvent e) {
         LocationBar.cancelInput();
         editor.ensureActive();
@@ -234,8 +244,10 @@ public class SidebarTagTree extends SidebarTree implements NavigationComponent,
         editor.setFocusToDisplay();
     }
 
+    @Override
     public void mouseEntered(MouseEvent e) {}
 
+    @Override
     public void mouseExited(MouseEvent e) {
         giveBackFocus(editor);
     }
@@ -247,6 +259,7 @@ public class SidebarTagTree extends SidebarTree implements NavigationComponent,
             oldBackgroundSelectionColor = getBackgroundSelectionColor();
         }
 
+        @Override
         public Component getTreeCellRendererComponent(
             JTree tree,
             Object value,
@@ -276,14 +289,14 @@ public class SidebarTagTree extends SidebarTree implements NavigationComponent,
             else
                 setBackgroundSelectionColor(NO_FOCUS_SELECTION_BACKGROUND);
             final Object obj = ((DefaultMutableTreeNode) value).getUserObject();
-            if (obj instanceof LocalTag) {
-                final LocalTag tag = (LocalTag) obj;
+            if (obj instanceof LocalTag tag) {
                 setIcon(tag.getIcon());
                 setText(tag.getSidebarText());
             }
             return this;
         }
 
+        @Override
         public void paintComponent(Graphics g) {
             Display.setRenderingHints(g);
             super.paintComponent(g);

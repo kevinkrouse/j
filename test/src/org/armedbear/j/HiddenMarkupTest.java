@@ -39,10 +39,12 @@ public class HiddenMarkupTest {
             this.buffer = buffer;
         }
 
+        @Override
         public boolean hidesMarkup() {
             return conceals("braces");
         }
 
+        @Override
         public LineSegmentList formatLine(Line line) {
             clearSegmentList();
             final String text = line.getText();
@@ -63,6 +65,7 @@ public class HiddenMarkupTest {
             return segmentList;
         }
 
+        @Override
         public FormatTable getFormatTable() {
             if (formatTable == null) {
                 formatTable = new FormatTable(null);

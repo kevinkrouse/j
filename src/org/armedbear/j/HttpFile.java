@@ -20,8 +20,6 @@
 
 package org.armedbear.j;
 
-import java.lang.StringBuilder;
-
 public final class HttpFile extends File {
     private File cache;
     private String headers;
@@ -122,18 +120,22 @@ public final class HttpFile extends File {
         contentType = s;
     }
 
+    @Override
     public final File getRoot() {
         return new HttpFile(hostName, "/", protocol, port);
     }
 
+    @Override
     public final String getSeparator() {
         return "/";
     }
 
+    @Override
     public final char getSeparatorChar() {
         return '/';
     }
 
+    @Override
     public File getParentFile() {
         if (canonicalPath() == null || canonicalPath.equals("/")) {
             // The file might really be "http://www.cnn.com/index.html", but
@@ -160,6 +162,7 @@ public final class HttpFile extends File {
         }
     }
 
+    @Override
     public String netPath() {
         StringBuilder sb = new StringBuilder(256);
         if (protocol == PROTOCOL_HTTP) {
@@ -180,6 +183,7 @@ public final class HttpFile extends File {
         return sb.toString();
     }
 
+    @Override
     public String getName() {
         int index = canonicalPath.lastIndexOf('/');
         String name = index >= 0 ? canonicalPath.substring(index + 1) : canonicalPath;

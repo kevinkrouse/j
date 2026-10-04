@@ -11,6 +11,7 @@
 
 package org.armedbear.j;
 
+import static org.armedbear.j.Constants.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
@@ -20,7 +21,7 @@ import java.util.List;
 import org.armedbear.j.extension.ModeDescriptor;
 import org.junit.jupiter.api.Test;
 
-public class ModeListTest implements Constants {
+public class ModeListTest {
     private static final class TestMode extends AbstractMode {
         TestMode(int id, String name) {
             super(id, name);

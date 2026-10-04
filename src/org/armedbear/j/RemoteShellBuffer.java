@@ -21,7 +21,6 @@ package org.armedbear.j;
 
 import java.io.IOException;
 import java.io.OutputStreamWriter;
-import java.lang.StringBuilder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -51,16 +50,18 @@ public class RemoteShellBuffer extends ShellBuffer {
     }
 
     // Called in ShellBuffer constructor, so we override it here.
+    @Override
     protected void initializeHistory() {
         history = new History("remoteShell.history");
     }
 
+    @Override
     protected void startProcess() {
         Process process = null;
         try {
             if (host.startsWith("-"))
                 throw new IllegalArgumentException("not a host: " + host);
-            List<String> cmd = new ArrayList<String>();
+            List<String> cmd = new ArrayList<>();
             cmd.add(Utilities.jptyPath());
             cmd.addAll(Arrays.asList(shellCommand.trim().split("\\s+")));
             cmd.add(host);
@@ -129,8 +130,7 @@ public class RemoteShellBuffer extends ShellBuffer {
         if (host == null)
             return null;
         for (Buffer buf : Editor.getBufferList()) {
-            if (buf instanceof RemoteShellBuffer) {
-                RemoteShellBuffer remoteShell = (RemoteShellBuffer) buf;
+            if (buf instanceof RemoteShellBuffer remoteShell) {
                 if (type == remoteShell.getType())
                     if (host.equals(remoteShell.getHost()))
                         return remoteShell;
@@ -169,6 +169,7 @@ public class RemoteShellBuffer extends ShellBuffer {
         return s;
     }
 
+    @Override
     protected String stdOutFilter(String s) {
         if (type == TYPE_TELNET)
             return telnetStdOutFilter(s);
@@ -189,6 +190,7 @@ public class RemoteShellBuffer extends ShellBuffer {
         return s;
     }
 
+    @Override
     protected void stdOutUpdate(final String s) {
         // Filter to prevent two carriage returns in a row.
         final StringBuilder sb = new StringBuilder(s.length());
@@ -219,6 +221,7 @@ public class RemoteShellBuffer extends ShellBuffer {
         SwingUtilities.invokeLater(r);
     }
 
+    @Override
     protected String stdErrFilter(String s) {
         return s;
     }
@@ -227,15 +230,18 @@ public class RemoteShellBuffer extends ShellBuffer {
         return host;
     }
 
+    @Override
     public final File getCurrentDirectory() {
         return Directories.getUserHomeDirectory();
     }
 
     // For the buffer list.
+    @Override
     public String toString() {
         return title;
     }
 
+    @Override
     public String getTitle() {
         return title;
     }

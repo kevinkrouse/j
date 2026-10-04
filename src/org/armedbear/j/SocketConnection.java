@@ -105,6 +105,7 @@ public final class SocketConnection {
     }
 
     private final Thread connectThread = new Thread("connect") {
+        @Override
         public void run() {
             try {
                 socket = ssl

@@ -41,11 +41,11 @@ public class AboutDialog extends AbstractDialog {
 
         Container contents = getContentPane();
 
-        if (contents instanceof JComponent) {
-            ((JComponent) contents).setBorder(
+        if (contents instanceof JComponent jComponent) {
+            jComponent.setBorder(
                 BorderFactory.createEmptyBorder(11, 21, 12, 13)
             );
-            ((JComponent) contents).setOpaque(true);
+            jComponent.setOpaque(true);
         }
 
         contents.setLayout(new GridBagLayout());

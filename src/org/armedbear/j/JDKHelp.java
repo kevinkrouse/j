@@ -22,13 +22,12 @@ package org.armedbear.j;
 
 import java.awt.AWTEvent;
 import java.awt.event.MouseEvent;
-import java.lang.StringBuilder;
 import java.util.List;
 import org.armedbear.j.mode.java.JavaSource;
 import org.armedbear.j.mode.web.WebBuffer;
 import org.armedbear.j.util.Utilities;
 
-public final class JDKHelp implements Constants {
+public final class JDKHelp {
     public static void jdkHelp() {
         final String className = getClassNameInCurrentEditor();
         if (className != null && className.length() > 0)
@@ -161,8 +160,8 @@ public final class JDKHelp implements Constants {
     private static String getClassNameInCurrentEditor() {
         final Editor editor = Editor.currentEditor();
         AWTEvent e = editor.getDispatcher().getLastEvent();
-        if (e instanceof MouseEvent)
-            editor.mouseMoveDotToPoint((MouseEvent) e);
+        if (e instanceof MouseEvent mouseEvent)
+            editor.mouseMoveDotToPoint(mouseEvent);
         String className = editor.getSelectionOnCurrentLine();
         if (className == null || className.length() == 0)
             className = getClassNameAtPosition(editor.getDot());

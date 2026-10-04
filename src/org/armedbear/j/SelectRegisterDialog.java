@@ -29,13 +29,14 @@ public final class SelectRegisterDialog extends InputDialog {
         setHistory(new History("selectRegister.register"));
     }
 
+    @Override
     protected List<String> getCompletions(String prefix) {
         String lower = prefix.toLowerCase();
         String[] names = null;
         File directory = Directories.getRegistersDirectory();
         if (directory != null)
             names = directory.list();
-        ArrayList<String> list = new ArrayList<String>();
+        ArrayList<String> list = new ArrayList<>();
         for (String name : names) {
             if (name.toLowerCase().startsWith(lower))
                 list.add(name);

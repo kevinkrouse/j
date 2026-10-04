@@ -20,7 +20,6 @@
 
 package org.armedbear.j;
 
-import java.lang.StringBuilder;
 import javax.swing.SwingUtilities;
 import javax.swing.Timer;
 
@@ -39,14 +38,17 @@ public class StatusBarProgressNotifier implements Cancellable, ProgressNotifier 
         this.buffer = buffer;
     }
 
+    @Override
     public void cancel() {
         cancelled = true;
     }
 
+    @Override
     public boolean cancelled() {
         return cancelled;
     }
 
+    @Override
     public synchronized void progressStart() {
         if (timer == null) {
             startMillis = System.currentTimeMillis();
@@ -55,21 +57,25 @@ public class StatusBarProgressNotifier implements Cancellable, ProgressNotifier 
         }
     }
 
+    @Override
     public synchronized void progressStop() {
         if (timer != null)
             timer.stop();
     }
 
+    @Override
     public void progress(String prefix, long totalBytes, long fileSize) {
         this.prefix = prefix;
         this.totalBytes = totalBytes;
         this.fileSize = fileSize;
     }
 
+    @Override
     public void progress(String progressText) {
         this.progressText = progressText;
     }
 
+    @Override
     public void setText(final String s) {
         progressText = s;
         if (s != null)

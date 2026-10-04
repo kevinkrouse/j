@@ -20,12 +20,13 @@
 
 package org.armedbear.j;
 
+import static org.armedbear.j.Constants.*;
+
 import java.awt.event.KeyEvent;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
-import java.lang.StringBuilder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
@@ -33,12 +34,12 @@ import javax.swing.KeyStroke;
 import org.armedbear.j.extension.Extensions;
 import org.armedbear.j.util.Keys;
 
-public final class KeyMap implements Constants {
+public final class KeyMap {
     private static KeyMap globalKeyMap;
     private static KeyMap globalOverrides;
     private static File globalKeyMapFile;
 
-    private ArrayList<KeyMapping> mappings = new ArrayList<KeyMapping>();
+    private ArrayList<KeyMapping> mappings = new ArrayList<>();
 
     public KeyMap() {}
 
@@ -400,8 +401,8 @@ public final class KeyMap implements Constants {
             if (mapping == null)
                 return null;
             final Object command = mapping.getCommand();
-            if (command instanceof KeyMap) {
-                requestedKeyMap = (KeyMap) command;
+            if (command instanceof KeyMap keyMap) {
+                requestedKeyMap = keyMap;
                 continue;
             }
             if (i < limit - 1) {
@@ -463,7 +464,7 @@ public final class KeyMap implements Constants {
 
     public synchronized List<String> listKeys(String command) {
         command = command.intern();
-        ArrayList<String> list = new ArrayList<String>();
+        ArrayList<String> list = new ArrayList<>();
         _listKeys(command, "", list);
         return list;
     }

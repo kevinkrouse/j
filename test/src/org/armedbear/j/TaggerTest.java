@@ -11,6 +11,7 @@
 
 package org.armedbear.j;
 
+import static org.armedbear.j.Constants.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.nio.file.Files;
@@ -21,7 +22,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 /** Taggers run as the tag file builder runs them: on a SystemBuffer, which has no mode. */
-public class TaggerTest implements Constants {
+public class TaggerTest {
     @TempDir
     Path dir;
 
@@ -30,7 +31,7 @@ public class TaggerTest implements Constants {
         SystemBuffer buffer = new SystemBuffer(File.getInstance(p.toString()));
         buffer.load();
         Editor.getModeList().getMode(modeId).getTagger(buffer).run();
-        List<String> names = new ArrayList<String>();
+        List<String> names = new ArrayList<>();
         for (LocalTag tag : buffer.getTags())
             names.add(tag.getName());
         return names;

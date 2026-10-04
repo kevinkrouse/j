@@ -26,12 +26,14 @@ import java.util.Iterator;
 import java.util.List;
 
 public final class EditorList implements Collection<Editor> {
-    private final ArrayList<Editor> list = new ArrayList<Editor>(4);
+    private final ArrayList<Editor> list = new ArrayList<>(4);
 
+    @Override
     public synchronized int size() {
         return list.size();
     }
 
+    @Override
     public synchronized boolean isEmpty() {
         return list.isEmpty();
     }
@@ -47,6 +49,7 @@ public final class EditorList implements Collection<Editor> {
             return null;
     }
 
+    @Override
     public synchronized boolean add(Editor editor) {
         return add(list.size(), editor);
     }
@@ -65,6 +68,7 @@ public final class EditorList implements Collection<Editor> {
         add(after != null ? list.indexOf(after) + 1 : 0, editor);
     }
 
+    @Override
     public boolean remove(Object o) {
         return remove((Editor) o);
     }
@@ -73,6 +77,7 @@ public final class EditorList implements Collection<Editor> {
         return list.remove(editor);
     }
 
+    @Override
     public boolean contains(Object o) {
         return contains((Editor) o);
     }
@@ -82,10 +87,12 @@ public final class EditorList implements Collection<Editor> {
     }
 
     /** A snapshot, so the list may change while a caller iterates. */
+    @Override
     public synchronized Iterator<Editor> iterator() {
         return List.copyOf(list).iterator();
     }
 
+    @Override
     public synchronized boolean addAll(Collection<? extends Editor> c) {
         boolean changed = false;
         for (Editor editor : c)
@@ -93,26 +100,32 @@ public final class EditorList implements Collection<Editor> {
         return changed;
     }
 
+    @Override
     public synchronized boolean removeAll(Collection<?> c) {
         return list.removeAll(c);
     }
 
+    @Override
     public synchronized boolean retainAll(Collection<?> c) {
         return list.retainAll(c);
     }
 
+    @Override
     public synchronized boolean containsAll(Collection<?> c) {
         return list.containsAll(c);
     }
 
+    @Override
     public synchronized void clear() {
         list.clear();
     }
 
+    @Override
     public synchronized Object[] toArray() {
         return list.toArray();
     }
 
+    @Override
     public synchronized <T> T[] toArray(T[] a) {
         return list.toArray(a);
     }

@@ -62,14 +62,17 @@ public final class RecentFilesTableModel extends AbstractTableModel {
             indexes[i] = i;
     }
 
+    @Override
     public int getColumnCount() {
         return columnNames.length;
     }
 
+    @Override
     public int getRowCount() {
         return data.size();
     }
 
+    @Override
     public String getColumnName(int col) {
         return columnNames[col];
     }
@@ -97,6 +100,7 @@ public final class RecentFilesTableModel extends AbstractTableModel {
         return -1;
     }
 
+    @Override
     public Object getValueAt(int row, int col) {
         int i = indexes[row];
         RecentFilesEntry entry = data.get(i);
@@ -227,6 +231,7 @@ public final class RecentFilesTableModel extends AbstractTableModel {
         indexes[j] = tmp;
     }
 
+    @Override
     public Class<String> getColumnClass(int col) {
         return String.class;
     }

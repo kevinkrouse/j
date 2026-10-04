@@ -70,6 +70,7 @@ public final class KillRing extends Ring implements ClipboardOwner {
             clipboardOwner = this;
     }
 
+    @Override
     public void lostOwnership(Clipboard clipboard, Transferable contents) {
         clipboardOwner = null;
     }

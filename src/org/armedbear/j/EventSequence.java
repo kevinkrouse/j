@@ -20,14 +20,13 @@
 
 package org.armedbear.j;
 
-import java.lang.StringBuilder;
 import java.util.ArrayList;
 
 public final class EventSequence {
     private ArrayList<JEvent> events;
 
     public EventSequence() {
-        events = new ArrayList<JEvent>();
+        events = new ArrayList<>();
     }
 
     public int size() {
@@ -60,6 +59,7 @@ public final class EventSequence {
         return sb.toString();
     }
 
+    @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();
         sb.append("begin EventSequence\n");

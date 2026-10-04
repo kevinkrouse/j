@@ -20,9 +20,10 @@
 
 package org.armedbear.j;
 
+import static org.armedbear.j.Constants.*;
+
 import java.awt.Cursor;
 import java.awt.Dimension;
-import java.lang.StringBuilder;
 import java.util.ArrayList;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -41,7 +42,7 @@ import org.armedbear.j.vcs.VcsBackend;
 import org.armedbear.j.vcs.VcsBackends;
 import org.armedbear.j.vcs.VersionControlEntry;
 
-public final class PropertiesDialog extends AbstractDialog implements Constants {
+public final class PropertiesDialog extends AbstractDialog {
     private static final String TEXT_LF = "LF";
     private static final String TEXT_CR = "CR";
     private static final String TEXT_CRLF = "CR+LF";
@@ -154,7 +155,7 @@ public final class PropertiesDialog extends AbstractDialog implements Constants 
 
         if (modeId != IMAGE_MODE && modeId != WEB_MODE) {
             // Mode combo box.
-            modeComboBox = new JComboBox<String>(getPermissibleModes());
+            modeComboBox = new JComboBox<>(getPermissibleModes());
             Dimension dim = modeComboBox.getPreferredSize();
             modeComboBox.setMinimumSize(dim);
             modeComboBox.setMaximumSize(dim);
@@ -254,12 +255,12 @@ public final class PropertiesDialog extends AbstractDialog implements Constants 
                 addVerticalStrut();
 
                 // Line separator combo box.
-                List<String> v = new ArrayList<String>();
+                List<String> v = new ArrayList<>();
                 v.add(TEXT_LF);
                 v.add(TEXT_CRLF);
                 v.add(TEXT_CR);
                 lineSeparatorComboBox =
-                    new JComboBox<String>(v.toArray(new String[0]));
+                    new JComboBox<>(v.toArray(new String[0]));
                 dim = lineSeparatorComboBox.getPreferredSize();
                 lineSeparatorComboBox.setMinimumSize(dim);
                 lineSeparatorComboBox.setMaximumSize(dim);
@@ -333,7 +334,7 @@ public final class PropertiesDialog extends AbstractDialog implements Constants 
             }
             return array;
         }
-        ArrayList<String> list = new ArrayList<String>();
+        ArrayList<String> list = new ArrayList<>();
         synchronized (modeList) {
             for (ModeListEntry entry : modeList) {
                 if (entry.isSelectable())
@@ -440,6 +441,7 @@ public final class PropertiesDialog extends AbstractDialog implements Constants 
         return true;
     }
 
+    @Override
     protected void ok() {
         if (save()) {
             buffer.saveProperties();
@@ -479,7 +481,7 @@ public final class PropertiesDialog extends AbstractDialog implements Constants 
             Set<Property> keySet = properties.keySet();
             if (keySet != null) {
                 // Sort keys.
-                ArrayList<Property> keys = new ArrayList<Property>(keySet);
+                ArrayList<Property> keys = new ArrayList<>(keySet);
                 Collections.sort(keys);
                 for (Property property : keys) {
                     Object value = properties.getProperty(property);

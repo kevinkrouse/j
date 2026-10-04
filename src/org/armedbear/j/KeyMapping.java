@@ -20,11 +20,10 @@
 
 package org.armedbear.j;
 
-import java.lang.StringBuilder;
 import javax.swing.KeyStroke;
 import org.armedbear.j.util.Keys;
 
-public class KeyMapping implements Constants {
+public class KeyMapping {
     private final char keyChar;
     private final int keyCode;
     private final int modifiers;
@@ -34,8 +33,8 @@ public class KeyMapping implements Constants {
         this.keyChar = 0;
         this.keyCode = keyCode;
         this.modifiers = modifiers;
-        if (command instanceof String)
-            this.command = ((String) command).intern();
+        if (command instanceof String string)
+            this.command = string.intern();
         else
             this.command = command;
     }
@@ -44,8 +43,8 @@ public class KeyMapping implements Constants {
         this.keyChar = keyChar;
         this.keyCode = 0;
         this.modifiers = 0;
-        if (command instanceof String)
-            this.command = ((String) command).intern();
+        if (command instanceof String string)
+            this.command = string.intern();
         else
             this.command = command;
     }
@@ -105,6 +104,7 @@ public class KeyMapping implements Constants {
         return command;
     }
 
+    @Override
     public String toString() {
         StringBuilder sb = new StringBuilder(64);
         sb.append(Keys.getKeyText(keyChar, keyCode, modifiers));

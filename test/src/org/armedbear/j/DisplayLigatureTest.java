@@ -86,7 +86,7 @@ public class DisplayLigatureTest {
 
     /** A family resolves to itself only when it is really installed. */
     private static List<Font> installed(String[] families) {
-        List<Font> fonts = new ArrayList<Font>();
+        List<Font> fonts = new ArrayList<>();
         for (String family : families) {
             Font font = new Font(family, Font.PLAIN, SIZE);
             if (family.equals(font.getFamily()))

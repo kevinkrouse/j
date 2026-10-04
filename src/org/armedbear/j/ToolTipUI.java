@@ -32,6 +32,7 @@ public final class ToolTipUI extends BasicToolTipUI {
         return sharedInstance;
     }
 
+    @Override
     public void paint(Graphics g, JComponent c) {
         Display.setRenderingHints(g);
         super.paint(g, c);

@@ -23,7 +23,6 @@ package org.armedbear.j;
 import java.awt.Graphics;
 import java.awt.print.Printable;
 import java.awt.print.PrinterException;
-import java.lang.StringBuilder;
 import org.armedbear.j.util.Utilities;
 
 public final class PrintPainter implements Printable {
@@ -50,6 +49,7 @@ public final class PrintPainter implements Printable {
         endLine = region.getEndLine();
     }
 
+    @Override
     public int print(Graphics g, java.awt.print.PageFormat pf, int pageIndex) throws PrinterException {
         if (pageIndex != currentPage) {
             currentPage = pageIndex;

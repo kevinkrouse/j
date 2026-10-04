@@ -75,6 +75,7 @@ public class MessageDialog extends AbstractDialog {
         addOK();
     }
 
+    @Override
     public void keyPressed(KeyEvent e) {
         if (editor.checkKeyboardQuit(e)) {
             escape();
@@ -93,6 +94,7 @@ public class MessageDialog extends AbstractDialog {
         }
     }
 
+    @Override
     public void windowActivated(WindowEvent e) {
         requestFocus();
     }
@@ -102,6 +104,7 @@ public class MessageDialog extends AbstractDialog {
             super(text);
         }
 
+        @Override
         public void paintComponent(Graphics g) {
             Display.setRenderingHints(g);
             super.paintComponent(g);

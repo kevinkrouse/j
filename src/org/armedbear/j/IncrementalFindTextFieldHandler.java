@@ -20,6 +20,8 @@
 
 package org.armedbear.j;
 
+import static org.armedbear.j.Constants.*;
+
 import java.awt.Color;
 import java.awt.event.KeyEvent;
 import javax.swing.SwingUtilities;
@@ -28,8 +30,7 @@ import org.armedbear.j.Constants;
 import org.armedbear.j.util.Keys;
 import org.armedbear.j.util.Utilities;
 
-public final class IncrementalFindTextFieldHandler extends DefaultTextFieldHandler
-    implements Constants {
+public final class IncrementalFindTextFieldHandler extends DefaultTextFieldHandler {
     private final Display display;
     private final Buffer buffer;
 
@@ -75,6 +76,7 @@ public final class IncrementalFindTextFieldHandler extends DefaultTextFieldHandl
         keyMap.addMappingsForCommand("escape", buffer.getKeyMapForMode());
     }
 
+    @Override
     public void escape() {
         restoreInitialState();
         editor.ensureActive();
@@ -97,6 +99,7 @@ public final class IncrementalFindTextFieldHandler extends DefaultTextFieldHandl
         editor.updateDisplay();
     }
 
+    @Override
     public void keyPressed(KeyEvent e) {
         final char keyChar = e.getKeyChar();
         final int keyCode = e.getKeyCode();
@@ -247,11 +250,13 @@ public final class IncrementalFindTextFieldHandler extends DefaultTextFieldHandl
         editor.updateLocation();
     }
 
+    @Override
     public void keyReleased(KeyEvent e) {
         textField.setText(search.getPattern());
         textField.setCaretPosition(search.getPatternLength());
     }
 
+    @Override
     public void keyTyped(KeyEvent e) {
         final int modifiers = Keys.keyModifiers(e);
         if (modifiers == 0 || modifiers == SHIFT_MASK)

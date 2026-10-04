@@ -20,11 +20,12 @@
 
 package org.armedbear.j;
 
+import static org.armedbear.j.Constants.*;
+
 import javax.swing.undo.AbstractUndoableEdit;
 import javax.swing.undo.UndoableEdit;
 
-public final class UndoInsertLineSeparator extends AbstractUndoableEdit
-    implements Constants, UndoableEdit {
+public final class UndoInsertLineSeparator extends AbstractUndoableEdit implements UndoableEdit {
     private PreState preState;
     private PostState postState;
 
@@ -32,6 +33,7 @@ public final class UndoInsertLineSeparator extends AbstractUndoableEdit
         preState = new PreState(editor);
     }
 
+    @Override
     public void undo() {
         super.undo();
         final Editor editor = Editor.currentEditor();
@@ -52,6 +54,7 @@ public final class UndoInsertLineSeparator extends AbstractUndoableEdit
         buffer.repaint();
     }
 
+    @Override
     public void redo() {
         super.redo();
         final Editor editor = Editor.currentEditor();

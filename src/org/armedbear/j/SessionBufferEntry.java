@@ -20,7 +20,6 @@
 
 package org.armedbear.j;
 
-import java.lang.StringBuilder;
 import java.util.Iterator;
 
 public final class SessionBufferEntry {

@@ -38,7 +38,7 @@ public final class PropertyList {
 
     public void setProperty(Property property, Serializable value) {
         if (map == null)
-            map = new HashMap<Property, Object>();
+            map = new HashMap<>();
         map.put(property, value);
     }
 
@@ -119,7 +119,7 @@ public final class PropertyList {
     public void putAll(PropertyList other) {
         if (other.map != null && other.map.size() > 0) {
             if (map == null)
-                map = new HashMap<Property, Object>();
+                map = new HashMap<>();
             map.putAll(other.map);
         }
     }

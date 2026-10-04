@@ -32,7 +32,9 @@ public final class ToolBarUI extends MetalToolBarUI {
     }
 
     // Don't install default keyboard actions!
+    @Override
     protected void installKeyboardActions() {}
 
+    @Override
     protected void uninstallKeyboardActions() {}
 }

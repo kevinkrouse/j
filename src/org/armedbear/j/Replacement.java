@@ -20,7 +20,6 @@
 
 package org.armedbear.j;
 
-import java.lang.StringBuilder;
 import java.util.regex.Matcher;
 import org.armedbear.j.util.Utilities;
 

@@ -40,7 +40,7 @@ public final class TagFileManager extends Thread {
     private final File tagFileDir;
     private final TagFileCatalog catalog;
 
-    private List<QueueEntry> queue = new ArrayList<QueueEntry>();
+    private List<QueueEntry> queue = new ArrayList<>();
     private boolean enabled = true;
 
     private TagFileCache cache;
@@ -56,6 +56,7 @@ public final class TagFileManager extends Thread {
             start();
     }
 
+    @Override
     public void run() {
         while (true) {
             QueueEntry entry = getEntryFromQueue();
@@ -237,7 +238,7 @@ public final class TagFileManager extends Thread {
                     new BufferedReader(new InputStreamReader(tagFile.getInputStream(), StandardCharsets.UTF_8));
                 String s = reader.readLine();
                 if (s != null && s.equals(VERSION)) {
-                    tags = new ArrayList<GlobalTag>();
+                    tags = new ArrayList<>();
                     while ((s = reader.readLine()) != null) {
                         GlobalTag tag = GlobalTag.makeGlobalTag(s);
                         if (tag != null)
@@ -273,11 +274,11 @@ public final class TagFileManager extends Thread {
             this.mode = mode;
         }
 
+        @Override
         public boolean equals(Object obj) {
             if (this == obj)
                 return true;
-            if (obj instanceof QueueEntry) {
-                QueueEntry qe = (QueueEntry) obj;
+            if (obj instanceof QueueEntry qe) {
                 if (!directory.equals(qe.directory))
                     return false;
                 // Same directory.
@@ -299,7 +300,7 @@ public final class TagFileManager extends Thread {
     private static class TagFileCache {
         private static final int MAX_FILES = 5;
 
-        private ArrayList<CacheEntry> list = new ArrayList<CacheEntry>(MAX_FILES);
+        private ArrayList<CacheEntry> list = new ArrayList<>(MAX_FILES);
 
         TagFileCache() {}
 
@@ -308,7 +309,7 @@ public final class TagFileManager extends Thread {
                 if (entry.tagFile.equals(tagFile)) {
                     entry.lastAccess = System.currentTimeMillis();
                     // Move entry to top of list.
-                    ArrayList<CacheEntry> newList = new ArrayList<CacheEntry>(MAX_FILES);
+                    ArrayList<CacheEntry> newList = new ArrayList<>(MAX_FILES);
                     newList.add(entry);
                     for (CacheEntry e : list) {
                         if (e != entry)
@@ -330,7 +331,7 @@ public final class TagFileManager extends Thread {
             List<GlobalTag> tags
         ) {
             CacheEntry entry = new CacheEntry(directory, modeName, tagFile, tags);
-            ArrayList<CacheEntry> newList = new ArrayList<CacheEntry>(MAX_FILES);
+            ArrayList<CacheEntry> newList = new ArrayList<>(MAX_FILES);
             newList.add(entry);
             int count = 1;
             for (int i = 0; i < list.size() && count < MAX_FILES; i++) {
@@ -399,6 +400,7 @@ public final class TagFileManager extends Thread {
             this.lastAccess = System.currentTimeMillis();
         }
 
+        @Override
         public String toString() {
             return directory.canonicalPath() + " " + modeName + " " +
                 String.valueOf(lastAccess);

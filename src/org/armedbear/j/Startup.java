@@ -172,7 +172,7 @@ public final class Startup {
             } else {
                 // It's a file to be opened.
                 if (files == null)
-                    files = new ArrayList<String>();
+                    files = new ArrayList<>();
                 files.add(arg);
             }
         }
@@ -191,7 +191,7 @@ public final class Startup {
                 if (forceNewInstance) {
                     alreadyRunning = Server.isListening(path);
                 } else {
-                    final List<String> lines = new ArrayList<String>();
+                    final List<String> lines = new ArrayList<>();
                     lines.add(File.getInstance(System.getProperty("user.dir")).canonicalPath());
                     if (files != null)
                         lines.addAll(files);
@@ -267,7 +267,7 @@ public final class Startup {
         }
 
         if (files != null) {
-            ArrayList<String> list = new ArrayList<String>();
+            ArrayList<String> list = new ArrayList<>();
             list.add(currentDir.canonicalPath());
             list.addAll(files);
             Buffer buf = Editor.currentEditor().openFiles(list);

@@ -28,7 +28,7 @@ public final class HiddenLines {
 
     public HiddenLines(Editor editor) {
         buffer = editor.getBuffer();
-        list = new ArrayList<HiddenLinesEntry>();
+        list = new ArrayList<>();
         int count = 0;
         int hidden = -1;
         for (Line line = buffer.getFirstLine(); line != null; line = line.next()) {

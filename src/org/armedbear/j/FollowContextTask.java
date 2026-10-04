@@ -23,7 +23,7 @@ package org.armedbear.j;
 import java.util.List;
 import javax.swing.SwingUtilities;
 
-public class FollowContextTask extends IdleThreadTask implements Constants {
+public class FollowContextTask extends IdleThreadTask {
     private Expression lastExpression;
     private Position lastPos;
 
@@ -51,10 +51,10 @@ public class FollowContextTask extends IdleThreadTask implements Constants {
             final Tag tag = findMatchingTag(editor, expression);
             if (tag != null) {
                 Runnable r = () -> {
-                    if (tag instanceof LocalTag)
-                        TagCommands.gotoLocalTag(editor, (LocalTag) tag, true);
-                    else if (tag instanceof GlobalTag)
-                        TagCommands.gotoGlobalTag(editor, (GlobalTag) tag, true);
+                    if (tag instanceof LocalTag localTag)
+                        TagCommands.gotoLocalTag(editor, localTag, true);
+                    else if (tag instanceof GlobalTag globalTag)
+                        TagCommands.gotoGlobalTag(editor, globalTag, true);
                     editor.updateDisplay();
                 };
                 SwingUtilities.invokeLater(r);

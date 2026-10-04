@@ -109,7 +109,7 @@ public class ToolBar extends JToolBar implements ActionListener {
     /** A button an extension adds to the standard toolbars, shown while shown() is true. */
     public record Button(String text, ToolBarIcon icon, String command, BooleanSupplier shown) {}
 
-    private static final List<Button> extensionButtons = new CopyOnWriteArrayList<Button>();
+    private static final List<Button> extensionButtons = new CopyOnWriteArrayList<>();
 
     /** Adds button unless one for the same command is registered. */
     public static synchronized void registerButton(Button button) {
@@ -148,6 +148,7 @@ public class ToolBar extends JToolBar implements ActionListener {
         return UIScale.scaledProperty(preferences, Property.TOOL_BAR_ICON_SIZE);
     }
 
+    @Override
     public void actionPerformed(ActionEvent e) {
         final Editor editor = frame.getCurrentEditor();
         editor.setFocusToDisplay();
@@ -183,6 +184,7 @@ public class ToolBar extends JToolBar implements ActionListener {
             this.toolBar = toolBar;
         }
 
+        @Override
         public void startElement(
             String uri,
             String localName,

@@ -20,7 +20,6 @@
 
 package org.armedbear.j;
 
-import java.awt.Color;
 import java.awt.Component;
 import javax.swing.JLabel;
 import javax.swing.JList;
@@ -47,8 +46,10 @@ public abstract class SidebarList extends JList<Object>
         setFocusTraversalKeysEnabled(false);
     }
 
+    @Override
     public void refresh() {}
 
+    @Override
     public void updatePosition() {}
 
     protected void centerIndex(int index) {
@@ -88,6 +89,7 @@ public abstract class SidebarList extends JList<Object>
             setOpaque(true);
         }
 
+        @Override
         public Component getListCellRendererComponent(
             JList<?> list,
             Object value,
@@ -107,14 +109,12 @@ public abstract class SidebarList extends JList<Object>
                 setForeground(list.getForeground());
             }
             Border innerBorder = null;
-            if (value instanceof Buffer) {
+            if (value instanceof Buffer buffer) {
                 setText(value.toString());
-                Buffer buffer = (Buffer) value;
                 setIcon(buffer.getIcon());
                 if (buffer.isSecondary())
                     innerBorder = new EmptyBorder(0, UIScale.scale(10), 0, 0);
-            } else if (value instanceof LocalTag) {
-                LocalTag tag = (LocalTag) value;
+            } else if (value instanceof LocalTag tag) {
                 setText(tag.getSidebarText());
                 setIcon(tag.getIcon());
             }
@@ -129,6 +129,7 @@ public abstract class SidebarList extends JList<Object>
             return this;
         }
 
+        @Override
         public void paintComponent(java.awt.Graphics g) {
             Display.setRenderingHints(g);
             super.paintComponent(g);

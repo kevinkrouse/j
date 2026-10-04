@@ -33,6 +33,7 @@ public final class LabelUI extends MetalLabelUI {
         return labelUI;
     }
 
+    @Override
     protected void paintEnabledText(
         JLabel l,
         Graphics g,
@@ -44,6 +45,7 @@ public final class LabelUI extends MetalLabelUI {
         super.paintEnabledText(l, g, s, textX, textY);
     }
 
+    @Override
     protected void paintDisabledText(
         JLabel l,
         Graphics g,

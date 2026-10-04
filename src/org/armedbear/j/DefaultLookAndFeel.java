@@ -118,6 +118,7 @@ public final class DefaultLookAndFeel extends DefaultMetalTheme {
         plainFont = new FontUIResource(font);
     }
 
+    @Override
     public void addCustomEntriesToTable(UIDefaults table) {
         table.put("Button.border", BorderFactory.createRaisedBevelBorder());
         table.put("TextField.border", BorderFactory.createLoweredBevelBorder());
@@ -145,30 +146,37 @@ public final class DefaultLookAndFeel extends DefaultMetalTheme {
         table.put("ToolTipUI", "org.armedbear.j.ToolTipUI");
     }
 
+    @Override
     protected ColorUIResource getPrimary1() {
         return primary1;
     }
 
+    @Override
     public FontUIResource getControlTextFont() {
         return plainFont;
     }
 
+    @Override
     public FontUIResource getSystemTextFont() {
         return plainFont;
     }
 
+    @Override
     public FontUIResource getUserTextFont() {
         return plainFont;
     }
 
+    @Override
     public FontUIResource getMenuTextFont() {
         return plainFont;
     }
 
+    @Override
     public FontUIResource getWindowTitleFont() {
         return plainFont;
     }
 
+    @Override
     public FontUIResource getSubTextFont() {
         return plainFont;
     }

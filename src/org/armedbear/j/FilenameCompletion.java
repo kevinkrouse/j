@@ -66,7 +66,7 @@ public final class FilenameCompletion {
                 Log.error(e);
             }
         }
-        list = new ArrayList<File>();
+        list = new ArrayList<>();
         if (Utilities.isFilenameAbsolute(prefix)) {
             File file = File.getInstance(currentDirectory, prefix);
             if (file == null)

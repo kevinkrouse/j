@@ -26,7 +26,6 @@ import java.awt.Font;
 import java.awt.FontMetrics;
 import java.awt.Graphics;
 import java.awt.Insets;
-import java.lang.StringBuilder;
 import javax.swing.JComponent;
 import javax.swing.UIManager;
 import javax.swing.border.Border;
@@ -135,6 +134,7 @@ public final class StatusBar extends JComponent
         return sb.toString();
     }
 
+    @Override
     public void paint(Graphics g) {
         Editor editor = frame.getCurrentEditor();
         Buffer buffer = editor.getBuffer();
@@ -174,6 +174,7 @@ public final class StatusBar extends JComponent
         paintImmediately(0, 0, getWidth(), getHeight());
     }
 
+    @Override
     public void preferencesChanged() {
         displayContext =
             Editor.preferences().getIntegerProperty(Property.STATUS_BAR_DISPLAY_CONTEXT);

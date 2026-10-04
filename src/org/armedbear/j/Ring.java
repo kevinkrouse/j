@@ -31,7 +31,7 @@ public class Ring {
 
     public Ring(int capacity) {
         this.capacity = capacity;
-        list = new ArrayList<String>(capacity);
+        list = new ArrayList<>(capacity);
     }
 
     /** Forgets every entry. */

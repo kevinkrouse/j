@@ -20,7 +20,6 @@
 
 package org.armedbear.j;
 
-import java.lang.StringBuilder;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -332,7 +331,7 @@ public final class Directories {
         String[] names = dir.list();
         if (names == null)
             return new String[0];
-        List<String> extensions = new ArrayList<String>();
+        List<String> extensions = new ArrayList<>();
         for (int i = 0; i < names.length; i++)
             if (names[i].endsWith(".class") || names[i].endsWith(".jar"))
                 extensions.add(names[i]);

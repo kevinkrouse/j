@@ -39,7 +39,7 @@ public final class FileHistory extends DefaultHandler implements ContentHandler 
     // Singleton.
     private static FileHistory fileHistory;
 
-    private ArrayList<FileHistoryEntry> list = new ArrayList<FileHistoryEntry>();
+    private ArrayList<FileHistoryEntry> list = new ArrayList<>();
 
     private File file;
 
@@ -99,6 +99,7 @@ public final class FileHistory extends DefaultHandler implements ContentHandler 
 
     private FileHistoryEntry currentEntry = null;
 
+    @Override
     public void startElement(
         String uri,
         String localName,
@@ -131,6 +132,7 @@ public final class FileHistory extends DefaultHandler implements ContentHandler 
         }
     }
 
+    @Override
     public void endElement(String uri, String localName, String qName) {
         if (localName.equals("file") || qName.equals("file")) {
             list.add(currentEntry);

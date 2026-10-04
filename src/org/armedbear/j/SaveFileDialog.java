@@ -122,12 +122,15 @@ public class SaveFileDialog extends JDialog implements FocusListener, KeyListene
         textField.selectAll();
     }
 
+    @Override
     public void focusGained(FocusEvent e) {
         textField.requestFocus();
     }
 
+    @Override
     public void focusLost(FocusEvent e) {}
 
+    @Override
     public void keyPressed(KeyEvent e) {
         int keyCode = e.getKeyCode();
         int modifiers = Keys.keyModifiers(e);
@@ -174,8 +177,10 @@ public class SaveFileDialog extends JDialog implements FocusListener, KeyListene
         }
     }
 
+    @Override
     public void keyReleased(KeyEvent e) {}
 
+    @Override
     public void keyTyped(KeyEvent e) {}
 
     protected void enter() {
@@ -280,7 +285,7 @@ public class SaveFileDialog extends JDialog implements FocusListener, KeyListene
     }
 
     private List<String> getCompletions(String prefix) {
-        List<String> v = new ArrayList<String>();
+        List<String> v = new ArrayList<>();
         File currentDir = editor.getCurrentDirectory();
         File dir = null;
         boolean isShortName = false;
@@ -318,6 +323,7 @@ public class SaveFileDialog extends JDialog implements FocusListener, KeyListene
         return v;
     }
 
+    @Override
     public void dispose() {
         super.dispose();
         editor.restoreFocus();

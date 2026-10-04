@@ -24,7 +24,7 @@ public class CommandTableTest {
     // Every key in j's own key maps runs a command the table has.
     @Test
     public void everyBoundCommandIsInTheTable() {
-        List<String> missing = new ArrayList<String>();
+        List<String> missing = new ArrayList<>();
         check(KeyMap.getGlobalKeyMap(), "global", missing);
         for (ModeListEntry entry : Editor.getModeList()) {
             Mode mode = entry.getMode(true);

@@ -34,6 +34,7 @@ public final class VerticalScrollBarListener implements AdjustmentListener {
         this.scrollBar = scrollBar;
     }
 
+    @Override
     public void adjustmentValueChanged(AdjustmentEvent e) {
         if (editor.inScrollBarUpdate)
             return;

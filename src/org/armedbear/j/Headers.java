@@ -20,8 +20,6 @@
 
 package org.armedbear.j;
 
-import java.lang.StringBuilder;
-
 public final class Headers {
     // These are indexes into the array of values. We only store values for the
     // headers we're interested in.

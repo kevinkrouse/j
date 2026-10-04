@@ -11,12 +11,13 @@
 
 package org.armedbear.j;
 
+import static org.armedbear.j.Constants.*;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.Test;
 
-public class KeywordsTest implements Constants {
+public class KeywordsTest {
     @Test
     public void anIncludedListCounts() {
         Mode cpp = Editor.getModeList().getMode(CPP_MODE);

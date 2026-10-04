@@ -20,6 +20,8 @@
 
 package org.armedbear.j;
 
+import static org.armedbear.j.Constants.*;
+
 import java.awt.AWTEvent;
 import java.awt.HeadlessException;
 import java.awt.Toolkit;
@@ -33,7 +35,7 @@ import java.awt.event.MouseEvent;
 import java.io.IOException;
 import javax.swing.undo.CompoundEdit;
 
-public final class SystemSelection implements ClipboardOwner, Constants {
+public final class SystemSelection implements ClipboardOwner {
     private static SystemSelection systemSelection =
         getSystemSelection();
 
@@ -55,6 +57,7 @@ public final class SystemSelection implements ClipboardOwner, Constants {
         }
     }
 
+    @Override
     public void lostOwnership(Clipboard clipboard, Transferable contents) {
         primarySelection = null;
     }
@@ -120,9 +123,9 @@ public final class SystemSelection implements ClipboardOwner, Constants {
         // and killRing.lastPaste are set correctly.
         killRing.pop();
         AWTEvent e = editor.getDispatcher().getLastEvent();
-        if (e instanceof MouseEvent) {
+        if (e instanceof MouseEvent mouseEvent) {
             CompoundEdit compoundEdit = editor.beginCompoundEdit();
-            editor.mouseMoveDotToPoint((MouseEvent) e);
+            editor.mouseMoveDotToPoint(mouseEvent);
             ClipboardCommands.paste(editor, s);
             editor.endCompoundEdit(compoundEdit);
         } else

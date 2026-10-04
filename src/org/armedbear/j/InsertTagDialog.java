@@ -26,17 +26,18 @@ import javax.swing.undo.CompoundEdit;
 import org.armedbear.j.mode.html.HtmlElement;
 import org.armedbear.j.mode.html.HtmlMode;
 
-public final class InsertTagDialog extends InputDialog implements Constants {
+public final class InsertTagDialog extends InputDialog {
     public InsertTagDialog(Editor editor) {
         super(editor, "Element:", "Insert Element", null);
         setHistory(new History("insertTag"));
     }
 
+    @Override
     protected List<String> getCompletions(String prefix) {
         prefix = prefix.toLowerCase();
         List<HtmlElement> elements = HtmlMode.elements();
         int limit = elements.size();
-        ArrayList<String> completions = new ArrayList<String>(limit);
+        ArrayList<String> completions = new ArrayList<>(limit);
         for (HtmlElement element : elements) {
             if (element.getName().startsWith(prefix))
                 completions.add(element.getName());

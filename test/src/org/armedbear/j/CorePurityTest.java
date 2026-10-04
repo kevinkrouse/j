@@ -49,7 +49,7 @@ public class CorePurityTest {
     private static final List<String> EXTENSION_PACKAGES = extensionPackages();
 
     private static List<String> extensionPackages() {
-        List<String> packages = new ArrayList<String>();
+        List<String> packages = new ArrayList<>();
         packages.add("org/armedbear/lisp");
         for (String p : List.of(
             "mail",
@@ -82,7 +82,7 @@ public class CorePurityTest {
     public void noCoreClassReferencesAnExtension() throws IOException, URISyntaxException {
         Path root = classesDirectory();
         assertTrue(Files.isDirectory(root), "expected a directory of classes, got " + root);
-        List<String> tainted = new ArrayList<String>();
+        List<String> tainted = new ArrayList<>();
         int scanned = 0;
         try (Stream<Path> files = Files.walk(root.resolve("org").resolve("armedbear"))) {
             for (Path file : (Iterable<Path>) files::iterator) {
@@ -109,7 +109,7 @@ public class CorePurityTest {
         // in core's output it would end up inside j.jar, and ABCL would load
         // whichever copy the class path happened to reach first.
         Path root = classesDirectory();
-        List<String> lisp = new ArrayList<String>();
+        List<String> lisp = new ArrayList<>();
         try (Stream<Path> files = Files.walk(root)) {
             for (Path file : (Iterable<Path>) files::iterator)
                 if (file.toString().endsWith(".lisp"))

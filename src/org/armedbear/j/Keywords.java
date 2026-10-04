@@ -57,7 +57,7 @@ public final class Keywords {
 
     private void load() {
         final String key = mode.getClass().getSimpleName() + ".keywords";
-        Set<String> set = new HashSet<String>();
+        Set<String> set = new HashSet<>();
         InputStream in = null;
         final String fileName = Editor.preferences().getStringProperty(key);
         if (fileName != null) {

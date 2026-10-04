@@ -20,10 +20,11 @@
 
 package org.armedbear.j;
 
+import static org.armedbear.j.Constants.*;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.lang.StringBuilder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayDeque;
 import java.util.Deque;
@@ -34,9 +35,9 @@ import org.armedbear.j.mode.list.ListOccurrencesInFilesBuffer;
 import org.armedbear.j.util.Background;
 import org.armedbear.j.util.Utilities;
 
-public final class IList implements BackgroundProcess, Constants {
-    private final HashSet<File> searchedFiles = new HashSet<File>(256);
-    private final Deque<File> stack = new ArrayDeque<File>();
+public final class IList implements BackgroundProcess {
+    private final HashSet<File> searchedFiles = new HashSet<>(256);
+    private final Deque<File> stack = new ArrayDeque<>();
     private final Editor editor;
     private final Buffer sourceBuffer;
     private final Search search;
@@ -74,6 +75,7 @@ public final class IList implements BackgroundProcess, Constants {
         return buf;
     }
 
+    @Override
     public void run() {
         if (SwingUtilities.isEventDispatchThread())
             Debug.bug();
@@ -112,6 +114,7 @@ public final class IList implements BackgroundProcess, Constants {
         }
     }
 
+    @Override
     public void cancel() {
         cancelled = true;
     }
@@ -206,6 +209,7 @@ public final class IList implements BackgroundProcess, Constants {
     // search, which are blank finals the constructor assigns, and a lambda in
     // a field initialiser may not read those.
     private Runnable completionRunnable = new Runnable() {
+        @Override
         public void run() {
             Log.debug("completionRunnable.run");
             editor.setDefaultCursor();

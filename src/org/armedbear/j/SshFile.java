@@ -20,7 +20,6 @@
 
 package org.armedbear.j;
 
-import java.lang.StringBuilder;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
@@ -74,6 +73,7 @@ public final class SshFile extends File {
         return file;
     }
 
+    @Override
     public final File getRoot() {
         SshFile file = new SshFile();
         file.hostName = this.hostName;
@@ -85,6 +85,7 @@ public final class SshFile extends File {
         return file;
     }
 
+    @Override
     public String netPath() {
         StringBuilder sb = new StringBuilder(256);
         sb.append(PREFIX_SSH);
@@ -102,6 +103,7 @@ public final class SshFile extends File {
         return sb.toString();
     }
 
+    @Override
     public File getParentFile() {
         if (canonicalPath() == null || canonicalPath.equals("/"))
             return null; // No parent.
@@ -119,6 +121,7 @@ public final class SshFile extends File {
         );
     }
 
+    @Override
     public boolean isDirectory() {
         if (type == TYPE_LINK) {
             if (DirectoryCache.getDirectoryCache().getListing(this) != null)
@@ -172,10 +175,12 @@ public final class SshFile extends File {
         return type == TYPE_DIRECTORY;
     }
 
+    @Override
     public boolean isLink() {
         return type == TYPE_LINK;
     }
 
+    @Override
     public boolean exists() {
         RemoteSession session = SshSession.getSession(this);
         if (session == null)
@@ -186,10 +191,12 @@ public final class SshFile extends File {
         return result;
     }
 
+    @Override
     public String getDirectoryListing() {
         return getDirectoryListing(false);
     }
 
+    @Override
     public String getDirectoryListing(boolean forceRefresh) {
         if (!forceRefresh) {
             String listing =
@@ -210,10 +217,10 @@ public final class SshFile extends File {
         return listing;
     }
 
+    @Override
     public boolean equals(Object obj) {
-        if (!(obj instanceof SshFile))
+        if (!(obj instanceof SshFile f))
             return false;
-        SshFile f = (SshFile) obj;
         // Protocol.
         if (f.protocol != protocol)
             return false;
@@ -236,10 +243,12 @@ public final class SshFile extends File {
         return f.canonicalPath.equals(canonicalPath);
     }
 
+    @Override
     public final String getSeparator() {
         return "/";
     }
 
+    @Override
     public final char getSeparatorChar() {
         return '/';
     }

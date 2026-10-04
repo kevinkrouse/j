@@ -24,7 +24,7 @@ import java.io.IOException;
 import java.io.Writer;
 import java.util.List;
 
-public abstract class Tagger implements Constants, Runnable {
+public abstract class Tagger implements Runnable {
     public static final char separatorChar = 0;
 
     protected SystemBuffer buffer;
@@ -69,5 +69,6 @@ public abstract class Tagger implements Constants, Runnable {
         }
     }
 
+    @Override
     public abstract void run();
 }

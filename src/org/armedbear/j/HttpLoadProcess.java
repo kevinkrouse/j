@@ -66,6 +66,7 @@ public final class HttpLoadProcess extends LoadProcess implements BackgroundProc
         return contentType;
     }
 
+    @Override
     public void run() {
         if (buffer != null) {
             buffer.setBusy(true);
@@ -79,6 +80,7 @@ public final class HttpLoadProcess extends LoadProcess implements BackgroundProc
     }
 
     // A blocked read only ends when its stream closes.
+    @Override
     public void cancel() {
         super.cancel();
         InputStream in = body;
@@ -333,7 +335,7 @@ public final class HttpLoadProcess extends LoadProcess implements BackgroundProc
         final Editor editor = Editor.currentEditor();
         final Buffer buffer = editor.getBuffer();
         final File file = buffer.getFile();
-        if (file instanceof HttpFile) {
+        if (file instanceof HttpFile httpFile) {
             editor.setWaitCursor();
             final String title = "httpShowHeaders ".concat(file.netPath());
             Buffer buf = null;
@@ -346,7 +348,7 @@ public final class HttpLoadProcess extends LoadProcess implements BackgroundProc
                 }
             }
             if (buf == null) {
-                buf = OutputBuffer.getOutputBuffer(((HttpFile) file).getHeaders());
+                buf = OutputBuffer.getOutputBuffer(httpFile.getHeaders());
                 buf.setParentBuffer(buffer);
                 buf.setTitle(title);
             }

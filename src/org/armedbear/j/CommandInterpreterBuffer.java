@@ -20,6 +20,8 @@
 
 package org.armedbear.j;
 
+import static org.armedbear.j.Constants.*;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStreamWriter;
@@ -58,6 +60,7 @@ public class CommandInterpreterBuffer extends Buffer {
         return false;
     }
 
+    @Override
     public final boolean isModified() {
         return false;
     }
@@ -112,10 +115,12 @@ public class CommandInterpreterBuffer extends Buffer {
         posEndOfOutput = pos;
     }
 
+    @Override
     public Icon getIcon() {
         return Icons.getIconFromFile("jpty");
     }
 
+    @Override
     public int load() {
         try {
             lockWrite();
@@ -442,10 +447,12 @@ public class CommandInterpreterBuffer extends Buffer {
             super(stdout);
         }
 
+        @Override
         public String filter(String s) {
             return stdOutFilter(s);
         }
 
+        @Override
         public void update(String s) {
             if (s != null && s.length() > 0)
                 stdOutUpdate(s);
@@ -457,10 +464,12 @@ public class CommandInterpreterBuffer extends Buffer {
             super(stderr);
         }
 
+        @Override
         public String filter(String s) {
             return stdErrFilter(s);
         }
 
+        @Override
         public void update(String s) {
             if (s != null && s.length() > 0)
                 stdErrUpdate(s);
@@ -470,38 +479,38 @@ public class CommandInterpreterBuffer extends Buffer {
     // Commands.
     public static void shellEnter() {
         final Buffer buffer = Editor.currentEditor().getBuffer();
-        if (buffer instanceof CommandInterpreterBuffer)
-            ((CommandInterpreterBuffer) buffer).enter();
+        if (buffer instanceof CommandInterpreterBuffer commandInterpreterBuffer)
+            commandInterpreterBuffer.enter();
     }
 
     public static void shellEscape() {
         final Buffer buffer = Editor.currentEditor().getBuffer();
-        if (buffer instanceof CommandInterpreterBuffer)
-            ((CommandInterpreterBuffer) buffer).escape();
+        if (buffer instanceof CommandInterpreterBuffer commandInterpreterBuffer)
+            commandInterpreterBuffer.escape();
     }
 
     public static void shellHome() {
         final Buffer buffer = Editor.currentEditor().getBuffer();
-        if (buffer instanceof CommandInterpreterBuffer)
-            ((CommandInterpreterBuffer) buffer).home();
+        if (buffer instanceof CommandInterpreterBuffer commandInterpreterBuffer)
+            commandInterpreterBuffer.home();
     }
 
     public static void shellBackspace() {
         final Buffer buffer = Editor.currentEditor().getBuffer();
-        if (buffer instanceof CommandInterpreterBuffer)
-            ((CommandInterpreterBuffer) buffer).backspace();
+        if (buffer instanceof CommandInterpreterBuffer commandInterpreterBuffer)
+            commandInterpreterBuffer.backspace();
     }
 
     public static void shellPreviousInput() {
         final Buffer buffer = Editor.currentEditor().getBuffer();
-        if (buffer instanceof CommandInterpreterBuffer)
-            ((CommandInterpreterBuffer) buffer).previousInput();
+        if (buffer instanceof CommandInterpreterBuffer commandInterpreterBuffer)
+            commandInterpreterBuffer.previousInput();
     }
 
     public static void shellNextInput() {
         final Buffer buffer = Editor.currentEditor().getBuffer();
-        if (buffer instanceof CommandInterpreterBuffer)
-            ((CommandInterpreterBuffer) buffer).nextInput();
+        if (buffer instanceof CommandInterpreterBuffer commandInterpreterBuffer)
+            commandInterpreterBuffer.nextInput();
     }
 
     public static void shellPreviousPrompt() {
@@ -515,12 +524,12 @@ public class CommandInterpreterBuffer extends Buffer {
     private static final void findPrompt(int direction) {
         final Editor editor = Editor.currentEditor();
         final Buffer buffer = editor.getBuffer();
-        if (buffer instanceof CommandInterpreterBuffer) {
+        if (buffer instanceof CommandInterpreterBuffer commandInterpreterBuffer) {
             Position dot = editor.getDot();
             if (dot != null) {
                 Line line =
                     direction > 0 ? dot.getLine().next() : dot.getLine().previous();
-                Pattern promptRE = ((CommandInterpreterBuffer) buffer).getPromptRE();
+                Pattern promptRE = commandInterpreterBuffer.getPromptRE();
                 if (promptRE != null) {
                     while (line != null) {
                         int flags = line.flags();

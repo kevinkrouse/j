@@ -20,6 +20,8 @@
 
 package org.armedbear.j;
 
+import static org.armedbear.j.Constants.*;
+
 import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.InputStream;
@@ -36,7 +38,7 @@ import org.xml.sax.SAXException;
 import org.xml.sax.XMLReader;
 import org.xml.sax.helpers.DefaultHandler;
 
-public final class Session extends DefaultHandler implements Constants {
+public final class Session extends DefaultHandler {
     private static File sessionDirectory;
 
     private final File file;
@@ -319,6 +321,7 @@ public final class Session extends DefaultHandler implements Constants {
         return false;
     }
 
+    @Override
     public void startElement(
         String uri,
         String localName,
@@ -354,10 +357,11 @@ public final class Session extends DefaultHandler implements Constants {
         }
     }
 
+    @Override
     public void endElement(String uri, String localName, String qName) {
         if (localName.equals("buffer") || qName.equals("buffer")) {
             if (bufferEntries == null)
-                bufferEntries = new ArrayList<SessionBufferEntry>();
+                bufferEntries = new ArrayList<>();
             bufferEntries.add(currentBufferEntry);
         }
     }

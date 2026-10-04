@@ -31,6 +31,7 @@ public final class AdjustPlacementRunnable implements Runnable {
         this.extendedState = extendedState;
     }
 
+    @Override
     public void run() {
         if (extendedState != 0) {
             frame.storeExtendedState(extendedState);

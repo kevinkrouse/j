@@ -20,7 +20,8 @@
 
 package org.armedbear.j;
 
-import java.lang.StringBuilder;
+import static org.armedbear.j.Constants.*;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -29,8 +30,8 @@ import java.util.List;
 import org.armedbear.j.mode.web.WebBuffer;
 import org.armedbear.j.util.Utilities;
 
-public final class BufferList implements Constants, PreferencesChangeListener, Iterable<Buffer> {
-    private final ArrayList<Buffer> list = new ArrayList<Buffer>();
+public final class BufferList implements PreferencesChangeListener, Iterable<Buffer> {
+    private final ArrayList<Buffer> list = new ArrayList<>();
 
     private boolean alpha; // Sort alphabetically?
     private boolean reorder;
@@ -50,6 +51,7 @@ public final class BufferList implements Constants, PreferencesChangeListener, I
     }
 
     /** A snapshot, so the list may change while a caller iterates. */
+    @Override
     public synchronized Iterator<Buffer> iterator() {
         if (alpha && modified)
             sort();
@@ -231,6 +233,7 @@ public final class BufferList implements Constants, PreferencesChangeListener, I
         modified = true;
     }
 
+    @Override
     public synchronized void preferencesChanged() {
         Preferences p = Editor.preferences();
         boolean b = p.getBooleanProperty(Property.SORT_BUFFER_LIST);

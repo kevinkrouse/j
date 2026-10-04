@@ -30,7 +30,7 @@ public final class JumpList {
     /** Vim's 'jumplist' length. */
     private static final int MAX = 100;
 
-    private static final List<Marker> entries = new ArrayList<Marker>();
+    private static final List<Marker> entries = new ArrayList<>();
     /** Where jumpBack and jumpForward are; the size when not travelling. */
     private static int index;
 

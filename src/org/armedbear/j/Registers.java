@@ -24,7 +24,6 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
-import java.lang.StringBuilder;
 import java.nio.charset.StandardCharsets;
 import org.armedbear.j.mode.list.ListRegistersBuffer;
 import org.armedbear.j.util.Utilities;
@@ -178,8 +177,8 @@ public final class Registers {
 
     public static final ListRegistersBuffer findListRegistersBuffer() {
         for (Buffer buf : Editor.getBufferList()) {
-            if (buf instanceof ListRegistersBuffer)
-                return (ListRegistersBuffer) buf;
+            if (buf instanceof ListRegistersBuffer listRegistersBuffer)
+                return listRegistersBuffer;
         }
         return null;
     }

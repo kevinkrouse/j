@@ -20,7 +20,9 @@
 
 package org.armedbear.j;
 
-public final class StringPosition implements Constants {
+import static org.armedbear.j.Constants.*;
+
+public final class StringPosition {
     private final String text;
     private final int length;
 

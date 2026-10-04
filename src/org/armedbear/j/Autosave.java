@@ -20,6 +20,8 @@
 
 package org.armedbear.j;
 
+import static org.armedbear.j.Constants.*;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -27,7 +29,7 @@ import java.util.Properties;
 import java.util.Set;
 import org.armedbear.j.util.Utilities;
 
-public final class Autosave implements Constants {
+public final class Autosave {
     private static final String CATALOG_NAME = "catalog";
     private static Properties catalog;
     private static File catalogFile;

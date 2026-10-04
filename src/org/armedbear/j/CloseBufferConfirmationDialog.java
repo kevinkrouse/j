@@ -20,7 +20,6 @@
 
 package org.armedbear.j;
 
-import java.lang.StringBuilder;
 import org.armedbear.j.util.Utilities;
 
 public final class CloseBufferConfirmationDialog extends ConfirmDialog {
@@ -54,6 +53,7 @@ public final class CloseBufferConfirmationDialog extends ConfirmDialog {
     }
 
     // Save the changes.
+    @Override
     protected void yes() {
         setVisible(false);
         FileCommands.save(editor, buffer);
@@ -67,11 +67,13 @@ public final class CloseBufferConfirmationDialog extends ConfirmDialog {
     }
 
     // Don't save the changes.
+    @Override
     protected void no() {
         confirmed = true;
         dispose();
     }
 
+    @Override
     protected void cancel() {
         cancelled = true;
         dispose();

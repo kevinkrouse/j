@@ -32,10 +32,12 @@ public final class VerticalScrollBar extends JScrollBar {
         display = editor.getDisplay();
     }
 
+    @Override
     public final int getUnitIncrement(int direction) {
         return display.getCharHeight() * editor.getBuffer().getIntegerProperty(Property.VERTICAL_SCROLL_INCREMENT);
     }
 
+    @Override
     public final int getBlockIncrement(int direction) {
         return display.getHeight();
     }

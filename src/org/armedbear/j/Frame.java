@@ -20,6 +20,8 @@
 
 package org.armedbear.j;
 
+import static org.armedbear.j.Constants.*;
+
 import java.awt.Cursor;
 import java.awt.Dimension;
 import java.awt.Image;
@@ -35,7 +37,6 @@ import java.awt.event.KeyEvent;
 import java.awt.event.WindowEvent;
 import java.awt.event.WindowListener;
 import java.awt.event.WindowStateListener;
-import java.lang.StringBuilder;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -47,8 +48,8 @@ import javax.swing.JFrame;
 import javax.swing.SwingUtilities;
 import org.armedbear.j.util.Icons;
 
-public final class Frame extends JFrame implements Constants, ComponentListener,
-    FocusListener, WindowListener, WindowStateListener {
+public final class Frame extends JFrame
+    implements ComponentListener, FocusListener, WindowListener, WindowStateListener {
     private EditorPane editorPane;
     private EditorList editors = new EditorList();
     private Editor currentEditor;
@@ -108,7 +109,7 @@ public final class Frame extends JFrame implements Constants, ComponentListener,
         // Drawn from the vector logo at each size the window manager might ask
         // for, rather than scaled from one bitmap.
         final int[] sizes = new int[] { 16, 32, 64, 128, 256 };
-        ArrayList<Image> images = new ArrayList<Image>(sizes.length);
+        ArrayList<Image> images = new ArrayList<>(sizes.length);
         for (int i = 0; i < sizes.length; i++) {
             ImageIcon icon = Icons.getIconFromFile("j-logo", sizes[i]);
             if (icon != null)
@@ -130,6 +131,7 @@ public final class Frame extends JFrame implements Constants, ComponentListener,
         return rect;
     }
 
+    @Override
     protected void processEvent(java.awt.AWTEvent e) {
         if (!(e instanceof KeyEvent))
             super.processEvent(e);
@@ -257,7 +259,7 @@ public final class Frame extends JFrame implements Constants, ComponentListener,
     }
 
     public final List<Editor> getPrimaryEditors() {
-        List<Editor> ret = new ArrayList<Editor>(editors.size());
+        List<Editor> ret = new ArrayList<>(editors.size());
         for (Editor ed : editors)
             if (ed.getBuffer().isPrimary())
                 ret.add(ed);
@@ -572,8 +574,8 @@ public final class Frame extends JFrame implements Constants, ComponentListener,
      * caret.
      */
     public Editor getAdjacentEditor(Editor ed, char direction) {
-        final List<Rectangle> others = new ArrayList<Rectangle>();
-        final List<Editor> candidates = new ArrayList<Editor>();
+        final List<Rectangle> others = new ArrayList<>();
+        final List<Editor> candidates = new ArrayList<>();
         for (Editor other : editors) {
             if (other != ed) {
                 candidates.add(other);
@@ -950,7 +952,7 @@ public final class Frame extends JFrame implements Constants, ComponentListener,
         Editor.getSessionProperties().saveSidebarState(this);
         editorPane.root(keep);
         validate();
-        List<Editor> kill = new ArrayList<Editor>(editors);
+        List<Editor> kill = new ArrayList<>(editors);
         kill.remove(keep);
         unsplitInternal(keep, kill);
     }
@@ -1015,6 +1017,7 @@ public final class Frame extends JFrame implements Constants, ComponentListener,
 
     private boolean active;
 
+    @Override
     public final boolean isActive() {
         return active;
     }
@@ -1036,6 +1039,7 @@ public final class Frame extends JFrame implements Constants, ComponentListener,
         }
     }
 
+    @Override
     public void windowActivated(WindowEvent e) {
         active = true;
         Editor.setCurrentEditor(currentEditor);
@@ -1048,6 +1052,7 @@ public final class Frame extends JFrame implements Constants, ComponentListener,
         SwingUtilities.invokeLater(r);
     }
 
+    @Override
     public void windowDeactivated(WindowEvent e) {
         active = false;
         // Show/hide caret.
@@ -1055,6 +1060,7 @@ public final class Frame extends JFrame implements Constants, ComponentListener,
             editor.repaint();
     }
 
+    @Override
     public void windowOpened(WindowEvent e) {
         if (adjustPlacementRunnable != null) {
             adjustPlacementRunnable.run();
@@ -1062,16 +1068,21 @@ public final class Frame extends JFrame implements Constants, ComponentListener,
         }
     }
 
+    @Override
     public void windowClosing(WindowEvent e) {
         WindowCommands.killFrame(editors.get(0));
     }
 
+    @Override
     public void windowClosed(WindowEvent e) {}
 
+    @Override
     public void windowIconified(WindowEvent e) {}
 
+    @Override
     public void windowDeiconified(WindowEvent e) {}
 
+    @Override
     public void windowStateChanged(WindowEvent e) {
         int newState = e.getNewState();
         if (newState == 0) {
@@ -1176,6 +1187,7 @@ public final class Frame extends JFrame implements Constants, ComponentListener,
         Editor.restoreFocus();
     }
 
+    @Override
     public void componentResized(ComponentEvent e) {
         if (extendedState != 6) {
             // Not maximized.
@@ -1183,6 +1195,7 @@ public final class Frame extends JFrame implements Constants, ComponentListener,
         }
     }
 
+    @Override
     public void componentMoved(ComponentEvent e) {
         if (extendedState != 6) {
             // Not maximized.
@@ -1190,13 +1203,17 @@ public final class Frame extends JFrame implements Constants, ComponentListener,
         }
     }
 
+    @Override
     public void componentShown(ComponentEvent e) {}
 
+    @Override
     public void componentHidden(ComponentEvent e) {}
 
+    @Override
     public void focusGained(FocusEvent e) {
         currentEditor.setFocusToDisplay();
     }
 
+    @Override
     public void focusLost(FocusEvent e) {}
 }

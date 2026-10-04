@@ -171,11 +171,13 @@ public abstract class AbstractDialog extends JDialog implements ActionListener,
         cancel();
     }
 
+    @Override
     public void dispose() {
         super.dispose();
         Editor.restoreFocus();
     }
 
+    @Override
     public void actionPerformed(ActionEvent e) {
         if (e.getActionCommand().equals("Cancel"))
             cancel();
@@ -183,6 +185,7 @@ public abstract class AbstractDialog extends JDialog implements ActionListener,
             ok();
     }
 
+    @Override
     public void keyPressed(KeyEvent e) {
         if (Keys.isUnmodified(e)) {
             // Special case for combo box.
@@ -209,25 +212,34 @@ public abstract class AbstractDialog extends JDialog implements ActionListener,
         }
     }
 
+    @Override
     public void keyReleased(KeyEvent e) {}
 
+    @Override
     public void keyTyped(KeyEvent e) {}
 
+    @Override
     public void windowActivated(WindowEvent e) {}
 
+    @Override
     public void windowDeactivated(WindowEvent e) {}
 
+    @Override
     public void windowOpened(WindowEvent e) {}
 
+    @Override
     public void windowClosing(WindowEvent e) {
         cancelled = true;
         dispose();
     }
 
+    @Override
     public void windowClosed(WindowEvent e) {}
 
+    @Override
     public void windowIconified(WindowEvent e) {}
 
+    @Override
     public void windowDeiconified(WindowEvent e) {}
 
     // Over the owner, or the screen if there is none.

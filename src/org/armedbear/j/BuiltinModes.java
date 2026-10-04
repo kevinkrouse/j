@@ -11,6 +11,8 @@
 
 package org.armedbear.j;
 
+import static org.armedbear.j.Constants.*;
+
 import java.util.List;
 import org.armedbear.j.extension.ModeDescriptor;
 import org.armedbear.j.extension.ModeProvider;
@@ -49,7 +51,8 @@ import org.armedbear.j.mode.xml.XmlMode;
 import org.armedbear.j.vcs.StatusMode;
 
 /** The modes core provides. */
-final class BuiltinModes implements ModeProvider, Constants {
+final class BuiltinModes implements ModeProvider {
+    @Override
     public List<ModeDescriptor> modes() {
         return List.of(
             new ModeDescriptor(

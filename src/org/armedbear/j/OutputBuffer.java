@@ -20,6 +20,8 @@
 
 package org.armedbear.j;
 
+import static org.armedbear.j.Constants.*;
+
 import org.armedbear.j.mode.text.PlainTextFormatter;
 import org.armedbear.j.mode.text.PlainTextMode;
 
@@ -45,6 +47,7 @@ public final class OutputBuffer extends Buffer {
         return outputBuffer;
     }
 
+    @Override
     public int load() {
         if (!isLoaded()) {
             if (getFirstLine() == null) {
@@ -56,6 +59,7 @@ public final class OutputBuffer extends Buffer {
         return LOAD_COMPLETED;
     }
 
+    @Override
     public String getFileNameForDisplay() {
         return title != null ? title : "";
     }

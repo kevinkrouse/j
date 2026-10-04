@@ -58,6 +58,7 @@ public final class PasswordDialog extends JDialog implements FocusListener,
         addFocusListener(this);
     }
 
+    @Override
     public void keyPressed(KeyEvent e) {
         switch (e.getKeyCode()) {
             case KeyEvent.VK_ENTER:
@@ -70,8 +71,10 @@ public final class PasswordDialog extends JDialog implements FocusListener,
         }
     }
 
+    @Override
     public void keyReleased(KeyEvent e) {}
 
+    @Override
     public void keyTyped(KeyEvent e) {}
 
     public static String showPasswordDialog(
@@ -85,15 +88,18 @@ public final class PasswordDialog extends JDialog implements FocusListener,
         return d.input;
     }
 
+    @Override
     public void dispose() {
         super.dispose();
         editor.restoreFocus();
     }
 
+    @Override
     public void focusGained(FocusEvent e) {
         textField.requestFocus();
     }
 
+    @Override
     public void focusLost(FocusEvent e) {}
 
     private static class PasswordField extends JPasswordField {
@@ -112,12 +118,14 @@ public final class PasswordDialog extends JDialog implements FocusListener,
             }
         }
 
+        @Override
         public Dimension getPreferredSize() {
             Dimension size = super.getPreferredSize();
             size.width = getColumns() * 11;
             return size;
         }
 
+        @Override
         public void paintComponent(Graphics g) {
             // Laid out by Swing; see Display.setRenderingHints.
             Display.setRenderingHints(g);

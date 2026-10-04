@@ -75,6 +75,7 @@ public final class ConfirmReplacementDialog extends AbstractDialog {
         return button;
     }
 
+    @Override
     protected void enter() {
         yes();
     }
@@ -178,6 +179,7 @@ public final class ConfirmReplacementDialog extends AbstractDialog {
             replacement.setConfirmChanges(false);
     }
 
+    @Override
     public void actionPerformed(ActionEvent e) {
         if (e.getActionCommand().equals("Yes")) {
             yes();
@@ -201,6 +203,7 @@ public final class ConfirmReplacementDialog extends AbstractDialog {
         }
     }
 
+    @Override
     public void keyPressed(KeyEvent e) {
         if (e.isConsumed())
             return;
@@ -236,6 +239,7 @@ public final class ConfirmReplacementDialog extends AbstractDialog {
         super.keyPressed(e);
     }
 
+    @Override
     public void dispose() {
         rect = getBounds();
         super.dispose();

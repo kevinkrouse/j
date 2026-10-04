@@ -20,11 +20,12 @@
 
 package org.armedbear.j;
 
+import static org.armedbear.j.Constants.*;
+
 import javax.swing.undo.AbstractUndoableEdit;
 import javax.swing.undo.UndoableEdit;
 
-public class UndoDeleteRegion extends AbstractUndoableEdit
-    implements Constants, UndoableEdit {
+public class UndoDeleteRegion extends AbstractUndoableEdit implements UndoableEdit {
     private final PreState preState;
     private PostState postState;
     private final LineSequence lines;
@@ -51,6 +52,7 @@ public class UndoDeleteRegion extends AbstractUndoableEdit
         return buffer.getLine(beginLineNumber);
     }
 
+    @Override
     public void undo() {
         super.undo();
         final Editor editor = Editor.currentEditor();
@@ -70,6 +72,7 @@ public class UndoDeleteRegion extends AbstractUndoableEdit
         }
     }
 
+    @Override
     public void redo() {
         super.redo();
         final Editor editor = Editor.currentEditor();

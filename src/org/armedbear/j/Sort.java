@@ -241,7 +241,7 @@ public final class Sort {
         if (first == null || last == null)
             return 0;
         final Buffer buffer = editor.getBuffer();
-        final List<Entry> entries = new ArrayList<Entry>();
+        final List<Entry> entries = new ArrayList<>();
         for (Line line = first; line != null; line = line.next()) {
             entries.add(entryFor(text(line), options));
             if (line == last)
@@ -249,7 +249,7 @@ public final class Sort {
         }
         sort(entries, options);
 
-        final List<String> wanted = new ArrayList<String>(entries.size());
+        final List<String> wanted = new ArrayList<>(entries.size());
         String previous = null;
         for (Entry e : entries) {
             // Equal lines, not equal keys: :sort u /:/ keeps x:1 and y:1.
@@ -465,6 +465,7 @@ public final class Sort {
             this.real = real;
         }
 
+        @Override
         public final int compare(Entry a, Entry b) {
             if (real)
                 return Double.compare(a.real, b.real);

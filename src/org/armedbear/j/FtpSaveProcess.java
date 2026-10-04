@@ -20,10 +20,12 @@
 
 package org.armedbear.j;
 
+import static org.armedbear.j.Constants.*;
+
 import javax.swing.SwingUtilities;
 import org.armedbear.j.util.Background;
 
-public class FtpSaveProcess implements BackgroundProcess, Constants {
+public class FtpSaveProcess implements BackgroundProcess {
     private final Buffer buffer;
     private final File source;
     private FtpFile destination;
@@ -100,6 +102,7 @@ public class FtpSaveProcess implements BackgroundProcess, Constants {
         Background.start("FtpSaveProcess", this);
     }
 
+    @Override
     public void run() {
         Debug.assertTrue(buffer.isLocked());
         try {
@@ -178,6 +181,7 @@ public class FtpSaveProcess implements BackgroundProcess, Constants {
         session.unlock();
     }
 
+    @Override
     public synchronized void cancel() {
         if (progressNotifier != null) {
             progressNotifier.cancel();
@@ -189,6 +193,7 @@ public class FtpSaveProcess implements BackgroundProcess, Constants {
     // Confirm overwrite of existing destination file for saveAs() and
     // saveCopy().
     private final Runnable confirmOverwriteRunnable = new Runnable() {
+        @Override
         public void run() {
             Debug.assertTrue(SwingUtilities.isEventDispatchThread());
             Debug.assertTrue(session.isLocked());
@@ -209,6 +214,7 @@ public class FtpSaveProcess implements BackgroundProcess, Constants {
     // Confirm save if destination file has changed on the remote host since
     // it was loaded.
     private final Runnable confirmDestinationChangedRunnable = new Runnable() {
+        @Override
         public void run() {
             Debug.assertTrue(SwingUtilities.isEventDispatchThread());
             final Editor editor = Editor.currentEditor();
@@ -226,6 +232,7 @@ public class FtpSaveProcess implements BackgroundProcess, Constants {
     };
 
     private final Runnable cancelRunnable = new Runnable() {
+        @Override
         public void run() {
             buffer.setBusy(false);
             for (Editor ed : Editor.getEditorList()) {

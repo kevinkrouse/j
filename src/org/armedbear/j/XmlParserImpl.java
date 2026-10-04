@@ -25,7 +25,6 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
-import java.lang.StringBuilder;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import javax.swing.tree.DefaultMutableTreeNode;
@@ -148,6 +147,7 @@ public final class XmlParserImpl extends DefaultHandler implements Runnable,
         return output != null ? output.toString() : "";
     }
 
+    @Override
     public void run() {
         if (xmlReader == null) {
             Debug.bug();
@@ -206,7 +206,7 @@ public final class XmlParserImpl extends DefaultHandler implements Runnable,
                 inputSource.setSystemId("file://".concat(file.canonicalPath()));
         }
         treeModel = null;
-        stack = new ArrayDeque<DefaultMutableTreeNode>();
+        stack = new ArrayDeque<>();
 
         if (xmlReader != null) {
             xmlReader.setContentHandler(this);
@@ -228,6 +228,7 @@ public final class XmlParserImpl extends DefaultHandler implements Runnable,
         }
     }
 
+    @Override
     public InputSource resolveEntity(String publicId, String systemId) {
         if (systemId == null)
             return null;
@@ -302,10 +303,12 @@ public final class XmlParserImpl extends DefaultHandler implements Runnable,
         return null;
     }
 
+    @Override
     public void setDocumentLocator(Locator locator) {
         this.locator = locator;
     }
 
+    @Override
     public void startElement(
         String uri,
         String localName,
@@ -337,6 +340,7 @@ public final class XmlParserImpl extends DefaultHandler implements Runnable,
         current = node;
     }
 
+    @Override
     public void endElement(String uri, String localName, String qName) {
         if (stack.isEmpty())
             current = null;
@@ -344,16 +348,19 @@ public final class XmlParserImpl extends DefaultHandler implements Runnable,
             current = stack.pop();
     }
 
+    @Override
     public void warning(SAXParseException e)
         throws SAXException {
         appendMessage("Warning", e);
     }
 
+    @Override
     public void error(SAXParseException e)
         throws SAXException {
         appendMessage("Error", e);
     }
 
+    @Override
     public void fatalError(SAXParseException e)
         throws SAXException {
         appendMessage("Fatal error", e);

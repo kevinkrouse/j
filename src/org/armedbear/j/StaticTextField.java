@@ -53,10 +53,12 @@ public final class StaticTextField extends JTextField {
         setBackground(UIManager.getColor("control"));
     }
 
+    @Override
     public boolean isFocusable() {
         return false;
     }
 
+    @Override
     public void paintComponent(Graphics g) {
         Display.setRenderingHints(g);
         super.paintComponent(g);

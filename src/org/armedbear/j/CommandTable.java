@@ -88,7 +88,7 @@ public class CommandTable {
 
     private static synchronized void init() {
         if (map == null) {
-            map = new ConcurrentHashMap<String, Command>(INITIAL_CAPACITY);
+            map = new ConcurrentHashMap<>(INITIAL_CAPACITY);
 
             add("adjacentWindow", null, (e, s) -> WindowCommands.adjacentWindow(e, s));
             add("backspace", EditCommands::backspace);
@@ -542,7 +542,7 @@ public class CommandTable {
     public static List<String> getCompletionsForPrefix(String prefix) {
         init();
         String lower = prefix.toLowerCase();
-        ArrayList<String> list = new ArrayList<String>();
+        ArrayList<String> list = new ArrayList<>();
         for (Command command : map.values()) {
             if (command.getName().toLowerCase().startsWith(lower))
                 list.add(command.getName());
@@ -553,7 +553,7 @@ public class CommandTable {
     public static List<String> apropos(String s) {
         init();
         String lower = s.toLowerCase();
-        ArrayList<String> list = new ArrayList<String>();
+        ArrayList<String> list = new ArrayList<>();
         for (Command command : map.values()) {
             String name = command.getName();
             if (name.toLowerCase().contains(lower))

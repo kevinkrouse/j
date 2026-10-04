@@ -41,18 +41,22 @@ public class TextLine extends AbstractLine {
         text = s;
     }
 
+    @Override
     public final synchronized int flags() {
         return flags;
     }
 
+    @Override
     public final synchronized void setFlags(int flags) {
         this.flags = flags;
     }
 
+    @Override
     public final synchronized String getText() {
         return text != null ? text : "";
     }
 
+    @Override
     public final synchronized void setText(String s) {
         if (originalText == null)
             originalText = text;
@@ -62,22 +66,27 @@ public class TextLine extends AbstractLine {
         bits &= ~SAVED;
     }
 
+    @Override
     public final String getOriginalText() {
         return originalText;
     }
 
+    @Override
     public final void setOriginalText(String s) {
         originalText = s;
     }
 
+    @Override
     public final boolean isModified() {
         return originalText != null || isNew();
     }
 
+    @Override
     public final boolean isNew() {
         return (bits & NEW) == NEW;
     }
 
+    @Override
     public final void setNew(boolean b) {
         if (b)
             bits |= NEW;
@@ -85,10 +94,12 @@ public class TextLine extends AbstractLine {
             bits &= ~NEW;
     }
 
+    @Override
     public final boolean isSaved() {
         return (bits & SAVED) == SAVED;
     }
 
+    @Override
     public final void setSaved(boolean b) {
         if (b)
             bits |= SAVED;
@@ -96,35 +107,43 @@ public class TextLine extends AbstractLine {
             bits &= ~SAVED;
     }
 
+    @Override
     public final void unmodified() {
         originalText = null;
         bits &= (~SAVED & ~NEW);
     }
 
+    @Override
     public final char charAt(int i) {
         return getText().charAt(i);
     }
 
+    @Override
     public final String substring(int beginIndex) {
         return getText().substring(beginIndex);
     }
 
+    @Override
     public final String substring(int beginIndex, int endIndex) {
         return getText().substring(beginIndex, endIndex);
     }
 
+    @Override
     public final String trim() {
         return getText().trim();
     }
 
+    @Override
     public final int length() {
         return getText().length();
     }
 
+    @Override
     public final int getWidth() {
         return length() * Display.getCharWidth();
     }
 
+    @Override
     public final byte[] getBytes(String encoding) throws UnsupportedEncodingException {
         byte[] bytes = getText().getBytes(encoding);
         if (bytes.length >= 2) {
@@ -143,6 +162,7 @@ public class TextLine extends AbstractLine {
         return bytes;
     }
 
+    @Override
     public final boolean isBlank() {
         String s = getText();
 
@@ -154,6 +174,7 @@ public class TextLine extends AbstractLine {
     }
 
     // Copies text, original text, and bit flags only.
+    @Override
     public Line copy() {
         TextLine line = new TextLine(text);
         line.originalText = originalText;
@@ -162,9 +183,9 @@ public class TextLine extends AbstractLine {
     }
 
     // Copies text, original text, and bit flags only.
+    @Override
     public void copy(Line line) {
-        if (line instanceof TextLine) {
-            TextLine textLine = (TextLine) line;
+        if (line instanceof TextLine textLine) {
             text = textLine.text;
             originalText = textLine.originalText;
             bits = textLine.bits;

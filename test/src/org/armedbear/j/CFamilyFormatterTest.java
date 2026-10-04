@@ -11,12 +11,13 @@
 
 package org.armedbear.j;
 
+import static org.armedbear.j.Constants.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import org.junit.jupiter.api.Test;
 
 /** What JavaFormatter's parseBuffer leaves in each line's flags, for Java and C. */
-public class CFamilyFormatterTest implements Constants {
+public class CFamilyFormatterTest {
     private static int[] flags(int modeId, String text) {
         EditorHarness h = EditorHarness.create(text).mode(Editor.getModeList().getMode(modeId));
         try {

@@ -218,9 +218,9 @@ public final class Sentences {
 
         @Override
         public boolean equals(Object o) {
-            return o instanceof Scan
-                && ((Scan) o).line == line
-                && ((Scan) o).offset == offset;
+            return o instanceof Scan scan
+                && scan.line == line
+                && scan.offset == offset;
         }
 
         @Override

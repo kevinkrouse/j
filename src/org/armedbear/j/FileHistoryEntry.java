@@ -21,7 +21,6 @@
 package org.armedbear.j;
 
 import java.io.Serializable;
-import java.lang.StringBuilder;
 import java.util.Iterator;
 
 public final class FileHistoryEntry {

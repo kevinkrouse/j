@@ -20,7 +20,6 @@
 
 package org.armedbear.j;
 
-import java.lang.StringBuilder;
 import java.util.ArrayList;
 import java.util.List;
 import org.armedbear.j.util.Utilities;
@@ -31,7 +30,7 @@ public final class Completion {
     private boolean ignoreCase;
     private boolean cygnify;
 
-    private ArrayList<String> list = new ArrayList<String>();
+    private ArrayList<String> list = new ArrayList<>();
 
     public Completion(File dir, String input, String shellCommand) {
         if (Platform.isPlatformWindows()) {
@@ -176,6 +175,7 @@ public final class Completion {
         return s;
     }
 
+    @Override
     public String toString() {
         if (isUnique()) {
             String s = list.get(0);

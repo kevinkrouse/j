@@ -20,24 +20,25 @@
 
 package org.armedbear.j;
 
+import static org.armedbear.j.Constants.*;
+
 import java.awt.AWTEvent;
 import java.awt.event.MouseEvent;
-import java.lang.StringBuilder;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.armedbear.j.mode.dir.DirectoryBuffer;
 import org.armedbear.j.mode.java.JavaSource;
 import org.armedbear.j.util.Utilities;
 
-public final class GotoFile implements Constants {
+public final class GotoFile {
     public static void gotoFile() {
         final Editor editor = Editor.currentEditor();
 
         // If this method is invoked via a mouse event mapping, move dot to
         // location of mouse click first.
         AWTEvent event = editor.getDispatcher().getLastEvent();
-        if (event instanceof MouseEvent)
-            editor.mouseMoveDotToPoint((MouseEvent) event);
+        if (event instanceof MouseEvent mouseEvent)
+            editor.mouseMoveDotToPoint(mouseEvent);
 
         String filename = gotoFileGetFileName(editor);
         if (filename == null)

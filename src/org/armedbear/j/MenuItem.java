@@ -46,6 +46,7 @@ public final class MenuItem extends JMenuItem {
         this.acceleratorText = acceleratorText;
     }
 
+    @Override
     public Dimension getPreferredSize() {
         Dimension d = super.getPreferredSize();
         if (acceleratorText != null)
@@ -55,6 +56,7 @@ public final class MenuItem extends JMenuItem {
 
     // We paint our own menu items so the accelerator text will be consistent
     // with our key map format.
+    @Override
     public void paint(Graphics g) {
         Display.setRenderingHints(g);
         super.paint(g);

@@ -26,7 +26,6 @@ import java.awt.FontMetrics;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.print.Paper;
-import java.lang.StringBuilder;
 import java.util.Date;
 import org.armedbear.j.util.Utilities;
 

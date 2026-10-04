@@ -33,6 +33,7 @@ public class ErrorRunnable implements Runnable {
         message = s;
     }
 
+    @Override
     public void run() {
         for (Editor ed : Editor.getEditorList()) {
             ed.setDefaultCursor();

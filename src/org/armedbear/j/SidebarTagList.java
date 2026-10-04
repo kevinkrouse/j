@@ -20,6 +20,8 @@
 
 package org.armedbear.j;
 
+import static org.armedbear.j.Constants.*;
+
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.awt.event.MouseEvent;
@@ -32,8 +34,8 @@ import org.armedbear.j.Constants;
 import org.armedbear.j.util.Background;
 import org.armedbear.j.util.Keys;
 
-public class SidebarTagList extends SidebarList implements Constants,
-    NavigationComponent, KeyListener, MouseListener, MouseMotionListener {
+public class SidebarTagList extends SidebarList
+    implements NavigationComponent, KeyListener, MouseListener, MouseMotionListener {
     private Editor editor;
     private Buffer buffer;
     private List<LocalTag> tags;
@@ -62,11 +64,13 @@ public class SidebarTagList extends SidebarList implements Constants,
         this.buffer = buffer;
     }
 
+    @Override
     public final String getLabelText() {
         File file = editor.getBuffer().getFile();
         return file != null ? file.getName() : null;
     }
 
+    @Override
     public synchronized void refresh() {
         if (!SwingUtilities.isEventDispatchThread())
             Debug.bug("SidebarTagList.refresh() called from background thread!");
@@ -127,6 +131,7 @@ public class SidebarTagList extends SidebarList implements Constants,
 
     // Set the selection to the last tag before the position of the caret in
     // the current editor.
+    @Override
     public synchronized void updatePosition() {
         if (tags == null)
             return;
@@ -172,6 +177,7 @@ public class SidebarTagList extends SidebarList implements Constants,
         editor.setFocusToDisplay();
     }
 
+    @Override
     public synchronized String getToolTipText(MouseEvent e) {
         if (tags != null) {
             int index = locationToIndex(e.getPoint());
@@ -183,6 +189,7 @@ public class SidebarTagList extends SidebarList implements Constants,
         return null;
     }
 
+    @Override
     public void keyPressed(KeyEvent e) {
         int keyCode = e.getKeyCode();
         int modifiers = Keys.keyModifiers(e);
@@ -219,15 +226,18 @@ public class SidebarTagList extends SidebarList implements Constants,
         editor.getDispatcher().setEnabled(false);
     }
 
+    @Override
     public void keyReleased(KeyEvent e) {
         e.consume();
         editor.getDispatcher().setEnabled(true);
     }
 
+    @Override
     public void keyTyped(KeyEvent e) {
         e.consume();
     }
 
+    @Override
     public void mousePressed(MouseEvent e) {
         LocationBar.cancelInput();
         editor.ensureActive();
@@ -248,17 +258,22 @@ public class SidebarTagList extends SidebarList implements Constants,
             editor.setFocusToDisplay();
     }
 
+    @Override
     public void mouseReleased(MouseEvent e) {}
 
+    @Override
     public void mouseClicked(MouseEvent e) {}
 
+    @Override
     public void mouseMoved(MouseEvent e) {
         String text = getToolTipText(e);
         sidebar.getFrame().setStatusText(text != null ? text : "");
     }
 
+    @Override
     public void mouseEntered(MouseEvent e) {}
 
+    @Override
     public void mouseExited(MouseEvent e) {
         final Frame frame = sidebar.getFrame();
         final StatusBar statusBar = frame.getStatusBar();
@@ -275,5 +290,6 @@ public class SidebarTagList extends SidebarList implements Constants,
         }
     }
 
+    @Override
     public void mouseDragged(MouseEvent e) {}
 }

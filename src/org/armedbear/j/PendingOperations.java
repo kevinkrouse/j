@@ -29,7 +29,7 @@ public final class PendingOperations implements Runnable {
 
     public synchronized void add(Object object) {
         if (operations == null)
-            operations = new ArrayList<Object>();
+            operations = new ArrayList<>();
         operations.add(object);
     }
 
@@ -39,6 +39,7 @@ public final class PendingOperations implements Runnable {
             notify();
     }
 
+    @Override
     public synchronized void run() {
         if (operations != null && operations.size() > 0) {
             Editor.currentEditor().status("Completing pending operations...");

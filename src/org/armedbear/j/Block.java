@@ -116,7 +116,7 @@ public final class Block {
 
     /** The lines, first to last. */
     public List<Line> lines() {
-        final List<Line> lines = new ArrayList<Line>();
+        final List<Line> lines = new ArrayList<>();
         for (Line line = first; line != null; line = line.next()) {
             lines.add(line);
             if (line == last)
@@ -127,7 +127,7 @@ public final class Block {
 
     /** The text inside the block on each line, first to last. */
     public List<String> getLines() {
-        final List<String> texts = new ArrayList<String>();
+        final List<String> texts = new ArrayList<>();
         for (Line line : lines())
             texts.add(span(line).inside());
         return texts;

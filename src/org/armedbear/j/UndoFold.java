@@ -20,11 +20,12 @@
 
 package org.armedbear.j;
 
+import static org.armedbear.j.Constants.*;
+
 import javax.swing.undo.AbstractUndoableEdit;
 import javax.swing.undo.UndoableEdit;
 
-public final class UndoFold extends AbstractUndoableEdit
-    implements Constants, UndoableEdit {
+public final class UndoFold extends AbstractUndoableEdit implements UndoableEdit {
     private final State preState;
     private State postState;
 
@@ -32,6 +33,7 @@ public final class UndoFold extends AbstractUndoableEdit
         preState = new State(editor);
     }
 
+    @Override
     public void undo() {
         super.undo();
         final Editor editor = Editor.currentEditor();
@@ -40,6 +42,7 @@ public final class UndoFold extends AbstractUndoableEdit
         editor.setUpdateFlag(REFRAME);
     }
 
+    @Override
     public void redo() {
         super.redo();
         final Editor editor = Editor.currentEditor();

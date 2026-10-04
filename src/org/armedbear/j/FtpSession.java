@@ -20,6 +20,8 @@
 
 package org.armedbear.j;
 
+import static org.armedbear.j.Constants.*;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -27,7 +29,6 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.StringReader;
-import java.lang.StringBuilder;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -41,9 +42,9 @@ import javax.swing.Timer;
 import org.armedbear.j.mode.dir.DirectoryEntry;
 import org.armedbear.j.util.Background;
 
-public class FtpSession implements Constants, RemoteSession {
+public class FtpSession implements RemoteSession {
     private static final boolean echo = true;
-    private static final ArrayList<FtpSession> sessionList = new ArrayList<FtpSession>();
+    private static final ArrayList<FtpSession> sessionList = new ArrayList<>();
 
     private static Timer cleanupTimer;
 
@@ -95,18 +96,22 @@ public class FtpSession implements Constants, RemoteSession {
         return new FtpSession(host, port, user, password, usePassiveMode);
     }
 
+    @Override
     public final String getHostName() {
         return host;
     }
 
+    @Override
     public String getUserName() {
         return user;
     }
 
+    @Override
     public String getPassword() {
         return password;
     }
 
+    @Override
     public int getPort() {
         return port;
     }
@@ -115,6 +120,7 @@ public class FtpSession implements Constants, RemoteSession {
         return errorText;
     }
 
+    @Override
     public final String getLoginDirectory() {
         return loginDirectory;
     }
@@ -123,6 +129,7 @@ public class FtpSession implements Constants, RemoteSession {
         this.progressNotifier = progressNotifier;
     }
 
+    @Override
     public final boolean isLocked() {
         return locked;
     }
@@ -134,6 +141,7 @@ public class FtpSession implements Constants, RemoteSession {
         return true;
     }
 
+    @Override
     public synchronized void unlock() {
         if (locked) {
             progressNotifier = null;
@@ -163,6 +171,7 @@ public class FtpSession implements Constants, RemoteSession {
         return false;
     }
 
+    @Override
     public boolean isDirectory(String remotePath) {
         if (changeDirectory(remotePath))
             return true;
@@ -170,6 +179,7 @@ public class FtpSession implements Constants, RemoteSession {
         return false;
     }
 
+    @Override
     public boolean isFile(String remotePath) {
         command("SIZE " + remotePath);
         String s = getReplyString();
@@ -188,6 +198,7 @@ public class FtpSession implements Constants, RemoteSession {
         return false;
     }
 
+    @Override
     public boolean exists(String remotePath) {
         return isDirectory(remotePath) || isFile(remotePath);
     }
@@ -218,6 +229,7 @@ public class FtpSession implements Constants, RemoteSession {
         return getReply() == 250;
     }
 
+    @Override
     public boolean chmod(File file, int permissions) {
         Debug.bugIfNot(file instanceof FtpFile);
         if (permissions != 0) {
@@ -312,6 +324,7 @@ public class FtpSession implements Constants, RemoteSession {
         return status;
     }
 
+    @Override
     public String retrieveDirectoryListing(File file) {
         if (!(file instanceof FtpFile)) {
             Debug.bug();
@@ -600,6 +613,7 @@ public class FtpSession implements Constants, RemoteSession {
             return ERROR;
     }
 
+    @Override
     public synchronized boolean isConnected() {
         return connected;
     }
@@ -618,6 +632,7 @@ public class FtpSession implements Constants, RemoteSession {
         return connected;
     }
 
+    @Override
     public synchronized boolean connect() {
         if (progressNotifier != null)
             progressNotifier.setText("Connecting to " + host);
@@ -1138,6 +1153,7 @@ public class FtpSession implements Constants, RemoteSession {
     // Make sure the login is complete. Get the user to enter the username
     // and/or password if missing. Don't look in .netrc or preferences; we may
     // be here because the information in .netrc or preferences didn't work.
+    @Override
     public boolean checkLogin() {
         final Editor editor = Editor.currentEditor();
         if (user == null) {

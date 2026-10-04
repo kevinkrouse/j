@@ -20,6 +20,8 @@
 
 package org.armedbear.j;
 
+import static org.armedbear.j.Constants.*;
+
 import java.awt.Color;
 import java.awt.Font;
 import java.awt.FontMetrics;
@@ -50,8 +52,7 @@ import org.armedbear.j.mode.image.ImageBuffer;
 import org.armedbear.j.mode.image.ImageLine;
 import org.armedbear.j.util.Utilities;
 
-public final class Display extends JComponent implements Constants,
-    ActionListener, FocusListener {
+public final class Display extends JComponent implements ActionListener, FocusListener {
     private static final int MAX_LINE_NUMBER_CHARS = 6;
 
     private static final Preferences preferences = Editor.preferences();
@@ -82,7 +83,7 @@ public final class Display extends JComponent implements Constants,
     private static Font gutterFont;
     private static int gutterCharWidth;
 
-    private final HashMap<Line, Line> changedLines = new HashMap<Line, Line>();
+    private final HashMap<Line, Line> changedLines = new HashMap<>();
 
     private final Editor editor;
 
@@ -848,7 +849,7 @@ public final class Display extends JComponent implements Constants,
         final Line[] lines = block == null
             ? new Line[] { dotLine }
             : new Line[] { dotLine, block[0], block[1] };
-        final java.util.Set<Line> toPaint = new java.util.LinkedHashSet<Line>();
+        final java.util.Set<Line> toPaint = new java.util.LinkedHashSet<>();
         java.util.Collections.addAll(toPaint, revealedLines);
         java.util.Collections.addAll(toPaint, lines);
         for (Line line : toPaint) {
@@ -1026,15 +1027,18 @@ public final class Display extends JComponent implements Constants,
     }
 
     // Timer event handler.
+    @Override
     public void actionPerformed(ActionEvent e) {
         blinkCaret();
     }
 
+    @Override
     public synchronized void focusGained(FocusEvent e) {
         if (timer != null)
             timer.start();
     }
 
+    @Override
     public synchronized void focusLost(FocusEvent e) {
         if (timer != null)
             timer.stop();
@@ -1317,8 +1321,8 @@ public final class Display extends JComponent implements Constants,
     }
 
     private final void paintLine(Line line, Graphics2D g2d, int y) {
-        if (line instanceof ImageLine)
-            paintImageLine((ImageLine) line, g2d, y);
+        if (line instanceof ImageLine imageLine)
+            paintImageLine(imageLine, g2d, y);
         else
             paintTextLine(line, g2d, y);
     }
@@ -1724,6 +1728,7 @@ public final class Display extends JComponent implements Constants,
         return (int) totalWidth;
     }
 
+    @Override
     public void paintComponent(Graphics g) {
         final Buffer buffer = editor.getBuffer();
         if (!Editor.displayReady()) {
@@ -2857,6 +2862,7 @@ public final class Display extends JComponent implements Constants,
         return 0; // Shouldn't happen.
     }
 
+    @Override
     public boolean isOpaque() {
         return true;
     }
@@ -2885,9 +2891,9 @@ public final class Display extends JComponent implements Constants,
         try {
             Object hints = Toolkit.getDefaultToolkit()
                 .getDesktopProperty("awt.font.desktophints");
-            if (hints instanceof Map) {
+            if (hints instanceof Map<?, ?> map) {
                 Object value =
-                    ((Map) hints).get(RenderingHints.KEY_TEXT_ANTIALIASING);
+                    map.get(RenderingHints.KEY_TEXT_ANTIALIASING);
                 // A desktop with antialiasing switched off still leaves j's
                 // own antialias preference in charge, so ignore OFF here.
                 if (
@@ -2935,6 +2941,7 @@ public final class Display extends JComponent implements Constants,
         );
     }
 
+    @Override
     public String getToolTipText(MouseEvent e) {
         return editor.getMode().getToolTipText(editor, e);
     }

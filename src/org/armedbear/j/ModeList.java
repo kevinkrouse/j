@@ -20,6 +20,8 @@
 
 package org.armedbear.j;
 
+import static org.armedbear.j.Constants.*;
+
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -28,7 +30,7 @@ import org.armedbear.j.extension.ModeDescriptor;
 import org.armedbear.j.extension.ModeProvider;
 
 /** Every mode j knows: core's, then any an extension provides. */
-public final class ModeList implements Constants, Iterable<ModeListEntry> {
+public final class ModeList implements Iterable<ModeListEntry> {
     // Ids for modes that don't have a Constants id start here.
     private static final int FIRST_ASSIGNED_ID = 1000;
 
@@ -40,7 +42,7 @@ public final class ModeList implements Constants, Iterable<ModeListEntry> {
         return modeList;
     }
 
-    private final ArrayList<ModeListEntry> list = new ArrayList<ModeListEntry>();
+    private final ArrayList<ModeListEntry> list = new ArrayList<>();
     private int nextId = FIRST_ASSIGNED_ID;
 
     private ModeList() {
@@ -133,6 +135,7 @@ public final class ModeList implements Constants, Iterable<ModeListEntry> {
     }
 
     /** A snapshot, so a mode may be registered while a caller iterates. */
+    @Override
     public synchronized Iterator<ModeListEntry> iterator() {
         return List.copyOf(list).iterator();
     }

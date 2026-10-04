@@ -20,13 +20,15 @@
 
 package org.armedbear.j;
 
+import static org.armedbear.j.Constants.*;
+
 import javax.swing.BorderFactory;
 import javax.swing.BoxLayout;
 import javax.swing.JComponent;
 import javax.swing.JScrollPane;
 import javax.swing.SwingUtilities;
 
-public final class Sidebar extends JComponent implements Constants {
+public final class Sidebar extends JComponent {
     private final Frame frame;
     private final SplitPane splitPane;
     private final SidebarPanel topPanel;

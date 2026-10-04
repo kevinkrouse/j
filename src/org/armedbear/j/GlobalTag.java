@@ -20,7 +20,6 @@
 
 package org.armedbear.j;
 
-import java.lang.StringBuilder;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -81,6 +80,7 @@ public final class GlobalTag extends Tag {
         return new GlobalTag(name, signature, filename, canonicalSignature);
     }
 
+    @Override
     public String getClassName() {
         // Java.
         int index = name.indexOf('.');
@@ -94,6 +94,7 @@ public final class GlobalTag extends Tag {
         return null;
     }
 
+    @Override
     public String getMethodName() {
         // Java
         int index = name.indexOf('.');
@@ -106,6 +107,7 @@ public final class GlobalTag extends Tag {
         return name;
     }
 
+    @Override
     public String getLongName() {
         String s = signature.trim();
         if (s.startsWith("DEFUN")) {
@@ -193,6 +195,7 @@ public final class GlobalTag extends Tag {
         return s;
     }
 
+    @Override
     public String toString() {
         // JavaScript.
         if (signature.trim().startsWith("function "))
@@ -201,6 +204,7 @@ public final class GlobalTag extends Tag {
             return super.toString();
     }
 
+    @Override
     public void gotoTag(Editor editor) {
         editor.setWaitCursor();
         Buffer buf = Editor.getBuffer(File.getInstance(filename));

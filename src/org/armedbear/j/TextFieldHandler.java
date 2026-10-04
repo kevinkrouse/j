@@ -41,9 +41,12 @@ public interface TextFieldHandler extends KeyListener {
 
     public Expansion getExpansion(String prefix);
 
+    @Override
     public void keyPressed(KeyEvent e);
 
+    @Override
     public void keyReleased(KeyEvent e);
 
+    @Override
     public void keyTyped(KeyEvent e);
 }

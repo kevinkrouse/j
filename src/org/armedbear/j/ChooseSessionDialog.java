@@ -35,6 +35,7 @@ public final class ChooseSessionDialog extends InputDialog {
         editor.centerDialog(this);
     }
 
+    @Override
     protected List<String> getCompletions(String prefix) {
         ArrayList<String> list = null;
         if (prefix != null) {
@@ -45,7 +46,7 @@ public final class ChooseSessionDialog extends InputDialog {
                 for (String name : names) {
                     if (name.regionMatches(true, 0, prefix, 0, prefixLength)) {
                         if (list == null)
-                            list = new ArrayList<String>();
+                            list = new ArrayList<>();
                         list.add(name);
                     }
                 }

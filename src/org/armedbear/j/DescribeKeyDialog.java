@@ -21,7 +21,6 @@
 package org.armedbear.j;
 
 import java.awt.event.KeyEvent;
-import java.lang.StringBuilder;
 import javax.swing.JLabel;
 import javax.swing.JTextField;
 import javax.swing.SwingUtilities;
@@ -57,6 +56,7 @@ public final class DescribeKeyDialog extends AbstractDialog {
         textField.requestFocus();
     }
 
+    @Override
     public void keyPressed(KeyEvent e) {
         final int keycode = e.getKeyCode();
         // Ignore modifier keystrokes.
@@ -84,6 +84,7 @@ public final class DescribeKeyDialog extends AbstractDialog {
             report(command);
     }
 
+    @Override
     public void keyTyped(KeyEvent e) {
         if (!eventHandled) {
             final char c = e.getKeyChar();
@@ -108,6 +109,7 @@ public final class DescribeKeyDialog extends AbstractDialog {
         }
     }
 
+    @Override
     public void keyReleased(KeyEvent e) {
         final int keycode = e.getKeyCode();
         if (
@@ -170,11 +172,11 @@ public final class DescribeKeyDialog extends AbstractDialog {
             return null;
         eventHandled = true;
         Object command = mapping.getCommand();
-        if (command instanceof KeyMap) {
+        if (command instanceof KeyMap keyMap) {
             if (currentEventSequence == null)
                 currentEventSequence = new EventSequence();
             currentEventSequence.addEvent(event);
-            requestedKeyMap = (KeyMap) command;
+            requestedKeyMap = keyMap;
             return null;
         }
         return command;
@@ -204,6 +206,7 @@ public final class DescribeKeyDialog extends AbstractDialog {
         SwingUtilities.invokeLater(r);
     }
 
+    @Override
     public void dispose() {
         disposed = true;
         super.dispose();

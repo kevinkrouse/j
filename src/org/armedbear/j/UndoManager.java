@@ -24,6 +24,7 @@ import javax.swing.undo.CompoundEdit;
 import javax.swing.undo.UndoableEdit;
 
 public final class UndoManager extends javax.swing.undo.UndoManager {
+    @Override
     public synchronized void undo() {
         UndoableEdit edit = editToBeUndone();
         super.undo();
@@ -31,6 +32,7 @@ public final class UndoManager extends javax.swing.undo.UndoManager {
             super.undo();
     }
 
+    @Override
     public synchronized void redo() {
         UndoableEdit edit = editToBeRedone();
         super.redo();

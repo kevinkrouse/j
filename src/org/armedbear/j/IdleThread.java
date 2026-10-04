@@ -25,7 +25,7 @@ import java.util.List;
 import javax.swing.SwingUtilities;
 
 public class IdleThread extends Thread {
-    private List<IdleThreadTask> tasks = new ArrayList<IdleThreadTask>();
+    private List<IdleThreadTask> tasks = new ArrayList<>();
 
     private static IdleThread idleThread;
 
@@ -100,6 +100,7 @@ public class IdleThread extends Thread {
         tasks.remove(task);
     }
 
+    @Override
     public void run() {
         while (true) {
             try {
@@ -188,6 +189,7 @@ public class IdleThread extends Thread {
     private Runnable saveStateRunnable = new Runnable() {
         private long lastRun = 0;
 
+        @Override
         public void run() {
             Debug.assertTrue(SwingUtilities.isEventDispatchThread());
             if (Dispatcher.getLastEventMillis() > lastRun) {
@@ -214,6 +216,7 @@ public class IdleThread extends Thread {
         Runnable listThreadsRunnable = new Runnable() {
             private long lastRun = 0;
 
+            @Override
             public void run() {
                 int minutes = Editor.preferences()
                     .getIntegerProperty(

@@ -350,7 +350,7 @@ public final class Preferences {
 
     public synchronized void addPreferencesChangeListener(PreferencesChangeListener listener) {
         if (listeners == null)
-            listeners = new ArrayList<PreferencesChangeListener>();
+            listeners = new ArrayList<>();
         listeners.add(listener);
     }
 

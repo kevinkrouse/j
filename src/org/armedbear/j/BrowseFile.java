@@ -20,6 +20,8 @@
 
 package org.armedbear.j;
 
+import static org.armedbear.j.Constants.*;
+
 import java.awt.Desktop;
 import java.io.IOException;
 import java.net.URI;
@@ -31,7 +33,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.armedbear.j.mode.web.WebBuffer;
 
-public final class BrowseFile implements Constants {
+public final class BrowseFile {
     public static void browseFileAtDot() {
         final Editor editor = Editor.currentEditor();
         String filename = browseFileGetFilename(editor);
@@ -71,7 +73,7 @@ public final class BrowseFile implements Constants {
                 return;
             }
             if (browser != null) {
-                final List<String> command = new ArrayList<String>();
+                final List<String> command = new ArrayList<>();
                 command.add(browser);
                 final String opts = prefs.getStringProperty(Property.BROWSER_OPTS);
                 if (opts != null && !opts.trim().isEmpty())

@@ -373,7 +373,7 @@ public final class ClipboardCommands {
             return;
         }
         AWTEvent e = editor.getDispatcher().getLastEvent();
-        if (!(e instanceof MouseEvent))
+        if (!(e instanceof MouseEvent mouseEvent))
             return;
         CompoundEdit compoundEdit = editor.beginCompoundEdit();
         if (editor.getMark() != null) {
@@ -383,7 +383,7 @@ public final class ClipboardCommands {
             editor.addUndo(SimpleEdit.MOVE);
             editor.setMark(null);
         }
-        editor.mouseMoveDotToPoint((MouseEvent) e);
+        editor.mouseMoveDotToPoint(mouseEvent);
         paste(editor);
         editor.endCompoundEdit(compoundEdit);
     }

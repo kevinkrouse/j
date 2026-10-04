@@ -119,21 +119,21 @@ public final class SearchCommands {
                 editor.recordJump();
                 editor.moveDotTo(pos);
                 markFoundPattern(editor, search);
-                if (search instanceof FindInFiles) {
+                if (search instanceof FindInFiles findInFiles) {
                     if (editor.getBuffer().getFile() != null) {
                         ListOccurrencesInFilesBuffer buf =
-                            ((FindInFiles) search).getOutputBuffer();
+                            findInFiles.getOutputBuffer();
                         if (buf != null)
                             buf.follow(editor.getBuffer().getFile(), editor.getDotLine());
                     }
                 }
                 return;
             }
-            if (search instanceof FindInFiles) {
+            if (search instanceof FindInFiles findInFiles) {
                 Editor ed = editor.getOtherEditor();
                 if (ed != null) {
                     ListOccurrencesInFilesBuffer buf =
-                        ((FindInFiles) search).getOutputBuffer();
+                        findInFiles.getOutputBuffer();
                     if (ed.getBuffer() == buf) {
                         buf.findNextOccurrence(ed);
                         return;
@@ -163,21 +163,21 @@ public final class SearchCommands {
                 editor.recordJump();
                 editor.moveDotTo(pos);
                 markFoundPattern(editor, search);
-                if (search instanceof FindInFiles) {
+                if (search instanceof FindInFiles findInFiles) {
                     if (editor.getBuffer().getFile() != null) {
                         ListOccurrencesInFilesBuffer buf =
-                            ((FindInFiles) search).getOutputBuffer();
+                            findInFiles.getOutputBuffer();
                         if (buf != null)
                             buf.follow(editor.getBuffer().getFile(), editor.getDotLine());
                     }
                 }
                 return;
             }
-            if (search instanceof FindInFiles) {
+            if (search instanceof FindInFiles findInFiles) {
                 Editor ed = editor.getOtherEditor();
                 if (ed != null) {
                     ListOccurrencesInFilesBuffer buf =
-                        ((FindInFiles) search).getOutputBuffer();
+                        findInFiles.getOutputBuffer();
                     if (ed.getBuffer() == buf) {
                         buf.findPreviousOccurrence(ed);
                         return;

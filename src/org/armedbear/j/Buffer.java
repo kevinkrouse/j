@@ -20,6 +20,8 @@
 
 package org.armedbear.j;
 
+import static org.armedbear.j.Constants.*;
+
 import java.awt.Cursor;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
@@ -28,7 +30,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
-import java.lang.StringBuilder;
 import java.lang.ref.SoftReference;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -239,11 +240,11 @@ public class Buffer extends SystemBuffer {
     }
 
     public static Buffer createBuffer(File file) {
-        if (file instanceof FtpFile) {
-            FtpSession session = FtpSession.getSession((FtpFile) file);
+        if (file instanceof FtpFile ftpFile) {
+            FtpSession session = FtpSession.getSession(ftpFile);
             if (session == null)
                 return null;
-            return new RemoteBuffer((FtpFile) file, session);
+            return new RemoteBuffer(ftpFile, session);
         }
         if (file instanceof HttpFile) {
             if (Editor.getModeList().modeAccepts(IMAGE_MODE, file.getName()))
@@ -256,8 +257,7 @@ public class Buffer extends SystemBuffer {
             }
             return new RemoteBuffer(file);
         }
-        if (file instanceof SshFile) {
-            SshFile sshFile = (SshFile) file;
+        if (file instanceof SshFile sshFile) {
             RemoteSession session = SshSession.getSession(sshFile);
             if (session == null)
                 return null;
@@ -969,6 +969,7 @@ public class Buffer extends SystemBuffer {
         renumberOriginal();
     }
 
+    @Override
     public int load() {
         if (!isLoaded()) {
             try {
@@ -1121,6 +1122,7 @@ public class Buffer extends SystemBuffer {
             reloadSucceeded();
         };
         ErrorRunnable errorRunnable = new ErrorRunnable("Reload failed") {
+            @Override
             public void run() {
                 setBusy(false);
                 setDefaultCursor();
@@ -1154,6 +1156,7 @@ public class Buffer extends SystemBuffer {
             reloadSucceeded();
         };
         ErrorRunnable errorRunnable = new ErrorRunnable("Reload failed") {
+            @Override
             public void run() {
                 setBusy(false);
                 setDefaultCursor();
@@ -1319,8 +1322,8 @@ public class Buffer extends SystemBuffer {
                 succeeded = saveLocal(file);
             if (file instanceof FtpFile)
                 succeeded = saveFtp();
-            if (file instanceof SshFile)
-                succeeded = saveSsh((SshFile) file);
+            if (file instanceof SshFile sshFile)
+                succeeded = saveSsh(sshFile);
         }
         if (succeeded)
             Extensions.hooks().afterSave(this);
@@ -1611,8 +1614,8 @@ public class Buffer extends SystemBuffer {
             destination.setEncoding(file.getEncoding());
         if (destination.isLocal())
             saveAsLocal(destination);
-        else if (destination instanceof FtpFile)
-            saveAsFtp((FtpFile) destination);
+        else if (destination instanceof FtpFile ftpFile)
+            saveAsFtp(ftpFile);
         else
             MessageDialog.showMessageDialog("Invalid destination", "Save As");
     }
@@ -1738,8 +1741,8 @@ public class Buffer extends SystemBuffer {
     public void saveCopy(File destination) {
         if (destination.isLocal())
             saveCopyLocal(destination);
-        else if (destination instanceof FtpFile)
-            saveCopyFtp((FtpFile) destination);
+        else if (destination instanceof FtpFile ftpFile)
+            saveCopyFtp(ftpFile);
         else
             MessageDialog.showMessageDialog("Invalid destination", "Save Copy");
     }
@@ -1944,6 +1947,7 @@ public class Buffer extends SystemBuffer {
             autosaveFile.delete();
     }
 
+    @Override
     public void setFirstLine(Line line) {
         if (!isWriteLocked()) {
             Log.error("----- setFirstLine() called without write lock -----");
@@ -2398,6 +2402,7 @@ public class Buffer extends SystemBuffer {
     }
 
     // For the buffer list.
+    @Override
     public String toString() {
         if (title != null)
             return title;
@@ -2511,6 +2516,7 @@ public class Buffer extends SystemBuffer {
 
     private boolean folded;
 
+    @Override
     public final void renumber() {
         folded = false;
         lineCount = 0;
@@ -2698,7 +2704,7 @@ public class Buffer extends SystemBuffer {
             }
         }
         final String text = sb.toString();
-        srText = new SoftReference<String>(text);
+        srText = new SoftReference<>(text);
         return text;
     }
 
@@ -2793,8 +2799,8 @@ public class Buffer extends SystemBuffer {
 
     public String getStringProperty(Property property) {
         Object value = properties.getProperty(property);
-        if (value instanceof String)
-            return (String) value;
+        if (value instanceof String string)
+            return string;
         if (mode != null)
             return mode.getStringProperty(property);
         return (String) property.getDefaultValue();
@@ -2804,8 +2810,8 @@ public class Buffer extends SystemBuffer {
         if (!property.isIntegerProperty())
             Debug.bug();
         Object value = properties.getProperty(property);
-        if (value instanceof Integer)
-            return ((Integer) value).intValue();
+        if (value instanceof Integer i)
+            return i.intValue();
         if (mode != null)
             return mode.getIntegerProperty(property);
         return ((Integer) property.getDefaultValue()).intValue();
@@ -2962,7 +2968,7 @@ public class Buffer extends SystemBuffer {
      * it is fine for a small buffer list.
      */
     public static void checkVCSForAllBuffers(final Runnable whenDone) {
-        final List<Buffer> pending = new ArrayList<Buffer>();
+        final List<Buffer> pending = new ArrayList<>();
         for (Buffer buf : Editor.getBufferList()) {
             if (
                 buf != null

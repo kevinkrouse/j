@@ -36,8 +36,9 @@ public final class RegexTagger extends Tagger {
         this.patterns = List.of(patterns);
     }
 
+    @Override
     public void run() {
-        List<LocalTag> tags = new ArrayList<LocalTag>();
+        List<LocalTag> tags = new ArrayList<>();
         for (Line line = buffer.getFirstLine(); line != null; line = line.next()) {
             String s = line.trim();
             for (Pattern pattern : patterns) {

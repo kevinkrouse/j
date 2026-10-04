@@ -20,10 +20,11 @@
 
 package org.armedbear.j;
 
-import java.lang.StringBuilder;
+import static org.armedbear.j.Constants.*;
+
 import java.util.List;
 
-public final class Region implements Constants {
+public final class Region {
     private final Buffer buffer;
     private final Position begin;
     private final Line beginLine;
@@ -149,6 +150,7 @@ public final class Region implements Constants {
 
     // A column region's text is its block's: a line for each line, joined by
     // newlines.
+    @Override
     public String toString() {
         if (isColumnRegion)
             return toBlock().getText();

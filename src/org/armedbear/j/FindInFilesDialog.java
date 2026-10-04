@@ -20,6 +20,8 @@
 
 package org.armedbear.j;
 
+import static org.armedbear.j.Constants.*;
+
 import java.awt.Dimension;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -38,8 +40,7 @@ import javax.swing.JPanel;
 import org.armedbear.j.mode.dir.DirectoryBuffer;
 import org.armedbear.j.util.Utilities;
 
-public class FindInFilesDialog extends AbstractDialog implements Constants,
-    ActionListener, FocusListener, TextListener {
+public class FindInFilesDialog extends AbstractDialog implements ActionListener, FocusListener, TextListener {
     private static final String patternKey = "find.pattern";
     private static final String replacementKey = "replace.replacement";
     private static final String filesKey = "findInFiles.files";
@@ -226,7 +227,7 @@ public class FindInFilesDialog extends AbstractDialog implements Constants,
     private ModeListEntry[] getPermissibleModes() {
         if (permissibleModes == null) {
             ModeList modeList = Editor.getModeList();
-            ArrayList<ModeListEntry> list = new ArrayList<ModeListEntry>();
+            ArrayList<ModeListEntry> list = new ArrayList<>();
             synchronized (modeList) {
                 for (ModeListEntry entry : modeList) {
                     if (entry.isSelectable() && entry.getId() != BINARY_MODE)
@@ -243,6 +244,7 @@ public class FindInFilesDialog extends AbstractDialog implements Constants,
         return findInFiles;
     }
 
+    @Override
     protected void ok() {
         findInFiles = new FindInFiles(editor);
 
@@ -344,10 +346,12 @@ public class FindInFilesDialog extends AbstractDialog implements Constants,
         dispose();
     }
 
+    @Override
     public void textValueChanged(TextEvent e) {
         setIgnoreCaseDefault();
     }
 
+    @Override
     public void actionPerformed(ActionEvent e) {
         String cmd = e.getActionCommand();
         if (cmd != null && cmd.equals(wholeWordsOnlyCheckBox.getText()))
@@ -356,8 +360,10 @@ public class FindInFilesDialog extends AbstractDialog implements Constants,
             super.actionPerformed(e);
     }
 
+    @Override
     public void focusGained(FocusEvent e) {}
 
+    @Override
     public void focusLost(FocusEvent e) {
         if (e.getComponent() == filesControl)
             updateModeControl();

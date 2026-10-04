@@ -22,7 +22,6 @@ package org.armedbear.j;
 
 import java.io.IOException;
 import java.io.OutputStream;
-import java.lang.StringBuilder;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import javax.swing.undo.CompoundEdit;

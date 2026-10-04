@@ -115,7 +115,7 @@ public final class Cache {
     }
 
     private List<Tuple2<String, String>> loadCatalog() {
-        List<Tuple2<String, String>> v = new ArrayList<Tuple2<String, String>>();
+        List<Tuple2<String, String>> v = new ArrayList<>();
         if (catalogFile.exists()) {
             try (BufferedReader reader = new BufferedReader(
                 new InputStreamReader(catalogFile.getInputStream(), StandardCharsets.UTF_8)

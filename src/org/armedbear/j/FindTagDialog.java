@@ -31,6 +31,7 @@ public final class FindTagDialog extends InputDialog {
         handler = new FindTagTextFieldHandler(editor, textField);
     }
 
+    @Override
     protected List<String> getCompletions(String prefix) {
         return handler.getCompletions(prefix);
     }

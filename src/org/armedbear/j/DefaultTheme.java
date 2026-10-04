@@ -121,7 +121,7 @@ public final class DefaultTheme {
 
     /** The names of the shared styles, for listStyles. */
     public static List<String> getSharedStyleNames() {
-        final Set<String> names = new LinkedHashSet<String>();
+        final Set<String> names = new LinkedHashSet<>();
         for (Object[] entry : SHARED_COLORS)
             names.add((String) entry[0]);
         for (Object[] entry : SHARED_STYLES)
@@ -129,7 +129,7 @@ public final class DefaultTheme {
         for (String[] link : LINKS)
             if (link[0] == null)
                 names.add(link[1]);
-        return new ArrayList<String>(names);
+        return new ArrayList<>(names);
     }
 
     /**

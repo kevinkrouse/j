@@ -20,11 +20,13 @@
 
 package org.armedbear.j;
 
+import static org.armedbear.j.Constants.*;
+
 import java.awt.event.ActionEvent;
 import java.awt.event.KeyEvent;
 import javax.swing.JPanel;
 
-public class ConfirmDialog extends MessageDialog implements Constants {
+public class ConfirmDialog extends MessageDialog {
     private StandardButton yesButton;
     private StandardButton noButton;
     private StandardButton yesToAllButton;
@@ -90,11 +92,13 @@ public class ConfirmDialog extends MessageDialog implements Constants {
         return d.result;
     }
 
+    @Override
     protected void initialize(String text, String title) {
         super.initialize(text, title);
         yesButton.requestFocus();
     }
 
+    @Override
     protected void addButtons() {
         JPanel buttonPanel = new JPanel();
         buttonPanel.setAlignmentX(LEFT_ALIGNMENT);
@@ -144,11 +148,13 @@ public class ConfirmDialog extends MessageDialog implements Constants {
         dispose();
     }
 
+    @Override
     protected void cancel() {
         result = RESPONSE_CANCEL;
         dispose();
     }
 
+    @Override
     public void actionPerformed(ActionEvent e) {
         if (e.getActionCommand().equals("Yes"))
             yes();
@@ -160,6 +166,7 @@ public class ConfirmDialog extends MessageDialog implements Constants {
             cancel();
     }
 
+    @Override
     public void keyPressed(KeyEvent e) {
         int keyCode = e.getKeyCode();
         if (confirmAll) {

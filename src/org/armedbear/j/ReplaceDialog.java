@@ -20,20 +20,20 @@
 
 package org.armedbear.j;
 
+import static org.armedbear.j.Constants.*;
+
 import java.awt.Dimension;
 import java.awt.Point;
 import java.awt.event.ActionEvent;
 import java.awt.event.TextEvent;
 import java.awt.event.TextListener;
-import java.lang.StringBuilder;
 import java.util.regex.PatternSyntaxException;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.JPanel;
 import javax.swing.undo.CompoundEdit;
 
-public final class ReplaceDialog extends AbstractDialog implements Constants,
-    TextListener {
+public final class ReplaceDialog extends AbstractDialog implements TextListener {
     private static final String FIND_PATTERN = "find.pattern";
     private static final String REPLACE_REPLACEMENT = "replace.replacement";
     private static final String REPLACE_IGNORE_CASE = "replace.ignoreCase";
@@ -171,10 +171,12 @@ public final class ReplaceDialog extends AbstractDialog implements Constants,
         return replacement;
     }
 
+    @Override
     public void textValueChanged(TextEvent e) {
         setRestrictToSelectionDefault();
     }
 
+    @Override
     public void actionPerformed(ActionEvent e) {
         final String cmd = e.getActionCommand();
         if (cmd != null && cmd.equals(regularExpressionCheckBox.getText())) {
@@ -222,6 +224,7 @@ public final class ReplaceDialog extends AbstractDialog implements Constants,
         restrictToSelectionCheckBox.setSelected(checked);
     }
 
+    @Override
     protected void ok() {
         replacement.setPattern(patternControl.getText());
         if (replacement.getPatternLength() == 0) {
@@ -288,6 +291,7 @@ public final class ReplaceDialog extends AbstractDialog implements Constants,
         dispose();
     }
 
+    @Override
     protected void cancel() {
         replacement = null;
         dispose();

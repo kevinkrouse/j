@@ -43,6 +43,7 @@ public final class DirectoryCacheEntry {
         return when;
     }
 
+    @Override
     public final String toString() {
         return "DirectoryCacheEntry for " + file;
     }

@@ -87,7 +87,7 @@ public final class Netrc {
             String host = null;
             String user = null;
             String password = null;
-            logins = new ArrayList<Login>();
+            logins = new ArrayList<>();
             while (st.hasMoreTokens()) {
                 String token = st.nextToken();
                 if (token.equals("machine")) {

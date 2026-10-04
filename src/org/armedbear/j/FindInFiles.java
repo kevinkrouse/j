@@ -20,11 +20,12 @@
 
 package org.armedbear.j;
 
+import static org.armedbear.j.Constants.*;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.lang.StringBuilder;
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.ArrayList;
@@ -41,8 +42,7 @@ import org.armedbear.j.util.Background;
 import org.armedbear.j.vcs.VcsBackend;
 import org.armedbear.j.vcs.VcsBackends;
 
-public final class FindInFiles extends Replacement implements Constants,
-    BackgroundProcess {
+public final class FindInFiles extends Replacement implements BackgroundProcess {
     private static FindInFiles findInFiles;
 
     public static final FindInFiles getFindInFiles() {
@@ -60,7 +60,7 @@ public final class FindInFiles extends Replacement implements Constants,
 
     private Mode mode;
 
-    private List<File> results = new ArrayList<File>();
+    private List<File> results = new ArrayList<>();
 
     private volatile boolean cancelled;
 
@@ -162,7 +162,7 @@ public final class FindInFiles extends Replacement implements Constants,
         // No files given: every file in the current directory.
         if (files.trim().length() == 0)
             files = "*";
-        ArrayList<Filter> list = new ArrayList<Filter>();
+        ArrayList<Filter> list = new ArrayList<>();
         StringTokenizer st = new StringTokenizer(files, ";");
         // We start in the editor's current directory.
         File currentDir = getEditor().getCurrentDirectory();
@@ -199,6 +199,7 @@ public final class FindInFiles extends Replacement implements Constants,
         filters = list;
     }
 
+    @Override
     public final void run() {
         Debug.assertTrue(outputBuffer != null);
         outputBuffer.setBusy(true);
@@ -285,6 +286,7 @@ public final class FindInFiles extends Replacement implements Constants,
         SwingUtilities.invokeLater(updateDisplayRunnable);
     }
 
+    @Override
     public final void cancel() {
         cancelled = true;
     }

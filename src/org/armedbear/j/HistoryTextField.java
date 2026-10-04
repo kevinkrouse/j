@@ -28,7 +28,6 @@ import java.awt.event.FocusListener;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.awt.event.TextListener;
-import java.lang.StringBuilder;
 import javax.swing.JTextField;
 import javax.swing.SwingUtilities;
 
@@ -66,6 +65,7 @@ public class HistoryTextField extends JTextField implements FocusListener,
         this(Editor.currentEditor(), columns);
     }
 
+    @Override
     public Dimension getPreferredSize() {
         Dimension size = super.getPreferredSize();
         size.width = getColumns() * 11;
@@ -115,6 +115,7 @@ public class HistoryTextField extends JTextField implements FocusListener,
             history.reset();
     }
 
+    @Override
     public String getText() {
         String s = super.getText();
         int length = s.length();
@@ -167,6 +168,7 @@ public class HistoryTextField extends JTextField implements FocusListener,
         }
     }
 
+    @Override
     public void paintComponent(Graphics g) {
         // Swing lays this field out, so let it place glyphs at their true
         // advances instead of rounding each one to a whole pixel.
@@ -174,23 +176,30 @@ public class HistoryTextField extends JTextField implements FocusListener,
         super.paintComponent(g);
     }
 
+    @Override
     public void focusGained(FocusEvent e) {
         selectAll();
     }
 
+    @Override
     public void focusLost(FocusEvent e) {
         int length = getText().length();
         select(length, length);
     }
 
+    @Override
     public void mouseClicked(MouseEvent e) {}
 
+    @Override
     public void mouseEntered(MouseEvent e) {}
 
+    @Override
     public void mouseExited(MouseEvent e) {}
 
+    @Override
     public void mousePressed(MouseEvent e) {}
 
+    @Override
     public void mouseReleased(MouseEvent e) {
         final int dot = getCaretPosition();
         final int mark = getCaret().getMark();

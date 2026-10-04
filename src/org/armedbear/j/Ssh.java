@@ -23,7 +23,6 @@ package org.armedbear.j;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
-import java.lang.StringBuilder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import org.armedbear.j.util.Utilities;
@@ -44,17 +43,17 @@ public final class Ssh {
 
     public boolean copy(File source, File destination) {
         SshFile remote = null;
-        if (source instanceof SshFile)
-            remote = (SshFile) source;
-        else if (destination instanceof SshFile)
-            remote = (SshFile) destination;
+        if (source instanceof SshFile sshFile)
+            remote = sshFile;
+        else if (destination instanceof SshFile sshFile)
+            remote = sshFile;
         if (remote == null) {
             Debug.bug("Ssh.copy no remote file");
             return false;
         }
         String userName = remote.getUserName();
         password = remote.getPassword();
-        ArrayList<String> list = new ArrayList<String>();
+        ArrayList<String> list = new ArrayList<>();
         list.add(Utilities.jptyPath());
         list.add("scp");
         list.add("-q");
@@ -174,6 +173,7 @@ public final class Ssh {
             return response;
         }
 
+        @Override
         public void run() {
             StringBuilder sb = new StringBuilder();
             while (true) {

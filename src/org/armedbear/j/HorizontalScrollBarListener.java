@@ -30,6 +30,7 @@ public final class HorizontalScrollBarListener implements AdjustmentListener {
         this.editor = editor;
     }
 
+    @Override
     public void adjustmentValueChanged(AdjustmentEvent e) {
         if (editor.inScrollBarUpdate)
             return;

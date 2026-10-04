@@ -63,6 +63,7 @@ public abstract class LoadProcess implements BackgroundProcess, Runnable, Cancel
         return cache;
     }
 
+    @Override
     public final boolean cancelled() {
         return cancelled;
     }
@@ -85,6 +86,7 @@ public abstract class LoadProcess implements BackgroundProcess, Runnable, Cancel
         thread.start();
     }
 
+    @Override
     public void cancel() {
         if (thread != null)
             thread.interrupt();

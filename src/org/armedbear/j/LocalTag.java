@@ -20,11 +20,13 @@
 
 package org.armedbear.j;
 
+import static org.armedbear.j.Constants.*;
+
 import javax.swing.Icon;
 import javax.swing.undo.CompoundEdit;
 import org.armedbear.j.util.Icons;
 
-public class LocalTag extends Tag implements Constants {
+public class LocalTag extends Tag {
     private final Position pos;
     private final int type;
     private int flags;
@@ -54,6 +56,7 @@ public class LocalTag extends Tag implements Constants {
         this.type = type;
     }
 
+    @Override
     public String getMethodName() {
         return name;
     }
@@ -67,10 +70,12 @@ public class LocalTag extends Tag implements Constants {
         return anchor.equals(name) || anchor.equals(getMethodName());
     }
 
+    @Override
     public String getLongName() {
         return name;
     }
 
+    @Override
     public String getClassName() {
         return null;
     }
@@ -168,6 +173,7 @@ public class LocalTag extends Tag implements Constants {
         return Icons.getBadgedIcon(base, visibility, modifierBadge(this));
     }
 
+    @Override
     public String toString() {
         return getMethodName();
     }
@@ -180,6 +186,7 @@ public class LocalTag extends Tag implements Constants {
         return getLongName();
     }
 
+    @Override
     public void gotoTag(Editor editor) {
         if (editor.getBuffer().contains(pos.getLine())) {
             CompoundEdit compoundEdit = editor.beginCompoundEdit();

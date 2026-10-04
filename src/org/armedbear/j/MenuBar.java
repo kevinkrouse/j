@@ -40,6 +40,7 @@ public final class MenuBar extends JMenuBar {
         return menuName;
     }
 
+    @Override
     public void paintComponent(Graphics g) {
         Display.setRenderingHints(g);
         super.paintComponent(g);

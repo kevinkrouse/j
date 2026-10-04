@@ -32,7 +32,7 @@ import java.util.Date;
 public final class TagFileCatalog {
     private File tagfileDir;
     private File catalogFile;
-    private ArrayList<CatalogEntry> entries = new ArrayList<CatalogEntry>();
+    private ArrayList<CatalogEntry> entries = new ArrayList<>();
 
     public TagFileCatalog(File tagfileDir) {
         this.tagfileDir = tagfileDir;
@@ -171,6 +171,7 @@ public final class TagFileCatalog {
             this.tagfileName = tagfileName;
         }
 
+        @Override
         public String toString() {
             return tagfileName + " " + directoryPath + " " + modeName;
         }

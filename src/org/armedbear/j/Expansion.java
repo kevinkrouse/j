@@ -20,12 +20,14 @@
 
 package org.armedbear.j;
 
+import static org.armedbear.j.Constants.*;
+
 import java.util.ArrayList;
 import java.util.List;
 import javax.swing.undo.CompoundEdit;
 import org.armedbear.j.util.Utilities;
 
-public class Expansion implements Constants {
+public class Expansion {
     protected String prefix;
     protected int prefixOffset; // Offset of prefix on current line.
 
@@ -91,7 +93,7 @@ public class Expansion implements Constants {
     }
 
     private List<Object> list(Position pos) {
-        List<Object> list = new ArrayList<Object>();
+        List<Object> list = new ArrayList<>();
         if (prefix != null) {
             final boolean ignoreCase = Utilities.isLowerCase(prefix);
             String s = null;

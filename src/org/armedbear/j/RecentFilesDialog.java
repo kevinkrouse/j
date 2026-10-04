@@ -69,6 +69,7 @@ public final class RecentFilesDialog extends AbstractDialog implements MouseList
         table.requestFocus();
     }
 
+    @Override
     protected void ok() {
         openSelectedFile();
     }
@@ -97,8 +98,8 @@ public final class RecentFilesDialog extends AbstractDialog implements MouseList
         else if (buf != editor.getBuffer()) {
             editor.makeNext(buf);
             editor.activate(buf);
-            if (buf instanceof RemoteBuffer)
-                ((RemoteBuffer) buf).setInitialDotPos(entry.lineNumber, entry.offs);
+            if (buf instanceof RemoteBuffer remoteBuffer)
+                remoteBuffer.setInitialDotPos(entry.lineNumber, entry.offs);
             else {
                 Line line = buf.getLine(entry.lineNumber);
                 if (line != null) {
@@ -113,6 +114,7 @@ public final class RecentFilesDialog extends AbstractDialog implements MouseList
         }
     }
 
+    @Override
     public void dispose() {
         JTableHeader th = table.getTableHeader();
         TableColumnModel columnModel = th.getColumnModel();
@@ -129,6 +131,7 @@ public final class RecentFilesDialog extends AbstractDialog implements MouseList
         return "RecentFilesDialog.columnWidth." + i;
     }
 
+    @Override
     public void mouseClicked(MouseEvent e) {
         if (e.getClickCount() == 2)
             openSelectedFile();
@@ -153,12 +156,16 @@ public final class RecentFilesDialog extends AbstractDialog implements MouseList
         }
     }
 
+    @Override
     public void mousePressed(MouseEvent e) {}
 
+    @Override
     public void mouseReleased(MouseEvent e) {}
 
+    @Override
     public void mouseEntered(MouseEvent e) {}
 
+    @Override
     public void mouseExited(MouseEvent e) {}
 
     public static void recentFiles() {

@@ -20,7 +20,6 @@
 
 package org.armedbear.j;
 
-import java.lang.StringBuilder;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
@@ -115,7 +114,7 @@ public final class Cookie {
                 }
             }
         } else
-            cookies = new ArrayList<Cookie>();
+            cookies = new ArrayList<>();
         cookies.add(cookie);
     }
 

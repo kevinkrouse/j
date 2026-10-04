@@ -20,7 +20,6 @@
 
 package org.armedbear.j;
 
-import java.lang.StringBuilder;
 import javax.swing.SwingUtilities;
 import org.armedbear.j.util.FastStringReader;
 import org.armedbear.j.util.ProcessRunner;

@@ -20,11 +20,12 @@
 
 package org.armedbear.j;
 
+import static org.armedbear.j.Constants.*;
+
 import java.awt.Component;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
-import java.lang.StringBuilder;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
@@ -42,8 +43,7 @@ import org.armedbear.j.mode.web.WebMode;
 import org.armedbear.j.util.Keys;
 import org.armedbear.j.util.Utilities;
 
-public final class OpenFileTextFieldHandler extends DefaultTextFieldHandler
-    implements Constants, MouseListener {
+public final class OpenFileTextFieldHandler extends DefaultTextFieldHandler implements MouseListener {
     private static final boolean filenamesIgnoreCase =
         Platform.isPlatformWindows();
 
@@ -89,6 +89,7 @@ public final class OpenFileTextFieldHandler extends DefaultTextFieldHandler
         checkSourcePath = b;
     }
 
+    @Override
     public void enter() {
         final Buffer buffer = editor.getBuffer();
         String entry = textField.getText();
@@ -337,6 +338,7 @@ public final class OpenFileTextFieldHandler extends DefaultTextFieldHandler
         }
     }
 
+    @Override
     public void escape() {
         if (popup != null) {
             Debug.bug();
@@ -355,10 +357,12 @@ public final class OpenFileTextFieldHandler extends DefaultTextFieldHandler
         }
     }
 
+    @Override
     public boolean wantTab() {
         return true;
     }
 
+    @Override
     public void tab() {
         final String entry = textField.getText();
         if (
@@ -447,9 +451,10 @@ public final class OpenFileTextFieldHandler extends DefaultTextFieldHandler
         editor.setDefaultCursor();
     }
 
+    @Override
     public List<String> getCompletions(String prefix) {
         final File dir = editor.getCompletionDirectory();
-        ArrayList<String> completions = new ArrayList<String>();
+        ArrayList<String> completions = new ArrayList<>();
         final String sourcePath = checkSourcePath ? getSourcePath() : null;
         prefix = File.normalize(prefix);
         boolean ignoreCase = Platform.isFileSystemCaseInsensitive()
@@ -616,7 +621,7 @@ public final class OpenFileTextFieldHandler extends DefaultTextFieldHandler
     }
 
     private String getSourcePath() {
-        ArrayList<String> dirs = new ArrayList<String>();
+        ArrayList<String> dirs = new ArrayList<>();
         // We want to search the mode-specific source path first.
         String sourcePathForMode =
             editor.getBuffer().getStringProperty(Property.SOURCE_PATH);
@@ -802,6 +807,7 @@ public final class OpenFileTextFieldHandler extends DefaultTextFieldHandler
         SwingUtilities.invokeLater(r);
     }
 
+    @Override
     protected void reset() {
         if (popup != null) {
             popup.setVisible(false);
@@ -813,7 +819,7 @@ public final class OpenFileTextFieldHandler extends DefaultTextFieldHandler
     private class CompletionsList extends JScrollPane implements MenuElement,
         MouseListener {
         public CompletionsList(String[] completions) {
-            super(listbox = new JList<String>(completions));
+            super(listbox = new JList<>(completions));
             listbox.setFont(textField.getFont());
             if (completions.length < 8)
                 listbox.setVisibleRowCount(completions.length);
@@ -822,12 +828,14 @@ public final class OpenFileTextFieldHandler extends DefaultTextFieldHandler
             listbox.addMouseListener(this);
         }
 
+        @Override
         public void processMouseEvent(
             MouseEvent e,
             MenuElement[] path,
             MenuSelectionManager manager
         ) {}
 
+        @Override
         public void processKeyEvent(
             KeyEvent e,
             MenuElement[] path,
@@ -899,20 +907,25 @@ public final class OpenFileTextFieldHandler extends DefaultTextFieldHandler
             super.processKeyEvent(e);
         }
 
+        @Override
         public void menuSelectionChanged(boolean isIncluded) {}
 
+        @Override
         public MenuElement[] getSubElements() {
             return new MenuElement[0];
         }
 
+        @Override
         public Component getComponent() {
             return this;
         }
 
+        @Override
         public void mouseClicked(MouseEvent e) {
             enterPopup();
         }
 
+        @Override
         public void mousePressed(MouseEvent e) {
             final int button = e.getButton();
             final boolean unmodified = Keys.isUnmodified(e);
@@ -923,13 +936,17 @@ public final class OpenFileTextFieldHandler extends DefaultTextFieldHandler
             }
         }
 
+        @Override
         public void mouseReleased(MouseEvent e) {}
 
+        @Override
         public void mouseEntered(MouseEvent e) {}
 
+        @Override
         public void mouseExited(MouseEvent e) {}
     }
 
+    @Override
     public void keyPressed(KeyEvent e) {
         if (popup != null) {
             int modifiers = Keys.keyModifiers(e);
@@ -993,6 +1010,7 @@ public final class OpenFileTextFieldHandler extends DefaultTextFieldHandler
         super.keyPressed(e);
     }
 
+    @Override
     public void keyTyped(KeyEvent e) {
         char c = e.getKeyChar();
         if (c == 8) {
@@ -1051,17 +1069,22 @@ public final class OpenFileTextFieldHandler extends DefaultTextFieldHandler
         e.consume();
     }
 
+    @Override
     public void mousePressed(MouseEvent e) {
         Editor.setCurrentEditor(editor);
         originalText = null;
         originalPrefix = null;
     }
 
+    @Override
     public void mouseReleased(MouseEvent e) {}
 
+    @Override
     public void mouseClicked(MouseEvent e) {}
 
+    @Override
     public void mouseEntered(MouseEvent e) {}
 
+    @Override
     public void mouseExited(MouseEvent e) {}
 }

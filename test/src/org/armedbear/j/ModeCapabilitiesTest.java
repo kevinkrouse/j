@@ -11,6 +11,7 @@
 
 package org.armedbear.j;
 
+import static org.armedbear.j.Constants.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -19,7 +20,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.junit.jupiter.api.Test;
 
 /** The mode methods that replaced switches on mode ids in WrapText and PropertiesDialog. */
-public class ModeCapabilitiesTest implements Constants {
+public class ModeCapabilitiesTest {
     private static Mode mode(int id) {
         return Editor.getModeList().getMode(id);
     }

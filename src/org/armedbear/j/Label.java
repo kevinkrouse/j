@@ -32,6 +32,7 @@ public final class Label extends JLabel {
         super(text);
     }
 
+    @Override
     public void paintComponent(Graphics g) {
         Display.setRenderingHints(g);
         super.paintComponent(g);

@@ -20,11 +20,12 @@
 
 package org.armedbear.j;
 
+import static org.armedbear.j.Constants.*;
+
 import java.io.BufferedOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
-import java.lang.StringBuilder;
 import java.nio.charset.CharacterCodingException;
 import java.nio.charset.Charset;
 import java.nio.charset.CharsetDecoder;
@@ -37,7 +38,7 @@ import org.armedbear.j.util.ByteBuffer;
 import org.armedbear.j.util.Utilities;
 
 // System buffers are NOT linked into the normal buffer ring.
-public class SystemBuffer implements Constants {
+public class SystemBuffer {
     public static final int TYPE_SYSTEM = 0;
     public static final int TYPE_NORMAL = 1;
     public static final int TYPE_ARCHIVE = 2;
@@ -541,8 +542,8 @@ public class SystemBuffer implements Constants {
     // Public for DiffMode.diff().
     public final File getPatchFile() {
         String suffix;
-        if (this instanceof Buffer)
-            suffix = ((Buffer) this).getStringProperty(Property.PATCH_MODE);
+        if (this instanceof Buffer buffer)
+            suffix = buffer.getStringProperty(Property.PATCH_MODE);
         else if (mode != null)
             suffix = mode.getStringProperty(Property.PATCH_MODE);
         else {

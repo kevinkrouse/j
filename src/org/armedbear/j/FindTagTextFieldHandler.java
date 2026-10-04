@@ -20,6 +20,8 @@
 
 package org.armedbear.j;
 
+import static org.armedbear.j.Constants.*;
+
 import java.util.ArrayList;
 import java.util.List;
 import org.armedbear.j.mode.list.ListTagsBuffer;
@@ -30,10 +32,12 @@ public final class FindTagTextFieldHandler extends DefaultTextFieldHandler {
         super(editor, textField);
     }
 
+    @Override
     public boolean wantTab() {
         return true;
     }
 
+    @Override
     public void enter() {
         String pattern = textField.getText();
         if (pattern == null)
@@ -61,10 +65,10 @@ public final class FindTagTextFieldHandler extends DefaultTextFieldHandler {
             if (tags.size() > 1) {
                 // Can we get a unique match if we just consider defuns etc.
                 // and explicit tags?
-                ArrayList<Tag> shortList = new ArrayList<Tag>();
+                ArrayList<Tag> shortList = new ArrayList<>();
                 for (Tag tag : tags) {
-                    if (tag instanceof LocalTag) {
-                        int type = ((LocalTag) tag).getType();
+                    if (tag instanceof LocalTag localTag) {
+                        int type = localTag.getType();
                         // Java etc.
                         if (type == TAG_METHOD || type == TAG_EXPLICIT)
                             shortList.add(tag);
@@ -97,10 +101,10 @@ public final class FindTagTextFieldHandler extends DefaultTextFieldHandler {
                 // Exactly one match.
                 Tag tag = tags.get(0);
                 editor.recordJump();
-                if (tag instanceof LocalTag)
-                    TagCommands.gotoLocalTag(editor, (LocalTag) tag, false);
-                else if (tag instanceof GlobalTag)
-                    TagCommands.gotoGlobalTag(editor, (GlobalTag) tag, false);
+                if (tag instanceof LocalTag localTag)
+                    TagCommands.gotoLocalTag(editor, localTag, false);
+                else if (tag instanceof GlobalTag globalTag)
+                    TagCommands.gotoGlobalTag(editor, globalTag, false);
                 else
                     Debug.bug();
             }
@@ -146,7 +150,7 @@ public final class FindTagTextFieldHandler extends DefaultTextFieldHandler {
                         );
                     if (tagsInDir != null) {
                         if (globalTags == null)
-                            globalTags = new ArrayList<GlobalTag>();
+                            globalTags = new ArrayList<>();
                         globalTags.addAll(tagsInDir);
                     }
                 }
@@ -167,7 +171,7 @@ public final class FindTagTextFieldHandler extends DefaultTextFieldHandler {
                 tagger.run();
         }
         boolean isQualified = buffer.getMode().isQualifiedName(pattern);
-        List<LocalTag> list = new ArrayList<LocalTag>();
+        List<LocalTag> list = new ArrayList<>();
         final List<LocalTag> localTags = buffer.getTags();
         if (localTags != null) {
             // Look through all the local tags.
@@ -191,6 +195,7 @@ public final class FindTagTextFieldHandler extends DefaultTextFieldHandler {
         return list.size() > 0 ? list : null;
     }
 
+    @Override
     public List<String> getCompletions(final String prefix) {
         List<String> list = getCompletionsInCurrentBuffer(prefix);
         Mode mode = editor.getMode();
@@ -232,7 +237,7 @@ public final class FindTagTextFieldHandler extends DefaultTextFieldHandler {
     }
 
     private List<String> getCompletionsInCurrentBuffer(String prefix) {
-        List<String> list = new ArrayList<String>();
+        List<String> list = new ArrayList<>();
         List<LocalTag> tags = editor.getBuffer().getTags();
         if (tags != null) {
             boolean ignoreCase = Utilities.isLowerCase(prefix);

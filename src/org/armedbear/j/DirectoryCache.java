@@ -29,7 +29,7 @@ public final class DirectoryCache {
 
     private static DirectoryCache cache;
 
-    private List<DirectoryCacheEntry> entries = new ArrayList<DirectoryCacheEntry>();
+    private List<DirectoryCacheEntry> entries = new ArrayList<>();
 
     public static synchronized DirectoryCache getDirectoryCache() {
         if (cache == null) {

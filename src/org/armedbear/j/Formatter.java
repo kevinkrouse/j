@@ -23,7 +23,7 @@ package org.armedbear.j;
 import java.awt.Color;
 import org.armedbear.j.util.Utilities;
 
-public abstract class Formatter implements Constants {
+public abstract class Formatter {
     protected Buffer buffer;
 
     protected FormatTable formatTable;
@@ -313,7 +313,7 @@ public abstract class Formatter implements Constants {
      */
     protected final boolean conceals(String kind) {
         if (concealed == null) {
-            final java.util.Set<String> set = new java.util.HashSet<String>();
+            final java.util.Set<String> set = new java.util.HashSet<>();
             final String value = buffer.getStringProperty(Property.CONCEAL);
             if (value != null)
                 for (String name : value.split("[\\s,]+"))

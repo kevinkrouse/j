@@ -20,6 +20,8 @@
 
 package org.armedbear.j;
 
+import static org.armedbear.j.Constants.*;
+
 import java.awt.AWTEvent;
 import java.awt.event.MouseEvent;
 import java.util.ArrayList;
@@ -31,7 +33,7 @@ import org.armedbear.j.mode.java.JavaTag;
 import org.armedbear.j.mode.list.ListTagsBuffer;
 import org.armedbear.j.util.Utilities;
 
-public final class TagCommands implements Constants {
+public final class TagCommands {
     public static void nextTag() {
         final Editor editor = Editor.currentEditor();
         final Position dot = editor.getDot();
@@ -98,10 +100,10 @@ public final class TagCommands implements Constants {
             // One match.
             Tag tag = tags.get(0);
             editor.recordJump();
-            if (tag instanceof LocalTag)
-                gotoLocalTag(editor, (LocalTag) tag, useOtherWindow);
-            else if (tag instanceof GlobalTag)
-                gotoGlobalTag(editor, (GlobalTag) tag, useOtherWindow);
+            if (tag instanceof LocalTag localTag)
+                gotoLocalTag(editor, localTag, useOtherWindow);
+            else if (tag instanceof GlobalTag globalTag)
+                gotoGlobalTag(editor, globalTag, useOtherWindow);
             else
                 Debug.bug();
         } else {
@@ -160,7 +162,7 @@ public final class TagCommands implements Constants {
                         );
                     if (tagsInDir != null) {
                         if (globalTags == null)
-                            globalTags = new ArrayList<GlobalTag>();
+                            globalTags = new ArrayList<>();
                         globalTags.addAll(tagsInDir);
                     }
                 }
@@ -187,7 +189,7 @@ public final class TagCommands implements Constants {
             for (LocalTag localTag : localTags) {
                 if (expression.matches(localTag)) {
                     if (list == null)
-                        list = new ArrayList<LocalTag>();
+                        list = new ArrayList<>();
                     list.add(localTag);
                 }
             }
@@ -224,7 +226,7 @@ public final class TagCommands implements Constants {
                         continue;
                 }
                 if (list == null)
-                    list = new ArrayList<GlobalTag>();
+                    list = new ArrayList<>();
                 list.add(tag);
             }
         }
@@ -248,7 +250,7 @@ public final class TagCommands implements Constants {
         }
 
         boolean isQualified = mode.isQualifiedName(name);
-        List<GlobalTag> list = new ArrayList<GlobalTag>();
+        List<GlobalTag> list = new ArrayList<>();
         for (GlobalTag tag : tags) {
             String tagName = tag.getName();
             if ((ignoreCase && tagName.equalsIgnoreCase(name)) || tagName.equals(name)) {
@@ -493,8 +495,8 @@ public final class TagCommands implements Constants {
     public static void mouseFindTag() {
         final Editor editor = Editor.currentEditor();
         AWTEvent e = editor.getDispatcher().getLastEvent();
-        if (e instanceof MouseEvent) {
-            editor.mouseMoveDotToPoint((MouseEvent) e);
+        if (e instanceof MouseEvent mouseEvent) {
+            editor.mouseMoveDotToPoint(mouseEvent);
             findTagAtDotInternal(editor, true, false);
         }
     }

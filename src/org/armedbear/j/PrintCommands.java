@@ -23,7 +23,6 @@ package org.armedbear.j;
 import java.awt.print.Book;
 import java.awt.print.PrinterException;
 import java.awt.print.PrinterJob;
-import java.lang.StringBuilder;
 
 public final class PrintCommands {
     public static void print() {

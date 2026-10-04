@@ -20,7 +20,6 @@
 
 package org.armedbear.j;
 
-import java.lang.StringBuilder;
 import java.util.Arrays;
 import java.util.Objects;
 import java.util.regex.Matcher;
@@ -615,11 +614,11 @@ public class Search implements Cloneable {
         editor.status(sb.toString());
     }
 
+    @Override
     public boolean equals(Object object) {
         if (this == object)
             return true;
-        if (object instanceof Search) {
-            Search search = (Search) object;
+        if (object instanceof Search search) {
             if (pattern == null) {
                 if (search.pattern != null)
                     return false;
@@ -653,6 +652,7 @@ public class Search implements Cloneable {
         );
     }
 
+    @Override
     public Object clone() {
         try {
             return super.clone();

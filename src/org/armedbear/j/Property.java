@@ -20,19 +20,20 @@
 
 package org.armedbear.j;
 
+import static org.armedbear.j.Constants.*;
+
 import java.io.Serializable;
-import java.lang.StringBuilder;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-public final class Property implements Comparable<Property>, Constants {
+public final class Property implements Comparable<Property> {
     // Written only while this class initialises, by the createProperty calls
     // in the field initialisers above; read-only from then on.
     private static final Map<String, Property> ht =
-        new HashMap<String, Property>();
+        new HashMap<>();
 
     // Integer properties.
     public static final Property ADJUST_ASCENT =
@@ -518,10 +519,12 @@ public final class Property implements Comparable<Property>, Constants {
         return true;
     }
 
+    @Override
     public boolean equals(Object obj) {
         return this == obj;
     }
 
+    @Override
     public int hashCode() {
         return key.hashCode();
     }
@@ -540,13 +543,14 @@ public final class Property implements Comparable<Property>, Constants {
         return sb.toString();
     }
 
+    @Override
     public int compareTo(Property p) {
         return displayName.compareToIgnoreCase(p.displayName);
     }
 
     public static List<String> apropos(String s) {
         String lower = s.toLowerCase();
-        ArrayList<String> list = new ArrayList<String>();
+        ArrayList<String> list = new ArrayList<>();
         for (Property property : ht.values()) {
             String displayName = property.getDisplayName();
             if (displayName.toLowerCase().contains(lower))

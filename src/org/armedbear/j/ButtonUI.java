@@ -34,6 +34,7 @@ public final class ButtonUI extends MetalButtonUI {
         return buttonUI;
     }
 
+    @Override
     protected void paintText(
         Graphics g,
         AbstractButton b,

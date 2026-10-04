@@ -21,7 +21,6 @@
 package org.armedbear.j;
 
 import java.awt.event.KeyEvent;
-import java.lang.StringBuilder;
 import org.armedbear.j.util.Keys;
 
 // A keyboard or mouse event, from j's point of view.
@@ -99,6 +98,7 @@ public final class JEvent {
         return Keys.getKeyText(keyChar, keyCode, modifiers);
     }
 
+    @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();
         switch (id) {

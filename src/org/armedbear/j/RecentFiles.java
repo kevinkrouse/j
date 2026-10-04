@@ -20,6 +20,8 @@
 
 package org.armedbear.j;
 
+import static org.armedbear.j.Constants.*;
+
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.IOException;
@@ -31,13 +33,13 @@ import java.util.List;
 import org.armedbear.j.mode.dir.DirectoryBuffer;
 import org.armedbear.j.mode.image.ImageBuffer;
 
-public final class RecentFiles implements Constants {
+public final class RecentFiles {
     private static final int MAX_ENTRIES = 100;
 
     // Singleton.
     private static RecentFiles instance;
 
-    private final ArrayList<RecentFilesEntry> entries = new ArrayList<RecentFilesEntry>();
+    private final ArrayList<RecentFilesEntry> entries = new ArrayList<>();
     private final File file;
     private int version;
     private boolean changed;

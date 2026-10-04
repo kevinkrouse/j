@@ -20,6 +20,8 @@
 
 package org.armedbear.j;
 
+import static org.armedbear.j.Constants.*;
+
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Font;
@@ -36,8 +38,7 @@ import javax.swing.JButton;
 import javax.swing.JPanel;
 import org.armedbear.j.util.Utilities;
 
-public final class LocationBar extends JPanel implements Constants,
-    ActionListener, MouseListener {
+public final class LocationBar extends JPanel implements ActionListener, MouseListener {
     private Editor editor;
     private final Label label;
     private final HistoryTextField textField;
@@ -125,6 +126,7 @@ public final class LocationBar extends JPanel implements Constants,
             Debug.bug();
     }
 
+    @Override
     public void paintComponent(java.awt.Graphics g) {
         if (editor == Editor.currentEditor()) {
             label.setForeground(Color.black);
@@ -161,6 +163,7 @@ public final class LocationBar extends JPanel implements Constants,
         }
     }
 
+    @Override
     public void actionPerformed(ActionEvent e) {
         final Frame frame = editor.getFrame();
         frame.closeEditor(editor);
@@ -170,16 +173,21 @@ public final class LocationBar extends JPanel implements Constants,
             sidebar.setUpdateFlag(SIDEBAR_SET_BUFFER);
     }
 
+    @Override
     public void mouseClicked(MouseEvent e) {}
 
+    @Override
     public void mouseEntered(MouseEvent e) {}
 
+    @Override
     public void mouseExited(MouseEvent e) {}
 
+    @Override
     public void mousePressed(MouseEvent e) {
         editor.ensureActive();
         editor.getFrame().setFocus(textField);
     }
 
+    @Override
     public void mouseReleased(MouseEvent e) {}
 }

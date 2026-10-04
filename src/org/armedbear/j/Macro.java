@@ -20,11 +20,13 @@
 
 package org.armedbear.j;
 
+import static org.armedbear.j.Constants.*;
+
 import java.util.ArrayList;
 import javax.swing.undo.CompoundEdit;
 import org.armedbear.j.extension.ScriptFunction;
 
-public final class Macro implements Constants {
+public final class Macro {
     private static Macro macro;
 
     public static synchronized void recordMacro() {
@@ -99,7 +101,7 @@ public final class Macro implements Constants {
     }
 
     private final Editor editor;
-    private ArrayList<Object> list = new ArrayList<Object>();
+    private ArrayList<Object> list = new ArrayList<>();
 
     private Macro(Editor editor) {
         this.editor = editor;
@@ -146,12 +148,12 @@ public final class Macro implements Constants {
             CompoundEdit compoundEdit = buffer.beginCompoundEdit();
             for (Object object : list) {
                 editor.setCurrentCommand(COMMAND_NOTHING);
-                if (object instanceof String) {
-                    editor.executeCommand((String) object);
-                } else if (object instanceof ScriptFunction) {
-                    ((ScriptFunction) object).invoke();
-                } else if (object instanceof Character) {
-                    EditCommands.insertNormalChar(editor, ((Character) object).charValue());
+                if (object instanceof String string) {
+                    editor.executeCommand(string);
+                } else if (object instanceof ScriptFunction scriptFunction) {
+                    scriptFunction.invoke();
+                } else if (object instanceof Character c) {
+                    EditCommands.insertNormalChar(editor, c.charValue());
                 }
                 editor.setLastCommand(editor.getCurrentCommand());
             }

@@ -33,14 +33,17 @@ public class DefaultSyntaxIterator implements SyntaxIterator {
         }
     }
 
+    @Override
     public final Position getPosition() {
         return new Position(line, offset);
     }
 
+    @Override
     public final Line getLine() {
         return line;
     }
 
+    @Override
     public final char nextChar() {
         int limit = line.length();
         if (offset < limit - 1) {
@@ -69,6 +72,7 @@ public class DefaultSyntaxIterator implements SyntaxIterator {
         }
     }
 
+    @Override
     public final char prevChar() {
         if (offset > 0) {
             if (cachedLine != line) {
@@ -98,10 +102,12 @@ public class DefaultSyntaxIterator implements SyntaxIterator {
 
     // Default implementation. Subclasses can override this method to examine
     // the line flags.
+    @Override
     public char[] hideSyntacticWhitespace(Line line) {
         return hideSyntacticWhitespace(line.getText());
     }
 
+    @Override
     public char[] hideSyntacticWhitespace(String s) {
         return s.toCharArray();
     }
