@@ -253,14 +253,7 @@ public final class FindFileTextFieldHandler extends FinderTextFieldHandler {
 
         @Override
         public Icon icon() {
-            String badge = null;
-            if (buffer != null) {
-                if (buffer.isModified())
-                    badge = "modified";
-                else if (buffer.isReadOnly())
-                    badge = "locked";
-            }
-            return FileIcons.getIcon(label(), badge);
+            return buffer != null ? buffer.getIcon() : FileIcons.getIcon(label(), null);
         }
 
         @Override

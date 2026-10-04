@@ -2430,13 +2430,18 @@ public class Buffer extends SystemBuffer {
         return Editor.getBufferList().getUniqueName(this);
     }
 
-    // For the buffer list.
+    // For the buffer list: the icon for its kind of file, as the finders show.
     public Icon getIcon() {
         String badge = null;
         if (isModified())
             badge = "modified";
         else if (isReadOnly())
             badge = "locked";
+        if (getModeId() == DIRECTORY_MODE)
+            return Icons.getBadgedIcon("dir_close", badge);
+        File file = getFile();
+        if (file != null && !file.getName().isEmpty())
+            return FileIcons.getIcon(file.getName(), badge);
         return Icons.getBadgedIcon("buffer", badge);
     }
 
