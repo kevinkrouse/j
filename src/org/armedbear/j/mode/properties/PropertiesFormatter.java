@@ -40,6 +40,7 @@ public final class PropertiesFormatter extends Formatter {
         this.buffer = buffer;
     }
 
+    @Override
     public LineSegmentList formatLine(Line line) {
         clearSegmentList();
         final String text = getDetabbedText(line);
@@ -84,6 +85,7 @@ public final class PropertiesFormatter extends Formatter {
      * The color a line sets, "color.text = 0 255 0" or
      * "JavaMode.color.comment = #808080", for a swatch in the gutter.
      */
+    @Override
     public Color getGutterColor(Line line) {
         final String text = line.getText().trim();
         if (text.isEmpty())
@@ -108,6 +110,7 @@ public final class PropertiesFormatter extends Formatter {
         return Colors.parseColor(value);
     }
 
+    @Override
     public FormatTable getFormatTable() {
         if (formatTable == null) {
             formatTable = new FormatTable("PropertiesMode");

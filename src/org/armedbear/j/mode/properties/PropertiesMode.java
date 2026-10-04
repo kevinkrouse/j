@@ -20,15 +20,16 @@
 
 package org.armedbear.j.mode.properties;
 
+import static org.armedbear.j.Constants.*;
+
 import java.awt.event.KeyEvent;
 import org.armedbear.j.AbstractMode;
 import org.armedbear.j.Buffer;
-import org.armedbear.j.Constants;
 import org.armedbear.j.Formatter;
 import org.armedbear.j.KeyMap;
 import org.armedbear.j.Mode;
 
-public final class PropertiesMode extends AbstractMode implements Constants, Mode {
+public final class PropertiesMode extends AbstractMode implements Mode {
     private static final PropertiesMode mode = new PropertiesMode();
 
     private PropertiesMode() {
@@ -39,10 +40,12 @@ public final class PropertiesMode extends AbstractMode implements Constants, Mod
         return mode;
     }
 
+    @Override
     public final Formatter getFormatter(Buffer buffer) {
         return new PropertiesFormatter(buffer);
     }
 
+    @Override
     protected void setKeyMapDefaults(KeyMap km) {
         km.mapKey(KeyEvent.VK_F12, 0, "wrapComment");
     }
@@ -52,6 +55,7 @@ public final class PropertiesMode extends AbstractMode implements Constants, Mod
         return "# ";
     }
 
+    @Override
     public String getWrapCommentStart(String trimmed) {
         return Mode.wrapPrefix(trimmed, "# ");
     }
