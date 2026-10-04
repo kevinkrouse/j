@@ -41,6 +41,11 @@ public final class FinderCellRenderer extends JComponent implements ListCellRend
         boolean isSelected,
         boolean cellHasFocus
     ) {
+        return render(list, value, isSelected);
+    }
+
+    /** The component that draws row, in any list. */
+    public Component render(JList<?> list, FinderItem.Row value, boolean isSelected) {
         row = value;
         background = isSelected ? list.getSelectionBackground() : list.getBackground();
         foreground = isSelected ? list.getSelectionForeground() : list.getForeground();
@@ -54,11 +59,22 @@ public final class FinderCellRenderer extends JComponent implements ListCellRend
         return this;
     }
 
+    // Wide enough for all but the note, which is cut short to fit.
     @Override
     public Dimension getPreferredSize() {
-        FontMetrics fm = getFontMetrics(getFont());
+        FontMetrics fm = getFontMetrics(bold != null ? bold : getFont());
         int iconHeight = row != null && row.item().icon() != null ? row.item().icon().getIconHeight() : 0;
-        return new Dimension(100, Math.max(fm.getHeight(), iconHeight) + UIScale.scale(4));
+        int width = UIScale.scale(100);
+        if (row != null) {
+            FinderItem item = row.item();
+            int pad = UIScale.scale(4);
+            width = 3 * pad + UIScale.scale(16) + fm.stringWidth(item.label());
+            if (!item.detail().isEmpty())
+                width += 2 * pad + fm.stringWidth(item.detail());
+            if (!item.keyText().isEmpty())
+                width += 2 * pad + fm.stringWidth(item.keyText());
+        }
+        return new Dimension(width, Math.max(fm.getHeight(), iconHeight) + UIScale.scale(4));
     }
 
     @Override

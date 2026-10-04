@@ -28,13 +28,20 @@ import java.awt.event.MouseListener;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.regex.PatternSyntaxException;
+import javax.swing.Icon;
 import javax.swing.SwingUtilities;
 import org.armedbear.j.extension.Extensions;
 import org.armedbear.j.extension.Opener;
 import org.armedbear.j.mode.web.WebBuffer;
 import org.armedbear.j.mode.web.WebMode;
+import org.armedbear.j.util.FuzzyMatcher;
+import org.armedbear.j.util.FuzzyMatcher.Query;
+import org.armedbear.j.util.FuzzyMatcher.Ranked;
+import org.armedbear.j.util.Icons;
 import org.armedbear.j.util.Keys;
 import org.armedbear.j.util.Utilities;
 
@@ -490,7 +497,49 @@ public final class OpenFileTextFieldHandler extends DefaultTextFieldHandler impl
                 ignoreCase
             );
         }
+        if (completions.isEmpty())
+            return fuzzyCompletions(dir, prefix, excludes, ignoreCase);
         return completions;
+    }
+
+    private static final int MAX_FUZZY_COMPLETIONS = 50;
+
+    // When nothing starts with prefix: the entries of the directory it names
+    // that fuzzily match the rest of it, best first.
+    static List<String> fuzzyCompletions(File dir, String prefix, String excludes, boolean ignoreCase) {
+        final int index = prefix.lastIndexOf(LocalFile.getSeparatorChar());
+        final String head = prefix.substring(0, index + 1);
+        final String name = prefix.substring(index + 1);
+        if (name.isEmpty())
+            return new ArrayList<>();
+        File directory = head.isEmpty() ? dir : File.getInstance(dir, head);
+        if (directory == null || directory.isRemote() || !directory.isDirectory())
+            return new ArrayList<>();
+        Pattern excludesRE = null;
+        if (excludes != null) {
+            try {
+                excludesRE = Pattern.compile(excludes, ignoreCase ? Pattern.CASE_INSENSITIVE : 0);
+            }
+            catch (PatternSyntaxException e) {
+                Log.error(e);
+            }
+        }
+        List<String> names = new ArrayList<>();
+        File[] files = directory.listFiles();
+        if (files != null) {
+            for (File file : files) {
+                String s = file.getName();
+                if (excludesRE != null && excludesRE.matcher(s).matches())
+                    continue;
+                names.add(file.isDirectory() ? s + file.getSeparator() : s);
+            }
+        }
+        // A case-insensitive file system matches regardless of case.
+        Query query = Query.parse(ignoreCase ? name.toLowerCase(Locale.ROOT) : name);
+        List<String> result = new ArrayList<>();
+        for (Ranked<String> r : FuzzyMatcher.rank(names, Function.identity(), query, MAX_FUZZY_COMPLETIONS))
+            result.add(head + r.item());
+        return result;
     }
 
     private void addCompletionsFromBufferList(
@@ -653,6 +702,8 @@ public final class OpenFileTextFieldHandler extends DefaultTextFieldHandler impl
     private void showCompletionsPopup() {
         if (popup == null) {
             popup = new CompletionPopup<>(textField, 8);
+            FinderCellRenderer renderer = new FinderCellRenderer();
+            popup.setCellRenderer((list, value, index, selected, focus) -> renderer.render(list, row(value), selected));
             popup.setOnClick(completion -> {
                 textField.setText(completion);
                 enterPopup();
@@ -669,6 +720,47 @@ public final class OpenFileTextFieldHandler extends DefaultTextFieldHandler impl
             updateTextField(completion);
         };
         SwingUtilities.invokeLater(r);
+    }
+
+    // A completion as a list row: its file's icon, and the characters typed marked.
+    private FinderItem.Row row(String completion) {
+        String typed = originalPrefix == null ? "" : originalPrefix;
+        String name = typed.substring(typed.lastIndexOf(LocalFile.getSeparatorChar()) + 1);
+        int start = completion.lastIndexOf(LocalFile.getSeparatorChar(), completion.length() - 2) + 1;
+        FuzzyMatcher.Match m =
+            FuzzyMatcher.match(completion.substring(start), Query.parse(name.toLowerCase(Locale.ROOT)));
+        int[] positions = null;
+        if (m != null) {
+            positions = m.positions().clone();
+            for (int i = 0; i < positions.length; i++)
+                positions[i] += start;
+        }
+        final boolean isDirectory = completion.endsWith(LocalFile.getSeparator());
+        FinderItem item = new FinderItem() {
+            @Override
+            public String matchText() {
+                return completion;
+            }
+
+            @Override
+            public String label() {
+                return completion;
+            }
+
+            @Override
+            public int labelOffset() {
+                return 0;
+            }
+
+            @Override
+            public Icon icon() {
+                return isDirectory ? Icons.getIconFromFile("dir_close") : FileIcons.getIcon(completion, null);
+            }
+
+            @Override
+            public void accept(Editor editor, boolean otherWindow) {}
+        };
+        return new FinderItem.Row(item, positions);
     }
 
     private void tabPopup(int n, boolean wrap) {
