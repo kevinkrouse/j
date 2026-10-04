@@ -29,39 +29,36 @@ import org.armedbear.j.Line;
 import org.armedbear.j.LineSegmentList;
 import org.armedbear.j.util.Utilities;
 
-public final class CSSFormatter extends Formatter implements Constants
-{
+public final class CSSFormatter extends Formatter implements Constants {
     // States (used in line flags).
-    private static final int CSS_STATE_QUOTE       = 0x0001;
+    private static final int CSS_STATE_QUOTE = 0x0001;
     private static final int CSS_STATE_SINGLEQUOTE = 0x0002;
-    private static final int CSS_STATE_COMMENT     = 0x0004;
-    private static final int CSS_STATE_BRACE       = 0x0008;
-    private static final int CSS_STATE_IN_BLOCK    = 0x0010;
-    private static final int CSS_STATE_NUMBER      = 0x0020;
-    private static final int CSS_STATE_PROPERTY    = 0x0040;
-    private static final int CSS_STATE_VALUE       = 0x0080;
-    private static final int CSS_STATE_SELECTOR    = 0x0100;
+    private static final int CSS_STATE_COMMENT = 0x0004;
+    private static final int CSS_STATE_BRACE = 0x0008;
+    private static final int CSS_STATE_IN_BLOCK = 0x0010;
+    private static final int CSS_STATE_NUMBER = 0x0020;
+    private static final int CSS_STATE_PROPERTY = 0x0040;
+    private static final int CSS_STATE_VALUE = 0x0080;
+    private static final int CSS_STATE_SELECTOR = 0x0100;
 
     // Formats.
-    private static final int CSS_FORMAT_TEXT       = 0;
-    private static final int CSS_FORMAT_COMMENT    = 1;
-    private static final int CSS_FORMAT_STRING     = 2;
-    private static final int CSS_FORMAT_PROPERTY   = 3;
-    private static final int CSS_FORMAT_BRACE      = 4;
-    private static final int CSS_FORMAT_NUMBER     = 5;
-    private static final int CSS_FORMAT_SELECTOR   = 6;
+    private static final int CSS_FORMAT_TEXT = 0;
+    private static final int CSS_FORMAT_COMMENT = 1;
+    private static final int CSS_FORMAT_STRING = 2;
+    private static final int CSS_FORMAT_PROPERTY = 3;
+    private static final int CSS_FORMAT_BRACE = 4;
+    private static final int CSS_FORMAT_NUMBER = 5;
+    private static final int CSS_FORMAT_SELECTOR = 6;
 
     private static final CSSMode mode = CSSMode.getMode();
 
-    public CSSFormatter(Buffer buffer)
-    {
+    public CSSFormatter(Buffer buffer) {
         this.buffer = buffer;
     }
 
     private int tokenBegin = 0;
 
-    private void endToken(String text, int tokenEnd, int state)
-    {
+    private void endToken(String text, int tokenEnd, int state) {
         if (tokenEnd - tokenBegin > 0) {
             int format = CSS_FORMAT_TEXT;
             if ((state & (CSS_STATE_QUOTE | CSS_STATE_SINGLEQUOTE)) != 0)
@@ -83,8 +80,7 @@ public final class CSSFormatter extends Formatter implements Constants
         }
     }
 
-    private void parseLine(Line line)
-    {
+    private void parseLine(Line line) {
         final String text;
         if (Editor.tabsAreVisible())
             text = Utilities.makeTabsVisible(line.getText(), buffer.getTabWidth());
@@ -105,14 +101,14 @@ public final class CSSFormatter extends Formatter implements Constants
         }
         while (i < limit) {
             final char c = text.charAt(i);
-            if (c == '\\' && i < limit-1) {
+            if (c == '\\' && i < limit - 1) {
                 // Escape character.
                 i += 2;
                 continue;
             }
             if ((state & CSS_STATE_COMMENT) != 0) {
-                if (i < limit-1 && c == '*' && text.charAt(i+1) == '/') {
-                    endToken(text, i+2, state);
+                if (i < limit - 1 && c == '*' && text.charAt(i + 1) == '/') {
+                    endToken(text, i + 2, state);
                     state &= ~CSS_STATE_COMMENT;
                     i += 2;
                 } else
@@ -121,7 +117,7 @@ public final class CSSFormatter extends Formatter implements Constants
             }
             if ((state & CSS_STATE_QUOTE) != 0) {
                 if (c == '"') {
-                    endToken(text, i+1, state);
+                    endToken(text, i + 1, state);
                     state &= ~CSS_STATE_QUOTE;
                 }
                 ++i;
@@ -129,7 +125,7 @@ public final class CSSFormatter extends Formatter implements Constants
             }
             if ((state & CSS_STATE_SINGLEQUOTE) != 0) {
                 if (c == '"') {
-                    endToken(text, i+1, state);
+                    endToken(text, i + 1, state);
                     state &= ~CSS_STATE_SINGLEQUOTE;
                 }
                 ++i;
@@ -149,8 +145,8 @@ public final class CSSFormatter extends Formatter implements Constants
                 continue;
             }
             if (c == '/') {
-                if (i < limit-1) {
-                    if (text.charAt(i+1) == '*') {
+                if (i < limit - 1) {
+                    if (text.charAt(i + 1) == '*') {
                         endToken(text, i, state);
                         state |= CSS_STATE_COMMENT;
                         i += 2;
@@ -179,7 +175,7 @@ public final class CSSFormatter extends Formatter implements Constants
                         // Definitely a number.
                         isNumeric = true;
                     } else if ("abcdefABCDEF".indexOf(c) >= 0) {
-                        if (c == 'e' && i < limit-1 && text.charAt(i+1) == 'm') {
+                        if (c == 'e' && i < limit - 1 && text.charAt(i + 1) == 'm') {
                             // Not a number ("em").
                             isNumeric = false;
                         } else {
@@ -203,7 +199,7 @@ public final class CSSFormatter extends Formatter implements Constants
                         ++i;
                         continue;
                     }
-                    if (c == '-' && i < limit-1 && Character.isDigit(text.charAt(i+1))) {
+                    if (c == '-' && i < limit - 1 && Character.isDigit(text.charAt(i + 1))) {
                         endToken(text, i, state);
                         state |= CSS_STATE_NUMBER;
                         i += 2;
@@ -246,8 +242,7 @@ public final class CSSFormatter extends Formatter implements Constants
         endToken(text, i, state);
     }
 
-    public LineSegmentList formatLine(Line line)
-    {
+    public LineSegmentList formatLine(Line line) {
         clearSegmentList();
         if (line == null) {
             addSegment("", CSS_FORMAT_TEXT);
@@ -257,8 +252,7 @@ public final class CSSFormatter extends Formatter implements Constants
         return segmentList;
     }
 
-    public boolean parseBuffer()
-    {
+    public boolean parseBuffer() {
         int state = 0;
         Line line = buffer.getFirstLine();
         boolean changed = false;
@@ -273,14 +267,14 @@ public final class CSSFormatter extends Formatter implements Constants
             final int limit = line.length();
             for (int i = 0; i < limit; i++) {
                 char c = line.charAt(i);
-                if (c == '\\' && i < limit-1) {
+                if (c == '\\' && i < limit - 1) {
                     // Escape.
                     ++i;
                     continue;
                 }
                 if ((state & CSS_STATE_COMMENT) != 0) {
-                    if (c == '*' && i < limit-1) {
-                        c = line.charAt(i+1);
+                    if (c == '*' && i < limit - 1) {
+                        c = line.charAt(i + 1);
                         if (c == '/') {
                             ++i;
                             state &= ~CSS_STATE_COMMENT;
@@ -307,7 +301,7 @@ public final class CSSFormatter extends Formatter implements Constants
                     state &= ~CSS_STATE_IN_BLOCK;
                     continue;
                 }
-                if (c == '/' && i < limit-1) {
+                if (c == '/' && i < limit - 1) {
                     c = line.charAt(++i);
                     if (c == '*')
                         state |= CSS_STATE_COMMENT;
@@ -323,8 +317,7 @@ public final class CSSFormatter extends Formatter implements Constants
         return changed;
     }
 
-    public FormatTable getFormatTable()
-    {
+    public FormatTable getFormatTable() {
         if (formatTable == null) {
             formatTable = new FormatTable("CSSMode");
             formatTable.addEntryFromPrefs(CSS_FORMAT_TEXT, "text");
