@@ -32,6 +32,7 @@ import org.armedbear.j.Debug;
 import org.armedbear.j.Dispatcher;
 import org.armedbear.j.Display;
 import org.armedbear.j.Editor;
+import org.armedbear.j.FoldCommands;
 import org.armedbear.j.History;
 import org.armedbear.j.InputDialog;
 import org.armedbear.j.Line;
@@ -808,7 +809,7 @@ public abstract class MailboxBuffer extends Buffer {
                     toBeHidden = toBeHidden.next())
                     toBeHidden.hide();
                 renumber();
-                Editor.unhideDotInAllFrames(this);
+                FoldCommands.unhideDotInAllFrames(this);
             }
         }
     }
@@ -838,7 +839,7 @@ public abstract class MailboxBuffer extends Buffer {
             }
         }
         renumber();
-        Editor.unhideDotInAllFrames(this);
+        FoldCommands.unhideDotInAllFrames(this);
     }
 
     protected void refreshBuffer() {

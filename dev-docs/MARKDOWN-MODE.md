@@ -42,7 +42,7 @@ pairs and larger heading fonts have plans of their own,
   `lineNumber * charHeight`, and scrolling steps by `charHeight`. Image lines
   are the only taller lines.
 - **Folding is by indentation** and refuses a line at column 0
-  (`Editor.fold(Line)`), so it cannot fold under a heading. The vim layer has
+  (`FoldCommands.fold(Editor, Line)`), so it cannot fold under a heading. The vim layer has
   no `z` commands.
 - **The sidebar outline** is `Mode.isTaggable()` + `getTagger()` +
   `getSidebarComponent()`, as `JavaTree extends SidebarTree` does.
@@ -199,7 +199,7 @@ Done, tested in `MarkdownOutlineTest`:
 Done, tested in `MarkdownFoldingTest`:
 
 - `Mode.getFoldRange(Editor, Line)` returns the lines to hide, an empty
-  array for nothing, or null for indentation; `Editor.fold` asks it after a
+  array for nothing, or null for indentation; `FoldCommands.fold` asks it after a
   selection and `{{{ }}}`. `Mode.foldAll(Editor)` is `foldMethods` unless a
   mode says otherwise. New commands `toggleFold` and `foldAll`.
 - `MarkdownFolding` folds the innermost of a fence's code, an indented code

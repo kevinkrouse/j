@@ -325,7 +325,7 @@ public final class TagCommands implements Constants {
                     if (pos != null) {
                         CompoundEdit compoundEdit = editor.beginCompoundEdit();
                         ed.addUndo(SimpleEdit.FOLD);
-                        ed.unfoldMethod(pos.getLine());
+                        FoldCommands.unfoldMethod(ed, pos.getLine());
                         ed.moveDotTo(pos);
                         centerTag(ed);
                         ed.endCompoundEdit(compoundEdit);

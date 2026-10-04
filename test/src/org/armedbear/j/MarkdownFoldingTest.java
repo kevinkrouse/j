@@ -59,7 +59,7 @@ public class MarkdownFoldingTest {
     @Test
     public void aHeadingFoldsItsSection() {
         on(SECTIONS).cursor(0, 0);
-        h.editor().fold();
+        FoldCommands.fold(h.editor());
         // The blank line before the next heading stays, to keep them apart.
         assertEquals("# A+||# C|c", visible());
     }
@@ -67,56 +67,56 @@ public class MarkdownFoldingTest {
     @Test
     public void foldingAgainClosesOutward() {
         on(SECTIONS).cursor(4, 0);
-        h.editor().fold();
+        FoldCommands.fold(h.editor());
         assertEquals("# A|text||## B+||# C|c", visible());
         h.assertCursorAt(3, 0);
-        h.editor().fold();
+        FoldCommands.fold(h.editor());
         assertEquals("# A+||# C|c", visible());
         // Opening the outer fold leaves the inner one closed.
         h.cursor(0, 0);
-        h.editor().unfold();
+        FoldCommands.unfold(h.editor());
         assertEquals("# A|text||## B+||# C|c", visible());
     }
 
     @Test
     public void aListItemFoldsItsChildren() {
         on("- a\n  - b\n\n    more\n  - c\n- d").cursor(0, 0);
-        h.editor().fold();
+        FoldCommands.fold(h.editor());
         assertEquals("- a+|- d", visible());
-        h.editor().unfoldAll();
+        FoldCommands.unfoldAll(h.editor());
         // An item without children folds the one it is under.
         h.cursor(4, 0);
-        h.editor().fold();
+        FoldCommands.fold(h.editor());
         assertEquals("- a+|- d", visible());
     }
 
     @Test
     public void aFenceFoldsItsCode() {
         on("# A\n```\nx\n# not a heading\n```\nafter").cursor(2, 0);
-        h.editor().fold();
+        FoldCommands.fold(h.editor());
         assertEquals("# A|```+|after", visible());
     }
 
     @Test
     public void aSetextHeadingKeepsItsUnderline() {
         on("A\n===\nbody\n\nB\n===\nmore").cursor(0, 0);
-        h.editor().fold();
+        FoldCommands.fold(h.editor());
         assertEquals("A|===+||B|===|more", visible());
     }
 
     @Test
     public void toggleFoldOpensWhatItClosed() {
         on(SECTIONS).cursor(0, 0);
-        h.editor().toggleFold();
+        FoldCommands.toggleFold(h.editor());
         assertEquals("# A+||# C|c", visible());
-        h.editor().toggleFold();
+        FoldCommands.toggleFold(h.editor());
         assertEquals("# A|text||## B|b||# C|c", visible());
     }
 
     @Test
     public void undoOpensAFold() {
         on(SECTIONS).cursor(0, 0);
-        h.editor().fold();
+        FoldCommands.fold(h.editor());
         h.editor().undo();
         assertEquals("# A|text||## B|b||# C|c", visible());
     }
@@ -179,21 +179,21 @@ public class MarkdownFoldingTest {
     @Test
     public void aBlankLineIsAsFarInAsTheLineAfterIt() {
         on("- a\n  - b\n\n    more\n  - c\n- d").cursor(2, 0);
-        h.editor().fold();
+        FoldCommands.fold(h.editor());
         assertEquals("- a|  - b+|  - c|- d", visible());
     }
 
     @Test
     public void anIndentedCodeBlockFoldsButItsFirstLine() {
         on("# H\npara\n\n    code1\n\n    code2\nafter").cursor(5, 0);
-        h.editor().fold();
+        FoldCommands.fold(h.editor());
         assertEquals("# H|para||    code1+|after", visible());
     }
 
     @Test
     public void nothingToFoldSaysSo() {
         on("just text\nmore").cursor(0, 0);
-        h.editor().fold();
+        FoldCommands.fold(h.editor());
         assertEquals("just text|more", visible());
         assertTrue(h.status().contains("Nothing to fold"), h.status());
     }
@@ -213,7 +213,7 @@ public class MarkdownFoldingTest {
     public void foldAllWhereThereIsNothingToFoldSaysSo() {
         h = EditorHarness.create("one\n  two\n").mode(PlainTextMode.getMode());
         Editor.setCurrentEditor(h.editor());
-        h.editor().foldAll();
+        FoldCommands.foldAll(h.editor());
         assertEquals("one|  two", visible());
         assertTrue(h.status().contains("Nothing to fold"), h.status());
     }

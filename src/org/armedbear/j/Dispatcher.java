@@ -496,11 +496,11 @@ public final class Dispatcher implements Constants, KeyListener, MouseListener,
             Position pos = display.positionFromPoint(x, y);
             Line next = pos.getLine().next();
             if (next != null && next.isHidden()) {
-                editor.unfold(next);
+                FoldCommands.unfold(editor, next);
                 return true;
             } else if (button == MouseEvent.BUTTON2 && modifiers == 0) {
                 // Middle button.
-                editor.foldNearLine(pos.getLine());
+                FoldCommands.foldNearLine(editor, pos.getLine());
                 return true;
             }
             // else fall through...
@@ -510,18 +510,18 @@ public final class Dispatcher implements Constants, KeyListener, MouseListener,
                 Line next = pos.getLine().next();
                 if (next != null) {
                     if (next.isHidden()) {
-                        editor.unfold(next);
+                        FoldCommands.unfold(editor, next);
                         return true;
                     } else if (next.trim().endsWith("{")) {
                         next = next.next();
                         if (next != null && next.isHidden()) {
-                            editor.unfold(next);
+                            FoldCommands.unfold(editor, next);
                             return true;
                         }
                     }
                 }
                 // Couldn't find a fold to expand.
-                editor.foldNearLine(pos.getLine());
+                FoldCommands.foldNearLine(editor, pos.getLine());
                 return true;
             }
             // else fall through...

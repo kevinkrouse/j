@@ -184,7 +184,7 @@ public class LocalTag extends Tag implements Constants {
         if (editor.getBuffer().contains(pos.getLine())) {
             CompoundEdit compoundEdit = editor.beginCompoundEdit();
             editor.addUndo(SimpleEdit.FOLD);
-            editor.unfoldMethod(pos.getLine());
+            FoldCommands.unfoldMethod(editor, pos.getLine());
             editor.moveDotTo(pos);
             TagCommands.centerTag(editor);
             editor.endCompoundEdit(compoundEdit);

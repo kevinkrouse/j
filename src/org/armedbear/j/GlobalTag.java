@@ -211,7 +211,7 @@ public final class GlobalTag extends Tag {
             if (pos != null) {
                 CompoundEdit compoundEdit = editor.beginCompoundEdit();
                 editor.addUndo(SimpleEdit.FOLD);
-                editor.unfoldMethod(pos.getLine());
+                FoldCommands.unfoldMethod(editor, pos.getLine());
                 editor.moveDotTo(pos);
                 TagCommands.centerTag(editor);
                 editor.endCompoundEdit(compoundEdit);

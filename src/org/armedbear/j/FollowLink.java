@@ -219,7 +219,7 @@ public final class FollowLink {
                 return;
             }
             if (line.isHidden())
-                editor.unfold(line);
+                FoldCommands.unfold(editor, line);
             editor.moveDotTo(new Position(line, 0));
             TagCommands.centerTag(editor);
         }

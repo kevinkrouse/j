@@ -22,6 +22,7 @@ package org.armedbear.j.mode.markdown;
 
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Editor;
+import org.armedbear.j.FoldCommands;
 import org.armedbear.j.Line;
 
 /**
@@ -242,7 +243,7 @@ public final class MarkdownFolding {
         }
         // What comes before the first heading stays: there is nothing above
         // it to fold it into.
-        editor.showOnly(first, line -> {
+        FoldCommands.showOnly(editor, first, line -> {
             final int n = level(line);
             return n > 0 && n <= depth
                 || line.previous() != null

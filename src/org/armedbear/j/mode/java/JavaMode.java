@@ -36,6 +36,7 @@ import org.armedbear.j.Dispatcher;
 import org.armedbear.j.Display;
 import org.armedbear.j.Editor;
 import org.armedbear.j.Expression;
+import org.armedbear.j.FoldCommands;
 import org.armedbear.j.Formatter;
 import org.armedbear.j.KeyMap;
 import org.armedbear.j.Keywords;
@@ -262,7 +263,7 @@ public class JavaMode extends AbstractMode implements Constants, Mode {
     }
 
     public void foldAll(Editor editor) {
-        editor.foldMethods();
+        FoldCommands.foldMethods(editor);
     }
 
     public boolean hasQualifiedNames() {
