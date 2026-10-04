@@ -20,119 +20,97 @@
 
 package org.armedbear.j.mode.image;
 
+import java.awt.Image;
+import java.awt.Rectangle;
 import org.armedbear.j.AbstractLine;
 import org.armedbear.j.Display;
 import org.armedbear.j.Line;
 
-import java.awt.Image;
-import java.awt.Rectangle;
-
-public final class ImageLine extends AbstractLine implements Line
-{
+public final class ImageLine extends AbstractLine implements Line {
     private Image image;
     private final int imageHeight;
     private final int imageWidth;
     private final int height;
     private final Rectangle rect;
 
-    public ImageLine(Image image, Rectangle r)
-    {
+    public ImageLine(Image image, Rectangle r) {
         this.image = image;
         rect = new Rectangle(r);
-        height = Math.max(r.height, Display.getCharHeight());;
+        height = Math.max(r.height, Display.getCharHeight());
+        ;
         imageHeight = r.height;
         imageWidth = r.width;
     }
 
-    public final Image getImage()
-    {
+    public final Image getImage() {
         return image;
     }
 
-    public final Rectangle getRect()
-    {
+    public final Rectangle getRect() {
         return rect;
     }
 
-    public final int getImageHeight()
-    {
+    public final int getImageHeight() {
         return imageHeight;
 
     }
 
-    public final int getImageWidth()
-    {
+    public final int getImageWidth() {
         return imageWidth;
     }
 
-    public final int getHeight()
-    {
+    public final int getHeight() {
         return height;
     }
 
-    public final int getWidth()
-    {
+    public final int getWidth() {
         return getImageWidth();
     }
 
-    public final int flags()
-    {
+    public final int flags() {
         return 0;
     }
 
-    public final void setFlags(int flags)
-    {
-    }
+    public final void setFlags(int flags) {}
 
-    public String getText()
-    {
+    public String getText() {
         return null;
     }
 
-    public final void setText(String s)
-    {
-    }
+    public final void setText(String s) {}
 
-    public final char charAt(int i)
-    {
+    public final char charAt(int i) {
         return '\0';
     }
 
-    public final String substring(int beginIndex)
-    {
+    public final String substring(int beginIndex) {
         return null;
     }
 
-    public final String substring(int beginIndex, int endIndex)
-    {
+    public final String substring(int beginIndex, int endIndex) {
         return null;
     }
 
-    public final String trim()
-    {
+    public final String trim() {
         return null;
     }
 
-    public final int length()
-    {
+    public final int length() {
         return 0;
     }
 
-    public final byte[] getBytes(String encoding)
-    {
+    public final byte[] getBytes(String encoding) {
         return null;
     }
 
-    public final boolean isBlank()
-    {
+    public final boolean isBlank() {
         return false;
     }
-    
-    public final void flushImage()
-    {
+
+    public final void flushImage() {
         if (image != null) {
             image.flush();
             image = null;
-        }        
+        }
     }
 }
