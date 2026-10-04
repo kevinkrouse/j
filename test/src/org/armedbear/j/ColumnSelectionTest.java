@@ -71,7 +71,7 @@ public class ColumnSelectionTest {
     public void cutIsOneUndoStep() {
         final Editor editor = select("abcd\nefgh\nijkl", 0, 1, 2, 3);
         ClipboardCommands.killRegion(editor);
-        editor.undo();
+        EditCommands.undo(editor);
         assertEquals("abcd\nefgh\nijkl", h.value());
     }
 

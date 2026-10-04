@@ -75,7 +75,7 @@ in comments and strings).
 
 ## For j
 
-- An `ElectricPairs` handler under `Editor.insertNormalChar`, so typing in
+- An `ElectricPairs` handler under `EditCommands.insertNormalChar`, so typing in
   simple and vim insert mode both go through it, with
   `Mode.getPairs()` giving a mode's pairs: `()`, `[]`, `{}`, `""` by
   default, `''` and `<>` where they pair.

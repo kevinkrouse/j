@@ -34,6 +34,7 @@ import org.armedbear.j.Constants;
 import org.armedbear.j.Debug;
 import org.armedbear.j.Dispatcher;
 import org.armedbear.j.Display;
+import org.armedbear.j.EditCommands;
 import org.armedbear.j.Editor;
 import org.armedbear.j.Expression;
 import org.armedbear.j.FoldCommands;
@@ -1095,7 +1096,7 @@ public class JavaMode extends AbstractMode implements Constants, Mode {
             if (c == '\\' && i < limit - 1) {
                 c = toBeInserted.charAt(++i);
                 if (c == 'n') {
-                    editor.newlineAndIndent();
+                    EditCommands.newlineAndIndent(editor);
                     continue;
                 }
                 // Otherwise fall through...
@@ -1130,14 +1131,14 @@ public class JavaMode extends AbstractMode implements Constants, Mode {
         }
         if (commentPrefix == null) {
             // No special handling necessary.
-            editor.newlineAndIndent();
+            EditCommands.newlineAndIndent(editor);
             return;
         }
         CompoundEdit compoundEdit = buffer.beginCompoundEdit();
         if (editor.getMark() != null)
             editor.deleteRegion();
         editor.addUndo(SimpleEdit.INSERT_LINE_SEP);
-        editor.insertLineSeparator();
+        EditCommands.insertLineSeparator(editor);
         // Trim leading whitespace. (This code actually trims trailing
         // whitespace too.)
         editor.addUndo(SimpleEdit.LINE_EDIT);

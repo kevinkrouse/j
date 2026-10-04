@@ -13,6 +13,7 @@ package org.armedbear.j.vim;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import org.armedbear.j.EditCommands;
 import org.armedbear.j.EditorHarness;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -118,7 +119,7 @@ public class VimRepeatTest {
     public void repeatingIsUndoableAsItsOwnStep() {
         vim("abcdef\n").cursor(0, 0).keys("x.");
         h.assertText("cdef\n");
-        h.editor().undo();
+        EditCommands.undo(h.editor());
         h.assertText("bcdef\n");
     }
 

@@ -16,6 +16,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 
+import org.armedbear.j.EditCommands;
 import org.armedbear.j.EditorHarness;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -176,7 +177,7 @@ public class VimModeTest {
         vim("alpha\n").cursor(0, 0).keys("ione two three<Esc>");
         h.assertText("one two threealpha\n");
 
-        h.editor().undo();
+        EditCommands.undo(h.editor());
         h.assertText("alpha\n");
     }
 
@@ -185,7 +186,7 @@ public class VimModeTest {
         vim("alpha\n").cursor(0, 5).keys("i<CR>second<CR>third<Esc>");
         h.assertText("alpha\nsecond\nthird\n");
 
-        h.editor().undo();
+        EditCommands.undo(h.editor());
         h.assertText("alpha\n");
     }
 

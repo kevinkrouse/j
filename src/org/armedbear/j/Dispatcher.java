@@ -302,7 +302,7 @@ public final class Dispatcher implements Constants, KeyListener, MouseListener,
             } else if (!Character.isISOControl(c)) {
                 if (Editor.isRecordingMacro())
                     Macro.record(editor, c);
-                editor.insertNormalChar(c);
+                EditCommands.insertNormalChar(editor, c);
             }
             handled = true;
         }

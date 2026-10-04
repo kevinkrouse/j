@@ -320,7 +320,7 @@ public final class ReplaceDialog extends AbstractDialog implements Constants,
             Position pos = replacement.find(buffer, editor.getDot());
             if (pos == null) {
                 editor.endCompoundEdit(compoundEdit);
-                editor.undo();
+                EditCommands.undo(editor);
                 replacement.notFound(editor);
                 return;
             }
@@ -377,7 +377,7 @@ public final class ReplaceDialog extends AbstractDialog implements Constants,
         editor.endCompoundEdit(compoundEdit);
         int replacementCount = replacement.getReplacementCount();
         if (replacementCount == 0) {
-            editor.undo();
+            EditCommands.undo(editor);
         } else {
             StringBuilder sb =
                 new StringBuilder(String.valueOf(replacementCount));

@@ -27,6 +27,7 @@ import org.armedbear.j.Buffer;
 import org.armedbear.j.Constants;
 import org.armedbear.j.Debug;
 import org.armedbear.j.Directories;
+import org.armedbear.j.EditCommands;
 import org.armedbear.j.Editor;
 import org.armedbear.j.File;
 import org.armedbear.j.Frame;
@@ -283,7 +284,7 @@ public final class MailCommands implements Constants {
                 ||
                 dotOffset != dotLine.length()
         ) {
-            editor.insertNormalChar(':');
+            EditCommands.insertNormalChar(editor, ':');
             return;
         }
         final SendMail sm = (SendMail) editor.getBuffer();
@@ -300,7 +301,7 @@ public final class MailCommands implements Constants {
             if (i == dotOffset) {
                 // The colon we're inserting will be the first non-whitespace
                 // character.
-                editor.insertNormalChar(':');
+                EditCommands.insertNormalChar(editor, ':');
                 return;
             }
             final int begin = i;
@@ -308,7 +309,7 @@ public final class MailCommands implements Constants {
                 char c = dotLine.charAt(i);
                 if (c == ' ' || c == '\t') {
                     // Whitespace after non-whitespace: don't be electric.
-                    editor.insertNormalChar(':');
+                    EditCommands.insertNormalChar(editor, ':');
                     return;
                 }
             }
@@ -322,7 +323,7 @@ public final class MailCommands implements Constants {
             editor.moveCaretToDotCol();
             Editor.updateInAllEditors(dotLine);
         } else
-            editor.insertNormalChar(':');
+            EditCommands.insertNormalChar(editor, ':');
     }
 
     public static void sendMailTab() {

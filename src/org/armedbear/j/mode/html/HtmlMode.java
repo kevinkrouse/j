@@ -38,6 +38,7 @@ import org.armedbear.j.Buffer;
 import org.armedbear.j.CaretCommands;
 import org.armedbear.j.Constants;
 import org.armedbear.j.Debug;
+import org.armedbear.j.EditCommands;
 import org.armedbear.j.Editor;
 import org.armedbear.j.Formatter;
 import org.armedbear.j.IndentCommands;
@@ -528,7 +529,7 @@ public final class HtmlMode extends AbstractMode implements Constants, Mode {
             editor.moveCaretToDotCol();
             editor.endCompoundEdit(compoundEdit);
         } else
-            editor.insertNormalChar('=');
+            EditCommands.insertNormalChar(editor, '=');
     }
 
     public static void htmlFindMatch() {

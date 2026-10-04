@@ -30,6 +30,7 @@ import org.armedbear.j.Buffer;
 import org.armedbear.j.Debug;
 import org.armedbear.j.Directories;
 import org.armedbear.j.Display;
+import org.armedbear.j.EditCommands;
 import org.armedbear.j.Editor;
 import org.armedbear.j.ElectricCommands;
 import org.armedbear.j.File;
@@ -285,7 +286,7 @@ public class LispShellBuffer extends ShellBuffer {
             return;
         }
         if (dot.isBefore(endOfOutput)) {
-            editor.newlineAndIndent();
+            EditCommands.newlineAndIndent(editor);
             return; // For now.
         }
         final Line promptLine = endOfOutput.getLine();
@@ -302,12 +303,12 @@ public class LispShellBuffer extends ShellBuffer {
             // Complete sexp.
             MotionCommands.eob(editor);
             if (atPrompt) {
-                editor.insertLineSeparator();
+                EditCommands.insertLineSeparator(editor);
                 editor.getDotLine().setFlags(0);
             }
         } else {
             // Not complete; multiline input.
-            editor.newline();
+            EditCommands.newline(editor);
             editor.getDotLine().setFlags(STATE_INPUT);
         }
         if (needsRenumbering())
@@ -366,7 +367,7 @@ public class LispShellBuffer extends ShellBuffer {
             }
             MotionCommands.eob(editor);
             if (atPrompt) {
-                editor.insertLineSeparator();
+                EditCommands.insertLineSeparator(editor);
                 editor.getDotLine().setFlags(0);
             }
         }

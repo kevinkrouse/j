@@ -16,6 +16,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 
+import org.armedbear.j.EditCommands;
 import org.armedbear.j.EditorHarness;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -183,7 +184,7 @@ public class VimVisualTest {
     public void aVisualDeleteUndoesInOneStep() {
         vim("one\ntwo\nthree\n").cursor(0, 0).keys("Vjd");
         h.assertText("three\n");
-        h.editor().undo();
+        EditCommands.undo(h.editor());
         h.assertText("one\ntwo\nthree\n");
     }
 }

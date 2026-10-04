@@ -31,7 +31,7 @@ public final class ElectricCommands {
 
     public static void closeParen(Editor editor) {
         final Display display = editor.getDisplay();
-        editor.insertNormalChar(')');
+        EditCommands.insertNormalChar(editor, ')');
         if (
             Editor.preferences().getBooleanProperty(Property.HIGHLIGHT_MATCHING_BRACKET)
                 ||
@@ -74,7 +74,7 @@ public final class ElectricCommands {
                 ||
                 editor.getMode().isInQuote(editor.getBuffer(), editor.getDot())
         ) {
-            editor.insertNormalChar(';');
+            EditCommands.insertNormalChar(editor, ';');
         } else {
             CompoundEdit compoundEdit = editor.beginCompoundEdit();
             editor.insertChar(';');
@@ -89,7 +89,7 @@ public final class ElectricCommands {
                         b = false;
                 }
                 if (b)
-                    editor.newlineAndIndent();
+                    EditCommands.newlineAndIndent(editor);
             }
             editor.endCompoundEdit(compoundEdit);
         }
@@ -107,11 +107,11 @@ public final class ElectricCommands {
         final Line dotLine = editor.getDotLine();
         final int dotOffset = editor.getDotOffset();
         if (editor.getMark() != null || dotOffset != dotLine.length()) {
-            editor.insertNormalChar(':');
+            EditCommands.insertNormalChar(editor, ':');
             return;
         }
         if (dotLine.flags() == STATE_COMMENT || editor.getMode().isInQuote(editor.getBuffer(), editor.getDot())) {
-            editor.insertNormalChar(':');
+            EditCommands.insertNormalChar(editor, ':');
             return;
         }
         CompoundEdit compoundEdit = editor.beginCompoundEdit();
@@ -119,7 +119,7 @@ public final class ElectricCommands {
         editor.moveCaretToDotCol();
         IndentCommands.indentLine(editor);
         if (editor.getBuffer().getBooleanProperty(Property.AUTO_NEWLINE))
-            editor.newlineAndIndent();
+            EditCommands.newlineAndIndent(editor);
         editor.endCompoundEdit(compoundEdit);
     }
 
@@ -136,11 +136,11 @@ public final class ElectricCommands {
                     editor.getBuffer().repaint();
             }
             CompoundEdit compoundEdit = editor.beginCompoundEdit();
-            editor.insertNormalChar('*');
+            EditCommands.insertNormalChar(editor, '*');
             IndentCommands.indentLine(editor);
             editor.endCompoundEdit(compoundEdit);
         } else
-            editor.insertNormalChar('*');
+            EditCommands.insertNormalChar(editor, '*');
     }
 
     public static void electricPound(Editor editor) {
@@ -157,7 +157,7 @@ public final class ElectricCommands {
             Editor.updateInAllEditors(editor.getDotLine());
             editor.moveCaretToDotCol();
         } else
-            editor.insertNormalChar('#');
+            EditCommands.insertNormalChar(editor, '#');
     }
 
     public static void electricOpenBrace(Editor editor) {
@@ -180,9 +180,9 @@ public final class ElectricCommands {
             IndentCommands.indentLine(editor);
             MotionCommands.eol(editor);
             if (editor.getBuffer().getBooleanProperty(Property.AUTO_NEWLINE))
-                editor.newlineAndIndent();
+                EditCommands.newlineAndIndent(editor);
         } else {
-            editor.insertNormalChar(c);
+            EditCommands.insertNormalChar(editor, c);
             IndentCommands.indentLine(editor);
         }
         editor.endCompoundEdit(compoundEdit);
@@ -217,7 +217,7 @@ public final class ElectricCommands {
             }
         }
         // Otherwise...
-        editor.insertNormalChar('>');
+        EditCommands.insertNormalChar(editor, '>');
     }
 
     public static void insertBraces(Editor editor) {
@@ -225,12 +225,12 @@ public final class ElectricCommands {
         editor.insertChar('{');
         IndentCommands.indentLine(editor);
         MotionCommands.eol(editor);
-        editor.newlineAndIndent();
+        EditCommands.newlineAndIndent(editor);
         editor.insertChar('}');
         IndentCommands.indentLine(editor);
         MotionCommands.up(editor);
         MotionCommands.eol(editor);
-        editor.newlineAndIndent();
+        EditCommands.newlineAndIndent(editor);
         editor.endCompoundEdit(compoundEdit);
     }
 
@@ -296,11 +296,11 @@ public final class ElectricCommands {
                     IndentCommands.justOneSpace(editor);
                     editor.addUndo(SimpleEdit.MOVE);
                     editor.getDot().skip(-1);
-                    editor.deleteNormalChar();
+                    EditCommands.deleteNormalChar(editor);
                 }
                 editor.addUndo(SimpleEdit.MOVE);
                 editor.getDot().next();
-                editor.newlineAndIndent();
+                EditCommands.newlineAndIndent(editor);
                 editor.endCompoundEdit(compoundEdit);
             });
         }
@@ -311,7 +311,7 @@ public final class ElectricCommands {
         if (editor.getDotChar() == '"') {
             editor.addUndo(SimpleEdit.MOVE);
             editor.getDot().skip(1);
-            editor.newlineAndIndent();
+            EditCommands.newlineAndIndent(editor);
         } else {
             editor.fillToCaret();
             editor.addUndo(SimpleEdit.INSERT_STRING);

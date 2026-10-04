@@ -19,6 +19,7 @@ import org.armedbear.j.Block;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.CommandTable;
 import org.armedbear.j.Constants;
+import org.armedbear.j.EditCommands;
 import org.armedbear.j.Editor;
 import org.armedbear.j.InputHandler;
 import org.armedbear.j.JEvent;
@@ -855,7 +856,7 @@ public final class VimInputHandler implements InputHandler {
             if (state.getMode() == VimMode.REPLACE)
                 VimActions.replaceBackspace(editor, state);
             else
-                editor.backspace();
+                EditCommands.backspace(editor);
             state.insertDeletedBack(editor);
         } else if (stroke.keyCode == KeyEvent.VK_ENTER) {
             VimActions.insertNewline(
@@ -889,7 +890,7 @@ public final class VimInputHandler implements InputHandler {
                     stroke.keyChar
                 );
             else
-                editor.insertNormalChar(stroke.keyChar);
+                EditCommands.insertNormalChar(editor, stroke.keyChar);
             state.forgetAutoIndent();
         }
     }

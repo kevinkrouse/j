@@ -354,7 +354,7 @@ public final class ClipboardCommands {
             editor.setWaitCursor();
             String s = Editor.getKillRing().popNext();
             if (s != null) {
-                editor.undo();
+                EditCommands.undo(editor);
                 paste(editor, s);
                 editor.setCurrentCommand(COMMAND_PASTE);
             }

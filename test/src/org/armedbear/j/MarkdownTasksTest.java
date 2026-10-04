@@ -126,7 +126,7 @@ public class MarkdownTasksTest {
         select(0, 0, 1, 3);
         MarkdownTasks.task();
         h.assertText("- [ ] a\n- [ ] b\n");
-        h.editor().undo();
+        EditCommands.undo(h.editor());
         h.assertText("- a\n- b\n");
     }
 
@@ -199,7 +199,7 @@ public class MarkdownTasksTest {
         on("- a\n- b\n");
         select(0, 0, 1, 3);
         MarkdownTasks.task();
-        h.editor().undo();
+        EditCommands.undo(h.editor());
         h.assertCursorAt(1, 3);
     }
 

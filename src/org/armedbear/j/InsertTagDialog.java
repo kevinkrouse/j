@@ -106,7 +106,7 @@ public final class InsertTagDialog extends InputDialog implements Constants {
                 Editor.updateInAllEditors(editor.getDotLine());
                 if (wantNewLine) {
                     editor.addUndo(SimpleEdit.INSERT_LINE_SEP);
-                    editor.insertLineSeparator();
+                    EditCommands.insertLineSeparator(editor);
                 }
             }
             editor.moveDotTo(r.getBegin());
@@ -117,7 +117,7 @@ public final class InsertTagDialog extends InputDialog implements Constants {
             if (wantNewLine) {
                 Line startTagLine = editor.getDotLine();
                 editor.addUndo(SimpleEdit.INSERT_LINE_SEP);
-                editor.insertLineSeparator();
+                EditCommands.insertLineSeparator(editor);
                 if (buffer.getBooleanProperty(Property.AUTO_INDENT)) {
                     // Re-indent.
                     // Move dot to start of region.

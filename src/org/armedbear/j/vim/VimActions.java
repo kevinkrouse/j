@@ -22,6 +22,7 @@ import javax.swing.undo.UndoableEdit;
 import org.armedbear.j.Block;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.CaretCommands;
+import org.armedbear.j.EditCommands;
 import org.armedbear.j.Editor;
 import org.armedbear.j.IndentCommands;
 import org.armedbear.j.JEvent;
@@ -334,7 +335,7 @@ public final class VimActions {
             while (editor.getDot().getOffset() > to)
                 replaceBackspace(editor, state);
         } else if (caret == 0) {
-            editor.backspace();
+            EditCommands.backspace(editor);
         } else {
             editor.deleteRegion(new Position(line, to), new Position(dot));
         }
@@ -991,7 +992,7 @@ public final class VimActions {
         if (after) {
             editor.setDot(dot.getLine(), dot.getLineLength());
             editor.moveCaretToDotCol();
-            editor.newlineAndIndent();
+            EditCommands.newlineAndIndent(editor);
         } else {
             // A plain split: newlineAndIndent would reindent the line below,
             // which O must leave alone. The new line is indented as o's is:
@@ -1001,7 +1002,7 @@ public final class VimActions {
             final String indent = VimOperators.leadingBlanks(dot.getLine());
             editor.setDot(dot.getLine(), 0);
             editor.moveCaretToDotCol();
-            editor.newline();
+            EditCommands.newline(editor);
             final Position now = editor.getDot();
             final Line opened = now == null ? null : now.getLine().previous();
             if (opened != null) {

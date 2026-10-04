@@ -226,7 +226,7 @@ public class Expansion implements Constants {
             return;
         buffer.withWriteLock(() -> {
             if (again)
-                editor.undo();
+                EditCommands.undo(editor);
 
             CompoundEdit compoundEdit = buffer.beginCompoundEdit();
             editor.addUndo(SimpleEdit.MOVE);

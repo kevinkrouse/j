@@ -183,7 +183,7 @@ public class CommandInterpreterBuffer extends Buffer {
         if (dotLine.flags() == 0)
             dotLine.setFlags(STATE_INPUT);
         MotionCommands.eol(editor);
-        editor.insertLineSeparator();
+        EditCommands.insertLineSeparator(editor);
         if (needsRenumbering)
             renumber();
         editor.getDotLine().setFlags(0);
@@ -288,7 +288,7 @@ public class CommandInterpreterBuffer extends Buffer {
             }
         }
         if (ok)
-            editor.backspace();
+            EditCommands.backspace(editor);
     }
 
     private void previousInput() {

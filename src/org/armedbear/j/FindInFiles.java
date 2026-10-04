@@ -646,7 +646,7 @@ public final class FindInFiles extends Replacement implements Constants,
         if (pos == null) {
             // Not found.
             buffer.endCompoundEdit(compoundEdit);
-            editor.undo();
+            EditCommands.undo(editor);
             return;
         }
         final boolean wasModified = buffer.isModified();

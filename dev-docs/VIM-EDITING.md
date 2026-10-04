@@ -626,7 +626,7 @@ Each of these has bitten at least once. Read them before editing.
     log filled up. j's commands take it themselves; vim's `u`, `<C-r>`,
     `:sort` and `Block` did not. `Buffer.withWriteLock` takes it, and the
     harness now fails a test that logged an error. Tests call
-    `Editor.undo()`, which locks, not `Buffer.undo()`.
+    `EditCommands.undo`, which locks, not `Buffer.undo()`.
 38. **A vimrc `noremap` was recursive.** Its keys went back through the
     whole map, so `vnoremap < <gv` found itself and logged "key map
     recursion". `VimKeyMap` now keeps the table as it was before the vimrc

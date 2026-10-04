@@ -151,7 +151,7 @@ public final class Macro implements Constants {
                 } else if (object instanceof ScriptFunction) {
                     ((ScriptFunction) object).invoke();
                 } else if (object instanceof Character) {
-                    editor.insertNormalChar(((Character) object).charValue());
+                    EditCommands.insertNormalChar(editor, ((Character) object).charValue());
                 }
                 editor.setLastCommand(editor.getCurrentCommand());
             }

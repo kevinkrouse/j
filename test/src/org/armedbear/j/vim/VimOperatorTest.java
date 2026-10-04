@@ -13,6 +13,7 @@ package org.armedbear.j.vim;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import org.armedbear.j.EditCommands;
 import org.armedbear.j.EditorHarness;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -217,7 +218,7 @@ public class VimOperatorTest {
     public void aDeleteUndoesInOneStep() {
         vim("one two three\n").cursor(0, 0).keys("2dw");
         h.assertText("three\n");
-        h.editor().undo();
+        EditCommands.undo(h.editor());
         h.assertText("one two three\n");
     }
 
@@ -225,7 +226,7 @@ public class VimOperatorTest {
     public void aChangeUndoesTheDeleteAndTheInsertTogether() {
         vim("alpha bravo\n").cursor(0, 0).keys("cwXY<Esc>");
         h.assertText("XY bravo\n");
-        h.editor().undo();
+        EditCommands.undo(h.editor());
         h.assertText("alpha bravo\n");
     }
 

@@ -117,7 +117,7 @@ public class MarkdownFoldingTest {
     public void undoOpensAFold() {
         on(SECTIONS).cursor(0, 0);
         FoldCommands.fold(h.editor());
-        h.editor().undo();
+        EditCommands.undo(h.editor());
         assertEquals("# A|text||## B|b||# C|c", visible());
     }
 

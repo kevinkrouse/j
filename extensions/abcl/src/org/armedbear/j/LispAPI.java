@@ -1213,7 +1213,7 @@ public final class LispAPI {
                         if (obj instanceof LispCharacter) {
                             char c = ((LispCharacter) obj).value;
                             if (c == '\n') {
-                                editor.insertLineSeparator();
+                                EditCommands.insertLineSeparator(editor);
                                 editor.moveCaretToDotCol();
                             } else
                                 editor.insertChar(c);
@@ -1288,7 +1288,7 @@ public final class LispAPI {
     private static final Primitive UNDO =
         new Primitive("undo", PACKAGE_J, true, "&optional count") {
             public LispObject execute() {
-                Editor.currentEditor().undo();
+                EditCommands.undo(Editor.currentEditor());
                 return NIL;
             }
 
@@ -1300,7 +1300,7 @@ public final class LispAPI {
                 else
                     count = Fixnum.getValue(arg);
                 for (int i = 0; i < count; i++)
-                    editor.undo();
+                    EditCommands.undo(editor);
                 return NIL;
             }
         };

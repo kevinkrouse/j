@@ -39,13 +39,10 @@ import java.awt.event.MouseWheelEvent;
 import java.awt.event.MouseWheelListener;
 import java.awt.event.WindowEvent;
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import java.lang.StringBuilder;
 import java.lang.reflect.InvocationTargetException;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.List;
@@ -1255,140 +1252,6 @@ public final class Editor extends JPanel implements Constants,
             bookmarks[index] = marker;
     }
 
-    public void deleteLineSeparator() {
-        final Line dotLine = getDotLine();
-        final Line nextLine = dotLine.next();
-        if (nextLine == null)
-            return;
-        buffer.withWriteLock(() -> {
-            if (dotLine.length() == 0) {
-                adjustMarkers(dotLine);
-                // Save original text.
-                StringBuilder sb = new StringBuilder();
-                if (dotLine.getOriginalText() != null)
-                    sb.append(dotLine.getOriginalText());
-                sb.append('\n');
-                if (nextLine.getOriginalText() != null)
-                    sb.append(nextLine.getOriginalText());
-                else
-                    sb.append(nextLine.getText());
-                nextLine.setOriginalText(sb.toString());
-                // Unlink the current line.
-                final Line prevLine = dotLine.previous();
-                if (prevLine != null)
-                    prevLine.setNext(nextLine);
-                nextLine.setPrevious(prevLine);
-                if (dotLine == buffer.getFirstLine()) {
-                    Log.debug("deleteLineSeparator calling buffer.setFirstLine()");
-                    buffer.setFirstLine(nextLine);
-                    Log.debug("first line = |" + buffer.getFirstLine().getText() + "|");
-                }
-                if (dotLine == display.getTopLine())
-                    display.setTopLine(nextLine);
-                dot.moveTo(nextLine, 0);
-            } else {
-                // Append the next line's text to end of this line.
-                dotLine.setText(dotLine.getText() + nextLine.getText());
-                // Save original text.
-                StringBuilder sb = new StringBuilder();
-                if (dotLine.getOriginalText() != null)
-                    sb.append(dotLine.getOriginalText());
-                else
-                    sb.append(dotLine.getText());
-                if (!nextLine.isNew()) {
-                    sb.append('\n');
-                    if (nextLine.getOriginalText() != null)
-                        sb.append(nextLine.getOriginalText());
-                    else
-                        sb.append(nextLine.getText());
-                }
-                dotLine.setOriginalText(sb.toString());
-                // Move any markers that might be on the next line.
-                adjustMarkers(nextLine);
-                // Unlink the next line.
-                if (nextLine.next() != null)
-                    nextLine.next().setPrevious(dotLine);
-                dotLine.setNext(nextLine.next());
-            }
-            buffer.repaint();
-            setUpdateFlag(REFRAME);
-            buffer.needsRenumbering = true;
-            buffer.modified();
-        });
-    }
-
-    void deleteNormalChar() {
-        addUndo(SimpleEdit.LINE_EDIT);
-        final Line dotLine = getDotLine();
-        final int dotOffset = getDotOffset();
-        String head = dotLine.substring(0, dotOffset);
-        String tail = "";
-        if (dotOffset < dotLine.length() - 1)
-            tail = dotLine.substring(dotOffset + 1);
-        dotLine.setText(head.concat(tail));
-        buffer.modified();
-        updateInAllEditors(dotLine);
-    }
-
-    // A deletion, not a kill!
-    public void delete() {
-        if (!checkReadOnly())
-            return;
-        buffer.withWriteLock(() -> {
-            if (mark != null) {
-                deleteRegion();
-            } else {
-                final Line dotLine = getDotLine();
-                final int dotOffset = getDotOffset();
-                final int length = dotLine.length();
-                if (dotOffset < length) {
-                    deleteNormalChar();
-                } else if (dotOffset == length) {
-                    if (dotLine.next() != null) {
-                        CompoundEdit compoundEdit = beginCompoundEdit();
-                        fillToCaret();
-                        addUndo(SimpleEdit.DELETE_LINE_SEP);
-                        deleteLineSeparator();
-                        endCompoundEdit(compoundEdit);
-                    } else
-                        status("End of buffer");
-                } else {
-                    // Shouldn't happen.
-                    Debug.bug();
-                }
-            }
-        });
-    }
-
-    // A deletion, not a kill!
-    public void backspace() {
-        if (!checkReadOnly())
-            return;
-        buffer.withWriteLock(() -> {
-            if (mark != null) {
-                delete();
-            } else if (display.getCaretCol() > buffer.getCol(getDotLine(), getDotLine().length())) {
-                // The caret is beyond the end of the actual text on the current line.
-                addUndo(SimpleEdit.MOVE);
-                display.setCaretCol(display.getCaretCol() - 1);
-                updateDotLine();
-            } else if (dot.getOffset() > 0) {
-                addUndo(SimpleEdit.LINE_EDIT);
-                dot.moveLeft();
-                deleteNormalChar();
-                moveCaretToDotCol();
-            } else if (getDotLine().previous() != null) {
-                CompoundEdit compoundEdit = beginCompoundEdit();
-                addUndo(SimpleEdit.MOVE);
-                dot.moveTo(getDotLine().previous(), getDotLine().previous().length());
-                addUndo(SimpleEdit.DELETE_LINE_SEP);
-                deleteLineSeparator();
-                endCompoundEdit(compoundEdit);
-                moveCaretToDotCol();
-            }
-        });
-    }
-
     public char getDotChar() {
         Debug.assertTrue(dot != null);
         return dot.getChar();
@@ -1397,118 +1260,6 @@ public final class Editor extends JPanel implements Constants,
     // closeParen's highlight of the matching paren, while it shows.
     javax.swing.Timer parenFlash;
     /*package*/ static int parenFlashMillis = 300;
-
-    // No undo.
-    public void insertLineSeparator() {
-        Debug.assertTrue(mark == null);
-        if (!buffer.withWriteLock(() -> {
-            buffer.insertLineSeparator(dot);
-        }))
-            return;
-        final Line dotLine = getDotLine();
-        for (int i = 0; i < getEditorCount(); i++) {
-            Editor ed = getEditor(i);
-            if (ed.getTopLine() == dotLine)
-                ed.setTopLine(dotLine.previous());
-        }
-    }
-
-    public void newline() {
-        if (!checkReadOnly())
-            return;
-        CompoundEdit compoundEdit = beginCompoundEdit();
-        if (mark != null)
-            deleteRegion();
-        addUndo(SimpleEdit.INSERT_LINE_SEP);
-        insertLineSeparator();
-        moveCaretToDotCol();
-        endCompoundEdit(compoundEdit);
-    }
-
-    public void newlineAndIndent() {
-        if (isColumnSelection()) {
-            notSupportedForColumnSelections();
-            return;
-        }
-        if (!checkReadOnly())
-            return;
-        if (!buffer.withWriteLock(() -> {
-            CompoundEdit compoundEdit = beginCompoundEdit();
-            if (mark != null)
-                deleteRegion();
-            addUndo(SimpleEdit.INSERT_LINE_SEP);
-            insertLineSeparator();
-            final Mode mode = getMode();
-            final Line dotLine = getDotLine();
-            int indent;
-            if (mode.canIndent()) {
-                if (buffer.needsRenumbering())
-                    buffer.renumber();
-                getFormatter().parseBuffer();
-                indent = mode.getCorrectIndentation(dotLine, buffer);
-            } else {
-                // Can't indent according to context. Match indentation of previous line.
-                indent = buffer.getIndentation(dotLine.previous());
-            }
-            if (indent != buffer.getIndentation(dotLine)) {
-                addUndo(SimpleEdit.LINE_EDIT);
-                buffer.setIndentation(dotLine, indent);
-            }
-            if (dotLine.length() > 0) {
-                IndentCommands.moveDotToIndentation(this);
-                moveCaretToDotCol();
-            } else {
-                display.setCaretCol(indent - display.getShift());
-                if (buffer.getBooleanProperty(Property.RESTRICT_CARET))
-                    fillToCaret();
-            }
-            endCompoundEdit(compoundEdit);
-        }))
-            return;
-        setUpdateFlag(REFRAME);
-    }
-
-    public void insertNormalChar(char c) {
-        if (isColumnSelection()) {
-            notSupportedForColumnSelections();
-            return;
-        }
-        if (!checkReadOnly())
-            return;
-        try {
-            buffer.lockWrite();
-        }
-        catch (InterruptedException e) {
-            Log.error(e);
-            return;
-        }
-        try {
-            c = getMode().fixCase(this, c);
-            if (mark != null) {
-                CompoundEdit compoundEdit = beginCompoundEdit();
-                deleteRegion();
-                insertChar(c);
-                endCompoundEdit(compoundEdit);
-            } else {
-                // No selection.
-                if (
-                    buffer.getBooleanProperty(Property.WRAP)
-                        &&
-                        getDotCol() >= buffer.getIntegerProperty(Property.WRAP_COL)
-                ) {
-                    CompoundEdit compoundEdit = beginCompoundEdit();
-                    insertChar(c);
-                    new WrapText(this).wrapLine();
-                    endCompoundEdit(compoundEdit);
-                } else
-                    insertChar(c);
-            }
-        }
-        finally {
-            buffer.unlockWrite();
-        }
-        moveCaretToDotCol();
-    }
 
     public final void moveDotTo(Position pos) {
         if (pos != null)
@@ -1608,7 +1359,7 @@ public final class Editor extends JPanel implements Constants,
         int keyCode = event.getKeyCode();
         int modifiers = event.getModifiers();
         if (insertingKeyText) {
-            insertKeyTextInternal(keyChar, keyCode, modifiers);
+            EditCommands.insertKeyTextInternal(this, keyChar, keyCode, modifiers);
             return true;
         }
         // Modal editing gets first refusal, but stays out of a key sequence
@@ -2128,41 +1879,9 @@ public final class Editor extends JPanel implements Constants,
             MessageDialog.showMessageDialog(this, "Invalid character", "Insert Character");
     }
 
-    public void insertByte() {
-        if (!checkReadOnly())
-            return;
-        String input = InputDialog.showInputDialog(this, "Byte:", "Insert Byte");
-        if (input == null || input.length() == 0)
-            return;
-        repaintNow();
-        int c = parseNumericInput(input);
-        if (c >= 0 && c <= 255) {
-            byte[] bytes = new byte[1];
-            bytes[0] = (byte) c;
-            String encoding = prefs.getStringProperty(Property.DEFAULT_ENCODING);
-            try {
-                String s = new String(bytes, encoding);
-                insertChar(s.charAt(0));
-            }
-            catch (UnsupportedEncodingException e) {
-                Log.error(e);
-                MessageDialog.showMessageDialog(
-                    this,
-                    "Unsupported encoding \"" + encoding + "\"",
-                    "Insert Byte"
-                );
-            }
-        } else
-            MessageDialog.showMessageDialog(
-                this,
-                "Invalid byte \"" + input + "\"",
-                "Insert Byte"
-            );
-    }
-
     // Used only by insertChar and insertByte. Doesn't understand a leading
     // minus sign.
-    private static int parseNumericInput(String input) {
+    static int parseNumericInput(String input) {
         int n = -1;
         input = input.trim();
         try {
@@ -2695,49 +2414,6 @@ public final class Editor extends JPanel implements Constants,
         return false;
     }
 
-    public void stamp() {
-        if (!checkReadOnly())
-            return;
-        Date now = new Date(System.currentTimeMillis());
-        String dateString = null;
-        String stampFormat = buffer.getStringProperty(Property.STAMP_FORMAT);
-        if (stampFormat != null) {
-            try {
-                SimpleDateFormat df = new SimpleDateFormat(stampFormat);
-                dateString = df.format(now);
-            }
-            catch (Throwable t) {
-                // Fall through...
-            }
-        }
-        if (dateString == null) {
-            SimpleDateFormat df = new SimpleDateFormat("MMM d yyyy h:mm a");
-            dateString = df.format(now);
-        }
-        try {
-            buffer.lockWrite();
-        }
-        catch (InterruptedException e) {
-            Log.error(e);
-            return;
-        }
-        try {
-            CompoundEdit compoundEdit = beginCompoundEdit();
-            if (mark != null)
-                delete();
-            fillToCaret();
-            addUndo(SimpleEdit.INSERT_STRING);
-            insertStringInternal(dateString);
-            buffer.modified();
-            endCompoundEdit(compoundEdit);
-            moveCaretToDotCol();
-            updateInAllEditors(getDotLine());
-        }
-        finally {
-            buffer.unlockWrite();
-        }
-    }
-
     public String getCurrentText() {
         String s = getSelectionOnCurrentLine();
         if (s == null)
@@ -2903,7 +2579,7 @@ public final class Editor extends JPanel implements Constants,
             return;
         CompoundEdit compoundEdit = beginCompoundEdit();
         if (mark != null)
-            delete();
+            EditCommands.delete(this);
         fillToCaret();
         addUndo(SimpleEdit.INSERT_STRING);
         insertStringInternal(toBeInserted);
@@ -3142,52 +2818,7 @@ public final class Editor extends JPanel implements Constants,
         buffer.endCompoundEdit(compoundEdit);
     }
 
-    public void undo() {
-        try {
-            buffer.lockWrite();
-        }
-        catch (InterruptedException e) {
-            Log.error(e);
-            return;
-        }
-        setWaitCursor();
-        try {
-            buffer.undo();
-            checkDotInOtherFrames();
-            setCurrentCommand(COMMAND_UNDO);
-        }
-        catch (Throwable t) {
-            Log.error(t);
-        }
-        finally {
-            buffer.unlockWrite();
-            setDefaultCursor();
-        }
-    }
-
-    public void redo() {
-        try {
-            buffer.lockWrite();
-        }
-        catch (InterruptedException e) {
-            Log.error(e);
-            return;
-        }
-        setWaitCursor();
-        try {
-            buffer.redo();
-            checkDotInOtherFrames();
-        }
-        catch (Throwable t) {
-            Log.error(t);
-        }
-        finally {
-            buffer.unlockWrite();
-            setDefaultCursor();
-        }
-    }
-
-    private void checkDotInOtherFrames() {
+    void checkDotInOtherFrames() {
         if (getEditorCount() > 1) {
             for (int i = 0; i < getEditorCount(); i++) {
                 Editor ed = getEditor(i);
@@ -3665,54 +3296,8 @@ public final class Editor extends JPanel implements Constants,
 
     private boolean insertingKeyText = false;
 
-    public void insertKeyText() {
-        if (!checkReadOnly())
-            return;
-        insertingKeyText = true; // The real work is done in handleKeyEvent.
-    }
-
-    private void insertKeyTextInternal(char keyChar, int keyCode, int modifiers) {
-        Log.debug("keycode = 0x" + Integer.toString(keyCode, 16));
-        Log.debug("modifiers = 0x" + Integer.toString(modifiers, 16));
-        Log.debug("character = " + String.valueOf(keyChar));
-        Log.debug("character = 0x" + Integer.toString((int) keyChar, 16));
-
-        insertingKeyText = false;
-
-        buffer.withWriteLock(() -> {
-            KeyMapping km;
-            if (keyCode != 0)
-                km = new KeyMapping(keyCode, modifiers, null);
-            else
-                km = new KeyMapping(keyChar, null);
-
-            CompoundEdit compoundEdit = beginCompoundEdit();
-            if (mark != null)
-                delete();
-            fillToCaret();
-            addUndo(SimpleEdit.INSERT_STRING);
-            insertStringInternal(km.toString());
-            buffer.modified();
-            moveCaretToDotCol();
-            endCompoundEdit(compoundEdit);
-        });
-    }
-
-    public void whatChar() {
-        if (dot.getOffset() < dot.getLineLength()) {
-            char c = getDotChar();
-            StringBuilder sb = new StringBuilder(Integer.toString(c));
-            sb.append("  0x");
-            sb.append(Integer.toHexString(c));
-            if (c >= ' ' && c < 0x7f) {
-                sb.append("  '");
-                if (c == '\'')
-                    sb.append('\\');
-                sb.append(c);
-                sb.append('\'');
-            }
-            status(sb.toString());
-        }
+    void setInsertingKeyText(boolean b) {
+        insertingKeyText = b;
     }
 
     private static void runStartupScript() {

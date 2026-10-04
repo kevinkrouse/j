@@ -91,7 +91,7 @@ public class CommandTable {
             map = new ConcurrentHashMap<String, Command>(INITIAL_CAPACITY);
 
             add("adjacentWindow", null, (e, s) -> WindowCommands.adjacentWindow(e, s));
-            add("backspace", Editor::backspace);
+            add("backspace", EditCommands::backspace);
             add("backwardParagraph", e -> Paragraphs.backwardParagraph());
             add("backwardSection", e -> Paragraphs.backwardSection(), (e, s) -> Paragraphs.backwardSection(s));
             add("backwardSentence", e -> Sentences.backwardSentence());
@@ -113,7 +113,7 @@ public class CommandTable {
             add("cyclePaste", ClipboardCommands::cyclePaste);
             add("cycleTabWidth", IndentCommands::cycleTabWidth);
             add("defaultMode", Editor::defaultMode);
-            add("delete", Editor::delete);
+            add("delete", EditCommands::delete);
             add("deleteWordLeft", ClipboardCommands::deleteWordLeft);
             add("deleteWordRight", ClipboardCommands::deleteWordRight);
             add("dirBrowseFile", BufferCommands::dirBrowseFile);
@@ -173,9 +173,9 @@ public class CommandTable {
             add("indentLineOrRegion", IndentCommands::indentLineOrRegion);
             add("indentRegion", IndentCommands::indentRegion);
             add("insertBraces", ElectricCommands::insertBraces);
-            add("insertByte", Editor::insertByte);
+            add("insertByte", EditCommands::insertByte);
             add("insertChar", Editor::insertChar);
-            add("insertKeyText", Editor::insertKeyText);
+            add("insertKeyText", EditCommands::insertKeyText);
             add("insertParentheses", ElectricCommands::insertParentheses);
             add("insertString", null, (e, s) -> e.insertString(s));
             add("insertTab", IndentCommands::insertTab);
@@ -206,8 +206,8 @@ public class CommandTable {
             add("mouseShowContextMenu", Editor::mouseShowContextMenu);
             add("newBuffer", BufferCommands::newBuffer);
             add("newFrame", Editor::newFrame);
-            add("newline", Editor::newline);
-            add("newlineAndIndent", Editor::newlineAndIndent);
+            add("newline", EditCommands::newline);
+            add("newlineAndIndent", EditCommands::newlineAndIndent);
             add("nextBuffer", BufferCommands::nextBuffer);
             add("nextFrame", WindowCommands::nextFrame);
             add("nextWindow", WindowCommands::nextWindow, (e, s) -> WindowCommands.nextWindow(e, s));
@@ -229,7 +229,7 @@ public class CommandTable {
             add("prevBuffer", BufferCommands::prevBuffer, (e, s) -> BufferCommands.prevBuffer(e, s));
             add("pushPosition", Editor::pushPosition);
             add("quit", FileCommands::quit);
-            add("redo", Editor::redo);
+            add("redo", EditCommands::redo);
             add("resetDisplay", e -> Editor.resetDisplay());
             add("revertBuffer", FileCommands::revertBuffer);
             add("right", MotionCommands::right);
@@ -262,7 +262,7 @@ public class CommandTable {
             add("slideIn", IndentCommands::slideIn);
             add("slideOut", IndentCommands::slideOut);
             add("splitWindow", WindowCommands::splitWindow, (e, s) -> WindowCommands.splitWindow(e, s));
-            add("stamp", Editor::stamp);
+            add("stamp", EditCommands::stamp);
             add("tab", IndentCommands::tab);
             add("tempBufferQuit", BufferCommands::tempBufferQuit);
             add("textMode", Editor::textMode);
@@ -276,7 +276,7 @@ public class CommandTable {
             add("toggleSidebar", WindowCommands::toggleSidebar);
             add("top", MotionCommands::top);
             add("uncommentRegion", IndentCommands::uncommentRegion);
-            add("undo", Editor::undo);
+            add("undo", EditCommands::undo);
             add("unfold", FoldCommands::unfold);
             add("unfoldAll", FoldCommands::unfoldAll);
             add("unfoldHere", FoldCommands::unfoldHere);
@@ -286,7 +286,7 @@ public class CommandTable {
             add("up", MotionCommands::up);
             add("visibleTabs", WindowCommands::visibleTabs);
             add("vsplitWindow", WindowCommands::vsplitWindow, (e, s) -> WindowCommands.vsplitWindow(e, s));
-            add("whatChar", Editor::whatChar);
+            add("whatChar", EditCommands::whatChar);
             add("windowDown", MotionCommands::windowDown);
             add("windowUp", MotionCommands::windowUp);
             add("wordLeft", MotionCommands::wordLeft, (e, s) -> MotionCommands.wordLeft(e, s));

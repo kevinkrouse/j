@@ -83,7 +83,7 @@ public class BlockTest {
         final Block b = block("abcd\nefgh\nijkl", 0, 2, 1, 3);
         b.delete(h.editor());
         assertEquals("ad\neh\nil", h.value());
-        h.editor().undo();
+        EditCommands.undo(h.editor());
         assertEquals("abcd\nefgh\nijkl", h.value());
     }
 

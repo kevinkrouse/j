@@ -326,7 +326,7 @@ public class ShellBuffer extends CommandInterpreterBuffer implements Constants {
             final int size = completions.size();
             if (size > 0) {
                 dotLine.setFlags(STATE_INPUT);
-                editor.insertLineSeparator();
+                EditCommands.insertLineSeparator(editor);
                 for (String s : completions) {
                     s = unescape(s);
                     int index = s.lastIndexOf('/', s.length() - 2);
@@ -334,7 +334,7 @@ public class ShellBuffer extends CommandInterpreterBuffer implements Constants {
                         s = s.substring(index + 1);
                     editor.insertStringInternal(s);
                     editor.getDotLine().setFlags(STATE_OUTPUT);
-                    editor.insertLineSeparator();
+                    EditCommands.insertLineSeparator(editor);
                 }
                 if (prompt != null)
                     editor.insertStringInternal(prompt);
