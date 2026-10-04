@@ -20,17 +20,18 @@
 
 package org.armedbear.j.mode.compilation;
 
+import static org.armedbear.j.Constants.*;
+
 import java.awt.event.KeyEvent;
 import org.armedbear.j.AbstractMode;
 import org.armedbear.j.Buffer;
-import org.armedbear.j.Constants;
 import org.armedbear.j.Formatter;
 import org.armedbear.j.KeyMap;
 import org.armedbear.j.Mode;
 import org.armedbear.j.Property;
 import org.armedbear.j.mode.text.PlainTextFormatter;
 
-public final class CompilationMode extends AbstractMode implements Constants, Mode {
+public final class CompilationMode extends AbstractMode implements Mode {
     private static final CompilationMode mode = new CompilationMode();
 
     private CompilationMode() {
@@ -44,6 +45,7 @@ public final class CompilationMode extends AbstractMode implements Constants, Mo
         return mode;
     }
 
+    @Override
     protected void setKeyMapDefaults(KeyMap km) {
         km.mapKey(KeyEvent.VK_F9, 0, "compile");
         km.mapKey(KeyEvent.VK_F9, CTRL_MASK, "recompile");
@@ -54,6 +56,7 @@ public final class CompilationMode extends AbstractMode implements Constants, Mo
         km.mapKey('q', "tempBufferQuit");
     }
 
+    @Override
     public Formatter getFormatter(Buffer buffer) {
         return new PlainTextFormatter(buffer);
     }

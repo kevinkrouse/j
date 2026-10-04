@@ -20,6 +20,8 @@
 
 package org.armedbear.j.mode.compilation;
 
+import static org.armedbear.j.Constants.*;
+
 import javax.swing.Icon;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Line;
@@ -46,6 +48,7 @@ public abstract class CompilationErrorBuffer extends Buffer {
         setInitialized(true);
     }
 
+    @Override
     public int load() {
         if (!isLoaded()) {
             if (getFirstLine() == null) {
@@ -130,11 +133,13 @@ public abstract class CompilationErrorBuffer extends Buffer {
         return null;
     }
 
+    @Override
     public boolean isModified() {
         return false;
     }
 
     // For the buffer list.
+    @Override
     public Icon getIcon() {
         return Icons.getIconFromFile("jpty");
     }

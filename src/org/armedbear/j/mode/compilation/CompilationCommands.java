@@ -20,11 +20,12 @@
 
 package org.armedbear.j.mode.compilation;
 
+import static org.armedbear.j.Constants.*;
+
 import java.awt.AWTEvent;
 import java.awt.event.MouseEvent;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.CompileDialog;
-import org.armedbear.j.Constants;
 import org.armedbear.j.Debug;
 import org.armedbear.j.Editor;
 import org.armedbear.j.File;
@@ -40,7 +41,7 @@ import org.armedbear.j.mode.xml.XmlMode;
 import org.armedbear.j.util.Background;
 import org.armedbear.j.util.Utilities;
 
-public final class CompilationCommands implements Constants {
+public final class CompilationCommands {
     private static CompilationBuffer lastCompilationBuffer;
 
     public static CompilationBuffer getCompilationBuffer() {
@@ -130,14 +131,14 @@ public final class CompilationCommands implements Constants {
         // If this method is invoked via a mouse event mapping, move dot to
         // location of mouse click first.
         AWTEvent e = editor.getDispatcher().getLastEvent();
-        if (e instanceof MouseEvent)
-            editor.mouseMoveDotToPoint((MouseEvent) e);
+        if (e instanceof MouseEvent mouseEvent)
+            editor.mouseMoveDotToPoint(mouseEvent);
         CompilationError error =
             CompilationError.parseLineAsErrorMessage(editor.getDotLine());
         if (error != null) {
             final Buffer buffer = editor.getBuffer();
-            if (buffer instanceof CompilationErrorBuffer)
-                ((CompilationErrorBuffer) buffer).setCurrentError(error);
+            if (buffer instanceof CompilationErrorBuffer compilationErrorBuffer)
+                compilationErrorBuffer.setCurrentError(error);
             String errorFileName = error.getFileName();
             int errorLineNumber = error.getLineNumber();
             if (errorFileName != null && errorLineNumber != 0) {

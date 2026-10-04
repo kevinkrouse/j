@@ -24,7 +24,6 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.lang.StringBuilder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import javax.swing.SwingUtilities;
@@ -66,6 +65,7 @@ public final class CompilationBuffer extends CompilationErrorBuffer
         posEndOfBuffer = new Position(getFirstLine(), 0);
     }
 
+    @Override
     public synchronized final void initialize() {
         setTitle(expandedCommand = expandCommand(command));
         setInitialized(true);
@@ -79,6 +79,7 @@ public final class CompilationBuffer extends CompilationErrorBuffer
         return exitValue;
     }
 
+    @Override
     public void empty() {
         if (!withWriteLock(() -> {
             super.empty();
@@ -98,6 +99,7 @@ public final class CompilationBuffer extends CompilationErrorBuffer
         }
     }
 
+    @Override
     public void run() {
         long start = System.currentTimeMillis();
         if (expandedCommand.startsWith("(")) {
@@ -158,7 +160,7 @@ public final class CompilationBuffer extends CompilationErrorBuffer
         process = null;
         exitValue = -1;
         try {
-            ArrayList<String> list = new ArrayList<String>();
+            ArrayList<String> list = new ArrayList<>();
             if (Platform.isPlatformWindows()) {
                 list.add("cmd.exe");
                 list.add("/c");
@@ -253,8 +255,8 @@ public final class CompilationBuffer extends CompilationErrorBuffer
 
     public static void killCompilation() {
         for (Buffer buf : Editor.getBufferList()) {
-            if (buf instanceof CompilationBuffer) {
-                ((CompilationBuffer) buf).killProcess();
+            if (buf instanceof CompilationBuffer compilationBuffer) {
+                compilationBuffer.killProcess();
                 break;
             }
         }
@@ -273,6 +275,7 @@ public final class CompilationBuffer extends CompilationErrorBuffer
         }
     }
 
+    @Override
     public void dispose() {
         killProcess();
     }
@@ -296,10 +299,12 @@ public final class CompilationBuffer extends CompilationErrorBuffer
         SwingUtilities.invokeLater(runnable);
     }
 
+    @Override
     public String getFileNameForDisplay() {
         return getTitle();
     }
 
+    @Override
     public File getCurrentDirectory() {
         return currentDir;
     }
@@ -309,6 +314,7 @@ public final class CompilationBuffer extends CompilationErrorBuffer
     }
 
     // For the buffer list.
+    @Override
     public String toString() {
         return command;
     }
@@ -318,6 +324,7 @@ public final class CompilationBuffer extends CompilationErrorBuffer
             super(inputStream);
         }
 
+        @Override
         public void update(final String s) {
             appendLater(s);
         }
