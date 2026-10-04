@@ -22,8 +22,7 @@ import java.util.List;
  * {@code 3} is not the start of {@code 3dd}; it is a number in front of a
  * command, and {@code 30dd} means thirty, not three then a zero motion.
  */
-public final class CommandBuilder
-{
+public final class CommandBuilder {
     private final StringBuilder count = new StringBuilder();
     private final List<String> keys = new ArrayList<String>();
 
@@ -41,8 +40,7 @@ public final class CommandBuilder
      *
      * @return true if the key was consumed as part of a count
      */
-    public boolean acceptCountDigit(String key)
-    {
+    public boolean acceptCountDigit(String key) {
         if (!keys.isEmpty() || key.length() != 1)
             return false;
         final char c = key.charAt(0);
@@ -54,37 +52,31 @@ public final class CommandBuilder
         return true;
     }
 
-    public void pushKey(String key)
-    {
+    public void pushKey(String key) {
         keys.add(key);
     }
 
     /** Puts back the key just pushed. */
-    public void dropLastKey()
-    {
+    public void dropLastKey() {
         if (!keys.isEmpty())
             keys.remove(keys.size() - 1);
     }
 
-    public List<String> getKeys()
-    {
+    public List<String> getKeys() {
         return Collections.unmodifiableList(keys);
     }
 
-    public boolean isEmpty()
-    {
+    public boolean isEmpty() {
         return keys.isEmpty() && count.length() == 0 && operator == null;
     }
 
     /** True if the user actually typed a count. */
-    public boolean hasCount()
-    {
+    public boolean hasCount() {
         return count.length() > 0;
     }
 
     /** The count, or 1 when none was given. */
-    public int getCount()
-    {
+    public int getCount() {
         if (count.length() == 0)
             return 1;
         try {
@@ -102,35 +94,30 @@ public final class CommandBuilder
      * Both counts are kept because vim multiplies them: 2d3w deletes six
      * words, not two and not three.
      */
-    public void setOperator(VimCommand operator)
-    {
+    public void setOperator(VimCommand operator) {
         this.operator = operator;
         this.operatorCount = hasCount() ? getCount() : 0;
         count.setLength(0);
         keys.clear();
     }
 
-    public VimCommand getOperator()
-    {
+    public VimCommand getOperator() {
         return operator;
     }
 
-    public boolean hasOperator()
-    {
+    public boolean hasOperator() {
         return operator != null;
     }
 
     /**
      * The count for the motion, with the operator's folded in.
      */
-    public int getEffectiveCount()
-    {
+    public int getEffectiveCount() {
         final int motionCount = getCount();
         return operatorCount == 0 ? motionCount : operatorCount * motionCount;
     }
 
-    public boolean hasEffectiveCount()
-    {
+    public boolean hasEffectiveCount() {
         return hasCount() || operatorCount != 0;
     }
 
@@ -140,22 +127,19 @@ public final class CommandBuilder
      * For a binding that stands for other keys: those keys are still the same
      * command, with the same count in front of it.
      */
-    public void clearKeys()
-    {
+    public void clearKeys() {
         count.setLength(0);
         keys.clear();
     }
 
-    public void reset()
-    {
+    public void reset() {
         clearKeys();
         operator = null;
         operatorCount = 0;
     }
 
     /** What to show while the command is incomplete, as vim does. */
-    public String getPendingText()
-    {
+    public String getPendingText() {
         final StringBuilder sb = new StringBuilder();
         if (operatorCount != 0)
             sb.append(operatorCount);

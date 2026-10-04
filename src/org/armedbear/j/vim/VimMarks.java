@@ -15,7 +15,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Editor;
 import org.armedbear.j.Line;
@@ -36,25 +35,21 @@ import org.armedbear.j.Position;
  * ({@link Editor#getBookmark}): one set for every window, in any file, and
  * moved by edits as j's bookmarks are.
  */
-public final class VimMarks
-{
+public final class VimMarks {
     private final Map<Character, Marker> marks =
         new HashMap<Character, Marker>();
 
     /** True for a name that {@code m} accepts. */
-    public static boolean isValidName(char name)
-    {
+    public static boolean isValidName(char name) {
         return (name >= 'a' && name <= 'z') || (name >= 'A' && name <= 'Z');
     }
 
     /** A to Z: a file mark, one of j's bookmarks. */
-    public static boolean isFileMark(char name)
-    {
+    public static boolean isFileMark(char name) {
         return name >= 'A' && name <= 'Z';
     }
 
-    public void set(char name, Buffer buffer, Position pos)
-    {
+    public void set(char name, Buffer buffer, Position pos) {
         if (isFileMark(name))
             Editor.setBookmark(name, new Marker(buffer, pos));
         else
@@ -62,8 +57,7 @@ public final class VimMarks
     }
 
     /** A file mark, wherever it is, or null if it is not set. */
-    public static Marker getFileMark(char name)
-    {
+    public static Marker getFileMark(char name) {
         return isFileMark(name) ? Editor.getBookmark(name) : null;
     }
 
@@ -75,15 +69,22 @@ public final class VimMarks
      * @param change where '. goes, or null for a yank or a change that
      *               changed nothing
      */
-    public void noteChange(Buffer buffer, Position start, Position end,
-                           Position change)
-    {
+    public void noteChange(
+        Buffer buffer,
+        Position start,
+        Position end,
+        Position change
+    ) {
         set('[', buffer, start);
         final Position last = new Position(end);
         if (!last.equals(start)) {
             if (last.getOffset() > 0)
-                last.setOffset(CodePoints.previous(last.getLine(),
-                                                   last.getOffset()));
+                last.setOffset(
+                    CodePoints.previous(
+                        last.getLine(),
+                        last.getOffset()
+                    )
+                );
             else
                 last.prev();
         }
@@ -93,8 +94,7 @@ public final class VimMarks
     }
 
     /** A change that began at start: '. goes there too. */
-    public void noteEdit(Buffer buffer, Position start, Position end)
-    {
+    public void noteEdit(Buffer buffer, Position start, Position end) {
         noteChange(buffer, start, end, start);
     }
 
@@ -102,8 +102,7 @@ public final class VimMarks
      * Notes lines an ex command changed: '[ and '] at the starts of the
      * first and last, and '. at the start of the one it changed first.
      */
-    public void noteLines(Buffer buffer, Line first, Line last, Line changed)
-    {
+    public void noteLines(Buffer buffer, Line first, Line last, Line changed) {
         set('[', buffer, new Position(first, 0));
         set(']', buffer, new Position(last, 0));
         set('.', buffer, new Position(changed, 0));
@@ -112,9 +111,9 @@ public final class VimMarks
     /**
      * Where a mark is now, or null if it was never set or its buffer is gone.
      */
-    public Position get(char name, Buffer buffer)
-    {
-        final Marker marker = isFileMark(name) ? Editor.getBookmark(name)
+    public Position get(char name, Buffer buffer) {
+        final Marker marker = isFileMark(name)
+            ? Editor.getBookmark(name)
             : marks.get(Character.valueOf(name));
         if (marker == null || marker.getBuffer() != buffer)
             return null;
@@ -124,16 +123,14 @@ public final class VimMarks
     }
 
     /** Forgets one mark, for {@code :delmarks}. */
-    public void remove(char name)
-    {
+    public void remove(char name) {
         if (isFileMark(name))
             Editor.setBookmark(name, null);
         else
             marks.remove(Character.valueOf(name));
     }
 
-    public void clear()
-    {
+    public void clear() {
         marks.clear();
     }
 
@@ -143,8 +140,7 @@ public final class VimMarks
      * Vim walks the marks in buffer order rather than in the order they were
      * set, so this sorts rather than remembering.
      */
-    public Position next(Buffer buffer, Position from)
-    {
+    public Position next(Buffer buffer, Position from) {
         Position best = null;
         for (Position pos : positionsIn(buffer))
             if (pos.isAfter(from) && (best == null || pos.isBefore(best)))
@@ -153,8 +149,7 @@ public final class VimMarks
     }
 
     /** The nearest mark before a position, for {@code [`}. */
-    public Position previous(Buffer buffer, Position from)
-    {
+    public Position previous(Buffer buffer, Position from) {
         Position best = null;
         for (Position pos : positionsIn(buffer))
             if (pos.isBefore(from) && (best == null || pos.isAfter(best)))
@@ -162,8 +157,7 @@ public final class VimMarks
         return best;
     }
 
-    private List<Position> positionsIn(Buffer buffer)
-    {
+    private List<Position> positionsIn(Buffer buffer) {
         // Lowercase marks only, as in vim: not '< or '[ or the rest.
         final List<Position> positions = new ArrayList<Position>();
         for (Map.Entry<Character, Marker> entry : marks.entrySet()) {

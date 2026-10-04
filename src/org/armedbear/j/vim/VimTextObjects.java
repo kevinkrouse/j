@@ -13,7 +13,6 @@ package org.armedbear.j.vim;
 
 import java.util.HashMap;
 import java.util.Map;
-
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Editor;
 import org.armedbear.j.Line;
@@ -37,28 +36,22 @@ import org.armedbear.j.Position;
  * takes the next one with it. Closing that means chunking over positions
  * rather than over the line's text.
  */
-public final class VimTextObjects
-{
+public final class VimTextObjects {
     /** Names the span, or null when the caret is not in such a thing. */
-    public interface TextObject
-    {
+    public interface TextObject {
         VimRange range(MotionContext ctx, Position from, boolean inner);
     }
 
     private static final Map<String, TextObject> OBJECTS =
         new HashMap<String, TextObject>();
 
-    private VimTextObjects()
-    {
-    }
+    private VimTextObjects() {}
 
-    public static TextObject get(String name)
-    {
+    public static TextObject get(String name) {
         return OBJECTS.get(name);
     }
 
-    public static void register(String name, TextObject object)
-    {
+    public static void register(String name, TextObject object) {
         OBJECTS.put(name, object);
     }
 
@@ -78,8 +71,7 @@ public final class VimTextObjects
      * deletes the space. The outer form additionally takes the blanks after
      * the word, or the ones before it when there are none after.
      */
-    private static VimRange word(MotionContext ctx, Position from, boolean inner)
-    {
+    private static VimRange word(MotionContext ctx, Position from, boolean inner) {
         final Mode mode = ctx.editor.getBuffer().getMode();
         final boolean bigWord = ctx.arg("bigWord");
         final Line line = from.getLine();
@@ -102,31 +94,42 @@ public final class VimTextObjects
         // A word that ends the line has no blanks after it to take, so "a
         // word" takes the ones before it instead. Only when the caret started
         // on a word: starting on blanks they are already in the span.
-        if (!inner && !Character.isWhitespace(text.charAt(at))
-            && (end == 0 || !Character.isWhitespace(text.charAt(end - 1))))
+        if (
+            !inner
+                && !Character.isWhitespace(text.charAt(at))
+                && (end == 0 || !Character.isWhitespace(text.charAt(end - 1)))
+        )
             start = skipBlanks(text, start - 1, -1) + 1;
 
         return new VimRange(new Position(line, start), new Position(line, end));
     }
 
     /** The offset just past the chunk containing {@code at}. */
-    private static int endOfChunk(String text, int at, Mode mode,
-                                  boolean bigWord)
-    {
+    private static int endOfChunk(
+        String text,
+        int at,
+        Mode mode,
+        boolean bigWord
+    ) {
         if (at >= text.length())
             return text.length();
         final int cls = classOf(text.charAt(at), mode, bigWord);
         int i = at;
-        while (i < text.length()
-               && classOf(text.charAt(i), mode, bigWord) == cls)
+        while (
+            i < text.length()
+                && classOf(text.charAt(i), mode, bigWord) == cls
+        )
             ++i;
         return i;
     }
 
     /** The offset the chunk containing {@code at} starts at. */
-    private static int startOfChunk(String text, int at, Mode mode,
-                                    boolean bigWord)
-    {
+    private static int startOfChunk(
+        String text,
+        int at,
+        Mode mode,
+        boolean bigWord
+    ) {
         if (at >= text.length())
             return text.length();
         final int cls = classOf(text.charAt(at), mode, bigWord);
@@ -136,11 +139,13 @@ public final class VimTextObjects
         return i;
     }
 
-    private static int skipBlanks(String text, int from, int step)
-    {
+    private static int skipBlanks(String text, int from, int step) {
         int i = from;
-        while (i >= 0 && i < text.length()
-               && Character.isWhitespace(text.charAt(i)))
+        while (
+            i >= 0
+                && i < text.length()
+                && Character.isWhitespace(text.charAt(i))
+        )
             i += step;
         return i;
     }
@@ -149,8 +154,7 @@ public final class VimTextObjects
      * Vim's three classes: blank, keyword, and everything else. A WORD has
      * only two, which is what makes {@code iW} take {@code foo.bar} whole.
      */
-    private static int classOf(char c, Mode mode, boolean bigWord)
-    {
+    private static int classOf(char c, Mode mode, boolean bigWord) {
         if (Character.isWhitespace(c))
             return 0;
         if (bigWord)
@@ -167,9 +171,11 @@ public final class VimTextObjects
      * caret does not have to be inside one: {@code di"} with the caret before
      * the opening quote still takes the first pair on the line.
      */
-    private static VimRange quote(MotionContext ctx, Position from,
-                                  boolean inner)
-    {
+    private static VimRange quote(
+        MotionContext ctx,
+        Position from,
+        boolean inner
+    ) {
         final char q = ctx.arg("quote", "\"").charAt(0);
         final Line line = from.getLine();
         final String text = line.getText();
@@ -187,7 +193,7 @@ public final class VimTextObjects
                 continue;
             final int close = closingQuote(text, i, q);
             if (close < 0)
-                break;  // Odd number of quotes; let the fallback decide.
+                break; // Odd number of quotes; let the fallback decide.
             if (at <= close) {
                 if (at < i && previousClose >= 0)
                     return pair(line, text, previousClose, i, inner);
@@ -202,9 +208,13 @@ public final class VimTextObjects
         return surroundingQuotes(line, text, at, q, inner);
     }
 
-    private static VimRange surroundingQuotes(Line line, String text, int at,
-                                              char q, boolean inner)
-    {
+    private static VimRange surroundingQuotes(
+        Line line,
+        String text,
+        int at,
+        char q,
+        boolean inner
+    ) {
         for (int open = Math.min(at, text.length() - 1); open >= 0; open--) {
             if (text.charAt(open) != q || isEscaped(text, open))
                 continue;
@@ -219,9 +229,13 @@ public final class VimTextObjects
      * after the closing quote, or the ones before the opening one when there
      * are none after.
      */
-    private static VimRange pair(Line line, String text, int open, int close,
-                                 boolean inner)
-    {
+    private static VimRange pair(
+        Line line,
+        String text,
+        int open,
+        int close,
+        boolean inner
+    ) {
         if (inner)
             return charwise(line, open + 1, close);
         final int after = skipBlanks(text, close + 1, 1);
@@ -230,16 +244,14 @@ public final class VimTextObjects
         return charwise(line, skipBlanks(text, open - 1, -1) + 1, close + 1);
     }
 
-    private static int closingQuote(String text, int open, char q)
-    {
+    private static int closingQuote(String text, int open, char q) {
         for (int i = open + 1; i < text.length(); i++)
             if (text.charAt(i) == q && !isEscaped(text, i))
                 return i;
         return -1;
     }
 
-    private static boolean isEscaped(String text, int at)
-    {
+    private static boolean isEscaped(String text, int at) {
         int backslashes = 0;
         for (int i = at - 1; i >= 0 && text.charAt(i) == '\\'; i--)
             ++backslashes;
@@ -255,9 +267,11 @@ public final class VimTextObjects
      * that opens after it, on this line or a later one -- which is how
      * {@code di(} works with the caret still on the function name.
      */
-    private static VimRange bracket(MotionContext ctx, Position from,
-                                    boolean inner)
-    {
+    private static VimRange bracket(
+        MotionContext ctx,
+        Position from,
+        boolean inner
+    ) {
         final char open = ctx.arg("open", "(").charAt(0);
         final char close = ctx.arg("close", ")").charAt(0);
         final Buffer buffer = ctx.editor.getBuffer();
@@ -285,16 +299,19 @@ public final class VimTextObjects
      * {@code ci(} on a multi-line call opens a fresh indented line rather
      * than leaving the caret squeezed between the brackets.
      */
-    private static VimRange innerBlock(Position open, Position close)
-    {
+    private static VimRange innerBlock(Position open, Position close) {
         final boolean openEndsLine =
             open.getOffset() == open.getLineLength() - 1;
         final boolean closeStartsLine =
             onlyBlanksBefore(close.getLine(), close.getOffset());
         final Line firstInner = open.getLine().next();
 
-        if (openEndsLine && closeStartsLine && firstInner != null
-            && firstInner != close.getLine())
+        if (
+            openEndsLine
+                && closeStartsLine
+                && firstInner != null
+                && firstInner != close.getLine()
+        )
             return VimRange.lines(firstInner, close.getLine().previous());
 
         final Position start = openEndsLine && firstInner != null
@@ -311,8 +328,7 @@ public final class VimTextObjects
         return new VimRange(start, end);
     }
 
-    private static boolean onlyBlanksBefore(Line line, int offset)
-    {
+    private static boolean onlyBlanksBefore(Line line, int offset) {
         final String text = line.getText();
         if (text == null)
             return true;
@@ -323,9 +339,13 @@ public final class VimTextObjects
     }
 
     /** The count'th unmatched opening bracket before the caret. */
-    private static Position enclosingOpen(Buffer buffer, Position from,
-                                          char open, char close, int count)
-    {
+    private static Position enclosingOpen(
+        Buffer buffer,
+        Position from,
+        char open,
+        char close,
+        int count
+    ) {
         final Position pos = new Position(from);
         // The caret sitting on the opening bracket counts as inside it.
         if (charAt(pos) == open)
@@ -342,9 +362,13 @@ public final class VimTextObjects
     }
 
     /** Steps out {@code levels} further pairs, for 2i( and friends. */
-    private static Position countOut(Buffer buffer, Position at, char open,
-                                     char close, int levels)
-    {
+    private static Position countOut(
+        Buffer buffer,
+        Position at,
+        char open,
+        char close,
+        int levels
+    ) {
         Position pos = at;
         for (int i = 0; i < levels; i++) {
             // From just outside this bracket, or the search would find the
@@ -362,8 +386,7 @@ public final class VimTextObjects
     }
 
     /** The next opening bracket at or after the caret, on any later line. */
-    private static Position openAtOrAfter(Position from, char open)
-    {
+    private static Position openAtOrAfter(Position from, char open) {
         int offset = from.getOffset();
         for (Line line = from.getLine(); line != null; line = line.next()) {
             final String text = line.getText();
@@ -376,9 +399,12 @@ public final class VimTextObjects
         return null;
     }
 
-    private static Position matchForward(Buffer buffer, Position openAt,
-                                         char open, char close)
-    {
+    private static Position matchForward(
+        Buffer buffer,
+        Position openAt,
+        char open,
+        char close
+    ) {
         final Position pos = new Position(openAt);
         int depth = 0;
         while (true) {
@@ -392,13 +418,11 @@ public final class VimTextObjects
         }
     }
 
-    private static char charAt(Position pos)
-    {
+    private static char charAt(Position pos) {
         return pos.getOffset() < pos.getLineLength() ? pos.getChar() : '\n';
     }
 
-    private static Position step(Position pos)
-    {
+    private static Position step(Position pos) {
         final Position next = new Position(pos);
         next.next();
         return next;
@@ -412,13 +436,17 @@ public final class VimTextObjects
      * The outer form adds the blank lines that follow, which is what makes
      * {@code dap} remove a paragraph and the gap after it in one go.
      */
-    private static VimRange paragraph(MotionContext ctx, Position from,
-                                      boolean inner)
-    {
+    private static VimRange paragraph(
+        MotionContext ctx,
+        Position from,
+        boolean inner
+    ) {
         final boolean startedBlank = blank(from.getLine());
         Line first = from.getLine();
-        while (first.previous() != null
-               && blank(first.previous()) == startedBlank)
+        while (
+            first.previous() != null
+                && blank(first.previous()) == startedBlank
+        )
             first = first.previous();
 
         // Same shape as iw/aw: ip counts runs, ap counts paragraphs with the
@@ -446,16 +474,16 @@ public final class VimTextObjects
         return VimRange.lines(first, last);
     }
 
-    private static boolean blank(Line line)
-    {
+    private static boolean blank(Line line) {
         return line.length() == 0;
     }
 
     // ------------------------------------------------------------ helpers
 
-    private static VimRange charwise(Line line, int start, int end)
-    {
-        return new VimRange(new Position(line, Math.max(0, start)),
-                            new Position(line, Math.max(0, end)));
+    private static VimRange charwise(Line line, int start, int end) {
+        return new VimRange(
+            new Position(line, Math.max(0, start)),
+            new Position(line, Math.max(0, end))
+        );
     }
 }

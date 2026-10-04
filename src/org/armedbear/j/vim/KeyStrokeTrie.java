@@ -29,14 +29,12 @@ import java.util.Map;
  * waits for the character to find without every character needing its own
  * binding. The key it matched comes back in the result.
  */
-public final class KeyStrokeTrie<T>
-{
+public final class KeyStrokeTrie<T> {
     /** The placeholder that matches any one keystroke. */
     public static final String ANY_CHARACTER = "<character>";
 
     /** What a sequence of keys amounts to so far. */
-    public enum Status
-    {
+    public enum Status {
         /** A complete command. */
         FULL,
         /** Not yet a command, but the start of at least one. */
@@ -45,8 +43,7 @@ public final class KeyStrokeTrie<T>
         NONE
     }
 
-    public static final class Match<T>
-    {
+    public static final class Match<T> {
         public final Status status;
         public final T value;
         /** The key a {@code <character>} placeholder matched, or null. */
@@ -61,8 +58,7 @@ public final class KeyStrokeTrie<T>
          */
         public final T fallback;
 
-        Match(Status status, T value, String character, T fallback)
-        {
+        Match(Status status, T value, String character, T fallback) {
             this.status = status;
             this.value = value;
             this.character = character;
@@ -70,8 +66,7 @@ public final class KeyStrokeTrie<T>
         }
     }
 
-    private static final class Node<T>
-    {
+    private static final class Node<T> {
         final Map<String, Node<T>> children = new HashMap<String, Node<T>>();
         Node<T> anyCharacter;
         T value;
@@ -85,8 +80,7 @@ public final class KeyStrokeTrie<T>
      * A later binding of the same sequence replaces the earlier one, so a user
      * map can override a built-in by being added after it.
      */
-    public void put(List<String> keys, T value)
-    {
+    public void put(List<String> keys, T value) {
         Node<T> node = root;
         for (String key : keys) {
             if (key.equals(ANY_CHARACTER)) {
@@ -105,21 +99,18 @@ public final class KeyStrokeTrie<T>
         node.value = value;
     }
 
-    public void remove(List<String> keys)
-    {
+    public void remove(List<String> keys) {
         final Node<T> node = walk(keys);
         if (node != null)
             node.value = null;
     }
 
-    public boolean isEmpty()
-    {
+    public boolean isEmpty() {
         return root.children.isEmpty() && root.anyCharacter == null;
     }
 
     /** What this sequence of keys amounts to. */
-    public Match<T> match(List<String> keys)
-    {
+    public Match<T> match(List<String> keys) {
         Node<T> node = root;
         String character = null;
         for (String key : keys) {
@@ -143,17 +134,16 @@ public final class KeyStrokeTrie<T>
             : new Match<T>(Status.NONE, null, null, null);
     }
 
-    private static boolean hasChildren(Node<?> node)
-    {
+    private static boolean hasChildren(Node<?> node) {
         return !node.children.isEmpty() || node.anyCharacter != null;
     }
 
-    private Node<T> walk(List<String> keys)
-    {
+    private Node<T> walk(List<String> keys) {
         Node<T> node = root;
         for (String key : keys) {
-            node = key.equals(ANY_CHARACTER) ? node.anyCharacter
-                                             : node.children.get(key);
+            node = key.equals(ANY_CHARACTER)
+                ? node.anyCharacter
+                : node.children.get(key);
             if (node == null)
                 return null;
         }

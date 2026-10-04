@@ -13,7 +13,6 @@ package org.armedbear.j.vim;
 
 import java.util.HashMap;
 import java.util.Map;
-
 import org.armedbear.j.Buffer;
 
 /**
@@ -25,8 +24,7 @@ import org.armedbear.j.Buffer;
  * shiftwidth against indentSize, say -- falls back to j's when unset, so a
  * user who has configured j once does not have to do it again in vim's words.
  */
-public final class VimOptions
-{
+public final class VimOptions {
     /** Short names vim accepts, mapped to the long ones. */
     private static final Map<String, String> ALIASES =
         new HashMap<String, String>();
@@ -61,38 +59,32 @@ public final class VimOptions
 
     private final Map<String, String> values = new HashMap<String, String>();
 
-    private static String canonical(String name)
-    {
+    private static String canonical(String name) {
         final String longName = ALIASES.get(name);
         return longName == null ? name : longName;
     }
 
-    public void set(String name, String value)
-    {
+    public void set(String name, String value) {
         values.put(canonical(name), value);
     }
 
-    public void toggle(String name)
-    {
+    public void toggle(String name) {
         final String key = canonical(name);
         values.put(key, isOn(key) ? "false" : "true");
     }
 
     /** A switch, set or at its default; see {@link #SWITCHES}. */
-    public boolean isOn(String name)
-    {
+    public boolean isOn(String name) {
         final Boolean defaultValue = SWITCHES.get(canonical(name));
         return getBoolean(name, defaultValue != null && defaultValue);
     }
 
-    public boolean getBoolean(String name, boolean defaultValue)
-    {
+    public boolean getBoolean(String name, boolean defaultValue) {
         final String value = values.get(canonical(name));
         return value == null ? defaultValue : Boolean.parseBoolean(value);
     }
 
-    public int getInt(String name, int defaultValue)
-    {
+    public int getInt(String name, int defaultValue) {
         final String value = values.get(canonical(name));
         if (value == null)
             return defaultValue;
@@ -108,8 +100,7 @@ public final class VimOptions
      * What > and < shift by: the vimrc's shiftwidth, or j's indentSize when
      * it sets none. Zero is the tab width, as in vim.
      */
-    public static int shiftWidth(Buffer buffer)
-    {
+    public static int shiftWidth(Buffer buffer) {
         final int sw = VimKeyMap.getSharedOptions()
             .getInt("shiftwidth", buffer.getIndentSize());
         return sw > 0 ? sw : buffer.getTabWidth();

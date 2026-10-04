@@ -21,7 +21,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
 import org.armedbear.j.Log;
 
 /**
@@ -45,21 +44,18 @@ import org.armedbear.j.Log;
  * runs one of j's own commands, which is how a key gets bound to something the
  * modal layer has no idea about.
  */
-public final class VimrcParser
-{
+public final class VimrcParser {
     private final VimKeyMap keyMap;
     private final VimOptions options;
     private String leader = "\\";
 
-    public VimrcParser(VimKeyMap keyMap, VimOptions options)
-    {
+    public VimrcParser(VimKeyMap keyMap, VimOptions options) {
         this.keyMap = keyMap;
         this.options = options;
     }
 
     /** Reads a vimrc, reporting bad lines rather than failing on them. */
-    public void load(Reader reader) throws IOException
-    {
+    public void load(Reader reader) throws IOException {
         final BufferedReader in = new BufferedReader(reader);
         String line;
         int lineNumber = 0;
@@ -71,18 +67,21 @@ public final class VimrcParser
                 continue;
             try {
                 if (!command(trimmed))
-                    Log.error("vimrc, line " + lineNumber
-                              + ": not understood: " + trimmed);
+                    Log.error(
+                        "vimrc, line " + lineNumber
+                            + ": not understood: " + trimmed
+                    );
             }
             catch (RuntimeException e) {
-                Log.error("vimrc, line " + lineNumber + ": " + e.getMessage()
-                          + " in: " + trimmed);
+                Log.error(
+                    "vimrc, line " + lineNumber + ": " + e.getMessage()
+                        + " in: " + trimmed
+                );
             }
         }
     }
 
-    private boolean command(String line)
-    {
+    private boolean command(String line) {
         final int space = line.indexOf(' ');
         final String name = space < 0 ? line : line.substring(0, space);
         final String rest = space < 0 ? "" : line.substring(space + 1).trim();
@@ -94,14 +93,16 @@ public final class VimrcParser
         if (name.endsWith("unmap"))
             return unmap(prefixOf(name, "unmap"), rest);
         if (name.endsWith("map"))
-            return map(prefixOf(name, "map"), rest,
-                       !name.contains("nore"));
+            return map(
+                prefixOf(name, "map"),
+                rest,
+                !name.contains("nore")
+            );
         return false;
     }
 
     /** {@code let mapleader = ","} -- the only let there is. */
-    private boolean let(String rest)
-    {
+    private boolean let(String rest) {
         final int eq = rest.indexOf('=');
         if (eq < 0)
             return false;
@@ -112,8 +113,7 @@ public final class VimrcParser
         return true;
     }
 
-    private boolean set(String rest)
-    {
+    private boolean set(String rest) {
         set(options, rest);
         return true;
     }
@@ -122,8 +122,7 @@ public final class VimrcParser
      * {@code set shiftwidth=4}, {@code set ignorecase}, {@code set noeol},
      * from a vimrc or the {@code :} line.
      */
-    static void set(VimOptions options, String rest)
-    {
+    static void set(VimOptions options, String rest) {
         for (String option : rest.split("\\s+")) {
             if (option.isEmpty())
                 continue;
@@ -140,15 +139,14 @@ public final class VimrcParser
     }
 
     /** The mode letters in front of a command name, with any "nore". */
-    private static String prefixOf(String name, String suffix)
-    {
+    private static String prefixOf(String name, String suffix) {
         final String prefix = name.substring(0, name.length() - suffix.length());
         return prefix.endsWith("nore")
-            ? prefix.substring(0, prefix.length() - 4) : prefix;
+            ? prefix.substring(0, prefix.length() - 4)
+            : prefix;
     }
 
-    private boolean map(String prefix, String rest, boolean remap)
-    {
+    private boolean map(String prefix, String rest, boolean remap) {
         final Set<MappingMode> modes = modesForPrefix(prefix);
         if (modes == null)
             return false;
@@ -165,8 +163,7 @@ public final class VimrcParser
         return true;
     }
 
-    private boolean unmap(String prefix, String rest)
-    {
+    private boolean unmap(String prefix, String rest) {
         final Set<MappingMode> modes = modesForPrefix(prefix);
         if (modes == null || rest.isEmpty())
             return false;
@@ -185,9 +182,12 @@ public final class VimrcParser
      * unless {@code remap} -- {@code map} rather than {@code noremap} --
      * lets them be mappings.
      */
-    private static VimCommand mapping(Set<MappingMode> modes, String keys,
-                                      String to, boolean remap)
-    {
+    private static VimCommand mapping(
+        Set<MappingMode> modes,
+        String keys,
+        String to,
+        boolean remap
+    ) {
         final Map<String, String> noArgs = new LinkedHashMap<String, String>();
         if (remap)
             noArgs.put("remap", "true");
@@ -200,11 +200,21 @@ public final class VimrcParser
             final Map<String, String> args =
                 new LinkedHashMap<String, String>(noArgs);
             args.put("ex", body.trim());
-            return new VimCommand(modes, keys, VimCommand.Kind.EDITOR_COMMAND,
-                                  body.trim(), args);
+            return new VimCommand(
+                modes,
+                keys,
+                VimCommand.Kind.EDITOR_COMMAND,
+                body.trim(),
+                args
+            );
         }
-        return new VimCommand(modes, keys, VimCommand.Kind.KEY_TO_KEY, to,
-                              noArgs);
+        return new VimCommand(
+            modes,
+            keys,
+            VimCommand.Kind.KEY_TO_KEY,
+            to,
+            noArgs
+        );
     }
 
     /**
@@ -213,12 +223,14 @@ public final class VimrcParser
      * No prefix is normal, visual and operator-pending, as plain {@code map}
      * is in vim. See {@link #mapping} for what {@code nore} changes.
      */
-    private static Set<MappingMode> modesForPrefix(String prefix)
-    {
+    private static Set<MappingMode> modesForPrefix(String prefix) {
         switch (prefix) {
             case "":
-                return EnumSet.of(MappingMode.NORMAL, MappingMode.VISUAL,
-                                  MappingMode.OP_PENDING);
+                return EnumSet.of(
+                    MappingMode.NORMAL,
+                    MappingMode.VISUAL,
+                    MappingMode.OP_PENDING
+                );
             case "n":
                 return EnumSet.of(MappingMode.NORMAL);
             case "v":
@@ -235,22 +247,21 @@ public final class VimrcParser
         }
     }
 
-    private String expandLeader(String keys)
-    {
+    private String expandLeader(String keys) {
         return keys.replace("<leader>", leader).replace("<Leader>", leader);
     }
 
-    private static String unquote(String s)
-    {
-        if (s.length() >= 2
-            && (s.charAt(0) == '"' || s.charAt(0) == '\'')
-            && s.charAt(s.length() - 1) == s.charAt(0))
+    private static String unquote(String s) {
+        if (
+            s.length() >= 2
+                && (s.charAt(0) == '"' || s.charAt(0) == '\'')
+                && s.charAt(s.length() - 1) == s.charAt(0)
+        )
             return s.substring(1, s.length() - 1);
         return s;
     }
 
-    String getLeader()
-    {
+    String getLeader() {
         return leader;
     }
 }

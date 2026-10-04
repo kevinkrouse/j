@@ -19,12 +19,11 @@ import java.io.Reader;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.EnumMap;
-import java.util.LinkedHashSet;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
 import org.armedbear.j.Directories;
 import org.armedbear.j.Editor;
 import org.armedbear.j.File;
@@ -53,8 +52,7 @@ import org.armedbear.j.Property;
  * comma separated; {@code name=value} sets a value and a bare {@code name} is
  * shorthand for {@code name=true}. A command with no args writes {@code -}.
  */
-public final class VimKeyMap
-{
+public final class VimKeyMap {
     /** The built-in table, as a resource beside this class. */
     public static final String DEFAULT_RESOURCE = "default-keymap.conf";
 
@@ -70,15 +68,13 @@ public final class VimKeyMap
      */
     private VimKeyMap builtIn;
 
-    public VimKeyMap()
-    {
+    public VimKeyMap() {
         for (MappingMode mode : MappingMode.values())
             tries.put(mode, new KeyStrokeTrie<VimCommand>());
     }
 
     /** Keeps a copy of the map as it is now, before the first mapping. */
-    void keepBuiltIn()
-    {
+    void keepBuiltIn() {
         if (builtIn != null)
             return;
         builtIn = new VimKeyMap();
@@ -87,8 +83,7 @@ public final class VimKeyMap
     }
 
     /** The map without a vimrc's mappings. */
-    public VimKeyMap getBuiltIn()
-    {
+    public VimKeyMap getBuiltIn() {
         return builtIn != null ? builtIn : this;
     }
 
@@ -102,8 +97,7 @@ public final class VimKeyMap
      * Built once. Nothing reloads it yet, so a change to the vimrc needs a
      * restart, the way j's own key map files did before autoReloadKeyMaps.
      */
-    public static synchronized VimKeyMap getShared()
-    {
+    public static synchronized VimKeyMap getShared() {
         if (shared == null) {
             shared = getConfigured();
             sharedOptions = new VimOptions();
@@ -120,8 +114,7 @@ public final class VimKeyMap
      * that someone who wants a different set of bindings gets exactly theirs.
      * To change a few bindings, use a vimrc.
      */
-    private static VimKeyMap getConfigured()
-    {
+    private static VimKeyMap getConfigured() {
         final String filename = Editor.preferences()
             .getStringProperty(Property.VIM_KEY_MAP);
         if (filename == null)
@@ -132,8 +125,10 @@ public final class VimKeyMap
             return getDefault();
         }
         final VimKeyMap keyMap = new VimKeyMap();
-        try (Reader reader = new InputStreamReader(file.getInputStream(),
-                                                   StandardCharsets.UTF_8)) {
+        try (Reader reader = new InputStreamReader(
+            file.getInputStream(),
+            StandardCharsets.UTF_8
+        )) {
             keyMap.load(reader);
         }
         catch (IOException e) {
@@ -143,15 +138,13 @@ public final class VimKeyMap
         return keyMap;
     }
 
-    public static synchronized VimOptions getSharedOptions()
-    {
+    public static synchronized VimOptions getSharedOptions() {
         getShared();
         return sharedOptions;
     }
 
     /** Forgets the shared map, so the next use rebuilds it. */
-    public static synchronized void reset()
-    {
+    public static synchronized void reset() {
         shared = null;
         sharedOptions = null;
     }
@@ -162,21 +155,23 @@ public final class VimKeyMap
      * For tests, which must not read whatever vimrc the person running them
      * happens to have.
      */
-    public static synchronized void setShared(VimKeyMap keyMap,
-                                              VimOptions options)
-    {
+    public static synchronized void setShared(
+        VimKeyMap keyMap,
+        VimOptions options
+    ) {
         shared = keyMap;
         sharedOptions = options;
     }
 
-    private static void loadVimrc(VimKeyMap keyMap, VimOptions options)
-    {
+    private static void loadVimrc(VimKeyMap keyMap, VimOptions options) {
         final File file =
             File.getInstance(Directories.getConfigDirectory(), "vimrc");
         if (file == null || !file.isFile())
             return;
-        try (Reader reader = new InputStreamReader(file.getInputStream(),
-                                                   StandardCharsets.UTF_8)) {
+        try (Reader reader = new InputStreamReader(
+            file.getInputStream(),
+            StandardCharsets.UTF_8
+        )) {
             new VimrcParser(keyMap, options).load(reader);
         }
         catch (IOException e) {
@@ -185,11 +180,10 @@ public final class VimKeyMap
     }
 
     /** The built-in map, or an empty one if the resource cannot be read. */
-    public static VimKeyMap getDefault()
-    {
+    public static VimKeyMap getDefault() {
         final VimKeyMap keyMap = new VimKeyMap();
         try (InputStream in =
-                 VimKeyMap.class.getResourceAsStream(DEFAULT_RESOURCE)) {
+            VimKeyMap.class.getResourceAsStream(DEFAULT_RESOURCE)) {
             if (in == null) {
                 Log.error("vim: missing key map resource " + DEFAULT_RESOURCE);
                 return keyMap;
@@ -202,8 +196,7 @@ public final class VimKeyMap
         return keyMap;
     }
 
-    public KeyStrokeTrie<VimCommand> getTrie(MappingMode mode)
-    {
+    public KeyStrokeTrie<VimCommand> getTrie(MappingMode mode) {
         return tries.get(mode);
     }
 
@@ -213,8 +206,7 @@ public final class VimKeyMap
      * A bad row is logged and skipped rather than thrown, so that one typo in
      * a user's map costs them that binding and not the editor.
      */
-    public void load(Reader reader) throws IOException
-    {
+    public void load(Reader reader) throws IOException {
         final BufferedReader in = new BufferedReader(reader);
         String line;
         int lineNumber = 0;
@@ -227,26 +219,27 @@ public final class VimKeyMap
                 add(parse(trimmed));
             }
             catch (RuntimeException e) {
-                Log.error("vim key map, line " + lineNumber + ": "
-                          + e.getMessage() + " in: " + trimmed);
+                Log.error(
+                    "vim key map, line " + lineNumber + ": "
+                        + e.getMessage() + " in: " + trimmed
+                );
             }
         }
     }
 
-    public void add(VimCommand command)
-    {
+    public void add(VimCommand command) {
         rows.add(command);
         final List<String> keys = KeyNotation.tokenize(command.getKeys());
         for (MappingMode mode : command.getModes())
             tries.get(mode).put(keys, command);
     }
 
-    static VimCommand parse(String row)
-    {
+    static VimCommand parse(String row) {
         final String[] fields = row.split("\\s+", 5);
         if (fields.length < 3)
             throw new IllegalArgumentException(
-                "expected at least modes, keys and kind");
+                "expected at least modes, keys and kind"
+            );
 
         final Set<MappingMode> modes = parseModes(fields[0]);
         final String keys = fields[1];
@@ -261,20 +254,19 @@ public final class VimKeyMap
         return new VimCommand(modes, keys, kind, command, args);
     }
 
-    private static Set<MappingMode> parseModes(String field)
-    {
+    private static Set<MappingMode> parseModes(String field) {
         final Set<MappingMode> modes = new LinkedHashSet<MappingMode>();
         for (String letter : field.split(",")) {
             if (letter.length() != 1)
                 throw new IllegalArgumentException(
-                    "a mode is one letter, not \"" + letter + "\"");
+                    "a mode is one letter, not \"" + letter + "\""
+                );
             modes.add(MappingMode.forLetter(letter.charAt(0)));
         }
         return modes;
     }
 
-    private static Map<String, String> parseArgs(String field)
-    {
+    private static Map<String, String> parseArgs(String field) {
         final Map<String, String> args = new LinkedHashMap<String, String>();
         if (field.equals("-"))
             return args;
@@ -286,8 +278,10 @@ public final class VimKeyMap
             if (eq < 0)
                 args.put(trimmed, "true");
             else
-                args.put(trimmed.substring(0, eq).trim(),
-                         trimmed.substring(eq + 1).trim());
+                args.put(
+                    trimmed.substring(0, eq).trim(),
+                    trimmed.substring(eq + 1).trim()
+                );
         }
         return args;
     }
