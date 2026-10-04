@@ -20,7 +20,8 @@
 
 package org.armedbear.j.mode.perl;
 
-import java.lang.StringBuilder;
+import static org.armedbear.j.Constants.*;
+
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -437,6 +438,7 @@ public final class PerlFormatter extends Formatter {
         return false;
     }
 
+    @Override
     public LineSegmentList formatLine(Line line) {
         if (line == null) {
             clearSegmentList();
@@ -495,6 +497,7 @@ public final class PerlFormatter extends Formatter {
         return segmentList;
     }
 
+    @Override
     public boolean parseBuffer() {
         int state = STATE_NEUTRAL;
         Line line = buffer.getFirstLine();
@@ -778,6 +781,7 @@ public final class PerlFormatter extends Formatter {
         return functions.contains(s);
     }
 
+    @Override
     public FormatTable getFormatTable() {
         if (formatTable == null) {
             formatTable = new FormatTable("PerlMode");

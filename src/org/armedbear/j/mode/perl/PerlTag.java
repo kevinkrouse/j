@@ -28,6 +28,7 @@ public final class PerlTag extends LocalTag {
         super(name, line);
     }
 
+    @Override
     public String getMethodName() {
         int index = name.lastIndexOf("::");
         if (index >= 0)
@@ -36,10 +37,12 @@ public final class PerlTag extends LocalTag {
             return name;
     }
 
+    @Override
     public String getLongName() {
         return name;
     }
 
+    @Override
     public String toString() {
         return name;
     }

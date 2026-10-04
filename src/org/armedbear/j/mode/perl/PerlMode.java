@@ -20,11 +20,12 @@
 
 package org.armedbear.j.mode.perl;
 
+import static org.armedbear.j.Constants.*;
+
 import java.awt.event.KeyEvent;
 import java.util.regex.Pattern;
 import org.armedbear.j.AbstractMode;
 import org.armedbear.j.Buffer;
-import org.armedbear.j.Constants;
 import org.armedbear.j.Editor;
 import org.armedbear.j.FoldCommands;
 import org.armedbear.j.Formatter;
@@ -39,7 +40,7 @@ import org.armedbear.j.SyntaxIterator;
 import org.armedbear.j.SystemBuffer;
 import org.armedbear.j.Tagger;
 
-public final class PerlMode extends AbstractMode implements Constants, Mode {
+public final class PerlMode extends AbstractMode implements Mode {
     // Definitions, not declarations, which end with ';'.
     private static final Pattern SUB = Pattern.compile("^sub\\s+([a-zA-Z0-9_]+(::[a-zA-Z0-9_]+)*)(?!.*;$)");
 
@@ -54,22 +55,27 @@ public final class PerlMode extends AbstractMode implements Constants, Mode {
         return mode;
     }
 
+    @Override
     public final boolean canIndent() {
         return true;
     }
 
+    @Override
     public final String getCommentStart() {
         return "# ";
     }
 
+    @Override
     public final SyntaxIterator getSyntaxIterator(Position pos) {
         return new PerlSyntaxIterator(pos);
     }
 
+    @Override
     public final Formatter getFormatter(Buffer buffer) {
         return new PerlFormatter(buffer);
     }
 
+    @Override
     protected void setKeyMapDefaults(KeyMap km) {
         km.mapKey('{', "electricOpenBrace");
         km.mapKey('}', "electricCloseBrace");
@@ -94,26 +100,32 @@ public final class PerlMode extends AbstractMode implements Constants, Mode {
         km.mapKey(KeyEvent.VK_CLOSE_BRACKET, CTRL_MASK, "unfold");
     }
 
+    @Override
     public Tagger getTagger(SystemBuffer buffer) {
         return new RegexTagger(buffer, PerlTag::new, SUB);
     }
 
+    @Override
     public boolean isTaggable() {
         return true;
     }
 
+    @Override
     public void foldAll(Editor editor) {
         FoldCommands.foldMethods(editor);
     }
 
+    @Override
     public boolean hasQualifiedNames() {
         return true;
     }
 
+    @Override
     public boolean isQualifiedName(String s) {
         return s.indexOf("::") >= 0;
     }
 
+    @Override
     public int getCorrectIndentation(Line line, Buffer buffer) {
         String trim = line.trim();
         if (trim.length() > 0) {
@@ -320,26 +332,32 @@ public final class PerlMode extends AbstractMode implements Constants, Mode {
         return (validChars.indexOf(c) >= 0);
     }
 
+    @Override
     public boolean isIdentifierStart(char c) {
         return isIdentifierChar(c);
     }
 
+    @Override
     public boolean isIdentifierPart(char c) {
         return isIdentifierChar(c);
     }
 
+    @Override
     public boolean isCommentLine(Line line) {
         return line.trim().startsWith("#");
     }
 
+    @Override
     public String getWrapCommentStart(String trimmed) {
         return Mode.wrapPrefix(trimmed, "# ");
     }
 
+    @Override
     public boolean supportsIndentBeforeBrace() {
         return true;
     }
 
+    @Override
     public boolean foldsAtBraces() {
         return true;
     }
