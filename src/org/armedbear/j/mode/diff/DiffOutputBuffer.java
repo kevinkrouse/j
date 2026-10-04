@@ -25,21 +25,17 @@ import org.armedbear.j.File;
 import org.armedbear.j.Property;
 import org.armedbear.j.vcs.VersionControlBuffer;
 
-public final class DiffOutputBuffer extends VersionControlBuffer
-{
-    public DiffOutputBuffer(Buffer parentBuffer, String output, int vcType)
-    {
+public final class DiffOutputBuffer extends VersionControlBuffer {
+    public DiffOutputBuffer(Buffer parentBuffer, String output, int vcType) {
         super(parentBuffer, output, vcType);
     }
 
-    public DiffOutputBuffer(File directory, String output, int vcType)
-    {
+    public DiffOutputBuffer(File directory, String output, int vcType) {
         super(directory, output, vcType);
     }
 
-    protected void init()
-    {
-        supportsUndo  = false;
+    protected void init() {
+        supportsUndo = false;
         type = TYPE_OUTPUT;
         mode = DiffMode.getMode();
         formatter = new DiffFormatter(this);
@@ -50,5 +46,5 @@ public final class DiffOutputBuffer extends VersionControlBuffer
         setTransient(true);
         setInitialized(true);
     }
-    
+
 }
