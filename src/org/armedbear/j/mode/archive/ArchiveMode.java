@@ -20,12 +20,13 @@
 
 package org.armedbear.j.mode.archive;
 
+import static org.armedbear.j.Constants.*;
+
 import java.awt.AWTEvent;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseEvent;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.lang.StringBuilder;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
@@ -36,7 +37,6 @@ import java.util.zip.ZipInputStream;
 import org.armedbear.j.AbstractMode;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Compression;
-import org.armedbear.j.Constants;
 import org.armedbear.j.Editor;
 import org.armedbear.j.File;
 import org.armedbear.j.Formatter;
@@ -48,7 +48,7 @@ import org.armedbear.j.mode.image.ImageBuffer;
 import org.armedbear.j.mode.text.PlainTextFormatter;
 import org.armedbear.j.util.Utilities;
 
-public final class ArchiveMode extends AbstractMode implements Constants, Mode {
+public final class ArchiveMode extends AbstractMode implements Mode {
     private static final ArchiveMode mode = new ArchiveMode();
     private static final Pattern moveToFilenameRegExp =
         Pattern.compile(":[0-5][0-9] ");
@@ -63,10 +63,12 @@ public final class ArchiveMode extends AbstractMode implements Constants, Mode {
         return mode;
     }
 
+    @Override
     public final Formatter getFormatter(Buffer buffer) {
         return new PlainTextFormatter(buffer);
     }
 
+    @Override
     protected void setKeyMapDefaults(KeyMap km) {
         km.mapKey(KeyEvent.VK_ENTER, 0, "archiveOpenFile");
         km.mapKey(KeyEvent.VK_G, CTRL_MASK | SHIFT_MASK, "archiveOpenFile");
@@ -190,6 +192,7 @@ public final class ArchiveMode extends AbstractMode implements Constants, Mode {
         return cache;
     }
 
+    @Override
     public void loadFile(Buffer buffer, File file) {
         if (!buffer.isLoaded()) {
             ZipInputStream in = null;
@@ -240,8 +243,8 @@ public final class ArchiveMode extends AbstractMode implements Constants, Mode {
             // If this method is invoked via a mouse event mapping, move dot to
             // location of mouse click first.
             AWTEvent e = editor.getDispatcher().getLastEvent();
-            if (e instanceof MouseEvent)
-                editor.mouseMoveDotToPoint((MouseEvent) e);
+            if (e instanceof MouseEvent mouseEvent)
+                editor.mouseMoveDotToPoint(mouseEvent);
             openFileAtDot(editor);
         }
     }
