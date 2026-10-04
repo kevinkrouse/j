@@ -30,25 +30,26 @@ import org.armedbear.j.util.Utilities;
  * Finds a file in the current buffer's project, its open buffers, and its
  * recent files. "name:N" goes to line N.
  */
-public final class FindFileTextFieldHandler extends FinderTextFieldHandler {
+public class FindFileTextFieldHandler extends FinderTextFieldHandler {
     private static final Pattern LINE_SUFFIX = Pattern.compile("^(.*?):(\\d+)$");
 
     // Open buffers and recent files outrank other matches of about the same quality.
     private static final int BOOST_OPEN = 30;
     private static final int BOOST_RECENT = 15;
 
-    private final File root;
-    private final ProjectFiles projectFiles;
+    // Found on start(), not when the handler is made: the location bar makes
+    // one on every buffer switch.
+    protected File root;
+    protected ProjectFiles projectFiles;
     private final Consumer<ProjectFiles> listener;
 
+    private boolean started;
     private List<String> snapshot;
     private List<FinderItem> candidates = List.of();
     private List<FinderItem> emptyQueryItems = List.of();
 
     public FindFileTextFieldHandler(Editor editor, HistoryTextField textField) {
         super(editor, textField);
-        root = ProjectRoot.find(editor.getBuffer());
-        projectFiles = root == null ? null : ProjectFiles.forRoot(root);
         listener = pf -> SwingUtilities.invokeLater(this::projectFilesChanged);
     }
 
@@ -56,13 +57,24 @@ public final class FindFileTextFieldHandler extends FinderTextFieldHandler {
     public void start() {
         if (!isActive())
             return;
+        if (!started) {
+            root = editor.getBuffer() == null ? null : ProjectRoot.find(editor.getBuffer());
+            projectFiles = root == null ? null : ProjectFiles.forRoot(root);
+        }
         if (projectFiles != null) {
-            projectFiles.addListener(listener);
+            if (!started)
+                projectFiles.addListener(listener);
             projectFiles.refreshIfStale(Editor.preferences().getIntegerProperty(Property.FINDER_RESCAN_SECONDS));
         }
-        rebuild();
+        started = true;
+        prepare();
         showStatus();
         refilter();
+    }
+
+    /** Builds the candidates the first list needs, on start. */
+    protected void prepare() {
+        rebuild();
     }
 
     @Override
@@ -75,12 +87,12 @@ public final class FindFileTextFieldHandler extends FinderTextFieldHandler {
     private void projectFilesChanged() {
         if (!isActive())
             return;
-        rebuild();
+        prepare();
         showStatus();
         refilter();
     }
 
-    private void showStatus() {
+    protected void showStatus() {
         if (root == null) {
             editor.status("Not in a project: open buffers and recent files");
             return;
@@ -96,14 +108,19 @@ public final class FindFileTextFieldHandler extends FinderTextFieldHandler {
 
     @Override
     protected List<FinderItem> candidates() {
-        if (projectFiles != null && projectFiles.files() != snapshot)
-            rebuild();
-        return candidates;
+        return projectCandidates();
     }
 
     @Override
     protected List<FinderItem> emptyQueryItems() {
         return emptyQueryItems;
+    }
+
+    /** Open buffers, recent files under the root, then the project's files. */
+    protected final List<FinderItem> projectCandidates() {
+        if (projectFiles != null && projectFiles.files() != snapshot)
+            rebuild();
+        return candidates;
     }
 
     @Override
@@ -114,18 +131,27 @@ public final class FindFileTextFieldHandler extends FinderTextFieldHandler {
 
     @Override
     protected void accept(FinderItem item, boolean otherWindow) {
-        int line = 0;
+        if (!(item instanceof FileItem file)) {
+            super.accept(item, otherWindow);
+            return;
+        }
+        final int line = lineNumber();
+        closePrompt();
+        file.open(editor, otherWindow, line);
+    }
+
+    /** The N of a "name:N" in the field, or 0. */
+    protected final int lineNumber() {
         Matcher m = LINE_SUFFIX.matcher(textField.getText().strip());
         if (m.matches()) {
             try {
-                line = Integer.parseInt(m.group(2));
+                return Integer.parseInt(m.group(2));
             }
             catch (NumberFormatException e) {
-                line = 0;
+                return 0;
             }
         }
-        closePrompt();
-        ((FileItem) item).open(editor, otherWindow, line);
+        return 0;
     }
 
     private void rebuild() {
@@ -179,7 +205,7 @@ public final class FindFileTextFieldHandler extends FinderTextFieldHandler {
         emptyQueryItems = Collections.unmodifiableList(empty);
     }
 
-    private static boolean isUnder(String path, String rootPath) {
+    static boolean isUnder(String path, String rootPath) {
         return Path.of(path).startsWith(Path.of(rootPath));
     }
 

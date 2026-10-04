@@ -198,6 +198,10 @@ public final class CompletionPopup<T> {
         return model.items.size();
     }
 
+    public int getSelectedIndex() {
+        return list.getSelectedIndex();
+    }
+
     public T getSelected() {
         int index = list.getSelectedIndex();
         return index >= 0 && index < model.items.size() ? model.items.get(index) : null;

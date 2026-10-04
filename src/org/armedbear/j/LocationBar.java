@@ -79,7 +79,7 @@ public final class LocationBar extends JPanel implements ActionListener, MouseLi
         add(textField);
         addCloseButton();
         textField.addMouseListener(this);
-        textField.setHandler(new OpenFileTextFieldHandler(editor, textField));
+        textField.setHandler(newHandler());
         // Don't let the width of the location bar prevent the user from
         // making the sidebar wider.
         dim = getPreferredSize();
@@ -144,11 +144,20 @@ public final class LocationBar extends JPanel implements ActionListener, MouseLi
 
     public void update() {
         setLabelText(PROMPT_LOCATION);
-        textField.setHandler(new OpenFileTextFieldHandler(editor, textField));
+        textField.setHandler(newHandler());
         textField.setHistory(new History("openFile.file", 30));
         Buffer buffer = editor.getBuffer();
         if (buffer != null)
             textField.setText(buffer.getFileNameForDisplay());
+    }
+
+    // The finder, except for a remote buffer, whose names are completed as before.
+    private TextFieldHandler newHandler() {
+        Buffer buffer = editor.getBuffer();
+        File dir = buffer == null ? null : buffer.getCompletionDirectory();
+        if (dir != null && dir.isRemote())
+            return new OpenFileTextFieldHandler(editor, textField);
+        return new OpenFileFinderTextFieldHandler(editor, textField);
     }
 
     public final HistoryTextField getTextField() {

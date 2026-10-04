@@ -88,6 +88,14 @@ public abstract class FinderTextFieldHandler extends DefaultTextFieldHandler {
         return candidates();
     }
 
+    /** Ranked when candidates() has no match for a query; null for none. */
+    protected List<FinderItem> fallbackCandidates() {
+        return null;
+    }
+
+    /** Called with whether the list now showing came from fallbackCandidates(). */
+    protected void listed(boolean fromFallback) {}
+
     /** The part of the field's text to match; a subclass may strip a suffix it handles itself. */
     protected String queryText(String text) {
         return text;
@@ -112,25 +120,36 @@ public abstract class FinderTextFieldHandler extends DefaultTextFieldHandler {
      */
     public final void refilter() {
         debounce.stop();
-        if (!isActive()) {
+        // Nothing to do until the user is in the field.
+        if (!isActive() || !hasFocus()) {
             popup.hide();
             return;
         }
         final String text = textField.getText();
         final Query query = Query.parse(queryText(text));
         final List<FinderItem> items = query.isEmpty() ? emptyQueryItems() : candidates();
+        final List<FinderItem> fallback = query.isEmpty() ? null : fallbackCandidates();
         final int gen = generation.incrementAndGet();
         ranker.execute(() -> {
             if (gen != generation.get())
                 return;
             List<FinderItem.Row> rows = rank(items, query);
+            boolean fellBack = false;
+            if (rows.isEmpty() && fallback != null) {
+                rows = rank(fallback, query);
+                fellBack = !rows.isEmpty();
+            }
+            final boolean fromFallback = fellBack;
+            final List<FinderItem.Row> shown = rows;
             SwingUtilities.invokeLater(() -> {
                 if (gen != generation.get() || !isActive())
                     return;
-                if (hasFocus())
-                    show(text, rows);
-                else
+                if (hasFocus()) {
+                    show(text, shown);
+                    listed(fromFallback);
+                } else {
                     popup.hide();
+                }
             });
         });
     }
@@ -166,14 +185,27 @@ public abstract class FinderTextFieldHandler extends DefaultTextFieldHandler {
         return textField.isFocusOwner() || editor.getFrame().getFocusedComponent() == textField;
     }
 
-    // The selected row, ranked for the text as it is now.
-    private FinderItem.Row selection() {
+    /** Whether the user has moved the selection off the first row. */
+    protected final boolean selectionMoved() {
+        return popup.isShowing() && popup.getSelectedIndex() > 0;
+    }
+
+    /** The selected row, ranked for the text as it is now; null if nothing matches. */
+    protected final FinderItem.Row selection() {
         final String text = textField.getText();
         if (!text.equals(shownText) || !popup.isShowing()) {
             debounce.stop();
             generation.incrementAndGet();
             Query query = Query.parse(queryText(text));
-            show(text, rank(query.isEmpty() ? emptyQueryItems() : candidates(), query));
+            List<FinderItem.Row> rows = rank(query.isEmpty() ? emptyQueryItems() : candidates(), query);
+            List<FinderItem> fallback = query.isEmpty() ? null : fallbackCandidates();
+            boolean fromFallback = false;
+            if (rows.isEmpty() && fallback != null) {
+                rows = rank(fallback, query);
+                fromFallback = !rows.isEmpty();
+            }
+            show(text, rows);
+            listed(fromFallback);
         }
         return popup.getSelected();
     }

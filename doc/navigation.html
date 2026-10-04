@@ -25,10 +25,11 @@ separated by spaces match in any order. Enter opens the selected file, Ctrl
 Enter opens it in the other window, and <code>name:N</code> goes to line N.
 Ctrl Shift P switches to finding a command, and back, keeping what you typed.
 
-<li><b>Ctrl O</b> (<a href="commands.html#openFile">openFile</a>) takes a
-path or URL in the location bar. Tab completes the name; if no name starts
-with what you typed, Tab lists the names in that directory that match it the
-way Ctrl P does.
+<li><b>Ctrl O</b> (<a href="commands.html#openFile">openFile</a>) finds a
+file under the current buffer's directory, the same way, and in the project
+if nothing there matches. A path lists that directory: Tab fills in the
+selected entry and Enter goes into a directory. A URL, or Shift Enter, opens
+exactly what you typed.
 <a href="commands.html#openFileInOtherWindow">openFileInOtherWindow</a> and
 Ctrl Shift O (<a href="commands.html#openFileInOtherFrame">openFileInOtherFrame</a>)
 open in another window or frame.

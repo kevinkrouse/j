@@ -70,8 +70,14 @@ public final class OpenFileTextFieldHandler extends DefaultTextFieldHandler impl
     private String originalPrefix;
 
     public OpenFileTextFieldHandler(Editor editor, HistoryTextField textField) {
+        this(editor, textField, true);
+    }
+
+    // Without the mouse listener, for a handler that only lends its enter().
+    OpenFileTextFieldHandler(Editor editor, HistoryTextField textField, boolean listen) {
         super(editor, textField);
-        textField.addMouseListener(this);
+        if (listen)
+            textField.addMouseListener(this);
     }
 
     public final void setTitle(String s) {

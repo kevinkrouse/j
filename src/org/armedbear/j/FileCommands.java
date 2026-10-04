@@ -347,6 +347,14 @@ public final class FileCommands {
     }
 
     public static void openFile(Editor editor) {
+        // The location bar may still be holding another prompt's handler.
+        LocationBar locationBar = editor.getLocationBar();
+        if (locationBar != null && locationBar.getTextField().getHandler() instanceof FinderTextFieldHandler) {
+            locationBar.update();
+            // The field may have the focus already, and not gain it.
+            if (locationBar.getTextField().getHandler() instanceof OpenFileFinderTextFieldHandler finder)
+                SwingUtilities.invokeLater(finder::start);
+        }
         AWTEvent e = editor.getDispatcher().getLastEvent();
         if (e != null && e.getSource() instanceof MenuItem) {
             Runnable r = () -> {

@@ -1,8 +1,9 @@
 # Fuzzy finder: plan
 
 Ctrl P finds a file in the project, Ctrl Shift P finds a command, both by
-fuzzy matching in the location bar. Ctrl O keeps its prefix completion and
-falls back to fuzzy matches. User docs: `doc/navigation.html`.
+fuzzy matching in the location bar. Ctrl O finds files under the current
+buffer's directory, then the project, and still opens typed paths and URLs.
+User docs: `doc/navigation.html`.
 
 ## What others do
 
@@ -89,10 +90,16 @@ for the commands that have them, and related ones. In vim mode a command's
 vim keys (`VimKeyMap.keysFor`, the first normal mode row still in effect)
 come before j's.
 
-**Ctrl O.** When prefix completion finds nothing, Tab ranks the entries of
-the named directory fuzzily. A lone fuzzy match is listed rather than
-inserted, and typing after a fuzzy Tab refines what was typed. Source path and
-buffer names aren't searched fuzzily.
+**Ctrl O** (`OpenFileFinderTextFieldHandler`, the location bar's default
+handler). A name matches the files under the buffer's directory, taken from
+the project's list, or the directory's own entries in the home directory; if
+none match, `fallbackCandidates()` gives the project-wide list. A path (a
+separator, or a leading `~`) lists that directory, itself first; Tab fills
+in an entry and Enter goes into a directory. No match, a URL, an alias, an
+`-e` encoding, or Shift Enter opens what was typed with
+`OpenFileTextFieldHandler.enter()`: absolute paths, the source path, new
+files. Ctrl Shift O's dialog keeps the old prefix completion, which also
+falls back to fuzzy matches of the directory's entries.
 
 **Icons.** `FileIcons` picks an icon by file name; the buffer list, the
 finders and Ctrl O's list share it.

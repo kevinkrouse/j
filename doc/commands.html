@@ -3727,9 +3727,23 @@ characters from the start of the buffer).
 <a name="openFile">openFile</a><dl><dd>
 <p>
 Sets focus to the edit control in the location bar of the current window,
-where you can enter a filename and press Enter to activate the corresponding
-buffer, if it exists, or else create and activate a new buffer for the
-specified file.
+where you can find a file and press Enter to open it.
+<p>
+A name lists, as you type, the files under the current buffer's directory that
+match it the way
+<a href="commands.html#findFileInProject">findFileInProject</a> matches: the
+characters in order, not necessarily together. If none match, the list is the
+matches in the whole <a href="navigation.html#projects">project</a>. A path,
+with a <code>/</code> or starting with <code>~</code>, lists the entries of
+that directory, with the directory itself first. Up and Down move through the
+list; Tab puts the selected entry in the edit control; Enter opens it, or goes
+into it if it's a directory; Ctrl Enter opens it in the other window.
+<p>
+A name of an existing file or directory, such as <code>..</code>, opens as
+named unless you have picked another row. When nothing in the list matches,
+and for a URL, an <a href="aliases.html">alias</a> or Shift Enter, Enter opens
+what you typed, as follows; so Shift Enter makes a new file whose name matches
+others. In a remote buffer, the location bar completes names as it used to.
 <br><br>
 If the specified file is not found in the current directory, j will look for it
 first in the <a href="preferences.html#includePath">include path</a> (if it's a
@@ -3738,8 +3752,7 @@ You can define include and source paths in your <a href="preferences.html">prefe
 If j can't find the file you specify, you will be asked if you want to create
 it.
 <br><br>
-The edit control supports both history (using the up and down arrow keys) and
-completion (using Tab and Shift Tab).
+Alt Down shows the history of what you've typed.
 <br><br>
 In addition to normal text files, you can open a directory, a .zip or .gz file,
 or a URL (like http://armedbear.org).
