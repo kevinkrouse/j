@@ -365,7 +365,7 @@ public abstract class AbstractMode implements Constants, Mode {
         menuItem = new JMenuItem("Paste");
         menuItem.setActionCommand("paste");
         menuItem.addActionListener(dispatcher);
-        if (!editor.canPaste())
+        if (!ClipboardCommands.canPaste(editor))
             menuItem.setEnabled(false);
         popup.add(menuItem);
 

@@ -13,6 +13,7 @@ package org.armedbear.j.vim;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import org.armedbear.j.ClipboardCommands;
 import org.armedbear.j.Editor;
 import org.armedbear.j.EditorHarness;
 import org.armedbear.j.KillRing;
@@ -95,7 +96,7 @@ public class VimSharedRegistersTest {
     @Test
     public void jsPasteTakesAYankOfVims() {
         vim("one\ntwo\nthree").keys("jyyk");
-        h.editor().paste();
+        ClipboardCommands.paste(h.editor());
         assertEquals("two\none\ntwo\nthree", h.value());
     }
 

@@ -193,7 +193,7 @@ public final class Dispatcher implements Constants, KeyListener, MouseListener,
         if (editor.getLastCommand() == COMMAND_PASTE)
             if (currentCommand != COMMAND_PASTE)
                 if (currentCommand != COMMAND_UNDO)
-                    Editor.promoteLastPaste();
+                    ClipboardCommands.promoteLastPaste();
 
         editor.setLastCommand(currentCommand);
         editor.setCurrentCommand(COMMAND_NOTHING);
@@ -863,7 +863,7 @@ public final class Dispatcher implements Constants, KeyListener, MouseListener,
                     // Copy.
                     CompoundEdit compoundEdit = editor.beginCompoundEdit();
                     moveCaretToDropPoint(point);
-                    editor.paste(s, true);
+                    ClipboardCommands.paste(editor, s, true);
                     editor.endCompoundEdit(compoundEdit);
                 } else if (dropAction == DnDConstants.ACTION_MOVE) {
                     // Move.
@@ -873,7 +873,7 @@ public final class Dispatcher implements Constants, KeyListener, MouseListener,
                         dragTextRegion = null;
                     }
                     moveCaretToDropPoint(point);
-                    editor.paste(s, true); // Leave paste selected.
+                    ClipboardCommands.paste(editor, s, true); // Leave paste selected.
                     Region r = new Region(editor);
                     posDrop = r.getBegin(); // Where the drop actually occurred.
                     if (dragTextRegion != null && posDrop.isAfter(dragTextRegion.getEnd())) {

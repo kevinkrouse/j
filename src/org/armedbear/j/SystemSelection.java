@@ -118,10 +118,10 @@ public final class SystemSelection implements ClipboardOwner, Constants {
         if (e instanceof MouseEvent) {
             CompoundEdit compoundEdit = editor.beginCompoundEdit();
             editor.mouseMoveDotToPoint((MouseEvent) e);
-            editor.paste(s);
+            ClipboardCommands.paste(editor, s);
             editor.endCompoundEdit(compoundEdit);
         } else
-            editor.paste(s);
+            ClipboardCommands.paste(editor, s);
         editor.setCurrentCommand(COMMAND_PASTE);
     }
 }

@@ -110,7 +110,7 @@ public final class Registers {
         }
         String text = getText(name);
         if (text != null)
-            editor.paste(text);
+            ClipboardCommands.paste(editor, text);
     }
 
     public static final void editRegister() {

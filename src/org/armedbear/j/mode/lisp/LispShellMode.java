@@ -28,6 +28,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import javax.swing.undo.CompoundEdit;
 import org.armedbear.j.Buffer;
+import org.armedbear.j.ClipboardCommands;
 import org.armedbear.j.Constants;
 import org.armedbear.j.Debug;
 import org.armedbear.j.Display;
@@ -315,7 +316,7 @@ public final class LispShellMode extends LispMode implements Constants, Mode {
                         CompoundEdit compoundEdit = editor.beginCompoundEdit();
                         if (editor.getDotLine() != endLine)
                             MotionCommands.eob(editor);
-                        editor.paste(s);
+                        ClipboardCommands.paste(editor, s);
                         editor.endCompoundEdit(compoundEdit);
                     }
                 }

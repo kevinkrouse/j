@@ -51,10 +51,10 @@ public class ColumnSelectionTest {
     @Test
     public void cutTakesTheColumnsAndPasteColumnPutsThemBack() {
         final Editor editor = select("abcd\nefgh\nijkl", 0, 1, 2, 3);
-        editor.killRegion();
+        ClipboardCommands.killRegion(editor);
         assertEquals("ad\neh\nil", h.value());
         assertEquals("0,1", caret());
-        editor.pasteColumn();
+        ClipboardCommands.pasteColumn(editor);
         assertEquals("abcd\nefgh\nijkl", h.value());
         // After the last piece.
         assertEquals("2,3", caret());
@@ -63,14 +63,14 @@ public class ColumnSelectionTest {
     @Test
     public void aColumnMayBeMarkedFromItsTopRight() {
         final Editor editor = select("abcd\nefgh\nijkl", 0, 3, 2, 1);
-        editor.killRegion();
+        ClipboardCommands.killRegion(editor);
         assertEquals("ad\neh\nil", h.value());
     }
 
     @Test
     public void cutIsOneUndoStep() {
         final Editor editor = select("abcd\nefgh\nijkl", 0, 1, 2, 3);
-        editor.killRegion();
+        ClipboardCommands.killRegion(editor);
         editor.undo();
         assertEquals("abcd\nefgh\nijkl", h.value());
     }
@@ -78,7 +78,7 @@ public class ColumnSelectionTest {
     @Test
     public void aTabOutsideTheColumnsStaysATab() {
         final Editor editor = select("x\ty\nabcdefghij", 0, 0, 1, 1);
-        editor.killRegion();
+        ClipboardCommands.killRegion(editor);
         assertEquals("\ty\nbcdefghij", h.value());
     }
 
@@ -86,20 +86,20 @@ public class ColumnSelectionTest {
     public void aTabTheEdgeCutsIsSplit() {
         // Columns 1 and 2 of a tab covering 1 to 7.
         final Editor editor = select("a\tb\nabcdefghij", 0, 1, 1, 3);
-        editor.killRegion();
+        ClipboardCommands.killRegion(editor);
         assertEquals("a     b\nadefghij", h.value());
     }
 
     @Test
     public void pasteColumnPadsShortLinesAndAddsLines() {
         final Editor editor = select("abcd\nefgh", 0, 0, 1, 2);
-        editor.copyRegion();
+        ClipboardCommands.copyRegion(editor);
         editor.setColumnSelection(false);
         editor.setMark(null);
         h.value("x");
         h.cursor(0, 1);
         editor.moveCaretToDotCol();
-        editor.pasteColumn();
+        ClipboardCommands.pasteColumn(editor);
         assertEquals("xab\n ef", h.value());
         assertEquals("1,3", caret());
     }
@@ -107,13 +107,13 @@ public class ColumnSelectionTest {
     @Test
     public void pastedColumnsStayInLine() {
         final Editor editor = select("a\nbcd", 0, 0, 1, 3);
-        editor.copyRegion();
+        ClipboardCommands.copyRegion(editor);
         editor.setColumnSelection(false);
         editor.setMark(null);
         h.value("12\n34");
         h.cursor(0, 1);
         editor.moveCaretToDotCol();
-        editor.pasteColumn();
+        ClipboardCommands.pasteColumn(editor);
         // "a" is padded to the width of "bcd", so the 2 stays over the 4.
         assertEquals("1a  2\n3bcd4", h.value());
     }
