@@ -105,7 +105,7 @@ public final class Directories {
                     File.getInstance(System.getProperty("user.home"));
             }
             if (userHomeDirectory == null)
-                Editor.fatal("Use \"--home\" option to specify home directory.");
+                Startup.fatal("Use \"--home\" option to specify home directory.");
         }
         File legacy = File.getInstance(userHomeDirectory, LEGACY_DIRECTORY_NAME);
         if (migrate && legacy != null && legacy.isDirectory())
@@ -371,10 +371,10 @@ public final class Directories {
             System.out.println("Creating directory: " + dir);
             dir.mkdirs();
             if (!dir.isDirectory())
-                Editor.fatal("Unable to create directory " + dir);
+                Startup.fatal("Unable to create directory " + dir);
         }
         if (!dir.canWrite())
-            Editor.fatal("The directory " + dir + " is not writable");
+            Startup.fatal("The directory " + dir + " is not writable");
         return dir;
     }
 

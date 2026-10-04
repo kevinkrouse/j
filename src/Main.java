@@ -36,7 +36,7 @@ public final class Main {
         System.setProperty("apple.awt.graphics.EnableQ2DX", "true");
 
         try {
-            Class<?> c = Class.forName("org.armedbear.j.Editor");
+            Class<?> c = Class.forName("org.armedbear.j.Startup");
             Method method = c.getMethod("main", String[].class);
             Object[] parameters = new Object[1];
             parameters[0] = args;

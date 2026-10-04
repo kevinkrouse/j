@@ -86,11 +86,16 @@ public class Server implements Runnable {
         return HexFormat.of().formatHex(bytes);
     }
 
+    /** Where a running j records its port and token. */
+    static File portFile() {
+        return File.getInstance(Directories.getRuntimeDirectory(), "port");
+    }
+
     public static void startServer() {
         Server s = null;
         try {
             s = new Server(newToken(), lines -> SwingUtilities.invokeLater(() -> openFiles(lines)));
-            writePortFile(Path.of(Editor.portfile.canonicalPath()), s.getPort(), s.token);
+            writePortFile(Path.of(portFile().canonicalPath()), s.getPort(), s.token);
             // Only now is the port file ours for stopServer to delete.
             server = s;
             server.start();
@@ -108,7 +113,7 @@ public class Server implements Runnable {
 
     public static void stopServer() {
         if (server != null)
-            Editor.portfile.delete();
+            portFile().delete();
     }
 
     // Written private, then moved into place, so no one else sees the token.
