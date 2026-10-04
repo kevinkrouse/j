@@ -45,6 +45,7 @@ public abstract class VersionControlBuffer extends Buffer {
 
     protected abstract void init();
 
+    @Override
     public final File getCurrentDirectory() {
         return directory;
     }
@@ -57,6 +58,7 @@ public abstract class VersionControlBuffer extends Buffer {
         return vcType;
     }
 
+    @Override
     public String getFileNameForDisplay() {
         return title != null ? title : "";
     }

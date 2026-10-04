@@ -18,6 +18,8 @@
 
 package org.armedbear.j.vcs;
 
+import static org.armedbear.j.Constants.*;
+
 import org.armedbear.j.FormatTable;
 import org.armedbear.j.Formatter;
 import org.armedbear.j.Line;
@@ -41,6 +43,7 @@ public final class StatusFormatter extends Formatter {
         return (StatusOutputBuffer) this.buffer;
     }
 
+    @Override
     public LineSegmentList formatLine(Line line) {
         clearSegmentList();
         if (line == null || line.length() == 0) {
@@ -88,6 +91,7 @@ public final class StatusFormatter extends Formatter {
         addSegment(text, segment);
     }
 
+    @Override
     public FormatTable getFormatTable() {
         if (formatTable == null) {
             formatTable = new FormatTable("StatusMode");

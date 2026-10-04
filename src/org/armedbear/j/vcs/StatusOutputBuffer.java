@@ -31,6 +31,7 @@ public class StatusOutputBuffer extends VersionControlBuffer {
         super(directory, output, vcType);
     }
 
+    @Override
     protected void init() {
         supportsUndo = false;
         type = TYPE_OUTPUT;

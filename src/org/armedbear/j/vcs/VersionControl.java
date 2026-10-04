@@ -20,12 +20,12 @@
 
 package org.armedbear.j.vcs;
 
-import java.lang.StringBuilder;
+import static org.armedbear.j.Constants.*;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
 import org.armedbear.j.Buffer;
-import org.armedbear.j.Constants;
 import org.armedbear.j.Directories;
 import org.armedbear.j.Editor;
 import org.armedbear.j.File;
@@ -38,7 +38,7 @@ import org.armedbear.j.util.ProcessRunner;
 import org.armedbear.j.util.Utilities;
 import org.armedbear.j.vcs.git.GitStatusCache;
 
-public abstract class VersionControl implements Constants {
+public abstract class VersionControl {
     public static void invalidate() {
         GitStatusCache.invalidate();
     }
@@ -242,7 +242,7 @@ public abstract class VersionControl implements Constants {
                 continue;
             if (buf.getFile() != null && buf.getFile().isLocal()) {
                 if (list == null)
-                    list = new ArrayList<Buffer>();
+                    list = new ArrayList<>();
                 list.add(buf);
             }
         }

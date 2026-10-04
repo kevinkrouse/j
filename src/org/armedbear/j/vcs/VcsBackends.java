@@ -23,7 +23,7 @@ public final class VcsBackends {
     // Detection asks them in this order at each directory: an extension's
     // first, then core's.
     private static final List<VcsBackend> backends =
-        new CopyOnWriteArrayList<VcsBackend>(List.of(new SvnBackend(), new GitBackend()));
+        new CopyOnWriteArrayList<>(List.of(new SvnBackend(), new GitBackend()));
     private static int registered;
 
     private VcsBackends() {}

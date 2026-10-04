@@ -11,18 +11,18 @@
 
 package org.armedbear.j.vcs;
 
+import static org.armedbear.j.Constants.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
-import org.armedbear.j.Constants;
 import org.armedbear.j.File;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
-public class VcsDetectionTest implements Constants {
+public class VcsDetectionTest {
     @TempDir
     Path root;
 

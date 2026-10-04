@@ -18,6 +18,8 @@
 
 package org.armedbear.j.vcs;
 
+import static org.armedbear.j.Constants.*;
+
 import java.awt.AWTEvent;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseEvent;
@@ -41,6 +43,7 @@ public final class StatusMode extends AbstractMode {
         return mode;
     }
 
+    @Override
     public Formatter getFormatter(Buffer buffer) {
         return new StatusFormatter((StatusOutputBuffer) buffer);
     }
@@ -58,16 +61,15 @@ public final class StatusMode extends AbstractMode {
         if (editor.getDot() == null)
             return;
         final Buffer buffer = editor.getBuffer();
-        if (!(buffer instanceof StatusOutputBuffer))
+        if (!(buffer instanceof StatusOutputBuffer outputBuffer))
             return;
 
         // If this method is invoked via a mouse event mapping, move dot to
         // location of mouse click first.
         AWTEvent e = editor.getDispatcher().getLastEvent();
-        if (e instanceof MouseEvent)
-            editor.mouseMoveDotToPoint((MouseEvent) e);
+        if (e instanceof MouseEvent mouseEvent)
+            editor.mouseMoveDotToPoint(mouseEvent);
 
-        StatusOutputBuffer outputBuffer = (StatusOutputBuffer) buffer;
         int vcType = outputBuffer.getVCType();
         switch (vcType) {
             case VC_SVN:
