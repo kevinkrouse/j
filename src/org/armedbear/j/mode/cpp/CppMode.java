@@ -48,7 +48,7 @@ public final class CppMode extends CMode implements Constants, Mode {
 
     // Since this class is final, we may as well construct the singleton class
     // instance right away.
-    private static CppMode mode = new CppMode();
+    private static final CppMode mode = new CppMode();
 
     private CppMode() {
         super(CPP_MODE, CPP_MODE_NAME);

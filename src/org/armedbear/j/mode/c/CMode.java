@@ -46,8 +46,6 @@ public class CMode extends JavaMode implements Constants, Mode {
         "switch"
     };
 
-    private static CMode mode;
-
     private CMode() {
         super(C_MODE, C_MODE_NAME);
         keywords = new Keywords(this);
@@ -58,13 +56,13 @@ public class CMode extends JavaMode implements Constants, Mode {
         super(id, displayName);
     }
 
-    // Don't construct the singleton class instance until we actually need it,
-    // to avoid unnecessary overhead for CppMode which is derived from this
-    // class.
+    // Built on first use, not when CppMode, a subclass, loads this class.
+    private static final class Instance {
+        static final CMode mode = new CMode();
+    }
+
     public static Mode getMode() {
-        if (mode == null)
-            mode = new CMode();
-        return mode;
+        return Instance.mode;
     }
 
     public String getCommentStart() {

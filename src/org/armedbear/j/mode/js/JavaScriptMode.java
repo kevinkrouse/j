@@ -39,7 +39,7 @@ import org.armedbear.j.mode.java.JavaSyntaxIterator;
 public final class JavaScriptMode extends JavaMode implements Constants, Mode {
     // Since this class is final, we may as well construct the singleton class
     // instance right away.
-    private static JavaScriptMode mode = new JavaScriptMode();
+    private static final JavaScriptMode mode = new JavaScriptMode();
 
     private JavaScriptMode() {
         super(JAVASCRIPT_MODE, JAVASCRIPT_MODE_NAME);
