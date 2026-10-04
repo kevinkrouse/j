@@ -22,7 +22,6 @@
 
 package org.armedbear.j.mode.ruby;
 
-import java.lang.StringBuilder;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Line;
 import org.armedbear.j.mode.python.PythonSyntaxIterator;

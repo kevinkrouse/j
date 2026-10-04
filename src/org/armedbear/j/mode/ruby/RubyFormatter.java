@@ -21,7 +21,6 @@
 
 package org.armedbear.j.mode.ruby;
 
-import java.lang.StringBuilder;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Debug;
 import org.armedbear.j.Editor;
@@ -370,12 +369,14 @@ public final class RubyFormatter extends Formatter {
         return false;
     }
 
+    @Override
     public LineSegmentList formatLine(Line line) {
         clearSegmentList();
         parseLine(line);
         return segmentList;
     }
 
+    @Override
     public boolean parseBuffer() {
         int state = RUBY_STATE_NEUTRAL;
         Line line = buffer.getFirstLine();
@@ -500,6 +501,7 @@ public final class RubyFormatter extends Formatter {
         return "!&|<>=+/*-".indexOf(c) >= 0;
     }
 
+    @Override
     public FormatTable getFormatTable() {
         if (formatTable == null) {
             formatTable = newFormatTable();

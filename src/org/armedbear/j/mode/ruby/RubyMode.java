@@ -21,10 +21,11 @@
 
 package org.armedbear.j.mode.ruby;
 
+import static org.armedbear.j.Constants.*;
+
 import java.awt.event.KeyEvent;
 import org.armedbear.j.AbstractMode;
 import org.armedbear.j.Buffer;
-import org.armedbear.j.Constants;
 import org.armedbear.j.Formatter;
 import org.armedbear.j.KeyMap;
 import org.armedbear.j.Keywords;
@@ -37,7 +38,7 @@ import org.armedbear.j.Tagger;
 import org.armedbear.j.mode.python.PythonSyntaxIterator;
 import org.armedbear.j.mode.python.PythonTagger;
 
-public final class RubyMode extends AbstractMode implements Constants, Mode {
+public final class RubyMode extends AbstractMode implements Mode {
     private static final RubyMode mode = new RubyMode();
 
     private RubyMode() {
@@ -49,18 +50,22 @@ public final class RubyMode extends AbstractMode implements Constants, Mode {
         return mode;
     }
 
+    @Override
     public boolean canIndent() {
         return true;
     }
 
+    @Override
     public final SyntaxIterator getSyntaxIterator(Position pos) {
         return new PythonSyntaxIterator(pos);
     }
 
+    @Override
     public final Formatter getFormatter(Buffer buffer) {
         return new RubyFormatter(buffer);
     }
 
+    @Override
     protected void setKeyMapDefaults(KeyMap km) {
         km.mapKey(KeyEvent.VK_TAB, 0, "tab");
         km.mapKey(KeyEvent.VK_TAB, SHIFT_MASK, "slideOut");
@@ -69,24 +74,29 @@ public final class RubyMode extends AbstractMode implements Constants, Mode {
         km.mapKey(KeyEvent.VK_I, ALT_MASK, "cycleIndentSize");
     }
 
+    @Override
     public final boolean isTaggable() {
         return true;
     }
 
+    @Override
     public final Tagger getTagger(SystemBuffer buffer) {
         return new PythonTagger(buffer, this);
     }
 
+    @Override
     public int getCorrectIndentation(Line line, Buffer buffer) {
         return new RubyIndenter(line, buffer).getCorrectIndentation();
     }
 
+    @Override
     public final boolean isIdentifierStart(char c) {
         if (c > 127)
             return false;
         return values[c] == 1;
     }
 
+    @Override
     public final boolean isIdentifierPart(char c) {
         if (c > 127)
             return false;
