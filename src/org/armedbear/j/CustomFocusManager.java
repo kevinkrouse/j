@@ -20,17 +20,15 @@
 
 package org.armedbear.j;
 
-import org.armedbear.j.extension.Extensions;
-import org.armedbear.j.util.Utilities;
 import java.awt.Component;
 import java.awt.event.KeyEvent;
 import javax.swing.DefaultFocusManager;
 import javax.swing.JDialog;
+import org.armedbear.j.extension.Extensions;
+import org.armedbear.j.util.Utilities;
 
-public final class CustomFocusManager extends DefaultFocusManager
-{
-    public void processKeyEvent(Component focusedComponent, KeyEvent e)
-    {
+public final class CustomFocusManager extends DefaultFocusManager {
+    public void processKeyEvent(Component focusedComponent, KeyEvent e) {
         if (e.getID() == KeyEvent.KEY_PRESSED) {
             if (isComponentHookable(focusedComponent)) {
                 KeyMapping km;
@@ -45,8 +43,7 @@ public final class CustomFocusManager extends DefaultFocusManager
         super.processKeyEvent(focusedComponent, e);
     }
 
-    private static final boolean isComponentHookable(Component c)
-    {
+    private static final boolean isComponentHookable(Component c) {
         if (c instanceof Display)
             return false;
         if (c == null)

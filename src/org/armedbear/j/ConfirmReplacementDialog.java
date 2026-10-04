@@ -20,24 +20,22 @@
 
 package org.armedbear.j;
 
-import org.armedbear.j.util.Utilities;
 import java.awt.Dimension;
 import java.awt.Point;
 import java.awt.Rectangle;
 import java.awt.event.ActionEvent;
 import java.awt.event.KeyEvent;
 import javax.swing.JPanel;
+import org.armedbear.j.util.Utilities;
 
-public final class ConfirmReplacementDialog extends AbstractDialog
-{
+public final class ConfirmReplacementDialog extends AbstractDialog {
     private static Rectangle rect;
 
     private Editor editor;
     private Replacement replacement;
     private boolean inFiles;
 
-    public ConfirmReplacementDialog(Replacement replacement, boolean inFiles)
-    {
+    public ConfirmReplacementDialog(Replacement replacement, boolean inFiles) {
         super(Editor.currentEditor(), "Confirm Replacement", true);
         this.replacement = replacement;
         editor = replacement.getEditor();
@@ -69,8 +67,7 @@ public final class ConfirmReplacementDialog extends AbstractDialog
         }
     }
 
-    private StandardButton createButton(String text, char mnemonic)
-    {
+    private StandardButton createButton(String text, char mnemonic) {
         StandardButton button = new StandardButton(text);
         button.setMnemonic(mnemonic);
         button.addActionListener(this);
@@ -78,13 +75,11 @@ public final class ConfirmReplacementDialog extends AbstractDialog
         return button;
     }
 
-    protected void enter()
-    {
+    protected void enter() {
         yes();
     }
 
-    private void yes()
-    {
+    private void yes() {
         replacement.replaceOccurrence();
         replacement.getEditor().updateDisplay();
         Position pos = replacement.find(editor.getBuffer(), editor.getDot());
@@ -95,9 +90,13 @@ public final class ConfirmReplacementDialog extends AbstractDialog
         if (replacement.restrictToSelection()) {
             final Region region = replacement.getRegion();
             if (region != null) {
-                if (pos.lineNumber() > region.getEndLineNumber() ||
-                    (pos.getLine() == region.getEndLine() &&
-                        pos.getOffset() + replacement.getPatternLength() > region.getEndOffset())) {
+                if (
+                    pos.lineNumber() > region.getEndLineNumber()
+                        ||
+                        (pos.getLine() == region.getEndLine()
+                            &&
+                            pos.getOffset() + replacement.getPatternLength() > region.getEndOffset())
+                ) {
                     dispose();
                     return;
                 }
@@ -108,8 +107,7 @@ public final class ConfirmReplacementDialog extends AbstractDialog
         editor.updateDisplay();
     }
 
-    private void no()
-    {
+    private void no() {
         Position start = new Position(editor.getDot());
         if (!start.next()) {
             dispose();
@@ -123,9 +121,13 @@ public final class ConfirmReplacementDialog extends AbstractDialog
         if (replacement.restrictToSelection()) {
             final Region region = replacement.getRegion();
             if (region != null) {
-                if (pos.lineNumber() > region.getEndLineNumber() ||
-                    (pos.getLine() == region.getEndLine() &&
-                        pos.getOffset() + replacement.getPatternLength() > region.getEndOffset()))  {
+                if (
+                    pos.lineNumber() > region.getEndLineNumber()
+                        ||
+                        (pos.getLine() == region.getEndLine()
+                            &&
+                            pos.getOffset() + replacement.getPatternLength() > region.getEndOffset())
+                ) {
                     dispose();
                     return;
                 }
@@ -136,13 +138,11 @@ public final class ConfirmReplacementDialog extends AbstractDialog
         editor.updateDisplay();
     }
 
-    private void skipFile()
-    {
+    private void skipFile() {
         dispose();
     }
 
-    private void replaceAll()
-    {
+    private void replaceAll() {
         Position saved = new Position(editor.getDot());
         // Replace current occurrence.
         replacement.replaceOccurrence();
@@ -154,9 +154,13 @@ public final class ConfirmReplacementDialog extends AbstractDialog
             if (replacement.restrictToSelection()) {
                 final Region region = replacement.getRegion();
                 if (region != null) {
-                    if (editor.getDotLineNumber() > region.getEndLineNumber() ||
-                        (editor.getDotLine() == region.getEndLine() &&
-                            editor.getDotOffset() + replacement.getPatternLength() > region.getEndOffset())) {
+                    if (
+                        editor.getDotLineNumber() > region.getEndLineNumber()
+                            ||
+                            (editor.getDotLine() == region.getEndLine()
+                                &&
+                                editor.getDotOffset() + replacement.getPatternLength() > region.getEndOffset())
+                    ) {
                         break;
                     }
                 }
@@ -174,8 +178,7 @@ public final class ConfirmReplacementDialog extends AbstractDialog
             replacement.setConfirmChanges(false);
     }
 
-    public void actionPerformed(ActionEvent e)
-    {
+    public void actionPerformed(ActionEvent e) {
         if (e.getActionCommand().equals("Yes")) {
             yes();
             return;
@@ -198,8 +201,7 @@ public final class ConfirmReplacementDialog extends AbstractDialog
         }
     }
 
-    public void keyPressed(KeyEvent e)
-    {
+    public void keyPressed(KeyEvent e) {
         if (e.isConsumed())
             return;
         final int modifiers = Utilities.keyModifiers(e);
@@ -234,8 +236,7 @@ public final class ConfirmReplacementDialog extends AbstractDialog
         super.keyPressed(e);
     }
 
-    public void dispose()
-    {
+    public void dispose() {
         rect = getBounds();
         super.dispose();
     }

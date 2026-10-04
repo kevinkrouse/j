@@ -20,50 +20,45 @@
 
 package org.armedbear.j.mode.list;
 
-import org.armedbear.j.util.Utilities;
+import java.awt.Dimension;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseListener;
+import java.lang.StringBuilder;
+import java.util.ArrayList;
+import java.util.List;
+import javax.swing.JList;
+import javax.swing.JScrollPane;
 import org.armedbear.j.AbstractDialog;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Editor;
-import java.lang.StringBuilder;
 import org.armedbear.j.LocalTag;
 import org.armedbear.j.Property;
 import org.armedbear.j.Tag;
 import org.armedbear.j.TagCommands;
 import org.armedbear.j.Tagger;
+import org.armedbear.j.util.Utilities;
 
-import java.awt.Dimension;
-import java.awt.event.MouseEvent;
-import java.awt.event.MouseListener;
-import java.util.ArrayList;
-import java.util.List;
-import javax.swing.JList;
-import javax.swing.JScrollPane;
-
-public final class ListTagsDialog extends AbstractDialog implements MouseListener
-{
+public final class ListTagsDialog extends AbstractDialog implements MouseListener {
     private Editor editor;
     private List<LocalTag> tags;
     private JList<String> list;
     private Tag tag;
 
-    public ListTagsDialog(String title, List<LocalTag> tags)
-    {
+    public ListTagsDialog(String title, List<LocalTag> tags) {
         super(Editor.currentEditor(), title, true);
         editor = Editor.currentEditor();
         this.tags = tags;
         init();
     }
 
-    public ListTagsDialog(Editor editor, String title, List<LocalTag> tags)
-    {
+    public ListTagsDialog(Editor editor, String title, List<LocalTag> tags) {
         super(editor, title, true);
         this.editor = editor;
         this.tags = tags;
         init();
     }
 
-    private void init()
-    {
+    private void init() {
         int index = 0;
         if (tags == null) {
             Buffer buffer = editor.getBuffer();
@@ -92,7 +87,7 @@ public final class ListTagsDialog extends AbstractDialog implements MouseListene
         }
         final int size = tags.size();
         String[] array = new String[size];
-        for (int i = size-1; i >= 0; i--) {
+        for (int i = size - 1; i >= 0; i--) {
             Tag t = tags.get(i);
             array[i] = t.getLongName();
         }
@@ -126,27 +121,23 @@ public final class ListTagsDialog extends AbstractDialog implements MouseListene
         list.requestFocus();
     }
 
-    public final Tag getTag()
-    {
+    public final Tag getTag() {
         return tag;
     }
 
-    protected void ok()
-    {
+    protected void ok() {
         dispose();
         int index = list.getSelectedIndex();
         if (tags != null && index >= 0 && tags.size() > index)
             tag = tags.get(index);
     }
 
-    public void mouseClicked(MouseEvent e)
-    {
+    public void mouseClicked(MouseEvent e) {
         if (e.getClickCount() == 2)
             ok();
     }
 
-    public void mousePressed(MouseEvent e)
-    {
+    public void mousePressed(MouseEvent e) {
         if ((Utilities.isUnmodified(e) && e.getButton() == MouseEvent.BUTTON2)) {
             int index = list.locationToIndex(e.getPoint());
             list.setSelectedIndex(index);
@@ -160,8 +151,7 @@ public final class ListTagsDialog extends AbstractDialog implements MouseListene
 
     public void mouseExited(MouseEvent e) {}
 
-    public static void listTags()
-    {
+    public static void listTags() {
         final Editor editor = Editor.currentEditor();
         final Buffer buffer = editor.getBuffer();
         StringBuilder sb = new StringBuilder("List Tags");

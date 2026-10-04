@@ -22,8 +22,7 @@ package org.armedbear.j;
 
 import java.io.UnsupportedEncodingException;
 
-public interface Line
-{
+public interface Line {
     Line previous();
 
     void setPrevious(Line line);

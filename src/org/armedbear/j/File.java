@@ -28,35 +28,33 @@ import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.RandomAccessFile;
+import java.lang.StringBuilder;
 import java.util.ArrayList;
 import java.util.StringTokenizer;
-
 import org.armedbear.j.mode.dir.DirectoryEntry;
-import java.lang.StringBuilder;
 import org.armedbear.j.util.FastStringReader;
 import org.armedbear.j.util.Utilities;
 
-public class File implements Comparable<File>
-{
-    public static final int PROTOCOL_FILE        = 0;
-    public static final int PROTOCOL_HTTP        = 1;
-    public static final int PROTOCOL_HTTPS       = 2;
-    public static final int PROTOCOL_FTP         = 3;
-    public static final int PROTOCOL_SSH         = 4;
+public class File implements Comparable<File> {
+    public static final int PROTOCOL_FILE = 0;
+    public static final int PROTOCOL_HTTP = 1;
+    public static final int PROTOCOL_HTTPS = 2;
+    public static final int PROTOCOL_FTP = 3;
+    public static final int PROTOCOL_SSH = 4;
 
-    public static final String PREFIX_HTTP       = "http://";
-    public static final String PREFIX_HTTPS      = "https://";
-    public static final String PREFIX_FTP        = "ftp://";
-    public static final String PREFIX_SSH        = "ssh://";
-    public static final String PREFIX_FILE       = "file://";
+    public static final String PREFIX_HTTP = "http://";
+    public static final String PREFIX_HTTPS = "https://";
+    public static final String PREFIX_FTP = "ftp://";
+    public static final String PREFIX_SSH = "ssh://";
+    public static final String PREFIX_FILE = "file://";
 
     public static final String PREFIX_LOCAL_HOST =
         LocalFile.getLocalHostName().concat(":");
 
-    public static final int TYPE_UNKNOWN         = 0;
-    public static final int TYPE_FILE            = 1;
-    public static final int TYPE_DIRECTORY       = 2;
-    public static final int TYPE_LINK            = 3;
+    public static final int TYPE_UNKNOWN = 0;
+    public static final int TYPE_FILE = 1;
+    public static final int TYPE_DIRECTORY = 2;
+    public static final int TYPE_LINK = 3;
 
     private static final boolean ignoreCase = Platform.isPlatformWindows();
 
@@ -73,12 +71,9 @@ public class File implements Comparable<File>
 
     private String encoding;
 
-    protected File()
-    {
-    }
+    protected File() {}
 
-    private File(String path)
-    {
+    private File(String path) {
         file = new java.io.File(path);
         if (Platform.isPlatformWindows() && path.indexOf('*') >= 0) {
             // Workaround for Windows 2000, Java 1.1.8.
@@ -93,8 +88,7 @@ public class File implements Comparable<File>
         }
     }
 
-    private File(String host, String path, int protocol)
-    {
+    private File(String host, String path, int protocol) {
         Debug.assertTrue(protocol != PROTOCOL_FTP);
         isRemote = host != null;
         hostName = host;
@@ -102,15 +96,14 @@ public class File implements Comparable<File>
         this.protocol = protocol;
     }
 
-    public static File getInstance(String name)
-    {
+    public static File getInstance(String name) {
         if (name == null)
             return null;
         int length = name.length();
         if (length >= 2) {
             // Name may be enclosed in quotes.
-            if (name.charAt(0) == '"' && name.charAt(length-1) == '"') {
-                name = name.substring(1, length-1);
+            if (name.charAt(0) == '"' && name.charAt(length - 1) == '"') {
+                name = name.substring(1, length - 1);
                 length -= 2;
             }
         }
@@ -156,8 +149,7 @@ public class File implements Comparable<File>
         return name != null ? new File(name) : null;
     }
 
-    protected boolean initRemote(String name, String prefix)
-    {
+    protected boolean initRemote(String name, String prefix) {
         if (!name.startsWith(prefix))
             return false;
         name = name.substring(prefix.length());
@@ -216,15 +208,14 @@ public class File implements Comparable<File>
         return true;
     }
 
-    public static File getInstance(File directory, String name)
-    {
+    public static File getInstance(File directory, String name) {
         if (name == null)
             return null;
         int length = name.length();
         if (length >= 2) {
             // Name may be enclosed in quotes.
-            if (name.charAt(0) == '"' && name.charAt(length-1) == '"') {
-                name = name.substring(1, length-1);
+            if (name.charAt(0) == '"' && name.charAt(length - 1) == '"') {
+                name = name.substring(1, length - 1);
                 length -= 2;
             }
         }
@@ -282,8 +273,7 @@ public class File implements Comparable<File>
         return new File(name);
     }
 
-    public static File getInstance(String host, String path, int protocol)
-    {
+    public static File getInstance(String host, String path, int protocol) {
         if (host == null)
             return null;
         if (path == null)
@@ -298,8 +288,7 @@ public class File implements Comparable<File>
         return new File(host, path, protocol);
     }
 
-    public File getRoot()
-    {
+    public File getRoot() {
         if (Platform.isPlatformWindows())
             return new File(getDrive() + "\\");
 
@@ -307,8 +296,7 @@ public class File implements Comparable<File>
         return new File("/");
     }
 
-    public static File[] listRoots()
-    {
+    public static File[] listRoots() {
         java.io.File[] files = java.io.File.listRoots();
         File[] list = new File[files.length];
         for (int i = 0; i < files.length; i++) {
@@ -319,26 +307,22 @@ public class File implements Comparable<File>
         return list;
     }
 
-    public String getSeparator()
-    {
+    public String getSeparator() {
         return java.io.File.separator;
     }
 
-    public char getSeparatorChar()
-    {
+    public char getSeparatorChar() {
         return java.io.File.separatorChar;
     }
 
-    public String getDrive()
-    {
+    public String getDrive() {
         if (Platform.isPlatformWindows())
             return getDrive(canonicalPath);
 
         return null;
     }
 
-    private static String getDrive(String s)
-    {
+    private static String getDrive(String s) {
         if (s != null && s.length() >= 2) {
             if (s.charAt(0) == '\\' && s.charAt(1) == '\\') {
                 // UNC path.
@@ -358,13 +342,12 @@ public class File implements Comparable<File>
         return null;
     }
 
-    protected static String canonicalize(String name, String sep)
-    {
+    protected static String canonicalize(String name, String sep) {
         String prefix = null;
         if (name.startsWith(PREFIX_HTTP)) {
             prefix = PREFIX_HTTP;
             sep = "/";
-        } else if (name.startsWith(PREFIX_HTTPS)){
+        } else if (name.startsWith(PREFIX_HTTPS)) {
             prefix = PREFIX_HTTPS;
             sep = "/";
         } else if (name.startsWith(PREFIX_FTP)) {
@@ -412,8 +395,7 @@ public class File implements Comparable<File>
         return sb.toString();
     }
 
-    public static String normalize(String name)
-    {
+    public static String normalize(String name) {
         if (hasRemotePrefix(name))
             return name;
 
@@ -439,8 +421,7 @@ public class File implements Comparable<File>
         return name.replace(toBeReplaced, LocalFile.getSeparatorChar());
     }
 
-    public static boolean hasRemotePrefix(String name)
-    {
+    public static boolean hasRemotePrefix(String name) {
         if (name.startsWith(PREFIX_HTTP))
             return true;
         if (name.startsWith(PREFIX_HTTPS))
@@ -452,8 +433,7 @@ public class File implements Comparable<File>
         return false;
     }
 
-    public static boolean hasLocalPrefix(String name)
-    {
+    public static boolean hasLocalPrefix(String name) {
         if (name.startsWith(PREFIX_FILE))
             return true;
         if (name.startsWith(PREFIX_LOCAL_HOST))
@@ -464,13 +444,11 @@ public class File implements Comparable<File>
     }
 
     // Uses platform-specific separator char.
-    public final static String appendNameToPath(String path, String name)
-    {
+    public final static String appendNameToPath(String path, String name) {
         return appendNameToPath(path, name, LocalFile.getSeparatorChar());
     }
 
-    public static String appendNameToPath(String path, String name, char separator)
-    {
+    public static String appendNameToPath(String path, String name, char separator) {
         int pathLength = path.length();
 
         if (pathLength > 0 && name.length() > 0) {
@@ -491,8 +469,7 @@ public class File implements Comparable<File>
         return path + name;
     }
 
-    public String getCanonicalPath() throws IOException
-    {
+    public String getCanonicalPath() throws IOException {
         if (canonicalPath == null) {
             if (!isRemote) {
                 if (file != null)
@@ -503,8 +480,7 @@ public class File implements Comparable<File>
     }
 
     // Like getCanonicalPath(), but doesn't throw an exception.
-    public final synchronized String canonicalPath()
-    {
+    public final synchronized String canonicalPath() {
         if (canonicalPath == null) {
             if (file != null) {
                 try {
@@ -518,14 +494,12 @@ public class File implements Comparable<File>
         return canonicalPath;
     }
 
-    public synchronized void setCanonicalPath(String s)
-    {
+    public synchronized void setCanonicalPath(String s) {
         if (canonicalPath == null || canonicalPath.equals(""))
             canonicalPath = s;
     }
 
-    public final String shellEscaped()
-    {
+    public final String shellEscaped() {
         String path = canonicalPath();
 
         StringBuilder sb = new StringBuilder();
@@ -544,8 +518,7 @@ public class File implements Comparable<File>
         return sb.toString();
     }
 
-    public String netPath()
-    {
+    public String netPath() {
         switch (protocol) {
             case PROTOCOL_FILE:
                 return LocalFile.getLocalHostName() + ':' + canonicalPath();
@@ -570,57 +543,47 @@ public class File implements Comparable<File>
         return null;
     }
 
-    public final String getHostName()
-    {
+    public final String getHostName() {
         return hostName;
     }
 
-    public final String getUserName()
-    {
+    public final String getUserName() {
         return userName;
     }
 
-    public final void setUserName(String userName)
-    {
+    public final void setUserName(String userName) {
         this.userName = userName;
     }
 
-    public final String getPassword()
-    {
+    public final String getPassword() {
         return password;
     }
 
-    public final void setPassword(String password)
-    {
+    public final void setPassword(String password) {
         this.password = password;
     }
 
-    public final int getPort()
-    {
+    public final int getPort() {
         return port;
     }
 
-    public int getProtocol()
-    {
+    public int getProtocol() {
         return protocol;
     }
 
-    public final boolean isLocal()
-    {
+    public final boolean isLocal() {
         return !isRemote;
     }
 
-    public final boolean isRemote()
-    {
+    public final boolean isRemote() {
         return isRemote;
     }
 
-    public String getName()
-    {
+    public String getName() {
         if (isRemote) {
             int index = canonicalPath.lastIndexOf('/');
             if (index >= 0)
-                return canonicalPath.substring(index+1);
+                return canonicalPath.substring(index + 1);
             return canonicalPath;
         }
         if (file != null)
@@ -628,8 +591,7 @@ public class File implements Comparable<File>
         return null;
     }
 
-    public String getAbsolutePath()
-    {
+    public String getAbsolutePath() {
         if (isRemote)
             return canonicalPath();
         if (file != null) {
@@ -642,8 +604,7 @@ public class File implements Comparable<File>
         return null;
     }
 
-    public String getParent()
-    {
+    public String getParent() {
         if (isRemote) {
             if (canonicalPath.equals("/"))
                 return null;
@@ -659,8 +620,7 @@ public class File implements Comparable<File>
         return null;
     }
 
-    public File getParentFile()
-    {
+    public File getParentFile() {
         if (canonicalPath() == null || canonicalPath.equals("/")) {
             // HTTP is a special case.  We might really be looking at
             // "http://www.cnn.com/index.html", but it might appear to
@@ -670,7 +630,7 @@ public class File implements Comparable<File>
 
             return null;
         }
-        if (isRemote){
+        if (isRemote) {
             int index = canonicalPath.lastIndexOf('/');
             if (index < 0)
                 return null;
@@ -683,99 +643,85 @@ public class File implements Comparable<File>
         return null;
     }
 
-    public boolean exists()
-    {
+    public boolean exists() {
         if (file == null)
             throw new NotSupportedException();
         return file.exists();
     }
 
-    public boolean canWrite()
-    {
+    public boolean canWrite() {
         if (file == null)
             throw new NotSupportedException();
         return file.canWrite();
     }
 
-    public boolean canRead()
-    {
+    public boolean canRead() {
         if (file == null)
             throw new NotSupportedException();
         return file.canRead();
     }
 
-    public boolean isFile()
-    {
+    public boolean isFile() {
         if (file == null)
             throw new NotSupportedException();
         return file.isFile();
     }
 
-    public boolean isDirectory()
-    {
+    public boolean isDirectory() {
         if (file == null)
             throw new NotSupportedException();
         return file.isDirectory();
     }
 
-    public boolean isLink()
-    {
+    public boolean isLink() {
         if (file == null)
             throw new NotSupportedException();
         return !canonicalPath().equals(getAbsolutePath());
     }
 
-    public boolean isAbsolute()
-    {
+    public boolean isAbsolute() {
         if (file == null)
             throw new NotSupportedException();
         return file.isAbsolute();
     }
 
-    public long lastModified()
-    {
+    public long lastModified() {
         if (file == null)
             throw new NotSupportedException();
         return file.lastModified();
     }
 
-    public boolean setLastModified(long time)
-    {
+    public boolean setLastModified(long time) {
         if (file == null)
             throw new NotSupportedException();
         return file.setLastModified(time);
     }
 
-    public long length()
-    {
+    public long length() {
         if (file == null)
             throw new NotSupportedException();
         return file.length();
     }
 
-    public boolean mkdir()
-    {
+    public boolean mkdir() {
         if (file == null)
             throw new NotSupportedException();
         return file.mkdir();
     }
 
-    public boolean mkdirs()
-    {
+    public boolean mkdirs() {
         if (file == null)
             throw new NotSupportedException();
         return file.mkdirs();
     }
 
-    public boolean renameTo(File f)
-    {
+    public boolean renameTo(File f) {
         if (file == null || f.file == null)
             throw new NotSupportedException();
         return file.renameTo(f.file);
     }
 
-    public String[] list()
-    {
+    public String[] list() {
         if (this instanceof FtpFile || this instanceof SshFile) {
             String listing = getDirectoryListing();
             if (listing == null)
@@ -802,8 +748,7 @@ public class File implements Comparable<File>
         return file.list();
     }
 
-    public File[] listFiles()
-    {
+    public File[] listFiles() {
         if (!isDirectory())
             return null;
         if (this instanceof FtpFile || this instanceof SshFile) {
@@ -870,8 +815,7 @@ public class File implements Comparable<File>
         return files;
     }
 
-    public String[] list(FilenameFilter filter)
-    {
+    public String[] list(FilenameFilter filter) {
         if (isRemote)
             return null;
         if (file == null)
@@ -879,32 +823,27 @@ public class File implements Comparable<File>
         return file.list(filter);
     }
 
-    public String getDirectoryListing()
-    {
+    public String getDirectoryListing() {
         return null;
     }
 
-    public String getDirectoryListing(boolean forceRefresh)
-    {
+    public String getDirectoryListing(boolean forceRefresh) {
         return null;
     }
 
-    public boolean delete()
-    {
+    public boolean delete() {
         if (file == null)
             throw new NotSupportedException();
         return file.delete();
     }
 
-    public int hashCode()
-    {
+    public int hashCode() {
         if (file == null)
             throw new NotSupportedException();
         return file.hashCode();
     }
 
-    public boolean equals(Object obj)
-    {
+    public boolean equals(Object obj) {
         if (this == obj)
             return true;
         if (!(obj instanceof File))
@@ -932,13 +871,11 @@ public class File implements Comparable<File>
         return f.canonicalPath.equals(canonicalPath);
     }
 
-    public String toString()
-    {
+    public String toString() {
         return netPath();
     }
 
-    public FileInputStream getInputStream() throws FileNotFoundException
-    {
+    public FileInputStream getInputStream() throws FileNotFoundException {
         if (isRemote)
             throw new NotSupportedException();
         if (file == null)
@@ -946,8 +883,7 @@ public class File implements Comparable<File>
         return new FileInputStream(file);
     }
 
-    public FileOutputStream getOutputStream() throws FileNotFoundException
-    {
+    public FileOutputStream getOutputStream() throws FileNotFoundException {
         if (isRemote)
             throw new NotSupportedException();
         if (file == null)
@@ -955,8 +891,7 @@ public class File implements Comparable<File>
         return new FileOutputStream(file);
     }
 
-    public FileOutputStream getOutputStream(boolean append) throws FileNotFoundException
-    {
+    public FileOutputStream getOutputStream(boolean append) throws FileNotFoundException {
         if (isRemote)
             throw new NotSupportedException();
         if (file == null)
@@ -964,8 +899,7 @@ public class File implements Comparable<File>
         return new FileOutputStream(canonicalPath, append);
     }
 
-    public RandomAccessFile getRandomAccessFile(String mode) throws FileNotFoundException
-    {
+    public RandomAccessFile getRandomAccessFile(String mode) throws FileNotFoundException {
         if (isRemote)
             throw new NotSupportedException();
         if (file == null)
@@ -973,21 +907,18 @@ public class File implements Comparable<File>
         return new RandomAccessFile(file, mode);
     }
 
-    public final String getEncoding()
-    {
+    public final String getEncoding() {
         return encoding;
     }
 
-    public final void setEncoding(String encoding)
-    {
+    public final void setEncoding(String encoding) {
         this.encoding = encoding;
     }
 
-    public int getPermissions()
-    {
+    public int getPermissions() {
         int permissions = 0;
         if (isLocal() && Platform.isPlatformUnix()) {
-            String[] cmdarray = {"ls", "-ld", canonicalPath()};
+            String[] cmdarray = { "ls", "-ld", canonicalPath() };
             try {
                 Process process = Runtime.getRuntime().exec(cmdarray);
                 BufferedReader reader =
@@ -1032,10 +963,9 @@ public class File implements Comparable<File>
         return permissions;
     }
 
-    public void setPermissions(int permissions)
-    {
+    public void setPermissions(int permissions) {
         if (permissions != 0 && isLocal() && Platform.isPlatformUnix()) {
-            String[] cmdarray = {"chmod", Integer.toString(permissions, 8), canonicalPath()};
+            String[] cmdarray = { "chmod", Integer.toString(permissions, 8), canonicalPath() };
             try {
                 Process process = Runtime.getRuntime().exec(cmdarray);
                 process.getInputStream().close();
@@ -1055,79 +985,78 @@ public class File implements Comparable<File>
         }
     }
 
-    public final int compareTo(File f)
-    {
+    public final int compareTo(File f) {
         return getName().compareTo(f.getName());
     }
 
-//     private static void test(String dirname, String filename, String expected)
-//     {
-//         File dir = getInstance(dirname);
-//         File file = getInstance(dir, filename);
+    //     private static void test(String dirname, String filename, String expected)
+    //     {
+    //         File dir = getInstance(dirname);
+    //         File file = getInstance(dir, filename);
 
-//         String result;
+    //         String result;
 
-//         if (file == null)
-//             result = "null";
-//         else
-//             result = file.netPath();
+    //         if (file == null)
+    //             result = "null";
+    //         else
+    //             result = file.netPath();
 
-//         if (Platform.isPlatformUnix() && result.equals(expected))
-//             System.out.println("  "  + dirname + " + " + filename + " => " + result);
-//         else if (Platform.isPlatformWindows() && result.equalsIgnoreCase(expected))
-//             System.out.println("  "  + dirname + " + " + filename + " => " + result);
-//         else
-//         {
-//             System.out.println("* "  + dirname + " + " + filename + " => " + result);
-//             System.out.println("*** expected " + expected + " ***");
-//         }
-//     }
+    //         if (Platform.isPlatformUnix() && result.equals(expected))
+    //             System.out.println("  "  + dirname + " + " + filename + " => " + result);
+    //         else if (Platform.isPlatformWindows() && result.equalsIgnoreCase(expected))
+    //             System.out.println("  "  + dirname + " + " + filename + " => " + result);
+    //         else
+    //         {
+    //             System.out.println("* "  + dirname + " + " + filename + " => " + result);
+    //             System.out.println("*** expected " + expected + " ***");
+    //         }
+    //     }
 
-//     public static void main(String args[])
-//     {
-//         if (Platform.isPlatformUnix())
-//         {
-//             test("/home/peter", ".", "/home/peter");
-//             test("/home/peter", "./", "/home/peter");
-//             test("/home/peter", "..", "/home");
-//             test("/home/peter", "../", "/home");
-//             test("/", "~/foo", "/home/peter/foo");
-//             test("/", "~/../foo", "/home/foo");
-//             test("/", "~/../../foo", "/foo");
-//             test("/", "~/../../../foo", "null");
-//             test("/", "~peter/foo", "/~peter/foo");
-//             test("/home/peter", "./foo", "/home/peter/foo");
-//             test("/home/peter", "../foo", "/home/foo");
-//             test("/home/peter", "../../foo", "/foo");
-//             test("/home/peter", "../../../foo", "null");
-//             test("/home/peter", "..foo", "/home/peter/..foo");
-//             test("/home/peter", "foo", "/home/peter/foo");
-//             test("/home/peter", "/foo", "/foo");
-//         }
-//         else
-//         {
-//             test("\\", ".", "C:\\");
-//             test("\\home", "\\home\\peter\\j", "C:\\home\\peter\\j");
-//             test("d:\\home", "\\home\\peter\\j", "D:\\home\\peter\\j");
-//             test("\\home", "d:\\home\\peter\\j", "d:\\home\\peter\\j");
-//             test("c:\\home\\peter", ".", "C:\\home\\peter");
-//             test("c:\\home\\peter", "..", "C:\\home");
-//             test("c:\\home\\peter", "..\\..", "C:\\");
-//             test("c:\\home\\peter", "..\\..\\..", "null");
-//             test("c:\\home\\peter", "c:\\", "C:\\");
-//             test("c:\\home\\peter", "c:\\windows", "C:\\windows");
-//             test("c:\\home\\peter", "c:\\windows\\", "C:\\windows");
-//             test("c:\\", ".", "C:\\");
-//             test("c:\\", ".\\", "C:\\");
-//             test("c:\\", "..", "null");
-//             test("//c/", "foo", "C:\\foo");
-//         }
+    //     public static void main(String args[])
+    //     {
+    //         if (Platform.isPlatformUnix())
+    //         {
+    //             test("/home/peter", ".", "/home/peter");
+    //             test("/home/peter", "./", "/home/peter");
+    //             test("/home/peter", "..", "/home");
+    //             test("/home/peter", "../", "/home");
+    //             test("/", "~/foo", "/home/peter/foo");
+    //             test("/", "~/../foo", "/home/foo");
+    //             test("/", "~/../../foo", "/foo");
+    //             test("/", "~/../../../foo", "null");
+    //             test("/", "~peter/foo", "/~peter/foo");
+    //             test("/home/peter", "./foo", "/home/peter/foo");
+    //             test("/home/peter", "../foo", "/home/foo");
+    //             test("/home/peter", "../../foo", "/foo");
+    //             test("/home/peter", "../../../foo", "null");
+    //             test("/home/peter", "..foo", "/home/peter/..foo");
+    //             test("/home/peter", "foo", "/home/peter/foo");
+    //             test("/home/peter", "/foo", "/foo");
+    //         }
+    //         else
+    //         {
+    //             test("\\", ".", "C:\\");
+    //             test("\\home", "\\home\\peter\\j", "C:\\home\\peter\\j");
+    //             test("d:\\home", "\\home\\peter\\j", "D:\\home\\peter\\j");
+    //             test("\\home", "d:\\home\\peter\\j", "d:\\home\\peter\\j");
+    //             test("c:\\home\\peter", ".", "C:\\home\\peter");
+    //             test("c:\\home\\peter", "..", "C:\\home");
+    //             test("c:\\home\\peter", "..\\..", "C:\\");
+    //             test("c:\\home\\peter", "..\\..\\..", "null");
+    //             test("c:\\home\\peter", "c:\\", "C:\\");
+    //             test("c:\\home\\peter", "c:\\windows", "C:\\windows");
+    //             test("c:\\home\\peter", "c:\\windows\\", "C:\\windows");
+    //             test("c:\\", ".", "C:\\");
+    //             test("c:\\", ".\\", "C:\\");
+    //             test("c:\\", "..", "null");
+    //             test("//c/", "foo", "C:\\foo");
+    //         }
 
-//         test("http://www.cnn.com", "/virtual/1998/code/cnn.css", "http://www.cnn.com/virtual/1998/code/cnn.css");
-//         test("http://www.cnn.com/", "/virtual/1998/code/cnn.css", "http://www.cnn.com/virtual/1998/code/cnn.css");
-//         test("http://www.cnn.com", "http://www.swatch.com", "http://www.swatch.com/");
-//         test("http://www.cnn.com/", "http://www.swatch.com", "http://www.swatch.com/");
-//         test("http://www.swatch.com", "specials/live_timing/index.html", "http://www.swatch.com/specials/live_timing/index.html");
-//         test("http://www.swatch.com/", "specials/live_timing/index.html", "http://www.swatch.com/specials/live_timing/index.html");
-//     }
+    //         test("http://www.cnn.com", "/virtual/1998/code/cnn.css", "http://www.cnn.com/virtual/1998/code/cnn.css");
+    //         test("http://www.cnn.com/", "/virtual/1998/code/cnn.css", "http://www.cnn.com/virtual/1998/code/cnn.css");
+    //         test("http://www.cnn.com", "http://www.swatch.com", "http://www.swatch.com/");
+    //         test("http://www.cnn.com/", "http://www.swatch.com", "http://www.swatch.com/");
+    //         test("http://www.swatch.com", "specials/live_timing/index.html", "http://www.swatch.com/specials/live_timing/index.html");
+    //         test("http://www.swatch.com/", "specials/live_timing/index.html", "http://www.swatch.com/specials/live_timing/index.html");
+    //     }
 }

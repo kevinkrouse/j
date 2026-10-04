@@ -25,7 +25,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
 import org.armedbear.j.Constants;
 
 /**
@@ -46,11 +45,8 @@ import org.armedbear.j.Constants;
  * against a dispatched event. {@link #awtModifiers} converts to the AWT
  * masks needed to synthesize a {@code KeyEvent}.
  */
-public final class KeyNotation
-{
-    private KeyNotation()
-    {
-    }
+public final class KeyNotation {
+    private KeyNotation() {}
 
     /**
      * One keystroke: what {@code JEvent} carries, before it is an event.
@@ -60,30 +56,26 @@ public final class KeyNotation
      * A stroke for a plain printable character has no {@link #keyCode}, because
      * which physical key produced it depends on the keyboard layout.
      */
-    public static final class Stroke
-    {
+    public static final class Stroke {
         public final int keyCode;
         public final char keyChar;
         public final int modifiers;
 
-        Stroke(int keyCode, char keyChar, int modifiers)
-        {
+        Stroke(int keyCode, char keyChar, int modifiers) {
             this.keyCode = keyCode;
             this.keyChar = keyChar;
             this.modifiers = modifiers;
         }
 
         /** True if this stroke should also produce a KEY_TYPED event. */
-        public boolean producesChar()
-        {
+        public boolean producesChar() {
             return keyChar != KeyEvent.CHAR_UNDEFINED
                 && (modifiers & (Constants.CTRL_MASK | Constants.ALT_MASK
-                                 | Constants.META_MASK)) == 0;
+                    | Constants.META_MASK)) == 0;
         }
 
         @Override
-        public String toString()
-        {
+        public String toString() {
             return name(keyCode, keyChar, modifiers);
         }
     }
@@ -93,43 +85,46 @@ public final class KeyNotation
     // The name to use when going the other way, keyed by key code.
     private static final Map<Integer, String> CANONICAL = new HashMap<Integer, String>();
 
-    private static void named(String name, int keyCode, char keyChar,
-                              boolean canonical)
-    {
-        NAMED.put(name.toLowerCase(), new int[] {keyCode, keyChar});
+    private static void named(
+        String name,
+        int keyCode,
+        char keyChar,
+        boolean canonical
+    ) {
+        NAMED.put(name.toLowerCase(), new int[] { keyCode, keyChar });
         if (canonical)
             CANONICAL.put(Integer.valueOf(keyCode), name);
     }
 
     static {
-        named("Esc",      KeyEvent.VK_ESCAPE,     (char) 0x1b, true);
-        named("Escape",   KeyEvent.VK_ESCAPE,     (char) 0x1b, false);
-        named("CR",       KeyEvent.VK_ENTER,      '\n',        true);
-        named("Enter",    KeyEvent.VK_ENTER,      '\n',        false);
-        named("Return",   KeyEvent.VK_ENTER,      '\n',        false);
-        named("NL",       KeyEvent.VK_ENTER,      '\n',        false);
-        named("BS",       KeyEvent.VK_BACK_SPACE, '\b',        true);
-        named("Tab",      KeyEvent.VK_TAB,        '\t',        true);
-        named("Del",      KeyEvent.VK_DELETE,     (char) 0x7f, true);
-        named("Delete",   KeyEvent.VK_DELETE,     (char) 0x7f, false);
-        named("Space",    KeyEvent.VK_SPACE,      ' ',         true);
-        named("Up",       KeyEvent.VK_UP,         KeyEvent.CHAR_UNDEFINED, true);
-        named("Down",     KeyEvent.VK_DOWN,       KeyEvent.CHAR_UNDEFINED, true);
-        named("Left",     KeyEvent.VK_LEFT,       KeyEvent.CHAR_UNDEFINED, true);
-        named("Right",    KeyEvent.VK_RIGHT,      KeyEvent.CHAR_UNDEFINED, true);
-        named("Home",     KeyEvent.VK_HOME,       KeyEvent.CHAR_UNDEFINED, true);
-        named("End",      KeyEvent.VK_END,        KeyEvent.CHAR_UNDEFINED, true);
-        named("PageUp",   KeyEvent.VK_PAGE_UP,    KeyEvent.CHAR_UNDEFINED, true);
-        named("PageDown", KeyEvent.VK_PAGE_DOWN,  KeyEvent.CHAR_UNDEFINED, true);
-        named("Ins",      KeyEvent.VK_INSERT,     KeyEvent.CHAR_UNDEFINED, true);
-        named("Insert",   KeyEvent.VK_INSERT,     KeyEvent.CHAR_UNDEFINED, false);
+        named("Esc", KeyEvent.VK_ESCAPE, (char) 0x1b, true);
+        named("Escape", KeyEvent.VK_ESCAPE, (char) 0x1b, false);
+        named("CR", KeyEvent.VK_ENTER, '\n', true);
+        named("Enter", KeyEvent.VK_ENTER, '\n', false);
+        named("Return", KeyEvent.VK_ENTER, '\n', false);
+        named("NL", KeyEvent.VK_ENTER, '\n', false);
+        named("BS", KeyEvent.VK_BACK_SPACE, '\b', true);
+        named("Tab", KeyEvent.VK_TAB, '\t', true);
+        named("Del", KeyEvent.VK_DELETE, (char) 0x7f, true);
+        named("Delete", KeyEvent.VK_DELETE, (char) 0x7f, false);
+        named("Space", KeyEvent.VK_SPACE, ' ', true);
+        named("Up", KeyEvent.VK_UP, KeyEvent.CHAR_UNDEFINED, true);
+        named("Down", KeyEvent.VK_DOWN, KeyEvent.CHAR_UNDEFINED, true);
+        named("Left", KeyEvent.VK_LEFT, KeyEvent.CHAR_UNDEFINED, true);
+        named("Right", KeyEvent.VK_RIGHT, KeyEvent.CHAR_UNDEFINED, true);
+        named("Home", KeyEvent.VK_HOME, KeyEvent.CHAR_UNDEFINED, true);
+        named("End", KeyEvent.VK_END, KeyEvent.CHAR_UNDEFINED, true);
+        named("PageUp", KeyEvent.VK_PAGE_UP, KeyEvent.CHAR_UNDEFINED, true);
+        named("PageDown", KeyEvent.VK_PAGE_DOWN, KeyEvent.CHAR_UNDEFINED, true);
+        named("Ins", KeyEvent.VK_INSERT, KeyEvent.CHAR_UNDEFINED, true);
+        named("Insert", KeyEvent.VK_INSERT, KeyEvent.CHAR_UNDEFINED, false);
         for (int i = 1; i <= 12; i++)
             named("F" + i, KeyEvent.VK_F1 + i - 1, KeyEvent.CHAR_UNDEFINED, true);
         // Characters that cannot be written literally inside <>.
-        named("lt",       0, '<',  false);
-        named("gt",       0, '>',  false);
-        named("Bar",      0, '|',  false);
-        named("Bslash",   0, '\\', false);
+        named("lt", 0, '<', false);
+        named("gt", 0, '>', false);
+        named("Bar", 0, '|', false);
+        named("Bslash", 0, '\\', false);
     }
 
     /**
@@ -139,13 +134,16 @@ public final class KeyNotation
      *         that a typo in a key map is reported rather than silently
      *         treated as seven literal characters.
      */
-    public static List<Stroke> parse(String keys)
-    {
+    public static List<Stroke> parse(String keys) {
         final List<Stroke> strokes = new ArrayList<Stroke>();
         for (String token : tokenize(keys)) {
             if (token.charAt(0) == '<')
-                strokes.add(parseBracketed(
-                    token.substring(1, token.length() - 1), keys));
+                strokes.add(
+                    parseBracketed(
+                        token.substring(1, token.length() - 1),
+                        keys
+                    )
+                );
             else
                 // A surrogate pair is typed as two events, as AWT sends it.
                 for (int i = 0; i < token.length(); i++)
@@ -168,8 +166,7 @@ public final class KeyNotation
      * normalised to {@code &lt;lt&gt;} so that a binding and a keystroke spell
      * that key the same way.
      */
-    public static List<String> tokenize(String keys)
-    {
+    public static List<String> tokenize(String keys) {
         final List<String> tokens = new ArrayList<String>();
         final int length = keys.length();
         int i = 0;
@@ -192,18 +189,17 @@ public final class KeyNotation
     }
 
     /** Convenience for a sequence that is known to be a single stroke. */
-    public static Stroke parseOne(String key)
-    {
+    public static Stroke parseOne(String key) {
         final List<Stroke> strokes = parse(key);
         if (strokes.size() != 1)
             throw new IllegalArgumentException(
                 "expected a single stroke, got " + strokes.size()
-                + " in \"" + key + "\"");
+                    + " in \"" + key + "\""
+            );
         return strokes.get(0);
     }
 
-    private static Stroke parseBracketed(String body, String whole)
-    {
+    private static Stroke parseBracketed(String body, String whole) {
         int modifiers = 0;
         // Strip leading modifier prefixes: C- S- A- M- D-.
         while (body.length() > 2 && body.charAt(1) == '-') {
@@ -215,7 +211,8 @@ public final class KeyNotation
         }
         if (body.isEmpty())
             throw new IllegalArgumentException(
-                "empty key name in \"" + whole + "\"");
+                "empty key name in \"" + whole + "\""
+            );
 
         final int[] key = NAMED.get(body.toLowerCase());
         if (key != null)
@@ -225,26 +222,34 @@ public final class KeyNotation
             char c = body.charAt(0);
             // <S-a> means A; <C-a> keeps the letter and the mask, because the
             // control character is not what the key map matches on.
-            if ((modifiers & Constants.SHIFT_MASK) != 0
-                && Character.isLetter(c)) {
+            if (
+                (modifiers & Constants.SHIFT_MASK) != 0
+                    && Character.isLetter(c)
+            ) {
                 c = Character.toUpperCase(c);
                 modifiers &= ~Constants.SHIFT_MASK;
             }
             return new Stroke(0, c, modifiers);
         }
         throw new IllegalArgumentException(
-            "unrecognised key name \"<" + body + ">\" in \"" + whole + "\"");
+            "unrecognised key name \"<" + body + ">\" in \"" + whole + "\""
+        );
     }
 
-    private static int modifierBit(char c)
-    {
+    private static int modifierBit(char c) {
         switch (Character.toUpperCase(c)) {
-            case 'C': return Constants.CTRL_MASK;
-            case 'S': return Constants.SHIFT_MASK;
-            case 'A': return Constants.ALT_MASK;
-            case 'M': return Constants.ALT_MASK;
-            case 'D': return Constants.META_MASK;
-            default:  return 0;
+            case 'C':
+                return Constants.CTRL_MASK;
+            case 'S':
+                return Constants.SHIFT_MASK;
+            case 'A':
+                return Constants.ALT_MASK;
+            case 'M':
+                return Constants.ALT_MASK;
+            case 'D':
+                return Constants.META_MASK;
+            default:
+                return 0;
         }
     }
 
@@ -253,8 +258,7 @@ public final class KeyNotation
      *
      * The inverse of {@link #parse} for everything {@link #parse} can produce.
      */
-    public static String name(int keyCode, char keyChar, int modifiers)
-    {
+    public static String name(int keyCode, char keyChar, int modifiers) {
         final String named = CANONICAL.get(Integer.valueOf(keyCode));
         if (named != null)
             return bracket(named, modifiers);
@@ -262,20 +266,30 @@ public final class KeyNotation
         if ((modifiers & Constants.CTRL_MASK) != 0) {
             final char body = controlBody(keyCode, keyChar);
             if (body != 0)
-                return bracket(String.valueOf(body), shiftFolded(body,
-                                                                 modifiers));
+                return bracket(
+                    String.valueOf(body),
+                    shiftFolded(
+                        body,
+                        modifiers
+                    )
+                );
         }
 
         if (keyChar != KeyEvent.CHAR_UNDEFINED && keyChar != 0) {
             if (modifiers == 0) {
                 switch (keyChar) {
-                    case '<':  return "<lt>";
-                    case ' ':  return "<Space>";
-                    default:   return String.valueOf(keyChar);
+                    case '<':
+                        return "<lt>";
+                    case ' ':
+                        return "<Space>";
+                    default:
+                        return String.valueOf(keyChar);
                 }
             }
-            return bracket(String.valueOf(keyChar),
-                           shiftFolded(keyChar, modifiers));
+            return bracket(
+                String.valueOf(keyChar),
+                shiftFolded(keyChar, modifiers)
+            );
         }
         // A key with neither a name nor a character: spell it by code so that
         // it is at least greppable rather than silently dropped.
@@ -292,19 +306,24 @@ public final class KeyNotation
      * for the few control characters that are not letters, the C0 table does.
      * Returns 0 for a control key that is neither.
      */
-    private static char controlBody(int keyCode, char keyChar)
-    {
+    private static char controlBody(int keyCode, char keyChar) {
         if (keyCode >= KeyEvent.VK_A && keyCode <= KeyEvent.VK_Z)
             return (char) ('a' + keyCode - KeyEvent.VK_A);
         if (keyChar >= 1 && keyChar <= 26)
             return (char) ('a' + keyChar - 1);
         switch (keyChar) {
-            case 0x1b: return '[';
-            case 0x1c: return '\\';
-            case 0x1d: return ']';
-            case 0x1e: return '^';
-            case 0x1f: return '_';
-            default:   return 0;
+            case 0x1b:
+                return '[';
+            case 0x1c:
+                return '\\';
+            case 0x1d:
+                return ']';
+            case 0x1e:
+                return '^';
+            case 0x1f:
+                return '_';
+            default:
+                return 0;
         }
     }
 
@@ -317,14 +336,13 @@ public final class KeyNotation
      * key probe -- so without this the key is named <C-S-^> and matches
      * nothing. A letter keeps its Shift: <C-S-r> is not <C-r>.
      */
-    private static int shiftFolded(char c, int modifiers)
-    {
-        return Character.isLetter(c) ? modifiers
+    private static int shiftFolded(char c, int modifiers) {
+        return Character.isLetter(c)
+            ? modifiers
             : modifiers & ~Constants.SHIFT_MASK;
     }
 
-    private static String bracket(String body, int modifiers)
-    {
+    private static String bracket(String body, int modifiers) {
         final StringBuilder sb = new StringBuilder("<");
         if ((modifiers & Constants.CTRL_MASK) != 0)
             sb.append("C-");
@@ -343,10 +361,12 @@ public final class KeyNotation
      * The character a key stands for as a code point: {@link #characterOf},
      * but a key that is one surrogate pair gives the whole character.
      */
-    public static int codePointOf(String key)
-    {
-        if (key != null && key.length() == 2
-            && Character.isSurrogatePair(key.charAt(0), key.charAt(1)))
+    public static int codePointOf(String key) {
+        if (
+            key != null
+                && key.length() == 2
+                && Character.isSurrogatePair(key.charAt(0), key.charAt(1))
+        )
             return key.codePointAt(0);
         return characterOf(key);
     }
@@ -359,8 +379,7 @@ public final class KeyNotation
      * Anything that takes a character argument -- {@code f}, {@code r},
      * {@code m}, {@code "} -- has to come back through here.
      */
-    public static char characterOf(String key)
-    {
+    public static char characterOf(String key) {
         if (key == null || key.isEmpty())
             return 0;
         if (key.length() == 1)
@@ -368,7 +387,8 @@ public final class KeyNotation
         if (key.charAt(0) != '<' || key.charAt(key.length() - 1) != '>')
             return 0;
         final int[] named = NAMED.get(
-            key.substring(1, key.length() - 1).toLowerCase());
+            key.substring(1, key.length() - 1).toLowerCase()
+        );
         if (named == null)
             return 0;
         final char c = (char) named[1];
@@ -376,8 +396,7 @@ public final class KeyNotation
     }
 
     /** Converts j's modifier mask to the AWT extended mask. */
-    public static int awtModifiers(int modifiers)
-    {
+    public static int awtModifiers(int modifiers) {
         int ex = 0;
         if ((modifiers & Constants.SHIFT_MASK) != 0)
             ex |= java.awt.event.InputEvent.SHIFT_DOWN_MASK;

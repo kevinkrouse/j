@@ -20,7 +20,6 @@
 
 package org.armedbear.j;
 
-import org.armedbear.j.util.Utilities;
 import java.awt.Dimension;
 import java.awt.Point;
 import java.awt.event.MouseEvent;
@@ -31,15 +30,14 @@ import javax.swing.ListSelectionModel;
 import javax.swing.table.JTableHeader;
 import javax.swing.table.TableColumn;
 import javax.swing.table.TableColumnModel;
+import org.armedbear.j.util.Utilities;
 
-public final class RecentFilesDialog extends AbstractDialog implements MouseListener
-{
+public final class RecentFilesDialog extends AbstractDialog implements MouseListener {
     private final JTable table;
     private final RecentFilesTableModel model;
     private final Editor editor;
 
-    public RecentFilesDialog(Editor editor)
-    {
+    public RecentFilesDialog(Editor editor) {
         super(editor, "Recent Files", true);
         this.editor = editor;
         model = new RecentFilesTableModel();
@@ -71,27 +69,23 @@ public final class RecentFilesDialog extends AbstractDialog implements MouseList
         table.requestFocus();
     }
 
-    protected void ok()
-    {
+    protected void ok() {
         openSelectedFile();
     }
 
-    private void openSelectedFile()
-    {
+    private void openSelectedFile() {
         int row = table.getSelectedRow();
         if (row >= 0)
             openFileAtRow(row);
     }
 
-    private void openFileAtPoint(Point point)
-    {
+    private void openFileAtPoint(Point point) {
         int row = table.rowAtPoint(point);
         if (row >= 0)
             openFileAtRow(row);
     }
 
-    private void openFileAtRow(int row)
-    {
+    private void openFileAtRow(int row) {
         dispose();
         editor.repaintNow();
         RecentFilesEntry entry = model.getEntryAtRow(row);
@@ -119,8 +113,7 @@ public final class RecentFilesDialog extends AbstractDialog implements MouseList
         }
     }
 
-    public void dispose()
-    {
+    public void dispose() {
         JTableHeader th = table.getTableHeader();
         TableColumnModel columnModel = th.getColumnModel();
         int count = columnModel.getColumnCount();
@@ -132,13 +125,11 @@ public final class RecentFilesDialog extends AbstractDialog implements MouseList
         super.dispose();
     }
 
-    private String getColumnWidthKey(int i)
-    {
+    private String getColumnWidthKey(int i) {
         return "RecentFilesDialog.columnWidth." + i;
     }
 
-    public void mouseClicked(MouseEvent e)
-    {
+    public void mouseClicked(MouseEvent e) {
         if (e.getClickCount() == 2)
             openSelectedFile();
         else if ((Utilities.isUnmodified(e) && e.getButton() == MouseEvent.BUTTON2))
@@ -163,12 +154,14 @@ public final class RecentFilesDialog extends AbstractDialog implements MouseList
     }
 
     public void mousePressed(MouseEvent e) {}
+
     public void mouseReleased(MouseEvent e) {}
+
     public void mouseEntered(MouseEvent e) {}
+
     public void mouseExited(MouseEvent e) {}
 
-    public static void recentFiles()
-    {
+    public static void recentFiles() {
         final Editor editor = Editor.currentEditor();
         RecentFilesDialog d = new RecentFilesDialog(editor);
         editor.centerDialog(d);

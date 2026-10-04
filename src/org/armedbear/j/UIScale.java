@@ -20,10 +20,10 @@
 
 package org.armedbear.j;
 
+import java.awt.Component;
 import java.awt.GraphicsConfiguration;
 import java.awt.GraphicsDevice;
 import java.awt.GraphicsEnvironment;
-import java.awt.Component;
 import java.awt.Toolkit;
 import java.awt.geom.AffineTransform;
 import javax.swing.JComponent;
@@ -52,8 +52,7 @@ import org.armedbear.j.util.Utilities;
  * explicitly is always honoured as written -- see
  * {@link #scaledProperty(Preferences, Property)}.
  */
-public final class UIScale
-{
+public final class UIScale {
     // Resolution j's built-in sizes were chosen for.
     private static final double BASE_DPI = 96.0;
 
@@ -72,16 +71,13 @@ public final class UIScale
 
     private static final String GENERATION_KEY = "j.uiScale.generation";
 
-    private UIScale()
-    {
-    }
+    private UIScale() {}
 
     /**
      * The scale factor for this display. Computed once on first use, since it
      * is read from every paint path.
      */
-    public static synchronized double getScale()
-    {
+    public static synchronized double getScale() {
         if (scale == 0)
             scale = computeScale();
         return scale;
@@ -91,8 +87,7 @@ public final class UIScale
      * Recomputes the scale factor. Called when preferences are reloaded, so
      * that a change to uiScale takes effect without a restart.
      */
-    public static void reset()
-    {
+    public static void reset() {
         synchronized (UIScale.class) {
             scale = 0;
             ++generation;
@@ -111,8 +106,7 @@ public final class UIScale
      * this costs a client-property lookup on the common path where nothing has
      * changed.
      */
-    public static void refresh(Component c)
-    {
+    public static void refresh(Component c) {
         if (!(c instanceof JComponent))
             return;
         final JComponent component = (JComponent) c;
@@ -130,8 +124,7 @@ public final class UIScale
     /**
      * Scales one of j's built-in sizes, rounding to whole pixels.
      */
-    public static int scale(int size)
-    {
+    public static int scale(int size) {
         if (size <= 0)
             return size;
         int scaled = (int) Math.round(size * getScale());
@@ -142,16 +135,14 @@ public final class UIScale
      * The value of an integer preference, scaled for the display only if the
      * user hasn't set it.
      */
-    public static int scaledProperty(Preferences preferences, Property property)
-    {
+    public static int scaledProperty(Preferences preferences, Property property) {
         final int value = preferences.getIntegerProperty(property);
         if (preferences.isPropertySet(property))
             return value;
         return scale(value);
     }
 
-    private static double computeScale()
-    {
+    private static double computeScale() {
         final Preferences preferences = Editor.preferences();
 
         // An explicit uiScale overrides the detection entirely.
@@ -163,8 +154,10 @@ public final class UIScale
                     // 0 means "detect", which is the default.
                     if (d > 0) {
                         final double clamped = clamp(d);
-                        Log.info("UIScale: using uiScale=" + clamped +
-                                 " from preferences");
+                        Log.info(
+                            "UIScale: using uiScale=" + clamped +
+                                " from preferences"
+                        );
                         return clamped;
                     }
                 }
@@ -182,15 +175,19 @@ public final class UIScale
             // work for us and we must not do it twice.
             final double jdkScale = getJdkScale();
             if (jdkScale > 1.0) {
-                Log.info("UIScale: JDK is scaling by " + jdkScale +
-                         "; using uiScale=1.0");
+                Log.info(
+                    "UIScale: JDK is scaling by " + jdkScale +
+                        "; using uiScale=1.0"
+                );
                 return 1.0;
             }
 
             final int dpi = Toolkit.getDefaultToolkit().getScreenResolution();
             final double detected = clamp(quantize(dpi / BASE_DPI));
-            Log.info("UIScale: screen resolution " + dpi + " dpi; using uiScale=" +
-                     detected);
+            Log.info(
+                "UIScale: screen resolution " + dpi + " dpi; using uiScale=" +
+                    detected
+            );
             return detected;
         }
         catch (Throwable t) {
@@ -200,8 +197,7 @@ public final class UIScale
         }
     }
 
-    private static double getJdkScale()
-    {
+    private static double getJdkScale() {
         final GraphicsEnvironment env =
             GraphicsEnvironment.getLocalGraphicsEnvironment();
         final GraphicsDevice device = env.getDefaultScreenDevice();
@@ -219,13 +215,11 @@ public final class UIScale
     // Round to quarter steps. Reported DPI is frequently a pixel-density
     // calculation rather than a round number, and 1.4791666 would give sizes
     // that look arbitrary.
-    private static double quantize(double d)
-    {
+    private static double quantize(double d) {
         return Math.round(d * 4.0) / 4.0;
     }
 
-    private static double clamp(double d)
-    {
+    private static double clamp(double d) {
         if (d < MIN_SCALE)
             return MIN_SCALE;
         if (d > MAX_SCALE)

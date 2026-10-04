@@ -20,17 +20,15 @@
 
 package org.armedbear.j;
 
-import org.armedbear.j.Constants;
-import org.armedbear.j.util.Utilities;
-
 import java.awt.Color;
 import java.awt.event.KeyEvent;
 import javax.swing.SwingUtilities;
 import javax.swing.undo.CompoundEdit;
+import org.armedbear.j.Constants;
+import org.armedbear.j.util.Utilities;
 
 public final class IncrementalFindTextFieldHandler extends DefaultTextFieldHandler
-    implements Constants
-{
+    implements Constants {
     private final Display display;
     private final Buffer buffer;
 
@@ -44,8 +42,7 @@ public final class IncrementalFindTextFieldHandler extends DefaultTextFieldHandl
     private final int initialDotCol;
     private final Position initialMark;
 
-    public IncrementalFindTextFieldHandler(Editor editor, HistoryTextField textField)
-    {
+    public IncrementalFindTextFieldHandler(Editor editor, HistoryTextField textField) {
         super(editor, textField);
         display = editor.getDisplay();
         buffer = editor.getBuffer();
@@ -65,8 +62,7 @@ public final class IncrementalFindTextFieldHandler extends DefaultTextFieldHandl
             initialMark = null;
     }
 
-    public void initializeKeyMap()
-    {
+    public void initializeKeyMap() {
         keyMap = new KeyMap();
         keyMap.addMappingsForCommand("incrementalFind", KeyMap.getGlobalKeyMap());
         keyMap.addMappingsForCommand("incrementalFind", buffer.getKeyMapForMode());
@@ -78,8 +74,7 @@ public final class IncrementalFindTextFieldHandler extends DefaultTextFieldHandl
         keyMap.addMappingsForCommand("escape", buffer.getKeyMapForMode());
     }
 
-    public void escape()
-    {
+    public void escape() {
         restoreInitialState();
         editor.ensureActive();
         editor.setFocusToDisplay();
@@ -89,8 +84,7 @@ public final class IncrementalFindTextFieldHandler extends DefaultTextFieldHandl
         unhighlightTextField();
     }
 
-    private void restoreInitialState()
-    {
+    private void restoreInitialState() {
         editor.updateDotLine();
         editor.setDot(initialDot);
         editor.updateDotLine();
@@ -102,8 +96,7 @@ public final class IncrementalFindTextFieldHandler extends DefaultTextFieldHandl
         editor.updateDisplay();
     }
 
-    public void keyPressed(KeyEvent e)
-    {
+    public void keyPressed(KeyEvent e) {
         final char keyChar = e.getKeyChar();
         final int keyCode = e.getKeyCode();
         final int modifiers = Utilities.keyModifiers(e);
@@ -176,8 +169,7 @@ public final class IncrementalFindTextFieldHandler extends DefaultTextFieldHandl
         }
     }
 
-    private void retrieveHistory(int direction)
-    {
+    private void retrieveHistory(int direction) {
         History history = textField.getHistory();
         if (history == null)
             return;
@@ -193,8 +185,7 @@ public final class IncrementalFindTextFieldHandler extends DefaultTextFieldHandl
         }
     }
 
-    private void yankWord()
-    {
+    private void yankWord() {
         inHistory = false;
         int begin = editor.getDotOffset();
         int end = begin + search.getPatternLength();
@@ -219,8 +210,7 @@ public final class IncrementalFindTextFieldHandler extends DefaultTextFieldHandl
         }
     }
 
-    private void finish(KeyEvent e)
-    {
+    private void finish(KeyEvent e) {
         unhighlightTextField();
         if (search.getPattern() != null && search.getPatternLength() > 0) {
             editor.setLastSearch(search);
@@ -256,21 +246,18 @@ public final class IncrementalFindTextFieldHandler extends DefaultTextFieldHandl
         editor.updateLocation();
     }
 
-    public void keyReleased(KeyEvent e)
-    {
+    public void keyReleased(KeyEvent e) {
         textField.setText(search.getPattern());
         textField.setCaretPosition(search.getPatternLength());
     }
 
-    public void keyTyped(KeyEvent e)
-    {
+    public void keyTyped(KeyEvent e) {
         final int modifiers = Utilities.keyModifiers(e);
         if (modifiers == 0 || modifiers == SHIFT_MASK)
             handleKeyEvent(e);
     }
 
-    private void handleKeyEvent(KeyEvent e)
-    {
+    private void handleKeyEvent(KeyEvent e) {
         // Mask off bits we don't care about (Java 1.4).
         int modifiers = Utilities.keyModifiers(e);
         if (modifiers != 0 && modifiers != Constants.SHIFT_MASK)
@@ -296,11 +283,10 @@ public final class IncrementalFindTextFieldHandler extends DefaultTextFieldHandl
         }
     }
 
-    private void backspace()
-    {
+    private void backspace() {
         String s = textField.getText();
         if (s.length() > 0) {
-            s = s.substring(0, s.length()-1);
+            s = s.substring(0, s.length() - 1);
             textField.setText(s);
             search.setPattern(s);
             search.setIgnoreCase(Utilities.isLowerCase(s));
@@ -318,8 +304,7 @@ public final class IncrementalFindTextFieldHandler extends DefaultTextFieldHandl
         }
     }
 
-    private void findNext()
-    {
+    private void findNext() {
         if (search.getPatternLength() > 0) {
             // Only advance dot if we're really searching for the same pattern
             // again. We might be doing the first search on a pattern
@@ -357,8 +342,7 @@ public final class IncrementalFindTextFieldHandler extends DefaultTextFieldHandl
             found(pos);
     }
 
-    private void findPrev()
-    {
+    private void findPrev() {
         if (search.getPatternLength() > 0) {
             Position start;
             if (editor.getMark() != null)
@@ -380,8 +364,7 @@ public final class IncrementalFindTextFieldHandler extends DefaultTextFieldHandl
 
     private boolean dirty;
 
-    private void found(Position pos)
-    {
+    private void found(Position pos) {
         if (editor.getMark() != null)
             if (editor.getMarkLine() != editor.getDotLine())
                 editor.setUpdateFlag(REPAINT);
@@ -401,13 +384,11 @@ public final class IncrementalFindTextFieldHandler extends DefaultTextFieldHandl
         }
     };
 
-    private final void highlightTextField()
-    {
+    private final void highlightTextField() {
         textField.setBackground(Color.RED);
     }
 
-    private final void unhighlightTextField()
-    {
+    private final void unhighlightTextField() {
         textField.setBackground(Color.WHITE);
     }
 }

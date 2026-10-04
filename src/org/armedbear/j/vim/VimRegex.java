@@ -39,15 +39,11 @@ import java.util.regex.PatternSyntaxException;
  *
  * <p>Every expectation in the tests was taken from nvim.
  */
-final class VimRegex
-{
-    private VimRegex()
-    {
-    }
+final class VimRegex {
+    private VimRegex() {}
 
     /** What a translation produced. */
-    static final class Result
-    {
+    static final class Result {
         /** The pattern in Java's syntax. */
         final String java;
         /** {@code \c} or {@code \C} in the pattern, or null for neither. */
@@ -58,8 +54,7 @@ final class VimRegex
          */
         final boolean hasUppercase;
 
-        Result(String java, Boolean ignoreCase, boolean hasUppercase)
-        {
+        Result(String java, Boolean ignoreCase, boolean hasUppercase) {
             this.java = java;
             this.ignoreCase = ignoreCase;
             this.hasUppercase = hasUppercase;
@@ -78,15 +73,28 @@ final class VimRegex
      *
      * The table in vim's {@code :help /magic}, as code.
      */
-    private static boolean specialBare(char c, int level)
-    {
+    private static boolean specialBare(char c, int level) {
         switch (c) {
-            case '^': case '$':
+            case '^':
+            case '$':
                 return level >= NOMAGIC;
-            case '.': case '*': case '[': case '~':
+            case '.':
+            case '*':
+            case '[':
+            case '~':
                 return level >= MAGIC;
-            case '(': case ')': case '|': case '+': case '=': case '?':
-            case '{': case '@': case '<': case '>': case '%': case '&':
+            case '(':
+            case ')':
+            case '|':
+            case '+':
+            case '=':
+            case '?':
+            case '{':
+            case '@':
+            case '<':
+            case '>':
+            case '%':
+            case '&':
                 return level == VERY_MAGIC;
             default:
                 return false;
@@ -94,8 +102,7 @@ final class VimRegex
     }
 
     /** Characters that have an operator meaning at some level. */
-    private static boolean dualMeaning(char c)
-    {
+    private static boolean dualMeaning(char c) {
         return "^$.*[~()|+=?{@<>%&".indexOf(c) >= 0;
     }
 
@@ -108,14 +115,12 @@ final class VimRegex
      * @throws PatternSyntaxException for a construct this cannot express,
      *         named in the description, rather than a silently wrong pattern
      */
-    static Result translate(String pattern, String lastSubstitute)
-    {
+    static Result translate(String pattern, String lastSubstitute) {
         return new VimRegex.Translator(pattern, lastSubstitute).run();
     }
 
     /** {@link #translate} with no previous substitute. */
-    static Result translate(String pattern)
-    {
+    static Result translate(String pattern) {
         return translate(pattern, null);
     }
 
@@ -127,17 +132,16 @@ final class VimRegex
      * @param forceCase a caller's own override -- {@code :s}'s i and I flags
      *        -- or null to use the pattern's and the options'
      */
-    static Pattern compile(String pattern, Boolean forceCase)
-    {
+    static Pattern compile(String pattern, Boolean forceCase) {
         final Result r = translate(pattern, VimExSubstitute.lastReplacement());
-        final int flags = ignoreCase(r, forceCase) ? Pattern.CASE_INSENSITIVE
-                                                   : 0;
+        final int flags = ignoreCase(r, forceCase)
+            ? Pattern.CASE_INSENSITIVE
+            : 0;
         return Pattern.compile(r.java, flags);
     }
 
     /** Whether a translated pattern should ignore case. */
-    static boolean ignoreCase(Result r, Boolean forceCase)
-    {
+    static boolean ignoreCase(Result r, Boolean forceCase) {
         return ignoreCase(r, forceCase, true);
     }
 
@@ -145,9 +149,11 @@ final class VimRegex
      * @param useSmartcase false for * and its kin, which vim documents as
      *        using 'ignorecase' but not 'smartcase'
      */
-    static boolean ignoreCase(Result r, Boolean forceCase,
-                              boolean useSmartcase)
-    {
+    static boolean ignoreCase(
+        Result r,
+        Boolean forceCase,
+        boolean useSmartcase
+    ) {
         // \c and \C in the pattern beat the flags and the options, as they
         // do in vim; a flag given to :s beats the options.
         if (r.ignoreCase != null)
@@ -157,16 +163,16 @@ final class VimRegex
         final VimOptions options = VimKeyMap.getSharedOptions();
         if (!options.isOn("ignorecase"))
             return false;
-        return !(useSmartcase && options.isOn("smartcase")
-                 && r.hasUppercase);
+        return !(useSmartcase
+            && options.isOn("smartcase")
+            && r.hasUppercase);
     }
 
     /**
      * Vim's pat_has_uppercase: an upper case letter that is not part of an
      * escape. {@code \S}, {@code \_S} and {@code \%V} do not count.
      */
-    private static boolean hasUppercase(String pattern)
-    {
+    private static boolean hasUppercase(String pattern) {
         for (int i = 0; i < pattern.length(); i++) {
             final char c = pattern.charAt(i);
             if (c == '\\' && i + 1 < pattern.length()) {
@@ -183,8 +189,7 @@ final class VimRegex
 
     // -------------------------------------------------------------- scanner
 
-    private static final class Translator
-    {
+    private static final class Translator {
         private final String in;
         private final String lastSubstitute;
         private final StringBuilder out = new StringBuilder();
@@ -211,14 +216,12 @@ final class VimRegex
          */
         private boolean variableWidth;
 
-        Translator(String in, String lastSubstitute)
-        {
+        Translator(String in, String lastSubstitute) {
             this.in = in;
             this.lastSubstitute = lastSubstitute;
         }
 
-        Result run()
-        {
+        Result run() {
             while (pos < in.length()) {
                 final char c = in.charAt(pos++);
                 if (c == '\\') {
@@ -240,8 +243,7 @@ final class VimRegex
         }
 
         /** A backslash and the character after it. */
-        private void escape(char c)
-        {
+        private void escape(char c) {
             if (dualMeaning(c)) {
                 // The flip side of the table: special bare means literal
                 // escaped, and the other way round.
@@ -253,49 +255,125 @@ final class VimRegex
             }
             switch (c) {
                 // The level switches, which can appear anywhere.
-                case 'v': level = VERY_MAGIC; return;
-                case 'm': level = MAGIC; return;
-                case 'M': level = NOMAGIC; return;
-                case 'V': level = VERY_NOMAGIC; return;
-                case 'c': ignoreCase = Boolean.TRUE; return;
-                case 'C': ignoreCase = Boolean.FALSE; return;
+                case 'v':
+                    level = VERY_MAGIC;
+                    return;
+                case 'm':
+                    level = MAGIC;
+                    return;
+                case 'M':
+                    level = NOMAGIC;
+                    return;
+                case 'V':
+                    level = VERY_NOMAGIC;
+                    return;
+                case 'c':
+                    ignoreCase = Boolean.TRUE;
+                    return;
+                case 'C':
+                    ignoreCase = Boolean.FALSE;
+                    return;
                 // Character classes, spelt out: several of these letters mean
                 // something else entirely to Java.
-                case 's': atom("[ \\t]"); return;
-                case 'S': atom("[^ \\t]"); return;
-                case 'd': atom("[0-9]"); return;
-                case 'D': atom("[^0-9]"); return;
-                case 'w': atom("[0-9A-Za-z_]"); return;
-                case 'W': atom("[^0-9A-Za-z_]"); return;
-                case 'a': atom("[A-Za-z]"); return;
-                case 'A': atom("[^A-Za-z]"); return;
-                case 'l': atom("[a-z]"); return;
-                case 'L': atom("[^a-z]"); return;
-                case 'u': atom("[A-Z]"); return;
-                case 'U': atom("[^A-Z]"); return;
-                case 'x': atom("[0-9A-Fa-f]"); return;
-                case 'X': atom("[^0-9A-Fa-f]"); return;
-                case 'o': atom("[0-7]"); return;
-                case 'O': atom("[^0-7]"); return;
-                case 'h': atom("[A-Za-z_]"); return;
-                case 'H': atom("[^A-Za-z_]"); return;
+                case 's':
+                    atom("[ \\t]");
+                    return;
+                case 'S':
+                    atom("[^ \\t]");
+                    return;
+                case 'd':
+                    atom("[0-9]");
+                    return;
+                case 'D':
+                    atom("[^0-9]");
+                    return;
+                case 'w':
+                    atom("[0-9A-Za-z_]");
+                    return;
+                case 'W':
+                    atom("[^0-9A-Za-z_]");
+                    return;
+                case 'a':
+                    atom("[A-Za-z]");
+                    return;
+                case 'A':
+                    atom("[^A-Za-z]");
+                    return;
+                case 'l':
+                    atom("[a-z]");
+                    return;
+                case 'L':
+                    atom("[^a-z]");
+                    return;
+                case 'u':
+                    atom("[A-Z]");
+                    return;
+                case 'U':
+                    atom("[^A-Z]");
+                    return;
+                case 'x':
+                    atom("[0-9A-Fa-f]");
+                    return;
+                case 'X':
+                    atom("[^0-9A-Fa-f]");
+                    return;
+                case 'o':
+                    atom("[0-7]");
+                    return;
+                case 'O':
+                    atom("[^0-7]");
+                    return;
+                case 'h':
+                    atom("[A-Za-z_]");
+                    return;
+                case 'H':
+                    atom("[^A-Za-z_]");
+                    return;
                 // Keyword and identifier characters depend on 'iskeyword'
                 // and 'isident' in vim; the usual values are these.
-                case 'k': case 'i': atom("[0-9A-Za-z_]"); return;
-                case 'K': case 'I': atom("[A-Za-z_]"); return;
-                case 'f': atom("[0-9A-Za-z_./\\-+,#$%~=]"); return;
-                case 'F': atom("[A-Za-z_./\\-+,#$%~=]"); return;
-                case 'p': atom("[\\x20-\\x7e]"); return;
+                case 'k':
+                case 'i':
+                    atom("[0-9A-Za-z_]");
+                    return;
+                case 'K':
+                case 'I':
+                    atom("[A-Za-z_]");
+                    return;
+                case 'f':
+                    atom("[0-9A-Za-z_./\\-+,#$%~=]");
+                    return;
+                case 'F':
+                    atom("[A-Za-z_./\\-+,#$%~=]");
+                    return;
+                case 'p':
+                    atom("[\\x20-\\x7e]");
+                    return;
                 // Capital forms of \i \k \f \p exclude digits.
-                case 'P': atom("[\\x20-\\x2f\\x3a-\\x7e]"); return;
+                case 'P':
+                    atom("[\\x20-\\x2f\\x3a-\\x7e]");
+                    return;
                 // Control characters. \b is backspace here, not a boundary.
-                case 'e': atom("\\x1b"); return;
-                case 't': atom("\\t"); return;
-                case 'r': atom("\\r"); return;
-                case 'b': atom("\\x08"); return;
-                case 'n': atom("\\n"); return;
-                case '_': underscore(); return;
-                case 'z': zed(); return;
+                case 'e':
+                    atom("\\x1b");
+                    return;
+                case 't':
+                    atom("\\t");
+                    return;
+                case 'r':
+                    atom("\\r");
+                    return;
+                case 'b':
+                    atom("\\x08");
+                    return;
+                case 'n':
+                    atom("\\n");
+                    return;
+                case '_':
+                    underscore();
+                    return;
+                case 'z':
+                    zed();
+                    return;
                 default:
                     break;
             }
@@ -309,8 +387,7 @@ final class VimRegex
         }
 
         /** A character with its operator meaning. */
-        private void operator(char c)
-        {
+        private void operator(char c) {
             switch (c) {
                 case '^':
                     // Only an anchor at the start of a branch; anywhere else
@@ -340,7 +417,8 @@ final class VimRegex
                     // yet it is an error, as in vim.
                     if (lastSubstitute == null)
                         throw error(
-                            "E33: No previous substitute regular expression");
+                            "E33: No previous substitute regular expression"
+                        );
                     atom("(?:" + Pattern.quote(lastSubstitute) + ")");
                     return;
                 case '(':
@@ -363,7 +441,8 @@ final class VimRegex
                 case '+':
                     quantifier("+", c);
                     return;
-                case '=': case '?':
+                case '=':
+                case '?':
                     quantifier("?", c);
                     return;
                 case '{':
@@ -392,8 +471,7 @@ final class VimRegex
 
         // ------------------------------------------------------------ atoms
 
-        private void literal(char c)
-        {
+        private void literal(char c) {
             final int start = out.length();
             if ("\\.[]{}()*+-?^$|&".indexOf(c) >= 0)
                 out.append('\\');
@@ -402,16 +480,14 @@ final class VimRegex
             branchStart = false;
         }
 
-        private void atom(String java)
-        {
+        private void atom(String java) {
             lastAtom = out.length();
             out.append(java);
             branchStart = false;
         }
 
         /** True when a $ here is at the end of its branch. */
-        private boolean atBranchEnd()
-        {
+        private boolean atBranchEnd() {
             if (pos >= in.length())
                 return true;
             // The next token closes a group or starts another branch; what
@@ -424,8 +500,7 @@ final class VimRegex
 
         // ------------------------------------------------------ quantifiers
 
-        private void quantifier(String java, char c)
-        {
+        private void quantifier(String java, char c) {
             if (lastAtom < 0) {
                 // * with nothing before it is the character; the others are
                 // errors, as in vim.
@@ -441,15 +516,17 @@ final class VimRegex
         }
 
         /** {@code \{n,m}} and its non-greedy {@code \{-n,m}} form. */
-        private void braces()
-        {
+        private void braces() {
             if (lastAtom < 0)
                 throw error("E64: { follows nothing");
             final StringBuilder body = new StringBuilder();
             while (pos < in.length() && in.charAt(pos) != '}') {
                 // \} closes as well as }.
-                if (in.charAt(pos) == '\\' && pos + 1 < in.length()
-                    && in.charAt(pos + 1) == '}') {
+                if (
+                    in.charAt(pos) == '\\'
+                        && pos + 1 < in.length()
+                        && in.charAt(pos + 1) == '}'
+                ) {
                     ++pos;
                     break;
                 }
@@ -494,8 +571,7 @@ final class VimRegex
                 variableWidth = true;
         }
 
-        private int number(String s)
-        {
+        private int number(String s) {
             try {
                 return Integer.parseInt(s.trim());
             }
@@ -510,8 +586,7 @@ final class VimRegex
          * lookaround in front of its atom, so the atom already written is
          * wrapped. A group keeps its capture, so \1 still counts it.
          */
-        private void lookaround()
-        {
+        private void lookaround() {
             if (lastAtom < 0)
                 throw error("E64: @ follows nothing");
             // \@123<= limits how far back vim looks; Java needs no hint.
@@ -542,16 +617,14 @@ final class VimRegex
 
         // ------------------------------------------------------------ groups
 
-        private void openGroup(String java)
-        {
+        private void openGroup(String java) {
             groups.push(Integer.valueOf(out.length()));
             out.append(java);
             lastAtom = -1;
             branchStart = true;
         }
 
-        private void closeGroup()
-        {
+        private void closeGroup() {
             if (groups.isEmpty())
                 throw error("E55: Unmatched \\)");
             out.append(')');
@@ -560,8 +633,7 @@ final class VimRegex
         }
 
         /** The {@code \%} family. */
-        private void percent()
-        {
+        private void percent() {
             if (pos >= in.length())
                 throw error("E71: Invalid character after \\%");
             final char c = in.charAt(pos++);
@@ -591,16 +663,17 @@ final class VimRegex
             }
         }
 
-        private void codePoint(int radix, String digits)
-        {
+        private void codePoint(int radix, String digits) {
             codePoint(radix, digits, Integer.MAX_VALUE);
         }
 
-        private void codePoint(int radix, String digits, int max)
-        {
+        private void codePoint(int radix, String digits, int max) {
             final int start = pos;
-            while (pos < in.length() && pos - start < max
-                   && digits.indexOf(in.charAt(pos)) >= 0)
+            while (
+                pos < in.length()
+                    && pos - start < max
+                    && digits.indexOf(in.charAt(pos)) >= 0
+            )
                 ++pos;
             if (pos == start)
                 throw error("E678: Invalid character after \\%[dxouU]");
@@ -620,24 +693,47 @@ final class VimRegex
         }
 
         /** {@code \_x}: a class that also matches a newline, and {@code \_.}. */
-        private void underscore()
-        {
+        private void underscore() {
             if (pos >= in.length())
                 throw error("E63: Invalid use of \\_");
             final char c = in.charAt(pos++);
             switch (c) {
-                case '.': atom("(?s:.)"); return;
-                case '^': out.append('^'); return;
-                case '$': out.append('$'); return;
-                case 's': atom("[ \\t\\n]"); return;
-                case 'S': atom("(?:[^ \\t]|\\n)"); return;
-                case 'd': atom("[0-9\\n]"); return;
-                case 'w': atom("[0-9A-Za-z_\\n]"); return;
-                case 'a': atom("[A-Za-z\\n]"); return;
-                case 'l': atom("[a-z\\n]"); return;
-                case 'u': atom("[A-Z\\n]"); return;
-                case 'x': atom("[0-9A-Fa-f\\n]"); return;
-                case 'h': atom("[A-Za-z_\\n]"); return;
+                case '.':
+                    atom("(?s:.)");
+                    return;
+                case '^':
+                    out.append('^');
+                    return;
+                case '$':
+                    out.append('$');
+                    return;
+                case 's':
+                    atom("[ \\t\\n]");
+                    return;
+                case 'S':
+                    atom("(?:[^ \\t]|\\n)");
+                    return;
+                case 'd':
+                    atom("[0-9\\n]");
+                    return;
+                case 'w':
+                    atom("[0-9A-Za-z_\\n]");
+                    return;
+                case 'a':
+                    atom("[A-Za-z\\n]");
+                    return;
+                case 'l':
+                    atom("[a-z\\n]");
+                    return;
+                case 'u':
+                    atom("[A-Z\\n]");
+                    return;
+                case 'x':
+                    atom("[0-9A-Fa-f\\n]");
+                    return;
+                case 'h':
+                    atom("[A-Za-z_\\n]");
+                    return;
                 case '[':
                     // \_[...] is the class plus the newline.
                     final int start = out.length();
@@ -652,8 +748,7 @@ final class VimRegex
         }
 
         /** {@code \zs} and {@code \ze}: where the match starts and ends. */
-        private void zed()
-        {
+        private void zed() {
             if (pos >= in.length())
                 throw error("E68: Invalid character after \\z");
             final char c = in.charAt(pos++);
@@ -665,8 +760,10 @@ final class VimRegex
             if (!groups.isEmpty())
                 throw error("\\z" + c + " inside a group is not supported");
             if (c == 's' && variableWidth)
-                throw error("\\zs after something of variable width is not "
-                            + "supported");
+                throw error(
+                    "\\zs after something of variable width is not "
+                        + "supported"
+                );
             if (c == 's')
                 zs = out.length();
             else
@@ -682,8 +779,7 @@ final class VimRegex
          * vim. Inside, Java would read a nested {@code [} as a union and
          * {@code &&} as an intersection, so both are escaped.
          */
-        private void characterClass()
-        {
+        private void characterClass() {
             final int save = pos;
             final StringBuilder sb = new StringBuilder("[");
             if (pos < in.length() && in.charAt(pos) == '^') {
@@ -727,15 +823,27 @@ final class VimRegex
             atom(sb.toString());
         }
 
-        private void classEscape(StringBuilder sb, char c)
-        {
+        private void classEscape(StringBuilder sb, char c) {
             switch (c) {
-                case 'e': sb.append("\\x1b"); return;
-                case 't': sb.append("\\t"); return;
-                case 'r': sb.append("\\r"); return;
-                case 'b': sb.append("\\x08"); return;
-                case 'n': sb.append("\\n"); return;
-                case '\\': case ']': case '^': case '-':
+                case 'e':
+                    sb.append("\\x1b");
+                    return;
+                case 't':
+                    sb.append("\\t");
+                    return;
+                case 'r':
+                    sb.append("\\r");
+                    return;
+                case 'b':
+                    sb.append("\\x08");
+                    return;
+                case 'n':
+                    sb.append("\\n");
+                    return;
+                case '\\':
+                case ']':
+                case '^':
+                case '-':
                     sb.append('\\').append(c);
                     return;
                 default:
@@ -747,25 +855,40 @@ final class VimRegex
             }
         }
 
-        private String posix(String name)
-        {
+        private String posix(String name) {
             switch (name) {
-                case "alnum": return "0-9A-Za-z";
-                case "alpha": return "A-Za-z";
-                case "blank": return " \\t";
-                case "cntrl": return "\\x00-\\x1f\\x7f";
-                case "digit": return "0-9";
-                case "graph": return "\\x21-\\x7e";
-                case "lower": return "a-z";
-                case "print": return "\\x20-\\x7e";
-                case "punct": return "\\p{Punct}";
-                case "space": return " \\t\\n\\r\\f\\x0b";
-                case "upper": return "A-Z";
-                case "xdigit": return "0-9A-Fa-f";
-                case "return": return "\\r";
-                case "tab": return "\\t";
-                case "escape": return "\\x1b";
-                case "backspace": return "\\x08";
+                case "alnum":
+                    return "0-9A-Za-z";
+                case "alpha":
+                    return "A-Za-z";
+                case "blank":
+                    return " \\t";
+                case "cntrl":
+                    return "\\x00-\\x1f\\x7f";
+                case "digit":
+                    return "0-9";
+                case "graph":
+                    return "\\x21-\\x7e";
+                case "lower":
+                    return "a-z";
+                case "print":
+                    return "\\x20-\\x7e";
+                case "punct":
+                    return "\\p{Punct}";
+                case "space":
+                    return " \\t\\n\\r\\f\\x0b";
+                case "upper":
+                    return "A-Z";
+                case "xdigit":
+                    return "0-9A-Fa-f";
+                case "return":
+                    return "\\r";
+                case "tab":
+                    return "\\t";
+                case "escape":
+                    return "\\x1b";
+                case "backspace":
+                    return "\\x08";
                 default:
                     throw error("[:" + name + ":] is not supported");
             }
@@ -773,8 +896,7 @@ final class VimRegex
 
         // ------------------------------------------------------------ result
 
-        private String finish()
-        {
+        private String finish() {
             final String s = out.toString();
             if (zs < 0 && ze < 0)
                 return s;
@@ -793,8 +915,7 @@ final class VimRegex
             return sb.toString();
         }
 
-        private PatternSyntaxException error(String description)
-        {
+        private PatternSyntaxException error(String description) {
             return new PatternSyntaxException(description, in, pos - 1);
         }
     }

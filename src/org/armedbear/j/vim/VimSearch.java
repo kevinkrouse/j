@@ -14,7 +14,6 @@ package org.armedbear.j.vim;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
-
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Editor;
 import org.armedbear.j.Line;
@@ -32,15 +31,11 @@ import org.armedbear.j.Search;
  * <p>Patterns are vim's, magic levels and all; {@link VimRegex} rewrites them
  * for {@code java.util.regex}, which is what j's {@code Search} runs.
  */
-public final class VimSearch
-{
-    private VimSearch()
-    {
-    }
+public final class VimSearch {
+    private VimSearch() {}
 
     /** A pattern and the direction it was entered in, for n and N. */
-    public static final class Query
-    {
+    public static final class Query {
         public final String pattern;
         public final boolean forward;
         /** True for * and #, which match whole words only. */
@@ -57,20 +52,26 @@ public final class VimSearch
          */
         final Search own;
 
-        public Query(String pattern, boolean forward, boolean wholeWord)
-        {
+        public Query(String pattern, boolean forward, boolean wholeWord) {
             this(pattern, forward, wholeWord, true);
         }
 
-        public Query(String pattern, boolean forward, boolean wholeWord,
-                     boolean smartcase)
-        {
+        public Query(
+            String pattern,
+            boolean forward,
+            boolean wholeWord,
+            boolean smartcase
+        ) {
             this(pattern, forward, wholeWord, smartcase, null);
         }
 
-        private Query(String pattern, boolean forward, boolean wholeWord,
-                      boolean smartcase, Search own)
-        {
+        private Query(
+            String pattern,
+            boolean forward,
+            boolean wholeWord,
+            boolean smartcase,
+            Search own
+        ) {
             this.pattern = pattern;
             this.forward = forward;
             this.wholeWord = wholeWord;
@@ -78,8 +79,7 @@ public final class VimSearch
             this.own = own;
         }
 
-        Query reversed()
-        {
+        Query reversed() {
             return new Query(pattern, !forward, wholeWord, smartcase, own);
         }
     }
@@ -89,12 +89,10 @@ public final class VimSearch
      * last search: findNext goes on with a {@code /}, and n reads the query
      * back.
      */
-    static final class Compiled extends Search
-    {
+    static final class Compiled extends Search {
         final Query query;
 
-        Compiled(Query query)
-        {
+        Compiled(Query query) {
             this.query = query;
         }
     }
@@ -105,8 +103,7 @@ public final class VimSearch
      * {@code :s//} can use it -- {@code \V} for a literal, {@code \v} for a
      * regular expression, which is near enough to Java's.
      */
-    static Query queryOf(Search search)
-    {
+    static Query queryOf(Search search) {
         if (search == null)
             return null;
         if (search instanceof Compiled)
@@ -114,16 +111,20 @@ public final class VimSearch
         final String pattern = search.getPattern();
         final String spelled = (search.ignoreCase() ? "\\c" : "")
             + (search.isRegularExpression()
-               ? "\\v" + pattern : "\\V" + pattern.replace("\\", "\\\\"));
-        return new Query(spelled, true, search.wholeWordsOnly(), false,
-                         search);
+                ? "\\v" + pattern
+                : "\\V" + pattern.replace("\\", "\\\\"));
+        return new Query(
+            spelled,
+            true,
+            search.wholeWordsOnly(),
+            false,
+            search
+        );
     }
 
     /** Raised for a pattern java.util.regex will not take. */
-    public static final class BadPattern extends RuntimeException
-    {
-        BadPattern(String message)
-        {
+    public static final class BadPattern extends RuntimeException {
+        BadPattern(String message) {
             super(message);
         }
     }
@@ -133,9 +134,12 @@ public final class VimSearch
      *
      * @param from  where to search from; never itself a result
      */
-    public static Position find(Editor editor, Query query, Position from,
-                                int count)
-    {
+    public static Position find(
+        Editor editor,
+        Query query,
+        Position from,
+        int count
+    ) {
         final Search search = compile(query, editor);
         Position pos = from;
         for (int i = 0; i < count; i++) {
@@ -147,12 +151,16 @@ public final class VimSearch
     }
 
     /** One match onwards, wrapping at the end of the buffer. */
-    private static Position step(Editor editor, Search search, boolean forward,
-                                 Position from)
-    {
+    private static Position step(
+        Editor editor,
+        Search search,
+        boolean forward,
+        Position from
+    ) {
         final Buffer buffer = editor.getBuffer();
-        Position found = forward ? nextAfter(search, buffer, from)
-                                 : lastBefore(editor, search, from);
+        Position found = forward
+            ? nextAfter(search, buffer, from)
+            : lastBefore(editor, search, from);
         if (found != null)
             return found;
 
@@ -179,9 +187,11 @@ public final class VimSearch
      * <p>Only the caret's own line needs this: {@link Search} already scans
      * every later line from its start.
      */
-    private static Position nextAfter(Search search, Buffer buffer,
-                                      Position from)
-    {
+    private static Position nextAfter(
+        Search search,
+        Buffer buffer,
+        Position from
+    ) {
         final Line line = from.getLine();
         Position scan = new Position(line, 0);
         while (true) {
@@ -189,12 +199,12 @@ public final class VimSearch
             if (match == null)
                 return null;
             if (match.getLine() != line)
-                return match;   // already scanned from its own line's start
+                return match; // already scanned from its own line's start
             if (match.getOffset() > from.getOffset())
                 return match;
             scan = past(match, matchLength(search));
             if (scan == null)
-                return null;   // end of the buffer; only the wrap is left
+                return null; // end of the buffer; only the wrap is left
             if (scan.getLine() != line)
                 return search.find(buffer, scan);
         }
@@ -208,9 +218,11 @@ public final class VimSearch
      * set the forward direction sees -- otherwise {@code ?} and {@code n}
      * disagree about where the matches are.
      */
-    private static Position lastBefore(Editor editor, Search search,
-                                       Position limit)
-    {
+    private static Position lastBefore(
+        Editor editor,
+        Search search,
+        Position limit
+    ) {
         final Buffer buffer = editor.getBuffer();
         Line line = limit != null ? limit.getLine() : lastLine(buffer);
         int before = limit != null ? limit.getOffset() : Integer.MAX_VALUE;
@@ -229,9 +241,12 @@ public final class VimSearch
      * Line at a time so that walking backwards stops at the first line that
      * has a match, rather than sweeping the whole buffer on every keystroke.
      */
-    private static Position lastOnLine(Editor editor, Search search, Line line,
-                                       int before)
-    {
+    private static Position lastOnLine(
+        Editor editor,
+        Search search,
+        Line line,
+        int before
+    ) {
         final Mode mode = editor.getBuffer().getMode();
         Position best = null;
         int offset = 0;
@@ -250,8 +265,7 @@ public final class VimSearch
      * A query compiled to keep as j's last search. A bad one is kept too, as
      * vim keeps it: it matches nothing, and n reports it again.
      */
-    static Search compileToKeep(Query query, Editor editor)
-    {
+    static Search compileToKeep(Query query, Editor editor) {
         final Search search = compileQuietly(query, editor);
         if (search != null)
             return search;
@@ -263,8 +277,7 @@ public final class VimSearch
     }
 
     /** A query compiled, or null when the pattern is bad. */
-    static Search compileQuietly(Query query, Editor editor)
-    {
+    static Search compileQuietly(Query query, Editor editor) {
         try {
             return compile(query, editor);
         }
@@ -277,8 +290,7 @@ public final class VimSearch
      * What a compiled query depends on: the pattern, and the options and the
      * last replacement ({@code ~}) its translation reads.
      */
-    static String compiledKey(Query query)
-    {
+    static String compiledKey(Query query) {
         final VimOptions options = VimKeyMap.getSharedOptions();
         return query.pattern + '\0' + query.wholeWord + query.smartcase
             + options.isOn("ignorecase")
@@ -286,8 +298,7 @@ public final class VimSearch
             + VimExSubstitute.lastReplacement();
     }
 
-    private static Line lastLine(Buffer buffer)
-    {
+    private static Line lastLine(Buffer buffer) {
         Line line = buffer.getFirstLine();
         while (line != null && line.next() != null)
             line = line.next();
@@ -295,8 +306,7 @@ public final class VimSearch
     }
 
     /** Just past a match, stepping to the next line when it ends one. */
-    private static Position past(Position match, int length)
-    {
+    private static Position past(Position match, int length) {
         final Line line = match.getLine();
         final int next = match.getOffset() + length;
         if (next <= line.length())
@@ -305,16 +315,15 @@ public final class VimSearch
     }
 
     /** How long the match just found was, at least one character. */
-    private static int matchLength(Search search)
-    {
+    private static int matchLength(Search search) {
         final Matcher matcher = search.getMatch();
-        final int length = matcher != null ? matcher.group().length()
-                                           : search.getPatternLength();
+        final int length = matcher != null
+            ? matcher.group().length()
+            : search.getPatternLength();
         return Math.max(1, length);
     }
 
-    private static Search compile(Query query, Editor editor)
-    {
+    private static Search compile(Query query, Editor editor) {
         if (query.own != null)
             return query.own;
         final Search search = new Compiled(query);
@@ -323,10 +332,17 @@ public final class VimSearch
         // a message rather than escape into the key handler.
         try {
             final VimRegex.Result translated = VimRegex.translate(
-                query.pattern, VimExSubstitute.lastReplacement());
+                query.pattern,
+                VimExSubstitute.lastReplacement()
+            );
             search.setPattern(translated.java);
-            search.setIgnoreCase(VimRegex.ignoreCase(translated, null,
-                                                     query.smartcase));
+            search.setIgnoreCase(
+                VimRegex.ignoreCase(
+                    translated,
+                    null,
+                    query.smartcase
+                )
+            );
             search.setWholeWordsOnly(query.wholeWord);
             search.setRegularExpression(true);
             search.setREFromPattern();
@@ -341,30 +357,26 @@ public final class VimSearch
      * Vim's {@code 'ignorecase'}, narrowed by {@code 'smartcase'} and
      * overridden by {@code \c} or {@code \C} in the pattern itself.
      */
-    static boolean ignoreCase(String pattern)
-    {
+    static boolean ignoreCase(String pattern) {
         return VimRegex.ignoreCase(
             VimRegex.translate(pattern, VimExSubstitute.lastReplacement()),
-            null);
+            null
+        );
     }
 
     /** A vim pattern in Java's syntax; see {@link VimRegex}. */
-    static String toJavaRegex(String pattern)
-    {
-        return VimRegex.translate(pattern, VimExSubstitute.lastReplacement())
-            .java;
+    static String toJavaRegex(String pattern) {
+        return VimRegex.translate(pattern, VimExSubstitute.lastReplacement()).java;
     }
 
     /** What * and # decided to search for, and where it starts. */
-    static final class Word
-    {
+    static final class Word {
         final String text;
         final int offset;
         /** False for a run of symbols, which gets no word boundaries. */
         final boolean keyword;
 
-        Word(String text, int offset, boolean keyword)
-        {
+        Word(String text, int offset, boolean keyword) {
             this.text = text;
             this.offset = offset;
             this.keyword = keyword;
@@ -379,8 +391,7 @@ public final class VimSearch
      * run of symbols instead, so {@code *} on {@code /}} finds the next
      * {@code /}}.
      */
-    static Word wordAtDot(Editor editor)
-    {
+    static Word wordAtDot(Editor editor) {
         final Position dot = editor.getDot();
         if (dot == null)
             return null;
@@ -396,16 +407,21 @@ public final class VimSearch
             if (word != null && !word.isEmpty())
                 // getIdentifier scans back to the start of the word, so with
                 // the caret inside one the word begins before this offset.
-                return new Word(word, Math.max(0, text.lastIndexOf(word, offset)),
-                                true);
+                return new Word(
+                    word,
+                    Math.max(0, text.lastIndexOf(word, offset)),
+                    true
+                );
         }
         // No keyword: the first run of non-blanks that is not one either.
         for (int offset = dot.getOffset(); offset < text.length(); offset++) {
             if (Character.isWhitespace(text.charAt(offset)))
                 continue;
             int end = offset;
-            while (end < text.length()
-                   && !Character.isWhitespace(text.charAt(end)))
+            while (
+                end < text.length()
+                    && !Character.isWhitespace(text.charAt(end))
+            )
                 ++end;
             return new Word(text.substring(offset, end), offset, false);
         }
@@ -420,8 +436,7 @@ public final class VimSearch
      * {@code \V} only a backslash is special, so doubling those is all the
      * quoting there is to do.
      */
-    static String literal(String text)
-    {
+    static String literal(String text) {
         return "\\V" + text.replace("\\", "\\\\");
     }
 }

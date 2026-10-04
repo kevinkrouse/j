@@ -20,7 +20,6 @@
 
 package org.armedbear.j.jdb;
 
-import org.armedbear.j.util.Utilities;
 import java.awt.Component;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
@@ -31,40 +30,38 @@ import javax.swing.JScrollPane;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Editor;
 import org.armedbear.j.File;
+import org.armedbear.j.util.Utilities;
 
-public final class BreakpointPanel implements BreakpointListener, KeyListener
-{
+public final class BreakpointPanel implements BreakpointListener, KeyListener {
     private final Jdb jdb;
     private final JdbControlDialog dialog;
     private final JList<ResolvableBreakpoint> list;
     private final JScrollPane scrollPane;
 
-    public BreakpointPanel(Jdb jdb, JdbControlDialog dialog)
-    {
+    public BreakpointPanel(Jdb jdb, JdbControlDialog dialog) {
         this.jdb = jdb;
         this.dialog = dialog;
         List<ResolvableBreakpoint> v = new ArrayList<ResolvableBreakpoint>(jdb.getBreakpoints());
         list = new JList<ResolvableBreakpoint>(
-            v.toArray(new ResolvableBreakpoint[0]));
+            v.toArray(new ResolvableBreakpoint[0])
+        );
         scrollPane = new JScrollPane(list);
         jdb.addBreakpointListener(this);
         list.addKeyListener(this);
     }
 
-    public Component getComponent()
-    {
+    public Component getComponent() {
         return scrollPane;
     }
 
-    public void breakpointChanged()
-    {
+    public void breakpointChanged() {
         list.setListData(
-            jdb.getBreakpoints().toArray(new ResolvableBreakpoint[0]));
+            jdb.getBreakpoints().toArray(new ResolvableBreakpoint[0])
+        );
         list.setSelectedIndex(-1);
     }
 
-    public void keyPressed(KeyEvent e)
-    {
+    public void keyPressed(KeyEvent e) {
         final int keyCode = e.getKeyCode();
         final int modifiers = Utilities.keyModifiers(e);
         if (modifiers != 0)

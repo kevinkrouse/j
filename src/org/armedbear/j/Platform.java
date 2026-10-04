@@ -20,53 +20,50 @@
 
 package org.armedbear.j;
 
-public final class Platform
-{
+public final class Platform {
     private static final String osName = System.getProperty("os.name");
     private static final boolean isPlatformLinux = osName.startsWith("Linux");
     private static final boolean isPlatformSunOS = osName.startsWith("SunOS");
     private static final boolean isPlatformFreeBSD = osName.startsWith("FreeBSD");
     private static final boolean isPlatformUnix =
-        isPlatformLinux || osName.contains("OS X") ||
-        osName.startsWith("Solaris") || isPlatformSunOS || isPlatformFreeBSD ||
-        osName.startsWith("AIX");
+        isPlatformLinux
+            || osName.contains("OS X")
+            ||
+            osName.startsWith("Solaris")
+            || isPlatformSunOS
+            || isPlatformFreeBSD
+            ||
+            osName.startsWith("AIX");
     private static final boolean isPlatformWindows =
         osName.startsWith("Windows");
     private static final boolean isPlatformMacOSX =
         osName.contains("OS X");
 
-    public static final boolean isPlatformLinux()
-    {
+    public static final boolean isPlatformLinux() {
         return isPlatformLinux;
     }
 
-    public static final boolean isPlatformSunOS()
-    {
+    public static final boolean isPlatformSunOS() {
         return isPlatformSunOS;
     }
 
-    public static final boolean isPlatformFreeBSD()
-    {
+    public static final boolean isPlatformFreeBSD() {
         return isPlatformFreeBSD;
     }
 
-    public static final boolean isPlatformUnix()
-    {
+    public static final boolean isPlatformUnix() {
         return isPlatformUnix;
     }
 
-    public static final boolean isPlatformWindows()
-    {
+    public static final boolean isPlatformWindows() {
         return isPlatformWindows;
     }
 
-    public static final boolean isPlatformMacOSX()
-    {
+    public static final boolean isPlatformMacOSX() {
         return isPlatformMacOSX;
     }
 
-    public static final boolean isPlatformWindows5()
-    {
+    public static final boolean isPlatformWindows5() {
         if (!isPlatformWindows)
             return false;
         final String version = System.getProperty("os.version");
@@ -82,8 +79,7 @@ public final class Platform
         }
     }
 
-    public static final boolean isPlatformWindowsNT4()
-    {
+    public static final boolean isPlatformWindowsNT4() {
         if (!isPlatformWindows)
             return false;
         if (osName.indexOf("Windows NT") < 0)

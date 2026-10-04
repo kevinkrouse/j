@@ -21,18 +21,15 @@
 package org.armedbear.j;
 
 import java.lang.StringBuilder;
-
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
-public final class DirectoryFilenameFilter
-{
+public final class DirectoryFilenameFilter {
     private Pattern pattern;
     private boolean ignoreCase;
 
-    public DirectoryFilenameFilter(String s) throws PatternSyntaxException
-    {
+    public DirectoryFilenameFilter(String s) throws PatternSyntaxException {
         ignoreCase = Platform.isPlatformWindows();
         if (ignoreCase)
             s = s.toLowerCase();
@@ -63,8 +60,7 @@ public final class DirectoryFilenameFilter
         }
     }
 
-    public boolean accepts(String name)
-    {
+    public boolean accepts(String name) {
         if (pattern == null)
             return false;
         if (ignoreCase)

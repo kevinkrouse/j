@@ -28,7 +28,6 @@ import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
 import java.awt.image.BufferedImageOp;
 import java.lang.ref.SoftReference;
-
 import org.jdesktop.beans.AbstractBean;
 import org.jdesktop.swingx.graphics.GraphicsUtilities;
 
@@ -77,9 +76,11 @@ public abstract class AbstractPainter<T> extends AbstractBean implements Painter
         NearestNeighbor(RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR);
 
         private Object value;
+
         Interpolation(Object value) {
             this.value = value;
         }
+
         private void configureGraphics(Graphics2D g) {
             g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, value);
         }
@@ -101,8 +102,8 @@ public abstract class AbstractPainter<T> extends AbstractBean implements Painter
     /**
      * Creates a new instance of AbstractPainter.
      */
-    public AbstractPainter() { }
-    
+    public AbstractPainter() {}
+
     /**
      * Creates a new instance of AbstractPainter.
      * @param cacheable indicates if this painter should be cacheable
@@ -132,8 +133,9 @@ public abstract class AbstractPainter<T> extends AbstractBean implements Painter
      * 
      * @param effects the BufferedImageOps to wrap as filters
      */
-    public void setFilters(BufferedImageOp ... effects) {
-        if (effects == null) effects = new BufferedImageOp[0];
+    public void setFilters(BufferedImageOp... effects) {
+        if (effects == null)
+            effects = new BufferedImageOp[0];
         BufferedImageOp[] old = getFilters();
         this.filters = new BufferedImageOp[effects == null ? 0 : effects.length];
         System.arraycopy(effects, 0, this.filters, 0, this.filters.length);
@@ -149,6 +151,7 @@ public abstract class AbstractPainter<T> extends AbstractBean implements Painter
     public boolean isAntialiasing() {
         return antialiasing;
     }
+
     /**
      * Sets the antialiasing setting.  This is a bound property.
      * @param value the new antialiasing setting
@@ -156,7 +159,8 @@ public abstract class AbstractPainter<T> extends AbstractBean implements Painter
     public void setAntialiasing(boolean value) {
         boolean old = isAntialiasing();
         antialiasing = value;
-        if (old != value) setDirty(true);
+        if (old != value)
+            setDirty(true);
         firePropertyChange("antialiasing", old, isAntialiasing());
     }
 
@@ -168,7 +172,7 @@ public abstract class AbstractPainter<T> extends AbstractBean implements Painter
     public Interpolation getInterpolation() {
         return interpolation;
     }
-    
+
     /**
      * Sets a new value for the interpolation setting. This setting determines if interpolation
      * should be used when drawing scaled images. @see java.awt.RenderingHints.KEY_INTERPOLATION.
@@ -177,7 +181,8 @@ public abstract class AbstractPainter<T> extends AbstractBean implements Painter
     public void setInterpolation(Interpolation value) {
         Object old = getInterpolation();
         this.interpolation = value == null ? Interpolation.NearestNeighbor : value;
-        if (old != value) setDirty(true);
+        if (old != value)
+            setDirty(true);
         firePropertyChange("interpolation", old, getInterpolation());
     }
 
@@ -204,9 +209,10 @@ public abstract class AbstractPainter<T> extends AbstractBean implements Painter
     public void setVisible(boolean visible) {
         boolean old = isVisible();
         this.visible = visible;
-        if (old != visible) setDirty(true); //not the most efficient, but I must do this otherwise a CompoundPainter
-                                            //or other aggregate painter won't know that it is now invalid
-                                            //there might be a tricky solution but that is a performance optimization
+        if (old != visible)
+            setDirty(true); //not the most efficient, but I must do this otherwise a CompoundPainter
+                            //or other aggregate painter won't know that it is now invalid
+                            //there might be a tricky solution but that is a performance optimization
         firePropertyChange("visible", old, isVisible());
     }
 
@@ -279,7 +285,7 @@ public abstract class AbstractPainter<T> extends AbstractBean implements Painter
      *
      * @param object
      */
-    protected void validate(T object) { }
+    protected void validate(T object) {}
 
     /**
      * Ye olde dirty bit. If true, then the painter is considered dirty and in need of
@@ -316,7 +322,7 @@ public abstract class AbstractPainter<T> extends AbstractBean implements Painter
      * @return whether or not a cache should be used
      */
     protected boolean shouldUseCache() {
-        return isCacheable() || filters.length > 0;  //NOTE, I can only do this because getFilters() is final
+        return isCacheable() || filters.length > 0; //NOTE, I can only do this because getFilters() is final
     }
 
     /**
@@ -333,18 +339,21 @@ public abstract class AbstractPainter<T> extends AbstractBean implements Painter
      */
     protected void configureGraphics(Graphics2D g) {
         //configure antialiasing
-        if(isAntialiasing()) {
-            g.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
-                    RenderingHints.VALUE_ANTIALIAS_ON);
+        if (isAntialiasing()) {
+            g.setRenderingHint(
+                RenderingHints.KEY_ANTIALIASING,
+                RenderingHints.VALUE_ANTIALIAS_ON
+            );
         } else {
-            g.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
-                    RenderingHints.VALUE_ANTIALIAS_OFF);
+            g.setRenderingHint(
+                RenderingHints.KEY_ANTIALIASING,
+                RenderingHints.VALUE_ANTIALIAS_OFF
+            );
         }
 
         getInterpolation().configureGraphics(g);
     }
-    
-    
+
     /**
      * Subclasses must implement this method and perform custom painting operations
      * here.
@@ -363,7 +372,7 @@ public abstract class AbstractPainter<T> extends AbstractBean implements Painter
             throw new NullPointerException("The Graphics2D must be supplied");
         }
 
-        if(!isVisible() || width < 1 || height < 1) {
+        if (!isVisible() || width < 1 || height < 1) {
             return;
         }
 
@@ -373,9 +382,11 @@ public abstract class AbstractPainter<T> extends AbstractBean implements Painter
         if (shouldUseCache() || filters.length > 0) {
             validate(obj);
             BufferedImage cache = cachedImage == null ? null : cachedImage.get();
-            boolean invalidCache = null == cache || 
-                                        cache.getWidth() != width || 
-                                        cache.getHeight() != height;
+            boolean invalidCache = null == cache
+                ||
+                cache.getWidth() != width
+                ||
+                cache.getHeight() != height;
 
             if (cacheCleared || invalidCache || isDirty()) {
                 //rebuild the cacheable. I do this both if a cacheable is needed, and if any
@@ -384,7 +395,7 @@ public abstract class AbstractPainter<T> extends AbstractBean implements Painter
                     cache = GraphicsUtilities.createCompatibleTranslucentImage(width, height);
                 }
                 Graphics2D gfx = cache.createGraphics();
-                
+
                 try {
                     gfx.setClip(0, 0, width, height);
 
@@ -400,7 +411,8 @@ public abstract class AbstractPainter<T> extends AbstractBean implements Painter
 
                     configureGraphics(gfx);
                     doPaint(gfx, obj, width, height);
-                } finally {
+                }
+                finally {
                     gfx.dispose();
                 }
 

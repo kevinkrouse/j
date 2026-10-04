@@ -15,7 +15,6 @@ import java.awt.datatransfer.Clipboard;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
-
 import org.armedbear.j.Editor;
 import org.armedbear.j.KillRing;
 import org.armedbear.j.Registers;
@@ -42,23 +41,19 @@ import org.armedbear.j.Registers;
  *
  * <p>Global, as in vim: yank in one window, put in another.
  */
-public final class VimRegisters
-{
+public final class VimRegisters {
     /** How the text was taken, which decides how it comes back. */
-    public enum Type
-    {
+    public enum Type {
         CHARWISE,
         LINEWISE,
         BLOCKWISE
     }
 
-    public static final class Register
-    {
+    public static final class Register {
         public final String text;
         public final Type type;
 
-        Register(String text, Type type)
-        {
+        Register(String text, Type type) {
             this.text = text;
             this.type = type;
         }
@@ -90,30 +85,24 @@ public final class VimRegisters
     private final Map<String, Type> types =
         new LinkedHashMap<String, Type>(16, 0.75f, true) {
             @Override
-            protected boolean removeEldestEntry(Map.Entry<String, Type> e)
-            {
+            protected boolean removeEldestEntry(Map.Entry<String, Type> e) {
                 return size() > REMEMBERED;
             }
         };
 
-    private VimRegisters()
-    {
-    }
+    private VimRegisters() {}
 
-    public static VimRegisters getInstance()
-    {
+    public static VimRegisters getInstance() {
         return INSTANCE;
     }
 
     /** Forgets vim mode's own registers and the types, for tests. */
-    public void clear()
-    {
+    public void clear() {
         own.clear();
         types.clear();
     }
 
-    public Register get(char name)
-    {
+    public Register get(char name) {
         if (name == BLACK_HOLE)
             return null;
         final char key = Character.toLowerCase(name);
@@ -142,8 +131,7 @@ public final class VimRegisters
      * An unnamed yank also fills register 0, which is what makes it possible
      * to delete something and still put back what was yanked before it.
      */
-    public void yanked(char name, String text, Type type)
-    {
+    public void yanked(char name, String text, Type type) {
         if (name == BLACK_HOLE)
             return;
         if (name != 0) {
@@ -159,8 +147,7 @@ public final class VimRegisters
      * is then "1 and the older ones move down, as in vim. Anything smaller
      * goes to the small delete register as well.
      */
-    public void deleted(char name, String text, Type type)
-    {
+    public void deleted(char name, String text, Type type) {
         if (name == BLACK_HOLE)
             return;
         if (name != 0) {
@@ -181,8 +168,7 @@ public final class VimRegisters
      * collects several yanks into a single register; the unnamed register
      * then gets the whole of it, not just the part appended.
      */
-    private void putNamed(char name, String text, Type type)
-    {
+    private void putNamed(char name, String text, Type type) {
         final char key = Character.toLowerCase(name);
         Register now = new Register(text, type);
         if (Character.isUpperCase(name)) {
@@ -210,8 +196,7 @@ public final class VimRegisters
      * the join (and at the end) so the two captures do not run their lines
      * together.
      */
-    private static Register appended(Register existing, Register added)
-    {
+    private static Register appended(Register existing, Register added) {
         final boolean linewise = existing.type == Type.LINEWISE
             || added.type == Type.LINEWISE;
         String joined = existing.text;
@@ -224,22 +209,19 @@ public final class VimRegisters
     }
 
     /** The unnamed register: j's kill ring, and so the system clipboard. */
-    private void toKillRing(String text, Type type)
-    {
+    private void toKillRing(String text, Type type) {
         remember(new Register(text, type));
         final KillRing ring = Editor.getKillRing();
         ring.appendNew(text);
         ring.copyLastKillToSystemClipboard();
     }
 
-    private void remember(Register register)
-    {
+    private void remember(Register register) {
         types.put(register.text, register.type);
     }
 
     /** As vim took it, or lines when it ends in a newline. */
-    private Type typeOf(String text)
-    {
+    private Type typeOf(String text) {
         final Type type = types.get(text);
         if (type != null)
             return type;
@@ -247,18 +229,19 @@ public final class VimRegisters
     }
 
     /** "+ is the clipboard; "* the primary selection, else the clipboard. */
-    private static Clipboard clipboard(char key)
-    {
+    private static Clipboard clipboard(char key) {
         if (key == SELECTION && KillRing.systemSelection() != null)
             return KillRing.systemSelection();
         return KillRing.systemClipboard();
     }
 
     /** True for a name a command may use after a double quote. */
-    public static boolean isValidName(char name)
-    {
-        return name == UNNAMED || name == SMALL_DELETE || name == BLACK_HOLE
-            || name == CLIPBOARD || name == SELECTION
+    public static boolean isValidName(char name) {
+        return name == UNNAMED
+            || name == SMALL_DELETE
+            || name == BLACK_HOLE
+            || name == CLIPBOARD
+            || name == SELECTION
             || (name >= '0' && name <= '9')
             || (name >= 'a' && name <= 'z')
             || (name >= 'A' && name <= 'Z');

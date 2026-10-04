@@ -21,43 +21,38 @@
 package org.armedbear.j;
 
 import java.lang.StringBuilder;
+import javax.swing.KeyStroke;
 import org.armedbear.j.util.Utilities;
 
-import javax.swing.KeyStroke;
-
-public class KeyMapping implements Constants
-{
+public class KeyMapping implements Constants {
     private final char keyChar;
     private final int keyCode;
     private final int modifiers;
     private final Object command;
 
-    public KeyMapping(int keyCode, int modifiers, Object command)
-    {
+    public KeyMapping(int keyCode, int modifiers, Object command) {
         this.keyChar = 0;
         this.keyCode = keyCode;
         this.modifiers = modifiers;
         if (command instanceof String)
-            this.command = ((String)command).intern();
+            this.command = ((String) command).intern();
         else
             this.command = command;
     }
 
-    public KeyMapping(char keyChar, Object command)
-    {
+    public KeyMapping(char keyChar, Object command) {
         this.keyChar = keyChar;
         this.keyCode = 0;
         this.modifiers = 0;
         if (command instanceof String)
-            this.command = ((String)command).intern();
+            this.command = ((String) command).intern();
         else
             this.command = command;
     }
 
-    private KeyMapping(KeyStroke keyStroke, String command)
-    {
+    private KeyMapping(KeyStroke keyStroke, String command) {
         char c = keyStroke.getKeyChar();
-        keyChar = c == 0xffff ?  0 : c;
+        keyChar = c == 0xffff ? 0 : c;
         keyCode = keyStroke.getKeyCode();
         // Mask off the bits we don't care about (Java 1.4).
         modifiers = keyStroke.getModifiers() & 0x0f;
@@ -68,8 +63,7 @@ public class KeyMapping implements Constants
     }
 
     // Returns null if string can't be parsed.
-    public static KeyMapping createKeyMapping(String s)
-    {
+    public static KeyMapping createKeyMapping(String s) {
         s = s.trim();
         String parameters = null;
         int index = s.indexOf('(');
@@ -87,8 +81,7 @@ public class KeyMapping implements Constants
         return createKeyMapping(keyText, command);
     }
 
-    private static KeyMapping createKeyMapping(String keyText, String command)
-    {
+    private static KeyMapping createKeyMapping(String keyText, String command) {
         KeyStroke keyStroke = Utilities.getKeyStroke(keyText);
         if (keyStroke == null)
             return null;
@@ -97,28 +90,23 @@ public class KeyMapping implements Constants
         return new KeyMapping(keyStroke, command);
     }
 
-    public final char getKeyChar()
-    {
+    public final char getKeyChar() {
         return keyChar;
     }
 
-    public final int getKeyCode()
-    {
+    public final int getKeyCode() {
         return keyCode;
     }
 
-    public final int getModifiers()
-    {
+    public final int getModifiers() {
         return modifiers;
     }
 
-    public final Object getCommand()
-    {
+    public final Object getCommand() {
         return command;
     }
 
-    public String toString()
-    {
+    public String toString() {
         StringBuilder sb = new StringBuilder(64);
         sb.append(Utilities.getKeyText(keyChar, keyCode, modifiers));
         if (command != null) {
@@ -129,8 +117,7 @@ public class KeyMapping implements Constants
         return sb.toString();
     }
 
-    public final String getKeyText()
-    {
+    public final String getKeyText() {
         return Utilities.getKeyText(keyChar, keyCode, modifiers);
     }
 }

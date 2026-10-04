@@ -145,18 +145,18 @@ public abstract class AbstractBean {
      * after super construction. Hence, delegation instead of extension
      */
     private transient PropertyChangeSupport pcs;
-    
+
     /**
      * Helper class that manages all the veto property change notification machinery.
      */
     private transient VetoableChangeSupport vcs;
-    
+
     /** Creates a new instance of AbstractBean */
     protected AbstractBean() {
         pcs = new PropertyChangeSupport(this);
         vcs = new VetoableChangeSupport(this);
     }
-    
+
     /** 
      * Creates a new instance of AbstractBean, using the supplied PropertyChangeSupport and
      * VetoableChangeSupport delegates. Neither of these may be null.
@@ -168,11 +168,11 @@ public abstract class AbstractBean {
         if (vcs == null) {
             throw new NullPointerException("VetoableChangeSupport must not be null");
         }
-        
+
         this.pcs = pcs;
         this.vcs = vcs;
     }
-    
+
     /**
      * Add a PropertyChangeListener to the listener list.
      * The listener is registered for all properties.
@@ -281,7 +281,7 @@ public abstract class AbstractBean {
      *         returned.
      */
     public final PropertyChangeListener[] getPropertyChangeListeners(String propertyName) {
-            return pcs.getPropertyChangeListeners(propertyName);
+        return pcs.getPropertyChangeListeners(propertyName);
     }
 
     /**
@@ -312,7 +312,6 @@ public abstract class AbstractBean {
         pcs.firePropertyChange(evt);
     }
 
-    
     /**
      * Report a bound indexed property update to any registered
      * listeners. 
@@ -330,9 +329,13 @@ public abstract class AbstractBean {
      * @param oldValue     The old value of the property.
      * @param newValue     The new value of the property.
      */
-    protected final void fireIndexedPropertyChange(String propertyName, int index,
-                      Object oldValue, Object newValue) {
-    pcs.fireIndexedPropertyChange(propertyName, index, oldValue, newValue);
+    protected final void fireIndexedPropertyChange(
+        String propertyName,
+        int index,
+        Object oldValue,
+        Object newValue
+    ) {
+        pcs.fireIndexedPropertyChange(propertyName, index, oldValue, newValue);
     }
 
     /**
@@ -346,7 +349,7 @@ public abstract class AbstractBean {
     protected final boolean hasPropertyChangeListeners(String propertyName) {
         return pcs.hasListeners(propertyName);
     }
-    
+
     /**
      * Check if there are any listeners for a specific property, including
      * those registered on all properties.  If <code>propertyName</code>
@@ -358,7 +361,7 @@ public abstract class AbstractBean {
     protected final boolean hasVetoableChangeListeners(String propertyName) {
         return vcs.hasListeners(propertyName);
     }
-    
+
     /**
      * Add a VetoableListener to the listener list.
      * The listener is registered for all properties.
@@ -396,7 +399,7 @@ public abstract class AbstractBean {
      * @return List of VetoableChangeListeners and VetoableChangeListenerProxys
      *         if named property change listeners were added.
      */
-    public final VetoableChangeListener[] getVetoableChangeListeners(){
+    public final VetoableChangeListener[] getVetoableChangeListeners() {
         return vcs.getVetoableChangeListeners();
     }
 
@@ -414,8 +417,10 @@ public abstract class AbstractBean {
      * @param listener  The VetoableChangeListener to be added
      */
 
-    public final void addVetoableChangeListener(String propertyName,
-                VetoableChangeListener listener) {
+    public final void addVetoableChangeListener(
+        String propertyName,
+        VetoableChangeListener listener
+    ) {
         vcs.addVetoableChangeListener(propertyName, listener);
     }
 
@@ -433,8 +438,10 @@ public abstract class AbstractBean {
      * @param listener  The VetoableChangeListener to be removed
      */
 
-    public final void removeVetoableChangeListener(String propertyName,
-                VetoableChangeListener listener) {
+    public final void removeVetoableChangeListener(
+        String propertyName,
+        VetoableChangeListener listener
+    ) {
         vcs.removeVetoableChangeListener(propertyName, listener);
     }
 
@@ -466,9 +473,12 @@ public abstract class AbstractBean {
      * @exception PropertyVetoException if the recipient wishes the property
      *              change to be rolled back.
      */
-    protected final void fireVetoableChange(String propertyName, 
-                    Object oldValue, Object newValue)
-                    throws PropertyVetoException {
+    protected final void fireVetoableChange(
+        String propertyName,
+        Object oldValue,
+        Object newValue
+    )
+        throws PropertyVetoException {
         vcs.fireVetoableChange(propertyName, oldValue, newValue);
     }
 
@@ -484,10 +494,10 @@ public abstract class AbstractBean {
      *              change to be rolled back.
      */
     protected final void fireVetoableChange(PropertyChangeEvent evt)
-                    throws PropertyVetoException {
+        throws PropertyVetoException {
         vcs.fireVetoableChange(evt);
     }
-    
+
     /**
      * {@inheritDoc}
      */

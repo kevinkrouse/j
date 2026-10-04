@@ -20,7 +20,6 @@
 
 package org.armedbear.j;
 
-import org.armedbear.j.util.Utilities;
 import java.awt.Graphics;
 import java.awt.event.KeyEvent;
 import java.awt.event.WindowEvent;
@@ -28,35 +27,33 @@ import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.JTextArea;
 import javax.swing.UIManager;
+import org.armedbear.j.util.Utilities;
 
-public class MessageDialog extends AbstractDialog
-{
+public class MessageDialog extends AbstractDialog {
     private Editor editor;
 
-    protected MessageDialog(Editor editor)
-    {
+    protected MessageDialog(Editor editor) {
         super(editor);
         this.editor = editor;
     }
 
-    public static void showMessageDialog(Editor editor, String text,
-        String title)
-    {
-        MessageDialog d = new MessageDialog(editor != null ? editor :
-            Editor.currentEditor());
+    public static void showMessageDialog(
+        Editor editor,
+        String text,
+        String title
+    ) {
+        MessageDialog d = new MessageDialog(editor != null ? editor : Editor.currentEditor());
         d.initialize(text, title);
         if (editor != null)
             editor.setDefaultCursor();
         d.setVisible(true);
     }
 
-    public final static void showMessageDialog(String text, String title)
-    {
+    public final static void showMessageDialog(String text, String title) {
         showMessageDialog(Editor.currentEditor(), text, title);
     }
 
-    protected void initialize(String text, String title)
-    {
+    protected void initialize(String text, String title) {
         setModal(true);
         setTitle(title);
         mainPanel.setBorder(BorderFactory.createEmptyBorder(18, 18, 6, 18));
@@ -74,13 +71,11 @@ public class MessageDialog extends AbstractDialog
             okButton.requestFocus();
     }
 
-    protected void addButtons()
-    {
+    protected void addButtons() {
         addOK();
     }
 
-    public void keyPressed(KeyEvent e)
-    {
+    public void keyPressed(KeyEvent e) {
         if (editor.checkKeyboardQuit(e)) {
             escape();
             return;
@@ -98,20 +93,16 @@ public class MessageDialog extends AbstractDialog
         }
     }
 
-    public void windowActivated(WindowEvent e)
-    {
+    public void windowActivated(WindowEvent e) {
         requestFocus();
     }
 
-    private static class TextArea extends JTextArea
-    {
-        public TextArea(String text)
-        {
+    private static class TextArea extends JTextArea {
+        public TextArea(String text) {
             super(text);
         }
 
-        public void paintComponent(Graphics g)
-        {
+        public void paintComponent(Graphics g) {
             Display.setRenderingHints(g);
             super.paintComponent(g);
         }

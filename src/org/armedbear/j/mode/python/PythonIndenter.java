@@ -20,28 +20,25 @@
 
 package org.armedbear.j.mode.python;
 
-import org.armedbear.j.Buffer;
 import java.lang.StringBuilder;
+import org.armedbear.j.Buffer;
 import org.armedbear.j.Line;
 import org.armedbear.j.util.Utilities;
 
-public final class PythonIndenter
-{
+public final class PythonIndenter {
     private static final PythonMode mode = PythonMode.getMode();
 
     private final Line line;
     private final Buffer buffer;
     private final int indentSize;
 
-    public PythonIndenter(Line line, Buffer buffer)
-    {
+    public PythonIndenter(Line line, Buffer buffer) {
         this.line = line;
         this.buffer = buffer;
         indentSize = buffer.getIndentSize();
     }
 
-    public int getCorrectIndentation()
-    {
+    public int getCorrectIndentation() {
         final Line model = findModel(line);
         if (model == null)
             return 0;
@@ -60,7 +57,7 @@ public final class PythonIndenter
         if (modelText.length() == 0)
             return 0; // Shouldn't happen.
         // Indent after '{', '(' or '['.
-        char c = modelText.charAt(modelText.length()-1);
+        char c = modelText.charAt(modelText.length() - 1);
         if (c == '{' || c == '(' || c == '[')
             return modelIndent + indentSize;
         final String modelFirst = getFirstIdentifier(modelText);
@@ -79,12 +76,12 @@ public final class PythonIndenter
         if (lineFirst.equals("def"))
             return indentDef();
         // Unindent after "break", "continue", "return" and "pass".
-        final String[] unindentAfter = {"break", "continue", "return", "pass"};
+        final String[] unindentAfter = { "break", "continue", "return", "pass" };
         if (Utilities.isOneOf(modelFirst, unindentAfter))
             return Math.max(0, modelIndent - indentSize);
         // Unindent if the current line starts with "else", "elif", "except" or
         // "finally".
-        final String[] unindent = {"else", "elif", "except", "finally"};
+        final String[] unindent = { "else", "elif", "except", "finally" };
         if (Utilities.isOneOf(lineFirst, unindent))
             return Math.max(0, modelIndent - indentSize);
         return modelIndent;
@@ -92,8 +89,7 @@ public final class PythonIndenter
 
     // Scan backwards for line starting with "def" or "class" and indent
     // accordingly.
-    private int indentDef()
-    {
+    private int indentDef() {
         for (Line model = line.previous(); model != null; model = model.previous()) {
             String modelFirst = getFirstIdentifier(model);
             if (modelFirst.equals("def"))
@@ -105,8 +101,7 @@ public final class PythonIndenter
     }
 
     // Return last non-blank line before this one.
-    private static Line findModel(Line line)
-    {
+    private static Line findModel(Line line) {
         for (Line model = line.previous(); model != null; model = model.previous()) {
             if (!model.isBlank())
                 return model;
@@ -116,21 +111,18 @@ public final class PythonIndenter
 
     // Replace syntactic whitespace (quotes and comments) with actual space
     // characters and return trimmed string.
-    private static String trimSyntacticWhitespace(String s)
-    {
+    private static String trimSyntacticWhitespace(String s) {
         PythonSyntaxIterator it = new PythonSyntaxIterator(null);
         return new String(it.hideSyntacticWhitespace(s)).trim();
     }
 
     // Never returns null.
-    private static String getFirstIdentifier(Line line)
-    {
+    private static String getFirstIdentifier(Line line) {
         return getFirstIdentifier(trimSyntacticWhitespace(line.getText()));
     }
 
     // Never returns null.
-    private static String getFirstIdentifier(String s)
-    {
+    private static String getFirstIdentifier(String s) {
         StringBuilder sb = new StringBuilder();
         final int length = s.length();
         int i = 0;

@@ -20,36 +20,32 @@
 
 package org.armedbear.j.mode.perl;
 
+import java.util.ArrayList;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import org.armedbear.j.Line;
 import org.armedbear.j.LocalTag;
 import org.armedbear.j.SystemBuffer;
 import org.armedbear.j.Tagger;
 
-import java.util.regex.Pattern;
-import java.util.regex.Matcher;
-import java.util.ArrayList;
-
-public final class PerlTagger extends Tagger
-{
+public final class PerlTagger extends Tagger {
     // We trim before matching, so "sub" will appear without any preceding
     // whitespace.
     private static final Pattern subRE =
         Pattern.compile("^sub\\s+([a-zA-Z0-9_]+(::[a-zA-Z0-9_]+)*)");
 
-    public PerlTagger(SystemBuffer buffer)
-    {
+    public PerlTagger(SystemBuffer buffer) {
         super(buffer);
     }
 
-    public void run()
-    {
+    public void run() {
         ArrayList<LocalTag> tags = new ArrayList<LocalTag>();
         Line line = buffer.getFirstLine();
         while (line != null) {
             String s = line.trim();
             if (s != null && s.startsWith("sub")) {
                 // Tag definitions but not declarations.
-                if (s.charAt(s.length()-1) != ';') {
+                if (s.charAt(s.length() - 1) != ';') {
                     Matcher matcher = subRE.matcher(s);
                     if (matcher.find()) {
                         String token = matcher.group(1);

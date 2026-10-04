@@ -50,7 +50,6 @@ import java.awt.image.WritableRaster;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
-
 import javax.imageio.ImageIO;
 
 /**
@@ -87,13 +86,11 @@ import javax.imageio.ImageIO;
  * @author rbair
  */
 public class GraphicsUtilities {
-    private GraphicsUtilities() {
-    }
+    private GraphicsUtilities() {}
 
     // Returns the graphics configuration for the primary screen
     private static GraphicsConfiguration getGraphicsConfiguration() {
-        return GraphicsEnvironment.getLocalGraphicsEnvironment().
-                    getDefaultScreenDevice().getDefaultConfiguration();
+        return GraphicsEnvironment.getLocalGraphicsEnvironment().getDefaultScreenDevice().getDefaultConfiguration();
     }
 
     private static boolean isHeadless() {
@@ -109,12 +106,15 @@ public class GraphicsUtilities {
      */
     public static BufferedImage convertToBufferedImage(Image img) {
         BufferedImage buff = createCompatibleTranslucentImage(
-                img.getWidth(null), img.getHeight(null));
+            img.getWidth(null),
+            img.getHeight(null)
+        );
         Graphics2D g2 = buff.createGraphics();
 
         try {
             g2.drawImage(img, 0, 0, null);
-        } finally {
+        }
+        finally {
             g2.dispose();
         }
 
@@ -134,10 +134,15 @@ public class GraphicsUtilities {
      */
     public static BufferedImage createColorModelCompatibleImage(BufferedImage image) {
         ColorModel cm = image.getColorModel();
-        return new BufferedImage(cm,
-            cm.createCompatibleWritableRaster(image.getWidth(),
-                                              image.getHeight()),
-            cm.isAlphaPremultiplied(), null);
+        return new BufferedImage(
+            cm,
+            cm.createCompatibleWritableRaster(
+                image.getWidth(),
+                image.getHeight()
+            ),
+            cm.isAlphaPremultiplied(),
+            null
+        );
     }
 
     /**
@@ -184,12 +189,18 @@ public class GraphicsUtilities {
      * @return a new compatible <code>BufferedImage</code> with the same
      *   transparency as <code>image</code> and the specified dimension
      */
-    public static BufferedImage createCompatibleImage(BufferedImage image,
-                                                      int width, int height) {
-        return isHeadless() ?
-                new BufferedImage(width, height, image.getType()) :
-                getGraphicsConfiguration().createCompatibleImage(width, height,
-                                                   image.getTransparency());
+    public static BufferedImage createCompatibleImage(
+        BufferedImage image,
+        int width,
+        int height
+    ) {
+        return isHeadless()
+            ? new BufferedImage(width, height, image.getType())
+            : getGraphicsConfiguration().createCompatibleImage(
+                width,
+                height,
+                image.getTransparency()
+            );
     }
 
     /**
@@ -210,9 +221,9 @@ public class GraphicsUtilities {
      *   specified width and height
      */
     public static BufferedImage createCompatibleImage(int width, int height) {
-        return isHeadless() ?
-                new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB) :
-                getGraphicsConfiguration().createCompatibleImage(width, height);
+        return isHeadless()
+            ? new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB)
+            : getGraphicsConfiguration().createCompatibleImage(width, height);
     }
 
     /**
@@ -232,12 +243,17 @@ public class GraphicsUtilities {
      * @return a new translucent compatible <code>BufferedImage</code> of the
      *   specified width and height
      */
-    public static BufferedImage createCompatibleTranslucentImage(int width,
-                                                                 int height) {
-        return isHeadless() ?
-                new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB) :
-                getGraphicsConfiguration().createCompatibleImage(width, height,
-                                                   Transparency.TRANSLUCENT);
+    public static BufferedImage createCompatibleTranslucentImage(
+        int width,
+        int height
+    ) {
+        return isHeadless()
+            ? new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB)
+            : getGraphicsConfiguration().createCompatibleImage(
+                width,
+                height,
+                Transparency.TRANSLUCENT
+            );
     }
 
     /**
@@ -261,7 +277,8 @@ public class GraphicsUtilities {
      */
     public static BufferedImage loadCompatibleImage(InputStream in) throws IOException {
         BufferedImage image = ImageIO.read(in);
-        if(image == null) return null;
+        if (image == null)
+            return null;
         return toCompatibleImage(image);
     }
 
@@ -281,7 +298,7 @@ public class GraphicsUtilities {
      * @throws java.io.IOException if the image cannot be read or loaded
      */
     public static BufferedImage loadCompatibleImage(URL resource)
-            throws IOException {
+        throws IOException {
         BufferedImage image = ImageIO.read(resource);
         return toCompatibleImage(image);
     }
@@ -308,20 +325,27 @@ public class GraphicsUtilities {
             return image;
         }
 
-        if (image.getColorModel().equals(
-                getGraphicsConfiguration().getColorModel())) {
+        if (
+            image.getColorModel()
+                .equals(
+                    getGraphicsConfiguration().getColorModel()
+                )
+        ) {
             return image;
         }
 
         BufferedImage compatibleImage =
-                getGraphicsConfiguration().createCompatibleImage(
-                    image.getWidth(), image.getHeight(),
-                    image.getTransparency());
+            getGraphicsConfiguration().createCompatibleImage(
+                image.getWidth(),
+                image.getHeight(),
+                image.getTransparency()
+            );
         Graphics g = compatibleImage.getGraphics();
-        
+
         try {
             g.drawImage(image, 0, 0, null);
-        } finally {
+        }
+        finally {
             g.dispose();
         }
 
@@ -350,19 +374,25 @@ public class GraphicsUtilities {
      * @throws IllegalArgumentException if <code>newSize</code> is larger than
      *   the largest dimension of <code>image</code> or &lt;= 0
      */
-    public static BufferedImage createThumbnailFast(BufferedImage image,
-                                                    int newSize) {
+    public static BufferedImage createThumbnailFast(
+        BufferedImage image,
+        int newSize
+    ) {
         float ratio;
         int width = image.getWidth();
         int height = image.getHeight();
 
         if (width > height) {
             if (newSize >= width) {
-                throw new IllegalArgumentException("newSize must be lower than" +
-                                                   " the image width");
+                throw new IllegalArgumentException(
+                    "newSize must be lower than" +
+                        " the image width"
+                );
             } else if (newSize <= 0) {
-                 throw new IllegalArgumentException("newSize must" +
-                                                    " be greater than 0");
+                throw new IllegalArgumentException(
+                    "newSize must" +
+                        " be greater than 0"
+                );
             }
 
             ratio = (float) width / (float) height;
@@ -370,11 +400,15 @@ public class GraphicsUtilities {
             height = (int) (newSize / ratio);
         } else {
             if (newSize >= height) {
-                throw new IllegalArgumentException("newSize must be lower than" +
-                                                   " the image height");
+                throw new IllegalArgumentException(
+                    "newSize must be lower than" +
+                        " the image height"
+                );
             } else if (newSize <= 0) {
-                 throw new IllegalArgumentException("newSize must" +
-                                                    " be greater than 0");
+                throw new IllegalArgumentException(
+                    "newSize must" +
+                        " be greater than 0"
+                );
             }
 
             ratio = (float) height / (float) width;
@@ -384,12 +418,15 @@ public class GraphicsUtilities {
 
         BufferedImage temp = createCompatibleImage(image, width, height);
         Graphics2D g2 = temp.createGraphics();
-        
+
         try {
-            g2.setRenderingHint(RenderingHints.KEY_INTERPOLATION,
-                    RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+            g2.setRenderingHint(
+                RenderingHints.KEY_INTERPOLATION,
+                RenderingHints.VALUE_INTERPOLATION_BILINEAR
+            );
             g2.drawImage(image, 0, 0, temp.getWidth(), temp.getHeight(), null);
-        } finally {
+        }
+        finally {
             g2.dispose();
         }
 
@@ -418,26 +455,39 @@ public class GraphicsUtilities {
      *   than the height of <code>image</code> or if one of the dimensions
      *   is &lt;= 0
      */
-    public static BufferedImage createThumbnailFast(BufferedImage image,
-                                                    int newWidth, int newHeight) {
-        if (newWidth >= image.getWidth() ||
-            newHeight >= image.getHeight()) {
-            throw new IllegalArgumentException("newWidth and newHeight cannot" +
-                                               " be greater than the image" +
-                                               " dimensions");
+    public static BufferedImage createThumbnailFast(
+        BufferedImage image,
+        int newWidth,
+        int newHeight
+    ) {
+        if (
+            newWidth >= image.getWidth()
+                ||
+                newHeight >= image.getHeight()
+        ) {
+            throw new IllegalArgumentException(
+                "newWidth and newHeight cannot" +
+                    " be greater than the image" +
+                    " dimensions"
+            );
         } else if (newWidth <= 0 || newHeight <= 0) {
-            throw new IllegalArgumentException("newWidth and newHeight must" +
-                                               " be greater than 0");
+            throw new IllegalArgumentException(
+                "newWidth and newHeight must" +
+                    " be greater than 0"
+            );
         }
 
         BufferedImage temp = createCompatibleImage(image, newWidth, newHeight);
         Graphics2D g2 = temp.createGraphics();
-        
+
         try {
-            g2.setRenderingHint(RenderingHints.KEY_INTERPOLATION,
-                    RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+            g2.setRenderingHint(
+                RenderingHints.KEY_INTERPOLATION,
+                RenderingHints.VALUE_INTERPOLATION_BILINEAR
+            );
             g2.drawImage(image, 0, 0, temp.getWidth(), temp.getHeight(), null);
-        } finally {
+        }
+        finally {
             g2.dispose();
         }
 
@@ -465,8 +515,10 @@ public class GraphicsUtilities {
      * @throws IllegalArgumentException if <code>newSize</code> is larger than
      *   the largest dimension of <code>image</code> or &lt;= 0
      */
-    public static BufferedImage createThumbnail(BufferedImage image,
-                                                int newSize) {
+    public static BufferedImage createThumbnail(
+        BufferedImage image,
+        int newSize
+    ) {
         int width = image.getWidth();
         int height = image.getHeight();
 
@@ -475,17 +527,23 @@ public class GraphicsUtilities {
 
         if (isWidthGreater) {
             if (newSize >= width) {
-                throw new IllegalArgumentException("newSize must be lower than" +
-                                                   " the image width");
+                throw new IllegalArgumentException(
+                    "newSize must be lower than" +
+                        " the image width"
+                );
             }
         } else if (newSize >= height) {
-            throw new IllegalArgumentException("newSize must be lower than" +
-                                               " the image height");
+            throw new IllegalArgumentException(
+                "newSize must be lower than" +
+                    " the image height"
+            );
         }
 
         if (newSize <= 0) {
-            throw new IllegalArgumentException("newSize must" +
-                                               " be greater than 0");
+            throw new IllegalArgumentException(
+                "newSize must" +
+                    " be greater than 0"
+            );
         }
 
         float ratioWH = (float) width / (float) height;
@@ -499,7 +557,7 @@ public class GraphicsUtilities {
         try {
             int previousWidth = width;
             int previousHeight = height;
-    
+
             do {
                 if (isWidthGreater) {
                     width /= 2;
@@ -514,7 +572,7 @@ public class GraphicsUtilities {
                     }
                     width = (int) (height / ratioHW);
                 }
-    
+
                 if (temp == null || isTranslucent) {
                     if (g2 != null) {
                         //do not need to wrap with finally
@@ -524,33 +582,49 @@ public class GraphicsUtilities {
                     }
                     temp = createCompatibleImage(image, width, height);
                     g2 = temp.createGraphics();
-                    g2.setRenderingHint(RenderingHints.KEY_INTERPOLATION,
-                                    RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+                    g2.setRenderingHint(
+                        RenderingHints.KEY_INTERPOLATION,
+                        RenderingHints.VALUE_INTERPOLATION_BILINEAR
+                    );
                 }
-                g2.drawImage(thumb, 0, 0, width, height,
-                        0, 0, previousWidth, previousHeight, null);
-    
+                g2.drawImage(
+                    thumb,
+                    0,
+                    0,
+                    width,
+                    height,
+                    0,
+                    0,
+                    previousWidth,
+                    previousHeight,
+                    null
+                );
+
                 previousWidth = width;
                 previousHeight = height;
-    
+
                 thumb = temp;
             } while (newSize != (isWidthGreater ? width : height));
-        } finally {
+        }
+        finally {
             g2.dispose();
         }
 
         if (width != thumb.getWidth() || height != thumb.getHeight()) {
             temp = createCompatibleImage(image, width, height);
             g2 = temp.createGraphics();
-            
+
             try {
-                g2.setRenderingHint(RenderingHints.KEY_INTERPOLATION,
-                                    RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+                g2.setRenderingHint(
+                    RenderingHints.KEY_INTERPOLATION,
+                    RenderingHints.VALUE_INTERPOLATION_BILINEAR
+                );
                 g2.drawImage(thumb, 0, 0, width, height, 0, 0, width, height, null);
-            } finally {
+            }
+            finally {
                 g2.dispose();
             }
-            
+
             thumb = temp;
         }
 
@@ -577,20 +651,27 @@ public class GraphicsUtilities {
      *   the width of <code>image</code> or if code>newHeight</code> is larger
      *   than the height of <code>image or if one the dimensions is not &gt; 0</code>
      */
-    public static BufferedImage createThumbnail(BufferedImage image,
-                                                int newWidth, int newHeight) {
+    public static BufferedImage createThumbnail(
+        BufferedImage image,
+        int newWidth,
+        int newHeight
+    ) {
         int width = image.getWidth();
         int height = image.getHeight();
 
         boolean isTranslucent = image.getTransparency() != Transparency.OPAQUE;
 
         if (newWidth >= width || newHeight >= height) {
-            throw new IllegalArgumentException("newWidth and newHeight cannot" +
-                                               " be greater than the image" +
-                                               " dimensions");
+            throw new IllegalArgumentException(
+                "newWidth and newHeight cannot" +
+                    " be greater than the image" +
+                    " dimensions"
+            );
         } else if (newWidth <= 0 || newHeight <= 0) {
-            throw new IllegalArgumentException("newWidth and newHeight must" +
-                                               " be greater than 0");
+            throw new IllegalArgumentException(
+                "newWidth and newHeight must" +
+                    " be greater than 0"
+            );
         }
 
         BufferedImage thumb = image;
@@ -601,7 +682,7 @@ public class GraphicsUtilities {
         try {
             int previousWidth = width;
             int previousHeight = height;
-    
+
             do {
                 if (width > newWidth) {
                     width /= 2;
@@ -609,14 +690,14 @@ public class GraphicsUtilities {
                         width = newWidth;
                     }
                 }
-    
+
                 if (height > newHeight) {
                     height /= 2;
                     if (height < newHeight) {
                         height = newHeight;
                     }
                 }
-    
+
                 if (temp == null || isTranslucent) {
                     if (g2 != null) {
                         //do not need to wrap with finally
@@ -626,33 +707,49 @@ public class GraphicsUtilities {
                     }
                     temp = createCompatibleImage(image, width, height);
                     g2 = temp.createGraphics();
-                    g2.setRenderingHint(RenderingHints.KEY_INTERPOLATION,
-                                    RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+                    g2.setRenderingHint(
+                        RenderingHints.KEY_INTERPOLATION,
+                        RenderingHints.VALUE_INTERPOLATION_BILINEAR
+                    );
                 }
-                g2.drawImage(thumb, 0, 0, width, height,
-                             0, 0, previousWidth, previousHeight, null);
-    
+                g2.drawImage(
+                    thumb,
+                    0,
+                    0,
+                    width,
+                    height,
+                    0,
+                    0,
+                    previousWidth,
+                    previousHeight,
+                    null
+                );
+
                 previousWidth = width;
                 previousHeight = height;
-    
+
                 thumb = temp;
             } while (width != newWidth || height != newHeight);
-        } finally {
+        }
+        finally {
             g2.dispose();
         }
 
         if (width != thumb.getWidth() || height != thumb.getHeight()) {
             temp = createCompatibleImage(image, width, height);
             g2 = temp.createGraphics();
-            
+
             try {
-                g2.setRenderingHint(RenderingHints.KEY_INTERPOLATION,
-                                    RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+                g2.setRenderingHint(
+                    RenderingHints.KEY_INTERPOLATION,
+                    RenderingHints.VALUE_INTERPOLATION_BILINEAR
+                );
                 g2.drawImage(thumb, 0, 0, width, height, 0, 0, width, height, null);
-            } finally {
+            }
+            finally {
                 g2.dispose();
             }
-            
+
             thumb = temp;
         }
 
@@ -677,8 +774,14 @@ public class GraphicsUtilities {
      * @throws IllegalArgumentException is <code>pixels</code> is non-null and
      *   of length &lt; w*h
      */
-    public static int[] getPixels(BufferedImage img,
-                                  int x, int y, int w, int h, int[] pixels) {
+    public static int[] getPixels(
+        BufferedImage img,
+        int x,
+        int y,
+        int w,
+        int h,
+        int[] pixels
+    ) {
         if (w == 0 || h == 0) {
             return new int[0];
         }
@@ -686,13 +789,18 @@ public class GraphicsUtilities {
         if (pixels == null) {
             pixels = new int[w * h];
         } else if (pixels.length < w * h) {
-            throw new IllegalArgumentException("pixels array must have a length" +
-                                               " >= w*h");
+            throw new IllegalArgumentException(
+                "pixels array must have a length" +
+                    " >= w*h"
+            );
         }
 
         int imageType = img.getType();
-        if (imageType == BufferedImage.TYPE_INT_ARGB ||
-            imageType == BufferedImage.TYPE_INT_RGB) {
+        if (
+            imageType == BufferedImage.TYPE_INT_ARGB
+                ||
+                imageType == BufferedImage.TYPE_INT_RGB
+        ) {
             Raster raster = img.getRaster();
             return (int[]) raster.getDataElements(x, y, w, h, pixels);
         }
@@ -716,18 +824,29 @@ public class GraphicsUtilities {
      * @throws IllegalArgumentException is <code>pixels</code> is non-null and
      *   of length &lt; w*h
      */
-    public static void setPixels(BufferedImage img,
-                                 int x, int y, int w, int h, int[] pixels) {
+    public static void setPixels(
+        BufferedImage img,
+        int x,
+        int y,
+        int w,
+        int h,
+        int[] pixels
+    ) {
         if (pixels == null || w == 0 || h == 0) {
             return;
         } else if (pixels.length < w * h) {
-            throw new IllegalArgumentException("pixels array must have a length" +
-                                               " >= w*h");
+            throw new IllegalArgumentException(
+                "pixels array must have a length" +
+                    " >= w*h"
+            );
         }
 
         int imageType = img.getType();
-        if (imageType == BufferedImage.TYPE_INT_ARGB ||
-            imageType == BufferedImage.TYPE_INT_RGB) {
+        if (
+            imageType == BufferedImage.TYPE_INT_ARGB
+                ||
+                imageType == BufferedImage.TYPE_INT_RGB
+        ) {
             WritableRaster raster = img.getRaster();
             raster.setDataElements(x, y, w, h, pixels);
         } else {
@@ -753,7 +872,7 @@ public class GraphicsUtilities {
      */
     public static Shape mergeClip(Graphics g, Shape clip) {
         Shape oldClip = g.getClip();
-        if(oldClip == null) {
+        if (oldClip == null) {
             g.setClip(clip);
             return null;
         }

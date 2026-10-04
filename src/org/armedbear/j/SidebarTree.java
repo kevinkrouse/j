@@ -20,8 +20,6 @@
 
 package org.armedbear.j;
 
-import org.armedbear.j.util.Utilities;
-
 import java.awt.Color;
 import java.awt.Rectangle;
 import java.awt.event.KeyEvent;
@@ -29,14 +27,13 @@ import javax.swing.JTree;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.TreeModel;
 import javax.swing.tree.TreePath;
+import org.armedbear.j.util.Utilities;
 
-public class SidebarTree extends JTree
-{
+public class SidebarTree extends JTree {
     /** A selection's background in a sidebar list without the focus. */
     public static final Color NO_FOCUS_SELECTION_BACKGROUND = new Color(208, 208, 208);
 
-    public SidebarTree(TreeModel model)
-    {
+    public SidebarTree(TreeModel model) {
         super(model);
     }
 
@@ -48,9 +45,12 @@ public class SidebarTree extends JTree
      *
      * @param updatePosition selects the tag the caret is at
      */
-    protected static void tagKeyPressed(Editor editor, KeyEvent e, LocalTag selected,
-                                        Runnable updatePosition)
-    {
+    protected static void tagKeyPressed(
+        Editor editor,
+        KeyEvent e,
+        LocalTag selected,
+        Runnable updatePosition
+    ) {
         final int modifiers = Utilities.keyModifiers(e);
         switch (e.getKeyCode()) {
             // Ignore modifier keystrokes.
@@ -88,8 +88,7 @@ public class SidebarTree extends JTree
     }
 
     /** The key's release: the editor's keys again. */
-    protected static void tagKeyReleased(Editor editor, KeyEvent e)
-    {
+    protected static void tagKeyReleased(Editor editor, KeyEvent e) {
         e.consume();
         editor.getDispatcher().setEnabled(true);
     }
@@ -98,15 +97,13 @@ public class SidebarTree extends JTree
      * The mouse leaving: the focus back to the text, if this had it, and not
      * from whatever else had it.
      */
-    protected void giveBackFocus(Editor editor)
-    {
+    protected void giveBackFocus(Editor editor) {
         final Frame frame = editor.getFrame();
         if (frame != null && frame.getFocusedComponent() == this)
             editor.setFocusToDisplay();
     }
 
-    protected void scrollNodeToCenter(DefaultMutableTreeNode node)
-    {
+    protected void scrollNodeToCenter(DefaultMutableTreeNode node) {
         TreePath treePath = new TreePath(node.getPath());
         TreePath parentPath = treePath.getParentPath();
         if (parentPath != null)
@@ -116,8 +113,7 @@ public class SidebarTree extends JTree
         setSelectionRow(row);
     }
 
-    protected void scrollRowToCenter(int row)
-    {
+    protected void scrollRowToCenter(int row) {
         Rectangle rect = getVisibleRect();
         int top = getClosestRowForLocation(rect.x, rect.y);
         int bottom = top + getVisibleRowCount() - 1;

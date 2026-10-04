@@ -20,8 +20,6 @@
 
 package org.armedbear.j;
 
-import org.armedbear.j.util.Utilities;
-
 import java.awt.BorderLayout;
 import java.awt.event.FocusEvent;
 import java.awt.event.FocusListener;
@@ -33,9 +31,9 @@ import javax.swing.BoxLayout;
 import javax.swing.JDialog;
 import javax.swing.JPanel;
 import javax.swing.border.EmptyBorder;
+import org.armedbear.j.util.Utilities;
 
-public class SaveFileDialog extends JDialog implements FocusListener, KeyListener
-{
+public class SaveFileDialog extends JDialog implements FocusListener, KeyListener {
     private File destination;
 
     protected final Editor editor;
@@ -51,8 +49,7 @@ public class SaveFileDialog extends JDialog implements FocusListener, KeyListene
     private boolean allowDirectory;
     private boolean confirmOverwrite = true;
 
-    public SaveFileDialog(Editor editor, String title)
-    {
+    public SaveFileDialog(Editor editor, String title) {
         super(editor.getFrame(), title, true);
         this.editor = editor;
         this.title = title;
@@ -60,8 +57,7 @@ public class SaveFileDialog extends JDialog implements FocusListener, KeyListene
         init();
     }
 
-    public SaveFileDialog(Editor editor, String title, String prompt)
-    {
+    public SaveFileDialog(Editor editor, String title, String prompt) {
         super(editor.getFrame(), title, true);
         this.editor = editor;
         this.title = title;
@@ -69,8 +65,7 @@ public class SaveFileDialog extends JDialog implements FocusListener, KeyListene
         init();
     }
 
-    public SaveFileDialog(Editor editor, String title, String prompt, String defaultName)
-    {
+    public SaveFileDialog(Editor editor, String title, String prompt, String defaultName) {
         super(editor.getFrame(), title, true);
         this.editor = editor;
         this.title = title;
@@ -79,28 +74,23 @@ public class SaveFileDialog extends JDialog implements FocusListener, KeyListene
         init();
     }
 
-    public final File getDestination()
-    {
+    public final File getDestination() {
         return destination;
     }
 
-    public final void setAllowDirectory(boolean b)
-    {
+    public final void setAllowDirectory(boolean b) {
         allowDirectory = b;
     }
 
-    public final void setConfirmOverwrite(boolean b)
-    {
+    public final void setConfirmOverwrite(boolean b) {
         confirmOverwrite = b;
     }
 
-    public final void setInitialText(String s)
-    {
+    public final void setInitialText(String s) {
         textField.setText(s);
     }
 
-    private void init()
-    {
+    private void init() {
         if (Platform.isPlatformWindows())
             completionsIgnoreCase = true;
         else
@@ -131,18 +121,14 @@ public class SaveFileDialog extends JDialog implements FocusListener, KeyListene
         textField.selectAll();
     }
 
-    public void focusGained(FocusEvent e)
-    {
+    public void focusGained(FocusEvent e) {
         textField.requestFocus();
     }
 
-    public void focusLost(FocusEvent e)
-    {
-    }
+    public void focusLost(FocusEvent e) {}
 
-    public void keyPressed(KeyEvent e)
-    {
-        int keyCode   = e.getKeyCode();
+    public void keyPressed(KeyEvent e) {
+        int keyCode = e.getKeyCode();
         int modifiers = Utilities.keyModifiers(e);
         switch (keyCode) {
             case KeyEvent.VK_TAB: {
@@ -187,16 +173,11 @@ public class SaveFileDialog extends JDialog implements FocusListener, KeyListene
         }
     }
 
-    public void keyReleased(KeyEvent e)
-    {
-    }
+    public void keyReleased(KeyEvent e) {}
 
-    public void keyTyped(KeyEvent e)
-    {
-    }
+    public void keyTyped(KeyEvent e) {}
 
-    protected void enter()
-    {
+    protected void enter() {
         final String entry = textField.getText().trim();
         if (entry.length() == 0) {
             destination = null;
@@ -269,8 +250,7 @@ public class SaveFileDialog extends JDialog implements FocusListener, KeyListene
         dispose();
     }
 
-    private String guess(String prefix)
-    {
+    private String guess(String prefix) {
         if (completions != null) {
             if (index < completions.size())
                 return completions.get(index++);
@@ -286,10 +266,9 @@ public class SaveFileDialog extends JDialog implements FocusListener, KeyListene
         return null;
     }
 
-    private String previousGuess()
-    {
+    private String previousGuess() {
         if (completions != null) {
-            if (completions.size() > 1){
+            if (completions.size() > 1) {
                 index -= 2;
                 if (index < 0)
                     index += completions.size();
@@ -299,14 +278,16 @@ public class SaveFileDialog extends JDialog implements FocusListener, KeyListene
         return null;
     }
 
-    private List<String> getCompletions(String prefix)
-    {
+    private List<String> getCompletions(String prefix) {
         List<String> v = new ArrayList<String>();
         File currentDir = editor.getCurrentDirectory();
-        File dir  = null;
+        File dir = null;
         boolean isShortName = false;
-        if (Utilities.isFilenameAbsolute(prefix) ||
-            prefix.indexOf(LocalFile.getSeparatorChar()) >= 0) {
+        if (
+            Utilities.isFilenameAbsolute(prefix)
+                ||
+                prefix.indexOf(LocalFile.getSeparatorChar()) >= 0
+        ) {
             File f = File.getInstance(currentDir, prefix);
             dir = f.getParentFile();
             prefix = f.getName();
@@ -336,14 +317,12 @@ public class SaveFileDialog extends JDialog implements FocusListener, KeyListene
         return v;
     }
 
-    public void dispose()
-    {
+    public void dispose() {
         super.dispose();
         editor.restoreFocus();
     }
 
-    public static File getSaveFile(Editor editor, String dialogTitle)
-    {
+    public static File getSaveFile(Editor editor, String dialogTitle) {
         final File file = editor.getBuffer().getFile();
         final String defaultName = file != null ? file.getName() : null;
         SaveFileDialog d =
@@ -353,8 +332,7 @@ public class SaveFileDialog extends JDialog implements FocusListener, KeyListene
         return d.getDestination();
     }
 
-    public static void writeGlobalKeyMap()
-    {
+    public static void writeGlobalKeyMap() {
         final Editor editor = Editor.currentEditor();
         SaveFileDialog d = new SaveFileDialog(editor, "Write Global Key Map");
         editor.centerDialog(d);
@@ -364,8 +342,7 @@ public class SaveFileDialog extends JDialog implements FocusListener, KeyListene
             KeyMap.getGlobalKeyMap().writeKeyMap(file);
     }
 
-    public static void writeLocalKeyMap()
-    {
+    public static void writeLocalKeyMap() {
         final Editor editor = Editor.currentEditor();
         SaveFileDialog d = new SaveFileDialog(editor, "Write Local Key Map");
         editor.centerDialog(d);

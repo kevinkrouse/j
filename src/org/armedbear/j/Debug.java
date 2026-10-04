@@ -21,16 +21,13 @@
 package org.armedbear.j;
 
 import java.lang.StringBuilder;
+import javax.swing.SwingUtilities;
 import org.armedbear.j.util.FastStringReader;
 import org.armedbear.j.util.Utilities;
 
-import javax.swing.SwingUtilities;
-
-public final class Debug
-{
+public final class Debug {
     // Assertions.
-    public static final void assertTrue(boolean b)
-    {
+    public static final void assertTrue(boolean b) {
         if (!b) {
             Log.error("Assertion failed!");
             AssertionException e = new AssertionException();
@@ -39,8 +36,7 @@ public final class Debug
         }
     }
 
-    public static final void assertFalse(boolean b)
-    {
+    public static final void assertFalse(boolean b) {
         if (b) {
             Log.error("Assertion failed!");
             AssertionException e = new AssertionException();
@@ -50,50 +46,42 @@ public final class Debug
     }
 
     // Does not throw an exception.
-    public static void bug(String s)
-    {
+    public static void bug(String s) {
         if (s != null)
             Log.error("BUG! " + s);
         bug();
     }
 
     // Does not throw an exception.
-    public static void bug()
-    {
+    public static void bug() {
         Log.error(new Exception("BUG!"));
     }
 
     // A kinder, gentler form of assertion.
-    public static void bugIfNot(boolean b)
-    {
+    public static void bugIfNot(boolean b) {
         bugIfNot(b, null);
     }
-    
-    public static void bugIfNot(boolean b, String s)
-    {
+
+    public static void bugIfNot(boolean b, String s) {
         if (!b)
             bug(s);
     }
 
-    public static void bugIf(boolean b)
-    {
+    public static void bugIf(boolean b) {
         bugIf(b, null);
     }
 
-    public static void bugIf(boolean b, String s)
-    {
+    public static void bugIf(boolean b, String s) {
         if (b)
             bug(s);
     }
 
-    public static void dumpStack()
-    {
+    public static void dumpStack() {
         if (Editor.isDebugEnabled())
             Log.debug(new Exception("Stack trace"));
     }
 
-    public static void throttle()
-    {
+    public static void throttle() {
         if (Editor.isDebugEnabled() && !SwingUtilities.isEventDispatchThread()) {
             String throttle = Editor.preferences().getStringProperty("throttle");
             if (throttle != null) {
@@ -101,7 +89,7 @@ public final class Debug
                     int delay = Integer.parseInt(throttle);
                     Thread.sleep(delay);
                 }
-                catch (NumberFormatException e ) {
+                catch (NumberFormatException e) {
                     Log.error(e);
                 }
                 catch (InterruptedException e) {}
@@ -109,8 +97,7 @@ public final class Debug
         }
     }
 
-    public static void listThreads()
-    {
+    public static void listThreads() {
         int threadCount = Thread.currentThread().activeCount();
         Thread[] threads = new Thread[threadCount];
         threadCount = Thread.currentThread().enumerate(threads);
@@ -131,12 +118,12 @@ public final class Debug
         int processCount = 0;
         String output = null;
         if (Platform.isPlatformLinux()) {
-            String[] cmdarray = {"bash", "-c",
-                "ps -o pid,pri,%cpu,rss,start,time,command"};
+            String[] cmdarray = { "bash", "-c",
+                "ps -o pid,pri,%cpu,rss,start,time,command" };
             output = Utilities.exec(cmdarray);
         } else if (Platform.isPlatformSunOS()) {
-            String[] cmdarray = {"sh", "-c",
-                "ps -efo pid,pri,pcpu,rss,time,args"};
+            String[] cmdarray = { "sh", "-c",
+                "ps -efo pid,pri,pcpu,rss,time,args" };
             output = Utilities.exec(cmdarray);
         }
         if (output != null) {

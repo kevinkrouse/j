@@ -22,33 +22,29 @@
 package org.armedbear.j.mode.ruby;
 
 import java.lang.StringBuilder;
+import java.util.ArrayList;
 import org.armedbear.j.LocalTag;
 import org.armedbear.j.Position;
 import org.armedbear.j.SystemBuffer;
 import org.armedbear.j.Tagger;
 
-import java.util.ArrayList;
-
-public final class RubyTagger extends Tagger
-{
+public final class RubyTagger extends Tagger {
     // States.
-    private static final int STATE_NEUTRAL       = 0;
-    private static final int STATE_CLASS_NAME    = 1;
+    private static final int STATE_NEUTRAL = 0;
+    private static final int STATE_CLASS_NAME = 1;
     private static final int STATE_FUNCTION_NAME = 2;
-    private static final int STATE_SINGLE_QUOTE  = 3;
-    private static final int STATE_DOUBLE_QUOTE  = 4;
+    private static final int STATE_SINGLE_QUOTE = 3;
+    private static final int STATE_DOUBLE_QUOTE = 4;
     private static final int STATE_TRIPLE_SINGLE = 5;
     private static final int STATE_TRIPLE_DOUBLE = 6;
 
     private static final RubyMode mode = RubyMode.getMode();
 
-    public RubyTagger(SystemBuffer buffer)
-    {
+    public RubyTagger(SystemBuffer buffer) {
         super(buffer);
     }
 
-    public void run()
-    {
+    public void run() {
         ArrayList<LocalTag> tags = new ArrayList<LocalTag>();
         Position pos = new Position(buffer.getFirstLine(), 0);
         int state = STATE_NEUTRAL;
@@ -60,7 +56,7 @@ public final class RubyTagger extends Tagger
             }
             if (c == '\\') {
                 // Escape.
-                if (pos.getOffset() < pos.getLineLength()-1) {
+                if (pos.getOffset() < pos.getLineLength() - 1) {
                     pos.skip(2);
                 } else {
                     pos.setLine(pos.getNextLine());
@@ -145,8 +141,7 @@ public final class RubyTagger extends Tagger
         buffer.setTags(tags);
     }
 
-    private static String gatherToken(Position pos)
-    {
+    private static String gatherToken(Position pos) {
         StringBuilder sb = new StringBuilder();
         char c;
         while (mode.isIdentifierPart(c = pos.getChar())) {

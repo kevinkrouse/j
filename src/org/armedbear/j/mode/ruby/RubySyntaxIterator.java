@@ -24,27 +24,24 @@ package org.armedbear.j.mode.ruby;
 import org.armedbear.j.DefaultSyntaxIterator;
 import org.armedbear.j.Position;
 
-public final class RubySyntaxIterator extends DefaultSyntaxIterator
-{
+public final class RubySyntaxIterator extends DefaultSyntaxIterator {
     private static final int STATE_NEUTRAL = 0;
-    private static final int STATE_QUOTE   = 1;
+    private static final int STATE_QUOTE = 1;
 
-    public RubySyntaxIterator(Position pos)
-    {
+    public RubySyntaxIterator(Position pos) {
         super(pos);
     }
 
     // Returns char array with syntactic whitespace (quotes and comments)
     // replaced with actual space characters.
-    public char[] hideSyntacticWhitespace(String s)
-    {
+    public char[] hideSyntacticWhitespace(String s) {
         char[] chars = s.toCharArray();
         char quoteChar = 0;
         int state = STATE_NEUTRAL;
         final int length = chars.length;
         for (int i = 0; i < length; i++) {
             char c = chars[i];
-            if (c == '\\' && i < length-1) {
+            if (c == '\\' && i < length - 1) {
                 // Escape!
                 chars[++i] = ' ';
             } else if (state == STATE_QUOTE) {
@@ -63,7 +60,7 @@ public final class RubySyntaxIterator extends DefaultSyntaxIterator
             if (chars[i] == '#') {
                 if (i > 0) {
                     // Ignore '#' if escaped.
-                    char c = chars[i-1];
+                    char c = chars[i - 1];
                     if (c == '\\')
                         continue;
                 }

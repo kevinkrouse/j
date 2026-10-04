@@ -22,28 +22,25 @@
 
 package org.armedbear.j.mode.ruby;
 
-import org.armedbear.j.Buffer;
 import java.lang.StringBuilder;
+import org.armedbear.j.Buffer;
 import org.armedbear.j.Line;
 import org.armedbear.j.util.Utilities;
 
-public final class RubyIndenter
-{
+public final class RubyIndenter {
     private static final RubyMode mode = RubyMode.getMode();
 
     private final Line line;
     private final Buffer buffer;
     private final int indentSize;
 
-    public RubyIndenter(Line line, Buffer buffer)
-    {
+    public RubyIndenter(Line line, Buffer buffer) {
         this.line = line;
         this.buffer = buffer;
         indentSize = buffer.getIndentSize();
     }
 
-    public int getCorrectIndentation()
-    {
+    public int getCorrectIndentation() {
         final String lineFirst = getFirstIdentifier(line);
         if (lineFirst.equals("def"))
             return indentDef();
@@ -73,7 +70,7 @@ public final class RubyIndenter
         if (Utilities.isOneOf(modelFirst, indentAfter))
             return modelIndent + indentSize;
         // Unindent if the current line starts with "else" or "elsif".
-        final String[] unindent = {"else", "elsif"};
+        final String[] unindent = { "else", "elsif" };
         if (Utilities.isOneOf(lineFirst, unindent))
             return Math.max(0, modelIndent - indentSize);
         return modelIndent;
@@ -81,8 +78,7 @@ public final class RubyIndenter
 
     // Scan backwards for line starting with "def" or "class" and indent
     // accordingly.
-    private int indentDef()
-    {
+    private int indentDef() {
         for (Line model = line.previous(); model != null; model = model.previous()) {
             String modelFirst = getFirstIdentifier(model);
             if (modelFirst.equals("def"))
@@ -95,8 +91,7 @@ public final class RubyIndenter
 
     // Scan backwards for line starting with "when" or "case" and indent
     // accordingly. This doesn't work correctly with nested case statements!
-    private int indentWhen()
-    {
+    private int indentWhen() {
         for (Line model = line.previous(); model != null; model = model.previous()) {
             String modelFirst = getFirstIdentifier(model);
             if (modelFirst.equals("when") || modelFirst.equals("case"))
@@ -105,8 +100,7 @@ public final class RubyIndenter
         return 0;
     }
 
-    private int indentEnd()
-    {
+    private int indentEnd() {
         for (Line model = line.previous(); model != null; model = model.previous()) {
             if (model.isBlank() || model.trim().startsWith("#"))
                 continue;
@@ -118,8 +112,7 @@ public final class RubyIndenter
         return 0;
     }
 
-    private int indentRescue()
-    {
+    private int indentRescue() {
         for (Line model = line.previous(); model != null; model = model.previous()) {
             if (model.isBlank() || model.trim().startsWith("#"))
                 continue;
@@ -132,8 +125,7 @@ public final class RubyIndenter
     }
 
     // Return last non-blank line before this one.
-    private static Line findModel(Line line)
-    {
+    private static Line findModel(Line line) {
         for (Line model = line.previous(); model != null; model = model.previous()) {
             if (!model.isBlank() && !model.trim().startsWith("#"))
                 return model;
@@ -143,21 +135,18 @@ public final class RubyIndenter
 
     // Replace syntactic whitespace (quotes and comments) with actual space
     // characters and return trimmed string.
-    private static String trimSyntacticWhitespace(String s)
-    {
+    private static String trimSyntacticWhitespace(String s) {
         RubySyntaxIterator it = new RubySyntaxIterator(null);
         return new String(it.hideSyntacticWhitespace(s)).trim();
     }
 
     // Never returns null.
-    private static String getFirstIdentifier(Line line)
-    {
+    private static String getFirstIdentifier(Line line) {
         return getFirstIdentifier(trimSyntacticWhitespace(line.getText()));
     }
 
     // Never returns null.
-    private static String getFirstIdentifier(String s)
-    {
+    private static String getFirstIdentifier(String s) {
         StringBuilder sb = new StringBuilder();
         final int length = s.length();
         int i = 0;

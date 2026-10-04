@@ -12,7 +12,6 @@
 package org.armedbear.j.vim;
 
 import java.awt.event.KeyEvent;
-
 import org.armedbear.j.DefaultTextFieldHandler;
 import org.armedbear.j.Editor;
 import org.armedbear.j.History;
@@ -32,14 +31,16 @@ import org.armedbear.j.util.Utilities;
  * <p>It sits at the top of the editor rather than the bottom, which is where
  * vim puts it. That is the one visible divergence and it is documented.
  */
-final class VimSearchPrompt extends DefaultTextFieldHandler
-{
+final class VimSearchPrompt extends DefaultTextFieldHandler {
     private final VimInputHandler handler;
     private final boolean forward;
 
-    private VimSearchPrompt(Editor editor, HistoryTextField textField,
-                            VimInputHandler handler, boolean forward)
-    {
+    private VimSearchPrompt(
+        Editor editor,
+        HistoryTextField textField,
+        VimInputHandler handler,
+        boolean forward
+    ) {
         super(editor, textField);
         this.handler = handler;
         this.forward = forward;
@@ -51,9 +52,11 @@ final class VimSearchPrompt extends DefaultTextFieldHandler
      * @return false when there is nowhere to put it, as in a frameless
      *         editor; the caller then has no search to wait for
      */
-    static boolean open(Editor editor, VimInputHandler handler,
-                        boolean forward)
-    {
+    static boolean open(
+        Editor editor,
+        VimInputHandler handler,
+        boolean forward
+    ) {
         // The frame owns focus and the session properties history is stored
         // in, so without one there is nothing to prompt with.
         if (editor.getFrame() == null)
@@ -65,8 +68,14 @@ final class VimSearchPrompt extends DefaultTextFieldHandler
         if (textField == null)
             return false;
         locationBar.setLabelText(LocationBar.PROMPT_PATTERN);
-        textField.setHandler(new VimSearchPrompt(editor, textField, handler,
-                                                 forward));
+        textField.setHandler(
+            new VimSearchPrompt(
+                editor,
+                textField,
+                handler,
+                forward
+            )
+        );
         textField.setHistory(new History("vim.search"));
         textField.setText("");
         editor.setFocusToTextField();
@@ -74,8 +83,7 @@ final class VimSearchPrompt extends DefaultTextFieldHandler
     }
 
     @Override
-    public void enter()
-    {
+    public void enter() {
         final String pattern = textField.getText();
         final History history = textField.getHistory();
         if (history != null && pattern != null && !pattern.isEmpty()) {
@@ -93,10 +101,15 @@ final class VimSearchPrompt extends DefaultTextFieldHandler
 
     /** A chord the c map binds, as CTRL-G, before the field sees it. */
     @Override
-    public void keyPressed(KeyEvent e)
-    {
-        if (handler.runCommandLineKey(editor, e.getKeyCode(), e.getKeyChar(),
-                                      Utilities.keyModifiers(e))) {
+    public void keyPressed(KeyEvent e) {
+        if (
+            handler.runCommandLineKey(
+                editor,
+                e.getKeyCode(),
+                e.getKeyChar(),
+                Utilities.keyModifiers(e)
+            )
+        ) {
             e.consume();
             editor.getDispatcher().eventHandled();
             return;
@@ -106,8 +119,7 @@ final class VimSearchPrompt extends DefaultTextFieldHandler
 
     /** incsearch: after each key, show where the pattern so far goes. */
     @Override
-    public void keyReleased(KeyEvent e)
-    {
+    public void keyReleased(KeyEvent e) {
         super.keyReleased(e);
         // Enter and Escape have ended the search by now.
         if (!handler.isAwaitingSearchPattern())
@@ -123,8 +135,7 @@ final class VimSearchPrompt extends DefaultTextFieldHandler
      * escape on whatever handler the location bar has.
      */
     @Override
-    public void escape()
-    {
+    public void escape() {
         handler.searchCancelled(editor);
         super.escape();
         // Back from CTRL-O, the mode shown has changed.

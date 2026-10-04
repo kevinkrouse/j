@@ -20,50 +20,44 @@
 
 package org.armedbear.j;
 
-import java.lang.StringBuilder;
-
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.lang.StringBuilder;
 import java.util.ArrayList;
 import java.util.HashSet;
 
-public final class Keywords
-{
+public final class Keywords {
     private final Mode mode;
     private final boolean ignoreCase;
 
     private HashSet<String> hashSet;
 
-    public Keywords(Mode mode)
-    {
+    public Keywords(Mode mode) {
         this(mode, false);
     }
 
-    public Keywords(Mode mode, boolean ignoreCase)
-    {
+    public Keywords(Mode mode, boolean ignoreCase) {
         this.mode = mode;
         this.ignoreCase = ignoreCase;
         load();
     }
 
     // Called by AbstractMode.reset().
-    public void reload()
-    {
+    public void reload() {
         // We could be smarter about this and only call load() if something
         // has actually changed... ;)
         load();
     }
 
-    private void load()
-    {
+    private void load() {
         ArrayList<String> list = new ArrayList<String>(256);
         InputStream inputStream = null;
         String className = mode.getClass().getName();
         int index = className.lastIndexOf('.');
         if (index >= 0)
-            className = className.substring(index+1);
+            className = className.substring(index + 1);
         StringBuilder sb = new StringBuilder(className);
         sb.append('.');
         sb.append("keywords");
@@ -75,8 +69,10 @@ public final class Keywords
                 if (file.isFile()) {
                     try {
                         inputStream = file.getInputStream();
-                        Log.debug("loading " + className + " keywords from " +
-                            file);
+                        Log.debug(
+                            "loading " + className + " keywords from " +
+                                file
+                        );
                     }
                     catch (IOException e) {
                         Log.error(e);
@@ -111,8 +107,7 @@ public final class Keywords
         hashSet = new HashSet<String>(list);
     }
 
-    public boolean isKeyword(String s)
-    {
+    public boolean isKeyword(String s) {
         if (ignoreCase)
             return hashSet.contains(s.toLowerCase());
         else

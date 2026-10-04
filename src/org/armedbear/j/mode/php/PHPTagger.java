@@ -20,29 +20,25 @@
 
 package org.armedbear.j.mode.php;
 
+import java.util.ArrayList;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import org.armedbear.j.Line;
 import org.armedbear.j.LocalTag;
 import org.armedbear.j.SystemBuffer;
 import org.armedbear.j.Tagger;
 
-import java.util.regex.Pattern;
-import java.util.regex.Matcher;
-import java.util.ArrayList;
-
-public final class PHPTagger extends Tagger
-{
+public final class PHPTagger extends Tagger {
     // We trim before matching, so "function" will appear without any preceding
     // whitespace.
     private static final Pattern functionRE =
         Pattern.compile("^function\\s+&?([a-zA-Z_\u007f-\u00ff][a-zA-Z0-9_\u007f-\u00ff]*)\\s*\\(");
 
-    public PHPTagger(SystemBuffer buffer)
-    {
+    public PHPTagger(SystemBuffer buffer) {
         super(buffer);
     }
 
-    public void run()
-    {
+    public void run() {
         ArrayList<LocalTag> tags = new ArrayList<LocalTag>();
         Line line = buffer.getFirstLine();
         while (line != null) {

@@ -20,6 +20,7 @@
 
 package org.armedbear.j.mode.properties;
 
+import java.awt.Color;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.FormatTable;
 import org.armedbear.j.Formatter;
@@ -27,30 +28,25 @@ import org.armedbear.j.Line;
 import org.armedbear.j.LineSegmentList;
 import org.armedbear.j.util.Utilities;
 
-import java.awt.Color;
-
-public final class PropertiesFormatter extends Formatter
-{
-    private static final byte PROPERTIES_FORMAT_TEXT      = 0;
-    private static final byte PROPERTIES_FORMAT_COMMENT   = 1;
-    private static final byte PROPERTIES_FORMAT_SECTION   = 2;
-    private static final byte PROPERTIES_FORMAT_KEY       = 3;
-    private static final byte PROPERTIES_FORMAT_VALUE     = 4;
+public final class PropertiesFormatter extends Formatter {
+    private static final byte PROPERTIES_FORMAT_TEXT = 0;
+    private static final byte PROPERTIES_FORMAT_COMMENT = 1;
+    private static final byte PROPERTIES_FORMAT_SECTION = 2;
+    private static final byte PROPERTIES_FORMAT_KEY = 3;
+    private static final byte PROPERTIES_FORMAT_VALUE = 4;
     private static final byte PROPERTIES_FORMAT_DELIMITER = 5;
 
-    public PropertiesFormatter(Buffer buffer)
-    {
+    public PropertiesFormatter(Buffer buffer) {
         this.buffer = buffer;
     }
 
-    public LineSegmentList formatLine(Line line)
-    {
+    public LineSegmentList formatLine(Line line) {
         clearSegmentList();
         final String text = getDetabbedText(line);
         Line p = line.previous();
         if (p != null) {
             final int length = p.length();
-            if (length > 0 && p.charAt(length-1) == '\\') {
+            if (length > 0 && p.charAt(length - 1) == '\\') {
                 // Continuation line.
                 addSegment(text, PROPERTIES_FORMAT_VALUE);
                 return segmentList;
@@ -73,8 +69,8 @@ public final class PropertiesFormatter extends Formatter
                         index = text.indexOf(':');
                     if (index >= 0) {
                         addSegment(text, 0, index, PROPERTIES_FORMAT_KEY);
-                        addSegment(text, index, index+1, PROPERTIES_FORMAT_DELIMITER);
-                        addSegment(text, index+1, PROPERTIES_FORMAT_VALUE);
+                        addSegment(text, index, index + 1, PROPERTIES_FORMAT_DELIMITER);
+                        addSegment(text, index + 1, PROPERTIES_FORMAT_VALUE);
                     } else
                         addSegment(text, PROPERTIES_FORMAT_TEXT);
                     break;
@@ -88,8 +84,7 @@ public final class PropertiesFormatter extends Formatter
      * The color a line sets, "color.text = 0 255 0" or
      * "JavaMode.color.comment = #808080", for a swatch in the gutter.
      */
-    public Color getGutterColor(Line line)
-    {
+    public Color getGutterColor(Line line) {
         final String text = line.getText().trim();
         if (text.isEmpty())
             return null;
@@ -113,8 +108,7 @@ public final class PropertiesFormatter extends Formatter
         return Utilities.parseColor(value);
     }
 
-    public FormatTable getFormatTable()
-    {
+    public FormatTable getFormatTable() {
         if (formatTable == null) {
             formatTable = new FormatTable("PropertiesMode");
             formatTable.addEntryFromPrefs(PROPERTIES_FORMAT_TEXT, "text");

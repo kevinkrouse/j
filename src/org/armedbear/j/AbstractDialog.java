@@ -20,7 +20,6 @@
 
 package org.armedbear.j;
 
-import org.armedbear.j.util.Utilities;
 import java.awt.Dimension;
 import java.awt.Point;
 import java.awt.SystemColor;
@@ -40,10 +39,10 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
 import javax.swing.border.EmptyBorder;
+import org.armedbear.j.util.Utilities;
 
 public abstract class AbstractDialog extends JDialog implements ActionListener,
-    KeyListener, WindowListener
-{
+    KeyListener, WindowListener {
     protected boolean cancelled;
     protected JPanel mainPanel;
     protected StandardButton okButton;
@@ -51,36 +50,31 @@ public abstract class AbstractDialog extends JDialog implements ActionListener,
 
     private Frame owner;
 
-    protected AbstractDialog(Editor editor)
-    {
+    protected AbstractDialog(Editor editor) {
         super(editor == null ? null : editor.getFrame());
         this.owner = editor == null ? null : editor.getFrame();
         initialize();
     }
 
-    protected AbstractDialog(Editor editor, String title, boolean modal)
-    {
+    protected AbstractDialog(Editor editor, String title, boolean modal) {
         super(editor == null ? null : editor.getFrame(), title, modal);
         this.owner = editor == null ? null : editor.getFrame();
         initialize();
     }
 
-    protected AbstractDialog(Frame owner)
-    {
+    protected AbstractDialog(Frame owner) {
         super(owner);
         this.owner = owner;
         initialize();
     }
 
-    protected AbstractDialog(Frame owner, String title, boolean modal)
-    {
+    protected AbstractDialog(Frame owner, String title, boolean modal) {
         super(owner, title, modal);
         this.owner = owner;
         initialize();
     }
 
-    private void initialize()
-    {
+    private void initialize() {
         setDefaultCloseOperation(DO_NOTHING_ON_CLOSE);
         addWindowListener(this);
         getContentPane().setLayout(new BoxLayout(getContentPane(), BoxLayout.Y_AXIS));
@@ -92,14 +86,12 @@ public abstract class AbstractDialog extends JDialog implements ActionListener,
         addKeyListener(this);
     }
 
-    public final boolean cancelled()
-    {
+    public final boolean cancelled() {
         return cancelled;
     }
 
     // Add label and text field below it with right amount of space between them.
-    protected void addLabelAndTextField(JLabel label, JTextField textField)
-    {
+    protected void addLabelAndTextField(JLabel label, JTextField textField) {
         label.setLabelFor(textField);
         if (label.getBorder() == null)
             label.setBorder(new EmptyBorder(0, 0, 3, 0));
@@ -108,8 +100,7 @@ public abstract class AbstractDialog extends JDialog implements ActionListener,
         textField.addKeyListener(this);
     }
 
-    protected void addLabelAndComponent(JLabel label, JComponent component)
-    {
+    protected void addLabelAndComponent(JLabel label, JComponent component) {
         if (label.getLabelFor() == null)
             label.setLabelFor(component);
         if (label.getBorder() == null)
@@ -119,19 +110,16 @@ public abstract class AbstractDialog extends JDialog implements ActionListener,
         component.addKeyListener(this);
     }
 
-    protected final void addCheckBox(CheckBox checkBox)
-    {
+    protected final void addCheckBox(CheckBox checkBox) {
         mainPanel.add(checkBox);
         checkBox.addKeyListener(this);
     }
 
-    protected final void addVerticalStrut()
-    {
+    protected final void addVerticalStrut() {
         mainPanel.add(Box.createVerticalStrut(6));
     }
 
-    protected void addOK()
-    {
+    protected void addOK() {
         JPanel buttonPanel = new JPanel();
         buttonPanel.setAlignmentX(LEFT_ALIGNMENT);
         mainPanel.add(buttonPanel);
@@ -142,8 +130,7 @@ public abstract class AbstractDialog extends JDialog implements ActionListener,
         buttonPanel.add(okButton);
     }
 
-    protected void addCancel()
-    {
+    protected void addCancel() {
         JPanel buttonPanel = new JPanel();
         buttonPanel.setAlignmentX(LEFT_ALIGNMENT);
         mainPanel.add(buttonPanel);
@@ -154,8 +141,7 @@ public abstract class AbstractDialog extends JDialog implements ActionListener,
         buttonPanel.add(cancelButton);
     }
 
-    protected void addOKCancel()
-    {
+    protected void addOKCancel() {
         JPanel buttonPanel = new JPanel();
         buttonPanel.setAlignmentX(LEFT_ALIGNMENT);
         mainPanel.add(buttonPanel);
@@ -171,43 +157,36 @@ public abstract class AbstractDialog extends JDialog implements ActionListener,
         buttonPanel.add(cancelButton);
     }
 
-    protected void ok()
-    {
+    protected void ok() {
         dispose();
     }
 
-    protected void cancel()
-    {
+    protected void cancel() {
         cancelled = true;
         dispose();
     }
 
-    protected void enter()
-    {
+    protected void enter() {
         ok();
     }
 
-    protected void escape()
-    {
+    protected void escape() {
         cancel();
     }
 
-    public void dispose()
-    {
+    public void dispose() {
         super.dispose();
         Editor.restoreFocus();
     }
 
-    public void actionPerformed(ActionEvent e)
-    {
+    public void actionPerformed(ActionEvent e) {
         if (e.getActionCommand().equals("Cancel"))
             cancel();
         else if (e.getActionCommand().equals("OK"))
             ok();
     }
 
-    public void keyPressed(KeyEvent e)
-    {
+    public void keyPressed(KeyEvent e) {
         if (Utilities.isUnmodified(e)) {
             // Special case for combo box.
             if (e.getComponent() instanceof JComboBox) {
@@ -216,7 +195,7 @@ public abstract class AbstractDialog extends JDialog implements ActionListener,
                     return;
                 // Combo box popup is not visible. Fall through...
             }
-            switch (e.getKeyCode()){
+            switch (e.getKeyCode()) {
                 case KeyEvent.VK_ENTER:
                     e.consume();
                     enter();
@@ -243,8 +222,7 @@ public abstract class AbstractDialog extends JDialog implements ActionListener,
 
     public void windowOpened(WindowEvent e) {}
 
-    public void windowClosing(WindowEvent e)
-    {
+    public void windowClosing(WindowEvent e) {
         cancelled = true;
         dispose();
     }
@@ -255,19 +233,22 @@ public abstract class AbstractDialog extends JDialog implements ActionListener,
 
     public void windowDeiconified(WindowEvent e) {}
 
-    protected void centerDialog()
-    {
+    protected void centerDialog() {
         Dimension window = getSize();
         Point p;
         if (owner != null) {
             p = owner.getLocation();
             Dimension parent = owner.getSize();
-            p.translate((parent.width - window.width) / 2,
-                (parent.height - window.height) / 2);
+            p.translate(
+                (parent.width - window.width) / 2,
+                (parent.height - window.height) / 2
+            );
         } else {
             Dimension parent = Toolkit.getDefaultToolkit().getScreenSize();
-            p = new Point((parent.width - window.width) / 2,
-                (parent.height - window.height) / 2);
+            p = new Point(
+                (parent.width - window.width) / 2,
+                (parent.height - window.height) / 2
+            );
         }
         setLocation(p);
     }

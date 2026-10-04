@@ -24,15 +24,12 @@ package org.armedbear.j.mode.ruby;
 import org.armedbear.j.LocalTag;
 import org.armedbear.j.Position;
 
-public final class RubyTag extends LocalTag
-{
-    public RubyTag(String name, Position pos, int type)
-    {
+public final class RubyTag extends LocalTag {
+    public RubyTag(String name, Position pos, int type) {
         super(name, pos, type);
     }
 
-    public String getLongName()
-    {
+    public String getLongName() {
         if (name.startsWith("class "))
             return name;
         String s = signature.trim();
@@ -44,9 +41,9 @@ public final class RubyTag extends LocalTag
             s = s.substring(0, index).trim();
         index = s.indexOf(')');
         if (index >= 0)
-            s = s.substring(0, index+1);
+            s = s.substring(0, index + 1);
         if (s.endsWith("("))
-            s = s.substring(0, s.length()-1);
+            s = s.substring(0, s.length() - 1);
         return s;
     }
 }

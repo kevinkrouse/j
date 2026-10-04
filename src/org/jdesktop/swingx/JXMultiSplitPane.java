@@ -31,12 +31,10 @@ import java.awt.Rectangle;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.awt.event.MouseEvent;
-
 import javax.accessibility.AccessibleContext;
 import javax.accessibility.AccessibleRole;
 import javax.swing.JPanel;
 import javax.swing.event.MouseInputAdapter;
-
 import org.jdesktop.swingx.MultiSplitLayout.Divider;
 import org.jdesktop.swingx.MultiSplitLayout.Node;
 import org.jdesktop.swingx.painter.AbstractPainter;
@@ -69,7 +67,7 @@ public class JXMultiSplitPane extends JPanel {
      * Creates a MultiSplitPane.
      * @param layout the new split pane's layout
      */
-    public JXMultiSplitPane( MultiSplitLayout layout ) {
+    public JXMultiSplitPane(MultiSplitLayout layout) {
         super(layout);
         InputHandler inputHandler = new InputHandler();
         addMouseListener(inputHandler);
@@ -77,7 +75,7 @@ public class JXMultiSplitPane extends JPanel {
         addKeyListener(inputHandler);
         setFocusable(true);
     }
-    
+
     /** 
      * A convenience method that returns the layout manager cast 
      * to MutliSplitLayout.
@@ -87,7 +85,7 @@ public class JXMultiSplitPane extends JPanel {
      * @see #setModel
      */
     public final MultiSplitLayout getMultiSplitLayout() {
-        return (MultiSplitLayout)getLayout();
+        return (MultiSplitLayout) getLayout();
     }
 
     /** 
@@ -171,15 +169,14 @@ public class JXMultiSplitPane extends JPanel {
      * @see #getDividerPainter
      * @see #setDividerPainter
      */
-    public static abstract class DividerPainter extends AbstractPainter<Divider> {
-    }
+    public static abstract class DividerPainter extends AbstractPainter<Divider> {}
 
     private class DefaultDividerPainter extends DividerPainter {
         @Override
         protected void doPaint(Graphics2D g, Divider divider, int width, int height) {
             if ((divider == activeDivider()) && !isContinuousLayout()) {
-            g.setColor(Color.black);
-            g.fillRect(0, 0, width, height);
+                g.setColor(Color.black);
+                g.fillRect(0, 0, width, height);
             }
         }
     }
@@ -192,7 +189,7 @@ public class JXMultiSplitPane extends JPanel {
      * @see #setDividerPainter
      */
     public DividerPainter getDividerPainter() {
-    return dividerPainter;
+        return dividerPainter;
     }
 
     /** 
@@ -244,24 +241,29 @@ public class JXMultiSplitPane extends JPanel {
      * @see javax.swing.plaf.ComponentUI
      */
     @Override
-    protected void paintComponent(Graphics g)
-    {
-      if (backgroundPainter != null) {
-          Graphics2D g2 = (Graphics2D)g.create();
-          
+    protected void paintComponent(Graphics g) {
+        if (backgroundPainter != null) {
+            Graphics2D g2 = (Graphics2D) g.create();
+
             try {
-          Insets ins = this.getInsets();
-          g2.translate(ins.left, ins.top);
-                backgroundPainter.paint(g2, this, this.getWidth() - ins.left
-                        - ins.right, this.getHeight() - ins.top - ins.bottom);
-            } finally {
-          g2.dispose();
+                Insets ins = this.getInsets();
+                g2.translate(ins.left, ins.top);
+                backgroundPainter.paint(
+                    g2,
+                    this,
+                    this.getWidth() - ins.left
+                        - ins.right,
+                    this.getHeight() - ins.top - ins.bottom
+                );
             }
-      } else {
-          super.paintComponent(g);
-      }
+            finally {
+                g2.dispose();
+            }
+        } else {
+            super.paintComponent(g);
+        }
     }
-    
+
     /**
      * Specifies a Painter to use to paint the background of this JXPanel.
      * If <code>p</code> is not null, then setOpaque(false) will be called
@@ -269,22 +271,22 @@ public class JXMultiSplitPane extends JPanel {
      * being used, because Painters may paint transparent pixels or not
      * paint certain pixels, such as around the border insets.
      */
-    public void setBackgroundPainter(Painter p)
-    {
+    public void setBackgroundPainter(Painter p) {
         Painter old = getBackgroundPainter();
         this.backgroundPainter = p;
-        
+
         if (p != null) {
             setOpaque(false);
         }
-        
+
         firePropertyChange("backgroundPainter", old, getBackgroundPainter());
         repaint();
     }
-    
+
     public Painter getBackgroundPainter() {
         return backgroundPainter;
-    }    
+    }
+
     /**
      * Uses the DividerPainter (if any) to paint each Divider that
      * overlaps the clip Rectangle.  This is done after the call to
@@ -295,23 +297,24 @@ public class JXMultiSplitPane extends JPanel {
      */
     @Override
     protected void paintChildren(Graphics g) {
-      super.paintChildren(g);
-      DividerPainter dp = getDividerPainter();
-      Rectangle clipR = g.getClipBounds();
-      if ((dp != null) && (clipR != null)) {
-        MultiSplitLayout msl = getMultiSplitLayout();
-        if ( msl.hasModel()) {
-          for(Divider divider : msl.dividersThatOverlap(clipR)) {
-            Rectangle bounds = divider.getBounds();
-            Graphics cg = g.create( bounds.x, bounds.y, bounds.width, bounds.height );
-            try {
-              dp.paint((Graphics2D)cg, divider, bounds.width, bounds.height );
-            } finally {
-              cg.dispose();
+        super.paintChildren(g);
+        DividerPainter dp = getDividerPainter();
+        Rectangle clipR = g.getClipBounds();
+        if ((dp != null) && (clipR != null)) {
+            MultiSplitLayout msl = getMultiSplitLayout();
+            if (msl.hasModel()) {
+                for (Divider divider : msl.dividersThatOverlap(clipR)) {
+                    Rectangle bounds = divider.getBounds();
+                    Graphics cg = g.create(bounds.x, bounds.y, bounds.width, bounds.height);
+                    try {
+                        dp.paint((Graphics2D) cg, divider, bounds.width, bounds.height);
+                    }
+                    finally {
+                        cg.dispose();
+                    }
+                }
             }
-          }
         }
-      }
     }
 
     private boolean dragUnderway = false;
@@ -322,7 +325,7 @@ public class JXMultiSplitPane extends JPanel {
     private int dragOffsetY = 0;
     private int dragMin = -1;
     private int dragMax = -1;
-    
+
     private void startDrag(int mx, int my) {
         requestFocusInWindow();
         MultiSplitLayout msl = getMultiSplitLayout();
@@ -331,59 +334,54 @@ public class JXMultiSplitPane extends JPanel {
             MultiSplitLayout.Node prevNode = divider.previousSibling();
             MultiSplitLayout.Node nextNode = divider.nextSibling();
             if ((prevNode == null) || (nextNode == null)) {
-            dragUnderway = false;
+                dragUnderway = false;
+            } else {
+                initialDividerBounds = divider.getBounds();
+                dragOffsetX = mx - initialDividerBounds.x;
+                dragOffsetY = my - initialDividerBounds.y;
+                dragDivider = divider;
+
+                Rectangle prevNodeBounds = prevNode.getBounds();
+                Rectangle nextNodeBounds = nextNode.getBounds();
+                if (dragDivider.isVertical()) {
+                    dragMin = prevNodeBounds.x;
+                    dragMax = nextNodeBounds.x + nextNodeBounds.width;
+                    dragMax -= dragDivider.getBounds().width;
+                    if (msl.getLayoutMode() == MultiSplitLayout.USER_MIN_SIZE_LAYOUT)
+                        dragMax -= msl.getUserMinSize();
+                } else {
+                    dragMin = prevNodeBounds.y;
+                    dragMax = nextNodeBounds.y + nextNodeBounds.height;
+                    dragMax -= dragDivider.getBounds().height;
+                    if (msl.getLayoutMode() == MultiSplitLayout.USER_MIN_SIZE_LAYOUT)
+                        dragMax -= msl.getUserMinSize();
+                }
+
+                if (msl.getLayoutMode() == MultiSplitLayout.USER_MIN_SIZE_LAYOUT) {
+                    dragMin = dragMin + msl.getUserMinSize();
+                } else {
+                    if (dragDivider.isVertical()) {
+                        dragMin = Math.max(dragMin, dragMin + getMinNodeSize(msl, prevNode).width);
+                        dragMax = Math.min(dragMax, dragMax - getMinNodeSize(msl, nextNode).width);
+
+                        Dimension maxDim = getMaxNodeSize(msl, prevNode);
+                        if (maxDim != null)
+                            dragMax = Math.min(dragMax, prevNodeBounds.x + maxDim.width);
+                    } else {
+                        dragMin = Math.max(dragMin, dragMin + getMinNodeSize(msl, prevNode).height);
+                        dragMax = Math.min(dragMax, dragMax - getMinNodeSize(msl, nextNode).height);
+
+                        Dimension maxDim = getMaxNodeSize(msl, prevNode);
+                        if (maxDim != null)
+                            dragMax = Math.min(dragMax, prevNodeBounds.y + maxDim.height);
+                    }
+                }
+
+                oldFloatingDividers = getMultiSplitLayout().getFloatingDividers();
+                getMultiSplitLayout().setFloatingDividers(false);
+                dragUnderway = true;
             }
-            else {
-            initialDividerBounds = divider.getBounds();
-            dragOffsetX = mx - initialDividerBounds.x;
-            dragOffsetY = my - initialDividerBounds.y;
-            dragDivider  = divider;
-        
-            Rectangle prevNodeBounds = prevNode.getBounds();
-            Rectangle nextNodeBounds = nextNode.getBounds();
-            if (dragDivider.isVertical()) {
-                dragMin = prevNodeBounds.x;
-                dragMax = nextNodeBounds.x + nextNodeBounds.width;
-                dragMax -= dragDivider.getBounds().width;
-                if ( msl.getLayoutMode() == MultiSplitLayout.USER_MIN_SIZE_LAYOUT ) 
-                  dragMax -= msl.getUserMinSize();
-            }
-            else {
-                dragMin = prevNodeBounds.y;
-                dragMax = nextNodeBounds.y + nextNodeBounds.height;
-                dragMax -= dragDivider.getBounds().height;
-                if ( msl.getLayoutMode() == MultiSplitLayout.USER_MIN_SIZE_LAYOUT ) 
-                  dragMax -= msl.getUserMinSize();
-            }
-            
-            if ( msl.getLayoutMode() == MultiSplitLayout.USER_MIN_SIZE_LAYOUT ) {
-              dragMin = dragMin + msl.getUserMinSize();
-            }
-            else {
-              if (dragDivider.isVertical()) {           
-                dragMin = Math.max( dragMin, dragMin + getMinNodeSize(msl,prevNode).width );
-                dragMax = Math.min( dragMax, dragMax - getMinNodeSize(msl,nextNode).width );
-    
-                Dimension maxDim = getMaxNodeSize(msl,prevNode);
-                if ( maxDim != null )
-                  dragMax = Math.min( dragMax, prevNodeBounds.x + maxDim.width );
-              }
-              else {
-                dragMin = Math.max( dragMin, dragMin + getMinNodeSize(msl,prevNode).height );
-                dragMax = Math.min( dragMax, dragMax - getMinNodeSize(msl,nextNode).height );
-    
-                Dimension maxDim  = getMaxNodeSize(msl,prevNode);
-                if ( maxDim != null )
-                  dragMax = Math.min( dragMax, prevNodeBounds.y + maxDim.height );
-              }
-            }
-                    
-            oldFloatingDividers = getMultiSplitLayout().getFloatingDividers();
-            getMultiSplitLayout().setFloatingDividers(false);
-            dragUnderway = true;
-            }
-        }
-        else {
+        } else {
             dragUnderway = false;
         }
     }
@@ -408,8 +406,8 @@ public class JXMultiSplitPane extends JPanel {
      * @param n the node being resized
      * @return the maximum size or null (by default) to ignore the maximum size.
      */
-    protected Dimension getMaxNodeSize( MultiSplitLayout msl, Node n ) {
-      return null;
+    protected Dimension getMaxNodeSize(MultiSplitLayout msl, Node n) {
+        return null;
     }
 
     /**
@@ -419,17 +417,16 @@ public class JXMultiSplitPane extends JPanel {
      * @param n the node being resized
      * @return the maximum size or null (by default) to ignore the maximum size.
      */
-    protected Dimension getMinNodeSize( MultiSplitLayout msl, Node n ) {
-      return msl.minimumNodeSize(n);
+    protected Dimension getMinNodeSize(MultiSplitLayout msl, Node n) {
+        return msl.minimumNodeSize(n);
     }
-    
+
     private void repaintDragLimits() {
         Rectangle damageR = dragDivider.getBounds();
         if (dragDivider.isVertical()) {
             damageR.x = dragMin;
             damageR.width = dragMax - dragMin;
-        }
-        else {
+        } else {
             damageR.y = dragMin;
             damageR.height = dragMax - dragMin;
         }
@@ -444,20 +441,18 @@ public class JXMultiSplitPane extends JPanel {
         Rectangle bounds = new Rectangle(oldBounds);
         if (dragDivider.isVertical()) {
             bounds.x = mx - dragOffsetX;
-            bounds.x = Math.max(bounds.x, dragMin );
+            bounds.x = Math.max(bounds.x, dragMin);
             bounds.x = Math.min(bounds.x, dragMax);
-        }
-        else {
+        } else {
             bounds.y = my - dragOffsetY;
-            bounds.y = Math.max(bounds.y, dragMin );
+            bounds.y = Math.max(bounds.y, dragMin);
             bounds.y = Math.min(bounds.y, dragMax);
         }
         dragDivider.setBounds(bounds);
         if (isContinuousLayout()) {
             revalidate();
             repaintDragLimits();
-        }
-        else {
+        } else {
             repaint(oldBounds.union(bounds));
         }
     }
@@ -475,14 +470,14 @@ public class JXMultiSplitPane extends JPanel {
         if (dragUnderway) {
             clearDragState();
             if (!isContinuousLayout()) {
-            revalidate();
-            repaint();
+                revalidate();
+                repaint();
             }
         }
         setCursor(Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
     }
-    
-    private void cancelDrag() {       
+
+    private void cancelDrag() {
         if (dragUnderway) {
             dragDivider.setBounds(initialDividerBounds);
             getMultiSplitLayout().setFloatingDividers(oldFloatingDividers);
@@ -501,14 +496,11 @@ public class JXMultiSplitPane extends JPanel {
         if (show) {
             MultiSplitLayout.Divider divider = getMultiSplitLayout().dividerAt(x, y);
             if (divider != null) {
-            cursorID  = (divider.isVertical()) ? 
-                Cursor.E_RESIZE_CURSOR : 
-                Cursor.N_RESIZE_CURSOR;
+                cursorID = (divider.isVertical()) ? Cursor.E_RESIZE_CURSOR : Cursor.N_RESIZE_CURSOR;
             }
         }
         setCursor(Cursor.getPredefinedCursor(cursorID));
     }
-
 
     private class InputHandler extends MouseInputAdapter implements KeyListener {
 
@@ -516,47 +508,51 @@ public class JXMultiSplitPane extends JPanel {
         public void mouseEntered(MouseEvent e) {
             updateCursor(e.getX(), e.getY(), true);
         }
-    
+
         @Override
         public void mouseMoved(MouseEvent e) {
             updateCursor(e.getX(), e.getY(), true);
         }
-    
+
         @Override
         public void mouseExited(MouseEvent e) {
             updateCursor(e.getX(), e.getY(), false);
         }
-    
+
         @Override
         public void mousePressed(MouseEvent e) {
             startDrag(e.getX(), e.getY());
         }
+
         @Override
         public void mouseReleased(MouseEvent e) {
             finishDrag(e.getX(), e.getY());
         }
+
         @Override
         public void mouseDragged(MouseEvent e) {
-            updateDrag(e.getX(), e.getY());        
+            updateDrag(e.getX(), e.getY());
         }
-        public void keyPressed(KeyEvent e) { 
+
+        public void keyPressed(KeyEvent e) {
             if (e.getKeyCode() == KeyEvent.VK_ESCAPE) {
-            cancelDrag();
+                cancelDrag();
             }
         }
-        public void keyReleased(KeyEvent e) { }
-        
-        public void keyTyped(KeyEvent e) { }
+
+        public void keyReleased(KeyEvent e) {}
+
+        public void keyTyped(KeyEvent e) {}
     }
 
     @Override
     public AccessibleContext getAccessibleContext() {
-        if( accessibleContext == null ) {
+        if (accessibleContext == null) {
             accessibleContext = new AccessibleMultiSplitPane();
         }
         return accessibleContext;
     }
-    
+
     protected class AccessibleMultiSplitPane extends AccessibleJPanel {
         @Override
         public AccessibleRole getAccessibleRole() {

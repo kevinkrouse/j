@@ -20,19 +20,17 @@
 
 package org.armedbear.j.mode.dir;
 
-import org.armedbear.j.File;
-import org.armedbear.j.Platform;
-
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
-import java.util.ArrayList;
 import java.util.List;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeModel;
 import javax.swing.tree.TreeNode;
+import org.armedbear.j.File;
+import org.armedbear.j.Platform;
 
-public class DirectoryTreeModel extends DefaultTreeModel
-{
+public class DirectoryTreeModel extends DefaultTreeModel {
     private static final boolean ignoreCase = Platform.isPlatformWindows();
 
     private static DirectoryTreeModel localTreeModel;
@@ -40,31 +38,26 @@ public class DirectoryTreeModel extends DefaultTreeModel
 
     private File rootFile; // Will be null for local tree.
 
-    private DirectoryTreeModel(TreeNode root)
-    {
+    private DirectoryTreeModel(TreeNode root) {
         super(root);
     }
 
-    private DirectoryTreeModel(TreeNode root, File f)
-    {
+    private DirectoryTreeModel(TreeNode root, File f) {
         super(root);
         rootFile = f;
     }
 
-    private File getRootFile()
-    {
+    private File getRootFile() {
         return rootFile;
     }
 
-    private static DirectoryTreeModel getLocalDirectoryTreeModel(File file)
-    {
+    private static DirectoryTreeModel getLocalDirectoryTreeModel(File file) {
         if (localTreeModel == null)
             setLocalRoot(scanRoot(file));
         return localTreeModel;
     }
 
-    public static DirectoryTreeModel getTreeModel(File file)
-    {
+    public static DirectoryTreeModel getTreeModel(File file) {
         if (file.isLocal())
             return getLocalDirectoryTreeModel(file);
         DirectoryTreeModel model;
@@ -86,21 +79,18 @@ public class DirectoryTreeModel extends DefaultTreeModel
         return model;
     }
 
-    private static synchronized void setLocalRoot(DefaultMutableTreeNode root)
-    {
+    private static synchronized void setLocalRoot(DefaultMutableTreeNode root) {
         if (localTreeModel != null)
             localTreeModel.setRoot(root);
         else
             localTreeModel = new DirectoryTreeModel(root);
     }
 
-    public void rescan(File file)
-    {
+    public void rescan(File file) {
         setRoot(scanRoot(file));
     }
 
-    private static DefaultMutableTreeNode scanRoot(File file)
-    {
+    private static DefaultMutableTreeNode scanRoot(File file) {
         DefaultMutableTreeNode root = null;
         if (Platform.isPlatformWindows()) {
             File[] roots = File.listRoots();
@@ -108,7 +98,7 @@ public class DirectoryTreeModel extends DefaultTreeModel
                 root = new DefaultMutableTreeNode("Local");
                 for (File f : roots) {
                     DefaultMutableTreeNode child =
-                            new DefaultMutableTreeNode(new DirectoryTreeElement(f));
+                        new DefaultMutableTreeNode(new DirectoryTreeElement(f));
                     root.insert(child, root.getChildCount());
                     if (f.equals(file.getRoot()))
                         addChildren(f, child);
@@ -126,29 +116,28 @@ public class DirectoryTreeModel extends DefaultTreeModel
         return root;
     }
 
-    private static void addChildren(File parent, DefaultMutableTreeNode node)
-    {
+    private static void addChildren(File parent, DefaultMutableTreeNode node) {
         File[] list = parent.listFiles();
         if (list == null)
             return;
-        Arrays.sort(list,
-            ignoreCase ? ciFileNameComparator : csFileNameComparator);
+        Arrays.sort(
+            list,
+            ignoreCase ? ciFileNameComparator : csFileNameComparator
+        );
         for (File f : list) {
             if (f.isDirectory() && !f.isLink()) {
                 DefaultMutableTreeNode child =
-                        new DefaultMutableTreeNode(new DirectoryTreeElement(f));
+                    new DefaultMutableTreeNode(new DirectoryTreeElement(f));
                 node.insert(child, node.getChildCount());
             }
         }
     }
 
-    public DefaultMutableTreeNode getNode(File file)
-    {
+    public DefaultMutableTreeNode getNode(File file) {
         return getNode((DefaultMutableTreeNode) getRoot(), file);
     }
 
-    private static DefaultMutableTreeNode getNode(DefaultMutableTreeNode root, File file)
-    {
+    private static DefaultMutableTreeNode getNode(DefaultMutableTreeNode root, File file) {
         if (root == null || file == null)
             return null;
         DefaultMutableTreeNode currentNode = root;
@@ -168,8 +157,9 @@ public class DirectoryTreeModel extends DefaultTreeModel
 
     // Find child that is ancestor of file (so to speak).
     private static DefaultMutableTreeNode findMatchingChild(
-        DefaultMutableTreeNode parent, File file)
-    {
+        DefaultMutableTreeNode parent,
+        File file
+    ) {
         if (file != null) {
             for (int i = 0; i < parent.getChildCount(); i++) {
                 DefaultMutableTreeNode node =
@@ -189,14 +179,15 @@ public class DirectoryTreeModel extends DefaultTreeModel
         return null;
     }
 
-    public static void expandNode(DefaultMutableTreeNode node, File file)
-    {
+    public static void expandNode(DefaultMutableTreeNode node, File file) {
         if (node.getChildCount() == 0) {
             File[] list = file.listFiles();
             if (list == null)
                 return;
-            Arrays.sort(list,
-                ignoreCase ? ciFileNameComparator : csFileNameComparator);
+            Arrays.sort(
+                list,
+                ignoreCase ? ciFileNameComparator : csFileNameComparator
+            );
             for (int i = 0; i < list.length; i++) {
                 File f = list[i];
                 if (f.isLink())

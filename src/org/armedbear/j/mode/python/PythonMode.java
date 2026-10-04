@@ -20,6 +20,7 @@
 
 package org.armedbear.j.mode.python;
 
+import java.awt.event.KeyEvent;
 import org.armedbear.j.AbstractMode;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Constants;
@@ -33,50 +34,39 @@ import org.armedbear.j.SyntaxIterator;
 import org.armedbear.j.SystemBuffer;
 import org.armedbear.j.Tagger;
 
-import java.awt.event.KeyEvent;
-
-public final class PythonMode extends AbstractMode implements Constants, Mode
-{
+public final class PythonMode extends AbstractMode implements Constants, Mode {
     private static final PythonMode mode = new PythonMode();
 
-    private PythonMode()
-    {
+    private PythonMode() {
         super(PYTHON_MODE, PYTHON_MODE_NAME);
         keywords = new Keywords(this);
     }
 
-    public static final PythonMode getMode()
-    {
+    public static final PythonMode getMode() {
         return mode;
     }
 
-    public boolean canIndent()
-    {
+    public boolean canIndent() {
         return true;
     }
 
-    public boolean canIndentPaste()
-    {
+    public boolean canIndentPaste() {
         return false;
     }
 
-    public final SyntaxIterator getSyntaxIterator(Position pos)
-    {
+    public final SyntaxIterator getSyntaxIterator(Position pos) {
         return new PythonSyntaxIterator(pos);
     }
 
-    public final String getCommentStart()
-    {
+    public final String getCommentStart() {
         return "#";
     }
 
-    public final Formatter getFormatter(Buffer buffer)
-    {
+    public final Formatter getFormatter(Buffer buffer) {
         return new PythonFormatter(buffer);
     }
 
-    protected void setKeyMapDefaults(KeyMap km)
-    {
+    protected void setKeyMapDefaults(KeyMap km) {
         km.mapKey(KeyEvent.VK_TAB, 0, "tab");
         km.mapKey(KeyEvent.VK_TAB, SHIFT_MASK, "slideOut");
         km.mapKey(KeyEvent.VK_TAB, CTRL_MASK, "insertTab");
@@ -84,52 +74,47 @@ public final class PythonMode extends AbstractMode implements Constants, Mode
         km.mapKey(KeyEvent.VK_I, ALT_MASK, "cycleIndentSize");
     }
 
-    public final boolean isTaggable()
-    {
+    public final boolean isTaggable() {
         return true;
     }
 
-    public final Tagger getTagger(SystemBuffer buffer)
-    {
+    public final Tagger getTagger(SystemBuffer buffer) {
         return new PythonTagger(buffer);
     }
 
-    public int getCorrectIndentation(Line line, Buffer buffer)
-    {
+    public int getCorrectIndentation(Line line, Buffer buffer) {
         return new PythonIndenter(line, buffer).getCorrectIndentation();
     }
 
-    public final boolean isIdentifierStart(char c)
-    {
+    public final boolean isIdentifierStart(char c) {
         if (c > 127)
             return false;
         return values[c] == 1;
     }
 
-    public final boolean isIdentifierPart(char c)
-    {
+    public final boolean isIdentifierPart(char c) {
         if (c > 127)
             return false;
         return values[c] != 0;
     }
 
     private static final byte values[] =
-    {
-        0, 0, 0, 0, 0, 0, 0, 0, // 0x00-0x07
-        0, 0, 0, 0, 0, 0, 0, 0, // 0x09-0xff
-        0, 0, 0, 0, 0, 0, 0, 0, // 0x10-0x17
-        0, 0, 0, 0, 0, 0, 0, 0, // 0x18-0x1f
-        0, 0, 0, 0, 0, 0, 0, 0, // 0x20-0x27   !"#$%&'
-        0, 0, 0, 0, 0, 0, 0, 0, // 0x28-0x2f  ()*+,-./
-        2, 2, 2, 2, 2, 2, 2, 2, // 0x30-0x37  01234567
-        2, 2, 0, 0, 0, 0, 0, 0, // 0x38-0x40  89:;<=>?
-        0, 1, 1, 1, 1, 1, 1, 1, // 0x41-0x47  @ABCDEFG
-        1, 1, 1, 1, 1, 1, 1, 1, // 0x48-0x4f  HIJKLMNO
-        1, 1, 1, 1, 1, 1, 1, 1, // 0x50-0x57  PQRSTUVW
-        1, 1, 1, 0, 0, 0, 0, 1, // 0x58-0x5f  XYZ[\]^_
-        0, 1, 1, 1, 1, 1, 1, 1, // 0x60-0x67  `abcdefg
-        1, 1, 1, 1, 1, 1, 1, 1, // 0x68-0x6f  hijklmno
-        1, 1, 1, 1, 1, 1, 1, 1, // 0x70-0x77  pqrstuvw
-        1, 1, 1, 0, 0, 0, 0, 0  // 0x78-0x7f  xyz{|}~
-    };
+        {
+            0, 0, 0, 0, 0, 0, 0, 0, // 0x00-0x07
+            0, 0, 0, 0, 0, 0, 0, 0, // 0x09-0xff
+            0, 0, 0, 0, 0, 0, 0, 0, // 0x10-0x17
+            0, 0, 0, 0, 0, 0, 0, 0, // 0x18-0x1f
+            0, 0, 0, 0, 0, 0, 0, 0, // 0x20-0x27   !"#$%&'
+            0, 0, 0, 0, 0, 0, 0, 0, // 0x28-0x2f  ()*+,-./
+            2, 2, 2, 2, 2, 2, 2, 2, // 0x30-0x37  01234567
+            2, 2, 0, 0, 0, 0, 0, 0, // 0x38-0x40  89:;<=>?
+            0, 1, 1, 1, 1, 1, 1, 1, // 0x41-0x47  @ABCDEFG
+            1, 1, 1, 1, 1, 1, 1, 1, // 0x48-0x4f  HIJKLMNO
+            1, 1, 1, 1, 1, 1, 1, 1, // 0x50-0x57  PQRSTUVW
+            1, 1, 1, 0, 0, 0, 0, 1, // 0x58-0x5f  XYZ[\]^_
+            0, 1, 1, 1, 1, 1, 1, 1, // 0x60-0x67  `abcdefg
+            1, 1, 1, 1, 1, 1, 1, 1, // 0x68-0x6f  hijklmno
+            1, 1, 1, 1, 1, 1, 1, 1, // 0x70-0x77  pqrstuvw
+            1, 1, 1, 0, 0, 0, 0, 0 // 0x78-0x7f  xyz{|}~
+        };
 }

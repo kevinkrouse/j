@@ -20,8 +20,6 @@
 
 package org.armedbear.j;
 
-import org.armedbear.j.util.Utilities;
-
 import java.awt.Graphics;
 import java.awt.Image;
 import java.awt.event.ActionEvent;
@@ -30,15 +28,17 @@ import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
+import org.armedbear.j.util.Utilities;
 
 public final class ToolBarButton extends JButton implements ActionListener,
-    MouseListener
-{
+    MouseListener {
     private Frame frame;
 
-    public ToolBarButton(Frame frame, String actionCommand,
-        ActionListener listener)
-    {
+    public ToolBarButton(
+        Frame frame,
+        String actionCommand,
+        ActionListener listener
+    ) {
         super();
         this.frame = frame;
         addMouseListener(this);
@@ -49,8 +49,7 @@ public final class ToolBarButton extends JButton implements ActionListener,
         setRequestFocusEnabled(false);
     }
 
-    public void setIconFromFile(String filename)
-    {
+    public void setIconFromFile(String filename) {
         final int size = ToolBar.iconSize();
         ImageIcon icon;
         if (Utilities.isFilenameAbsolute(filename)) {
@@ -70,14 +69,12 @@ public final class ToolBarButton extends JButton implements ActionListener,
             setIcon(icon);
     }
 
-    protected void paintBorder(Graphics g)
-    {
+    protected void paintBorder(Graphics g) {
         if (!isRolloverEnabled() || model.isRollover())
             super.paintBorder(g);
     }
 
-    public void actionPerformed(ActionEvent e)
-    {
+    public void actionPerformed(ActionEvent e) {
         model.setPressed(false);
         model.setArmed(false);
         model.setRollover(false);
@@ -89,13 +86,11 @@ public final class ToolBarButton extends JButton implements ActionListener,
 
     public void mouseReleased(MouseEvent e) {}
 
-    public void mouseEntered(MouseEvent e)
-    {
+    public void mouseEntered(MouseEvent e) {
         frame.setStatusText(this.getToolTipText());
     }
 
-    public void mouseExited(MouseEvent e)
-    {
+    public void mouseExited(MouseEvent e) {
         frame.setStatusText("");
     }
 }

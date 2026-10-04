@@ -21,20 +21,17 @@
 
 package org.armedbear.j;
 
-import org.armedbear.j.util.Utilities;
-
-import javax.swing.*;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Locale;
+import javax.swing.*;
+import org.armedbear.j.util.Utilities;
 
-public class AboutDialog extends AbstractDialog
-{
-    public AboutDialog()
-    {
+public class AboutDialog extends AbstractDialog {
+    public AboutDialog() {
         super(Editor.getCurrentFrame(), null, true);
 
         Editor.getCurrentFrame().setWaitCursor();
@@ -44,23 +41,29 @@ public class AboutDialog extends AbstractDialog
 
         Container contents = getContentPane();
 
-        if (contents instanceof JComponent)
-        {
+        if (contents instanceof JComponent) {
             ((JComponent) contents).setBorder(
-                    BorderFactory.createEmptyBorder(11, 21, 12, 13));
+                BorderFactory.createEmptyBorder(11, 21, 12, 13)
+            );
             ((JComponent) contents).setOpaque(true);
         }
 
         contents.setLayout(new GridBagLayout());
 
         GridBagConstraints c =
-                new GridBagConstraints(
-                        1, 0,
-                        1,
-                        1, 1, 1,
-                        GridBagConstraints.NORTHEAST,
-                        GridBagConstraints.NONE,
-                        new Insets(0, 0, 0, 0), 0, 0);
+            new GridBagConstraints(
+                1,
+                0,
+                1,
+                1,
+                1,
+                1,
+                GridBagConstraints.NORTHEAST,
+                GridBagConstraints.NONE,
+                new Insets(0, 0, 0, 0),
+                0,
+                0
+            );
 
         ImageIcon image = Utilities.getIconFromFile("j-logo", UIScale.scale(64));
         JLabel icon = new JLabel(image);
@@ -137,11 +140,9 @@ public class AboutDialog extends AbstractDialog
         contents.add(copyrightLabel, c);
 
         // dismiss on click
-        addMouseListener(new MouseAdapter()
-        {
+        addMouseListener(new MouseAdapter() {
             @Override
-            public void mouseClicked(MouseEvent e)
-            {
+            public void mouseClicked(MouseEvent e) {
                 super.mouseClicked(e);
                 dispose();
             }
@@ -151,23 +152,19 @@ public class AboutDialog extends AbstractDialog
         Editor.getCurrentFrame().setDefaultCursor();
     }
 
-    String getProductName()
-    {
+    String getProductName() {
         return Version.getShortVersionString();
     }
 
-    String getBuildVersion()
-    {
+    String getBuildVersion() {
         return Version.getLongBuildString();
     }
 
-    String getJVMVersion()
-    {
+    String getJVMVersion() {
         return "Java " + System.getProperty("java.version");
     }
 
-    String getJVMInfo()
-    {
+    String getJVMInfo() {
         StringBuilder sb = new StringBuilder();
         String vm = System.getProperty("java.vm.name");
         if (vm != null)
@@ -183,10 +180,11 @@ public class AboutDialog extends AbstractDialog
      * uses. The uptime is left off for the first minute, when it would say
      * nothing useful.
      */
-    static String getUptimeString()
-    {
-        String dateString = LocalDateTime.now().format(
-            DateTimeFormatter.ofPattern("EE MMM d yyyy h:mm a", Locale.US));
+    static String getUptimeString() {
+        String dateString = LocalDateTime.now()
+            .format(
+                DateTimeFormatter.ofPattern("EE MMM d yyyy h:mm a", Locale.US)
+            );
         String uptimeString = formatUptime(System.currentTimeMillis() - Editor.getStartTimeMillis());
         if (uptimeString.isEmpty())
             return dateString;
@@ -197,8 +195,7 @@ public class AboutDialog extends AbstractDialog
      * How long j has been up, as "up 2:34". Empty for the first minute,
      * where it would only say "up 0 minutes".
      */
-    static String formatUptime(long uptime)
-    {
+    static String formatUptime(long uptime) {
         final long millisecondsPerMinute = 60 * 1000;
         final long millisecondsPerHour = 60 * millisecondsPerMinute;
         final long millisecondsPerDay = 24 * millisecondsPerHour;
@@ -241,8 +238,7 @@ public class AboutDialog extends AbstractDialog
      * the figures are a reading, not a measurement worth stopping the editor
      * for, and the old dialog froze the event thread for 300ms to get them.
      */
-    static String getMemoryString()
-    {
+    static String getMemoryString() {
         Runtime runtime = Runtime.getRuntime();
         long total = runtime.totalMemory();
         long used = total - runtime.freeMemory();
@@ -259,8 +255,7 @@ public class AboutDialog extends AbstractDialog
         return sb.toString();
     }
 
-    static String formatMemory(long value)
-    {
+    static String formatMemory(long value) {
         if (value < 1000)
             return String.valueOf(value) + " bytes";
         if (value < 1000 * 1024) {
@@ -275,13 +270,11 @@ public class AboutDialog extends AbstractDialog
         return String.valueOf(g) + "G";
     }
 
-    String getCopyright()
-    {
+    String getCopyright() {
         return "Copyright (C) 1998-2010 Peter Graves (peter@armedbear.org)";
     }
 
-    public static void about()
-    {
+    public static void about() {
         AboutDialog d = new AboutDialog();
         Editor.currentEditor().centerDialog(d);
         d.setVisible(true);

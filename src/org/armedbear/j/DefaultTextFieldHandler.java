@@ -20,7 +20,6 @@
 
 package org.armedbear.j;
 
-import org.armedbear.j.util.Utilities;
 import java.awt.Container;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -31,9 +30,9 @@ import java.util.List;
 import javax.swing.JDialog;
 import javax.swing.JMenuItem;
 import javax.swing.JPopupMenu;
+import org.armedbear.j.util.Utilities;
 
-public class DefaultTextFieldHandler implements Constants, TextFieldHandler
-{
+public class DefaultTextFieldHandler implements Constants, TextFieldHandler {
     protected final Editor editor;
     protected final HistoryTextField textField;
 
@@ -44,24 +43,19 @@ public class DefaultTextFieldHandler implements Constants, TextFieldHandler
     private String savedText;
     private String head;
 
-    public DefaultTextFieldHandler(Editor editor, HistoryTextField textField)
-    {
+    public DefaultTextFieldHandler(Editor editor, HistoryTextField textField) {
         this.editor = editor;
         Debug.assertTrue(editor != null);
         this.textField = textField;
     }
 
-    public DefaultTextFieldHandler(HistoryTextField textField)
-    {
+    public DefaultTextFieldHandler(HistoryTextField textField) {
         this(Editor.currentEditor(), textField);
     }
 
-    public void enter()
-    {
-    }
+    public void enter() {}
 
-    public void escape()
-    {
+    public void escape() {
         Container c = textField.getParent();
         while (true) {
             if (c instanceof JDialog)
@@ -78,13 +72,11 @@ public class DefaultTextFieldHandler implements Constants, TextFieldHandler
         editor.updateLocation();
     }
 
-    public boolean wantTab()
-    {
+    public boolean wantTab() {
         return false;
     }
 
-    public void tab()
-    {
+    public void tab() {
         if (textField != null) {
             String prefix = textField.getText();
             String s = getCompletion(prefix);
@@ -95,8 +87,7 @@ public class DefaultTextFieldHandler implements Constants, TextFieldHandler
         }
     }
 
-    public void shiftTab()
-    {
+    public void shiftTab() {
         if (textField != null) {
             String s = getPreviousCompletion();
             if (s != null) {
@@ -109,13 +100,11 @@ public class DefaultTextFieldHandler implements Constants, TextFieldHandler
         }
     }
 
-    public void resetCompletions()
-    {
+    public void resetCompletions() {
         completions = null;
     }
 
-    protected String getCompletion(String prefix)
-    {
+    protected String getCompletion(String prefix) {
         if (completions == null) {
             completions = getCompletions(prefix);
             index = 0;
@@ -127,8 +116,7 @@ public class DefaultTextFieldHandler implements Constants, TextFieldHandler
         return completions.get(index++);
     }
 
-    private String getPreviousCompletion()
-    {
+    private String getPreviousCompletion() {
         if (completions != null && completions.size() > 1) {
             index -= 2;
             if (index < 0)
@@ -138,25 +126,22 @@ public class DefaultTextFieldHandler implements Constants, TextFieldHandler
         return null;
     }
 
-    public List<String> getCompletions(String prefix)
-    {
+    public List<String> getCompletions(String prefix) {
         return null;
     }
 
-    private void killLine()
-    {
+    private void killLine() {
         textField.setText(textField.getText().substring(0, textField.getCaretPosition()));
     }
 
-    private void expand()
-    {
+    private void expand() {
         if (expansion == null) {
             // New expansion.
             savedText = textField.getText();
             int index = savedText.lastIndexOf(' ');
             if (index >= 0) {
-                head = savedText.substring(0, index+1);
-                expansion = textField.getHandler().getExpansion(savedText.substring(index+1));
+                head = savedText.substring(0, index + 1);
+                expansion = textField.getHandler().getExpansion(savedText.substring(index + 1));
             } else {
                 Debug.assertTrue(head == null);
                 expansion = textField.getHandler().getExpansion(savedText);
@@ -171,26 +156,22 @@ public class DefaultTextFieldHandler implements Constants, TextFieldHandler
         }
     }
 
-    public void resetExpansion()
-    {
+    public void resetExpansion() {
         expansion = null;
         savedText = null;
         head = null;
     }
 
-    public Expansion getExpansion(String prefix)
-    {
+    public Expansion getExpansion(String prefix) {
         return new Expansion(editor.getBuffer(), prefix, prefix);
     }
 
-    protected void reset()
-    {
+    protected void reset() {
         textField.resetHistory();
         textField.getHandler().resetCompletions();
     }
 
-    public void keyPressed(KeyEvent e)
-    {
+    public void keyPressed(KeyEvent e) {
         TextFieldHandler handler = textField.getHandler();
         if (handler == null)
             return;
@@ -203,9 +184,12 @@ public class DefaultTextFieldHandler implements Constants, TextFieldHandler
             case KeyEvent.VK_ENTER:
                 resetExpansion();
                 // Make sure user can see what he typed.
-                textField.paintImmediately(0, 0,
-                                           textField.getWidth(),
-                                           textField.getHeight());
+                textField.paintImmediately(
+                    0,
+                    0,
+                    textField.getWidth(),
+                    textField.getHeight()
+                );
                 e.consume();
                 handler.enter();
                 return;
@@ -291,8 +275,7 @@ public class DefaultTextFieldHandler implements Constants, TextFieldHandler
         resetExpansion();
     }
 
-    public void keyReleased(KeyEvent e)
-    {
+    public void keyReleased(KeyEvent e) {
         TextListener textListener = textField.getTextListener();
         if (textListener != null)
             textListener.textValueChanged(new TextEvent(this, TextEvent.TEXT_VALUE_CHANGED));
@@ -300,8 +283,7 @@ public class DefaultTextFieldHandler implements Constants, TextFieldHandler
 
     public void keyTyped(KeyEvent e) {}
 
-    private void showPopup()
-    {
+    private void showPopup() {
         if (textField == null)
             return;
         History history = textField.getHistory();
@@ -328,8 +310,7 @@ public class DefaultTextFieldHandler implements Constants, TextFieldHandler
     // An anonymous class rather than a lambda: textField is a blank final the
     // constructor assigns, and a lambda in a field initialiser may not read it.
     private ActionListener popupActionListener = new ActionListener() {
-        public void actionPerformed(ActionEvent e)
-        {
+        public void actionPerformed(ActionEvent e) {
             textField.setText(e.getActionCommand());
             enter();
         }

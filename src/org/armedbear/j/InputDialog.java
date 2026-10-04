@@ -20,7 +20,6 @@
 
 package org.armedbear.j;
 
-import org.armedbear.j.util.Utilities;
 import java.awt.BorderLayout;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
@@ -29,9 +28,9 @@ import javax.swing.BoxLayout;
 import javax.swing.JDialog;
 import javax.swing.JPanel;
 import javax.swing.border.EmptyBorder;
+import org.armedbear.j.util.Utilities;
 
-public class InputDialog extends JDialog implements KeyListener
-{
+public class InputDialog extends JDialog implements KeyListener {
     protected final Editor editor;
 
     protected HistoryTextField textField;
@@ -42,9 +41,12 @@ public class InputDialog extends JDialog implements KeyListener
     private List<String> completions;
     private int index;
 
-    public InputDialog(Editor editor, String prompt, String title,
-        String defaultValue)
-    {
+    public InputDialog(
+        Editor editor,
+        String prompt,
+        String title,
+        String defaultValue
+    ) {
         super(editor.getFrame(), title, true);
         this.editor = editor;
         this.defaultValue = defaultValue;
@@ -60,24 +62,27 @@ public class InputDialog extends JDialog implements KeyListener
         textField.setFocusTraversalKeysEnabled(false);
     }
 
-    public static String showInputDialog(Editor editor, String prompt,
-        String title, String defaultValue)
-    {
+    public static String showInputDialog(
+        Editor editor,
+        String prompt,
+        String title,
+        String defaultValue
+    ) {
         InputDialog d = new InputDialog(editor, prompt, title, defaultValue);
         editor.centerDialog(d);
         d.setVisible(true);
         return d.input;
     }
 
-    public static String showInputDialog(Editor editor, String prompt,
-        String title)
-    {
+    public static String showInputDialog(
+        Editor editor,
+        String prompt,
+        String title
+    ) {
         return showInputDialog(editor, prompt, title, null);
     }
 
-    
-    public void setVisible(boolean visible)
-    {
+    public void setVisible(boolean visible) {
         if (visible) {
             if (defaultValue != null && defaultValue.length() > 0) {
                 textField.setText(defaultValue);
@@ -88,24 +93,20 @@ public class InputDialog extends JDialog implements KeyListener
         super.setVisible(visible);
     }
 
-    public final void setDefaultValue(String s)
-    {
+    public final void setDefaultValue(String s) {
         defaultValue = s;
     }
 
-    public final String getInput()
-    {
+    public final String getInput() {
         return input;
     }
 
-    public void setHistory(History history)
-    {
+    public void setHistory(History history) {
         this.history = history;
         textField.setHistory(history);
     }
 
-    protected void enter()
-    {
+    protected void enter() {
         input = textField.getText();
         if (history != null) {
             history.append(input);
@@ -114,14 +115,12 @@ public class InputDialog extends JDialog implements KeyListener
         dispose();
     }
 
-    protected void escape()
-    {
+    protected void escape() {
         input = null;
         dispose();
     }
 
-    public void keyPressed(KeyEvent e)
-    {
+    public void keyPressed(KeyEvent e) {
         final int keyCode = e.getKeyCode();
         final int modifiers = Utilities.keyModifiers(e);
         switch (keyCode) {
@@ -160,14 +159,12 @@ public class InputDialog extends JDialog implements KeyListener
 
     public void keyTyped(KeyEvent e) {}
 
-    public void dispose()
-    {
+    public void dispose() {
         super.dispose();
         editor.restoreFocus();
     }
 
-    private String guess(String prefix)
-    {
+    private String guess(String prefix) {
         if (completions == null) {
             completions = getCompletions(prefix);
             if (completions == null)
@@ -180,8 +177,7 @@ public class InputDialog extends JDialog implements KeyListener
         return null;
     }
 
-    private String previousGuess()
-    {
+    private String previousGuess() {
         if (completions != null) {
             if (completions.size() > 1) {
                 index -= 2;
@@ -195,8 +191,7 @@ public class InputDialog extends JDialog implements KeyListener
 
     // Derived classes can override this method to provide completion
     // functionality.
-    protected List<String> getCompletions(String prefix)
-    {
+    protected List<String> getCompletions(String prefix) {
         return null;
     }
 }

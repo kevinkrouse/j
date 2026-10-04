@@ -20,17 +20,15 @@
 
 package org.armedbear.j;
 
-import org.armedbear.j.util.Utilities;
-import java.lang.StringBuilder;
-
 import java.awt.event.KeyEvent;
+import java.lang.StringBuilder;
 import javax.swing.JLabel;
 import javax.swing.JTextField;
 import javax.swing.SwingUtilities;
+import org.armedbear.j.util.Utilities;
 
-public final class DescribeKeyDialog extends AbstractDialog
-{
-    private static final String title  = "Describe Key";
+public final class DescribeKeyDialog extends AbstractDialog {
+    private static final String title = "Describe Key";
     private static final String prompt = "Describe key:";
 
     private final Editor editor;
@@ -46,8 +44,7 @@ public final class DescribeKeyDialog extends AbstractDialog
     private EventSequence currentEventSequence;
     private boolean local;
 
-    private DescribeKeyDialog(Editor editor)
-    {
+    private DescribeKeyDialog(Editor editor) {
         super(editor, title, true); // Modal.
         this.editor = editor;
         buffer = editor.getBuffer();
@@ -60,12 +57,16 @@ public final class DescribeKeyDialog extends AbstractDialog
         textField.requestFocus();
     }
 
-    public void keyPressed(KeyEvent e)
-    {
+    public void keyPressed(KeyEvent e) {
         final int keycode = e.getKeyCode();
         // Ignore modifier keystrokes.
-        if (keycode == KeyEvent.VK_SHIFT || keycode == KeyEvent.VK_CONTROL ||
-            keycode == KeyEvent.VK_ALT || keycode == KeyEvent.VK_META)
+        if (
+            keycode == KeyEvent.VK_SHIFT
+                || keycode == KeyEvent.VK_CONTROL
+                ||
+                keycode == KeyEvent.VK_ALT
+                || keycode == KeyEvent.VK_META
+        )
             return;
         seenKeyPressed = true;
         final int modifiers = Utilities.keyModifiers(e);
@@ -83,8 +84,7 @@ public final class DescribeKeyDialog extends AbstractDialog
             report(command);
     }
 
-    public void keyTyped(KeyEvent e)
-    {
+    public void keyTyped(KeyEvent e) {
         if (!eventHandled) {
             final char c = e.getKeyChar();
             final int modifiers = Utilities.keyModifiers(e);
@@ -108,11 +108,15 @@ public final class DescribeKeyDialog extends AbstractDialog
         }
     }
 
-    public void keyReleased(KeyEvent e)
-    {
+    public void keyReleased(KeyEvent e) {
         final int keycode = e.getKeyCode();
-        if (keycode == KeyEvent.VK_SHIFT || keycode == KeyEvent.VK_CONTROL ||
-            keycode == KeyEvent.VK_ALT || keycode == KeyEvent.VK_META)
+        if (
+            keycode == KeyEvent.VK_SHIFT
+                || keycode == KeyEvent.VK_CONTROL
+                ||
+                keycode == KeyEvent.VK_ALT
+                || keycode == KeyEvent.VK_META
+        )
             return;
         if (seenKeyPressed && !eventHandled && !disposed) {
             dispose();
@@ -122,15 +126,16 @@ public final class DescribeKeyDialog extends AbstractDialog
             Runnable r = () -> {
                 MessageDialog.showMessageDialog(
                     editor,
-                    keyStrokeText + " is not mapped", title);
+                    keyStrokeText + " is not mapped",
+                    title
+                );
             };
             SwingUtilities.invokeLater(r);
         }
         eventHandled = false; // Start over.
     }
 
-    private Object describeKey(JEvent event)
-    {
+    private Object describeKey(JEvent event) {
         if (disposed)
             return null;
         char keyChar = event.getKeyChar();
@@ -154,8 +159,12 @@ public final class DescribeKeyDialog extends AbstractDialog
             if (mapping != null)
                 local = true;
             else
-                mapping = KeyMap.getGlobalKeyMap().lookup(keyChar, keyCode,
-                                                          modifiers);
+                mapping = KeyMap.getGlobalKeyMap()
+                    .lookup(
+                        keyChar,
+                        keyCode,
+                        modifiers
+                    );
         }
         if (mapping == null)
             return null;
@@ -171,8 +180,7 @@ public final class DescribeKeyDialog extends AbstractDialog
         return command;
     }
 
-    private void report(Object command)
-    {
+    private void report(Object command) {
         final StringBuilder sb = new StringBuilder();
         sb.append(keyStrokeText);
         sb.append(" is mapped to ");
@@ -187,20 +195,21 @@ public final class DescribeKeyDialog extends AbstractDialog
         dispose();
         // Use invokeLater() so message dialog will get focus.
         Runnable r = () -> {
-            MessageDialog.showMessageDialog(editor, sb.toString(),
-                                            "Describe Key");
+            MessageDialog.showMessageDialog(
+                editor,
+                sb.toString(),
+                "Describe Key"
+            );
         };
         SwingUtilities.invokeLater(r);
     }
 
-    public void dispose()
-    {
+    public void dispose() {
         disposed = true;
         super.dispose();
     }
 
-    public static void describeKey()
-    {
+    public static void describeKey() {
         DescribeKeyDialog d = new DescribeKeyDialog(Editor.currentEditor());
         d.centerDialog();
         d.setVisible(true);

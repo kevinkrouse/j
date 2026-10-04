@@ -20,30 +20,27 @@
 
 package org.armedbear.j;
 
+import java.awt.event.KeyEvent;
 import java.lang.StringBuilder;
 import org.armedbear.j.util.Utilities;
 
-import java.awt.event.KeyEvent;
-
 // A keyboard or mouse event, from j's point of view.
-public final class JEvent
-{
-    private  static final int ID_FIRST    = 0;
+public final class JEvent {
+    private static final int ID_FIRST = 0;
 
-    public static final int KEY_PRESSED   = 0;
-    public static final int KEY_TYPED     = 1;
-    public static final int KEY_RELEASED  = 2;
+    public static final int KEY_PRESSED = 0;
+    public static final int KEY_TYPED = 1;
+    public static final int KEY_RELEASED = 2;
     public static final int MOUSE_PRESSED = 3;
 
-    private  static final int ID_LAST     = 3;
+    private static final int ID_LAST = 3;
 
     private final int id;
     private final int keyCode;
     private final char keyChar;
     private final int modifiers;
 
-    public JEvent(int id, int keyCode, char keyChar, int modifiers)
-    {
+    public JEvent(int id, int keyCode, char keyChar, int modifiers) {
         if (id < ID_FIRST || id > ID_LAST) {
             Log.debug("bad JEvent id " + id);
             Debug.assertTrue(false);
@@ -54,14 +51,16 @@ public final class JEvent
         this.modifiers = modifiers;
     }
 
-    JEvent(KeyEvent e)
-    {
-        this(translateID(e), e.getKeyCode(), e.getKeyChar(),
-             Utilities.keyModifiers(e));
+    JEvent(KeyEvent e) {
+        this(
+            translateID(e),
+            e.getKeyCode(),
+            e.getKeyChar(),
+            Utilities.keyModifiers(e)
+        );
     }
 
-    private static int translateID(KeyEvent e)
-    {
+    private static int translateID(KeyEvent e) {
         int id = -1;
         switch (e.getID()) {
             case KeyEvent.KEY_PRESSED:
@@ -80,33 +79,27 @@ public final class JEvent
         return id;
     }
 
-    public int getID()
-    {
+    public int getID() {
         return id;
     }
 
-    public int getKeyCode()
-    {
+    public int getKeyCode() {
         return keyCode;
     }
 
-    public char getKeyChar()
-    {
+    public char getKeyChar() {
         return keyChar;
     }
 
-    public int getModifiers()
-    {
+    public int getModifiers() {
         return modifiers;
     }
 
-    public String getKeyText()
-    {
+    public String getKeyText() {
         return Utilities.getKeyText(keyChar, keyCode, modifiers);
     }
 
-    public String toString()
-    {
+    public String toString() {
         StringBuilder sb = new StringBuilder();
         switch (id) {
             case KEY_PRESSED:
@@ -124,7 +117,7 @@ public final class JEvent
         sb.append(" 0x");
         sb.append(Integer.toHexString(modifiers));
         sb.append(" 0x");
-        sb.append(Integer.toHexString((int)keyChar));
+        sb.append(Integer.toHexString((int) keyChar));
         sb.append(' ');
         sb.append(String.valueOf(keyChar));
         sb.append(" \"");

@@ -24,19 +24,16 @@ import java.io.IOException;
 import java.io.Writer;
 import java.util.List;
 
-public abstract class Tagger implements Constants, Runnable
-{
+public abstract class Tagger implements Constants, Runnable {
     public static final char separatorChar = 0;
 
     protected SystemBuffer buffer;
 
-    protected Tagger(SystemBuffer buffer)
-    {
+    protected Tagger(SystemBuffer buffer) {
         this.buffer = buffer;
     }
 
-    public void writeTags(Writer writer)
-    {
+    public void writeTags(Writer writer) {
         if (buffer == null)
             return;
         List<LocalTag> tags = buffer.getTags();
@@ -64,7 +61,7 @@ public abstract class Tagger implements Constants, Runnable
                             writer.write(separatorChar);
                             writer.write(localTag.getLine().getText());
                             final String canonicalSignature =
-                                    localTag.getCanonicalSignature();
+                                localTag.getCanonicalSignature();
                             if (canonicalSignature != null) {
                                 writer.write(separatorChar);
                                 writer.write(canonicalSignature);

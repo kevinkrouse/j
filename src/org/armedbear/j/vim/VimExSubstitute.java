@@ -14,9 +14,7 @@ package org.armedbear.j.vim;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
-
 import javax.swing.undo.CompoundEdit;
-
 import org.armedbear.j.Editor;
 import org.armedbear.j.Line;
 import org.armedbear.j.Position;
@@ -33,11 +31,8 @@ import org.armedbear.j.Position;
  * {@link Matcher#appendReplacement} wants {@code $1} and treats {@code $} and
  * {@code \} as its own.
  */
-final class VimExSubstitute
-{
-    private VimExSubstitute()
-    {
-    }
+final class VimExSubstitute {
+    private VimExSubstitute() {}
 
     /** The pattern and replacement of the last {@code :s}, for a bare {@code :s}. */
     private static String lastPattern;
@@ -47,21 +42,18 @@ final class VimExSubstitute
      * The replacement of the last {@code :s}, which {@code ~} in a pattern
      * matches, or null if there has been none.
      */
-    static String lastReplacement()
-    {
+    static String lastReplacement() {
         return lastReplacement;
     }
 
     /** Clears what the last :s left, for a test that needs there to be none. */
-    static void forgetForTest()
-    {
+    static void forgetForTest() {
         lastPattern = null;
         lastReplacement = null;
     }
 
     static void run(Editor editor, VimState state, VimEx.Command command)
-        throws VimEx.BadCommand
-    {
+        throws VimEx.BadCommand {
         final String args = command.args;
         if (args.isEmpty()) {
             // A bare :s repeats the last one over the current line.
@@ -69,13 +61,23 @@ final class VimExSubstitute
                 throw new VimEx.BadCommand("E33: No previous substitute");
             // The pattern and replacement come back, the flags do not: after
             // :s/a/b/g a bare :s changes one match on the line, not all.
-            substitute(editor, state, command.range, lastPattern,
-                       lastReplacement, "");
+            substitute(
+                editor,
+                state,
+                command.range,
+                lastPattern,
+                lastReplacement,
+                ""
+            );
             return;
         }
         final char separator = args.charAt(0);
-        if (Character.isLetterOrDigit(separator) || separator == '\\'
-            || separator == '"' || separator == '|')
+        if (
+            Character.isLetterOrDigit(separator)
+                || separator == '\\'
+                || separator == '"'
+                || separator == '|'
+        )
             throw new VimEx.BadCommand("E146: Invalid separator");
 
         final String[] fields = split(args, separator);
@@ -110,9 +112,8 @@ final class VimExSubstitute
      * trailing ones may simply be missing: {@code :s/a/b} and {@code :s/a}
      * are both legal.
      */
-    private static String[] split(String args, char separator)
-    {
-        final String[] fields = {"", "", ""};
+    private static String[] split(String args, char separator) {
+        final String[] fields = { "", "", "" };
         int field = 0;
         final StringBuilder sb = new StringBuilder();
         for (int i = 1; i < args.length(); i++) {
@@ -139,20 +140,31 @@ final class VimExSubstitute
         return fields;
     }
 
-    private static void substitute(Editor editor, VimState state,
-                                   VimEx.Range given, String pattern,
-                                   String replacement, String flags)
-        throws VimEx.BadCommand
-    {
+    private static void substitute(
+        Editor editor,
+        VimState state,
+        VimEx.Range given,
+        String pattern,
+        String replacement,
+        String flags
+    )
+        throws VimEx.BadCommand {
         checkFlags(flags);
         // Line 0 is the first line, as for :d; past the end is an invalid
         // range, not a pattern that was not found.
         final int lines = editor.getBuffer().getLineCount();
-        if (given.first < 0 || given.last < 0 || given.first > lines
-            || given.last > lines)
+        if (
+            given.first < 0
+                || given.last < 0
+                || given.first > lines
+                || given.last > lines
+        )
             throw new VimEx.BadCommand("E16: Invalid range");
         final VimEx.Range range = new VimEx.Range(
-            Math.max(1, given.first), Math.max(1, given.last), given.given);
+            Math.max(1, given.first),
+            Math.max(1, given.last),
+            given.given
+        );
         final boolean all = flags.indexOf('g') >= 0;
         // e: no error when nothing matches.
         final boolean quiet = flags.indexOf('e') >= 0;
@@ -177,14 +189,16 @@ final class VimExSubstitute
             // and the lines it makes are not part of the range, so the next
             // line to look at is past them.
             Line line = VimEx.lineAt(editor, range.first);
-            for (int n = range.first; n <= range.last && line != null;
-                 n++) {
+            for (int n = range.first;
+                n <= range.last && line != null;
+                n++) {
                 final Line here = line;
                 line = here.next();
                 final String was = here.getText() == null ? "" : here.getText();
                 final Matcher matcher = regex.matcher(was);
-                final String now = all ? replaceAll(matcher, was, rewritten)
-                                       : replaceFirst(matcher, rewritten);
+                final String now = all
+                    ? replaceAll(matcher, was, rewritten)
+                    : replaceFirst(matcher, rewritten);
                 if (now == null)
                     continue;
                 // A match that changes nothing still counts as a match: vim
@@ -208,28 +222,39 @@ final class VimExSubstitute
                 lastRow = n + changed;
             }
             if (!matched && !quiet)
-                throw new VimEx.BadCommand("E486: Pattern not found: "
-                                           + pattern);
+                throw new VimEx.BadCommand(
+                    "E486: Pattern not found: "
+                        + pattern
+                );
             // j numbers lines lazily, and the lines a split made have none
             // yet: anything reading lineNumber() after this -- a following
             // :.d, for one -- would get -1. Trap 15, which is how the caret
             // came to be on "line -1" rather than on a wrong line.
             if (changed > 0)
                 editor.getBuffer().renumber();
-            final Line last = lastRow > 0 ? VimEx.lineAt(editor, lastRow)
-                                          : null;
+            final Line last = lastRow > 0
+                ? VimEx.lineAt(editor, lastRow)
+                : null;
             if (last != null) {
                 // '[ and '] span the range; '. is the first line changed.
                 final Line top = VimEx.lineAt(editor, range.first);
                 final Line bottom = VimEx.lineAt(editor, range.last + changed);
-                state.getMarks().noteLines(editor.getBuffer(),
-                                           top != null ? top : last,
-                                           bottom != null ? bottom : last,
-                                           VimEx.lineAt(editor, firstRow));
+                state.getMarks()
+                    .noteLines(
+                        editor.getBuffer(),
+                        top != null ? top : last,
+                        bottom != null ? bottom : last,
+                        VimEx.lineAt(editor, firstRow)
+                    );
                 final Line back = VimEx.lineAt(editor, fromLine);
                 if (back != null)
-                    state.jumped(editor, new Position(
-                        back, Math.min(fromOffset, back.length())));
+                    state.jumped(
+                        editor,
+                        new Position(
+                            back,
+                            Math.min(fromOffset, back.length())
+                        )
+                    );
                 editor.setDot(last, VimMotions.firstNonBlank(last));
                 editor.moveCaretToDotCol();
             }
@@ -248,25 +273,25 @@ final class VimExSubstitute
      * the user asked to be asked about each match and would instead get the
      * lot replaced silently.
      */
-    private static void checkFlags(String flags) throws VimEx.BadCommand
-    {
+    private static void checkFlags(String flags) throws VimEx.BadCommand {
         for (int i = 0; i < flags.length(); i++) {
             final char c = flags.charAt(i);
             if (c != 'g' && c != 'i' && c != 'I' && c != 'e' && c != ' ')
                 throw new VimEx.BadCommand(
-                    "E488: Trailing characters: " + flags.substring(i));
+                    "E488: Trailing characters: " + flags.substring(i)
+                );
         }
     }
 
     private static Pattern compile(String pattern, String flags)
-        throws VimEx.BadCommand
-    {
+        throws VimEx.BadCommand {
         // The i and I flags beat the options; \c and \C in the pattern beat
         // both, which VimRegex sees to.
         // The last of i and I wins, as in vim: s/b/B/iI is case sensitive.
         final int i = flags.lastIndexOf('i');
         final int upper = flags.lastIndexOf('I');
-        final Boolean force = i < 0 && upper < 0 ? null
+        final Boolean force = i < 0 && upper < 0
+            ? null
             : Boolean.valueOf(i > upper);
         try {
             return VimRegex.compile(pattern, force);
@@ -285,17 +310,15 @@ final class VimExSubstitute
      * -- and saying "not found" about a search that never ran would be
      * false, so Java's reason goes along with vim's E383.
      */
-    static String badPattern(String pattern, PatternSyntaxException e)
-    {
+    static String badPattern(String pattern, PatternSyntaxException e) {
         final String d = e.getDescription();
         if (d != null && (d.startsWith("E") || d.contains("not supported")))
             return d;
         return "E383: Invalid search string: " + pattern
-               + (d == null ? "" : " (" + d + ")");
+            + (d == null ? "" : " (" + d + ")");
     }
 
-    private static String replaceFirst(Matcher matcher, String replacement)
-    {
+    private static String replaceFirst(Matcher matcher, String replacement) {
         if (!matcher.find())
             return null;
         final StringBuffer sb = new StringBuffer();
@@ -304,9 +327,11 @@ final class VimExSubstitute
         return sb.toString();
     }
 
-    private static String replaceAll(Matcher matcher, String text,
-                                     String replacement)
-    {
+    private static String replaceAll(
+        Matcher matcher,
+        String text,
+        String replacement
+    ) {
         final StringBuffer sb = new StringBuffer();
         boolean any = false;
         while (matcher.find()) {
@@ -335,8 +360,7 @@ final class VimExSubstitute
      * and {@code \} needing escapes of their own. A group the pattern does
      * not have is empty, as in vim, where Java would throw.
      */
-    static String toJavaReplacement(String replacement, int groups)
-    {
+    static String toJavaReplacement(String replacement, int groups) {
         final StringBuilder sb = new StringBuilder(replacement.length());
         for (int i = 0; i < replacement.length(); i++) {
             final char c = replacement.charAt(i);
@@ -389,15 +413,15 @@ final class VimExSubstitute
      * record, the modified flag and every marker into the line are handled the
      * way j expects.
      */
-    private static void replaceLine(Editor editor, Line line, String text)
-    {
-        editor.deleteRegion(new Position(line, 0),
-                            new Position(line, line.length()));
+    private static void replaceLine(Editor editor, Line line, String text) {
+        editor.deleteRegion(
+            new Position(line, 0),
+            new Position(line, line.length())
+        );
         editor.insertString(text);
     }
 
-    private static int count(String s, char c)
-    {
+    private static int count(String s, char c) {
         int n = 0;
         for (int i = 0; i < s.length(); i++)
             if (s.charAt(i) == c)
