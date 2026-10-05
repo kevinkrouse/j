@@ -1184,6 +1184,7 @@ public class Buffer extends SystemBuffer {
     }
 
     public synchronized void kill() {
+        ChangeList.forget(this);
         BufferList bufferList = Editor.getBufferList();
         if (!bufferList.contains(this)) {
             Debug.bug("buffer.kill() buffer not in list");
@@ -1973,6 +1974,7 @@ public class Buffer extends SystemBuffer {
             Sidebar.repaintBufferListInAllFrames();
         }
         invalidate();
+        ChangeList.changed(this);
     }
 
     public void unmodified() {

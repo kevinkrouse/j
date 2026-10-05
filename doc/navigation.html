@@ -119,6 +119,10 @@ list of the buffer's tags in the sidebar.
 <b>Ctrl `</b> (<a href="commands.html#findBookmark">findBookmark</a>) lists
 them all, with their lines, to pick from.
 
+<li><a href="commands.html#jumps">jumps</a> (Go &gt; Jumps...) and
+<a href="commands.html#changeList">changeList</a> (File &gt; Changes...) list
+the jump list and where the buffer was changed, the current position marked.
+
 <li><b>Ctrl Alt N</b> and <b>Ctrl Alt P</b>
 (<a href="commands.html#nextChange">nextChange</a>,
 <a href="commands.html#previousChange">previousChange</a>) move between the
@@ -153,6 +157,9 @@ Vim's own keys for getting around:
 <li><b>&lt;C-o&gt;</b>, <b>&lt;C-i&gt;</b>: back and forward through the jump list.
 <li><b>&lt;C-^&gt;</b>: the alternate buffer.
 <li><b>gx</b>: follow a link.
+<li><b>gd</b>: go to the definition of the name at the caret.
+<li><b>g;</b>, <b>g,</b>: back and forward through the buffer's changes;
+<b>:changes</b> and <b>:jumps</b> list them, and the jump list.
 <li><b>&lt;C-w&gt;s</b>, <b>&lt;C-w&gt;v</b>, <b>:sp</b> <i>file</i>, <b>:vs</b> <i>file</i>: split the window, or side by side.
 <li><b>&lt;C-w&gt;h</b>, <b>j</b>, <b>k</b>, <b>l</b>: the window left, down, up, right.
 <li><b>&lt;C-w&gt;w</b>, <b>&lt;C-w&gt;W</b>, <b>&lt;C-w&gt;p</b>: the next, previous, prior window.

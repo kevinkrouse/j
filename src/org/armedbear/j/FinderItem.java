@@ -55,6 +55,11 @@ public interface FinderItem {
         return label();
     }
 
+    /** Whether this is where the user is now, as in a jump list: listed selected, and marked. */
+    default boolean isCurrent() {
+        return false;
+    }
+
     /** Added to the match score, to rank this item ahead of others. */
     default int boost() {
         return 0;

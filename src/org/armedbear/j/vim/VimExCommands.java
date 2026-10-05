@@ -18,6 +18,7 @@ import java.util.regex.PatternSyntaxException;
 import javax.swing.undo.CompoundEdit;
 import org.armedbear.j.Editor;
 import org.armedbear.j.FileCommands;
+import org.armedbear.j.Finders;
 import org.armedbear.j.Line;
 import org.armedbear.j.Lines;
 import org.armedbear.j.Position;
@@ -153,6 +154,15 @@ public final class VimExCommands {
             // An option such as hlsearch may change what every window shows.
             for (Editor ed : Editor.getEditorList())
                 ed.repaintDisplay();
+            return true;
+        }
+        // The lists of positions, as finders.
+        if (matches(name, "ju", "jumps")) {
+            Finders.jumps(editor);
+            return true;
+        }
+        if (name.equals("changes")) {
+            Finders.changeList(editor);
             return true;
         }
         if (matches(name, "noh", "nohlsearch")) {

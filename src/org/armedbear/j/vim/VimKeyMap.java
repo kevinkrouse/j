@@ -217,6 +217,22 @@ public final class VimKeyMap {
         return null;
     }
 
+    /** The rows still in effect in some mode, in table order: not replaced by a later mapping. */
+    public List<VimCommand> getEffectiveRows() {
+        List<VimCommand> effective = new ArrayList<>();
+        for (VimCommand row : rows) {
+            List<String> keys = KeyNotation.tokenize(row.getKeys());
+            for (MappingMode mode : row.getModes()) {
+                KeyStrokeTrie.Match<VimCommand> m = tries.get(mode).match(keys);
+                if (m.value == row || m.fallback == row) {
+                    effective.add(row);
+                    break;
+                }
+            }
+        }
+        return effective;
+    }
+
     public KeyStrokeTrie<VimCommand> getTrie(MappingMode mode) {
         return tries.get(mode);
     }

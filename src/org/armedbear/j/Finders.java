@@ -39,25 +39,18 @@ public final class Finders {
         void open(Editor editor, String query);
     }
 
-    private static final Map<String, Opener> FINDERS = Map.of(
-        "findFileInProject",
-        ProjectCommands::findFileInProject,
-        "findAction",
-        ProjectCommands::findAction,
-        "findTag",
-        Finders::findTag,
-        "openFile",
-        Finders::openFile,
-        "recentFiles",
-        Finders::recentFiles,
-        "switchBuffer",
-        Finders::switchBuffer,
-        "help",
-        Finders::help,
-        "insertRegister",
-        Finders::insertRegister,
-        "findBookmark",
-        Finders::findBookmark
+    private static final Map<String, Opener> FINDERS = Map.ofEntries(
+        Map.entry("findFileInProject", ProjectCommands::findFileInProject),
+        Map.entry("findAction", ProjectCommands::findAction),
+        Map.entry("findTag", Finders::findTag),
+        Map.entry("openFile", Finders::openFile),
+        Map.entry("recentFiles", Finders::recentFiles),
+        Map.entry("switchBuffer", Finders::switchBuffer),
+        Map.entry("help", Finders::help),
+        Map.entry("insertRegister", Finders::insertRegister),
+        Map.entry("findBookmark", Finders::findBookmark),
+        Map.entry("jumps", Finders::jumps),
+        Map.entry("changeList", Finders::changeList)
     );
 
     /** Whether command opens a finder. */
@@ -211,6 +204,7 @@ public final class Finders {
                 editor.status("File not found");
                 return;
             }
+            editor.recordJump();
             Editor ed = editor;
             if (otherWindow) {
                 ed = editor.activateInOtherWindow(buf);
@@ -624,6 +618,164 @@ public final class Finders {
         public void accept(Editor editor, boolean otherWindow) {
             editor.recordJump();
             marker.gotoMarker(editor);
+        }
+    }
+
+    // ------------------------------------------------------- jumps and changes
+
+    /** Lists the jump list, oldest first, at the current position, to go to one. */
+    public static void jumps(Editor editor) {
+        jumps(editor, "");
+    }
+
+    static void jumps(Editor editor, String query) {
+        HistoryTextField textField = editor.getLocationBarTextField();
+        if (textField == null)
+            return;
+        Supplier<List<FinderItem>> items = () -> {
+            List<Marker> entries = JumpList.entries();
+            int index = JumpList.index();
+            List<FinderItem> list = new ArrayList<>();
+            // Not travelling, with the caret on the last entry's line: that one is current.
+            if (index >= entries.size() && !entries.isEmpty() && isHere(editor, entries.get(entries.size() - 1)))
+                index = entries.size() - 1;
+            for (int i = 0; i < entries.size(); i++) {
+                final int target = i;
+                list.add(new PositionItem(entries.get(i), i == index, e -> JumpList.goTo(e, target)));
+            }
+            // Not travelling: the caret is past the last entry.
+            if (index >= entries.size())
+                list.add(PositionItem.here(editor));
+            return list;
+        };
+        show(
+            editor,
+            LocationBar.PROMPT_JUMP,
+            new ListFinderTextFieldHandler(editor, textField, "jumps", items),
+            "jumps.input",
+            query
+        );
+    }
+
+    /** Lists where the buffer was changed, oldest first, at the current position, to go to one. */
+    public static void changeList(Editor editor) {
+        changeList(editor, "");
+    }
+
+    static void changeList(Editor editor, String query) {
+        HistoryTextField textField = editor.getLocationBarTextField();
+        if (textField == null)
+            return;
+        Supplier<List<FinderItem>> items = () -> {
+            List<Marker> entries = ChangeList.getEntries(editor.getBuffer());
+            int index = ChangeList.getIndex(editor.getBuffer());
+            List<FinderItem> list = new ArrayList<>();
+            // Not travelling, with the caret on the last entry's line: that one is current.
+            if (index >= entries.size() && !entries.isEmpty() && isHere(editor, entries.get(entries.size() - 1)))
+                index = entries.size() - 1;
+            for (int i = 0; i < entries.size(); i++) {
+                final int target = i;
+                list.add(new PositionItem(entries.get(i), i == index, e -> ChangeList.goTo(e, target)));
+            }
+            if (index >= entries.size())
+                list.add(PositionItem.here(editor));
+            return list;
+        };
+        show(
+            editor,
+            LocationBar.PROMPT_CHANGE,
+            new ListFinderTextFieldHandler(editor, textField, "changeList", items),
+            "changeList.input",
+            query
+        );
+    }
+
+    private static boolean isHere(Editor editor, Marker m) {
+        Position pos = m.getPosition();
+        return pos != null
+            && m.getBuffer() == editor.getBuffer()
+            && editor.getDot() != null
+            &&
+            pos.getLine() == editor.getDotLine();
+    }
+
+    /** A position in a list of them: the line's text, where it is, and whether it's the current one. */
+    private static final class PositionItem implements FinderItem {
+        private final String label;
+        private final String detail;
+        private final boolean current;
+        private final java.util.function.Consumer<Editor> go;
+
+        PositionItem(Marker marker, boolean current, java.util.function.Consumer<Editor> go) {
+            Line line = marker.getLine();
+            String text = line != null && line.getText() != null ? line.getText().strip() : "";
+            label = text.isEmpty() ? "(blank line)" : text;
+            File f = marker.getFile();
+            Buffer buf = marker.getBuffer();
+            String where = f != null ? f.getName() : buf != null ? buf.toString() : "";
+            detail = where + ":" + (marker.getLineNumber() + 1);
+            this.current = current;
+            this.go = go;
+        }
+
+        private PositionItem(String label, String detail) {
+            this.label = label;
+            this.detail = detail;
+            current = true;
+            go = null;
+        }
+
+        // Where the caret is, after the last entry, as vim's ">" there.
+        static PositionItem here(Editor editor) {
+            String where = editor.getBuffer().toString() + ":" + (editor.getDotLineNumber() + 1);
+            return new PositionItem("(here)", where);
+        }
+
+        @Override
+        public String matchText() {
+            return label + " " + detail;
+        }
+
+        @Override
+        public String label() {
+            return label;
+        }
+
+        @Override
+        public int labelOffset() {
+            return 0;
+        }
+
+        @Override
+        public String detail() {
+            return detail;
+        }
+
+        @Override
+        public int detailOffset() {
+            return label.length() + 1;
+        }
+
+        @Override
+        public String note() {
+            return current ? "current" : "";
+        }
+
+        @Override
+        public Icon icon() {
+            return Icons.getIconFromFile(current ? "right" : "leaf");
+        }
+
+        @Override
+        public boolean isCurrent() {
+            return current;
+        }
+
+        @Override
+        public void accept(Editor editor, boolean otherWindow) {
+            // Not a jump of its own: the jump list travels, as jumpBack does.
+            if (go != null)
+                go.accept(editor);
         }
     }
 }

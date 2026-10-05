@@ -40,6 +40,7 @@ The mail and news commands come from the <code>mail</code>
     <li><a href="commands.html#browseFileAtDot">browseFileAtDot</a></li>
     <li><a href="commands.html#ccGroup">ccGroup</a></li>
     <li><a href="commands.html#centerTag">centerTag</a></li>
+    <li><a href="commands.html#changeList">changeList</a></li>
     <li><a href="commands.html#changes">changes</a></li>
     <li><a href="commands.html#checkPath">checkPath</a></li>
     <li><a href="commands.html#clearRegister">clearRegister</a></li>
@@ -126,6 +127,7 @@ The mail and news commands come from the <code>mail</code>
     <li><a href="commands.html#find">find</a></li>
     <li><a href="commands.html#findAction">findAction</a></li>
     <li><a href="commands.html#findBookmark">findBookmark</a></li>
+    <li><a href="commands.html#findDefinitionAtDot">findDefinitionAtDot</a></li>
     <li><a href="commands.html#findFileInProject">findFileInProject</a></li>
     <li><a href="commands.html#findFirstOccurrence">findFirstOccurrence</a></li>
     <li><a href="commands.html#findInFiles">findInFiles</a></li>
@@ -185,6 +187,7 @@ The mail and news commands come from the <code>mail</code>
     <li><a href="commands.html#jdkHelp">jdkHelp</a></li>
     <li><a href="commands.html#jlisp">jlisp</a></li>
     <li><a href="commands.html#jumpBack">jumpBack</a></li>
+    <li><a href="commands.html#jumps">jumps</a></li>
     <li><a href="commands.html#jumpToColumn">jumpToColumn</a></li>
     <li><a href="commands.html#jumpToLine">jumpToLine</a></li>
     <li><a href="commands.html#jumpToOffset">jumpToOffset</a></li>
@@ -261,6 +264,7 @@ The mail and news commands come from the <code>mail</code>
     <li><a href="commands.html#mouseShowContextMenu">mouseShowContextMenu</a></li>
     <li><a href="commands.html#movePastCloseAndReindent">movePastCloseAndReindent</a></li>
     <li><a href="commands.html#newBuffer">newBuffer</a></li>
+    <li><a href="commands.html#newerChange">newerChange</a></li>
     <li><a href="commands.html#newFrame">newFrame</a></li>
     <li><a href="commands.html#newline">newline</a></li>
     <li><a href="commands.html#newlineAndIndent">newlineAndIndent</a></li>
@@ -271,6 +275,7 @@ The mail and news commands come from the <code>mail</code>
     <li><a href="commands.html#nextFrame">nextFrame</a></li>
     <li><a href="commands.html#nextWindow">nextWindow</a></li>
     <li><a href="commands.html#offset">offset</a></li>
+    <li><a href="commands.html#olderChange">olderChange</a></li>
     <li><a href="commands.html#openFile">openFile</a></li>
     <li><a href="commands.html#openFileInOtherFrame">openFileInOtherFrame</a></li>
     <li><a href="commands.html#openFileInOtherWindow">openFileInOtherWindow</a></li>
@@ -615,6 +620,19 @@ to the "Cc:" header of your reply, just as if you had initiated the reply with
 Centers the current function vertically in the edit window.
 <br><br>
 <b>Default key mapping:</b> None
+<br><br>
+</dl><!--<hr>-->
+
+<a name="changeList">changeList</a><dl><dd>
+<p>
+Lists where the current buffer was changed, oldest first, as vim's
+<code>:changes</code> does, with the line's text; the current position is
+marked and selected. Typing narrows the list; Enter goes to the change.
+<a href="commands.html#olderChange">olderChange</a> and
+<a href="commands.html#newerChange">newerChange</a> travel the same list.
+<p>
+<b>Default key mapping:</b> None; File &gt; Changes..., and <code>:changes</code>
+in vim edit mode
 <br><br>
 </dl><!--<hr>-->
 
@@ -1042,7 +1060,9 @@ In a Lisp shell, runs 'cl:describe' on the symbol under the caret.
 
 <a name="describeBindings">describeBindings</a><dl><dd>
 <p>
-Displays a list of the key bindings that are in effect in the current buffer.
+Displays a list of the key bindings that are in effect in the current buffer. In
+vim edit mode, it starts with the vim key map's bindings, as your vimrc leaves
+them, since vim's map is asked first.
 <br><br>
 <b>Default key mapping:</b> None
 <br><br>
@@ -1772,6 +1792,18 @@ and goes to the one you pick. Typing narrows the list.
 <p>
 <b>See also:</b> <a href="commands.html#dropBookmark">dropBookmark</a>,
 <a href="commands.html#gotoBookmark">gotoBookmark</a>
+<br><br>
+</dl><!--<hr>-->
+
+<a name="findDefinitionAtDot">findDefinitionAtDot</a><dl><dd>
+<p>
+Goes to the definition of the name at the caret, read exactly as the mode
+reads names, from the buffer's tags and tag files.
+<p>
+<b>Default key mapping:</b> <code>gd</code> in vim edit mode
+<p>
+<b>See also:</b> <a href="commands.html#findTagAtDot">findTagAtDot</a>,
+<a href="commands.html#findTag">findTag</a>
 <br><br>
 </dl><!--<hr>-->
 
@@ -2729,6 +2761,19 @@ is, so <code>jumpForward</code> comes back to it.
 <br><br>
 </dl><!--<hr>-->
 
+<a name="jumps">jumps</a><dl><dd>
+<p>
+Lists the jump list, oldest first, as vim's <code>:jumps</code> does, with each
+position's line; the current position is marked and selected. Typing narrows
+the list; Enter goes to the position, as
+<a href="commands.html#jumpBack">jumpBack</a> and
+<a href="commands.html#jumpForward">jumpForward</a> would.
+<p>
+<b>Default key mapping:</b> None; Go &gt; Jumps..., and <code>:jumps</code> in vim
+edit mode
+<br><br>
+</dl><!--<hr>-->
+
 <a name="jumpToColumn">jumpToColumn</a><dl><dd>
 <p>
 Prompts for a column number and moves the caret to the specified column.
@@ -3642,6 +3687,15 @@ Creates and activates an empty buffer with no associated file.
 <br><br>
 </dl><!--<hr>-->
 
+<a name="newerChange">newerChange</a><dl><dd>
+<p>
+Goes to the next newer position in the buffer's
+<a href="commands.html#changeList">change list</a>.
+<p>
+<b>Default key mapping:</b> <code>g,</code> in vim edit mode
+<br><br>
+</dl><!--<hr>-->
+
 <a name="newFrame">newFrame</a><dl><dd>
 <p>
 Creates a new frame (top-level editor window) displaying the current buffer.
@@ -3747,6 +3801,16 @@ characters from the start of the buffer).
 <b>Default key mapping:</b> None
 <p>
 <b>See also:</b> <a href="#jumpToOffset">jumpToOffset</a>
+<br><br>
+</dl><!--<hr>-->
+
+<a name="olderChange">olderChange</a><dl><dd>
+<p>
+Goes to the next older position in the buffer's
+<a href="commands.html#changeList">change list</a>; from the newest change,
+to where it was made.
+<p>
+<b>Default key mapping:</b> <code>g;</code> in vim edit mode
 <br><br>
 </dl><!--<hr>-->
 

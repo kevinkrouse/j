@@ -96,6 +96,8 @@ public final class ProjectCommands {
             return;
         }
         final Frame frame = editor.getFrame();
+        // A jump, so jumpBack returns here.
+        editor.recordJump();
         Editor target = editor;
         if (otherWindow) {
             target = editor.activateInOtherWindow(buf);

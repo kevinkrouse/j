@@ -218,6 +218,13 @@ public abstract class FinderTextFieldHandler extends DefaultTextFieldHandler {
 
     private void show(String text, List<FinderItem.Row> rows) {
         int index = 0;
+        // The current item, if there is one, starts selected.
+        for (int i = 0; i < rows.size(); i++) {
+            if (rows.get(i).item().isCurrent()) {
+                index = i;
+                break;
+            }
+        }
         FinderItem.Row selected = popup.getSelected();
         if (selected != null && text.equals(shownText)) {
             for (int i = 0; i < rows.size(); i++) {

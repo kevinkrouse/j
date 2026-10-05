@@ -202,6 +202,8 @@ final class VimExPrompt extends FinderTextFieldHandler {
         { "delmarks", "delm", "Forget marks." },
         { "global", "g", "Run a command on every line matching a pattern." },
         { "join", "j", "Join lines." },
+        { "jumps", "ju", "List the jump list, to go to a position." },
+        { "changes", "changes", "List where the buffer was changed, to go to a change." },
         { "move", "m", "Move lines below an address." },
         { "nohlsearch", "noh", "Stop highlighting the last search's matches." },
         { "normal", "norm", "Run normal mode keys on each line." },

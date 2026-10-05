@@ -254,6 +254,7 @@ public final class Marker {
                 list.add(m);
         }
         list.addAll(jumps);
+        list.addAll(ChangeList.getAllEntries());
         return list;
     }
 }

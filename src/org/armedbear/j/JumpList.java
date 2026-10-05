@@ -93,6 +93,29 @@ public final class JumpList {
         return Collections.unmodifiableList(new ArrayList<Marker>(entries));
     }
 
+    /** The entries, oldest first. */
+    public static synchronized List<Marker> entries() {
+        return Collections.unmodifiableList(new ArrayList<>(entries));
+    }
+
+    /** Where travelling has got to: an index, or the size when not travelling. */
+    public static synchronized int index() {
+        return index;
+    }
+
+    /** Goes to entry i, as travelling there with jumpBack and jumpForward would. */
+    public static void goTo(Editor editor, int i) {
+        final Position dot = editor.getDot();
+        if (dot == null)
+            return;
+        Marker to;
+        synchronized (JumpList.class) {
+            to = travel(editor.getBuffer(), dot, i - index);
+        }
+        if (to != null)
+            to.gotoMarker(editor);
+    }
+
     /** Forgets every entry. */
     public static synchronized void clear() {
         entries.clear();

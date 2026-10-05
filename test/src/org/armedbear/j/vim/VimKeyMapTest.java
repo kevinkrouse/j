@@ -258,4 +258,18 @@ public class VimKeyMapTest {
     public void builtInTableNamesWindowCommands() {
         assertEquals("<C-w>s", VimKeyMap.getDefault().keysFor("splitWindow"));
     }
+
+    @Test
+    public void effectiveRowsLeaveOutReplacedOnes() throws Exception {
+        final VimKeyMap map = new VimKeyMap();
+        map.load(new StringReader("n  gd  command  findDefinitionAtDot  -\nn  gx  command  followLink  -\n"));
+        map.add(VimKeyMap.parse("n  gd  command  findTag  -"));
+        List<String> commands = map.getEffectiveRows().stream().map(VimCommand::getCommand).toList();
+        assertEquals(List.of("followLink", "findTag"), commands);
+    }
+
+    @Test
+    public void gdGoesToTheDefinition() {
+        assertEquals("gd", VimKeyMap.getDefault().keysFor("findDefinitionAtDot"));
+    }
 }

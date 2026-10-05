@@ -75,7 +75,8 @@ public class CommandTableTest {
     @Test
     public void finderCommandsAreDocumented() {
         for (String name : new String[] { "findFileInProject", "findAction", "dirProjectDir", "rescanProject",
-            "recentFiles", "switchBuffer", "findBookmark" })
+            "recentFiles", "switchBuffer", "findBookmark", "jumps", "changeList", "olderChange", "newerChange",
+            "findDefinitionAtDot" })
             assertTrue(CommandTable.getSummary(name) != null, name);
     }
 

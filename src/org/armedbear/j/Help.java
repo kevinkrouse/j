@@ -28,10 +28,15 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 import org.armedbear.j.extension.ScriptFunction;
 import org.armedbear.j.mode.web.WebBuffer;
 import org.armedbear.j.util.Utilities;
+import org.armedbear.j.vim.MappingMode;
+import org.armedbear.j.vim.VimCommand;
+import org.armedbear.j.vim.VimInputHandler;
+import org.armedbear.j.vim.VimKeyMap;
 
 public final class Help {
     public static final void help() {
@@ -170,6 +175,12 @@ public final class Help {
                 new BufferedWriter(new OutputStreamWriter(file.getOutputStream(), StandardCharsets.UTF_8));
             writer.write("<html>\n<head>\n<title>Keyboard Bindings</title>\n</head>\n<body>\n");
             File docDir = getDocumentationDirectory();
+            // In vim edit mode, vim's map is asked first.
+            if (editor.getInputHandler() instanceof VimInputHandler) {
+                writer.write("<b>Vim Bindings</b><br><br>");
+                addVimBindings(docDir, writer);
+                writer.write("<br>");
+            }
             writer.write("<b>");
             writer.write("Local Bindings (");
             writer.write(editor.getMode().toString());
@@ -219,6 +230,32 @@ public final class Help {
         }
         finally {
             frame.setDefaultCursor();
+        }
+    }
+
+    // Each row of the vim key map in effect: its modes, keys, and what it does.
+    private static void addVimBindings(File docDir, Writer writer) throws IOException {
+        for (VimCommand row : VimKeyMap.getShared().getEffectiveRows()) {
+            StringBuilder modes = new StringBuilder();
+            for (MappingMode mode : MappingMode.values()) {
+                if (row.getModes().contains(mode))
+                    modes.append(mode.getLetter());
+            }
+            StringBuilder sb = new StringBuilder();
+            String keys = String.format("%-5s %s", modes, row.getKeys());
+            sb.append(sanitize(keys));
+            for (int j = 32 - keys.length(); j-- > 0;)
+                sb.append("&nbsp;");
+            String command = row.getCommand();
+            if (row.getKind() == VimCommand.Kind.EDITOR_COMMAND && docDir != null) {
+                sb.append("<a href=\"").append(docDir.canonicalPath()).append(LocalFile.getSeparatorChar());
+                sb.append("commands.html#").append(command).append("\">").append(command).append("</a>");
+            } else {
+                sb.append(sanitize(command == null ? "" : command));
+                sb.append(" (").append(row.getKind().toString().toLowerCase(Locale.ROOT).replace('_', ' ')).append(')');
+            }
+            sb.append("<br>\n");
+            writer.write(sb.toString());
         }
     }
 

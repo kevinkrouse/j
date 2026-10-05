@@ -187,6 +187,7 @@ public abstract class AbstractMode implements Mode {
         menu.add(editor, "Close", 'C', "killBuffer");
         menu.add(editor, "Close All", 'L', "closeAll");
         menu.add(editor, "Close Others", 'H', "closeOthers");
+        menu.add(editor, "Changes...", 'K', "changeList");
         menu.add(editor, "Revert", 'V', "revertBuffer");
         menu.add(editor, "Set Encoding", 'G', "setEncoding");
         menu.addSeparator();
@@ -194,6 +195,7 @@ public abstract class AbstractMode implements Mode {
         menu.addSeparator();
         menu.add(editor, "Next Buffer", 'T', "nextBuffer");
         menu.add(editor, "Previous Buffer", 'R', "prevBuffer");
+        menu.add(editor, "Buffers...", 'B', "switchBuffer");
         menu.addSeparator();
         menu.add(editor, "New Frame", 'M', "newFrame");
         menu.add(editor, "Execute Command...", 'D', "executeCommand");
@@ -298,6 +300,9 @@ public abstract class AbstractMode implements Mode {
             menu.add(editor, "Go to Next Change", 'H', "nextChange");
             menu.add(editor, "Go to Previous Change", 'G', "previousChange");
         }
+        menu.addSeparator();
+        menu.add(editor, "Bookmarks...", 'B', "findBookmark");
+        menu.add(editor, "Jumps...", 'J', "jumps");
         menu.addSeparator();
         menu.add(editor, "Push Position", 'U', "pushPosition");
         menu.add(editor, "Pop Position", 'P', "popPosition");
