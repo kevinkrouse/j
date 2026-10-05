@@ -175,12 +175,6 @@ public final class Help {
                 new BufferedWriter(new OutputStreamWriter(file.getOutputStream(), StandardCharsets.UTF_8));
             writer.write("<html>\n<head>\n<title>Keyboard Bindings</title>\n</head>\n<body>\n");
             File docDir = getDocumentationDirectory();
-            // In vim edit mode, vim's map is asked first.
-            if (editor.getInputHandler() instanceof VimInputHandler) {
-                writer.write("<b>Vim Bindings</b><br><br>");
-                addVimBindings(docDir, writer);
-                writer.write("<br>");
-            }
             writer.write("<b>");
             writer.write("Local Bindings (");
             writer.write(editor.getMode().toString());
@@ -197,6 +191,11 @@ public final class Help {
             writer.write("Global Bindings");
             writer.write("</b><br><br>");
             addBindingsFromKeyMap(KeyMap.getGlobalKeyMap(), docDir, writer, "");
+            // Vim's map, in vim edit mode: asked first, but listed last.
+            if (editor.getInputHandler() instanceof VimInputHandler) {
+                writer.write("<br><b>Vim Bindings</b><br><br>");
+                addVimBindings(docDir, writer);
+            }
             writer.write("</body>\n</html>\n");
             writer.flush();
             writer.close();

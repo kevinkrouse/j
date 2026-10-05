@@ -108,4 +108,12 @@ public class GoToDefinitionTest {
         on("// see https://example.com/foo\nclass foo {}\n", JavaMode.getMode());
         assertEquals("https://example.com/foo", linkAt(0, 10).getTarget());
     }
+
+    @Test
+    public void aClassNameGoesToItsDeclaration() {
+        // The tag is "class Foo"; the code names it Foo.
+        on("public class Foo {\n    static Foo make() { return null; }\n}\n", JavaMode.getMode()).cursor(1, 12);
+        TagCommands.findDefinitionAtDot(h.editor());
+        assertEquals(0, h.editor().getDotLineNumber());
+    }
 }

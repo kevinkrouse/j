@@ -206,7 +206,7 @@ public final class TagCommands {
         List<GlobalTag> list = null;
         for (GlobalTag tag : tags) {
             String methodName = tag.getMethodName();
-            if (methodName != null && methodName.equals(name)) {
+            if (methodName != null && withoutTypeKeyword(methodName).equals(name)) {
                 if (arity >= 0) {
                     int n = Expression.getArity(tag.getCanonicalSignature());
                     if (n >= 0 && n != arity)
@@ -268,6 +268,17 @@ public final class TagCommands {
             }
         }
         return list.size() > 0 ? list : null;
+    }
+
+    private static final String[] TYPE_KEYWORDS = { "class ", "interface ", "enum ", "record " };
+
+    /** A type's tag name without its keyword: "class Foo" is Foo, as the code names it. */
+    public static String withoutTypeKeyword(String tagName) {
+        for (String keyword : TYPE_KEYWORDS) {
+            if (tagName.startsWith(keyword))
+                return tagName.substring(keyword.length()).trim();
+        }
+        return tagName;
     }
 
     public static boolean findClass(
@@ -497,6 +508,16 @@ public final class TagCommands {
         if (expr != null) {
             editor.setWaitCursor();
             boolean succeeded = findTag(editor, expr, useOtherWindow);
+            // A type that isn't tagged here, through the imports and the package.
+            String typeName = expr.getName();
+            if (
+                !succeeded
+                    && editor.getModeId() == JAVA_MODE
+                    && typeName != null
+                    && !typeName.isEmpty()
+                    && Character.isUpperCase(typeName.charAt(0))
+            )
+                succeeded = findClass(editor, typeName, useOtherWindow);
             if (!succeeded && editor.getModeId() == C_MODE) {
                 // Special case for Emacs source.
                 // If name is "Frun_hooks", look for "run-hooks".

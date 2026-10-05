@@ -25,6 +25,7 @@ import static org.armedbear.j.Constants.*;
 import java.util.Objects;
 import org.armedbear.j.Expression;
 import org.armedbear.j.LocalTag;
+import org.armedbear.j.TagCommands;
 
 /**
  * A JavaExpression represents an instance of a method call in Java source.
@@ -48,7 +49,8 @@ public final class JavaExpression extends Expression {
 
     @Override
     public boolean matches(LocalTag tag) {
-        if (!name.equals(tag.getMethodName()))
+        // A class's tag is "class Foo", and the code names it Foo.
+        if (!name.equals(TagCommands.withoutTypeKeyword(tag.getMethodName())))
             return false;
         if (type == TAG_METHOD && tag.getType() != TAG_METHOD)
             return false;
