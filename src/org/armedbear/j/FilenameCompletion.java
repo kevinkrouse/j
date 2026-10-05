@@ -51,6 +51,38 @@ public final class FilenameCompletion {
         initialize();
     }
 
+    private static String excludesSource;
+    private static boolean excludesIgnoreCase;
+    private static Pattern excludes;
+
+    /**
+     * filenameCompletionsExcludePattern, compiled to ignore case where file
+     * names do; null if unset or invalid. Every file list j makes uses it.
+     */
+    public static synchronized Pattern excludesPattern() {
+        Preferences preferences = Editor.preferences();
+        if (preferences == null)
+            return null;
+        String s = preferences.getStringProperty(Property.FILENAME_COMPLETIONS_EXCLUDE_PATTERN);
+        boolean ignoreCase = Platform.isFileSystemCaseInsensitive()
+            ||
+            preferences.getBooleanProperty(Property.FILENAME_COMPLETIONS_IGNORE_CASE);
+        if (s == null || s.isEmpty())
+            return null;
+        if (!s.equals(excludesSource) || ignoreCase != excludesIgnoreCase) {
+            excludesSource = s;
+            excludesIgnoreCase = ignoreCase;
+            try {
+                excludes = Pattern.compile(s, ignoreCase ? Pattern.CASE_INSENSITIVE : 0);
+            }
+            catch (PatternSyntaxException e) {
+                Log.error(e);
+                excludes = null;
+            }
+        }
+        return excludes;
+    }
+
     // Returns list of File objects.
     public List<File> listFiles() {
         return list;

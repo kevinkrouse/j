@@ -147,11 +147,7 @@ public final class Finders {
                 if (f == null || f.equals(current))
                     continue;
                 String path = f.isRemote() ? f.netPath() : f.canonicalPath();
-                // Back where it was left.
-                list.add(
-                    new FindFileTextFieldHandler.FileItem(path, FindFileTextFieldHandler.display(path, null), null, 0)
-                        .atLine(entry.lineNumber + 1)
-                );
+                list.add(new RecentFileItem(f, path, entry.lineNumber, entry.offs));
             }
             return list;
         };
@@ -162,6 +158,80 @@ public final class Finders {
             "recentFiles.input",
             query
         );
+    }
+
+    /** A recent file, opened where it was left. */
+    private static final class RecentFileItem implements FinderItem {
+        private final File file;
+        private final FinderItem shown;
+        private final int lineNumber;
+        private final int offset;
+
+        RecentFileItem(File file, String path, int lineNumber, int offset) {
+            this.file = file;
+            shown = new FindFileTextFieldHandler.FileItem(path, FindFileTextFieldHandler.display(path, null), null, 0);
+            this.lineNumber = lineNumber;
+            this.offset = offset;
+        }
+
+        @Override
+        public String matchText() {
+            return shown.matchText();
+        }
+
+        @Override
+        public String label() {
+            return shown.label();
+        }
+
+        @Override
+        public int labelOffset() {
+            return shown.labelOffset();
+        }
+
+        @Override
+        public String detail() {
+            return shown.detail();
+        }
+
+        @Override
+        public int detailOffset() {
+            return shown.detailOffset();
+        }
+
+        @Override
+        public Icon icon() {
+            return shown.icon();
+        }
+
+        @Override
+        public void accept(Editor editor, boolean otherWindow) {
+            Buffer buf = Editor.getBuffer(file);
+            if (buf == null) {
+                editor.status("File not found");
+                return;
+            }
+            Editor ed = editor;
+            if (otherWindow) {
+                ed = editor.activateInOtherWindow(buf);
+            } else if (buf != editor.getBuffer()) {
+                editor.makeNext(buf);
+                editor.activate(buf);
+            } else {
+                return; // Already there: stay where the caret is.
+            }
+            // A remote buffer may still be loading: it goes there when it's done.
+            if (buf instanceof RemoteBuffer remote) {
+                remote.setInitialDotPos(lineNumber, offset);
+                return;
+            }
+            Line line = buf.getLine(lineNumber);
+            if (line != null)
+                ed.moveDotTo(line, Math.min(offset, line.length()));
+            else
+                ed.moveDotTo(buf.getFirstLine(), 0);
+            ed.updateDisplay();
+        }
     }
 
     // ---------------------------------------------------------------- buffers

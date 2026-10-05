@@ -115,4 +115,16 @@ public class ProjectRootTest {
         Path d = dir("a");
         assertEquals(real(d), root(tmp.resolve("a/not/yet"), null));
     }
+
+    @Test
+    public void outsideHomeADirectoryIsNoProject() throws IOException {
+        Path home = dir("home");
+        Path d = dir("elsewhere/plain");
+        assertNull(ProjectRoot.find(file(d), null, file(home)));
+        dir("elsewhere/.git");
+        assertEquals(
+            real(tmp.resolve("elsewhere")),
+            Path.of(ProjectRoot.find(file(d), null, file(home)).canonicalPath())
+        );
+    }
 }

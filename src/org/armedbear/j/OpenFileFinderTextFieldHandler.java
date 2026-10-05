@@ -24,7 +24,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.regex.Pattern;
-import java.util.regex.PatternSyntaxException;
 import javax.swing.Icon;
 import org.armedbear.j.util.Icons;
 import org.armedbear.j.util.Keys;
@@ -49,6 +48,8 @@ public final class OpenFileFinderTextFieldHandler extends FindFileTextFieldHandl
     };
 
     private List<String> dirSnapshot;
+    // The buffer's directory's own list, when the project's leaves it out.
+    private ProjectFiles localFiles;
     private List<FinderItem> dirItems = List.of();
     private final Map<String, List<FinderItem>> listings = new HashMap<>();
     private boolean fromFallback;
@@ -71,6 +72,8 @@ public final class OpenFileFinderTextFieldHandler extends FindFileTextFieldHandl
     public void detached() {
         super.detached();
         textField.removeFocusListener(focusListener);
+        if (localFiles != null)
+            localFiles.removeListener(listener);
     }
 
     // What the text is: opened as typed, a directory to list, or a name to find.
@@ -170,10 +173,24 @@ public final class OpenFileFinderTextFieldHandler extends FindFileTextFieldHandl
             return List.of();
         if (root == null || projectFiles == null || !isUnder(dir.canonicalPath(), root.canonicalPath()))
             return listing("", false);
-        List<String> snapshot = projectFiles.files();
+        if (localFiles != null)
+            return items(localFiles.files(), "");
+        String rel = ProjectFiles.relative(Path.of(root.canonicalPath()), Path.of(dir.canonicalPath()));
+        List<FinderItem> items = items(projectFiles.files(), rel.isEmpty() ? "" : rel + "/");
+        // Nothing here in the project's list, which skips what's ignored, such as
+        // build output: list the directory on its own.
+        if (items.isEmpty() && !rel.isEmpty() && !projectFiles.isScanning()) {
+            localFiles = ProjectFiles.forRoot(dir);
+            localFiles.addListener(listener);
+            localFiles.refreshIfStale(Editor.preferences().getIntegerProperty(Property.FINDER_RESCAN_SECONDS));
+            return items(localFiles.files(), "");
+        }
+        return items;
+    }
+
+    // The files of snapshot under relPrefix, relative to dir.
+    private List<FinderItem> items(List<String> snapshot, String relPrefix) {
         if (snapshot != dirSnapshot) {
-            String rel = ProjectFiles.relative(Path.of(root.canonicalPath()), Path.of(dir.canonicalPath()));
-            String relPrefix = rel.isEmpty() ? "" : rel + "/";
             String dirPrefix = withSeparator(dir.canonicalPath());
             List<FinderItem> items = new ArrayList<>();
             for (String s : snapshot) {
@@ -216,16 +233,7 @@ public final class OpenFileFinderTextFieldHandler extends FindFileTextFieldHandl
         File d = resolve(head);
         if (d == null)
             return List.of();
-        Pattern excludes = null;
-        String s = Editor.preferences().getStringProperty(Property.FILENAME_COMPLETIONS_EXCLUDE_PATTERN);
-        if (s != null && !s.isEmpty()) {
-            try {
-                excludes = Pattern.compile(s);
-            }
-            catch (PatternSyntaxException e) {
-                Log.error(e);
-            }
-        }
+        Pattern excludes = FilenameCompletion.excludesPattern();
         File[] files = d.listFiles();
         List<FinderItem> items = new ArrayList<>();
         if (files != null) {

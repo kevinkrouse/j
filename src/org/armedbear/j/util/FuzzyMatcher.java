@@ -75,7 +75,10 @@ public final class FuzzyMatcher {
             String trimmed = s.strip();
             if (trimmed.isEmpty())
                 return new Query(new String[0]);
-            return new Query(trimmed.split("[\\s\\p{Z}]+"));
+            // Not every space is one strip() removes: drop the empty terms.
+            return new Query(
+                Arrays.stream(trimmed.split("[\\s\\p{Z}]+")).filter(t -> !t.isEmpty()).toArray(String[]::new)
+            );
         }
 
         public boolean isEmpty() {

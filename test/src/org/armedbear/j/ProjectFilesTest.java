@@ -227,4 +227,14 @@ public class ProjectFilesTest {
         Files.createSymbolicLink(tmp.resolve("link"), tmp.resolve("real"));
         assertEquals(List.of("real/a.txt"), walk());
     }
+
+    @Test
+    public void aFileInARootNamedLikeASkippedDirectoryIsAccepted() throws IOException {
+        Path root = Files.createDirectories(tmp.resolve("build"));
+        Path f = Files.writeString(root.resolve("a.txt"), "");
+        assertTrue(new ProjectFiles.Walker(root, 1000, null, null, () -> false, null).accepts(f));
+        Path nested = Files.createDirectories(root.resolve("node_modules"));
+        Path g = Files.writeString(nested.resolve("b.js"), "");
+        assertFalse(new ProjectFiles.Walker(root, 1000, null, null, () -> false, null).accepts(g));
+    }
 }

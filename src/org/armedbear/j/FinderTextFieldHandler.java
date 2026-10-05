@@ -169,30 +169,40 @@ public abstract class FinderTextFieldHandler extends DefaultTextFieldHandler {
         final String text = textField.getText();
         final Query query = Query.parse(queryText(text));
         final List<FinderItem> items = query.isEmpty() ? emptyQueryItems() : candidates();
-        final List<FinderItem> fallback = query.isEmpty() ? null : fallbackCandidates();
         final int gen = generation.incrementAndGet();
         ranker.execute(() -> {
             if (gen != generation.get())
                 return;
             List<FinderItem.Row> rows = rank(items, query);
-            boolean fellBack = false;
-            if (rows.isEmpty() && fallback != null) {
-                rows = rank(fallback, query);
-                fellBack = !rows.isEmpty();
-            }
-            final boolean fromFallback = fellBack;
-            final List<FinderItem.Row> shown = rows;
             SwingUtilities.invokeLater(() -> {
                 if (gen != generation.get() || !isActive())
                     return;
-                if (hasFocus()) {
-                    show(text, shown);
-                    listed(fromFallback);
-                } else {
-                    popup.hide();
+                // The fallback is built, on this thread, only when it's needed.
+                List<FinderItem> fallback = rows.isEmpty() && !query.isEmpty() ? fallbackCandidates() : null;
+                if (fallback == null) {
+                    showRanked(text, rows, false);
+                    return;
                 }
+                ranker.execute(() -> {
+                    if (gen != generation.get())
+                        return;
+                    List<FinderItem.Row> fallbackRows = rank(fallback, query);
+                    SwingUtilities.invokeLater(() -> {
+                        if (gen == generation.get() && isActive())
+                            showRanked(text, fallbackRows, !fallbackRows.isEmpty());
+                    });
+                });
             });
         });
+    }
+
+    private void showRanked(String text, List<FinderItem.Row> rows, boolean fromFallback) {
+        if (hasFocus()) {
+            show(text, rows);
+            listed(fromFallback);
+        } else {
+            popup.hide();
+        }
     }
 
     private static List<FinderItem.Row> rank(List<FinderItem> items, Query query) {
@@ -239,9 +249,9 @@ public abstract class FinderTextFieldHandler extends DefaultTextFieldHandler {
             generation.incrementAndGet();
             Query query = Query.parse(queryText(text));
             List<FinderItem.Row> rows = rank(query.isEmpty() ? emptyQueryItems() : candidates(), query);
-            List<FinderItem> fallback = query.isEmpty() ? null : fallbackCandidates();
+            List<FinderItem> fallback = rows.isEmpty() && !query.isEmpty() ? fallbackCandidates() : null;
             boolean fromFallback = false;
-            if (rows.isEmpty() && fallback != null) {
+            if (fallback != null) {
                 rows = rank(fallback, query);
                 fromFallback = !rows.isEmpty();
             }

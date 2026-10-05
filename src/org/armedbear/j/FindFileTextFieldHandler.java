@@ -24,6 +24,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import javax.swing.Icon;
 import javax.swing.SwingUtilities;
+import javax.swing.Timer;
 import org.armedbear.j.util.Utilities;
 
 /**
@@ -41,7 +42,8 @@ public class FindFileTextFieldHandler extends FinderTextFieldHandler {
     // one on every buffer switch.
     protected File root;
     protected ProjectFiles projectFiles;
-    private final Consumer<ProjectFiles> listener;
+    protected final Consumer<ProjectFiles> listener;
+    private final Timer changed;
 
     private boolean started;
     private List<String> snapshot;
@@ -50,7 +52,13 @@ public class FindFileTextFieldHandler extends FinderTextFieldHandler {
 
     public FindFileTextFieldHandler(Editor editor, HistoryTextField textField) {
         super(editor, textField);
-        listener = pf -> SwingUtilities.invokeLater(this::projectFilesChanged);
+        // A first scan publishes every 200 ms: rebuild at most every 300.
+        changed = new Timer(300, e -> projectFilesChanged());
+        changed.setRepeats(false);
+        listener = pf -> SwingUtilities.invokeLater(() -> {
+            if (!changed.isRunning())
+                changed.start();
+        });
     }
 
     @Override
@@ -86,11 +94,13 @@ public class FindFileTextFieldHandler extends FinderTextFieldHandler {
     @Override
     public void detached() {
         super.detached();
+        changed.stop();
         if (projectFiles != null)
             projectFiles.removeListener(listener);
     }
 
-    private void projectFilesChanged() {
+    /** Called, at most every 300 ms, when a project list it uses has changed. */
+    protected final void projectFilesChanged() {
         if (!isActive())
             return;
         prepare();
@@ -233,13 +243,6 @@ public class FindFileTextFieldHandler extends FinderTextFieldHandler {
         private final int base;
         private final Buffer buffer;
         private final int boost;
-        private int line; // To open at, one-based; 0 for where the buffer was.
-
-        /** This item, opening at line, one-based. */
-        FileItem atLine(int line) {
-            this.line = line;
-            return this;
-        }
 
         FileItem(String path, String text, Buffer buffer, int boost) {
             this(null, path, text, buffer, boost);
@@ -302,7 +305,7 @@ public class FindFileTextFieldHandler extends FinderTextFieldHandler {
 
         @Override
         public void accept(Editor editor, boolean otherWindow) {
-            open(editor, otherWindow, line);
+            open(editor, otherWindow, 0);
         }
 
         void open(Editor editor, boolean otherWindow, int line) {

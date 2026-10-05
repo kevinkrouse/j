@@ -11,6 +11,7 @@
 
 package org.armedbear.j;
 
+import java.nio.file.Path;
 import org.armedbear.j.util.Utilities;
 import org.armedbear.j.vcs.VcsBackend;
 import org.armedbear.j.vcs.VcsBackends;
@@ -18,7 +19,8 @@ import org.armedbear.j.vcs.VcsBackends;
 /**
  * The directory a buffer's project lives in. In order: the projectRoot
  * property, an absolute path; the outermost ancestor holding a .j-project
- * directory; the nearest version control root; the buffer's own directory.
+ * directory; the nearest version control root; the buffer's own directory,
+ * if it is under the home directory.
  * Ancestors are searched up to, but not including, the home directory, which
  * is never a project. Local files only.
  */
@@ -62,7 +64,10 @@ public final class ProjectRoot {
         }
         if (marked != null)
             return marked;
-        return vcs != null ? vcs : dir;
+        if (vcs != null)
+            return vcs;
+        // A directory of its own only under home: not /etc, /tmp or /.
+        return home != null && Path.of(dir.canonicalPath()).startsWith(Path.of(home.canonicalPath())) ? dir : null;
     }
 
     private static boolean isVcsRoot(File dir) {

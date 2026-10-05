@@ -22,10 +22,10 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Deque;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -66,7 +66,18 @@ public final class ProjectFiles {
     private static final int PUBLISH_EVERY_FILES = 5000;
     private static final long PUBLISH_EVERY_MILLIS = 200;
 
-    private static final Map<Path, ProjectFiles> cache = new ConcurrentHashMap<>();
+    // The projects most recently asked for; an older one's list is dropped.
+    private static final int MAX_CACHED = 8;
+    private static final Map<Path, ProjectFiles> cache = new LinkedHashMap<>(16, 0.75f, true) {
+        @Override
+        protected boolean removeEldestEntry(Map.Entry<Path, ProjectFiles> eldest) {
+            return size() > MAX_CACHED;
+        }
+    };
+
+    private static synchronized List<ProjectFiles> cached() {
+        return new ArrayList<>(cache.values());
+    }
 
     private static final ExecutorService scanner = Executors.newSingleThreadExecutor(r -> {
         Thread t = new Thread(r, "ProjectFiles");
@@ -92,7 +103,9 @@ public final class ProjectFiles {
     /** The cached list for root, which may not have been scanned yet. */
     public static ProjectFiles forRoot(File root) {
         Path p = Path.of(root.canonicalPath());
-        return cache.computeIfAbsent(p, ProjectFiles::new);
+        synchronized (ProjectFiles.class) {
+            return cache.computeIfAbsent(p, ProjectFiles::new);
+        }
     }
 
     public Path getRoot() {
@@ -139,7 +152,7 @@ public final class ProjectFiles {
     public void rescan() {
         final int gen = generation.incrementAndGet();
         final int max = maxFiles();
-        final Pattern excludes = excludePattern();
+        final Pattern excludes = FilenameCompletion.excludesPattern();
         scanning = true;
         scanner.execute(() -> {
             if (gen != generation.get())
@@ -200,30 +213,15 @@ public final class ProjectFiles {
         return (Integer) Property.FINDER_MAX_FILES.getDefaultValue();
     }
 
-    private static Pattern excludePattern() {
-        if (Editor.preferences() == null)
-            return null;
-        String s = Editor.preferences().getStringProperty(Property.FILENAME_COMPLETIONS_EXCLUDE_PATTERN);
-        if (s == null || s.isEmpty())
-            return null;
-        try {
-            return Pattern.compile(s);
-        }
-        catch (PatternSyntaxException e) {
-            Log.error(e);
-            return null;
-        }
-    }
-
     /**
      * Adds a saved local file to the cached projects it's in, unless a scan
      * would have skipped it. Queued behind any running scan.
      */
     public static void fileSaved(File file) {
-        if (file == null || !file.isLocal() || cache.isEmpty())
+        if (file == null || !file.isLocal())
             return;
         final Path p = Path.of(file.canonicalPath());
-        for (ProjectFiles pf : cache.values()) {
+        for (ProjectFiles pf : cached()) {
             if (p.startsWith(pf.root) && !p.equals(pf.root))
                 scanner.execute(() -> pf.add(p));
         }
@@ -240,7 +238,14 @@ public final class ProjectFiles {
         if (index >= 0)
             return;
         Walker walker =
-            new Walker(root, Integer.MAX_VALUE, excludePattern(), Walker.globalIgnoreFile(), () -> false, null);
+            new Walker(
+                root,
+                Integer.MAX_VALUE,
+                FilenameCompletion.excludesPattern(),
+                Walker.globalIgnoreFile(),
+                () -> false,
+                null
+            );
         if (!walker.accepts(p))
             return;
         List<String> next = new ArrayList<>(current.size() + 1);
@@ -252,7 +257,7 @@ public final class ProjectFiles {
     /** Marks every cached project stale, after files were deleted or moved. */
     public static void invalidate() {
         long now = System.currentTimeMillis();
-        for (ProjectFiles pf : cache.values())
+        for (ProjectFiles pf : cached())
             pf.invalidatedAt = now;
     }
 
@@ -352,7 +357,10 @@ public final class ProjectFiles {
                 ignores.add(Ignore.read(globalIgnore, root));
             Path dir = root;
             enter(dir);
-            for (Path name : root.relativize(file.getParent())) {
+            // A file in root itself has no directories between: an empty path
+            // would still iterate once, as "".
+            Path between = root.relativize(file.getParent());
+            for (Path name : between.toString().isEmpty() ? List.<Path>of() : between) {
                 dir = dir.resolve(name);
                 if (skipDirectory(dir))
                     return false;

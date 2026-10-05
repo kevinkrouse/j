@@ -194,4 +194,14 @@ public class FuzzyMatcherTest {
         // Generous, for slow machines; typically tens of milliseconds.
         assertTrue(ms < 10_000, "ranking 100k paths took " + ms + " ms");
     }
+
+    @Test
+    public void spacesStripLeavesAreNotEmptyTerms() {
+        // U+00A0 isn't white space to strip(), but it does separate terms.
+        assertNotNull(FuzzyMatcher.match("KeyMap.java", Query.parse("\u00A0key")));
+        assertEquals(
+            1,
+            FuzzyMatcher.rank(List.of("KeyMap.java"), Function.identity(), Query.parse("\u00A0key\u00A0"), 5).size()
+        );
+    }
 }

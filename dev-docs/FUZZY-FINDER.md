@@ -51,7 +51,7 @@ a boost (open buffers, recent files).
 
 **Project root** (`ProjectRoot`). The `projectRoot` preference (absolute);
 the outermost `.j-project` directory, which will also hold project settings;
-the nearest VCS root; the buffer's directory. Searched up to the home
+the nearest VCS root; the buffer's directory, if under home. Searched up to the home
 directory, which is never a project.
 
 **Project files** (`ProjectFiles`). A per-root, in-memory list of
