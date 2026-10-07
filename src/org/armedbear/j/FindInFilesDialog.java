@@ -30,6 +30,7 @@ import java.awt.event.FocusListener;
 import java.awt.event.TextEvent;
 import java.awt.event.TextListener;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.StringTokenizer;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
@@ -76,16 +77,33 @@ public class FindInFilesDialog extends AbstractDialog implements ActionListener,
     private CheckBox searchFilesInMemoryCheckBox;
     private CheckBox listOccurrencesCheckBox;
 
+    private JComboBox<String> scopeComboBox;
+    private final List<FindInFiles.Scope> scopes = new ArrayList<>();
+    private final File projectRoot;
+
     private Label modeLabel;
     private JComboBox<? extends ModeListEntry> modeComboBox;
 
     private ModeListEntry[] permissibleModes;
+
+    private FindInFiles.Scope getScope() {
+        int i = scopeComboBox.getSelectedIndex();
+        return i >= 0 ? scopes.get(i) : FindInFiles.Scope.DIRECTORY;
+    }
+
+    // Only a directory has subdirectories to choose: the project is searched
+    // through, and open files are what they are.
+    private void updateIncludeSubdirs() {
+        if (includeSubdirsCheckBox != null)
+            includeSubdirsCheckBox.setEnabled(getScope() == FindInFiles.Scope.DIRECTORY);
+    }
 
     public FindInFilesDialog(Editor editor, boolean replace) {
         super(editor, replace ? "Replace In Files" : "Find In Files", true);
 
         this.editor = editor;
         this.replace = replace;
+        projectRoot = ProjectRoot.find(editor.getBuffer());
 
         patternControl = new HistoryTextField(20);
         patternHistory = new History(patternKey);
@@ -131,6 +149,32 @@ public class FindInFilesDialog extends AbstractDialog implements ActionListener,
         addLabelAndTextField(label, filesControl);
 
         filesControl.addFocusListener(this);
+
+        // Where to look: the project by default, when there is one.
+        List<String> labels = new ArrayList<>();
+        if (projectRoot != null) {
+            scopes.add(FindInFiles.Scope.PROJECT);
+            labels.add("Project directory (" + projectRoot.getName() + ")");
+        }
+        scopes.add(FindInFiles.Scope.DIRECTORY);
+        labels.add("Current file's directory");
+        scopes.add(FindInFiles.Scope.OPEN_FILES);
+        labels.add("Open files");
+        scopeComboBox = new JComboBox<>(labels.toArray(new String[0]));
+        Dimension scopeSize = scopeComboBox.getPreferredSize();
+        scopeComboBox.setMaximumSize(scopeSize);
+        JPanel scopePanel = new JPanel();
+        scopePanel.setLayout(new BoxLayout(scopePanel, BoxLayout.X_AXIS));
+        scopePanel.setAlignmentX(LEFT_ALIGNMENT);
+        Label scopeLabel = new Label("Search in:");
+        scopeLabel.setDisplayedMnemonic('H');
+        scopeLabel.setLabelFor(scopeComboBox);
+        scopePanel.add(scopeLabel);
+        scopePanel.add(Box.createHorizontalStrut(5));
+        scopePanel.add(scopeComboBox);
+        addVerticalStrut();
+        mainPanel.add(scopePanel);
+        scopeComboBox.addActionListener(e -> updateIncludeSubdirs());
 
         defaultExcludesCheckBox = new CheckBox(
             "Default excludes",
@@ -193,6 +237,7 @@ public class FindInFilesDialog extends AbstractDialog implements ActionListener,
         );
         includeSubdirsCheckBox.setMnemonic('S');
         addCheckBox(includeSubdirsCheckBox);
+        updateIncludeSubdirs();
 
         // Always search files in memory for replace in files.
         // Otherwise it's up to the user.
@@ -265,6 +310,8 @@ public class FindInFilesDialog extends AbstractDialog implements ActionListener,
             findInFiles.setConfirmChanges(confirmChangesCheckBox.isSelected());
 
         findInFiles.setIncludeSubdirs(includeSubdirsCheckBox.isSelected());
+        FindInFiles.Scope scope = getScope();
+        findInFiles.setScope(scope, scope == FindInFiles.Scope.PROJECT ? projectRoot : null);
 
         if (searchFilesInMemoryCheckBox != null)
             findInFiles.setSearchFilesInMemory(searchFilesInMemoryCheckBox.isSelected());

@@ -1856,8 +1856,8 @@ Prompts for a pattern and a file specification and generates a list of all
 occurrences of the specified pattern in files matching the file specification.
 <p>
 Several file specifications can be supplied at once, separated by semicolons.
-If the full path is not given in a file specification, the current directory or
-the directory last specified by a full path is used.
+If the full path is not given in a file specification, the directory "Search
+in" names, or the directory last specified by a full path, is used.
 <p>
 For example, if the file specification is <code>*.c;/usr/src/emacs-20.3/src/*.c;*.h</code>,
 the search will examine <code>.c</code> files in the current directory and
@@ -1888,6 +1888,22 @@ changes to the buffer will be taken into account.
 <p>
 You can use the command <a href="#escape">escape</a>, mapped by default to
 Escape, to cancel a search in progress.
+<p>
+<b>Search in</b> sets where to look:
+<ul>
+<li><b>Project directory</b>, the default when the current buffer is in a
+<a href="navigation.html#projects">project</a>: all of it, relative file
+specifications starting at its root, skipping what
+<a href="commands.html#findFileInProject">findFileInProject</a> skips (what
+<code>.gitignore</code> ignores, build and tool directories).
+<li><b>Current file's directory</b>: relative file specifications start
+there, and "Include subdirectories" searches below it, with the same skips.
+<li><b>Open files</b>: the open buffers the file specification names, as
+they are in memory.
+</ul>
+A search that would go through all of your home directory, or of a file
+system root, asks first. Files that can't be read are skipped and counted in
+the summary.
 <p>
 <b>Default key mapping:</b> Ctrl Shift F, F6
 <p>

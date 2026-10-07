@@ -96,7 +96,7 @@ public final class FindInFiles extends Replacement implements BackgroundProcess 
      * and descends: all of it, which is rarely meant. Null otherwise.
      */
     public File getTooBroadDirectory() {
-        if (!includeSubdirs || filters == null)
+        if (!descends() || filters == null)
             return null;
         final File home = File.getInstance(Utilities.getUserHome());
         for (Filter filter : filters) {
@@ -108,6 +108,33 @@ public final class FindInFiles extends Replacement implements BackgroundProcess 
                 return dir;
         }
         return null;
+    }
+
+    /** Where a search looks. */
+    public enum Scope {
+        /** The project, all of it, skipping what its file list skips. */
+        PROJECT,
+        /** A directory, and its subdirectories if includeSubdirs. */
+        DIRECTORY,
+        /** The open buffers, as they are in memory. */
+        OPEN_FILES
+    }
+
+    private Scope scope = Scope.DIRECTORY;
+    private File baseDirectory;
+
+    /** Where to look, and the directory relative patterns start from; null for the editor's. */
+    public void setScope(Scope scope, File baseDirectory) {
+        this.scope = scope;
+        this.baseDirectory = baseDirectory;
+    }
+
+    public final Scope getScope() {
+        return scope;
+    }
+
+    private boolean descends() {
+        return scope == Scope.PROJECT || (scope == Scope.DIRECTORY && includeSubdirs);
     }
 
     public final boolean getIncludeSubdirs() {
@@ -185,8 +212,8 @@ public final class FindInFiles extends Replacement implements BackgroundProcess 
             files = "*";
         ArrayList<Filter> list = new ArrayList<>();
         StringTokenizer st = new StringTokenizer(files, ";");
-        // We start in the editor's current directory.
-        File currentDir = getEditor().getCurrentDirectory();
+        // Relative patterns start in the scope's directory, or the editor's.
+        File currentDir = baseDirectory != null ? baseDirectory : getEditor().getCurrentDirectory();
         if (currentDir == null || currentDir.isRemote())
             throw new Exception("Operation not supported for remote files");
         while (st.hasMoreTokens()) {
@@ -253,7 +280,9 @@ public final class FindInFiles extends Replacement implements BackgroundProcess 
                 Log.error(e);
             }
         }
-        for (Filter filter : filters) {
+        if (scope == Scope.OPEN_FILES)
+            searchOpenFiles();
+        for (Filter filter : scope == Scope.OPEN_FILES ? List.<Filter>of() : filters) {
             File dir = null;
             File spec = File.getInstance(filter.getOriginalPattern());
             if (spec != null) {
@@ -263,7 +292,10 @@ public final class FindInFiles extends Replacement implements BackgroundProcess 
             }
             if (dir == null)
                 dir = getEditor().getCurrentDirectory();
-            searchDirectory(dir, filter, excludesRE);
+            if (descends())
+                walkDirectory(dir, filter, excludesRE);
+            else
+                searchDirectory(dir, filter, excludesRE);
             // Did the user cancel?
             if (cancelled)
                 break;
@@ -317,6 +349,7 @@ public final class FindInFiles extends Replacement implements BackgroundProcess 
         cancelled = true;
     }
 
+    // dir's own files: not its subdirectories.
     private void searchDirectory(File dir, Filter filter, Pattern excludesRE) {
         String[] files = dir.list();
         if (files == null)
@@ -324,42 +357,91 @@ public final class FindInFiles extends Replacement implements BackgroundProcess 
         for (String f : files) {
             if (cancelled)
                 return;
-            File file = File.getInstance(dir, f);
             if (excludesRE != null && excludesRE.matcher(f).matches())
                 continue;
-            if (file.isDirectory()) {
-                if (includeSubdirs)
-                    searchDirectory(file, filter, excludesRE); // Recurse!
+            File file = File.getInstance(dir, f);
+            if (file.isDirectory() || !filter.accepts(f))
                 continue;
-            }
-            if (!filter.accepts(f))
-                continue;
-            // Unreadable, as for permissions: skipped and counted, not an error.
-            if (!file.canRead()) {
-                ++numFilesUnreadable;
-                continue;
-            }
-            if (isBinaryFile(file))
-                continue;
-            if (searchFilesInMemory) {
-                Buffer buf = Editor.getBufferList().findBuffer(file);
-                if (buf != null && buf.isLoaded()) {
-                    buf.withReadLock(() -> {
-                        Position pos = findInBuffer(buf);
-                        if (pos != null) {
-                            results.add(file);
-                            processFile(file, buf.getMode(), pos);
-                        }
-                    });
-                    ++numFilesExamined;
-                    continue;
-                }
-                // No buffer found, fall through...
-            }
-            Debug.assertTrue(outputBuffer != null);
-            processFile(file);
-            ++numFilesExamined;
+            searchFile(file);
         }
+    }
+
+    // dir and everything under it, skipping what a project's file list skips:
+    // what .gitignore ignores, build and tool directories, nested worktrees.
+    private void walkDirectory(File dir, Filter filter, Pattern excludesRE) {
+        java.nio.file.Path root = java.nio.file.Path.of(dir.canonicalPath());
+        ProjectFiles.Walker walker = new ProjectFiles.Walker(
+            root,
+            Integer.MAX_VALUE,
+            excludesRE,
+            ProjectFiles.Walker.globalIgnoreFile(),
+            () -> cancelled,
+            null
+        );
+        for (String rel : walker.walk()) {
+            if (cancelled)
+                return;
+            String name = rel.substring(rel.lastIndexOf('/') + 1);
+            if (!filter.accepts(name))
+                continue;
+            char sep = LocalFile.getSeparatorChar();
+            searchFile(File.getInstance(dir, sep == '/' ? rel : rel.replace('/', sep)));
+        }
+    }
+
+    // The open buffers' files that the patterns name, as they are in memory.
+    private void searchOpenFiles() {
+        for (Buffer buf : Editor.getBufferList()) {
+            if (cancelled)
+                return;
+            File file = buf.getFile();
+            if (buf.getType() != Buffer.TYPE_NORMAL || file == null || !file.isLocal() || file.isDirectory())
+                continue;
+            boolean named = false;
+            for (Filter filter : filters)
+                named |= filter.accepts(file.getName());
+            if (!named)
+                continue;
+            if (buf.isLoaded()) {
+                buf.withReadLock(() -> {
+                    Position pos = findInBuffer(buf);
+                    if (pos != null) {
+                        results.add(file);
+                        processFile(file, buf.getMode(), pos);
+                    }
+                });
+                ++numFilesExamined;
+            } else {
+                searchFile(file);
+            }
+        }
+    }
+
+    private void searchFile(File file) {
+        // Unreadable, as for permissions: skipped and counted, not an error.
+        if (!file.canRead()) {
+            ++numFilesUnreadable;
+            return;
+        }
+        if (isBinaryFile(file))
+            return;
+        if (searchFilesInMemory) {
+            Buffer buf = Editor.getBufferList().findBuffer(file);
+            if (buf != null && buf.isLoaded()) {
+                buf.withReadLock(() -> {
+                    Position pos = findInBuffer(buf);
+                    if (pos != null) {
+                        results.add(file);
+                        processFile(file, buf.getMode(), pos);
+                    }
+                });
+                ++numFilesExamined;
+                return;
+            }
+        }
+        Debug.assertTrue(outputBuffer != null);
+        processFile(file);
+        ++numFilesExamined;
     }
 
     private void processFile(File file) {
