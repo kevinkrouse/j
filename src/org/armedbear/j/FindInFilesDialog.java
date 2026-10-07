@@ -334,6 +334,20 @@ public class FindInFilesDialog extends AbstractDialog implements ActionListener,
             MessageDialog.showMessageDialog(editor, e.getMessage(), "Error");
             return;
         }
+        // All of home, or of a root, is rarely what's meant: a relative pattern
+        // in a buffer that's there, or that has no file, starts there.
+        File broad = findInFiles.getTooBroadDirectory();
+        if (
+            broad != null
+                && !editor.confirm(
+                    "Find in Files",
+                    "Search every file under " + broad.canonicalPath() + ", and its subdirectories?"
+                )
+        ) {
+            findInFiles = null;
+            filesControl.requestFocus();
+            return;
+        }
         filesHistory.append(files);
         filesHistory.save();
 

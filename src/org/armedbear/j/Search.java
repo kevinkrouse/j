@@ -517,17 +517,19 @@ public class Search implements Cloneable {
             toBeSearched = line.getText();
         int index = begin;
         int limit = toBeSearched.length();
-        match = re.matcher(toBeSearched);
+        // A local matcher, set as the match only once found.
+        final Matcher m = re.matcher(toBeSearched);
         while (index <= limit) {
-            if (!match.find(index)) {
-                match = null;
+            if (!m.find(index))
                 break;
-            }
-            Position pos = new Position(line, match.start());
-            if (!wholeWordsOnly || Utilities.isDelimited(mode, pos, match.group().length()))
+            Position pos = new Position(line, m.start());
+            if (!wholeWordsOnly || Utilities.isDelimited(mode, pos, m.group().length())) {
+                match = m;
                 return pos;
-            index = match.start() + 1;
+            }
+            index = m.start() + 1;
         }
+        match = null;
         return null;
     }
 

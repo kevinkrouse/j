@@ -207,14 +207,16 @@ public class ListOccurrencesBuffer extends Buffer {
                 ed.makeNext(buf);
                 ed.activate(buf);
             }
-            ed.setLastSearch(search);
+            // A copy: a find in files may still be running with this one, on its thread.
+            final Search s = (Search) search.clone();
+            ed.setLastSearch(s);
             ed.beginMotion();
             ed.update(ed.getDotLine());
             ed.setDot(target, 0);
-            Position found = search.find(buf.getMode(), ed.getDot());
+            Position found = s.find(buf.getMode(), ed.getDot());
             if (found != null) {
                 ed.setDot(found);
-                SearchCommands.markFoundPattern(ed, search);
+                SearchCommands.markFoundPattern(ed, s);
             } else {
                 ed.moveCaretToDotCol();
             }

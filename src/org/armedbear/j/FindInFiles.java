@@ -38,6 +38,7 @@ import javax.swing.SwingUtilities;
 import javax.swing.undo.CompoundEdit;
 import org.armedbear.j.mode.list.ListOccurrencesInFilesBuffer;
 import org.armedbear.j.util.Background;
+import org.armedbear.j.util.Utilities;
 import org.armedbear.j.vcs.VcsBackend;
 import org.armedbear.j.vcs.VcsBackends;
 
@@ -64,6 +65,8 @@ public final class FindInFiles extends Replacement implements BackgroundProcess 
     private volatile boolean cancelled;
 
     private int numFilesExamined;
+
+    private int numFilesUnreadable;
     private int numFilesModified;
 
     private List<Filter> filters;
@@ -86,6 +89,25 @@ public final class FindInFiles extends Replacement implements BackgroundProcess 
 
     public final void setDefaultExcludes(boolean b) {
         defaultExcludes = b;
+    }
+
+    /**
+     * The home directory or a file system root, if the search starts there
+     * and descends: all of it, which is rarely meant. Null otherwise.
+     */
+    public File getTooBroadDirectory() {
+        if (!includeSubdirs || filters == null)
+            return null;
+        final File home = File.getInstance(Utilities.getUserHome());
+        for (Filter filter : filters) {
+            File spec = File.getInstance(filter.getOriginalPattern());
+            File dir = spec != null ? spec.getParentFile() : null;
+            if (dir == null)
+                dir = getEditor().getCurrentDirectory();
+            if (dir != null && (dir.equals(home) || dir.getParentFile() == null))
+                return dir;
+        }
+        return null;
     }
 
     public final boolean getIncludeSubdirs() {
@@ -261,6 +283,11 @@ public final class FindInFiles extends Replacement implements BackgroundProcess 
                     sb.append(" of ");
                     sb.append(numFilesExamined);
                     sb.append(" files examined");
+                    if (numFilesUnreadable > 0) {
+                        sb.append("; ");
+                        sb.append(numFilesUnreadable);
+                        sb.append(numFilesUnreadable == 1 ? " file couldn't be read" : " files couldn't be read");
+                    }
                     if (cancelled)
                         sb.append(" (search cancelled by user)");
                     outputBuffer.appendStatusLine(sb.toString());
@@ -307,6 +334,11 @@ public final class FindInFiles extends Replacement implements BackgroundProcess 
             }
             if (!filter.accepts(f))
                 continue;
+            // Unreadable, as for permissions: skipped and counted, not an error.
+            if (!file.canRead()) {
+                ++numFilesUnreadable;
+                continue;
+            }
             if (isBinaryFile(file))
                 continue;
             if (searchFilesInMemory) {
@@ -383,12 +415,13 @@ public final class FindInFiles extends Replacement implements BackgroundProcess 
                 SwingUtilities.invokeLater(updateDisplayRunnable);
         }
         catch (IOException e) {
-            Log.error(e);
+            Log.debug(e.toString());
+            ++numFilesUnreadable;
         }
     }
 
     // BUG!! Unicode files are treated as binary.
-    private static boolean isBinaryFile(File file) {
+    private boolean isBinaryFile(File file) {
         try {
             byte[] bytes = new byte[4096];
             int bytesRead;
@@ -402,7 +435,9 @@ public final class FindInFiles extends Replacement implements BackgroundProcess 
             return false;
         }
         catch (IOException e) {
-            Log.error(e);
+            // Gone, or unreadable, since it was listed.
+            Log.debug(e.toString());
+            ++numFilesUnreadable;
             return true;
         }
     }
