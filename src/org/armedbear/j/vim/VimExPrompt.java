@@ -134,6 +134,12 @@ final class VimExPrompt extends FinderTextFieldHandler {
         return isName(textField.getText()) ? items() : List.of();
     }
 
+    // :w Enter, typed straight through, runs without a list.
+    @Override
+    protected int firstListMillis() {
+        return 300;
+    }
+
     @Override
     protected List<FinderItem> emptyQueryItems() {
         return List.of();

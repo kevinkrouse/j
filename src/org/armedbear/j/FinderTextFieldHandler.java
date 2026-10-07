@@ -69,12 +69,17 @@ public abstract class FinderTextFieldHandler extends DefaultTextFieldHandler {
     private void edited() {
         if (!recalling)
             browsingHistory = false;
+        debounce.setInitialDelay(popup.isShowing() ? DEBOUNCE_MILLIS : Math.max(DEBOUNCE_MILLIS, firstListMillis()));
         debounce.restart();
     }
 
     // Up, Down, Ctrl P and Ctrl N step through the history while there's no
-    // list, and go on doing so once they have begun.
+    // list, and go on doing so once they have begun. A list waiting to show
+    // counts as one.
     private boolean history(KeyEvent e, boolean previous) {
+        // Typed, but the list is still waiting to show: show it now, to move in.
+        if (!browsingHistory && debounce.isRunning() && hasFocus())
+            selection();
         if (popup.isShowing() && !browsingHistory)
             return false;
         e.consume();
@@ -127,6 +132,14 @@ public abstract class FinderTextFieldHandler extends DefaultTextFieldHandler {
     /** What an empty query lists; by default, the candidates. */
     protected List<FinderItem> emptyQueryItems() {
         return candidates();
+    }
+
+    /**
+     * How long typing must pause before a list that isn't showing appears, so
+     * that a line typed straight through runs without one flashing up.
+     */
+    protected int firstListMillis() {
+        return 0;
     }
 
     /** Ranked when candidates() has no match for a query; null for none. */
