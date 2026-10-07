@@ -19,6 +19,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import org.armedbear.j.Log;
 
 /**
@@ -168,12 +170,16 @@ public final class VimrcParser {
      * unless {@code remap} -- {@code map} rather than {@code noremap} --
      * lets them be mappings.
      */
+    private static final Pattern TRAILING_ENTER = Pattern.compile("(?i)<(cr|enter|return)>$");
+
     private static VimCommand mapping(Set<MappingMode> modes, String keys, String to, boolean remap) {
         final Map<String, String> noArgs = new LinkedHashMap<>();
         if (remap)
             noArgs.put("remap", "true");
         if (to.startsWith(":")) {
-            final String body = to.endsWith("<CR>") ? to.substring(1, to.length() - 4) : to.substring(1);
+            // Key names are any case, and <Enter> and <Return> are <CR> too.
+            final Matcher enter = TRAILING_ENTER.matcher(to);
+            final String body = enter.find() ? to.substring(1, enter.start()) : to.substring(1);
             // j's own command of that name if there is one; otherwise the
             // line goes to the ex layer, which is where :w and :bn live.
             final Map<String, String> args = new LinkedHashMap<>(noArgs);

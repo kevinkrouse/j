@@ -118,6 +118,16 @@ public class VimrcTest {
         assertTrue(h.editor().getMark() != null, "j's own command ran");
     }
 
+    @Test
+    public void theEnterEndingACommandCanBeWrittenAnyWay() {
+        // <cr>, as most vimrcs write it, is <CR>; so are <Enter> and <Return>.
+        for (String enter : new String[] { "<cr>", "<Cr>", "<Enter>", "<return>" }) {
+            vim("abc\ndef\n", "nnoremap <A-a> :selectAll" + enter + "\n").cursor(0, 0);
+            h.keys("<A-a>");
+            assertTrue(h.editor().getMark() != null, "selectAll ran, ended by " + enter);
+        }
+    }
+
     // ------------------------------------------- a command that is a prefix
 
     @Test
