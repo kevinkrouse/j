@@ -40,6 +40,7 @@ public final class DirectoryModeToolBar extends ToolBar {
         addButton("Rescan", ICON_REFRESH, "dirRescan");
         addSeparator();
         addButton("Home", ICON_HOME, "dirHomeDir");
+        addButton("Project", ICON_PROJECT, "dirProjectDir");
         addExtensionButtons();
         addSeparator();
         addButton("Exit", ICON_EXIT, "quit");

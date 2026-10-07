@@ -42,6 +42,7 @@ public final class DefaultToolBar extends ToolBar {
         addSeparator();
         addButton("Directory", ICON_DIRECTORY, "dir");
         addButton("Home", ICON_HOME, "dirHomeDir");
+        addButton("Project", ICON_PROJECT, "dirProjectDir");
         addExtensionButtons();
         addSeparator();
         addButton("Exit", ICON_EXIT, "quit");

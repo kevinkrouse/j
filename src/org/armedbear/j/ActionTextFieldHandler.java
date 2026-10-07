@@ -136,7 +136,8 @@ public final class ActionTextFieldHandler extends FinderTextFieldHandler {
             "listOccurrences"
         );
         icon("search-and-replace", "replace", "replaceInFiles");
-        icon("directory-list", "dir", "dirProjectDir");
+        icon("directory-list", "dir");
+        icon("project", "dirProjectDir");
         icon("home", "dirHomeDir");
         icon("up", "dirUpDir");
         icon("left", "webBack");

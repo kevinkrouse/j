@@ -45,6 +45,7 @@ public enum ToolBarIcon
     ICON_NEW("document-new"),
     ICON_OPEN("document-open"),
     ICON_PASTE("paste"),
+    ICON_PROJECT("project"),
     ICON_REDO("redo"),
     ICON_REFRESH("refresh"),
     ICON_REPLACE("search-and-replace"),
