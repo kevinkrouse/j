@@ -145,3 +145,6 @@ cb7ee871686f68280e04ce57171bb1c6bdbdf943
 
 # reformat: the files the transient panel changes
 b9592e4418d3d98805c822c4fcc103bb84c77ffd
+
+# reformat: VimrcParser and its test
+2f032183283bf09b96f06f68d49cbfda6ceca3ca
