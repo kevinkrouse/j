@@ -121,8 +121,7 @@ public final class SearchCommands {
                 markFoundPattern(editor, search);
                 if (search instanceof FindInFiles findInFiles) {
                     if (editor.getBuffer().getFile() != null) {
-                        ListOccurrencesInFilesBuffer buf =
-                            findInFiles.getOutputBuffer();
+                        ListOccurrencesInFilesBuffer buf = findInFiles.getOutputBuffer();
                         if (buf != null)
                             buf.follow(editor.getBuffer().getFile(), editor.getDotLine());
                     }
@@ -132,8 +131,7 @@ public final class SearchCommands {
             if (search instanceof FindInFiles findInFiles) {
                 Editor ed = editor.getOtherEditor();
                 if (ed != null) {
-                    ListOccurrencesInFilesBuffer buf =
-                        findInFiles.getOutputBuffer();
+                    ListOccurrencesInFilesBuffer buf = findInFiles.getOutputBuffer();
                     if (ed.getBuffer() == buf) {
                         buf.findNextOccurrence(ed);
                         return;
@@ -165,8 +163,7 @@ public final class SearchCommands {
                 markFoundPattern(editor, search);
                 if (search instanceof FindInFiles findInFiles) {
                     if (editor.getBuffer().getFile() != null) {
-                        ListOccurrencesInFilesBuffer buf =
-                            findInFiles.getOutputBuffer();
+                        ListOccurrencesInFilesBuffer buf = findInFiles.getOutputBuffer();
                         if (buf != null)
                             buf.follow(editor.getBuffer().getFile(), editor.getDotLine());
                     }
@@ -176,8 +173,7 @@ public final class SearchCommands {
             if (search instanceof FindInFiles findInFiles) {
                 Editor ed = editor.getOtherEditor();
                 if (ed != null) {
-                    ListOccurrencesInFilesBuffer buf =
-                        findInFiles.getOutputBuffer();
+                    ListOccurrencesInFilesBuffer buf = findInFiles.getOutputBuffer();
                     if (ed.getBuffer() == buf) {
                         buf.findPreviousOccurrence(ed);
                         return;
@@ -274,10 +270,7 @@ public final class SearchCommands {
             return;
         final Search search = new Search(pattern, false, true);
         editor.setLastSearch(search);
-        Position pos = search.find(
-            editor.getBuffer().getMode(),
-            new Position(editor.getBuffer().getFirstLine(), 0)
-        );
+        Position pos = search.find(editor.getBuffer().getMode(), new Position(editor.getBuffer().getFirstLine(), 0));
         if (pos != null) {
             editor.recordJump();
             editor.moveDotTo(pos);

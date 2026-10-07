@@ -49,7 +49,7 @@ import javax.swing.SwingUtilities;
 import org.armedbear.j.util.Icons;
 
 public final class Frame extends JFrame
-    implements ComponentListener, FocusListener, WindowListener, WindowStateListener {
+        implements ComponentListener, FocusListener, WindowListener, WindowStateListener {
     private EditorPane editorPane;
     private EditorList editors = new EditorList();
     private Editor currentEditor;
@@ -70,8 +70,7 @@ public final class Frame extends JFrame
         setDefaultCloseOperation(DO_NOTHING_ON_CLOSE);
         statusBar = new StatusBar(this);
         getContentPane().add(statusBar, "South");
-        final SessionProperties sessionProperties =
-            Editor.getSessionProperties();
+        final SessionProperties sessionProperties = Editor.getSessionProperties();
         showToolbar = sessionProperties.getShowToolbar(this);
         editorPane = new EditorPane(editor);
         editors.add(editor);
@@ -88,8 +87,7 @@ public final class Frame extends JFrame
     }
 
     public void titleChanged() {
-        StringBuilder sb =
-            new StringBuilder(Version.getShortVersionString());
+        StringBuilder sb = new StringBuilder(Version.getShortVersionString());
         String sessionName = Editor.getSessionName();
         if (sessionName != null) {
             sb.append(" [");
@@ -304,14 +302,8 @@ public final class Frame extends JFrame
     }
 
     private SplitPane createSidebarSplitPane() {
-        SplitPane splitPane =
-            new SplitPane(
-                SplitPane.HORIZONTAL_SPLIT,
-                sidebar,
-                getEditorPane()
-            );
-        int dividerLocation =
-            Editor.getSessionProperties().getSidebarWidth(this);
+        SplitPane splitPane = new SplitPane(SplitPane.HORIZONTAL_SPLIT, sidebar, getEditorPane());
+        int dividerLocation = Editor.getSessionProperties().getSidebarWidth(this);
         splitPane.setDividerLocation(dividerLocation);
         splitPane.setBorder(null);
         // This layout is in the scale that is in force now.
@@ -464,21 +456,14 @@ public final class Frame extends JFrame
     public void setMenu() {
         final Mode mode = currentEditor.getMode();
         final MenuBar oldMenuBar = (MenuBar) getJMenuBar();
-        if (
-            oldMenuBar == null
-                ||
-                Platform.isPlatformMacOSX()
-                ||
-                oldMenuBar.getMenuName() != mode.getMenuName()
-        ) {
+        if (oldMenuBar == null || Platform.isPlatformMacOSX() || oldMenuBar.getMenuName() != mode.getMenuName()) {
             setJMenuBar(mode.createMenuBar(this));
             validate();
         }
     }
 
     public void placeWindow() {
-        final SessionProperties sessionProperties =
-            Editor.getSessionProperties();
+        final SessionProperties sessionProperties = Editor.getSessionProperties();
         if (editors.get(0) == Editor.getEditor(0)) {
             // Initial window placement.
             Rectangle desired = sessionProperties.getWindowPlacement(0);
@@ -493,8 +478,7 @@ public final class Frame extends JFrame
                 desired.y = (dim.height - desired.height) / 2;
             }
             int extendedState = sessionProperties.getExtendedState(0);
-            adjustPlacementRunnable =
-                new AdjustPlacementRunnable(this, extendedState);
+            adjustPlacementRunnable = new AdjustPlacementRunnable(this, extendedState);
             setBounds(desired);
         } else {
             // BUG! Should not be hardcoded to 1!
@@ -533,13 +517,12 @@ public final class Frame extends JFrame
     // Split the Editor into two and set the buffers for the current and new Editors.
     // UNDONE: Set divider location
     private void splitWindow(
-        Editor ed,
-        Buffer primary,
-        Buffer secondary,
-        float split,
-        boolean vertical,
-        boolean switchWindows
-    ) {
+            Editor ed,
+            Buffer primary,
+            Buffer secondary,
+            float split,
+            boolean vertical,
+            boolean switchWindows) {
         Editor.getSessionProperties().saveSidebarState(this);
         //        final int height = ed.getHeight();
         ed.saveView();
@@ -582,13 +565,8 @@ public final class Frame extends JFrame
                 others.add(other.getBounds());
             }
         }
-        final Point caret = SwingUtilities.convertPoint(
-            ed.getDisplay(),
-            ed.getDisplay().getCaretPoint(),
-            editorPane
-        );
-        final int index =
-            adjacent(ed.getBounds(), caret, others, direction);
+        final Point caret = SwingUtilities.convertPoint(ed.getDisplay(), ed.getDisplay().getCaretPoint(), editorPane);
+        final int index = adjacent(ed.getBounds(), caret, others, direction);
         return index < 0 ? null : candidates.get(index);
     }
 
@@ -599,12 +577,7 @@ public final class Frame extends JFrame
      *
      * @return an index into {@code others}, or -1
      */
-    static int adjacent(
-        Rectangle r,
-        Point caret,
-        List<Rectangle> others,
-        char direction
-    ) {
+    static int adjacent(Rectangle r, Point caret, List<Rectangle> others, char direction) {
         final boolean across = direction == 'h' || direction == 'l';
         int best = -1;
         int bestGap = 0;
@@ -628,19 +601,12 @@ public final class Frame extends JFrame
                 default:
                     return -1;
             }
-            final boolean alongside = across
-                ? o.y < r.y + r.height && r.y < o.y + o.height
-                : o.x < r.x + r.width && r.x < o.x + o.width;
+            final boolean alongside =
+                    across ? o.y < r.y + r.height && r.y < o.y + o.height : o.x < r.x + r.width && r.x < o.x + o.width;
             if (gap < 0 || !alongside)
                 continue;
-            final int miss = across
-                ? miss(caret.y, o.y, o.height)
-                : miss(caret.x, o.x, o.width);
-            if (
-                best < 0
-                    || gap < bestGap
-                    || (gap == bestGap && miss < bestMiss)
-            ) {
+            final int miss = across ? miss(caret.y, o.y, o.height) : miss(caret.x, o.x, o.width);
+            if (best < 0 || gap < bestGap || (gap == bestGap && miss < bestMiss)) {
                 best = i;
                 bestGap = gap;
                 bestMiss = miss;
@@ -686,11 +652,7 @@ public final class Frame extends JFrame
     public void switchToBuffer(final Editor fromEditor, final Buffer buf) {
         // We're either switching in a paired buffer or switching out
         // a paired buffer (or both).
-        Debug.bugIfNot(
-            buf.isPaired()
-                ||
-                (getEditorCount() > 1 && fromEditor.getBuffer().isPaired())
-        );
+        Debug.bugIfNot(buf.isPaired() || (getEditorCount() > 1 && fromEditor.getBuffer().isPaired()));
         final Buffer primary;
         final Buffer secondary;
         if (buf.isPrimary()) {
@@ -846,11 +808,7 @@ public final class Frame extends JFrame
         return openInOtherWindow(editor, buffer, 0.5F, true);
     }
 
-    public final Editor activateInOtherWindow(
-        Editor editor,
-        Buffer buffer,
-        float split
-    ) {
+    public final Editor activateInOtherWindow(Editor editor, Buffer buffer, float split) {
         // Switch to other window.
         return openInOtherWindow(editor, buffer, split, true);
     }
@@ -861,12 +819,7 @@ public final class Frame extends JFrame
     }
 
     // UNDONE: Set divider location
-    private Editor openInOtherWindow(
-        Editor editor,
-        Buffer buffer,
-        float split,
-        boolean switchWindows
-    ) {
+    private Editor openInOtherWindow(Editor editor, Buffer buffer, float split, boolean switchWindows) {
         editor.saveView();
         Editor otherEditor = getOtherEditor(editor);
         if (otherEditor == null) {
@@ -916,9 +869,7 @@ public final class Frame extends JFrame
         if (!contains(editor))
             return;
         promoteSecondaryBuffers();
-        Editor keep = toSuccessor
-            ? editorPane.successor(editor)
-            : getOtherEditor(editor);
+        Editor keep = toSuccessor ? editorPane.successor(editor) : getOtherEditor(editor);
         Editor kill = editor;
         unsplitInternal(keep, kill);
     }
@@ -1120,8 +1071,7 @@ public final class Frame extends JFrame
         return focusedComponent;
     }
 
-    private static final Cursor waitCursor =
-        Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR);
+    private static final Cursor waitCursor = Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR);
 
     public final void setWaitCursor() {
         setCursor(waitCursor);

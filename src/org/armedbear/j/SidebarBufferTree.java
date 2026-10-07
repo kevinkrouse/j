@@ -85,8 +85,8 @@ import org.armedbear.j.util.Keys;
 // things in the buffer list. That way all of the folders will be listed
 // together, and all of the buffers will be listed together.
 public final class SidebarBufferTree extends SidebarTree
-    implements NavigationComponent, ActionListener, KeyListener, MouseListener, MouseMotionListener,
-    PreferencesChangeListener, DragGestureListener, DragSourceListener, DropTargetListener {
+        implements NavigationComponent, ActionListener, KeyListener, MouseListener, MouseMotionListener,
+        PreferencesChangeListener, DragGestureListener, DragSourceListener, DropTargetListener {
     private JPopupMenu popup;
     private int updateFlag;
     private DefaultMutableTreeNode rootNode;
@@ -102,9 +102,7 @@ public final class SidebarBufferTree extends SidebarTree
     private final Timer scrollTimer = new Timer(WAIT_TIMES[0], e -> scrollStep());
     // Variable times used to speed up scrolling the further the mouse is
     // from the tree.
-    private static final int[] WAIT_TIMES = new int[] {
-        200, 175, 150, 125, 100, 75, 50, 37, 25, 15, 10, 5
-    };
+    private static final int[] WAIT_TIMES = new int[] { 200, 175, 150, 125, 100, 75, 50, 37, 25, 15, 10, 5 };
 
     // Is the buffer list sorted alphabetically?
     private boolean alpha = false;
@@ -133,11 +131,7 @@ public final class SidebarBufferTree extends SidebarTree
 
         dragSource = DragSource.getDefaultDragSource();
         DragGestureRecognizer dgr =
-            dragSource.createDefaultDragGestureRecognizer(
-                this,
-                DnDConstants.ACTION_COPY_OR_MOVE,
-                this
-            );
+                dragSource.createDefaultDragGestureRecognizer(this, DnDConstants.ACTION_COPY_OR_MOVE, this);
         new DropTarget(this, this);
 
         Preferences p = Editor.preferences();
@@ -583,11 +577,7 @@ public final class SidebarBufferTree extends SidebarTree
         final int button = e.getButton();
         final boolean unmodified = Keys.isUnmodified(e);
         Point p = e.getPoint();
-        if (
-            (unmodified && button == MouseEvent.BUTTON1)
-                ||
-                (unmodified && button == MouseEvent.BUTTON2)
-        ) {
+        if ((unmodified && button == MouseEvent.BUTTON1) || (unmodified && button == MouseEvent.BUTTON2)) {
             setSelectionRow(getRowForLocation(p.x, p.y));
             paintImmediately(0, 0, getWidth(), getHeight());
             switchToBuffer();
@@ -612,11 +602,7 @@ public final class SidebarBufferTree extends SidebarTree
         // If the user clicks with the first or second mouse button while
         // there is a popup menu visible, the tree doesn't get painted
         // properly unless we repaint it here.
-        if (
-            (unmodified && button == MouseEvent.BUTTON1)
-                ||
-                (unmodified && button == MouseEvent.BUTTON2)
-        ) {
+        if ((unmodified && button == MouseEvent.BUTTON1) || (unmodified && button == MouseEvent.BUTTON2)) {
             setSelectionRow(getRowForLocation(p.x, p.y));
             paintImmediately(0, 0, getWidth(), getHeight());
             switchToBuffer();
@@ -706,11 +692,7 @@ public final class SidebarBufferTree extends SidebarTree
         if (alpha || reorder)
             return;
         Transferable t = event.getTransferable();
-        if (
-            t.isDataFlavorSupported(DataFlavor.javaFileListFlavor)
-                &&
-                draggedBuffer != null
-        ) {
+        if (t.isDataFlavorSupported(DataFlavor.javaFileListFlavor) && draggedBuffer != null) {
             BufferList bufList = Editor.getBufferList();
             Buffer movedTo = getSelectedBuffer();
             // No dropping onto secondary buffers.
@@ -742,8 +724,7 @@ public final class SidebarBufferTree extends SidebarTree
         Buffer buf = getSelectedBuffer();
         if (buf != null && !buf.isSecondary()) {
             String name = buf.getFileNameForDisplay();
-            Transferable transferable =
-                new BufferSelection(new java.io.File(name));
+            Transferable transferable = new BufferSelection(new java.io.File(name));
             draggedBuffer = buf;
             draggedBufferRow = getSelectionRow();
 
@@ -809,8 +790,7 @@ public final class SidebarBufferTree extends SidebarTree
                 // that dragExit will like.
                 x += loc.x;
                 y += loc.y;
-                DragSourceEvent dse =
-                    new DragSourceEvent(event.getDragSourceContext(), x, y);
+                DragSourceEvent dse = new DragSourceEvent(event.getDragSourceContext(), x, y);
                 dragExit(dse);
             } else
                 stopScroll();
@@ -846,13 +826,7 @@ public final class SidebarBufferTree extends SidebarTree
         int rowFudge = (getRowBounds(0).height + 1) / 2;
         int yDiff = getSize().height - rect.height - rect.y;
         // All the cases where scrolling will not be necessary.
-        if (
-            x < 0
-                || x >= rect.width
-                || (y < 0 && rect.y < rowFudge)
-                ||
-                (y > 0 && yDiff < rowFudge)
-        ) {
+        if (x < 0 || x >= rect.width || (y < 0 && rect.y < rowFudge) || (y > 0 && yDiff < rowFudge)) {
             stopScroll();
             return;
         }
@@ -907,18 +881,12 @@ public final class SidebarBufferTree extends SidebarTree
             scrollTimer.setDelay(WAIT_TIMES[Math.min(Math.abs(scrollY), WAIT_TIMES.length - 1)]);
     }
 
-    private static class SidebarTreeCellRenderer extends JLabel
-        implements TreeCellRenderer {
-        private static final Color textForeground =
-            UIManager.getColor("Tree.textForeground");
-        private static final Color textBackground =
-            UIManager.getColor("Tree.textBackground");
-        private static final Color selectionForeground =
-            UIManager.getColor("Tree.selectionForeground");
-        private static final Color selectionBackground =
-            UIManager.getColor("Tree.selectionBackground");
-        private static final Border noFocusBorder =
-            new EmptyBorder(1, 1, 1, 1);
+    private static class SidebarTreeCellRenderer extends JLabel implements TreeCellRenderer {
+        private static final Color textForeground = UIManager.getColor("Tree.textForeground");
+        private static final Color textBackground = UIManager.getColor("Tree.textBackground");
+        private static final Color selectionForeground = UIManager.getColor("Tree.selectionForeground");
+        private static final Color selectionBackground = UIManager.getColor("Tree.selectionBackground");
+        private static final Border noFocusBorder = new EmptyBorder(1, 1, 1, 1);
 
         private final Sidebar sidebar;
 
@@ -938,22 +906,20 @@ public final class SidebarBufferTree extends SidebarTree
 
         @Override
         public Component getTreeCellRendererComponent(
-            JTree tree,
-            Object value,
-            boolean selected,
-            boolean expanded,
-            boolean leaf,
-            int row,
-            boolean hasFocus
-        ) {
+                JTree tree,
+                Object value,
+                boolean selected,
+                boolean expanded,
+                boolean leaf,
+                int row,
+                boolean hasFocus) {
             Object userObject = null;
             if (value instanceof DefaultMutableTreeNode defaultMutableTreeNode)
                 userObject = defaultMutableTreeNode.getUserObject();
             Border innerBorder = null;
             this.tree = tree;
-            this.rowIndent = (tree instanceof SidebarBufferTree sidebarBufferTree)
-                ? sidebarBufferTree.getRowIndent()
-                : 0;
+            this.rowIndent =
+                    (tree instanceof SidebarBufferTree sidebarBufferTree) ? sidebarBufferTree.getRowIndent() : 0;
             if (userObject instanceof Buffer) {
                 fullText = userObject.toString();
                 setText(fullText);
@@ -1061,9 +1027,8 @@ public final class SidebarBufferTree extends SidebarTree
             if (viewport <= 0)
                 return;
             Insets insets = getInsets();
-            int available = viewport - rowIndent
-                - (insets != null ? insets.left + insets.right : 0)
-                - statusColumnWidth();
+            int available =
+                    viewport - rowIndent - (insets != null ? insets.left + insets.right : 0) - statusColumnWidth();
             if (getIcon() != null)
                 available -= getIcon().getIconWidth() + getIconTextGap();
             setText(ellipsize(fullText, getFontMetrics(getFont()), available));
@@ -1077,8 +1042,7 @@ public final class SidebarBufferTree extends SidebarTree
             if (letter == null)
                 return;
             FontMetrics fm = g.getFontMetrics();
-            int x = getWidth() - statusWidth()
-                + (statusWidth() - fm.stringWidth(letter)) / 2;
+            int x = getWidth() - statusWidth() + (statusWidth() - fm.stringWidth(letter)) / 2;
             int y = (getHeight() + fm.getAscent() - fm.getDescent()) / 2;
             g.setColor(statusColor(statusKind));
             g.drawString(letter, x, y);
@@ -1100,9 +1064,7 @@ public final class SidebarBufferTree extends SidebarTree
 
     private static class BufferSelection implements Transferable {
         private List<java.io.File> fileList = null;
-        private final DataFlavor[] flavors = new DataFlavor[] {
-            DataFlavor.javaFileListFlavor
-        };
+        private final DataFlavor[] flavors = new DataFlavor[] { DataFlavor.javaFileListFlavor };
 
         public BufferSelection(java.io.File file) {
             fileList = new ArrayList<>(1);

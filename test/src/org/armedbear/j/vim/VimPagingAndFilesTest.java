@@ -186,11 +186,7 @@ public class VimPagingAndFilesTest {
         h.buffer().setIndentSize(4);
         h.keys("i<C-d>");
         assertEquals("ab", h.value());
-        assertEquals(
-            "INSERT",
-            h.vimModeIndicator(),
-            "still typing"
-        );
+        assertEquals("INSERT", h.vimModeIndicator(), "still typing");
     }
 
     @Test
@@ -212,10 +208,7 @@ public class VimPagingAndFilesTest {
      * file opened from disk too, and not what these tests are about.
      */
     private static String read(Path file) throws java.io.IOException {
-        final String s = new String(
-            Files.readAllBytes(file),
-            StandardCharsets.UTF_8
-        );
+        final String s = new String(Files.readAllBytes(file), StandardCharsets.UTF_8);
         return s.endsWith("\n") ? s.substring(0, s.length() - 1) : s;
     }
 
@@ -240,8 +233,7 @@ public class VimPagingAndFilesTest {
     }
 
     @Test
-    public void wToAnotherFileIsACopyAndTheBufferKeepsItsName()
-        throws Exception {
+    public void wToAnotherFileIsACopyAndTheBufferKeepsItsName() throws Exception {
         // vim: :w FILE on a buffer that has a name writes a copy and leaves
         // the name alone. (On one with no name it names it; that path opens
         // j's Save As machinery and is checked on screen.)
@@ -279,10 +271,7 @@ public class VimPagingAndFilesTest {
     @Test
     public void writingPartOfABufferIsRefusedRatherThanIgnored() {
         vim("a\nb", 0, 0).exCommand("1w /tmp/nowhere");
-        assertEquals(
-            "Writing part of a buffer is not supported",
-            h.status()
-        );
+        assertEquals("Writing part of a buffer is not supported", h.status());
     }
 
     // ---------------------------------------------------------------- CTRL-^
@@ -293,8 +282,7 @@ public class VimPagingAndFilesTest {
      * without this the answer depends on which tests ran first.
      */
     private void onlyThisBuffer() {
-        final java.util.List<org.armedbear.j.Buffer> others =
-            new java.util.ArrayList<>();
+        final java.util.List<org.armedbear.j.Buffer> others = new java.util.ArrayList<>();
         for (org.armedbear.j.Buffer b : org.armedbear.j.Editor.getBufferList()) {
             if (b != h.buffer())
                 others.add(b);
@@ -421,10 +409,7 @@ public class VimPagingAndFilesTest {
         vim("  abc", 0, 3);
         h.keys("o<Tab><Esc>");
         // j's own Tab, which may write spaces where nvim writes a tab.
-        assertTrue(
-            h.value().startsWith("  abc\n  ")
-                && h.value().length() > "  abc\n  ".length()
-        );
+        assertTrue(h.value().startsWith("  abc\n  ") && h.value().length() > "  abc\n  ".length());
     }
 
     @Test

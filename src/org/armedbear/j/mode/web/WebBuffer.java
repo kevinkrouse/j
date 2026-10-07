@@ -236,8 +236,7 @@ public final class WebBuffer extends Buffer implements WebConstants {
     @Override
     public Cursor getDefaultCursor(Position pos) {
         if (pos != null && pos.getLine() instanceof WebLine) {
-            HtmlLineSegment segment =
-                ((WebLine) pos.getLine()).findSegment(pos.getOffset());
+            HtmlLineSegment segment = ((WebLine) pos.getLine()).findSegment(pos.getOffset());
             if (segment != null && segment.getLink() != null)
                 return Cursor.getPredefinedCursor(Cursor.HAND_CURSOR);
         }
@@ -301,11 +300,7 @@ public final class WebBuffer extends Buffer implements WebConstants {
             return;
         }
         if (target.startsWith("mailto:")) {
-            MessageDialog.showMessageDialog(
-                editor,
-                "Sorry, mailto URLs are not yet supported.",
-                "Sorry..."
-            );
+            MessageDialog.showMessageDialog(editor, "Sorry, mailto URLs are not yet supported.", "Sorry...");
             return;
         }
 
@@ -330,8 +325,7 @@ public final class WebBuffer extends Buffer implements WebConstants {
         } else
             filename = target;
 
-        final File destination =
-            resolve(wb.getFile().getParentFile(), filename);
+        final File destination = resolve(wb.getFile().getParentFile(), filename);
 
         if (destination.equals(wb.getFile())) {
             Position pos = wb.findRef(ref);
@@ -346,8 +340,7 @@ public final class WebBuffer extends Buffer implements WebConstants {
         final Link theLink = link;
         if (destination instanceof HttpFile httpFile) {
             final String theRef = ref;
-            final HttpLoadProcess httpLoadProcess =
-                new HttpLoadProcess(wb, httpFile);
+            final HttpLoadProcess httpLoadProcess = new HttpLoadProcess(wb, httpFile);
             Runnable successRunnable = () -> {
                 final String contentType = httpLoadProcess.getContentType();
                 Log.debug("content-type = " + contentType);
@@ -379,9 +372,10 @@ public final class WebBuffer extends Buffer implements WebConstants {
                     }
                     return;
                 }
-                if (
-                    wb.loadLocalFile(httpLoadProcess.getCache(), contentType, httpLoadProcess.getCache().getEncoding())
-                ) {
+                if (wb.loadLocalFile(
+                    httpLoadProcess.getCache(),
+                    contentType,
+                    httpLoadProcess.getCache().getEncoding())) {
                     wb.saveHistory(historyFile, historyOffset, historyContentType);
                     wb.setFile(httpLoadProcess.getFile());
                     wb.setCache(httpLoadProcess.getCache());
@@ -456,8 +450,7 @@ public final class WebBuffer extends Buffer implements WebConstants {
                 int where = 0;
                 final int size = segmentList.size();
                 for (int i = 0; i < size; i++) {
-                    HtmlLineSegment seg =
-                        (HtmlLineSegment) segmentList.getSegment(i);
+                    HtmlLineSegment seg = (HtmlLineSegment) segmentList.getSegment(i);
                     if (seg.getLink() != null) {
                         if (segment == null || where < offset)
                             segment = seg;
@@ -496,12 +489,7 @@ public final class WebBuffer extends Buffer implements WebConstants {
         return height;
     }
 
-    private void insertImage(
-        final Editor editor,
-        final Line line,
-        final HtmlLineSegment segment,
-        final Image image
-    ) {
+    private void insertImage(final Editor editor, final Line line, final HtmlLineSegment segment, final Image image) {
         final int imageHeight = image.getHeight(null);
         if (imageHeight == 0)
             return;
@@ -525,12 +513,7 @@ public final class WebBuffer extends Buffer implements WebConstants {
         final int imageWidth = image.getWidth(null);
         Line dotLine = null;
         for (int y = 0; y < imageHeight; y += lineHeight) {
-            Rectangle r = new Rectangle(
-                0,
-                y,
-                imageWidth,
-                Math.min(lineHeight, imageHeight - y)
-            );
+            Rectangle r = new Rectangle(0, y, imageWidth, Math.min(lineHeight, imageHeight - y));
             ImageLine imageLine = new ImageLine(image, r);
             imageLine.insertAfter(before);
             before = imageLine;
@@ -549,11 +532,7 @@ public final class WebBuffer extends Buffer implements WebConstants {
         }
     }
 
-    public void saveHistory(
-        File historyFile,
-        int historyOffset,
-        String historyContentType
-    ) {
+    public void saveHistory(File historyFile, int historyOffset, String historyContentType) {
         if (history == null)
             history = new WebHistory();
         else
@@ -570,11 +549,7 @@ public final class WebBuffer extends Buffer implements WebConstants {
         return loadLocalFile(localFile, contentType, null);
     }
 
-    private boolean loadLocalFile(
-        File localFile,
-        String contentType,
-        String encoding
-    ) {
+    private boolean loadLocalFile(File localFile, String contentType, String encoding) {
         // Look for Unicode byte order mark. If we find it, use it to
         // determine the encoding.
         InputStream inputStream;
@@ -672,11 +647,7 @@ public final class WebBuffer extends Buffer implements WebConstants {
         WebHistoryEntry previous = history.getPrevious();
         if (previous != null) {
             if (atEnd)
-                history.append(
-                    wb.getFile(),
-                    wb.getAbsoluteOffset(editor.getDot()),
-                    wb.getContentType()
-                );
+                history.append(wb.getFile(), wb.getAbsoluteOffset(editor.getDot()), wb.getContentType());
             else if (current != null)
                 current.setOffset(wb.getAbsoluteOffset(editor.getDot()));
             else
@@ -898,8 +869,7 @@ public final class WebBuffer extends Buffer implements WebConstants {
         if (buffer instanceof WebBuffer) {
             Position pos = editor.getDot();
             if (pos != null && pos.getLine() instanceof WebLine) {
-                HtmlLineSegment segment =
-                    ((WebLine) pos.getLine()).findSegment(pos.getOffset());
+                HtmlLineSegment segment = ((WebLine) pos.getLine()).findSegment(pos.getOffset());
                 if (segment != null) {
                     Link link = segment.getLink();
                     if (link == null)
@@ -922,11 +892,7 @@ public final class WebBuffer extends Buffer implements WebConstants {
                             ref = target.substring(index);
                         } else
                             filename = target;
-                        final File destination =
-                            resolve(
-                                buffer.getFile().getParentFile(),
-                                filename
-                            );
+                        final File destination = resolve(buffer.getFile().getParentFile(), filename);
                         if (destination != null) {
                             copy = destination.netPath();
                             if (ref != null)

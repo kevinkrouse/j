@@ -35,12 +35,7 @@ final class VimSearchPrompt extends DefaultTextFieldHandler {
     private final VimInputHandler handler;
     private final boolean forward;
 
-    private VimSearchPrompt(
-        Editor editor,
-        HistoryTextField textField,
-        VimInputHandler handler,
-        boolean forward
-    ) {
+    private VimSearchPrompt(Editor editor, HistoryTextField textField, VimInputHandler handler, boolean forward) {
         super(editor, textField);
         this.handler = handler;
         this.forward = forward;
@@ -52,11 +47,7 @@ final class VimSearchPrompt extends DefaultTextFieldHandler {
      * @return false when there is nowhere to put it, as in a frameless
      *         editor; the caller then has no search to wait for
      */
-    static boolean open(
-        Editor editor,
-        VimInputHandler handler,
-        boolean forward
-    ) {
+    static boolean open(Editor editor, VimInputHandler handler, boolean forward) {
         // The frame owns focus and the session properties history is stored
         // in, so without one there is nothing to prompt with.
         if (editor.getFrame() == null)
@@ -68,14 +59,7 @@ final class VimSearchPrompt extends DefaultTextFieldHandler {
         if (textField == null)
             return false;
         locationBar.setLabelText(LocationBar.PROMPT_PATTERN);
-        textField.setHandler(
-            new VimSearchPrompt(
-                editor,
-                textField,
-                handler,
-                forward
-            )
-        );
+        textField.setHandler(new VimSearchPrompt(editor, textField, handler, forward));
         textField.setHistory(new History("vim.search"));
         textField.setText("");
         editor.setFocusToTextField();
@@ -102,14 +86,7 @@ final class VimSearchPrompt extends DefaultTextFieldHandler {
     /** A chord the c map binds, as CTRL-G, before the field sees it. */
     @Override
     public void keyPressed(KeyEvent e) {
-        if (
-            handler.runCommandLineKey(
-                editor,
-                e.getKeyCode(),
-                e.getKeyChar(),
-                Keys.keyModifiers(e)
-            )
-        ) {
+        if (handler.runCommandLineKey(editor, e.getKeyCode(), e.getKeyChar(), Keys.keyModifiers(e))) {
             e.consume();
             editor.getDispatcher().eventHandled();
             return;

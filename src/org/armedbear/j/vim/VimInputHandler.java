@@ -122,18 +122,11 @@ public final class VimInputHandler implements InputHandler {
 
     @Override
     public int[] getBlockSelection(Editor editor, Line line) {
-        if (
-            !isBlockSelection()
-                || editor.getMark() == null
-                || editor.getDot() == null
-        )
+        if (!isBlockSelection() || editor.getMark() == null || editor.getDot() == null)
             return null;
         final Block block = VimVisual.block(editor, state);
         final int n = line.lineNumber();
-        if (
-            n < block.getFirstLine().lineNumber()
-                || n > block.getLastLine().lineNumber()
-        )
+        if (n < block.getFirstLine().lineNumber() || n > block.getLastLine().lineNumber())
             return null;
         return block.getOffsets(line);
     }
@@ -187,20 +180,9 @@ public final class VimInputHandler implements InputHandler {
         if (typedLine != null) {
             // Enter and Backspace are the only key-coded ones a pattern
             // cares about; the characters arrive as key typed.
-            if (
-                keyCode == KeyEvent.VK_ENTER
-                    || keyCode == KeyEvent.VK_BACK_SPACE
-            )
+            if (keyCode == KeyEvent.VK_ENTER || keyCode == KeyEvent.VK_BACK_SPACE)
                 return collectLine(editor, keyCode, KeyEvent.CHAR_UNDEFINED);
-            if (
-                typedKind == LineKind.SEARCH
-                    && runCommandLineKey(
-                        editor,
-                        keyCode,
-                        event.getKeyChar(),
-                        modifiers
-                    )
-            )
+            if (typedKind == LineKind.SEARCH && runCommandLineKey(editor, keyCode, event.getKeyChar(), modifiers))
                 return Result.CONSUMED;
             return Result.DEFER;
         }
@@ -212,16 +194,14 @@ public final class VimInputHandler implements InputHandler {
             if (!insertBindingKeys.isEmpty()) {
                 if (!isNamedKey(keyCode) && !isChorded(modifiers))
                     return Result.DEFER;
-                final String key =
-                    KeyNotation.name(keyCode, event.getKeyChar(), modifiers);
+                final String key = KeyNotation.name(keyCode, event.getKeyChar(), modifiers);
                 if (runInsertBinding(editor, key))
                     return Result.CONSUMED;
             }
             final int recordedTo = recording.length();
             final int insertKeysTo = state.insertKeysLength();
             if (!replaying && isNamedKey(keyCode)) {
-                final String name =
-                    KeyNotation.name(keyCode, event.getKeyChar(), modifiers);
+                final String name = KeyNotation.name(keyCode, event.getKeyChar(), modifiers);
                 if (recordingEdit)
                     recording.append(name);
                 state.noteInsertKey(name);
@@ -229,21 +209,12 @@ public final class VimInputHandler implements InputHandler {
             // A chorded key bound in insert mode -- CTRL-T, CTRL-D -- is the
             // vim command, not j's: j binds Ctrl-D to dir, which would open
             // a directory buffer in the middle of typing.
-            if (
-                isChorded(modifiers)
-                    && runInsertBinding(
-                        editor,
-                        KeyNotation.name(keyCode, event.getKeyChar(), modifiers)
-                    )
-            )
+            if (isChorded(modifiers)
+                    && runInsertBinding(editor, KeyNotation.name(keyCode, event.getKeyChar(), modifiers)))
                 return Result.CONSUMED;
             // Enter is j's, but the indent it makes is the session's: Escape
             // straight after it takes the indent away again.
-            if (
-                keyCode == KeyEvent.VK_ENTER
-                    && !isChorded(modifiers)
-                    && VimActions.insertNewline(editor, state, event)
-            )
+            if (keyCode == KeyEvent.VK_ENTER && !isChorded(modifiers) && VimActions.insertNewline(editor, state, event))
                 return Result.CONSUMED;
             // Tab is typing too, and arrives with no character.
             if (keyCode == KeyEvent.VK_TAB && !isChorded(modifiers))
@@ -271,9 +242,7 @@ public final class VimInputHandler implements InputHandler {
             return Result.PASS_THROUGH;
         }
 
-        final boolean modified =
-            (modifiers & (Constants.CTRL_MASK | Constants.ALT_MASK
-                | Constants.META_MASK)) != 0;
+        final boolean modified = (modifiers & (Constants.CTRL_MASK | Constants.ALT_MASK | Constants.META_MASK)) != 0;
         if (!modified && !isNamedKey(keyCode)) {
             // An ordinary character: decide once we know which one it is.
             return Result.DEFER;
@@ -301,28 +270,16 @@ public final class VimInputHandler implements InputHandler {
      * @param recordedTo   the recording's length before this key was added
      * @param insertKeysTo the session's keys' length before it
      */
-    private Result runInInsert(
-        Editor editor,
-        JEvent event,
-        int recordedTo,
-        int insertKeysTo
-    ) {
+    private Result runInInsert(Editor editor, JEvent event, int recordedTo, int insertKeysTo) {
         final Buffer buffer = editor.getBuffer();
-        final Position before =
-            editor.getDot() != null ? new Position(editor.getDot()) : null;
+        final Position before = editor.getDot() != null ? new Position(editor.getDot()) : null;
         final int modCount = buffer.getModCount();
         if (!editor.handleKeyMapEvent(event))
             return Result.DEFER; // unbound: the key maps' own false
         final Position after = editor.getDot();
         // Not after a binding that left insert mode or the buffer: that has
         // already ended the session.
-        if (
-            replaying
-                || before == null
-                || after == null
-                || editor.getBuffer() != buffer
-                || !state.getMode().isInsert()
-        )
+        if (replaying || before == null || after == null || editor.getBuffer() != buffer || !state.getMode().isInsert())
             return Result.CONSUMED;
         if (buffer.getModCount() != modCount) {
             state.insertDeletedBack(editor);
@@ -363,9 +320,7 @@ public final class VimInputHandler implements InputHandler {
      */
     private boolean runInsertBinding(Editor editor, String key) {
         insertBindingKeys.add(key);
-        final KeyStrokeTrie.Match<VimCommand> match = keyMap
-            .getTrie(MappingMode.INSERT)
-            .match(insertBindingKeys);
+        final KeyStrokeTrie.Match<VimCommand> match = keyMap.getTrie(MappingMode.INSERT).match(insertBindingKeys);
         if (match.status == KeyStrokeTrie.Status.PARTIAL)
             return true;
         final List<String> keys = new ArrayList<>(insertBindingKeys);
@@ -388,8 +343,7 @@ public final class VimInputHandler implements InputHandler {
 
     /** True when a modifier other than Shift is held. */
     private static boolean isChorded(int modifiers) {
-        return (modifiers & (Constants.CTRL_MASK | Constants.ALT_MASK
-            | Constants.META_MASK)) != 0;
+        return (modifiers & (Constants.CTRL_MASK | Constants.ALT_MASK | Constants.META_MASK)) != 0;
     }
 
     private Result keyTyped(Editor editor, JEvent event)
@@ -400,13 +354,7 @@ public final class VimInputHandler implements InputHandler {
 
         if (!state.getMode().isCommandMode()) {
             state.noteInsertStart(editor);
-            if (
-                !insertBindingKeys.isEmpty()
-                    && runInsertBinding(
-                        editor,
-                        KeyNotation.name(0, event.getKeyChar(), 0)
-                    )
-            )
+            if (!insertBindingKeys.isEmpty() && runInsertBinding(editor, KeyNotation.name(0, event.getKeyChar(), 0)))
                 return Result.CONSUMED;
             if (!replaying) {
                 final String name = KeyNotation.name(0, event.getKeyChar(), 0);
@@ -416,18 +364,12 @@ public final class VimInputHandler implements InputHandler {
             }
             final char typed = event.getKeyChar();
             // Typing makes the indent the user's.
-            if (
-                typed >= ' '
-                    && typed != KeyEvent.CHAR_UNDEFINED
-                    && typed != '\u007f'
-            )
+            if (typed >= ' ' && typed != KeyEvent.CHAR_UNDEFINED && typed != '\u007f')
                 state.forgetAutoIndent();
-            if (
-                state.getMode() == VimMode.REPLACE
+            if (state.getMode() == VimMode.REPLACE
                     && typed >= ' '
                     && typed != KeyEvent.CHAR_UNDEFINED
-                    && typed != '\u007f'
-            ) {
+                    && typed != '\u007f') {
                 VimActions.replaceTypedCharacter(editor, state, typed);
                 return Result.CONSUMED;
             }
@@ -442,8 +384,8 @@ public final class VimInputHandler implements InputHandler {
             return Result.CONSUMED;
         }
         final String key = highSurrogate != 0 && Character.isLowSurrogate(c)
-            ? new String(new char[] { highSurrogate, c })
-            : KeyNotation.name(0, c, 0);
+                ? new String(new char[] { highSurrogate, c })
+                : KeyNotation.name(0, c, 0);
         highSurrogate = 0;
         dispatch(editor, key, 0);
         resumeInsert(editor);
@@ -483,10 +425,7 @@ public final class VimInputHandler implements InputHandler {
             // Leaving insert steps back onto the last character typed.
             final Position dot = editor.getDot();
             if (dot != null && dot.getOffset() > 0)
-                editor.setDot(
-                    dot.getLine(),
-                    CodePoints.previous(dot.getLine(), dot.getOffset())
-                );
+                editor.setDot(dot.getLine(), CodePoints.previous(dot.getLine(), dot.getOffset()));
             editor.moveCaretToDotCol();
             // I and A over a block go back to its top left.
             final Position landing = state.takeBlockInsertLanding();
@@ -538,14 +477,12 @@ public final class VimInputHandler implements InputHandler {
             state.forgetOneCommand();
             return;
         }
-        if (
-            state.getMode().isVisual()
+        if (state.getMode().isVisual()
                 || !builder.isEmpty()
                 || pendingSearch != null
                 || typedLine != null
                 || exPromptOpen
-                || state.hasPendingRegister()
-        )
+                || state.hasPendingRegister())
             return;
         state.resumeInsert(editor);
         if (!replaying) {
@@ -593,10 +530,7 @@ public final class VimInputHandler implements InputHandler {
         if (at == null || !state.isUntouchedAutoIndent(at.getLine()))
             return;
         final Line line = at.getLine();
-        editor.deleteRegion(
-            new Position(line, 0),
-            new Position(line, line.length())
-        );
+        editor.deleteRegion(new Position(line, 0), new Position(line, line.length()));
     }
 
     // ---------------------------------------------------------- dispatch
@@ -613,11 +547,9 @@ public final class VimInputHandler implements InputHandler {
             return true;
 
         builder.pushKey(key);
-        final MappingMode mappingMode = builder.hasOperator()
-            ? MappingMode.OP_PENDING
-            : MappingMode.forVimMode(state.getMode());
-        final KeyStrokeTrie<VimCommand> trie =
-            (builtInOnly ? keyMap.getBuiltIn() : keyMap).getTrie(mappingMode);
+        final MappingMode mappingMode =
+                builder.hasOperator() ? MappingMode.OP_PENDING : MappingMode.forVimMode(state.getMode());
+        final KeyStrokeTrie<VimCommand> trie = (builtInOnly ? keyMap.getBuiltIn() : keyMap).getTrie(mappingMode);
         final KeyStrokeTrie.Match<VimCommand> match = trie.match(builder.getKeys());
 
         switch (match.status) {
@@ -646,12 +578,7 @@ public final class VimInputHandler implements InputHandler {
         }
         fallback = null;
 
-        final boolean handled = execute(
-            editor,
-            match.value,
-            match.character,
-            depth
-        );
+        final boolean handled = execute(editor, match.value, match.character, depth);
         if (depth == 0)
             afterCommand();
         return handled;
@@ -683,11 +610,7 @@ public final class VimInputHandler implements InputHandler {
         // A search has already cleared the builder, so hasOperator no longer
         // shows that a command is still in flight -- without this the keys
         // typed so far are thrown away before the pattern arrives.
-        if (
-            builder.hasOperator()
-                || pendingSearch != null
-                || state.getMode().isInsert()
-        )
+        if (builder.hasOperator() || pendingSearch != null || state.getMode().isInsert())
             return;
         clearRecording();
     }
@@ -750,9 +673,7 @@ public final class VimInputHandler implements InputHandler {
         if (lastChange == null || replaying)
             return;
         // A count given to '.' replaces the one the change was made with.
-        final String keys = countGiven
-            ? countGiven(lastChange, count)
-            : lastChange;
+        final String keys = countGiven ? countGiven(lastChange, count) : lastChange;
         runKeys(editor, keys);
     }
 
@@ -797,11 +718,9 @@ public final class VimInputHandler implements InputHandler {
     private void dispatchReplay(Editor editor, String key) {
         // Text takes a surrogate pair as the two events AWT sends; only a
         // command takes it as one key.
-        if (
-            (typedLine != null || state.getMode().isInsert())
+        if ((typedLine != null || state.getMode().isInsert())
                 && key.length() == 2
-                && Character.isSurrogatePair(key.charAt(0), key.charAt(1))
-        ) {
+                && Character.isSurrogatePair(key.charAt(0), key.charAt(1))) {
             dispatchReplay(editor, key.substring(0, 1));
             dispatchReplay(editor, key.substring(1));
             return;
@@ -820,10 +739,7 @@ public final class VimInputHandler implements InputHandler {
                 return;
             }
             state.noteInsertKey(key);
-            if (
-                (isChorded(stroke.modifiers) || !insertBindingKeys.isEmpty())
-                    && runInsertBinding(editor, key)
-            )
+            if ((isChorded(stroke.modifiers) || !insertBindingKeys.isEmpty()) && runInsertBinding(editor, key))
                 return;
             typeInsertKey(editor, stroke);
             return;
@@ -859,36 +775,18 @@ public final class VimInputHandler implements InputHandler {
                 EditCommands.backspace(editor);
             state.insertDeletedBack(editor);
         } else if (stroke.keyCode == KeyEvent.VK_ENTER) {
-            VimActions.insertNewline(
-                editor,
-                state,
-                new JEvent(JEvent.KEY_PRESSED, KeyEvent.VK_ENTER, '\n', 0)
-            );
-        } else if (
-            stroke.keyCode == KeyEvent.VK_TAB
-                && state.getMode() == VimMode.REPLACE
-        ) {
+            VimActions.insertNewline(editor, state, new JEvent(JEvent.KEY_PRESSED, KeyEvent.VK_ENTER, '\n', 0));
+        } else if (stroke.keyCode == KeyEvent.VK_TAB && state.getMode() == VimMode.REPLACE) {
             VimActions.replaceTypedCharacter(editor, state, '\t');
         } else if (isNamedKey(stroke.keyCode)) {
             // Delete, Tab, an arrow: whatever j binds it to, as it was
             // when typed. Its character is not text: Delete's is DEL.
             if (stroke.keyCode == KeyEvent.VK_TAB)
                 state.forgetAutoIndent();
-            editor.handleKeyMapEvent(
-                new JEvent(
-                    JEvent.KEY_PRESSED,
-                    stroke.keyCode,
-                    stroke.keyChar,
-                    stroke.modifiers
-                )
-            );
+            editor.handleKeyMapEvent(new JEvent(JEvent.KEY_PRESSED, stroke.keyCode, stroke.keyChar, stroke.modifiers));
         } else if (stroke.keyChar != KeyEvent.CHAR_UNDEFINED) {
             if (state.getMode() == VimMode.REPLACE)
-                VimActions.replaceTypedCharacter(
-                    editor,
-                    state,
-                    stroke.keyChar
-                );
+                VimActions.replaceTypedCharacter(editor, state, stroke.keyChar);
             else
                 EditCommands.insertNormalChar(editor, stroke.keyChar);
             state.forgetAutoIndent();
@@ -903,12 +801,7 @@ public final class VimInputHandler implements InputHandler {
     }
 
     /** Runs a command the keys have completely spelled. */
-    private boolean execute(
-        Editor editor,
-        VimCommand command,
-        String character,
-        int depth
-    ) {
+    private boolean execute(Editor editor, VimCommand command, String character, int depth) {
         if (command.getKind() == VimCommand.Kind.OPERATOR) {
             acceptOperator(editor, command);
             return true;
@@ -973,13 +866,12 @@ public final class VimInputHandler implements InputHandler {
         Position start;
 
         PendingSearch(
-            VimCommand operator,
-            int count,
-            boolean countGiven,
-            boolean forward,
-            Position origin,
-            Line topLine
-        ) {
+                VimCommand operator,
+                int count,
+                boolean countGiven,
+                boolean forward,
+                Position origin,
+                Line topLine) {
             this.operator = operator;
             this.count = count;
             this.countGiven = countGiven;
@@ -1007,23 +899,15 @@ public final class VimInputHandler implements InputHandler {
     private LineKind typedKind = LineKind.SEARCH;
 
     /** / and ?: park the command and hand the keyboard to the prompt. */
-    private void startSearch(
-        Editor editor,
-        VimCommand operator,
-        VimCommand command,
-        int count,
-        boolean countGiven
-    ) {
+    private void startSearch(Editor editor, VimCommand operator, VimCommand command, int count, boolean countGiven) {
         final boolean forward = command.getBoolean("forward");
         final Position dot = editor.getDot();
-        pendingSearch = new PendingSearch(
-            operator,
-            count,
-            countGiven,
-            forward,
-            dot == null ? null : new Position(dot),
-            editor.getTopLine()
-        );
+        pendingSearch = new PendingSearch(operator,
+                count,
+                countGiven,
+                forward,
+                dot == null ? null : new Position(dot),
+                editor.getTopLine());
         // A replay has the pattern in its own keys, so it must not put a
         // prompt on screen and wait for someone to type it again.
         if (replaying || !VimSearchPrompt.open(editor, this, forward))
@@ -1041,12 +925,7 @@ public final class VimInputHandler implements InputHandler {
      * {@code :} register it can name exists, so {@code @a} does nothing,
      * which is also what vim does with an empty register.
      */
-    private void runEx(
-        Editor editor,
-        VimCommand command,
-        String character,
-        int count
-    ) {
+    private void runEx(Editor editor, VimCommand command, String character, int count) {
         if (command.getCommand().equals("repeatRegister")) {
             if (":".equals(character))
                 repeatEx(editor, count);
@@ -1118,18 +997,8 @@ public final class VimInputHandler implements InputHandler {
      * @param modifiers j's, as {@code Keys.keyModifiers} gives them
      * @return false when it is not bound, so it goes to the prompt
      */
-    public boolean runCommandLineKey(
-        Editor editor,
-        int keyCode,
-        char keyChar,
-        int modifiers
-    ) {
-        return isChorded(modifiers)
-            && runCommandLineKey(
-                editor,
-                KeyNotation.name(keyCode, keyChar, modifiers),
-                0
-            );
+    public boolean runCommandLineKey(Editor editor, int keyCode, char keyChar, int modifiers) {
+        return isChorded(modifiers) && runCommandLineKey(editor, KeyNotation.name(keyCode, keyChar, modifiers), 0);
     }
 
     /**
@@ -1137,15 +1006,13 @@ public final class VimInputHandler implements InputHandler {
      * {@code cmap <C-j> <C-g>} makes, stands for the c map key it names.
      */
     private boolean runCommandLineKey(Editor editor, String key, int depth) {
-        final KeyStrokeTrie.Match<VimCommand> match = keyMap
-            .getTrie(MappingMode.COMMAND_LINE)
-            .match(Collections.singletonList(key));
+        final KeyStrokeTrie.Match<VimCommand> match =
+                keyMap.getTrie(MappingMode.COMMAND_LINE).match(Collections.singletonList(key));
         if (match.status != KeyStrokeTrie.Status.FULL)
             return false;
         final VimCommand command = match.value;
         if (command.getKind() == VimCommand.Kind.KEY_TO_KEY)
-            return depth < MAX_KEY_TO_KEY_DEPTH
-                && runCommandLineKey(editor, command.getCommand(), depth + 1);
+            return depth < MAX_KEY_TO_KEY_DEPTH && runCommandLineKey(editor, command.getCommand(), depth + 1);
         run(editor, command, 1, false, match.character, 1);
         return true;
     }
@@ -1181,17 +1048,9 @@ public final class VimInputHandler implements InputHandler {
         if (!replaying)
             recording.append(pattern).append("<CR>");
 
-        final VimSearch.Query query =
-            new VimSearch.Query(pattern, pending.forward, false);
+        final VimSearch.Query query = new VimSearch.Query(pattern, pending.forward, false);
         state.setLastSearch(editor, query);
-        moveToMatch(
-            editor,
-            query,
-            pending.operator,
-            searchCount(pending),
-            pending.countGiven,
-            pending.start
-        );
+        moveToMatch(editor, query, pending.operator, searchCount(pending), pending.countGiven, pending.start);
         // This ran outside dispatch, so finish the command here: otherwise
         // the edited flag stays set and the next key typed is recorded as
         // the last change.
@@ -1248,31 +1107,21 @@ public final class VimInputHandler implements InputHandler {
      * and anything with an {@code =} in it as a property assignment, which
      * would silently eat {@code :s/a=b/c/}.
      */
-    private void runJCommand(Editor editor, VimEx.Command command)
-        throws VimEx.BadCommand {
+    private void runJCommand(Editor editor, VimEx.Command command) throws VimEx.BadCommand {
         if (CommandTable.getCommand(command.name) == null)
-            throw new VimEx.BadCommand(
-                "E492: Not an editor command: " + command.name
-            );
+            throw new VimEx.BadCommand("E492: Not an editor command: " + command.name);
         // j's commands know nothing of ranges, so one given here would be
         // silently dropped and the command would run somewhere else entirely.
         // Say so rather than do the wrong thing quietly.
         if (command.range.given)
-            throw new VimEx.BadCommand(
-                "E481: No range allowed: " + command.name
-            );
+            throw new VimEx.BadCommand("E481: No range allowed: " + command.name);
         if (command.bang)
             throw new VimEx.BadCommand("E477: No ! allowed");
         try {
-            editor.execute(
-                command.name,
-                command.args.isEmpty() ? null : command.args
-            );
+            editor.execute(command.name, command.args.isEmpty() ? null : command.args);
         }
         catch (NoSuchMethodException e) {
-            throw new VimEx.BadCommand(
-                "E492: Not an editor command: " + command.name
-            );
+            throw new VimEx.BadCommand("E492: Not an editor command: " + command.name);
         }
     }
 
@@ -1309,25 +1158,15 @@ public final class VimInputHandler implements InputHandler {
      */
     public void searchTyped(Editor editor, String pattern) {
         final PendingSearch pending = pendingSearch;
-        if (
-            pending == null
-                || pending.origin == null
-                || !VimKeyMap.getSharedOptions().isOn("incsearch")
-        )
+        if (pending == null || pending.origin == null || !VimKeyMap.getSharedOptions().isOn("incsearch"))
             return;
         pending.typed = pattern;
-        final VimSearch.Query query = pattern == null || pattern.isEmpty()
-            ? null
-            : new VimSearch.Query(pattern, pending.forward, false);
+        final VimSearch.Query query =
+                pattern == null || pattern.isEmpty() ? null : new VimSearch.Query(pattern, pending.forward, false);
         Position to = null;
         if (query != null) {
             try {
-                to = VimSearch.find(
-                    editor,
-                    query,
-                    searchStart(pending),
-                    searchCount(pending)
-                );
+                to = VimSearch.find(editor, query, searchStart(pending), searchCount(pending));
             }
             catch (VimSearch.BadPattern e) {
                 // Half typed, as \( is on its way to \(a\).
@@ -1344,12 +1183,8 @@ public final class VimInputHandler implements InputHandler {
         final PendingSearch pending = pendingSearch;
         if (pending == null || pending.shown == null)
             return;
-        final Position to = VimSearch.find(
-            editor,
-            new VimSearch.Query(pending.typed, forward, false),
-            pending.shown,
-            1
-        );
+        final Position to =
+                VimSearch.find(editor, new VimSearch.Query(pending.typed, forward, false), pending.shown, 1);
         if (to == null)
             return;
         final Position start = new Position(to);
@@ -1358,12 +1193,7 @@ public final class VimInputHandler implements InputHandler {
         else
             start.next();
         pending.start = start;
-        showPreview(
-            editor,
-            pending,
-            new VimSearch.Query(pending.typed, pending.forward, false),
-            to
-        );
+        showPreview(editor, pending, new VimSearch.Query(pending.typed, pending.forward, false), to);
     }
 
     /** Where the search runs from: where it was typed, or where it moved. */
@@ -1377,12 +1207,7 @@ public final class VimInputHandler implements InputHandler {
     }
 
     /** The caret on the match found, or back where it was for none. */
-    private void showPreview(
-        Editor editor,
-        PendingSearch pending,
-        VimSearch.Query query,
-        Position to
-    ) {
+    private void showPreview(Editor editor, PendingSearch pending, VimSearch.Query query, Position to) {
         pending.shown = to;
         pending.previewed = true;
         state.setSearchPreview(editor, query, to);
@@ -1432,24 +1257,18 @@ public final class VimInputHandler implements InputHandler {
      * is from the caret either way.
      */
     private void moveToMatch(
-        Editor editor,
-        VimSearch.Query query,
-        VimCommand operator,
-        int count,
-        boolean countGiven,
-        Position searchFrom
-    ) {
+            Editor editor,
+            VimSearch.Query query,
+            VimCommand operator,
+            int count,
+            boolean countGiven,
+            Position searchFrom) {
         final Position from = editor.getDot();
         if (from == null)
             return;
         final Position to;
         try {
-            to = VimSearch.find(
-                editor,
-                query,
-                searchFrom != null ? searchFrom : from,
-                count
-            );
+            to = VimSearch.find(editor, query, searchFrom != null ? searchFrom : from, count);
         }
         catch (VimSearch.BadPattern e) {
             editor.status("Bad pattern: " + e.getMessage());
@@ -1461,20 +1280,9 @@ public final class VimInputHandler implements InputHandler {
         }
 
         if (operator != null) {
-            final VimRange range = RangeNormalizer.normalize(
-                new Position(from),
-                to,
-                MotionKind.CHARWISE_EXCLUSIVE,
-                query.forward
-            );
-            applyOperator(
-                editor,
-                operator,
-                deleteRule(operator, range),
-                count,
-                countGiven,
-                null
-            );
+            final VimRange range =
+                    RangeNormalizer.normalize(new Position(from), to, MotionKind.CHARWISE_EXCLUSIVE, query.forward);
+            applyOperator(editor, operator, deleteRule(operator, range), count, countGiven, null);
             return;
         }
         state.jumped(editor, from);
@@ -1495,15 +1303,8 @@ public final class VimInputHandler implements InputHandler {
      * Bound only in operator-pending and visual, so there is no third case --
      * a bare {@code iw} in normal mode never reaches here.
      */
-    private void runTextObject(
-        Editor editor,
-        VimCommand operator,
-        VimCommand command,
-        int count,
-        boolean countGiven
-    ) {
-        final VimTextObjects.TextObject object =
-            VimTextObjects.get(command.getCommand());
+    private void runTextObject(Editor editor, VimCommand operator, VimCommand command, int count, boolean countGiven) {
+        final VimTextObjects.TextObject object = VimTextObjects.get(command.getCommand());
         if (object == null) {
             Log.error("vim: no text object named " + command.getCommand());
             return;
@@ -1511,29 +1312,14 @@ public final class VimInputHandler implements InputHandler {
         final Position from = editor.getDot();
         if (from == null)
             return;
-        final MotionContext ctx = new MotionContext(
-            this,
-            editor,
-            state,
-            count,
-            countGiven,
-            command,
-            null,
-            operator != null
-        );
+        final MotionContext ctx =
+                new MotionContext(this, editor, state, count, countGiven, command, null, operator != null);
         final VimRange range = object.range(ctx, from, ctx.arg("inner"));
         if (range == null)
             return;
 
         if (operator != null) {
-            applyOperator(
-                editor,
-                operator,
-                deleteRule(operator, range),
-                count,
-                countGiven,
-                null
-            );
+            applyOperator(editor, operator, deleteRule(operator, range), count, countGiven, null);
             return;
         }
         selectRange(editor, range);
@@ -1545,18 +1331,14 @@ public final class VimInputHandler implements InputHandler {
         // covers get painted back. Nothing below sets an update flag, and a
         // text object can shrink a selection as easily as grow it.
         final Position wasMark = editor.getMark();
-        final Line wasFrom = wasMark != null
-            ? wasMark.getLine()
-            : editor.getDotLine();
+        final Line wasFrom = wasMark != null ? wasMark.getLine() : editor.getDotLine();
         final Line wasTo = editor.getDotLine();
 
         editor.setDot(new Position(range.start));
         editor.setMarkAtDot();
         // The selection is mark..dot and vim's includes the character under
         // the caret, so the caret sits one short of the range's open end.
-        final Position last = range.linewise
-            ? new Position(range.last, range.last.length())
-            : new Position(range.end);
+        final Position last = range.linewise ? new Position(range.last, range.last.length()) : new Position(range.end);
         if (!range.linewise && !range.start.equals(last))
             last.prev();
         editor.setDot(last);
@@ -1568,11 +1350,9 @@ public final class VimInputHandler implements InputHandler {
             state.setMode(editor, VimMode.VISUAL_LINE);
         state.clampCaret(editor);
         editor.updateDotLine();
-        if (
-            wasFrom != range.start.getLine()
+        if (wasFrom != range.start.getLine()
                 || wasTo != editor.getDotLine()
-                || range.start.getLine() != editor.getDotLine()
-        )
+                || range.start.getLine() != editor.getDotLine())
             state.selectionReshaped(editor);
     }
 
@@ -1591,10 +1371,7 @@ public final class VimInputHandler implements InputHandler {
             final boolean block = state.getMode() == VimMode.VISUAL_BLOCK;
             if (block && operator.getBoolean("blockToEol"))
                 state.setDesiredColumn(VimState.STICKY_EOL);
-            else if (
-                operator.getBoolean("linewise")
-                    && !(block && operator.getBoolean("blockAsIs"))
-            )
+            else if (operator.getBoolean("linewise") && !(block && operator.getBoolean("blockAsIs")))
                 state.setMode(editor, VimMode.VISUAL_LINE);
             state.setOperatorStart(VimVisual.operatorStart(editor, state));
             final VimRange range = VimVisual.take(editor, state);
@@ -1605,8 +1382,7 @@ public final class VimInputHandler implements InputHandler {
         }
         final VimCommand pending = builder.getOperator();
         if (pending != null) {
-            final boolean doubled =
-                pending.getCommand().equals(operator.getCommand());
+            final boolean doubled = pending.getCommand().equals(operator.getCommand());
             final int count = builder.getEffectiveCount();
             builder.reset();
             if (doubled)
@@ -1628,12 +1404,8 @@ public final class VimInputHandler implements InputHandler {
                 break;
             last = next;
         }
-        final VimRange range = RangeNormalizer.normalize(
-            new Position(from.getLine(), 0),
-            new Position(last, 0),
-            MotionKind.LINEWISE,
-            true
-        );
+        final VimRange range = RangeNormalizer
+                .normalize(new Position(from.getLine(), 0), new Position(last, 0), MotionKind.LINEWISE, true);
         applyOperator(editor, operator, range, count, true, null);
     }
 
@@ -1644,13 +1416,12 @@ public final class VimInputHandler implements InputHandler {
      * operator reaches.
      */
     private void runOperator(
-        Editor editor,
-        VimCommand operator,
-        VimCommand motionCommand,
-        int count,
-        boolean countGiven,
-        String character
-    ) {
+            Editor editor,
+            VimCommand operator,
+            VimCommand motionCommand,
+            int count,
+            boolean countGiven,
+            String character) {
         VimCommand effective = motionCommand;
         boolean forceInclusive = false;
 
@@ -1659,8 +1430,7 @@ public final class VimInputHandler implements InputHandler {
         if (isChangeWord(operator, motionCommand, editor)) {
             effective = VimKeyMap.parse(
                 "o w motion moveByWords forward,wordEnd,inclusive"
-                    + (motionCommand.getBoolean("bigWord") ? ",bigWord" : "")
-            );
+                        + (motionCommand.getBoolean("bigWord") ? ",bigWord" : ""));
             forceInclusive = true;
         }
 
@@ -1672,21 +1442,10 @@ public final class VimInputHandler implements InputHandler {
         final Position from = editor.getDot();
         if (from == null)
             return;
-        final MotionContext ctx = new MotionContext(
-            this,
-            editor,
-            state,
-            count,
-            countGiven,
-            effective,
-            character,
-            true
-        );
+        final MotionContext ctx = new MotionContext(this, editor, state, count, countGiven, effective, character, true);
         // Asked before the move, since a motion may update the state its kind
         // depends on -- f sets the search that a later ';' reads.
-        final MotionKind kind = forceInclusive
-            ? MotionKind.CHARWISE_INCLUSIVE
-            : motion.kindOf(ctx);
+        final MotionKind kind = forceInclusive ? MotionKind.CHARWISE_INCLUSIVE : motion.kindOf(ctx);
         final Position to = motion.move(ctx, from);
         if (to == null)
             return;
@@ -1704,69 +1463,44 @@ public final class VimInputHandler implements InputHandler {
                 RangeNormalizer.clipWordMotionAtLineEnd(from, to);
         }
 
-        final VimRange range = RangeNormalizer.normalize(
-            new Position(from),
-            to,
-            kind,
-            effective.getBoolean("forward")
-        );
-        applyOperator(
-            editor,
-            operator,
-            deleteRule(operator, range),
-            count,
-            countGiven,
-            character
-        );
+        final VimRange range = RangeNormalizer.normalize(new Position(from), to, kind, effective.getBoolean("forward"));
+        applyOperator(editor, operator, deleteRule(operator, range), count, countGiven, character);
     }
 
     /**
      * cw on a non-blank behaves as ce. Vim documents this as a special case
      * and it is the one people notice: without it, cw eats the space too.
      */
-    private static boolean isChangeWord(
-        VimCommand operator,
-        VimCommand motionCommand,
-        Editor editor
-    ) {
+    private static boolean isChangeWord(VimCommand operator, VimCommand motionCommand, Editor editor) {
         if (!operator.getCommand().equals("change"))
             return false;
         if (!motionCommand.getCommand().equals("moveByWords"))
             return false;
-        if (
-            !motionCommand.getBoolean("forward")
-                || motionCommand.getBoolean("wordEnd")
-        )
+        if (!motionCommand.getBoolean("forward") || motionCommand.getBoolean("wordEnd"))
             return false;
         final Position dot = editor.getDot();
-        return dot != null
-            && dot.getOffset() < dot.getLineLength()
-            && !Character.isWhitespace(dot.getChar());
+        return dot != null && dot.getOffset() < dot.getLineLength() && !Character.isWhitespace(dot.getChar());
     }
 
     private static boolean isForwardWordStart(VimCommand motionCommand) {
         return motionCommand.getCommand().equals("moveByWords")
-            && motionCommand.getBoolean("forward")
-            && !motionCommand.getBoolean("wordEnd");
+                && motionCommand.getBoolean("forward")
+                && !motionCommand.getBoolean("wordEnd");
     }
 
     /** An operator-pending d, not a visual one, may take whole lines. */
     private static VimRange deleteRule(VimCommand operator, VimRange range) {
-        return operator.getCommand().equals("delete")
-            ? RangeNormalizer.deleteRange(range)
-            : range;
+        return operator.getCommand().equals("delete") ? RangeNormalizer.deleteRange(range) : range;
     }
 
     private void applyOperator(
-        Editor editor,
-        VimCommand operator,
-        VimRange range,
-        int count,
-        boolean countGiven,
-        String character
-    ) {
-        final VimOperators.Operator op =
-            VimOperators.get(operator.getCommand());
+            Editor editor,
+            VimCommand operator,
+            VimRange range,
+            int count,
+            boolean countGiven,
+            String character) {
+        final VimOperators.Operator op = VimOperators.get(operator.getCommand());
         if (op == null) {
             Log.error("vim: no operator named " + operator.getCommand());
             return;
@@ -1775,41 +1509,15 @@ public final class VimInputHandler implements InputHandler {
             return;
         if (isEdit(operator) && !replaying)
             edited = true;
-        op.apply(
-            new MotionContext(
-                this,
-                editor,
-                state,
-                count,
-                countGiven,
-                operator,
-                character
-            ),
-            range
-        );
+        op.apply(new MotionContext(this, editor, state, count, countGiven, operator, character), range);
         // Not every operator asks for it: y changes nothing to undo.
         state.takeOperatorStart();
         state.clearDesiredColumn();
         editor.updateDotLine();
     }
 
-    private void run(
-        Editor editor,
-        VimCommand command,
-        int count,
-        boolean countGiven,
-        String character,
-        int depth
-    ) {
-        final MotionContext ctx = new MotionContext(
-            this,
-            editor,
-            state,
-            count,
-            countGiven,
-            command,
-            character
-        );
+    private void run(Editor editor, VimCommand command, int count, boolean countGiven, String character, int depth) {
+        final MotionContext ctx = new MotionContext(this, editor, state, count, countGiven, command, character);
         switch (command.getKind()) {
             case MOTION:
                 runMotion(editor, ctx, command);
@@ -1831,8 +1539,7 @@ public final class VimInputHandler implements InputHandler {
                 // what 2 CTRL-F means -- unless the row says once, as
                 // CTRL-^ does: twice there would be back where it started.
                 final String param = command.getString("param", null);
-                final int times =
-                    command.getBoolean("once") ? 1 : Math.max(1, count);
+                final int times = command.getBoolean("once") ? 1 : Math.max(1, count);
                 boolean ran = true;
                 try {
                     for (int i = 0; i < times && ran; i++)
@@ -1849,18 +1556,12 @@ public final class VimInputHandler implements InputHandler {
                     break;
                 }
                 if (!ran)
-                    editor.status(
-                        "E492: Not an editor command: "
-                            + command.getCommand()
-                    );
+                    editor.status("E492: Not an editor command: " + command.getCommand());
                 break;
             case IDLE:
                 break;
             default:
-                Log.error(
-                    "vim: " + command.getKind()
-                        + " is not implemented yet: " + command
-                );
+                Log.error("vim: " + command.getKind() + " is not implemented yet: " + command);
                 break;
         }
     }
@@ -1923,13 +1624,7 @@ public final class VimInputHandler implements InputHandler {
             state.clearDesiredColumn();
     }
 
-    private void runKeyToKey(
-        Editor editor,
-        VimCommand command,
-        int count,
-        boolean countGiven,
-        int depth
-    ) {
+    private void runKeyToKey(Editor editor, VimCommand command, int count, boolean countGiven, int depth) {
         if (depth >= MAX_KEY_TO_KEY_DEPTH) {
             Log.error("vim: key map recursion at " + command);
             return;
@@ -1971,8 +1666,8 @@ public final class VimInputHandler implements InputHandler {
         if (keyCode == KeyEvent.VK_ESCAPE)
             return true;
         return keyCode == KeyEvent.VK_OPEN_BRACKET
-            && (modifiers & Constants.CTRL_MASK) != 0
-            && (modifiers & (Constants.ALT_MASK | Constants.META_MASK)) == 0;
+                && (modifiers & Constants.CTRL_MASK) != 0
+                && (modifiers & (Constants.ALT_MASK | Constants.META_MASK)) == 0;
     }
 
     /** True for keys identified by their code rather than their character. */

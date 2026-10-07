@@ -95,22 +95,20 @@ public abstract class Formatter {
 
     public Color getCurrentLineBackgroundColor() {
         if (colorCurrentLineBackground == null)
-            colorCurrentLineBackground =
-                color("currentLineBackground", Property.COLOR_CURRENT_LINE_BACKGROUND);
+            colorCurrentLineBackground = color("currentLineBackground", Property.COLOR_CURRENT_LINE_BACKGROUND);
         return colorCurrentLineBackground;
     }
 
     public Color getSelectionBackgroundColor() {
         if (colorSelectionBackground == null)
-            colorSelectionBackground =
-                color("selectionBackground", Property.COLOR_SELECTION_BACKGROUND);
+            colorSelectionBackground = color("selectionBackground", Property.COLOR_SELECTION_BACKGROUND);
         return colorSelectionBackground;
     }
 
     public Color getMatchingBracketBackgroundColor() {
         if (colorMatchingBracketBackground == null)
             colorMatchingBracketBackground =
-                color("matchingBracketBackground", Property.COLOR_MATCHING_BRACKET_BACKGROUND);
+                    color("matchingBracketBackground", Property.COLOR_MATCHING_BRACKET_BACKGROUND);
         return colorMatchingBracketBackground;
     }
 
@@ -124,8 +122,7 @@ public abstract class Formatter {
             colorSearchMatchBackground = color(
                 "searchMatchBackground",
                 Property.COLOR_SEARCH_MATCH_BACKGROUND,
-                Property.COLOR_MATCHING_BRACKET_BACKGROUND
-            );
+                Property.COLOR_MATCHING_BRACKET_BACKGROUND);
         return colorSearchMatchBackground;
     }
 
@@ -135,11 +132,10 @@ public abstract class Formatter {
      */
     public Color getCurrentSearchMatchBackgroundColor() {
         if (colorCurrentSearchMatchBackground == null) {
-            colorCurrentSearchMatchBackground = buffer.getMode()
-                .getColorProperty(Property.COLOR_CURRENT_SEARCH_MATCH_BACKGROUND);
+            colorCurrentSearchMatchBackground =
+                    buffer.getMode().getColorProperty(Property.COLOR_CURRENT_SEARCH_MATCH_BACKGROUND);
             if (colorCurrentSearchMatchBackground == null)
-                colorCurrentSearchMatchBackground =
-                    getSelectionBackgroundColor();
+                colorCurrentSearchMatchBackground = getSelectionBackgroundColor();
         }
         return colorCurrentSearchMatchBackground;
     }
@@ -147,15 +143,25 @@ public abstract class Formatter {
     // Bracket colors by depth, for a light background and a dark: hues far
     // enough apart that neighbouring depths read as different.
     private static final int[][] RAINBOW_LIGHT = {
-        { 0x70, 0x70, 0x70 }, { 0x22, 0x88, 0xcc }, { 0x99, 0x66, 0xcc },
-        { 0x00, 0x88, 0x55 }, { 0xcc, 0x66, 0x00 }, { 0x00, 0x66, 0x99 },
-        { 0xaa, 0x44, 0x99 }, { 0x66, 0x88, 0x00 }, { 0x88, 0x55, 0x33 },
-    };
+        { 0x70, 0x70, 0x70 },
+        { 0x22, 0x88, 0xcc },
+        { 0x99, 0x66, 0xcc },
+        { 0x00, 0x88, 0x55 },
+        { 0xcc, 0x66, 0x00 },
+        { 0x00, 0x66, 0x99 },
+        { 0xaa, 0x44, 0x99 },
+        { 0x66, 0x88, 0x00 },
+        { 0x88, 0x55, 0x33 }, };
     private static final int[][] RAINBOW_DARK = {
-        { 0xbb, 0xbb, 0xbb }, { 0x77, 0xbb, 0xff }, { 0xcc, 0x99, 0xff },
-        { 0x66, 0xdd, 0x99 }, { 0xff, 0xaa, 0x55 }, { 0x55, 0xcc, 0xdd },
-        { 0xff, 0x88, 0xcc }, { 0xbb, 0xdd, 0x55 }, { 0xdd, 0xaa, 0x88 },
-    };
+        { 0xbb, 0xbb, 0xbb },
+        { 0x77, 0xbb, 0xff },
+        { 0xcc, 0x99, 0xff },
+        { 0x66, 0xdd, 0x99 },
+        { 0xff, 0xaa, 0x55 },
+        { 0x55, 0xcc, 0xdd },
+        { 0xff, 0x88, 0xcc },
+        { 0xbb, 0xdd, 0x55 },
+        { 0xdd, 0xaa, 0x88 }, };
 
     private Color[] rainbowColors;
     private Color unmatchedDelimiterColor;
@@ -172,12 +178,7 @@ public abstract class Formatter {
             final Preferences prefs = Editor.preferences();
             java.util.ArrayList<Color> colors = new java.util.ArrayList<>();
             Color c;
-            while (
-                (c = prefs.getColorProperty(
-                    "color.rainbowDelimiter" +
-                        (colors.size() + 1)
-                )) != null
-            )
+            while ((c = prefs.getColorProperty("color.rainbowDelimiter" + (colors.size() + 1))) != null)
                 colors.add(c);
             if (colors.isEmpty()) {
                 final boolean dark = DefaultTheme.isDark(getBackgroundColor());
@@ -185,8 +186,7 @@ public abstract class Formatter {
                     colors.add(new Color(rgb[0], rgb[1], rgb[2]));
             }
             rainbowColors = colors.toArray(new Color[colors.size()]);
-            unmatchedDelimiterColor =
-                prefs.getColorProperty("color.unmatchedDelimiter");
+            unmatchedDelimiterColor = prefs.getColorProperty("color.unmatchedDelimiter");
             if (unmatchedDelimiterColor == null)
                 unmatchedDelimiterColor = new Color(0xdd, 0x22, 0x22);
         }
@@ -270,27 +270,21 @@ public abstract class Formatter {
         if (DefaultTheme.isDark(bg)) {
             final Color fg = getColor(0);
             final double amount = 0.12;
-            return new Color(
-                (int) Math.round(bg.getRed() + (fg.getRed() - bg.getRed()) * amount),
-                (int) Math.round(bg.getGreen() + (fg.getGreen() - bg.getGreen()) * amount),
-                (int) Math.round(bg.getBlue() + (fg.getBlue() - bg.getBlue()) * amount)
-            );
+            return new Color((int) Math.round(bg.getRed() + (fg.getRed() - bg.getRed()) * amount),
+                    (int) Math.round(bg.getGreen() + (fg.getGreen() - bg.getGreen()) * amount),
+                    (int) Math.round(bg.getBlue() + (fg.getBlue() - bg.getBlue()) * amount));
         }
         // How much darker the current line is, halved; at least enough to
         // see where a theme's current line is not darker at all.
         final Color line = getCurrentLineBackgroundColor();
         final double step = Math.max(
             6,
-            ((bg.getRed() - line.getRed())
-                + (bg.getGreen() - line.getGreen())
-                + (bg.getBlue() - line.getBlue())) / 6.0
-        );
+            ((bg.getRed() - line.getRed()) + (bg.getGreen() - line.getGreen()) + (bg.getBlue() - line.getBlue()))
+                    / 6.0);
         // Darker in red than in blue: cool.
-        return new Color(
-            darker(bg.getRed(), step),
-            darker(bg.getGreen(), step * 0.78),
-            darker(bg.getBlue(), step * 0.55)
-        );
+        return new Color(darker(bg.getRed(), step),
+                darker(bg.getGreen(), step * 0.78),
+                darker(bg.getBlue(), step * 0.55));
     }
 
     private static int darker(int value, double by) {
@@ -331,14 +325,7 @@ public abstract class Formatter {
      * Adds a segment the display hides unless the caret is in item, a
      * number of the line's own from 1, or LineSegment.BLOCK.
      */
-    protected final void addSegment(
-        String text,
-        int begin,
-        int end,
-        int format,
-        boolean hidden,
-        int item
-    ) {
+    protected final void addSegment(String text, int begin, int end, int format, boolean hidden, int item) {
         final LineSegment segment = new LineSegment(text, begin, end, format);
         segment.setHidden(hidden);
         segment.setItem(item);

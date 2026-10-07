@@ -12,9 +12,7 @@
 package org.armedbear.j.vim;
 
 import java.util.Locale;
-
 import javax.swing.undo.CompoundEdit;
-
 import org.armedbear.j.Block;
 import org.armedbear.j.Buffer;
 import org.armedbear.j.Constants;
@@ -33,8 +31,7 @@ import org.armedbear.j.Search;
  * since j shares one {@code Mode} instance across every buffer of that
  * language, in every frame.
  */
-public final class VimState
-{
+public final class VimState {
     private VimMode mode = VimMode.NORMAL;
 
     /**
@@ -46,13 +43,11 @@ public final class VimState
      */
     private VimInputHandler handler;
 
-    void setHandler(VimInputHandler handler)
-    {
+    void setHandler(VimInputHandler handler) {
         this.handler = handler;
     }
 
-    VimInputHandler getHandler()
-    {
+    VimInputHandler getHandler() {
         return handler;
     }
 
@@ -96,14 +91,12 @@ public final class VimState
      */
     public static final char APPENDED = '￿';
 
-    public VimMode getMode()
-    {
+    public VimMode getMode() {
         return mode;
     }
 
     /** Enters a mode, leaving the previous one cleanly. */
-    public void setMode(Editor editor, VimMode newMode)
-    {
+    public void setMode(Editor editor, VimMode newMode) {
         if (mode == newMode)
             return;
         if (mode.isInsert() && !newMode.isInsert())
@@ -119,8 +112,7 @@ public final class VimState
      * typing -- so a mode change has to redraw it even though nothing moved
      * and no text changed.
      */
-    private static void caretShapeChanged(Editor editor)
-    {
+    private static void caretShapeChanged(Editor editor) {
         if (editor.getDot() != null)
             editor.updateDotLine();
     }
@@ -142,14 +134,12 @@ public final class VimState
     /** Keys that select the shape a change from visual mode was made on. */
     private String visualRepeat;
 
-    public void setVisualRepeat(String keys)
-    {
+    public void setVisualRepeat(String keys) {
         visualRepeat = keys;
     }
 
     /** The shape's keys, once, or null when the change was not visual. */
-    public String takeVisualRepeat()
-    {
+    public String takeVisualRepeat() {
         final String keys = visualRepeat;
         visualRepeat = null;
         return keys;
@@ -159,9 +149,7 @@ public final class VimState
      * An insert on a block's first line, for the others too at Escape,
      * which leaves the caret at {@code landing} if it is not null.
      */
-    public void beginBlockInsert(Editor editor, Block block, boolean append,
-                                 Position landing)
-    {
+    public void beginBlockInsert(Editor editor, Block block, boolean append, Position landing) {
         final Position dot = editor.getDot();
         blockInsertLanding = landing;
         blockInsert = dot == null ? null : block.below();
@@ -173,8 +161,7 @@ public final class VimState
     }
 
     /** Where Escape leaves the caret after I or A over a block, once. */
-    public Position takeBlockInsertLanding()
-    {
+    public Position takeBlockInsertLanding() {
         final Position landing = blockInsertLanding;
         blockInsertLanding = null;
         return landing;
@@ -184,16 +171,13 @@ public final class VimState
      * Escape after I, A or c over a block: what was typed on the first line,
      * if it was typed there, onto the others -- in the insert's undo step.
      */
-    public void finishBlockInsert(Editor editor)
-    {
+    public void finishBlockInsert(Editor editor) {
         final Block rest = blockInsert;
         blockInsert = null;
         final Position dot = editor.getDot();
-        if (rest == null || dot == null || dot.getLine() != blockInsertLine
-            || dot.getOffset() < blockInsertOffset)
+        if (rest == null || dot == null || dot.getLine() != blockInsertLine || dot.getOffset() < blockInsertOffset)
             return;
-        final String typed = blockInsertLine.substring(blockInsertOffset,
-                                                       dot.getOffset());
+        final String typed = blockInsertLine.substring(blockInsertOffset, dot.getOffset());
         if (typed.isEmpty())
             return;
         final Position at = new Position(dot);
@@ -205,8 +189,7 @@ public final class VimState
     /**
      * Switches to insert mode, opening one undo step for the whole session.
      */
-    public void beginInsert(Editor editor, VimMode insertMode)
-    {
+    public void beginInsert(Editor editor, VimMode insertMode) {
         endInsert(editor);
         final Buffer buffer = editor.getBuffer();
         insertRepeat = 0;
@@ -230,8 +213,7 @@ public final class VimState
      * Notes what a replace keystroke typed over, or {@link #APPENDED}, and
      * where it left the caret.
      */
-    public void pushReplaced(int c, Line line, int caret)
-    {
+    public void pushReplaced(int c, Line line, int caret) {
         if (replaced == null)
             return;
         replaced.appendCodePoint(c);
@@ -249,8 +231,7 @@ public final class VimState
      * column R never visited would silently corrupt the line. BS always
      * lands one column left, so that is where the next one expects to be.
      */
-    public int popReplaced(Line line, int caret)
-    {
+    public int popReplaced(Line line, int caret) {
         if (replaced == null || replaced.length() == 0)
             return 0;
         if (line != replacedLine || caret != replacedCaret) {
@@ -273,14 +254,12 @@ public final class VimState
     private Line autoIndentLine;
 
     /** Records the line the session opened with an indent of its own. */
-    public void noteAutoIndent(Line line)
-    {
+    public void noteAutoIndent(Line line) {
         autoIndentLine = line;
     }
 
     /** Something was typed: the indent is the user's now. */
-    public void forgetAutoIndent()
-    {
+    public void forgetAutoIndent() {
         autoIndentLine = null;
     }
 
@@ -288,8 +267,7 @@ public final class VimState
      * True when Escape should empty this line: the session opened it, nothing
      * was typed on it, and it holds only blanks.
      */
-    public boolean isUntouchedAutoIndent(Line line)
-    {
+    public boolean isUntouchedAutoIndent(Line line) {
         if (line == null || line != autoIndentLine)
             return false;
         final String text = line.getText() == null ? "" : line.getText();
@@ -308,43 +286,36 @@ public final class VimState
     /** The keys typed in this session, in key notation, for the repeat. */
     private final StringBuilder insertKeys = new StringBuilder();
 
-    public void setInsertRepeat(int times, boolean opensLine)
-    {
+    public void setInsertRepeat(int times, boolean opensLine) {
         insertRepeat = Math.max(0, times);
         insertRepeatOpensLine = opensLine;
     }
 
     /** The repeat count, which is spent by asking for it. */
-    public int takeInsertRepeat()
-    {
+    public int takeInsertRepeat() {
         final int times = insertRepeat;
         insertRepeat = 0;
         return times;
     }
 
-    public boolean insertRepeatOpensLine()
-    {
+    public boolean insertRepeatOpensLine() {
         return insertRepeatOpensLine;
     }
 
-    public void noteInsertKey(String key)
-    {
+    public void noteInsertKey(String key) {
         insertKeys.append(key);
     }
 
-    public String getInsertKeys()
-    {
+    public String getInsertKeys() {
         return insertKeys.toString();
     }
 
-    public int insertKeysLength()
-    {
+    public int insertKeysLength() {
         return insertKeys.length();
     }
 
     /** Forgets the keys noted after the first length characters. */
-    public void truncateInsertKeys(int length)
-    {
+    public void truncateInsertKeys(int length) {
         insertKeys.setLength(Math.min(length, insertKeys.length()));
     }
 
@@ -352,8 +323,7 @@ public final class VimState
      * Closes the insert session's undo step. Doing it twice is harmless, which
      * matters because it has to be called from every way out of insert mode.
      */
-    public void endInsert(Editor editor)
-    {
+    public void endInsert(Editor editor) {
         replaced = null;
         replacedLine = null;
         autoIndentLine = null;
@@ -372,8 +342,7 @@ public final class VimState
      * another, and forget the keys and count, which no longer describe one
      * insert.
      */
-    public void restartInsert()
-    {
+    public void restartInsert() {
         insertRepeat = 0;
         // An arrow in the middle: vim puts the text on the first line only.
         blockInsert = null;
@@ -404,8 +373,7 @@ public final class VimState
      * Called with each insert-mode key: the command that entered insert mode
      * has finished moving the caret by then, whichever command it was.
      */
-    public void noteInsertStart(Editor editor)
-    {
+    public void noteInsertStart(Editor editor) {
         final Position dot = editor.getDot();
         if (insertStartLine >= 0 || dot == null)
             return;
@@ -418,8 +386,7 @@ public final class VimState
      * A Backspace that joined the line where typing began to the one before
      * moves the start to the join, as in vim. One within the line does not.
      */
-    public void insertDeletedBack(Editor editor)
-    {
+    public void insertDeletedBack(Editor editor) {
         final Position dot = editor.getDot();
         if (insertStartLine < 0 || dot == null)
             return;
@@ -435,21 +402,18 @@ public final class VimState
      * Where CTRL-W and CTRL-U stop on the way back from the caret: where
      * typing began, when that is earlier on the caret's line, else 0.
      */
-    public int backStop(Editor editor)
-    {
+    public int backStop(Editor editor) {
         final Position dot = editor.getDot();
         if (insertStartLine < 0 || dot == null)
             return 0;
         editor.getBuffer().renumber();
-        if (dot.lineNumber() != insertStartLine
-            || insertStartOffset >= dot.getOffset())
+        if (dot.lineNumber() != insertStartLine || insertStartOffset >= dot.getOffset())
             return 0;
         return insertStartOffset;
     }
 
     /** Escape or CTRL-O: '^ where insert mode stopped, and the rest. */
-    public void markInsertStop(Editor editor)
-    {
+    public void markInsertStop(Editor editor) {
         final Position stop = editor.getDot();
         if (stop != null)
             marks.set('^', editor.getBuffer(), stop);
@@ -462,28 +426,23 @@ public final class VimState
      * the session changed anything. After a split with nothing typed since,
      * they are still those of the part before it.
      */
-    public void markInsert(Editor editor, Position stop)
-    {
+    public void markInsert(Editor editor, Position stop) {
         final Buffer buffer = editor.getBuffer();
-        if (stop == null
-            || (insertSplit && buffer.getModCount() == insertModCount))
+        if (stop == null || (insertSplit && buffer.getModCount() == insertModCount))
             return;
         noteInsertStart(editor);
         Line line = VimEx.lineAt(editor, insertStartLine + 1);
         if (line == null)
             line = stop.getLine();
-        final Position start =
-            new Position(line, Math.min(insertStartOffset, line.length()));
+        final Position start = new Position(line, Math.min(insertStartOffset, line.length()));
         marks.set('[', buffer, start);
         marks.set(']', buffer, stop);
         if (buffer.getModCount() != insertModCount)
-            marks.set('.', buffer, stop.getLine() == line ? start
-                                    : new Position(stop.getLine(), 0));
+            marks.set('.', buffer, stop.getLine() == line ? start : new Position(stop.getLine(), 0));
     }
 
     /** True while an insert session's undo step is open. */
-    public boolean isInsertEditOpen()
-    {
+    public boolean isInsertEditOpen() {
         return insertEdit != null;
     }
 
@@ -499,8 +458,7 @@ public final class VimState
      * caret steps back onto the last character, as for Escape, but j and k
      * still aim past it.
      */
-    public void leaveInsertForOneCommand(Editor editor)
-    {
+    public void leaveInsertForOneCommand(Editor editor) {
         insertReturn = mode;
         insertReturnEolLine = -1;
         desiredColumn = -1;
@@ -513,14 +471,12 @@ public final class VimState
             return;
         editor.getBuffer().renumber();
         insertReturnEolLine = dot.lineNumber();
-        desiredColumn = Buffer.getCol(line, line.length(),
-                                      editor.getBuffer().getTabWidth());
+        desiredColumn = Buffer.getCol(line, line.length(), editor.getBuffer().getTabWidth());
         editor.setDot(line, CodePoints.previous(line, line.length()));
         editor.moveCaretToDotCol();
     }
 
-    public boolean isOneCommand()
-    {
+    public boolean isOneCommand() {
         return insertReturn != null;
     }
 
@@ -530,8 +486,7 @@ public final class VimState
      * line before, or j and k aim past it -- vim's ins_at_eol and curswant.
      * Split from what came before, as an arrow splits it.
      */
-    public void resumeInsert(Editor editor)
-    {
+    public void resumeInsert(Editor editor) {
         final VimMode back = insertReturn;
         insertReturn = null;
         final Position dot = editor.getDot();
@@ -539,10 +494,10 @@ public final class VimState
             final Line line = dot.getLine();
             editor.getBuffer().renumber();
             if (line.length() > 0
-                && CodePoints.next(line, dot.getOffset()) == line.length()
-                && (dot.lineNumber() == insertReturnEolLine
-                    || desiredColumn > Buffer.getCol(line, dot.getOffset(),
-                           editor.getBuffer().getTabWidth()))) {
+                    && CodePoints.next(line, dot.getOffset()) == line.length()
+                    && (dot.lineNumber() == insertReturnEolLine
+                            || desiredColumn > Buffer
+                                    .getCol(line, dot.getOffset(), editor.getBuffer().getTabWidth()))) {
                 editor.setDot(line, line.length());
                 editor.moveCaretToDotCol();
             }
@@ -552,20 +507,16 @@ public final class VimState
     }
 
     /** CTRL-O's command began an insert of its own. */
-    public void forgetOneCommand()
-    {
+    public void forgetOneCommand() {
         insertReturn = null;
     }
 
     /** As vim shows it: -- (insert) VISUAL -- during CTRL-O. */
-    public String getModeIndicator()
-    {
+    public String getModeIndicator() {
         if (insertReturn == null)
             return mode.getIndicator();
-        final String back =
-            "(" + insertReturn.getIndicator().toLowerCase(Locale.ROOT) + ")";
-        return mode.getIndicator() == null ? back
-                                           : back + " " + mode.getIndicator();
+        final String back = "(" + insertReturn.getIndicator().toLowerCase(Locale.ROOT) + ")";
+        return mode.getIndicator() == null ? back : back + " " + mode.getIndicator();
     }
 
     /**
@@ -575,8 +526,7 @@ public final class VimState
      * compound edit open forever, and every subsequent edit to that buffer
      * would join the same undo step.
      */
-    public void editorLeftBuffer(Editor editor)
-    {
+    public void editorLeftBuffer(Editor editor) {
         endInsert(editor);
         insertReturn = null;
         mode = VimMode.NORMAL;
@@ -586,17 +536,14 @@ public final class VimState
     // ---------------------------------------------------------- visual
 
     /** Where a visual selection was, so that gv can put it back. */
-    public static final class Selection
-    {
+    public static final class Selection {
         public final int anchorLine;
         public final int anchorOffset;
         public final int headLine;
         public final int headOffset;
         public final VimMode mode;
 
-        Selection(int anchorLine, int anchorOffset, int headLine,
-                  int headOffset, VimMode mode)
-        {
+        Selection(int anchorLine, int anchorOffset, int headLine, int headOffset, VimMode mode) {
             this.anchorLine = anchorLine;
             this.anchorOffset = anchorOffset;
             this.headLine = headLine;
@@ -607,16 +554,12 @@ public final class VimState
 
     private Selection lastSelection;
 
-    public Selection getLastSelection()
-    {
+    public Selection getLastSelection() {
         return lastSelection;
     }
 
-    public void rememberSelection(int anchorLine, int anchorOffset,
-                                  int headLine, int headOffset, VimMode mode)
-    {
-        lastSelection = new Selection(anchorLine, anchorOffset, headLine,
-                                      headOffset, mode);
+    public void rememberSelection(int anchorLine, int anchorOffset, int headLine, int headOffset, VimMode mode) {
+        lastSelection = new Selection(anchorLine, anchorOffset, headLine, headOffset, mode);
     }
 
     // ----------------------------------------------------------- marks
@@ -628,8 +571,7 @@ public final class VimState
      * CTRL-I travel, and the previous context mark, which '' and `` go
      * back to.
      */
-    public void jumped(Editor editor, Position from)
-    {
+    public void jumped(Editor editor, Position from) {
         if (jumpsHeld > 0)
             return;
         JumpList.record(editor.getBuffer(), from);
@@ -639,8 +581,7 @@ public final class VimState
     /** While :g runs, which is one jump however many lines it visits. */
     private int jumpsHeld;
 
-    public void holdJumps(boolean hold)
-    {
+    public void holdJumps(boolean hold) {
         jumpsHeld += hold ? 1 : -1;
     }
 
@@ -649,8 +590,7 @@ public final class VimState
      * another buffer. Leaving the end of the list is a jump of its own, so
      * '' comes back.
      */
-    public void travel(Editor editor, int count)
-    {
+    public void travel(Editor editor, int count) {
         final Position from = editor.getDot();
         if (from == null)
             return;
@@ -665,8 +605,7 @@ public final class VimState
         clampCaret(editor);
     }
 
-    public VimMarks getMarks()
-    {
+    public VimMarks getMarks() {
         return marks;
     }
 
@@ -675,8 +614,7 @@ public final class VimState
     private char pendingRegister;
 
     /** Names the register the next yank, delete or put should use. */
-    public void setPendingRegister(char name)
-    {
+    public void setPendingRegister(char name) {
         pendingRegister = name;
     }
 
@@ -686,36 +624,31 @@ public final class VimState
      * Returns 0 when none was named, which every caller reads as "the usual
      * ones": the unnamed register plus whichever of 0, 1-9 or - applies.
      */
-    public char takePendingRegister()
-    {
+    public char takePendingRegister() {
         final char name = pendingRegister;
         pendingRegister = 0;
         return name;
     }
 
-    public boolean hasPendingRegister()
-    {
+    public boolean hasPendingRegister() {
         return pendingRegister != 0;
     }
 
     /** Drops a register name named but never used, e.g. by Escape. */
-    public void clearPendingRegister()
-    {
+    public void clearPendingRegister() {
         pendingRegister = 0;
     }
 
     // ------------------------------------------------- character search
 
     /** The f, F, t or T that ';' and ',' repeat. */
-    public static final class CharacterSearch
-    {
+    public static final class CharacterSearch {
         /** A code point: f can look for an emoji. */
         public final int target;
         public final boolean forward;
         public final boolean till;
 
-        CharacterSearch(int target, boolean forward, boolean till)
-        {
+        CharacterSearch(int target, boolean forward, boolean till) {
             this.target = target;
             this.forward = forward;
             this.till = till;
@@ -724,14 +657,11 @@ public final class VimState
 
     private CharacterSearch lastCharacterSearch;
 
-    public CharacterSearch getLastCharacterSearch()
-    {
+    public CharacterSearch getLastCharacterSearch() {
         return lastCharacterSearch;
     }
 
-    public void setLastCharacterSearch(int target, boolean forward,
-                                       boolean till)
-    {
+    public void setLastCharacterSearch(int target, boolean forward, boolean till) {
         lastCharacterSearch = new CharacterSearch(target, forward, till);
     }
 
@@ -744,8 +674,7 @@ public final class VimState
      * search is kept there as the query it was; a find of j's own stands
      * for itself.
      */
-    public VimSearch.Query getLastSearch(Editor editor)
-    {
+    public VimSearch.Query getLastSearch(Editor editor) {
         return VimSearch.queryOf(editor.getLastSearch());
     }
 
@@ -753,8 +682,7 @@ public final class VimState
      * A new pattern for n and N, whose matches hlsearch paints -- again after
      * a {@code :noh}, as any search shows them again in vim.
      */
-    public void setLastSearch(Editor editor, VimSearch.Query query)
-    {
+    public void setLastSearch(Editor editor, VimSearch.Query query) {
         editor.setLastSearch(VimSearch.compileToKeep(query, editor));
     }
 
@@ -763,8 +691,7 @@ public final class VimState
      * translation reads -- ignorecase, smartcase -- leaving it hidden if
      * {@code :noh} had hidden it.
      */
-    public void recompileLastSearch(Editor editor)
-    {
+    public void recompileLastSearch(Editor editor) {
         final VimSearch.Query query = getLastSearch(editor);
         if (query == null || query.own != null)
             return;
@@ -780,24 +707,21 @@ public final class VimState
      * null for none: of the pattern being typed, or of the last one unless
      * {@code :noh} has hidden them.
      */
-    public int[] searchMatches(Editor editor, Line line)
-    {
+    public int[] searchMatches(Editor editor, Line line) {
         if (!VimKeyMap.getSharedOptions().isOn("hlsearch"))
             return null;
-        return preview != null ? previewMatches(editor, line)
-                               : editor.lastSearchMatches(line);
+        return preview != null ? previewMatches(editor, line) : editor.lastSearchMatches(line);
     }
 
     /** The match incsearch has the caret on, if it is on this line. */
-    public int[] currentSearchMatch(Editor editor, Line line)
-    {
+    public int[] currentSearchMatch(Editor editor, Line line) {
         if (preview == null || line != previewAt.getLine())
             return null;
         final int[] spans = previewMatches(editor, line);
         if (spans != null)
             for (int i = 0; i < spans.length; i += 2)
                 if (spans[i] == previewAt.getOffset())
-                    return new int[] {spans[i], spans[i + 1]};
+                    return new int[] { spans[i], spans[i + 1] };
         return null;
     }
 
@@ -805,15 +729,13 @@ public final class VimState
     private Search previewSearch;
     private String previewKey;
 
-    private int[] previewMatches(Editor editor, Line line)
-    {
+    private int[] previewMatches(Editor editor, Line line) {
         final String key = VimSearch.compiledKey(preview);
         if (!key.equals(previewKey)) {
             previewKey = key;
             previewSearch = VimSearch.compileQuietly(preview, editor);
         }
-        return previewSearch == null ? null
-            : previewSearch.matchesOnLine(editor.getBuffer().getMode(), line);
+        return previewSearch == null ? null : previewSearch.matchesOnLine(editor.getBuffer().getMode(), line);
     }
 
     // --------------------------------------------------------- incsearch
@@ -823,9 +745,7 @@ public final class VimState
     private Position previewAt;
 
     /** Shows a pattern being typed, or with null stops showing one. */
-    public void setSearchPreview(Editor editor, VimSearch.Query query,
-                                 Position at)
-    {
+    public void setSearchPreview(Editor editor, VimSearch.Query query, Position at) {
         preview = at == null ? null : query;
         previewAt = at;
         editor.repaintDisplay();
@@ -848,28 +768,23 @@ public final class VimState
 
     private int desiredColumn = -1;
 
-    public int getDesiredColumn(Editor editor, Position from)
-    {
+    public int getDesiredColumn(Editor editor, Position from) {
         if (desiredColumn < 0)
-            desiredColumn = Buffer.getCol(from.getLine(), from.getOffset(),
-                                          editor.getBuffer().getTabWidth());
+            desiredColumn = Buffer.getCol(from.getLine(), from.getOffset(), editor.getBuffer().getTabWidth());
         return desiredColumn;
     }
 
-    public void setDesiredColumn(int column)
-    {
+    public void setDesiredColumn(int column) {
         desiredColumn = column;
     }
 
     /** True after $, while the caret stands for the end of the line. */
-    public boolean isStickyEol()
-    {
+    public boolean isStickyEol() {
         return desiredColumn == STICKY_EOL;
     }
 
     /** Forgets the column, so the next j or k takes it from the caret. */
-    public void clearDesiredColumn()
-    {
+    public void clearDesiredColumn() {
         desiredColumn = -1;
     }
 
@@ -881,20 +796,17 @@ public final class VimState
      */
     private Position operatorStart;
 
-    void setOperatorStart(Position position)
-    {
+    void setOperatorStart(Position position) {
         operatorStart = position;
     }
 
     /** True when the operator about to run came from a selection. */
-    boolean hasOperatorStart()
-    {
+    boolean hasOperatorStart() {
         return operatorStart != null;
     }
 
     /** The selection's operator start, once: it does not outlive the operator. */
-    Position takeOperatorStart()
-    {
+    Position takeOperatorStart() {
         final Position position = operatorStart;
         operatorStart = null;
         return position;
@@ -915,8 +827,7 @@ public final class VimState
      * <p>Through {@code unmark} rather than {@code setMark(null)}, because
      * only the former asks for the highlight to be painted out.
      */
-    public void clearSelectionUnlessVisual(Editor editor)
-    {
+    public void clearSelectionUnlessVisual(Editor editor) {
         if (!mode.isVisual())
             editor.unmark();
     }
@@ -937,15 +848,13 @@ public final class VimState
      * selection spans can change how much of itself is covered, not only the
      * two the caret and anchor sit on.
      */
-    public void selectionCrossedLines(Editor editor, Line before, Line after)
-    {
+    public void selectionCrossedLines(Editor editor, Line before, Line after) {
         if (before != after)
             selectionReshaped(editor);
     }
 
     /** The same, for a caller that has already decided the shape changed. */
-    public void selectionReshaped(Editor editor)
-    {
+    public void selectionReshaped(Editor editor) {
         if (mode.isVisual())
             editor.setUpdateFlag(Constants.REPAINT);
     }
@@ -961,8 +870,7 @@ public final class VimState
      * line falls back to {@link #selectionCrossedLines}, for the same reason
      * given there.
      */
-    public void motionChangedSelection(Editor editor, Line before, Line after)
-    {
+    public void motionChangedSelection(Editor editor, Line before, Line after) {
         // A block's columns are every line's: any move repaints it all.
         if (mode == VimMode.VISUAL_BLOCK) {
             editor.setUpdateFlag(Constants.REPAINT);
@@ -988,17 +896,16 @@ public final class VimState
      * the end of the line, which is the insert-mode rule -- normal mode needs
      * one column less than that, and nothing in j expresses it.
      */
-    public void clampCaret(Editor editor)
-    {
+    public void clampCaret(Editor editor) {
         if (!mode.isCommandMode())
             return;
         final Position dot = editor.getDot();
         if (dot == null)
             return;
         // Visual mode may rest on a line's end, where j and k leave it.
-        final int last = mode.isVisual() ? dot.getLineLength()
-            : CodePoints.snap(dot.getLine(),
-                              Math.max(0, dot.getLineLength() - 1));
+        final int last = mode.isVisual()
+                ? dot.getLineLength()
+                : CodePoints.snap(dot.getLine(), Math.max(0, dot.getLineLength() - 1));
         final int at = CodePoints.snap(dot.getLine(), dot.getOffset());
         if (dot.getOffset() > last || at != dot.getOffset()) {
             // No undo record: this corrects where the caret may legally rest,

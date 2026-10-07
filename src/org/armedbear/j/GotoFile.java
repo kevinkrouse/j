@@ -62,8 +62,7 @@ public final class GotoFile {
             if (index >= 0) {
                 // "Position.java:140"
                 try {
-                    lineNumber =
-                        Integer.parseInt(filename.substring(index + 1)) - 1;
+                    lineNumber = Integer.parseInt(filename.substring(index + 1)) - 1;
                     // Shorten filename to exclude line number.
                     filename = filename.substring(0, index);
                 }
@@ -75,13 +74,7 @@ public final class GotoFile {
 
         boolean tryCurrentDirectory = true;
 
-        if (
-            filename.length() >= 2
-                &&
-                filename.charAt(0) == '<'
-                &&
-                filename.charAt(filename.length() - 1) == '>'
-        ) {
+        if (filename.length() >= 2 && filename.charAt(0) == '<' && filename.charAt(filename.length() - 1) == '>') {
             // We'll only get the angle brackets if we're in C or C++ mode.
             // Strip the angle brackets and don't look for the file in the
             // current directory.
@@ -97,10 +90,7 @@ public final class GotoFile {
             // The filename is not absolute.
             if (tryCurrentDirectory)
                 // Try current directory first.
-                file = File.getInstance(
-                    editor.getCurrentDirectory(),
-                    filename
-                );
+                file = File.getInstance(editor.getCurrentDirectory(), filename);
 
             // Try source and include paths if applicable.
             if (file == null || (file.isLocal() && !file.exists()))
@@ -114,8 +104,7 @@ public final class GotoFile {
                 editor.makeNext(buf);
                 editor.switchToBuffer(buf);
                 // Switching buffers might have closed the original editor.
-                Editor ed =
-                    frame.contains(editor) ? editor : frame.getCurrentEditor();
+                Editor ed = frame.contains(editor) ? editor : frame.getCurrentEditor();
                 if (ed.getBuffer() == buf) {
                     if (lineNumber >= 0) {
                         if (ed.getDot() != null) {
@@ -147,8 +136,7 @@ public final class GotoFile {
             if (href != null)
                 return href;
         } else if (modeId == JAVA_MODE) {
-            String fileName =
-                getFileNameFromImport(editor.getBuffer(), dotLine.getText());
+            String fileName = getFileNameFromImport(editor.getBuffer(), dotLine.getText());
             if (fileName != null)
                 return fileName;
         } else if ((modeId == C_MODE || modeId == CPP_MODE)) {
@@ -187,8 +175,7 @@ public final class GotoFile {
         return file != null ? file.canonicalPath() : null;
     }
 
-    private static final Pattern includeRE =
-        Pattern.compile("[ \t]*#[ \t]*include[ \t]");
+    private static final Pattern includeRE = Pattern.compile("[ \t]*#[ \t]*include[ \t]");
 
     private static final String getFileNameFromInclude(String s) {
         Matcher matcher = includeRE.matcher(s);

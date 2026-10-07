@@ -138,8 +138,7 @@ public final class WebMode extends AbstractMode implements Mode {
 
     private String getContextString(Position pos) {
         if (pos != null && pos.getLine() instanceof WebLine) {
-            HtmlLineSegment segment =
-                ((WebLine) pos.getLine()).findSegment(pos.getOffset());
+            HtmlLineSegment segment = ((WebLine) pos.getLine()).findSegment(pos.getOffset());
             if (segment != null) {
                 Link link = segment.getLink();
                 if (link != null)
@@ -170,13 +169,9 @@ public final class WebMode extends AbstractMode implements Mode {
         s = s.trim();
         // Strip enclosing quotes if any.
         int length = s.length();
-        if (
-            length > 1
-                &&
-                ((s.charAt(0) == '"' && s.charAt(length - 1) == '"')
-                    ||
-                    (s.charAt(0) == '\'' && s.charAt(length - 1) == '\''))
-        ) {
+        if (length > 1
+                && ((s.charAt(0) == '"' && s.charAt(length - 1) == '"')
+                        || (s.charAt(0) == '\'' && s.charAt(length - 1) == '\''))) {
             s = s.substring(1, length - 1).trim();
         }
         StringBuilder sb = new StringBuilder(prefix);

@@ -170,13 +170,10 @@ public class EditorPane extends JXMultiSplitPane {
             final Insets insets = getInsets();
             place(
                 layout.getModel(),
-                new Rectangle(
-                    insets.left,
-                    insets.top,
-                    getWidth() - insets.left - insets.right,
-                    getHeight() - insets.top - insets.bottom
-                )
-            );
+                new Rectangle(insets.left,
+                        insets.top,
+                        getWidth() - insets.left - insets.right,
+                        getHeight() - insets.top - insets.bottom));
         }
     }
 
@@ -189,17 +186,14 @@ public class EditorPane extends JXMultiSplitPane {
         final int divider = getDividerSize();
         final List<Node> children = split.getChildren();
         final int count = (children.size() + 1) / 2;
-        final int total =
-            (row ? bounds.width : bounds.height) - divider * (count - 1);
+        final int total = (row ? bounds.width : bounds.height) - divider * (count - 1);
         int at = row ? bounds.x : bounds.y;
         int i = 0;
         for (Node child : children) {
-            final int size = child instanceof Divider
-                ? divider
-                : total * (i + 1) / count - total * i++ / count;
+            final int size = child instanceof Divider ? divider : total * (i + 1) / count - total * i++ / count;
             final Rectangle r = row
-                ? new Rectangle(at, bounds.y, size, bounds.height)
-                : new Rectangle(bounds.x, at, bounds.width, size);
+                    ? new Rectangle(at, bounds.y, size, bounds.height)
+                    : new Rectangle(bounds.x, at, bounds.width, size);
             if (child instanceof Divider)
                 child.setBounds(r);
             else
@@ -238,8 +232,7 @@ public class EditorPane extends JXMultiSplitPane {
     void adjustWeights(List<Node> children) {
         Debug.bugIfNot(
             children.size() % 2 == 1,
-            "Expect odd number of leaves and splits; each leaf or split should be separated by divider."
-        );
+            "Expect odd number of leaves and splits; each leaf or split should be separated by divider.");
         int count = (1 + children.size()) / 2;
 
         double weight = 1 / (double) count;

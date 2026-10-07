@@ -133,8 +133,7 @@ public final class CompilationCommands {
         AWTEvent e = editor.getDispatcher().getLastEvent();
         if (e instanceof MouseEvent mouseEvent)
             editor.mouseMoveDotToPoint(mouseEvent);
-        CompilationError error =
-            CompilationError.parseLineAsErrorMessage(editor.getDotLine());
+        CompilationError error = CompilationError.parseLineAsErrorMessage(editor.getDotLine());
         if (error != null) {
             final Buffer buffer = editor.getBuffer();
             if (buffer instanceof CompilationErrorBuffer compilationErrorBuffer)
@@ -142,11 +141,7 @@ public final class CompilationCommands {
             String errorFileName = error.getFileName();
             int errorLineNumber = error.getLineNumber();
             if (errorFileName != null && errorLineNumber != 0) {
-                Buffer buf =
-                    getSourceBuffer(
-                        buffer.getCurrentDirectory(),
-                        errorFileName
-                    );
+                Buffer buf = getSourceBuffer(buffer.getCurrentDirectory(), errorFileName);
                 if (buf == null)
                     return;
                 Editor otherEditor = editor.getOtherEditor();
@@ -188,8 +183,7 @@ public final class CompilationCommands {
             errorBuffer.relink();
             Sidebar.setUpdateFlagInAllFrames(SIDEBAR_BUFFER_LIST_CHANGED);
         }
-        CompilationError error =
-            next ? errorBuffer.nextError() : errorBuffer.previousError();
+        CompilationError error = next ? errorBuffer.nextError() : errorBuffer.previousError();
         if (error == null) {
             editor.status("No more errors");
             return;
@@ -227,11 +221,7 @@ public final class CompilationCommands {
         int errorLineNumber = error.getLineNumber();
         if (errorFileName != null && errorLineNumber != 0) {
             // Find or create buffer for source file containing the error.
-            Buffer buf =
-                getSourceBuffer(
-                    errorBuffer.getCurrentDirectory(),
-                    errorFileName
-                );
+            Buffer buf = getSourceBuffer(errorBuffer.getCurrentDirectory(), errorFileName);
             if (buf == null)
                 return;
             Debug.assertTrue(ed.getBuffer() == errorBuffer);
@@ -294,10 +284,7 @@ public final class CompilationCommands {
         editor.setDefaultCursor();
     }
 
-    private static Buffer getSourceBuffer(
-        File currentDirectory,
-        String errorFileName
-    ) {
+    private static Buffer getSourceBuffer(File currentDirectory, String errorFileName) {
         File file = File.getInstance(currentDirectory, errorFileName);
         if (!file.isFile()) {
             // Strip path prefix.
