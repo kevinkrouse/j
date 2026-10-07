@@ -66,31 +66,25 @@ public class VimrcTest {
     @Test
     public void aNoremapsKeysMeanWhatTheyDoBuiltIn() {
         // < in the right-hand side is the shift, not this mapping again.
-        vim("        a\n        b\nc\n", "set sw=4\nvnoremap < <gv\n")
-            .cursor(0, 8)
-            .keys("vj<<");
+        vim("        a\n        b\nc\n", "set sw=4\nvnoremap < <gv\n").cursor(0, 8).keys("vj<<");
         h.assertText("a\nb\nc\n");
         assertEquals("VISUAL", h.vimModeIndicator());
         tearDown();
         // Z is the built-in x, which deletes a character, not the dd x is
         // mapped to.
-        vim("abc\ndef\n", "nnoremap x dd\nnnoremap Z x\n").cursor(0, 0)
-            .keys("Z");
+        vim("abc\ndef\n", "nnoremap x dd\nnnoremap Z x\n").cursor(0, 0).keys("Z");
         h.assertText("bc\ndef\n");
     }
 
     @Test
     public void aMapsKeysAreMappingsToo() {
-        vim("abc\ndef\n", "nnoremap x dd\nnmap Z x\n").cursor(0, 0)
-            .keys("Z");
+        vim("abc\ndef\n", "nnoremap x dd\nnmap Z x\n").cursor(0, 0).keys("Z");
         h.assertText("def\n");
     }
 
     @Test
     public void mapLeaderIsExpanded() {
-        vim("abc\n", "let mapleader = \",\"\nnnoremap <leader>d dl\n")
-            .cursor(0, 0)
-            .keys(",d");
+        vim("abc\n", "let mapleader = \",\"\nnnoremap <leader>d dl\n").cursor(0, 0).keys(",d");
         h.assertText("bc\n");
     }
 
@@ -158,8 +152,7 @@ public class VimrcTest {
 
     @Test
     public void setTakesValuesAndFlags() throws Exception {
-        final VimOptions options =
-            optionsFrom("set shiftwidth=4 ignorecase\nset noexpandtab\n");
+        final VimOptions options = optionsFrom("set shiftwidth=4 ignorecase\nset noexpandtab\n");
         assertEquals(4, options.getInt("shiftwidth", 0));
         assertTrue(options.getBoolean("ignorecase", false));
         assertEquals(false, options.getBoolean("expandtab", true));
@@ -174,8 +167,7 @@ public class VimrcTest {
 
     @Test
     public void commentsAndBlankLinesAreIgnored() throws Exception {
-        final VimOptions options =
-            optionsFrom("\" a comment\n\n  \" another\nset sw=2\n");
+        final VimOptions options = optionsFrom("\" a comment\n\n  \" another\nset sw=2\n");
         assertEquals(2, options.getInt("shiftwidth", 0));
     }
 
@@ -183,9 +175,7 @@ public class VimrcTest {
     public void aLineThatIsNotUnderstoodIsSkipped() throws Exception {
         // A real vimrc has plenty j will never read; it must not stop the
         // lines that do make sense.
-        final VimOptions options = optionsFrom(
-            "call plug#begin()\nset sw=3\nautocmd BufRead * echo 'hi'\n"
-        );
+        final VimOptions options = optionsFrom("call plug#begin()\nset sw=3\nautocmd BufRead * echo 'hi'\n");
         assertEquals(3, options.getInt("shiftwidth", 0));
     }
 

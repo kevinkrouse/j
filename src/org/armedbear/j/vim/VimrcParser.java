@@ -65,16 +65,10 @@ public final class VimrcParser {
                 continue;
             try {
                 if (!command(trimmed))
-                    Log.error(
-                        "vimrc, line " + lineNumber
-                            + ": not understood: " + trimmed
-                    );
+                    Log.error("vimrc, line " + lineNumber + ": not understood: " + trimmed);
             }
             catch (RuntimeException e) {
-                Log.error(
-                    "vimrc, line " + lineNumber + ": " + e.getMessage()
-                        + " in: " + trimmed
-                );
+                Log.error("vimrc, line " + lineNumber + ": " + e.getMessage() + " in: " + trimmed);
             }
         }
     }
@@ -91,11 +85,7 @@ public final class VimrcParser {
         if (name.endsWith("unmap"))
             return unmap(prefixOf(name, "unmap"), rest);
         if (name.endsWith("map"))
-            return map(
-                prefixOf(name, "map"),
-                rest,
-                !name.contains("nore")
-            );
+            return map(prefixOf(name, "map"), rest, !name.contains("nore"));
         return false;
     }
 
@@ -139,9 +129,7 @@ public final class VimrcParser {
     /** The mode letters in front of a command name, with any "nore". */
     private static String prefixOf(String name, String suffix) {
         final String prefix = name.substring(0, name.length() - suffix.length());
-        return prefix.endsWith("nore")
-            ? prefix.substring(0, prefix.length() - 4)
-            : prefix;
+        return prefix.endsWith("nore") ? prefix.substring(0, prefix.length() - 4) : prefix;
     }
 
     private boolean map(String prefix, String rest, boolean remap) {
@@ -180,39 +168,19 @@ public final class VimrcParser {
      * unless {@code remap} -- {@code map} rather than {@code noremap} --
      * lets them be mappings.
      */
-    private static VimCommand mapping(
-        Set<MappingMode> modes,
-        String keys,
-        String to,
-        boolean remap
-    ) {
+    private static VimCommand mapping(Set<MappingMode> modes, String keys, String to, boolean remap) {
         final Map<String, String> noArgs = new LinkedHashMap<>();
         if (remap)
             noArgs.put("remap", "true");
         if (to.startsWith(":")) {
-            final String body = to.endsWith("<CR>")
-                ? to.substring(1, to.length() - 4)
-                : to.substring(1);
+            final String body = to.endsWith("<CR>") ? to.substring(1, to.length() - 4) : to.substring(1);
             // j's own command of that name if there is one; otherwise the
             // line goes to the ex layer, which is where :w and :bn live.
-            final Map<String, String> args =
-                new LinkedHashMap<>(noArgs);
+            final Map<String, String> args = new LinkedHashMap<>(noArgs);
             args.put("ex", body.trim());
-            return new VimCommand(
-                modes,
-                keys,
-                VimCommand.Kind.EDITOR_COMMAND,
-                body.trim(),
-                args
-            );
+            return new VimCommand(modes, keys, VimCommand.Kind.EDITOR_COMMAND, body.trim(), args);
         }
-        return new VimCommand(
-            modes,
-            keys,
-            VimCommand.Kind.KEY_TO_KEY,
-            to,
-            noArgs
-        );
+        return new VimCommand(modes, keys, VimCommand.Kind.KEY_TO_KEY, to, noArgs);
     }
 
     /**
@@ -224,11 +192,7 @@ public final class VimrcParser {
     private static Set<MappingMode> modesForPrefix(String prefix) {
         switch (prefix) {
             case "":
-                return EnumSet.of(
-                    MappingMode.NORMAL,
-                    MappingMode.VISUAL,
-                    MappingMode.OP_PENDING
-                );
+                return EnumSet.of(MappingMode.NORMAL, MappingMode.VISUAL, MappingMode.OP_PENDING);
             case "n":
                 return EnumSet.of(MappingMode.NORMAL);
             case "v":
@@ -250,11 +214,7 @@ public final class VimrcParser {
     }
 
     private static String unquote(String s) {
-        if (
-            s.length() >= 2
-                && (s.charAt(0) == '"' || s.charAt(0) == '\'')
-                && s.charAt(s.length() - 1) == s.charAt(0)
-        )
+        if (s.length() >= 2 && (s.charAt(0) == '"' || s.charAt(0) == '\'') && s.charAt(s.length() - 1) == s.charAt(0))
             return s.substring(1, s.length() - 1);
         return s;
     }
