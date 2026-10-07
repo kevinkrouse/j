@@ -28,8 +28,10 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.StringTokenizer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -279,23 +281,28 @@ public final class FindInFiles extends Replacement implements BackgroundProcess 
         }
         if (scope == Scope.OPEN_FILES)
             searchOpenFiles();
-        for (Filter filter : scope == Scope.OPEN_FILES ? List.<Filter>of() : filters) {
-            File dir = null;
-            File spec = File.getInstance(filter.getOriginalPattern());
-            if (spec != null) {
-                File parent = spec.getParentFile();
-                if (parent != null)
-                    dir = parent;
+        if (scope != Scope.OPEN_FILES) {
+            // One pass over each directory, testing every pattern that starts there.
+            Map<File, List<Filter>> byDirectory = new LinkedHashMap<>();
+            for (Filter filter : filters) {
+                File dir = null;
+                File spec = File.getInstance(filter.getOriginalPattern());
+                if (spec != null)
+                    dir = spec.getParentFile();
+                if (dir == null)
+                    dir = getEditor().getCurrentDirectory();
+                byDirectory.computeIfAbsent(dir, d -> new ArrayList<>()).add(filter);
             }
-            if (dir == null)
-                dir = getEditor().getCurrentDirectory();
-            if (descends())
-                walkDirectory(dir, filter, excludesRE);
-            else
-                searchDirectory(dir, filter, excludesRE);
-            // Did the user cancel?
-            if (cancelled)
-                break;
+            for (Map.Entry<File, List<Filter>> e : byDirectory.entrySet()) {
+                if (!descends())
+                    searchDirectory(e.getKey(), e.getValue(), excludesRE);
+                else if (scope == Scope.PROJECT || defaultExcludes)
+                    walkDirectory(e.getKey(), e.getValue(), excludesRE);
+                else
+                    searchTree(e.getKey(), e.getValue());
+                if (cancelled)
+                    break;
+            }
         }
         if (getReplaceWith() == null) {
             // Find in files, not replace in files.
@@ -345,8 +352,16 @@ public final class FindInFiles extends Replacement implements BackgroundProcess 
         cancelled = true;
     }
 
+    private static boolean accepts(List<Filter> filters, String name) {
+        for (Filter filter : filters) {
+            if (filter.accepts(name))
+                return true;
+        }
+        return false;
+    }
+
     // dir's own files: not its subdirectories.
-    private void searchDirectory(File dir, Filter filter, Pattern excludesRE) {
+    private void searchDirectory(File dir, List<Filter> filters, Pattern excludesRE) {
         String[] files = dir.list();
         if (files == null)
             return;
@@ -356,31 +371,43 @@ public final class FindInFiles extends Replacement implements BackgroundProcess 
             if (excludesRE != null && excludesRE.matcher(f).matches())
                 continue;
             File file = File.getInstance(dir, f);
-            if (file.isDirectory() || !filter.accepts(f))
+            if (file.isDirectory() || !accepts(filters, f))
                 continue;
             searchFile(file);
         }
     }
 
+    // dir and everything under it, skipping nothing: default excludes are off.
+    private void searchTree(File dir, List<Filter> filters) {
+        String[] files = dir.list();
+        if (files == null)
+            return;
+        for (String f : files) {
+            if (cancelled)
+                return;
+            File file = File.getInstance(dir, f);
+            if (file.isDirectory())
+                searchTree(file, filters);
+            else if (accepts(filters, f))
+                searchFile(file);
+        }
+    }
+
     // dir and everything under it, skipping what a project's file list skips:
     // what .gitignore ignores, build and tool directories, nested worktrees.
-    private void walkDirectory(File dir, Filter filter, Pattern excludesRE) {
-        java.nio.file.Path root = java.nio.file.Path.of(dir.canonicalPath());
-        ProjectFiles.Walker walker = new ProjectFiles.Walker(root,
+    // Each file is searched as the walk finds it.
+    private void walkDirectory(File dir, List<Filter> filters, Pattern excludesRE) {
+        final char sep = LocalFile.getSeparatorChar();
+        new ProjectFiles.Walker(java.nio.file.Path.of(dir.canonicalPath()),
                 Integer.MAX_VALUE,
                 excludesRE,
                 ProjectFiles.Walker.globalIgnoreFile(),
                 () -> cancelled,
-                null);
-        for (String rel : walker.walk()) {
-            if (cancelled)
-                return;
-            String name = rel.substring(rel.lastIndexOf('/') + 1);
-            if (!filter.accepts(name))
-                continue;
-            char sep = LocalFile.getSeparatorChar();
-            searchFile(File.getInstance(dir, sep == '/' ? rel : rel.replace('/', sep)));
-        }
+                null).visiting(rel -> {
+                    String name = rel.substring(rel.lastIndexOf('/') + 1);
+                    if (accepts(filters, name))
+                        searchFile(File.getInstance(dir, sep == '/' ? rel : rel.replace('/', sep)));
+                }).walk();
     }
 
     // The open buffers' files that the patterns name, as they are in memory.

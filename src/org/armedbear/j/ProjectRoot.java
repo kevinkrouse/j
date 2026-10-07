@@ -12,8 +12,8 @@
 package org.armedbear.j;
 
 import java.nio.file.Path;
+import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import org.armedbear.j.util.Utilities;
 import org.armedbear.j.vcs.VcsBackend;
 import org.armedbear.j.vcs.VcsBackends;
@@ -41,8 +41,19 @@ public final class ProjectRoot {
         return find(dir, buffer.getStringProperty(Property.PROJECT_ROOT), File.getInstance(Utilities.getUserHome()));
     }
 
-    // Asked on every repaint of the buffer list: by directory path.
-    private static final Map<String, Boolean> rootCache = new ConcurrentHashMap<>();
+    // Asked on every repaint of the buffer list and directory tree: by directory
+    // and projectRoot, for a few seconds, so a new .git or .j-project shows soon.
+    private static final int MAX_CACHED = 256;
+    private static final long CACHE_MILLIS = 5000;
+
+    private record Cached(boolean root, long at) {}
+
+    private static final Map<String, Cached> rootCache = new LinkedHashMap<>(64, 0.75f, true) {
+        @Override
+        protected boolean removeEldestEntry(Map.Entry<String, Cached> eldest) {
+            return size() > MAX_CACHED;
+        }
+    };
 
     /**
      * Whether dir is a project's root in its own right: the projectRoot
@@ -55,15 +66,27 @@ public final class ProjectRoot {
             return false;
         String configured = buffer.getStringProperty(Property.PROJECT_ROOT);
         String key = dir.canonicalPath() + '\0' + (configured == null ? "" : configured);
-        return rootCache.computeIfAbsent(key, k -> {
-            File root = find(dir, configured, File.getInstance(Utilities.getUserHome()));
-            if (root == null || !root.equals(dir))
-                return false;
-            if (configured != null && !configured.isBlank())
-                return true;
-            File marker = File.getInstance(dir, MARKER);
-            return (marker != null && marker.isDirectory()) || isVcsRoot(dir);
-        });
+        long now = System.currentTimeMillis();
+        synchronized (rootCache) {
+            Cached c = rootCache.get(key);
+            if (c != null && now - c.at() < CACHE_MILLIS)
+                return c.root();
+        }
+        boolean root = computeIsRoot(dir, configured);
+        synchronized (rootCache) {
+            rootCache.put(key, new Cached(root, now));
+        }
+        return root;
+    }
+
+    private static boolean computeIsRoot(File dir, String configured) {
+        File root = find(dir, configured, File.getInstance(Utilities.getUserHome()));
+        if (root == null || !root.equals(dir))
+            return false;
+        if (configured != null && !configured.isBlank())
+            return true;
+        File marker = File.getInstance(dir, MARKER);
+        return (marker != null && marker.isDirectory()) || isVcsRoot(dir);
     }
 
     /** dir's project root; configured wins if it's an absolute path to a directory. */

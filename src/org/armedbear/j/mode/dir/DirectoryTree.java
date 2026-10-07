@@ -48,7 +48,6 @@ import org.armedbear.j.File;
 import org.armedbear.j.LocationBar;
 import org.armedbear.j.NavigationComponent;
 import org.armedbear.j.ProjectRoot;
-import org.armedbear.j.ProjectRoot;
 import org.armedbear.j.SidebarTree;
 import org.armedbear.j.WindowCommands;
 import org.armedbear.j.util.Background;

@@ -300,6 +300,14 @@ public final class ProjectFiles {
             this.partial = partial;
         }
 
+        private Consumer<String> visitor;
+
+        /** Hands each file to visitor as it's found, rather than listing them. */
+        Walker visiting(Consumer<String> visitor) {
+            this.visitor = visitor;
+            return this;
+        }
+
         List<String> walk() {
             if (globalIgnore != null)
                 ignores.add(Ignore.read(globalIgnore, root));
@@ -328,6 +336,10 @@ public final class ProjectFiles {
                             return FileVisitResult.CONTINUE;
                         if (skipFile(file))
                             return FileVisitResult.CONTINUE;
+                        if (visitor != null) {
+                            visitor.accept(relative(root, file));
+                            return cancelled.getAsBoolean() ? FileVisitResult.TERMINATE : FileVisitResult.CONTINUE;
+                        }
                         found.add(relative(root, file));
                         if (found.size() >= max) {
                             truncated = true;
