@@ -47,6 +47,8 @@ import org.armedbear.j.Editor;
 import org.armedbear.j.File;
 import org.armedbear.j.LocationBar;
 import org.armedbear.j.NavigationComponent;
+import org.armedbear.j.ProjectRoot;
+import org.armedbear.j.ProjectRoot;
 import org.armedbear.j.SidebarTree;
 import org.armedbear.j.WindowCommands;
 import org.armedbear.j.util.Background;
@@ -399,6 +401,13 @@ public final class DirectoryTree extends SidebarTree implements NavigationCompon
                 row,
                 hasFocus
             );
+            // A project's root has the project's icon, as in the buffer list.
+            if (
+                value instanceof DefaultMutableTreeNode node
+                    && node.getUserObject() instanceof DirectoryTreeElement element
+                    && ProjectRoot.isRoot(editor.getBuffer(), element.getFile())
+            )
+                setIcon(Icons.getIconFromFile("project"));
             if (selected)
                 super.setForeground(getTextSelectionColor());
             else
