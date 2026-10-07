@@ -65,18 +65,7 @@ public class JavaMode extends AbstractMode implements Mode {
     private static final Pattern CALL_RE = Pattern.compile("([A-Za-z_$]+[A-Za-z_$0-9]*)\\s*\\(");
 
     private static final String[] javaConditionals =
-        {
-            "if",
-            "else",
-            "do",
-            "while",
-            "for",
-            "switch",
-            "try",
-            "catch",
-            "finally",
-            "synchronized"
-        };
+            { "if", "else", "do", "while", "for", "switch", "try", "catch", "finally", "synchronized" };
 
     private static Mode mode;
     private static Jdb jdb;
@@ -203,31 +192,13 @@ public class JavaMode extends AbstractMode implements Mode {
             final Line line = editor.getDotLine();
             if (line != null) {
                 final Dispatcher dispatcher = editor.getDispatcher();
-                JMenuItem menuItem =
-                    addContextMenuItem(
-                        "Set breakpoint",
-                        "jdbSetBreakpoint",
-                        popup,
-                        dispatcher
-                    );
+                JMenuItem menuItem = addContextMenuItem("Set breakpoint", "jdbSetBreakpoint", popup, dispatcher);
                 if (line.isBlank() || line.getAnnotation() != null)
                     menuItem.setEnabled(false);
-                menuItem =
-                    addContextMenuItem(
-                        "Delete breakpoint",
-                        "jdbDeleteBreakpoint",
-                        popup,
-                        dispatcher
-                    );
+                menuItem = addContextMenuItem("Delete breakpoint", "jdbDeleteBreakpoint", popup, dispatcher);
                 if (line.getAnnotation() == null)
                     menuItem.setEnabled(false);
-                menuItem =
-                    addContextMenuItem(
-                        "Run to current line",
-                        "jdbRunToCurrentLine",
-                        popup,
-                        dispatcher
-                    );
+                menuItem = addContextMenuItem("Run to current line", "jdbRunToCurrentLine", popup, dispatcher);
                 if (line.isBlank())
                     menuItem.setEnabled(false);
                 popup.addSeparator();
@@ -256,8 +227,7 @@ public class JavaMode extends AbstractMode implements Mode {
     @Override
     public TextLink getLinkAt(Editor editor, Position pos) {
         if (getId() == JAVA_MODE) {
-            final TextLink link =
-                JavadocLinks.find(editor.getBuffer(), pos.getLine(), pos.getOffset());
+            final TextLink link = JavadocLinks.find(editor.getBuffer(), pos.getLine(), pos.getOffset());
             if (link != null)
                 return link;
         }
@@ -330,11 +300,7 @@ public class JavaMode extends AbstractMode implements Mode {
         final int indentSize = buffer.getIndentSize();
 
         final String firstIdentifier = getFirstIdentifier(text);
-        if (
-            firstIdentifier.equals("throws")
-                ||
-                firstIdentifier.equals("implements")
-        ) {
+        if (firstIdentifier.equals("throws") || firstIdentifier.equals("implements")) {
             Position pos = findBeginningOfStatement(new Position(model, 0));
             return buffer.getIndentation(pos.getLine()) + indentSize;
         }
@@ -357,11 +323,7 @@ public class JavaMode extends AbstractMode implements Mode {
         final char modelFirstChar = modelText.charAt(0);
         if (modelFirstChar == 'c' || modelFirstChar == 'd') {
             final String modelFirstIdentifier = getFirstIdentifier(modelText);
-            if (
-                modelFirstIdentifier.equals("case")
-                    ||
-                    modelFirstIdentifier.equals("default")
-            )
+            if (modelFirstIdentifier.equals("case") || modelFirstIdentifier.equals("default"))
                 return indentAfterSwitchLabel(model, text, textFirstChar, buffer);
             // Otherwise fall through...
         }
@@ -440,11 +402,7 @@ public class JavaMode extends AbstractMode implements Mode {
         return 0;
     }
 
-    private final int indentAfterOpeningBrace(
-        Line model,
-        String modelText,
-        Buffer buffer
-    ) {
+    private final int indentAfterOpeningBrace(Line model, String modelText, Buffer buffer) {
         final int indentSize = buffer.getIndentSize();
         if (isOpeningBraceOfClassOrMethod(model)) {
             Position pos = findBeginningOfStatement(new Position(model, 0));
@@ -459,49 +417,31 @@ public class JavaMode extends AbstractMode implements Mode {
         int indent = buffer.getIndentation(pos.getLine());
         if (buffer.getBooleanProperty(Property.INDENT_AFTER_BRACE))
             indent += indentSize;
-        final boolean indentBeforeBrace =
-            buffer.getBooleanProperty(Property.INDENT_BEFORE_BRACE);
+        final boolean indentBeforeBrace = buffer.getBooleanProperty(Property.INDENT_BEFORE_BRACE);
         if (indentBeforeBrace && pos.getLine() != model)
             indent += indentSize;
         return indent;
     }
 
-    private final int indentAfterElse(
-        Line model,
-        String text,
-        char textFirstChar,
-        Buffer buffer
-    ) {
+    private final int indentAfterElse(Line model, String text, char textFirstChar, Buffer buffer) {
         int indent = buffer.getIndentation(model);
-        final boolean indentBeforeBrace =
-            buffer.getBooleanProperty(Property.INDENT_BEFORE_BRACE);
+        final boolean indentBeforeBrace = buffer.getBooleanProperty(Property.INDENT_BEFORE_BRACE);
         if (indentBeforeBrace || textFirstChar != '{')
             return indent + buffer.getIndentSize();
         else
             return indent;
     }
 
-    private final int indentAfterSwitchLabel(
-        Line model,
-        String text,
-        char textFirstChar,
-        Buffer buffer
-    ) {
+    private final int indentAfterSwitchLabel(Line model, String text, char textFirstChar, Buffer buffer) {
         int indent = buffer.getIndentation(model);
-        final boolean indentBeforeBrace =
-            buffer.getBooleanProperty(Property.INDENT_BEFORE_BRACE);
+        final boolean indentBeforeBrace = buffer.getBooleanProperty(Property.INDENT_BEFORE_BRACE);
         if (indentBeforeBrace || textFirstChar != '{')
             return indent + buffer.getIndentSize();
         else
             return indent;
     }
 
-    private final int indentAfterCloseParen(
-        Line model,
-        String text,
-        char textFirstChar,
-        Buffer buffer
-    ) {
+    private final int indentAfterCloseParen(Line model, String text, char textFirstChar, Buffer buffer) {
         // Find matching '('.
         SyntaxIterator it = getSyntaxIterator(new Position(model, model.length()));
         char c;
@@ -524,11 +464,7 @@ public class JavaMode extends AbstractMode implements Mode {
         }
         if (indent) {
             int modelIndent = buffer.getIndentation(pos.getLine());
-            if (
-                textFirstChar != '{'
-                    ||
-                    buffer.getBooleanProperty(Property.INDENT_BEFORE_BRACE)
-            )
+            if (textFirstChar != '{' || buffer.getBooleanProperty(Property.INDENT_BEFORE_BRACE))
                 return modelIndent + buffer.getIndentSize();
             else
                 return modelIndent;
@@ -537,8 +473,7 @@ public class JavaMode extends AbstractMode implements Mode {
             if (NEW_RE.matcher(pos.getLine().getText().substring(0, pos.getOffset())).find())
                 indent = true;
         }
-        int modelIndent =
-            buffer.getIndentation(findBeginningOfStatement(pos).getLine());
+        int modelIndent = buffer.getIndentation(findBeginningOfStatement(pos).getLine());
         if (indent && (textFirstChar != '{' || buffer.getBooleanProperty(Property.INDENT_BEFORE_BRACE)))
             return modelIndent + buffer.getIndentSize();
         else
@@ -651,8 +586,7 @@ public class JavaMode extends AbstractMode implements Mode {
             Line modelLine = findModel(line);
             if (modelLine == null)
                 return true;
-            Position beginningOfStatement =
-                findBeginningOfStatement(new Position(modelLine, 0));
+            Position beginningOfStatement = findBeginningOfStatement(new Position(modelLine, 0));
             text = beginningOfStatement.getLine().trim();
         } else
             text = text.substring(0, text.length() - 1).trim();
@@ -862,11 +796,7 @@ public class JavaMode extends AbstractMode implements Mode {
         if (lastIdentifier != null && lastIdentifier.equals("else"))
             return new Position(pos.getLine(), 0); // BUG!! This is clearly wrong!
         final String firstIdentifier = getFirstIdentifier(trim);
-        if (
-            firstIdentifier != null
-                &&
-                (firstIdentifier.equals("case") || firstIdentifier.equals("default"))
-        )
+        if (firstIdentifier != null && (firstIdentifier.equals("case") || firstIdentifier.equals("default")))
             return new Position(pos.getLine(), 0);
 
         while (pos.getLine().trim().startsWith("}") && pos.getPreviousLine() != null) {
@@ -967,13 +897,7 @@ public class JavaMode extends AbstractMode implements Mode {
                 if (s.charAt(0) == '#') // C preprocessor.
                     break;
                 char lastChar = s.charAt(s.length() - 1);
-                if (
-                    lastChar == ';'
-                        || lastChar == '{'
-                        || lastChar == '}'
-                        ||
-                        lastChar == ':'
-                )
+                if (lastChar == ';' || lastChar == '{' || lastChar == '}' || lastChar == ':')
                     break;
             }
         }
@@ -1099,8 +1023,7 @@ public class JavaMode extends AbstractMode implements Mode {
         if (!Editor.checkExperimental())
             return;
         final Editor editor = Editor.currentEditor();
-        String toBeInserted =
-            Editor.preferences().getStringProperty(Property.JAVA_MODE_INSERT_COMMENT_TEXT);
+        String toBeInserted = Editor.preferences().getStringProperty(Property.JAVA_MODE_INSERT_COMMENT_TEXT);
         if (toBeInserted == null)
             toBeInserted = "/**\\n * |\\n */";
         Position caretPos = null;
@@ -1180,8 +1103,7 @@ public class JavaMode extends AbstractMode implements Mode {
     public String getToolTipText(Editor editor, MouseEvent e) {
         if (editor.getModeId() == JAVA_MODE) {
             if (editor.getBuffer().getBooleanProperty(Property.ENABLE_TOOL_TIPS)) {
-                Position pos =
-                    editor.getDisplay().positionFromPoint(e.getPoint());
+                Position pos = editor.getDisplay().positionFromPoint(e.getPoint());
                 if (pos != null) {
                     final String name = getQualifiedName(pos);
                     if (name != null) {

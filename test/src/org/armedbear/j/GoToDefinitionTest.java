@@ -45,13 +45,8 @@ public class GoToDefinitionTest {
         return h.buffer().getMode().getLinkAt(h.editor(), h.editor().getDot());
     }
 
-    private static final String JAVA =
-        "class A {\n"
-            + "    void foo() {}\n"
-            + "    void f(int a) {}\n"
-            + "    void f(int a, int b) {}\n"
-            + "    void bar() { foo(); f(1, 2); missing(); }\n"
-            + "}\n";
+    private static final String JAVA = "class A {\n" + "    void foo() {}\n" + "    void f(int a) {}\n"
+            + "    void f(int a, int b) {}\n" + "    void bar() { foo(); f(1, 2); missing(); }\n" + "}\n";
 
     @Test
     public void aCallIsALinkToItsDefinition() {

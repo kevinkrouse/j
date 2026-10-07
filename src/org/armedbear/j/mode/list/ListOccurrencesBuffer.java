@@ -191,12 +191,7 @@ public class ListOccurrencesBuffer extends Buffer {
             gotoSource(editor, buf, target, killList);
     }
 
-    protected void gotoSource(
-        Editor editor,
-        Buffer buf,
-        Line target,
-        boolean killList
-    ) {
+    protected void gotoSource(Editor editor, Buffer buf, Line target, boolean killList) {
         if (target != null) {
             Editor ed;
             if (editor.getFrame().getEditorCount() > 1) {
@@ -339,12 +334,7 @@ public class ListOccurrencesBuffer extends Buffer {
                 Editor ed = editor.activateInOtherWindow(buf);
                 if (shrink)
                     WindowCommands.shrinkWindowIfLargerThanBuffer(ed);
-                ed.setDot(
-                    buf.getInitialDotPos(
-                        editor.getDotLine(),
-                        editor.getDotOffset()
-                    )
-                );
+                ed.setDot(buf.getInitialDotPos(editor.getDotLine(), editor.getDotOffset()));
                 ed.moveCaretToDotCol();
                 ed.updateDisplay();
             } else

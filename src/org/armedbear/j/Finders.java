@@ -50,8 +50,7 @@ public final class Finders {
         Map.entry("insertRegister", Finders::insertRegister),
         Map.entry("findBookmark", Finders::findBookmark),
         Map.entry("jumps", Finders::jumps),
-        Map.entry("changeList", Finders::changeList)
-    );
+        Map.entry("changeList", Finders::changeList));
 
     /** Whether command opens a finder. */
     public static boolean isFinder(String command) {
@@ -66,13 +65,7 @@ public final class Finders {
     }
 
     /** Puts handler in the location bar with prompt, history and query, and starts it. */
-    static void show(
-        Editor editor,
-        int prompt,
-        FinderTextFieldHandler handler,
-        String historyName,
-        String query
-    ) {
+    static void show(Editor editor, int prompt, FinderTextFieldHandler handler, String historyName, String query) {
         final LocationBar locationBar = editor.getLocationBar();
         if (locationBar == null)
             return;
@@ -100,8 +93,7 @@ public final class Finders {
                 LocationBar.PROMPT_TAG,
                 new FindTagFinderTextFieldHandler(editor, textField),
                 "findTag.tag",
-                query
-            );
+                query);
     }
 
     static void openFile(Editor editor, String query) {
@@ -135,8 +127,8 @@ public final class Finders {
                 if (entry.location == null || entry.name == null || entry.name.isEmpty())
                     continue;
                 File f = File.hasRemotePrefix(entry.location)
-                    ? File.getInstance(entry.location + "/" + entry.name)
-                    : File.getInstance(File.getInstance(entry.location), entry.name);
+                        ? File.getInstance(entry.location + "/" + entry.name)
+                        : File.getInstance(File.getInstance(entry.location), entry.name);
                 if (f == null || f.equals(current))
                     continue;
                 String path = f.isRemote() ? f.netPath() : f.canonicalPath();
@@ -149,8 +141,7 @@ public final class Finders {
             LocationBar.PROMPT_RECENT,
             new ListFinderTextFieldHandler(editor, textField, "recentFiles", items),
             "recentFiles.input",
-            query
-        );
+            query);
     }
 
     /** A recent file, opened where it was left. */
@@ -260,8 +251,7 @@ public final class Finders {
             LocationBar.PROMPT_BUFFER,
             new ListFinderTextFieldHandler(editor, textField, "switchBuffer", items),
             "switchBuffer.input",
-            query
-        );
+            query);
     }
 
     private static final class BufferItem implements FinderItem {
@@ -333,12 +323,11 @@ public final class Finders {
             LocationBar.PROMPT_HELP,
             new ListFinderTextFieldHandler(editor, textField, "help", Finders::helpTopics),
             "help.input",
-            query
-        );
+            query);
     }
 
     private static final Pattern TITLE =
-        Pattern.compile("<title>(?:J User's Guide(?: - )?)?(.*?)</title>", Pattern.CASE_INSENSITIVE);
+            Pattern.compile("<title>(?:J User's Guide(?: - )?)?(.*?)</title>", Pattern.CASE_INSENSITIVE);
     private static final Pattern ANCHOR = Pattern.compile("<a name=\"([\\w.]+)\">");
 
     // Read once: the manual doesn't change while j runs.
@@ -378,14 +367,11 @@ public final class Finders {
                     String anchor = a.group(1);
                     String note = commands ? CommandTable.getSummary(anchor) : "preference";
                     entries.add(
-                        new HelpItem(
-                            anchor,
-                            name,
-                            note == null ? "" : note,
-                            commands ? "action" : "file-config",
-                            name + "#" + anchor
-                        )
-                    );
+                        new HelpItem(anchor,
+                                name,
+                                note == null ? "" : note,
+                                commands ? "action" : "file-config",
+                                name + "#" + anchor));
                 }
             }
         }
@@ -395,7 +381,7 @@ public final class Finders {
 
     private static String read(File f) {
         try (BufferedReader in =
-            Files.newBufferedReader(java.nio.file.Path.of(f.canonicalPath()), StandardCharsets.UTF_8)) {
+                Files.newBufferedReader(java.nio.file.Path.of(f.canonicalPath()), StandardCharsets.UTF_8)) {
             StringBuilder sb = new StringBuilder();
             String line;
             while ((line = in.readLine()) != null)
@@ -487,8 +473,7 @@ public final class Finders {
             LocationBar.PROMPT_REGISTER,
             new ListFinderTextFieldHandler(editor, textField, "insertRegister", items),
             "insertRegister.input",
-            query
-        );
+            query);
     }
 
     private static final class RegisterItem implements FinderItem {
@@ -558,8 +543,7 @@ public final class Finders {
             LocationBar.PROMPT_BOOKMARK,
             new ListFinderTextFieldHandler(editor, textField, "findBookmark", items),
             "findBookmark.input",
-            query
-        );
+            query);
     }
 
     private static final class BookmarkItem implements FinderItem {
@@ -653,8 +637,7 @@ public final class Finders {
             LocationBar.PROMPT_JUMP,
             new ListFinderTextFieldHandler(editor, textField, "jumps", items),
             "jumps.input",
-            query
-        );
+            query);
     }
 
     /** Lists where the buffer was changed, oldest first, at the current position, to go to one. */
@@ -686,17 +669,15 @@ public final class Finders {
             LocationBar.PROMPT_CHANGE,
             new ListFinderTextFieldHandler(editor, textField, "changeList", items),
             "changeList.input",
-            query
-        );
+            query);
     }
 
     private static boolean isHere(Editor editor, Marker m) {
         Position pos = m.getPosition();
         return pos != null
-            && m.getBuffer() == editor.getBuffer()
-            && editor.getDot() != null
-            &&
-            pos.getLine() == editor.getDotLine();
+                && m.getBuffer() == editor.getBuffer()
+                && editor.getDot() != null
+                && pos.getLine() == editor.getDotLine();
     }
 
     /** A position in a list of them: the line's text, where it is, and whether it's the current one. */

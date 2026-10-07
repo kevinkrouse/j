@@ -69,9 +69,7 @@ public final class FindTagFinderTextFieldHandler extends FinderTextFieldHandler 
         }
         localItems = Collections.unmodifiableList(local);
         candidates = Collections.unmodifiableList(all);
-        editor.status(
-            local.size() + " tags in " + buffer + ", " + (all.size() - local.size()) + " in tag files"
-        );
+        editor.status(local.size() + " tags in " + buffer + ", " + (all.size() - local.size()) + " in tag files");
         refilter();
     }
 

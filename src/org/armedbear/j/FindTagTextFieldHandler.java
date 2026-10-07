@@ -74,12 +74,7 @@ public final class FindTagTextFieldHandler extends DefaultTextFieldHandler {
                         if (type == TAG_METHOD || type == TAG_EXPLICIT)
                             shortList.add(tag);
                         // Lisp.
-                        if (
-                            type == TAG_DEFUN
-                                || type == TAG_GENERIC_FUNCTION
-                                ||
-                                type == TAG_MACRO
-                        )
+                        if (type == TAG_DEFUN || type == TAG_GENERIC_FUNCTION || type == TAG_MACRO)
                             shortList.add(tag);
                     }
                 }
@@ -88,8 +83,7 @@ public final class FindTagTextFieldHandler extends DefaultTextFieldHandler {
             }
             if (tags.size() > 1) {
                 editor.setDefaultCursor();
-                ListTagsBuffer buf =
-                    new ListTagsBuffer(editor, "findTag", pattern, tags);
+                ListTagsBuffer buf = new ListTagsBuffer(editor, "findTag", pattern, tags);
                 editor.makeNext(buf);
                 Editor otherEditor = editor.getOtherEditor();
                 Editor ed = editor.activateInOtherWindow(buf);
@@ -126,13 +120,7 @@ public final class FindTagTextFieldHandler extends DefaultTextFieldHandler {
         // No exact match in the current buffer. Look in the current
         // directory.
         List<GlobalTag> globalTags =
-            TagCommands.findMatchingTagsInDirectory(
-                pattern,
-                buffer.getCurrentDirectory(),
-                mode,
-                -1,
-                ignoreCase
-            );
+                TagCommands.findMatchingTagsInDirectory(pattern, buffer.getCurrentDirectory(), mode, -1, ignoreCase);
         if (globalTags == null) {
             // Look at all the directories in the buffer's tag path.
             List<String> dirs = TagCommands.getDirectoriesInTagPath(buffer);
@@ -142,13 +130,7 @@ public final class FindTagTextFieldHandler extends DefaultTextFieldHandler {
                     if (directory.equals(buffer.getCurrentDirectory()))
                         continue;
                     List<GlobalTag> tagsInDir =
-                        TagCommands.findMatchingTagsInDirectory(
-                            pattern,
-                            directory,
-                            mode,
-                            -1,
-                            ignoreCase
-                        );
+                            TagCommands.findMatchingTagsInDirectory(pattern, directory, mode, -1, ignoreCase);
                     if (tagsInDir != null) {
                         if (globalTags == null)
                             globalTags = new ArrayList<>();
@@ -161,11 +143,7 @@ public final class FindTagTextFieldHandler extends DefaultTextFieldHandler {
         return (globalTags != null && globalTags.size() > 0) ? globalTags : null;
     }
 
-    private static List<LocalTag> findMatchingTagsInBuffer(
-        Buffer buffer,
-        String pattern,
-        boolean ignoreCase
-    ) {
+    private static List<LocalTag> findMatchingTagsInBuffer(Buffer buffer, String pattern, boolean ignoreCase) {
         if (buffer.getTags() == null) {
             Tagger tagger = buffer.getMode().getTagger(buffer);
             if (tagger != null)
@@ -200,12 +178,7 @@ public final class FindTagTextFieldHandler extends DefaultTextFieldHandler {
     public List<String> getCompletions(final String prefix) {
         List<String> list = getCompletionsInCurrentBuffer(prefix);
         Mode mode = editor.getMode();
-        List<GlobalTag> tags =
-            Editor.getTagFileManager()
-                .getTags(
-                    editor.getCurrentDirectory(),
-                    mode
-                );
+        List<GlobalTag> tags = Editor.getTagFileManager().getTags(editor.getCurrentDirectory(), mode);
         if (tags != null) {
             boolean prefixIsQualified = mode.isQualifiedName(prefix);
             boolean ignoreCase = Utilities.isLowerCase(prefix);

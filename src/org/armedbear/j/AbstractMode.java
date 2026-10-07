@@ -260,20 +260,13 @@ public abstract class AbstractMode implements Mode {
         menu.add(editor, "Find Previous", 'R', "findPrev");
         menu.add(editor, "Find in Files...", 'S', "findInFiles", local);
         menu.addSeparator();
-        menu.add(
-            editor,
-            "List Occurrences of Last Pattern",
-            'L',
-            "listOccurrences",
-            editor.getLastSearch() != null
-        );
+        menu.add(editor, "List Occurrences of Last Pattern", 'L', "listOccurrences", editor.getLastSearch() != null);
         menu.add(
             editor,
             "List Occurrences of Pattern in Files",
             'O',
             "listFiles",
-            FindInFiles.getFindInFiles() != null
-        );
+            FindInFiles.getFindInFiles() != null);
         menu.addSeparator();
         final boolean isNotReadOnly = !editor.getBuffer().isReadOnly();
         if (!(editor.getBuffer() instanceof DirectoryBuffer))
@@ -315,13 +308,7 @@ public abstract class AbstractMode implements Mode {
         menu.add(editor, "Run Lisp as Separate Process", 'L', "lisp");
         // The embedded REPL comes from an extension; grey it out when none is
         // installed rather than offering a command that cannot run.
-        menu.add(
-            editor,
-            "Run Embedded Lisp",
-            'E',
-            "jlisp",
-            CommandTable.getCommand("jlisp") != null
-        );
+        menu.add(editor, "Run Embedded Lisp", 'E', "jlisp", CommandTable.getCommand("jlisp") != null);
     }
 
     private static void populateHelpMenu(Editor editor, Menu menu) {
@@ -438,12 +425,7 @@ public abstract class AbstractMode implements Mode {
         }
     }
 
-    protected JMenuItem addContextMenuItem(
-        String text,
-        String command,
-        JPopupMenu popup,
-        Dispatcher dispatcher
-    ) {
+    protected JMenuItem addContextMenuItem(String text, String command, JPopupMenu popup, Dispatcher dispatcher) {
         JMenuItem menuItem = new JMenuItem(text);
         menuItem.setActionCommand(command);
         menuItem.addActionListener(dispatcher);
@@ -460,8 +442,7 @@ public abstract class AbstractMode implements Mode {
     }
 
     protected ToolBar getCustomToolBar(Frame frame) {
-        String filename =
-            getModePreference("toolbar");
+        String filename = getModePreference("toolbar");
         if (filename != null) {
             File file = File.getInstance(filename);
             if (file != null && file.isFile()) {

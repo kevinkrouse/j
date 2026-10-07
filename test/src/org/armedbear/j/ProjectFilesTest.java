@@ -47,7 +47,7 @@ public class ProjectFilesTest {
 
     private List<String> walk(int max, Pattern excludes, Path globalIgnore) {
         List<String> files =
-            new ArrayList<>(new ProjectFiles.Walker(tmp, max, excludes, globalIgnore, () -> false, null).walk());
+                new ArrayList<>(new ProjectFiles.Walker(tmp, max, excludes, globalIgnore, () -> false, null).walk());
         Collections.sort(files);
         return files;
     }
@@ -82,8 +82,7 @@ public class ProjectFilesTest {
             "docs/b.md",
             "sub/docs/a.tmp",
             "x/y/gen/g.java",
-            "src/main.c"
-        );
+            "src/main.c");
         assertEquals(List.of(".gitignore", "docs/b.md", "src/main.c", "sub/docs/a.tmp", "sub/top.txt"), walk());
     }
 

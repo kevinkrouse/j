@@ -64,8 +64,7 @@ public final class ProjectCommands {
                 LocationBar.PROMPT_FIND_FILE,
                 new FindFileTextFieldHandler(editor, textField),
                 "findFileInProject.input",
-                query
-            );
+                query);
     }
 
     /** Finds a command by name or summary, from the location bar, and runs it. */
@@ -84,8 +83,7 @@ public final class ProjectCommands {
             LocationBar.PROMPT_ACTION,
             new ActionTextFieldHandler(editor, textField),
             "findAction.input",
-            query
-        );
+            query);
     }
 
     /** Opens file, in the other window if otherWindow, at line if it's positive. */

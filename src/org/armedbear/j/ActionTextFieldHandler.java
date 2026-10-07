@@ -115,8 +115,7 @@ public final class ActionTextFieldHandler extends FinderTextFieldHandler {
             "openFileInOtherWindow",
             "openFileInOtherFrame",
             "findFileInProject",
-            "recentFiles"
-        );
+            "recentFiles");
         icon("document-save", "save", "saveAs", "saveCopy", "saveAll");
         icon("close", "killBuffer", "closeAll", "closeOthers", "killWindow");
         icon("undo", "undo");
@@ -133,8 +132,7 @@ public final class ActionTextFieldHandler extends FinderTextFieldHandler {
             "findInFiles",
             "findTag",
             "findAction",
-            "listOccurrences"
-        );
+            "listOccurrences");
         icon("search-and-replace", "replace", "replaceInFiles");
         icon("directory-list", "dir");
         icon("project", "dirProjectDir");
@@ -165,8 +163,8 @@ public final class ActionTextFieldHandler extends FinderTextFieldHandler {
             // The name, so a query in its exact case matches, and the summary, its
             // slashes blanked so the matcher doesn't take its tail for a file name.
             text = note.isEmpty()
-                ? label + " " + name
-                : label + " " + name + " " + note.replace('/', ' ').replace('\\', ' ');
+                    ? label + " " + name
+                    : label + " " + name + " " + note.replace('/', ' ').replace('\\', ' ');
             keyText = keyText(editor, name);
         }
 

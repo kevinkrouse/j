@@ -167,19 +167,9 @@ public class Search implements Cloneable {
 
     public final Position findInLine(Mode mode, Position start) {
         if (regularExpression)
-            return findRegExpInLine(
-                mode,
-                start.getLine(),
-                start.getOffset(),
-                start.getLineLength()
-            );
+            return findRegExpInLine(mode, start.getLine(), start.getOffset(), start.getLineLength());
         else
-            return findStringInLine(
-                mode,
-                start.getLine(),
-                start.getOffset(),
-                start.getLineLength()
-            );
+            return findStringInLine(mode, start.getLine(), start.getOffset(), start.getLineLength());
     }
 
     /**
@@ -197,9 +187,7 @@ public class Search implements Cloneable {
             if (found == null)
                 break;
             final Matcher matcher = getMatch();
-            final int length = regularExpression && matcher != null
-                ? matcher.group().length()
-                : getPatternLength();
+            final int length = regularExpression && matcher != null ? matcher.group().length() : getPatternLength();
             if (n == spans.length)
                 spans = Arrays.copyOf(spans, n * 2);
             spans[n++] = found.getOffset();
@@ -413,14 +401,7 @@ public class Search implements Cloneable {
                 return null;
             if (!wholeWordsOnly)
                 break;
-            if (
-                Utilities.isDelimited(
-                    buffer.getMode(),
-                    s,
-                    match.start(),
-                    match.end()
-                )
-            )
+            if (Utilities.isDelimited(buffer.getMode(), s, match.start(), match.end()))
                 break;
             startIndex = match.start() + 1;
         }
@@ -447,14 +428,7 @@ public class Search implements Cloneable {
                 break;
             if (!wholeWordsOnly)
                 lastMatch = match;
-            else if (
-                Utilities.isDelimited(
-                    buffer.getMode(),
-                    s,
-                    match.start(),
-                    match.end()
-                )
-            )
+            else if (Utilities.isDelimited(buffer.getMode(), s, match.start(), match.end()))
                 lastMatch = match;
             startIndex = match.start() + 1;
         }
@@ -646,13 +620,7 @@ public class Search implements Cloneable {
 
     @Override
     public int hashCode() {
-        return Objects.hash(
-            pattern,
-            ignoreCase,
-            wholeWordsOnly,
-            regularExpression,
-            restrictToSelection
-        );
+        return Objects.hash(pattern, ignoreCase, wholeWordsOnly, regularExpression, restrictToSelection);
     }
 
     @Override

@@ -147,7 +147,7 @@ public class LispMode extends AbstractMode implements Mode {
     }
 
     private static final String validChars =
-        "!$%&*+-./0123456789<=>?ABCDEFGHIJKLMNOPQRSTUVWXYZ[]^_abcdefghijklmnopqrstuvwxyz{}~";
+            "!$%&*+-./0123456789<=>?ABCDEFGHIJKLMNOPQRSTUVWXYZ[]^_abcdefghijklmnopqrstuvwxyz{}~";
 
     @Override
     public final boolean isIdentifierStart(char c) {
@@ -281,10 +281,17 @@ public class LispMode extends AbstractMode implements Mode {
 
     static {
         String[] strings = new String[] {
-            "defclass", "defconstant", "defgeneric", "define-condition",
-            "defmacro", "defmethod", "defparameter", "defstruct", "deftype",
-            "defun", "defvar"
-        };
+            "defclass",
+            "defconstant",
+            "defgeneric",
+            "define-condition",
+            "defmacro",
+            "defmethod",
+            "defparameter",
+            "defstruct",
+            "deftype",
+            "defun",
+            "defvar" };
         for (int i = strings.length; i-- > 0;)
             definers.put(strings[i], strings[i]);
         // SBCL
@@ -365,18 +372,41 @@ public class LispMode extends AbstractMode implements Mode {
     }
 
     private final String[] specials = new String[] {
-        "block", "case", "catch", "do-all-symbols", "do-external-symbols",
-        "do-symbols", "dolist", "dotimes", "ecase", "etypecase", "eval-when",
-        "flet", "handler-bind", "labels", "lambda", "let", "let*", "locally",
-        "loop", "macrolet", "multiple-value-bind", "multiple-value-prog1",
-        "multiple-value-setq", "pprint-logical-block", "print-unreadable-object",
-        "prog1", "prog2", "progn", "progv", "symbol-macrolet", "typecase",
-        "unless", "when"
-    };
+        "block",
+        "case",
+        "catch",
+        "do-all-symbols",
+        "do-external-symbols",
+        "do-symbols",
+        "dolist",
+        "dotimes",
+        "ecase",
+        "etypecase",
+        "eval-when",
+        "flet",
+        "handler-bind",
+        "labels",
+        "lambda",
+        "let",
+        "let*",
+        "locally",
+        "loop",
+        "macrolet",
+        "multiple-value-bind",
+        "multiple-value-prog1",
+        "multiple-value-setq",
+        "pprint-logical-block",
+        "print-unreadable-object",
+        "prog1",
+        "prog2",
+        "progn",
+        "progv",
+        "symbol-macrolet",
+        "typecase",
+        "unless",
+        "when" };
 
-    private final String[] elispSpecials = new String[] {
-        "while"
-    };
+    private final String[] elispSpecials = new String[] { "while" };
 
     private static int findLastUnescapedQuote(Line line) {
         for (int i = line.length(); i-- > 0;) {
@@ -396,11 +426,7 @@ public class LispMode extends AbstractMode implements Mode {
         final int modelIndent = buffer.getIndentation(model);
         final String modelTrim = model.trim();
         if (line.flags() == STATE_QUOTE) {
-            if (
-                buffer.getBooleanProperty(Property.INDENT_STRINGS)
-                    ||
-                    modelTrim.endsWith("~")
-            ) {
+            if (buffer.getBooleanProperty(Property.INDENT_STRINGS) || modelTrim.endsWith("~")) {
                 int index = findLastUnescapedQuote(model);
                 if (index < 0)
                     return modelIndent;
@@ -482,12 +508,7 @@ public class LispMode extends AbstractMode implements Mode {
                 }
                 return buffer.getCol(pos) + indentSize;
             }
-            if (
-                token.equals("handler-case")
-                    || token.equals("restart-case")
-                    ||
-                    token.equals("unwind-protect")
-            ) {
+            if (token.equals("handler-case") || token.equals("restart-case") || token.equals("unwind-protect")) {
                 Position p1 = forwardSexp(posFirst);
                 if (p1 != null) {
                     // Skip whitespace to get to opening '(' of form to be
@@ -501,15 +522,10 @@ public class LispMode extends AbstractMode implements Mode {
                 }
                 return buffer.getCol(pos) + indentSize;
             }
-            if (
-                token.startsWith("def")
-                    ||
-                    Utilities.isOneOf(token, specials)
-                    ||
-                    Utilities.isOneOf(token, elispSpecials)
-                    ||
-                    token.startsWith("with-")
-            )
+            if (token.startsWith("def")
+                    || Utilities.isOneOf(token, specials)
+                    || Utilities.isOneOf(token, elispSpecials)
+                    || token.startsWith("with-"))
                 return buffer.getCol(pos) + indentSize;
             // Check enclosing sexp.
             Position up = findContainingSexp(pos);
@@ -1113,12 +1129,7 @@ public class LispMode extends AbstractMode implements Mode {
             Buffer buffer = editor.getBuffer();
             boolean save = false;
             if (buffer.isModified()) {
-                int response =
-                    ConfirmDialog.showConfirmDialogWithCancelButton(
-                        editor,
-                        CHECK_SAVE_PROMPT,
-                        "Load File"
-                    );
+                int response = ConfirmDialog.showConfirmDialogWithCancelButton(editor, CHECK_SAVE_PROMPT, "Load File");
                 switch (response) {
                     case RESPONSE_YES:
                         save = true;
@@ -1156,11 +1167,7 @@ public class LispMode extends AbstractMode implements Mode {
             boolean save = false;
             if (buffer.isModified()) {
                 int response =
-                    ConfirmDialog.showConfirmDialogWithCancelButton(
-                        editor,
-                        CHECK_SAVE_PROMPT,
-                        "Compile File"
-                    );
+                        ConfirmDialog.showConfirmDialogWithCancelButton(editor, CHECK_SAVE_PROMPT, "Compile File");
                 switch (response) {
                     case RESPONSE_YES:
                         save = true;
@@ -1197,12 +1204,8 @@ public class LispMode extends AbstractMode implements Mode {
             Buffer buffer = editor.getBuffer();
             boolean save = false;
             if (buffer.isModified()) {
-                int response =
-                    ConfirmDialog.showConfirmDialogWithCancelButton(
-                        editor,
-                        CHECK_SAVE_PROMPT,
-                        "Compile and Load File"
-                    );
+                int response = ConfirmDialog
+                        .showConfirmDialogWithCancelButton(editor, CHECK_SAVE_PROMPT, "Compile and Load File");
                 switch (response) {
                     case RESPONSE_YES:
                         save = true;

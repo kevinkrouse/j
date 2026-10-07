@@ -171,10 +171,7 @@ public final class BufferList implements PreferencesChangeListener, Iterable<Buf
         return null;
     }
 
-    public synchronized void makeNext(
-        final Buffer nextBuffer,
-        final Buffer currentBuffer
-    ) {
+    public synchronized void makeNext(final Buffer nextBuffer, final Buffer currentBuffer) {
         if (!reorder)
             return;
         if (currentBuffer == null)
@@ -251,8 +248,7 @@ public final class BufferList implements PreferencesChangeListener, Iterable<Buf
             reorder = p.getIntegerProperty(Property.REORDER_BUFFERS) > 0;
     }
 
-    private static final String userHome =
-        Platform.isPlatformUnix() ? Utilities.getUserHome() : null;
+    private static final String userHome = Platform.isPlatformUnix() ? Utilities.getUserHome() : null;
 
     public synchronized String getUniqueName(Buffer buf) {
         final File file = buf.getFile();
@@ -299,8 +295,7 @@ public final class BufferList implements PreferencesChangeListener, Iterable<Buf
     private void sort() {
         if (alpha) {
             if (comparator == null) {
-                comparator =
-                    (b1, b2) -> b1.toString().compareToIgnoreCase(b2.toString());
+                comparator = (b1, b2) -> b1.toString().compareToIgnoreCase(b2.toString());
             }
             Collections.sort(list, comparator);
         }

@@ -36,8 +36,7 @@ public class OpenFileFuzzyCompletionTest {
             Files.writeString(tmp.resolve(s), "");
         assertEquals(
             List.of("src/OpenFileHandler.java", "src/Other.java"),
-            OpenFileTextFieldHandler.fuzzyCompletions(dir(), "src/oh", "^.+\\.class$", true)
-        );
+            OpenFileTextFieldHandler.fuzzyCompletions(dir(), "src/oh", "^.+\\.class$", true));
         assertEquals(List.of("src/sub/"), OpenFileTextFieldHandler.fuzzyCompletions(dir(), "src/sb", null, true));
     }
 

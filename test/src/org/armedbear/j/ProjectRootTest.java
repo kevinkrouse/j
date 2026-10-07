@@ -124,7 +124,6 @@ public class ProjectRootTest {
         dir("elsewhere/.git");
         assertEquals(
             real(tmp.resolve("elsewhere")),
-            Path.of(ProjectRoot.find(file(d), null, file(home)).canonicalPath())
-        );
+            Path.of(ProjectRoot.find(file(d), null, file(home)).canonicalPath()));
     }
 }

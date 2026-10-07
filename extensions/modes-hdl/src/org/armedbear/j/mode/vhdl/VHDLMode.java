@@ -39,7 +39,7 @@ import org.armedbear.j.Tagger;
 
 public final class VHDLMode extends AbstractMode implements Mode {
     private static final Pattern ENTITY =
-        Pattern.compile("^entity\\s+([a-z][a-z0-9_]*[a-z0-9])", Pattern.CASE_INSENSITIVE);
+            Pattern.compile("^entity\\s+([a-z][a-z0-9_]*[a-z0-9])", Pattern.CASE_INSENSITIVE);
 
     public static final String NAME = "VHDL";
 
@@ -150,9 +150,7 @@ public final class VHDLMode extends AbstractMode implements Mode {
         return partChars.indexOf(c) >= 0;
     }
 
-    private static final String startChars =
-        "`ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+    private static final String startChars = "`ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
 
-    private static final String partChars =
-        "`ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_";
+    private static final String partChars = "`ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_";
 }

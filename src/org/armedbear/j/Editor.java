@@ -145,9 +145,7 @@ public final class Editor extends JPanel implements ComponentListener, MouseWhee
     }
 
     public final boolean isSearchHighlightHidden() {
-        return isSearchShared()
-            ? sharedSearchHighlightHidden
-            : searchHighlightHidden;
+        return isSearchShared() ? sharedSearchHighlightHidden : searchHighlightHidden;
     }
 
     /** Hides the matches highlighted until the next search, or shows them. */
@@ -178,9 +176,7 @@ public final class Editor extends JPanel implements ComponentListener, MouseWhee
         final InputHandler handler = getInputHandler();
         if (handler != null)
             return handler.getSearchMatches(this, line);
-        return buffer.getBooleanProperty(Property.HIGHLIGHT_SEARCH_MATCHES)
-            ? lastSearchMatches(line)
-            : null;
+        return buffer.getBooleanProperty(Property.HIGHLIGHT_SEARCH_MATCHES) ? lastSearchMatches(line) : null;
     }
 
     /** The last search's matches on a line, unless they are hidden. */
@@ -194,9 +190,7 @@ public final class Editor extends JPanel implements ComponentListener, MouseWhee
     /** The match a search being typed is on, as an input handler says. */
     public final int[] getCurrentSearchMatch(Line line) {
         final InputHandler handler = getInputHandler();
-        return handler == null
-            ? null
-            : handler.getCurrentSearchMatch(this, line);
+        return handler == null ? null : handler.getCurrentSearchMatch(this, line);
     }
 
     /** Every window a shared search shows in, or just this one. */
@@ -288,19 +282,16 @@ public final class Editor extends JPanel implements ComponentListener, MouseWhee
      * something that worked the day before, with nothing to say where it
      * went.
      */
-    private static final Map<String, String> commandProviders =
-        Map.of("jlisp", "abcl");
+    private static final Map<String, String> commandProviders = Map.of("jlisp", "abcl");
 
     static String unknownCommandMessage(String command) {
-        String extension = command == null
-            ? null
-            : commandProviders.get(command.toLowerCase(Locale.ROOT));
+        String extension = command == null ? null : commandProviders.get(command.toLowerCase(Locale.ROOT));
         if (extension == null)
             return "Unknown command \"".concat(String.valueOf(command)).concat("\"");
         return "\"".concat(command)
-            .concat("\" is provided by the ")
-            .concat(extension)
-            .concat(" extension, which is not installed.");
+                .concat("\" is provided by the ")
+                .concat(extension)
+                .concat(" extension, which is not installed.");
     }
 
     public Editor(Frame f) {
@@ -538,9 +529,7 @@ public final class Editor extends JPanel implements ComponentListener, MouseWhee
         if (editMode == null || editMode.equals("simple"))
             return null;
         if (!editMode.equals(inputHandlerEditMode)) {
-            inputHandler = "vim".equals(editMode)
-                ? new org.armedbear.j.vim.VimInputHandler()
-                : null;
+            inputHandler = "vim".equals(editMode) ? new org.armedbear.j.vim.VimInputHandler() : null;
             inputHandlerEditMode = editMode;
             if (inputHandler == null)
                 Log.error("unknown editMode \"" + editMode + "\"");
@@ -818,11 +807,7 @@ public final class Editor extends JPanel implements ComponentListener, MouseWhee
     }
 
     public final void notSupportedForColumnSelections() {
-        MessageDialog.showMessageDialog(
-            this,
-            "Operation not supported for column selections",
-            "Error"
-        );
+        MessageDialog.showMessageDialog(this, "Operation not supported for column selections", "Error");
     }
 
     public final Line getMarkLine() {
@@ -1080,18 +1065,12 @@ public final class Editor extends JPanel implements ComponentListener, MouseWhee
             }
         } else {
             // Look in mode-specific key map.
-            mapping =
-                buffer.getMode().getKeyMap().lookup(keyChar, keyCode, modifiers);
+            mapping = buffer.getMode().getKeyMap().lookup(keyChar, keyCode, modifiers);
             if (mapping != null)
                 local = true;
             else
                 // Look in global key map.
-                mapping = KeyMap.getGlobalKeyMap()
-                    .lookup(
-                        keyChar,
-                        keyCode,
-                        modifiers
-                    );
+                mapping = KeyMap.getGlobalKeyMap().lookup(keyChar, keyCode, modifiers);
         }
         if (mapping == null) {
             if (event.getID() == JEvent.KEY_TYPED) {
@@ -1164,8 +1143,7 @@ public final class Editor extends JPanel implements ComponentListener, MouseWhee
         if (requestedKeyMap != null)
             return requestedKeyMap.lookup(keyChar, keyCode, modifiers);
         // Look in mode-specific key map.
-        KeyMapping mapping =
-            buffer.getMode().getKeyMap().lookup(keyChar, keyCode, modifiers);
+        KeyMapping mapping = buffer.getMode().getKeyMap().lookup(keyChar, keyCode, modifiers);
         if (mapping != null)
             return mapping;
         // Look in global key map.
@@ -1185,10 +1163,7 @@ public final class Editor extends JPanel implements ComponentListener, MouseWhee
             // keystroke in the buffer-local keymap!
             if (mapping != null) {
                 javax.swing.KeyStroke keyStroke =
-                    javax.swing.KeyStroke.getKeyStroke(
-                        mapping.getKeyCode(),
-                        mapping.getModifiers()
-                    );
+                        javax.swing.KeyStroke.getKeyStroke(mapping.getKeyCode(), mapping.getModifiers());
                 if (buffer.getKeyMapForMode().lookup(keyStroke) != null)
                     mapping = null;
             }
@@ -1216,8 +1191,7 @@ public final class Editor extends JPanel implements ComponentListener, MouseWhee
 
     public void moveDotToGoalCol() {
         if (buffer.getBooleanProperty(Property.RESTRICT_CARET)) {
-            final int limit =
-                buffer.getCol(getDotLine(), getDotLine().length());
+            final int limit = buffer.getCol(getDotLine(), getDotLine().length());
             moveDotToCol(goalColumn > limit ? limit : goalColumn);
             moveCaretToDotCol();
         } else {
@@ -1497,18 +1471,14 @@ public final class Editor extends JPanel implements ComponentListener, MouseWhee
         if (getDotOffset() > dotLine.length()) {
             // Shouldn't happen.
             Debug.bug();
-            Log.error(
-                "insertChar dot offset = " + getDotOffset() +
-                    " dotLine length = " + dotLine.length()
-            );
+            Log.error("insertChar dot offset = " + getDotOffset() + " dotLine length = " + dotLine.length());
             // Enforce sanity and carry on.
             dot.setOffset(dotLine.length());
         }
         if (!buffer.withWriteLock(() -> {
             addUndo(SimpleEdit.LINE_EDIT);
             fillToCaret();
-            StringBuilder sb =
-                new StringBuilder(dotLine.substring(0, getDotOffset()));
+            StringBuilder sb = new StringBuilder(dotLine.substring(0, getDotOffset()));
             sb.append(c);
             sb.append(dotLine.substring(getDotOffset()));
             dotLine.setText(sb.toString());
@@ -1604,17 +1574,13 @@ public final class Editor extends JPanel implements ComponentListener, MouseWhee
             // Let the user know if the file associated with a modified buffer
             // is no longer writable.
             if (buf.readOnly && buf.isLoaded() && buf.isModified())
-                MessageDialog.showMessageDialog(
-                    file.canonicalPath().concat(" is no longer writable"),
-                    "Warning"
-                );
+                MessageDialog.showMessageDialog(file.canonicalPath().concat(" is no longer writable"), "Warning");
         }
 
         if (buf.isLoaded()) {
             if (file.lastModified() != buf.getLastModified()) {
                 if (buf.isModified()) {
-                    String prompt = file.canonicalPath() +
-                        " has changed on disk. Reload and lose current changes?";
+                    String prompt = file.canonicalPath() + " has changed on disk. Reload and lose current changes?";
                     if (confirm("Reload File From Disk", prompt)) {
                         FileCommands.reload(this, buf);
                         changed = true;
@@ -1764,10 +1730,7 @@ public final class Editor extends JPanel implements ComponentListener, MouseWhee
             return new DirectoryBuffer(file);
         if (file.isFile()) {
             if (!file.canRead()) {
-                MessageDialog.showMessageDialog(
-                    "File is not readable",
-                    "Error"
-                );
+                MessageDialog.showMessageDialog("File is not readable", "Error");
                 return null;
             }
             return Buffer.createBuffer(file);
@@ -1816,12 +1779,7 @@ public final class Editor extends JPanel implements ComponentListener, MouseWhee
             return null;
         // File is local.
         if (!file.exists()) {
-            if (
-                confirm(
-                    "Create file?",
-                    file.canonicalPath() + " does not exist. Create?"
-                )
-            )
+            if (confirm("Create file?", file.canonicalPath() + " does not exist. Create?"))
                 return Buffer.createBuffer(file);
         }
         return null;
@@ -1865,11 +1823,7 @@ public final class Editor extends JPanel implements ComponentListener, MouseWhee
             }
             File file = File.getInstance(directory, s);
             if (file == null) {
-                MessageDialog.showMessageDialog(
-                    this,
-                    "Invalid path ".concat(s),
-                    "Invalid Path"
-                );
+                MessageDialog.showMessageDialog(this, "Invalid path ".concat(s), "Invalid Path");
                 continue;
             }
             if (Utilities.isFilenameAbsolute(s) || s.startsWith("./") || s.startsWith(".\\"))
@@ -2320,11 +2274,7 @@ public final class Editor extends JPanel implements ComponentListener, MouseWhee
             catch (OutOfMemoryError e) {
                 buf.kill();
                 Sidebar.setUpdateFlagInAllFrames(SIDEBAR_ALL);
-                MessageDialog.showMessageDialog(
-                    this,
-                    "Insufficient memory to load buffer",
-                    "Error"
-                );
+                MessageDialog.showMessageDialog(this, "Insufficient memory to load buffer", "Error");
                 return;
             }
             switch (result) {
@@ -2341,11 +2291,7 @@ public final class Editor extends JPanel implements ComponentListener, MouseWhee
                     setDefaultCursor();
                     buffer = buf;
                     bufferActivated(true);
-                    MessageDialog.showMessageDialog(
-                        this,
-                        "Unable to load buffer",
-                        "Error"
-                    );
+                    MessageDialog.showMessageDialog(this, "Unable to load buffer", "Error");
                     break;
                 default:
                     Debug.assertTrue(false);
@@ -2403,10 +2349,7 @@ public final class Editor extends JPanel implements ComponentListener, MouseWhee
         RecentFiles.getInstance().bufferActivated(buffer);
 
         if (buffer.isTaggable()) {
-            tagFileManager.addToQueue(
-                buffer.getCurrentDirectory(),
-                buffer.getMode()
-            );
+            tagFileManager.addToQueue(buffer.getCurrentDirectory(), buffer.getMode());
         }
 
         Sidebar.setUpdateFlagInAllFrames(SIDEBAR_ALL);
@@ -2559,10 +2502,7 @@ public final class Editor extends JPanel implements ComponentListener, MouseWhee
             // runtime's own condition types is the client's job; what arrives
             // here is already a message fit to show.
             try {
-                EvalResult result = Extensions.session()
-                    .evalSync(
-                        EvalRequest.of(input).origin("command-line")
-                    );
+                EvalResult result = Extensions.session().evalSync(EvalRequest.of(input).origin("command-line"));
                 if (result.isError())
                     showEvalError(result.getError());
                 else if (interactive)
@@ -2601,8 +2541,7 @@ public final class Editor extends JPanel implements ComponentListener, MouseWhee
                         Mode mode = (Mode) values[1];
                         if (mapping != null && statusBar != null) {
                             String statusText = statusBar.getText();
-                            boolean append =
-                                statusText != null && statusText.length() > 0;
+                            boolean append = statusText != null && statusText.length() > 0;
                             StringBuilder sb = new StringBuilder();
                             if (append) {
                                 sb.append(statusText);
@@ -2622,11 +2561,7 @@ public final class Editor extends JPanel implements ComponentListener, MouseWhee
                     }
                 }
                 catch (NoSuchMethodException e) {
-                    MessageDialog.showMessageDialog(
-                        Editor.this,
-                        unknownCommandMessage(command),
-                        "Error"
-                    );
+                    MessageDialog.showMessageDialog(Editor.this, unknownCommandMessage(command), "Error");
                 }
             };
             if (SwingUtilities.isEventDispatchThread()) {
@@ -2708,10 +2643,7 @@ public final class Editor extends JPanel implements ComponentListener, MouseWhee
     private void setProperty(String key, String value) {
         Property property = Property.findProperty(key);
         if (property == null) {
-            MessageDialog.showMessageDialog(
-                "Property \"" + key + "\" not found",
-                "Error"
-            );
+            MessageDialog.showMessageDialog("Property \"" + key + "\" not found", "Error");
             return;
         }
         final boolean succeeded;
@@ -2816,8 +2748,7 @@ public final class Editor extends JPanel implements ComponentListener, MouseWhee
                 display.getShift() * Display.getCharWidth(),
                 display.getWidth(),
                 0,
-                buffer.getDisplayWidth()
-            );
+                buffer.getDisplayWidth());
     }
 
     public void updateDisplay() {
@@ -2932,8 +2863,7 @@ public final class Editor extends JPanel implements ComponentListener, MouseWhee
         displayReady = b;
     }
 
-    private static final Cursor waitCursor =
-        Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR);
+    private static final Cursor waitCursor = Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR);
 
     public final void setWaitCursor() {
         display.setCursor(waitCursor);
@@ -2965,8 +2895,7 @@ public final class Editor extends JPanel implements ComponentListener, MouseWhee
     }
 
     static void runStartupScript() {
-        File file =
-            File.getInstance(Directories.getConfigDirectory(), "init.lisp");
+        File file = File.getInstance(Directories.getConfigDirectory(), "init.lisp");
         if (file != null && file.isFile()) {
             if (!Extensions.languageClient().isAvailable()) {
                 // Starting anyway would drop every customization in the file
@@ -2998,8 +2927,7 @@ public final class Editor extends JPanel implements ComponentListener, MouseWhee
     }
 
     public void mode() {
-        String modeName =
-            InputDialog.showInputDialog(this, "New mode:", "Change Mode");
+        String modeName = InputDialog.showInputDialog(this, "New mode:", "Change Mode");
         if (modeName != null) {
             modeName = modeName.trim();
             if (modeName.length() > 0) {
@@ -3012,14 +2940,10 @@ public final class Editor extends JPanel implements ComponentListener, MouseWhee
     public void mode(String modeName) {
         int modeId = getModeList().getModeIdFromModeName(modeName);
         if (modeId < 0) {
-            MessageDialog.showMessageDialog(
-                "Unknown mode \"" + modeName + '"',
-                "Error"
-            );
+            MessageDialog.showMessageDialog("Unknown mode \"" + modeName + '"', "Error");
         } else if (modeId != buffer.getMode().getId()) {
             if (buffer.isModified() && modeId == BINARY_MODE) {
-                String prompt =
-                    "Buffer will be reloaded in binary mode; discard changes?";
+                String prompt = "Buffer will be reloaded in binary mode; discard changes?";
                 if (!confirm("Change Mode", prompt))
                     return;
             }
@@ -3037,8 +2961,7 @@ public final class Editor extends JPanel implements ComponentListener, MouseWhee
         Mode mode = buffer.getDefaultMode();
         if (mode != null && mode != buffer.getMode()) {
             if (buffer.isModified()) {
-                StringBuilder sb =
-                    new StringBuilder("Buffer will be reloaded in ");
+                StringBuilder sb = new StringBuilder("Buffer will be reloaded in ");
                 sb.append(mode.toString());
                 sb.append(" mode; discard changes?");
                 if (!confirm("Change Mode", sb.toString()))
@@ -3053,8 +2976,7 @@ public final class Editor extends JPanel implements ComponentListener, MouseWhee
     public void textMode() {
         if (buffer.getModeId() == BINARY_MODE) {
             if (buffer.isModified()) {
-                String prompt =
-                    "Buffer will be reloaded in text mode; discard changes?";
+                String prompt = "Buffer will be reloaded in text mode; discard changes?";
                 if (!confirm("Change Mode", prompt))
                     return;
             }

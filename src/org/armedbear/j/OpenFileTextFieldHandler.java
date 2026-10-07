@@ -47,8 +47,7 @@ import org.armedbear.j.util.Keys;
 import org.armedbear.j.util.Utilities;
 
 public final class OpenFileTextFieldHandler extends DefaultTextFieldHandler implements MouseListener {
-    private static final boolean filenamesIgnoreCase =
-        Platform.isPlatformWindows();
+    private static final boolean filenamesIgnoreCase = Platform.isPlatformWindows();
 
     private String title = "Open File";
 
@@ -108,8 +107,7 @@ public final class OpenFileTextFieldHandler extends DefaultTextFieldHandler impl
             saveHistory();
         entry = preprocess(entry);
         if (encoding != null && !Utilities.isSupportedEncoding(encoding)) {
-            StringBuilder sb =
-                new StringBuilder("Unsupported encoding \"");
+            StringBuilder sb = new StringBuilder("Unsupported encoding \"");
             sb.append(encoding);
             sb.append('"');
             error(sb.toString());
@@ -289,8 +287,7 @@ public final class OpenFileTextFieldHandler extends DefaultTextFieldHandler impl
                     if (buf == null)
                         buf = new RemoteBuffer(file);
                 } else if (Editor.preferences().getBooleanProperty(Property.ENABLE_WEB)) {
-                    int modeId =
-                        Editor.getModeList().getModeIdForFileName(file.getName());
+                    int modeId = Editor.getModeList().getModeIdForFileName(file.getName());
                     if (modeId < 0 || modeId == HTML_MODE) {
                         if (editor.getMode() instanceof WebMode) {
                             // Current buffer is already a web buffer.
@@ -299,8 +296,7 @@ public final class OpenFileTextFieldHandler extends DefaultTextFieldHandler impl
                             ((WebBuffer) buf).saveHistory(
                                 buf.getFile(),
                                 buf.getAbsoluteOffset(editor.getDot()),
-                                ((WebBuffer) buf).getContentType()
-                            );
+                                ((WebBuffer) buf).getContentType());
                             // If we don't call setCache(null), go() will use the
                             // existing cache.
                             buf.setCache(null);
@@ -373,12 +369,7 @@ public final class OpenFileTextFieldHandler extends DefaultTextFieldHandler impl
     @Override
     public void tab() {
         final String entry = textField.getText();
-        if (
-            entry.startsWith("http:")
-                || entry.startsWith("https:")
-                ||
-                entry.startsWith("ftp:")
-        )
+        if (entry.startsWith("http:") || entry.startsWith("https:") || entry.startsWith("ftp:"))
             return;
         final File dir = editor.getCompletionDirectory();
         if (dir == null)
@@ -405,20 +396,14 @@ public final class OpenFileTextFieldHandler extends DefaultTextFieldHandler impl
         if (textField.getOwner() != null) {
             showCompletionList = false;
         } else {
-            showCompletionList = Editor.preferences()
-                .getBooleanProperty(
-                    Property.SHOW_COMPLETION_LIST
-                );
+            showCompletionList = Editor.preferences().getBooleanProperty(Property.SHOW_COMPLETION_LIST);
         }
         if (showCompletionList) {
             if (!popupShowing()) {
                 long start = System.currentTimeMillis();
                 completions = getCompletions(prefix);
                 long elapsed = System.currentTimeMillis() - start;
-                Log.debug(
-                    "getCompletions " + elapsed + " ms " +
-                        completions.size() + " completions"
-                );
+                Log.debug("getCompletions " + elapsed + " ms " + completions.size() + " completions");
                 index = 0;
                 originalText = textField.getText();
                 originalPrefix = prefix;
@@ -468,41 +453,23 @@ public final class OpenFileTextFieldHandler extends DefaultTextFieldHandler impl
         prefix = File.normalize(prefix);
         fuzzy = false;
         final boolean ignoreCase = ignoreCase();
-        String excludes = Editor.preferences()
-            .getStringProperty(
-                Property.FILENAME_COMPLETIONS_EXCLUDE_PATTERN
-            );
-        FilenameCompletion completion =
-            new FilenameCompletion(dir, prefix, sourcePath, excludes, ignoreCase);
+        String excludes = Editor.preferences().getStringProperty(Property.FILENAME_COMPLETIONS_EXCLUDE_PATTERN);
+        FilenameCompletion completion = new FilenameCompletion(dir, prefix, sourcePath, excludes, ignoreCase);
         final File currentDirectory = getCurrentDirectory();
         List<File> files = completion.listFiles();
         if (files != null) {
             for (final File file : files) {
                 final String name = getNameForFile(file, currentDirectory);
                 if (file.isDirectory()) {
-                    addCompletion(
-                        completions,
-                        name.concat(file.getSeparator()),
-                        ignoreCase
-                    );
+                    addCompletion(completions, name.concat(file.getSeparator()), ignoreCase);
                     continue;
                 }
                 addCompletion(completions, name, ignoreCase);
             }
         }
-        if (
-            checkBuffers
-                && !Utilities.isFilenameAbsolute(prefix)
-                &&
-                prefix.indexOf(LocalFile.getSeparatorChar()) < 0
-        ) {
+        if (checkBuffers && !Utilities.isFilenameAbsolute(prefix) && prefix.indexOf(LocalFile.getSeparatorChar()) < 0) {
             // Short name.
-            addCompletionsFromBufferList(
-                completions,
-                prefix,
-                currentDirectory,
-                ignoreCase
-            );
+            addCompletionsFromBufferList(completions, prefix, currentDirectory, ignoreCase);
         }
         if (completions.isEmpty()) {
             fuzzy = true;
@@ -513,8 +480,7 @@ public final class OpenFileTextFieldHandler extends DefaultTextFieldHandler impl
 
     private static boolean ignoreCase() {
         return Platform.isFileSystemCaseInsensitive()
-            ||
-            Editor.preferences().getBooleanProperty(Property.FILENAME_COMPLETIONS_IGNORE_CASE);
+                || Editor.preferences().getBooleanProperty(Property.FILENAME_COMPLETIONS_IGNORE_CASE);
     }
 
     // A case-insensitive file system matches regardless of case.
@@ -571,7 +537,7 @@ public final class OpenFileTextFieldHandler extends DefaultTextFieldHandler impl
         List<String> result = new ArrayList<>();
         // Only the best are asked whether they're directories.
         for (Ranked<File> r : FuzzyMatcher
-            .rank(files, File::getName, fuzzyQuery(name, ignoreCase), MAX_FUZZY_COMPLETIONS)) {
+                .rank(files, File::getName, fuzzyQuery(name, ignoreCase), MAX_FUZZY_COMPLETIONS)) {
             File file = r.item();
             result.add(head + file.getName() + (file.isDirectory() ? file.getSeparator() : ""));
         }
@@ -579,11 +545,10 @@ public final class OpenFileTextFieldHandler extends DefaultTextFieldHandler impl
     }
 
     private void addCompletionsFromBufferList(
-        List<String> list,
-        String prefix,
-        File currentDirectory,
-        boolean ignoreCase
-    ) {
+            List<String> list,
+            String prefix,
+            File currentDirectory,
+            boolean ignoreCase) {
         for (Buffer buf : Editor.getBufferList()) {
             if (buf.getType() != Buffer.TYPE_NORMAL)
                 continue;
@@ -593,22 +558,11 @@ public final class OpenFileTextFieldHandler extends DefaultTextFieldHandler impl
             if (file != null) {
                 boolean isMatch = false;
                 if (ignoreCase)
-                    isMatch = file.getName()
-                        .regionMatches(
-                            true,
-                            0,
-                            prefix,
-                            0,
-                            prefix.length()
-                        );
+                    isMatch = file.getName().regionMatches(true, 0, prefix, 0, prefix.length());
                 else
                     isMatch = file.getName().startsWith(prefix);
                 if (isMatch)
-                    addCompletion(
-                        list,
-                        getNameForFile(file, currentDirectory),
-                        ignoreCase
-                    );
+                    addCompletion(list, getNameForFile(file, currentDirectory), ignoreCase);
             }
         }
     }
@@ -665,21 +619,11 @@ public final class OpenFileTextFieldHandler extends DefaultTextFieldHandler impl
             return false;
         if (Platform.isPlatformWindows())
             extension = extension.toLowerCase(Locale.ROOT);
-        if (
-            extension.equals(".class")
-                ||
-                extension.equals(".cls")
-                ||
-                extension.equals(".abcl")
-        ) {
+        if (extension.equals(".class") || extension.equals(".cls") || extension.equals(".abcl")) {
             return true;
         }
         if (Platform.isPlatformWindows()) {
-            if (
-                extension.equals(".obj")
-                    ||
-                    extension.equals(".exe")
-            ) {
+            if (extension.equals(".obj") || extension.equals(".exe")) {
                 return true;
             }
         }
@@ -699,13 +643,11 @@ public final class OpenFileTextFieldHandler extends DefaultTextFieldHandler impl
     private String getSourcePath() {
         ArrayList<String> dirs = new ArrayList<>();
         // We want to search the mode-specific source path first.
-        String sourcePathForMode =
-            editor.getBuffer().getStringProperty(Property.SOURCE_PATH);
+        String sourcePathForMode = editor.getBuffer().getStringProperty(Property.SOURCE_PATH);
         if (sourcePathForMode != null)
             dirs.addAll(Utilities.getDirectoriesInPath(sourcePathForMode));
         // Append any additional directories from the global source path.
-        String globalSourcePath =
-            Editor.preferences().getStringProperty(Property.SOURCE_PATH);
+        String globalSourcePath = Editor.preferences().getStringProperty(Property.SOURCE_PATH);
         if (globalSourcePath != null) {
             List<String> list = Utilities.getDirectoriesInPath(globalSourcePath);
             for (String s : list) {
@@ -740,12 +682,8 @@ public final class OpenFileTextFieldHandler extends DefaultTextFieldHandler impl
             popup = new CompletionPopup<>(textField, 8);
             FinderCellRenderer renderer = new FinderCellRenderer();
             popup.setCellRenderer(
-                (list, value, index, selected, focus) -> renderer.render(
-                    list,
-                    rows.computeIfAbsent(value, this::row),
-                    selected
-                )
-            );
+                (list, value, index, selected, focus) -> renderer
+                        .render(list, rows.computeIfAbsent(value, this::row), selected));
             popup.setOnClick(completion -> {
                 textField.setText(completion);
                 enterPopup();
@@ -797,8 +735,8 @@ public final class OpenFileTextFieldHandler extends DefaultTextFieldHandler impl
             @Override
             public Icon icon() {
                 return isDirectory
-                    ? Icons.getIconFromFile("dir_close")
-                    : FileIcons.getIcon(completion.substring(start), null);
+                        ? Icons.getIconFromFile("dir_close")
+                        : FileIcons.getIcon(completion.substring(start), null);
             }
 
             @Override
@@ -822,43 +760,24 @@ public final class OpenFileTextFieldHandler extends DefaultTextFieldHandler impl
         textField.setText(completion);
         if (Editor.preferences().getBooleanProperty(Property.SELECT_COMPLETION)) {
             if (originalText != null && originalText.length() > 0) {
-                boolean ignoreCase =
-                    Editor.preferences()
-                        .getBooleanProperty(
-                            Property.FILENAME_COMPLETIONS_IGNORE_CASE
-                        );
-                boolean select =
-                    completion.regionMatches(
-                        ignoreCase,
-                        0,
-                        originalPrefix,
-                        0,
-                        originalPrefix.length()
-                    );
+                boolean ignoreCase = Editor.preferences().getBooleanProperty(Property.FILENAME_COMPLETIONS_IGNORE_CASE);
+                boolean select = completion.regionMatches(ignoreCase, 0, originalPrefix, 0, originalPrefix.length());
                 if (select) {
                     textField.setCaretPosition(originalPrefix.length());
                     textField.moveCaretPosition(completion.length());
                     textField.getCaret().setVisible(false);
                 } else {
                     char c = originalText.charAt(0);
-                    if (
-                        c == '/'
+                    if (c == '/'
                             || c == '\\'
-                            ||
-                            (Platform.isPlatformWindows()
-                                &&
-                                originalText.length() >= 3
-                                &&
-                                originalText.charAt(1) == ':'
-                                &&
-                                originalText.charAt(2) == '\\')
-                    ) {
+                            || (Platform.isPlatformWindows()
+                                    && originalText.length() >= 3
+                                    && originalText.charAt(1) == ':'
+                                    && originalText.charAt(2) == '\\')) {
                         final int index;
                         if (ignoreCase) {
                             index = completion.toLowerCase(Locale.ROOT)
-                                .lastIndexOf(
-                                    originalText.toLowerCase(Locale.ROOT)
-                                );
+                                    .lastIndexOf(originalText.toLowerCase(Locale.ROOT));
                         } else {
                             index = completion.lastIndexOf(originalText);
                         }
@@ -870,8 +789,7 @@ public final class OpenFileTextFieldHandler extends DefaultTextFieldHandler impl
                     } else {
                         Pattern re = Pattern.compile(
                             "[\\/]".concat(Pattern.quote(originalText)),
-                            ignoreCase ? Pattern.CASE_INSENSITIVE : 0
-                        );
+                            ignoreCase ? Pattern.CASE_INSENSITIVE : 0);
                         boolean found = false;
                         int index = 0;
                         Matcher matcher = re.matcher(completion);
@@ -892,10 +810,7 @@ public final class OpenFileTextFieldHandler extends DefaultTextFieldHandler impl
 
     private void enterPopup() {
         popup.hide();
-        File file = File.getInstance(
-            editor.getCompletionDirectory(),
-            textField.getText()
-        );
+        File file = File.getInstance(editor.getCompletionDirectory(), textField.getText());
         if (file == null || file.isDirectory()) {
             textField.requestFocus();
             end();
@@ -1048,13 +963,7 @@ public final class OpenFileTextFieldHandler extends DefaultTextFieldHandler impl
                     originalText = null;
                     originalPrefix = null;
                 } else {
-                    StringBuilder sb =
-                        new StringBuilder(
-                            text.substring(
-                                0,
-                                textField.getSelectionStart()
-                            )
-                        );
+                    StringBuilder sb = new StringBuilder(text.substring(0, textField.getSelectionStart()));
                     sb.append(text.substring(textField.getSelectionEnd()));
                     text = sb.toString();
                     textField.setCaretPosition(textField.getSelectionStart());

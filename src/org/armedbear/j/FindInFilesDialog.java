@@ -52,8 +52,7 @@ public class FindInFilesDialog extends AbstractDialog implements ActionListener,
     private static final String searchFilesInMemoryKey = "findInFiles.searchFilesInMemory";
     private static final String listOccurrencesKey = "findInFiles.listOccurrences";
 
-    private final SessionProperties sessionProperties =
-        Editor.getSessionProperties();
+    private final SessionProperties sessionProperties = Editor.getSessionProperties();
 
     private FindInFiles findInFiles;
 
@@ -176,10 +175,8 @@ public class FindInFilesDialog extends AbstractDialog implements ActionListener,
         mainPanel.add(scopePanel);
         scopeComboBox.addActionListener(e -> updateIncludeSubdirs());
 
-        defaultExcludesCheckBox = new CheckBox(
-            "Default excludes",
-            sessionProperties.getBooleanProperty(defaultExcludesKey, true)
-        );
+        defaultExcludesCheckBox =
+                new CheckBox("Default excludes", sessionProperties.getBooleanProperty(defaultExcludesKey, true));
         defaultExcludesCheckBox.setMnemonic('D');
         addCheckBox(defaultExcludesCheckBox);
 
@@ -190,10 +187,8 @@ public class FindInFilesDialog extends AbstractDialog implements ActionListener,
         setIgnoreCaseDefault();
         addCheckBox(ignoreCaseCheckBox);
 
-        wholeWordsOnlyCheckBox = new CheckBox(
-            "Whole words only",
-            sessionProperties.getBooleanProperty(wholeWordsOnlyKey, false)
-        );
+        wholeWordsOnlyCheckBox =
+                new CheckBox("Whole words only", sessionProperties.getBooleanProperty(wholeWordsOnlyKey, false));
         wholeWordsOnlyCheckBox.setMnemonic('W');
         wholeWordsOnlyCheckBox.addActionListener(this);
         addCheckBox(wholeWordsOnlyCheckBox);
@@ -218,10 +213,8 @@ public class FindInFilesDialog extends AbstractDialog implements ActionListener,
         modeComboBox.addKeyListener(this);
         mainPanel.add(panel);
 
-        regExpCheckBox = new CheckBox(
-            replace ? "Regular expressions" : "Regular expression",
-            sessionProperties.getBooleanProperty(regExpKey, false)
-        );
+        regExpCheckBox = new CheckBox(replace ? "Regular expressions" : "Regular expression",
+                sessionProperties.getBooleanProperty(regExpKey, false));
         regExpCheckBox.setMnemonic('X');
         addCheckBox(regExpCheckBox);
 
@@ -231,10 +224,8 @@ public class FindInFilesDialog extends AbstractDialog implements ActionListener,
             addCheckBox(confirmChangesCheckBox);
         }
 
-        includeSubdirsCheckBox = new CheckBox(
-            "Include subdirectories",
-            sessionProperties.getBooleanProperty(includeSubdirsKey, false)
-        );
+        includeSubdirsCheckBox =
+                new CheckBox("Include subdirectories", sessionProperties.getBooleanProperty(includeSubdirsKey, false));
         includeSubdirsCheckBox.setMnemonic('S');
         addCheckBox(includeSubdirsCheckBox);
         updateIncludeSubdirs();
@@ -242,20 +233,12 @@ public class FindInFilesDialog extends AbstractDialog implements ActionListener,
         // Always search files in memory for replace in files.
         // Otherwise it's up to the user.
         if (!replace) {
-            searchFilesInMemoryCheckBox =
-                new CheckBox(
-                    "Search files in memory",
-                    sessionProperties.getBooleanProperty(
-                        searchFilesInMemoryKey,
-                        true
-                    )
-                );
+            searchFilesInMemoryCheckBox = new CheckBox("Search files in memory",
+                    sessionProperties.getBooleanProperty(searchFilesInMemoryKey, true));
             searchFilesInMemoryCheckBox.setMnemonic('M');
             addCheckBox(searchFilesInMemoryCheckBox);
-            listOccurrencesCheckBox = new CheckBox(
-                "List occurrences",
-                sessionProperties.getBooleanProperty(listOccurrencesKey, true)
-            );
+            listOccurrencesCheckBox =
+                    new CheckBox("List occurrences", sessionProperties.getBooleanProperty(listOccurrencesKey, true));
             listOccurrencesCheckBox.setMnemonic('L');
             addCheckBox(listOccurrencesCheckBox);
         }
@@ -279,8 +262,7 @@ public class FindInFilesDialog extends AbstractDialog implements ActionListener,
                         list.add(entry);
                 }
             }
-            permissibleModes =
-                list.toArray(new ModeListEntry[list.size()]);
+            permissibleModes = list.toArray(new ModeListEntry[list.size()]);
         }
         return permissibleModes;
     }
@@ -324,31 +306,13 @@ public class FindInFilesDialog extends AbstractDialog implements ActionListener,
         patternHistory.append(findInFiles.getPattern());
         patternHistory.save();
 
-        sessionProperties.setBooleanProperty(
-            defaultExcludesKey,
-            findInFiles.getDefaultExcludes()
-        );
-        sessionProperties.setBooleanProperty(
-            wholeWordsOnlyKey,
-            findInFiles.wholeWordsOnly()
-        );
-        sessionProperties.setBooleanProperty(
-            regExpKey,
-            findInFiles.isRegularExpression()
-        );
-        sessionProperties.setBooleanProperty(
-            includeSubdirsKey,
-            findInFiles.getIncludeSubdirs()
-        );
-        sessionProperties.setBooleanProperty(
-            searchFilesInMemoryKey,
-            findInFiles.getSearchFilesInMemory()
-        );
+        sessionProperties.setBooleanProperty(defaultExcludesKey, findInFiles.getDefaultExcludes());
+        sessionProperties.setBooleanProperty(wholeWordsOnlyKey, findInFiles.wholeWordsOnly());
+        sessionProperties.setBooleanProperty(regExpKey, findInFiles.isRegularExpression());
+        sessionProperties.setBooleanProperty(includeSubdirsKey, findInFiles.getIncludeSubdirs());
+        sessionProperties.setBooleanProperty(searchFilesInMemoryKey, findInFiles.getSearchFilesInMemory());
         if (!replace)
-            sessionProperties.setBooleanProperty(
-                listOccurrencesKey,
-                findInFiles.getListEachOccurrence()
-            );
+            sessionProperties.setBooleanProperty(listOccurrencesKey, findInFiles.getListEachOccurrence());
 
         if (findInFiles.isRegularExpression()) {
             if (findInFiles.getRE() == null) {
@@ -360,11 +324,7 @@ public class FindInFilesDialog extends AbstractDialog implements ActionListener,
                 }
                 catch (PatternSyntaxException e) {
                     findInFiles = null;
-                    MessageDialog.showMessageDialog(
-                        editor,
-                        e.getMessage(),
-                        "Error"
-                    );
+                    MessageDialog.showMessageDialog(editor, e.getMessage(), "Error");
                     patternControl.requestFocus();
                     return;
                 }
@@ -384,13 +344,10 @@ public class FindInFilesDialog extends AbstractDialog implements ActionListener,
         // All of home, or of a root, is rarely what's meant: a relative pattern
         // in a buffer that's there, or that has no file, starts there.
         File broad = findInFiles.getTooBroadDirectory();
-        if (
-            broad != null
+        if (broad != null
                 && !editor.confirm(
                     "Find in Files",
-                    "Search every file under " + broad.canonicalPath() + ", and its subdirectories?"
-                )
-        ) {
+                    "Search every file under " + broad.canonicalPath() + ", and its subdirectories?")) {
             findInFiles = null;
             filesControl.requestFocus();
             return;
@@ -399,8 +356,7 @@ public class FindInFilesDialog extends AbstractDialog implements ActionListener,
         filesHistory.save();
 
         if (modeComboBox != null) {
-            ModeListEntry entry =
-                (ModeListEntry) modeComboBox.getSelectedItem();
+            ModeListEntry entry = (ModeListEntry) modeComboBox.getSelectedItem();
             findInFiles.setMode(entry.getMode(true));
         }
 

@@ -77,10 +77,7 @@ public final class Marker {
     }
 
     public void gotoMarker(Editor editor) {
-        if (
-            buffer == editor.getBuffer()
-                || (file != null && file.equals(editor.getBuffer().getFile()))
-        ) {
+        if (buffer == editor.getBuffer() || (file != null && file.equals(editor.getBuffer().getFile()))) {
             // Marker is in current buffer.
             editor.beginMotion();
             editor.updateDotLine();
@@ -135,13 +132,7 @@ public final class Marker {
     }
 
     public static void selectToMarker() {
-        selectToMarker(
-            InputDialog.showInputDialog(
-                Editor.currentEditor(),
-                "Marker:",
-                "Select To Marker"
-            )
-        );
+        selectToMarker(InputDialog.showInputDialog(Editor.currentEditor(), "Marker:", "Select To Marker"));
     }
 
     public static void selectToTemporaryMarker() {
@@ -164,21 +155,14 @@ public final class Marker {
         }
         catch (NumberFormatException ignored) {}
         if (m == null) {
-            MessageDialog.showMessageDialog(
-                editor,
-                "No such marker",
-                "Select To Marker"
-            );
+            MessageDialog.showMessageDialog(editor, "No such marker", "Select To Marker");
             return;
         }
         m.selectToMarker(editor);
     }
 
     private void selectToMarker(Editor editor) {
-        if (
-            buffer == editor.getBuffer()
-                || (file != null && file.equals(editor.getBuffer().getFile()))
-        ) {
+        if (buffer == editor.getBuffer() || (file != null && file.equals(editor.getBuffer().getFile()))) {
             // Marker is in current buffer.
             editor.beginMotion();
             editor.setMarkAtDot();
@@ -196,11 +180,7 @@ public final class Marker {
             editor.setUpdateFlag(REFRAME | REPAINT);
         } else {
             // Marker is not in current buffer.
-            MessageDialog.showMessageDialog(
-                editor,
-                "Marker is not in this buffer.",
-                "Select To Marker"
-            );
+            MessageDialog.showMessageDialog(editor, "Marker is not in this buffer.", "Select To Marker");
         }
     }
 

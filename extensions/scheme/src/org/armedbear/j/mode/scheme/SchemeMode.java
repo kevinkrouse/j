@@ -89,7 +89,7 @@ public final class SchemeMode extends AbstractMode implements Mode {
     }
 
     private static final String validChars =
-        "!$%&*+-./0123456789:<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[]^_abcdefghijklmnopqrstuvwxyz{}~";
+            "!$%&*+-./0123456789:<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[]^_abcdefghijklmnopqrstuvwxyz{}~";
 
     @Override
     public final boolean isIdentifierStart(char c) {

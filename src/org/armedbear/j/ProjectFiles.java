@@ -59,8 +59,7 @@ public final class ProjectFiles {
         ".cpcache",
         ".clj-kondo",
         "__pycache__",
-        ".venv"
-    );
+        ".venv");
 
     // Partial results are published at least this often during a scan.
     private static final int PUBLISH_EVERY_FILES = 5000;
@@ -163,8 +162,12 @@ public final class ProjectFiles {
                     if (gen == generation.get())
                         publish(snapshot);
                 };
-                Walker walker =
-                    new Walker(root, max, excludes, Walker.globalIgnoreFile(), () -> gen != generation.get(), partial);
+                Walker walker = new Walker(root,
+                        max,
+                        excludes,
+                        Walker.globalIgnoreFile(),
+                        () -> gen != generation.get(),
+                        partial);
                 List<String> result = walker.walk();
                 if (gen != generation.get())
                     return;
@@ -174,9 +177,8 @@ public final class ProjectFiles {
                 scanning = false;
                 publish(result);
                 Log.debug(
-                    "ProjectFiles " + root + ": " + result.size() + " files in " +
-                        (System.currentTimeMillis() - start) + " ms" + (truncated ? " (truncated)" : "")
-                );
+                    "ProjectFiles " + root + ": " + result.size() + " files in " + (System.currentTimeMillis() - start)
+                            + " ms" + (truncated ? " (truncated)" : ""));
             }
             catch (RuntimeException e) {
                 Log.error(e);
@@ -237,15 +239,12 @@ public final class ProjectFiles {
         int index = Collections.binarySearch(current, rel);
         if (index >= 0)
             return;
-        Walker walker =
-            new Walker(
-                root,
+        Walker walker = new Walker(root,
                 Integer.MAX_VALUE,
                 FilenameCompletion.excludesPattern(),
                 Walker.globalIgnoreFile(),
                 () -> false,
-                null
-            );
+                null);
         if (!walker.accepts(p))
             return;
         List<String> next = new ArrayList<>(current.size() + 1);
@@ -287,13 +286,12 @@ public final class ProjectFiles {
         boolean truncated;
 
         Walker(
-            Path root,
-            int max,
-            Pattern excludes,
-            Path globalIgnore,
-            BooleanSupplier cancelled,
-            Consumer<List<String>> partial
-        ) {
+                Path root,
+                int max,
+                Pattern excludes,
+                Path globalIgnore,
+                BooleanSupplier cancelled,
+                Consumer<List<String>> partial) {
             this.root = root;
             this.max = max;
             this.excludes = excludes;
@@ -430,7 +428,7 @@ public final class ProjectFiles {
         static Path globalIgnoreFile() {
             String xdg = System.getenv("XDG_CONFIG_HOME");
             Path base =
-                xdg != null && !xdg.isEmpty() ? Path.of(xdg) : Path.of(System.getProperty("user.home"), ".config");
+                    xdg != null && !xdg.isEmpty() ? Path.of(xdg) : Path.of(System.getProperty("user.home"), ".config");
             Path p = base.resolve("git/ignore");
             return Files.isRegularFile(p) ? p : null;
         }

@@ -56,9 +56,7 @@ public final class JumpList {
 
     private static boolean sameLine(Marker m, Buffer buffer, int line) {
         final Position pos = m.getPosition();
-        return m.getBuffer() == buffer
-            && pos != null
-            && pos.lineNumber() == line;
+        return m.getBuffer() == buffer && pos != null && pos.lineNumber() == line;
     }
 
     /**
@@ -66,11 +64,7 @@ public final class JumpList {
      * there is none. Leaving the end of the list records where the caret is,
      * so that going forward again comes back to it.
      */
-    public static synchronized Marker travel(
-        Buffer buffer,
-        Position here,
-        int count
-    ) {
+    public static synchronized Marker travel(Buffer buffer, Position here, int count) {
         if (index + count < 0 || index + count >= entries.size())
             return null;
         if (index == entries.size()) {

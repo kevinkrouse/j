@@ -55,9 +55,8 @@ import org.armedbear.j.util.Background;
 import org.armedbear.j.util.Icons;
 import org.armedbear.j.util.Keys;
 
-public final class DirectoryTree extends SidebarTree implements NavigationComponent,
-    TreeSelectionListener, TreeExpansionListener, MouseListener,
-    MouseMotionListener, KeyListener {
+public final class DirectoryTree extends SidebarTree implements NavigationComponent, TreeSelectionListener,
+        TreeExpansionListener, MouseListener, MouseMotionListener, KeyListener {
     private Editor editor;
     private DirectoryTreeModel treeModel;
 
@@ -119,8 +118,7 @@ public final class DirectoryTree extends SidebarTree implements NavigationCompon
                 DefaultMutableTreeNode selectedNode = null;
                 TreePath path = getSelectionPath();
                 if (path != null) {
-                    selectedNode =
-                        (DefaultMutableTreeNode) path.getLastPathComponent();
+                    selectedNode = (DefaultMutableTreeNode) path.getLastPathComponent();
                 }
                 final DefaultMutableTreeNode node = getNode(file);
                 if (node != null && node != selectedNode) {
@@ -135,8 +133,7 @@ public final class DirectoryTree extends SidebarTree implements NavigationCompon
     }
 
     private void expandNode(DefaultMutableTreeNode node) {
-        DirectoryTreeElement treeElement =
-            (DirectoryTreeElement) node.getUserObject();
+        DirectoryTreeElement treeElement = (DirectoryTreeElement) node.getUserObject();
         File file = treeElement.getFile();
         expandNode(node, file);
     }
@@ -159,13 +156,11 @@ public final class DirectoryTree extends SidebarTree implements NavigationCompon
         for (int row = 0; row < limit; row++) {
             TreePath treepath = getPathForRow(row);
             if (treepath != null) {
-                DefaultMutableTreeNode node =
-                    (DefaultMutableTreeNode) treepath.getLastPathComponent();
+                DefaultMutableTreeNode node = (DefaultMutableTreeNode) treepath.getLastPathComponent();
                 if (node != null) {
                     // On Windows the user object might be a string (host name).
                     if (node.getUserObject() instanceof DirectoryTreeElement) {
-                        DirectoryTreeElement treeElement =
-                            (DirectoryTreeElement) node.getUserObject();
+                        DirectoryTreeElement treeElement = (DirectoryTreeElement) node.getUserObject();
                         if (path.equals(treeElement.getPath())) {
                             rowToBeSelected = row;
                             break;
@@ -176,12 +171,7 @@ public final class DirectoryTree extends SidebarTree implements NavigationCompon
         }
         if (rowToBeSelected >= 0) {
             int[] selectedRows = getSelectionRows();
-            if (
-                selectedRows != null
-                    && selectedRows.length == 1
-                    &&
-                    selectedRows[0] == rowToBeSelected
-            )
+            if (selectedRows != null && selectedRows.length == 1 && selectedRows[0] == rowToBeSelected)
                 ; // No change.
             else {
                 setSelectionRow(rowToBeSelected);
@@ -217,11 +207,9 @@ public final class DirectoryTree extends SidebarTree implements NavigationCompon
                 e.consume();
                 TreePath path = getSelectionPath();
                 if (path != null) {
-                    DefaultMutableTreeNode node =
-                        (DefaultMutableTreeNode) path.getLastPathComponent();
+                    DefaultMutableTreeNode node = (DefaultMutableTreeNode) path.getLastPathComponent();
                     if (node.getUserObject() instanceof DirectoryTreeElement) {
-                        DirectoryTreeElement treeElement =
-                            (DirectoryTreeElement) node.getUserObject();
+                        DirectoryTreeElement treeElement = (DirectoryTreeElement) node.getUserObject();
                         File file = treeElement.getFile();
                         editor.setWaitCursor();
                         expandNode(node, file);
@@ -278,11 +266,7 @@ public final class DirectoryTree extends SidebarTree implements NavigationCompon
         editor.ensureActive();
         final int button = e.getButton();
         final boolean unmodified = Keys.isUnmodified(e);
-        if (
-            (unmodified && button == MouseEvent.BUTTON1)
-                ||
-                (unmodified && button == MouseEvent.BUTTON2)
-        ) {
+        if ((unmodified && button == MouseEvent.BUTTON1) || (unmodified && button == MouseEvent.BUTTON2)) {
             Point point = e.getPoint();
             if ((Keys.isUnmodified(e) && e.getButton() == MouseEvent.BUTTON2)) {
                 int row = getRowForLocation(point.x, point.y);
@@ -310,11 +294,7 @@ public final class DirectoryTree extends SidebarTree implements NavigationCompon
         }
         final int button = e.getButton();
         final boolean unmodified = Keys.isUnmodified(e);
-        if (
-            !(unmodified && button == MouseEvent.BUTTON1)
-                &&
-                !(unmodified && button == MouseEvent.BUTTON2)
-        ) {
+        if (!(unmodified && button == MouseEvent.BUTTON1) && !(unmodified && button == MouseEvent.BUTTON2)) {
             e.consume();
             editor.setFocusToDisplay();
             return;
@@ -322,20 +302,14 @@ public final class DirectoryTree extends SidebarTree implements NavigationCompon
         Point point = e.getPoint();
         TreePath treepath = getPathForLocation(point.x, point.y);
         if (treepath != null) {
-            DefaultMutableTreeNode node =
-                (DefaultMutableTreeNode) treepath.getLastPathComponent();
-            DirectoryTreeElement treeElement =
-                (DirectoryTreeElement) node.getUserObject();
+            DefaultMutableTreeNode node = (DefaultMutableTreeNode) treepath.getLastPathComponent();
+            DirectoryTreeElement treeElement = (DirectoryTreeElement) node.getUserObject();
             File file = treeElement.getFile();
             editor.setWaitCursor();
             expandNode(node, file);
             expandPath(treepath);
             editor.setDefaultCursor();
-            if (
-                (unmodified && button == MouseEvent.BUTTON1)
-                    ||
-                    (unmodified && button == MouseEvent.BUTTON2)
-            )
+            if ((unmodified && button == MouseEvent.BUTTON1) || (unmodified && button == MouseEvent.BUTTON2))
                 editor.setFocusToDisplay();
             repaint();
             ((DirectoryBuffer) editor.getBuffer()).changeDirectory(file);
@@ -361,8 +335,7 @@ public final class DirectoryTree extends SidebarTree implements NavigationCompon
         private DirectoryTree tree;
         private Editor editor;
 
-        private static Color noFocusSelectionBackground =
-            new Color(208, 208, 208);
+        private static Color noFocusSelectionBackground = new Color(208, 208, 208);
 
         private Color oldBackgroundSelectionColor;
 
@@ -384,29 +357,18 @@ public final class DirectoryTree extends SidebarTree implements NavigationCompon
 
         @Override
         public Component getTreeCellRendererComponent(
-            JTree tree,
-            Object value,
-            boolean selected,
-            boolean expanded,
-            boolean leaf,
-            int row,
-            boolean hasFocus
-        ) {
-            super.getTreeCellRendererComponent(
-                tree,
-                value,
-                selected,
-                expanded,
-                leaf,
-                row,
-                hasFocus
-            );
+                JTree tree,
+                Object value,
+                boolean selected,
+                boolean expanded,
+                boolean leaf,
+                int row,
+                boolean hasFocus) {
+            super.getTreeCellRendererComponent(tree, value, selected, expanded, leaf, row, hasFocus);
             // A project's root has the project's icon, as in the buffer list.
-            if (
-                value instanceof DefaultMutableTreeNode node
+            if (value instanceof DefaultMutableTreeNode node
                     && node.getUserObject() instanceof DirectoryTreeElement element
-                    && ProjectRoot.isRoot(editor.getBuffer(), element.getFile())
-            )
+                    && ProjectRoot.isRoot(editor.getBuffer(), element.getFile()))
                 setIcon(Icons.getIconFromFile("project"));
             if (selected)
                 super.setForeground(getTextSelectionColor());

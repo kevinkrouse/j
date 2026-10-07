@@ -36,8 +36,7 @@ public class VimKeyMapTest {
 
     @Test
     public void aRowBecomesACommand() {
-        final VimCommand c =
-            VimKeyMap.parse("n,v,o  w  motion  moveByWords  forward,count=3");
+        final VimCommand c = VimKeyMap.parse("n,v,o  w  motion  moveByWords  forward,count=3");
         assertEquals("w", c.getKeys());
         assertSame(VimCommand.Kind.MOTION, c.getKind());
         assertEquals("moveByWords", c.getCommand());
@@ -88,23 +87,13 @@ public class VimKeyMapTest {
     public void oneBadRowDoesNotStopTheRest() throws Exception {
         final VimKeyMap keyMap = new VimKeyMap();
         keyMap.load(
-            new StringReader(
-                "# a comment\n"
-                    + "\n"
-                    + "n  w  motion  moveByWords  forward\n"
-                    + "n  ?  nonsense  whatever\n"
-                    + "n  b  motion  moveByWords  forward=false\n"
-            )
-        );
-        assertSame(
-            KeyStrokeTrie.Status.FULL,
-            keyMap.getTrie(MappingMode.NORMAL).match(keys("w")).status
-        );
+            new StringReader("# a comment\n" + "\n" + "n  w  motion  moveByWords  forward\n"
+                    + "n  ?  nonsense  whatever\n" + "n  b  motion  moveByWords  forward=false\n"));
+        assertSame(KeyStrokeTrie.Status.FULL, keyMap.getTrie(MappingMode.NORMAL).match(keys("w")).status);
         assertSame(
             KeyStrokeTrie.Status.FULL,
             keyMap.getTrie(MappingMode.NORMAL).match(keys("b")).status,
-            "the good row after the bad one still loaded"
-        );
+            "the good row after the bad one still loaded");
     }
 
     @Test
@@ -112,25 +101,15 @@ public class VimKeyMapTest {
         final VimKeyMap keyMap = new VimKeyMap();
         keyMap.add(VimKeyMap.parse("n  w  motion  moveByWords  forward"));
         keyMap.add(VimKeyMap.parse("n  w  motion  moveToEol  -"));
-        assertEquals(
-            "moveToEol",
-            keyMap.getTrie(MappingMode.NORMAL)
-                .match(keys("w")).value.getCommand()
-        );
+        assertEquals("moveToEol", keyMap.getTrie(MappingMode.NORMAL).match(keys("w")).value.getCommand());
     }
 
     @Test
     public void aBindingLandsOnlyInTheModesItNames() {
         final VimKeyMap keyMap = new VimKeyMap();
         keyMap.add(VimKeyMap.parse("i  <C-w>  action  deleteWordBefore"));
-        assertSame(
-            KeyStrokeTrie.Status.FULL,
-            keyMap.getTrie(MappingMode.INSERT).match(keys("<C-w>")).status
-        );
-        assertSame(
-            KeyStrokeTrie.Status.NONE,
-            keyMap.getTrie(MappingMode.NORMAL).match(keys("<C-w>")).status
-        );
+        assertSame(KeyStrokeTrie.Status.FULL, keyMap.getTrie(MappingMode.INSERT).match(keys("<C-w>")).status);
+        assertSame(KeyStrokeTrie.Status.NONE, keyMap.getTrie(MappingMode.NORMAL).match(keys("<C-w>")).status);
     }
 
     // ------------------------------------------------------------- the trie
@@ -162,11 +141,7 @@ public class VimKeyMapTest {
         final VimKeyMap keyMap = new VimKeyMap();
         keyMap.add(VimKeyMap.parse("n  g<character>  motion  moveToCharacter"));
         keyMap.add(VimKeyMap.parse("n  gg  motion  moveToLine"));
-        assertEquals(
-            "moveToLine",
-            keyMap.getTrie(MappingMode.NORMAL)
-                .match(keys("gg")).value.getCommand()
-        );
+        assertEquals("moveToLine", keyMap.getTrie(MappingMode.NORMAL).match(keys("gg")).value.getCommand());
     }
 
     @Test
@@ -174,21 +149,12 @@ public class VimKeyMapTest {
         // What the vimKeyMap preference does: a whole table of one's own,
         // replacing the built-in rather than adding to it.
         final VimKeyMap keyMap = new VimKeyMap();
-        keyMap.load(
-            new StringReader(
-                "# my own bindings\n"
-                    + "n  q  motion  moveToEol  inclusive\n"
-            )
-        );
-        assertSame(
-            KeyStrokeTrie.Status.FULL,
-            keyMap.getTrie(MappingMode.NORMAL).match(keys("q")).status
-        );
+        keyMap.load(new StringReader("# my own bindings\n" + "n  q  motion  moveToEol  inclusive\n"));
+        assertSame(KeyStrokeTrie.Status.FULL, keyMap.getTrie(MappingMode.NORMAL).match(keys("q")).status);
         assertSame(
             KeyStrokeTrie.Status.NONE,
             keyMap.getTrie(MappingMode.NORMAL).match(keys("w")).status,
-            "nothing else came with it"
-        );
+            "nothing else came with it");
     }
 
     // ------------------------------------------------------- the built-in map
@@ -208,16 +174,34 @@ public class VimKeyMapTest {
         // silently does nothing.
         final VimKeyMap keyMap = VimKeyMap.getDefault();
         for (String binding : new String[] {
-            "h", "l", "j", "k", "0", "^", "$", "gg", "G", "|",
-            "w", "W", "b", "B", "e", "E", "ge", "gE", ";", ",",
-            "i", "a", "I", "A", "o", "O" }) {
-            final KeyStrokeTrie.Match<VimCommand> match =
-                keyMap.getTrie(MappingMode.NORMAL).match(keys(binding));
-            assertSame(
-                KeyStrokeTrie.Status.FULL,
-                match.status,
-                binding + " is not bound"
-            );
+            "h",
+            "l",
+            "j",
+            "k",
+            "0",
+            "^",
+            "$",
+            "gg",
+            "G",
+            "|",
+            "w",
+            "W",
+            "b",
+            "B",
+            "e",
+            "E",
+            "ge",
+            "gE",
+            ";",
+            ",",
+            "i",
+            "a",
+            "I",
+            "A",
+            "o",
+            "O" }) {
+            final KeyStrokeTrie.Match<VimCommand> match = keyMap.getTrie(MappingMode.NORMAL).match(keys(binding));
+            assertSame(KeyStrokeTrie.Status.FULL, match.status, binding + " is not bound");
             final VimCommand c = match.value;
             switch (c.getKind()) {
                 case MOTION:
@@ -238,13 +222,9 @@ public class VimKeyMapTest {
     public void keysForAJCommand() throws Exception {
         final VimKeyMap map = new VimKeyMap();
         map.load(
-            new StringReader(
-                "n,v  <C-w>v  command  vsplitWindow  param=vim\n"
-                    + "n,v  <C-w><C-v>  command  vsplitWindow  param=vim\n"
-                    + "v  zz  command  toCenter  -\n"
-                    + "n  i  action  enterInsertMode  -\n"
-            )
-        );
+            new StringReader("n,v  <C-w>v  command  vsplitWindow  param=vim\n"
+                    + "n,v  <C-w><C-v>  command  vsplitWindow  param=vim\n" + "v  zz  command  toCenter  -\n"
+                    + "n  i  action  enterInsertMode  -\n"));
         assertEquals("<C-w>v", map.keysFor("vsplitWindow"));
         assertEquals("<C-w>v", map.keysFor("VSPLITWINDOW"));
         assertNull(map.keysFor("toCenter")); // Not in normal mode.

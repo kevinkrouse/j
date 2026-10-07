@@ -189,12 +189,10 @@ public class FindFileTextFieldHandler extends FinderTextFieldHandler {
             }
         }
         for (RecentFilesEntry entry : RecentFiles.getInstance().getEntries()) {
-            if (
-                entry.location == null
+            if (entry.location == null
                     || entry.name == null
                     || entry.name.isEmpty()
-                    || File.hasRemotePrefix(entry.location)
-            )
+                    || File.hasRemotePrefix(entry.location))
                 continue;
             File f = File.getInstance(File.getInstance(entry.location), entry.name);
             if (f == null || !f.isLocal())
@@ -211,7 +209,7 @@ public class FindFileTextFieldHandler extends FinderTextFieldHandler {
         if (projectFiles != null) {
             snapshot = projectFiles.files();
             final String prefix =
-                rootPath.endsWith(LocalFile.getSeparator()) ? rootPath : rootPath + LocalFile.getSeparator();
+                    rootPath.endsWith(LocalFile.getSeparator()) ? rootPath : rootPath + LocalFile.getSeparator();
             for (String rel : snapshot) {
                 if (!listed.contains(rel))
                     all.add(new FileItem(prefix, rel));

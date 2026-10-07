@@ -56,8 +56,7 @@ public final class VimKeyMap {
     /** The built-in table, as a resource beside this class. */
     public static final String DEFAULT_RESOURCE = "default-keymap.conf";
 
-    private final Map<MappingMode, KeyStrokeTrie<VimCommand>> tries =
-        new EnumMap<>(MappingMode.class);
+    private final Map<MappingMode, KeyStrokeTrie<VimCommand>> tries = new EnumMap<>(MappingMode.class);
 
     /** Every row added, in order, so the map can be copied. */
     private final List<VimCommand> rows = new ArrayList<>();
@@ -115,8 +114,7 @@ public final class VimKeyMap {
      * To change a few bindings, use a vimrc.
      */
     private static VimKeyMap getConfigured() {
-        final String filename = Editor.preferences()
-            .getStringProperty(Property.VIM_KEY_MAP);
+        final String filename = Editor.preferences().getStringProperty(Property.VIM_KEY_MAP);
         if (filename == null)
             return getDefault();
         final File file = File.getInstance(filename);
@@ -125,10 +123,7 @@ public final class VimKeyMap {
             return getDefault();
         }
         final VimKeyMap keyMap = new VimKeyMap();
-        try (Reader reader = new InputStreamReader(
-            file.getInputStream(),
-            StandardCharsets.UTF_8
-        )) {
+        try (Reader reader = new InputStreamReader(file.getInputStream(), StandardCharsets.UTF_8)) {
             keyMap.load(reader);
         }
         catch (IOException e) {
@@ -155,23 +150,16 @@ public final class VimKeyMap {
      * For tests, which must not read whatever vimrc the person running them
      * happens to have.
      */
-    public static synchronized void setShared(
-        VimKeyMap keyMap,
-        VimOptions options
-    ) {
+    public static synchronized void setShared(VimKeyMap keyMap, VimOptions options) {
         shared = keyMap;
         sharedOptions = options;
     }
 
     private static void loadVimrc(VimKeyMap keyMap, VimOptions options) {
-        final File file =
-            File.getInstance(Directories.getConfigDirectory(), "vimrc");
+        final File file = File.getInstance(Directories.getConfigDirectory(), "vimrc");
         if (file == null || !file.isFile())
             return;
-        try (Reader reader = new InputStreamReader(
-            file.getInputStream(),
-            StandardCharsets.UTF_8
-        )) {
+        try (Reader reader = new InputStreamReader(file.getInputStream(), StandardCharsets.UTF_8)) {
             new VimrcParser(keyMap, options).load(reader);
         }
         catch (IOException e) {
@@ -182,8 +170,7 @@ public final class VimKeyMap {
     /** The built-in map, or an empty one if the resource cannot be read. */
     public static VimKeyMap getDefault() {
         final VimKeyMap keyMap = new VimKeyMap();
-        try (InputStream in =
-            VimKeyMap.class.getResourceAsStream(DEFAULT_RESOURCE)) {
+        try (InputStream in = VimKeyMap.class.getResourceAsStream(DEFAULT_RESOURCE)) {
             if (in == null) {
                 Log.error("vim: missing key map resource " + DEFAULT_RESOURCE);
                 return keyMap;
@@ -203,11 +190,9 @@ public final class VimKeyMap {
     public String keysFor(String name) {
         final KeyStrokeTrie<VimCommand> trie = tries.get(MappingMode.NORMAL);
         for (VimCommand row : rows) {
-            if (
-                row.getKind() != VimCommand.Kind.EDITOR_COMMAND
+            if (row.getKind() != VimCommand.Kind.EDITOR_COMMAND
                     || !row.getModes().contains(MappingMode.NORMAL)
-                    || !row.getCommand().equalsIgnoreCase(name)
-            )
+                    || !row.getCommand().equalsIgnoreCase(name))
                 continue;
             // A later mapping of the same keys replaces this row.
             KeyStrokeTrie.Match<VimCommand> m = trie.match(KeyNotation.tokenize(row.getKeys()));
@@ -256,10 +241,7 @@ public final class VimKeyMap {
                 add(parse(trimmed));
             }
             catch (RuntimeException e) {
-                Log.error(
-                    "vim key map, line " + lineNumber + ": "
-                        + e.getMessage() + " in: " + trimmed
-                );
+                Log.error("vim key map, line " + lineNumber + ": " + e.getMessage() + " in: " + trimmed);
             }
         }
     }
@@ -274,16 +256,13 @@ public final class VimKeyMap {
     static VimCommand parse(String row) {
         final String[] fields = row.split("\\s+", 5);
         if (fields.length < 3)
-            throw new IllegalArgumentException(
-                "expected at least modes, keys and kind"
-            );
+            throw new IllegalArgumentException("expected at least modes, keys and kind");
 
         final Set<MappingMode> modes = parseModes(fields[0]);
         final String keys = fields[1];
         final VimCommand.Kind kind = VimCommand.Kind.parse(fields[2]);
         final String command = fields.length > 3 ? fields[3] : "";
-        final Map<String, String> args =
-            parseArgs(fields.length > 4 ? fields[4] : "-");
+        final Map<String, String> args = parseArgs(fields.length > 4 ? fields[4] : "-");
 
         if (kind != VimCommand.Kind.IDLE && command.isEmpty())
             throw new IllegalArgumentException("no command named");
@@ -295,9 +274,7 @@ public final class VimKeyMap {
         final Set<MappingMode> modes = new LinkedHashSet<>();
         for (String letter : field.split(",")) {
             if (letter.length() != 1)
-                throw new IllegalArgumentException(
-                    "a mode is one letter, not \"" + letter + "\""
-                );
+                throw new IllegalArgumentException("a mode is one letter, not \"" + letter + "\"");
             modes.add(MappingMode.forLetter(letter.charAt(0)));
         }
         return modes;
@@ -315,10 +292,7 @@ public final class VimKeyMap {
             if (eq < 0)
                 args.put(trimmed, "true");
             else
-                args.put(
-                    trimmed.substring(0, eq).trim(),
-                    trimmed.substring(eq + 1).trim()
-                );
+                args.put(trimmed.substring(0, eq).trim(), trimmed.substring(eq + 1).trim());
         }
         return args;
     }

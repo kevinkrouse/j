@@ -207,7 +207,7 @@ public abstract class FinderTextFieldHandler extends DefaultTextFieldHandler {
 
     private static List<FinderItem.Row> rank(List<FinderItem> items, Query query) {
         List<Ranked<FinderItem>> ranked =
-            FuzzyMatcher.rank(items, FinderItem::matchText, FinderItem::boost, query, MAX_RESULTS);
+                FuzzyMatcher.rank(items, FinderItem::matchText, FinderItem::boost, query, MAX_RESULTS);
         List<FinderItem.Row> rows = new ArrayList<>(ranked.size());
         for (Ranked<FinderItem> r : ranked) {
             FuzzyMatcher.Match m = query.isEmpty() ? null : FuzzyMatcher.match(r.text(), query);

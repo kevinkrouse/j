@@ -77,8 +77,7 @@ public final class FuzzyMatcher {
                 return new Query(new String[0]);
             // Not every space is one strip() removes: drop the empty terms.
             return new Query(
-                Arrays.stream(trimmed.split("[\\s\\p{Z}]+")).filter(t -> !t.isEmpty()).toArray(String[]::new)
-            );
+                    Arrays.stream(trimmed.split("[\\s\\p{Z}]+")).filter(t -> !t.isEmpty()).toArray(String[]::new));
         }
 
         public boolean isEmpty() {
@@ -140,22 +139,20 @@ public final class FuzzyMatcher {
      * text, then text. An empty query keeps items' own order.
      */
     public static <T> List<Ranked<T>> rank(
-        Iterable<? extends T> items,
-        Function<? super T, String> text,
-        Query query,
-        int limit
-    ) {
+            Iterable<? extends T> items,
+            Function<? super T, String> text,
+            Query query,
+            int limit) {
         return rank(items, text, item -> 0, query, limit);
     }
 
     /** As rank(), with boost added to each matching item's score. */
     public static <T> List<Ranked<T>> rank(
-        Iterable<? extends T> items,
-        Function<? super T, String> text,
-        ToIntFunction<? super T> boost,
-        Query query,
-        int limit
-    ) {
+            Iterable<? extends T> items,
+            Function<? super T, String> text,
+            ToIntFunction<? super T> boost,
+            Query query,
+            int limit) {
         List<Ranked<T>> result = new ArrayList<>();
         if (limit <= 0)
             return result;
@@ -174,17 +171,15 @@ public final class FuzzyMatcher {
             final int chunks = Runtime.getRuntime().availableProcessors() * 2;
             final int size = (list.size() + chunks - 1) / chunks;
             IntStream.range(0, chunks)
-                .parallel()
-                .mapToObj(
-                    c -> FuzzyMatcher.<T>best(
-                        list.subList(Math.min(list.size(), c * size), Math.min(list.size(), (c + 1) * size)),
-                        text,
-                        boost,
-                        query,
-                        limit
-                    )
-                )
-                .forEachOrdered(result::addAll);
+                    .parallel()
+                    .mapToObj(
+                        c -> FuzzyMatcher.<T>best(
+                            list.subList(Math.min(list.size(), c * size), Math.min(list.size(), (c + 1) * size)),
+                            text,
+                            boost,
+                            query,
+                            limit))
+                    .forEachOrdered(result::addAll);
             result.sort(ORDER);
             return result.size() > limit ? new ArrayList<>(result.subList(0, limit)) : result;
         }
@@ -194,12 +189,11 @@ public final class FuzzyMatcher {
     }
 
     private static <T> Collection<Ranked<T>> best(
-        Iterable<? extends T> items,
-        Function<? super T, String> text,
-        ToIntFunction<? super T> boost,
-        Query query,
-        int limit
-    ) {
+            Iterable<? extends T> items,
+            Function<? super T, String> text,
+            ToIntFunction<? super T> boost,
+            Query query,
+            int limit) {
         // Worst at the head, so it's the one evicted.
         PriorityQueue<Ranked<T>> heap = new PriorityQueue<>(Math.min(limit, 1024) + 1, ORDER.reversed());
         for (T item : items) {
@@ -363,14 +357,13 @@ public final class FuzzyMatcher {
     }
 
     private static Match matchTerm(
-        String s,
-        int[] bonus,
-        int base,
-        String term,
-        boolean caseSensitive,
-        boolean wantPositions,
-        Scratch scratch
-    ) {
+            String s,
+            int[] bonus,
+            int base,
+            String term,
+            boolean caseSensitive,
+            boolean wantPositions,
+            Scratch scratch) {
         final int n = s.length();
         final int m = term.length();
         if (m > n)

@@ -37,12 +37,11 @@ public final class FilenameCompletion {
     private ArrayList<File> list;
 
     public FilenameCompletion(
-        File directory,
-        String prefix,
-        String sourcePath,
-        String excludesPattern,
-        boolean ignoreCase
-    ) {
+            File directory,
+            String prefix,
+            String sourcePath,
+            String excludesPattern,
+            boolean ignoreCase) {
         currentDirectory = directory;
         this.prefix = prefix;
         this.sourcePath = sourcePath;
@@ -65,8 +64,7 @@ public final class FilenameCompletion {
             return null;
         String s = preferences.getStringProperty(Property.FILENAME_COMPLETIONS_EXCLUDE_PATTERN);
         boolean ignoreCase = Platform.isFileSystemCaseInsensitive()
-            ||
-            preferences.getBooleanProperty(Property.FILENAME_COMPLETIONS_IGNORE_CASE);
+                || preferences.getBooleanProperty(Property.FILENAME_COMPLETIONS_IGNORE_CASE);
         if (s == null || s.isEmpty())
             return null;
         if (!s.equals(excludesSource) || ignoreCase != excludesIgnoreCase) {
@@ -133,8 +131,7 @@ public final class FilenameCompletion {
                 if (sourcePath != null) {
                     List<String> sourcePathDirectories = Utilities.getDirectoriesInPath(sourcePath);
                     for (int i = 0; i < sourcePathDirectories.size(); i++) {
-                        File sourcePathDirectory =
-                            File.getInstance(sourcePathDirectories.get(i));
+                        File sourcePathDirectory = File.getInstance(sourcePathDirectories.get(i));
                         dir = File.getInstance(sourcePathDirectory, dirName);
                         if (dir != null && dir.isDirectory())
                             addCompletionsFromDirectory(list, dir, prefix, excludesRE);
@@ -149,27 +146,16 @@ public final class FilenameCompletion {
             if (sourcePath != null) {
                 List<String> sourcePathDirectories = Utilities.getDirectoriesInPath(sourcePath);
                 for (int i = 0; i < sourcePathDirectories.size(); i++) {
-                    File sourcePathDirectory =
-                        File.getInstance(sourcePathDirectories.get(i));
+                    File sourcePathDirectory = File.getInstance(sourcePathDirectories.get(i));
                     if (sourcePathDirectory != null)
-                        addCompletionsFromDirectory(
-                            list,
-                            sourcePathDirectory,
-                            prefix,
-                            excludesRE
-                        );
+                        addCompletionsFromDirectory(list, sourcePathDirectory, prefix, excludesRE);
                 }
             }
             Collections.sort(list);
         }
     }
 
-    private void addCompletionsFromDirectory(
-        List<File> list,
-        File directory,
-        String prefix,
-        Pattern excludesRE
-    ) {
+    private void addCompletionsFromDirectory(List<File> list, File directory, String prefix, Pattern excludesRE) {
         File[] files = directory.listFiles();
         if (files != null) {
             final int limit = files.length;
@@ -180,13 +166,7 @@ public final class FilenameCompletion {
                     final String name = file.getName();
                     boolean isMatch;
                     if (ignoreCase)
-                        isMatch = name.regionMatches(
-                            true,
-                            0,
-                            prefix,
-                            0,
-                            prefixLength
-                        );
+                        isMatch = name.regionMatches(true, 0, prefix, 0, prefixLength);
                     else
                         isMatch = name.startsWith(prefix);
                     if (isMatch && excludesRE != null)

@@ -86,9 +86,7 @@ public final class FileCommands {
     /** A path typed by the user, resolved against the editor's buffer's directory. */
     public static File fileNamed(Editor editor, String path) {
         final File dir = editor.getBuffer().getCurrentDirectory();
-        return dir == null
-            ? File.getInstance(path)
-            : File.getInstance(dir, path);
+        return dir == null ? File.getInstance(path) : File.getInstance(dir, path);
     }
 
     private static void saveAs(Editor editor, Buffer toBeSaved) {
@@ -96,8 +94,7 @@ public final class FileCommands {
             return;
         if (toBeSaved.getType() == Buffer.TYPE_NORMAL) {
             final String dialogTitle = "Save As";
-            File destination =
-                SaveFileDialog.getSaveFile(editor, dialogTitle);
+            File destination = SaveFileDialog.getSaveFile(editor, dialogTitle);
             if (destination == null)
                 return;
 
@@ -110,10 +107,7 @@ public final class FileCommands {
 
     /** The checks and the save shared by saveAs, with and without a dialog. */
     private static boolean saveAsTo(Editor editor, Buffer toBeSaved, File destination) {
-        if (
-            toBeSaved.isLocked()
-                || toBeSaved.getType() != Buffer.TYPE_NORMAL
-        )
+        if (toBeSaved.isLocked() || toBeSaved.getType() != Buffer.TYPE_NORMAL)
             return false;
         final String dialogTitle = "Save As";
         // Do we have the target file in a buffer?
@@ -155,8 +149,7 @@ public final class FileCommands {
             return;
         if (editor.getBuffer().getType() == Buffer.TYPE_NORMAL) {
             final String dialogTitle = "Save Copy";
-            final File destination =
-                SaveFileDialog.getSaveFile(editor, dialogTitle);
+            final File destination = SaveFileDialog.getSaveFile(editor, dialogTitle);
             if (destination == null)
                 return;
 
@@ -424,13 +417,7 @@ public final class FileCommands {
     public static void setEncoding(Editor editor) {
         File file = editor.getBuffer().getFile();
         if (file != null) {
-            InputDialog d =
-                new InputDialog(
-                    editor,
-                    "Encoding:",
-                    "Set Encoding",
-                    editor.getBuffer().getSaveEncoding()
-                );
+            InputDialog d = new InputDialog(editor, "Encoding:", "Set Encoding", editor.getBuffer().getSaveEncoding());
             d.setHistory(new History("setEncoding"));
             editor.centerDialog(d);
             d.setVisible(true);
@@ -447,8 +434,7 @@ public final class FileCommands {
                 file.setEncoding(encoding);
                 editor.getBuffer().saveProperties();
             } else {
-                StringBuilder sb =
-                    new StringBuilder("Unsupported encoding \"");
+                StringBuilder sb = new StringBuilder("Unsupported encoding \"");
                 sb.append(encoding);
                 sb.append('"');
                 MessageDialog.showMessageDialog(editor, sb.toString(), "Error");

@@ -50,10 +50,7 @@ public final class BufferCommands {
      * one before this in the buffer list.
      */
     public static void prevBuffer(Editor editor, String parameters) {
-        if (
-            parameters == null
-                || !parameters.trim().equalsIgnoreCase("alternate")
-        ) {
+        if (parameters == null || !parameters.trim().equalsIgnoreCase("alternate")) {
             prevBuffer(editor);
             return;
         }
@@ -190,14 +187,15 @@ public final class BufferCommands {
             MessageDialog.showMessageDialog(
                 editor,
                 "This operation is not supported with multi-line text selections.",
-                "Delete Files"
-            );
+                "Delete Files");
             return;
         }
         if (editor.getBuffer() instanceof DirectoryBuffer) {
             if (editor.getBuffer().getFile() instanceof SshFile) {
-                MessageDialog
-                    .showMessageDialog(editor, "Deletions are not yet supported in ssh directory buffers.", "Error");
+                MessageDialog.showMessageDialog(
+                    editor,
+                    "Deletions are not yet supported in ssh directory buffers.",
+                    "Error");
                 return;
             }
             ((DirectoryBuffer) editor.getBuffer()).deleteFiles();

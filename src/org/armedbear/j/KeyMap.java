@@ -53,8 +53,7 @@ public final class KeyMap {
                 globalKeyMap = supplied;
                 return globalKeyMap;
             }
-            String filename =
-                Editor.preferences().getStringProperty(Property.GLOBAL_KEY_MAP);
+            String filename = Editor.preferences().getStringProperty(Property.GLOBAL_KEY_MAP);
             if (filename != null) {
                 globalKeyMapFile = File.getInstance(filename);
                 if (globalKeyMapFile != null) {
@@ -94,7 +93,7 @@ public final class KeyMap {
             int lineNumber = 0;
             try {
                 BufferedReader in =
-                    new BufferedReader(new InputStreamReader(file.getInputStream(), StandardCharsets.UTF_8));
+                        new BufferedReader(new InputStreamReader(file.getInputStream(), StandardCharsets.UTF_8));
                 while (true) {
                     String s = in.readLine();
                     if (s == null) {
@@ -111,22 +110,19 @@ public final class KeyMap {
                         continue;
                     if (!mapKey(s)) {
                         error = true;
-                        message = "Error loading key map from " +
-                            file.canonicalPath() +
-                            " (line " + lineNumber + "); will use defaults.";
+                        message = "Error loading key map from " + file.canonicalPath() + " (line " + lineNumber
+                                + "); will use defaults.";
                         break;
                     }
                 }
             }
             catch (IOException e) {
                 Log.error(e);
-                message = "Error loading key map from " +
-                    file.canonicalPath() + "; will use defaults.";
+                message = "Error loading key map from " + file.canonicalPath() + "; will use defaults.";
             }
         } else {
             error = true;
-            message = "Error loading key map from " + file.canonicalPath() +
-                " (file not found); will use defaults.";
+            message = "Error loading key map from " + file.canonicalPath() + " (file not found); will use defaults.";
         }
         if (error)
             MessageDialog.showMessageDialog(message, "Error");
@@ -393,17 +389,9 @@ public final class KeyMap {
         for (int i = 0; i < limit; i++) {
             final JEvent e = es.getEvent(i);
             if (requestedKeyMap != null) {
-                mapping = requestedKeyMap.lookup(
-                    e.getKeyChar(),
-                    e.getKeyCode(),
-                    e.getModifiers()
-                );
+                mapping = requestedKeyMap.lookup(e.getKeyChar(), e.getKeyCode(), e.getModifiers());
             } else {
-                mapping = lookup(
-                    e.getKeyChar(),
-                    e.getKeyCode(),
-                    e.getModifiers()
-                );
+                mapping = lookup(e.getKeyChar(), e.getKeyCode(), e.getModifiers());
             }
             if (mapping == null)
                 return null;
@@ -420,11 +408,7 @@ public final class KeyMap {
         return mapping;
     }
 
-    public synchronized final KeyMapping lookup(
-        char keyChar,
-        int keyCode,
-        int modifiers
-    ) {
+    public synchronized final KeyMapping lookup(char keyChar, int keyCode, int modifiers) {
         if (keyCode == 0 && modifiers == 0) {
             // This is the keyTyped() case. Ignore keyCode and modifiers;
             // keyChar must match the mapping.
@@ -439,13 +423,7 @@ public final class KeyMap {
                 // match the mapping. mapping.getKeyChar() must be zero, but
                 // we ignore the keyChar argument.
                 KeyMapping mapping = mappings.get(i);
-                if (
-                    mapping.getKeyChar() == 0
-                        &&
-                        keyCode == mapping.getKeyCode()
-                        &&
-                        modifiers == mapping.getModifiers()
-                )
+                if (mapping.getKeyChar() == 0 && keyCode == mapping.getKeyCode() && modifiers == mapping.getModifiers())
                     return mapping;
             }
         }
@@ -453,11 +431,7 @@ public final class KeyMap {
     }
 
     public synchronized final KeyMapping lookup(KeyStroke keyStroke) {
-        return lookup(
-            keyStroke.getKeyChar(),
-            keyStroke.getKeyCode(),
-            Keys.keyModifiers(keyStroke)
-        );
+        return lookup(keyStroke.getKeyChar(), keyStroke.getKeyCode(), Keys.keyModifiers(keyStroke));
     }
 
     public synchronized final KeyMapping getKeyMapping(String command) {
@@ -584,17 +558,10 @@ public final class KeyMap {
                 // match the mapping. mapping.getKeyChar() must be zero, but
                 // we ignore the keyChar argument.
                 KeyMapping mapping = mappings.get(i);
-                if (
-                    mapping.getKeyChar() == 0
-                        &&
-                        keyCode == mapping.getKeyCode()
-                        &&
-                        modifiers == mapping.getModifiers()
-                ) {
-                    mappings.set(
-                        i,
-                        new KeyMapping(keyCode, modifiers, command)
-                    );
+                if (mapping.getKeyChar() == 0
+                        && keyCode == mapping.getKeyCode()
+                        && modifiers == mapping.getModifiers()) {
+                    mappings.set(i, new KeyMapping(keyCode, modifiers, command));
                     return true;
                 }
             }
@@ -647,13 +614,9 @@ public final class KeyMap {
                     // match the mapping. mapping.getKeyChar() must be zero, but
                     // we ignore the keyChar argument.
                     KeyMapping mapping = mappings.get(i);
-                    if (
-                        mapping.getKeyChar() == 0
-                            &&
-                            keyCode == mapping.getKeyCode()
-                            &&
-                            modifiers == mapping.getModifiers()
-                    ) {
+                    if (mapping.getKeyChar() == 0
+                            && keyCode == mapping.getKeyCode()
+                            && modifiers == mapping.getModifiers()) {
                         mappings.remove(i);
                         return true;
                     }
@@ -665,8 +628,7 @@ public final class KeyMap {
 
     public synchronized void writeKeyMap(File file) {
         try (PrintWriter out = new PrintWriter(
-            new BufferedWriter(new OutputStreamWriter(file.getOutputStream(), StandardCharsets.UTF_8))
-        )) {
+                new BufferedWriter(new OutputStreamWriter(file.getOutputStream(), StandardCharsets.UTF_8)))) {
             for (KeyMapping mapping : mappings)
                 out.println(mapping.toString());
         }

@@ -34,8 +34,7 @@ import javax.swing.border.EmptyBorder;
 import javax.swing.border.MatteBorder;
 import org.armedbear.j.util.Utilities;
 
-public final class StatusBar extends JComponent
-    implements PreferencesChangeListener {
+public final class StatusBar extends JComponent implements PreferencesChangeListener {
     // Sized for the display rather than fixed, and recomputed whenever
     // preferences are reloaded, since uiScale may have changed.
     private static Font font;
@@ -68,10 +67,7 @@ public final class StatusBar extends JComponent
         Dimension dim = frame.getSize();
         Insets insets = frame.getInsets();
         dim.width -= (insets.left + insets.right);
-        border = new CompoundBorder(
-            new MatteBorder(1, 0, 0, 0, Color.gray),
-            new EmptyBorder(2, 0, 2, 0)
-        );
+        border = new CompoundBorder(new MatteBorder(1, 0, 0, 0, Color.gray), new EmptyBorder(2, 0, 2, 0));
         setBorder(border);
         insets = border.getBorderInsets(this);
         dim.height = charAscent + charDescent + insets.top + insets.bottom;
@@ -151,8 +147,7 @@ public final class StatusBar extends JComponent
         int y = insets.top + charAscent;
         if (messageText == null && displayContext > 0) {
             // We want the long context string if displayContext > 1.
-            messageText =
-                buffer.getMode().getContextString(editor, displayContext > 1);
+            messageText = buffer.getMode().getContextString(editor, displayContext > 1);
         }
         int x2 = textAreaWidth - rightMargin;
         if (Platform.isPlatformMacOSX())
@@ -176,8 +171,7 @@ public final class StatusBar extends JComponent
 
     @Override
     public void preferencesChanged() {
-        displayContext =
-            Editor.preferences().getIntegerProperty(Property.STATUS_BAR_DISPLAY_CONTEXT);
+        displayContext = Editor.preferences().getIntegerProperty(Property.STATUS_BAR_DISPLAY_CONTEXT);
         // Not during construction, when the border isn't set yet. The font is
         // static, so it's already set when a second frame is made.
         if (border != null)

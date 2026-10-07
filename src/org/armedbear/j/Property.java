@@ -33,385 +33,216 @@ import java.util.Map;
 public final class Property implements Comparable<Property> {
     // Written only while this class initialises, by the createProperty calls
     // in the field initialisers above; read-only from then on.
-    private static final Map<String, Property> ht =
-        new HashMap<>();
+    private static final Map<String, Property> ht = new HashMap<>();
 
     // Integer properties.
-    public static final Property ADJUST_ASCENT =
-        createProperty("adjustAscent", 0);
-    public static final Property ADJUST_DESCENT =
-        createProperty("adjustDescent", 0);
-    public static final Property ADJUST_LEADING =
-        createProperty("adjustLeading", 0);
-    public static final Property CHANGE_MARK_WIDTH =
-        createProperty("changeMarkWidth", 4);
-    public static final Property CHECK_IDLE_BACKGROUND =
-        createProperty("checkIdleBackground", 10);
-    public static final Property CHECK_IDLE_FOREGROUND =
-        createProperty("checkIdleForeground", 60);
-    public static final Property CHECK_INTERVAL =
-        createProperty("checkInterval", 60);
-    public static final Property DIALOG_FONT_SIZE =
-        createProperty("dialogFontSize", 11);
+    public static final Property ADJUST_ASCENT = createProperty("adjustAscent", 0);
+    public static final Property ADJUST_DESCENT = createProperty("adjustDescent", 0);
+    public static final Property ADJUST_LEADING = createProperty("adjustLeading", 0);
+    public static final Property CHANGE_MARK_WIDTH = createProperty("changeMarkWidth", 4);
+    public static final Property CHECK_IDLE_BACKGROUND = createProperty("checkIdleBackground", 10);
+    public static final Property CHECK_IDLE_FOREGROUND = createProperty("checkIdleForeground", 60);
+    public static final Property CHECK_INTERVAL = createProperty("checkInterval", 60);
+    public static final Property DIALOG_FONT_SIZE = createProperty("dialogFontSize", 11);
     // The most files the project finder lists.
-    public static final Property FINDER_MAX_FILES =
-        createProperty("finderMaxFiles", 100000);
+    public static final Property FINDER_MAX_FILES = createProperty("finderMaxFiles", 100000);
     // How old, in seconds, the finder's file list may get before a rescan.
-    public static final Property FINDER_RESCAN_SECONDS =
-        createProperty("finderRescanSeconds", 30);
-    public static final Property FONT_SIZE =
-        createProperty("fontSize", 12);
-    public static final Property GUTTER_FONT_SIZE =
-        createProperty("gutterFontSize", 0);
-    public static final Property INDENT_SIZE =
-        createProperty("indentSize", 4);
-    public static final Property JLIST_FIXED_CELL_HEIGHT =
-        createProperty("JList.fixedCellHeight", 0);
-    public static final Property LIST_THREADS =
-        createProperty("listThreads", 0);
-    public static final Property LOG_MAX_BACKUP_INDEX =
-        createProperty("Log.maxBackupIndex", 0);
-    public static final Property LOG_MAX_FILE_SIZE =
-        createProperty("Log.maxFileSize", 100000);
-    public static final Property NNTP_READ_TIMEOUT =
-        createProperty("nntpReadTimeout", 0);
-    public static final Property PRINTER_FONT_SIZE =
-        createProperty("printerFontSize", 10);
-    public static final Property REORDER_BUFFERS =
-        createProperty("reorderBuffers", 1);
-    public static final Property SHELL_OUTPUT_LIMIT =
-        createProperty("shellOutputLimit", 1000);
-    public static final Property SSH_TIMEOUT =
-        createProperty("sshTimeout", 250);
-    public static final Property STATUS_BAR_DISPLAY_CONTEXT =
-        createProperty("StatusBar.displayContext", 1);
-    public static final Property TAB_WIDTH =
-        createProperty("tabWidth", 8);
-    public static final Property TEXT_FIELD_FONT_SIZE =
-        createProperty("textFieldFontSize", 0);
-    public static final Property VERTICAL_RULE =
-        createProperty("verticalRule", 0);
-    public static final Property VERTICAL_SCROLL_INCREMENT =
-        createProperty("verticalScrollIncrement", 5);
-    public static final Property WRAP_COL =
-        createProperty("wrapCol", 80);
+    public static final Property FINDER_RESCAN_SECONDS = createProperty("finderRescanSeconds", 30);
+    public static final Property FONT_SIZE = createProperty("fontSize", 12);
+    public static final Property GUTTER_FONT_SIZE = createProperty("gutterFontSize", 0);
+    public static final Property INDENT_SIZE = createProperty("indentSize", 4);
+    public static final Property JLIST_FIXED_CELL_HEIGHT = createProperty("JList.fixedCellHeight", 0);
+    public static final Property LIST_THREADS = createProperty("listThreads", 0);
+    public static final Property LOG_MAX_BACKUP_INDEX = createProperty("Log.maxBackupIndex", 0);
+    public static final Property LOG_MAX_FILE_SIZE = createProperty("Log.maxFileSize", 100000);
+    public static final Property NNTP_READ_TIMEOUT = createProperty("nntpReadTimeout", 0);
+    public static final Property PRINTER_FONT_SIZE = createProperty("printerFontSize", 10);
+    public static final Property REORDER_BUFFERS = createProperty("reorderBuffers", 1);
+    public static final Property SHELL_OUTPUT_LIMIT = createProperty("shellOutputLimit", 1000);
+    public static final Property SSH_TIMEOUT = createProperty("sshTimeout", 250);
+    public static final Property STATUS_BAR_DISPLAY_CONTEXT = createProperty("StatusBar.displayContext", 1);
+    public static final Property TAB_WIDTH = createProperty("tabWidth", 8);
+    public static final Property TEXT_FIELD_FONT_SIZE = createProperty("textFieldFontSize", 0);
+    public static final Property VERTICAL_RULE = createProperty("verticalRule", 0);
+    public static final Property VERTICAL_SCROLL_INCREMENT = createProperty("verticalScrollIncrement", 5);
+    public static final Property WRAP_COL = createProperty("wrapCol", 80);
 
     // Boolean properties.
-    public static final Property ANTIALIAS =
-        createProperty("antialias", true);
-    public static final Property ATTRIBUTES_REQUIRE_QUOTES =
-        createProperty("attributesRequireQuotes", true);
-    public static final Property AUTOSAVE_NAMED_SESSIONS =
-        createProperty("autosaveNamedSessions", false);
-    public static final Property AUTO_INDENT =
-        createProperty("autoIndent", true);
-    public static final Property AUTO_NEWLINE =
-        createProperty("autoNewline", false);
-    public static final Property AUTO_PASTE_LINES =
-        createProperty("autoPasteLines", true);
-    public static final Property AUTO_RELOAD_KEY_MAPS =
-        createProperty("autoReloadKeyMaps", false);
-    public static final Property AUTO_SELECT_LINE =
-        createProperty("autoSelectLine", true);
-    public static final Property BEAUTIFY_HEADERS =
-        createProperty("beautifyHeaders", true);
-    public static final Property BLINK_CARET =
-        createProperty("blinkCaret", true);
-    public static final Property CHECK_ENABLED =
-        createProperty("checkEnabled", false);
-    public static final Property CONFIRM_SEND =
-        createProperty("confirmSend", true);
-    public static final Property DEBUG =
-        createProperty("debug", false);
-    public static final Property DETECT_ENCODING =
-        createProperty("detectEncoding", true);
-    public static final Property DIR_SORT_DIRECTORIES_FIRST =
-        createProperty("dirSortDirectoriesFirst", true);
-    public static final Property DIR_USE_NATIVE_FORMAT =
-        createProperty("dirUseNativeFormat", false);
-    public static final Property EMULATE_BOLD =
-        createProperty("emulateBold", false);
-    public static final Property ENABLE_CACHE =
-        createProperty("enableCache", false);
-    public static final Property ENABLE_DRAG_TEXT =
-        createProperty("enableDragText", true);
-    public static final Property ENABLE_EXPERIMENTAL_FEATURES =
-        createProperty("enableExperimentalFeatures", false);
-    public static final Property ENABLE_HORIZONTAL_SCROLL_BAR =
-        createProperty("enableHorizontalScrollBar", true);
-    public static final Property ENABLE_ITALICS =
-        createProperty("enableItalics", true);
-    public static final Property ENABLE_KEY_PRESSED_HOOK =
-        createProperty("enableKeyPressedHook", false);
-    public static final Property ENABLE_MAIL =
-        createProperty("enableMail", false);
-    public static final Property ENABLE_TOOL_TIPS =
-        createProperty("enableToolTips", false);
-    public static final Property ENABLE_TREE =
-        createProperty("enableTree", true);
-    public static final Property ENABLE_WEB =
-        createProperty("enableWeb", false);
-    public static final Property EXTEND_END =
-        createProperty("extendEnd", false);
-    public static final Property EXTEND_HOME =
-        createProperty("extendHome", false);
-    public static final Property FILENAME_COMPLETIONS_EXCLUDE_PATTERN =
-        createProperty(
-            "filenameCompletionsExcludePattern",
-            "^(CVS|RCS|SCCS|_darcs|(\\.(svn|hg|darcs|git))|(.+(~|\\.(class|cls|abcl|bak|sw[op]|a|o|obj|exe))))$"
-        );
+    public static final Property ANTIALIAS = createProperty("antialias", true);
+    public static final Property ATTRIBUTES_REQUIRE_QUOTES = createProperty("attributesRequireQuotes", true);
+    public static final Property AUTOSAVE_NAMED_SESSIONS = createProperty("autosaveNamedSessions", false);
+    public static final Property AUTO_INDENT = createProperty("autoIndent", true);
+    public static final Property AUTO_NEWLINE = createProperty("autoNewline", false);
+    public static final Property AUTO_PASTE_LINES = createProperty("autoPasteLines", true);
+    public static final Property AUTO_RELOAD_KEY_MAPS = createProperty("autoReloadKeyMaps", false);
+    public static final Property AUTO_SELECT_LINE = createProperty("autoSelectLine", true);
+    public static final Property BEAUTIFY_HEADERS = createProperty("beautifyHeaders", true);
+    public static final Property BLINK_CARET = createProperty("blinkCaret", true);
+    public static final Property CHECK_ENABLED = createProperty("checkEnabled", false);
+    public static final Property CONFIRM_SEND = createProperty("confirmSend", true);
+    public static final Property DEBUG = createProperty("debug", false);
+    public static final Property DETECT_ENCODING = createProperty("detectEncoding", true);
+    public static final Property DIR_SORT_DIRECTORIES_FIRST = createProperty("dirSortDirectoriesFirst", true);
+    public static final Property DIR_USE_NATIVE_FORMAT = createProperty("dirUseNativeFormat", false);
+    public static final Property EMULATE_BOLD = createProperty("emulateBold", false);
+    public static final Property ENABLE_CACHE = createProperty("enableCache", false);
+    public static final Property ENABLE_DRAG_TEXT = createProperty("enableDragText", true);
+    public static final Property ENABLE_EXPERIMENTAL_FEATURES = createProperty("enableExperimentalFeatures", false);
+    public static final Property ENABLE_HORIZONTAL_SCROLL_BAR = createProperty("enableHorizontalScrollBar", true);
+    public static final Property ENABLE_ITALICS = createProperty("enableItalics", true);
+    public static final Property ENABLE_KEY_PRESSED_HOOK = createProperty("enableKeyPressedHook", false);
+    public static final Property ENABLE_MAIL = createProperty("enableMail", false);
+    public static final Property ENABLE_TOOL_TIPS = createProperty("enableToolTips", false);
+    public static final Property ENABLE_TREE = createProperty("enableTree", true);
+    public static final Property ENABLE_WEB = createProperty("enableWeb", false);
+    public static final Property EXTEND_END = createProperty("extendEnd", false);
+    public static final Property EXTEND_HOME = createProperty("extendHome", false);
+    public static final Property FILENAME_COMPLETIONS_EXCLUDE_PATTERN = createProperty(
+        "filenameCompletionsExcludePattern",
+        "^(CVS|RCS|SCCS|_darcs|(\\.(svn|hg|darcs|git))|(.+(~|\\.(class|cls|abcl|bak|sw[op]|a|o|obj|exe))))$");
     public static final Property FILENAME_COMPLETIONS_IGNORE_CASE =
-        createProperty("filenameCompletionsIgnoreCase", true);
-    public static final Property FIX_CASE =
-        createProperty("fixCase", false);
-    public static final Property FTP_USE_PASSIVE_MODE =
-        createProperty("ftpUsePassiveMode", true);
-    public static final Property GROUP_BY_THREAD =
-        createProperty("groupByThread", false);
-    public static final Property HIGHLIGHT_BRACKETS =
-        createProperty("highlightBrackets", false);
-    public static final Property HIGHLIGHT_MATCHING_BRACKET =
-        createProperty("highlightMatchingBracket", false);
-    public static final Property HIGHLIGHT_SEARCH_MATCHES =
-        createProperty("highlightSearchMatches", false);
-    public static final Property HTTP_ENABLE_COOKIES =
-        createProperty("httpEnableCookies", false);
-    public static final Property IMAP_USE_LOCAL_CACHE =
-        createProperty("imapUseLocalCache", true);
-    public static final Property INDENT_AFTER_BRACE =
-        createProperty("indentAfterBrace", true);
-    public static final Property INDENT_AFTER_OPENING_BRACE =
-        createProperty("indentAfterOpeningBrace", true);
-    public static final Property INDENT_BEFORE_BRACE =
-        createProperty("indentBeforeBrace", false);
-    public static final Property INDENT_LINE_FIX_WHITESPACE =
-        createProperty("indentLineFixWhitespace", false);
-    public static final Property INDENT_STRINGS =
-        createProperty("indentStrings", false);
-    public static final Property LINEUP_ARGLIST =
-        createProperty("lineupArglist", true);
-    public static final Property LOG_ENABLED =
-        createProperty("Log.enabled", true);
-    public static final Property OFFLINE =
-        createProperty("offline", false);
-    public static final Property P4_AUTO_EDIT =
-        createProperty("p4AutoEdit", false);
-    public static final Property PARENS_REQUIRE_SPACES =
-        createProperty("parensRequireSpaces", false);
+            createProperty("filenameCompletionsIgnoreCase", true);
+    public static final Property FIX_CASE = createProperty("fixCase", false);
+    public static final Property FTP_USE_PASSIVE_MODE = createProperty("ftpUsePassiveMode", true);
+    public static final Property GROUP_BY_THREAD = createProperty("groupByThread", false);
+    public static final Property HIGHLIGHT_BRACKETS = createProperty("highlightBrackets", false);
+    public static final Property HIGHLIGHT_MATCHING_BRACKET = createProperty("highlightMatchingBracket", false);
+    public static final Property HIGHLIGHT_SEARCH_MATCHES = createProperty("highlightSearchMatches", false);
+    public static final Property HTTP_ENABLE_COOKIES = createProperty("httpEnableCookies", false);
+    public static final Property IMAP_USE_LOCAL_CACHE = createProperty("imapUseLocalCache", true);
+    public static final Property INDENT_AFTER_BRACE = createProperty("indentAfterBrace", true);
+    public static final Property INDENT_AFTER_OPENING_BRACE = createProperty("indentAfterOpeningBrace", true);
+    public static final Property INDENT_BEFORE_BRACE = createProperty("indentBeforeBrace", false);
+    public static final Property INDENT_LINE_FIX_WHITESPACE = createProperty("indentLineFixWhitespace", false);
+    public static final Property INDENT_STRINGS = createProperty("indentStrings", false);
+    public static final Property LINEUP_ARGLIST = createProperty("lineupArglist", true);
+    public static final Property LOG_ENABLED = createProperty("Log.enabled", true);
+    public static final Property OFFLINE = createProperty("offline", false);
+    public static final Property P4_AUTO_EDIT = createProperty("p4AutoEdit", false);
+    public static final Property PARENS_REQUIRE_SPACES = createProperty("parensRequireSpaces", false);
     public static final Property POP_EXPUNGE_DELETED_MESSAGES_ON_SERVER =
-        createProperty("popExpungeDeletedMessagesOnServer", false);
-    public static final Property POP_KEEP_MESSAGES_ON_SERVER =
-        createProperty("popKeepMessagesOnServer", true);
-    public static final Property RAINBOW_DELIMITERS =
-        createProperty("rainbowDelimiters", false);
-    public static final Property REMOVE_TRAILING_WHITESPACE =
-        createProperty("removeTrailingWhitespace", false);
-    public static final Property RESTRICT_CARET =
-        createProperty("restrictCaret", true);
-    public static final Property SAVE_IN_PLACE =
-        createProperty("saveInPlace", false);
-    public static final Property SCROLL_CARET =
-        createProperty("scrollCaret", true);
-    public static final Property SELECT_COMPLETION =
-        createProperty("selectCompletion", true);
-    public static final Property SHARE_SEARCH =
-        createProperty("shareSearch", true);
-    public static final Property SHOW_CHANGE_MARKS =
-        createProperty("showChangeMarks", true);
-    public static final Property SHOW_COMPLETION_LIST =
-        createProperty("showCompletionList", true);
-    public static final Property SHOW_LINE_NUMBERS =
-        createProperty("showLineNumbers", false);
-    public static final Property SHOW_MESSAGE_NUMBERS =
-        createProperty("showMessageNumbers", false);
-    public static final Property SORT_BUFFER_LIST =
-        createProperty("sortBufferList", false);
-    public static final Property SSH_ECHO =
-        createProperty("sshEcho", false);
-    public static final Property STATUS_BAR_DISPLAY_LINE_COUNT =
-        createProperty("StatusBar.displayLineCount", false);
+            createProperty("popExpungeDeletedMessagesOnServer", false);
+    public static final Property POP_KEEP_MESSAGES_ON_SERVER = createProperty("popKeepMessagesOnServer", true);
+    public static final Property RAINBOW_DELIMITERS = createProperty("rainbowDelimiters", false);
+    public static final Property REMOVE_TRAILING_WHITESPACE = createProperty("removeTrailingWhitespace", false);
+    public static final Property RESTRICT_CARET = createProperty("restrictCaret", true);
+    public static final Property SAVE_IN_PLACE = createProperty("saveInPlace", false);
+    public static final Property SCROLL_CARET = createProperty("scrollCaret", true);
+    public static final Property SELECT_COMPLETION = createProperty("selectCompletion", true);
+    public static final Property SHARE_SEARCH = createProperty("shareSearch", true);
+    public static final Property SHOW_CHANGE_MARKS = createProperty("showChangeMarks", true);
+    public static final Property SHOW_COMPLETION_LIST = createProperty("showCompletionList", true);
+    public static final Property SHOW_LINE_NUMBERS = createProperty("showLineNumbers", false);
+    public static final Property SHOW_MESSAGE_NUMBERS = createProperty("showMessageNumbers", false);
+    public static final Property SORT_BUFFER_LIST = createProperty("sortBufferList", false);
+    public static final Property SSH_ECHO = createProperty("sshEcho", false);
+    public static final Property STATUS_BAR_DISPLAY_LINE_COUNT = createProperty("StatusBar.displayLineCount", false);
     public static final Property STATUS_BAR_DISPLAY_LINE_SEPARATOR =
-        createProperty("StatusBar.displayLineSeparator", false);
-    public static final Property TAB_ALWAYS_INDENT =
-        createProperty("tabAlwaysIndent", true);
-    public static final Property TOOL_BAR_ICON_SIZE =
-        createProperty("ToolBar.iconSize", 24);
-    public static final Property TOOL_BAR_IS_ROLLOVER =
-        createProperty("ToolBar.isRollover", true);
-    public static final Property TOOL_BAR_SHOW_ICONS =
-        createProperty("ToolBar.showIcons", true);
-    public static final Property TOOL_BAR_SHOW_TEXT =
-        createProperty("ToolBar.showText", false);
-    public static final Property UNDELETE_ADVANCE_DOT =
-        createProperty("undeleteAdvanceDot", true);
-    public static final Property UNDERLINE_BOLD =
-        createProperty("underlineBold", false);
-    public static final Property UPPER_CASE_ATTRIBUTE_NAMES =
-        createProperty("upperCaseAttributeNames", false);
-    public static final Property UPPER_CASE_TAG_NAMES =
-        createProperty("upperCaseTagNames", true);
-    public static final Property USE_INCREMENTAL_FIND =
-        createProperty("useIncrementalFind", false);
-    public static final Property USE_MENU_MNEMONICS =
-        createProperty("useMenuMnemonics", true);
-    public static final Property USE_TABS =
-        createProperty("useTabs", false);
-    public static final Property WRAP =
-        createProperty("wrap", false);
+            createProperty("StatusBar.displayLineSeparator", false);
+    public static final Property TAB_ALWAYS_INDENT = createProperty("tabAlwaysIndent", true);
+    public static final Property TOOL_BAR_ICON_SIZE = createProperty("ToolBar.iconSize", 24);
+    public static final Property TOOL_BAR_IS_ROLLOVER = createProperty("ToolBar.isRollover", true);
+    public static final Property TOOL_BAR_SHOW_ICONS = createProperty("ToolBar.showIcons", true);
+    public static final Property TOOL_BAR_SHOW_TEXT = createProperty("ToolBar.showText", false);
+    public static final Property UNDELETE_ADVANCE_DOT = createProperty("undeleteAdvanceDot", true);
+    public static final Property UNDERLINE_BOLD = createProperty("underlineBold", false);
+    public static final Property UPPER_CASE_ATTRIBUTE_NAMES = createProperty("upperCaseAttributeNames", false);
+    public static final Property UPPER_CASE_TAG_NAMES = createProperty("upperCaseTagNames", true);
+    public static final Property USE_INCREMENTAL_FIND = createProperty("useIncrementalFind", false);
+    public static final Property USE_MENU_MNEMONICS = createProperty("useMenuMnemonics", true);
+    public static final Property USE_TABS = createProperty("useTabs", false);
+    public static final Property WRAP = createProperty("wrap", false);
 
     // String properties with default values.
-    public static final Property ATTRIBUTION =
-        createProperty("attribution", "On %d, %n wrote:");
-    public static final Property CLHS_ROOT =
-        createProperty("clhsRoot", "/usr/share/doc/hyperspec");
+    public static final Property ATTRIBUTION = createProperty("attribution", "On %d, %n wrote:");
+    public static final Property CLHS_ROOT = createProperty("clhsRoot", "/usr/share/doc/hyperspec");
     // The kinds of markup to hide until the caret is in it, as a list:
     // "markup,headings" in Markdown mode; "none" for none.
-    public static final Property CONCEAL =
-        createProperty("conceal", "markup");
-    public static final Property DEFAULT_ENCODING =
-        createProperty("defaultEncoding", "UTF-8");
-    public static final Property DIALOG_FONT_NAME =
-        createProperty("dialogFontName", "Dialog");
-    public static final Property EXPLICIT_TAG =
-        createProperty("explicitTag", "###");
-    public static final Property FONT_NAME =
-        createProperty("fontName", "Monospaced");
+    public static final Property CONCEAL = createProperty("conceal", "markup");
+    public static final Property DEFAULT_ENCODING = createProperty("defaultEncoding", "UTF-8");
+    public static final Property DIALOG_FONT_NAME = createProperty("dialogFontName", "Dialog");
+    public static final Property EXPLICIT_TAG = createProperty("explicitTag", "###");
+    public static final Property FONT_NAME = createProperty("fontName", "Monospaced");
     // "auto/true/false" See Display.resolveLigatures().
-    public static final Property LIGATURES =
-        createProperty("ligatures", "auto");
-    public static final Property PRINTER_FONT_NAME =
-        createProperty("printerFontName", "Courier");
+    public static final Property LIGATURES = createProperty("ligatures", "auto");
+    public static final Property PRINTER_FONT_NAME = createProperty("printerFontName", "Courier");
     public static final Property SHELL_PROMPT_PATTERN =
-        createProperty("shellPromptPattern", DEFAULT_SHELL_PROMPT_PATTERN);
-    public static final Property SSH_PROMPT_PATTERN =
-        createProperty("sshPromptPattern", DEFAULT_SHELL_PROMPT_PATTERN);
+            createProperty("shellPromptPattern", DEFAULT_SHELL_PROMPT_PATTERN);
+    public static final Property SSH_PROMPT_PATTERN = createProperty("sshPromptPattern", DEFAULT_SHELL_PROMPT_PATTERN);
     public static final Property TELNET_PROMPT_PATTERN =
-        createProperty("telnetPromptPattern", DEFAULT_SHELL_PROMPT_PATTERN);
+            createProperty("telnetPromptPattern", DEFAULT_SHELL_PROMPT_PATTERN);
     // icon colos. Empty means use the color named in its own file.
-    public static final Property ICON_COLOR =
-        createProperty("iconColor", "");
+    public static final Property ICON_COLOR = createProperty("iconColor", "");
 
     // Scale factor for j's built-in sizes on a high resolution display.
     // A fractional value is allowed, so this is stored as a string. Unset or
     // 0 means detect it from the display; see UIScale.
-    public static final Property UI_SCALE =
-        createProperty("uiScale", "0");
-    public static final Property TEXT_FIELD_FONT_NAME =
-        createProperty("textFieldFontName", "Monospaced");
+    public static final Property UI_SCALE = createProperty("uiScale", "0");
+    public static final Property TEXT_FIELD_FONT_NAME = createProperty("textFieldFontName", "Monospaced");
 
     // String properties with no default values.
-    public static final Property BACKUP_DIRECTORY =
-        createProperty("backupDirectory");
-    public static final Property BROWSER =
-        createProperty("browser");
-    public static final Property BROWSER_OPTS =
-        createProperty("browserOpts");
-    public static final Property DOC_PATH =
-        createProperty("docPath");
+    public static final Property BACKUP_DIRECTORY = createProperty("backupDirectory");
+    public static final Property BROWSER = createProperty("browser");
+    public static final Property BROWSER_OPTS = createProperty("browserOpts");
+    public static final Property DOC_PATH = createProperty("docPath");
     // "simple" (j's own non-modal editing) or "vim" (modal). Buffer and
     // mode scoped like any other property, so JavaMode.editMode=vim works.
-    public static final Property EDIT_MODE =
-        createProperty("editMode", "simple");
-    public static final Property EMULATION =
-        createProperty("emulation");
+    public static final Property EDIT_MODE = createProperty("editMode", "simple");
+    public static final Property EMULATION = createProperty("emulation");
     // A file of modal key bindings, replacing the table built into j.
-    public static final Property VIM_KEY_MAP =
-        createProperty("vimKeyMap");
-    public static final Property EOM =
-        createProperty("eom");
+    public static final Property VIM_KEY_MAP = createProperty("vimKeyMap");
+    public static final Property EOM = createProperty("eom");
     // Comma-separated extension names not to load, e.g. "abcl,mail".
-    public static final Property DISABLED_EXTENSIONS =
-        createProperty("disabledExtensions");
-    public static final Property FCC =
-        createProperty("fcc");
-    public static final Property FILES =
-        createProperty("files");
-    public static final Property FTP_ANONYMOUS_PASSWORD =
-        createProperty("ftpAnonymousPassword");
-    public static final Property GUTTER_FONT_NAME =
-        createProperty("gutterFontName");
-    public static final Property HTML_MODE_TAGS =
-        createProperty("HtmlMode.tags");
-    public static final Property HTTP_USER_AGENT =
-        createProperty("httpUserAgent");
-    public static final Property INBOX =
-        createProperty("inbox");
-    public static final Property INCLUDE_PATH =
-        createProperty("includePath");
-    public static final Property JAVA_MODE_INSERT_COMMENT_TEXT =
-        createProperty("JavaMode.insertCommentText");
-    public static final Property JDB =
-        createProperty("jdb");
-    public static final Property JDK_DOC_PATH =
-        createProperty("jdkDocPath");
-    public static final Property JDK_SOURCE_PATH =
-        createProperty("jdkSourcePath");
-    public static final Property GLOBAL_KEY_MAP =
-        createProperty("globalKeyMap");
-    public static final Property LOOK_AND_FEEL =
-        createProperty("lookAndFeel");
-    public static final Property LS_EXTRA_OPTIONS =
-        createProperty("lsExtraOptions");
-    public static final Property NEWS =
-        createProperty("news");
-    public static final Property PATCH_MODE =
-        createProperty("patchMode");
+    public static final Property DISABLED_EXTENSIONS = createProperty("disabledExtensions");
+    public static final Property FCC = createProperty("fcc");
+    public static final Property FILES = createProperty("files");
+    public static final Property FTP_ANONYMOUS_PASSWORD = createProperty("ftpAnonymousPassword");
+    public static final Property GUTTER_FONT_NAME = createProperty("gutterFontName");
+    public static final Property HTML_MODE_TAGS = createProperty("HtmlMode.tags");
+    public static final Property HTTP_USER_AGENT = createProperty("httpUserAgent");
+    public static final Property INBOX = createProperty("inbox");
+    public static final Property INCLUDE_PATH = createProperty("includePath");
+    public static final Property JAVA_MODE_INSERT_COMMENT_TEXT = createProperty("JavaMode.insertCommentText");
+    public static final Property JDB = createProperty("jdb");
+    public static final Property JDK_DOC_PATH = createProperty("jdkDocPath");
+    public static final Property JDK_SOURCE_PATH = createProperty("jdkSourcePath");
+    public static final Property GLOBAL_KEY_MAP = createProperty("globalKeyMap");
+    public static final Property LOOK_AND_FEEL = createProperty("lookAndFeel");
+    public static final Property LS_EXTRA_OPTIONS = createProperty("lsExtraOptions");
+    public static final Property NEWS = createProperty("news");
+    public static final Property PATCH_MODE = createProperty("patchMode");
     // A directory to use as the project root; see ProjectRoot.
-    public static final Property PROJECT_ROOT =
-        createProperty("projectRoot");
-    public static final Property SHELL_FILE_NAME =
-        createProperty("shellFileName");
-    public static final Property SIGNATURE =
-        createProperty("signature");
-    public static final Property SMTP =
-        createProperty("smtp");
-    public static final Property SOURCE_PATH =
-        createProperty("sourcePath");
-    public static final Property SSH =
-        createProperty("ssh");
-    public static final Property STAMP_FORMAT =
-        createProperty("stampFormat");
-    public static final Property TAG_PATH =
-        createProperty("tagPath");
-    public static final Property TELNET =
-        createProperty("telnet");
-    public static final Property THEME =
-        createProperty("theme");
-    public static final Property THEME_PATH =
-        createProperty("themePath");
-    public static final Property TUNNEL =
-        createProperty("tunnel");
-    public static final Property USER_FULL_NAME =
-        createProperty("userFullName");
-    public static final Property USER_MAIL_ADDRESS =
-        createProperty("userMailAddress");
-    public static final Property WINDOW_MANAGER =
-        createProperty("windowManager");
+    public static final Property PROJECT_ROOT = createProperty("projectRoot");
+    public static final Property SHELL_FILE_NAME = createProperty("shellFileName");
+    public static final Property SIGNATURE = createProperty("signature");
+    public static final Property SMTP = createProperty("smtp");
+    public static final Property SOURCE_PATH = createProperty("sourcePath");
+    public static final Property SSH = createProperty("ssh");
+    public static final Property STAMP_FORMAT = createProperty("stampFormat");
+    public static final Property TAG_PATH = createProperty("tagPath");
+    public static final Property TELNET = createProperty("telnet");
+    public static final Property THEME = createProperty("theme");
+    public static final Property THEME_PATH = createProperty("themePath");
+    public static final Property TUNNEL = createProperty("tunnel");
+    public static final Property USER_FULL_NAME = createProperty("userFullName");
+    public static final Property USER_MAIL_ADDRESS = createProperty("userMailAddress");
+    public static final Property WINDOW_MANAGER = createProperty("windowManager");
 
     // Color properties (no default value).
-    public static final Property COLOR_BACKGROUND =
-        createProperty("color.background");
+    public static final Property COLOR_BACKGROUND = createProperty("color.background");
     public static final Property COLOR_CARET = createProperty("color.caret");
     public static final Property COLOR_CHANGE = createProperty("color.change");
-    public static final Property COLOR_SAVED_CHANGE =
-        createProperty("color.savedChange");
-    public static final Property COLOR_CURRENT_LINE_BACKGROUND =
-        createProperty("color.currentLineBackground");
-    public static final Property COLOR_GUTTER_BORDER =
-        createProperty("color.gutterBorder");
-    public static final Property COLOR_LINE_NUMBER =
-        createProperty("color.lineNumber");
-    public static final Property COLOR_MATCHING_BRACKET_BACKGROUND =
-        createProperty("color.matchingBracketBackground");
+    public static final Property COLOR_SAVED_CHANGE = createProperty("color.savedChange");
+    public static final Property COLOR_CURRENT_LINE_BACKGROUND = createProperty("color.currentLineBackground");
+    public static final Property COLOR_GUTTER_BORDER = createProperty("color.gutterBorder");
+    public static final Property COLOR_LINE_NUMBER = createProperty("color.lineNumber");
+    public static final Property COLOR_MATCHING_BRACKET_BACKGROUND = createProperty("color.matchingBracketBackground");
     public static final Property COLOR_TEXT = createProperty("color.text");
-    public static final Property COLOR_SELECTION_BACKGROUND =
-        createProperty("color.selectionBackground");
-    public static final Property COLOR_SEARCH_MATCH_BACKGROUND =
-        createProperty("color.searchMatchBackground");
+    public static final Property COLOR_SELECTION_BACKGROUND = createProperty("color.selectionBackground");
+    public static final Property COLOR_SEARCH_MATCH_BACKGROUND = createProperty("color.searchMatchBackground");
     public static final Property COLOR_CURRENT_SEARCH_MATCH_BACKGROUND =
-        createProperty("color.currentSearchMatchBackground");
-    public static final Property COLOR_VERTICAL_RULE =
-        createProperty("color.verticalRule");
+            createProperty("color.currentSearchMatchBackground");
+    public static final Property COLOR_VERTICAL_RULE = createProperty("color.verticalRule");
 
     private final String displayName;
     private final String key;

@@ -35,12 +35,11 @@ public final class FinderCellRenderer extends JComponent implements ListCellRend
 
     @Override
     public Component getListCellRendererComponent(
-        JList<? extends FinderItem.Row> list,
-        FinderItem.Row value,
-        int index,
-        boolean isSelected,
-        boolean cellHasFocus
-    ) {
+            JList<? extends FinderItem.Row> list,
+            FinderItem.Row value,
+            int index,
+            boolean isSelected,
+            boolean cellHasFocus) {
         return render(list, value, isSelected);
     }
 
@@ -162,10 +161,8 @@ public final class FinderCellRenderer extends JComponent implements ListCellRend
     }
 
     private static Color blend(Color a, Color b, float t) {
-        return new Color(
-            Math.round(a.getRed() * t + b.getRed() * (1 - t)),
-            Math.round(a.getGreen() * t + b.getGreen() * (1 - t)),
-            Math.round(a.getBlue() * t + b.getBlue() * (1 - t))
-        );
+        return new Color(Math.round(a.getRed() * t + b.getRed() * (1 - t)),
+                Math.round(a.getGreen() * t + b.getGreen() * (1 - t)),
+                Math.round(a.getBlue() * t + b.getBlue() * (1 - t)));
     }
 }

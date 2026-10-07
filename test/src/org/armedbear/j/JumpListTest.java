@@ -110,11 +110,7 @@ public class JumpListTest {
         MotionCommands.eob(on("a\nb\nc\n", 1));
         // Where going back from the other buffer goes. The switch itself
         // is Marker.gotoMarker, which needs a frame: see the screenshots.
-        final Marker to = JumpList.travel(
-            other.buffer(),
-            other.editor().getDot(),
-            -1
-        );
+        final Marker to = JumpList.travel(other.buffer(), other.editor().getDot(), -1);
         assertSame(h.buffer(), to.getBuffer());
         assertEquals(1, to.getPosition().lineNumber());
     }

@@ -94,12 +94,9 @@ public final class CompletionPopup<T> {
             @Override
             public void mousePressed(MouseEvent e) {
                 int index = rowAt(e);
-                if (
-                    index >= 0
+                if (index >= 0
                         && Keys.isUnmodified(e)
-                        &&
-                        (e.getButton() == MouseEvent.BUTTON1 || e.getButton() == MouseEvent.BUTTON2)
-                )
+                        && (e.getButton() == MouseEvent.BUTTON1 || e.getButton() == MouseEvent.BUTTON2))
                     list.setSelectedIndex(index);
             }
 
@@ -110,11 +107,9 @@ public final class CompletionPopup<T> {
                     onClick.accept(model.items.get(index));
             }
         });
-        scroller = new JScrollPane(
-            list,
-            ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED,
-            ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER
-        );
+        scroller = new JScrollPane(list,
+                ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED,
+                ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
         Color border = UIManager.getColor("Component.borderColor");
         scroller.setBorder(BorderFactory.createLineBorder(border != null ? border : Color.GRAY));
     }

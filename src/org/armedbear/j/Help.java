@@ -109,11 +109,7 @@ public final class Help {
                             offset = buf.getAbsoluteOffset(dot);
                     }
                 }
-                ((WebBuffer) buf).saveHistory(
-                    buf.getFile(),
-                    offset,
-                    ((WebBuffer) buf).getContentType()
-                );
+                ((WebBuffer) buf).saveHistory(buf.getFile(), offset, ((WebBuffer) buf).getContentType());
                 if (!buf.getFile().equals(file)) {
                     // Existing buffer is not looking at the right file.
                     ((WebBuffer) buf).go(file, 0, null);
@@ -172,7 +168,7 @@ public final class Help {
         try {
             File file = getBindingsFile();
             BufferedWriter writer =
-                new BufferedWriter(new OutputStreamWriter(file.getOutputStream(), StandardCharsets.UTF_8));
+                    new BufferedWriter(new OutputStreamWriter(file.getOutputStream(), StandardCharsets.UTF_8));
             writer.write("<html>\n<head>\n<title>Keyboard Bindings</title>\n</head>\n<body>\n");
             File docDir = getDocumentationDirectory();
             writer.write("<b>");
@@ -180,12 +176,7 @@ public final class Help {
             writer.write(editor.getMode().toString());
             writer.write(" mode)");
             writer.write("</b><br><br>");
-            addBindingsFromKeyMap(
-                editor.getBuffer().getKeyMapForMode(),
-                docDir,
-                writer,
-                ""
-            );
+            addBindingsFromKeyMap(editor.getBuffer().getKeyMapForMode(), docDir, writer, "");
             writer.write("<br>");
             writer.write("<b>");
             writer.write("Global Bindings");
@@ -258,13 +249,8 @@ public final class Help {
         }
     }
 
-    private static void addBindingsFromKeyMap(
-        KeyMap keyMap,
-        File docDir,
-        Writer writer,
-        String prefix
-    )
-        throws IOException {
+    private static void addBindingsFromKeyMap(KeyMap keyMap, File docDir, Writer writer, String prefix)
+            throws IOException {
         KeyMapping[] mappings = keyMap.getMappings();
         int count = mappings.length;
         if (count == 0) {
@@ -272,8 +258,7 @@ public final class Help {
             return;
         }
         int prefixLength = prefix.length();
-        final String sanitizedPrefix =
-            (prefixLength > 0) ? sanitize(prefix) : null;
+        final String sanitizedPrefix = (prefixLength > 0) ? sanitize(prefix) : null;
         final int spaces = 32 - prefixLength;
         ArrayList<KeyMapping> submappings = null;
         for (KeyMapping mapping : mappings) {
@@ -398,7 +383,7 @@ public final class Help {
         try {
             File file = getAproposFile();
             BufferedWriter writer =
-                new BufferedWriter(new OutputStreamWriter(file.getOutputStream(), StandardCharsets.UTF_8));
+                    new BufferedWriter(new OutputStreamWriter(file.getOutputStream(), StandardCharsets.UTF_8));
             writer.write("<html>\n<head>\n<title>");
             writer.write("Apropos ");
             writer.write('"');
@@ -482,11 +467,7 @@ public final class Help {
         Collections.sort(list, String.CASE_INSENSITIVE_ORDER);
     }
 
-    private static void addAproposEntries(
-        List<String> list,
-        File helpFile,
-        Writer writer
-    ) throws IOException {
+    private static void addAproposEntries(List<String> list, File helpFile, Writer writer) throws IOException {
         if (list != null && !list.isEmpty()) {
             for (String s : list) {
                 if (helpFile != null) {

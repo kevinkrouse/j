@@ -66,8 +66,7 @@ public class FuzzyMatcherTest {
             "ofth",
             "doc/other/fetch.html",
             "test/src/org/armedbear/j/OpenFileTextFieldHandlerTest.java",
-            "src/org/armedbear/j/OpenFileTextFieldHandler.java"
-        );
+            "src/org/armedbear/j/OpenFileTextFieldHandler.java");
         assertEquals("src/org/armedbear/j/OpenFileTextFieldHandler.java", r.get(0));
         assertEquals("doc/other/fetch.html", r.get(2));
     }
@@ -111,12 +110,8 @@ public class FuzzyMatcherTest {
     public void limitKeepsTheBest() {
         List<String> r = rank("map", "a/bitmap.c", "map.c", "x/m/a/p.c");
         assertEquals("map.c", r.get(0));
-        List<Ranked<String>> one = FuzzyMatcher.rank(
-            List.of("a/bitmap.c", "map.c", "x/m/a/p.c"),
-            Function.identity(),
-            Query.parse("map"),
-            1
-        );
+        List<Ranked<String>> one = FuzzyMatcher
+                .rank(List.of("a/bitmap.c", "map.c", "x/m/a/p.c"), Function.identity(), Query.parse("map"), 1);
         assertEquals(1, one.size());
         assertEquals("map.c", one.get(0).item());
     }
@@ -171,8 +166,7 @@ public class FuzzyMatcherTest {
     public void unboundedLimit() {
         assertEquals(
             2,
-            FuzzyMatcher.rank(List.of("ab", "abc"), Function.identity(), Query.parse("ab"), Integer.MAX_VALUE).size()
-        );
+            FuzzyMatcher.rank(List.of("ab", "abc"), Function.identity(), Query.parse("ab"), Integer.MAX_VALUE).size());
     }
 
     @Test
@@ -201,7 +195,6 @@ public class FuzzyMatcherTest {
         assertNotNull(FuzzyMatcher.match("KeyMap.java", Query.parse("\u00A0key")));
         assertEquals(
             1,
-            FuzzyMatcher.rank(List.of("KeyMap.java"), Function.identity(), Query.parse("\u00A0key\u00A0"), 5).size()
-        );
+            FuzzyMatcher.rank(List.of("KeyMap.java"), Function.identity(), Query.parse("\u00A0key\u00A0"), 5).size());
     }
 }

@@ -116,15 +116,13 @@ public final class DirectoryBuffer extends Buffer {
         final String dd = "[ 0-3][0-9][.]?";
 
         // Month and day (includes following space character).
-        final String monthAndDay =
-            "(" + month + " *" + dd + " " + "|" + dd + " " + month + " *" + ")";
+        final String monthAndDay = "(" + month + " *" + dd + " " + "|" + dd + " " + month + " *" + ")";
 
         // Time of day.
         final String HHMM = "[ 0-2][0-9]:[0-5][0-9]";
 
         // Time or year.
-        final String timeOrYear =
-            "(" + HHMM + "|" + " " + yyyy + "|" + yyyy + " " + ")";
+        final String timeOrYear = "(" + HHMM + "|" + " " + yyyy + "|" + yyyy + " " + ")";
 
         String traditional = "[0-9]+" + " " + monthAndDay + timeOrYear + " ";
 
@@ -136,8 +134,7 @@ public final class DirectoryBuffer extends Buffer {
         final String isoMaybeYear = "(" + yyyy + "-)?";
         final String isoMonthAndDay = "[01][0-9]-[0-3][0-9]";
         final String isoMaybeTime = "(" + HHMM + ")?";
-        String iso = "[0-9]+" + " " + isoMaybeYear + isoMonthAndDay + " " +
-            isoMaybeTime + " *";
+        String iso = "[0-9]+" + " " + isoMaybeYear + isoMonthAndDay + " " + isoMaybeTime + " *";
 
         // Mac OS X (Pete Kirkham)
         // --time-style="+%e %b  %Y"
@@ -146,8 +143,7 @@ public final class DirectoryBuffer extends Buffer {
         // -rw-r--r--    1 pete  pete   75350 21 May 19:58 DirectoryBuffer.java
         String osx = "[0-9]+" + " " + dd + " " + month + " " + timeOrYear + " ";
 
-        nativeMoveToFilenameRegExp =
-            Pattern.compile("(" + traditional + ")|(" + iso + ")|(" + osx + ")");
+        nativeMoveToFilenameRegExp = Pattern.compile("(" + traditional + ")|(" + iso + ")|(" + osx + ")");
 
         internalMoveToFilenameRegExp = Pattern.compile(":[0-5][0-9]" + " ");
     }
@@ -227,12 +223,7 @@ public final class DirectoryBuffer extends Buffer {
         final Editor editor = Editor.currentEditor();
         final Buffer buffer = editor.getBuffer();
         if (buffer instanceof DirectoryBuffer directory) {
-            InputDialog dialog = new InputDialog(
-                editor,
-                "Pattern:",
-                "Limit",
-                directory.getLimitPattern()
-            );
+            InputDialog dialog = new InputDialog(editor, "Pattern:", "Limit", directory.getLimitPattern());
             dialog.setHistory(new History("dirLimit"));
             editor.centerDialog(dialog);
             dialog.setVisible(true);
@@ -369,8 +360,7 @@ public final class DirectoryBuffer extends Buffer {
             if (ed.getBuffer() == this) {
                 Line dotLine = findName(names.get(i));
                 if (dotLine == null) {
-                    dotLine =
-                        getLine(lineNumbers.get(i).intValue());
+                    dotLine = getLine(lineNumbers.get(i).intValue());
                     if (dotLine == null) {
                         if (getFirstLine() == null) {
                             Debug.bug();
@@ -387,8 +377,7 @@ public final class DirectoryBuffer extends Buffer {
                 display.setShift(0);
                 display.moveCaretToDotCol();
 
-                Line line =
-                    getLine(topLineNumbers.get(i).intValue());
+                Line line = getLine(topLineNumbers.get(i).intValue());
                 if (line == null) {
                     Debug.assertTrue(getFirstLine() != null);
                     line = getFirstLine();
@@ -489,24 +478,21 @@ public final class DirectoryBuffer extends Buffer {
     // Called only from sort().
     private void sortByName() {
         Debug.assertTrue(!usingNativeFormat);
-        Comparator<DirectoryEntry> comparator =
-            (e1, e2) -> e1.getName().compareToIgnoreCase(e2.getName());
+        Comparator<DirectoryEntry> comparator = (e1, e2) -> e1.getName().compareToIgnoreCase(e2.getName());
         Collections.sort(entries, comparator);
     }
 
     // Called only from sort().
     private void sortByDate() {
         // Most recent dates first.
-        Comparator<DirectoryEntry> comparator =
-            (e1, e2) -> Long.compare(e2.getDate(), e1.getDate());
+        Comparator<DirectoryEntry> comparator = (e1, e2) -> Long.compare(e2.getDate(), e1.getDate());
         Collections.sort(entries, comparator);
     }
 
     // Called only from sort().
     private void sortBySize() {
         // Biggest files first.
-        Comparator<DirectoryEntry> comparator =
-            (e1, e2) -> Long.compare(e2.getSize(), e1.getSize());
+        Comparator<DirectoryEntry> comparator = (e1, e2) -> Long.compare(e2.getSize(), e1.getSize());
         Collections.sort(entries, comparator);
     }
 
@@ -598,10 +584,7 @@ public final class DirectoryBuffer extends Buffer {
     private synchronized void loadInternal() {
         // Default is true for Unix, false otherwise. User can override default.
         boolean useNativeFormat =
-            preferences.getBooleanProperty(
-                Property.DIR_USE_NATIVE_FORMAT,
-                Platform.isPlatformUnix()
-            );
+                preferences.getBooleanProperty(Property.DIR_USE_NATIVE_FORMAT, Platform.isPlatformUnix());
         if (useNativeFormat) {
             if (!Utilities.haveLs())
                 useNativeFormat = false;
@@ -621,8 +604,7 @@ public final class DirectoryBuffer extends Buffer {
                     flags = "-lat";
                 else if (sortBy == SORT_BY_SIZE)
                     flags = "-laS";
-                String extraOptions =
-                    getStringProperty(Property.LS_EXTRA_OPTIONS);
+                String extraOptions = getStringProperty(Property.LS_EXTRA_OPTIONS);
                 if (extraOptions != null) {
                     flags += " ";
                     flags += extraOptions;
@@ -643,8 +625,8 @@ public final class DirectoryBuffer extends Buffer {
                     if (Platform.isPlatformUnix()) {
                         // flags is the user's ls preference, so the shell reads it.
                         process = new ProcessBuilder("/bin/sh", "-c", "\\ls " + flags)
-                            .directory(new java.io.File(file.canonicalPath()))
-                            .start();
+                                .directory(new java.io.File(file.canonicalPath()))
+                                .start();
                     } else {
                         // Windows.
                         String cp = file.canonicalPath();
@@ -654,14 +636,13 @@ public final class DirectoryBuffer extends Buffer {
                         String[] cmdarray = { "ls", flags, cp };
                         process = Runtime.getRuntime().exec(cmdarray);
                     }
-                    reader =
-                        new BufferedReader(new InputStreamReader(process.getInputStream(), StandardCharsets.UTF_8));
+                    reader = new BufferedReader(
+                            new InputStreamReader(process.getInputStream(), StandardCharsets.UTF_8));
                 }
                 if (reader != null) {
                     String s;
                     while ((s = reader.readLine()) != null) {
-                        DirectoryEntry entry =
-                            DirectoryEntry.getDirectoryEntry(s, dff);
+                        DirectoryEntry entry = DirectoryEntry.getDirectoryEntry(s, dff);
                         if (entry != null)
                             entries.add(entry);
                     }
@@ -982,11 +963,7 @@ public final class DirectoryBuffer extends Buffer {
             if (isDirectory) {
                 setBusy(true);
                 history.truncate();
-                history.append(
-                    dir,
-                    getName(editor.getDotLine()),
-                    editor.getDotOffset()
-                );
+                history.append(dir, getName(editor.getDotLine()), editor.getDotOffset());
                 history.reset();
                 empty();
                 entries.clear();
@@ -1023,10 +1000,7 @@ public final class DirectoryBuffer extends Buffer {
             } else {
                 // Not a directory.
                 if (newFile instanceof FtpFile ftpFile)
-                    buf = new RemoteBuffer(
-                        ftpFile,
-                        FtpSession.getSession(ftpFile)
-                    );
+                    buf = new RemoteBuffer(ftpFile, FtpSession.getSession(ftpFile));
                 else if (newFile instanceof SshFile)
                     buf = new RemoteBuffer(newFile);
                 else
@@ -1247,15 +1221,10 @@ public final class DirectoryBuffer extends Buffer {
             } else {
                 // Deletion failed.
                 if (isDirectory) {
-                    confirmed = editor.confirm(
-                        "Delete Files",
-                        "Unable to remove directory " + displayName + ".  Continue?"
-                    );
+                    confirmed = editor
+                            .confirm("Delete Files", "Unable to remove directory " + displayName + ".  Continue?");
                 } else {
-                    confirmed = editor.confirm(
-                        "Delete Files",
-                        "Unable to delete " + displayName + ".  Continue?"
-                    );
+                    confirmed = editor.confirm("Delete Files", "Unable to delete " + displayName + ".  Continue?");
                 }
                 if (!confirmed)
                     break;
@@ -1349,8 +1318,7 @@ public final class DirectoryBuffer extends Buffer {
                 MessageDialog.showMessageDialog(
                     editor,
                     "Shell commands are not supported in remote directory buffers.",
-                    "Error"
-                );
+                    "Error");
                 return;
             }
             directoryBuffer.doShellCommand(editor);
@@ -1599,11 +1567,7 @@ public final class DirectoryBuffer extends Buffer {
             return;
         Log.debug("ready to move");
         if (destination.isRemote()) {
-            MessageDialog.showMessageDialog(
-                editor,
-                "Destination must be local!",
-                "Move Files"
-            );
+            MessageDialog.showMessageDialog(editor, "Destination must be local!", "Move Files");
             return;
         }
         final int count = sources.size();
@@ -1669,10 +1633,7 @@ public final class DirectoryBuffer extends Buffer {
             return;
         }
         if (status == 2) {
-            MessageDialog.showMessageDialog(
-                sourceFile.canonicalPath() + " is a directory",
-                "Get File"
-            );
+            MessageDialog.showMessageDialog(sourceFile.canonicalPath() + " is a directory", "Get File");
             return;
         }
         if (status != 1) {
@@ -1840,8 +1801,7 @@ public final class DirectoryBuffer extends Buffer {
         StringBuilder sb = new StringBuilder("Change mode of ");
         sb.append(file.getName());
         sb.append(" to:");
-        final String input =
-            InputDialog.showInputDialog(editor, sb.toString(), "Change Mode");
+        final String input = InputDialog.showInputDialog(editor, sb.toString(), "Change Mode");
         if (input == null || input.length() == 0)
             return;
         int n = 0;

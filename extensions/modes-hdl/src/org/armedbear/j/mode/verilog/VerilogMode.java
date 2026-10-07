@@ -113,8 +113,7 @@ public final class VerilogMode extends AbstractMode implements Mode {
         }
         if (modelTrim.endsWith("("))
             return modelIndent + indentSize;
-        final String modelIdentifier =
-            Utilities.getFirstIdentifier(modelTrim, this);
+        final String modelIdentifier = Utilities.getFirstIdentifier(modelTrim, this);
         if (Utilities.isOneOf(modelIdentifier, alwaysIndentAfter))
             return modelIndent + indentSize;
         if (Utilities.isOneOf(modelIdentifier, maybeIndentAfter)) {
@@ -181,11 +180,9 @@ public final class VerilogMode extends AbstractMode implements Mode {
         return partChars.indexOf(c) >= 0;
     }
 
-    private static final String startChars =
-        "`ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz_";
+    private static final String startChars = "`ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz_";
 
-    private static final String partChars =
-        "`ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_$";
+    private static final String partChars = "`ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_$";
 
     private static final String[] alwaysIndentAfter = {
         "begin",
@@ -199,19 +196,10 @@ public final class VerilogMode extends AbstractMode implements Mode {
         "primitive",
         "specify",
         "table",
-        "task"
-    };
+        "task" };
 
-    private static final String[] maybeIndentAfter = {
-        "always",
-        "else",
-        "for",
-        "forever",
-        "if",
-        "initial",
-        "repeat",
-        "while"
-    };
+    private static final String[] maybeIndentAfter =
+            { "always", "else", "for", "forever", "if", "initial", "repeat", "while" };
 
     @Override
     public String getWrapCommentStart(String trimmed) {

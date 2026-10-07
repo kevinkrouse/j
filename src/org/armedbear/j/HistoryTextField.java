@@ -34,8 +34,7 @@ import javax.swing.JTextField;
 import javax.swing.KeyStroke;
 import javax.swing.SwingUtilities;
 
-public class HistoryTextField extends JTextField implements FocusListener,
-    MouseListener {
+public class HistoryTextField extends JTextField implements FocusListener, MouseListener {
     private History history;
 
     private OpenFileDialog owner;
@@ -48,22 +47,20 @@ public class HistoryTextField extends JTextField implements FocusListener,
     public HistoryTextField(Editor editor, int columns) {
         super(columns);
         final Preferences preferences = Editor.preferences();
-        final String fontName =
-            preferences.getStringProperty(Property.TEXT_FIELD_FONT_NAME);
+        final String fontName = preferences.getStringProperty(Property.TEXT_FIELD_FONT_NAME);
         if (fontName != null) {
-            int fontSize =
-                UIScale.scaledProperty(preferences, Property.TEXT_FIELD_FONT_SIZE);
+            int fontSize = UIScale.scaledProperty(preferences, Property.TEXT_FIELD_FONT_SIZE);
             if (fontSize == 0)
-                fontSize =
-                    UIScale.scaledProperty(preferences, Property.DIALOG_FONT_SIZE);
+                fontSize = UIScale.scaledProperty(preferences, Property.DIALOG_FONT_SIZE);
             setFont(new Font(fontName, Font.PLAIN, fontSize));
         }
         setAlignmentX(LEFT_ALIGNMENT);
         setHandler(new DefaultTextFieldHandler(editor, this));
         // Swing's Ctrl Shift O flips the field to right-to-left; in j it is
         // openFileInOtherFrame, an easy key to press here.
-        getInputMap()
-            .put(KeyStroke.getKeyStroke(KeyEvent.VK_O, InputEvent.CTRL_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK), "none");
+        getInputMap().put(
+            KeyStroke.getKeyStroke(KeyEvent.VK_O, InputEvent.CTRL_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK),
+            "none");
         addFocusListener(this);
         addMouseListener(this);
     }

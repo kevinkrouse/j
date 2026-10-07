@@ -81,8 +81,7 @@ public final class OpenFileFinderTextFieldHandler extends FindFileTextFieldHandl
         String t = text.strip();
         if (t.isEmpty())
             return Kind.NAME;
-        if (
-            t.startsWith("-e ")
+        if (t.startsWith("-e ")
                 || t.contains(" -e ")
                 || t.startsWith("http:")
                 || t.startsWith("https:")
@@ -91,8 +90,7 @@ public final class OpenFileFinderTextFieldHandler extends FindFileTextFieldHandl
                 || t.startsWith("www.")
                 || t.startsWith("ftp.")
                 || File.hasRemotePrefix(t)
-                || editor.getAlias(t) != null
-        )
+                || editor.getAlias(t) != null)
             return Kind.TYPED;
         return lastSeparator(t) >= 0 || t.startsWith("~") ? Kind.PATH : Kind.NAME;
     }

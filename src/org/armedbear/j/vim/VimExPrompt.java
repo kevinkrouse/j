@@ -218,8 +218,7 @@ final class VimExPrompt extends FinderTextFieldHandler {
         { "vsplit", "vs", "Split the window side by side, opening a file." },
         { "write", "w", "Save the buffer." },
         { "wq", "wq", "Save the buffer and close the window." },
-        { "yank", "y", "Copy lines into a register." },
-    };
+        { "yank", "y", "Copy lines into a register." }, };
 
     private static final class ExItem implements FinderItem {
         private final String name;

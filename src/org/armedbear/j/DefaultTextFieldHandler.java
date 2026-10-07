@@ -196,12 +196,7 @@ public class DefaultTextFieldHandler implements TextFieldHandler {
             case KeyEvent.VK_ENTER:
                 resetExpansion();
                 // Make sure user can see what he typed.
-                textField.paintImmediately(
-                    0,
-                    0,
-                    textField.getWidth(),
-                    textField.getHeight()
-                );
+                textField.paintImmediately(0, 0, textField.getWidth(), textField.getHeight());
                 e.consume();
                 handler.enter();
                 return;

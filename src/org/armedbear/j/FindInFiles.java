@@ -79,8 +79,7 @@ public final class FindInFiles extends Replacement implements BackgroundProcess 
     public FindInFiles(Editor editor) {
         super(editor);
         this.frame = editor.getFrame();
-        encoding =
-            Editor.preferences().getStringProperty(Property.DEFAULT_ENCODING);
+        encoding = Editor.preferences().getStringProperty(Property.DEFAULT_ENCODING);
     }
 
     public final boolean getDefaultExcludes() {
@@ -270,10 +269,8 @@ public final class FindInFiles extends Replacement implements BackgroundProcess 
         Pattern excludesRE = null;
         if (defaultExcludes) {
             try {
-                String excludesPattern = Editor.preferences()
-                    .getStringProperty(
-                        Property.FILENAME_COMPLETIONS_EXCLUDE_PATTERN
-                    );
+                String excludesPattern =
+                        Editor.preferences().getStringProperty(Property.FILENAME_COMPLETIONS_EXCLUDE_PATTERN);
                 excludesRE = Pattern.compile(excludesPattern, 0);
             }
             catch (PatternSyntaxException e) {
@@ -309,8 +306,7 @@ public final class FindInFiles extends Replacement implements BackgroundProcess 
                         getEditor().status("Search cancelled");
                     else
                         getEditor().status("Search completed");
-                    StringBuilder sb =
-                        new StringBuilder("Pattern found in ");
+                    StringBuilder sb = new StringBuilder("Pattern found in ");
                     sb.append(results.size());
                     sb.append(" of ");
                     sb.append(numFilesExamined);
@@ -370,14 +366,12 @@ public final class FindInFiles extends Replacement implements BackgroundProcess 
     // what .gitignore ignores, build and tool directories, nested worktrees.
     private void walkDirectory(File dir, Filter filter, Pattern excludesRE) {
         java.nio.file.Path root = java.nio.file.Path.of(dir.canonicalPath());
-        ProjectFiles.Walker walker = new ProjectFiles.Walker(
-            root,
-            Integer.MAX_VALUE,
-            excludesRE,
-            ProjectFiles.Walker.globalIgnoreFile(),
-            () -> cancelled,
-            null
-        );
+        ProjectFiles.Walker walker = new ProjectFiles.Walker(root,
+                Integer.MAX_VALUE,
+                excludesRE,
+                ProjectFiles.Walker.globalIgnoreFile(),
+                () -> cancelled,
+                null);
         for (String rel : walker.walk()) {
             if (cancelled)
                 return;
@@ -445,13 +439,7 @@ public final class FindInFiles extends Replacement implements BackgroundProcess 
     }
 
     private void processFile(File file) {
-        try (BufferedReader reader =
-            new BufferedReader(
-                new InputStreamReader(
-                    file.getInputStream(),
-                    encoding
-                )
-            )) {
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(file.getInputStream(), encoding))) {
             boolean update = false;
             int lineNumber = 0;
             int matches = 0;
@@ -473,10 +461,7 @@ public final class FindInFiles extends Replacement implements BackgroundProcess 
                             // First match in this file.
                             if (!listEachOccurrence && results.size() == 0)
                                 outputBuffer.appendLine("Found in:");
-                            outputBuffer.appendFileLine(
-                                file,
-                                listEachOccurrence
-                            );
+                            outputBuffer.appendFileLine(file, listEachOccurrence);
                             results.add(file);
                             update = true;
                         }
@@ -654,8 +639,7 @@ public final class FindInFiles extends Replacement implements BackgroundProcess 
         }
     }
 
-    private void replaceInFile(final File file) throws CheckFileException,
-        SaveException {
+    private void replaceInFile(final File file) throws CheckFileException, SaveException {
         checkFile(file);
 
         if (confirmChanges()) {
@@ -920,11 +904,7 @@ public final class FindInFiles extends Replacement implements BackgroundProcess 
                 }
             }
         } else
-            MessageDialog.showMessageDialog(
-                getEditor(),
-                sb.toString(),
-                "ReplaceInFiles"
-            );
+            MessageDialog.showMessageDialog(getEditor(), sb.toString(), "ReplaceInFiles");
     }
 
     public static void findInFiles() {

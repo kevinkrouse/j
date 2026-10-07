@@ -131,23 +131,13 @@ public final class PerlMode extends AbstractMode implements Mode {
             Position pos = null;
             char c = trim.charAt(0);
             if (c == '}') {
-                pos = matchClosingBrace(
-                    new Position(
-                        line,
-                        line.getText().indexOf('}')
-                    )
-                );
+                pos = matchClosingBrace(new Position(line, line.getText().indexOf('}')));
                 if (pos == null)
                     return 0;
                 if (!pos.getLine().trim().startsWith("{"))
                     pos = findBeginningOfStatement(pos);
             } else if (c == ')') {
-                pos = findEnclosingParen(
-                    new Position(
-                        line,
-                        line.getText().indexOf(')')
-                    )
-                );
+                pos = findEnclosingParen(new Position(line, line.getText().indexOf(')')));
                 if (pos == null)
                     return 0;
                 if (!pos.getLine().trim().startsWith("("))
@@ -188,11 +178,7 @@ public final class PerlMode extends AbstractMode implements Mode {
             return modelIndent;
         pos = findEnclosingParen(new Position(line, 0));
         if (pos != null) {
-            if (
-                pos.getLine().trim().endsWith("(")
-                    ||
-                    !buffer.getBooleanProperty(Property.LINEUP_ARGLIST)
-            ) {
+            if (pos.getLine().trim().endsWith("(") || !buffer.getBooleanProperty(Property.LINEUP_ARGLIST)) {
                 return buffer.getIndentation(pos.getLine()) + indentSize;
             } else {
                 // Advance past '('.
@@ -221,9 +207,7 @@ public final class PerlMode extends AbstractMode implements Mode {
     }
 
     private static Line findModel(Line line) {
-        for (Line modelLine = line.previous();
-            modelLine != null;
-            modelLine = modelLine.previous()) {
+        for (Line modelLine = line.previous(); modelLine != null; modelLine = modelLine.previous()) {
             if (modelLine.isBlank())
                 continue;
             else if (modelLine.trim().startsWith("#"))
@@ -266,8 +250,7 @@ public final class PerlMode extends AbstractMode implements Mode {
     static Position findBeginningOfStatement(Position start) {
         Position pos = new Position(start);
         if (pos.getLine().trim().startsWith("}")) {
-            Position posMatch =
-                matchClosingBrace(new Position(pos.getLine(), 0));
+            Position posMatch = matchClosingBrace(new Position(pos.getLine(), 0));
             if (posMatch != null)
                 pos = posMatch;
         } else {
@@ -324,8 +307,7 @@ public final class PerlMode extends AbstractMode implements Mode {
         return (new String(it.hideSyntacticWhitespace(s))).trim();
     }
 
-    private static final String validChars =
-        "$@%ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz_0123456789";
+    private static final String validChars = "$@%ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz_0123456789";
 
     static final boolean isIdentifierChar(char c) {
         return (validChars.indexOf(c) >= 0);

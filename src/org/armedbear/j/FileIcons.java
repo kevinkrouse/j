@@ -88,8 +88,7 @@ public final class FileIcons {
             "awk",
             "groovy",
             "dart",
-            "zig"
-        );
+            "zig");
         extensions(
             "file-markup",
             "html",
@@ -107,8 +106,7 @@ public final class FileIcons {
             "adoc",
             "tex",
             "css",
-            "scss"
-        );
+            "scss");
         extensions(
             "file-config",
             "json",
@@ -130,10 +128,14 @@ public final class FileIcons {
             "editorconfig",
             "gitignore",
             "gitattributes",
-            "keywords"
-        );
+            "keywords");
         extensions("file-image", "png", "jpg", "jpeg", "gif", "bmp", "ico", "icns", "webp", "tif", "tiff", "xpm");
-        for (String name : new String[] { "makefile", "gnumakefile", "dockerfile", "jenkinsfile", "rakefile",
+        for (String name : new String[] {
+            "makefile",
+            "gnumakefile",
+            "dockerfile",
+            "jenkinsfile",
+            "rakefile",
             "gemfile" })
             BY_NAME.put(name, "file-config");
     }

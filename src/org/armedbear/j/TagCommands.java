@@ -75,11 +75,7 @@ public final class TagCommands {
         Finders.findTag(Editor.currentEditor(), "");
     }
 
-    private static boolean findTag(
-        Editor editor,
-        Expression expression,
-        boolean useOtherWindow
-    ) {
+    private static boolean findTag(Editor editor, Expression expression, boolean useOtherWindow) {
         List<? extends Tag> tags = findMatchingTags(editor.getBuffer(), expression);
         if (tags == null || tags.size() == 0)
             return false;
@@ -96,8 +92,7 @@ public final class TagCommands {
         } else {
             // More than one match.
             editor.setDefaultCursor();
-            ListTagsBuffer buf =
-                new ListTagsBuffer(editor, "findTag", expression.getName(), tags);
+            ListTagsBuffer buf = new ListTagsBuffer(editor, "findTag", expression.getName(), tags);
             editor.makeNext(buf);
             Editor otherEditor = editor.getOtherEditor();
             boolean shrink = (otherEditor == null);
@@ -125,28 +120,18 @@ public final class TagCommands {
         // No exact match in the current buffer. Look in the current
         // directory.
         final File currentDirectory = buffer.getCurrentDirectory();
-        List<GlobalTag> globalTags = findMatchingTagsInDirectory(
-            expression,
-            currentDirectory,
-            mode
-        );
+        List<GlobalTag> globalTags = findMatchingTagsInDirectory(expression, currentDirectory, mode);
         if (globalTags == null) {
             // Look at all the directories in the buffer's tag path.
             List<String> dirs = getDirectoriesInTagPath(buffer);
             if (dirs != null) {
                 for (String dir : dirs) {
-                    File directory =
-                        File.getInstance(currentDirectory, dir);
+                    File directory = File.getInstance(currentDirectory, dir);
                     if (directory == null)
                         continue;
                     if (directory.equals(currentDirectory))
                         continue;
-                    List<GlobalTag> tagsInDir =
-                        findMatchingTagsInDirectory(
-                            expression,
-                            directory,
-                            mode
-                        );
+                    List<GlobalTag> tagsInDir = findMatchingTagsInDirectory(expression, directory, mode);
                     if (tagsInDir != null) {
                         if (globalTags == null)
                             globalTags = new ArrayList<>();
@@ -159,10 +144,7 @@ public final class TagCommands {
         return globalTags;
     }
 
-    private static List<LocalTag> findMatchingTagsInBuffer(
-        Buffer buffer,
-        Expression expression
-    ) {
+    private static List<LocalTag> findMatchingTagsInBuffer(Buffer buffer, Expression expression) {
         if (buffer.getTags() == null) {
             Tagger tagger = buffer.getMode().getTagger(buffer);
             if (tagger != null)
@@ -184,11 +166,7 @@ public final class TagCommands {
         return list;
     }
 
-    public static List<GlobalTag> findMatchingTagsInDirectory(
-        Expression expression,
-        File directory,
-        Mode mode
-    ) {
+    public static List<GlobalTag> findMatchingTagsInDirectory(Expression expression, File directory, Mode mode) {
         if (!mode.isTaggable())
             return null;
         final String name = expression.getName();
@@ -221,12 +199,11 @@ public final class TagCommands {
     }
 
     public static List<GlobalTag> findMatchingTagsInDirectory(
-        String name,
-        File directory,
-        Mode mode,
-        int arity,
-        boolean ignoreCase
-    ) {
+            String name,
+            File directory,
+            Mode mode,
+            int arity,
+            boolean ignoreCase) {
         if (!mode.isTaggable())
             return null;
         List<GlobalTag> tags = Editor.getTagFileManager().getTags(directory, mode);
@@ -281,18 +258,10 @@ public final class TagCommands {
         return tagName;
     }
 
-    public static boolean findClass(
-        Editor editor,
-        String className,
-        boolean useOtherWindow
-    ) {
+    public static boolean findClass(Editor editor, String className, boolean useOtherWindow) {
         editor.setWaitCursor();
         boolean succeeded = false;
-        File file = JavaSource.findSource(
-            editor.getBuffer(),
-            className,
-            false
-        );
+        File file = JavaSource.findSource(editor.getBuffer(), className, false);
         if (file != null) {
             Buffer buf = Editor.getBuffer(file);
             if (buf != null) {
@@ -341,8 +310,7 @@ public final class TagCommands {
 
     public static void listMatchingTags() {
         final Editor editor = Editor.currentEditor();
-        FindTagDialog findTagDialog =
-            new FindTagDialog(editor, "List Matching Tags");
+        FindTagDialog findTagDialog = new FindTagDialog(editor, "List Matching Tags");
         editor.centerDialog(findTagDialog);
         findTagDialog.setVisible(true);
         listMatchingTags(editor, findTagDialog.getInput());
@@ -354,10 +322,7 @@ public final class TagCommands {
 
     public static void listMatchingTagsAtDot() {
         final Editor editor = Editor.currentEditor();
-        listMatchingTags(
-            editor,
-            editor.getMode().getIdentifier(editor.getDot())
-        );
+        listMatchingTags(editor, editor.getMode().getIdentifier(editor.getDot()));
     }
 
     private static void listMatchingTags(Editor editor, String name) {
@@ -370,12 +335,10 @@ public final class TagCommands {
                 buffer.getCurrentDirectory(),
                 buffer.getMode(),
                 -1,
-                Utilities.isLowerCase(name)
-            );
+                Utilities.isLowerCase(name));
             editor.setDefaultCursor();
             if (tags != null) {
-                ListTagsBuffer buf =
-                    new ListTagsBuffer(editor, "listMatchingTags", name, tags);
+                ListTagsBuffer buf = new ListTagsBuffer(editor, "listMatchingTags", name, tags);
                 editor.makeNext(buf);
                 Editor otherEditor = editor.getOtherEditor();
                 boolean shrink = (otherEditor == null);
@@ -390,11 +353,7 @@ public final class TagCommands {
         }
     }
 
-    public static void gotoLocalTag(
-        Editor editor,
-        LocalTag localTag,
-        boolean useOtherWindow
-    ) {
+    public static void gotoLocalTag(Editor editor, LocalTag localTag, boolean useOtherWindow) {
         Editor ed;
         if (useOtherWindow)
             ed = editor.displayInOtherWindow(editor.getBuffer());
@@ -403,11 +362,7 @@ public final class TagCommands {
         localTag.gotoTag(ed);
     }
 
-    public static void gotoGlobalTag(
-        Editor editor,
-        GlobalTag globalTag,
-        boolean useOtherWindow
-    ) {
+    public static void gotoGlobalTag(Editor editor, GlobalTag globalTag, boolean useOtherWindow) {
         Buffer buf = Editor.getBuffer(File.getInstance(globalTag.getFileName()));
         Editor ed;
         if (useOtherWindow)
@@ -453,18 +408,12 @@ public final class TagCommands {
         final Editor editor = Editor.currentEditor();
         File directory = editor.getCurrentDirectory();
         if (directory.isRemote()) {
-            MessageDialog.showMessageDialog(
-                "Tag files are not supported for remote directories",
-                "Make Tag File"
-            );
+            MessageDialog.showMessageDialog("Tag files are not supported for remote directories", "Make Tag File");
             return;
         }
         Mode mode = editor.getMode();
         if (!mode.isTaggable()) {
-            MessageDialog.showMessageDialog(
-                "Tag files are not supported in " + mode + " mode",
-                "Make Tag File"
-            );
+            MessageDialog.showMessageDialog("Tag files are not supported in " + mode + " mode", "Make Tag File");
             return;
         }
         editor.repaintNow();
@@ -499,24 +448,18 @@ public final class TagCommands {
         }
     }
 
-    private static void findTagAtDotInternal(
-        Editor editor,
-        boolean exact,
-        boolean useOtherWindow
-    ) {
+    private static void findTagAtDotInternal(Editor editor, boolean exact, boolean useOtherWindow) {
         Expression expr = editor.getMode().getExpressionAtDot(editor, exact);
         if (expr != null) {
             editor.setWaitCursor();
             boolean succeeded = findTag(editor, expr, useOtherWindow);
             // A type that isn't tagged here, through the imports and the package.
             String typeName = expr.getName();
-            if (
-                !succeeded
+            if (!succeeded
                     && editor.getModeId() == JAVA_MODE
                     && typeName != null
                     && !typeName.isEmpty()
-                    && Character.isUpperCase(typeName.charAt(0))
-            )
+                    && Character.isUpperCase(typeName.charAt(0)))
                 succeeded = findClass(editor, typeName, useOtherWindow);
             if (!succeeded && editor.getModeId() == C_MODE) {
                 // Special case for Emacs source.
@@ -524,11 +467,7 @@ public final class TagCommands {
                 String name = expr.getName();
                 if (name != null && name.length() > 0 && name.charAt(0) == 'F')
                     name = name.substring(1).replace('_', '-');
-                succeeded = findTag(
-                    editor,
-                    new Expression(name),
-                    useOtherWindow
-                );
+                succeeded = findTag(editor, new Expression(name), useOtherWindow);
             }
             if (!succeeded)
                 editor.status("Tag \"" + expr.getName() + "\" not found");

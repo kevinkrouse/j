@@ -134,11 +134,7 @@ public final class XmlMode extends AbstractMode implements Mode {
         km.mapKey('/', "xmlElectricSlash");
         km.mapKey(KeyEvent.VK_I, ALT_MASK, "cycleIndentSize");
         km.mapKey(KeyEvent.VK_COMMA, CTRL_MASK | SHIFT_MASK, "xmlInsertTag");
-        km.mapKey(
-            KeyEvent.VK_PERIOD,
-            CTRL_MASK | SHIFT_MASK,
-            "xmlInsertEmptyElementTag"
-        );
+        km.mapKey(KeyEvent.VK_PERIOD, CTRL_MASK | SHIFT_MASK, "xmlInsertEmptyElementTag");
         km.mapKey(KeyEvent.VK_EQUALS, CTRL_MASK, "xmlFindCurrentNode");
         km.mapKey(KeyEvent.VK_OPEN_BRACKET, CTRL_MASK, "fold");
         km.mapKey(KeyEvent.VK_CLOSE_BRACKET, CTRL_MASK, "unfold");
@@ -167,7 +163,7 @@ public final class XmlMode extends AbstractMode implements Mode {
         String encoding = null;
         try {
             BufferedReader reader =
-                new BufferedReader(new InputStreamReader(file.getInputStream(), StandardCharsets.UTF_8));
+                    new BufferedReader(new InputStreamReader(file.getInputStream(), StandardCharsets.UTF_8));
             String s = reader.readLine();
             reader.close();
             if (s != null && s.toLowerCase(Locale.ROOT).startsWith("<?xml")) {
@@ -189,10 +185,7 @@ public final class XmlMode extends AbstractMode implements Mode {
                                 if (Utilities.isSupportedEncoding(encoding))
                                     file.setEncoding(encoding);
                                 else
-                                    Log.error(
-                                        "unsupported encoding \"" +
-                                            encoding + '"'
-                                    );
+                                    Log.error("unsupported encoding \"" + encoding + '"');
                             }
                         }
                     }
@@ -242,12 +235,7 @@ public final class XmlMode extends AbstractMode implements Mode {
             return indent < 0 ? 0 : indent;
         }
         final String modelText = model.trim();
-        if (
-            modelText.startsWith("<")
-                && !modelText.startsWith("</")
-                &&
-                !modelText.startsWith("<!")
-        ) {
+        if (modelText.startsWith("<") && !modelText.startsWith("</") && !modelText.startsWith("<!")) {
             String tag = getTag(modelText);
             if (isEmptyElementTag(tag))
                 return indent;
@@ -743,15 +731,12 @@ public final class XmlMode extends AbstractMode implements Mode {
                 // be output...
                 if (output != null && output.length() > 0) {
                     if (errorBuffer == null) {
-                        errorBuffer =
-                            new XmlErrorBuffer(buffer.getFile(), output);
+                        errorBuffer = new XmlErrorBuffer(buffer.getFile(), output);
                     } else
                         errorBuffer.recycle(buffer.getFile(), output);
                     Editor otherEditor = editor.getOtherEditor();
                     if (otherEditor != null) {
-                        errorBuffer.setUnsplitOnClose(
-                            otherEditor.getBuffer().unsplitOnClose()
-                        );
+                        errorBuffer.setUnsplitOnClose(otherEditor.getBuffer().unsplitOnClose());
                         otherEditor.makeNext(errorBuffer);
                     } else
                         errorBuffer.setUnsplitOnClose(true);
@@ -796,15 +781,12 @@ public final class XmlMode extends AbstractMode implements Mode {
                 String output = parser.getOutput();
                 if (output != null && output.length() > 0) {
                     if (errorBuffer == null) {
-                        errorBuffer =
-                            new XmlErrorBuffer(buffer.getFile(), output);
+                        errorBuffer = new XmlErrorBuffer(buffer.getFile(), output);
                     } else
                         errorBuffer.recycle(buffer.getFile(), output);
                     Editor otherEditor = editor.getOtherEditor();
                     if (otherEditor != null) {
-                        errorBuffer.setUnsplitOnClose(
-                            otherEditor.getBuffer().unsplitOnClose()
-                        );
+                        errorBuffer.setUnsplitOnClose(otherEditor.getBuffer().unsplitOnClose());
                         otherEditor.makeNext(errorBuffer);
                     } else
                         errorBuffer.setUnsplitOnClose(true);
@@ -816,10 +798,7 @@ public final class XmlMode extends AbstractMode implements Mode {
     }
 
     private static void outOfMemory() {
-        MessageDialog.showMessageDialog(
-            "Not enough memory to run parser",
-            "XML Mode"
-        );
+        MessageDialog.showMessageDialog("Not enough memory to run parser", "XML Mode");
     }
 
     public static void xmlFindError(Editor editor, SAXParseException e) {
@@ -858,17 +837,14 @@ public final class XmlMode extends AbstractMode implements Mode {
             if (sidebar != null) {
                 XmlTree tree = (XmlTree) sidebar.getBottomComponent();
                 if (tree != null) {
-                    DefaultMutableTreeNode currentNode =
-                        tree.getNodeAtPos(editor.getDot());
+                    DefaultMutableTreeNode currentNode = tree.getNodeAtPos(editor.getDot());
                     if (currentNode != null) {
                         TreeNode[] array = currentNode.getPath();
                         if (array != null) {
                             StringBuilder sb = new StringBuilder();
                             for (int i = 0; i < array.length; i++) {
-                                DefaultMutableTreeNode node =
-                                    (DefaultMutableTreeNode) array[i];
-                                XmlTreeElement element =
-                                    (XmlTreeElement) node.getUserObject();
+                                DefaultMutableTreeNode node = (DefaultMutableTreeNode) array[i];
+                                XmlTreeElement element = (XmlTreeElement) node.getUserObject();
                                 sb.append('/');
                                 sb.append(element.getName());
                             }
@@ -945,8 +921,7 @@ public final class XmlMode extends AbstractMode implements Mode {
         final Editor editor = Editor.currentEditor();
         if (!editor.checkReadOnly())
             return;
-        InputDialog d =
-            new InputDialog(editor, "Tag:", "Insert Empty Element Tag", null);
+        InputDialog d = new InputDialog(editor, "Tag:", "Insert Empty Element Tag", null);
         d.setHistory(new History("xmlInsertEmptyElementTag"));
         editor.centerDialog(d);
         d.setVisible(true);
@@ -1005,30 +980,17 @@ public final class XmlMode extends AbstractMode implements Mode {
             if (dotLine.substring(0, offset).trim().length() == 0) {
                 // We're in the whitespace to the left of the text on the line.
                 // Skip to first non-whitespace char.
-                while (
-                    Character.isWhitespace(dotLine.charAt(offset))
-                        &&
-                        offset < dotLine.length()
-                )
+                while (Character.isWhitespace(dotLine.charAt(offset)) && offset < dotLine.length())
                     ++offset;
                 if (dotLine.charAt(offset) == '<')
                     pos = new Position(dotLine, offset);
             }
             if (pos == null) {
-                offset =
-                    dotLine.getText().lastIndexOf(COMMENT_END, dot.getOffset());
-                if (
-                    offset >= 0
-                        && dot.getOffset() >= offset
-                        &&
-                        dot.getOffset() < offset + COMMENT_END.length()
-                )
+                offset = dotLine.getText().lastIndexOf(COMMENT_END, dot.getOffset());
+                if (offset >= 0 && dot.getOffset() >= offset && dot.getOffset() < offset + COMMENT_END.length())
                     pos = new Position(dotLine, offset);
                 else if (dotLine.trim().equals(COMMENT_END))
-                    pos = new Position(
-                        dotLine,
-                        dotLine.getText().indexOf(COMMENT_END)
-                    );
+                    pos = new Position(dotLine, dotLine.getText().indexOf(COMMENT_END));
             }
         }
 
@@ -1044,8 +1006,7 @@ public final class XmlMode extends AbstractMode implements Mode {
             match = findCommentStart(pos);
         } else if (pos.lookingAt("</")) {
             // End tag.
-            String name =
-                Utilities.getTagName(pos.getLine().substring(pos.getOffset()));
+            String name = Utilities.getTagName(pos.getLine().substring(pos.getOffset()));
             name = name.substring(1); // Remove "/".
             match = findMatchingStartTag(name, pos);
         } else if (pos.lookingAt("<")) {

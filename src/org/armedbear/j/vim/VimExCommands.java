@@ -42,15 +42,13 @@ public final class VimExCommands {
      * @return false when the name is not one of ours and the caller should try
      *         j's own commands
      */
-    static boolean run(Editor editor, VimState state, VimEx.Command command)
-        throws VimEx.BadCommand {
+    static boolean run(Editor editor, VimState state, VimEx.Command command) throws VimEx.BadCommand {
         final String name = command.name;
         // The commands here that take a bang. :normal! is accepted but runs
         // the keys through your mappings as :normal does: j merges mappings
         // into the same table as the built-ins, so there is no unmapped
         // table left to fall back on. Documented.
-        if (
-            command.bang
+        if (command.bang
                 && !name.isEmpty()
                 && !matches(name, "sor", "sort")
                 && !matches(name, "g", "global")
@@ -61,21 +59,17 @@ public final class VimExCommands {
                 && !name.equals("wq")
                 && !matches(name, "q", "quit")
                 && !matches(name, "clo", "close")
-                && !matches(name, "on", "only")
-        )
+                && !matches(name, "on", "only"))
             throw new VimEx.BadCommand("E477: No ! allowed");
         // j's read-only is vim's nomodifiable: nothing may change the text.
         // :g and :normal get there through the commands they run.
-        if (
-            (matches(name, "d", "delete")
+        if ((matches(name, "d", "delete")
                 || matches(name, "sor", "sort")
                 || matches(name, "s", "substitute")
                 || matches(name, "j", "join")
                 || matches(name, "m", "move")
                 || matches(name, "co", "copy")
-                || name.equals("t"))
-                && !editor.checkReadOnly()
-        )
+                || name.equals("t")) && !editor.checkReadOnly())
             throw new VimEx.BadCommand("E21: Cannot make changes");
         if (name.isEmpty()) {
             // A bare range means "go to that line", which is what :42 is.
@@ -174,12 +168,7 @@ public final class VimExCommands {
             return true;
         }
         if (matches(name, "g", "global") || matches(name, "v", "vglobal")) {
-            global(
-                editor,
-                state,
-                command,
-                command.bang || matches(name, "v", "vglobal")
-            );
+            global(editor, state, command, command.bang || matches(name, "v", "vglobal"));
             return true;
         }
         return false;
@@ -188,11 +177,7 @@ public final class VimExCommands {
     // ---------------------------------------------------------------- join
 
     /** {@code :j} -- one join per line the range covers past the first. */
-    private static void join(
-        Editor editor,
-        VimState state,
-        VimEx.Command command
-    ) throws VimEx.BadCommand {
+    private static void join(Editor editor, VimState state, VimEx.Command command) throws VimEx.BadCommand {
         final Line first = VimEx.lineAt(editor, command.range.first);
         if (first == null)
             throw new VimEx.BadCommand("E16: Invalid range");
@@ -206,10 +191,7 @@ public final class VimExCommands {
         // the line it made.
         final Position dot = editor.getDot();
         if (dot != null) {
-            editor.setDot(
-                dot.getLine(),
-                VimMotions.firstNonBlank(dot.getLine())
-            );
+            editor.setDot(dot.getLine(), VimMotions.firstNonBlank(dot.getLine()));
             editor.moveCaretToDotCol();
         }
         state.clampCaret(editor);
@@ -224,56 +206,27 @@ public final class VimExCommands {
      * it is the one address that may legitimately be zero: {@code :2,3m0}
      * means "above the first line".
      */
-    private static void moveOrCopy(
-        Editor editor,
-        VimState state,
-        VimEx.Command command,
-        boolean move
-    )
-        throws VimEx.BadCommand {
+    private static void moveOrCopy(Editor editor, VimState state, VimEx.Command command, boolean move)
+            throws VimEx.BadCommand {
         final String where = command.args.trim();
         if (where.isEmpty())
             throw new VimEx.BadCommand("E16: Invalid range");
-        final int target = where.equals("0")
-            ? 0
-            : VimEx.parse(editor, state, where).range.last;
-        if (
-            VimEx.lineAt(editor, command.range.first) == null
-                || VimEx.lineAt(editor, command.range.last) == null
-        )
+        final int target = where.equals("0") ? 0 : VimEx.parse(editor, state, where).range.last;
+        if (VimEx.lineAt(editor, command.range.first) == null || VimEx.lineAt(editor, command.range.last) == null)
             throw new VimEx.BadCommand("E16: Invalid range");
 
         final boolean done = move
-            ? Lines.moveLines(
-                editor,
-                command.range.first,
-                command.range.last,
-                target
-            )
-            : Lines.copyLines(
-                editor,
-                command.range.first,
-                command.range.last,
-                target
-            );
+                ? Lines.moveLines(editor, command.range.first, command.range.last, target)
+                : Lines.copyLines(editor, command.range.first, command.range.last, target);
         if (!done)
             throw new VimEx.BadCommand("E16: Invalid range");
         final Position dot = editor.getDot();
         if (dot != null) {
             // The caret is on the last line moved or copied.
             Line first = dot.getLine();
-            for (int i = command.range.first;
-                i < command.range.last
-                    && first.previous() != null;
-                i++)
+            for (int i = command.range.first; i < command.range.last && first.previous() != null; i++)
                 first = first.previous();
-            state.getMarks()
-                .noteLines(
-                    editor.getBuffer(),
-                    first,
-                    dot.getLine(),
-                    first
-                );
+            state.getMarks().noteLines(editor.getBuffer(), first, dot.getLine(), first);
             editor.setDot(dot.getLine(), VimMotions.firstNonBlank(dot.getLine()));
             editor.moveCaretToDotCol();
         }
@@ -289,11 +242,7 @@ public final class VimExCommands {
      * {@code :%norm A;} useful. The argument is taken exactly as typed,
      * spaces included, since a space is a motion.
      */
-    private static void normal(
-        Editor editor,
-        VimState state,
-        VimEx.Command command
-    ) throws VimEx.BadCommand {
+    private static void normal(Editor editor, VimState state, VimEx.Command command) throws VimEx.BadCommand {
         final String keys = command.args;
         if (keys.isEmpty())
             throw new VimEx.BadCommand("E471: Argument required: normal");
@@ -339,17 +288,12 @@ public final class VimExCommands {
      * @return true when the buffer was written, which :wq needs to know --
      *         vim will not quit after a write that failed
      */
-    private static boolean write(Editor editor, VimEx.Command command)
-        throws VimEx.BadCommand {
+    private static boolean write(Editor editor, VimEx.Command command) throws VimEx.BadCommand {
         if (command.range.given)
-            throw new VimEx.BadCommand(
-                "Writing part of a buffer is not supported"
-            );
+            throw new VimEx.BadCommand("Writing part of a buffer is not supported");
         final String file = command.args.trim();
         if (file.startsWith("!"))
-            throw new VimEx.BadCommand(
-                "Writing to a command is not supported"
-            );
+            throw new VimEx.BadCommand("Writing to a command is not supported");
         final org.armedbear.j.Buffer buffer = editor.getBuffer();
         if (file.isEmpty()) {
             FileCommands.save(editor);
@@ -359,19 +303,12 @@ public final class VimExCommands {
         if (destination == null)
             throw new VimEx.BadCommand("E32: No file name");
         // The dialog asks before overwriting; without one, vim's rule does.
-        if (
-            destination.exists()
-                && !command.bang
-                && !destination.equals(buffer.getFile())
-        )
-            throw new VimEx.BadCommand(
-                "E13: File exists (add ! to override)"
-            );
+        if (destination.exists() && !command.bang && !destination.equals(buffer.getFile()))
+            throw new VimEx.BadCommand("E13: File exists (add ! to override)");
         // A buffer with no name takes the one it is written to, as in vim;
         // one that has a name keeps it, and FILE gets a copy.
-        final boolean written = buffer.isUntitled()
-            ? FileCommands.saveAs(editor, file)
-            : FileCommands.saveCopy(editor, file);
+        final boolean written =
+                buffer.isUntitled() ? FileCommands.saveAs(editor, file) : FileCommands.saveCopy(editor, file);
         if (!written)
             throw new VimEx.BadCommand("E212: Can't open file for writing");
         return true;
@@ -404,11 +341,7 @@ public final class VimExCommands {
      * window or without. The caret stays in the top or left window, which
      * is how vim's split, the new window above and the caret in it, looks.
      */
-    private static void split(
-        Editor editor,
-        VimEx.Command command,
-        boolean vertical
-    ) {
+    private static void split(Editor editor, VimEx.Command command, boolean vertical) {
         if (vertical)
             FileCommands.openFileInVsplit(editor, command.args);
         else
@@ -424,8 +357,7 @@ public final class VimExCommands {
      * not at all, and may include {@code a-c} ranges. {@code :delmarks!}
      * forgets every mark rather than taking names.
      */
-    private static void deleteMarks(VimState state, VimEx.Command command)
-        throws VimEx.BadCommand {
+    private static void deleteMarks(VimState state, VimEx.Command command) throws VimEx.BadCommand {
         if (command.bang) {
             state.getMarks().clear();
             return;
@@ -460,21 +392,14 @@ public final class VimExCommands {
      * be matched -- a {@code :g/e/s/x/\n/} that splits lines would go back
      * over the halves it had just made.
      */
-    private static void global(
-        Editor editor,
-        VimState state,
-        VimEx.Command command,
-        boolean invert
-    )
-        throws VimEx.BadCommand {
+    private static void global(Editor editor, VimState state, VimEx.Command command, boolean invert)
+            throws VimEx.BadCommand {
         final String args = command.args;
         if (args.isEmpty())
             throw new VimEx.BadCommand("E35: No previous regular expression");
         final char separator = args.charAt(0);
         final int close = indexOfUnescaped(args, separator, 1);
-        final String pattern = close < 0
-            ? args.substring(1)
-            : args.substring(1, close);
+        final String pattern = close < 0 ? args.substring(1) : args.substring(1, close);
         // A bare :g/pat/ prints the matching lines in vim. There is nowhere
         // to print them here, so it does nothing but set the search pattern.
         final String line = close < 0 ? "" : args.substring(close + 1).trim();
@@ -489,12 +414,8 @@ public final class VimExCommands {
         state.setLastSearch(editor, new VimSearch.Query(pattern, true, false));
 
         final VimEx.Range range = command.range.given
-            ? command.range
-            : new VimEx.Range(
-                1,
-                Math.max(1, editor.getBuffer().getLineCount()),
-                true
-            );
+                ? command.range
+                : new VimEx.Range(1, Math.max(1, editor.getBuffer().getLineCount()), true);
         // The matching lines are picked out first and the command runs over
         // them afterwards, as vim does. One pass would let the command's own
         // output be matched -- a :g/e/s/x/\n/ that splits lines would go back
@@ -512,9 +433,7 @@ public final class VimExCommands {
         final List<Integer> targets = new ArrayList<>();
         editor.getBuffer().renumber();
         Line scan = VimEx.lineAt(editor, range.first);
-        for (int n = range.first;
-            n <= range.last && scan != null;
-            n++, scan = scan.next()) {
+        for (int n = range.first; n <= range.last && scan != null; n++, scan = scan.next()) {
             final String text = scan.getText() == null ? "" : scan.getText();
             if (regex.matcher(text).find() != invert)
                 targets.add(Integer.valueOf(n));
@@ -548,19 +467,14 @@ public final class VimExCommands {
                 final VimEx.Command inner = VimEx.parse(editor, state, line);
                 try {
                     if (!VimExCommands.run(editor, state, inner))
-                        throw new VimEx.BadCommand(
-                            "E492: Not an editor command: " + inner.name
-                        );
+                        throw new VimEx.BadCommand("E492: Not an editor command: " + inner.name);
                 }
                 catch (VimEx.BadCommand e) {
                     // An inner :s that finds nothing on this line is not an
                     // error to :g, which carries on to the next: nvim makes
                     // Xne of :g/e/s/o/X/ over "one three five" without
                     // complaint. Anything else still stops it.
-                    if (
-                        e.getMessage() == null
-                            || !e.getMessage().startsWith("E486")
-                    )
+                    if (e.getMessage() == null || !e.getMessage().startsWith("E486"))
                         throw e;
                 }
             }
@@ -592,22 +506,18 @@ public final class VimExCommands {
      * the user may type any prefix.
      */
     private static boolean matches(String typed, String required, String full) {
-        return typed.length() >= required.length()
-            && full.startsWith(typed)
-            && typed.startsWith(required);
+        return typed.length() >= required.length() && full.startsWith(typed) && typed.startsWith(required);
     }
 
     // --------------------------------------------------------------- go to
 
     /** {@code :42} -- the first non-blank of that line. */
-    private static void goToLine(Editor editor, VimState state, int number)
-        throws VimEx.BadCommand {
+    private static void goToLine(Editor editor, VimState state, int number) throws VimEx.BadCommand {
         // A bare address clamps both ways: :50 on three lines is the last
         // line and :0 the first. Only a command with a range refuses one
         // past the end -- :50d is E16. Both checked with nvim.
         final int lines = Math.max(1, editor.getBuffer().getLineCount());
-        final Line line =
-            VimEx.lineAt(editor, Math.max(1, Math.min(number, lines)));
+        final Line line = VimEx.lineAt(editor, Math.max(1, Math.min(number, lines)));
         if (line == null)
             throw new VimEx.BadCommand("E16: Invalid range");
         final Position from = editor.getDot();
@@ -628,8 +538,7 @@ public final class VimExCommands {
      * there is no such line and it ends at the last line's length instead,
      * which is the shape {@link VimOperators#deleteRange} already knows.
      */
-    static VimRange linesOf(Editor editor, VimEx.Range range)
-        throws VimEx.BadCommand {
+    static VimRange linesOf(Editor editor, VimEx.Range range) throws VimEx.BadCommand {
         // Line 0 means the first line to most commands, as in vim: :0d
         // deletes line 1. Below that is an error, and so is past the end.
         if (range.first < 0 || range.last < 0)
@@ -642,19 +551,11 @@ public final class VimExCommands {
     }
 
     /** {@code :d}, with the register it goes to if one was named. */
-    private static void delete(
-        Editor editor,
-        VimState state,
-        VimEx.Command command
-    ) throws VimEx.BadCommand {
+    private static void delete(Editor editor, VimState state, VimEx.Command command) throws VimEx.BadCommand {
         final VimRange range = linesOf(editor, countedRange(editor, command));
         registerFrom(state, command);
         VimRegisters.getInstance()
-            .deleted(
-                state.takePendingRegister(),
-                VimOperators.textOf(editor, range),
-                VimRegisters.Type.LINEWISE
-            );
+                .deleted(state.takePendingRegister(), VimOperators.textOf(editor, range), VimRegisters.Type.LINEWISE);
         // :d is a jump in vim, as :s is.
         final Position from = editor.getDot();
         if (from != null)
@@ -669,10 +570,7 @@ public final class VimExCommands {
             if (dot != null) {
                 final Position gap = new Position(dot.getLine(), 0);
                 state.getMarks().noteChange(editor.getBuffer(), gap, gap, gap);
-                editor.setDot(
-                    dot.getLine(),
-                    VimMotions.firstNonBlank(dot.getLine())
-                );
+                editor.setDot(dot.getLine(), VimMotions.firstNonBlank(dot.getLine()));
                 editor.moveCaretToDotCol();
             }
         }
@@ -683,26 +581,12 @@ public final class VimExCommands {
     }
 
     /** {@code :y} -- the same range, copied rather than taken. */
-    private static void yank(
-        Editor editor,
-        VimState state,
-        VimEx.Command command
-    ) throws VimEx.BadCommand {
+    private static void yank(Editor editor, VimState state, VimEx.Command command) throws VimEx.BadCommand {
         final VimRange range = linesOf(editor, countedRange(editor, command));
         registerFrom(state, command);
         VimRegisters.getInstance()
-            .yanked(
-                state.takePendingRegister(),
-                VimOperators.textOf(editor, range),
-                VimRegisters.Type.LINEWISE
-            );
-        state.getMarks()
-            .noteChange(
-                editor.getBuffer(),
-                range.start,
-                range.end,
-                null
-            );
+                .yanked(state.takePendingRegister(), VimOperators.textOf(editor, range), VimRegisters.Type.LINEWISE);
+        state.getMarks().noteChange(editor.getBuffer(), range.start, range.end, null);
     }
 
     /**
@@ -713,28 +597,19 @@ public final class VimExCommands {
      * many lines starting at its <em>last</em> one, so {@code :1,3d 2} deletes
      * lines 3 and 4.
      */
-    private static VimEx.Range countedRange(
-        Editor editor,
-        VimEx.Command command
-    ) {
+    private static VimEx.Range countedRange(Editor editor, VimEx.Command command) {
         final String count = trailingCount(command.args);
         if (count.isEmpty())
             return command.range;
         // Read as a long and clamped below: a count too big for an int is
         // still just "to the end", as vim takes it.
-        final long wanted = count.length() > 18
-            ? Long.MAX_VALUE
-            : Long.parseLong(count);
+        final long wanted = count.length() > 18 ? Long.MAX_VALUE : Long.parseLong(count);
         final int n = (int) Math.min(wanted, Integer.MAX_VALUE / 2);
         // A count past the end of the buffer clamps, where an address past
         // the end is an error. Vim really is asymmetric here: :1,3d 100 takes
         // what there is, and :100d takes nothing and complains.
         final int lines = Math.max(1, editor.getBuffer().getLineCount());
-        return new VimEx.Range(
-            command.range.last,
-            Math.min(command.range.last + n - 1, lines),
-            true
-        );
+        return new VimEx.Range(command.range.last, Math.min(command.range.last + n - 1, lines), true);
     }
 
     /**
@@ -754,22 +629,14 @@ public final class VimExCommands {
         // middle of a word are not a count. Spaces between the two do not
         // matter, so "a 2" is read the same as "a2".
         final String head = s.substring(0, i).trim();
-        if (
-            head.isEmpty()
-                || (head.length() == 1
-                    && VimRegisters.isValidName(head.charAt(0)))
-        )
+        if (head.isEmpty() || (head.length() == 1 && VimRegisters.isValidName(head.charAt(0))))
             return digits;
         return "";
     }
 
     private static void registerFrom(VimState state, VimEx.Command command) {
         final String s = command.args.trim();
-        if (
-            !s.isEmpty()
-                && !Character.isDigit(s.charAt(0))
-                && VimRegisters.isValidName(s.charAt(0))
-        )
+        if (!s.isEmpty() && !Character.isDigit(s.charAt(0)) && VimRegisters.isValidName(s.charAt(0)))
             state.setPendingRegister(s.charAt(0));
     }
 }

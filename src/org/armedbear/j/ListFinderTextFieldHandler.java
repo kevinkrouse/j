@@ -21,11 +21,10 @@ public final class ListFinderTextFieldHandler extends FinderTextFieldHandler {
     private List<FinderItem> items; // Made on start, or on the first Enter before it.
 
     public ListFinderTextFieldHandler(
-        Editor editor,
-        HistoryTextField textField,
-        String command,
-        Supplier<List<FinderItem>> supplier
-    ) {
+            Editor editor,
+            HistoryTextField textField,
+            String command,
+            Supplier<List<FinderItem>> supplier) {
         super(editor, textField);
         this.command = command;
         this.supplier = supplier;

@@ -251,8 +251,7 @@ public class Buffer extends SystemBuffer {
             if (Editor.getModeList().modeAccepts(IMAGE_MODE, file.getName()))
                 return new RemoteBuffer(file);
             if (Editor.preferences().getBooleanProperty(Property.ENABLE_WEB)) {
-                int modeId =
-                    Editor.getModeList().getModeIdForFileName(file.getName());
+                int modeId = Editor.getModeList().getModeIdForFileName(file.getName());
                 if (modeId < 0 || modeId == HTML_MODE)
                     return WebBuffer.createWebBuffer(file, null, null);
             }
@@ -302,13 +301,8 @@ public class Buffer extends SystemBuffer {
             } else
                 fileType = FILETYPE_BINARY; // Something went wrong.
         }
-        if (
-            fileType == FILETYPE_JPEG
-                ||
-                Editor.getModeList().modeAccepts(IMAGE_MODE, file.getName())
-        ) {
-            Buffer buffer =
-                ImageBuffer.createImageBuffer(file, cache, listing);
+        if (fileType == FILETYPE_JPEG || Editor.getModeList().modeAccepts(IMAGE_MODE, file.getName())) {
+            Buffer buffer = ImageBuffer.createImageBuffer(file, cache, listing);
             if (buffer != null) {
                 buffer.setFileType(fileType);
                 return buffer;
@@ -379,16 +373,14 @@ public class Buffer extends SystemBuffer {
         } else if (fileType == FILETYPE_BINARY) {
             readOnly = true;
         } else if (file != null) {
-            FileHistoryEntry entry =
-                FileHistory.getFileHistory().findEntry(file.netPath());
+            FileHistoryEntry entry = FileHistory.getFileHistory().findEntry(file.netPath());
             if (entry != null) {
                 // Set encoding.
                 final String encoding = entry.getEncoding();
                 if (encoding != null && Utilities.isSupportedEncoding(encoding))
                     file.setEncoding(encoding);
                 // Set mode.
-                mode =
-                    Editor.getModeList().getModeFromModeName(entry.getMode());
+                mode = Editor.getModeList().getModeFromModeName(entry.getMode());
                 if (mode == null)
                     mode = Editor.getModeList().getMode(PLAIN_TEXT_MODE);
                 else if (mode.getId() == BINARY_MODE)
@@ -400,11 +392,7 @@ public class Buffer extends SystemBuffer {
             }
         }
         if (file != null) {
-            if (
-                file.getProtocol() == File.PROTOCOL_HTTP
-                    ||
-                    file.getProtocol() == File.PROTOCOL_HTTPS
-            )
+            if (file.getProtocol() == File.PROTOCOL_HTTP || file.getProtocol() == File.PROTOCOL_HTTPS)
                 readOnly = true;
         }
         initialized = true;
@@ -453,11 +441,7 @@ public class Buffer extends SystemBuffer {
                             m = modeList.getMode(BINARY_MODE);
                     } else if (m == null) {
                         if (file != null) {
-                            if (
-                                file.getProtocol() == File.PROTOCOL_HTTP
-                                    ||
-                                    file.getProtocol() == File.PROTOCOL_HTTPS
-                            )
+                            if (file.getProtocol() == File.PROTOCOL_HTTP || file.getProtocol() == File.PROTOCOL_HTTPS)
                                 m = modeList.getMode(HTML_MODE);
                         }
                         if (m == null)
@@ -479,7 +463,7 @@ public class Buffer extends SystemBuffer {
         Mode mode = null;
         try {
             BufferedReader reader =
-                new BufferedReader(new InputStreamReader(file.getInputStream(), StandardCharsets.UTF_8));
+                    new BufferedReader(new InputStreamReader(file.getInputStream(), StandardCharsets.UTF_8));
             String s = reader.readLine();
             if (s != null) {
                 mode = grovelModeFromString(s);
@@ -798,7 +782,7 @@ public class Buffer extends SystemBuffer {
             File tempFile = Utilities.getTempFile();
             if (tempFile != null) {
                 try (InputStream in = new GZIPInputStream(f.getInputStream());
-                    OutputStream out = tempFile.getOutputStream()) {
+                     OutputStream out = tempFile.getOutputStream()) {
                     byte[] buf = new byte[4096];
                     int bytesRead;
                     while ((bytesRead = in.read(buf)) > 0)
@@ -1214,10 +1198,7 @@ public class Buffer extends SystemBuffer {
         deleteAutosaveFile();
         bufferList.remove(this);
         dispose();
-        Sidebar.setUpdateFlagInAllFrames(
-            SIDEBAR_BUFFER_LIST_CHANGED |
-                SIDEBAR_MODIFIED_BUFFER_COUNT
-        );
+        Sidebar.setUpdateFlagInAllFrames(SIDEBAR_BUFFER_LIST_CHANGED | SIDEBAR_MODIFIED_BUFFER_COUNT);
     }
 
     public synchronized void relink() {
@@ -1308,8 +1289,7 @@ public class Buffer extends SystemBuffer {
             if (name.endsWith(".gz"))
                 name = name.substring(0, name.length() - 3);
         }
-        return backedUp =
-            Utilities.makeBackup(cache, name, false);
+        return backedUp = Utilities.makeBackup(cache, name, false);
     }
 
     public boolean save() {
@@ -1440,16 +1420,14 @@ public class Buffer extends SystemBuffer {
         final Editor editor = Editor.currentEditor();
         // Do this before saving changes to cache!
         if (!maybeWriteBackupFromCache()) {
-            StringBuilder sb =
-                new StringBuilder("Unable to write backup file for ");
+            StringBuilder sb = new StringBuilder("Unable to write backup file for ");
             sb.append(file.getName());
             sb.append(". Save anyway?");
             if (!editor.confirm(dialogTitle, sb.toString()))
                 return false;
         }
         if (!saveToCache()) {
-            StringBuilder sb =
-                new StringBuilder("Unable to write temporary file for ");
+            StringBuilder sb = new StringBuilder("Unable to write temporary file for ");
             sb.append(file.getName());
             MessageDialog.showMessageDialog(sb.toString(), dialogTitle);
             return false;
@@ -1478,10 +1456,7 @@ public class Buffer extends SystemBuffer {
         if (tempFile == null)
             return false;
         try (InputStream in = new BufferedInputStream(source.getInputStream());
-            GZIPOutputStream out = new GZIPOutputStream(
-                new BufferedOutputStream(tempFile.getOutputStream()),
-                4096
-            )) {
+             GZIPOutputStream out = new GZIPOutputStream(new BufferedOutputStream(tempFile.getOutputStream()), 4096)) {
             in.transferTo(out);
         }
         catch (IOException e) {
@@ -1511,8 +1486,7 @@ public class Buffer extends SystemBuffer {
         // Do this before saving changes to cache!
         if (!maybeWriteBackupFromCache()) {
             editor.setDefaultCursor();
-            String message = "Unable to write backup file for " +
-                file.getName() + ". Save anyway?";
+            String message = "Unable to write backup file for " + file.getName() + ". Save anyway?";
             if (!editor.confirm("Save", message)) {
                 unlock();
                 session.unlock();
@@ -1524,8 +1498,7 @@ public class Buffer extends SystemBuffer {
             unlock();
             session.unlock();
             editor.setDefaultCursor();
-            String message = "Unable to write temporary file for " +
-                file.getName();
+            String message = "Unable to write temporary file for " + file.getName();
             MessageDialog.showMessageDialog(message, "Save");
             return false;
         }
@@ -1533,8 +1506,7 @@ public class Buffer extends SystemBuffer {
         if (compression != null && compression.getType() == COMPRESSION_GZIP) {
             final File tempFile = Utilities.getTempFile();
             if (!compress(cache, tempFile)) {
-                String message = "Unable to compress temporary file for " +
-                    file.getName();
+                String message = "Unable to compress temporary file for " + file.getName();
                 MessageDialog.showMessageDialog(message, "Save");
                 return false;
             }
@@ -1566,8 +1538,7 @@ public class Buffer extends SystemBuffer {
 
         // Do this before saving changes to cache!
         if (!maybeWriteBackupFromCache()) {
-            message = "Unable to write backup file for " + file.getName() +
-                ". Save anyway?";
+            message = "Unable to write backup file for " + file.getName() + ". Save anyway?";
             if (!editor.confirm(title, message))
                 return false;
         }
@@ -1583,8 +1554,7 @@ public class Buffer extends SystemBuffer {
         if (compression != null && compression.getType() == COMPRESSION_GZIP) {
             final File tempFile = Utilities.getTempFile();
             if (!compress(cache, tempFile)) {
-                message = "Unable to compress temporary file for " +
-                    file.getName();
+                message = "Unable to compress temporary file for " + file.getName();
                 MessageDialog.showMessageDialog(message, "Save");
                 return false;
             }
@@ -1627,8 +1597,7 @@ public class Buffer extends SystemBuffer {
         if (destination == null)
             return false;
         if (destination.isDirectory()) {
-            final String prompt =
-                destination.canonicalPath().concat(" is a directory");
+            final String prompt = destination.canonicalPath().concat(" is a directory");
             MessageDialog.showMessageDialog(prompt, "Save As");
             return false;
         }
@@ -1640,8 +1609,7 @@ public class Buffer extends SystemBuffer {
             lineSeparator = System.getProperty("line.separator");
         final File tempFile = Utilities.getTempFile(destination.getParent());
         if (tempFile == null) {
-            message = "Unable to create temporary file for " +
-                destination.canonicalPath();
+            message = "Unable to create temporary file for " + destination.canonicalPath();
         } else {
             tempFile.setEncoding(destination.getEncoding());
             if (writeFile(tempFile)) {
@@ -1652,21 +1620,16 @@ public class Buffer extends SystemBuffer {
                         succeeded = true;
                     } else {
                         Log.error(
-                            "unable to rename " +
-                                tempFile.canonicalPath() + " to " +
-                                destination.canonicalPath()
-                        );
+                            "unable to rename " + tempFile.canonicalPath() + " to " + destination.canonicalPath());
                         message = "Unable to rename temporary file";
                     }
                 } else {
                     Log.error("backup failed");
-                    message = "Unable to write backup file for " +
-                        destination.canonicalPath();
+                    message = "Unable to write backup file for " + destination.canonicalPath();
                 }
             } else {
                 Log.error("writeFile failed");
-                message = "Unable to create temporary file in " +
-                    tempFile.getParent();
+                message = "Unable to create temporary file in " + tempFile.getParent();
             }
         }
         setBusy(false);
@@ -1681,11 +1644,7 @@ public class Buffer extends SystemBuffer {
             if (encoding != null)
                 saveProperties(); // Remember encoding for next time.
             if (isTaggable())
-                Editor.getTagFileManager()
-                    .addToQueue(
-                        destination.getParentFile(),
-                        mode
-                    );
+                Editor.getTagFileManager().addToQueue(destination.getParentFile(), mode);
             Sidebar.setUpdateFlagInAllFrames(SIDEBAR_REPAINT_BUFFER_LIST);
         } else {
             // Tell user exactly what error occurred.
@@ -1704,10 +1663,7 @@ public class Buffer extends SystemBuffer {
         Debug.assertTrue(session.isLocked());
         if (!lock()) {
             session.unlock();
-            MessageDialog.showMessageDialog(
-                "Buffer is busy",
-                getFile().netPath()
-            );
+            MessageDialog.showMessageDialog("Buffer is busy", getFile().netPath());
             return;
         }
         final Editor editor = Editor.currentEditor();
@@ -1716,13 +1672,11 @@ public class Buffer extends SystemBuffer {
             unlock();
             session.unlock();
             editor.setDefaultCursor();
-            String message = "Unable to write temporary file for " +
-                destination.netPath();
+            String message = "Unable to write temporary file for " + destination.netPath();
             MessageDialog.showMessageDialog(message, "Save As");
             return;
         }
-        final FtpSaveProcess saveProcess =
-            new FtpSaveProcess(this, cache, destination, session);
+        final FtpSaveProcess saveProcess = new FtpSaveProcess(this, cache, destination, session);
         saveProcess.setConfirmOverwrite(true);
         saveProcess.setTitle("Save As");
         final Runnable successRunnable = () -> {
@@ -1757,8 +1711,7 @@ public class Buffer extends SystemBuffer {
             lineSeparator = System.getProperty("line.separator");
         File tempFile = Utilities.getTempFile(destination.getParent());
         if (tempFile == null) {
-            message = "Unable to create temporary file for " +
-                destination.canonicalPath();
+            message = "Unable to create temporary file for " + destination.canonicalPath();
         } else {
             tempFile.setEncoding(destination.getEncoding());
             if (writeFile(tempFile)) {
@@ -1769,21 +1722,16 @@ public class Buffer extends SystemBuffer {
                         succeeded = true;
                     } else {
                         Log.error(
-                            "unable to rename " +
-                                tempFile.canonicalPath() + " to " +
-                                destination.canonicalPath()
-                        );
+                            "unable to rename " + tempFile.canonicalPath() + " to " + destination.canonicalPath());
                         message = "Unable to rename temporary file";
                     }
                 } else {
                     Log.error("backup failed");
-                    message = "Unable to write backup file for " +
-                        destination.canonicalPath();
+                    message = "Unable to write backup file for " + destination.canonicalPath();
                 }
             } else {
                 Log.error("writeFile failed");
-                message = "Unable to create temporary file in " +
-                    tempFile.getParent();
+                message = "Unable to create temporary file in " + tempFile.getParent();
             }
         }
         if (succeeded) {
@@ -1825,8 +1773,7 @@ public class Buffer extends SystemBuffer {
             }
             Sidebar.repaintBufferListInAllFrames();
         };
-        final FtpSaveProcess saveProcess =
-            new FtpSaveProcess(this, cache, destination, session);
+        final FtpSaveProcess saveProcess = new FtpSaveProcess(this, cache, destination, session);
         saveProcess.setConfirmOverwrite(true);
         saveProcess.setTitle("Save Copy");
         saveProcess.setSuccessRunnable(successRunnable);
@@ -2558,8 +2505,7 @@ public class Buffer extends SystemBuffer {
 
     protected void enforceOutputLimit(Property property) {
         Debug.assertTrue(property != null);
-        final int outputLimit =
-            Editor.preferences().getIntegerProperty(property);
+        final int outputLimit = Editor.preferences().getIntegerProperty(property);
         if (outputLimit == 0 || lineCount <= outputLimit)
             return;
         try {
@@ -2749,8 +2695,7 @@ public class Buffer extends SystemBuffer {
     }
 
     public int getDisplayWidth() {
-        return Display.getGutterWidth(this) +
-            (getMaximumColumns() + 1) * Display.getCharWidth();
+        return Display.getGutterWidth(this) + (getMaximumColumns() + 1) * Display.getCharWidth();
     }
 
     private int maxCols = 0;
@@ -2860,8 +2805,7 @@ public class Buffer extends SystemBuffer {
         properties.setProperty(Property.INDENT_SIZE, indentSize);
     }
 
-    private static final Cursor textCursor =
-        Cursor.getPredefinedCursor(Cursor.TEXT_CURSOR);
+    private static final Cursor textCursor = Cursor.getPredefinedCursor(Cursor.TEXT_CURSOR);
 
     public Cursor getDefaultCursor() {
         return textCursor;
@@ -2980,12 +2924,7 @@ public class Buffer extends SystemBuffer {
     public static void checkVCSForAllBuffers(final Runnable whenDone) {
         final List<Buffer> pending = new ArrayList<>();
         for (Buffer buf : Editor.getBufferList()) {
-            if (
-                buf != null
-                    && !buf.isVCSChecked()
-                    && buf.getFile() != null
-                    && !buf.getFile().isRemote()
-            )
+            if (buf != null && !buf.isVCSChecked() && buf.getFile() != null && !buf.getFile().isRemote())
                 pending.add(buf);
         }
         if (pending.isEmpty())
