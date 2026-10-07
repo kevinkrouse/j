@@ -63,6 +63,7 @@ import org.armedbear.j.OutputBuffer;
 import org.armedbear.j.Platform;
 import org.armedbear.j.Position;
 import org.armedbear.j.Preferences;
+import org.armedbear.j.ProjectRoot;
 import org.armedbear.j.Property;
 import org.armedbear.j.RemoteBuffer;
 import org.armedbear.j.RemoteSession;
@@ -1993,7 +1994,8 @@ public final class DirectoryBuffer extends Buffer {
     // For the buffer list.
     @Override
     public final Icon getIcon() {
-        return Icons.getIconFromFile("directory");
+        // A project's root has the project's icon, as on the toolbar.
+        return Icons.getIconFromFile(ProjectRoot.isRoot(this, getFile()) ? "project" : "directory");
     }
 }
 

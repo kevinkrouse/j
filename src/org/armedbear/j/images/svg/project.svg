@@ -2,5 +2,5 @@
      color="#4A4E57" fill="none" stroke="currentColor" stroke-width="1"
      stroke-linecap="round" stroke-linejoin="round">
   <path d="M2.5 2.5h3l1.5 1.5h6.5a1 1 0 0 1 1 1v6.5a1 1 0 0 1-1 1h-11a1 1 0 0 1-1-1v-8a1 1 0 0 1 1-1z"/>
-  <path d="M6 7l-1.5 1.5 1.5 1.5M10 7l1.5 1.5-1.5 1.5M8.75 6.5l-1.5 4"/>
+  <path d="M7 6.75l-1.5 1.75 1.5 1.75M9 6.75l1.5 1.75-1.5 1.75"/>
 </svg>

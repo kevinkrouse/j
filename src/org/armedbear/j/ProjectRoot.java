@@ -12,6 +12,8 @@
 package org.armedbear.j;
 
 import java.nio.file.Path;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import org.armedbear.j.util.Utilities;
 import org.armedbear.j.vcs.VcsBackend;
 import org.armedbear.j.vcs.VcsBackends;
@@ -37,6 +39,31 @@ public final class ProjectRoot {
             return null;
         File dir = file.isDirectory() ? file : file.getParentFile();
         return find(dir, buffer.getStringProperty(Property.PROJECT_ROOT), File.getInstance(Utilities.getUserHome()));
+    }
+
+    // Asked on every repaint of the buffer list: by directory path.
+    private static final Map<String, Boolean> rootCache = new ConcurrentHashMap<>();
+
+    /**
+     * Whether dir is a project's root in its own right: the projectRoot
+     * property names it, or it's the root found by its .j-project directory or
+     * version control; not a directory that's its own project only for want of
+     * those.
+     */
+    public static boolean isRoot(Buffer buffer, File dir) {
+        if (dir == null || !dir.isLocal())
+            return false;
+        String configured = buffer.getStringProperty(Property.PROJECT_ROOT);
+        String key = dir.canonicalPath() + '\0' + (configured == null ? "" : configured);
+        return rootCache.computeIfAbsent(key, k -> {
+            File root = find(dir, configured, File.getInstance(Utilities.getUserHome()));
+            if (root == null || !root.equals(dir))
+                return false;
+            if (configured != null && !configured.isBlank())
+                return true;
+            File marker = File.getInstance(dir, MARKER);
+            return (marker != null && marker.isDirectory()) || isVcsRoot(dir);
+        });
     }
 
     /** dir's project root; configured wins if it's an absolute path to a directory. */
