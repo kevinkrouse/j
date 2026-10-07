@@ -101,7 +101,7 @@ public final class Startup {
                     restoreSession = false;
                     continue;
                 }
-                if (arg.equals("-session")) {
+                if (arg.equals("--session")) {
                     if (i < args.length - 1)
                         Editor.setSessionName(args[++i]);
                     continue;
@@ -295,6 +295,7 @@ public final class Startup {
         System.out.println("  -d, --debug");
         System.out.println("  -n, --no-restore");
         System.out.println("  -version");
+        System.out.println("  --session name");
         System.out.println("  --force-new-instance");
         System.out.println("  --no-session");
         System.out.println("  --no-server");

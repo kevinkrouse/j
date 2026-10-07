@@ -55,6 +55,7 @@ import org.armedbear.j.mode.list.ListTagsDialog;
 import org.armedbear.j.mode.list.ListTagsMode;
 import org.armedbear.j.mode.man.ManMode;
 import org.armedbear.j.mode.markdown.MarkdownFolding;
+import org.armedbear.j.mode.markdown.MarkdownLists;
 import org.armedbear.j.mode.markdown.MarkdownTasks;
 import org.armedbear.j.mode.php.PHPMode;
 import org.armedbear.j.mode.web.WebBuffer;
@@ -462,6 +463,10 @@ public class CommandTable {
             add("makeTagFile", e -> TagCommands.makeTagFile());
             add("man", e -> ManMode.man(), (e, s) -> ManMode.man(s));
             add("manFollowLink", e -> ManMode.manFollowLink());
+            add("markdownBackspace", MarkdownLists::backspace);
+            add("markdownNewline", MarkdownLists::newline);
+            add("markdownShiftTab", MarkdownLists::shiftTab);
+            add("markdownTab", MarkdownLists::tab);
             add("markSexp", e -> LispMode.markSexp());
             add("mouseCopyToInput", e -> LispShellMode.mouseCopyToInput());
             add("mouseFindOccurrence", e -> ListOccurrencesBuffer.mouseFindOccurrence());

@@ -67,6 +67,18 @@ hides nothing:
     MarkdownMode.conceal = markup, headings
 </pre>
 
+<h2>Lists</h2>
+<p>
+Enter on a list item starts the next one, with the same marker, numbered on
+for a numbered list, and with an empty box after a task. Enter on an empty
+item takes its marker away, ending the list.
+<p>
+Tab and Shift+Tab shift a list item, or the lines of a selection, right or
+left by the indent size. Backspace straight after an empty item's marker
+takes the marker away, leaving the caret under the text of the item above;
+Backspace again in the blank line steps back to that item's level, then to
+the levels of the items it is under.
+
 <h2>Tasks</h2>
 <p>
 A task is a list item that begins with a box. The box shows the task's
@@ -173,6 +185,10 @@ The following commands are specifically relevant in Markdown mode:
 <li><a href="commands.html#followLink">followLink</a></li>
 <li><a href="commands.html#followLinkOrTask">followLinkOrTask</a></li>
 <li><a href="commands.html#listStyles">listStyles</a></li>
+<li><a href="commands.html#markdownBackspace">markdownBackspace</a></li>
+<li><a href="commands.html#markdownNewline">markdownNewline</a></li>
+<li><a href="commands.html#markdownShiftTab">markdownShiftTab</a></li>
+<li><a href="commands.html#markdownTab">markdownTab</a></li>
 <li><a href="commands.html#task">task</a></li>
 <li><a href="commands.html#toggleFold">toggleFold</a></li>
 <li><a href="commands.html#unfoldHere">unfoldHere</a></li>

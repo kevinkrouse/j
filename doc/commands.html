@@ -237,6 +237,10 @@ The mail and news commands come from the <code>mail</code>
     <li><a href="commands.html#makeTagFile">makeTagFile</a></li>
     <li><a href="commands.html#man">man</a></li>
     <li><a href="commands.html#manFollowLink">manFollowLink</a></li>
+    <li><a href="commands.html#markdownBackspace">markdownBackspace</a></li>
+    <li><a href="commands.html#markdownNewline">markdownNewline</a></li>
+    <li><a href="commands.html#markdownShiftTab">markdownShiftTab</a></li>
+    <li><a href="commands.html#markdownTab">markdownTab</a></li>
     <li><a href="commands.html#markSexp">markSexp</a></li>
     <li><a href="commands.html#messageDelete">messageDelete</a></li>
     <li><a href="commands.html#messageFlag">messageFlag</a></li>
@@ -3396,6 +3400,48 @@ Invokes <a href="#man">man</a> on the cross reference at the location of the
 caret or mouse click.
 <p>
 <b>Default key mapping:</b> Enter, Ctrl Shift G, Double Mouse-1, or Mouse-2 in Man mode
+<br><br>
+</dl><!--<hr>-->
+
+<a name="markdownBackspace">markdownBackspace</a><dl><dd>
+<p>
+In Markdown mode, <a href="#backspace">backspace</a>, except at the end of
+an empty list item, where it takes the marker away and leaves the caret
+under the text of the item above, and in a blank line's indentation under
+a list item, where it steps back to that item's text, then its level, then
+the levels of the items it is under.
+<br><br>
+<b>Default key mapping:</b> Backspace (Markdown mode)
+<br><br>
+</dl><!--<hr>-->
+
+<a name="markdownNewline">markdownNewline</a><dl><dd>
+<p>
+In Markdown mode, on a list item, starts the next item: the same marker,
+numbered on, with an empty box if the item has a box. On an empty item it
+takes the marker away instead, ending the list. Elsewhere it is
+<a href="#newlineAndIndent">newlineAndIndent</a>.
+<br><br>
+<b>Default key mapping:</b> Enter (Markdown mode)
+<br><br>
+</dl><!--<hr>-->
+
+<a name="markdownShiftTab">markdownShiftTab</a><dl><dd>
+<p>
+In Markdown mode, the inverse of <a href="#markdownTab">markdownTab</a>:
+shifts the line, or the lines of a selection, left by the indent size.
+<br><br>
+<b>Default key mapping:</b> Shift+Tab (Markdown mode)
+<br><br>
+</dl><!--<hr>-->
+
+<a name="markdownTab">markdownTab</a><dl><dd>
+<p>
+In Markdown mode, shifts a list item, a line with the caret in its
+indentation, or the lines of a selection, right by the indent size. In the
+text of a line that isn't a list item it inserts a tab.
+<br><br>
+<b>Default key mapping:</b> Tab (Markdown mode)
 <br><br>
 </dl><!--<hr>-->
 

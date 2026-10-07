@@ -116,6 +116,12 @@ public final class MarkdownMode extends AbstractMode implements Mode {
     @Override
     protected void setKeyMapDefaults(KeyMap km) {
         km.mapKey(KeyEvent.VK_F12, CTRL_MASK | SHIFT_MASK, "wrapParagraphsInRegion");
+        // Lists: see MarkdownLists.
+        km.mapKey(KeyEvent.VK_TAB, 0, "markdownTab");
+        km.mapKey(KeyEvent.VK_TAB, SHIFT_MASK, "markdownShiftTab");
+        km.mapKey(KeyEvent.VK_TAB, CTRL_MASK, "insertTab");
+        km.mapKey(KeyEvent.VK_ENTER, 0, "markdownNewline");
+        km.mapKey(KeyEvent.VK_BACK_SPACE, 0, "markdownBackspace");
         km.mapKey(KeyEvent.VK_ENTER, CTRL_MASK, "followLinkOrTask");
         // Tasks alone, VS Code's Markdown All in One's key and one beside
         // Ctrl+Enter's.
