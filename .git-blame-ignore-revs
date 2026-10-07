@@ -136,3 +136,6 @@ b7d649a1d8d30b47817d4999116823a12bc98232
 
 # reformat: ToolBarIcon
 1fd5b53804a06fd53a4d93a1d625a6c10c2c255a
+
+# reformat: this branch's files, with the new jfmt settings
+d2ec3a3931b29277b732f31b83eb05eda42df159
