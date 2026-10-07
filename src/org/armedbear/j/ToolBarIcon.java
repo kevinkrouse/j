@@ -20,8 +20,7 @@
 
 package org.armedbear.j;
 
-public enum ToolBarIcon
-{
+public enum ToolBarIcon {
     ICON_BACK("left"),
     ICON_CLOSE("close"),
     ICON_COPY("copy"),
@@ -56,13 +55,11 @@ public enum ToolBarIcon
 
     private String _filename;
 
-    ToolBarIcon(String filename)
-    {
+    ToolBarIcon(String filename) {
         _filename = filename;
     }
-    
-    public String getFile()
-    {
+
+    public String getFile() {
         return _filename;
     }
 }
